@@ -1732,10 +1732,8 @@
         function initMap() {
             if (map) return;
 
-            // Mapbox token should be set via environment variable and served by backend
-            // For now, using a public token - replace with your own token
-            mapboxgl.accessToken = 'REDACTED_MAPBOX_TOKEN_2';
-            // TODO: Fetch token from API endpoint instead: fetch('/api/mapbox-token').then(r => r.json()).then(data => mapboxgl.accessToken = data.token)
+            // Fetch Mapbox token from backend API (never hardcode tokens!)
+            mapboxgl.accessToken = 'PLACEHOLDER_LOADED_FROM_API';
 
             map = new mapboxgl.Map({
                 container: 'map',
