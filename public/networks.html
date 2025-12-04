@@ -608,6 +608,7 @@
                     📡 All Networks
                     <span class="panel-count" id="network-count">Loading...</span>
                     <span class="network-count-info" id="network-count-info"></span>
+                    <button id="show-on-map-btn" style="margin-left: 12px; padding: 6px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; color: #60a5fa; font-size: 11px; font-weight: 600; cursor: pointer; display: none;" onclick="showSelectedOnMap()">🗺️ Show <span id="selected-count">0</span> on Map</button>
                     <span style="font-size: 10px; color: #94a3b8; margin-left: 12px;">💡 Click headers to sort • Shift+Click for multi-column</span>
                     <div id="column-selector-container"></div>
                 </div>
@@ -641,11 +642,11 @@
         // Advanced Network Table Configuration (matches geospatial.html)
         const NETWORK_COLUMNS = {
             select: {
-                label: '☑',
+                label: '<input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll()" style="cursor:pointer">',
                 width: '40px',
                 sortable: false,
                 default: true,
-                format: (val, network) => `<input type="checkbox" class="network-checkbox" data-bssid="${network.bssid}" onclick="event.stopPropagation()">`
+                format: (val, network) => `<input type="checkbox" class="network-checkbox" data-bssid="${network.bssid}" onchange="updateSelectionCount()" onclick="event.stopPropagation()">`
             },
             type: {
                 label: 'Type',
@@ -685,7 +686,14 @@
                 width: '100px',
                 sortable: true,
                 default: true,
-                format: (val) => val !== null && val !== undefined ? `${val} dBm` : 'N/A',
+                format: (val) => {
+                    if (val === null || val === undefined) return 'N/A';
+                    let color = '#6b7280'; // gray default
+                    if (val >= -50) color = '#10b981'; // green - strong
+                    else if (val >= -70) color = '#f59e0b'; // orange - medium
+                    else color = '#ef4444'; // red - weak
+                    return `<span style="color:${color};font-weight:600">${val} dBm</span>`;
+                },
                 sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : -999
             },
             security: {
@@ -1317,6 +1325,34 @@
             loadNetworks();
             setupInfiniteScroll();
         });
+        
+        // Selection functions
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('select-all-checkbox');
+            const checkboxes = document.querySelectorAll('.network-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectionCount();
+        }
+        
+        function updateSelectionCount() {
+            const checked = document.querySelectorAll('.network-checkbox:checked').length;
+            const countSpan = document.getElementById('selected-count');
+            const mapBtn = document.getElementById('show-on-map-btn');
+            if (countSpan) countSpan.textContent = checked;
+            if (mapBtn) mapBtn.style.display = checked > 0 ? 'inline-block' : 'none';
+        }
+        
+        function showSelectedOnMap() {
+            const selected = Array.from(document.querySelectorAll('.network-checkbox:checked'))
+                .map(cb => cb.dataset.bssid);
+            if (selected.length === 0) return;
+            
+            // Store selected BSSIDs in sessionStorage
+            sessionStorage.setItem('selectedNetworks', JSON.stringify(selected));
+            
+            // Navigate to geospatial page
+            window.location.href = '/geospatial.html?selected=' + encodeURIComponent(selected.join(','));
+        }
     </script>
 </body>
 </html>
