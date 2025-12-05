@@ -10,7 +10,7 @@ const config = {
   host: '127.0.0.1',
   port: 5432,
   database: 'shadowcheck',
-  connectionTimeoutMillis: 5000
+  connectionTimeoutMillis: 5000,
 };
 
 console.log('Testing with IPv4 first...');

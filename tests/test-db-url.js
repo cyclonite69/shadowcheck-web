@@ -9,7 +9,7 @@ async function testConnectionURL() {
   const client = new Client({
     connectionString,
     connectionTimeoutMillis: 10000,
-    ssl: false
+    ssl: false,
   });
 
   try {

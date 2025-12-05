@@ -477,6 +477,11 @@
             background: rgba(59, 130, 246, 0.1);
         }
 
+        .network-table tbody tr.selected {
+            background: rgba(59, 130, 246, 0.3) !important;
+            border-left: 3px solid #3b82f6;
+        }
+
         .network-table td.mono {
             font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
         }
@@ -589,6 +594,9 @@
                     <span>Online</span>
                 </div>
                 <div class="controls">
+                    <span style="font-size: 11px; color: #94a3b8; margin-right: 8px;">
+                        💡 Ctrl+Click: Multi-select | Shift+Click: Range
+                    </span>
                     <input type="search" id="search-input" placeholder="Search SSID or BSSID...">
                     <select id="threat-filter" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: 12px;">
                         <option value="">All Threats</option>
@@ -596,7 +604,6 @@
                         <option value="warning">🟡 Warnings Only</option>
                         <option value="safe">🟢 Safe Only</option>
                     </select>
-                    <button id="refresh-btn">🔄 Refresh</button>
                 </div>
             </div>
         </div>
@@ -609,7 +616,6 @@
                     <span class="panel-count" id="network-count">Loading...</span>
                     <span class="network-count-info" id="network-count-info"></span>
                     <button id="show-on-map-btn" style="margin-left: 12px; padding: 6px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; color: #60a5fa; font-size: 11px; font-weight: 600; cursor: pointer; display: none;" onclick="showSelectedOnMap()">🗺️ Show <span id="selected-count">0</span> on Map</button>
-                    <span style="font-size: 10px; color: #94a3b8; margin-left: 12px;">💡 Click headers to sort • Shift+Click for multi-column</span>
                     <div id="column-selector-container"></div>
                 </div>
                 <div class="panel-content">
@@ -1086,39 +1092,37 @@
 
                 const tr = document.createElement('tr');
                 tr.dataset.bssid = network.bssid;
+                tr.style.cursor = 'pointer';
 
-                // Add hover tooltip
-                let tooltip = null;
-                tr.addEventListener('mouseenter', (e) => {
-                    tooltip = document.createElement('div');
-                    tooltip.className = 'network-tooltip';
-                    tooltip.innerHTML = generateNetworkTooltip(network);
-                    tooltip.style.position = 'fixed';
-                    tooltip.style.left = (e.clientX + 10) + 'px';
-                    tooltip.style.top = (e.clientY + 10) + 'px';
-                    tooltip.style.zIndex = '10000';
-                    document.body.appendChild(tooltip);
-                });
+                // Multi-select click handler
+                tr.addEventListener('click', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        // Multi-select with Ctrl/Cmd
+                        tr.classList.toggle('selected');
+                    } else if (e.shiftKey && window.lastSelectedRow) {
+                        // Range select with Shift
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        const start = rows.indexOf(window.lastSelectedRow);
+                        const end = rows.indexOf(tr);
+                        const [min, max] = [Math.min(start, end), Math.max(start, end)];
+                        rows.slice(min, max + 1).forEach(r => r.classList.add('selected'));
+                    } else {
+                        // Single select
+                        tbody.querySelectorAll('tr.selected').forEach(r => r.classList.remove('selected'));
+                        tr.classList.add('selected');
+                    }
+                    window.lastSelectedRow = tr;
 
-                tr.addEventListener('mousemove', (e) => {
-                    if (tooltip) {
-                        tooltip.style.left = (e.clientX + 10) + 'px';
-                        tooltip.style.top = (e.clientY + 10) + 'px';
+                    // Call onRowClick with all selected networks
+                    if (onRowClick) {
+                        const selectedBssids = Array.from(tbody.querySelectorAll('tr.selected'))
+                            .map(r => r.dataset.bssid);
+                        const selectedNetworks = networkTable.networks.filter(n => 
+                            selectedBssids.includes(n.bssid)
+                        );
+                        onRowClick(selectedNetworks);
                     }
                 });
-
-                tr.addEventListener('mouseleave', () => {
-                    if (tooltip) {
-                        tooltip.remove();
-                        tooltip = null;
-                    }
-                });
-
-                // Add click handler if provided
-                if (onRowClick) {
-                    tr.style.cursor = 'pointer';
-                    tr.onclick = () => onRowClick(network);
-                }
 
                 networkTable.visibleColumns.forEach((colKey, index) => {
                     const col = NETWORK_COLUMNS[colKey];
@@ -1251,7 +1255,17 @@
                 }
                 
                 networkTable.renderColumnSelector('column-selector-container');
-                renderNetworkTable('networks-table', null, append); // Pass append to render
+                
+                // Handler to show selected networks on geospatial map
+                const handleRowClick = (selectedNetworks) => {
+                    if (selectedNetworks && selectedNetworks.length > 0) {
+                        const bssids = selectedNetworks.map(n => n.bssid);
+                        sessionStorage.setItem('selectedNetworks', JSON.stringify(bssids));
+                        window.location.href = '/geospatial.html?selected=' + encodeURIComponent(bssids.join(','));
+                    }
+                };
+                
+                renderNetworkTable('networks-table', handleRowClick, append);
                 console.log('✅ Networks rendered successfully');
             } catch (error) {
                 console.error('✗ Error loading networks:', error);
@@ -1280,13 +1294,6 @@
                 networkTable.setThreatFilter(e.target.value);
                 renderNetworkTable();
             }
-        });
-
-        // Refresh button
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            loadNetworks();
-            document.getElementById('search-input').value = '';
-            document.getElementById('threat-filter').value = '';
         });
 
         // Setup infinite scroll

@@ -72,12 +72,12 @@ router.get('/quick', async (req, res) => {
         firstSeen: row.first_seen,
         lastSeen: row.last_seen,
         distanceRangeKm: parseFloat(row.distance_range_km).toFixed(2),
-        threatScore: parseInt(row.threat_score)
+        threatScore: parseInt(row.threat_score),
       })),
       total: totalCount,
       page,
       limit,
-      totalPages: Math.ceil(totalCount / limit)
+      totalPages: Math.ceil(totalCount / limit),
     });
   } catch (error) {
     console.error('Threat detection error:', error);

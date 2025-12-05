@@ -15,7 +15,7 @@ if (!MAPBOX_TOKEN) {
 async function geocodeAddress(address) {
   const encoded = encodeURIComponent(address);
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&permanent=true&limit=1`;
-  
+
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let data = '';
@@ -47,7 +47,7 @@ async function main() {
   const input = fs.readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
-  
+
   const addresses = lines.slice(1).filter(l => l.trim()).map(line => {
     const values = line.split(',');
     const obj = {};
@@ -61,17 +61,17 @@ async function main() {
   }
 
   console.log(`📍 Geocoding ${addresses.length} addresses to WiGLE format...`);
-  
+
   const wigleHeaders = 'MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type';
   const wigleLines = [wigleHeaders];
-  
+
   for (let i = 0; i < addresses.length; i++) {
     const addr = addresses[i];
     console.log(`[${i + 1}/${addresses.length}] Geocoding: ${addr.address}`);
-    
+
     try {
       const geo = await geocodeAddress(addr.address);
-      
+
       // WiGLE format: MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type
       const wigleLine = [
         addr.mac || '00:00:00:00:00:00',
@@ -84,18 +84,18 @@ async function main() {
         geo.lon || '0.0',
         addr.altitude || '0',
         addr.accuracy || '10',
-        addr.type || 'WIFI'
+        addr.type || 'WIFI',
       ].join(',');
-      
+
       wigleLines.push(wigleLine);
       await new Promise(r => setTimeout(r, DELAY_MS));
     } catch (err) {
       console.error(`  ✗ Error: ${err.message}`);
     }
   }
-  
+
   fs.writeFileSync(OUTPUT_FILE, wigleLines.join('\n'));
-  
+
   console.log(`\n✓ Complete: ${wigleLines.length - 1} records`);
   console.log(`✓ Output: ${OUTPUT_FILE}`);
 }

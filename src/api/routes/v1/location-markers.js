@@ -19,7 +19,7 @@ module.exports = (query) => {
 
       res.json({
         ok: true,
-        markers: result.rows
+        markers: result.rows,
       });
     } catch (err) {
       next(err);
@@ -32,9 +32,9 @@ module.exports = (query) => {
       const { latitude, longitude } = req.body;
 
       if (!latitude || !longitude) {
-        return res.status(400).json({ 
-          ok: false, 
-          error: 'Latitude and longitude are required' 
+        return res.status(400).json({
+          ok: false,
+          error: 'Latitude and longitude are required',
         });
       }
 
@@ -42,21 +42,21 @@ module.exports = (query) => {
       const lng = parseFloat(longitude);
 
       if (isNaN(lat) || isNaN(lng)) {
-        return res.status(400).json({ 
-          ok: false, 
-          error: 'Invalid coordinates' 
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid coordinates',
         });
       }
 
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        return res.status(400).json({ 
-          ok: false, 
-          error: 'Coordinates out of range' 
+        return res.status(400).json({
+          ok: false,
+          error: 'Coordinates out of range',
         });
       }
 
       // Delete existing home marker
-      await query(`DELETE FROM app.location_markers WHERE marker_type = 'home'`);
+      await query('DELETE FROM app.location_markers WHERE marker_type = \'home\'');
 
       // Insert new home marker
       const result = await query(`
@@ -72,7 +72,7 @@ module.exports = (query) => {
 
       res.json({
         ok: true,
-        marker: result.rows[0]
+        marker: result.rows[0],
       });
     } catch (err) {
       next(err);
@@ -82,7 +82,7 @@ module.exports = (query) => {
   // Delete home location
   router.delete('/home', async (req, res, next) => {
     try {
-      await query(`DELETE FROM app.location_markers WHERE marker_type = 'home'`);
+      await query('DELETE FROM app.location_markers WHERE marker_type = \'home\'');
       res.json({ ok: true });
     } catch (err) {
       next(err);

@@ -17,7 +17,7 @@ if (!MAPBOX_TOKEN) {
 async function geocodeAddress(address) {
   const encoded = encodeURIComponent(address);
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&permanent=true&limit=1`;
-  
+
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let data = '';
@@ -48,7 +48,7 @@ async function main() {
   const input = fs.readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
-  
+
   const addresses = lines.slice(1).map(line => {
     const values = line.split(',');
     const obj = {};
@@ -58,31 +58,31 @@ async function main() {
 
   const total = Math.min(addresses.length, PER_MINUTE * MINUTES);
   console.log(`📍 Geocoding ${total} addresses (${PER_MINUTE}/min for ${MINUTES} min)...`);
-  
+
   const results = [];
   const startTime = Date.now();
-  
+
   for (let min = 0; min < MINUTES; min++) {
     const start = min * PER_MINUTE;
     const end = Math.min(start + PER_MINUTE, total);
-    if (start >= addresses.length) break;
-    
+    if (start >= addresses.length) {break;}
+
     console.log(`\n⏱️  Minute ${min + 1}/${MINUTES} - Processing ${start}-${end}...`);
-    
+
     for (let i = start; i < end && i < addresses.length; i++) {
       const addr = addresses[i];
-      
+
       try {
         const geo = await geocodeAddress(addr.address);
         results.push({ ...addr, ...geo });
-        if ((i + 1) % 100 === 0) console.log(`  ✓ ${i + 1}/${total}`);
+        if ((i + 1) % 100 === 0) {console.log(`  ✓ ${i + 1}/${total}`);}
         await new Promise(r => setTimeout(r, DELAY_MS));
       } catch (err) {
         results.push({ ...addr, lat: null, lon: null, full_address: null });
       }
     }
   }
-  
+
   const outputHeaders = [...headers, 'latitude', 'longitude', 'geocoded_address'];
   const outputLines = [
     outputHeaders.join(','),
@@ -90,12 +90,12 @@ async function main() {
       ...headers.map(h => r[h] || ''),
       r.lat || '',
       r.lon || '',
-      r.full_address ? `"${r.full_address}"` : ''
-    ].join(','))
+      r.full_address ? `"${r.full_address}"` : '',
+    ].join(',')),
   ];
-  
+
   fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
-  
+
   const success = results.filter(r => r.lat !== null).length;
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
   console.log(`\n✓ Complete: ${success}/${results.length} geocoded in ${elapsed} min`);

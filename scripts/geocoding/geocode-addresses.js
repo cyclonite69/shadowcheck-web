@@ -16,7 +16,7 @@ if (!MAPBOX_TOKEN) {
 async function geocodeAddress(address) {
   const encoded = encodeURIComponent(address);
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&permanent=true&limit=1`;
-  
+
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let data = '';
@@ -43,7 +43,7 @@ async function processBatch(addresses) {
   for (let i = 0; i < addresses.length; i++) {
     const addr = addresses[i];
     console.log(`[${i + 1}/${addresses.length}] Geocoding: ${addr.address}`);
-    
+
     try {
       const geo = await geocodeAddress(addr.address);
       results.push({ ...addr, ...geo });
@@ -65,7 +65,7 @@ async function main() {
   const input = fs.readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
-  
+
   const addresses = lines.slice(1).map(line => {
     const values = line.split(',');
     const obj = {};
@@ -74,9 +74,9 @@ async function main() {
   });
 
   console.log(`📍 Geocoding ${addresses.length} addresses...`);
-  
+
   const results = await processBatch(addresses);
-  
+
   const outputHeaders = [...headers, 'latitude', 'longitude', 'geocoded_address'];
   const outputLines = [
     outputHeaders.join(','),
@@ -84,12 +84,12 @@ async function main() {
       ...headers.map(h => r[h] || ''),
       r.lat || '',
       r.lon || '',
-      r.full_address ? `"${r.full_address}"` : ''
-    ].join(','))
+      r.full_address ? `"${r.full_address}"` : '',
+    ].join(',')),
   ];
-  
+
   fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
-  
+
   const success = results.filter(r => r.lat !== null).length;
   console.log(`\n✓ Complete: ${success}/${addresses.length} geocoded`);
   console.log(`✓ Output: ${OUTPUT_FILE}`);

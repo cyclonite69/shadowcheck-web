@@ -6,7 +6,7 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT
+  port: process.env.DB_PORT,
 });
 
 // Generate Overpass Turbo queries for visualization
@@ -31,30 +31,30 @@ async function generateQueries() {
   console.log('🗺️  Top 10 Network Hotspots - Overpass Turbo Queries\n');
   console.log('Copy these queries to: https://overpass-turbo.eu/\n');
   console.log('═══════════════════════════════════════════════════════════\n');
-  
+
   result.rows.forEach((row, i) => {
     console.log(`${i + 1}. Location: ${row.lat}, ${row.lon}`);
     console.log(`   Networks: ${row.network_count}`);
     console.log(`   Categories: ${row.categories?.join(', ') || 'unknown'}`);
     console.log(`   Devices: ${row.devices?.join(', ') || 'unknown'}`);
-    console.log(`\n   Overpass Query:`);
-    console.log(`   ───────────────────────────────────────────────────────`);
-    console.log(`   [out:json][timeout:25];`);
-    console.log(`   (`);
+    console.log('\n   Overpass Query:');
+    console.log('   ───────────────────────────────────────────────────────');
+    console.log('   [out:json][timeout:25];');
+    console.log('   (');
     console.log(`     node(around:100,${row.lat},${row.lon})[amenity];`);
     console.log(`     node(around:100,${row.lat},${row.lon})[shop];`);
     console.log(`     node(around:100,${row.lat},${row.lon})[tourism];`);
     console.log(`     way(around:100,${row.lat},${row.lon})[amenity];`);
     console.log(`     way(around:100,${row.lat},${row.lon})[shop];`);
     console.log(`     way(around:100,${row.lat},${row.lon})[building][name];`);
-    console.log(`   );`);
-    console.log(`   out body;`);
-    console.log(`   >;`);
-    console.log(`   out skel qt;`);
+    console.log('   );');
+    console.log('   out body;');
+    console.log('   >;');
+    console.log('   out skel qt;');
     console.log(`\n   Direct link: https://overpass-turbo.eu/?Q=[out:json][timeout:25];(node(around:100,${row.lat},${row.lon})[amenity];way(around:100,${row.lat},${row.lon})[shop];);out;&C=${row.lat};${row.lon};15`);
-    console.log(`\n═══════════════════════════════════════════════════════════\n`);
+    console.log('\n═══════════════════════════════════════════════════════════\n');
   });
-  
+
   await pool.end();
 }
 

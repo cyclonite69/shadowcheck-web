@@ -7,7 +7,7 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT
+  port: process.env.DB_PORT,
 });
 
 const CONCURRENT = 5; // Process 5 addresses at once
@@ -17,7 +17,7 @@ const APIs = {
   overpass: async (lat, lon) => {
     const query = `[out:json];(node(around:50,${lat},${lon})[name];way(around:50,${lat},${lon})[name];);out body 1;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-    
+
     return new Promise((resolve) => {
       https.get(url, (res) => {
         let data = '';
@@ -31,7 +31,7 @@ const APIs = {
                 name: poi.tags?.name,
                 category: poi.tags?.amenity || poi.tags?.shop || poi.tags?.building,
                 brand: poi.tags?.brand,
-                source: 'overpass'
+                source: 'overpass',
               });
             } else {
               resolve(null);
@@ -57,7 +57,7 @@ const APIs = {
               resolve({
                 name: json.display_name.split(',')[0],
                 category: json.type,
-                source: 'nominatim'
+                source: 'nominatim',
               });
             } else {
               resolve(null);
@@ -72,8 +72,8 @@ const APIs = {
 
   locationiq: async (lat, lon) => {
     const key = process.env.LOCATIONIQ_API_KEY;
-    if (!key) return null;
-    
+    if (!key) {return null;}
+
     const url = `https://us1.locationiq.com/v1/reverse.php?key=${key}&lat=${lat}&lon=${lon}&format=json`;
     return new Promise((resolve) => {
       https.get(url, (res) => {
@@ -85,7 +85,7 @@ const APIs = {
             resolve({
               name: json.display_name?.split(',')[0],
               category: json.type,
-              source: 'locationiq'
+              source: 'locationiq',
             });
           } catch (e) {
             resolve(null);
@@ -97,8 +97,8 @@ const APIs = {
 
   opencage: async (lat, lon) => {
     const key = process.env.OPENCAGE_API_KEY;
-    if (!key) return null;
-    
+    if (!key) {return null;}
+
     const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=${key}&limit=1`;
     return new Promise((resolve) => {
       https.get(url, (res) => {
@@ -112,7 +112,7 @@ const APIs = {
               resolve({
                 name: result.components?.building || result.components?.shop || result.formatted?.split(',')[0],
                 category: result.components?._category,
-                source: 'opencage'
+                source: 'opencage',
               });
             } else {
               resolve(null);
@@ -123,7 +123,7 @@ const APIs = {
         });
       }).on('error', () => resolve(null));
     });
-  }
+  },
 };
 
 async function enrichAddress(lat, lon) {
@@ -132,16 +132,16 @@ async function enrichAddress(lat, lon) {
     APIs.overpass(lat, lon),
     APIs.nominatim(lat, lon),
     APIs.locationiq(lat, lon),
-    APIs.opencage(lat, lon)
+    APIs.opencage(lat, lon),
   ]);
-  
+
   // Return first result with a name
   return results.find(r => r && r.name) || null;
 }
 
 async function main() {
   const limit = parseInt(process.argv[2]) || 1000;
-  
+
   const result = await pool.query(`
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
@@ -155,28 +155,28 @@ async function main() {
   `, [limit]);
 
   console.log(`🚀 Fast enrichment: ${result.rows.length} addresses (${CONCURRENT} concurrent)`);
-  
+
   let enriched = 0;
   for (let i = 0; i < result.rows.length; i += CONCURRENT) {
     const batch = result.rows.slice(i, Math.min(i + CONCURRENT, result.rows.length));
-    
+
     const promises = batch.map(async (row) => {
       try {
         const poi = await enrichAddress(row.trilat_lat, row.trilat_lon);
-        
+
         if (poi && poi.name) {
           await pool.query(`
             UPDATE app.networks_legacy 
             SET venue_name = $1, venue_category = $2
             WHERE bssid = $3
           `, [poi.name, poi.category, row.bssid]);
-          
+
           await pool.query(`
             UPDATE app.ap_locations 
             SET venue_name = $1, venue_category = $2
             WHERE bssid = $3
           `, [poi.name, poi.category, row.bssid]);
-          
+
           return { success: true, name: poi.name, category: poi.category, source: poi.source };
         }
         return { success: false };
@@ -184,17 +184,17 @@ async function main() {
         return { success: false, error: err.message };
       }
     });
-    
+
     const results = await Promise.all(promises);
     const batchEnriched = results.filter(r => r.success).length;
     enriched += batchEnriched;
-    
+
     console.log(`  ✓ ${Math.min(i + CONCURRENT, result.rows.length)}/${result.rows.length} (${enriched} enriched)`);
-    
+
     // Rate limiting
     await new Promise(resolve => setTimeout(resolve, 200));
   }
-  
+
   console.log(`\n✓ Complete: ${enriched}/${result.rows.length} addresses enriched`);
   await pool.end();
 }

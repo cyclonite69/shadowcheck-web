@@ -179,8 +179,7 @@ class TurboImporter {
       const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY);
       db.get('SELECT COUNT(*) as count FROM location', (err, row) => {
         db.close();
-        if (err) reject(err);
-        else resolve(row.count);
+        if (err) {reject(err);} else {resolve(row.count);}
       });
     });
   }
@@ -199,7 +198,7 @@ class TurboImporter {
       const offset = i * recordsPerWorker;
       const limit = Math.min(recordsPerWorker, this.totalRecords - offset);
 
-      if (limit <= 0) break;
+      if (limit <= 0) {break;}
 
       workers.push(this.spawnWorker(offset, limit, i + 1));
     }
@@ -349,7 +348,7 @@ class TurboImporter {
     const recordsPerSecond = Math.round(this.importedRecords / duration);
     const successRate = ((this.importedRecords / this.totalRecords) * 100).toFixed(2);
 
-    console.log('\n' + '━'.repeat(60));
+    console.log(`\n${'━'.repeat(60)}`);
     console.log('✅ IMPORT COMPLETE!\n');
     console.log(`⏱️  Duration: ${duration.toFixed(2)}s`);
     console.log(`📈 Speed: ${recordsPerSecond.toLocaleString()} records/second`);
@@ -357,13 +356,13 @@ class TurboImporter {
     console.log(`❌ Failed: ${this.failedRecords.toLocaleString()}`);
 
     if (this.errors.length > 0) {
-      console.log(`\n⚠️  Sample errors (showing first 5):`);
+      console.log('\n⚠️  Sample errors (showing first 5):');
       this.errors.slice(0, 5).forEach((err, i) => {
         console.log(`   ${i + 1}. ${err}`);
       });
     }
 
-    console.log('━'.repeat(60) + '\n');
+    console.log(`${'━'.repeat(60)}\n`);
   }
 }
 
@@ -433,10 +432,10 @@ if (!isMainThread) {
           if (!record) {
             failed++;
             const failReason = !row.bssid ? 'no_bssid' :
-                              isNaN(parseFloat(row.lat)) ? 'bad_lat' :
-                              isNaN(parseFloat(row.lon)) ? 'bad_lon' :
-                              isNaN(parseInt(row.time)) ? 'bad_time' :
-                              isNaN(parseInt(row.level)) ? 'bad_level' : 'unknown';
+              isNaN(parseFloat(row.lat)) ? 'bad_lat' :
+                isNaN(parseFloat(row.lon)) ? 'bad_lon' :
+                  isNaN(parseInt(row.time)) ? 'bad_time' :
+                    isNaN(parseInt(row.level)) ? 'bad_level' : 'unknown';
             errors.push(`Invalid record (${failReason}): ${JSON.stringify(row).substring(0, 150)}`);
             return;
           }
@@ -536,40 +535,40 @@ if (!isMainThread) {
  */
 function mapRadioType(wigleType) {
   const typeMap = {
-    'W': 'wifi',              // WiFi
+    'W': 'wifi', // WiFi
     'B': 'bluetooth_classic', // Bluetooth Classic
-    'E': 'bluetooth_le',      // Bluetooth Low Energy
-    'G': 'cellular_gsm',      // GSM
-    'C': 'cellular_gsm',      // CDMA (map to GSM)
-    'D': 'cellular_lte',      // WCDMA (map to LTE)
-    'L': 'cellular_lte',      // LTE
-    'N': 'cellular_5g',       // 5G NR
-    'F': 'wifi',              // NFC (map to wifi as fallback)
+    'E': 'bluetooth_le', // Bluetooth Low Energy
+    'G': 'cellular_gsm', // GSM
+    'C': 'cellular_gsm', // CDMA (map to GSM)
+    'D': 'cellular_lte', // WCDMA (map to LTE)
+    'L': 'cellular_lte', // LTE
+    'N': 'cellular_5g', // 5G NR
+    'F': 'wifi', // NFC (map to wifi as fallback)
   };
   return typeMap[wigleType] || 'wifi'; // Default to wifi
 }
 
 function validateRecord(row) {
   // Validate BSSID
-  if (!row.bssid || typeof row.bssid !== 'string') return null;
+  if (!row.bssid || typeof row.bssid !== 'string') {return null;}
 
   // Validate coordinates
   const lat = parseFloat(row.lat);
   const lon = parseFloat(row.lon);
 
-  if (isNaN(lat) || isNaN(lon)) return null;
-  if (lat < -90 || lat > 90) return null;
-  if (lon < -180 || lon > 180) return null;
-  if (!isFinite(lat) || !isFinite(lon)) return null;
+  if (isNaN(lat) || isNaN(lon)) {return null;}
+  if (lat < -90 || lat > 90) {return null;}
+  if (lon < -180 || lon > 180) {return null;}
+  if (!isFinite(lat) || !isFinite(lon)) {return null;}
 
   // Validate time (must be after Jan 1, 2000 - 946684800000 ms)
   const time = parseInt(row.time);
   const MIN_VALID_TIMESTAMP = 946684800000;
-  if (isNaN(time) || time < MIN_VALID_TIMESTAMP) return null;
+  if (isNaN(time) || time < MIN_VALID_TIMESTAMP) {return null;}
 
   // Validate signal level
   const level = parseInt(row.level);
-  if (isNaN(level)) return null;
+  if (isNaN(level)) {return null;}
 
   return {
     bssid: row.bssid.toUpperCase(),
@@ -585,7 +584,7 @@ function validateRecord(row) {
 }
 
 async function insertBatch(pool, records) {
-  if (records.length === 0) return;
+  if (records.length === 0) {return;}
 
   // Build multi-row INSERT for observations
   const obsValues = [];
@@ -605,8 +604,8 @@ async function insertBatch(pool, records) {
       record.signal_dbm,
       record.accuracy,
       record.time,
-      record.radio_type,  // Use mapped radio type
-      'wigle_app'         // Source type
+      record.radio_type, // Use mapped radio type
+      'wigle_app' // Source type
     );
 
     paramIndex += 8;

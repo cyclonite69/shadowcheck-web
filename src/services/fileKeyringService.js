@@ -30,12 +30,12 @@ class FileKeyringService {
     try {
       await fs.mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
     } catch (err) {
-      if (err.code !== 'EEXIST') throw err;
+      if (err.code !== 'EEXIST') {throw err;}
     }
   }
 
   async loadKeyring() {
-    if (this.cache) return this.cache;
+    if (this.cache) {return this.cache;}
 
     try {
       const encrypted = await fs.readFile(KEYRING_FILE, 'utf8');
@@ -79,7 +79,7 @@ class FileKeyringService {
     const authTag = cipher.getAuthTag();
     const combined = Buffer.concat([encrypted, authTag]);
 
-    const output = iv.toString('hex') + ':' + combined.toString('hex');
+    const output = `${iv.toString('hex')}:${combined.toString('hex')}`;
 
     await fs.writeFile(KEYRING_FILE, output, { mode: 0o600 });
     this.cache = data;
@@ -121,14 +121,14 @@ class FileKeyringService {
     const apiToken = await this.getCredential('wigle_api_token');
     const encoded = await this.getCredential('wigle_api_encoded');
 
-    if (!apiName || !apiToken) return null;
+    if (!apiName || !apiToken) {return null;}
 
     return { apiName, apiToken, encoded };
   }
 
   async testWigleCredentials() {
     const creds = await this.getWigleCredentials();
-    if (!creds) return { success: false, error: 'No credentials stored' };
+    if (!creds) {return { success: false, error: 'No credentials stored' };}
 
     try {
       const response = await fetch('https://api.wigle.net/api/v2/profile/user', {

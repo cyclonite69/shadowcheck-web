@@ -17,7 +17,7 @@ class NetworkRepository extends BaseRepository {
    */
   async getDashboardMetrics() {
     const queries = {
-      totalNetworks: `SELECT COUNT(*) as count FROM app.networks`,
+      totalNetworks: 'SELECT COUNT(*) as count FROM app.networks',
       threatsCount: `
         SELECT COUNT(DISTINCT bssid) as count
         FROM app.observations
@@ -25,23 +25,50 @@ class NetworkRepository extends BaseRepository {
         GROUP BY bssid
         HAVING COUNT(*) >= ${CONFIG.MIN_OBSERVATIONS}
       `,
-      surveillanceCount: `SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type IN ('INVESTIGATE', 'THREAT')`,
-      enrichedCount: `SELECT COUNT(*) as count FROM app.wigle_networks_enriched`,
+      surveillanceCount: 'SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type IN (\'INVESTIGATE\', \'THREAT\')',
+      enrichedCount: 'SELECT COUNT(*) as count FROM app.wigle_networks_enriched',
+      radioTypes: `
+        SELECT
+          CASE
+            WHEN type = 'W' THEN 'WiFi'
+            WHEN type = 'E' THEN 'BLE'
+            WHEN type = 'B' THEN 'BT'
+            WHEN type = 'L' THEN 'LTE'
+            WHEN type = 'N' THEN 'LTE'
+            WHEN type = 'G' THEN 'GSM'
+            ELSE 'Other'
+          END as radio_type,
+          COUNT(*) as count
+        FROM app.networks
+        WHERE type IS NOT NULL
+        GROUP BY radio_type
+      `,
     };
 
     try {
-      const [totalNetworks, threatsResult, surveillanceCount, enrichedCount] = await Promise.all([
+      const [totalNetworks, threatsResult, surveillanceCount, enrichedCount, radioTypes] = await Promise.all([
         this.query(queries.totalNetworks),
         this.query(queries.threatsCount),
         this.query(queries.surveillanceCount),
         this.query(queries.enrichedCount),
+        this.query(queries.radioTypes),
       ]);
+
+      const radioCounts = {};
+      radioTypes.rows.forEach(row => {
+        radioCounts[row.radio_type] = parseInt(row.count);
+      });
 
       return {
         totalNetworks: parseInt(totalNetworks.rows[0]?.count || 0),
         threatsCount: threatsResult.rows.length || 0,
         surveillanceCount: parseInt(surveillanceCount.rows[0]?.count || 0),
         enrichedCount: parseInt(enrichedCount.rows[0]?.count || 0),
+        wifiCount: radioCounts.WiFi || 0,
+        btCount: radioCounts.BT || 0,
+        bleCount: radioCounts.BLE || 0,
+        lteCount: radioCounts.LTE || 0,
+        gsmCount: radioCounts.GSM || 0,
       };
     } catch (err) {
       console.error('Error fetching dashboard metrics:', err);

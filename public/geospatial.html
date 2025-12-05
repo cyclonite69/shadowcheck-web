@@ -2674,9 +2674,14 @@
         // Tag a network as safe or threat
         async function tagNetwork(bssid, tagType, confidence = 50) {
             try {
+                const API_KEY = localStorage.getItem('shadowcheck_api_key') || 'your-secure-random-key-here';
+                
                 const response = await fetch(`${API_BASE}/tag-network`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY
+                    },
                     body: JSON.stringify({
                         bssid: bssid,
                         tag_type: tagType,

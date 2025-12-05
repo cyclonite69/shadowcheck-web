@@ -21,17 +21,17 @@ async function exportMissingGeocodes() {
     WHERE lat IS NOT NULL AND lon IS NOT NULL
     LIMIT 10000;
   `;
-  
+
   const result = await pool.query(query);
-  
+
   const csv = ['lat,lon,bssid,ssid'];
   result.rows.forEach(row => {
     csv.push(`${row.lat},${row.lon},${row.bssid},${row.ssid || ''}`);
   });
-  
+
   fs.writeFileSync('locations_to_reverse_geocode.csv', csv.join('\n'));
   console.log(`✓ Exported ${result.rows.length} locations to locations_to_reverse_geocode.csv`);
-  
+
   await pool.end();
 }
 

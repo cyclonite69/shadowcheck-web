@@ -16,7 +16,7 @@ if (!MAPBOX_TOKEN) {
 
 async function reverseGeocode(lat, lon) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
-  
+
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let data = '';
@@ -46,7 +46,7 @@ async function main() {
   const input = fs.readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
-  
+
   const locations = lines.slice(1).map(line => {
     const values = line.split(',');
     const obj = {};
@@ -56,42 +56,42 @@ async function main() {
 
   const total = Math.min(locations.length, PER_MINUTE * MINUTES);
   console.log(`📍 Reverse geocoding ${total} locations (${PER_MINUTE}/min for ${MINUTES} min)...`);
-  
+
   const results = [];
   const startTime = Date.now();
-  
+
   for (let min = 0; min < MINUTES; min++) {
     const start = min * PER_MINUTE;
     const end = Math.min(start + PER_MINUTE, total);
-    if (start >= locations.length) break;
-    
+    if (start >= locations.length) {break;}
+
     console.log(`\n⏱️  Minute ${min + 1}/${MINUTES} - Processing ${start}-${end}...`);
-    
+
     for (let i = start; i < end && i < locations.length; i++) {
       const loc = locations[i];
-      
+
       try {
         const geo = await reverseGeocode(loc.lat, loc.lon);
         results.push({ ...loc, ...geo });
-        if ((i + 1) % 100 === 0) console.log(`  ✓ ${i + 1}/${total}`);
+        if ((i + 1) % 100 === 0) {console.log(`  ✓ ${i + 1}/${total}`);}
         await new Promise(r => setTimeout(r, DELAY_MS));
       } catch (err) {
         results.push({ ...loc, address: null });
       }
     }
   }
-  
+
   const outputHeaders = [...headers, 'address'];
   const outputLines = [
     outputHeaders.join(','),
     ...results.map(r => [
       ...headers.map(h => r[h] || ''),
-      r.address ? `"${r.address}"` : ''
-    ].join(','))
+      r.address ? `"${r.address}"` : '',
+    ].join(',')),
   ];
-  
+
   fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
-  
+
   const success = results.filter(r => r.address !== null).length;
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
   console.log(`\n✓ Complete: ${success}/${results.length} reverse geocoded in ${elapsed} min`);

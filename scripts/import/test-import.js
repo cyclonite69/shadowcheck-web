@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 
 // Get password from keyring
 function getKeyringPassword(service, username) {
-    const script = `
+  const script = `
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
@@ -29,32 +29,32 @@ if items and items[0]:
     password = ''.join(chr(b) for b in secret[2])
     print(password)
 `;
-    return execSync(`python3 -c "${script}"`, { encoding: 'utf-8' }).trim();
+  return execSync(`python3 -c "${script}"`, { encoding: 'utf-8' }).trim();
 }
 
 const dbPassword = getKeyringPassword('shadowcheck', 'postgres_password');
 
 const pgPool = new Pool({
-    user: 'shadowcheck_user',
-    host: 'localhost',
-    database: 'shadowcheck_db',
-    password: dbPassword,
-    port: 5432,
+  user: 'shadowcheck_user',
+  host: 'localhost',
+  database: 'shadowcheck_db',
+  password: dbPassword,
+  port: 5432,
 });
 
 const sqliteFile = path.join(__dirname, '../../backup-1764309125210.sqlite');
 const LIMIT = process.argv[2] || 100;
 
 async function testImport() {
-    console.log('🧪 TEST Import - WiGLE SQLite to PostgreSQL');
-    console.log(`📁 Source: ${sqliteFile}`);
-    console.log(`📊 Limit: ${LIMIT} networks\n`);
+  console.log('🧪 TEST Import - WiGLE SQLite to PostgreSQL');
+  console.log(`📁 Source: ${sqliteFile}`);
+  console.log(`📊 Limit: ${LIMIT} networks\n`);
 
-    const sqliteDb = new sqlite3.Database(sqliteFile, sqlite3.OPEN_READONLY);
+  const sqliteDb = new sqlite3.Database(sqliteFile, sqlite3.OPEN_READONLY);
 
-    try {
-        // Create import record
-        const importResult = await pgPool.query(`
+  try {
+    // Create import record
+    const importResult = await pgPool.query(`
             INSERT INTO app.imports (
                 source_type, source_file, status, started_at
             ) VALUES (
@@ -62,25 +62,25 @@ async function testImport() {
             ) RETURNING id
         `, [sqliteFile]);
 
-        const importId = importResult.rows[0].id;
-        console.log(`📝 Import ID: ${importId}\n`);
+    const importId = importResult.rows[0].id;
+    console.log(`📝 Import ID: ${importId}\n`);
 
-        let stats = {
-            networks: 0,
-            observations: 0,
-            errors: []
-        };
+    const stats = {
+      networks: 0,
+      observations: 0,
+      errors: [],
+    };
 
-        // Test networks import
-        console.log('📡 Testing networks import...');
-        await importNetworks(sqliteDb, importId, stats);
+    // Test networks import
+    console.log('📡 Testing networks import...');
+    await importNetworks(sqliteDb, importId, stats);
 
-        // Test observations import
-        console.log('\n📍 Testing observations import...');
-        await importObservations(sqliteDb, importId, stats);
+    // Test observations import
+    console.log('\n📍 Testing observations import...');
+    await importObservations(sqliteDb, importId, stats);
 
-        // Update import record
-        await pgPool.query(`
+    // Update import record
+    await pgPool.query(`
             UPDATE app.imports SET
                 status = 'completed',
                 completed_at = NOW(),
@@ -89,69 +89,69 @@ async function testImport() {
                 errors = $2
             WHERE id = $3
         `, [
-            stats.networks + stats.observations,
-            JSON.stringify(stats.errors.slice(0, 10)),
-            importId
-        ]);
+      stats.networks + stats.observations,
+      JSON.stringify(stats.errors.slice(0, 10)),
+      importId,
+    ]);
 
-        console.log('\n✅ Test completed!');
-        console.log(`   Networks: ${stats.networks}`);
-        console.log(`   Observations: ${stats.observations}`);
-        console.log(`   Errors: ${stats.errors.length}`);
+    console.log('\n✅ Test completed!');
+    console.log(`   Networks: ${stats.networks}`);
+    console.log(`   Observations: ${stats.observations}`);
+    console.log(`   Errors: ${stats.errors.length}`);
 
-        if (stats.errors.length > 0) {
-            console.log('\n❌ Sample errors:');
-            stats.errors.slice(0, 3).forEach(e => {
-                console.log(`   ${e.type}: ${e.error} (${e.id})`);
-            });
-        }
-
-    } catch (error) {
-        console.error('❌ Test failed:', error);
-        throw error;
-    } finally {
-        sqliteDb.close();
-        await pgPool.end();
+    if (stats.errors.length > 0) {
+      console.log('\n❌ Sample errors:');
+      stats.errors.slice(0, 3).forEach(e => {
+        console.log(`   ${e.type}: ${e.error} (${e.id})`);
+      });
     }
+
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    throw error;
+  } finally {
+    sqliteDb.close();
+    await pgPool.end();
+  }
 }
 
 async function importNetworks(sqliteDb, importId, stats) {
-    return new Promise((resolve, reject) => {
-        const networks = [];
+  return new Promise((resolve, reject) => {
+    const networks = [];
 
-        sqliteDb.each(
-            `SELECT * FROM network LIMIT ${LIMIT}`,
-            (err, row) => {
-                if (err) {
-                    stats.errors.push({ type: 'network_read', error: err.message, id: row?.bssid });
-                    return;
-                }
-                networks.push(row);
-            },
-            async (err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
+    sqliteDb.each(
+      `SELECT * FROM network LIMIT ${LIMIT}`,
+      (err, row) => {
+        if (err) {
+          stats.errors.push({ type: 'network_read', error: err.message, id: row?.bssid });
+          return;
+        }
+        networks.push(row);
+      },
+      async (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-                console.log(`   Found ${networks.length} networks in SQLite`);
+        console.log(`   Found ${networks.length} networks in SQLite`);
 
-                for (const row of networks) {
-                    try {
-                        // Convert WiGLE timestamp (milliseconds) to PostgreSQL timestamp
-                        const lastSeenDate = new Date(row.lasttime);
+        for (const row of networks) {
+          try {
+            // Convert WiGLE timestamp (milliseconds) to PostgreSQL timestamp
+            const lastSeenDate = new Date(row.lasttime);
 
-                        // Get coordinates with fallback
-                        const lat = row.bestlat || row.lastlat || null;
-                        const lon = row.bestlon || row.lastlon || null;
+            // Get coordinates with fallback
+            const lat = row.bestlat || row.lastlat || null;
+            const lon = row.bestlon || row.lastlon || null;
 
-                        // Only insert if we have valid coordinates
-                        if (lat === null || lon === null || lat === 0 || lon === 0) {
-                            stats.errors.push({ type: 'network_skip', error: 'Missing coordinates', id: row.bssid });
-                            continue;
-                        }
+            // Only insert if we have valid coordinates
+            if (lat === null || lon === null || lat === 0 || lon === 0) {
+              stats.errors.push({ type: 'network_skip', error: 'Missing coordinates', id: row.bssid });
+              continue;
+            }
 
-                        await pgPool.query(`
+            await pgPool.query(`
                             INSERT INTO app.networks (
                                 bssid, ssid,
                                 first_seen, last_seen,
@@ -173,60 +173,60 @@ async function importNetworks(sqliteDb, importId, stats) {
                                 longitude = EXCLUDED.longitude,
                                 location = EXCLUDED.location
                         `, [
-                            row.bssid,                    // $1
-                            row.ssid || '<Hidden>',       // $2
-                            lastSeenDate,                 // $3 first_seen
-                            lastSeenDate,                 // $4 last_seen
-                            row.frequency,                // $5
-                            row.capabilities || 'OPEN',   // $6
-                            row.bestlevel || null,        // $7
-                            lat,                          // $8 latitude
-                            lon                           // $9 longitude
-                        ]);
+              row.bssid, // $1
+              row.ssid || '<Hidden>', // $2
+              lastSeenDate, // $3 first_seen
+              lastSeenDate, // $4 last_seen
+              row.frequency, // $5
+              row.capabilities || 'OPEN', // $6
+              row.bestlevel || null, // $7
+              lat, // $8 latitude
+              lon, // $9 longitude
+            ]);
 
-                        stats.networks++;
-                        if (stats.networks % 25 === 0) {
-                            process.stdout.write(`\r   Imported ${stats.networks}...`);
-                        }
-                    } catch (error) {
-                        stats.errors.push({ type: 'network_insert', error: error.message, id: row.bssid });
-                    }
-                }
-
-                console.log(`\r   ✓ Imported ${stats.networks} networks`);
-                resolve();
+            stats.networks++;
+            if (stats.networks % 25 === 0) {
+              process.stdout.write(`\r   Imported ${stats.networks}...`);
             }
-        );
-    });
+          } catch (error) {
+            stats.errors.push({ type: 'network_insert', error: error.message, id: row.bssid });
+          }
+        }
+
+        console.log(`\r   ✓ Imported ${stats.networks} networks`);
+        resolve();
+      }
+    );
+  });
 }
 
 async function importObservations(sqliteDb, importId, stats) {
-    return new Promise((resolve, reject) => {
-        const observations = [];
+  return new Promise((resolve, reject) => {
+    const observations = [];
 
-        sqliteDb.each(
-            `SELECT * FROM location WHERE bssid IN (SELECT bssid FROM network LIMIT ${LIMIT}) LIMIT ${LIMIT * 5}`,
-            (err, row) => {
-                if (err) {
-                    stats.errors.push({ type: 'observation_read', error: err.message, id: row?._id });
-                    return;
-                }
-                observations.push(row);
-            },
-            async (err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
+    sqliteDb.each(
+      `SELECT * FROM location WHERE bssid IN (SELECT bssid FROM network LIMIT ${LIMIT}) LIMIT ${LIMIT * 5}`,
+      (err, row) => {
+        if (err) {
+          stats.errors.push({ type: 'observation_read', error: err.message, id: row?._id });
+          return;
+        }
+        observations.push(row);
+      },
+      async (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-                console.log(`   Found ${observations.length} observations in SQLite`);
+        console.log(`   Found ${observations.length} observations in SQLite`);
 
-                for (const row of observations) {
-                    try {
-                        const observedAt = new Date(row.time);
-                        const epochMs = row.time;
+        for (const row of observations) {
+          try {
+            const observedAt = new Date(row.time);
+            const epochMs = row.time;
 
-                        await pgPool.query(`
+            await pgPool.query(`
                             INSERT INTO app.observations (
                                 radio_type, identifier,
                                 latitude, longitude, location,
@@ -243,41 +243,41 @@ async function importObservations(sqliteDb, importId, stats) {
                                 '{}'::jsonb, $10::jsonb
                             )
                         `, [
-                            row.bssid,
-                            row.lat,
-                            row.lon,
-                            row.altitude,
-                            row.accuracy,
-                            row.level,
-                            observedAt,
-                            epochMs,
-                            importId,
-                            JSON.stringify({
-                                external: row.external,
-                                mfgrid: row.mfgrid
-                            })
-                        ]);
+              row.bssid,
+              row.lat,
+              row.lon,
+              row.altitude,
+              row.accuracy,
+              row.level,
+              observedAt,
+              epochMs,
+              importId,
+              JSON.stringify({
+                external: row.external,
+                mfgrid: row.mfgrid,
+              }),
+            ]);
 
-                        stats.observations++;
-                        if (stats.observations % 100 === 0) {
-                            process.stdout.write(`\r   Imported ${stats.observations}...`);
-                        }
-                    } catch (error) {
-                        stats.errors.push({ type: 'observation_insert', error: error.message, id: row._id });
-                    }
-                }
-
-                console.log(`\r   ✓ Imported ${stats.observations} observations`);
-                resolve();
+            stats.observations++;
+            if (stats.observations % 100 === 0) {
+              process.stdout.write(`\r   Imported ${stats.observations}...`);
             }
-        );
-    });
+          } catch (error) {
+            stats.errors.push({ type: 'observation_insert', error: error.message, id: row._id });
+          }
+        }
+
+        console.log(`\r   ✓ Imported ${stats.observations} observations`);
+        resolve();
+      }
+    );
+  });
 }
 
 // Run test
 if (require.main === module) {
-    testImport().catch(err => {
-        console.error('Fatal error:', err);
-        process.exit(1);
-    });
+  testImport().catch(err => {
+    console.error('Fatal error:', err);
+    process.exit(1);
+  });
 }

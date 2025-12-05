@@ -10,7 +10,7 @@ process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'test_password';
 process.env.DB_HOST = process.env.DB_HOST || 'localhost';
 process.env.DB_PORT = process.env.DB_PORT || '5432';
 process.env.DB_NAME = process.env.DB_NAME || 'shadowcheck_test';
-process.env.PORT = process.env.PORT || '3002';  // Different port for tests
+process.env.PORT = process.env.PORT || '3002'; // Different port for tests
 
 // Increase timeout for database operations
 jest.setTimeout(10000);

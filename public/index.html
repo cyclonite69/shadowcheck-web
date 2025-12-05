@@ -32,14 +32,76 @@
         }
         
         .metric-card {
-            background: linear-gradient(135deg, var(--card-bg) 0%, #334155 100%);
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 120px;
             transition: all 0.3s ease;
         }
-        
+
         .metric-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-card.blue {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .metric-card.red {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            border-left: 4px solid #ef4444;
+        }
+
+        .metric-card.yellow {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: rgba(234, 179, 8, 0.3);
+            border-left: 4px solid #eab308;
+        }
+
+        .metric-card.purple {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.3);
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-top: 8px;
+        }
+
+        .metric-card.blue .metric-value {
+            color: #60a5fa;
+        }
+
+        .metric-card.red .metric-value {
+            color: #ef4444;
+        }
+
+        .metric-card.yellow .metric-value {
+            color: #eab308;
+        }
+
+        .metric-card.purple .metric-value {
+            color: #a78bfa;
         }
         
         .status-indicator {
@@ -279,53 +341,25 @@
         </div>
         
         <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="metric-card p-6 rounded-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-sm mb-1">Total Networks</p>
-                        <p class="text-2xl font-bold text-white" id="total-networks">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-wifi text-blue-400 text-xl"></i>
-                    </div>
-                </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+            <div class="metric-card blue">
+                <div class="metric-label">Total Networks</div>
+                <div class="metric-value" id="total-networks">0</div>
             </div>
-            
-            <div class="metric-card p-6 rounded-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-sm mb-1">Threats Detected</p>
-                        <p class="text-2xl font-bold text-white" id="threats-count">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-red-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
-                    </div>
-                </div>
+
+            <div class="metric-card red">
+                <div class="metric-label">Threats Detected</div>
+                <div class="metric-value" id="threats-count">0</div>
             </div>
-            
-            <div class="metric-card p-6 rounded-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-sm mb-1">Active Surveillance</p>
-                        <p class="text-2xl font-bold text-white" id="surveillance-count">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-eye text-yellow-400 text-xl"></i>
-                    </div>
-                </div>
+
+            <div class="metric-card yellow">
+                <div class="metric-label">Active Surveillance</div>
+                <div class="metric-value" id="surveillance-count">0</div>
             </div>
-            
-            <div class="metric-card p-6 rounded-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-sm mb-1">Data Enriched</p>
-                        <p class="text-2xl font-bold text-white" id="enriched-count">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-database text-purple-400 text-xl"></i>
-                    </div>
-                </div>
+
+            <div class="metric-card purple">
+                <div class="metric-label">Data Enriched</div>
+                <div class="metric-value" id="enriched-count">0</div>
             </div>
         </div>
 

@@ -331,9 +331,9 @@
                 </div>
             </div>
 
-            <!-- Top Networks -->
+            <!-- Top 100 WiFi Networks -->
             <div class="panel">
-                <div class="panel-header">🏆 Top Networks by Observations</div>
+                <div class="panel-header">🏆 Top 100 WiFi Networks by Observations</div>
                 <div class="panel-content" style="overflow-y: auto;">
                     <div id="topNetworksList" style="padding: 8px;"></div>
                 </div>
@@ -361,12 +361,44 @@
             });
         }
 
-        // Create chart
+        // Create chart with enhanced tooltips
         function createChart(canvasId, type, labels, data) {
             const ctx = document.getElementById(canvasId).getContext('2d');
 
             if (charts[canvasId]) {
                 charts[canvasId].destroy();
+            }
+
+            // Calculate total for percentage calculation
+            const total = data.reduce((sum, val) => sum + val, 0);
+
+            // Build options based on chart type
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#cbd5e1' },
+                        display: type !== 'line' || canvasId !== 'signalStrengthChart'
+                    },
+                    tooltip: {
+                        callbacks: {}
+                    }
+                },
+                scales: (type !== 'doughnut' && type !== 'pie') ? {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' }, beginAtZero: true }
+                } : undefined
+            };
+
+            // Add percentage tooltip for doughnut/pie charts
+            if (type === 'doughnut' || type === 'pie') {
+                options.plugins.tooltip.callbacks.label = function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} (${percentage}%)`;
+                };
             }
 
             charts[canvasId] = new Chart(ctx, {
@@ -379,22 +411,11 @@
                             '#3b82f6', '#10b981', '#8b5cf6', '#ec4899',
                             '#f59e0b', '#06b6d4', '#ef4444', '#a78bfa'
                         ],
-                        borderColor: 'transparent'
+                        borderColor: 'transparent',
+                        borderWidth: type === 'line' ? 2 : 0
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#cbd5e1' }
-                        }
-                    },
-                    scales: (type !== 'doughnut' && type !== 'pie') ? {
-                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
-                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
-                    } : undefined
-                }
+                options: options
             });
         }
 
@@ -583,24 +604,28 @@
                 console.log(`  ↳ Network types: ${typesList.join(', ')}`);
                 console.log(`  ↳ Date range: ${dates[0]} → ${dates[dates.length - 1]}`);
 
-                // Create datasets for each network type
+                // Create datasets for each network type with high-contrast colors
                 const datasets = typesList.map((type, idx) => {
+                    // High-contrast, colorblind-safe palette
                     const colors = {
-                        'WiFi': 'rgb(59, 130, 246)',
-                        'BLE': 'rgb(139, 92, 246)',
-                        'BT': 'rgb(168, 85, 247)',
-                        'LTE': 'rgb(16, 185, 129)',
-                        'NR': 'rgb(34, 197, 94)',
-                        'GSM': 'rgb(245, 158, 11)'
+                        'WiFi': '#FF6B6B',    // Coral Red
+                        'BLE': '#4ECDC4',     // Turquoise
+                        'BT': '#FFE66D',      // Yellow
+                        'LTE': '#95E1D3',     // Mint Green
+                        'NR': '#C7CEEA',      // Lavender
+                        'GSM': '#FFA07A'      // Light Salmon
                     };
 
                     return {
                         label: type,
                         data: sortedEntries.map(([timestamp, entry]) => entry.types[type] || 0),
                         borderColor: colors[type] || `hsl(${idx * 60}, 70%, 50%)`,
-                        borderWidth: 2,
+                        backgroundColor: colors[type] || `hsl(${idx * 60}, 70%, 50%)`,
+                        borderWidth: 3,  // Increased from 2 for better visibility
                         fill: false,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     };
                 });
 
@@ -648,17 +673,23 @@
             }
         }
 
-        // Load top networks by observations
+        // Load top 100 WiFi networks by observations
         async function loadTopNetworks() {
             try {
-                const response = await fetch(`${API_BASE}/networks?page=1&limit=10&sort=observations&order=DESC`);
+                // Fetch more networks to ensure we get 100 WiFi networks after filtering
+                const response = await fetch(`${API_BASE}/networks?page=1&limit=500&sort=observations&order=DESC`);
                 const data = await response.json();
-                
+
+                // Filter only WiFi networks (type='W') and take top 100
+                const wifiNetworks = data.networks.filter(net => net.type === 'W').slice(0, 100);
+
                 const list = document.getElementById('topNetworksList');
                 const typeIcons = { W: '📶', E: '🔵', B: '🔷', L: '📱', N: '🚀', G: '📞' };
                 const medals = ['🥇', '🥈', '🥉'];
-                
-                list.innerHTML = data.networks.map((net, idx) => {
+
+                console.log(`📊 Showing top ${wifiNetworks.length} WiFi networks (filtered from ${data.networks.length} total)`);
+
+                list.innerHTML = wifiNetworks.map((net, idx) => {
                     const lastSeen = net.lastSeen ? new Date(net.lastSeen).toLocaleDateString() : 'Unknown';
                     const ssid = net.ssid || 'Hidden';
                     return `

@@ -21,8 +21,8 @@ router.get('/wigle', requireAuth, async (req, res) => {
 
     res.json({
       configured: true,
-      apiName: creds.apiName.substring(0, 10) + '...',
-      apiToken: '****' + creds.apiToken.slice(-4)
+      apiName: `${creds.apiName.substring(0, 10)}...`,
+      apiToken: `****${creds.apiToken.slice(-4)}`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -33,19 +33,19 @@ router.get('/wigle', requireAuth, async (req, res) => {
 router.post('/wigle', requireAuth, async (req, res) => {
   try {
     const { apiName, apiToken } = req.body;
-    
+
     if (!apiName || !apiToken) {
       return res.status(400).json({ error: 'apiName and apiToken required' });
     }
 
     await keyringService.setWigleCredentials(apiName, apiToken);
-    
+
     // Test credentials
     const testResult = await keyringService.testWigleCredentials();
-    
+
     res.json({
       success: true,
-      test: testResult
+      test: testResult,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -71,7 +71,7 @@ router.get('/mapbox', requireAuth, async (req, res) => {
       return {
         label: t.label,
         isPrimary: t.isPrimary,
-        token: token ? token.substring(0, 10) + '...' + token.slice(-4) : null
+        token: token ? `${token.substring(0, 10)}...${token.slice(-4)}` : null,
       };
     }));
     res.json({ tokens: tokensWithMasked });
@@ -84,13 +84,13 @@ router.get('/mapbox', requireAuth, async (req, res) => {
 router.post('/mapbox', requireAuth, async (req, res) => {
   try {
     const { token, label = 'default' } = req.body;
-    
+
     if (!token) {
       return res.status(400).json({ error: 'token required' });
     }
 
     await keyringService.setMapboxToken(token, label);
-    
+
     res.json({ success: true, label });
   } catch (error) {
     res.status(500).json({ error: error.message });

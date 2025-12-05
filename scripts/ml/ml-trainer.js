@@ -13,7 +13,7 @@ class ThreatMLModel {
       'observation_count',
       'max_signal',
       'unique_locations',
-      'seen_both_locations'
+      'seen_both_locations',
     ];
   }
 
@@ -25,14 +25,14 @@ class ThreatMLModel {
       parseInt(network.observation_count) || 0,
       parseFloat(network.max_signal) || -100,
       parseInt(network.unique_locations) || 0,
-      (network.seen_at_home && network.seen_away_from_home) ? 1 : 0
+      (network.seen_at_home && network.seen_away_from_home) ? 1 : 0,
     ];
   }
 
   // Train model on tagged networks
   async train(taggedNetworks) {
     console.log('ML train() called with', taggedNetworks.length, 'networks');
-    
+
     if (taggedNetworks.length < 10) {
       throw new Error('Need at least 10 tagged networks to train');
     }
@@ -51,7 +51,7 @@ class ThreatMLModel {
     // Train logistic regression with Matrix objects
     const XMatrix = new Matrix(X);
     const YMatrix = Matrix.columnVector(y.flat());
-    
+
     console.log('Created matrices, training...');
     this.model = new LogisticRegression({ numSteps: 1000, learningRate: 0.01 });
     this.model.train(XMatrix, YMatrix);
@@ -59,18 +59,18 @@ class ThreatMLModel {
     // Store coefficients for SQL usage
     console.log('Model keys:', Object.keys(this.model));
     console.log('Model classifiers:', this.model.classifiers);
-    
+
     // For binary classification, get the first classifier
     const classifier = this.model.classifiers[0];
     console.log('Classifier keys:', Object.keys(classifier));
-    
+
     if (!classifier.weights) {
       throw new Error('Model training failed: no weights found');
     }
-    
+
     this.coefficients = Array.from(classifier.weights.to1DArray());
     this.intercept = classifier.bias || 0;
-    
+
     console.log('Extracted coefficients:', this.coefficients);
     console.log('Extracted intercept:', this.intercept);
 
@@ -80,7 +80,7 @@ class ThreatMLModel {
       featureNames: this.featureNames,
       trainingSamples: taggedNetworks.length,
       threatCount: y.filter(label => label === 1).length,
-      safeCount: y.filter(label => label === 0).length
+      safeCount: y.filter(label => label === 0).length,
     };
   }
 
@@ -115,7 +115,7 @@ class ThreatMLModel {
       'observation_count': 'ns.observation_count',
       'max_signal': 'COALESCE(ns.max_signal, -100)',
       'unique_locations': 'ns.unique_locations',
-      'seen_both_locations': 'CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 1 ELSE 0 END'
+      'seen_both_locations': 'CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 1 ELSE 0 END',
     };
     return mapping[featureName];
   }

@@ -20,7 +20,7 @@ router.get('/backup', requireAuth, async (req, res) => {
     const [observations, networks, tags] = await Promise.all([
       query('SELECT * FROM app.observations ORDER BY observed_at DESC'),
       query('SELECT * FROM app.networks'),
-      query('SELECT * FROM app.network_tags')
+      query('SELECT * FROM app.network_tags'),
     ]);
 
     const backup = {
@@ -30,13 +30,13 @@ router.get('/backup', requireAuth, async (req, res) => {
       tables: {
         observations: observations.rows,
         networks: networks.rows,
-        network_tags: tags.rows
+        network_tags: tags.rows,
       },
       counts: {
         observations: observations.rows.length,
         networks: networks.rows.length,
-        network_tags: tags.rows.length
-      }
+        network_tags: tags.rows.length,
+      },
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -66,10 +66,10 @@ router.post('/restore', requireAuth, async (req, res) => {
     await query('TRUNCATE TABLE app.networks CASCADE');
 
     // Restore data (simplified - would need proper INSERT statements)
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Backup uploaded. Full restore requires manual SQL execution.',
-      counts: backup.counts
+      counts: backup.counts,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

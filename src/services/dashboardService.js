@@ -25,6 +25,11 @@ class DashboardService {
         threatsCount: metrics.threatsCount,
         surveillanceCount: metrics.surveillanceCount,
         enrichedCount: metrics.enrichedCount,
+        wifiCount: metrics.wifiCount,
+        btCount: metrics.btCount,
+        bleCount: metrics.bleCount,
+        lteCount: metrics.lteCount,
+        gsmCount: metrics.gsmCount,
         // Could add derived metrics:
         // enrichmentPercentage: Math.round((metrics.enrichedCount / metrics.totalNetworks) * 100),
         // threatPercentage: Math.round((metrics.threatsCount / metrics.totalNetworks) * 100),

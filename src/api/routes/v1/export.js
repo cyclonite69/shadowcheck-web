@@ -32,20 +32,20 @@ router.get('/geojson', requireAuth, async (req, res) => {
       type: 'Feature',
       geometry: {
         type: 'Point',
-        coordinates: [row.longitude, row.latitude]
+        coordinates: [row.longitude, row.latitude],
       },
       properties: {
         bssid: row.bssid,
         signal_dbm: row.signal_dbm,
         observed_at: row.observed_at,
         source_type: row.source_type,
-        radio_type: row.radio_type
-      }
+        radio_type: row.radio_type,
+      },
     }));
 
     const geojson = {
       type: 'FeatureCollection',
-      features: features
+      features: features,
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -61,13 +61,13 @@ router.get('/json', requireAuth, async (req, res) => {
   try {
     const [observations, networks] = await Promise.all([
       query('SELECT * FROM app.observations ORDER BY observed_at DESC LIMIT 10000'),
-      query('SELECT * FROM app.networks LIMIT 10000')
+      query('SELECT * FROM app.networks LIMIT 10000'),
     ]);
 
     const data = {
       exported_at: new Date().toISOString(),
       observations: observations.rows,
-      networks: networks.rows
+      networks: networks.rows,
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -98,12 +98,12 @@ router.get('/csv', requireAuth, async (req, res) => {
     const headers = ['bssid', 'latitude', 'longitude', 'signal_dbm', 'observed_at', 'source_type', 'radio_type'];
     const csv = [
       headers.join(','),
-      ...result.rows.map(row => 
+      ...result.rows.map(row =>
         headers.map(h => {
           const val = row[h];
           return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
         }).join(',')
-      )
+      ),
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');

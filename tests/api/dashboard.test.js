@@ -96,8 +96,8 @@ describe('Dashboard API', () => {
       // Mock query responses
       query
         .mockResolvedValueOnce({ rows: [{ count: '100' }] }) // totalNetworks
-        .mockResolvedValueOnce({ rows: [{ count: '10' }] })  // threatsCount
-        .mockResolvedValueOnce({ rows: [{ count: '5' }] })   // surveillanceCount
+        .mockResolvedValueOnce({ rows: [{ count: '10' }] }) // threatsCount
+        .mockResolvedValueOnce({ rows: [{ count: '5' }] }) // surveillanceCount
         .mockResolvedValueOnce({ rows: [{ count: '25' }] }); // enrichedCount
 
       const metrics = await networkRepository.getDashboardMetrics();

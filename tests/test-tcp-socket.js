@@ -6,7 +6,7 @@ console.log('Testing raw TCP socket connection to PostgreSQL...');
 const socket = net.createConnection({
   host: '127.0.0.1',
   port: 5432,
-  timeout: 5000
+  timeout: 5000,
 });
 
 socket.on('connect', () => {
