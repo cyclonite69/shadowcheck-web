@@ -34,7 +34,6 @@
         </header>
 
         <main class="app-main">
-<div class="main">
             <div class="panel">
                 <div class="panel-header">
                     📡 All Networks
@@ -43,7 +42,7 @@
                     <button id="show-on-map-btn" style="margin-left: 12px; padding: 6px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; color: #60a5fa; font-size: 11px; font-weight: 600; cursor: pointer; display: none;" onclick="showSelectedOnMap()">🗺️ Show <span id="selected-count">0</span> on Map</button>
                     <div id="column-selector-container"></div>
                 </div>
-                <div class="panel-content">
+                <div class="panel-body no-padding">
                     <table class="network-table" id="networks-table">
                         <thead>
                             <tr>
@@ -57,13 +56,13 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="6" class="loading">Loading networks...</td>
+                                <td colspan="6" style="text-align: center; padding: 20px;">Loading networks...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
