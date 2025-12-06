@@ -6,7 +6,7 @@
     <title>ShadowCheck - Admin</title>
     <link rel="stylesheet" href="/assets/styles/unified.css">
 </head>
-<body>
+<body data-page="admin">
     <div class="app-container">
         <header class="app-header">
             <div class="header-left">
@@ -409,8 +409,6 @@
             window.location.href = '/api/export/csv?api_key=' + encodeURIComponent(API_KEY); 
         }
     </script>
-    <script src="/assets/js/unified-header.js"></script>
-    <script src="/assets/js/unified-card-library.js"></script>
-    <script src="/assets/js/unified-components.js"></script>
+    <script src="/assets/js/base-components.js"></script>
 </body>
 </html>
