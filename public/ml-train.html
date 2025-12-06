@@ -87,10 +87,19 @@
                 const res = await fetch(`${API_BASE}/ml/status`);
                 const data = await res.json();
 
+                if (data.error) {
+                    console.error('ML status error:', data.error);
+                    document.getElementById('model-status').textContent = '✗ No';
+                    document.getElementById('threat-count').textContent = '0';
+                    document.getElementById('safe-count').textContent = '0';
+                    document.getElementById('last-updated').textContent = 'Never';
+                    return;
+                }
+
                 document.getElementById('model-status').textContent = data.modelTrained ? '✓ Yes' : '✗ No';
                 
-                const threatCount = data.taggedNetworks.find(t => t.tag_type === 'THREAT')?.count || 0;
-                const safeCount = data.taggedNetworks.find(t => t.tag_type === 'FALSE_POSITIVE')?.count || 0;
+                const threatCount = data.taggedNetworks?.find(t => t.tag_type === 'THREAT')?.count || 0;
+                const safeCount = data.taggedNetworks?.find(t => t.tag_type === 'FALSE_POSITIVE')?.count || 0;
                 
                 document.getElementById('threat-count').textContent = threatCount;
                 document.getElementById('safe-count').textContent = safeCount;
