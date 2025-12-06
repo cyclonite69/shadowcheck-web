@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShadowCheck - Geospatial</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/styles/unified.css">
 </head>
 <body data-page="geospatial">
@@ -2301,11 +2303,14 @@
             setupInfiniteScroll();
         });
 
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            loadThreats();
-            loadNetworks();
-            // Don't reload map points - user selects threat
-        });
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                loadThreats();
+                loadNetworks();
+                // Don't reload map points - user selects threat
+            });
+        }
 
         // Wire up filter controls
         document.addEventListener('DOMContentLoaded', () => {
