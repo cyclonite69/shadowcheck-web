@@ -143,8 +143,9 @@ class BaseComponents {
                 const left = this.snap(startLeft + (e.clientX - startX));
                 const top = this.snap(startTop + (e.clientY - startY));
                 
-                // Constrain to viewport - don't allow dragging above header (56px)
-                const minTop = 56;
+                // Constrain to viewport - allow touching header but not going above it
+                const headerHeight = 56;
+                const minTop = headerHeight;
                 const maxTop = window.innerHeight - 100;
                 const maxLeft = window.innerWidth - 100;
                 
