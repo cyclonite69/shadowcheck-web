@@ -185,6 +185,13 @@ delete process.env.PGUSER;
     // Import database query function for routes that need it
     const { query } = require('./src/config/database');
 
+    // Initialize dashboard routes with dependencies
+    const NetworkRepository = require('./src/repositories/networkRepository');
+    const DashboardService = require('./src/services/dashboardService');
+    const networkRepository = new NetworkRepository();
+    const dashboardService = new DashboardService(networkRepository);
+    dashboardRoutes.initDashboardRoutes({ dashboardService });
+
     // Health check (no prefix, available at /health)
     app.use('/', healthRoutes);
 
@@ -198,8 +205,8 @@ delete process.env.PGUSER;
     app.use('/api', adminRoutes);
     app.use('/api', mlRoutes);
     app.use('/api', analyticsRoutes);
-    app.use('/api', dashboardRoutes.router); // Dashboard exports { router, initDashboardRoutes }
-    app.use('/api', locationMarkersRoutes(query)); // Function-based route
+    app.use('/api', dashboardRoutes.router);
+    app.use('/api', locationMarkersRoutes(query));
     app.use('/api', backupRoutes);
     app.use('/api', exportRoutes);
     app.use('/api', settingsRoutes);
