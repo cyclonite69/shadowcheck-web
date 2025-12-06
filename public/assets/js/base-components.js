@@ -143,9 +143,10 @@ class BaseComponents {
                 const left = this.snap(startLeft + (e.clientX - startX));
                 const top = this.snap(startTop + (e.clientY - startY));
                 
-                // Constrain to viewport - allow touching header but not going above it
-                const headerHeight = 56;
-                const minTop = headerHeight;
+                // Calculate actual top offset from header + toolbar
+                const header = document.querySelector('.app-header');
+                const toolbar = document.querySelector('.app-toolbar');
+                const minTop = (header?.offsetHeight || 56) + (toolbar?.offsetHeight || 0);
                 const maxTop = window.innerHeight - 100;
                 const maxLeft = window.innerWidth - 100;
                 
