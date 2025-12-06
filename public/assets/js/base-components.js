@@ -12,8 +12,6 @@ class UnifiedHeader {
     }
 
     render() {
-        const isDashboard = this.activePage === 'dashboard';
-        
         return `
             <header class="app-header">
                 <div class="header-left">
@@ -29,12 +27,10 @@ class UnifiedHeader {
                     <a href="/admin.html" class="nav-link ${this.activePage === 'admin' ? 'active' : ''}">Admin</a>
                 </nav>
                 <div class="header-right">
-                    ${isDashboard ? `
-                        <button class="btn btn-sm" onclick="window.baseComponents?.showCardLibrary()">➕ Add Card</button>
-                        <button class="btn btn-sm" onclick="window.baseComponents?.toggleSnap(this)">🔲 Snap: ON</button>
-                        <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">↺ Reset</button>
-                        <button class="btn btn-sm" onclick="loadMetrics()">🔄 Refresh</button>
-                    ` : ''}
+                    <button class="btn btn-sm" onclick="window.baseComponents?.showCardLibrary()">➕ Add Card</button>
+                    <button class="btn btn-sm" onclick="window.baseComponents?.toggleSnap(this)">🔲 Snap: ON</button>
+                    <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">↺ Reset</button>
+                    <button class="btn btn-sm" onclick="window.location.reload()">🔄 Refresh</button>
                     <div class="status-indicator">
                         <div class="status-dot"></div>
                         <span>Online</span>
