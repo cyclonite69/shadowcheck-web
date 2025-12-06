@@ -291,7 +291,7 @@
         async function loadTemporalChart() {
             try {
                 console.log('⏰ Loading temporal activity...');
-                const response = await fetch(`${API_BASE}/analytics/temporal-activity`);
+                const response = await fetch(`${API_BASE}/temporal-activity`);
 
                 if (!response.ok) {
                     console.error('✗ Temporal activity API failed:', response.status);

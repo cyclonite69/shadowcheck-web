@@ -405,7 +405,7 @@ router.get('/networks/tagged', async (req, res, next) => {
         t.tag_type,
         t.confidence,
         t.notes,
-        t.created_at,
+        t.tagged_at,
         t.updated_at,
         COUNT(*) OVER() as total_count
       FROM app.network_tags t
@@ -426,7 +426,7 @@ router.get('/networks/tagged', async (req, res, next) => {
         tag_type: row.tag_type,
         confidence: parseFloat(row.confidence),
         notes: row.notes,
-        created_at: row.created_at,
+        tagged_at: row.tagged_at,
         updated_at: row.updated_at,
       })),
       total: totalCount,
