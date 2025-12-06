@@ -142,8 +142,14 @@ class BaseComponents {
             const onMouseMove = (e) => {
                 const left = this.snap(startLeft + (e.clientX - startX));
                 const top = this.snap(startTop + (e.clientY - startY));
-                element.style.left = left + 'px';
-                element.style.top = top + 'px';
+                
+                // Constrain to viewport - don't allow dragging above header (56px)
+                const minTop = 56;
+                const maxTop = window.innerHeight - 100;
+                const maxLeft = window.innerWidth - 100;
+                
+                element.style.left = Math.max(0, Math.min(left, maxLeft)) + 'px';
+                element.style.top = Math.max(minTop, Math.min(top, maxTop)) + 'px';
             };
 
             const onMouseUp = () => {
