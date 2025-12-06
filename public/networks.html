@@ -702,23 +702,29 @@
 
         // Search functionality with debounce
         let searchTimeout;
-        document.getElementById('search-input').addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (window.networkTable) {
-                    networkTable.setSearch(e.target.value);
-                    renderNetworkTable();
-                }
-            }, 300);
-        });
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (window.networkTable) {
+                        networkTable.setSearch(e.target.value);
+                        renderNetworkTable();
+                    }
+                }, 300);
+            });
+        }
 
         // Threat filter functionality
-        document.getElementById('threat-filter').addEventListener('change', (e) => {
-            if (window.networkTable) {
-                networkTable.setThreatFilter(e.target.value);
-                renderNetworkTable();
-            }
-        });
+        const threatFilter = document.getElementById('threat-filter');
+        if (threatFilter) {
+            threatFilter.addEventListener('change', (e) => {
+                if (window.networkTable) {
+                    networkTable.setThreatFilter(e.target.value);
+                    renderNetworkTable();
+                }
+            });
+        }
 
         // Setup infinite scroll
         function setupInfiniteScroll() {
