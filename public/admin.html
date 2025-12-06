@@ -320,6 +320,8 @@
                     `).join('');
             } catch (e) {
                 console.error('Failed to load tokens:', e);
+                const list = document.getElementById('mapbox-tokens-list');
+                list.innerHTML = '<div class="text-sm text-secondary">Token management not available (use keyring or .env)</div>';
             }
         }
 
