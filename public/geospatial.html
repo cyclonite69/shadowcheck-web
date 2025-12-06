@@ -1206,15 +1206,13 @@
                 }));
 
                 // Remove existing layers and sources
-                if (map.getLayer('network-labels')) {
-                    map.removeLayer('network-labels');
-                }
-                if (map.getLayer('network-points')) {
-                    map.removeLayer('network-points');
-                }
-                if (map.getLayer('threat-path')) {
-                    map.removeLayer('threat-path');
-                }
+                const layersToRemove = ['clusters', 'cluster-count', 'unclustered-point', 'network-labels', 'network-points', 'threat-path'];
+                layersToRemove.forEach(layerId => {
+                    if (map.getLayer(layerId)) {
+                        map.removeLayer(layerId);
+                    }
+                });
+                
                 if (map.getSource('networks')) {
                     map.removeSource('networks');
                 }
