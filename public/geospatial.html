@@ -2390,10 +2390,13 @@
 
             // Load saved layout preference
             const savedLayout = localStorage.getItem('geospatial-layout') || 'layout-side-by-side';
-            mainGrid.className = `main ${savedLayout}`;
+            const mainGrid = document.getElementById('main-grid');
+            if (mainGrid) {
+                mainGrid.className = `main ${savedLayout}`;
+            }
             Object.keys(layoutButtons).forEach(btnId => {
                 const btn = document.getElementById(btnId);
-                if (layoutButtons[btnId] === savedLayout) {
+                if (btn && layoutButtons[btnId] === savedLayout) {
                     btn.classList.add('active');
                 }
             });
