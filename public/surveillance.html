@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShadowCheck - Surveillance</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/assets/styles/unified.css">
 </head>
@@ -347,6 +348,19 @@
             return 'severity-low';
         }
 
+        // Get radio type icon
+        function getRadioIcon(type) {
+            const icons = {
+                'wifi': '📡',
+                'bluetooth': '🔵',
+                'ble': '🔷',
+                'lte': '📱',
+                'gsm': '📞',
+                'nr': '5️⃣'
+            };
+            return icons[type?.toLowerCase()] || '📡';
+        }
+
         // Get severity label based on threat score
         function getSeverityLabel(score) {
             if (score >= 80) return 'Critical';
@@ -457,8 +471,9 @@
                     item.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 600; color: #fca5a5; margin-bottom: 4px;">
-                                    ${escapeHtml(network.ssid) || 'Hidden Network'}
+                                <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #fca5a5; margin-bottom: 4px;">
+                                    ${getRadioIcon(network.type)}
+                                    <span>${escapeHtml(network.ssid) || 'Hidden Network'}</span>
                                 </div>
                                 <div style="font-size: 10px; color: #94a3b8;">
                                     ${escapeHtml(network.bssid)}${network.observation_count ? ` • ${network.observation_count} obs` : ''}${network.first_seen && network.last_seen ? ` • ${new Date(parseInt(network.first_seen)).toLocaleDateString()} - ${new Date(parseInt(network.last_seen)).toLocaleDateString()} (${timespanDays}d)` : ''}
@@ -567,8 +582,9 @@
                     item.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 600; color: #4ade80; margin-bottom: 4px;">
-                                    ${escapeHtml(network.ssid) || 'Hidden Network'}
+                                <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #4ade80; margin-bottom: 4px;">
+                                    ${getRadioIcon(network.type)}
+                                    <span>${escapeHtml(network.ssid) || 'Hidden Network'}</span>
                                 </div>
                                 <div style="font-size: 10px; color: #94a3b8;">
                                     ${escapeHtml(network.bssid)}${network.observation_count ? ` • ${network.observation_count} obs` : ''}${network.first_seen && network.last_seen ? ` • ${new Date(parseInt(network.first_seen)).toLocaleDateString()} - ${new Date(parseInt(network.last_seen)).toLocaleDateString()} (${timespanDays}d)` : ''}
@@ -713,6 +729,7 @@
                     item.innerHTML = `
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                ${getRadioIcon(threat.radioType)}
                                 <div style="font-weight: 600; font-size: 13px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     ${escapeHtml(threat.ssid) || 'Hidden Network'}
                                 </div>
@@ -906,6 +923,9 @@
     </script>
     
     
+    <script src="/assets/js/radio-icons.js"></script>
+    <script src="/assets/js/unified-card-library.js"></script>
+    <script src="/assets/js/unified-components.js"></script>
     <script src="/assets/js/base-components.js"></script>
             }
         });

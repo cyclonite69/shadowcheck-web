@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShadowCheck - Admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/assets/styles/unified.css">
 </head>
 <body data-page="admin">
@@ -207,11 +208,12 @@
                     result.innerHTML = `
                         <div style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; font-size: 12px;">
                             <div><strong>SSID:</strong> ${net.ssid || 'Hidden'}</div>
-                            <div><strong>BSSID:</strong> ${net.netid}</div>
+                            <div><strong>BSSID:</strong> ${net.bssid}</div>
                             <div><strong>Encryption:</strong> ${net.encryption || 'Unknown'}</div>
-                            <div><strong>Location:</strong> ${net.trilat}, ${net.trilong}</div>
-                            <div><strong>Last Seen:</strong> ${net.lasttime}</div>
-                            <div><strong>Channel:</strong> ${net.channel || 'N/A'}</div>
+                            <div><strong>Location:</strong> ${net.trilat}, ${net.trilon}</div>
+                            <div><strong>First Seen:</strong> ${net.first_seen || 'N/A'}</div>
+                            <div><strong>Last Seen:</strong> ${net.last_seen || 'N/A'}</div>
+                            <div><strong>City:</strong> ${net.city || 'N/A'}, ${net.region || 'N/A'}, ${net.country || 'N/A'}</div>
                         </div>
                     `;
                 } else {
@@ -414,6 +416,9 @@
             window.location.href = '/api/export/csv?api_key=' + encodeURIComponent(API_KEY); 
         }
     </script>
+    <script src="/assets/js/radio-icons.js"></script>
+    <script src="/assets/js/unified-card-library.js"></script>
+    <script src="/assets/js/unified-components.js"></script>
     <script src="/assets/js/base-components.js"></script>
             }
         });

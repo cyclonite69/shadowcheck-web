@@ -15,7 +15,7 @@ class UnifiedHeader {
         return `
             <header class="app-header">
                 <div class="header-left">
-                    <div class="logo">SC</div>
+                    <div class="logo"><img src="/favicon.svg" alt="SC" style="width: 32px; height: 32px;"></div>
                     <span class="font-semibold">ShadowCheck</span>
                 </div>
                 <nav class="nav-links">
@@ -73,6 +73,11 @@ class BaseComponents {
     }
 
     toggleSnap(button) {
+        if (window.unifiedCards) {
+            window.unifiedCards.toggleSnap();
+            if (button) button.textContent = window.unifiedCards.snapEnabled ? '🔲 Snap: ON' : '🔲 Snap: OFF';
+            return window.unifiedCards.snapEnabled;
+        }
         this.snapEnabled = !this.snapEnabled;
         if (button) button.textContent = this.snapEnabled ? '🔲 Snap: ON' : '🔲 Snap: OFF';
         return this.snapEnabled;
@@ -80,10 +85,14 @@ class BaseComponents {
 
     // Reset layout
     resetLayout() {
-        const page = window.location.pathname;
-        delete this.layouts[page];
-        this.saveLayouts();
-        location.reload();
+        if (window.unifiedCards) {
+            window.unifiedCards.resetLayout();
+        } else {
+            const page = window.location.pathname;
+            delete this.layouts[page];
+            this.saveLayouts();
+            location.reload();
+        }
     }
 
     // Make card resizable
@@ -210,9 +219,13 @@ class BaseComponents {
         element.classList.add('unified-card');
     }
 
-    // Show card library (placeholder)
+    // Show card library
     showCardLibrary() {
-        alert('Card library coming soon!\n\nThis will let you add:\n- Network List\n- Threat List\n- Map Viewer\n\nto any page.');
+        if (typeof showCardLibrary === 'function') {
+            showCardLibrary();
+        } else {
+            alert('Card library not loaded');
+        }
     }
 
     // Initialize on page

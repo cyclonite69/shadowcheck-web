@@ -14,21 +14,18 @@ router.get('/wigle/network/:bssid', async (req, res, next) => {
 
     const { rows } = await query(`
       SELECT
-        netid,
+        bssid,
         ssid,
-        type,
-        lastupdt,
-        channel,
-        lastlat,
-        lastlon,
-        bestlat,
-        bestlon,
-        bestlevel,
         encryption,
         country,
-        region
+        region,
+        city,
+        trilat,
+        trilon,
+        first_seen,
+        last_seen
       FROM app.wigle_networks_enriched
-      WHERE netid = $1
+      WHERE bssid = $1
       LIMIT 1
     `, [bssid]);
 
@@ -37,8 +34,8 @@ router.get('/wigle/network/:bssid', async (req, res, next) => {
     }
 
     res.json({
-      ok: true,
-      network: rows[0],
+      success: true,
+      results: [rows[0]],
     });
   } catch (err) {
     next(err);
@@ -62,40 +59,38 @@ router.get('/wigle/search', async (req, res, next) => {
     if (bssid) {
       searchQuery = `
         SELECT
-          netid,
+          bssid,
           ssid,
-          type,
-          lastupdt,
-          channel,
-          lastlat,
-          lastlon,
-          bestlat,
-          bestlon,
-          bestlevel,
-          encryption
+          encryption,
+          country,
+          region,
+          city,
+          trilat,
+          trilon,
+          first_seen,
+          last_seen
         FROM app.wigle_networks_enriched
-        WHERE netid ILIKE $1
-        ORDER BY lastupdt DESC
+        WHERE bssid ILIKE $1
+        ORDER BY last_seen DESC
         LIMIT $2
       `;
       params = [`%${bssid}%`, searchLimit];
     } else {
       searchQuery = `
         SELECT
-          netid,
+          bssid,
           ssid,
-          type,
-          lastupdt,
-          channel,
-          lastlat,
-          lastlon,
-          bestlat,
-          bestlon,
-          bestlevel,
-          encryption
+          encryption,
+          country,
+          region,
+          city,
+          trilat,
+          trilon,
+          first_seen,
+          last_seen
         FROM app.wigle_networks_enriched
         WHERE ssid ILIKE $1
-        ORDER BY lastupdt DESC
+        ORDER BY last_seen DESC
         LIMIT $2
       `;
       params = [`%${ssid}%`, searchLimit];

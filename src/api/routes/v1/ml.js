@@ -10,7 +10,7 @@ const { query, CONFIG } = require('../../../config/database');
 // Load ML model with error handling
 let ThreatMLModel, mlModel;
 try {
-  ThreatMLModel = require('../../../scripts/ml/ml-trainer');
+  ThreatMLModel = require('../../../../scripts/ml/ml-trainer');
   mlModel = new ThreatMLModel();
   console.log('✓ ML model module loaded successfully');
 } catch (err) {

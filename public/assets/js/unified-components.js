@@ -275,7 +275,7 @@ function showCardLibrary() {
 }
 
 function addCardToPage(cardType) {
-    const main = document.querySelector('.app-main, .main');
+    const main = document.querySelector('.app-main, .main, main');
     if (!main) {
         alert('Cannot find main content area');
         return;
@@ -285,7 +285,16 @@ function addCardToPage(cardType) {
     const container = document.createElement('div');
     container.id = cardId;
     container.className = 'panel';
-    container.style.cssText = 'position: absolute; top: 100px; left: 100px; width: 600px; height: 400px; z-index: 100;';
+    
+    // Set default sizes based on card type
+    const sizes = {
+        networkList: { width: 800, height: 500 },
+        threatList: { width: 700, height: 450 },
+        mapViewer: { width: 900, height: 600 }
+    };
+    const size = sizes[cardType] || { width: 600, height: 400 };
+    
+    container.style.cssText = `position: absolute; top: 100px; left: 100px; width: ${size.width}px; height: ${size.height}px; z-index: 100;`;
     
     const card = window.CardLibrary[cardType];
     if (!card) {
@@ -293,13 +302,20 @@ function addCardToPage(cardType) {
         return;
     }
     
-    container.innerHTML = `<div class="panel-header">${card.title}</div><div class="panel-body" id="${cardId}-body"></div>`;
+    container.innerHTML = `
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>${card.title}</span>
+            <button onclick="document.getElementById('${cardId}').remove()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 0 8px;" title="Remove card">&times;</button>
+        </div>
+        <div class="panel-body" id="${cardId}-body"></div>
+    `;
     main.appendChild(container);
     
     card.render(document.getElementById(`${cardId}-body`));
     window.unifiedCards.enableCard(container);
     
-    document.querySelector('[onclick*="showCardLibrary"]').closest('div').parentElement.remove();
+    // Close modal
+    document.querySelector('[onclick*="showCardLibrary"]')?.closest('div')?.parentElement?.remove();
 }
 
 window.showCardLibrary = showCardLibrary;

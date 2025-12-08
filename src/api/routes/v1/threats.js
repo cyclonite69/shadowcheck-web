@@ -37,6 +37,11 @@ router.get('/threats/quick', async (req, res) => {
         np.bssid,
         n.ssid,
         n.type as radio_type,
+        n.channel,
+        n.bestlevel as signal_dbm,
+        n.encryption,
+        n.bestlat as latitude,
+        n.bestlon as longitude,
         np.obs_count as observations,
         np.unique_days,
         np.unique_locations,
@@ -53,12 +58,14 @@ router.get('/threats/quick', async (req, res) => {
         COUNT(*) OVER() as total_count
       FROM network_patterns np
       LEFT JOIN app.networks n ON n.bssid = np.bssid
+      LEFT JOIN app.network_tags nt ON nt.bssid = np.bssid
       WHERE (
         CASE WHEN np.unique_days >= 7 THEN 30 WHEN np.unique_days >= 3 THEN 20 ELSE 10 END +
         CASE WHEN np.distance_range_km > 1.0 THEN 40 WHEN np.distance_range_km > 0.5 THEN 25 ELSE 0 END +
         CASE WHEN np.obs_count >= 50 THEN 20 WHEN np.obs_count >= 20 THEN 10 ELSE 5 END +
         CASE WHEN np.unique_locations >= 10 THEN 15 WHEN np.unique_locations >= 5 THEN 10 ELSE 0 END
       ) >= 40
+      AND nt.bssid IS NULL
       ORDER BY threat_score DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset]);
@@ -67,17 +74,37 @@ router.get('/threats/quick', async (req, res) => {
 
     res.json({
       threats: result.rows.map(row => ({
+        // Network identification
         bssid: row.bssid,
         ssid: row.ssid || '<Hidden>',
         radioType: row.radio_type || 'wifi',
-        observations: parseInt(row.observations),
-        uniqueDays: parseInt(row.unique_days),
-        uniqueLocations: parseInt(row.unique_locations),
+        type: row.radio_type || 'wifi',
+        
+        // Network properties
+        channel: row.channel,
+        signal: row.signal_dbm,
+        signalDbm: row.signal_dbm,
         maxSignal: row.max_signal,
+        encryption: row.encryption,
+        
+        // Location
+        latitude: row.latitude,
+        longitude: row.longitude,
+        
+        // Timestamps from observations
         firstSeen: row.first_seen,
         lastSeen: row.last_seen,
+        
+        // Observations
+        observations: parseInt(row.observations),
+        totalObservations: parseInt(row.observations),
+        uniqueDays: parseInt(row.unique_days),
+        uniqueLocations: parseInt(row.unique_locations),
+        
+        // Threat metrics
         distanceRangeKm: parseFloat(row.distance_range_km).toFixed(2),
         threatScore: parseInt(row.threat_score),
+        threatLevel: row.threat_score >= 70 ? 'high' : row.threat_score >= 50 ? 'medium' : 'low',
       })),
       total: totalCount,
       page,
@@ -199,45 +226,68 @@ router.get('/threats/detect', async (req, res, next) => {
         LEFT JOIN app.network_tags nt ON ta.bssid = nt.bssid
       )
       SELECT
-        bssid,
-        ssid,
-        type,
-        encryption,
-        total_observations,
-        threat_score,
-        threat_type,
-        confidence,
-        seen_at_home,
-        seen_away_from_home,
-        max_distance_between_obs_km,
-        observation_timespan_ms,
-        unique_days_observed,
-        ROUND(max_speed_kmh::numeric, 2) as max_speed_kmh,
-        distances_from_home_km,
-        user_tag,
-        user_confidence,
-        user_notes,
-        user_override
-      FROM threat_classification
-      WHERE threat_score >= 30
+        tc.bssid,
+        tc.ssid,
+        tc.type,
+        tc.encryption,
+        tc.total_observations,
+        tc.threat_score,
+        tc.threat_type,
+        tc.confidence,
+        tc.seen_at_home,
+        tc.seen_away_from_home,
+        tc.max_distance_between_obs_km,
+        tc.observation_timespan_ms,
+        tc.unique_days_observed,
+        ROUND(tc.max_speed_kmh::numeric, 2) as max_speed_kmh,
+        tc.distances_from_home_km,
+        tc.user_tag,
+        tc.user_confidence,
+        tc.user_notes,
+        tc.user_override,
+        n.channel,
+        n.bestlevel as signal_dbm,
+        n.bestlat as network_latitude,
+        n.bestlon as network_longitude
+      FROM threat_classification tc
+      LEFT JOIN app.networks n ON tc.bssid = n.bssid
+      WHERE tc.threat_score >= 30
         AND (
-          type NOT IN ('G', 'L', 'N')
-          OR max_distance_between_obs_km > 5
+          tc.type NOT IN ('G', 'L', 'N')
+          OR tc.max_distance_between_obs_km > 5
         )
-      ORDER BY threat_score DESC, total_observations DESC
+      ORDER BY tc.threat_score DESC, tc.total_observations DESC
     `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
     res.json({
       ok: true,
       threats: rows.map(row => ({
+        // Network identification
         bssid: row.bssid,
         ssid: row.ssid,
         type: row.type,
+        
+        // Network properties
         encryption: row.encryption,
+        channel: row.channel,
+        signal: row.signal_dbm,
+        signalDbm: row.signal_dbm,
+        
+        // Location
+        latitude: row.network_latitude,
+        longitude: row.network_longitude,
+        
+        // Observations
         totalObservations: row.total_observations,
+        observations: row.total_observations,
+        
+        // Threat analysis
         threatScore: parseInt(row.threat_score),
         threatType: row.threat_type,
+        threatLevel: row.threat_score >= 70 ? 'high' : row.threat_score >= 50 ? 'medium' : 'low',
         confidence: (row.confidence * 100).toFixed(0),
+        
+        // Threat patterns
         patterns: {
           seenAtHome: row.seen_at_home,
           seenAwayFromHome: row.seen_away_from_home,
@@ -247,6 +297,8 @@ router.get('/threats/detect', async (req, res, next) => {
           maxSpeedKmh: parseFloat(row.max_speed_kmh),
           distancesFromHomeKm: row.distances_from_home_km,
         },
+        
+        // User tags
         userTag: row.user_tag,
         userConfidence: row.user_confidence,
         userNotes: row.user_notes,
