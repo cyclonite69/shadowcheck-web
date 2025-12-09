@@ -13,6 +13,14 @@ router.get('/threats/quick', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
+    const minTimestamp = CONFIG.MIN_VALID_TIMESTAMP;
+    
+    // Configurable thresholds
+    const minObservations = parseInt(req.query.minObs) || 5;
+    const minUniqueDays = parseInt(req.query.minDays) || 3;
+    const minUniqueLocations = parseInt(req.query.minLocs) || 5;
+    const minRangeKm = parseFloat(req.query.minRange) || 0.5;
+    const minThreatScore = parseInt(req.query.minScore) || 40;
 
     const result = await query(`
       WITH network_patterns AS (
@@ -29,9 +37,15 @@ router.get('/threats/quick', async (req, res) => {
             ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
           ) / 1000.0 as distance_range_km
         FROM app.observations o
-        WHERE o.observed_at >= NOW() - INTERVAL '30 days'
+        WHERE o.observed_at >= to_timestamp($1 / 1000.0)
         GROUP BY o.bssid
-        HAVING COUNT(DISTINCT o.id) >= 5
+        HAVING COUNT(DISTINCT o.id) >= $4
+          AND COUNT(DISTINCT DATE(o.observed_at)) >= $5
+          AND COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) >= $6
+          AND ST_Distance(
+            ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
+            ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
+          ) / 1000.0 >= $7
       )
       SELECT 
         np.bssid,
@@ -64,11 +78,12 @@ router.get('/threats/quick', async (req, res) => {
         CASE WHEN np.distance_range_km > 1.0 THEN 40 WHEN np.distance_range_km > 0.5 THEN 25 ELSE 0 END +
         CASE WHEN np.obs_count >= 50 THEN 20 WHEN np.obs_count >= 20 THEN 10 ELSE 5 END +
         CASE WHEN np.unique_locations >= 10 THEN 15 WHEN np.unique_locations >= 5 THEN 10 ELSE 0 END
-      ) >= 40
+      ) >= $8
       AND nt.bssid IS NULL
+      AND (n.type NOT IN ('L', 'N', 'G') OR np.distance_range_km > 50)
       ORDER BY threat_score DESC
-      LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+      LIMIT $2 OFFSET $3
+    `, [minTimestamp, limit, offset, minObservations, minUniqueDays, minUniqueLocations, minRangeKm, minThreatScore]);
 
     const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
 

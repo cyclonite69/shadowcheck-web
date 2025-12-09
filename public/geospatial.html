@@ -13,6 +13,78 @@
         .panel { display: flex; flex-direction: column; min-height: 0; }
         .panel-content { flex: 1; overflow: auto; padding: 0; }
         #map { width: 100%; height: 100%; }
+        
+        /* Tooltip Styles */
+        .dark-tooltip-popup .mapboxgl-popup-content {
+            background: rgba(15, 23, 42, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            padding: 0 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .dark-tooltip {
+            background: transparent;
+            color: #f8fafc;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .tooltip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .tooltip-ssid {
+            font-weight: 600;
+            font-size: 14px;
+            color: #22d3ee;
+        }
+        
+        .tooltip-field {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            gap: 12px;
+        }
+        
+        .tooltip-label {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+        
+        .tooltip-value {
+            color: #f8fafc;
+            font-weight: 500;
+        }
+        
+        .tooltip-value.mono {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        
+        .tooltip-value.signal-strong { color: #22c55e; }
+        .tooltip-value.signal-medium { color: #eab308; }
+        .tooltip-value.signal-weak { color: #ef4444; }
+        
+        .tooltip-timestamp {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+        
+        .tooltip-icon {
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body data-page="geospatial">
@@ -47,17 +119,34 @@
             <div class="panel" id="map-panel">
                 <div class="panel-header">
                     <span>📍 Network Distribution Map</span>
-                    <div style="display: flex; gap: 8px;">
-                        <select id="map-style-selector" onchange="changeMapStyle(this.value)">
-                            <option value="night" selected>🌙 Night</option>
-                            <option value="dawn">🌅 Dawn</option>
-                            <option value="dusk">🌆 Dusk</option>
-                            <option value="day">☀️ Day</option>
-                            <option value="dark">🌑 Dark</option>
-                            <option value="satellite">🛰️ Satellite</option>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="map-style-selector" onchange="changeMapStyle(this.value)" style="padding: 4px 8px; font-size: 11px; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                            <option value="mapbox://styles/mapbox/standard">Standard</option>
+                            <option value="mapbox://styles/mapbox/streets-v12">Streets</option>
+                            <option value="mapbox://styles/mapbox/outdoors-v12">Outdoors</option>
+                            <option value="mapbox://styles/mapbox/light-v11">Light</option>
+                            <option value="mapbox://styles/mapbox/dark-v11">Dark</option>
+                            <option value="mapbox://styles/mapbox/satellite-v9">Satellite</option>
+                            <option value="mapbox://styles/mapbox/satellite-streets-v12">Satellite Streets</option>
+                            <option value="mapbox://styles/mapbox/navigation-day-v1">Navigation Day</option>
+                            <option value="mapbox://styles/mapbox/navigation-night-v1">Navigation Night</option>
                         </select>
-                        <button onclick="setHomeLocation()" id="set-home-btn">🏠 Set Home</button>
-                        <button onclick="centerMapOnLocation()">🎯 Center</button>
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="toggle-3d-buildings" onchange="toggle3DBuildings(this.checked)">
+                            <span>🏢 3D Buildings</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="toggle-terrain" onchange="toggleTerrain(this.checked)">
+                            <span>⛰️ Terrain</span>
+                        </label>
+                        <button onclick="centerOnHome()" class="btn btn-sm" title="Center on home location">🏠 Home</button>
+                        <button onclick="centerOnCurrentLocation()" class="btn btn-sm" title="Center on your current GPS location">📍 GPS</button>
+                        <button onclick="fitBounds()" class="btn btn-sm" title="Fit all networks in view">🎯 Fit All</button>
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;">
+                            <span>⭕ Radius:</span>
+                            <input type="number" id="home-radius" value="0" min="0" max="10000" step="50" onchange="updateHomeCircle(this.value)" style="width: 70px; padding: 4px 6px; font-size: 11px; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                            <span>m</span>
+                        </label>
                     </div>
                 </div>
                 <div class="panel-content">
@@ -1135,9 +1224,25 @@
                 // Add click handler
                 map.on('click', 'networks-layer', (e) => {
                     const props = e.features[0].properties;
-                    new mapboxgl.Popup()
-                        .setLngLat(e.lngLat)
-                        .setHTML(`<strong>${props.ssid}</strong><br>${props.bssid}<br>Signal: ${props.signal} dBm`)
+                    const coords = e.lngLat;
+                    
+                    // Format timestamp
+                    const timestamp = props.lasttime ? new Date(props.lasttime * 1000).toLocaleString() : 'Unknown';
+                    
+                    // Get manufacturer if available
+                    const manufacturer = props.manufacturer || null;
+                    
+                    // Generate detailed tooltip
+                    const tooltipHTML = generateNetworkTooltip(props, coords, manufacturer, timestamp);
+                    
+                    new mapboxgl.Popup({
+                        className: 'dark-tooltip-popup',
+                        closeButton: true,
+                        closeOnClick: true,
+                        maxWidth: '320px'
+                    })
+                        .setLngLat(coords)
+                        .setHTML(tooltipHTML)
                         .addTo(map);
                 });
 
@@ -1739,35 +1844,187 @@
             }
         }
 
-        function changeMapStyle(style) {
+        function changeMapStyle(styleUrl) {
             if (!map) return;
-
-            const styleMap = {
-                'night': 'mapbox://styles/mapbox/standard',
-                'dawn': 'mapbox://styles/mapbox/standard',
-                'dusk': 'mapbox://styles/mapbox/standard',
-                'day': 'mapbox://styles/mapbox/standard',
-                'dark': 'mapbox://styles/mapbox/dark-v11',
-                'satellite': 'mapbox://styles/mapbox/satellite-v9'
-            };
-
-            const center = map.getCenter();
-            const zoom = map.getZoom();
-
-            map.setStyle(styleMap[style]);
+            
+            const currentCenter = map.getCenter();
+            const currentZoom = map.getZoom();
+            
+            map.setStyle(styleUrl);
+            
             map.once('style.load', () => {
-                map.setCenter(center);
-                map.setZoom(zoom);
-                if (style !== 'dark' && style !== 'satellite') {
-                    map.setConfigProperty('basemap', 'lightPreset', style);
+                map.setCenter(currentCenter);
+                map.setZoom(currentZoom);
+                
+                // Restore layers if they were enabled
+                if (document.getElementById('toggle-3d-buildings')?.checked) {
+                    add3DBuildings();
                 }
-                // Don't reload points on style change - user selects threat
+                if (document.getElementById('toggle-terrain')?.checked) {
+                    addTerrain();
+                }
+                
+                // Reload markers
+                loadHomeMarker();
+                console.log('✓ Map style changed to:', styleUrl);
             });
+        }
+
+        function toggle3DBuildings(enabled) {
+            if (!map) return;
+            
+            if (enabled) {
+                add3DBuildings();
+            } else {
+                if (map.getLayer('3d-buildings')) {
+                    map.removeLayer('3d-buildings');
+                }
+            }
+        }
+
+        function add3DBuildings() {
+            if (!map.getLayer('3d-buildings')) {
+                const layers = map.getStyle().layers;
+                const labelLayerId = layers.find(
+                    (layer) => layer.type === 'symbol' && layer.layout['text-field']
+                )?.id;
+
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'composite',
+                    'source-layer': 'building',
+                    'filter': ['==', 'extrude', 'true'],
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'paint': {
+                        'fill-extrusion-color': '#aaa',
+                        'fill-extrusion-height': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            15,
+                            0,
+                            15.05,
+                            ['get', 'height']
+                        ],
+                        'fill-extrusion-base': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            15,
+                            0,
+                            15.05,
+                            ['get', 'min_height']
+                        ],
+                        'fill-extrusion-opacity': 0.6
+                    }
+                }, labelLayerId);
+                
+                console.log('✓ 3D buildings enabled');
+            }
+        }
+
+        function toggleTerrain(enabled) {
+            if (!map) return;
+            
+            if (enabled) {
+                addTerrain();
+            } else {
+                map.setTerrain(null);
+                if (map.getSource('mapbox-dem')) {
+                    map.removeSource('mapbox-dem');
+                }
+                console.log('✓ Terrain disabled');
+            }
+        }
+
+        function addTerrain() {
+            if (!map.getSource('mapbox-dem')) {
+                map.addSource('mapbox-dem', {
+                    'type': 'raster-dem',
+                    'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                    'tileSize': 512,
+                    'maxzoom': 14
+                });
+            }
+            
+            map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+            console.log('✓ Terrain enabled');
         }
 
         function centerMapOnLocation() {
             if (map) {
                 map.flyTo({ center: [-83.69, 43.02], zoom: 12 });
+            }
+        }
+
+        // Center on saved home location
+        async function centerOnHome() {
+            if (!map) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/location-markers/home`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.marker) {
+                        map.flyTo({
+                            center: [data.marker.longitude, data.marker.latitude],
+                            zoom: 16
+                        });
+                        console.log('✓ Centered on home location');
+                    } else {
+                        alert('No home location set. Please set your home location in settings.');
+                    }
+                } else {
+                    alert('No home location found');
+                }
+            } catch (error) {
+                console.error('Error fetching home location:', error);
+                alert('Failed to load home location');
+            }
+        }
+
+        // Center on current GPS location
+        function centerOnCurrentLocation() {
+            if (!map) return;
+            
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        map.flyTo({
+                            center: [position.coords.longitude, position.coords.latitude],
+                            zoom: 16
+                        });
+                        console.log('✓ Centered on current GPS location');
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                        alert('Unable to get your location. Please enable location services.');
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser');
+            }
+        }
+
+        // Fit all networks in view
+        function fitBounds() {
+            if (!map) return;
+            
+            // Get all network markers
+            const source = map.getSource('network-points');
+            if (source && source._data && source._data.features && source._data.features.length > 0) {
+                const bounds = new mapboxgl.LngLatBounds();
+                
+                source._data.features.forEach(feature => {
+                    bounds.extend(feature.geometry.coordinates);
+                });
+                
+                map.fitBounds(bounds, { padding: 50, maxZoom: 15 });
+                console.log('✓ Fitted bounds to all networks');
+            } else {
+                alert('No networks loaded on map');
             }
         }
 
@@ -1887,6 +2144,66 @@
                 console.log('✓ Home marker loaded');
             } catch (err) {
                 console.log('No home marker set');
+            }
+        }
+
+        // Draw circle around home location
+        async function updateHomeCircle(radiusMeters) {
+            if (!map) return;
+            
+            const radius = parseFloat(radiusMeters);
+            
+            // Remove existing circle
+            if (map.getLayer('home-circle')) {
+                map.removeLayer('home-circle');
+                map.removeSource('home-circle');
+            }
+            
+            if (radius <= 0) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/location-markers/home`);
+                const data = await response.json();
+                if (!data.marker) return;
+                
+                const center = [data.marker.longitude, data.marker.latitude];
+                const points = 64;
+                const coords = [];
+                
+                for (let i = 0; i <= points; i++) {
+                    const angle = (i / points) * 2 * Math.PI;
+                    const dx = radius * Math.cos(angle);
+                    const dy = radius * Math.sin(angle);
+                    
+                    // Convert meters to degrees (approximate)
+                    const lat = center[1] + (dy / 111320);
+                    const lng = center[0] + (dx / (111320 * Math.cos(center[1] * Math.PI / 180)));
+                    coords.push([lng, lat]);
+                }
+                
+                map.addSource('home-circle', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [coords]
+                        }
+                    }
+                });
+                
+                map.addLayer({
+                    id: 'home-circle',
+                    type: 'line',
+                    source: 'home-circle',
+                    paint: {
+                        'line-color': '#10b981',
+                        'line-width': 2,
+                        'line-opacity': 0.8
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to draw home circle:', err);
             }
         }
 

@@ -81,6 +81,43 @@
 
             <!-- THREAT LISTS -->
             <div class="threat-lists-container">
+            
+            <!-- Filter Controls -->
+            <div class="panel">
+                <div class="panel-header">🎛️ Threat Filters</div>
+                <div class="panel-content" style="padding: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Search BSSID/SSID</label>
+                            <input type="text" id="threat-search" placeholder="Search..." style="width: 100%; padding: 6px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Min Observations</label>
+                            <input type="number" id="filter-min-obs" value="5" min="1" max="1000" style="width: 100%; padding: 6px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Min Unique Days</label>
+                            <input type="number" id="filter-min-days" value="3" min="1" max="365" style="width: 100%; padding: 6px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Min Locations</label>
+                            <input type="number" id="filter-min-locs" value="5" min="1" max="100" style="width: 100%; padding: 6px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Min Range (km)</label>
+                            <input type="number" id="filter-min-range" value="0.5" min="0" max="100" step="0.1" style="width: 100%; padding: 6px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Min Threat Score</label>
+                            <input type="number" id="filter-min-score" value="40" min="0" max="200" style="width: 100%; padding: 6px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <button id="apply-filters-btn" style="margin-top: 12px; width: 100%; padding: 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+            
             <!-- Active Threats -->
             <div class="panel">
                 <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -96,7 +133,7 @@
                         <option value="low">Low (30-49)</option>
                     </select>
                 </div>
-                <div class="panel-content" style="overflow-y: auto;">
+                <div class="panel-content" style="overflow-y: auto; max-height: 600px;">
                     <div id="threat-investigation-list" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="loading">Loading threats...</div>
                     </div>
@@ -668,8 +705,27 @@
 
                 pagination.activeThreats.loading = true;
 
-                console.log(`🔍 Loading threat investigation list (page ${pagination.activeThreats.page}, severity filter: ${minThreatSeverity})...`);
-                const url = `${API_BASE}/threats/quick?page=${pagination.activeThreats.page}&limit=${pagination.activeThreats.limit}`;
+                // Build URL with filter parameters
+                const params = new URLSearchParams({
+                    page: pagination.activeThreats.page,
+                    limit: pagination.activeThreats.limit
+                });
+                
+                // Add configurable filters if set
+                const minObs = document.getElementById('filter-min-obs')?.value;
+                const minDays = document.getElementById('filter-min-days')?.value;
+                const minLocs = document.getElementById('filter-min-locs')?.value;
+                const minRange = document.getElementById('filter-min-range')?.value;
+                const minScore = document.getElementById('filter-min-score')?.value;
+                
+                if (minObs) params.append('minObs', minObs);
+                if (minDays) params.append('minDays', minDays);
+                if (minLocs) params.append('minLocs', minLocs);
+                if (minRange) params.append('minRange', minRange);
+                if (minScore) params.append('minScore', minScore);
+
+                console.log(`🔍 Loading threat investigation list (page ${pagination.activeThreats.page}, filters: ${params.toString()})...`);
+                const url = `${API_BASE}/threats/quick?${params.toString()}`;
                 const response = await fetch(url);
 
                 if (!response.ok) {
@@ -699,8 +755,19 @@
 
                 // Filter threats by selected severity level
                 let filteredThreats = data.threats;
+                
+                // Apply search filter
+                const searchText = document.getElementById('threat-search')?.value?.toLowerCase();
+                if (searchText) {
+                    filteredThreats = filteredThreats.filter(threat => 
+                        threat.bssid?.toLowerCase().includes(searchText) ||
+                        threat.ssid?.toLowerCase().includes(searchText)
+                    );
+                }
+                
+                // Apply severity filter
                 if (minThreatSeverity !== 'all') {
-                    filteredThreats = data.threats.filter(threat => {
+                    filteredThreats = filteredThreats.filter(threat => {
                         const severityClass = getSeverityClass(threat.threatScore);
                         return severityClass === `severity-${minThreatSeverity}`;
                     });
@@ -723,62 +790,89 @@
                     const item = document.createElement('div');
                     const severityClass = getSeverityClass(threat.threatScore);
                     const severityLabel = getSeverityLabel(threat.threatScore);
+                    const timespanDays = Math.round((parseInt(threat.lastSeen) - parseInt(threat.firstSeen)) / (1000 * 60 * 60 * 24));
 
                     item.className = `threat-row ${severityClass}`;
 
                     item.innerHTML = `
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                ${getRadioIcon(threat.radioType)}
-                                <div style="font-weight: 600; font-size: 13px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    ${escapeHtml(threat.ssid) || 'Hidden Network'}
+                        <div style="display: flex; gap: 12px; align-items: start;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                                    ${getRadioIcon(threat.radioType)}
+                                    <div style="font-weight: 600; font-size: 13px; color: #f1f5f9;">
+                                        ${escapeHtml(threat.ssid) || 'Hidden Network'}
+                                    </div>
+                                    <span class="threat-score ${severityClass}">${escapeHtml(severityLabel)}: ${threat.threatScore}</span>
                                 </div>
-                                <span class="threat-score ${severityClass}">${escapeHtml(severityLabel)}: ${threat.threatScore}</span>
+                                <div style="font-size: 11px; color: #94a3b8; line-height: 1.5;">
+                                    <div><strong>BSSID:</strong> ${escapeHtml(threat.bssid)}</div>
+                                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px;">
+                                        <span><strong>Observations:</strong> ${threat.totalObservations}</span>
+                                        <span><strong>Days Active:</strong> ${timespanDays}d</span>
+                                        <span><strong>Unique Days:</strong> ${threat.uniqueDays}</span>
+                                        <span><strong>Locations:</strong> ${threat.uniqueLocations}</span>
+                                        <span><strong>Range:</strong> ${threat.distanceRangeKm} km</span>
+                                    </div>
+                                    <div style="margin-top: 4px;">
+                                        <strong>First:</strong> ${new Date(parseInt(threat.firstSeen)).toLocaleString()} • 
+                                        <strong>Last:</strong> ${new Date(parseInt(threat.lastSeen)).toLocaleString()}
+                                    </div>
+                                </div>
                             </div>
-                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                                ${escapeHtml(threat.bssid)} • ${threat.totalObservations} obs • ${new Date(parseInt(threat.firstSeen)).toLocaleDateString()} - ${new Date(parseInt(threat.lastSeen)).toLocaleDateString()} (${threat.timespanDays}d)
+                            <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
+                                <button class="tag-safe-btn" style="
+                                    background: rgba(34, 197, 94, 0.2);
+                                    border: 1px solid rgba(34, 197, 94, 0.4);
+                                    color: #4ade80;
+                                    padding: 6px 12px;
+                                    border-radius: 4px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    white-space: nowrap;
+                                " title="Mark as safe (false positive)">
+                                    ✓ Safe
+                                </button>
+                                <button class="tag-threat-btn" style="
+                                    background: rgba(239, 68, 68, 0.2);
+                                    border: 1px solid rgba(239, 68, 68, 0.4);
+                                    color: #f87171;
+                                    padding: 6px 12px;
+                                    border-radius: 4px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    white-space: nowrap;
+                                " title="Confirm as threat">
+                                    ⚠ Threat
+                                </button>
+                                <button class="investigate-btn" style="
+                                    background: rgba(59, 130, 246, 0.2);
+                                    border: 1px solid rgba(59, 130, 246, 0.4);
+                                    color: #60a5fa;
+                                    padding: 6px 12px;
+                                    border-radius: 4px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    white-space: nowrap;
+                                " title="Investigate on map">
+                                    🔍 Map
+                                </button>
+                                <button class="wigle-btn" style="
+                                    background: rgba(168, 85, 247, 0.2);
+                                    border: 1px solid rgba(168, 85, 247, 0.4);
+                                    color: #c084fc;
+                                    padding: 6px 12px;
+                                    border-radius: 4px;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    white-space: nowrap;
+                                " title="Lookup in WiGLE database">
+                                    🌐 WiGLE
+                                </button>
                             </div>
-                        </div>
-                        <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                            <button class="tag-safe-btn" style="
-                                background: rgba(34, 197, 94, 0.2);
-                                border: 1px solid rgba(34, 197, 94, 0.4);
-                                color: #4ade80;
-                                padding: 4px 8px;
-                                border-radius: 4px;
-                                font-size: 10px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                white-space: nowrap;
-                            " title="Mark as safe (false positive)">
-                                ✓ Safe
-                            </button>
-                            <button class="tag-threat-btn" style="
-                                background: rgba(239, 68, 68, 0.2);
-                                border: 1px solid rgba(239, 68, 68, 0.4);
-                                color: #f87171;
-                                padding: 4px 8px;
-                                border-radius: 4px;
-                                font-size: 10px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                white-space: nowrap;
-                            " title="Confirm as threat">
-                                ⚠ Threat
-                            </button>
-                            <button class="investigate-btn" style="
-                                background: rgba(59, 130, 246, 0.2);
-                                border: 1px solid rgba(59, 130, 246, 0.4);
-                                color: #60a5fa;
-                                padding: 4px 8px;
-                                border-radius: 4px;
-                                font-size: 10px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                white-space: nowrap;
-                            " title="Investigate on map">
-                                🔍 Map
-                            </button>
                         </div>
                     `;
 
@@ -786,6 +880,7 @@
                     const safeBtn = item.querySelector('.tag-safe-btn');
                     const threatBtn = item.querySelector('.tag-threat-btn');
                     const investigateBtn = item.querySelector('.investigate-btn');
+                    const wigleBtn = item.querySelector('.wigle-btn');
 
                     // Check if already tagged and update button state
                     if (threat.isTagged) {
@@ -830,7 +925,39 @@
 
                     investigateBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        investigateThreat(threat.bssid, threat.ssid);
+                        window.location.href = `/geospatial.html?bssid=${encodeURIComponent(threat.bssid)}&ssid=${encodeURIComponent(threat.ssid || '')}`;
+                    });
+
+                    wigleBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        wigleBtn.textContent = '⏳ Loading...';
+                        wigleBtn.disabled = true;
+                        
+                        try {
+                            const response = await fetch(`${API_BASE}/wigle/live/${threat.bssid}`);
+                            const data = await response.json();
+                            
+                            if (data.network) {
+                                const net = data.network;
+                                alert(`WiGLE Data for ${threat.bssid}:\n\n` +
+                                    `SSID: ${net.ssid || 'N/A'}\n` +
+                                    `Encryption: ${net.encryption || 'N/A'}\n` +
+                                    `Channel: ${net.channel || 'N/A'}\n` +
+                                    `Location: ${net.city || 'N/A'}, ${net.region || 'N/A'}, ${net.country || 'N/A'}\n` +
+                                    `Coordinates: ${net.trilat || net.lastlat}, ${net.trilon || net.lastlon}\n` +
+                                    `First Seen: ${net.firsttime || 'N/A'}\n` +
+                                    `Last Seen: ${net.lasttime || 'N/A'}\n` +
+                                    `Total Results: ${data.totalResults || 0}`
+                                );
+                            } else {
+                                alert(`No WiGLE data found for ${threat.bssid}\n\nThis network may not be in the WiGLE database.`);
+                            }
+                        } catch (err) {
+                            alert(`Error fetching WiGLE data: ${err.message}`);
+                        } finally {
+                            wigleBtn.textContent = '🌐 WiGLE';
+                            wigleBtn.disabled = false;
+                        }
                     });
 
                     item.addEventListener('click', () => {
@@ -917,6 +1044,29 @@
                     console.log(`🎚️ Threat severity filter changed to: ${minThreatSeverity}`);
                     loadThreatList();
                     // Note: chart still shows all threats for context
+                });
+            }
+            
+            // Wire up apply filters button
+            const applyFiltersBtn = document.getElementById('apply-filters-btn');
+            if (applyFiltersBtn) {
+                applyFiltersBtn.addEventListener('click', () => {
+                    console.log('🎛️ Applying custom filters...');
+                    pagination.activeThreats.page = 1;
+                    loadThreatList();
+                });
+            }
+            
+            // Wire up search input (real-time search)
+            const searchInput = document.getElementById('threat-search');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        console.log('🔍 Search filter applied');
+                        loadThreatList();
+                    }, 300);
                 });
             }
         });

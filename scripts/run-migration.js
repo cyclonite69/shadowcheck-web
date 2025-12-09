@@ -1,32 +1,52 @@
 #!/usr/bin/env node
-const fs = require('fs');
+/**
+ * Run SQL migration using secretsManager for password
+ */
+
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'shadowcheck_user',
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST || '127.0.0.1',
-  database: process.env.DB_NAME || 'shadowcheck_db',
-  port: process.env.DB_PORT || 5432,
-});
+const secretsManager = require('../src/services/secretsManager');
+
+const migrationFile = process.argv[2];
+
+if (!migrationFile) {
+  console.error('Usage: node run-migration.js <migration-file.sql>');
+  process.exit(1);
+}
+
+const migrationPath = path.resolve(migrationFile);
+
+if (!fs.existsSync(migrationPath)) {
+  console.error(`Migration file not found: ${migrationPath}`);
+  process.exit(1);
+}
+
+const sql = fs.readFileSync(migrationPath, 'utf8');
 
 async function runMigration() {
-  const client = await pool.connect();
   try {
-    const sql = fs.readFileSync('/home/cyclonite01/ShadowCheckStatic/sql/migrations/01_add_minimum_required_columns.sql', 'utf8');
-
-    console.log('🔄 Running migration...\n');
-    await client.query(sql);
-    console.log('\n✅ Migration completed successfully!');
-
-  } catch (err) {
-    console.error('❌ Migration failed:', err.message);
-    console.error('Details:', err);
-    process.exit(1);
-  } finally {
-    client.release();
+    // Load secrets first
+    await secretsManager.load();
+    
+    const pool = new Pool({
+      user: process.env.DB_USER || 'shadowcheck',
+      password: secretsManager.getOrThrow('db_password'),
+      host: process.env.DB_HOST || '127.0.0.1',
+      database: process.env.DB_NAME || 'shadowcheck',
+      port: process.env.DB_PORT || 5432,
+    });
+    
+    console.log(`Running migration: ${path.basename(migrationPath)}`);
+    await pool.query(sql);
+    console.log('✓ Migration completed successfully');
     await pool.end();
+    process.exit(0);
+  } catch (error) {
+    console.error('✗ Migration failed:', error.message);
+    process.exit(1);
   }
 }
 

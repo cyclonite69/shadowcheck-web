@@ -111,6 +111,14 @@
                 </div>
 
                 <div class="panel">
+                    <div class="panel-header">🏠 Home Location</div>
+                    <div class="panel-body">
+                        <button class="btn mb-2" onclick="setHomeFromGPS()" style="width: 100%;">📍 Set Home from GPS</button>
+                        <div id="home-result" style="margin-top: 8px; font-size: 12px;"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
                     <div class="panel-header">🌍 Export GeoJSON</div>
                     <div class="panel-body">
                         <button class="btn btn-secondary" onclick="exportGeoJSON()" style="width: 100%;">Download GeoJSON</button>
@@ -347,6 +355,77 @@
             } catch (e) {
                 alert('Failed: ' + e.message);
             }
+        }
+
+        const API_BASE = "/api";
+
+        async function setHomeFromGPS() {
+            const result = document.getElementById('home-result');
+            result.innerHTML = '<div style="color: #60a5fa;">Getting high-accuracy GPS... (wait for <50m accuracy)</div>';
+            
+            if (!navigator.geolocation) {
+                result.innerHTML = '<div style="color: #ef4444;">GPS not supported</div>';
+                return;
+            }
+            
+            let bestPosition = null;
+            let watchId = navigator.geolocation.watchPosition(
+                async (position) => {
+                    const acc = position.coords.accuracy;
+                    console.log("GPS UPDATE:", position.coords.latitude.toFixed(8), position.coords.longitude.toFixed(8), "Acc:", acc.toFixed(1) + "m");
+                    
+                    // Update display with current reading
+                    result.innerHTML = `<div style="color: #60a5fa;">GPS accuracy: ±${acc.toFixed(1)}m (waiting for <50m...)</div>`;
+                    
+                    // Keep best position
+                    if (!bestPosition || acc < bestPosition.coords.accuracy) {
+                        bestPosition = position;
+                    }
+                    
+                    // Accept if accuracy is good enough
+                    if (acc < 50) {
+                        navigator.geolocation.clearWatch(watchId);
+                        
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        try {
+                            const response = await fetch(`${API_BASE}/location-markers/home`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    latitude: lat, 
+                                    longitude: lng, 
+                                    altitude_gps: position.coords.altitude, 
+                                    altitude_baro: null, 
+                                    device_id: navigator.userAgent.includes('SM-S928') ? 'S22Ultra' : 'laptop', 
+                                    device_type: /Mobile/.test(navigator.userAgent) ? 'mobile' : 'desktop' 
+                                })
+                            });
+                            
+                            if (response.ok) {
+                                result.innerHTML = `<div style="color: #22c55e;">✓ ${lat.toFixed(8)}, ${lng.toFixed(8)} | Alt: ${position.coords.altitude !== null ? position.coords.altitude.toFixed(1) + "m" : "N/A"} | Acc: ±${acc.toFixed(1)}m</div>`;
+                            } else {
+                                result.innerHTML = '<div style="color: #ef4444;">Failed to set home location</div>';
+                            }
+                        } catch (error) {
+                            result.innerHTML = `<div style="color: #ef4444;">Error: ${error.message}</div>`;
+                        }
+                    }
+                },
+                (error) => {
+                    result.innerHTML = `<div style="color: #ef4444;">GPS error: ${error.message}</div>`;
+                },
+                { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 }
+            );
+            
+            // Timeout after 60 seconds - use best position we got
+            setTimeout(() => {
+                if (bestPosition && bestPosition.coords.accuracy >= 50) {
+                    navigator.geolocation.clearWatch(watchId);
+                    result.innerHTML = `<div style="color: #f59e0b;">⚠ Timeout - best accuracy was ±${bestPosition.coords.accuracy.toFixed(1)}m. Try again outdoors for better GPS lock.</div>`;
+                }
+            }, 60000);
         }
 
         function backup() { 

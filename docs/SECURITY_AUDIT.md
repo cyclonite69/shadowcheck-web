@@ -14,7 +14,7 @@
 - `*.sqlite` - SQLite database files
 - `*password*.py` - Keyring utility scripts
 - `*secret*.py` - Secret management scripts
-- `setup-postgres-keyring.sh` - Keyring setup script
+- `scripts/keyring/setup-postgres-keyring.sh` - Keyring setup script
 - `*.key`, `*.pem`, `*.p12`, `*.pfx` - Certificate files
 - `server.log`, `nohup.out` - May contain sensitive runtime data
 

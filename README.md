@@ -148,8 +148,8 @@ Check model training status and tag statistics.
 Test multiple algorithms with grid search and cross-validation:
 
 ```bash
-pip install -r requirements.txt
-python3 ml-iterate.py
+pip install -r scripts/ml/requirements.txt
+python3 scripts/ml/ml-iterate.py
 ```
 
 Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparameter tuning.

@@ -33,6 +33,8 @@ router.get('/networks', async (req, res, next) => {
     // Pagination parameters
     const page = parseInt(req.query.page);
     const limit = parseInt(req.query.limit);
+    console.log('DEBUG - Raw query:', req.query);
+    console.log('DEBUG - Parsed limit:', limit, 'Type:', typeof limit);
 
     if (isNaN(page) || page <= 0) {
       return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
@@ -42,6 +44,7 @@ router.get('/networks', async (req, res, next) => {
     }
 
     const offset = (page - 1) * limit;
+    console.log("📊 Networks query - page:", page, "limit:", limit, "offset:", offset);
 
     // Filter parameters
     const search = req.query.search || '';
@@ -397,6 +400,7 @@ router.get('/networks/tagged', async (req, res, next) => {
     }
 
     const offset = (page - 1) * limit;
+    console.log("📊 Networks query - page:", page, "limit:", limit, "offset:", offset);
 
     const { rows } = await query(`
       SELECT

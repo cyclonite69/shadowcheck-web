@@ -6,6 +6,7 @@
     <title>ShadowCheck - Networks</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/assets/styles/unified.css">
+    <script src="/js/network-filters.js"></script>
 </head>
 <body data-page="networks">
     <div class="app-container">
@@ -41,9 +42,40 @@
                     <span class="panel-count" id="network-count">Loading...</span>
                     <span class="network-count-info" id="network-count-info"></span>
                     <button id="show-on-map-btn" style="margin-left: 12px; padding: 6px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; color: #60a5fa; font-size: 11px; font-weight: 600; cursor: pointer; display: none;" onclick="showSelectedOnMap()">🗺️ Show <span id="selected-count">0</span> on Map</button>
+                    <button id="tag-threat-btn" style="margin-left: 8px; padding: 6px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; color: #f87171; font-size: 11px; font-weight: 600; cursor: pointer; display: none;" onclick="tagSelectedAsThreats()">⚠️ Tag as Threat</button>
                     <div id="column-selector-container"></div>
                 </div>
-                <div class="panel-body no-padding">
+                <div class="panel-body no-padding" style="display: flex; flex-direction: column;">
+                    <!-- Search and Filter Bar -->
+                    <div style="padding: 12px; background: rgba(15, 23, 42, 0.5); border-bottom: 1px solid rgba(148, 163, 184, 0.2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="search-input" placeholder="🔍 Search SSID, BSSID, or Manufacturer..." style="flex: 1; min-width: 200px; padding: 6px 12px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: #f8fafc; font-size: 12px;" oninput="applyFilters()">
+                        
+                        <select id="type-filter" style="padding: 6px 12px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: #f8fafc; font-size: 12px;" onchange="applyFilters()">
+                            <option value="">All Types</option>
+                            <option value="wifi">WiFi</option>
+                            <option value="bluetooth">Bluetooth</option>
+                            <option value="ble">BLE</option>
+                            <option value="cellular">Cellular</option>
+                        </select>
+                        
+                        <select id="security-filter" style="padding: 6px 12px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: #f8fafc; font-size: 12px;" onchange="applyFilters()">
+                            <option value="">All Security</option>
+                            <option value="open">Open</option>
+                            <option value="wep">WEP</option>
+                            <option value="wpa">WPA</option>
+                            <option value="wpa2">WPA2</option>
+                            <option value="wpa3">WPA3</option>
+                        </select>
+                        
+                        <select id="signal-filter" style="padding: 6px 12px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: #f8fafc; font-size: 12px;" onchange="applyFilters()">
+                            <option value="">All Signals</option>
+                            <option value="strong">Strong (≥ -50 dBm)</option>
+                            <option value="medium">Medium (-70 to -50 dBm)</option>
+                            <option value="weak">Weak (< -70 dBm)</option>
+                        </select>
+                        
+                        <button onclick="clearFilters()" style="padding: 6px 12px; background: rgba(100, 116, 139, 0.2); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 6px; color: #94a3b8; font-size: 11px; cursor: pointer;">Clear Filters</button>
+                    </div>
                     <table class="network-table" id="networks-table">
                         <thead>
                             <tr>
@@ -776,8 +808,10 @@
             const checked = document.querySelectorAll('.network-checkbox:checked').length;
             const countSpan = document.getElementById('selected-count');
             const mapBtn = document.getElementById('show-on-map-btn');
+            const threatBtn = document.getElementById('tag-threat-btn');
             if (countSpan) countSpan.textContent = checked;
             if (mapBtn) mapBtn.style.display = checked > 0 ? 'inline-block' : 'none';
+            if (threatBtn) threatBtn.style.display = checked > 0 ? 'inline-block' : 'none';
         }
         
         function showSelectedOnMap() {
@@ -790,6 +824,78 @@
             
             // Navigate to geospatial page
             window.location.href = '/geospatial.html?selected=' + encodeURIComponent(selected.join(','));
+        }
+
+        // Store original networks and current filtered networks
+        let originalNetworks = [];
+        let currentFilters = {};
+
+        // Apply filters using the shared module
+        function applyFilters() {
+            if (!window.networkTable) return;
+            
+            // Store original networks on first filter
+            if (originalNetworks.length === 0) {
+                originalNetworks = [...networkTable.networks];
+            }
+            
+            const filters = NetworkFilters.getFiltersFromUI();
+            currentFilters = filters;
+            
+            // Check if any filters are active
+            const hasActiveFilters = filters.search || filters.type || filters.security || filters.signal;
+            
+            if (!hasActiveFilters) {
+                // No filters - restore original
+                networkTable.networks = [...originalNetworks];
+            } else {
+                // Apply filters to original data
+                networkTable.networks = NetworkFilters.apply(originalNetworks, filters);
+            }
+            
+            // Reset display and re-render
+            networkTable.displayedCount = 0;
+            const tbody = document.querySelector('#networks-table tbody');
+            if (tbody) tbody.innerHTML = '';
+            
+            renderNetworkTable();
+            
+            // Update count display
+            const countEl = document.getElementById('network-count');
+            const infoEl = document.getElementById('network-count-info');
+            if (countEl) countEl.textContent = networkTable.networks.length;
+            if (infoEl) {
+                infoEl.textContent = hasActiveFilters && networkTable.networks.length < originalNetworks.length ? 
+                    `of ${originalNetworks.length} (filtered)` : '';
+            }
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            NetworkFilters.clearFilters();
+            applyFilters();
+        }
+
+        // Tag selected networks as threats
+        async function tagSelectedAsThreats() {
+            const selected = Array.from(document.querySelectorAll('.network-checkbox:checked'))
+                .map(cb => cb.dataset.bssid);
+            
+            if (selected.length === 0) {
+                alert('Please select networks to tag as threats');
+                return;
+            }
+
+            const reason = prompt(`Tag ${selected.length} network(s) as threat?\n\nReason (optional):`, 'Manual threat identification');
+            if (reason === null) return; // User cancelled
+
+            try {
+                await NetworkFilters.tagAsThreats(selected, reason || 'Manual tag');
+                alert(`✓ Tagged ${selected.length} network(s) as threats`);
+                loadNetworks(); // Reload to show updated threat status
+            } catch (error) {
+                alert(`✗ Failed to tag threats: ${error.message}`);
+            }
         }
     </script>
     

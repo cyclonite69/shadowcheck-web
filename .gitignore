@@ -36,6 +36,7 @@ nohup.out
 *.tar.gz
 backup-*.sql
 *.dump
+backups/
 
 # Database files
 *.db
@@ -88,9 +89,4 @@ temp/
 
 # Random executables and images
 *.exe
-*.jpeg
-*.jpg
-*.png
-*.webp
-*.xz
-tests/
+assets/images/

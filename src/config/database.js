@@ -5,6 +5,7 @@
 
 const { Pool } = require('pg');
 require('dotenv').config();
+const secretsManager = require('../services/secretsManager');
 
 // Configuration constants
 const CONFIG = {
@@ -18,7 +19,7 @@ const CONFIG = {
 // Create connection pool
 const pool = new Pool({
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  password: secretsManager.getOrThrow('db_password'),
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,

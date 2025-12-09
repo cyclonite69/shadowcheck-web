@@ -3,16 +3,15 @@ const router = express.Router();
 
 module.exports = (query) => {
   // Get all location markers
-  router.get('/', async (req, res, next) => {
+  router.get('/location-markers', async (req, res, next) => {
     try {
       const result = await query(`
         SELECT 
-          marker_id,
-          marker_type,
-          ST_X(location::geometry) as longitude,
-          ST_Y(location::geometry) as latitude,
-          created_at,
-          updated_at
+          id,
+          name as marker_type,
+          latitude,
+          longitude,
+          created_at
         FROM app.location_markers
         ORDER BY created_at DESC
       `);
@@ -26,10 +25,41 @@ module.exports = (query) => {
     }
   });
 
-  // Set home location (replaces existing)
-  router.post('/home', async (req, res, next) => {
+  // Get home location
+  router.get('/location-markers/home', async (req, res, next) => {
     try {
-      const { latitude, longitude } = req.body;
+      const result = await query(`
+        SELECT 
+          id,
+          name as marker_type,
+          latitude,
+          longitude,
+          created_at
+        FROM app.location_markers
+        WHERE marker_type = 'home'
+        LIMIT 1
+      `);
+
+      if (result.rows.length === 0) {
+        return res.json({
+          ok: true,
+          marker: null,
+        });
+      }
+
+      res.json({
+        ok: true,
+        marker: result.rows[0],
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Set home location (replaces existing)
+  router.post('/location-markers/home', async (req, res, next) => {
+    try {
+      const { latitude, longitude, altitude_gps, altitude_baro, device_id, device_type } = req.body;
 
       if (!latitude || !longitude) {
         return res.status(400).json({
@@ -40,6 +70,10 @@ module.exports = (query) => {
 
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
+      const altGps = altitude_gps ? parseFloat(altitude_gps) : null;
+      const altBaro = altitude_baro ? parseFloat(altitude_baro) : null;
+      const devId = device_id || 'unknown';
+      const devType = device_type || 'browser';
 
       if (isNaN(lat) || isNaN(lng)) {
         return res.status(400).json({
@@ -55,20 +89,24 @@ module.exports = (query) => {
         });
       }
 
-      // Delete existing home marker
-      await query('DELETE FROM app.location_markers WHERE marker_type = \'home\'');
+      // Delete existing home marker for THIS device only
+      await query('DELETE FROM app.location_markers WHERE name = \'home\' AND device_id = $1', [devId]);
 
       // Insert new home marker
       const result = await query(`
-        INSERT INTO app.location_markers (marker_type, location)
-        VALUES ('home', ST_SetSRID(ST_MakePoint($1, $2), 4326))
+        INSERT INTO app.location_markers (name, marker_type, latitude, longitude, altitude_gps, altitude_baro, device_id, device_type, location)
+        VALUES ('home', 'home', $1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($2, $1), 4326))
         RETURNING 
-          marker_id,
-          marker_type,
-          ST_X(location::geometry) as longitude,
-          ST_Y(location::geometry) as latitude,
+          id,
+          name as marker_type,
+          latitude,
+          longitude,
+          altitude_gps,
+          altitude_baro,
+          device_id,
+          device_type,
           created_at
-      `, [lng, lat]);
+      `, [lat, lng, altGps, altBaro, devId, devType]);
 
       res.json({
         ok: true,
@@ -80,9 +118,9 @@ module.exports = (query) => {
   });
 
   // Delete home location
-  router.delete('/home', async (req, res, next) => {
+  router.delete('/location-markers/home', async (req, res, next) => {
     try {
-      await query('DELETE FROM app.location_markers WHERE marker_type = \'home\'');
+      await query('DELETE FROM app.location_markers WHERE name = \'home\'');
       res.json({ ok: true });
     } catch (err) {
       next(err);
