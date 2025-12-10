@@ -137,69 +137,48 @@ router.get('/ml/status', async (req, res, next) => {
 // POST /api/ml/reassess - Reassess all networks with trained model
 router.post('/ml/reassess', async (req, res, next) => {
   try {
-    if (!mlModel) {
-      return res.status(503).json({
-        ok: false,
-        error: 'ML model module not available',
-      });
-    }
+    console.log('🔄 Starting network reassessment...');
 
-    // Check if model is trained
-    const { rows: modelRows } = await query(`
-      SELECT model_type, feature_names, created_at
-      FROM app.ml_model_config
-      WHERE model_type = 'threat_logistic_regression'
-    `);
-
-    if (modelRows.length === 0) {
-      return res.status(400).json({
-        ok: false,
-        error: 'No trained model found. Train a model first.',
-      });
-    }
-
-    console.log('🔄 Reassessing all networks with trained ML model...');
-
-    // Get all networks and calculate features (simplified - no home location required)
+    // Get networks with basic stats
     const { rows: networks } = await query(`
       SELECT
         n.bssid,
         COUNT(DISTINCT l.unified_id) as observation_count,
-        COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
+        COUNT(DISTINCT DATE(l.observed_at)) as unique_days,
         COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
         MAX(l.signal_dbm) as max_signal
       FROM app.networks n
       JOIN app.observations l ON n.bssid = l.bssid
       WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
       GROUP BY n.bssid
-      LIMIT 100
+      LIMIT 1000
     `);
+
+    console.log(`Found ${networks.length} networks to reassess`);
 
     let updated = 0;
 
-    // Process networks and get ML scores
+    // Process each network
     for (const network of networks) {
       try {
-        // Use basic threat scoring algorithm instead of ML prediction
-        const features = [
-          0, // distance_range_km 
-          network.unique_days || 0,
-          network.observation_count || 0,
-          network.max_signal || -100,
-          network.unique_locations || 0,
-          0  // seen_both_locations
-        ];
-
-        // Simple scoring: more observations + stronger signal + more locations = higher threat
+        // Calculate threat score based on network behavior
         let score = 0;
-        score += Math.min(network.observation_count * 2, 30); // Max 30 points for observations
-        score += Math.min(network.unique_days * 3, 30);       // Max 30 points for days
-        score += Math.min(network.unique_locations * 5, 20);  // Max 20 points for locations
-        if (network.max_signal > -60) score += 20;           // Strong signal bonus
         
-        const mlScore = Math.min(score, 100); // Cap at 100
+        // More observations = higher threat potential
+        score += Math.min(network.observation_count * 2, 40);
+        
+        // Seen over multiple days = higher threat
+        score += Math.min(network.unique_days * 3, 30);
+        
+        // Multiple locations = mobile/suspicious
+        score += Math.min(network.unique_locations * 4, 20);
+        
+        // Strong signal = closer/more dangerous
+        if (network.max_signal > -50) score += 10;
+        
+        const mlScore = Math.min(score, 100);
 
-        // Update network with ML score
+        // Update the network
         await query(`
           UPDATE app.networks 
           SET ml_threat_score = $1, updated_at = NOW()
@@ -207,25 +186,26 @@ router.post('/ml/reassess', async (req, res, next) => {
         `, [mlScore, network.bssid]);
 
         updated++;
+
       } catch (err) {
-        console.warn(`Failed to score network ${network.bssid}:`, err.message);
+        console.warn(`Failed to score ${network.bssid}:`, err.message);
       }
     }
 
-    console.log(`✓ Reassessed ${updated} networks with ML scores`);
+    console.log(`✓ Successfully updated ${updated} networks`);
 
     res.json({
       ok: true,
-      message: 'Networks reassessed with ML model',
+      message: 'Networks reassessed successfully',
       networksUpdated: updated,
       modelUsed: {
-        type: 'threat_logistic_regression',
-        features: modelRows[0].feature_names || []
+        type: 'behavioral_scoring',
+        features: ['observation_count', 'unique_days', 'unique_locations', 'max_signal']
       }
     });
 
   } catch (err) {
-    console.error('✗ ML reassessment error:', err);
+    console.error('✗ Reassessment error:', err);
     next(err);
   }
 });
