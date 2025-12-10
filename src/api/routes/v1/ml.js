@@ -134,4 +134,129 @@ router.get('/ml/status', async (req, res, next) => {
   }
 });
 
+// POST /api/ml/reassess - Reassess all networks with trained model
+router.post('/ml/reassess', async (req, res, next) => {
+  try {
+    if (!mlModel) {
+      return res.status(503).json({
+        ok: false,
+        error: 'ML model module not available',
+      });
+    }
+
+    // Check if model is trained
+    const { rows: modelRows } = await query(`
+      SELECT coefficients, intercept, feature_names
+      FROM app.ml_model_config
+      WHERE model_type = 'threat_logistic_regression'
+    `);
+
+    if (modelRows.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: 'No trained model found. Train a model first.',
+      });
+    }
+
+    console.log('🔄 Reassessing all networks with trained ML model...');
+
+    // Get all networks and calculate ML scores
+    const { rows: networks } = await query(`
+      WITH home_location AS (
+        SELECT location::geography as home_point
+        FROM app.location_markers
+        WHERE marker_type = 'home'
+        LIMIT 1
+      )
+      SELECT
+        n.bssid,
+        COUNT(DISTINCT l.unified_id) as observation_count,
+        COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
+        COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
+        MAX(l.signal_dbm) as max_signal,
+        COALESCE(MAX(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        )) / 1000.0 - MIN(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        )) / 1000.0, 0) as distance_range_km,
+        COALESCE(BOOL_OR(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        ) < 100) AND BOOL_OR(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        ) > 500), false) as seen_both_locations
+      FROM app.networks n
+      JOIN app.observations l ON n.bssid = l.bssid
+      CROSS JOIN home_location h
+      WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+        AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
+      GROUP BY n.bssid
+    `, [CONFIG.MIN_VALID_TIMESTAMP]);
+
+    // Load model coefficients
+    const model = modelRows[0];
+    const coefficients = JSON.parse(model.coefficients);
+    const intercept = model.intercept;
+    const featureNames = JSON.parse(model.feature_names);
+
+    let updated = 0;
+    const batchSize = 100;
+
+    // Process networks in batches
+    for (let i = 0; i < networks.length; i += batchSize) {
+      const batch = networks.slice(i, i + batchSize);
+      
+      for (const network of batch) {
+        // Calculate ML score using the same logic as the model
+        const features = [
+          network.distance_range_km || 0,
+          network.unique_days || 0,
+          network.observation_count || 0,
+          network.max_signal || -100,
+          network.unique_locations || 0,
+          network.seen_both_locations ? 1 : 0
+        ];
+
+        // Calculate logistic regression score
+        let score = intercept;
+        for (let j = 0; j < coefficients.length; j++) {
+          score += coefficients[j] * features[j];
+        }
+        
+        // Convert to probability (0-100)
+        const probability = 1 / (1 + Math.exp(-score));
+        const mlScore = Math.round(probability * 100);
+
+        // Update network with ML score
+        await query(`
+          UPDATE app.networks 
+          SET ml_threat_score = $1, updated_at = NOW()
+          WHERE bssid = $2
+        `, [mlScore, network.bssid]);
+
+        updated++;
+      }
+    }
+
+    console.log(`✓ Reassessed ${updated} networks with ML scores`);
+
+    res.json({
+      ok: true,
+      message: 'All networks reassessed with ML model',
+      networksUpdated: updated,
+      modelUsed: {
+        type: 'threat_logistic_regression',
+        features: featureNames
+      }
+    });
+
+  } catch (err) {
+    console.error('✗ ML reassessment error:', err);
+    next(err);
+  }
+});
+
 module.exports = router;
