@@ -25,7 +25,7 @@
             <div class="header-right">
                 <button class="btn btn-sm" onclick="window.baseComponents?.showCardLibrary()">➕ Add Card</button>
                 <button class="btn btn-sm" onclick="window.baseComponents?.toggleSnap(this)">🔲 Snap: ON</button>
-                <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">↺ Reset</button>
+                <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">🎯 Demo Layout</button>
                 <div class="status-indicator">
                     <div class="status-dot"></div>
                     <span>Online</span>
@@ -62,6 +62,36 @@
 
                 <div class="panel" id="wigle-api">
                     <div class="panel-header">📡 WiGLE API</div>
+                    <div class="panel-body">
+                        <div class="text-sm text-secondary mb-2">🔒 Stored in system keyring</div>
+                        <div id="wigle-status"></div>
+                        
+                        <div class="mb-2">
+                            <label class="text-xs font-medium mb-1" style="display: block;">API Name</label>
+                            <input type="text" id="wigle-api-name" placeholder="AIDxxxxx..." style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; font-size: 12px;">
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="text-xs font-medium mb-1" style="display: block;">API Token</label>
+                            <input type="password" id="wigle-api-token" placeholder="Token..." style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; font-size: 12px;">
+                        </div>
+                        
+                        <button onclick="saveWigleCredentials()" class="btn btn-sm" style="width: 100%;">💾 Save Credentials</button>
+                    </div>
+                </div>
+
+                <div class="panel" id="system-status">
+                    <div class="panel-header">⚡ System Status</div>
+                    <div class="panel-body">
+                        <div id="system-stats" style="font-size: 12px;">
+                            <div class="mb-1"><span style="color: #94a3b8;">Server:</span> <span style="color: #22c55e;">Online</span></div>
+                            <div class="mb-1"><span style="color: #94a3b8;">Database:</span> <span id="db-status">Checking...</span></div>
+                            <div class="mb-1"><span style="color: #94a3b8;">Networks:</span> <span id="network-count">Loading...</span></div>
+                            <div class="mb-1"><span style="color: #94a3b8;">Observations:</span> <span id="obs-count">Loading...</span></div>
+                        </div>
+                        <button onclick="refreshSystemStatus()" class="btn btn-sm" style="width: 100%; margin-top: 8px;">🔄 Refresh</button>
+                    </div>
+                </div>
                     <div class="panel-body">
                         <div class="text-sm text-secondary mb-2">🔒 Stored in system keyring</div>
                         <div id="wigle-status"></div>
@@ -496,6 +526,56 @@
             input.click();
         }
         
+        async function saveWigleCredentials() {
+            const name = document.getElementById('wigle-api-name').value;
+            const token = document.getElementById('wigle-api-token').value;
+            
+            if (!name || !token) {
+                alert('Please enter both API name and token');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/wigle-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, token })
+                });
+                
+                if (response.ok) {
+                    alert('✓ WiGLE credentials saved successfully!');
+                    document.getElementById('wigle-api-name').value = '';
+                    document.getElementById('wigle-api-token').value = '';
+                } else {
+                    alert('✗ Failed to save credentials');
+                }
+            } catch (e) {
+                alert('✗ Error: ' + e.message);
+            }
+        }
+
+        async function refreshSystemStatus() {
+            try {
+                const [healthRes, networksRes] = await Promise.all([
+                    fetch('/health'),
+                    fetch('/api/networks?page=1&limit=1')
+                ]);
+                
+                const health = await healthRes.json();
+                const networks = await networksRes.json();
+                
+                document.getElementById('db-status').innerHTML = health.checks?.database?.status === 'ok' ? 
+                    '<span style="color: #22c55e;">Connected</span>' : 
+                    '<span style="color: #ef4444;">Error</span>';
+                    
+                document.getElementById('network-count').innerHTML = networks.totalCount?.toLocaleString() || '0';
+                document.getElementById('obs-count').innerHTML = 'Loading...';
+                
+            } catch (e) {
+                document.getElementById('db-status').innerHTML = '<span style="color: #ef4444;">Error</span>';
+            }
+        }
+
         async function importSQLite() {
             const fileInput = document.getElementById('sqlite-file');
             const statusDiv = document.getElementById('import-status');
@@ -574,6 +654,9 @@
             }
             window.location.href = '/api/export/csv?api_key=' + encodeURIComponent(API_KEY); 
         }
+        
+        // Initialize system status on page load
+        refreshSystemStatus();
     </script>
     <script src="/assets/js/radio-icons.js"></script>
     <script src="/assets/js/unified-card-library.js"></script>

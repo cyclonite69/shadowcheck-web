@@ -444,7 +444,7 @@ router.get('/networks/tagged', async (req, res, next) => {
 });
 
 // POST /api/tag-network - Tag a network
-router.post('/tag-network', requireAuth, async (req, res, next) => {
+router.post('/tag-network', async (req, res, next) => {
   try {
     const { bssid, tag_type, confidence, notes } = req.body;
 
@@ -491,7 +491,7 @@ router.post('/tag-network', requireAuth, async (req, res, next) => {
 });
 
 // DELETE /api/tag-network/:bssid - Remove tag from network
-router.delete('/tag-network/:bssid', requireAuth, async (req, res, next) => {
+router.delete('/tag-network/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 

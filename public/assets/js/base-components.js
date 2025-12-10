@@ -134,12 +134,14 @@ class BaseComponents {
             case 'admin':
                 layout = {
                     'sqlite-import': { x: 0, y: 0, w: 4, h: 3 },
-                    'mapbox-tokens': { x: 4, y: 0, w: 4, h: 3 },
-                    'database-panel': { x: 8, y: 0, w: 4, h: 3 },
-                    'home-location': { x: 0, y: 3, w: 4, h: 2 },
-                    'export-geojson': { x: 4, y: 3, w: 2, h: 2 },
-                    'export-json': { x: 6, y: 3, w: 2, h: 2 },
-                    'export-csv': { x: 8, y: 3, w: 2, h: 2 }
+                    'wigle-api': { x: 4, y: 0, w: 4, h: 3 },
+                    'system-status': { x: 8, y: 0, w: 4, h: 3 },
+                    'mapbox-tokens': { x: 0, y: 3, w: 4, h: 2 },
+                    'database-panel': { x: 4, y: 3, w: 4, h: 2 },
+                    'home-location': { x: 8, y: 3, w: 4, h: 2 },
+                    'export-geojson': { x: 0, y: 5, w: 3, h: 1 },
+                    'export-json': { x: 3, y: 5, w: 3, h: 1 },
+                    'export-csv': { x: 6, y: 5, w: 3, h: 1 }
                 };
                 break;
             case 'surveillance':
