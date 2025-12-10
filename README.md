@@ -1,10 +1,15 @@
 # ShadowCheck - SIGINT Forensics Platform
 
+[![GitHub stars](https://img.shields.io/github/stars/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/network)
+[![GitHub issues](https://img.shields.io/github/issues/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/issues)
+[![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-static?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
-[![License](https://img.shields.io/github/license/your-username/shadowcheck-static?style=flat-square)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/commits)
+[![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static)
 
-Production-grade SIGINT forensics and wireless network analysis platform. Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
+🛡️ **Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
 ## Features
 

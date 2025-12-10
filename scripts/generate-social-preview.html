@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShadowCheck Social Preview</title>
+    <style>
+        body {
+            margin: 0;
+            width: 1200px;
+            height: 630px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            font-family: 'Arial', sans-serif;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container {
+            text-align: center;
+            z-index: 2;
+            max-width: 800px;
+            padding: 40px;
+        }
+        
+        .logo {
+            font-size: 72px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #22d3ee, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .tagline {
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #e2e8f0;
+            font-weight: 300;
+        }
+        
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 40px;
+        }
+        
+        .feature {
+            text-align: center;
+            opacity: 0.9;
+        }
+        
+        .feature-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        
+        .feature-text {
+            font-size: 14px;
+            color: #cbd5e1;
+        }
+        
+        .background-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #22d3ee 2px, transparent 2px),
+                radial-gradient(circle at 75% 75%, #3b82f6 2px, transparent 2px);
+            background-size: 50px 50px;
+            z-index: 1;
+        }
+        
+        .github-info {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 16px;
+            color: #94a3b8;
+            z-index: 2;
+        }
+        
+        .tech-stack {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            font-size: 14px;
+            color: #64748b;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-pattern"></div>
+    
+    <div class="tech-stack">
+        Node.js • PostgreSQL • PostGIS • Mapbox • Machine Learning
+    </div>
+    
+    <div class="container">
+        <div class="logo">🛡️ ShadowCheck</div>
+        <div class="tagline">SIGINT Forensics & Wireless Network Analysis Platform</div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📡</div>
+                <div class="feature-text">Real-time<br>Threat Detection</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🗺️</div>
+                <div class="feature-text">Geospatial<br>Visualization</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <div class="feature-text">Machine Learning<br>Analysis</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔍</div>
+                <div class="feature-text">Network<br>Forensics</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="github-info">
+        github.com/cyclonite69/shadowcheck-static
+    </div>
+    
+    <script>
+        // Take screenshot with: node scripts/screenshot-social-preview.js
+        console.log('Social preview ready for screenshot');
+    </script>
+</body>
+</html>

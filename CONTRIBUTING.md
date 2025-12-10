@@ -1,51 +1,141 @@
 # Contributing to ShadowCheck
 
-First off, thank you for considering contributing to ShadowCheck! It's people like you that make ShadowCheck such a great tool.
+🎉 Thanks for your interest in contributing to ShadowCheck! This project aims to be the premier open-source SIGINT forensics platform.
 
-## Where do I go from here?
+## Ways to Contribute
 
-If you've noticed a bug or have a feature request, [make one](https://github.com/your-username/shadowcheck-static/issues/new)! It's generally best if you get confirmation of your bug or approval for your feature request this way before starting to code.
+### 🐛 Bug Reports
+- Use GitHub Issues with the "bug" label
+- Include steps to reproduce
+- Provide system information (OS, Node.js version, etc.)
+- Include relevant logs or screenshots
 
-### Fork & create a branch
+### 💡 Feature Requests
+- Use GitHub Issues with the "enhancement" label
+- Describe the use case and expected behavior
+- Consider security and performance implications
 
-If this is something you think you can fix, then [fork ShadowCheck](https://github.com/your-username/shadowcheck-static/fork) and create a branch with a descriptive name.
+### 🔧 Code Contributions
+- Fork the repository
+- Create a feature branch: `git checkout -b feature/amazing-feature`
+- Make your changes
+- Add tests if applicable
+- Ensure code passes linting: `npm run lint`
+- Commit with descriptive messages
+- Push and create a Pull Request
 
-A good branch name would be (where issue #38 is the ticket you're working on):
+## Development Setup
 
-```sh
-git checkout -b 38-add-awesome-new-feature
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 18+ with PostGIS
+- Git
+
+### Quick Start
+```bash
+git clone https://github.com/cyclonite69/shadowcheck-static.git
+cd shadowcheck-static
+npm install
+cp .env.example .env
+# Edit .env with your database credentials
+npm start
 ```
 
-### Get the test suite running
-
-Make sure you're able to run the tests. We've got some of them. They're not great, but they're there.
-
-### Implement your fix or feature
-
-At this point, you're ready to make your changes! Feel free to ask for help; everyone is a beginner at first :smile_cat:
-
-### Make a Pull Request
-
-At this point, you should switch back to your master branch and make sure it's up to date with ShadowCheck's master branch:
-
-```sh
-git remote add upstream git@github.com:your-username/shadowcheck-static.git
-git checkout master
-git pull upstream master
+### Database Setup
+```bash
+createdb shadowcheck
+psql -d shadowcheck -c "CREATE EXTENSION postgis;"
 ```
 
-Then update your feature branch from your local copy of master, and push it!
+## Code Style
 
-```sh
-git checkout 38-add-awesome-new-feature
-git rebase master
-git push --force-with-lease origin 38-add-awesome-new-feature
+- Use ESLint configuration provided
+- Follow existing code patterns
+- Add JSDoc comments for functions
+- Use meaningful variable names
+- Keep functions focused and small
+
+## Testing
+
+```bash
+npm test                 # Run all tests
+npm run test:unit       # Unit tests only
+npm run test:integration # Integration tests only
 ```
 
-Finally, go to GitHub and [make a Pull Request](https://github.com/your-username/shadowcheck-static/compare)
+## Areas Needing Help
 
-### Keeping your Pull Request updated
+### 🔥 High Priority
+- **Performance optimization** for large datasets (1M+ networks)
+- **Machine learning models** for threat detection
+- **Mobile app** integration
+- **Real-time streaming** from hardware sensors
 
-If a maintainer asks you to "rebase" your PR, they're saying that a lot of code has changed, and that you need to update your branch so it's easier to merge.
+### 🛡️ Security & Privacy
+- **Encryption** for sensitive data at rest
+- **Anonymous data collection** options
+- **GDPR compliance** features
+- **Audit logging** system
 
-To learn more about rebasing and merging, check out this guide on [syncing a fork](https://help.github.com/articles/syncing-a-fork/).
+### 📊 Analytics & Visualization
+- **New chart types** for network analysis
+- **3D visualization** improvements
+- **Export formats** (KML, Shapefile, etc.)
+- **Dashboard customization**
+
+### 🌐 Integrations
+- **WiGLE API** enhancements
+- **Kismet integration**
+- **Hardware sensor** support (RTL-SDR, etc.)
+- **Cloud storage** backends
+
+## Pull Request Process
+
+1. **Fork & Branch**: Create a feature branch from `master`
+2. **Develop**: Make your changes with tests
+3. **Test**: Ensure all tests pass
+4. **Document**: Update README/docs if needed
+5. **Submit**: Create PR with clear description
+6. **Review**: Address feedback from maintainers
+7. **Merge**: Squash and merge when approved
+
+## Commit Message Format
+
+```
+type(scope): brief description
+
+Longer description if needed
+
+Fixes #123
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+## Community Guidelines
+
+- **Be respectful** and inclusive
+- **Help others** learn and contribute
+- **Focus on the mission**: Better SIGINT tools for everyone
+- **Security first**: Consider implications of changes
+- **Document everything**: Code should be self-explanatory
+
+## Recognition
+
+Contributors will be:
+- Listed in README.md
+- Credited in release notes
+- Invited to maintainer discussions (for regular contributors)
+
+## Questions?
+
+- 💬 **Discussions**: Use GitHub Discussions for questions
+- 🐛 **Issues**: Use GitHub Issues for bugs/features
+- 📧 **Security**: Use private disclosure for security issues
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+---
+
+**Ready to contribute?** Check out [good first issues](https://github.com/cyclonite69/shadowcheck-static/labels/good%20first%20issue) to get started! 🚀
