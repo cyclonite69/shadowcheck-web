@@ -79,8 +79,8 @@ class ThreatMLModel {
       intercept: this.intercept,
       featureNames: this.featureNames,
       trainingSamples: taggedNetworks.length,
-      threatCount: y.filter(label => label === 1).length,
-      safeCount: y.filter(label => label === 0).length,
+      threatCount: y.flat().filter(label => label === 1).length,
+      safeCount: y.flat().filter(label => label === 0).length,
     };
   }
 
