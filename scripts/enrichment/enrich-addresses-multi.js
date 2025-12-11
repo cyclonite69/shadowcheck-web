@@ -16,28 +16,30 @@ const APIs = {
   nominatim: async (address) => {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&addressdetails=1&limit=1`;
     return new Promise((resolve, reject) => {
-      https.get(url, { headers: { 'User-Agent': 'ShadowCheck/1.0' } }, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.length > 0) {
-              const result = json[0];
-              resolve({
-                name: result.display_name.split(',')[0],
-                type: result.type,
-                category: result.class,
-                details: result.address,
-              });
-            } else {
-              resolve(null);
+      https
+        .get(url, { headers: { 'User-Agent': 'ShadowCheck/1.0' } }, (res) => {
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              if (json.length > 0) {
+                const result = json[0];
+                resolve({
+                  name: result.display_name.split(',')[0],
+                  type: result.type,
+                  category: result.class,
+                  details: result.address,
+                });
+              } else {
+                resolve(null);
+              }
+            } catch (e) {
+              reject(e);
             }
-          } catch (e) {
-            reject(e);
-          }
-        });
-      }).on('error', reject);
+          });
+        })
+        .on('error', reject);
     });
   },
 
@@ -47,29 +49,31 @@ const APIs = {
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
     return new Promise((resolve, reject) => {
-      https.get(url, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.elements && json.elements.length > 0) {
-              const poi = json.elements[0];
-              resolve({
-                name: poi.tags?.name,
-                type: poi.tags?.amenity || poi.tags?.shop || poi.tags?.building,
-                category: poi.tags?.amenity || poi.tags?.shop || 'building',
-                brand: poi.tags?.brand,
-                operator: poi.tags?.operator,
-              });
-            } else {
-              resolve(null);
+      https
+        .get(url, (res) => {
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              if (json.elements && json.elements.length > 0) {
+                const poi = json.elements[0];
+                resolve({
+                  name: poi.tags?.name,
+                  type: poi.tags?.amenity || poi.tags?.shop || poi.tags?.building,
+                  category: poi.tags?.amenity || poi.tags?.shop || 'building',
+                  brand: poi.tags?.brand,
+                  operator: poi.tags?.operator,
+                });
+              } else {
+                resolve(null);
+              }
+            } catch (e) {
+              reject(e);
             }
-          } catch (e) {
-            reject(e);
-          }
-        });
-      }).on('error', reject);
+          });
+        })
+        .on('error', reject);
     });
   },
 
@@ -77,29 +81,31 @@ const APIs = {
   photon: async (address) => {
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(address)}&limit=1`;
     return new Promise((resolve, reject) => {
-      https.get(url, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.features && json.features.length > 0) {
-              const props = json.features[0].properties;
-              resolve({
-                name: props.name,
-                type: props.type,
-                category: props.osm_value,
-                street: props.street,
-                city: props.city,
-              });
-            } else {
-              resolve(null);
+      https
+        .get(url, (res) => {
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              if (json.features && json.features.length > 0) {
+                const props = json.features[0].properties;
+                resolve({
+                  name: props.name,
+                  type: props.type,
+                  category: props.osm_value,
+                  street: props.street,
+                  city: props.city,
+                });
+              } else {
+                resolve(null);
+              }
+            } catch (e) {
+              reject(e);
             }
-          } catch (e) {
-            reject(e);
-          }
-        });
-      }).on('error', reject);
+          });
+        })
+        .on('error', reject);
     });
   },
 };
@@ -107,7 +113,7 @@ const APIs = {
 async function enrichAddress(address, lat, lon) {
   // Try Overpass first (best for POI)
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limit
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Rate limit
     const overpass = await APIs.overpass(lat, lon);
     if (overpass && overpass.name) {
       return {
@@ -124,7 +130,7 @@ async function enrichAddress(address, lat, lon) {
 
   // Fallback to Nominatim
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limit
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Rate limit
     const nominatim = await APIs.nominatim(address);
     if (nominatim && nominatim.name) {
       return {
@@ -145,7 +151,8 @@ async function main() {
   const limit = parseInt(process.argv[2]) || 100;
 
   // Get addresses without venue names
-  const result = await pool.query(`
+  const result = await pool.query(
+    `
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
     WHERE trilat_address IS NOT NULL
@@ -155,7 +162,9 @@ async function main() {
       AND is_mobile_network = FALSE
     ORDER BY observation_count DESC
     LIMIT $1
-  `, [limit]);
+  `,
+    [limit]
+  );
 
   console.log(`🏢 Enriching ${result.rows.length} addresses with free APIs...`);
 
@@ -167,24 +176,31 @@ async function main() {
       const poi = await enrichAddress(row.trilat_address, row.trilat_lat, row.trilat_lon);
 
       if (poi) {
-        await pool.query(`
+        await pool.query(
+          `
           UPDATE app.networks_legacy 
           SET venue_name = $1, venue_category = $2, name = $3
           WHERE bssid = $4
-        `, [poi.venue_name, poi.venue_category, poi.venue_brand || poi.venue_name, row.bssid]);
+        `,
+          [poi.venue_name, poi.venue_category, poi.venue_brand || poi.venue_name, row.bssid]
+        );
 
-        await pool.query(`
+        await pool.query(
+          `
           UPDATE app.ap_locations 
           SET venue_name = $1, venue_category = $2
           WHERE bssid = $3
-        `, [poi.venue_name, poi.venue_category, row.bssid]);
+        `,
+          [poi.venue_name, poi.venue_category, row.bssid]
+        );
 
         enriched++;
-        console.log(`  ✓ ${i + 1}/${result.rows.length}: ${poi.venue_name} (${poi.venue_category || poi.venue_type || 'unknown'}) [${poi.source}]`);
+        console.log(
+          `  ✓ ${i + 1}/${result.rows.length}: ${poi.venue_name} (${poi.venue_category || poi.venue_type || 'unknown'}) [${poi.source}]`
+        );
       } else {
         console.log(`  ✗ ${i + 1}/${result.rows.length}: No POI found`);
       }
-
     } catch (err) {
       console.error(`  ✗ ${i + 1}/${result.rows.length}: Error - ${err.message}`);
     }

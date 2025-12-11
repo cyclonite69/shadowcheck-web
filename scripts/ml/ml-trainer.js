@@ -25,7 +25,7 @@ class ThreatMLModel {
       parseInt(network.observation_count) || 0,
       parseFloat(network.max_signal) || -100,
       parseInt(network.unique_locations) || 0,
-      (network.seen_at_home && network.seen_away_from_home) ? 1 : 0,
+      network.seen_at_home && network.seen_away_from_home ? 1 : 0,
     ];
   }
 
@@ -41,7 +41,7 @@ class ThreatMLModel {
     const X = []; // Features
     const y = []; // Labels (1 = THREAT, 0 = FALSE_POSITIVE)
 
-    taggedNetworks.forEach(net => {
+    taggedNetworks.forEach((net) => {
       X.push(this.extractFeatures(net));
       y.push([net.tag_type === 'THREAT' ? 1 : 0]);
     });
@@ -79,8 +79,8 @@ class ThreatMLModel {
       intercept: this.intercept,
       featureNames: this.featureNames,
       trainingSamples: taggedNetworks.length,
-      threatCount: y.flat().filter(label => label === 1).length,
-      safeCount: y.flat().filter(label => label === 0).length,
+      threatCount: y.flat().filter((label) => label === 1).length,
+      safeCount: y.flat().filter((label) => label === 0).length,
     };
   }
 
@@ -110,12 +110,12 @@ class ThreatMLModel {
 
   getSQLFieldName(featureName) {
     const mapping = {
-      'distance_range_km': '(ns.max_distance_from_home_km - ns.min_distance_from_home_km)',
-      'unique_days': 'ns.unique_days',
-      'observation_count': 'ns.observation_count',
-      'max_signal': 'COALESCE(ns.max_signal, -100)',
-      'unique_locations': 'ns.unique_locations',
-      'seen_both_locations': 'CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 1 ELSE 0 END',
+      distance_range_km: '(ns.max_distance_from_home_km - ns.min_distance_from_home_km)',
+      unique_days: 'ns.unique_days',
+      observation_count: 'ns.observation_count',
+      max_signal: 'COALESCE(ns.max_signal, -100)',
+      unique_locations: 'ns.unique_locations',
+      seen_both_locations: 'CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 1 ELSE 0 END',
     };
     return mapping[featureName];
   }

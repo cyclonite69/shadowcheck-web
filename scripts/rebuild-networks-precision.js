@@ -31,25 +31,27 @@ const secretsManager = require('../src/services/secretsManager');
         [bssid]
       );
 
-      if (obs.rows.length === 0) continue;
+      if (obs.rows.length === 0) {
+        continue;
+      }
 
       const observations = obs.rows;
       const avgLat = observations.reduce((sum, o) => sum + o.latitude, 0) / observations.length;
       const avgLon = observations.reduce((sum, o) => sum + o.longitude, 0) / observations.length;
 
-      const bestSignal = observations.reduce((best, o) => 
-        (o.signal_dbm > best.signal_dbm) ? o : best
+      const bestSignal = observations.reduce((best, o) =>
+        o.signal_dbm > best.signal_dbm ? o : best
       );
       const bestLat = bestSignal.latitude;
       const bestLon = bestSignal.longitude;
 
       const totalPower = observations.reduce((sum, o) => sum + Math.pow(10, o.signal_dbm / 10), 0);
-      const trilLat = observations.reduce((sum, o) => 
-        sum + (o.latitude * Math.pow(10, o.signal_dbm / 10)), 0
-      ) / totalPower;
-      const trilLon = observations.reduce((sum, o) => 
-        sum + (o.longitude * Math.pow(10, o.signal_dbm / 10)), 0
-      ) / totalPower;
+      const trilLat =
+        observations.reduce((sum, o) => sum + o.latitude * Math.pow(10, o.signal_dbm / 10), 0) /
+        totalPower;
+      const trilLon =
+        observations.reduce((sum, o) => sum + o.longitude * Math.pow(10, o.signal_dbm / 10), 0) /
+        totalPower;
 
       const firstSeen = new Date(observations[0].observed_at);
       const lastSeen = new Date(observations[observations.length - 1].observed_at);
@@ -71,11 +73,21 @@ const secretsManager = require('../src/services/secretsManager');
           last_seen = $12,
           location = ST_SetSRID(ST_MakePoint($2, $1), 4326)
          WHERE bssid = $13`,
-        [avgLat, avgLon, bestLat, bestLon, bestSignal.signal_dbm, 
-         observations[observations.length - 1].latitude, 
-         observations[observations.length - 1].longitude,
-         Math.floor(new Date(observations[observations.length - 1].observed_at).getTime() / 1000),
-         trilLat, trilLon, firstSeen, lastSeen, bssid]
+        [
+          avgLat,
+          avgLon,
+          bestLat,
+          bestLon,
+          bestSignal.signal_dbm,
+          observations[observations.length - 1].latitude,
+          observations[observations.length - 1].longitude,
+          Math.floor(new Date(observations[observations.length - 1].observed_at).getTime() / 1000),
+          trilLat,
+          trilLon,
+          firstSeen,
+          lastSeen,
+          bssid,
+        ]
       );
 
       if ((i + 1) % 1000 === 0) {

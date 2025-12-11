@@ -584,14 +584,13 @@ router.post('/networks/tag-threats', async (req, res, next) => {
         }
 
         const result = await query(`
-          INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes, created_at)
-          VALUES ($1, 'THREAT', 0.9, 0.8, $2, NOW())
+          INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes)
+          VALUES ($1, 'THREAT', 0.9, 0.8, $2)
           ON CONFLICT (bssid) DO UPDATE SET
             tag_type = 'THREAT',
             confidence = 0.9,
             threat_score = 0.8,
-            notes = $2,
-            updated_at = NOW()
+            notes = $2
           RETURNING bssid, tag_type, confidence, threat_score
         `, [cleanBSSID, reason || 'Manual threat tag']);
 

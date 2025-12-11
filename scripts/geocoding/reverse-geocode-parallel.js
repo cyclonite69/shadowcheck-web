@@ -18,22 +18,24 @@ async function reverseGeocode(lat, lon) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
 
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.features && json.features.length > 0) {
-            resolve({ address: json.features[0].place_name });
-          } else {
-            resolve({ address: null });
+    https
+      .get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.features && json.features.length > 0) {
+              resolve({ address: json.features[0].place_name });
+            } else {
+              resolve({ address: null });
+            }
+          } catch (e) {
+            reject(e);
           }
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', reject);
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -44,7 +46,7 @@ async function processBatch(locations, startIdx, endIdx) {
   for (let i = startIdx; i < endIdx && i < locations.length; i++) {
     const loc = locations[i];
     const promise = reverseGeocode(loc.lat, loc.lon)
-      .then(geo => ({ ...loc, ...geo, index: i }))
+      .then((geo) => ({ ...loc, ...geo, index: i }))
       .catch(() => ({ ...loc, address: null, index: i }));
 
     promises.push(promise);
@@ -74,15 +76,17 @@ async function main() {
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
-  const locations = lines.slice(1).map(line => {
+  const locations = lines.slice(1).map((line) => {
     const values = line.split(',');
     const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim() || '');
+    headers.forEach((h, i) => (obj[h.trim()] = values[i]?.trim() || ''));
     return obj;
   });
 
   const total = Math.min(locations.length, PER_MINUTE * MINUTES);
-  console.log(`📍 Reverse geocoding ${total} locations (${CONCURRENT} concurrent, ${PER_MINUTE}/min for ${MINUTES} min)...`);
+  console.log(
+    `📍 Reverse geocoding ${total} locations (${CONCURRENT} concurrent, ${PER_MINUTE}/min for ${MINUTES} min)...`
+  );
 
   const allResults = [];
   const startTime = Date.now();
@@ -90,7 +94,9 @@ async function main() {
   for (let min = 0; min < MINUTES; min++) {
     const start = min * PER_MINUTE;
     const end = Math.min(start + PER_MINUTE, total);
-    if (start >= locations.length) {break;}
+    if (start >= locations.length) {
+      break;
+    }
 
     console.log(`\n⏱️  Minute ${min + 1}/${MINUTES} - Processing ${start}-${end}...`);
     const minStart = Date.now();
@@ -103,22 +109,21 @@ async function main() {
 
     const remaining = 60 - elapsed;
     if (remaining > 0 && min < MINUTES - 1) {
-      await new Promise(r => setTimeout(r, remaining * 1000));
+      await new Promise((r) => setTimeout(r, remaining * 1000));
     }
   }
 
   const outputHeaders = [...headers, 'address'];
   const outputLines = [
     outputHeaders.join(','),
-    ...allResults.map(r => [
-      ...headers.map(h => r[h] || ''),
-      r.address ? `"${r.address}"` : '',
-    ].join(',')),
+    ...allResults.map((r) =>
+      [...headers.map((h) => r[h] || ''), r.address ? `"${r.address}"` : ''].join(',')
+    ),
   ];
 
   fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
 
-  const success = allResults.filter(r => r.address !== null).length;
+  const success = allResults.filter((r) => r.address !== null).length;
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
   console.log(`\n✓ Complete: ${success}/${allResults.length} reverse geocoded in ${elapsed} min`);
   console.log(`✓ Output: ${OUTPUT_FILE}`);

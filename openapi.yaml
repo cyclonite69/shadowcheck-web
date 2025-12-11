@@ -1,0 +1,1447 @@
+openapi: 3.0.3
+info:
+  title: ShadowCheck API
+  description: |
+    ShadowCheck is a wireless network threat detection platform that analyzes WiFi, Bluetooth,
+    and cellular observations to detect potential surveillance devices.
+
+    ## Authentication
+
+    Most endpoints require API key authentication via the `X-API-Key` header or `api_key` query parameter.
+
+    ## Network Types
+
+    - `W`: WiFi
+    - `E`: BLE (Bluetooth Low Energy)
+    - `B`: Bluetooth
+    - `L`: LTE
+    - `N`: 5G NR
+    - `G`: GSM
+
+    ## Threat Detection
+
+    Networks are scored based on movement patterns, distance ranges, and observation frequency.
+    Scores ≥40 are flagged as potential threats.
+  version: 1.0.0
+  contact:
+    name: ShadowCheck
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+  - url: http://localhost:3001/api
+    description: API routes
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: Networks
+    description: Network discovery and management
+  - name: Threats
+    description: Threat detection and analysis
+  - name: Dashboard
+    description: Dashboard metrics and summaries
+  - name: Analytics
+    description: Network analytics and statistics
+  - name: ML
+    description: Machine learning model management
+  - name: WiGLE
+    description: WiGLE database integration
+  - name: Admin
+    description: Administrative operations
+  - name: Location Markers
+    description: Home/work location management
+  - name: Settings
+    description: Application settings
+  - name: Geospatial
+    description: Geospatial data for mapping
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: System health check
+      description: Returns overall system health including database, secrets, keyring, and memory status
+      operationId: getHealth
+      responses:
+        '200':
+          description: System is healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: System is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/networks:
+    get:
+      tags:
+        - Networks
+      summary: List all networks
+      description: Retrieve paginated list of networks with optional filtering and sorting
+      operationId: listNetworks
+      parameters:
+        - name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Page number
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5000
+          description: Results per page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by SSID or BSSID
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [W, E, B, L, N, G]
+          description: Filter by network type
+        - name: security
+          in: query
+          schema:
+            type: string
+          description: Filter by security/encryption type
+        - name: minSignal
+          in: query
+          schema:
+            type: integer
+          description: Minimum signal strength (dBm)
+        - name: maxSignal
+          in: query
+          schema:
+            type: integer
+          description: Maximum signal strength (dBm)
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [type, ssid, bssid, signal, security, frequency, channel, observations, latitude, longitude, distanceFromHome, accuracy, lastSeen]
+            default: lastSeen
+          description: Sort column
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+          description: Sort order
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworksListResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/networks/search/{ssid}:
+    get:
+      tags:
+        - Networks
+      summary: Search networks by SSID
+      description: Search for networks matching the provided SSID
+      operationId: searchNetworksBySSID
+      parameters:
+        - name: ssid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: SSID to search for
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkSearchResponse'
+        '400':
+          description: Invalid SSID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/networks/observations/{bssid}:
+    get:
+      tags:
+        - Networks
+      summary: Get observations for a network
+      description: Retrieve all observations for a specific BSSID
+      operationId: getNetworkObservations
+      parameters:
+        - name: bssid
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$'
+          description: Network BSSID (MAC address)
+      responses:
+        '200':
+          description: Observations retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationsResponse'
+
+  /api/networks/tagged:
+    get:
+      tags:
+        - Networks
+      summary: Get tagged networks
+      description: Retrieve networks with specific user tags
+      operationId: getTaggedNetworks
+      parameters:
+        - name: tag_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [LEGIT, FALSE_POSITIVE, INVESTIGATE, THREAT]
+          description: Tag type to filter by
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+          description: Results per page
+      responses:
+        '200':
+          description: Tagged networks retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaggedNetworksResponse'
+
+  /api/tag-network:
+    post:
+      tags:
+        - Networks
+      summary: Tag a network
+      description: Add or update a tag on a network
+      operationId: tagNetwork
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagNetworkRequest'
+      responses:
+        '200':
+          description: Network tagged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagNetworkResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tag-network/{bssid}:
+    delete:
+      tags:
+        - Networks
+      summary: Remove tag from network
+      description: Delete a tag from a specific network
+      operationId: deleteNetworkTag
+      parameters:
+        - name: bssid
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$'
+          description: Network BSSID
+      responses:
+        '200':
+          description: Tag removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  bssid:
+                    type: string
+        '404':
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/manufacturer/{bssid}:
+    get:
+      tags:
+        - Networks
+      summary: Get manufacturer from MAC address
+      description: Look up device manufacturer from BSSID/MAC address
+      operationId: getManufacturer
+      parameters:
+        - name: bssid
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$'
+          description: BSSID/MAC address
+      responses:
+        '200':
+          description: Manufacturer information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManufacturerResponse'
+
+  /api/networks/tag-threats:
+    post:
+      tags:
+        - Networks
+      summary: Tag multiple networks as threats
+      description: Bulk tag multiple networks as threats
+      operationId: tagMultipleThreats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bssids
+              properties:
+                bssids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of BSSIDs to tag
+                reason:
+                  type: string
+                  description: Reason for tagging as threats
+      responses:
+        '200':
+          description: Networks tagged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  successCount:
+                    type: integer
+                  errorCount:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+
+  /api/threats/quick:
+    get:
+      tags:
+        - Threats
+      summary: Quick threat detection
+      description: Fast paginated threat detection based on observation patterns
+      operationId: quickThreatDetection
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: minObs
+          in: query
+          schema:
+            type: integer
+            default: 5
+          description: Minimum observations required
+        - name: minDays
+          in: query
+          schema:
+            type: integer
+            default: 3
+          description: Minimum unique days required
+        - name: minLocs
+          in: query
+          schema:
+            type: integer
+            default: 5
+          description: Minimum unique locations required
+        - name: minRange
+          in: query
+          schema:
+            type: number
+            default: 0.5
+          description: Minimum distance range (km)
+        - name: minScore
+          in: query
+          schema:
+            type: integer
+            default: 40
+          description: Minimum threat score
+      responses:
+        '200':
+          description: Threats detected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThreatsResponse'
+
+  /api/threats/detect:
+    get:
+      tags:
+        - Threats
+      summary: Detailed threat analysis
+      description: Advanced threat detection with speed calculations and pattern analysis
+      operationId: detailedThreatDetection
+      responses:
+        '200':
+          description: Detailed threat analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedThreatsResponse'
+
+  /api/dashboard/metrics:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard metrics
+      description: Retrieve current dashboard metrics including threat counts and network statistics
+      operationId: getDashboardMetrics
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetricsResponse'
+
+  /api/dashboard/threats:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard threats
+      description: Retrieve list of threats for dashboard display
+      operationId: getDashboardThreats
+      responses:
+        '200':
+          description: Dashboard threats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  threats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Threat'
+                  total:
+                    type: integer
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/dashboard/summary:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard summary
+      description: Retrieve high-level dashboard summary statistics
+      operationId: getDashboardSummary
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummaryResponse'
+
+  /api/analytics/network-types:
+    get:
+      tags:
+        - Analytics
+      summary: Get network type distribution
+      description: Retrieve distribution of network types (WiFi, BLE, Bluetooth, LTE, etc.)
+      operationId: getNetworkTypes
+      responses:
+        '200':
+          description: Network type distribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /api/analytics/signal-strength:
+    get:
+      tags:
+        - Analytics
+      summary: Get signal strength distribution
+      description: Retrieve signal strength distribution across all networks
+      operationId: getSignalStrength
+      responses:
+        '200':
+          description: Signal strength distribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /api/analytics/temporal-activity:
+    get:
+      tags:
+        - Analytics
+      summary: Get temporal activity
+      description: Retrieve hourly distribution of network activity
+      operationId: getTemporalActivity
+      responses:
+        '200':
+          description: Temporal activity distribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /api/analytics/radio-type-over-time:
+    get:
+      tags:
+        - Analytics
+      summary: Get radio type distribution over time
+      description: Retrieve radio type distribution for a specified time period
+      operationId: getRadioTypeOverTime
+      parameters:
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: ['24h', '7d', '30d', '90d', 'all']
+            default: '30d'
+          description: Time range for analysis
+      responses:
+        '200':
+          description: Radio type distribution over time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /api/ml/train:
+    post:
+      tags:
+        - ML
+      summary: Train ML model
+      description: Train machine learning model on tagged networks
+      operationId: trainMLModel
+      responses:
+        '200':
+          description: Model trained successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  model:
+                    type: object
+        '400':
+          description: Insufficient training data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: ML model not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/wigle/live/{bssid}:
+    get:
+      tags:
+        - WiGLE
+      summary: Query live WiGLE API
+      description: Query WiGLE.net live API for network information
+      operationId: wigleLiveQuery
+      parameters:
+        - name: bssid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Network BSSID to query
+      responses:
+        '200':
+          description: WiGLE data retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  network:
+                    type: object
+                  totalResults:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+        '503':
+          description: WiGLE API credentials not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/wigle/network/{bssid}:
+    get:
+      tags:
+        - WiGLE
+      summary: Get WiGLE data from local database
+      description: Retrieve WiGLE data for a network from local database
+      operationId: wigleLocalQuery
+      parameters:
+        - name: bssid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Network BSSID
+      responses:
+        '200':
+          description: WiGLE data retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Network not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/wigle/search:
+    get:
+      tags:
+        - WiGLE
+      summary: Search WiGLE database
+      description: Search local WiGLE database by SSID or BSSID
+      operationId: wigleSearch
+      parameters:
+        - name: ssid
+          in: query
+          schema:
+            type: string
+          description: SSID to search for
+        - name: bssid
+          in: query
+          schema:
+            type: string
+          description: BSSID to search for
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Maximum results
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/admin/import-sqlite:
+    post:
+      tags:
+        - Admin
+      summary: Import SQLite database
+      description: Import network data from SQLite database file
+      operationId: importSQLite
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                sqlite:
+                  type: string
+                  format: binary
+                  description: SQLite database file (.sqlite, .db, .sqlite3)
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  observations:
+                    type: integer
+                  networks:
+                    type: integer
+                  output:
+                    type: string
+        '400':
+          description: No file uploaded or invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/location-markers:
+    get:
+      tags:
+        - Location Markers
+      summary: Get all location markers
+      description: Retrieve all saved location markers
+      operationId: getLocationMarkers
+      responses:
+        '200':
+          description: Location markers retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  markers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LocationMarker'
+
+  /api/location-markers/home:
+    get:
+      tags:
+        - Location Markers
+      summary: Get home location
+      description: Retrieve the home location marker
+      operationId: getHomeLocation
+      responses:
+        '200':
+          description: Home location retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  marker:
+                    $ref: '#/components/schemas/LocationMarker'
+    post:
+      tags:
+        - Location Markers
+      summary: Set home location
+      description: Set or update the home location marker
+      operationId: setHomeLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Home location set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  marker:
+                    $ref: '#/components/schemas/LocationMarker'
+
+  /api/settings/wigle:
+    get:
+      tags:
+        - Settings
+      summary: Get WiGLE credentials
+      description: Retrieve masked WiGLE API credentials
+      operationId: getWigleSettings
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: WiGLE settings retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configured:
+                    type: boolean
+                  apiName:
+                    type: string
+                  apiToken:
+                    type: string
+    post:
+      tags:
+        - Settings
+      summary: Set WiGLE credentials
+      description: Configure WiGLE API credentials
+      operationId: setWigleSettings
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiName
+                - apiToken
+              properties:
+                apiName:
+                  type: string
+                apiToken:
+                  type: string
+      responses:
+        '200':
+          description: Credentials set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  test:
+                    type: object
+
+  /api/kepler/data:
+    get:
+      tags:
+        - Geospatial
+      summary: Get Kepler.gl network data
+      description: Retrieve network data in GeoJSON format for Kepler.gl visualization
+      operationId: getKeplerData
+      parameters:
+        - name: bbox
+          in: query
+          schema:
+            type: string
+          description: Bounding box (minLon,minLat,maxLon,maxLat)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Maximum number of results
+      responses:
+        '200':
+          description: GeoJSON feature collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [FeatureCollection]
+                  features:
+                    type: array
+                    items:
+                      type: object
+
+  /api/kepler/observations:
+    get:
+      tags:
+        - Geospatial
+      summary: Get Kepler.gl observation data
+      description: Retrieve observation data in GeoJSON format for Kepler.gl visualization
+      operationId: getKeplerObservations
+      parameters:
+        - name: bbox
+          in: query
+          schema:
+            type: string
+          description: Bounding box (minLon,minLat,maxLon,maxLat)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Maximum number of results
+      responses:
+        '200':
+          description: GeoJSON feature collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [FeatureCollection]
+                  features:
+                    type: array
+                    items:
+                      type: object
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: integer
+          description: Server uptime in seconds
+        checks:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                latency_ms:
+                  type: integer
+            secrets:
+              type: object
+              properties:
+                status:
+                  type: string
+                required_count:
+                  type: integer
+                loaded_count:
+                  type: integer
+            keyring:
+              type: object
+              properties:
+                status:
+                  type: string
+            memory:
+              type: object
+              properties:
+                status:
+                  type: string
+                heap_used_mb:
+                  type: integer
+                heap_max_mb:
+                  type: integer
+
+    Network:
+      type: object
+      properties:
+        id:
+          type: string
+        ssid:
+          type: string
+        bssid:
+          type: string
+        type:
+          type: string
+          enum: [W, E, B, L, N, G]
+        security:
+          type: string
+        encryption:
+          type: string
+        frequency:
+          type: number
+          nullable: true
+        channel:
+          type: integer
+          nullable: true
+        signal:
+          type: integer
+          nullable: true
+        accuracy:
+          type: number
+        observations:
+          type: integer
+        manufacturer:
+          type: string
+        lastSeen:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+        timestamp:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [safe, warning, threat]
+        distanceFromHome:
+          type: number
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+              nullable: true
+            lng:
+              type: number
+              nullable: true
+
+    NetworksListResponse:
+      type: object
+      properties:
+        networks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Network'
+        total:
+          type: integer
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+    NetworkSearchResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        query:
+          type: string
+        count:
+          type: integer
+        networks:
+          type: array
+          items:
+            type: object
+
+    ObservationsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        bssid:
+          type: string
+        observations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Observation'
+        home:
+          type: object
+          nullable: true
+          properties:
+            lon:
+              type: number
+            lat:
+              type: number
+        count:
+          type: integer
+
+    Observation:
+      type: object
+      properties:
+        id:
+          type: string
+        bssid:
+          type: string
+        ssid:
+          type: string
+        type:
+          type: string
+        encryption:
+          type: string
+        lat:
+          type: number
+        lon:
+          type: number
+        signal:
+          type: integer
+        time:
+          type: integer
+          format: int64
+        acc:
+          type: number
+        alt:
+          type: number
+          nullable: true
+        distance_from_home_km:
+          type: number
+          nullable: true
+
+    TaggedNetworksResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        tag_type:
+          type: string
+        networks:
+          type: array
+          items:
+            type: object
+            properties:
+              bssid:
+                type: string
+              ssid:
+                type: string
+              tag_type:
+                type: string
+              confidence:
+                type: number
+              notes:
+                type: string
+              tagged_at:
+                type: string
+                format: date-time
+              updated_at:
+                type: string
+                format: date-time
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+    TagNetworkRequest:
+      type: object
+      required:
+        - bssid
+        - tag_type
+        - confidence
+      properties:
+        bssid:
+          type: string
+          pattern: '^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$'
+        tag_type:
+          type: string
+          enum: [LEGIT, FALSE_POSITIVE, INVESTIGATE, THREAT]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 100
+        notes:
+          type: string
+
+    TagNetworkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        tag:
+          type: object
+
+    ManufacturerResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        bssid:
+          type: string
+        manufacturer:
+          type: string
+        address:
+          type: string
+        prefix:
+          type: string
+
+    Threat:
+      type: object
+      properties:
+        bssid:
+          type: string
+        ssid:
+          type: string
+        radioType:
+          type: string
+        type:
+          type: string
+        channel:
+          type: integer
+        signal:
+          type: integer
+        signalDbm:
+          type: integer
+        maxSignal:
+          type: integer
+        encryption:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        firstSeen:
+          type: string
+          format: date-time
+        lastSeen:
+          type: string
+          format: date-time
+        observations:
+          type: integer
+        totalObservations:
+          type: integer
+        uniqueDays:
+          type: integer
+        uniqueLocations:
+          type: integer
+        distanceRangeKm:
+          type: string
+        threatScore:
+          type: integer
+        threatLevel:
+          type: string
+          enum: [low, medium, high]
+
+    ThreatsResponse:
+      type: object
+      properties:
+        threats:
+          type: array
+          items:
+            $ref: '#/components/schemas/Threat'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+    DetailedThreatsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        threats:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Threat'
+              - type: object
+                properties:
+                  confidence:
+                    type: string
+                  patterns:
+                    type: object
+                    properties:
+                      seenAtHome:
+                        type: boolean
+                      seenAwayFromHome:
+                        type: boolean
+                      maxDistanceBetweenObsKm:
+                        type: number
+                      observationTimespanMs:
+                        type: integer
+                      uniqueDaysObserved:
+                        type: integer
+                      maxSpeedKmh:
+                        type: number
+                      distancesFromHomeKm:
+                        type: array
+                        items:
+                          type: number
+                  userTag:
+                    type: string
+                  userConfidence:
+                    type: number
+                  userNotes:
+                    type: string
+                  userOverride:
+                    type: boolean
+
+    DashboardMetricsResponse:
+      type: object
+      properties:
+        threats:
+          type: object
+          properties:
+            critical:
+              type: integer
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        networks:
+          type: object
+          properties:
+            total:
+              type: integer
+            wifi:
+              type: integer
+            ble:
+              type: integer
+            bluetooth:
+              type: integer
+            lte:
+              type: integer
+        surveillance:
+          type: integer
+        enriched:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    DashboardSummaryResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalNetworks:
+              type: integer
+            totalThreats:
+              type: integer
+            criticalThreats:
+              type: integer
+            activeSurveillance:
+              type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    LocationMarker:
+      type: object
+      properties:
+        id:
+          type: integer
+        marker_type:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string

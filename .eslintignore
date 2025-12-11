@@ -1,25 +1,23 @@
-# Dependencies
-node_modules
-package-lock.json
-
 # Build output
-dist
-build
-coverage
+dist/
+build/
 
-# Data files
-data/
-*.csv
-*.db
-*.sqlite
+# Dependencies
+node_modules/
 
-# Documentation
-docs/
-*.md
+# Coverage
+coverage/
+.nyc_output/
 
-# Configuration
-.eslintrc.js
-jest.config.js
+# Logs
+*.log
 
-# Public assets
+# Temporary
+*.tmp
+*.temp
+
+# Public assets (browser JS with globals)
 public/
+
+# Tests (legacy location - scripts moved to tests/)
+test-*.js

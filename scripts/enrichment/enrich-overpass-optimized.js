@@ -59,7 +59,7 @@ async function queryOverpass(lat, lon) {
       const result = await new Promise((resolve, reject) => {
         const req = https.get(url, { timeout: 8000 }, (res) => {
           let data = '';
-          res.on('data', chunk => data += chunk);
+          res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
               const json = JSON.parse(data);
@@ -69,7 +69,8 @@ async function queryOverpass(lat, lon) {
 
                 resolve({
                   name: tags.name || tags['addr:housename'] || tags.operator,
-                  category: tags.amenity || tags.shop || tags.tourism || tags.leisure || tags.building,
+                  category:
+                    tags.amenity || tags.shop || tags.tourism || tags.leisure || tags.building,
                   brand: tags.brand || tags['brand:wikidata'],
                   cuisine: tags.cuisine,
                   operator: tags.operator,
@@ -89,7 +90,10 @@ async function queryOverpass(lat, lon) {
           });
         });
         req.on('error', reject);
-        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('timeout'));
+        });
       });
 
       if (result && result.name) {
@@ -100,7 +104,7 @@ async function queryOverpass(lat, lon) {
     }
 
     // Rate limit between queries
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   return null;
@@ -109,7 +113,8 @@ async function queryOverpass(lat, lon) {
 async function main() {
   const limit = parseInt(process.argv[2]) || 100;
 
-  const result = await pool.query(`
+  const result = await pool.query(
+    `
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
     WHERE trilat_address IS NOT NULL
@@ -119,7 +124,9 @@ async function main() {
       AND is_mobile_network = FALSE
     ORDER BY observation_count DESC
     LIMIT $1
-  `, [limit]);
+  `,
+    [limit]
+  );
 
   console.log(`🔍 Overpass Turbo optimized enrichment: ${result.rows.length} addresses\n`);
 
@@ -133,17 +140,23 @@ async function main() {
       const poi = await queryOverpass(row.trilat_lat, row.trilat_lon);
 
       if (poi && poi.name) {
-        await pool.query(`
+        await pool.query(
+          `
           UPDATE app.networks_legacy 
           SET venue_name = $1, venue_category = $2, name = $3
           WHERE bssid = $4
-        `, [poi.name, poi.category, poi.brand || poi.name, row.bssid]);
+        `,
+          [poi.name, poi.category, poi.brand || poi.name, row.bssid]
+        );
 
-        await pool.query(`
+        await pool.query(
+          `
           UPDATE app.ap_locations 
           SET venue_name = $1, venue_category = $2
           WHERE bssid = $3
-        `, [poi.name, poi.category, row.bssid]);
+        `,
+          [poi.name, poi.category, row.bssid]
+        );
 
         categories[poi.category] = (categories[poi.category] || 0) + 1;
         enriched++;
@@ -152,20 +165,23 @@ async function main() {
       } else {
         console.log(`  ✗ ${i + 1}/${result.rows.length}: No POI found`);
       }
-
     } catch (err) {
       console.log(`  ✗ ${i + 1}/${result.rows.length}: Error - ${err.message}`);
     }
 
     // Rate limit
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  console.log(`\n✓ Complete: ${enriched}/${result.rows.length} addresses enriched (${((enriched / result.rows.length) * 100).toFixed(1)}%)`);
+  console.log(
+    `\n✓ Complete: ${enriched}/${result.rows.length} addresses enriched (${((enriched / result.rows.length) * 100).toFixed(1)}%)`
+  );
   console.log('\n📊 Categories found:');
-  Object.entries(categories).sort((a, b) => b[1] - a[1]).forEach(([cat, count]) => {
-    console.log(`  ${cat}: ${count}`);
-  });
+  Object.entries(categories)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([cat, count]) => {
+      console.log(`  ${cat}: ${count}`);
+    });
 
   await pool.end();
 }

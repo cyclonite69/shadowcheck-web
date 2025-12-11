@@ -21,14 +21,18 @@ async function main() {
     const bssid = parts[0];
     const address = parts.slice(3).join(',').replace(/^"|"$/g, '');
 
-    if (!address) {continue;}
+    if (!address) {
+      continue;
+    }
 
-    await pool.query(
-      'UPDATE app.ap_locations SET trilat_address = $1 WHERE bssid = $2',
-      [address, bssid]
-    );
+    await pool.query('UPDATE app.ap_locations SET trilat_address = $1 WHERE bssid = $2', [
+      address,
+      bssid,
+    ]);
     updated++;
-    if (updated % 1000 === 0) {console.log(`  ${updated}...`);}
+    if (updated % 1000 === 0) {
+      console.log(`  ${updated}...`);
+    }
   }
 
   console.log(`✓ Updated ${updated} AP addresses`);

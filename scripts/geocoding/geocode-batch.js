@@ -19,23 +19,25 @@ async function geocodeAddress(address) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&permanent=true&limit=1`;
 
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.features && json.features.length > 0) {
-            const [lon, lat] = json.features[0].center;
-            resolve({ lat, lon, full_address: json.features[0].place_name });
-          } else {
-            resolve({ lat: null, lon: null, full_address: null });
+    https
+      .get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.features && json.features.length > 0) {
+              const [lon, lat] = json.features[0].center;
+              resolve({ lat, lon, full_address: json.features[0].place_name });
+            } else {
+              resolve({ lat: null, lon: null, full_address: null });
+            }
+          } catch (e) {
+            reject(e);
           }
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', reject);
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -49,10 +51,10 @@ async function main() {
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
-  const addresses = lines.slice(1).map(line => {
+  const addresses = lines.slice(1).map((line) => {
     const values = line.split(',');
     const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim() || '');
+    headers.forEach((h, i) => (obj[h.trim()] = values[i]?.trim() || ''));
     return obj;
   });
 
@@ -65,7 +67,9 @@ async function main() {
   for (let min = 0; min < MINUTES; min++) {
     const start = min * PER_MINUTE;
     const end = Math.min(start + PER_MINUTE, total);
-    if (start >= addresses.length) {break;}
+    if (start >= addresses.length) {
+      break;
+    }
 
     console.log(`\n⏱️  Minute ${min + 1}/${MINUTES} - Processing ${start}-${end}...`);
 
@@ -75,8 +79,10 @@ async function main() {
       try {
         const geo = await geocodeAddress(addr.address);
         results.push({ ...addr, ...geo });
-        if ((i + 1) % 100 === 0) {console.log(`  ✓ ${i + 1}/${total}`);}
-        await new Promise(r => setTimeout(r, DELAY_MS));
+        if ((i + 1) % 100 === 0) {
+          console.log(`  ✓ ${i + 1}/${total}`);
+        }
+        await new Promise((r) => setTimeout(r, DELAY_MS));
       } catch (err) {
         results.push({ ...addr, lat: null, lon: null, full_address: null });
       }
@@ -86,17 +92,19 @@ async function main() {
   const outputHeaders = [...headers, 'latitude', 'longitude', 'geocoded_address'];
   const outputLines = [
     outputHeaders.join(','),
-    ...results.map(r => [
-      ...headers.map(h => r[h] || ''),
-      r.lat || '',
-      r.lon || '',
-      r.full_address ? `"${r.full_address}"` : '',
-    ].join(',')),
+    ...results.map((r) =>
+      [
+        ...headers.map((h) => r[h] || ''),
+        r.lat || '',
+        r.lon || '',
+        r.full_address ? `"${r.full_address}"` : '',
+      ].join(',')
+    ),
   ];
 
   fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
 
-  const success = results.filter(r => r.lat !== null).length;
+  const success = results.filter((r) => r.lat !== null).length;
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
   console.log(`\n✓ Complete: ${success}/${results.length} geocoded in ${elapsed} min`);
   console.log(`✓ Output: ${OUTPUT_FILE}`);

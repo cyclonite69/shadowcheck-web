@@ -17,23 +17,25 @@ async function geocodeAddress(address) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&permanent=true&limit=1`;
 
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.features && json.features.length > 0) {
-            const [lon, lat] = json.features[0].center;
-            resolve({ lat, lon });
-          } else {
-            resolve({ lat: null, lon: null });
+    https
+      .get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.features && json.features.length > 0) {
+              const [lon, lat] = json.features[0].center;
+              resolve({ lat, lon });
+            } else {
+              resolve({ lat: null, lon: null });
+            }
+          } catch (e) {
+            reject(e);
           }
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', reject);
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -48,12 +50,15 @@ async function main() {
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
-  const addresses = lines.slice(1).filter(l => l.trim()).map(line => {
-    const values = line.split(',');
-    const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim() || '');
-    return obj;
-  });
+  const addresses = lines
+    .slice(1)
+    .filter((l) => l.trim())
+    .map((line) => {
+      const values = line.split(',');
+      const obj = {};
+      headers.forEach((h, i) => (obj[h.trim()] = values[i]?.trim() || ''));
+      return obj;
+    });
 
   if (addresses.length === 0) {
     console.error('❌ No addresses found in CSV');
@@ -62,7 +67,8 @@ async function main() {
 
   console.log(`📍 Geocoding ${addresses.length} addresses to WiGLE format...`);
 
-  const wigleHeaders = 'MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type';
+  const wigleHeaders =
+    'MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type';
   const wigleLines = [wigleHeaders];
 
   for (let i = 0; i < addresses.length; i++) {
@@ -88,7 +94,7 @@ async function main() {
       ].join(',');
 
       wigleLines.push(wigleLine);
-      await new Promise(r => setTimeout(r, DELAY_MS));
+      await new Promise((r) => setTimeout(r, DELAY_MS));
     } catch (err) {
       console.error(`  ✗ Error: ${err.message}`);
     }

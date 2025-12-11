@@ -86,7 +86,22 @@ junit.xml
 # Temporary files
 /tmp/
 temp/
+*_snapshot.txt
+compose_snapshot.txt
+project_snapshot.txt
+postgres_schema_current.sql
+
+# Test scripts in root (should be in tests/)
+test-*.js
+
+# Setup scripts (should be in scripts/)
+setup_*.sh
+*_setup_*.sh
 
 # Random executables and images
 *.exe
 assets/images/
+
+# PgAdmin
+pgadmin-config/
+pgadmin_data/

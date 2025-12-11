@@ -23,17 +23,22 @@ async function importGeocodes() {
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
-  const data = lines.slice(1).map(line => {
-    const match = line.match(/^([^,]+),([^,]+),([^,]+),([^,]*),(.*)$/);
-    if (!match) {return null;}
-    return {
-      lat: match[1],
-      lon: match[2],
-      bssid: match[3],
-      ssid: match[4],
-      address: match[5].replace(/^"|"$/g, ''),
-    };
-  }).filter(Boolean);
+  const data = lines
+    .slice(1)
+    .map((line) => {
+      const match = line.match(/^([^,]+),([^,]+),([^,]+),([^,]*),(.*)$/);
+      if (!match) {
+        return null;
+      }
+      return {
+        lat: match[1],
+        lon: match[2],
+        bssid: match[3],
+        ssid: match[4],
+        address: match[5].replace(/^"|"$/g, ''),
+      };
+    })
+    .filter(Boolean);
 
   console.log(`📊 Updating ${data.length} locations...`);
 
@@ -46,9 +51,12 @@ async function importGeocodes() {
     await pool.query('BEGIN');
 
     for (const row of batch) {
-      if (!row.address) {continue;}
+      if (!row.address) {
+        continue;
+      }
 
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         UPDATE app.locations_legacy 
         SET 
           geocoded_address = $1,
@@ -58,7 +66,9 @@ async function importGeocodes() {
           AND lat = $3 
           AND lon = $4
           AND geocoded_address IS NULL
-      `, [row.address, row.bssid, parseFloat(row.lat), parseFloat(row.lon)]);
+      `,
+        [row.address, row.bssid, parseFloat(row.lat), parseFloat(row.lon)]
+      );
 
       updated += result.rowCount;
     }

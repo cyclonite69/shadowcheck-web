@@ -98,13 +98,16 @@ async function fullImport() {
 
   try {
     // Create import record
-    const importResult = await pgPool.query(`
+    const importResult = await pgPool.query(
+      `
             INSERT INTO app.imports (
                 source_type, source_file, status, started_at
             ) VALUES (
                 'wigle_app', $1, 'processing', NOW()
             ) RETURNING id
-        `, [sqliteFile]);
+        `,
+      [sqliteFile]
+    );
 
     const importId = importResult.rows[0].id;
     console.log(`📝 Import ID: ${importId}\n`);
@@ -127,7 +130,8 @@ async function fullImport() {
 
     // Update import record
     const duration = Math.floor((Date.now() - startTime) / 1000);
-    await pgPool.query(`
+    await pgPool.query(
+      `
             UPDATE app.imports SET
                 status = 'completed',
                 completed_at = NOW(),
@@ -137,14 +141,16 @@ async function fullImport() {
                 records_failed = $4,
                 errors = $5::jsonb
             WHERE id = $6
-        `, [
-      duration,
-      stats.observations + stats.networks,
-      stats.observations,
-      stats.errors.length,
-      JSON.stringify(stats.errors.slice(0, 100)),
-      importId,
-    ]);
+        `,
+      [
+        duration,
+        stats.observations + stats.networks,
+        stats.observations,
+        stats.errors.length,
+        JSON.stringify(stats.errors.slice(0, 100)),
+        importId,
+      ]
+    );
 
     console.log('\n✅ IMPORT COMPLETED!');
     console.log(`   Duration: ${duration}s (${Math.floor(duration / 60)}m ${duration % 60}s)`);
@@ -153,7 +159,6 @@ async function fullImport() {
     console.log(`   Skipped: ${stats.skipped.toLocaleString()}`);
     console.log(`   Errors: ${stats.errors.length}`);
     console.log(`   Rate: ${Math.floor(stats.observations / duration).toLocaleString()} obs/sec`);
-
   } catch (error) {
     console.error('❌ Import failed:', error);
     throw error;
@@ -202,7 +207,9 @@ async function importObservations(importId, stats) {
               if (now - lastProgress >= PROGRESS_INTERVAL) {
                 const pct = ((processed / totalObservations) * 100).toFixed(1);
                 const rate = Math.floor(processed / ((now - lastProgress) / 1000));
-                process.stdout.write(`\r   Progress: ${processed.toLocaleString()}/${totalObservations.toLocaleString()} (${pct}%) - ${rate}/sec   `);
+                process.stdout.write(
+                  `\r   Progress: ${processed.toLocaleString()}/${totalObservations.toLocaleString()} (${pct}%) - ${rate}/sec   `
+                );
                 lastProgress = now;
               }
             });
@@ -220,7 +227,9 @@ async function importObservations(importId, stats) {
             processed += observations.length;
           }
 
-          console.log(`\r   ✓ Imported ${stats.observations.toLocaleString()} observations              `);
+          console.log(
+            `\r   ✓ Imported ${stats.observations.toLocaleString()} observations              `
+          );
           sqliteDb.close();
           resolve();
         }
@@ -257,7 +266,8 @@ async function processObservationBatch(rows, importId, stats) {
         const observedAt = new Date(row.time);
 
         // Insert observation - triggers will handle network upsert
-        await client.query(`
+        await client.query(
+          `
                     INSERT INTO app.observations (
                         radio_type, identifier,
                         latitude, longitude, location,
@@ -274,24 +284,25 @@ async function processObservationBatch(rows, importId, stats) {
                         'wigle_app'::source_type, $9,
                         '{}'::jsonb, $10::jsonb
                     )
-                `, [
-          row.bssid, // Will be uppercased by trigger
-          row.lat, // Full precision
-          row.lon, // Full precision
-          row.altitude, // Full precision
-          row.accuracy, // Full precision
-          row.level, // Full precision (signal)
-          observedAt, // Proper timestamptz
-          row.time, // Unix epoch milliseconds
-          importId,
-          JSON.stringify({
-            external: row.external,
-            mfgrid: row.mfgrid,
-          }),
-        ]);
+                `,
+          [
+            row.bssid, // Will be uppercased by trigger
+            row.lat, // Full precision
+            row.lon, // Full precision
+            row.altitude, // Full precision
+            row.accuracy, // Full precision
+            row.level, // Full precision (signal)
+            observedAt, // Proper timestamptz
+            row.time, // Unix epoch milliseconds
+            importId,
+            JSON.stringify({
+              external: row.external,
+              mfgrid: row.mfgrid,
+            }),
+          ]
+        );
 
         stats.observations++;
-
       } catch (error) {
         stats.errors.push({
           type: 'observation_insert',
@@ -303,7 +314,6 @@ async function processObservationBatch(rows, importId, stats) {
     }
 
     await client.query('COMMIT');
-
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -362,25 +372,22 @@ async function processNetworkBatch(rows, stats) {
       try {
         const bssid = row.bssid.toUpperCase();
 
-        await client.query(`
+        await client.query(
+          `
                     UPDATE app.networks SET
                         ssid = $2,
                         frequency = $3::numeric,
                         encryption = $4
                     WHERE bssid = $1
-                `, [
-          bssid,
-          row.ssid || '<Hidden>',
-          row.frequency,
-          row.capabilities || 'OPEN',
-        ]);
+                `,
+          [bssid, row.ssid || '<Hidden>', row.frequency, row.capabilities || 'OPEN']
+        );
 
         stats.networks++;
 
         if (stats.networks % 1000 === 0) {
           process.stdout.write(`\r   Enriched ${stats.networks.toLocaleString()} networks...`);
         }
-
       } catch (error) {
         stats.errors.push({
           type: 'network_update',
@@ -391,7 +398,6 @@ async function processNetworkBatch(rows, stats) {
     }
 
     await client.query('COMMIT');
-
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -402,7 +408,7 @@ async function processNetworkBatch(rows, stats) {
 
 // Run import
 if (require.main === module) {
-  fullImport().catch(err => {
+  fullImport().catch((err) => {
     console.error('Fatal error:', err);
     process.exit(1);
   });

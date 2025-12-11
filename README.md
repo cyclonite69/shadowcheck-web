@@ -4,7 +4,7 @@
 [![GitHub forks](https://img.shields.io/github/forks/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/network)
 [![GitHub issues](https://img.shields.io/github/issues/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/issues)
 [![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-static?style=flat-square)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/commits)
 [![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static)
@@ -30,7 +30,7 @@
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL 18+ with PostGIS
 
 ## Quick Start
@@ -113,11 +113,13 @@ ShadowCheck includes multi-algorithm threat detection with model training and hy
 Trains logistic regression model on all tagged networks in database.
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:3001/api/ml/train
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -139,6 +141,7 @@ curl -X POST http://localhost:3001/api/ml/train
 ```
 
 **Errors:**
+
 - `400`: Fewer than 10 tagged networks (minimum required)
 - `503`: ML model module unavailable
 
@@ -172,38 +175,43 @@ Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparame
 
 ```
 shadowcheck-static/
-├── server.js              # Express API server
-├── public/                # Frontend static files
-│   ├── index.html
-│   ├── geospatial.html
-│   ├── networks.html
-│   ├── analytics.html
-│   └── surveillance.html
+├── src/
+│   ├── api/               # 🔧 Backend API routes
+│   ├── services/          # 🔧 Backend business logic
+│   ├── repositories/      # 🔧 Backend data access
+│   ├── components/        # ⚛️ Frontend React components
+│   ├── App.tsx            # ⚛️ Frontend React app
+│   └── main.tsx           # ⚛️ Frontend entry point
+├── server.js              # 🔧 Backend Express server
+├── index.html             # ⚛️ Frontend HTML template
+├── vite.config.js         # ⚛️ Frontend build config
+├── public/                # Static assets
 ├── scripts/               # Utility scripts
+│   ├── import/            # Data import utilities
 │   ├── enrichment/        # Address enrichment
-│   ├── geocoding/         # Reverse geocoding
 │   └── ml/                # ML utilities
 ├── sql/                   # Database
 │   ├── migrations/        # Schema migrations
 │   └── functions/         # SQL functions
+├── tests/                 # Jest tests
 ├── docs/                  # Documentation
-│   ├── architecture/      # System design docs
-│   ├── features/          # Feature documentation
-│   ├── guides/            # User guides
-│   └── security/          # Security policies
-└── data/                  # Data files (not in git)
+└── docker-compose.yml     # Docker configuration
 ```
 
-See [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
+**📖 See [docs/architecture/project-structure.md](docs/architecture/project-structure.md) for detailed frontend/backend organization.**
+
+Also see [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
 
 ## Development
 
 **Run dev server:**
+
 ```bash
 npm run dev
 ```
 
 **Run tests:**
+
 ```bash
 npm test
 ```

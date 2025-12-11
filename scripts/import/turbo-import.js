@@ -99,7 +99,6 @@ class TurboImporter {
 
       // 9. Print summary
       this.printSummary();
-
     } catch (error) {
       console.error('\n❌ IMPORT FAILED:', error.message);
       if (CONFIG.DEBUG) {
@@ -160,15 +159,23 @@ class TurboImporter {
   }
 
   async createImportRecord() {
-    const result = await this.pool.query(`
+    const result = await this.pool.query(
+      `
       INSERT INTO app.imports (source_file, source_type, status, started_at, errors)
       VALUES ($1, $2, $3, NOW(), $4::jsonb)
       RETURNING id
-    `, [this.sqliteFile, 'wigle', 'in_progress', JSON.stringify({
-      workers: CONFIG.WORKERS,
-      batch_size: CONFIG.BATCH_SIZE,
-      debug: CONFIG.DEBUG,
-    })]);
+    `,
+      [
+        this.sqliteFile,
+        'wigle',
+        'in_progress',
+        JSON.stringify({
+          workers: CONFIG.WORKERS,
+          batch_size: CONFIG.BATCH_SIZE,
+          debug: CONFIG.DEBUG,
+        }),
+      ]
+    );
 
     this.importId = result.rows[0].id;
     console.log(`📋 Import ID: ${this.importId}`);
@@ -179,7 +186,11 @@ class TurboImporter {
       const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY);
       db.get('SELECT COUNT(*) as count FROM location', (err, row) => {
         db.close();
-        if (err) {reject(err);} else {resolve(row.count);}
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row.count);
+        }
       });
     });
   }
@@ -198,7 +209,9 @@ class TurboImporter {
       const offset = i * recordsPerWorker;
       const limit = Math.min(recordsPerWorker, this.totalRecords - offset);
 
-      if (limit <= 0) {break;}
+      if (limit <= 0) {
+        break;
+      }
 
       workers.push(this.spawnWorker(offset, limit, i + 1));
     }
@@ -209,7 +222,7 @@ class TurboImporter {
     // Aggregate results
     this.importedRecords = results.reduce((sum, r) => sum + r.imported, 0);
     this.failedRecords = results.reduce((sum, r) => sum + r.failed, 0);
-    this.errors = results.flatMap(r => r.errors || []);
+    this.errors = results.flatMap((r) => r.errors || []);
   }
 
   spawnWorker(offset, limit, workerId) {
@@ -234,16 +247,16 @@ class TurboImporter {
           if (Date.now() - lastUpdate > 500) {
             process.stdout.write(
               `\r🔄 [W${workerId}] ${msg.imported.toLocaleString()}/${msg.total.toLocaleString()} ` +
-              `(${msg.percent}%) | Speed: ${msg.speed.toLocaleString()} rec/s`
+                `(${msg.percent}%) | Speed: ${msg.speed.toLocaleString()} rec/s`
             );
             lastUpdate = Date.now();
           }
         } else if (msg.type === 'complete') {
           console.log(
             `\n✅ Worker ${workerId} done: ` +
-            `${msg.imported.toLocaleString()} imported, ` +
-            `${msg.failed.toLocaleString()} failed ` +
-            `(${msg.duration.toFixed(1)}s)`
+              `${msg.imported.toLocaleString()} imported, ` +
+              `${msg.failed.toLocaleString()} failed ` +
+              `(${msg.duration.toFixed(1)}s)`
           );
           resolve({
             imported: msg.imported,
@@ -276,7 +289,7 @@ class TurboImporter {
       const result = await this.pool.query('SELECT * FROM app.refresh_all_materialized_views()');
 
       console.log('✅ Materialized Views refreshed:');
-      result.rows.forEach(row => {
+      result.rows.forEach((row) => {
         // Extract seconds from interval string (e.g., "00:00:12.345" or "12.345 seconds")
         const duration = row.refresh_duration;
         let seconds = 0;
@@ -299,7 +312,8 @@ class TurboImporter {
   }
 
   async completeImport() {
-    await this.pool.query(`
+    await this.pool.query(
+      `
       UPDATE app.imports
       SET status = 'completed',
           completed_at = NOW(),
@@ -309,37 +323,42 @@ class TurboImporter {
           duration_seconds = $4,
           errors = $5::jsonb
       WHERE id = $6
-    `, [
-      this.totalRecords,
-      this.importedRecords,
-      this.failedRecords,
-      Math.round((Date.now() - this.startTime) / 1000),
-      JSON.stringify({
-        sample_errors: this.errors.slice(0, 10),
-        total_error_count: this.errors.length,
-      }),
-      this.importId,
-    ]);
+    `,
+      [
+        this.totalRecords,
+        this.importedRecords,
+        this.failedRecords,
+        Math.round((Date.now() - this.startTime) / 1000),
+        JSON.stringify({
+          sample_errors: this.errors.slice(0, 10),
+          total_error_count: this.errors.length,
+        }),
+        this.importId,
+      ]
+    );
   }
 
   async failImport(error) {
     if (this.importId) {
-      await this.pool.query(`
+      await this.pool.query(
+        `
         UPDATE app.imports
         SET status = 'failed',
             completed_at = NOW(),
             duration_seconds = $1,
             errors = $2::jsonb
         WHERE id = $3
-      `, [
-        Math.round((Date.now() - this.startTime) / 1000),
-        JSON.stringify({
-          error: error.message,
-          stack: error.stack,
-          sample_errors: this.errors.slice(0, 10),
-        }),
-        this.importId,
-      ]);
+      `,
+        [
+          Math.round((Date.now() - this.startTime) / 1000),
+          JSON.stringify({
+            error: error.message,
+            stack: error.stack,
+            sample_errors: this.errors.slice(0, 10),
+          }),
+          this.importId,
+        ]
+      );
     }
   }
 
@@ -412,93 +431,105 @@ if (!isMainThread) {
         let batch = [];
         let processedCount = 0;
 
-        db.each(query, async (err, row) => {
-          if (err) {
-            errors.push(`SQLite read error: ${err.message}`);
-            failed++;
-            return;
-          }
+        db.each(
+          query,
+          async (err, row) => {
+            if (err) {
+              errors.push(`SQLite read error: ${err.message}`);
+              failed++;
+              return;
+            }
 
-          // Debug: Log first few rows
-          if (debug && processedCount < 5) {
-            parentPort.postMessage({
-              type: 'error',
-              error: `DEBUG Row ${processedCount}: ${JSON.stringify(row)}`,
-            });
-          }
+            // Debug: Log first few rows
+            if (debug && processedCount < 5) {
+              parentPort.postMessage({
+                type: 'error',
+                error: `DEBUG Row ${processedCount}: ${JSON.stringify(row)}`,
+              });
+            }
 
-          // Validate and clean data
-          const record = validateRecord(row);
-          if (!record) {
-            failed++;
-            const failReason = !row.bssid ? 'no_bssid' :
-              isNaN(parseFloat(row.lat)) ? 'bad_lat' :
-                isNaN(parseFloat(row.lon)) ? 'bad_lon' :
-                  isNaN(parseInt(row.time)) ? 'bad_time' :
-                    isNaN(parseInt(row.level)) ? 'bad_level' : 'unknown';
-            errors.push(`Invalid record (${failReason}): ${JSON.stringify(row).substring(0, 150)}`);
-            return;
-          }
+            // Validate and clean data
+            const record = validateRecord(row);
+            if (!record) {
+              failed++;
+              const failReason = !row.bssid
+                ? 'no_bssid'
+                : isNaN(parseFloat(row.lat))
+                  ? 'bad_lat'
+                  : isNaN(parseFloat(row.lon))
+                    ? 'bad_lon'
+                    : isNaN(parseInt(row.time))
+                      ? 'bad_time'
+                      : isNaN(parseInt(row.level))
+                        ? 'bad_level'
+                        : 'unknown';
+              errors.push(
+                `Invalid record (${failReason}): ${JSON.stringify(row).substring(0, 150)}`
+              );
+              return;
+            }
 
-          batch.push(record);
+            batch.push(record);
 
-          if (batch.length >= batchSize) {
-            const currentBatch = [...batch];
-            batch = [];
+            if (batch.length >= batchSize) {
+              const currentBatch = [...batch];
+              batch = [];
 
-            try {
-              await insertBatch(pool, currentBatch);
-              imported += currentBatch.length;
-              processedCount += currentBatch.length;
+              try {
+                await insertBatch(pool, currentBatch);
+                imported += currentBatch.length;
+                processedCount += currentBatch.length;
 
-              // Send progress update
-              const now = Date.now();
-              if (now - lastProgressTime > 1000) {
-                const elapsed = (now - startTime) / 1000;
-                const speed = Math.round(processedCount / elapsed);
-                const percent = Math.round((processedCount / limit) * 100);
+                // Send progress update
+                const now = Date.now();
+                if (now - lastProgressTime > 1000) {
+                  const elapsed = (now - startTime) / 1000;
+                  const speed = Math.round(processedCount / elapsed);
+                  const percent = Math.round((processedCount / limit) * 100);
 
-                parentPort.postMessage({
-                  type: 'progress',
-                  imported: processedCount,
-                  total: limit,
-                  percent,
-                  speed,
-                });
-                lastProgressTime = now;
-              }
-            } catch (error) {
-              failed += currentBatch.length;
-              errors.push(`Batch insert error: ${error.message}`);
+                  parentPort.postMessage({
+                    type: 'progress',
+                    imported: processedCount,
+                    total: limit,
+                    percent,
+                    speed,
+                  });
+                  lastProgressTime = now;
+                }
+              } catch (error) {
+                failed += currentBatch.length;
+                errors.push(`Batch insert error: ${error.message}`);
 
-              if (debug) {
-                parentPort.postMessage({
-                  type: 'error',
-                  error: `Batch failed: ${error.message}`,
-                });
+                if (debug) {
+                  parentPort.postMessage({
+                    type: 'error',
+                    error: `Batch failed: ${error.message}`,
+                  });
+                }
               }
             }
-          }
-        }, async (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          // Insert remaining records
-          if (batch.length > 0) {
-            try {
-              await insertBatch(pool, batch);
-              imported += batch.length;
-            } catch (error) {
-              failed += batch.length;
-              errors.push(`Final batch error: ${error.message}`);
+          },
+          async (err) => {
+            if (err) {
+              reject(err);
+              return;
             }
-          }
 
-          db.close();
-          resolve();
-        });
+            // Insert remaining records
+            if (batch.length > 0) {
+              try {
+                await insertBatch(pool, batch);
+                imported += batch.length;
+              } catch (error) {
+                failed += batch.length;
+                errors.push(`Final batch error: ${error.message}`);
+              }
+            }
+
+            db.close();
+            resolve();
+          }
+        );
       });
 
       const duration = (Date.now() - startTime) / 1000;
@@ -509,7 +540,6 @@ if (!isMainThread) {
         duration,
         errors: errors.slice(0, 100), // Limit errors sent back
       });
-
     } catch (error) {
       parentPort.postMessage({
         type: 'complete',
@@ -535,40 +565,54 @@ if (!isMainThread) {
  */
 function mapRadioType(wigleType) {
   const typeMap = {
-    'W': 'wifi', // WiFi
-    'B': 'bluetooth_classic', // Bluetooth Classic
-    'E': 'bluetooth_le', // Bluetooth Low Energy
-    'G': 'cellular_gsm', // GSM
-    'C': 'cellular_gsm', // CDMA (map to GSM)
-    'D': 'cellular_lte', // WCDMA (map to LTE)
-    'L': 'cellular_lte', // LTE
-    'N': 'cellular_5g', // 5G NR
-    'F': 'wifi', // NFC (map to wifi as fallback)
+    W: 'wifi', // WiFi
+    B: 'bluetooth_classic', // Bluetooth Classic
+    E: 'bluetooth_le', // Bluetooth Low Energy
+    G: 'cellular_gsm', // GSM
+    C: 'cellular_gsm', // CDMA (map to GSM)
+    D: 'cellular_lte', // WCDMA (map to LTE)
+    L: 'cellular_lte', // LTE
+    N: 'cellular_5g', // 5G NR
+    F: 'wifi', // NFC (map to wifi as fallback)
   };
   return typeMap[wigleType] || 'wifi'; // Default to wifi
 }
 
 function validateRecord(row) {
   // Validate BSSID
-  if (!row.bssid || typeof row.bssid !== 'string') {return null;}
+  if (!row.bssid || typeof row.bssid !== 'string') {
+    return null;
+  }
 
   // Validate coordinates
   const lat = parseFloat(row.lat);
   const lon = parseFloat(row.lon);
 
-  if (isNaN(lat) || isNaN(lon)) {return null;}
-  if (lat < -90 || lat > 90) {return null;}
-  if (lon < -180 || lon > 180) {return null;}
-  if (!isFinite(lat) || !isFinite(lon)) {return null;}
+  if (isNaN(lat) || isNaN(lon)) {
+    return null;
+  }
+  if (lat < -90 || lat > 90) {
+    return null;
+  }
+  if (lon < -180 || lon > 180) {
+    return null;
+  }
+  if (!isFinite(lat) || !isFinite(lon)) {
+    return null;
+  }
 
   // Validate time (must be after Jan 1, 2000 - 946684800000 ms)
   const time = parseInt(row.time);
   const MIN_VALID_TIMESTAMP = 946684800000;
-  if (isNaN(time) || time < MIN_VALID_TIMESTAMP) {return null;}
+  if (isNaN(time) || time < MIN_VALID_TIMESTAMP) {
+    return null;
+  }
 
   // Validate signal level
   const level = parseInt(row.level);
-  if (isNaN(level)) {return null;}
+  if (isNaN(level)) {
+    return null;
+  }
 
   return {
     bssid: row.bssid.toUpperCase(),
@@ -584,7 +628,9 @@ function validateRecord(row) {
 }
 
 async function insertBatch(pool, records) {
-  if (records.length === 0) {return;}
+  if (records.length === 0) {
+    return;
+  }
 
   // Build multi-row INSERT for observations
   const obsValues = [];
@@ -594,7 +640,7 @@ async function insertBatch(pool, records) {
   for (const record of records) {
     obsValues.push(
       `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, ` +
-      `$${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7})`
+        `$${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7})`
     );
 
     obsParams.push(
@@ -653,7 +699,8 @@ async function insertBatch(pool, records) {
 // ============================================================================
 
 if (isMainThread) {
-  const sqliteFile = process.argv[2] || '/home/cyclonite01/ShadowCheckStatic/backup-1764309125210.sqlite';
+  const sqliteFile =
+    process.argv[2] || '/home/cyclonite01/ShadowCheckStatic/backup-1764309125210.sqlite';
 
   if (!fs.existsSync(sqliteFile)) {
     console.error(`❌ SQLite file not found: ${sqliteFile}`);

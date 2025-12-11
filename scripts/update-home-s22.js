@@ -24,10 +24,14 @@ async function updateHome() {
   `);
 
   // Delete NULL record
-  await pool.query(`DELETE FROM app.location_markers WHERE marker_type='home' AND device_id IS NULL`);
+  await pool.query(
+    "DELETE FROM app.location_markers WHERE marker_type='home' AND device_id IS NULL"
+  );
 
   // Verify
-  const result = await pool.query(`SELECT device_id, device_type, latitude, longitude FROM app.location_markers WHERE marker_type='home'`);
+  const result = await pool.query(
+    "SELECT device_id, device_type, latitude, longitude FROM app.location_markers WHERE marker_type='home'"
+  );
   console.log('Home location:', result.rows);
 
   await pool.end();

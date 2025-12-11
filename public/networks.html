@@ -109,7 +109,7 @@
                 width: '40px',
                 sortable: false,
                 default: true,
-                format: (val, network) => `<input type="checkbox" class="network-checkbox" data-bssid="${network.bssid}" onchange="updateSelectionCount()" onclick="event.stopPropagation()">`
+                format: (val, network) => `<input type="checkbox" class="network-checkbox" data-bssid="${network.bssid}" data-lat="${network.latitude}" data-lng="${network.longitude}" onchange="updateSelectionCount(); snapToSelectedNetworks()" onclick="event.stopPropagation()">`
             },
             type: {
                 label: 'Type',
@@ -812,6 +812,44 @@
             if (countSpan) countSpan.textContent = checked;
             if (mapBtn) mapBtn.style.display = checked > 0 ? 'inline-block' : 'none';
             if (threatBtn) threatBtn.style.display = checked > 0 ? 'inline-block' : 'none';
+        }
+        
+        function snapToSelectedNetworks() {
+            const selectedCheckboxes = document.querySelectorAll('.network-checkbox:checked');
+            if (selectedCheckboxes.length === 0) return;
+            
+            // Collect coordinates of selected networks
+            const coordinates = Array.from(selectedCheckboxes)
+                .map(cb => ({
+                    lat: parseFloat(cb.dataset.lat),
+                    lng: parseFloat(cb.dataset.lng)
+                }))
+                .filter(coord => !isNaN(coord.lat) && !isNaN(coord.lng));
+            
+            if (coordinates.length === 0) return;
+            
+            // Calculate bounds for all selected networks
+            const bounds = coordinates.reduce((acc, coord) => {
+                return {
+                    minLat: Math.min(acc.minLat, coord.lat),
+                    maxLat: Math.max(acc.maxLat, coord.lat),
+                    minLng: Math.min(acc.minLng, coord.lng),
+                    maxLng: Math.max(acc.maxLng, coord.lng)
+                };
+            }, {
+                minLat: coordinates[0].lat,
+                maxLat: coordinates[0].lat,
+                minLng: coordinates[0].lng,
+                maxLng: coordinates[0].lng
+            });
+            
+            // Store selection for map to use
+            sessionStorage.setItem('selectedNetworks', JSON.stringify(
+                Array.from(selectedCheckboxes).map(cb => cb.dataset.bssid)
+            ));
+            sessionStorage.setItem('mapBounds', JSON.stringify(bounds));
+            
+            console.log(`📍 Snapping to ${coordinates.length} selected networks`);
         }
         
         function showSelectedOnMap() {

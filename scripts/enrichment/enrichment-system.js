@@ -27,7 +27,7 @@ class RateLimiter {
   checkReset() {
     const today = new Date().setHours(0, 0, 0, 0);
     if (today > this.lastReset) {
-      Object.keys(this.quotas).forEach(api => {
+      Object.keys(this.quotas).forEach((api) => {
         this.quotas[api].remaining = this.quotas[api].daily;
       });
       this.lastReset = today;
@@ -68,7 +68,9 @@ class APIManager {
   }
 
   async overpass(lat, lon) {
-    if (!this.rateLimiter.canUse('overpass')) {return null;}
+    if (!this.rateLimiter.canUse('overpass')) {
+      return null;
+    }
 
     const query = `[out:json][timeout:5];(node(around:30,${lat},${lon})[name];way(around:30,${lat},${lon})[name];);out body 1;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
@@ -96,7 +98,9 @@ class APIManager {
   }
 
   async nominatim(lat, lon) {
-    if (!this.rateLimiter.canUse('nominatim')) {return null;}
+    if (!this.rateLimiter.canUse('nominatim')) {
+      return null;
+    }
 
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
 
@@ -122,7 +126,9 @@ class APIManager {
 
   async locationiq(lat, lon) {
     const key = process.env.LOCATIONIQ_API_KEY;
-    if (!key || !this.rateLimiter.canUse('locationiq')) {return null;}
+    if (!key || !this.rateLimiter.canUse('locationiq')) {
+      return null;
+    }
 
     const url = `https://us1.locationiq.com/v1/reverse.php?key=${key}&lat=${lat}&lon=${lon}&format=json`;
 
@@ -148,7 +154,9 @@ class APIManager {
 
   async opencage(lat, lon) {
     const key = process.env.OPENCAGE_API_KEY;
-    if (!key || !this.rateLimiter.canUse('opencage')) {return null;}
+    if (!key || !this.rateLimiter.canUse('opencage')) {
+      return null;
+    }
 
     const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=${key}&limit=1`;
 
@@ -178,11 +186,14 @@ class APIManager {
     return new Promise((resolve, reject) => {
       const req = https.get(url, { timeout, headers }, (res) => {
         let data = '';
-        res.on('data', chunk => data += chunk);
+        res.on('data', (chunk) => (data += chunk));
         res.on('end', () => resolve(data));
       });
       req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('timeout'));
+      });
     });
   }
 
@@ -193,7 +204,7 @@ class APIManager {
       this.locationiq(lat, lon),
       this.opencage(lat, lon),
     ]);
-    return results.filter(r => r && r.name);
+    return results.filter((r) => r && r.name);
   }
 }
 
@@ -202,18 +213,22 @@ class APIManager {
 // ============================================================================
 class ConflictResolver {
   resolve(results) {
-    if (results.length === 0) {return null;}
-    if (results.length === 1) {return this.formatResult(results[0], results);}
+    if (results.length === 0) {
+      return null;
+    }
+    if (results.length === 1) {
+      return this.formatResult(results[0], results);
+    }
 
     // Score each result
-    const scored = results.map(r => ({
+    const scored = results.map((r) => ({
       ...r,
       score: this.calculateScore(r),
     }));
 
     // Vote-based: count name occurrences
     const nameVotes = {};
-    results.forEach(r => {
+    results.forEach((r) => {
       const name = r.name.toLowerCase().trim();
       nameVotes[name] = (nameVotes[name] || 0) + 1;
     });
@@ -225,7 +240,7 @@ class ConflictResolver {
       // Use the highest-scored result with the consensus name
       const consensusName = consensus[0];
       const winner = scored
-        .filter(r => r.name.toLowerCase().trim() === consensusName)
+        .filter((r) => r.name.toLowerCase().trim() === consensusName)
         .sort((a, b) => b.score - a.score)[0];
       return this.formatResult(winner, results);
     }
@@ -239,13 +254,19 @@ class ConflictResolver {
     let score = result.confidence;
 
     // Bonus for having brand
-    if (result.brand) {score += 0.2;}
+    if (result.brand) {
+      score += 0.2;
+    }
 
     // Bonus for having category
-    if (result.category) {score += 0.1;}
+    if (result.category) {
+      score += 0.1;
+    }
 
     // Bonus for detailed name (not just address)
-    if (result.name && !result.name.match(/^\d+\s/)) {score += 0.1;}
+    if (result.name && !result.name.match(/^\d+\s/)) {
+      score += 0.1;
+    }
 
     return score;
   }
@@ -256,16 +277,16 @@ class ConflictResolver {
       category: winner.category || this.findBestCategory(allResults),
       brand: winner.brand || this.findBestBrand(allResults),
       confidence: this.calculateAverageConfidence(allResults),
-      sources: allResults.map(r => r.source).join(','),
+      sources: allResults.map((r) => r.source).join(','),
     };
   }
 
   findBestCategory(results) {
-    return results.find(r => r.category)?.category || null;
+    return results.find((r) => r.category)?.category || null;
   }
 
   findBestBrand(results) {
-    return results.find(r => r.brand)?.brand || null;
+    return results.find((r) => r.brand)?.brand || null;
   }
 
   calculateAverageConfidence(results) {
@@ -312,10 +333,10 @@ class BatchController {
       });
 
       const batchResults = await Promise.all(promises);
-      results.push(...batchResults.filter(r => r !== null));
+      results.push(...batchResults.filter((r) => r !== null));
 
       // Rate limiting delay
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     return results;
@@ -323,17 +344,23 @@ class BatchController {
 
   async upsertResults(results) {
     for (const result of results) {
-      await pool.query(`
+      await pool.query(
+        `
         UPDATE app.networks_legacy 
         SET venue_name = $1, venue_category = $2, name = $3
         WHERE bssid = $4
-      `, [result.name, result.category, result.brand || result.name, result.bssid]);
+      `,
+        [result.name, result.category, result.brand || result.name, result.bssid]
+      );
 
-      await pool.query(`
+      await pool.query(
+        `
         UPDATE app.ap_locations 
         SET venue_name = $1, venue_category = $2
         WHERE bssid = $3
-      `, [result.name, result.category, result.bssid]);
+      `,
+        [result.name, result.category, result.bssid]
+      );
     }
   }
 
@@ -356,7 +383,13 @@ function testConflictResolver() {
   // Test 1: Single API
   console.log('Test 1: Single API result');
   const test1 = resolver.resolve([
-    { name: 'Starbucks', category: 'cafe', brand: 'Starbucks', confidence: 0.9, source: 'overpass' },
+    {
+      name: 'Starbucks',
+      category: 'cafe',
+      brand: 'Starbucks',
+      confidence: 0.9,
+      source: 'overpass',
+    },
   ]);
   console.log('  Result:', test1);
   console.assert(test1.name === 'Starbucks', 'Should return Starbucks');
@@ -376,7 +409,13 @@ function testConflictResolver() {
   // Test 3: Confidence + detail bonus
   console.log('Test 3: High confidence with brand wins');
   const test3 = resolver.resolve([
-    { name: 'Target', category: 'department_store', brand: 'Target', confidence: 0.95, source: 'overpass' },
+    {
+      name: 'Target',
+      category: 'department_store',
+      brand: 'Target',
+      confidence: 0.95,
+      source: 'overpass',
+    },
     { name: '123 Main St', category: 'address', confidence: 0.8, source: 'nominatim' },
   ]);
   console.log('  Result:', test3);
@@ -400,7 +439,8 @@ async function main() {
 
   const limit = parseInt(args[0]) || 100;
 
-  const locations = await pool.query(`
+  const locations = await pool.query(
+    `
     SELECT bssid, trilat_lat, trilat_lon
     FROM app.networks_legacy
     WHERE trilat_address IS NOT NULL
@@ -409,7 +449,9 @@ async function main() {
       AND is_mobile_network = FALSE
     ORDER BY observation_count DESC
     LIMIT $1
-  `, [limit]);
+  `,
+    [limit]
+  );
 
   console.log('🚀 Production Enrichment System');
   console.log(`📍 Processing ${locations.rows.length} locations\n`);
@@ -426,7 +468,7 @@ async function main() {
   console.log(`  Failed: ${stats.failed}`);
   console.log(`  Success Rate: ${stats.successRate}`);
   console.log('\n📡 API Quotas:');
-  stats.quotas.forEach(q => {
+  stats.quotas.forEach((q) => {
     console.log(`  ${q.api}: ${q.remaining}/${q.daily}`);
   });
 

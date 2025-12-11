@@ -51,7 +51,9 @@ async function generateQueries() {
     console.log('   out body;');
     console.log('   >;');
     console.log('   out skel qt;');
-    console.log(`\n   Direct link: https://overpass-turbo.eu/?Q=[out:json][timeout:25];(node(around:100,${row.lat},${row.lon})[amenity];way(around:100,${row.lat},${row.lon})[shop];);out;&C=${row.lat};${row.lon};15`);
+    console.log(
+      `\n   Direct link: https://overpass-turbo.eu/?Q=[out:json][timeout:25];(node(around:100,${row.lat},${row.lon})[amenity];way(around:100,${row.lat},${row.lon})[shop];);out;&C=${row.lat};${row.lon};15`
+    );
     console.log('\n═══════════════════════════════════════════════════════════\n');
   });
 

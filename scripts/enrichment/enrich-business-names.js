@@ -16,26 +16,28 @@ async function lookupPOI(lat, lon) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?types=poi&limit=1&access_token=${MAPBOX_TOKEN}`;
 
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.features && json.features.length > 0) {
-            const poi = json.features[0];
-            resolve({
-              name: poi.text,
-              category: poi.properties?.category || poi.place_type?.[0],
-            });
-          } else {
-            resolve({ name: null, category: null });
+    https
+      .get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.features && json.features.length > 0) {
+              const poi = json.features[0];
+              resolve({
+                name: poi.text,
+                category: poi.properties?.category || poi.place_type?.[0],
+              });
+            } else {
+              resolve({ name: null, category: null });
+            }
+          } catch (e) {
+            reject(e);
           }
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', reject);
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -43,14 +45,17 @@ async function main() {
   const limit = parseInt(process.argv[2]) || 1000;
 
   // Get networks with addresses but no venue names
-  const result = await pool.query(`
+  const result = await pool.query(
+    `
     SELECT bssid, trilat_lat, trilat_lon 
     FROM app.networks_legacy 
     WHERE trilat_address IS NOT NULL 
       AND venue_name IS NULL 
       AND is_mobile_network = FALSE
     LIMIT $1
-  `, [limit]);
+  `,
+    [limit]
+  );
 
   console.log(`🏢 Enriching ${result.rows.length} networks with business names...`);
 
@@ -80,14 +85,15 @@ async function main() {
       }
 
       // Rate limit: ~600/min
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (err) {
       console.error(`Error for ${row.bssid}:`, err.message);
     }
   }
 
-  console.log(`\n✓ Complete: ${enriched}/${result.rows.length} networks enriched with business names`);
+  console.log(
+    `\n✓ Complete: ${enriched}/${result.rows.length} networks enriched with business names`
+  );
   await pool.end();
 }
 

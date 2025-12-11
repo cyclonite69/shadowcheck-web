@@ -25,7 +25,7 @@ async function exportMissingGeocodes() {
   const result = await pool.query(query);
 
   const csv = ['lat,lon,bssid,ssid'];
-  result.rows.forEach(row => {
+  result.rows.forEach((row) => {
     csv.push(`${row.lat},${row.lon},${row.bssid},${row.ssid || ''}`);
   });
 

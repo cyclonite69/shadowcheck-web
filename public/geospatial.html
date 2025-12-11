@@ -1118,11 +1118,20 @@
                 .then(data => {
                     if (data.token && data.token !== 'your-mapbox-token-here') {
                         mapboxgl.accessToken = data.token;
-                        
+
+                        // Load saved map style from localStorage, default to standard
+                        const savedStyle = localStorage.getItem('shadowcheck_map_style') || 'mapbox://styles/mapbox/standard';
+
+                        // Set the dropdown to match saved style
+                        const styleSelector = document.getElementById('map-style-selector');
+                        if (styleSelector) {
+                            styleSelector.value = savedStyle;
+                        }
+
                         // Initialize map with caching
                         map = new mapboxgl.Map({
                             container: 'map',
-                            style: 'mapbox://styles/mapbox/standard',
+                            style: savedStyle,
                             center: [-83.6968, 43.0234],
                             zoom: 13,
                             // Enable tile caching
@@ -1149,6 +1158,35 @@
                             loadHomeMarker();
                             // Don't load all networks automatically - only when user selects one
                             // loadNetworksToMap();
+
+                            // Check if we need to snap to selected networks from networks page
+                            const storedBounds = sessionStorage.getItem('mapBounds');
+                            if (storedBounds) {
+                                try {
+                                    const bounds = JSON.parse(storedBounds);
+                                    map.fitBounds([
+                                        [bounds.minLng, bounds.minLat],
+                                        [bounds.maxLng, bounds.maxLat]
+                                    ], {
+                                        padding: 50,
+                                        maxZoom: 16
+                                    });
+                                    console.log('📍 Snapped to selected network bounds');
+                                    // Clear the stored bounds so it doesn't happen again on refresh
+                                    sessionStorage.removeItem('mapBounds');
+                                } catch (e) {
+                                    console.error('Failed to parse stored bounds:', e);
+                                }
+                            }
+
+                            // Check for selected networks from URL parameter
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const selectedParam = urlParams.get('selected');
+                            if (selectedParam) {
+                                const selectedBssids = selectedParam.split(',');
+                                console.log(`🎯 Loading ${selectedBssids.length} selected networks to map`);
+                                loadSelectedNetworksToMap(selectedBssids);
+                            }
                         });
 
                         map.on('error', (e) => {
@@ -1830,6 +1868,106 @@
                     }, 0);
                 });
 
+                // Create click handler for single network observations
+                const singleNetworkClickHandler = async (e) => {
+                    const props = e.features[0].properties;
+                    const coords = e.lngLat;
+
+                    const timestamp = props.lastSeen ? new Date(parseInt(props.lastSeen)).toLocaleString() : 'Unknown';
+                    const manufacturer = props.bssid ? await getManufacturerFromBSSID(props.bssid) : null;
+
+                    const latDMS = decimalToDMS(coords.lat, true);
+                    const lngDMS = decimalToDMS(coords.lng, false);
+
+                    let altitudeField = '';
+                    if (props.altitude !== undefined && props.altitude !== null && props.altitude !== 'null') {
+                        altitudeField = `<div class="tooltip-field"><span class="tooltip-label">Altitude:</span><span class="tooltip-value">${parseFloat(props.altitude).toFixed(2)} m MSL</span></div>`;
+                    }
+
+                    let accuracyField = '';
+                    if (props.accuracy !== undefined && props.accuracy !== null && props.accuracy !== 'null') {
+                        accuracyField = `<div class="tooltip-field"><span class="tooltip-label">Accuracy:</span><span class="tooltip-value">±${parseFloat(props.accuracy).toFixed(1)} m</span></div>`;
+                    }
+
+                    let distanceFromHome = '';
+                    if (props.distanceFromHome) {
+                        distanceFromHome = `<div class="tooltip-field"><span class="tooltip-label">Distance from Home:</span><span class="tooltip-value">${parseFloat(props.distanceFromHome).toFixed(2)} km</span></div>`;
+                    }
+
+                    let observationInfo = '';
+                    if (props.observationIndex && props.totalObservations) {
+                        observationInfo = `<div class="tooltip-field observation-header"><span class="tooltip-value">Observation #${props.observationIndex} of ${props.totalObservations}</span></div>`;
+                    }
+
+                    const iconSvg = getNetworkIcon(props.type);
+
+                    const signal = props.signal || 'N/A';
+                    let signalClass = '';
+                    if (signal !== 'N/A') {
+                        if (signal >= -50) signalClass = 'signal-strong';
+                        else if (signal >= -70) signalClass = 'signal-medium';
+                        else signalClass = 'signal-weak';
+                    }
+
+                    const popup = new mapboxgl.Popup({
+                        className: 'dark-tooltip-popup',
+                        closeButton: true,
+                        closeOnClick: true,
+                        maxWidth: '320px'
+                    })
+                        .setLngLat(e.lngLat)
+                        .setHTML(`
+                            <div class="dark-tooltip" style="cursor: pointer;">
+                                ${observationInfo}
+                                <div class="tooltip-header">
+                                    <span class="tooltip-ssid">${props.ssid || '(hidden)'}</span>
+                                    ${iconSvg}
+                                </div>
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">BSSID:</span>
+                                    <span class="tooltip-value mono">${props.bssid}</span>
+                                </div>
+                                ${manufacturer ? `<div class="tooltip-field"><span class="tooltip-label">Manufacturer:</span><span class="tooltip-value">${manufacturer}</span></div>` : ''}
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Coordinates:</span>
+                                    <span class="tooltip-value mono">${latDMS}<br>${lngDMS}</span>
+                                </div>
+                                ${altitudeField}
+                                ${accuracyField}
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Type:</span>
+                                    <span class="tooltip-value">${props.typeDisplay || getNetworkTypeName(props.type)}</span>
+                                </div>
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Security:</span>
+                                    <span class="tooltip-value">${props.security}</span>
+                                </div>
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Signal:</span>
+                                    <span class="tooltip-value ${signalClass}">${signal} dBm</span>
+                                </div>
+                                ${distanceFromHome}
+                                <div class="tooltip-timestamp">
+                                    <span class="tooltip-label">Observed at:</span>
+                                    <span class="tooltip-value">${timestamp}</span>
+                                </div>
+                            </div>
+                        `)
+                        .addTo(map);
+
+                    setTimeout(() => {
+                        const tooltipEl = popup.getElement();
+                        if (tooltipEl) {
+                            const contentEl = tooltipEl.querySelector('.dark-tooltip');
+                            if (contentEl) {
+                                contentEl.addEventListener('click', () => popup.remove());
+                            }
+                        }
+                    }, 0);
+                };
+
+                map.on('click', 'network-points', singleNetworkClickHandler);
+
                 map.on('mouseenter', 'network-points', () => {
                     map.getCanvas().style.cursor = 'pointer';
                 });
@@ -1838,24 +1976,358 @@
                     map.getCanvas().style.cursor = '';
                 });
 
+                // Store data for style changes
+                const pathCoordinates = observations.map(obs => [obs.lon, obs.lat]);
+                currentObservationsData = {
+                    features: features,
+                    pathFeatures: [{
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: pathCoordinates
+                        },
+                        properties: {
+                            bssid: bssid,
+                            color: '#ef4444'
+                        }
+                    }],
+                    clickHandler: singleNetworkClickHandler
+                };
+
                 console.log(`✓ Added ${features.length} network markers to map`);
             } catch (err) {
                 console.error('Error loading networks to map:', err);
             }
         }
 
+        // Load observations for selected networks to map
+        async function loadSelectedNetworksToMap(selectedBssids) {
+            if (!map || !selectedBssids || selectedBssids.length === 0) return;
+
+            try {
+                console.log(`📍 Loading observations for ${selectedBssids.length} selected networks...`);
+
+                // Fetch observations for all selected BSSIDs in parallel
+                const observationPromises = selectedBssids.map(bssid =>
+                    fetch(`${API_BASE}/networks/observations/${bssid}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .catch(() => null)
+                );
+
+                const results = await Promise.all(observationPromises);
+
+                // Combine all observations from all networks
+                let allObservations = [];
+                let networkColors = {};
+                const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+                results.forEach((data, index) => {
+                    if (data && data.ok && data.observations && data.observations.length > 0) {
+                        const bssid = selectedBssids[index];
+                        networkColors[bssid] = colors[index % colors.length];
+                        allObservations = allObservations.concat(
+                            data.observations.map(obs => ({
+                                ...obs,
+                                networkColor: networkColors[bssid]
+                            }))
+                        );
+                    }
+                });
+
+                console.log(`✓ Found ${allObservations.length} total observations across ${selectedBssids.length} networks`);
+
+                if (allObservations.length === 0) {
+                    console.warn('⚠️ No observations found for selected networks');
+                    return;
+                }
+
+                // Sort by timestamp
+                allObservations.sort((a, b) => parseInt(a.time) - parseInt(b.time));
+
+                // Create GeoJSON features for all observations
+                const features = allObservations.map((obs, index) => ({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [obs.lon, obs.lat]
+                    },
+                    properties: {
+                        bssid: obs.bssid,
+                        ssid: obs.ssid || 'Hidden',
+                        type: obs.type || 'W',
+                        typeDisplay: getNetworkTypeName(obs.type || 'W'),
+                        signal: obs.signal,
+                        security: parseSecurityType(obs.capabilities, obs.encryption),
+                        capabilities: obs.capabilities || '',
+                        encryption: obs.encryption || '',
+                        status: 'threat',
+                        lastSeen: obs.time,
+                        distanceFromHome: obs.distance_from_home_km,
+                        altitude: obs.alt,
+                        accuracy: obs.acc,
+                        networkColor: obs.networkColor,
+                        observationIndex: index + 1,
+                        totalObservations: allObservations.length
+                    }
+                }));
+
+                // Remove existing layers and sources
+                const layersToRemove = ['clusters', 'cluster-count', 'unclustered-point', 'network-labels', 'network-points', 'threat-path', 'threat-paths'];
+                layersToRemove.forEach(layerId => {
+                    if (map.getLayer(layerId)) {
+                        map.removeLayer(layerId);
+                    }
+                });
+
+                if (map.getSource('networks')) map.removeSource('networks');
+                if (map.getSource('threat-path')) map.removeSource('threat-path');
+                if (map.getSource('threat-paths')) map.removeSource('threat-paths');
+
+                // Create path lines for each network
+                const pathFeatures = selectedBssids.map(bssid => {
+                    const networkObs = allObservations.filter(obs => obs.bssid === bssid);
+                    if (networkObs.length < 2) return null;
+
+                    return {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: networkObs.map(obs => [obs.lon, obs.lat])
+                        },
+                        properties: {
+                            bssid: bssid,
+                            color: networkColors[bssid]
+                        }
+                    };
+                }).filter(f => f !== null);
+
+                // Add paths source
+                if (pathFeatures.length > 0) {
+                    map.addSource('threat-paths', {
+                        type: 'geojson',
+                        data: {
+                            type: 'FeatureCollection',
+                            features: pathFeatures
+                        }
+                    });
+
+                    // Add path lines layer
+                    map.addLayer({
+                        id: 'threat-paths',
+                        type: 'line',
+                        source: 'threat-paths',
+                        layout: {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        paint: {
+                            'line-color': ['get', 'color'],
+                            'line-width': 2,
+                            'line-opacity': 0.6
+                        }
+                    });
+                }
+
+                // Add observation points source (no clustering for observations)
+                map.addSource('networks', {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: features
+                    }
+                });
+
+                // Add observation points layer
+                map.addLayer({
+                    id: 'network-points',
+                    type: 'circle',
+                    source: 'networks',
+                    paint: {
+                        'circle-radius': 12,
+                        'circle-color': ['get', 'networkColor'],
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff',
+                        'circle-opacity': 0.9
+                    }
+                });
+
+                // Add numbered labels on markers
+                map.addLayer({
+                    id: 'network-labels',
+                    type: 'symbol',
+                    source: 'networks',
+                    layout: {
+                        'text-field': ['get', 'observationIndex'],
+                        'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+                        'text-size': 11,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true
+                    },
+                    paint: {
+                        'text-color': '#ffffff',
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 1
+                    }
+                });
+
+                // Create click handler function for reuse
+                const clickHandler = async (e) => {
+                    const props = e.features[0].properties;
+                    const coords = e.lngLat;
+
+                    const timestamp = props.lastSeen ? new Date(parseInt(props.lastSeen)).toLocaleString() : 'Unknown';
+                    const manufacturer = props.bssid ? await getManufacturerFromBSSID(props.bssid) : null;
+
+                    // Convert coordinates to DMS
+                    const latDMS = decimalToDMS(coords.lat, true);
+                    const lngDMS = decimalToDMS(coords.lng, false);
+
+                    // Altitude field
+                    let altitudeField = '';
+                    if (props.altitude !== undefined && props.altitude !== null && props.altitude !== 'null') {
+                        altitudeField = `<div class="tooltip-field"><span class="tooltip-label">Altitude:</span><span class="tooltip-value">${parseFloat(props.altitude).toFixed(2)} m MSL</span></div>`;
+                    }
+
+                    // Accuracy field
+                    let accuracyField = '';
+                    if (props.accuracy !== undefined && props.accuracy !== null && props.accuracy !== 'null') {
+                        accuracyField = `<div class="tooltip-field"><span class="tooltip-label">Accuracy:</span><span class="tooltip-value">±${parseFloat(props.accuracy).toFixed(1)} m</span></div>`;
+                    }
+
+                    let distanceFromHome = '';
+                    if (props.distanceFromHome) {
+                        distanceFromHome = `<div class="tooltip-field"><span class="tooltip-label">Distance from Home:</span><span class="tooltip-value">${parseFloat(props.distanceFromHome).toFixed(2)} km</span></div>`;
+                    }
+
+                    let observationInfo = '';
+                    if (props.observationIndex && props.totalObservations) {
+                        observationInfo = `<div class="tooltip-field observation-header"><span class="tooltip-value">Observation #${props.observationIndex} of ${props.totalObservations}</span></div>`;
+                    }
+
+                    const iconSvg = getNetworkIcon(props.type);
+
+                    const signal = props.signal || 'N/A';
+                    let signalClass = '';
+                    if (signal !== 'N/A') {
+                        if (signal >= -50) signalClass = 'signal-strong';
+                        else if (signal >= -70) signalClass = 'signal-medium';
+                        else signalClass = 'signal-weak';
+                    }
+
+                    const popup = new mapboxgl.Popup({ className: 'dark-tooltip-popup', closeButton: true, closeOnClick: true, maxWidth: '320px' })
+                        .setLngLat(e.lngLat)
+                        .setHTML(`
+                            <div class="dark-tooltip" style="cursor: pointer;">
+                                ${observationInfo}
+                                <div class="tooltip-header">
+                                    <span class="tooltip-ssid">${props.ssid || '(hidden)'}</span>
+                                    ${iconSvg}
+                                </div>
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">BSSID:</span>
+                                    <span class="tooltip-value mono">${props.bssid}</span>
+                                </div>
+                                ${manufacturer ? `<div class="tooltip-field"><span class="tooltip-label">Manufacturer:</span><span class="tooltip-value">${manufacturer}</span></div>` : ''}
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Coordinates:</span>
+                                    <span class="tooltip-value mono">${latDMS}<br>${lngDMS}</span>
+                                </div>
+                                ${altitudeField}
+                                ${accuracyField}
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Type:</span>
+                                    <span class="tooltip-value">${props.typeDisplay || getNetworkTypeName(props.type)}</span>
+                                </div>
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Security:</span>
+                                    <span class="tooltip-value">${props.security}</span>
+                                </div>
+                                <div class="tooltip-field">
+                                    <span class="tooltip-label">Signal:</span>
+                                    <span class="tooltip-value ${signalClass}">${signal} dBm</span>
+                                </div>
+                                ${distanceFromHome}
+                                <div class="tooltip-timestamp">
+                                    <span class="tooltip-label">Observed at:</span>
+                                    <span class="tooltip-value">${timestamp}</span>
+                                </div>
+                            </div>
+                        `)
+                        .addTo(map);
+
+                    setTimeout(() => {
+                        const tooltipEl = popup.getElement();
+                        if (tooltipEl) {
+                            const contentEl = tooltipEl.querySelector('.dark-tooltip');
+                            if (contentEl) contentEl.addEventListener('click', () => popup.remove());
+                        }
+                    }, 0);
+                };
+
+                // Add click handler for observation points
+                map.on('click', 'network-points', clickHandler);
+
+                map.on('mouseenter', 'network-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+                map.on('mouseleave', 'network-points', () => { map.getCanvas().style.cursor = ''; });
+
+                // Store data for style changes
+                currentObservationsData = {
+                    features: features,
+                    pathFeatures: pathFeatures,
+                    clickHandler: clickHandler
+                };
+
+                // Calculate bounding box and fit map to show all observations
+                if (allObservations.length > 0) {
+                    const bounds = allObservations.reduce((acc, obs) => {
+                        return {
+                            minLng: Math.min(acc.minLng, obs.lon),
+                            maxLng: Math.max(acc.maxLng, obs.lon),
+                            minLat: Math.min(acc.minLat, obs.lat),
+                            maxLat: Math.max(acc.maxLat, obs.lat)
+                        };
+                    }, {
+                        minLng: allObservations[0].lon,
+                        maxLng: allObservations[0].lon,
+                        minLat: allObservations[0].lat,
+                        maxLat: allObservations[0].lat
+                    });
+
+                    map.fitBounds([
+                        [bounds.minLng, bounds.minLat],
+                        [bounds.maxLng, bounds.maxLat]
+                    ], {
+                        padding: 50,
+                        maxZoom: 16
+                    });
+
+                    console.log(`📍 Map fitted to ${allObservations.length} observations`);
+                }
+
+                console.log(`✓ Added ${features.length} observation points to map`);
+            } catch (err) {
+                console.error('Error loading selected networks to map:', err);
+            }
+        }
+
+        // Store current observations data to restore after style change
+        let currentObservationsData = null;
+
         function changeMapStyle(styleUrl) {
             if (!map) return;
-            
+
             const currentCenter = map.getCenter();
             const currentZoom = map.getZoom();
-            
+
+            // Save the style preference
+            localStorage.setItem('shadowcheck_map_style', styleUrl);
+
             map.setStyle(styleUrl);
-            
+
             map.once('style.load', () => {
                 map.setCenter(currentCenter);
                 map.setZoom(currentZoom);
-                
+
                 // Restore layers if they were enabled
                 if (document.getElementById('toggle-3d-buildings')?.checked) {
                     add3DBuildings();
@@ -1863,11 +2335,112 @@
                 if (document.getElementById('toggle-terrain')?.checked) {
                     addTerrain();
                 }
-                
+
                 // Reload markers
                 loadHomeMarker();
+
+                // Restore network observations if they were loaded
+                if (currentObservationsData) {
+                    restoreObservations(currentObservationsData);
+                }
+
                 console.log('✓ Map style changed to:', styleUrl);
             });
+        }
+
+        function restoreObservations(data) {
+            if (!map || !data) return;
+
+            try {
+                // Remove existing layers and sources
+                const layersToRemove = ['clusters', 'cluster-count', 'unclustered-point', 'network-labels', 'network-points', 'threat-path', 'threat-paths'];
+                layersToRemove.forEach(layerId => {
+                    if (map.getLayer(layerId)) {
+                        map.removeLayer(layerId);
+                    }
+                });
+
+                if (map.getSource('networks')) map.removeSource('networks');
+                if (map.getSource('threat-path')) map.removeSource('threat-path');
+                if (map.getSource('threat-paths')) map.removeSource('threat-paths');
+
+                // Add paths source
+                if (data.pathFeatures && data.pathFeatures.length > 0) {
+                    map.addSource('threat-paths', {
+                        type: 'geojson',
+                        data: {
+                            type: 'FeatureCollection',
+                            features: data.pathFeatures
+                        }
+                    });
+
+                    map.addLayer({
+                        id: 'threat-paths',
+                        type: 'line',
+                        source: 'threat-paths',
+                        layout: {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        paint: {
+                            'line-color': ['get', 'color'],
+                            'line-width': 2,
+                            'line-opacity': 0.6
+                        }
+                    });
+                }
+
+                // Add observation points source
+                map.addSource('networks', {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: data.features
+                    }
+                });
+
+                // Add observation points layer
+                map.addLayer({
+                    id: 'network-points',
+                    type: 'circle',
+                    source: 'networks',
+                    paint: {
+                        'circle-radius': 12,
+                        'circle-color': ['get', 'networkColor'],
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff',
+                        'circle-opacity': 0.9
+                    }
+                });
+
+                // Add numbered labels
+                map.addLayer({
+                    id: 'network-labels',
+                    type: 'symbol',
+                    source: 'networks',
+                    layout: {
+                        'text-field': ['get', 'observationIndex'],
+                        'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+                        'text-size': 11,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true
+                    },
+                    paint: {
+                        'text-color': '#ffffff',
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 1
+                    }
+                });
+
+                // Re-add click handlers
+                map.on('click', 'network-points', data.clickHandler);
+                map.on('mouseenter', 'network-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+                map.on('mouseleave', 'network-points', () => { map.getCanvas().style.cursor = ''; });
+
+                console.log('✓ Restored observations on new map style');
+            } catch (err) {
+                console.error('Error restoring observations:', err);
+            }
         }
 
         function toggle3DBuildings(enabled) {

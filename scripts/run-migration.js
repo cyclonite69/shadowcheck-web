@@ -30,7 +30,7 @@ async function runMigration() {
   try {
     // Load secrets first
     await secretsManager.load();
-    
+
     const pool = new Pool({
       user: process.env.DB_USER || 'shadowcheck',
       password: secretsManager.getOrThrow('db_password'),
@@ -38,7 +38,7 @@ async function runMigration() {
       database: process.env.DB_NAME || 'shadowcheck',
       port: process.env.DB_PORT || 5432,
     });
-    
+
     console.log(`Running migration: ${path.basename(migrationPath)}`);
     await pool.query(sql);
     console.log('✓ Migration completed successfully');
