@@ -13,7 +13,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const { Worker } = require('worker_threads');
 const { Pool } = require('pg');
 const sqlite3 = require('sqlite3').verbose();
@@ -226,7 +225,7 @@ class TurboImporter {
   }
 
   spawnWorker(offset, limit, workerId) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const worker = new Worker(__filename, {
         workerData: {
           sqliteFile: this.sqliteFile,
@@ -393,7 +392,7 @@ const { workerData, parentPort, isMainThread } = require('worker_threads');
 
 if (!isMainThread) {
   (async () => {
-    const { sqliteFile, offset, limit, workerId, batchSize, dbConfig, debug } = workerData;
+    const { sqliteFile, offset, limit, workerId: _workerId, batchSize, dbConfig, debug } = workerData;
 
     const pool = new Pool(dbConfig);
     let imported = 0;

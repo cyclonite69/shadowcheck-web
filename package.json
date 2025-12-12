@@ -1,11 +1,15 @@
 {
   "name": "shadowcheck-static",
   "version": "1.0.0",
+  "type": "module",
   "description": "ShadowCheck SIGINT Forensics Platform - Static Frontend & Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "dev:frontend": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "debug": "node --inspect server.js",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -19,7 +23,8 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f api",
-    "db:migrate": "psql -U shadowcheck_user -d shadowcheck -f sql/migrations/00_init_schema.sql"
+    "db:migrate": "psql -U shadowcheck_user -d shadowcheck -f sql/migrations/00_init_schema.sql",
+    "prepare": "husky install"
   },
   "keywords": [
     "sigint",
@@ -30,6 +35,9 @@
   "author": "ShadowCheck",
   "license": "MIT",
   "dependencies": {
+    "@deck.gl/core": "^9.2.5",
+    "@deck.gl/layers": "^9.2.5",
+    "@deck.gl/react": "^9.2.5",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -37,25 +45,41 @@
     "express-fileupload": "^1.5.2",
     "express-rate-limit": "^8.2.1",
     "keytar": "^7.9.0",
+    "mapbox-gl": "^3.17.0",
     "ml-logistic-regression": "^2.0.0",
     "multer": "^2.0.2",
     "pg": "^8.16.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.2",
+    "recharts": "^3.5.1",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/mapbox-gl": "^3.4.1",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.22",
     "eslint": "^8.55.0",
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "lint-staged": "^15.2.0",
     "nodemon": "^3.0.2",
+    "postcss": "^8.5.6",
     "prettier": "^3.1.1",
-    "supertest": "^6.3.4"
+    "supertest": "^6.3.4",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "lint-staged": {
-    "*.js": [
+    "*.{js,ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],

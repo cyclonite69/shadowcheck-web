@@ -14,12 +14,14 @@ If you discover a security vulnerability in ShadowCheck-Static, please report it
 This project follows strict security guidelines:
 
 ### No Secrets in Code
+
 - ✅ All credentials stored in encrypted keyring (~/.local/share/shadowcheck/keyring.enc)
 - ✅ .env files are gitignored and contain only placeholders
 - ✅ API keys never committed to version control
 - ✅ Database passwords retrieved from system keyring
 
 ### Security Features
+
 - AES-256-GCM encryption for credential storage
 - Machine-specific encryption keys
 - Rate limiting (1000 req/15min per IP)

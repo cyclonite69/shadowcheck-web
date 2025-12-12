@@ -15,6 +15,7 @@ Your WiGLE API credentials were exposed. **Revoke them immediately:**
 **URL:** http://localhost:3001/admin.html
 
 **Authentication:** Requires API key in localStorage
+
 ```javascript
 localStorage.setItem('shadowcheck_api_key', 'your-secure-random-key-here');
 ```
@@ -22,16 +23,19 @@ localStorage.setItem('shadowcheck_api_key', 'your-secure-random-key-here');
 ## Configure WiGLE API
 
 ### Step 1: Enter Credentials
+
 1. Open admin page: http://localhost:3001/admin.html
 2. Enter your **new** WiGLE API Name (starts with `AID`)
 3. Enter your **new** WiGLE API Token (32 character hex)
 4. Click "Save & Test"
 
 ### Step 2: Verify Connection
+
 - Green box = Success ✓
 - Red box = Failed (check credentials)
 
 ### How It Works
+
 ```
 User Input → Keyring Service → System Keyring (Encrypted)
                                       ↓
@@ -41,13 +45,15 @@ User Input → Keyring Service → System Keyring (Encrypted)
 ```
 
 **Storage locations:**
+
 - `shadowcheck/wigle_api_name` - Your API Name
-- `shadowcheck/wigle_api_token` - Your API Token  
+- `shadowcheck/wigle_api_token` - Your API Token
 - `shadowcheck/wigle_api_encoded` - Base64 encoded (for convenience)
 
 ## WiGLE API Usage
 
 ### Authentication Format
+
 ```javascript
 const apiName = 'AIDxxxxx...';
 const apiToken = 'xxxxxx...';
@@ -55,13 +61,14 @@ const encoded = Buffer.from(`${apiName}:${apiToken}`).toString('base64');
 
 fetch('https://api.wigle.net/api/v2/profile/user', {
   headers: {
-    'Authorization': `Basic ${encoded}`,
-    'Accept': 'application/json'
-  }
+    Authorization: `Basic ${encoded}`,
+    Accept: 'application/json',
+  },
 });
 ```
 
 ### Test with curl
+
 ```bash
 curl -i -H 'Accept:application/json' \
   -u YOUR_API_NAME:YOUR_API_TOKEN \
@@ -69,11 +76,13 @@ curl -i -H 'Accept:application/json' \
 ```
 
 ### API Endpoints
+
 - **v2 API:** https://api.wigle.net/api/v2/
 - **v3 Alpha:** https://api.wigle.net/api/v3/ (if you have access)
 - **Docs:** https://api.wigle.net
 
 ### Rate Limits
+
 - Default: Limited daily queries
 - For increased access: Email WiGLE-admin@wigle.net with username and use case
 - Commercial use requires licensing
@@ -91,11 +100,13 @@ curl -i -H 'Accept:application/json' \
 All routes require `X-API-Key` header:
 
 ### Get WiGLE Status
+
 ```bash
 curl -H "X-API-Key: your-key" http://localhost:3001/api/settings/wigle
 ```
 
 Response:
+
 ```json
 {
   "configured": true,
@@ -105,6 +116,7 @@ Response:
 ```
 
 ### Set WiGLE Credentials
+
 ```bash
 curl -X POST -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
@@ -113,12 +125,14 @@ curl -X POST -H "X-API-Key: your-key" \
 ```
 
 ### Test WiGLE Connection
+
 ```bash
 curl -H "X-API-Key: your-key" \
   http://localhost:3001/api/settings/wigle/test
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -129,19 +143,23 @@ Response:
 ## Security Features
 
 ✅ **Keyring Storage**
+
 - All secrets stored in OS keyring
 - Encrypted at rest by Linux Secret Service
 - Never in database, files, or git
 
 ✅ **Masked Display**
+
 - API keys shown as: `AIDc40fa13...` and `****5bbb`
 - Full keys never displayed in UI
 
 ✅ **Authentication Required**
+
 - All settings routes require API key
 - Unauthorized access returns 401
 
 ✅ **No Hardcoded Secrets**
+
 - All credentials via keyring or env vars
 - `.env` excluded from git
 - `.env.example` provided as template
@@ -149,11 +167,13 @@ Response:
 ## Backup & Export (Coming Soon)
 
 ### Database Backup
+
 - Encrypted SQL dump
 - Excludes credentials
 - Password-protected archive
 
 ### Export Formats
+
 - **GeoJSON** - Observations with coordinates
 - **JSON** - Full data export
 - **CSV** - Tabular format
@@ -163,19 +183,23 @@ All exports exclude sensitive data.
 ## Troubleshooting
 
 ### "Unauthorized" Error
+
 - Check API key in localStorage
 - Verify key matches `.env` file: `API_KEY=...`
 
 ### "No credentials stored"
+
 - Enter credentials in admin page
 - Click "Save & Test"
 
 ### "Connection failed"
+
 - Verify WiGLE credentials are correct
 - Check internet connection
 - Test with curl command above
 
 ### Keyring Access Issues
+
 ```bash
 # Check if keytar is installed
 npm list keytar
@@ -187,9 +211,11 @@ npm install keytar --save
 ## Development Notes
 
 ### Keyring Service
+
 Location: `/src/services/keyringService.js`
 
 Methods:
+
 - `setCredential(key, value)` - Store credential
 - `getCredential(key)` - Retrieve credential
 - `deleteCredential(key)` - Delete credential
@@ -198,9 +224,11 @@ Methods:
 - `testWigleCredentials()` - Test WiGLE connection
 
 ### Settings Routes
+
 Location: `/src/api/routes/v1/settings.js`
 
 Endpoints:
+
 - `GET /api/settings/wigle` - Get WiGLE status
 - `POST /api/settings/wigle` - Set WiGLE credentials
 - `GET /api/settings/wigle/test` - Test WiGLE connection

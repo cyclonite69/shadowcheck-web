@@ -5,7 +5,6 @@ require('dotenv').config();
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 const INPUT_FILE = process.argv[2] || 'addresses.csv';
 const OUTPUT_FILE = process.argv[3] || 'addresses_geocoded.csv';
-const BATCH_SIZE = 50; // Mapbox recommends batching
 const DELAY_MS = 200; // Rate limiting
 
 if (!MAPBOX_TOKEN) {

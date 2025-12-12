@@ -11,6 +11,7 @@
 The application has a **file-based encrypted keyring** system for API keys, but it's **not consistently used**. Most API keys still come from environment variables, creating a mixed approach that reduces security.
 
 **Key Findings:**
+
 - ✅ Encryption: AES-256-GCM with machine-specific key derivation
 - ⚠️ Coverage: Only WiGLE and Mapbox have keyring support
 - ❌ Consistency: Most code still uses `process.env.*` directly
@@ -22,6 +23,7 @@ The application has a **file-based encrypted keyring** system for API keys, but 
 ## 1. Current Keyring Implementation
 
 ### File Location
+
 ```
 ~/.local/share/shadowcheck/keyring.enc
 ```
@@ -34,6 +36,7 @@ The application has a **file-based encrypted keyring** system for API keys, but 
 **Algorithm:** AES-256-GCM (Authenticated Encryption)
 
 **Key Derivation:**
+
 ```javascript
 function getMachineKey() {
   const machineId = os.hostname() + os.userInfo().username;
@@ -42,27 +45,32 @@ function getMachineKey() {
 ```
 
 **Strengths:**
+
 - ✅ Authenticated encryption (prevents tampering)
 - ✅ Machine-specific key (can't copy keyring to another machine)
 - ✅ Scrypt for key derivation (memory-hard, resistant to brute force)
 
 **Weaknesses:**
+
 - ⚠️ Salt is hardcoded ('shadowcheck-salt')
 - ⚠️ Key is deterministic (same machine always generates same key)
 - ⚠️ No key rotation mechanism
 - ⚠️ Hostname + username is not cryptographically strong
 
 ### Storage Format
+
 ```
 <iv_hex>:<encrypted_data_hex><auth_tag_hex>
 ```
 
 Example:
+
 ```
 a1b2c3d4e5f6...:<encrypted_json><16_byte_auth_tag>
 ```
 
 **Decrypted JSON Structure:**
+
 ```json
 {
   "wigle_api_name": "username",
@@ -80,27 +88,32 @@ a1b2c3d4e5f6...:<encrypted_json><16_byte_auth_tag>
 ### Currently Managed by Keyring
 
 **WiGLE API (3 keys):**
+
 - `wigle_api_name` - Username
 - `wigle_api_token` - API token
 - `wigle_api_encoded` - Base64 encoded auth header
 
 **Mapbox (2+ keys):**
+
 - `mapbox_token_<label>` - Token with label
 - `mapbox_primary` - Which token is primary
 
 ### NOT Managed by Keyring (Still in Environment Variables)
 
 **Application Secrets:**
+
 - `API_KEY` - Application API key for protected endpoints
   - Used in: networks.js, backup.js, export.js, settings.js
   - Purpose: Authentication for admin operations
 
 **Database:**
+
 - `DB_PASSWORD` - PostgreSQL password
   - Used in: server.js, all scripts
   - Purpose: Database authentication
 
 **External APIs:**
+
 - `MAPBOX_TOKEN` - Mapbox API token (fallback if not in keyring)
   - Used in: geospatial.js, geocoding scripts, enrichment scripts
   - Purpose: Geocoding and mapping
@@ -180,24 +193,28 @@ API returns 500 error
 ## 4. Failure Scenarios
 
 ### Scenario 1: Keyring File Missing
+
 **Trigger:** First run or file deleted  
 **Behavior:** Returns empty object `{}`  
 **Impact:** All keyring.getCredential() calls return null  
 **Fallback:** Code falls back to environment variables (if implemented)
 
 ### Scenario 2: Decryption Fails
+
 **Trigger:** File corrupted or copied from another machine  
 **Behavior:** Throws error, crashes application  
 **Impact:** ❌ Application won't start  
 **Fallback:** None - fatal error
 
 ### Scenario 3: Key Not Found
+
 **Trigger:** Key never stored in keyring  
 **Behavior:** Returns null  
 **Impact:** Depends on calling code  
 **Fallback:** Some code checks env vars, some returns error
 
 ### Scenario 4: Environment Variable Missing
+
 **Trigger:** .env file incomplete  
 **Behavior:** `process.env.KEY` returns undefined  
 **Impact:** Silent failure or runtime error  
@@ -210,21 +227,25 @@ API returns 500 error
 ### Current State
 
 **Key Rotation:** ❌ NOT IMPLEMENTED
+
 - No mechanism to rotate keys
 - No versioning of keys
 - No audit log of key changes
 
 **Key Expiration:** ❌ NOT IMPLEMENTED
+
 - No expiration dates stored
 - No automatic expiration checks
 - Keys remain valid indefinitely
 
 **Key Revocation:** ⚠️ PARTIAL
+
 - Can delete keys with `deleteCredential()`
 - No revocation list
 - No notification of revoked keys
 
 **Audit Logging:** ❌ NOT IMPLEMENTED
+
 - No log of key access
 - No log of key modifications
 - Can't detect unauthorized access
@@ -236,6 +257,7 @@ API returns 500 error
 ### Endpoints Using API Keys
 
 **Protected Endpoints (require API_KEY):**
+
 - `POST /api/tag-network` - Tag network as threat
 - `DELETE /api/tag-network/:bssid` - Remove tag
 - `GET /api/backup` - Backup database
@@ -244,11 +266,13 @@ API returns 500 error
 - `GET /api/settings/*` - Settings management
 
 **External API Endpoints:**
+
 - `GET /api/mapbox-token` - Returns Mapbox token to frontend
   - Uses: `process.env.MAPBOX_TOKEN` (no keyring check)
   - Risk: Token exposed to frontend
 
 **Background Scripts:**
+
 - Geocoding scripts - Use MAPBOX_TOKEN
 - Enrichment scripts - Use LOCATIONIQ_API_KEY, OPENCAGE_API_KEY
 - Import scripts - Use DB_PASSWORD
@@ -260,21 +284,25 @@ API returns 500 error
 ### Critical Issues
 
 ❌ **Mixed Secret Sources**
+
 - Some keys in keyring, some in env vars
 - Inconsistent security posture
 - Developers don't know where to look
 
 ❌ **No Docker Secrets Support**
+
 - Can't use Docker secrets in production
 - Must pass secrets via environment variables
 - Secrets visible in `docker inspect`
 
 ❌ **Mapbox Token Exposed to Frontend**
+
 - Token sent to browser in API response
 - Can be extracted by users
 - No rate limiting per token
 
 ❌ **No Startup Validation**
+
 - App starts even if critical keys missing
 - Fails at runtime with cryptic errors
 - No clear error messages
@@ -282,16 +310,19 @@ API returns 500 error
 ### Medium Issues
 
 ⚠️ **Weak Key Derivation**
+
 - Hostname + username is predictable
 - No random salt per installation
 - Same machine always generates same key
 
 ⚠️ **No Audit Logging**
+
 - Can't detect unauthorized key access
 - Can't track key usage
 - No compliance trail
 
 ⚠️ **No Key Rotation**
+
 - Keys never expire
 - Can't rotate compromised keys
 - No versioning
@@ -299,6 +330,7 @@ API returns 500 error
 ### Low Issues
 
 ⚠️ **Cache Never Invalidates**
+
 - Keys cached in memory forever
 - Can't update keys without restart
 - Stale keys if file modified externally
@@ -307,17 +339,17 @@ API returns 500 error
 
 ## 8. Comparison: Keyring vs Environment Variables
 
-| Feature | Keyring | Environment Variables |
-|---------|---------|----------------------|
-| Encryption at rest | ✅ Yes (AES-256-GCM) | ❌ No (plaintext) |
-| Visible in process list | ✅ No | ❌ Yes (`ps aux`) |
-| Visible in Docker inspect | ✅ No | ❌ Yes |
-| Visible in logs | ✅ No | ⚠️ Depends |
-| Machine-specific | ✅ Yes | ❌ No |
-| Easy to rotate | ⚠️ Manual | ⚠️ Manual |
-| Docker secrets support | ❌ No | ❌ No |
-| Kubernetes secrets support | ❌ No | ✅ Yes |
-| Cloud provider secrets | ❌ No | ✅ Yes (via env) |
+| Feature                    | Keyring              | Environment Variables |
+| -------------------------- | -------------------- | --------------------- |
+| Encryption at rest         | ✅ Yes (AES-256-GCM) | ❌ No (plaintext)     |
+| Visible in process list    | ✅ No                | ❌ Yes (`ps aux`)     |
+| Visible in Docker inspect  | ✅ No                | ❌ Yes                |
+| Visible in logs            | ✅ No                | ⚠️ Depends            |
+| Machine-specific           | ✅ Yes               | ❌ No                 |
+| Easy to rotate             | ⚠️ Manual            | ⚠️ Manual             |
+| Docker secrets support     | ❌ No                | ❌ No                 |
+| Kubernetes secrets support | ❌ No                | ✅ Yes                |
+| Cloud provider secrets     | ❌ No                | ✅ Yes (via env)      |
 
 ---
 
@@ -384,21 +416,25 @@ API returns 500 error
 ## 10. Migration Path
 
 ### Phase 1: Extend Keyring (Current)
+
 - Add all API keys to keyring
 - Maintain env var fallback
 - Update documentation
 
 ### Phase 2: Docker Secrets
+
 - Add Docker secrets support
 - Update docker-compose.yml
 - Test in staging
 
 ### Phase 3: Validation
+
 - Add startup validation
 - Fail if secrets missing
 - Clear error messages
 
 ### Phase 4: Audit & Rotation
+
 - Add audit logging
 - Add key rotation
 - Add expiration

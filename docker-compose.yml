@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # This docker-compose connects to SHARED PostgreSQL and PgAdmin containers
 # The postgres and pgadmin services are managed externally and shared across all ShadowCheck projects
@@ -35,7 +35,13 @@ services:
     networks:
       - shadowcheck_net
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/dashboard-metrics', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3001/api/dashboard-metrics', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})",
+        ]
       interval: 30s
       timeout: 3s
       retries: 3

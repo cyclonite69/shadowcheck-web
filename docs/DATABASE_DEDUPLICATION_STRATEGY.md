@@ -1,6 +1,7 @@
 # Deduplication Strategy - Prevent Double Imports
 
 ## Problem
+
 - WiGLE data already imported into ShadowCheckMobile
 - Don't want to import same observations twice
 - Need to track what's been imported from where
@@ -12,12 +13,12 @@
 
 ```sql
 -- Add fingerprint column to observations
-ALTER TABLE app.observations 
+ALTER TABLE app.observations
     ADD COLUMN fingerprint TEXT GENERATED ALWAYS AS (
         md5(
-            radio_type::text || 
-            identifier || 
-            observed_at::text || 
+            radio_type::text ||
+            identifier ||
+            observed_at::text ||
             COALESCE(latitude::text, '') ||
             COALESCE(longitude::text, '')
         )
@@ -31,28 +32,28 @@ CREATE UNIQUE INDEX idx_observations_fingerprint ON app.observations(fingerprint
 ```sql
 CREATE TABLE app.import_sources (
     id SERIAL PRIMARY KEY,
-    
+
     -- Source identification
     source_repo TEXT NOT NULL, -- 'wigle_app', 'mobile_android', 'pentest'
     source_db_path TEXT, -- Path to source database
     source_db_hash TEXT, -- SHA256 of source database file
-    
+
     -- What was imported
     import_type TEXT NOT NULL, -- 'full', 'incremental', 'new_only'
-    
+
     -- Fingerprint range (for dedup)
     fingerprints_imported TEXT[], -- Array of fingerprints
     observation_count INTEGER,
-    
+
     -- Time range
     data_from TIMESTAMPTZ,
     data_to TIMESTAMPTZ,
-    
+
     -- Import metadata
     imported_at TIMESTAMPTZ DEFAULT NOW(),
     imported_by TEXT,
     notes TEXT,
-    
+
     metadata JSONB
 );
 
@@ -75,15 +76,15 @@ DECLARE
     v_fingerprint TEXT;
 BEGIN
     v_fingerprint := md5(
-        p_radio_type::text || 
-        p_identifier || 
-        p_observed_at::text || 
+        p_radio_type::text ||
+        p_identifier ||
+        p_observed_at::text ||
         COALESCE(p_latitude::text, '') ||
         COALESCE(p_longitude::text, '')
     );
-    
+
     RETURN EXISTS (
-        SELECT 1 FROM app.observations 
+        SELECT 1 FROM app.observations
         WHERE fingerprint = v_fingerprint
     );
 END;
@@ -95,34 +96,35 @@ $$ LANGUAGE plpgsql;
 ```javascript
 // Import from Mobile - Skip if already exists
 async function importFromMobile(mobileDb, importId) {
-    const result = await mobileDb.query(`
+  const result = await mobileDb.query(
+    `
         SELECT * FROM wifi_networks 
         WHERE timestamp > $1
         ORDER BY timestamp
-    `, [lastImportTimestamp]);
-    
-    let imported = 0;
-    let skipped = 0;
-    
-    for (const row of result.rows) {
-        // Check if already exists
-        const exists = await pgPool.query(`
+    `,
+    [lastImportTimestamp]
+  );
+
+  let imported = 0;
+  let skipped = 0;
+
+  for (const row of result.rows) {
+    // Check if already exists
+    const exists = await pgPool.query(
+      `
             SELECT app.observation_exists($1, $2, $3, $4, $5)
-        `, [
-            'wifi',
-            row.bssid,
-            new Date(row.timestamp),
-            row.latitude,
-            row.longitude
-        ]);
-        
-        if (exists.rows[0].observation_exists) {
-            skipped++;
-            continue;
-        }
-        
-        // Import new observation
-        await pgPool.query(`
+        `,
+      ['wifi', row.bssid, new Date(row.timestamp), row.latitude, row.longitude]
+    );
+
+    if (exists.rows[0].observation_exists) {
+      skipped++;
+      continue;
+    }
+
+    // Import new observation
+    await pgPool.query(
+      `
             INSERT INTO app.observations (
                 radio_type, identifier, 
                 latitude, longitude, location,
@@ -134,47 +136,51 @@ async function importFromMobile(mobileDb, importId) {
                 ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography,
                 $4, $5, 'mobile_android', $6, $7, $8, $9
             )
-        `, [
-            row.bssid,
-            row.latitude,
-            row.longitude,
-            row.signalLevel,
-            new Date(row.timestamp),
-            deviceUuid,
-            sessionUuid,
-            buildRadioMetadata(row),
-            buildGeneralMetadata(row)
-        ]);
-        
-        imported++;
-    }
-    
-    console.log(`✓ Imported: ${imported}, Skipped (duplicates): ${skipped}`);
+        `,
+      [
+        row.bssid,
+        row.latitude,
+        row.longitude,
+        row.signalLevel,
+        new Date(row.timestamp),
+        deviceUuid,
+        sessionUuid,
+        buildRadioMetadata(row),
+        buildGeneralMetadata(row),
+      ]
+    );
+
+    imported++;
+  }
+
+  console.log(`✓ Imported: ${imported}, Skipped (duplicates): ${skipped}`);
 }
 ```
 
 ## Import Strategies
 
 ### Strategy 1: Timestamp-Based (Recommended)
+
 Only import observations newer than last import:
 
 ```sql
 -- Get last import timestamp from Mobile
-SELECT MAX(observed_at) 
-FROM app.observations 
+SELECT MAX(observed_at)
+FROM app.observations
 WHERE source_type = 'mobile_android';
 
 -- Import only newer data
-SELECT * FROM mobile.wifi_networks 
+SELECT * FROM mobile.wifi_networks
 WHERE timestamp > last_import_timestamp;
 ```
 
 ### Strategy 2: Source Tracking
+
 Track which source databases have been imported:
 
 ```sql
 -- Check if this Mobile DB was already imported
-SELECT * FROM app.import_sources 
+SELECT * FROM app.import_sources
 WHERE source_db_hash = sha256(mobile_db_file);
 
 -- If not found, import all
@@ -182,6 +188,7 @@ WHERE source_db_hash = sha256(mobile_db_file);
 ```
 
 ### Strategy 3: Fingerprint Dedup (Safest)
+
 Check each observation's fingerprint before import:
 
 ```sql
@@ -203,7 +210,7 @@ INSERT INTO app.import_sources (
     source_repo, source_db_path, source_db_hash,
     import_type, observation_count, imported_by
 ) VALUES (
-    'wigle_app', 
+    'wigle_app',
     '/path/to/wigle.sqlite',
     sha256('/path/to/wigle.sqlite'),
     'full',
@@ -228,6 +235,7 @@ node scripts/import/import-mobile-new.js --since "$last_sync"
 ## Decision: WiGLE Data in Mobile
 
 ### Option A: Skip WiGLE Data in Mobile
+
 ```sql
 -- When syncing from Mobile, exclude WiGLE source
 SELECT * FROM mobile.wifi_networks
@@ -236,12 +244,14 @@ WHERE source != 'wigle_import'
 ```
 
 ### Option B: Import All, Deduplicate
+
 ```sql
 -- Import everything, fingerprint dedup handles it
 -- Slower but safer
 ```
 
 ### Option C: Separate Mobile-Only Table
+
 ```sql
 -- Mobile app tracks what it collected vs imported
 -- Only sync mobile-collected data
@@ -252,6 +262,7 @@ WHERE collected_by_app = true;
 ## Recommended Approach
 
 **For now:**
+
 1. ✅ Import WiGLE SQLite directly to PostgreSQL (done)
 2. ✅ Add fingerprint column for deduplication
 3. ✅ When syncing Mobile, use timestamp filter:
@@ -261,6 +272,7 @@ WHERE collected_by_app = true;
 4. ✅ Track imports in `app.import_sources`
 
 **This ensures:**
+
 - No double imports
 - Clear audit trail
 - Only new Mobile data synced
@@ -270,12 +282,12 @@ WHERE collected_by_app = true;
 
 ```sql
 -- Add fingerprint to observations
-ALTER TABLE app.observations 
+ALTER TABLE app.observations
     ADD COLUMN fingerprint TEXT GENERATED ALWAYS AS (
         md5(
-            radio_type::text || 
-            identifier || 
-            observed_at::text || 
+            radio_type::text ||
+            identifier ||
+            observed_at::text ||
             COALESCE(latitude::text, '') ||
             COALESCE(longitude::text, '')
         )
@@ -302,7 +314,7 @@ CREATE TABLE app.import_sources (
 
 ```sql
 -- Find potential duplicates before import
-SELECT 
+SELECT
     radio_type,
     identifier,
     observed_at,
@@ -312,6 +324,7 @@ GROUP BY radio_type, identifier, observed_at, latitude, longitude
 HAVING COUNT(*) > 1;
 ```
 
-**Decision needed:** 
+**Decision needed:**
+
 - Import WiGLE data that's already in Mobile? (Recommend: No, skip it)
 - Use timestamp-based or fingerprint-based dedup? (Recommend: Timestamp for performance)

@@ -40,6 +40,7 @@ CREATE INDEX idx_networks_legacy_location ON app.networks_legacy USING GIST(loca
 ```
 
 **Network Type Codes**:
+
 - `W`: WiFi (802.11)
 - `E`: BLE (Bluetooth Low Energy)
 - `B`: Bluetooth Classic
@@ -48,6 +49,7 @@ CREATE INDEX idx_networks_legacy_location ON app.networks_legacy USING GIST(loca
 - `G`: GSM/Cellular
 
 **Timestamp Format**:
+
 - Unix timestamps in **milliseconds** (not seconds!)
 - Minimum valid: `946684800000` (Jan 1, 2000)
 
@@ -78,6 +80,7 @@ CREATE INDEX idx_locations_legacy_location ON app.locations_legacy USING GIST(lo
 ```
 
 **Key Points**:
+
 - One row per observation
 - BSSID is not a foreign key (allows orphan observations)
 - Time filter in index: `WHERE time >= 946684800000` (excludes invalid timestamps)
@@ -108,6 +111,7 @@ CREATE INDEX idx_network_tags_type ON app.network_tags(tag_type);
 ```
 
 **Tag Types & Threat Scores**:
+
 - `LEGIT`: 0.0 (confirmed safe)
 - `FALSE_POSITIVE`: 0.05 (incorrectly flagged)
 - `INVESTIGATE`: 0.7 (suspicious, needs investigation)
@@ -138,6 +142,7 @@ CREATE INDEX idx_location_markers_location ON app.location_markers USING GIST(lo
 ```
 
 **Purpose**:
+
 - Threat detection algorithm checks if networks seen at home are also seen away from home
 - Typical radius: 100-200 meters
 
@@ -361,6 +366,7 @@ app.location_markers (independent reference points)
 ### Table Name Discrepancy
 
 The code uses `networks_legacy` and `locations_legacy`, but `00_init_schema.sql` creates `networks` and `observations`. This suggests:
+
 - Either rename during migration: `ALTER TABLE app.networks RENAME TO networks_legacy;`
 - Or there was a separate migration that did the rename
 - Or this is a v1 vs v2 schema issue
@@ -399,6 +405,7 @@ pg_restore -U shadowcheck_user -d shadowcheck shadowcheck_backup.dump
 ## Reference Queries
 
 ### Count records by table
+
 ```sql
 SELECT 'networks_legacy' AS table, COUNT(*) FROM app.networks_legacy
 UNION ALL
@@ -410,6 +417,7 @@ SELECT 'location_markers', COUNT(*) FROM app.location_markers;
 ```
 
 ### Check timestamp range
+
 ```sql
 SELECT
   to_timestamp(MIN(time) / 1000) AS earliest,
@@ -419,6 +427,7 @@ WHERE time >= 946684800000;
 ```
 
 ### Network type distribution
+
 ```sql
 SELECT type, COUNT(*)
 FROM app.networks_legacy

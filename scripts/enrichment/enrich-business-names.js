@@ -1,4 +1,3 @@
-const fs = require('fs');
 const https = require('https');
 const { Pool } = require('pg');
 require('dotenv').config();

@@ -4,10 +4,10 @@
  */
 
 function createUnifiedHeader(activePage) {
-    const header = document.createElement('header');
-    header.className = 'app-header';
-    
-    header.innerHTML = `
+  const header = document.createElement('header');
+  header.className = 'app-header';
+
+  header.innerHTML = `
         <div class="header-left">
             <div class="logo">SC</div>
             <span class="font-semibold">ShadowCheck</span>
@@ -28,18 +28,19 @@ function createUnifiedHeader(activePage) {
             </div>
         </div>
     `;
-    
-    return header;
+
+  return header;
 }
 
 // Auto-inject header if app-container exists but no header
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('.app-container');
-    if (container && !container.querySelector('.app-header')) {
-        const activePage = document.body.dataset.page || 
-                          window.location.pathname.replace(/\.html$/, '').replace(/^\//, '') || 
-                          'dashboard';
-        const header = createUnifiedHeader(activePage);
-        container.insertBefore(header, container.firstChild);
-    }
+  const container = document.querySelector('.app-container');
+  if (container && !container.querySelector('.app-header')) {
+    const activePage =
+      document.body.dataset.page ||
+      window.location.pathname.replace(/\.html$/, '').replace(/^\//, '') ||
+      'dashboard';
+    const header = createUnifiedHeader(activePage);
+    container.insertBefore(header, container.firstChild);
+  }
 });

@@ -3,20 +3,25 @@
 ## Issues Fixed
 
 ### 1. ✅ Distance Field
+
 **Issue:** Distance from home not populated  
-**Fix:** 
+**Fix:**
+
 - Already computed in server.js using PostGIS `ST_Distance`
 - Changed `default: false` to `default: true` in NETWORK_COLUMNS
 - Now visible by default in networks table
 
-### 2. ✅ Last Seen Field  
+### 2. ✅ Last Seen Field
+
 **Issue:** lastSeen not computed correctly  
 **Fix:**
+
 - Server.js already computes from `latest_times` CTE
 - Fixed timestamp conversion: `new Date(row.lastseen).getTime()` instead of `parseInt(row.lastseen)`
 - Returns proper Unix timestamp in milliseconds
 
 ### 3. ✅ Security Field Parsing
+
 **Issue:** Security should be parsed from capabilities field  
 **Fix:** Already implemented in server.js with comprehensive parsing:
 
@@ -41,6 +46,7 @@ END as security
 ```
 
 **Security Types Detected:**
+
 - `WPA3-E` - WPA3 Enterprise (802.1X)
 - `WPA3-P` - WPA3 Personal (SAE)
 - `WPA2-E` - WPA2 Enterprise
@@ -52,13 +58,16 @@ END as security
 - `N/A` - Bluetooth/BLE (different security model)
 
 ### 4. ✅ Accuracy Field
+
 **Issue:** Accuracy field not populated  
 **Fix:**
+
 - Fixed mapping: `row.accuracy_meters` instead of `row.accuracy`
 - Format: Shows meters with 1 decimal place
 - Display: `3.8 m`, `10.5 m`, etc.
 
 ### 5. ✅ Type Icons with Colorized Pills
+
 **Issue:** Type column needs icons with colored pills  
 **Fix:** Added styled type badges:
 
@@ -84,6 +93,7 @@ type: {
 ```
 
 **Type Badges:**
+
 - 📶 WiFi (blue)
 - 🔵 BLE (purple)
 - 🔵 BT (blue)
@@ -92,6 +102,7 @@ type: {
 - 📞 GSM (gray)
 
 ### 6. ✅ Selection Checkbox
+
 **Issue:** Need checkbox at start of each row  
 **Fix:** Added `select` column as first column:
 
@@ -113,23 +124,25 @@ select: {
 
 ```json
 {
-  "networks": [{
-    "id": "445306",
-    "ssid": "AndroidAP_3395",
-    "bssid": "00:08:22:1D:5A:27",
-    "type": "W",
-    "security": "WPA2-P",
-    "frequency": 5.22,
-    "channel": 44,
-    "signal": -82,
-    "accuracy": 3.79,
-    "observations": 1,
-    "manufacturer": "Unknown",
-    "lastSeen": 1764308971000,
-    "distanceFromHome": null,
-    "latitude": 43.0234528565662,
-    "longitude": -83.6968437708818
-  }],
+  "networks": [
+    {
+      "id": "445306",
+      "ssid": "AndroidAP_3395",
+      "bssid": "00:08:22:1D:5A:27",
+      "type": "W",
+      "security": "WPA2-P",
+      "frequency": 5.22,
+      "channel": 44,
+      "signal": -82,
+      "accuracy": 3.79,
+      "observations": 1,
+      "manufacturer": "Unknown",
+      "lastSeen": 1764308971000,
+      "distanceFromHome": null,
+      "latitude": 43.0234528565662,
+      "longitude": -83.6968437708818
+    }
+  ],
   "total": 117687,
   "page": 1,
   "limit": 1
@@ -139,6 +152,7 @@ select: {
 ## Default Visible Columns
 
 After fixes, default columns shown:
+
 1. ☑ Select (checkbox)
 2. Type (with icon pill)
 3. SSID
@@ -174,6 +188,7 @@ curl -s "http://localhost:3001/api/networks?page=1&limit=1" | jq '.networks[0] |
 ## Next Steps
 
 Potential enhancements:
+
 - Bulk selection actions (tag multiple networks, export selected)
 - Select all checkbox in header
 - Selection count indicator

@@ -11,9 +11,11 @@ Based on the screenshots provided:
 ## Root Cause Analysis
 
 ### Issue 1: Network Explorer Pagination
+
 **Status**: ✅ **WORKING AS DESIGNED**
 
 The Network Explorer is functioning correctly:
+
 - Displays 300 networks initially (3 pages × 100 per page)
 - Implements infinite scroll for loading more
 - Has search and filter functionality
@@ -22,37 +24,41 @@ The Network Explorer is functioning correctly:
 **No fix needed** - This is expected behavior for performance reasons.
 
 ### Issue 2: Threat Surveillance - Limited Display
+
 **Status**: ✅ **FIXED**
 
 **Root Cause**: Pagination limit was set to 50, but only first 5 threats were rendering.
 
 **Possible Causes**:
+
 1. CSS height constraint preventing scroll
 2. JavaScript error stopping render loop
 3. API returning fewer results than expected
 4. Infinite scroll not triggering
 
 **Fix Applied**:
+
 - Increased pagination limit from 50 to 100 per page
 - File: `public/surveillance.html`, Line 570-574
 
 ```javascript
 // BEFORE:
 const pagination = {
-    activeThreats: { page: 1, limit: 50, hasMore: true, loading: false, totalCount: 0 },
-    // ...
+  activeThreats: { page: 1, limit: 50, hasMore: true, loading: false, totalCount: 0 },
+  // ...
 };
 
 // AFTER:
 const pagination = {
-    activeThreats: { page: 1, limit: 100, hasMore: true, loading: false, totalCount: 0 },
-    // ...
+  activeThreats: { page: 1, limit: 100, hasMore: true, loading: false, totalCount: 0 },
+  // ...
 };
 ```
 
 ## Verification Steps
 
 ### For Network Explorer:
+
 1. Open `/networks.html`
 2. Verify "300 of 117,687" displays
 3. Scroll to bottom of list
@@ -61,6 +67,7 @@ const pagination = {
 6. Test threat level filter
 
 ### For Threat Surveillance:
+
 1. Open `/surveillance.html`
 2. Check "Active Threats" count badge (should show 61)
 3. Scroll through threat list
@@ -69,6 +76,7 @@ const pagination = {
 6. Confirm infinite scroll loads more if >100 threats
 
 ### Browser Console Checks:
+
 ```javascript
 // Check pagination state
 console.log(pagination.activeThreats);
@@ -83,64 +91,79 @@ console.log(document.querySelectorAll('#threat-investigation-list .threat-row').
 ## Additional Improvements Recommended
 
 ### 1. Add Visual Scroll Indicator
+
 **File**: `public/networks.html`
 **Location**: After network table
 
 ```html
-<div id="scroll-indicator" style="
+<div
+  id="scroll-indicator"
+  style="
     text-align: center; 
     padding: 12px; 
     color: #94a3b8; 
     font-size: 12px;
-    display: none;">
-    ↓ Scroll down to load more networks ↓
+    display: none;"
+>
+  ↓ Scroll down to load more networks ↓
 </div>
 ```
 
 ```javascript
 // Show indicator when more networks available
 if (networkTable.currentPage * networkTable.currentLimit < networkTable.totalNetworks) {
-    document.getElementById('scroll-indicator').style.display = 'block';
+  document.getElementById('scroll-indicator').style.display = 'block';
 } else {
-    document.getElementById('scroll-indicator').style.display = 'none';
+  document.getElementById('scroll-indicator').style.display = 'none';
 }
 ```
 
 ### 2. Add Loading Spinner for Infinite Scroll
+
 **File**: `public/surveillance.html`
 
 ```html
-<div id="loading-more" style="
+<div
+  id="loading-more"
+  style="
     text-align: center; 
     padding: 12px; 
     color: #94a3b8; 
     font-size: 12px;
-    display: none;">
-    <div class="spinner"></div> Loading more threats...
+    display: none;"
+>
+  <div class="spinner"></div>
+  Loading more threats...
 </div>
 ```
 
 ### 3. Add Pagination Info Display
+
 **File**: `public/surveillance.html`
 
 ```html
-<div class="pagination-info" style="
+<div
+  class="pagination-info"
+  style="
     font-size: 11px; 
     color: #94a3b8; 
     padding: 8px 16px;
-    border-top: 1px solid rgba(148, 163, 184, 0.1);">
-    Showing <span id="threats-shown">0</span> of <span id="threats-total">0</span> threats
+    border-top: 1px solid rgba(148, 163, 184, 0.1);"
+>
+  Showing <span id="threats-shown">0</span> of <span id="threats-total">0</span> threats
 </div>
 ```
 
 ## Testing Results
 
 ### Before Fix:
+
 - ❌ Only 5 threats visible out of 61
 - ❌ No indication of more threats available
 - ❌ Scroll not triggering load
 
 ### After Fix:
+
 - ✅ All 61 threats should be visible (or first 100 if >100 total)
 - ✅ Infinite scroll loads remaining threats
 - ✅ Count badge shows correct total
@@ -148,12 +171,14 @@ if (networkTable.currentPage * networkTable.currentLimit < networkTable.totalNet
 ## API Endpoints Verified
 
 ### `/api/threats/quick`
+
 - ✅ Supports pagination (page, limit parameters)
 - ✅ Maximum limit: 5000 per request
 - ✅ Returns total count in response
 - ✅ Filters by severity level
 
 ### `/api/networks`
+
 - ✅ Supports pagination
 - ✅ Default limit: 100
 - ✅ Supports search and filters
@@ -162,7 +187,6 @@ if (networkTable.currentPage * networkTable.currentLimit < networkTable.totalNet
 
 1. **Network Explorer**: Loading all 117K networks at once would crash browser
    - Solution: Infinite scroll with 100-300 per page is optimal
-   
 2. **Threat List**: Very large threat counts (>1000) may cause performance issues
    - Solution: Consider adding "Load All" button or increasing page size
 
@@ -193,6 +217,7 @@ git checkout public/surveillance.html  # Revert if needed
 ```
 
 Or manually change line 571 back to:
+
 ```javascript
 activeThreats: { page: 1, limit: 50, hasMore: true, loading: false, totalCount: 0 },
 ```

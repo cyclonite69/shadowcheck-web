@@ -95,6 +95,7 @@ const allData = await analyticsService.getBulkAnalytics();
 ```
 
 **Benefits**:
+
 - ✅ Reusable from multiple endpoints
 - ✅ Testable in isolation
 - ✅ Consistent error handling
@@ -104,19 +105,24 @@ const allData = await analyticsService.getBulkAnalytics();
 ### 2. Analytics Routes (`src/api/routes/v1/analytics.js`)
 
 Thin route handlers that:
+
 1. Validate input
 2. Call service
 3. Format response
 4. Handle errors
 
 ```javascript
-router.get('/network-types', asyncHandler(async (req, res) => {
-  const data = await analyticsService.getNetworkTypes();
-  res.json({ ok: true, data });
-}));
+router.get(
+  '/network-types',
+  asyncHandler(async (req, res) => {
+    const data = await analyticsService.getNetworkTypes();
+    res.json({ ok: true, data });
+  })
+);
 ```
 
 **Benefits**:
+
 - ✅ Clean, readable routes
 - ✅ Consistent error handling via asyncHandler
 - ✅ Automatic logging
@@ -134,7 +140,7 @@ router.get('/network-types', asyncHandler(async (req, res) => {
 async function getMyData(filters) {
   try {
     const { rows } = await query('SELECT * FROM app.table WHERE ...');
-    return rows.map(row => transformRow(row));
+    return rows.map((row) => transformRow(row));
   } catch (error) {
     throw new DatabaseError(error, 'Failed to get my data');
   }
@@ -155,11 +161,14 @@ const { asyncHandler } = require('../../../errors/errorHandler');
 const { ValidationError } = require('../../../errors/AppError');
 const service = require('../../../services/myNewService');
 
-router.get('/data', asyncHandler(async (req, res) => {
-  req.logger?.info('Getting my data');
-  const data = await service.getMyData(req.query.filters);
-  res.json({ ok: true, data });
-}));
+router.get(
+  '/data',
+  asyncHandler(async (req, res) => {
+    req.logger?.info('Getting my data');
+    const data = await service.getMyData(req.query.filters);
+    res.json({ ok: true, data });
+  })
+);
 
 module.exports = router;
 ```
@@ -183,6 +192,7 @@ curl http://localhost:3001/api/mynew/data
 ### ✅ DO
 
 1. **Handle errors properly**
+
    ```javascript
    try {
      const result = await query(sql, params);
@@ -193,6 +203,7 @@ curl http://localhost:3001/api/mynew/data
    ```
 
 2. **Use consistent naming**
+
    ```javascript
    async function getThingById(id) { ... }
    async function listThings(filters) { ... }
@@ -202,8 +213,9 @@ curl http://localhost:3001/api/mynew/data
    ```
 
 3. **Return clean data**
+
    ```javascript
-   return rows.map(row => ({
+   return rows.map((row) => ({
      id: row.id,
      name: row.name,
      // Don't return internal fields
@@ -224,37 +236,41 @@ curl http://localhost:3001/api/mynew/data
 ### ❌ DON'T
 
 1. **Don't expose database errors to routes**
+
    ```javascript
    // ❌ Bad
    throw error; // Raw database error
-   
+
    // ✅ Good
    throw new DatabaseError(error, 'Friendly message');
    ```
 
 2. **Don't mix concerns**
+
    ```javascript
    // ❌ Bad - mixing HTTP concerns
    res.json({ data });
-   
+
    // ✅ Good - just return data
    return rows;
    ```
 
 3. **Don't hardcode values**
+
    ```javascript
    // ❌ Bad
    const limit = 100;
-   
+
    // ✅ Good
    const limit = config.DEFAULT_LIMIT;
    ```
 
 4. **Don't ignore errors silently**
+
    ```javascript
    // ❌ Bad
    const result = await query(...).catch(() => null);
-   
+
    // ✅ Good
    try {
      return await query(...);
@@ -359,14 +375,14 @@ const container = {
   // Services
   analyticsService: analyticsService,
   threatService: threatService,
-  
+
   // Repositories
   networkRepository: networkRepository,
-  
+
   // Utilities
   logger: logger,
   config: CONFIG,
-  
+
   // Factory method
   get(name) {
     return this[name];
@@ -377,26 +393,31 @@ const container = {
 ## Migration Checklist
 
 ### Phase 1: Analytics Module (✅ COMPLETE)
+
 - [x] Create analyticsService.js
 - [x] Create analytics.js routes
 - [x] Documentation
 
 ### Phase 2: Threat Module (Future)
+
 - [ ] Create threatService.js
 - [ ] Extract threat logic from server.js
 - [ ] Create threats.js routes
 - [ ] Update server.js to use modular routes
 
 ### Phase 3: Network Module (Future)
+
 - [ ] Create networkService.js
 - [ ] Create networks.js routes
 - [ ] Create networkRepository.js
 
 ### Phase 4: Observation Module (Future)
+
 - [ ] Create observationService.js
 - [ ] Extract observation queries
 
 ### Complete Modernization
+
 - [ ] All legacy logic moved to services
 - [ ] All routes modular
 - [ ] server.js contains only middleware and route registration
@@ -471,6 +492,7 @@ app.use('/api/analytics', analyticsRoutes);
 ## Summary
 
 The new modular architecture:
+
 1. **Separates concerns** - Routes, services, data layer
 2. **Improves testability** - Mock services independently
 3. **Enables reuse** - Services called by multiple routes

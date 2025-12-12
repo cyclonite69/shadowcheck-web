@@ -7,11 +7,11 @@ const TILE_PATTERNS = [
   /^https:\/\/api\.mapbox\.com\/.*\/tiles\//,
   /^https:\/\/.*\.tiles\.mapbox\.com\//,
   /^https:\/\/api\.mapbox\.com\/styles\//,
-  /^https:\/\/api\.mapbox\.com\/fonts\//
+  /^https:\/\/api\.mapbox\.com\/fonts\//,
 ];
 
 function isTileRequest(url) {
-  return TILE_PATTERNS.some(pattern => pattern.test(url));
+  return TILE_PATTERNS.some((pattern) => pattern.test(url));
 }
 
 // Install event
@@ -24,16 +24,19 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating map cache service worker');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName.startsWith('shadowcheck-map-tiles-') && cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName.startsWith('shadowcheck-map-tiles-') && cacheName !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => self.clients.claim())
   );
 });
 
@@ -55,21 +58,23 @@ self.addEventListener('fetch', (event) => {
         }
 
         // Fetch from network and cache
-        return fetch(event.request).then((networkResponse) => {
-          // Only cache successful responses
-          if (networkResponse && networkResponse.status === 200) {
-            // Clone response before caching
-            cache.put(event.request, networkResponse.clone());
-            
-            // Limit cache size
-            limitCacheSize(cache, TILE_CACHE_SIZE);
-          }
-          return networkResponse;
-        }).catch((error) => {
-          console.error('[SW] Fetch failed:', error);
-          // Return offline fallback if available
-          return cache.match(event.request);
-        });
+        return fetch(event.request)
+          .then((networkResponse) => {
+            // Only cache successful responses
+            if (networkResponse && networkResponse.status === 200) {
+              // Clone response before caching
+              cache.put(event.request, networkResponse.clone());
+
+              // Limit cache size
+              limitCacheSize(cache, TILE_CACHE_SIZE);
+            }
+            return networkResponse;
+          })
+          .catch((error) => {
+            console.error('[SW] Fetch failed:', error);
+            // Return offline fallback if available
+            return cache.match(event.request);
+          });
       });
     })
   );
@@ -81,7 +86,7 @@ async function limitCacheSize(cache, maxSize) {
   if (keys.length > maxSize) {
     // Remove oldest 10% of tiles
     const toDelete = keys.slice(0, Math.floor(maxSize * 0.1));
-    await Promise.all(toDelete.map(key => cache.delete(key)));
+    await Promise.all(toDelete.map((key) => cache.delete(key)));
   }
 }
 

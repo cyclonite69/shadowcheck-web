@@ -317,9 +317,7 @@ function toAppError(error) {
 
   // Generic fallback
   return new AppError(
-    process.env.NODE_ENV === 'development'
-      ? error.message
-      : 'An unexpected error occurred',
+    process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
     500,
     'INTERNAL_ERROR'
   );

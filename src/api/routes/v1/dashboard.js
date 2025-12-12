@@ -1,62 +1,86 @@
-/**
- * Dashboard routes
- * HTTP endpoints for dashboard operations
- */
-
 const express = require('express');
 const router = express.Router();
 
-// This will be injected via dependency injection
-let dashboardService;
+let dashboardService = null;
 
-/**
- * Initialize dashboard routes with dependencies
- * @param {Object} deps - Dependencies
- * @param {DashboardService} deps.dashboardService - Dashboard service instance
- */
-function initDashboardRoutes(deps) {
-  dashboardService = deps.dashboardService;
-  return router;
+function initDashboardRoutes(options) {
+  dashboardService = options.dashboardService;
 }
 
-/**
- * GET /api/dashboard-metrics
- * Get dashboard metrics (total networks, threats, etc.)
- */
-router.get('/dashboard-metrics', async (req, res) => {
+router.get('/dashboard/metrics', async (req, res) => {
   try {
+    if (!dashboardService) {
+      return res.status(500).json({ error: 'Dashboard service not initialized' });
+    }
     const metrics = await dashboardService.getMetrics();
-
-    // Return raw metrics object (legacy format)
-    res.json(metrics);
-  } catch (err) {
-    console.error('Dashboard metrics error:', err);
-    res.status(500).json({
-      error: 'Failed to fetch dashboard metrics',
-      details: err.message,
-    });
-  }
-});
-
-/**
- * GET /api/dashboard-summary
- * Get dashboard summary with additional context
- */
-router.get('/dashboard-summary', async (req, res) => {
-  try {
-    const summary = await dashboardService.getSummary();
-
     res.json({
-      ok: true,
-      data: summary,
+      threats: {
+        critical: metrics.threatsCritical || 0,
+        high: metrics.threatsHigh || 0,
+        medium: metrics.threatsMedium || 0,
+        low: metrics.threatsLow || 0,
+      },
+      networks: {
+        total: metrics.totalNetworks || 0,
+        wifi: metrics.wifiCount || 0,
+        ble: metrics.bleCount || 0,
+        bluetooth: metrics.bluetoothCount || 0,
+        lte: metrics.lteCount || 0,
+      },
+      surveillance: metrics.activeSurveillance || 0,
+      enriched: metrics.enrichedCount || 0,
+      timestamp: metrics.lastUpdated,
     });
-  } catch (err) {
-    console.error('Dashboard summary error:', err);
-    res.status(500).json({
-      error: 'Failed to fetch dashboard summary',
-      details: err.message,
-    });
+  } catch (error) {
+    console.error('Dashboard metrics error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-module.exports = { router, initDashboardRoutes };
+router.get('/dashboard/threats', async (req, res) => {
+  try {
+    if (!dashboardService) {
+      return res.status(500).json({ error: 'Dashboard service not initialized' });
+    }
+    const threats = await dashboardService.getThreats();
+    res.json({
+      threats: threats || [],
+      total: threats.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Dashboard threats error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/dashboard/summary', async (req, res) => {
+  try {
+    if (!dashboardService) {
+      return res.status(500).json({ error: 'Dashboard service not initialized' });
+    }
+    const metrics = await dashboardService.getMetrics();
+    const totalThreats =
+      (metrics.threatsCritical || 0) +
+      (metrics.threatsHigh || 0) +
+      (metrics.threatsMedium || 0) +
+      (metrics.threatsLow || 0);
+    res.json({
+      summary: {
+        totalNetworks: metrics.totalNetworks || 0,
+        totalThreats: totalThreats,
+        criticalThreats: metrics.threatsCritical || 0,
+        activeSurveillance: metrics.activeSurveillance || 0,
+      },
+      timestamp: metrics.lastUpdated,
+    });
+  } catch (error) {
+    console.error('Dashboard summary error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = {
+  router,
+  initDashboardRoutes,
+};

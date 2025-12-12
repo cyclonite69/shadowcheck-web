@@ -9,10 +9,12 @@ Added Kepler.gl visualization support to ShadowCheck for advanced geospatial ana
 ### 1. API Endpoint: `/api/kepler/data`
 
 **Parameters:**
+
 - `limit` (optional): Max number of networks to return (default: 10,000)
 - `bbox` (optional): Bounding box filter as `minLng,minLat,maxLng,maxLat`
 
 **Response:** GeoJSON FeatureCollection with network properties:
+
 - `bssid`, `ssid`, `threat_score`, `observation_count`
 - `first_seen`, `last_seen`
 - Point geometry from PostGIS
@@ -20,6 +22,7 @@ Added Kepler.gl visualization support to ShadowCheck for advanced geospatial ana
 ### 2. Test Page: `/kepler-test.html`
 
 Simple Kepler.gl implementation that:
+
 - Loads network data from the API
 - Uses existing Mapbox token configuration
 - Displays all networks as interactive points

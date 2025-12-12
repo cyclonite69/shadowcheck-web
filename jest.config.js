@@ -3,14 +3,10 @@ module.exports = {
   testEnvironment: 'node',
 
   // Test match patterns
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/__tests__/**/*.test.js',
-    '**/?(*.)+(spec|test).js',
-  ],
+  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js'],
 
   // Coverage configuration
-  collectCoverage: false,  // Enable with --coverage flag
+  collectCoverage: false, // Enable with --coverage flag
   collectCoverageFrom: [
     'src/**/*.js',
     'server.js',
@@ -32,13 +28,7 @@ module.exports = {
   },
 
   // Coverage reporters
-  coverageReporters: [
-    'text',
-    'text-summary',
-    'html',
-    'lcov',
-    'json',
-  ],
+  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json'],
 
   // Coverage directory
   coverageDirectory: 'coverage',
@@ -61,11 +51,7 @@ module.exports = {
   testTimeout: 10000,
 
   // Ignore patterns
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/data/',
-    '/docs/',
-  ],
+  testPathIgnorePatterns: ['/node_modules/', '/data/', '/docs/'],
 
   // Transform
   transform: {},

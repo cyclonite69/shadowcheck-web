@@ -71,8 +71,9 @@ function initContainer() {
   container.registerFactory('networkRepository', () => new NetworkRepository());
 
   // Register services
-  container.registerFactory('dashboardService', (c) =>
-    new DashboardService(c.get('networkRepository'))
+  container.registerFactory(
+    'dashboardService',
+    (c) => new DashboardService(c.get('networkRepository'))
   );
 
   return container;

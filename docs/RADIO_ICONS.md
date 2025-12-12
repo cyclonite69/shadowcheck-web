@@ -6,28 +6,28 @@ Centralized icon component for displaying radio types consistently across all pa
 
 ```javascript
 // Basic usage - returns HTML string
-getRadioIcon('wifi')  // Returns: <span>📶 WiFi</span>
+getRadioIcon('wifi'); // Returns: <span>📶 WiFi</span>
 
 // With options
-getRadioIcon('bluetooth', { size: 'md', showLabel: true })
-getRadioIcon('lte', { size: 'lg', showLabel: false })
+getRadioIcon('bluetooth', { size: 'md', showLabel: true });
+getRadioIcon('lte', { size: 'lg', showLabel: false });
 
 // Using RadioIcons object directly
-RadioIcons.getIcon('ble')
-RadioIcons.getSymbol('gsm')  // Returns just the emoji
-RadioIcons.getLabel('5g')    // Returns just the text
+RadioIcons.getIcon('ble');
+RadioIcons.getSymbol('gsm'); // Returns just the emoji
+RadioIcons.getLabel('5g'); // Returns just the text
 ```
 
 ## Supported Types
 
-| Type | Symbol | Label | Color |
-|------|--------|-------|-------|
-| wifi | 📶 | WiFi | Blue |
-| bluetooth | 🔵 | BT | Blue |
-| ble | 💠 | BLE | Dark Blue |
-| lte | 📱 | LTE | Purple |
-| gsm | 📞 | GSM | Purple |
-| nr / 5g | 5️⃣ | 5G | Magenta |
+| Type      | Symbol | Label | Color     |
+| --------- | ------ | ----- | --------- |
+| wifi      | 📶     | WiFi  | Blue      |
+| bluetooth | 🔵     | BT    | Blue      |
+| ble       | 💠     | BLE   | Dark Blue |
+| lte       | 📱     | LTE   | Purple    |
+| gsm       | 📞     | GSM   | Purple    |
+| nr / 5g   | 5️⃣     | 5G    | Magenta   |
 
 ## Options
 
@@ -60,6 +60,7 @@ row.innerHTML = `
 ## Migration
 
 Old inline badges have been replaced with centralized `getRadioIcon()` calls across:
+
 - surveillance.html (3 lists)
 - networks.html
 - geospatial.html

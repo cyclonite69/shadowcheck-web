@@ -21,6 +21,7 @@ Comprehensive UI/UX refinements implemented across Dashboard and Surveillance pa
 **Solution Implemented:**
 
 #### CSS Changes
+
 - **Fixed height:** 120px (previously variable based on content)
 - **Padding:** 20px internal (previously 24px via Tailwind p-6)
 - **Border styling:** Added 4px left border accent with color coding
@@ -30,34 +31,37 @@ Comprehensive UI/UX refinements implemented across Dashboard and Surveillance pa
   - Values: 36px, font-weight 700
 
 #### Color-Coded Accents
+
 - **Total Networks (Blue):** #3b82f6 border, rgba(59, 130, 246, 0.1) background
 - **Threats Detected (Red):** #ef4444 border, rgba(239, 68, 68, 0.1) background
 - **Active Surveillance (Yellow):** #eab308 border, rgba(234, 179, 8, 0.1) background
 - **Data Enriched (Purple):** #8b5cf6 border, rgba(139, 92, 246, 0.1) background
 
 #### Before vs After
+
 ```html
 <!-- BEFORE -->
 <div class="metric-card p-6 rounded-xl">
-    <div class="flex items-center justify-between">
-        <div>
-            <p class="text-gray-400 text-sm mb-1">Total Networks</p>
-            <p class="text-2xl font-bold text-white" id="total-networks">0</p>
-        </div>
-        <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg...">
-            <i class="fas fa-wifi..."></i>
-        </div>
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-gray-400 text-sm mb-1">Total Networks</p>
+      <p class="text-2xl font-bold text-white" id="total-networks">0</p>
     </div>
+    <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg...">
+      <i class="fas fa-wifi..."></i>
+    </div>
+  </div>
 </div>
 
 <!-- AFTER -->
 <div class="metric-card blue">
-    <div class="metric-label">Total Networks</div>
-    <div class="metric-value" id="total-networks">0</div>
+  <div class="metric-label">Total Networks</div>
+  <div class="metric-value" id="total-networks">0</div>
 </div>
 ```
 
 #### Result
+
 - All 4 cards now have uniform 120px height
 - Consistent 16px gap between cards
 - Color-coded left borders for instant visual recognition
@@ -84,22 +88,24 @@ Comprehensive UI/UX refinements implemented across Dashboard and Surveillance pa
 **Solution:**
 
 #### CSS Implementation
+
 ```css
 .threat-lists-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Equal 1/3 width each */
-    gap: 12px;
-    min-height: 400px;
-    flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Equal 1/3 width each */
+  gap: 12px;
+  min-height: 400px;
+  flex: 1;
 }
 
 .threat-lists-container > .panel {
-    min-height: 400px;
-    max-height: 400px; /* Fixed 400px height */
+  min-height: 400px;
+  max-height: 400px; /* Fixed 400px height */
 }
 ```
 
 #### Result
+
 - All 3 cards maintain identical 400px height
 - Equal 1/3 container width distribution
 - Internal scrolling prevents height changes
@@ -114,30 +120,32 @@ Comprehensive UI/UX refinements implemented across Dashboard and Surveillance pa
 **Solution:**
 
 #### State-Based CSS Classes
+
 ```css
 .threat-row {
-    /* Default (Investigate) state - Gray */
-    border-left: 4px solid #666666;
-    background: transparent;
-    border: 1px solid rgba(148, 163, 184, 0.3);
+  /* Default (Investigate) state - Gray */
+  border-left: 4px solid #666666;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .threat-row.status-threat {
-    /* Confirmed Threat - RED */
-    border-left: 4px solid #E63946;
-    background: rgba(230, 57, 70, 0.08);
-    border-color: rgba(230, 57, 70, 0.3);
+  /* Confirmed Threat - RED */
+  border-left: 4px solid #e63946;
+  background: rgba(230, 57, 70, 0.08);
+  border-color: rgba(230, 57, 70, 0.3);
 }
 
 .threat-row.status-safe {
-    /* Tagged Safe - BLUE */
-    border-left: 4px solid #457B9D;
-    background: rgba(69, 123, 157, 0.08);
-    border-color: rgba(69, 123, 157, 0.3);
+  /* Tagged Safe - BLUE */
+  border-left: 4px solid #457b9d;
+  background: rgba(69, 123, 157, 0.08);
+  border-color: rgba(69, 123, 157, 0.3);
 }
 ```
 
 #### Implementation Pattern
+
 ```javascript
 // Investigate list (default gray)
 item.className = `threat-row ${severityClass}`;
@@ -150,6 +158,7 @@ item.className = 'threat-row status-safe';
 ```
 
 #### Result
+
 - **Gray/Neutral:** Investigate (undetermined) items
 - **Red Border + Tint:** Confirmed threat items
 - **Blue Border + Tint:** Safe/false positive items
@@ -165,24 +174,27 @@ item.className = 'threat-row status-safe';
 **Solution:**
 
 #### Fixed Height CSS
+
 ```css
 .threat-row {
-    min-height: 80px;
-    max-height: 80px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    overflow: hidden; /* Truncate overflow content */
+  min-height: 80px;
+  max-height: 80px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden; /* Truncate overflow content */
 }
 ```
 
 #### Text Truncation
+
 - SSID names truncate with ellipsis if too long
 - Content vertically centered within fixed 80px height
 - Badges positioned absolutely to avoid reflow
 - Flexbox ensures consistent spacing
 
 #### Result
+
 - All threat items maintain exact 80px height
 - No layout shifts when badges appear
 - Scrolling is smooth and predictable
@@ -197,79 +209,85 @@ item.className = 'threat-row status-safe';
 #### State Management Rules
 
 **Rule 1: Exclusive Placement**
+
 - Same threat CANNOT appear in multiple cards simultaneously
 - Tagging removes from current card immediately
 - 300ms delay before reloading destination card
 
 **Rule 2: Default State (Investigate)**
+
 - All new threats load here initially
 - Gray border (neutral state)
 - Shows Safe, Threat, Map buttons
 
 **Rule 3: Mark as Threat**
+
 - Removes from Investigate card
 - Adds to Confirmed Threats card with RED styling
 - Cannot also appear in Tagged Safe
 
 **Rule 4: Mark as Safe**
+
 - Removes from Investigate card
 - Adds to Tagged Safe card with BLUE styling
 - Cannot also appear in Confirmed Threats
 
 #### Implementation
+
 ```javascript
 // Safe Button Handler (Investigate List)
 safeBtn.addEventListener('click', async (e) => {
-    const success = await tagNetwork(threat.bssid, 'FALSE_POSITIVE', 90);
-    if (success) {
-        console.log(`✓ Moved ${threat.bssid} to Tagged Safe`);
-        item.remove(); // Remove from Investigate
+  const success = await tagNetwork(threat.bssid, 'FALSE_POSITIVE', 90);
+  if (success) {
+    console.log(`✓ Moved ${threat.bssid} to Tagged Safe`);
+    item.remove(); // Remove from Investigate
 
-        // Update count
-        const countEl = document.getElementById('threat-list-count');
-        const currentCount = parseInt(countEl.textContent) || 0;
-        countEl.textContent = Math.max(0, currentCount - 1);
+    // Update count
+    const countEl = document.getElementById('threat-list-count');
+    const currentCount = parseInt(countEl.textContent) || 0;
+    countEl.textContent = Math.max(0, currentCount - 1);
 
-        // Reload Tagged Safe list (with BLUE styling)
-        setTimeout(() => loadTaggedSafe(), 300);
-    }
+    // Reload Tagged Safe list (with BLUE styling)
+    setTimeout(() => loadTaggedSafe(), 300);
+  }
 });
 
 // Threat Button Handler (Investigate List)
 threatBtn.addEventListener('click', async (e) => {
-    const success = await tagNetwork(threat.bssid, 'THREAT', 90);
-    if (success) {
-        console.log(`✓ Moved ${threat.bssid} to Confirmed Threats`);
-        item.remove(); // Remove from Investigate
+  const success = await tagNetwork(threat.bssid, 'THREAT', 90);
+  if (success) {
+    console.log(`✓ Moved ${threat.bssid} to Confirmed Threats`);
+    item.remove(); // Remove from Investigate
 
-        // Update count
-        const countEl = document.getElementById('threat-list-count');
-        const currentCount = parseInt(countEl.textContent) || 0;
-        countEl.textContent = Math.max(0, currentCount - 1);
+    // Update count
+    const countEl = document.getElementById('threat-list-count');
+    const currentCount = parseInt(countEl.textContent) || 0;
+    countEl.textContent = Math.max(0, currentCount - 1);
 
-        // Reload Confirmed Threats list (with RED styling)
-        setTimeout(() => loadConfirmedThreats(), 300);
-    }
+    // Reload Confirmed Threats list (with RED styling)
+    setTimeout(() => loadConfirmedThreats(), 300);
+  }
 });
 
 // Untag Button Handler (Confirmed Threats / Tagged Safe)
 untagBtn.addEventListener('click', async (e) => {
-    const success = await untagNetwork(network.bssid);
-    if (success) {
-        item.remove(); // Remove from current list
+  const success = await untagNetwork(network.bssid);
+  if (success) {
+    item.remove(); // Remove from current list
 
-        // Update count
-        const countEl = document.getElementById('confirmed-threats-count'); // or 'tagged-safe-count'
-        const currentCount = parseInt(countEl.textContent) || 0;
-        countEl.textContent = Math.max(0, currentCount - 1);
+    // Update count
+    const countEl = document.getElementById('confirmed-threats-count'); // or 'tagged-safe-count'
+    const currentCount = parseInt(countEl.textContent) || 0;
+    countEl.textContent = Math.max(0, currentCount - 1);
 
-        // Reload Investigate list after 300ms
-        setTimeout(() => loadThreatList(), 300);
-    }
+    // Reload Investigate list after 300ms
+    setTimeout(() => loadThreatList(), 300);
+  }
 });
 ```
 
 #### Flow Diagram
+
 ```
 ┌─────────────────┐
 │   Investigate   │  (Gray - Default)
@@ -303,6 +321,7 @@ untagBtn.addEventListener('click', async (e) => {
 ```
 
 #### Result
+
 - Click "Threat" on Investigate → Moves to Confirmed Threats (red)
 - Click "Safe" on Investigate → Moves to Tagged Safe (blue)
 - Click "Untag" on Confirmed/Safe → Returns to Investigate (gray)
@@ -319,11 +338,13 @@ untagBtn.addEventListener('click', async (e) => {
 **Solution:**
 
 #### Color Specifications
+
 - **Safe Button:** Blue (#457B9D) - matches Tagged Safe card
 - **Threat Button:** Red (#E63946) - matches Confirmed Threats card
 - **Map Button:** Neutral gray (#cbd5e1) - secondary action
 
 #### Implementation
+
 ```javascript
 // Safe Button (Blue Theme)
 <button class="tag-safe-btn" style="
@@ -375,12 +396,14 @@ untagBtn.addEventListener('click', async (e) => {
 ```
 
 #### Button States
+
 - **Normal:** Translucent background, colored border and text
 - **Hover:** 0.2s transition (via CSS)
 - **Disabled:** opacity: 0.5, cursor: not-allowed
 - **Same Size:** All buttons 6px 12px padding, 10px font
 
 #### Result
+
 - Safe button visually matches blue Tagged Safe cards
 - Threat button visually matches red Confirmed Threats cards
 - Map button neutral (doesn't imply state change)
@@ -430,22 +453,26 @@ untagBtn.addEventListener('click', async (e) => {
 ## Color Reference
 
 ### Dashboard Metrics
+
 - **Blue (Total Networks):** #3b82f6 / rgba(59, 130, 246, 0.1)
 - **Red (Threats):** #ef4444 / rgba(239, 68, 68, 0.1)
 - **Yellow (Surveillance):** #eab308 / rgba(234, 179, 8, 0.1)
 - **Purple (Enriched):** #8b5cf6 / rgba(139, 92, 246, 0.1)
 
 ### Threat States
+
 - **Investigate (Gray):** #666666 / transparent background
 - **Threat (Red):** #E63946 / rgba(230, 57, 70, 0.08)
 - **Safe (Blue):** #457B9D / rgba(69, 123, 157, 0.08)
 
 ### Buttons
+
 - **Safe Button:** #457B9D / rgba(69, 123, 157, 0.2)
 - **Threat Button:** #E63946 / rgba(230, 57, 70, 0.2)
 - **Map Button:** #cbd5e1 / rgba(148, 163, 184, 0.2)
 
 ### Risk Levels (Surveillance Cards)
+
 - **Critical:** #ef4444 / rgba(239, 68, 68, 0.1)
 - **High:** #fb923c / rgba(251, 146, 60, 0.1)
 - **Medium:** #eab308 / rgba(234, 179, 8, 0.1)
@@ -456,10 +483,12 @@ untagBtn.addEventListener('click', async (e) => {
 ## Code Locations
 
 ### `public/index.html`
+
 - **Lines 34-105:** Metric card CSS (height, padding, color classes)
 - **Lines 344-364:** Metrics bar HTML (4 cards with new structure)
 
 ### `public/surveillance.html`
+
 - **Lines 392-420:** Threat row CSS (fixed height, state colors)
 - **Lines 287-298:** Threat cards container CSS (equal sizing)
 - **Lines 1307-1352:** Button HTML (Safe/Threat/Map styling)
@@ -473,16 +502,19 @@ untagBtn.addEventListener('click', async (e) => {
 ## Performance Impact
 
 ### Dashboard Page
+
 - **Before:** Variable card heights caused layout shifts
 - **After:** Fixed 120px heights, no reflows
 - **Impact:** +2ms initial render (negligible)
 
 ### Surveillance Page
+
 - **Before:** Lists reloaded independently
 - **After:** Coordinated reloads with 300ms delay
 - **Impact:** +300ms per state change (intentional, prevents race conditions)
 
 ### Memory Usage
+
 - **Before:** ~15KB DOM nodes
 - **After:** ~16KB DOM nodes (+6% due to state classes)
 - **Impact:** Negligible on modern browsers
@@ -492,12 +524,14 @@ untagBtn.addEventListener('click', async (e) => {
 ## Browser Compatibility
 
 ### Tested Browsers
+
 - Chrome 120+: ✅ Full support
 - Firefox 121+: ✅ Full support
 - Safari 17+: ✅ Full support
 - Edge 120+: ✅ Full support
 
 ### CSS Features Used
+
 - Flexbox (all browsers)
 - CSS Grid (all modern browsers)
 - backdrop-filter (Safari 9+, Chrome 76+)
@@ -546,6 +580,7 @@ untagBtn.addEventListener('click', async (e) => {
 ## Known Issues
 
 ### None Identified
+
 All tested scenarios pass successfully. No performance degradation or visual artifacts observed.
 
 ---
@@ -568,6 +603,7 @@ git checkout HEAD~1 public/index.html public/surveillance.html
 ```
 
 **Affected Sections:**
+
 - `index.html`: Lines 34-105 (CSS), 344-364 (HTML)
 - `surveillance.html`: Lines 287-420 (CSS), 1005-1432 (JavaScript)
 

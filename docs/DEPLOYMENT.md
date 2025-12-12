@@ -23,12 +23,14 @@ Production deployment guide for ShadowCheck-Static.
 ### Server Requirements
 
 **Minimum:**
+
 - CPU: 2 cores
 - RAM: 4 GB
 - Storage: 20 GB SSD
 - OS: Ubuntu 20.04+ / Debian 11+ / RHEL 8+
 
 **Recommended:**
+
 - CPU: 4 cores
 - RAM: 8 GB
 - Storage: 50 GB SSD
@@ -37,7 +39,7 @@ Production deployment guide for ShadowCheck-Static.
 ### Software Requirements
 
 - Docker 20.10+ and Docker Compose 2.0+
-- OR Node.js 18+ and PostgreSQL 18+
+- OR Node.js 20+ and PostgreSQL 18+
 - Nginx or Apache (for reverse proxy)
 - SSL certificate (Let's Encrypt recommended)
 
@@ -46,6 +48,7 @@ Production deployment guide for ShadowCheck-Static.
 ### 1. Docker Compose (Recommended)
 
 Best for:
+
 - Quick deployment
 - Easy scaling
 - Development/staging environments
@@ -53,6 +56,7 @@ Best for:
 ### 2. Traditional (Systemd)
 
 Best for:
+
 - Full control over services
 - Integration with existing infrastructure
 - Custom configurations
@@ -104,6 +108,7 @@ nano .env
 ```
 
 **Production `.env` example:**
+
 ```env
 # Database
 DB_USER=shadowcheck_user
@@ -186,6 +191,7 @@ sudo nano /etc/nginx/sites-available/shadowcheck
 ```
 
 **Nginx configuration:**
+
 ```nginx
 upstream shadowcheck_api {
     server localhost:3001;
@@ -263,6 +269,7 @@ server {
 ```
 
 Enable site:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/shadowcheck /etc/nginx/sites-enabled/
 sudo nginx -t
@@ -304,8 +311,8 @@ sudo ufw status
 ### 1. Install Dependencies
 
 ```bash
-# Install Node.js 18
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Install Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # Install PostgreSQL 18
@@ -361,6 +368,7 @@ sudo nano /etc/systemd/system/shadowcheck.service
 ```
 
 **Service file:**
+
 ```ini
 [Unit]
 Description=ShadowCheck SIGINT Forensics Platform
@@ -395,6 +403,7 @@ WantedBy=multi-user.target
 ```
 
 Enable and start:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable shadowcheck
@@ -438,11 +447,13 @@ sudo nano /etc/logrotate.d/shadowcheck
    - Enable automated backups
 
 2. **Create ECR Repository**
+
    ```bash
    aws ecr create-repository --repository-name shadowcheck-static
    ```
 
 3. **Build and Push Docker Image**
+
    ```bash
    # Login to ECR
    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin your-account-id.dkr.ecr.us-east-1.amazonaws.com
@@ -517,6 +528,7 @@ LOG_LEVEL=info
 ### Secrets Management
 
 **AWS Secrets Manager:**
+
 ```bash
 # Store secret
 aws secretsmanager create-secret \
@@ -529,6 +541,7 @@ const secretsManager = new AWS.SecretsManager();
 ```
 
 **Environment-based:**
+
 ```bash
 # Use system keyring (Linux)
 npm install keytar
@@ -582,6 +595,7 @@ pg_stat_statements.track = all
 ### Database Backup Strategy
 
 **Automated Backups:**
+
 ```bash
 #!/bin/bash
 # /opt/shadowcheck/backup.sh
@@ -604,6 +618,7 @@ find $BACKUP_DIR -name "*.dump.gz" -mtime +$KEEP_DAYS -delete
 ```
 
 Schedule with cron:
+
 ```bash
 # Daily at 2 AM
 0 2 * * * /opt/shadowcheck/backup.sh
@@ -639,15 +654,13 @@ ssl_trusted_certificate /etc/ssl/certs/chain.pem;
 ### Application Logging
 
 **Structured logging with Winston:**
+
 ```javascript
 const winston = require('winston');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/combined.log' }),
@@ -658,6 +671,7 @@ const logger = winston.createLogger({
 ### Health Monitoring
 
 **Create health endpoint:**
+
 ```javascript
 app.get('/health', async (req, res) => {
   try {
@@ -677,6 +691,7 @@ app.get('/health', async (req, res) => {
 ```
 
 **Monitoring with Uptime Kuma:**
+
 ```bash
 docker run -d --restart=always \
   -p 3002:3001 \
@@ -688,11 +703,13 @@ docker run -d --restart=always \
 ### Metrics with Prometheus
 
 **Install Prometheus client:**
+
 ```bash
 npm install prom-client
 ```
 
 **Add metrics endpoint:**
+
 ```javascript
 const client = require('prom-client');
 const register = new client.Registry();
@@ -743,16 +760,19 @@ rsync -avz $BACKUP_ROOT/ user@backup-server:/backups/shadowcheck/
 **Recovery steps:**
 
 1. **Restore Database**
+
    ```bash
    pg_restore -U shadowcheck_user -d shadowcheck backup.dump
    ```
 
 2. **Restore Application**
+
    ```bash
    tar -xzf app_backup.tar.gz -C /opt/shadowcheck/
    ```
 
 3. **Restore Configuration**
+
    ```bash
    cp env_backup /opt/shadowcheck/app/.env
    ```
@@ -817,6 +837,7 @@ VACUUM ANALYZE;
 ### Application Optimization
 
 **Enable Redis caching:**
+
 ```javascript
 const redis = require('redis');
 const client = redis.createClient({
@@ -837,6 +858,7 @@ await client.setex(cacheKey, 300, JSON.stringify(metrics));
 ```
 
 **Enable compression:**
+
 ```javascript
 const compression = require('compression');
 app.use(compression());

@@ -109,8 +109,8 @@
 
     // Fetch and inject icon sprite
     fetch('/assets/icons/icons.svg')
-      .then(response => response.text())
-      .then(svg => {
+      .then((response) => response.text())
+      .then((svg) => {
         // Create temporary container to parse HTML
         const temp = document.createElement('div');
         temp.innerHTML = svg;
@@ -128,7 +128,7 @@
           }
         }
       })
-      .catch(err => console.error('Failed to load icon sprite:', err));
+      .catch((err) => console.error('Failed to load icon sprite:', err));
   }
 
   /**
@@ -151,6 +151,6 @@
   // Export for manual use if needed
   window.TopNav = {
     render: injectTopNav,
-    getHTML: getTopNavHTML
+    getHTML: getTopNavHTML,
   };
 })();

@@ -9,11 +9,15 @@ const DashboardService = require('../../src/services/dashboardService');
 // Mock secretsManager
 jest.mock('../../src/services/secretsManager', () => ({
   get: jest.fn((key) => {
-    if (key === 'db_password') {return 'test_password';}
+    if (key === 'db_password') {
+      return 'test_password';
+    }
     return null;
   }),
   getOrThrow: jest.fn((key) => {
-    if (key === 'db_password') {return 'test_password';}
+    if (key === 'db_password') {
+      return 'test_password';
+    }
     throw new Error(`Secret ${key} not found`);
   }),
   has: jest.fn((key) => key === 'db_password'),
@@ -92,9 +96,9 @@ describe('Dashboard API', () => {
     });
 
     it('should throw error on database failure', async () => {
-      jest.spyOn(networkRepository, 'getDashboardMetrics').mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      jest
+        .spyOn(networkRepository, 'getDashboardMetrics')
+        .mockRejectedValue(new Error('Database connection failed'));
 
       await expect(dashboardService.getMetrics()).rejects.toThrow(
         'Failed to fetch dashboard metrics'

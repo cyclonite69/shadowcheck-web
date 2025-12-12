@@ -17,7 +17,9 @@ const mockSecretsManager = {
   get: jest.fn((key) => {
     console.log(`[MOCK] secretsManager.get('${key}') called`);
     // Return null for api_key to disable auth in tests
-    if (key === 'api_key') {return null;}
+    if (key === 'api_key') {
+      return null;
+    }
     if (key === 'mapbox_token') {
       console.log('[MOCK] Returning pk.test-token');
       return 'pk.test-token';
@@ -25,7 +27,9 @@ const mockSecretsManager = {
     return null;
   }),
   getOrThrow: jest.fn((key) => {
-    if (key === 'mapbox_token') {return 'pk.test-token';}
+    if (key === 'mapbox_token') {
+      return 'pk.test-token';
+    }
     throw new Error(`Secret ${key} not found`);
   }),
   has: jest.fn((key) => key === 'mapbox_token'),
@@ -75,7 +79,6 @@ function createTestApp(routes) {
 }
 
 describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
-
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.API_KEY = 'test-api-key';
@@ -101,20 +104,20 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test('should return paginated networks list', async () => {
       query
         .mockResolvedValueOnce({ rows: [{ lon: -122.4, lat: 37.8 }] }) // home location
-        .mockResolvedValueOnce({ rows: [
-          {
-            unified_id: 1,
-            ssid: 'TestNetwork',
-            bssid: 'AA:BB:CC:DD:EE:FF',
-            type: 'W',
-            security: 'WPA2-P',
-            total_networks_count: 1,
-          },
-        ] });
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              unified_id: 1,
+              ssid: 'TestNetwork',
+              bssid: 'AA:BB:CC:DD:EE:FF',
+              type: 'W',
+              security: 'WPA2-P',
+              total_networks_count: 1,
+            },
+          ],
+        });
 
-      const response = await request(app)
-        .get('/api/networks')
-        .query({ page: 1, limit: 50 });
+      const response = await request(app).get('/api/networks').query({ page: 1, limit: 50 });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('networks');
@@ -125,62 +128,50 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should reject invalid page parameter', async () => {
-      const response = await request(app)
-        .get('/api/networks')
-        .query({ page: -1, limit: 50 });
+      const response = await request(app).get('/api/networks').query({ page: -1, limit: 50 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid page parameter');
     });
 
     test('should reject invalid limit parameter', async () => {
-      const response = await request(app)
-        .get('/api/networks')
-        .query({ page: 1, limit: 10000 });
+      const response = await request(app).get('/api/networks').query({ page: 1, limit: 10000 });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid limit parameter');
     });
 
     test('🔒 SQL INJECTION: should reject malicious sort parameter', async () => {
-      const response = await request(app)
-        .get('/api/networks')
-        .query({
-          page: 1,
-          limit: 50,
-          sort: 'id; DROP TABLE networks; --',
-        });
+      const response = await request(app).get('/api/networks').query({
+        page: 1,
+        limit: 50,
+        sort: 'id; DROP TABLE networks; --',
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid sort column');
     });
 
     test('🔒 SQL INJECTION: should validate sort column whitelist', async () => {
-      const response = await request(app)
-        .get('/api/networks')
-        .query({
-          page: 1,
-          limit: 50,
-          sort: 'malicious_column',
-        });
+      const response = await request(app).get('/api/networks').query({
+        page: 1,
+        limit: 50,
+        sort: 'malicious_column',
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid sort column');
     });
 
     test('should accept valid sort parameters', async () => {
-      query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/networks')
-        .query({
-          page: 1,
-          limit: 50,
-          sort: 'lastSeen',
-          order: 'DESC',
-        });
+      const response = await request(app).get('/api/networks').query({
+        page: 1,
+        limit: 50,
+        sort: 'lastSeen',
+        order: 'DESC',
+      });
 
       expect(response.status).toBe(200);
     });
@@ -194,12 +185,11 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should search networks by SSID', async () => {
-      query.mockResolvedValue({ rows: [
-        { unified_id: 1, ssid: 'TestNetwork', bssid: 'AA:BB:CC:DD:EE:FF' },
-      ] });
+      query.mockResolvedValue({
+        rows: [{ unified_id: 1, ssid: 'TestNetwork', bssid: 'AA:BB:CC:DD:EE:FF' }],
+      });
 
-      const response = await request(app)
-        .get('/api/networks/search/TestNetwork');
+      const response = await request(app).get('/api/networks/search/TestNetwork');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -211,7 +201,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
       query.mockResolvedValue({ rows: [] });
 
       // Use encodeURIComponent to properly encode the % in the URL
-      const response = await request(app).get(`/api/networks/search/${encodeURIComponent('test%')}`);
+      const response = await request(app).get(
+        `/api/networks/search/${encodeURIComponent('test%')}`
+      );
 
       expect(response.status).toBe(200);
       expect(query).toHaveBeenCalled();
@@ -237,8 +229,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test('should handle empty SSID gracefully', async () => {
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/networks/search/test');
+      const response = await request(app).get('/api/networks/search/test');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -256,13 +247,11 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
       // Mock query in case auth fails to reject (shouldn't be called)
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app)
-        .post('/api/tag-network')
-        .send({
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          tag_type: 'THREAT',
-          confidence: 90,
-        });
+      const response = await request(app).post('/api/tag-network').send({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        tag_type: 'THREAT',
+        confidence: 90,
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('Unauthorized');
@@ -338,14 +327,11 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should return observations for network', async () => {
-      query
-        .mockResolvedValueOnce({ rows: [{ lon: -122.4, lat: 37.8 }] })
-        .mockResolvedValueOnce({ rows: [
-          { id: 1, bssid: 'AA:BB:CC:DD:EE:FF', lat: 37.8, lon: -122.4 },
-        ] });
+      query.mockResolvedValueOnce({ rows: [{ lon: -122.4, lat: 37.8 }] }).mockResolvedValueOnce({
+        rows: [{ id: 1, bssid: 'AA:BB:CC:DD:EE:FF', lat: 37.8, lon: -122.4 }],
+      });
 
-      const response = await request(app)
-        .get('/api/networks/observations/AA:BB:CC:DD:EE:FF');
+      const response = await request(app).get('/api/networks/observations/AA:BB:CC:DD:EE:FF');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -366,19 +352,19 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should return quick threat detection results', async () => {
-      query.mockResolvedValue({ rows: [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'SuspiciousNetwork',
-          observations: 50,
-          threat_score: 75,
-          total_count: 1,
-        },
-      ] });
+      query.mockResolvedValue({
+        rows: [
+          {
+            bssid: 'AA:BB:CC:DD:EE:FF',
+            ssid: 'SuspiciousNetwork',
+            observations: 50,
+            threat_score: 75,
+            total_count: 1,
+          },
+        ],
+      });
 
-      const response = await request(app)
-        .get('/api/threats/quick')
-        .query({ page: 1, limit: 50 });
+      const response = await request(app).get('/api/threats/quick').query({ page: 1, limit: 50 });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('threats');
@@ -389,9 +375,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test('should handle pagination', async () => {
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/threats/quick')
-        .query({ page: 2, limit: 25 });
+      const response = await request(app).get('/api/threats/quick').query({ page: 2, limit: 25 });
 
       expect(response.status).toBe(200);
       expect(response.body.page).toBe(2);
@@ -407,27 +391,28 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should return detailed threat analysis', async () => {
-      query.mockResolvedValue({ rows: [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'Tracker',
-          type: 'W',
-          total_observations: 100,
-          threat_score: 85,
-          threat_type: 'Mobile Tracking Device',
-          confidence: 0.9,
-          seen_at_home: true,
-          seen_away_from_home: true,
-          max_distance_between_obs_km: 5.2,
-          observation_timespan_ms: 86400000,
-          unique_days_observed: 7,
-          max_speed_kmh: 60,
-          distances_from_home_km: [0.1, 1.5, 3.2],
-        },
-      ] });
+      query.mockResolvedValue({
+        rows: [
+          {
+            bssid: 'AA:BB:CC:DD:EE:FF',
+            ssid: 'Tracker',
+            type: 'W',
+            total_observations: 100,
+            threat_score: 85,
+            threat_type: 'Mobile Tracking Device',
+            confidence: 0.9,
+            seen_at_home: true,
+            seen_away_from_home: true,
+            max_distance_between_obs_km: 5.2,
+            observation_timespan_ms: 86400000,
+            unique_days_observed: 7,
+            max_speed_kmh: 60,
+            distances_from_home_km: [0.1, 1.5, 3.2],
+          },
+        ],
+      });
 
-      const response = await request(app)
-        .get('/api/threats/detect');
+      const response = await request(app).get('/api/threats/detect');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -456,12 +441,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should return WiGLE data for network', async () => {
-      query.mockResolvedValue({ rows: [
-        { netid: 'AA:BB:CC:DD:EE:FF', ssid: 'Test', type: 'W' },
-      ] });
+      query.mockResolvedValue({ rows: [{ netid: 'AA:BB:CC:DD:EE:FF', ssid: 'Test', type: 'W' }] });
 
-      const response = await request(app)
-        .get('/api/wigle/network/AA:BB:CC:DD:EE:FF');
+      const response = await request(app).get('/api/wigle/network/AA:BB:CC:DD:EE:FF');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -471,8 +453,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test('should return 404 for non-existent network', async () => {
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/wigle/network/FF:FF:FF:FF:FF:FF');
+      const response = await request(app).get('/api/wigle/network/FF:FF:FF:FF:FF:FF');
 
       expect(response.status).toBe(404);
       expect(response.body.error).toContain('not found');
@@ -487,13 +468,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should search by SSID', async () => {
-      query.mockResolvedValue({ rows: [
-        { netid: 'AA:BB:CC:DD:EE:FF', ssid: 'TestNetwork' },
-      ] });
+      query.mockResolvedValue({ rows: [{ netid: 'AA:BB:CC:DD:EE:FF', ssid: 'TestNetwork' }] });
 
-      const response = await request(app)
-        .get('/api/wigle/search')
-        .query({ ssid: 'TestNetwork' });
+      const response = await request(app).get('/api/wigle/search').query({ ssid: 'TestNetwork' });
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -503,17 +480,14 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test('should search by BSSID', async () => {
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/wigle/search')
-        .query({ bssid: 'AA:BB:CC' });
+      const response = await request(app).get('/api/wigle/search').query({ bssid: 'AA:BB:CC' });
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
     });
 
     test('should require ssid or bssid parameter', async () => {
-      const response = await request(app)
-        .get('/api/wigle/search');
+      const response = await request(app).get('/api/wigle/search');
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Either ssid or bssid parameter is required');
@@ -532,9 +506,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should check for duplicate observations', async () => {
-      query.mockResolvedValue({ rows: [
-        { total_observations: 15, unique_networks: 10, isSuspicious: true },
-      ] });
+      query.mockResolvedValue({
+        rows: [{ total_observations: 15, unique_networks: 10, isSuspicious: true }],
+      });
 
       const response = await request(app)
         .get('/api/observations/check-duplicates/AA:BB:CC:DD:EE:FF')
@@ -546,8 +520,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should require time parameter', async () => {
-      const response = await request(app)
-        .get('/api/observations/check-duplicates/AA:BB:CC:DD:EE:FF');
+      const response = await request(app).get(
+        '/api/observations/check-duplicates/AA:BB:CC:DD:EE:FF'
+      );
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('time parameter required');
@@ -567,8 +542,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
         .mockResolvedValueOnce({ rowCount: 50 })
         .mockResolvedValueOnce({ rows: [{ total: 950 }] });
 
-      const response = await request(app)
-        .post('/api/admin/cleanup-duplicates');
+      const response = await request(app).post('/api/admin/cleanup-duplicates');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -590,8 +564,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should return 503 if ML module not available', async () => {
-      const response = await request(app)
-        .post('/api/ml/train');
+      const response = await request(app).post('/api/ml/train');
 
       expect(response.status).toBe(503);
       expect(response.body.ok).toBe(false);
@@ -607,12 +580,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should return ML model status', async () => {
-      query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/ml/status');
+      const response = await request(app).get('/api/ml/status');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
@@ -634,9 +604,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test('should redirect to index.html', async () => {
-      const response = await request(app)
-        .get('/')
-        .redirects(0);
+      const response = await request(app).get('/').redirects(0);
 
       expect(response.status).toBe(302);
       expect(response.headers.location).toBe('/index.html');
@@ -651,8 +619,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     });
 
     test.skip('should return Mapbox token (skipped - mock not working)', async () => {
-      const response = await request(app)
-        .get('/api/mapbox-token');
+      const response = await request(app).get('/api/mapbox-token');
 
       if (response.status !== 200) {
         console.log('Response body:', response.body);
@@ -666,8 +633,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test('should return error if token not configured', async () => {
       delete process.env.MAPBOX_TOKEN;
 
-      const response = await request(app)
-        .get('/api/mapbox-token');
+      const response = await request(app).get('/api/mapbox-token');
 
       expect(response.status).toBe(500);
       expect(response.body.error).toContain('Mapbox token not configured');
@@ -679,17 +645,14 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('🔒 Security Verification - SQL Injection Fixes Preserved', () => {
-
     test('networks.js: ORDER BY validation works', async () => {
       const app = createTestApp(networksRoutes);
 
-      const response = await request(app)
-        .get('/api/networks')
-        .query({
-          page: 1,
-          limit: 50,
-          sort: 'id; DROP TABLE networks; --',
-        });
+      const response = await request(app).get('/api/networks').query({
+        page: 1,
+        limit: 50,
+        sort: 'id; DROP TABLE networks; --',
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toMatch(/Invalid sort column/i);
@@ -699,7 +662,9 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
       const app = createTestApp(networksRoutes);
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app).get(`/api/networks/search/${encodeURIComponent('test%_value')}`);
+      const response = await request(app).get(
+        `/api/networks/search/${encodeURIComponent('test%_value')}`
+      );
 
       expect(response.status).toBe(200);
       expect(query).toHaveBeenCalled();
@@ -711,7 +676,6 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('🔒 Authentication Verification', () => {
-
     test.skip('networks.js: POST /api/tag-network requires auth (skipped - no API key in test env)', async () => {
       const app = createTestApp(networksRoutes);
 
@@ -725,24 +689,18 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
     test.skip('networks.js: DELETE /api/tag-network/:bssid requires auth (skipped - no API key in test env)', async () => {
       const app = createTestApp(networksRoutes);
 
-      const response = await request(app)
-        .delete('/api/tag-network/AA:BB:CC:DD:EE:FF');
+      const response = await request(app).delete('/api/tag-network/AA:BB:CC:DD:EE:FF');
 
       expect(response.status).toBe(401);
     });
   });
 
   describe('✅ Response Format Verification', () => {
-
     test('networks.js: GET /api/networks returns correct format', async () => {
       const app = createTestApp(networksRoutes);
-      query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/networks')
-        .query({ page: 1, limit: 50 });
+      const response = await request(app).get('/api/networks').query({ page: 1, limit: 50 });
 
       expect(response.body).toHaveProperty('networks');
       expect(response.body).toHaveProperty('total');
@@ -755,8 +713,7 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
       const app = createTestApp(threatsRoutes);
       query.mockResolvedValue({ rows: [] });
 
-      const response = await request(app)
-        .get('/api/threats/quick');
+      const response = await request(app).get('/api/threats/quick');
 
       expect(response.body).toHaveProperty('threats');
       expect(response.body).toHaveProperty('total');

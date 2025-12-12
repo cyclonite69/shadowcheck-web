@@ -7,12 +7,14 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 ## Prerequisites
 
 ### Required Data
+
 1. **Home Location** - Must be set via Admin page or geospatial map
 2. **Minimum Observations** - At least 2 observations per network (configurable)
 3. **Time Window** - Default 30 days of observation data
 4. **Valid Timestamps** - Observations after Jan 1, 2000
 
 ### Database Requirements
+
 - `app.location_markers` table with home marker
 - `app.observations` table with GPS coordinates
 - `app.networks` table with network metadata
@@ -23,13 +25,15 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 ### Base Score Components (0-100 points)
 
 #### 1. Temporal Persistence (0-30 points)
+
 - **30 points**: Seen on 7+ unique days
-- **20 points**: Seen on 3-6 unique days  
+- **20 points**: Seen on 3-6 unique days
 - **10 points**: Seen on 2 unique days
 
 **Why**: Devices that persist over multiple days are more suspicious than one-time encounters.
 
 #### 2. Geographic Range (0-40 points)
+
 - **40 points**: Distance range > 1.0 km
 - **25 points**: Distance range 0.5-1.0 km
 - **0 points**: Distance range < 0.5 km
@@ -37,6 +41,7 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 **Why**: Devices that move with you over significant distances are likely tracking you.
 
 #### 3. Observation Frequency (0-20 points)
+
 - **20 points**: 50+ observations
 - **10 points**: 20-49 observations
 - **5 points**: 5-19 observations
@@ -44,6 +49,7 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 **Why**: More frequent detections indicate persistent proximity.
 
 #### 4. Location Diversity (0-15 points)
+
 - **15 points**: 10+ unique locations
 - **10 points**: 5-9 unique locations
 - **0 points**: < 5 unique locations
@@ -63,11 +69,13 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 ### Pattern Analysis (from `/api/threats/detect`)
 
 #### Home/Away Detection
+
 - **Seen at Home**: Within 100m of home location
 - **Seen Away**: More than 500m from home
 - **Critical Pattern**: Seen both at home AND away = likely tracking device
 
 #### Speed Analysis
+
 - Calculates maximum speed between observations
 - **> 100 km/h**: Vehicle tracker
 - **> 50 km/h**: Mobile device in vehicle
@@ -75,6 +83,7 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 - **< 20 km/h**: Stationary or slow movement
 
 #### Distance Tracking
+
 - Tracks distance from home for each observation
 - Identifies if device follows you to multiple locations
 - Calculates maximum distance between any two observations
@@ -110,11 +119,13 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 ## User Tagging System
 
 ### Tag Types
+
 - **THREAT**: User confirms as tracking device
 - **FALSE_POSITIVE**: User marks as safe (own device, neighbor, etc.)
 - **INVESTIGATE**: Flagged for further analysis
 
 ### Tag Effects
+
 - Tagged networks are excluded from active threat detection
 - User tags override ML scores
 - Confidence level (0-100) indicates certainty
@@ -122,18 +133,23 @@ ShadowCheck detects potential tracking/stalking devices by analyzing network beh
 ## API Endpoints
 
 ### Quick Threat Detection
+
 ```
 GET /api/threats/quick?page=1&limit=50
 ```
+
 Returns networks with threat score ≥ 40, excluding tagged networks.
 
 ### Detailed Threat Analysis
+
 ```
 GET /api/threats/detect
 ```
+
 Returns comprehensive threat analysis with patterns, speeds, and classifications.
 
 ### Tag Network
+
 ```
 POST /api/tag-network
 Body: { bssid, tag_type, confidence, notes }
@@ -142,12 +158,14 @@ Body: { bssid, tag_type, confidence, notes }
 ## False Positive Reduction
 
 ### Automatic Filtering
+
 - Cellular networks (LTE/GSM/5G) only flagged if range > 5 km
 - Networks with < 2 observations excluded
 - Networks with invalid timestamps excluded
 - User-tagged safe networks excluded
 
 ### Common False Positives
+
 - **Your own devices**: Phone, laptop, smartwatch
 - **Neighbor networks**: Stationary but seen frequently
 - **Work networks**: Seen daily but not tracking
@@ -167,15 +185,18 @@ Body: { bssid, tag_type, confidence, notes }
 ## Technical Details
 
 ### Database Query
+
 See `/src/api/routes/v1/threats.js` for full SQL implementation.
 
 ### Key Tables
+
 - `app.observations` - GPS coordinates and timestamps
 - `app.networks` - Network metadata (SSID, BSSID, type)
 - `app.location_markers` - Home location reference
 - `app.network_tags` - User classifications
 
 ### Performance
+
 - Queries limited to 30-day window
 - Pagination support (50 results per page)
 - Indexed on BSSID and observed_at for speed

@@ -22,12 +22,20 @@ router.get('/health', async (req, res) => {
 
   // 2. Secrets check
   const requiredSecrets = ['db_password', 'mapbox_token'];
-  const loadedCount = requiredSecrets.filter(s => secretsManager.has(s)).length;
+  const loadedCount = requiredSecrets.filter((s) => secretsManager.has(s)).length;
 
   if (loadedCount === requiredSecrets.length) {
-    checks.secrets = { status: 'ok', required_count: requiredSecrets.length, loaded_count: loadedCount };
+    checks.secrets = {
+      status: 'ok',
+      required_count: requiredSecrets.length,
+      loaded_count: loadedCount,
+    };
   } else {
-    checks.secrets = { status: 'error', required_count: requiredSecrets.length, loaded_count: loadedCount };
+    checks.secrets = {
+      status: 'error',
+      required_count: requiredSecrets.length,
+      loaded_count: loadedCount,
+    };
     overallStatus = 'unhealthy';
   }
 
@@ -37,7 +45,9 @@ router.get('/health', async (req, res) => {
     checks.keyring = { status: 'ok' };
   } catch (err) {
     checks.keyring = { status: 'degraded', error: 'Keyring not accessible' };
-    if (overallStatus === 'healthy') {overallStatus = 'degraded';}
+    if (overallStatus === 'healthy') {
+      overallStatus = 'degraded';
+    }
   }
 
   // 4. Memory check
@@ -47,8 +57,15 @@ router.get('/health', async (req, res) => {
   const heapPercent = (mem.heapUsed / mem.heapTotal) * 100;
 
   if (heapPercent > 80) {
-    checks.memory = { status: 'warning', heap_used_mb: heapUsedMB, heap_max_mb: heapMaxMB, percent: Math.round(heapPercent) };
-    if (overallStatus === 'healthy') {overallStatus = 'degraded';}
+    checks.memory = {
+      status: 'warning',
+      heap_used_mb: heapUsedMB,
+      heap_max_mb: heapMaxMB,
+      percent: Math.round(heapPercent),
+    };
+    if (overallStatus === 'healthy') {
+      overallStatus = 'degraded';
+    }
   } else {
     checks.memory = { status: 'ok', heap_used_mb: heapUsedMB, heap_max_mb: heapMaxMB };
   }

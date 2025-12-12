@@ -6,9 +6,7 @@
 const { escapeLikePattern } = require('../../src/utils/escapeSQL');
 
 describe('escapeLikePattern()', () => {
-
   describe('Normal input (no special characters)', () => {
-
     test('should not modify normal SSID', () => {
       expect(escapeLikePattern('Starbucks WiFi')).toBe('Starbucks WiFi');
     });
@@ -27,7 +25,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Wildcard character escaping', () => {
-
     test('should escape percent sign', () => {
       expect(escapeLikePattern('test%')).toBe('test\\%');
     });
@@ -54,7 +51,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Backslash escaping', () => {
-
     test('should escape backslash', () => {
       expect(escapeLikePattern('test\\value')).toBe('test\\\\value');
     });
@@ -73,7 +69,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Edge cases', () => {
-
     test('should return empty string for null', () => {
       expect(escapeLikePattern(null)).toBe('');
     });
@@ -104,7 +99,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Real-world SSID examples', () => {
-
     test('should handle SSID with percent in name', () => {
       expect(escapeLikePattern('100% WiFi')).toBe('100\\% WiFi');
     });
@@ -123,7 +117,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Security test cases', () => {
-
     test('should prevent wildcard injection attack', () => {
       // Attacker tries to match any SSID starting with "test"
       const maliciousInput = 'test%';
@@ -153,7 +146,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Integration with LIKE queries', () => {
-
     test('should create safe LIKE pattern for normal input', () => {
       const userInput = 'Starbucks';
       const escaped = escapeLikePattern(userInput);
@@ -185,7 +177,6 @@ describe('escapeLikePattern()', () => {
   });
 
   describe('Before/After behavior comparison', () => {
-
     test('BEFORE: "test%" would match "test", "test1", "testing"', () => {
       // Old behavior (vulnerable):
       const userInput = 'test%';

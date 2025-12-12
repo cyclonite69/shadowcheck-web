@@ -14,44 +14,44 @@ router.get('/wigle/live/:bssid', async (req, res, next) => {
     const { bssid } = req.params;
     const wigleApiName = secretsManager.get('wigle_api_name');
     const wigleApiToken = secretsManager.get('wigle_api_token');
-    
+
     if (!wigleApiName || !wigleApiToken) {
       return res.status(503).json({ error: 'WiGLE API credentials not configured' });
     }
 
     // Encode credentials as base64(apiname:apitoken) for Basic auth
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-    
+
     console.log(`[WiGLE] Querying for BSSID: ${bssid}`);
-    
+
     const response = await fetch(
       `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssid)}`,
       {
         headers: {
-          'Authorization': `Basic ${encodedAuth}`,
-          'Accept': 'application/json'
-        }
+          Authorization: `Basic ${encodedAuth}`,
+          Accept: 'application/json',
+        },
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[WiGLE] API error ${response.status}:`, errorText);
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'WiGLE API request failed',
         status: response.status,
-        details: errorText
+        details: errorText,
       });
     }
 
     const data = await response.json();
     console.log(`[WiGLE] Found ${data.resultCount || 0} results for ${bssid}`);
-    
+
     res.json({
       success: true,
       network: data.results && data.results.length > 0 ? data.results[0] : null,
       totalResults: data.resultCount || 0,
-      results: data.results || []
+      results: data.results || [],
     });
   } catch (err) {
     console.error('[WiGLE] Error:', err);
@@ -64,7 +64,8 @@ router.get('/wigle/network/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         bssid,
         ssid,
@@ -79,7 +80,9 @@ router.get('/wigle/network/:bssid', async (req, res, next) => {
       FROM app.wigle_networks_enriched
       WHERE bssid = $1
       LIMIT 1
-    `, [bssid]);
+    `,
+      [bssid]
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Network not found in WiGLE database' });

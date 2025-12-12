@@ -30,7 +30,7 @@ router.get('/geojson', requireAuth, async (req, res) => {
       LIMIT 10000
     `);
 
-    const features = result.rows.map(row => ({
+    const features = result.rows.map((row) => ({
       type: 'Feature',
       geometry: {
         type: 'Point',
@@ -51,7 +51,10 @@ router.get('/geojson', requireAuth, async (req, res) => {
     };
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="shadowcheck_export_${Date.now()}.geojson"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="shadowcheck_export_${Date.now()}.geojson"`
+    );
     res.json(geojson);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -73,7 +76,10 @@ router.get('/json', requireAuth, async (req, res) => {
     };
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="shadowcheck_export_${Date.now()}.json"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="shadowcheck_export_${Date.now()}.json"`
+    );
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -97,19 +103,32 @@ router.get('/csv', requireAuth, async (req, res) => {
       LIMIT 10000
     `);
 
-    const headers = ['bssid', 'latitude', 'longitude', 'signal_dbm', 'observed_at', 'source_type', 'radio_type'];
+    const headers = [
+      'bssid',
+      'latitude',
+      'longitude',
+      'signal_dbm',
+      'observed_at',
+      'source_type',
+      'radio_type',
+    ];
     const csv = [
       headers.join(','),
-      ...result.rows.map(row =>
-        headers.map(h => {
-          const val = row[h];
-          return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
-        }).join(',')
+      ...result.rows.map((row) =>
+        headers
+          .map((h) => {
+            const val = row[h];
+            return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+          })
+          .join(',')
       ),
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="shadowcheck_export_${Date.now()}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="shadowcheck_export_${Date.now()}.csv"`
+    );
     res.send(csv);
   } catch (error) {
     res.status(500).json({ error: error.message });

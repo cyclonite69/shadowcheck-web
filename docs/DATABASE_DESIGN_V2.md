@@ -1,14 +1,17 @@
 # ShadowCheck Database Design V2
+
 **PostgreSQL 18 + PostGIS 3.4 | SIGINT Forensics Platform**
 
 ## Design Principles
 
 ### 1. KISS (Keep It Simple, Stupid)
+
 - Normalized schema with clear relationships
 - Single source of truth for each data type
 - Avoid redundant storage unless for performance (MVs)
 
 ### 2. Multi-Source Import Strategy
+
 - **Primary Sources:**
   - WiGLE Wardriving App (CSV export)
   - WiGLE API v2 (JSON)
@@ -18,6 +21,7 @@
 - **Track provenance:** Every record knows its source and import timestamp
 
 ### 3. PostgreSQL 18 + PostGIS Best Practices
+
 - Use GEOGRAPHY for real-world distance calculations
 - Use GEOMETRY for spatial operations
 - Leverage GiST/SP-GiST indexes for spatial queries
@@ -27,6 +31,7 @@
 - Implement proper constraints and referential integrity
 
 ### 4. Naming Conventions
+
 - **Schemas:** `app` (application), `import` (staging), `analytics` (MVs/views)
 - **Tables:** snake_case, plural nouns (e.g., `networks`, `observations`)
 - **Columns:** snake_case, descriptive (e.g., `first_seen_at`, `signal_dbm`)
@@ -36,6 +41,7 @@
 - **Triggers:** `trg_{table}_{action}` (e.g., `trg_networks_update_timestamp`)
 
 ### 5. Performance Strategy
+
 - Offload computation to database (functions, triggers, MVs)
 - Use partial indexes for filtered queries
 - Implement covering indexes where beneficial
@@ -46,6 +52,7 @@
 ## Schema Organization
 
 ### Core Schemas
+
 ```sql
 app          -- Application tables (networks, devices, observations)
 import       -- Staging tables for ETL processes

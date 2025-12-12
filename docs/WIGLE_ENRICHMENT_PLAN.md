@@ -3,22 +3,27 @@
 ## Issues to Fix
 
 ### 1. ✅ Mapbox Map Not Rendering
+
 **Status:** Need to verify token is loaded from keyring
 **Fix:** Update geospatial.html to load token from `/api/mapbox-token` or keyring
 
 ### 2. ❌ No Threat Detection
+
 **Status:** Queries may be broken or no data matches criteria
 **Fix:** Review and update threat detection logic
 
 ### 3. ❌ WiGLE API Integration Missing
+
 **Status:** No enrichment workflow implemented
 **Fix:** Create WiGLE API client and enrichment pipeline
 
 ### 4. ❌ Network Selection for Enrichment
+
 **Status:** No UI for selecting networks
 **Fix:** Add checkboxes to networks table + bulk enrichment button
 
 ### 5. ❌ Deduplication Strategy
+
 **Status:** No merge logic for enriched data
 **Fix:** Implement upsert logic with conflict resolution
 
@@ -27,11 +32,12 @@
 ### Phase 1: Fix Immediate Issues (Priority 1)
 
 #### 1.1 Fix Mapbox Token Loading
+
 ```javascript
 // Update geospatial.html to load from keyring via API
 fetch('/api/settings/mapbox')
-  .then(r => r.json())
-  .then(data => {
+  .then((r) => r.json())
+  .then((data) => {
     if (data.token) {
       mapboxgl.accessToken = data.token;
       initMap();
@@ -40,6 +46,7 @@ fetch('/api/settings/mapbox')
 ```
 
 #### 1.2 Fix Threat Detection
+
 - Review current threat detection queries
 - Update to work with new schema (app.observations, app.networks)
 - Add proper indexes if missing
@@ -47,17 +54,19 @@ fetch('/api/settings/mapbox')
 ### Phase 2: WiGLE API Integration (Priority 2)
 
 #### 2.1 WiGLE API Client
+
 Create `/src/services/wigleService.js`:
+
 ```javascript
 class WiGLEService {
   async searchByBSSID(bssid) {
     // GET /api/v2/network/detail?netid={bssid}
   }
-  
+
   async searchBySSID(ssid) {
     // GET /api/v2/network/search?ssid={ssid}
   }
-  
+
   async searchByLocation(lat, lon, radius) {
     // GET /api/v2/network/search?latrange1={lat1}&latrange2={lat2}...
   }
@@ -65,6 +74,7 @@ class WiGLEService {
 ```
 
 #### 2.2 Enrichment Staging Table
+
 ```sql
 CREATE TABLE app.wigle_enrichment_staging (
     bssid TEXT PRIMARY KEY,
@@ -77,10 +87,11 @@ CREATE TABLE app.wigle_enrichment_staging (
 ```
 
 #### 2.3 Enrichment Merge Logic
+
 ```sql
 -- Merge enriched data into networks table
 UPDATE app.networks n
-SET 
+SET
     ssid = COALESCE(n.ssid, staging.wigle_data->>'ssid'),
     encryption = COALESCE(n.encryption, staging.wigle_data->>'encryption'),
     -- ... other fields
@@ -93,24 +104,25 @@ WHERE n.bssid = staging.bssid
 ### Phase 3: Network Selection UI (Priority 3)
 
 #### 3.1 Add Selection to Networks Table
+
 ```html
 <!-- Add to networks.html -->
-<input type="checkbox" class="network-select" data-bssid="{bssid}">
+<input type="checkbox" class="network-select" data-bssid="{bssid}" />
 ```
 
 #### 3.2 Bulk Enrichment Button
+
 ```html
-<button onclick="enrichSelected()">
-  Enrich Selected Networks (0)
-</button>
+<button onclick="enrichSelected()">Enrich Selected Networks (0)</button>
 ```
 
 #### 3.3 Enrichment API Endpoint
+
 ```javascript
 // POST /api/enrichment/bulk
 app.post('/api/enrichment/bulk', async (req, res) => {
   const { bssids } = req.body; // Array of BSSIDs
-  
+
   for (const bssid of bssids) {
     // 1. Query WiGLE API
     // 2. Store in staging table
@@ -122,6 +134,7 @@ app.post('/api/enrichment/bulk', async (req, res) => {
 ### Phase 4: Deduplication Strategy (Priority 4)
 
 #### 4.1 Conflict Resolution Rules
+
 ```javascript
 const mergeRules = {
   ssid: 'prefer_non_empty',
@@ -130,11 +143,12 @@ const mergeRules = {
   first_seen: 'prefer_earliest',
   last_seen: 'prefer_latest',
   latitude: 'prefer_more_accurate',
-  longitude: 'prefer_more_accurate'
+  longitude: 'prefer_more_accurate',
 };
 ```
 
 #### 4.2 Enrichment Tracking
+
 ```sql
 ALTER TABLE app.networks ADD COLUMN enrichment_sources TEXT[];
 ALTER TABLE app.networks ADD COLUMN last_enriched TIMESTAMP WITH TIME ZONE;
@@ -142,6 +156,7 @@ ALTER TABLE app.networks ADD COLUMN enrichment_count INTEGER DEFAULT 0;
 ```
 
 #### 4.3 Audit Trail
+
 ```sql
 CREATE TABLE app.enrichment_history (
     id BIGSERIAL PRIMARY KEY,
@@ -157,10 +172,13 @@ CREATE TABLE app.enrichment_history (
 ## WiGLE API v2 Endpoints
 
 ### Network Detail
+
 ```
 GET /api/v2/network/detail?netid={bssid}
 ```
+
 Returns:
+
 - SSID
 - Encryption
 - Channel
@@ -171,15 +189,19 @@ Returns:
 - Type
 
 ### Network Search
+
 ```
 GET /api/v2/network/search?ssid={ssid}&onlymine=false
 ```
+
 Returns array of networks matching criteria
 
 ### Location Search
+
 ```
 GET /api/v2/network/search?latrange1={lat1}&latrange2={lat2}&longrange1={lon1}&longrange2={lon2}
 ```
+
 Returns networks in bounding box
 
 ## Data Flow
@@ -207,6 +229,7 @@ Returns networks in bounding box
 ## Deduplication Strategy
 
 ### Scenario 1: New Data from WiGLE
+
 ```sql
 -- If network exists, merge fields
 -- If network doesn't exist, insert
@@ -220,6 +243,7 @@ ON CONFLICT (bssid) DO UPDATE SET
 ```
 
 ### Scenario 2: Conflicting Data
+
 ```javascript
 // Prefer more recent data
 if (staging.last_seen > existing.last_seen) {
@@ -238,12 +262,13 @@ if (staging.accuracy < existing.accuracy) {
 ```
 
 ### Scenario 3: Multiple Enrichment Sources
+
 ```sql
 -- Track all sources that contributed data
 enrichment_sources: ['wigle_app', 'wigle_api_v2', 'kismet']
 
 -- Query to see enrichment coverage
-SELECT 
+SELECT
   COUNT(*) as total,
   COUNT(CASE WHEN 'wigle_api_v2' = ANY(enrichment_sources) THEN 1 END) as wigle_enriched,
   COUNT(CASE WHEN enrichment_count > 0 THEN 1 END) as any_enrichment
@@ -278,10 +303,12 @@ FROM app.networks;
 ## Rate Limiting
 
 WiGLE API has rate limits:
+
 - Free tier: ~100 queries/day
 - Paid tier: Higher limits
 
 Strategy:
+
 - Queue enrichment requests
 - Process in batches
 - Cache results

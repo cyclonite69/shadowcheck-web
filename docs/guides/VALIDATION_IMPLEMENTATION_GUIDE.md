@@ -1,7 +1,9 @@
 # Input Validation Implementation Guide
 
 ## Overview
+
 This guide documents the comprehensive input validation system created for ShadowCheckStatic. It provides:
+
 - **Reusable validation functions** for all common parameter types
 - **Express middleware** for automatic validation
 - **Consistent error handling** across all endpoints
@@ -9,6 +11,7 @@ This guide documents the comprehensive input validation system created for Shado
 ## Quick Start
 
 ### 1. Import Validation Modules
+
 ```javascript
 const { validateBSSID, validatePagination, validateCoordinates } = require('../validation/schemas');
 const { paginationMiddleware, bssidParamMiddleware } = require('../validation/middleware');
@@ -17,6 +20,7 @@ const { paginationMiddleware, bssidParamMiddleware } = require('../validation/mi
 ### 2. Apply Middleware to Routes
 
 #### Simple Pagination Example
+
 ```javascript
 // Before fix
 app.get('/api/networks', async (req, res) => {
@@ -26,19 +30,20 @@ app.get('/api/networks', async (req, res) => {
 });
 
 // After fix - Using middleware
-app.get('/api/networks',
-  paginationMiddleware(5000),
-  async (req, res) => {
-    // req.pagination = { page, limit, offset }
-    const { rows } = await query(`
+app.get('/api/networks', paginationMiddleware(5000), async (req, res) => {
+  // req.pagination = { page, limit, offset }
+  const { rows } = await query(
+    `
       SELECT * FROM app.networks
       LIMIT $1 OFFSET $2
-    `, [req.pagination.limit, req.pagination.offset]);
-  }
-);
+    `,
+    [req.pagination.limit, req.pagination.offset]
+  );
+});
 ```
 
 #### Validating Path Parameters
+
 ```javascript
 // Before fix - Manual validation in route
 app.delete('/api/tag-network/:bssid', (req, res) => {
@@ -50,21 +55,16 @@ app.delete('/api/tag-network/:bssid', (req, res) => {
 });
 
 // After fix - Using middleware
-app.delete('/api/tag-network/:bssid',
-  bssidParamMiddleware,
-  async (req, res) => {
-    // req.params.bssid is already validated and sanitized
-    const result = await query(
-      'DELETE FROM app.network_tags WHERE bssid = $1',
-      [req.params.bssid]
-    );
-  }
-);
+app.delete('/api/tag-network/:bssid', bssidParamMiddleware, async (req, res) => {
+  // req.params.bssid is already validated and sanitized
+  const result = await query('DELETE FROM app.network_tags WHERE bssid = $1', [req.params.bssid]);
+});
 ```
 
 ## Validation Schemas API
 
 ### BSSID Validation
+
 ```javascript
 const result = validateBSSID('AA:BB:CC:DD:EE:FF');
 // Returns: { valid: true, cleaned: 'AA:BB:CC:DD:EE:FF' }
@@ -74,24 +74,28 @@ const result = validateBSSID('invalid');
 ```
 
 ### Pagination Validation
+
 ```javascript
 const result = validatePagination(req.query.page, req.query.limit, 5000);
 // Returns: { valid: true, page: 1, limit: 50 }
 ```
 
 ### Coordinates Validation
+
 ```javascript
 const result = validateCoordinates(37.7749, -122.4194);
 // Returns: { valid: true, lat: 37.7749, lon: -122.4194 }
 ```
 
 ### Tag Type Validation
+
 ```javascript
 const result = validateTagType('threat');
 // Returns: { valid: true, normalized: 'THREAT' }
 ```
 
 ### Time Range Validation (Analytics)
+
 ```javascript
 const result = validateTimeRange('24h');
 // Returns: { valid: true, value: '24h' }
@@ -101,6 +105,7 @@ const result = validateTimeRange('invalid');
 ```
 
 ### Confidence/Severity Validation
+
 ```javascript
 const result = validateConfidence(75.5);
 // Returns: { valid: true, value: 75.5 }
@@ -110,6 +115,7 @@ const result = validateSeverity(150);
 ```
 
 ### Signal Strength Validation
+
 ```javascript
 const result = validateSignalStrength(-65);
 // Returns: { valid: true, value: -65 }
@@ -118,6 +124,7 @@ const result = validateSignalStrength(-65);
 ## Middleware API
 
 ### paginationMiddleware
+
 Automatically validates page/limit parameters and attaches `req.pagination`
 
 ```javascript
@@ -126,6 +133,7 @@ app.get('/api/data', paginationMiddleware(1000), handler);
 ```
 
 ### bssidParamMiddleware
+
 Validates and sanitizes BSSID from path parameter
 
 ```javascript
@@ -134,6 +142,7 @@ app.get('/api/network/:bssid', bssidParamMiddleware, handler);
 ```
 
 ### coordinatesMiddleware
+
 Validates latitude/longitude from body or query
 
 ```javascript
@@ -142,13 +151,14 @@ app.post('/api/location', coordinatesMiddleware('body'), handler);
 ```
 
 ### sortMiddleware
+
 Validates sort column and order
 
 ```javascript
 const allowedColumns = {
-  'lastseen': 'n.last_seen',
-  'signal': 'n.bestlevel',
-  'ssid': 'n.ssid',
+  lastseen: 'n.last_seen',
+  signal: 'n.bestlevel',
+  ssid: 'n.ssid',
 };
 
 app.get('/api/networks', sortMiddleware(allowedColumns), handler);
@@ -156,6 +166,7 @@ app.get('/api/networks', sortMiddleware(allowedColumns), handler);
 ```
 
 ### sanitizeMiddleware
+
 Removes dangerous characters from inputs
 
 ```javascript
@@ -163,21 +174,20 @@ app.use(sanitizeMiddleware);
 ```
 
 ### createParameterRateLimit
+
 Rate-limits requests by specific parameter value
 
 ```javascript
 // Limit to 100 requests per BSSID per 5 minutes
 const bssidRateLimit = createParameterRateLimit('bssid', 100, 5 * 60 * 1000);
 
-app.get('/api/observations/:bssid',
-  bssidRateLimit,
-  handler
-);
+app.get('/api/observations/:bssid', bssidRateLimit, handler);
 ```
 
 ## Implementation Patterns
 
 ### Pattern 1: Query Parameter Validation
+
 ```javascript
 const middleware = validateQuery({
   page: schemas.validatePagination,
@@ -191,6 +201,7 @@ app.get('/api/analytics', middleware, (req, res) => {
 ```
 
 ### Pattern 2: Body Parameter Validation
+
 ```javascript
 const middleware = validateBody({
   bssid: schemas.validateBSSID,
@@ -204,11 +215,13 @@ app.post('/api/tag-network', middleware, (req, res) => {
 ```
 
 ### Pattern 3: Combined Middleware Stack
+
 ```javascript
-app.get('/api/networks',
-  sanitizeMiddleware,          // Clean dangerous characters
-  paginationMiddleware(5000),  // Validate pagination
-  sortMiddleware(columnMap),   // Validate sorting
+app.get(
+  '/api/networks',
+  sanitizeMiddleware, // Clean dangerous characters
+  paginationMiddleware(5000), // Validate pagination
+  sortMiddleware(columnMap), // Validate sorting
   async (req, res) => {
     // All inputs validated, ready to use
   }
@@ -257,6 +270,7 @@ module.exports = {
 ```
 
 Then use it:
+
 ```javascript
 const result = validateCustomType(someValue);
 if (!result.valid) {
@@ -278,6 +292,7 @@ const cleanValue = result.value;
 ## Migration Guide
 
 ### Step 1: Add Middleware to Existing Routes
+
 Gradually migrate existing routes to use validation middleware:
 
 ```javascript
@@ -291,16 +306,14 @@ app.get('/api/networks', async (req, res) => {
 });
 
 // New code
-app.get('/api/networks',
-  paginationMiddleware(),
-  async (req, res) => {
-    const { page, limit, offset } = req.pagination;
-    // ...
-  }
-);
+app.get('/api/networks', paginationMiddleware(), async (req, res) => {
+  const { page, limit, offset } = req.pagination;
+  // ...
+});
 ```
 
 ### Step 2: Update Route Handlers
+
 Replace manual validation with validated parameters:
 
 ```javascript
@@ -313,7 +326,7 @@ if (!validation) {
 const cleanBSSID = validation;
 
 // After
-const { bssid } = req.params;  // Already validated by middleware
+const { bssid } = req.params; // Already validated by middleware
 ```
 
 ## Checklist for Implementation

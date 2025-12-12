@@ -24,8 +24,8 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 500 * 1024 * 1024 // 500MB limit
-  }
+    fileSize: 500 * 1024 * 1024, // 500MB limit
+  },
 });
 
 // POST /api/admin/import-sqlite - Import SQLite database
@@ -37,14 +37,14 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
 
     const sqliteFile = req.file.path;
     const originalName = req.file.originalname;
-    
+
     console.log(`Starting turbo SQLite import: ${originalName}`);
 
     // Use the fastest turbo import script
     const scriptPath = path.join(__dirname, '../../../../scripts/import/turbo-import.js');
-    
+
     const importProcess = spawn('node', [scriptPath, sqliteFile], {
-      cwd: path.dirname(scriptPath)
+      cwd: path.dirname(scriptPath),
     });
 
     let output = '';
@@ -76,24 +76,26 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
               (SELECT COUNT(*) FROM app.observations) as observations,
               (SELECT COUNT(*) FROM app.networks) as networks
           `);
-          
+
           const result = counts.rows[0] || { observations: 0, networks: 0 };
-          
-          console.log(`✓ Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`);
-          
+
+          console.log(
+            `✓ Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`
+          );
+
           res.json({
             ok: true,
             message: 'SQLite database imported successfully (turbo processing)',
             observations: parseInt(result.observations),
             networks: parseInt(result.networks),
-            output: output
+            output: output,
           });
         } catch (e) {
           console.error('Error getting final counts:', e);
           res.json({
             ok: true,
             message: 'SQLite database imported successfully (counts unavailable)',
-            output: output
+            output: output,
           });
         }
       } else {
@@ -102,7 +104,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
           error: 'Import script failed',
           code: code,
           output: output,
-          errorOutput: errorOutput
+          errorOutput: errorOutput,
         });
       }
     });
@@ -116,10 +118,9 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
       }
       res.status(500).json({
         error: 'Failed to start import process',
-        details: error.message
+        details: error.message,
       });
     });
-
   } catch (err) {
     // Clean up file on error
     if (req.file) {
@@ -147,7 +148,8 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
       return res.status(400).json({ error: 'time parameter required (milliseconds)' });
     }
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       WITH target_obs AS (
         SELECT time, lat, lon, accuracy
         FROM app.observations
@@ -169,7 +171,9 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
         AND l.lon = t.lon
         AND l.accuracy = t.accuracy
       GROUP BY t.lat, t.lon, t.accuracy, t.time
-    `, [bssid, time]);
+    `,
+      [bssid, time]
+    );
 
     res.json({
       ok: true,
@@ -302,7 +306,9 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
       ORDER BY bssid, companion_count DESC
     `);
 
-    await query('CREATE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)');
+    await query(
+      'CREATE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)'
+    );
 
     console.log('✓ Co-location view created successfully');
 

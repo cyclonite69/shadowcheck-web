@@ -1,11 +1,13 @@
 # Final Observations-First Schema (Option A)
 
 ## Core Principle
+
 **Store ALL raw data in observations, compute everything else in views**
 
 ## Unique WiGLE Fields Identified
 
 From WiGLE `network` table analysis:
+
 - **rcois** - Roaming Consortium Organization Identifiers (Passpoint/Hotspot 2.0)
 - **service** - Service information (venue, operator)
 - **mfgrid** - Manufacturer grid ID
@@ -16,6 +18,7 @@ These are NOT in location table, so must be preserved from network table during 
 ## Source Tracking Strategy
 
 ### 1. Source Type Enum
+
 ```sql
 CREATE TYPE source_type AS ENUM (
     'wigle_app',           -- WiGLE Android app SQLite export
@@ -33,6 +36,7 @@ CREATE TYPE source_type AS ENUM (
 ```
 
 ### 2. Source Metadata Structure
+
 ```jsonb
 {
     "source": {
@@ -67,60 +71,60 @@ CREATE TYPE source_type AS ENUM (
 ```sql
 CREATE TABLE app.observations (
     id BIGSERIAL,
-    
+
     -- Network Identity (no FK)
     bssid MACADDR NOT NULL,
     ssid TEXT,
-    
+
     -- Technical Details (as observed)
     frequency_mhz DOUBLE PRECISION,
     channel INTEGER,
     channel_width INTEGER,
     band TEXT, -- '2.4GHz', '5GHz', '6GHz'
-    
+
     -- Security (raw string + parsed)
     capabilities TEXT, -- Raw from scan
     encryption TEXT[], -- Parsed array
     wps_enabled BOOLEAN,
-    
+
     -- Manufacturer
     manufacturer TEXT, -- From OUI lookup
     vendor_oui TEXT, -- First 3 octets
-    
+
     -- Location (full precision)
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
     altitude_meters DOUBLE PRECISION,
     location GEOGRAPHY(POINT, 4326) NOT NULL,
     accuracy_meters DOUBLE PRECISION,
-    
+
     -- Signal (full precision)
     signal_dbm DOUBLE PRECISION,
     noise_dbm DOUBLE PRECISION,
     snr_db DOUBLE PRECISION,
-    
+
     -- Temporal
     observed_at TIMESTAMPTZ NOT NULL,
-    
+
     -- Source Tracking
     source_type source_type NOT NULL,
     source_version TEXT, -- App/API version
     source_device TEXT, -- Device that collected data
-    
+
     -- References (optional)
     import_id BIGINT, -- References app.imports
     device_uuid UUID, -- References app.scanning_devices
     session_uuid UUID, -- References app.device_sessions
-    
+
     -- WiGLE-specific fields (in metadata)
     -- rcois, service, mfgrid, type, external
-    
+
     -- Full metadata (preserve everything)
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    
+
     -- Audit
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     PRIMARY KEY (id, observed_at)
 ) PARTITION BY RANGE (observed_at);
 
@@ -150,7 +154,7 @@ INSERT INTO app.observations (
     accuracy_meters, signal_dbm, observed_at,
     source_type, metadata
 )
-SELECT 
+SELECT
     bssid,
     lat, lon, altitude,
     ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
@@ -172,7 +176,7 @@ FROM wigle_location;
 
 // Enrich with network table data (rcois, service, etc.)
 UPDATE app.observations o
-SET 
+SET
     ssid = n.ssid,
     frequency_mhz = n.frequency,
     capabilities = n.capabilities,
@@ -200,7 +204,7 @@ INSERT INTO app.observations (
     source_type, source_version, device_uuid, session_uuid,
     metadata
 )
-SELECT 
+SELECT
     bssid, ssid, frequency, channel, capabilities,
     latitude, longitude, altitude,
     ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
@@ -238,7 +242,7 @@ INSERT INTO app.observations (
     source_type, source_version,
     metadata
 )
-SELECT 
+SELECT
     netid, ssid, channel * 5 + 2407, channel, -- Calculate frequency
     trilat, trilong,
     ST_SetSRID(ST_MakePoint(trilong, trilat), 4326)::geography,
@@ -274,7 +278,7 @@ INSERT INTO app.observations (
     signal_dbm, observed_at,
     source_type, metadata
 )
-SELECT 
+SELECT
     devmac, ssid, frequency / 1000, channel,
     lat, lon,
     ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
@@ -298,23 +302,26 @@ FROM kismet_devices;
 ## Query Patterns
 
 ### Get all observations for a network
+
 ```sql
-SELECT * FROM app.observations 
+SELECT * FROM app.observations
 WHERE bssid = '00:11:22:33:44:55'::macaddr
 ORDER BY observed_at DESC;
 ```
 
 ### Get observations by source
+
 ```sql
-SELECT * FROM app.observations 
+SELECT * FROM app.observations
 WHERE source_type = 'wigle_app'
 ORDER BY observed_at DESC
 LIMIT 100;
 ```
 
 ### Get WiGLE-specific fields
+
 ```sql
-SELECT 
+SELECT
     bssid,
     ssid,
     metadata->'wigle'->>'rcois' as rcois,
@@ -326,8 +333,9 @@ WHERE source_type = 'wigle_app'
 ```
 
 ### Get mobile-specific fields
+
 ```sql
-SELECT 
+SELECT
     bssid,
     ssid,
     metadata->'mobile'->>'vendorName' as vendor,
@@ -343,22 +351,22 @@ WHERE source_type = 'mobile_android';
 CREATE VIEW app.networks AS
 SELECT
     bssid,
-    
+
     -- Aggregated fields...
-    
+
     -- Source tracking
     ARRAY_AGG(DISTINCT source_type) as sources,
     COUNT(*) FILTER (WHERE source_type = 'wigle_app') as wigle_observations,
     COUNT(*) FILTER (WHERE source_type = 'mobile_android') as mobile_observations,
     COUNT(*) FILTER (WHERE source_type = 'pentest_active') as pentest_observations,
-    
+
     -- WiGLE-specific (if available)
-    (SELECT metadata->'wigle'->>'rcois' FROM app.observations o2 
-     WHERE o2.bssid = o.bssid AND metadata->'wigle'->>'rcois' != '' 
+    (SELECT metadata->'wigle'->>'rcois' FROM app.observations o2
+     WHERE o2.bssid = o.bssid AND metadata->'wigle'->>'rcois' != ''
      LIMIT 1) as rcois,
-    
-    (SELECT metadata->'wigle'->>'service' FROM app.observations o2 
-     WHERE o2.bssid = o.bssid AND metadata->'wigle'->>'service' != '' 
+
+    (SELECT metadata->'wigle'->>'service' FROM app.observations o2
+     WHERE o2.bssid = o.bssid AND metadata->'wigle'->>'service' != ''
      LIMIT 1) as service
 
 FROM app.observations o

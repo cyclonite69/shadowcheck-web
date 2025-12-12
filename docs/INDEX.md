@@ -1,6 +1,7 @@
 # ShadowCheck Documentation Index
 
 ## Root Documentation
+
 - [README.md](../README.md) - Project overview
 - [CHANGELOG.md](../CHANGELOG.md) - Version history
 - [CLAUDE.md](../CLAUDE.md) - AI assistant guidance
@@ -9,6 +10,7 @@
 - [SECURITY.md](../SECURITY.md) - Security policy
 
 ## Architecture & Design
+
 - [architecture/](architecture/) - System architecture documentation
   - DATABASE_CONSOLIDATION_GUIDE.md
   - LAYOUT_STANDARD.md
@@ -19,6 +21,7 @@
   - UNIFIED_TABLE_DESIGN.md
 
 ## Features
+
 - [features/](features/) - Feature-specific documentation
   - ANALYTICS_DASHBOARD_IMPROVEMENTS.md
   - CHART_RESIZE_FIX.md
@@ -35,6 +38,7 @@
   - UI_UX_REFINEMENTS.md
 
 ## Guides
+
 - [guides/](guides/) - Implementation guides
   - ERROR_HANDLING_GUIDE.md
   - LOGGING_IMPLEMENTATION_GUIDE.md
@@ -42,11 +46,13 @@
   - QUICK_START.md
 
 ## Security
+
 - [security/](security/) - Security documentation
   - SECURITY_AUDIT_SQL_INJECTION.md
   - SECURITY_IMPROVEMENTS_SUMMARY.md
 
 ## Archive
+
 - [archive/](archive/) - Historical documentation
   - [sessions/](archive/sessions/) - Development session notes
     - COMPLETE_SESSION_SUMMARY.md

@@ -8,3 +8,4 @@ if git diff --cached | grep "^+" | grep -iE "[A-Za-z0-9+/]{32,}=|[0-9a-f]{32,}" 
 fi
 
 npm run lint
+npx lint-staged

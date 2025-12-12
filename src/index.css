@@ -1,0 +1,34 @@
+/* Import existing styles first */
+@import url('./unified.css');
+@import url('/assets/styles/unified.css');
+
+/* Tailwind CSS directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark theme overrides */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+/* Ensure Mapbox GL styles work properly */
+.mapboxgl-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure draggable/resizable components work */
+.draggable {
+  cursor: move;
+}
+
+.resizable {
+  resize: both;
+  overflow: auto;
+}

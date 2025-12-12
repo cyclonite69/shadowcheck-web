@@ -155,9 +155,15 @@ function logQueryError(query, params = [], error) {
  * HTTP status code to log level mapper
  */
 function getLogLevelForStatus(statusCode) {
-  if (statusCode >= 500) {return 'error';}
-  if (statusCode >= 400) {return 'warn';}
-  if (statusCode >= 300) {return 'info';}
+  if (statusCode >= 500) {
+    return 'error';
+  }
+  if (statusCode >= 400) {
+    return 'warn';
+  }
+  if (statusCode >= 300) {
+    return 'info';
+  }
   return 'info';
 }
 

@@ -30,7 +30,10 @@ function validateBSSID(bssid) {
     return { valid: true, cleaned };
   }
 
-  return { valid: false, error: 'BSSID must be MAC address (AA:BB:CC:DD:EE:FF) or alphanumeric identifier' };
+  return {
+    valid: false,
+    error: 'BSSID must be MAC address (AA:BB:CC:DD:EE:FF) or alphanumeric identifier',
+  };
 }
 
 /**
@@ -175,7 +178,10 @@ function validateSort(sort, allowedColumns) {
   const normalized = sort.toLowerCase();
 
   if (!allowedColumns[normalized]) {
-    return { valid: false, error: `Invalid sort column. Allowed: ${Object.keys(allowedColumns).join(', ')}` };
+    return {
+      valid: false,
+      error: `Invalid sort column. Allowed: ${Object.keys(allowedColumns).join(', ')}`,
+    };
   }
 
   return { valid: true, column: normalized };
@@ -266,7 +272,7 @@ function validateEnum(value, allowed, fieldName = 'Field') {
 
   const normalized = value.toUpperCase();
 
-  if (!allowed.map(v => v.toUpperCase()).includes(normalized)) {
+  if (!allowed.map((v) => v.toUpperCase()).includes(normalized)) {
     return { valid: false, error: `${fieldName} must be one of: ${allowed.join(', ')}` };
   }
 
@@ -279,7 +285,7 @@ function validateEnum(value, allowed, fieldName = 'Field') {
  * @returns {object} { valid: boolean, errors?: array }
  */
 function combineValidations(...results) {
-  const errors = results.filter(r => !r.valid).map(r => r.error);
+  const errors = results.filter((r) => !r.valid).map((r) => r.error);
 
   if (errors.length > 0) {
     return { valid: false, errors };

@@ -13,6 +13,7 @@
 ## 🎯 Key Design Decisions
 
 ### Data Types
+
 - **MACADDR** for MAC addresses (native PostgreSQL type)
 - **GEOGRAPHY** for real-world distances
 - **GEOMETRY** for spatial operations
@@ -20,16 +21,19 @@
 - **TIMESTAMPTZ** for all timestamps
 
 ### Schemas
+
 - **app** - Application tables
 - **import** - Staging tables (future)
 - **analytics** - Materialized views
 - **audit** - Change tracking (future)
 
 ### Partitioning
+
 - **observations** table partitioned by month
 - Auto-create partitions via trigger
 
 ### Indexes
+
 - **GiST** for spatial queries
 - **BRIN** for time-series
 - **GIN** for JSONB and arrays
@@ -37,16 +41,16 @@
 
 ## 📊 Core Tables
 
-| Table | Purpose | Key Features |
-|-------|---------|--------------|
-| networks | WiFi APs | MACADDR PK, PostGIS location, trilateration |
-| observations | Location sightings | Partitioned, time-series, source tracking |
-| devices | Client devices | MAC tracking, associations |
-| network_tags | Threat classification | ML scores, audit trail |
-| imports | Import tracking | Multi-source, statistics |
-| enrichments | Address data | Multi-API, venue types |
-| ap_locations | Trilateration | Calculated positions |
-| baselines | Known good networks | Rogue detection |
+| Table        | Purpose               | Key Features                                |
+| ------------ | --------------------- | ------------------------------------------- |
+| networks     | WiFi APs              | MACADDR PK, PostGIS location, trilateration |
+| observations | Location sightings    | Partitioned, time-series, source tracking   |
+| devices      | Client devices        | MAC tracking, associations                  |
+| network_tags | Threat classification | ML scores, audit trail                      |
+| imports      | Import tracking       | Multi-source, statistics                    |
+| enrichments  | Address data          | Multi-API, venue types                      |
+| ap_locations | Trilateration         | Calculated positions                        |
+| baselines    | Known good networks   | Rogue detection                             |
 
 ## 🔧 Key Functions
 
@@ -106,6 +110,7 @@
 ## 🎬 Ready to Execute?
 
 Once consensus is reached, we'll:
+
 1. Create migration SQL files
 2. Test on empty database
 3. Import sample data

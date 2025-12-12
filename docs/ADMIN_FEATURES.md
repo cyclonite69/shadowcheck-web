@@ -3,15 +3,18 @@
 ## ✅ All Features Implemented and Working
 
 ### 1. WiGLE API Credentials
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - Store API Name and Token in system keyring (encrypted)
 - Test connection to WiGLE API
 - Display configuration status
 - Masked display of credentials
 
 **API Endpoints:**
+
 - `GET /api/settings/wigle` - Get status (masked)
 - `POST /api/settings/wigle` - Save credentials
 - `GET /api/settings/wigle/test` - Test connection
@@ -19,58 +22,71 @@
 **Storage:** System keyring at `shadowcheck/wigle_api_name` and `shadowcheck/wigle_api_token`
 
 ### 2. Mapbox Token
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - Store Mapbox access token in system keyring
 - Secure encrypted storage
 
 **API Endpoints:**
+
 - `GET /api/settings/mapbox` - Get status
 - `POST /api/settings/mapbox` - Save token
 
 **Storage:** System keyring at `shadowcheck/mapbox_token`
 
 ### 3. Database Backup
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - One-click database backup
 - Downloads as `.sql` file
 - Includes all tables and data
 - Timestamped filename
 
 **API Endpoint:**
+
 - `POST /api/backup/backup` - Download backup
 
 **Command:** `pg_dump` with full schema and data
 
 ### 4. Database Restore
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - Upload `.sql` backup file
 - Restore database from backup
 - File picker interface
 
 **API Endpoint:**
+
 - `POST /api/backup/restore` - Upload and restore
 
 **Command:** `psql` to execute SQL file
 
 ### 5. Export GeoJSON
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - Export observations as GeoJSON
 - Includes coordinates, BSSID, signal strength
 - Compatible with mapping tools
 - Limit: 10,000 most recent observations
 
 **API Endpoint:**
+
 - `GET /api/export/geojson` - Download GeoJSON
 
 **Format:**
+
 ```json
 {
   "type": "FeatureCollection",
@@ -94,17 +110,21 @@
 ```
 
 ### 6. Export JSON
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - Export full data as JSON
 - Includes observations and networks
 - Limit: 10,000 records each
 
 **API Endpoint:**
+
 - `GET /api/export/json` - Download JSON
 
 **Format:**
+
 ```json
 {
   "exported_at": "2025-12-03T...",
@@ -114,18 +134,22 @@
 ```
 
 ### 7. Export CSV
+
 **Status:** ✅ Fully Functional
 
 **Features:**
+
 - Export observations as CSV
 - Compatible with Excel, Google Sheets
 - Includes all key fields
 - Limit: 10,000 most recent observations
 
 **API Endpoint:**
+
 - `GET /api/export/csv` - Download CSV
 
 **Columns:**
+
 - bssid
 - latitude
 - longitude
@@ -138,6 +162,7 @@
 
 **Layout:** 3x2 grid (6 panels)
 **Styling:** Matches analytics.html exactly
+
 - Same fonts (Inter)
 - Same colors (purple gradients)
 - Same spacing and sizing
@@ -145,6 +170,7 @@
 - No scrolling needed
 
 **Navigation:**
+
 - Admin button on all pages
 - Highlights WHITE when active (not blue)
 - Consistent button sizing
@@ -152,15 +178,18 @@
 ## Security
 
 **Authentication:**
+
 - All endpoints require `X-API-Key` header
 - API key from localStorage or query parameter
 
 **Credential Storage:**
+
 - All secrets in system keyring (encrypted by OS)
 - Never stored in database or files
 - Never exposed in API responses (masked)
 
 **File Operations:**
+
 - Backup/restore use temporary files
 - Automatic cleanup after operations
 - No credentials in exported data
@@ -168,18 +197,21 @@
 ## Testing
 
 ### Test WiGLE API
+
 ```bash
 curl -H "X-API-Key: your-key" \
   http://localhost:3001/api/settings/wigle/test
 ```
 
 ### Test Export CSV
+
 ```bash
 curl -H "X-API-Key: your-key" \
   http://localhost:3001/api/export/csv > export.csv
 ```
 
 ### Test Backup
+
 ```bash
 curl -X POST -H "X-API-Key: your-key" \
   http://localhost:3001/api/backup/backup > backup.sql

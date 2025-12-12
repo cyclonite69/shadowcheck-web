@@ -1,211 +1,149 @@
-/**
- * Network repository
- * Handles all database operations for networks
- */
+const { query } = require('../config/database');
 
-const BaseRepository = require('./baseRepository');
-const { CONFIG } = require('../config/database');
-
-class NetworkRepository extends BaseRepository {
-  constructor() {
-    super('app.networks');
-  }
-
-  /**
-   * Get dashboard metrics
-   * @returns {Promise<Object>} Dashboard statistics
-   */
-  async getDashboardMetrics() {
+class NetworkRepository {
+  async getAllNetworks() {
     try {
-      // Query 1: Total networks
-      const totalNetworks = await this.query('SELECT COUNT(*) as count FROM app.networks');
-
-      // Query 2: Threats count (parameterized to prevent SQL injection)
-      const threatsResult = await this.query(`
-        SELECT COUNT(DISTINCT bssid) as count
-        FROM app.observations
-        WHERE observed_at_epoch >= $1
-        GROUP BY bssid
-        HAVING COUNT(*) >= $2
-      `, [CONFIG.MIN_VALID_TIMESTAMP, CONFIG.MIN_OBSERVATIONS]);
-
-      // Query 3: Surveillance count
-      const surveillanceCount = await this.query(
-        'SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type IN (\'INVESTIGATE\', \'THREAT\')'
-      );
-
-      // Query 4: Enriched count
-      const enrichedCount = await this.query(
-        'SELECT COUNT(*) as count FROM app.wigle_networks_enriched'
-      );
-
-      // Query 5: Radio types distribution
-      const radioTypes = await this.query(`
+      const result = await query(`
         SELECT
-          CASE
-            WHEN type = 'W' THEN 'WiFi'
-            WHEN type = 'E' THEN 'BLE'
-            WHEN type = 'B' THEN 'BT'
-            WHEN type = 'L' THEN 'LTE'
-            WHEN type = 'N' THEN 'LTE'
-            WHEN type = 'G' THEN 'GSM'
-            ELSE 'Other'
-          END as radio_type,
-          COUNT(*) as count
+          bssid,
+          ssid,
+          type,
+          channel,
+          max_signal as maxSignal,
+          bestlevel as signalDbm,
+          encryption,
+          ST_X(location::geometry) as longitude,
+          ST_Y(location::geometry) as latitude,
+          first_seen as firstSeen,
+          last_seen as lastSeen,
+          ml_threat_score as threatScore,
+          manufacturer,
+          device_type as deviceType,
+          capabilities
         FROM app.networks
-        WHERE type IS NOT NULL
-        GROUP BY radio_type
+        ORDER BY ml_threat_score DESC NULLS LAST, max_signal DESC NULLS LAST
+        LIMIT 1000
       `);
 
-      const radioCounts = {};
-      radioTypes.rows.forEach(row => {
-        radioCounts[row.radio_type] = parseInt(row.count);
-      });
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error fetching networks:', error);
+      return [];
+    }
+  }
+
+  async getNetworksByType(type) {
+    try {
+      const result = await query(
+        `
+        SELECT
+          bssid,
+          ssid,
+          type,
+          channel,
+          max_signal as maxSignal,
+          bestlevel as signalDbm,
+          encryption,
+          ST_X(location::geometry) as longitude,
+          ST_Y(location::geometry) as latitude,
+          first_seen as firstSeen,
+          last_seen as lastSeen,
+          ml_threat_score as threatScore,
+          manufacturer,
+          device_type as deviceType
+        FROM app.networks
+        WHERE type = $1
+        ORDER BY ml_threat_score DESC NULLS LAST, max_signal DESC NULLS LAST
+      `,
+        [type]
+      );
+
+      return result.rows || [];
+    } catch (error) {
+      console.error(`Error fetching ${type} networks:`, error);
+      return [];
+    }
+  }
+
+  async getThreatenedNetworks() {
+    try {
+      const result = await query(`
+        SELECT
+          bssid,
+          ssid,
+          type,
+          channel,
+          max_signal as maxSignal,
+          bestlevel as signalDbm,
+          encryption,
+          ST_X(location::geometry) as longitude,
+          ST_Y(location::geometry) as latitude,
+          first_seen as firstSeen,
+          last_seen as lastSeen,
+          ml_threat_score as threatScore,
+          manufacturer,
+          device_type as deviceType
+        FROM app.networks
+        WHERE ml_threat_score >= 40
+        ORDER BY ml_threat_score DESC
+      `);
+
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error fetching threatened networks:', error);
+      return [];
+    }
+  }
+
+  async getDashboardMetrics() {
+    try {
+      const result = await query(`
+        SELECT 
+          COUNT(*) as total_networks,
+          COUNT(*) FILTER (WHERE type = 'W') as wifi_count,
+          COUNT(*) FILTER (WHERE type = 'E') as ble_count,
+          COUNT(*) FILTER (WHERE type = 'B') as bluetooth_count,
+          COUNT(*) FILTER (WHERE type = 'L') as lte_count,
+          COUNT(*) FILTER (WHERE ml_threat_score >= 80) as critical_threats,
+          COUNT(*) FILTER (WHERE ml_threat_score >= 60 AND ml_threat_score < 80) as high_threats,
+          COUNT(*) FILTER (WHERE ml_threat_score >= 40 AND ml_threat_score < 60) as medium_threats,
+          COUNT(*) FILTER (WHERE ml_threat_score < 40 AND ml_threat_score > 0) as low_threats,
+          COUNT(*) FILTER (WHERE ml_threat_score >= 40) as active_surveillance,
+          COUNT(*) FILTER (WHERE location IS NOT NULL) as enriched_count
+        FROM app.networks
+      `);
+
+      const row = result.rows[0] || {};
 
       return {
-        totalNetworks: parseInt(totalNetworks.rows[0]?.count || 0),
-        threatsCount: threatsResult.rows.length || 0,
-        surveillanceCount: parseInt(surveillanceCount.rows[0]?.count || 0),
-        enrichedCount: parseInt(enrichedCount.rows[0]?.count || 0),
-        wifiCount: radioCounts.WiFi || 0,
-        btCount: radioCounts.BT || 0,
-        bleCount: radioCounts.BLE || 0,
-        lteCount: radioCounts.LTE || 0,
-        gsmCount: radioCounts.GSM || 0,
+        totalNetworks: parseInt(row.total_networks) || 0,
+        wifiCount: parseInt(row.wifi_count) || 0,
+        bleCount: parseInt(row.ble_count) || 0,
+        bluetoothCount: parseInt(row.bluetooth_count) || 0,
+        lteCount: parseInt(row.lte_count) || 0,
+        threatsCritical: parseInt(row.critical_threats) || 0,
+        threatsHigh: parseInt(row.high_threats) || 0,
+        threatsMedium: parseInt(row.medium_threats) || 0,
+        threatsLow: parseInt(row.low_threats) || 0,
+        activeSurveillance: parseInt(row.active_surveillance) || 0,
+        enrichedCount: parseInt(row.enriched_count) || 0,
       };
-    } catch (err) {
-      console.error('Error fetching dashboard metrics:', err);
-      throw err;
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error);
+      return {
+        totalNetworks: 0,
+        wifiCount: 0,
+        bleCount: 0,
+        bluetoothCount: 0,
+        lteCount: 0,
+        threatsCritical: 0,
+        threatsHigh: 0,
+        threatsMedium: 0,
+        threatsLow: 0,
+        activeSurveillance: 0,
+        enrichedCount: 0,
+      };
     }
-  }
-
-  /**
-   * Get network by BSSID
-   * @param {string} bssid - MAC address or tower ID
-   * @returns {Promise<Object|null>}
-   */
-  async getByBSSID(bssid) {
-    return this.findOne('bssid = $1', [bssid.toUpperCase()]);
-  }
-
-  /**
-   * Search networks by SSID
-   * @param {string} ssid - SSID to search (supports wildcards)
-   * @returns {Promise<Array>}
-   */
-  async searchBySSID(ssid) {
-    const { escapeLikePattern } = require('../utils/escapeSQL');
-
-    // Escape special LIKE characters (%, _) to prevent wildcard injection
-    const escapedSSID = escapeLikePattern(ssid);
-
-    const sql = `
-      SELECT * FROM ${this.tableName}
-      WHERE ssid ILIKE $1
-      ORDER BY last_seen DESC
-      LIMIT 100
-    `;
-    const result = await this.query(sql, [`%${escapedSSID}%`]);
-    return result.rows;
-  }
-
-  /**
-   * Get networks with pagination
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Paginated results
-   * @throws {Error} If sort column or order direction is invalid
-   */
-  async getPaginated(options = {}) {
-    const {
-      page = 1,
-      limit = CONFIG.DEFAULT_PAGE_SIZE,
-      sort = 'last_seen',
-      order = 'DESC',
-    } = options;
-
-    // Whitelist valid sort columns to prevent SQL injection
-    const validSortColumns = ['last_seen', 'first_seen', 'bssid', 'ssid', 'type', 'encryption', 'bestlevel', 'lasttime'];
-    const validOrders = ['ASC', 'DESC'];
-
-    if (!validSortColumns.includes(sort)) {
-      throw new Error(`Invalid sort column: ${sort}. Must be one of: ${validSortColumns.join(', ')}`);
-    }
-
-    if (!validOrders.includes(order.toUpperCase())) {
-      throw new Error(`Invalid order direction: ${order}. Must be ASC or DESC`);
-    }
-
-    const offset = (page - 1) * limit;
-    const validLimit = Math.min(limit, CONFIG.MAX_PAGE_SIZE);
-
-    const sql = `
-      SELECT *
-      FROM ${this.tableName}
-      ORDER BY ${sort} ${order.toUpperCase()}
-      LIMIT $1 OFFSET $2
-    `;
-
-    const countSql = `SELECT COUNT(*) as total FROM ${this.tableName}`;
-
-    const [dataResult, countResult] = await Promise.all([
-      this.query(sql, [validLimit, offset]),
-      this.query(countSql),
-    ]);
-
-    const total = parseInt(countResult.rows[0].total);
-
-    return {
-      networks: dataResult.rows,
-      total,
-      page: parseInt(page),
-      limit: validLimit,
-      totalPages: Math.ceil(total / validLimit),
-    };
-  }
-
-  /**
-   * Get network types distribution
-   * @returns {Promise<Array>}
-   */
-  async getNetworkTypesDistribution() {
-    const sql = `
-      SELECT
-        type,
-        CASE type
-          WHEN 'W' THEN 'WiFi'
-          WHEN 'E' THEN 'BLE'
-          WHEN 'B' THEN 'Bluetooth'
-          WHEN 'L' THEN 'LTE'
-          WHEN 'N' THEN '5G NR'
-          WHEN 'G' THEN 'GSM'
-          ELSE type
-        END as type_name,
-        COUNT(*) as count
-      FROM ${this.tableName}
-      GROUP BY type
-      ORDER BY count DESC
-    `;
-
-    const result = await this.query(sql);
-    return result.rows;
-  }
-
-  /**
-   * Get manufacturer for a BSSID
-   * @param {string} bssid - MAC address
-   * @returns {Promise<Object|null>}
-   */
-  async getManufacturer(bssid) {
-    const prefix = bssid.substring(0, 8).toUpperCase(); // First 3 octets
-    const sql = `
-      SELECT manufacturer, category
-      FROM app.radio_manufacturers
-      WHERE mac_prefix = $1
-      LIMIT 1
-    `;
-
-    const result = await this.query(sql, [prefix]);
-    return result.rows[0] || null;
   }
 }
 

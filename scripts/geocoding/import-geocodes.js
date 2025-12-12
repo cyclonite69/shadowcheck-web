@@ -21,7 +21,6 @@ async function importGeocodes() {
   console.log('📥 Reading CSV...');
   const input = fs.readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
-  const headers = lines[0].split(',');
 
   const data = lines
     .slice(1)

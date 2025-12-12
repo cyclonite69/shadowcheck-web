@@ -14,7 +14,7 @@ router.get('/threats/quick', async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
     const minTimestamp = CONFIG.MIN_VALID_TIMESTAMP;
-    
+
     // Configurable thresholds
     const minObservations = parseInt(req.query.minObs) || 5;
     const minUniqueDays = parseInt(req.query.minDays) || 3;
@@ -22,7 +22,8 @@ router.get('/threats/quick', async (req, res) => {
     const minRangeKm = parseFloat(req.query.minRange) || 0.5;
     const minThreatScore = parseInt(req.query.minScore) || 40;
 
-    const result = await query(`
+    const result = await query(
+      `
       WITH network_patterns AS (
         SELECT 
           o.bssid,
@@ -83,12 +84,23 @@ router.get('/threats/quick', async (req, res) => {
       AND (n.type NOT IN ('L', 'N', 'G') OR np.distance_range_km > 50)
       ORDER BY threat_score DESC
       LIMIT $2 OFFSET $3
-    `, [minTimestamp, limit, offset, minObservations, minUniqueDays, minUniqueLocations, minRangeKm, minThreatScore]);
+    `,
+      [
+        minTimestamp,
+        limit,
+        offset,
+        minObservations,
+        minUniqueDays,
+        minUniqueLocations,
+        minRangeKm,
+        minThreatScore,
+      ]
+    );
 
     const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
 
     res.json({
-      threats: result.rows.map(row => ({
+      threats: result.rows.map((row) => ({
         // Network identification
         bssid: row.bssid,
         ssid: row.ssid || '<Hidden>',
@@ -135,7 +147,8 @@ router.get('/threats/quick', async (req, res) => {
 // GET /api/threats/detect - Detailed threat analysis
 router.get('/threats/detect', async (req, res, next) => {
   try {
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       WITH home_location AS (
         SELECT
           ST_X(location::geometry) as home_lon,
@@ -272,11 +285,13 @@ router.get('/threats/detect', async (req, res, next) => {
           OR tc.max_distance_between_obs_km > 5
         )
       ORDER BY tc.threat_score DESC, tc.total_observations DESC
-    `, [CONFIG.MIN_VALID_TIMESTAMP]);
+    `,
+      [CONFIG.MIN_VALID_TIMESTAMP]
+    );
 
     res.json({
       ok: true,
-      threats: rows.map(row => ({
+      threats: rows.map((row) => ({
         // Network identification
         bssid: row.bssid,
         ssid: row.ssid,
@@ -326,4 +341,3 @@ router.get('/threats/detect', async (req, res, next) => {
 });
 
 module.exports = router;
-

@@ -3,6 +3,7 @@
 ## 1. Timestamp Triggers
 
 ### Auto-update updated_at
+
 ```sql
 CREATE OR REPLACE FUNCTION app.update_timestamp()
 RETURNS TRIGGER AS $$
@@ -32,6 +33,7 @@ CREATE TRIGGER trg_network_tags_update_timestamp
 ## 2. Audit Trail Triggers
 
 ### Track Tag Changes
+
 ```sql
 CREATE OR REPLACE FUNCTION app.audit_tag_changes()
 RETURNS TRIGGER AS $$
@@ -45,7 +47,7 @@ BEGIN
         'new_score', NEW.threat_score,
         'changed_by', NEW.tagged_by
     );
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -53,7 +55,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_network_tags_audit
     BEFORE UPDATE ON app.network_tags
     FOR EACH ROW
-    WHEN (OLD.tag_type IS DISTINCT FROM NEW.tag_type OR 
+    WHEN (OLD.tag_type IS DISTINCT FROM NEW.tag_type OR
           OLD.threat_score IS DISTINCT FROM NEW.threat_score)
     EXECUTE FUNCTION app.audit_tag_changes();
 ```
@@ -61,6 +63,7 @@ CREATE TRIGGER trg_network_tags_audit
 ## 3. Geospatial Triggers
 
 ### Auto-populate Geography Column
+
 ```sql
 CREATE OR REPLACE FUNCTION app.populate_geography()
 RETURNS TRIGGER AS $$
@@ -89,6 +92,7 @@ CREATE TRIGGER trg_observations_populate_geography
 ## 4. Trilateration Triggers
 
 ### Auto-calculate AP Location
+
 ```sql
 CREATE OR REPLACE FUNCTION app.trigger_trilateration()
 RETURNS TRIGGER AS $$
@@ -100,11 +104,11 @@ BEGIN
     SELECT COUNT(*) INTO v_obs_count
     FROM app.observations
     WHERE bssid = NEW.bssid;
-    
+
     -- Recalculate every 10 observations
     IF v_obs_count % 10 = 0 THEN
         v_new_location := app.calculate_ap_location(NEW.bssid);
-        
+
         IF v_new_location IS NOT NULL THEN
             UPDATE app.networks
             SET trilat_location = v_new_location,
@@ -112,7 +116,7 @@ BEGIN
             WHERE bssid = NEW.bssid;
         END IF;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -126,6 +130,7 @@ CREATE TRIGGER trg_observations_trilateration
 ## 5. Statistics Triggers
 
 ### Update Network Stats on Observation
+
 ```sql
 CREATE OR REPLACE FUNCTION app.update_network_on_observation()
 RETURNS TRIGGER AS $$
@@ -136,7 +141,7 @@ BEGIN
         max_signal_dbm = GREATEST(COALESCE(max_signal_dbm, -999), NEW.signal_dbm),
         min_signal_dbm = LEAST(COALESCE(min_signal_dbm, 999), NEW.signal_dbm)
     WHERE bssid = NEW.bssid;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -150,6 +155,7 @@ CREATE TRIGGER trg_observations_update_network
 ## 6. ML Triggers
 
 ### Auto-score New Networks
+
 ```sql
 CREATE OR REPLACE FUNCTION app.auto_score_network()
 RETURNS TRIGGER AS $$
@@ -158,7 +164,7 @@ DECLARE
 BEGIN
     -- Calculate initial threat score
     v_score := app.calculate_threat_score(NEW.bssid);
-    
+
     -- Insert initial tag if score is significant
     IF v_score > 0.6 THEN
         INSERT INTO app.network_tags (
@@ -176,7 +182,7 @@ BEGIN
         )
         ON CONFLICT (bssid) DO NOTHING;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -190,6 +196,7 @@ CREATE TRIGGER trg_networks_auto_score
 ## 7. Enrichment Triggers
 
 ### Trigger Enrichment on New Network
+
 ```sql
 CREATE OR REPLACE FUNCTION app.queue_enrichment()
 RETURNS TRIGGER AS $$
@@ -201,7 +208,7 @@ BEGIN
         VALUES (NEW.bssid, NEW.latitude, NEW.longitude, NOW())
         ON CONFLICT (bssid) DO NOTHING;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -212,6 +219,7 @@ $$ LANGUAGE plpgsql;
 ## 8. Partition Management
 
 ### Auto-create Observation Partitions
+
 ```sql
 CREATE OR REPLACE FUNCTION app.create_observation_partition()
 RETURNS TRIGGER AS $$
@@ -223,7 +231,7 @@ BEGIN
     v_start_date := DATE_TRUNC('month', NEW.observed_at);
     v_end_date := v_start_date + INTERVAL '1 month';
     v_partition_name := 'observations_' || TO_CHAR(v_start_date, 'YYYY_MM');
-    
+
     -- Check if partition exists
     IF NOT EXISTS (
         SELECT 1 FROM pg_class WHERE relname = v_partition_name
@@ -235,10 +243,10 @@ BEGIN
             v_start_date,
             v_end_date
         );
-        
+
         RAISE NOTICE 'Created partition: %', v_partition_name;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -252,6 +260,7 @@ CREATE TRIGGER trg_observations_create_partition
 ## 9. Data Quality Triggers
 
 ### Validate Coordinates
+
 ```sql
 CREATE OR REPLACE FUNCTION app.validate_coordinates()
 RETURNS TRIGGER AS $$
@@ -260,17 +269,17 @@ BEGIN
     IF NEW.latitude IS NOT NULL AND (NEW.latitude < -90 OR NEW.latitude > 90) THEN
         RAISE EXCEPTION 'Invalid latitude: %', NEW.latitude;
     END IF;
-    
+
     -- Validate longitude
     IF NEW.longitude IS NOT NULL AND (NEW.longitude < -180 OR NEW.longitude > 180) THEN
         RAISE EXCEPTION 'Invalid longitude: %', NEW.longitude;
     END IF;
-    
+
     -- Validate signal strength
     IF NEW.signal_dbm IS NOT NULL AND (NEW.signal_dbm < -120 OR NEW.signal_dbm > 0) THEN
         RAISE WARNING 'Unusual signal strength: %', NEW.signal_dbm;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -284,6 +293,7 @@ CREATE TRIGGER trg_observations_validate
 ## 10. Notification Triggers
 
 ### Notify on High Threat Detection
+
 ```sql
 CREATE OR REPLACE FUNCTION app.notify_high_threat()
 RETURNS TRIGGER AS $$
@@ -298,7 +308,7 @@ BEGIN
             )::text
         );
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

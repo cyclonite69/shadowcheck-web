@@ -16,7 +16,6 @@ const sqlite3 = require('sqlite3').verbose();
 const { Pool } = require('pg');
 const path = require('path');
 const { execSync } = require('child_process');
-const { Worker } = require('worker_threads');
 const os = require('os');
 
 // Configuration

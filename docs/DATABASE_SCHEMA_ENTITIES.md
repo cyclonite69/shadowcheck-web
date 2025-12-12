@@ -10,23 +10,23 @@ CREATE TABLE app.networks (
     bssid MACADDR PRIMARY KEY,  -- Use native MAC type
     ssid TEXT,
     ssid_hidden BOOLEAN DEFAULT FALSE,
-    
+
     -- Technical Details
     channel INTEGER CHECK (channel BETWEEN 1 AND 196),
     frequency_mhz INTEGER,
     band TEXT CHECK (band IN ('2.4GHz', '5GHz', '6GHz', '60GHz')),
     channel_width INTEGER CHECK (channel_width IN (20, 40, 80, 160)),
-    
+
     -- Security
     encryption TEXT[],  -- Array: ['WPA2', 'PSK', 'AES']
     encryption_summary TEXT,  -- Human readable: "WPA2-PSK-AES"
     wps_enabled BOOLEAN,
     wps_locked BOOLEAN,
-    
+
     -- Manufacturer
     manufacturer TEXT,  -- From OUI lookup
     device_type TEXT,   -- Router, Mobile Hotspot, Vehicle, IoT, etc.
-    
+
     -- Location (best known)
     latitude NUMERIC(10, 7),
     longitude NUMERIC(10, 7),
@@ -34,23 +34,23 @@ CREATE TABLE app.networks (
     location_accuracy_meters NUMERIC(8, 2),
     trilat_location GEOGRAPHY(POINT, 4326),  -- Calculated from observations
     trilat_confidence NUMERIC(3, 2),
-    
+
     -- Signal
     max_signal_dbm INTEGER,
     min_signal_dbm INTEGER,
     avg_signal_dbm NUMERIC(5, 2),
-    
+
     -- Temporal
     first_seen_at TIMESTAMPTZ NOT NULL,
     last_seen_at TIMESTAMPTZ NOT NULL,
     observation_count INTEGER DEFAULT 0,
     observation_days INTEGER DEFAULT 0,  -- Unique days seen
-    
+
     -- Metadata
     metadata JSONB,  -- Flexible storage for source-specific data
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT networks_location_check CHECK (
         (latitude IS NULL AND longitude IS NULL) OR
@@ -79,30 +79,30 @@ CREATE INDEX idx_networks_metadata ON app.networks USING gin(metadata);
 CREATE TABLE app.observations (
     id BIGSERIAL,
     bssid MACADDR NOT NULL REFERENCES app.networks(bssid) ON DELETE CASCADE,
-    
+
     -- Location
     latitude NUMERIC(10, 7) NOT NULL,
     longitude NUMERIC(10, 7) NOT NULL,
     altitude_meters NUMERIC(8, 2),
     location GEOGRAPHY(POINT, 4326) NOT NULL,
     accuracy_meters NUMERIC(8, 2),
-    
+
     -- Signal
     signal_dbm INTEGER,
     noise_dbm INTEGER,
     snr_db INTEGER,
-    
+
     -- Temporal
     observed_at TIMESTAMPTZ NOT NULL,
-    
+
     -- Source tracking
     source_type TEXT NOT NULL,  -- 'wigle_app', 'wigle_api_v2', 'kismet', 'pentest'
     source_id TEXT,  -- Import batch ID or scan ID
     import_id BIGINT REFERENCES app.imports(id),
-    
+
     -- Metadata
     metadata JSONB,
-    
+
     PRIMARY KEY (id, observed_at)
 ) PARTITION BY RANGE (observed_at);
 
@@ -126,24 +126,24 @@ CREATE INDEX idx_observations_import ON app.observations(import_id);
 ```sql
 CREATE TABLE app.devices (
     mac_address MACADDR PRIMARY KEY,
-    
+
     -- Identity
     hostname TEXT,
     device_name TEXT,
-    
+
     -- Classification
     manufacturer TEXT,
     device_type TEXT,  -- smartphone, laptop, iot, vehicle, etc.
     os_type TEXT,
-    
+
     -- Network associations
     associated_networks MACADDR[],  -- Array of BSSIDs
     primary_network MACADDR REFERENCES app.networks(bssid),
-    
+
     -- Temporal
     first_seen_at TIMESTAMPTZ NOT NULL,
     last_seen_at TIMESTAMPTZ NOT NULL,
-    
+
     -- Metadata
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -164,29 +164,29 @@ CREATE INDEX idx_devices_associated ON app.devices USING gin(associated_networks
 CREATE TABLE app.network_tags (
     id SERIAL PRIMARY KEY,
     bssid MACADDR NOT NULL REFERENCES app.networks(bssid) ON DELETE CASCADE,
-    
+
     -- Classification
     tag_type TEXT NOT NULL CHECK (tag_type IN (
         'LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT', 'UNKNOWN'
     )),
     threat_score NUMERIC(5, 4) CHECK (threat_score BETWEEN 0 AND 1),
-    
+
     -- Confidence
     ml_confidence NUMERIC(5, 4) CHECK (ml_confidence BETWEEN 0 AND 1),
     user_confidence NUMERIC(5, 4) CHECK (user_confidence BETWEEN 0 AND 1),
     user_override BOOLEAN DEFAULT FALSE,
-    
+
     -- ML Features
     feature_vector JSONB,
     model_version INTEGER,
-    
+
     -- Audit
     notes TEXT,
     tagged_by TEXT,  -- User or 'system'
     tagged_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     tag_history JSONB DEFAULT '[]'::jsonb,
-    
+
     -- Ensure one active tag per network
     UNIQUE(bssid)
 );

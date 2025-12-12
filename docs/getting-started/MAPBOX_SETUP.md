@@ -3,6 +3,7 @@
 ## Current Issue
 
 The geospatial map is showing an error:
+
 ```
 Map error: you may have provided an invalid Mapbox access token
 ```
@@ -21,25 +22,29 @@ You need to set a real Mapbox token.
    - Copy your default public token (starts with `pk.`)
 
 2. **Set the token in keyring:**
+
    ```bash
    cd /home/cyclonite01/ShadowCheckStatic
    node scripts/keyring-cli.js set mapbox_token
    ```
-   
+
    When prompted, paste your Mapbox token
 
 3. **Restart the server:**
+
    ```bash
    pkill -f "node server.js"
    node server.js > server.log 2>&1 &
    ```
 
 4. **Verify it's loaded:**
+
    ```bash
    curl http://localhost:3001/api/mapbox-token | jq .
    ```
-   
+
    Should return:
+
    ```json
    {
      "token": "pk.eyJ1Ijoi...",
@@ -67,6 +72,7 @@ node server.js > server.log 2>&1 &
 ## Mapbox Free Tier
 
 Mapbox offers a generous free tier:
+
 - 50,000 map loads per month
 - No credit card required
 - Perfect for development and small projects
@@ -81,20 +87,23 @@ Mapbox offers a generous free tier:
    - Example: `pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJja...`
 
 2. **Check server logs:**
+
    ```bash
    grep "mapbox_token" server.log
    ```
-   
+
    Should show:
+
    ```
    [SecretsManager] ✓ mapbox_token loaded from keyring
    ```
 
 3. **Test the API endpoint:**
+
    ```bash
    curl http://localhost:3001/api/mapbox-token
    ```
-   
+
    Should return your actual token, not a placeholder
 
 ### Map still shows error

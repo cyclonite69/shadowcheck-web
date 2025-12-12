@@ -71,9 +71,7 @@ describe('Observability Integration', () => {
     test('health endpoint accepts custom request ID', async () => {
       const customId = 'test-request-123';
 
-      const response = await request(app)
-        .get('/health')
-        .set('X-Request-ID', customId);
+      const response = await request(app).get('/health').set('X-Request-ID', customId);
 
       expect(response.headers['x-request-id']).toBe(customId);
     });

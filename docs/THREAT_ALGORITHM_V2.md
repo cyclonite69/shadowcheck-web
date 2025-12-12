@@ -1,6 +1,7 @@
 # Threat Scoring Algorithm V2
 
 ## Overview
+
 Improved threat detection algorithm with reduced false positive rate based on analysis of tagged networks.
 
 ## Changes from V1
@@ -8,12 +9,14 @@ Improved threat detection algorithm with reduced false positive rate based on an
 ### Scoring Adjustments
 
 **V1 Algorithm (30pt threshold):**
+
 - 40pts: Seen at home AND away
 - 25pts: Distance range > 0.2km
 - 15pts: 7+ unique days
 - 10pts: 50+ observations
 
 **V2 Algorithm (40pt threshold):**
+
 - 50pts: Seen at home AND away >1km (true tracking)
 - 30pts: Seen at home AND away <1km (possible neighbor)
 - 30pts: Distance range >1km
@@ -36,7 +39,7 @@ Improved threat detection algorithm with reduced false positive rate based on an
    - Eliminates most neighbor WiFi false positives
    - Focuses on true mobile tracking patterns
 
-2. **Signal Strength Penalty**: 
+2. **Signal Strength Penalty**:
    - Strong WiFi signals (>-50 dBm) are typically neighbors
    - Reduces false positives from nearby networks
 
@@ -57,8 +60,9 @@ Improved threat detection algorithm with reduced false positive rate based on an
 ## Monitoring
 
 Use tagged networks to validate:
+
 ```sql
-SELECT 
+SELECT
   tag_type,
   COUNT(*) as count,
   AVG(calculated_threat_score) as avg_score

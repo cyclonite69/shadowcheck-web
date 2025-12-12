@@ -90,10 +90,13 @@ module.exports = (query) => {
       }
 
       // Delete existing home marker for THIS device only
-      await query('DELETE FROM app.location_markers WHERE name = \'home\' AND device_id = $1', [devId]);
+      await query("DELETE FROM app.location_markers WHERE name = 'home' AND device_id = $1", [
+        devId,
+      ]);
 
       // Insert new home marker
-      const result = await query(`
+      const result = await query(
+        `
         INSERT INTO app.location_markers (name, marker_type, latitude, longitude, altitude_gps, altitude_baro, device_id, device_type, location)
         VALUES ('home', 'home', $1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($2, $1), 4326))
         RETURNING 
@@ -106,7 +109,9 @@ module.exports = (query) => {
           device_id,
           device_type,
           created_at
-      `, [lat, lng, altGps, altBaro, devId, devType]);
+      `,
+        [lat, lng, altGps, altBaro, devId, devType]
+      );
 
       res.json({
         ok: true,
@@ -120,7 +125,7 @@ module.exports = (query) => {
   // Delete home location
   router.delete('/location-markers/home', async (req, res, next) => {
     try {
-      await query('DELETE FROM app.location_markers WHERE name = \'home\'');
+      await query("DELETE FROM app.location_markers WHERE name = 'home'");
       res.json({ ok: true });
     } catch (err) {
       next(err);

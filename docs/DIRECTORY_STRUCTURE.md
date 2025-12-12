@@ -83,38 +83,51 @@ shadowcheck-static/
 ## Key Directories
 
 ### `/scripts`
+
 Contains all executable scripts organized by function:
+
 - **enrichment/**: Address and venue enrichment
 - **geocoding/**: Reverse geocoding and address lookup
 - **ml/**: Machine learning and threat detection
 
 ### `/sql`
+
 Database-related SQL files:
+
 - **migrations/**: Schema changes and data migrations
 - **functions/**: Stored procedures and functions
 
 ### `/data`
+
 Data files and logs (excluded from git):
+
 - **csv/**: Temporary CSV files for import/export
 - **logs/**: Application and process logs
 
 ### `/docs`
+
 All documentation:
+
 - **enrichment/**: Enrichment system documentation
 - **archive/**: Historical documentation
 
 ### `/public`
+
 Frontend web application:
+
 - HTML pages for different views
 - CSS and JavaScript assets
 
 ### `/tests`
+
 Test files for various components
 
 ## File Organization Rules
 
 ### Root Directory
+
 **Should contain:**
+
 - README.md (main documentation)
 - CHANGELOG.md (version history)
 - CODE_OF_CONDUCT.md
@@ -125,6 +138,7 @@ Test files for various components
 - .gitignore, .env.example
 
 **Should NOT contain:**
+
 - CSV files (→ data/csv/)
 - Log files (→ data/logs/)
 - SQL files (→ sql/)
@@ -132,19 +146,25 @@ Test files for various components
 - Test files (→ tests/)
 
 ### Scripts
+
 All executable scripts go in `/scripts` subdirectories:
+
 - Enrichment scripts → `/scripts/enrichment/`
 - Geocoding scripts → `/scripts/geocoding/`
 - ML scripts → `/scripts/ml/`
 - Setup scripts → `/scripts/`
 
 ### Documentation
+
 All markdown documentation goes in `/docs`:
+
 - Feature-specific docs → `/docs/[feature]/`
 - Historical docs → `/docs/archive/`
 
 ### Data Files
+
 All data files go in `/data`:
+
 - CSV files → `/data/csv/`
 - Log files → `/data/logs/`
 - Temporary files → `/data/tmp/`
@@ -152,6 +172,7 @@ All data files go in `/data`:
 ## Usage Examples
 
 ### Running Enrichment
+
 ```bash
 # From project root
 node scripts/enrichment/enrichment-system.js 1000
@@ -161,18 +182,21 @@ node scripts/enrichment/monitor-enrichment.js
 ```
 
 ### Running Geocoding
+
 ```bash
 # Reverse geocode addresses
 node scripts/geocoding/reverse-geocode-smart.js input.csv output.csv
 ```
 
 ### Database Migrations
+
 ```bash
 # Run migration
 psql -f sql/migrations/add_trilateration_enrichment.sql
 ```
 
 ### Viewing Logs
+
 ```bash
 # Enrichment logs
 tail -f data/logs/enrichment.log
@@ -184,16 +208,19 @@ tail -f data/logs/server.log
 ## Maintenance
 
 ### Adding New Scripts
+
 1. Place in appropriate `/scripts` subdirectory
 2. Update this documentation
 3. Add to README.md if user-facing
 
 ### Adding New Documentation
+
 1. Place in `/docs` or appropriate subdirectory
 2. Update `/docs/README.md` index
 3. Link from main README.md if important
 
 ### Cleaning Up
+
 ```bash
 # Remove old CSV files
 rm data/csv/*_old.csv

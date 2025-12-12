@@ -23,9 +23,10 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
-  max: 20, // Maximum connections
+  max: 5, // Reduced from 20 to avoid overwhelming the connection
   idleTimeoutMillis: 30000, // 30 seconds
-  connectionTimeoutMillis: 2000, // 2 seconds
+  connectionTimeoutMillis: 30000, // Increased to 30 seconds
+  statement_timeout: 60000, // 60 seconds
 });
 
 // Pool error handler
@@ -48,8 +49,10 @@ async function query(text, params = [], tries = 2) {
     return await pool.query(text, params);
   } catch (err) {
     // Retry on transient errors
-    if (tries > 1 && (transientErrors.includes(err.code) ||
-        ['ETIMEDOUT', 'ECONNRESET'].includes(err.errno))) {
+    if (
+      tries > 1 &&
+      (transientErrors.includes(err.code) || ['ETIMEDOUT', 'ECONNRESET'].includes(err.errno))
+    ) {
       console.warn(`Transient error ${err.code || err.errno}, retrying...`);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return query(text, params, tries - 1);

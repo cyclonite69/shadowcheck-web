@@ -7,23 +7,16 @@ const express = require('express');
 const router = express.Router();
 const { query, CONFIG } = require('../../../config/database');
 const { escapeLikePattern } = require('../../../utils/escapeSQL');
-const secretsManager = require('../../../services/secretsManager');
-
-// Authentication middleware
-const requireAuth = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || req.query.api_key;
-  const validKey = secretsManager.get('api_key');
-  if (validKey && (!apiKey || apiKey !== validKey)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
 
 // Utility: Sanitize BSSID
 function sanitizeBSSID(bssid) {
-  if (!bssid || typeof bssid !== 'string') {return null;}
+  if (!bssid || typeof bssid !== 'string') {
+    return null;
+  }
   const cleaned = bssid.trim().toUpperCase();
-  if (!/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/.test(cleaned)) {return null;}
+  if (!/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/.test(cleaned)) {
+    return null;
+  }
   return cleaned;
 }
 
@@ -40,11 +33,13 @@ router.get('/networks', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
     }
     if (isNaN(limit) || limit <= 0 || limit > 5000) {
-      return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 5000.' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid limit parameter. Must be between 1 and 5000.' });
     }
 
     const offset = (page - 1) * limit;
-    console.log("📊 Networks query - page:", page, "limit:", limit, "offset:", offset);
+    console.log('📊 Networks query - page:', page, 'limit:', limit, 'offset:', offset);
 
     // Filter parameters
     const search = req.query.search || '';
@@ -93,7 +88,9 @@ router.get('/networks', async (req, res, next) => {
 
     // Validate sort column
     if (!sortColumnMap[sort]) {
-      return res.status(400).json({ error: `Invalid sort column: ${sort}. Allowed: ${Object.keys(sortColumnMap).join(', ')}` });
+      return res.status(400).json({
+        error: `Invalid sort column: ${sort}. Allowed: ${Object.keys(sortColumnMap).join(', ')}`,
+      });
     }
 
     // Validate sort order
@@ -101,7 +98,10 @@ router.get('/networks', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid sort order. Must be ASC or DESC.' });
     }
 
-    const orderByClause = sort === 'lastSeen' ? `${sortColumnMap[sort]} ${order} NULLS LAST` : `${sortColumnMap[sort]} ${order}`;
+    const orderByClause =
+      sort === 'lastSeen'
+        ? `${sortColumnMap[sort]} ${order} NULLS LAST`
+        : `${sortColumnMap[sort]} ${order}`;
 
     // Get home location for distance calculation
     const homeResult = await query(`
@@ -187,11 +187,7 @@ router.get('/networks', async (req, res, next) => {
       LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.oui_prefix_24bit
     `;
 
-    const params = [
-      CONFIG.MIN_VALID_TIMESTAMP,
-      home?.latitude || null,
-      home?.longitude || null,
-    ];
+    const params = [CONFIG.MIN_VALID_TIMESTAMP, home?.latitude || null, home?.longitude || null];
 
     const whereClauses = [
       'n.bssid IS NOT NULL',
@@ -201,7 +197,9 @@ router.get('/networks', async (req, res, next) => {
 
     if (search) {
       params.push(`%${search.toLowerCase()}%`);
-      whereClauses.push(`(LOWER(n.ssid) LIKE $${params.length} OR LOWER(n.bssid) LIKE $${params.length})`);
+      whereClauses.push(
+        `(LOWER(n.ssid) LIKE $${params.length} OR LOWER(n.bssid) LIKE $${params.length})`
+      );
     }
     if (type) {
       params.push(type);
@@ -230,7 +228,7 @@ router.get('/networks', async (req, res, next) => {
     const { rows } = await query(queryText, params);
     const totalCount = rows.length > 0 ? parseInt(rows[0].total_networks_count) : 0;
 
-    const networks = rows.map(row => ({
+    const networks = rows.map((row) => ({
       id: row.unified_id,
       ssid: row.ssid,
       bssid: row.bssid,
@@ -283,7 +281,8 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
     const escapedSSID = escapeLikePattern(ssid);
     const searchPattern = `%${escapedSSID}%`;
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         n.unified_id,
         n.ssid,
@@ -299,7 +298,9 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
       GROUP BY n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel, n.lasttime
       ORDER BY observation_count DESC
       LIMIT 50
-    `, [searchPattern]);
+    `,
+      [searchPattern]
+    );
 
     res.json({
       ok: true,
@@ -327,7 +328,8 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
     `);
     const home = homeResult.rows[0] || null;
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         l.unified_id as id,
         l.bssid,
@@ -366,7 +368,9 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
           HAVING COUNT(DISTINCT dup.bssid) >= 50
         )
       ORDER BY l.observed_at ASC
-    `, [home?.lon, home?.lat, bssid, CONFIG.MIN_VALID_TIMESTAMP]);
+    `,
+      [home?.lon, home?.lat, bssid, CONFIG.MIN_VALID_TIMESTAMP]
+    );
 
     res.json({
       ok: true,
@@ -389,20 +393,25 @@ router.get('/networks/tagged', async (req, res, next) => {
 
     const validTagTypes = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
     if (!tag_type || !validTagTypes.includes(tag_type.toUpperCase())) {
-      return res.status(400).json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
+      return res
+        .status(400)
+        .json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
     }
 
     if (page <= 0) {
       return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
     }
     if (limit <= 0 || limit > 1000) {
-      return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
     }
 
     const offset = (page - 1) * limit;
-    console.log("📊 Networks query - page:", page, "limit:", limit, "offset:", offset);
+    console.log('📊 Networks query - page:', page, 'limit:', limit, 'offset:', offset);
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         t.bssid,
         n.ssid,
@@ -417,14 +426,16 @@ router.get('/networks/tagged', async (req, res, next) => {
       WHERE t.tag_type = $1
       ORDER BY t.updated_at DESC
       LIMIT $2 OFFSET $3
-    `, [tag_type.toUpperCase(), limit, offset]);
+    `,
+      [tag_type.toUpperCase(), limit, offset]
+    );
 
     const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
     res.json({
       ok: true,
       tag_type: tag_type.toUpperCase(),
-      networks: rows.map(row => ({
+      networks: rows.map((row) => ({
         bssid: row.bssid,
         ssid: row.ssid || '<Hidden>',
         tag_type: row.tag_type,
@@ -455,7 +466,9 @@ router.post('/tag-network', async (req, res, next) => {
 
     const validTagTypes = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
     if (!tag_type || !validTagTypes.includes(tag_type.toUpperCase())) {
-      return res.status(400).json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
+      return res
+        .status(400)
+        .json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
     }
 
     const parsedConfidence = parseFloat(confidence);
@@ -467,19 +480,32 @@ router.post('/tag-network', async (req, res, next) => {
       return res.status(400).json({ error: 'Notes must be a string' });
     }
 
-    const networkResult = await query(`
+    const networkResult = await query(
+      `
       SELECT ssid FROM app.networks WHERE bssid = $1 LIMIT 1
-    `, [cleanBSSID]);
+    `,
+      [cleanBSSID]
+    );
 
-    await query(`
+    if (networkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Network not found for tagging' });
+    }
+
+    await query(
+      `
       DELETE FROM app.network_tags WHERE bssid = $1
-    `, [cleanBSSID]);
+    `,
+      [cleanBSSID]
+    );
 
-    const result = await query(`
+    const result = await query(
+      `
       INSERT INTO app.network_tags (bssid, tag_type, confidence, notes)
       VALUES ($1, $2, $3, $4)
       RETURNING bssid, tag_type, confidence, threat_score, ml_confidence
-    `, [cleanBSSID, tag_type.toUpperCase(), parsedConfidence / 100.0, notes || null]);
+    `,
+      [cleanBSSID, tag_type.toUpperCase(), parsedConfidence / 100.0, notes || null]
+    );
 
     res.json({
       ok: true,
@@ -500,9 +526,12 @@ router.delete('/tag-network/:bssid', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid BSSID format' });
     }
 
-    const result = await query(`
+    const result = await query(
+      `
       DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid
-    `, [cleanBSSID]);
+    `,
+      [cleanBSSID]
+    );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Tag not found for this BSSID' });
@@ -530,7 +559,8 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
 
     const prefix = cleanBSSID.replace(/:/g, '').substring(0, 6).toUpperCase();
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         oui_prefix_24bit as prefix,
         organization_name as manufacturer,
@@ -538,7 +568,9 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
       FROM app.radio_manufacturers
       WHERE oui_prefix_24bit = $1
       LIMIT 1
-    `, [prefix]);
+    `,
+      [prefix]
+    );
 
     if (rows.length === 0) {
       return res.json({
@@ -565,7 +597,7 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
 router.post('/networks/tag-threats', async (req, res, next) => {
   try {
     const { bssids, reason } = req.body;
-    
+
     if (!bssids || !Array.isArray(bssids) || bssids.length === 0) {
       return res.status(400).json({ error: 'BSSIDs array is required' });
     }
@@ -583,7 +615,8 @@ router.post('/networks/tag-threats', async (req, res, next) => {
           continue;
         }
 
-        const result = await query(`
+        const result = await query(
+          `
           INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes)
           VALUES ($1, 'THREAT', 0.9, 0.8, $2)
           ON CONFLICT (bssid) DO UPDATE SET
@@ -592,7 +625,9 @@ router.post('/networks/tag-threats', async (req, res, next) => {
             threat_score = 0.8,
             notes = $2
           RETURNING bssid, tag_type, confidence, threat_score
-        `, [cleanBSSID, reason || 'Manual threat tag']);
+        `,
+          [cleanBSSID, reason || 'Manual threat tag']
+        );
 
         results.push({ bssid: cleanBSSID, success: true, tag: result.rows[0] });
         successCount++;
@@ -608,7 +643,7 @@ router.post('/networks/tag-threats', async (req, res, next) => {
       message: `Tagged ${successCount} networks as threats`,
       successCount,
       errorCount,
-      results
+      results,
     });
   } catch (err) {
     next(err);

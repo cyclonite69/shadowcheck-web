@@ -44,14 +44,26 @@ class BaseRepository {
     const { limit = 100, offset = 0, orderBy = 'id DESC' } = options;
 
     // Whitelist valid columns to prevent SQL injection via ORDER BY
-    const validColumns = ['id', 'created_at', 'updated_at', 'bssid', 'ssid', 'last_seen', 'first_seen', 'type', 'signal'];
+    const validColumns = [
+      'id',
+      'created_at',
+      'updated_at',
+      'bssid',
+      'ssid',
+      'last_seen',
+      'first_seen',
+      'type',
+      'signal',
+    ];
     const validDirections = ['ASC', 'DESC'];
 
     // Parse orderBy (e.g., "id DESC" or "last_seen ASC")
     const [column, direction = 'DESC'] = orderBy.trim().split(/\s+/);
 
     if (!validColumns.includes(column)) {
-      throw new Error(`Invalid orderBy column: ${column}. Must be one of: ${validColumns.join(', ')}`);
+      throw new Error(
+        `Invalid orderBy column: ${column}. Must be one of: ${validColumns.join(', ')}`
+      );
     }
 
     if (!validDirections.includes(direction.toUpperCase())) {
@@ -117,8 +129,6 @@ class BaseRepository {
     const values = Object.values(data);
 
     const setClause = columns.map((col, i) => `${col} = $${i + 1}`).join(', ');
-    const whereParamsOffset = values.length;
-    const adjustedWhereParams = whereParams.map((_, i) => `$${whereParamsOffset + i + 1}`);
 
     const sql = `
       UPDATE ${this.tableName}

@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/mapbox-token - Get Mapbox API token
-router.get('/api/mapbox-token', async (req, res) => {
+router.get('/api/mapbox-token', (req, res) => {
   try {
     const token = secretsManager.get('mapbox_token');
 

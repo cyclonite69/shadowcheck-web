@@ -7,19 +7,19 @@
 ```sql
 CREATE TABLE app.scanning_devices (
     id SERIAL PRIMARY KEY,
-    
+
     -- Device Identity
     device_uuid UUID DEFAULT gen_random_uuid() UNIQUE,
     device_name TEXT,
     device_type TEXT, -- 'android', 'ios', 'laptop', 'raspberry_pi', 'dedicated_hardware'
-    
+
     -- Hardware Info
     manufacturer TEXT,
     model TEXT,
     os_type TEXT,
     os_version TEXT,
     app_version TEXT,
-    
+
     -- Capabilities
     has_gps BOOLEAN DEFAULT FALSE,
     has_wifi BOOLEAN DEFAULT FALSE,
@@ -27,22 +27,22 @@ CREATE TABLE app.scanning_devices (
     has_cellular BOOLEAN DEFAULT FALSE,
     has_camera BOOLEAN DEFAULT FALSE,
     capabilities JSONB, -- Full capability list
-    
+
     -- Network Interfaces
     wifi_chipset TEXT,
     wifi_driver TEXT,
     bluetooth_version TEXT,
     cellular_modem TEXT,
-    
+
     -- Calibration
     gps_accuracy_meters NUMERIC(8, 2),
     wifi_signal_offset_db INTEGER, -- Calibration offset
     bluetooth_signal_offset_db INTEGER,
-    
+
     -- Status
     is_active BOOLEAN DEFAULT TRUE,
     last_seen_at TIMESTAMPTZ,
-    
+
     -- Metadata
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -61,32 +61,32 @@ CREATE INDEX idx_scanning_devices_active ON app.scanning_devices(is_active);
 ```sql
 CREATE TABLE app.sensor_readings (
     id BIGSERIAL PRIMARY KEY,
-    
+
     -- Device
     device_uuid UUID NOT NULL REFERENCES app.scanning_devices(device_uuid),
-    
+
     -- Sensor Type
     sensor_type TEXT NOT NULL, -- 'accelerometer', 'gyroscope', 'magnetometer', 'barometer', 'light', 'proximity'
     sensor_name TEXT,
-    
+
     -- Values (up to 3 axes)
     value_x REAL,
     value_y REAL,
     value_z REAL,
     value_scalar REAL, -- For single-value sensors
-    
+
     -- Accuracy
     accuracy INTEGER, -- Sensor accuracy level
-    
+
     -- Location context
     latitude NUMERIC(10, 7),
     longitude NUMERIC(10, 7),
     altitude_meters NUMERIC(8, 2),
     location GEOGRAPHY(POINT, 4326),
-    
+
     -- Temporal
     timestamp TIMESTAMPTZ NOT NULL,
-    
+
     -- Metadata
     metadata JSONB
 ) PARTITION BY RANGE (timestamp);
@@ -109,23 +109,23 @@ CREATE INDEX idx_sensor_readings_location ON app.sensor_readings USING gist(loca
 ```sql
 CREATE TABLE app.media_attachments (
     id BIGSERIAL PRIMARY KEY,
-    
+
     -- Identity
     media_uuid UUID DEFAULT gen_random_uuid() UNIQUE,
-    
+
     -- Association
     entity_type TEXT NOT NULL, -- 'network', 'device', 'observation', 'scan', 'note'
     entity_id TEXT NOT NULL, -- BSSID, MAC, or ID
-    
+
     -- Media Type
     media_type TEXT NOT NULL, -- 'photo', 'video', 'audio', 'document', 'screenshot'
     mime_type TEXT NOT NULL,
     file_extension TEXT,
-    
+
     -- Binary Data (stored in database)
     file_data BYTEA NOT NULL,
     file_size_bytes BIGINT NOT NULL,
-    
+
     -- Image/Video Metadata
     width_pixels INTEGER,
     height_pixels INTEGER,
@@ -133,7 +133,7 @@ CREATE TABLE app.media_attachments (
     frame_rate NUMERIC(6, 2),
     bitrate_kbps INTEGER,
     codec TEXT,
-    
+
     -- Camera/Recording Metadata
     camera_make TEXT,
     camera_model TEXT,
@@ -143,42 +143,42 @@ CREATE TABLE app.media_attachments (
     iso INTEGER,
     shutter_speed TEXT,
     flash_used BOOLEAN,
-    
+
     -- Location (EXIF or device GPS)
     latitude NUMERIC(10, 7),
     longitude NUMERIC(10, 7),
     altitude_meters NUMERIC(8, 2),
     location GEOGRAPHY(POINT, 4326),
     gps_accuracy_meters NUMERIC(8, 2),
-    
+
     -- Orientation
     orientation INTEGER, -- EXIF orientation
     compass_heading NUMERIC(5, 2),
-    
+
     -- Temporal
     captured_at TIMESTAMPTZ NOT NULL,
     uploaded_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- Device Info
     device_uuid UUID REFERENCES app.scanning_devices(device_uuid),
-    
+
     -- Description
     title TEXT,
     description TEXT,
     tags TEXT[],
-    
+
     -- Full EXIF/Metadata
     exif_data JSONB,
     metadata JSONB,
-    
+
     -- Thumbnail (small preview)
     thumbnail_data BYTEA,
     thumbnail_width INTEGER,
     thumbnail_height INTEGER,
-    
+
     -- Hash for deduplication
     file_hash TEXT UNIQUE, -- SHA256
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -200,45 +200,45 @@ CREATE INDEX idx_media_metadata ON app.media_attachments USING gin(metadata);
 ```sql
 CREATE TABLE app.device_sessions (
     id BIGSERIAL PRIMARY KEY,
-    
+
     -- Device
     device_uuid UUID NOT NULL REFERENCES app.scanning_devices(device_uuid),
-    
+
     -- Session
     session_uuid UUID DEFAULT gen_random_uuid() UNIQUE,
     session_name TEXT,
-    
+
     -- Type
     session_type TEXT, -- 'wardriving', 'stationary', 'survey', 'investigation'
-    
+
     -- Status
     status TEXT CHECK (status IN ('active', 'paused', 'completed', 'cancelled')),
-    
+
     -- Statistics
     networks_found INTEGER DEFAULT 0,
     observations_recorded INTEGER DEFAULT 0,
     distance_traveled_meters NUMERIC(12, 2),
     media_captured INTEGER DEFAULT 0,
-    
+
     -- Location bounds
     start_location GEOGRAPHY(POINT, 4326),
     end_location GEOGRAPHY(POINT, 4326),
     bounding_box GEOGRAPHY(POLYGON, 4326),
-    
+
     -- Temporal
     started_at TIMESTAMPTZ DEFAULT NOW(),
     ended_at TIMESTAMPTZ,
     duration_seconds INTEGER,
-    
+
     -- Battery/Performance
     battery_start_percent INTEGER,
     battery_end_percent INTEGER,
     battery_consumed_percent INTEGER,
-    
+
     -- Metadata
     notes TEXT,
     metadata JSONB,
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -253,7 +253,7 @@ CREATE INDEX idx_device_sessions_started ON app.device_sessions USING brin(start
 Add device and session tracking:
 
 ```sql
-ALTER TABLE app.observations 
+ALTER TABLE app.observations
     ADD COLUMN device_uuid UUID REFERENCES app.scanning_devices(device_uuid),
     ADD COLUMN session_uuid UUID REFERENCES app.device_sessions(session_uuid);
 
@@ -264,6 +264,7 @@ CREATE INDEX idx_observations_session ON app.observations(session_uuid);
 ## Functions
 
 ### Store Media with Automatic Thumbnail
+
 ```sql
 CREATE OR REPLACE FUNCTION app.store_media(
     p_entity_type TEXT,
@@ -285,22 +286,22 @@ DECLARE
 BEGIN
     -- Calculate hash
     v_file_hash := encode(digest(p_file_data, 'sha256'), 'hex');
-    
+
     -- Check for duplicate
     SELECT media_uuid INTO v_media_uuid
     FROM app.media_attachments
     WHERE file_hash = v_file_hash;
-    
+
     IF v_media_uuid IS NOT NULL THEN
         -- Already exists, return existing UUID
         RETURN v_media_uuid;
     END IF;
-    
+
     -- Create location
     IF p_latitude IS NOT NULL AND p_longitude IS NOT NULL THEN
         v_location := ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography;
     END IF;
-    
+
     -- Insert media
     INSERT INTO app.media_attachments (
         entity_type, entity_id, media_type, mime_type,
@@ -314,13 +315,14 @@ BEGIN
         p_captured_at, p_device_uuid, p_metadata
     )
     RETURNING media_uuid INTO v_media_uuid;
-    
+
     RETURN v_media_uuid;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
 ### Get Media by Entity
+
 ```sql
 CREATE OR REPLACE FUNCTION app.get_media_for_entity(
     p_entity_type TEXT,
@@ -362,21 +364,22 @@ $$ LANGUAGE plpgsql;
 ## Triggers
 
 ### Auto-populate Device Session Stats
+
 ```sql
 CREATE OR REPLACE FUNCTION app.update_session_stats()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE app.device_sessions SET
         observations_recorded = (
-            SELECT COUNT(*) FROM app.observations 
+            SELECT COUNT(*) FROM app.observations
             WHERE session_uuid = NEW.session_uuid
         ),
         networks_found = (
-            SELECT COUNT(DISTINCT bssid) FROM app.observations 
+            SELECT COUNT(DISTINCT bssid) FROM app.observations
             WHERE session_uuid = NEW.session_uuid
         )
     WHERE session_uuid = NEW.session_uuid;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -391,53 +394,56 @@ CREATE TRIGGER trg_observations_update_session
 ## API Endpoints
 
 ### Upload Media
+
 ```javascript
 // POST /api/media/upload
 app.post('/api/media/upload', upload.single('file'), async (req, res) => {
-    const { entity_type, entity_id, media_type, latitude, longitude, device_uuid } = req.body;
-    const file = req.file;
-    
-    const result = await pool.query(
-        'SELECT app.store_media($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)',
-        [
-            entity_type,
-            entity_id,
-            media_type,
-            file.mimetype,
-            file.buffer,
-            latitude,
-            longitude,
-            device_uuid,
-            JSON.stringify(req.body.metadata || {})
-        ]
-    );
-    
-    res.json({ media_uuid: result.rows[0].store_media });
+  const { entity_type, entity_id, media_type, latitude, longitude, device_uuid } = req.body;
+  const file = req.file;
+
+  const result = await pool.query(
+    'SELECT app.store_media($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)',
+    [
+      entity_type,
+      entity_id,
+      media_type,
+      file.mimetype,
+      file.buffer,
+      latitude,
+      longitude,
+      device_uuid,
+      JSON.stringify(req.body.metadata || {}),
+    ]
+  );
+
+  res.json({ media_uuid: result.rows[0].store_media });
 });
 ```
 
 ### Get Media
+
 ```javascript
 // GET /api/media/:uuid
 app.get('/api/media/:uuid', async (req, res) => {
-    const result = await pool.query(
-        'SELECT file_data, mime_type, file_extension FROM app.media_attachments WHERE media_uuid = $1',
-        [req.params.uuid]
-    );
-    
-    if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Media not found' });
-    }
-    
-    const media = result.rows[0];
-    res.contentType(media.mime_type);
-    res.send(media.file_data);
+  const result = await pool.query(
+    'SELECT file_data, mime_type, file_extension FROM app.media_attachments WHERE media_uuid = $1',
+    [req.params.uuid]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Media not found' });
+  }
+
+  const media = result.rows[0];
+  res.contentType(media.mime_type);
+  res.send(media.file_data);
 });
 ```
 
 ## Storage Considerations
 
 ### Large Object Storage (Alternative)
+
 For very large files (>1GB), consider PostgreSQL Large Objects:
 
 ```sql
@@ -450,10 +456,11 @@ CREATE TABLE app.media_attachments_lo (
 ```
 
 ### Compression
+
 Enable compression for BYTEA columns:
 
 ```sql
-ALTER TABLE app.media_attachments 
+ALTER TABLE app.media_attachments
     ALTER COLUMN file_data SET STORAGE EXTERNAL;
 
 -- Or use pg_compress for explicit compression

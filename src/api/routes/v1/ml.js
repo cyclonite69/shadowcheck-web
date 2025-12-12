@@ -31,7 +31,8 @@ router.post('/ml/train', async (req, res, next) => {
 
     console.log('🤖 Training ML model on tagged networks...');
 
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       WITH home_location AS (
         SELECT location::geography as home_point
         FROM app.location_markers
@@ -69,7 +70,9 @@ router.post('/ml/train', async (req, res, next) => {
         AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
         AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
       GROUP BY nt.bssid, nt.tag_type, n.type
-    `, [CONFIG.MIN_VALID_TIMESTAMP]);
+    `,
+      [CONFIG.MIN_VALID_TIMESTAMP]
+    );
 
     if (rows.length < 10) {
       return res.status(400).json({
@@ -83,12 +86,19 @@ router.post('/ml/train', async (req, res, next) => {
     const sqlFormula = mlModel.generateSQLFormula();
 
     // Store model coefficients in database for persistence
-    await query(`
+    await query(
+      `
       INSERT INTO app.ml_model_config (model_type, coefficients, intercept, feature_names, created_at)
       VALUES ('threat_logistic_regression', $1, $2, $3, NOW())
       ON CONFLICT (model_type) DO UPDATE
       SET coefficients = $1, intercept = $2, feature_names = $3, updated_at = NOW()
-    `, [JSON.stringify(trainingResult.coefficients), trainingResult.intercept, JSON.stringify(trainingResult.featureNames)]);
+    `,
+      [
+        JSON.stringify(trainingResult.coefficients),
+        trainingResult.intercept,
+        JSON.stringify(trainingResult.featureNames),
+      ]
+    );
 
     console.log('✓ ML model trained successfully');
     console.log('  Features:', trainingResult.featureNames.join(', '));
@@ -163,30 +173,34 @@ router.post('/ml/reassess', async (req, res, next) => {
       try {
         // Calculate threat score based on network behavior
         let score = 0;
-        
+
         // More observations = higher threat potential
         score += Math.min(network.observation_count * 2, 40);
-        
+
         // Seen over multiple days = higher threat
         score += Math.min(network.unique_days * 3, 30);
-        
+
         // Multiple locations = mobile/suspicious
         score += Math.min(network.unique_locations * 4, 20);
-        
+
         // Strong signal = closer/more dangerous
-        if (network.max_signal > -50) score += 10;
-        
+        if (network.max_signal > -50) {
+          score += 10;
+        }
+
         const mlScore = Math.min(score, 100);
 
         // Update the network
-        await query(`
+        await query(
+          `
           UPDATE app.networks 
           SET ml_threat_score = $1, updated_at = NOW()
           WHERE bssid = $2
-        `, [mlScore, network.bssid]);
+        `,
+          [mlScore, network.bssid]
+        );
 
         updated++;
-
       } catch (err) {
         console.warn(`Failed to score ${network.bssid}:`, err.message);
       }
@@ -200,10 +214,9 @@ router.post('/ml/reassess', async (req, res, next) => {
       networksUpdated: updated,
       modelUsed: {
         type: 'behavioral_scoring',
-        features: ['observation_count', 'unique_days', 'unique_locations', 'max_signal']
-      }
+        features: ['observation_count', 'unique_days', 'unique_locations', 'max_signal'],
+      },
     });
-
   } catch (err) {
     console.error('✗ Reassessment error:', err);
     next(err);

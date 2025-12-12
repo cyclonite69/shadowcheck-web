@@ -31,7 +31,6 @@ const BaseRepository = require('../../src/repositories/baseRepository');
 const NetworkRepository = require('../../src/repositories/networkRepository');
 
 describe('SQL Injection Prevention - Integration Tests', () => {
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -49,31 +48,30 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('A. INJECTION ATTEMPTS (should fail)', () => {
-
       test('should block SQL injection via semicolon and DROP TABLE', async () => {
         const maliciousOrderBy = 'id; DROP TABLE networks; --';
 
-        await expect(
-          repo.findMany('1=1', [], { orderBy: maliciousOrderBy })
-        ).rejects.toThrow('Invalid orderBy column: id;');
+        await expect(repo.findMany('1=1', [], { orderBy: maliciousOrderBy })).rejects.toThrow(
+          'Invalid orderBy column: id;'
+        );
       });
 
       test('should block UNION-based injection', async () => {
         const maliciousOrderBy = 'id UNION SELECT password FROM users';
 
         // Should be blocked - either column or direction error is fine
-        await expect(
-          repo.findMany('1=1', [], { orderBy: maliciousOrderBy })
-        ).rejects.toThrow(/Invalid orderBy/);
+        await expect(repo.findMany('1=1', [], { orderBy: maliciousOrderBy })).rejects.toThrow(
+          /Invalid orderBy/
+        );
       });
 
       test('should block comment-based injection', async () => {
         const maliciousOrderBy = 'id DESC; -- comment';
 
         // Should be blocked - either column or direction error is fine
-        await expect(
-          repo.findMany('1=1', [], { orderBy: maliciousOrderBy })
-        ).rejects.toThrow(/Invalid orderBy/);
+        await expect(repo.findMany('1=1', [], { orderBy: maliciousOrderBy })).rejects.toThrow(
+          /Invalid orderBy/
+        );
       });
 
       test('should block invalid column name', async () => {
@@ -83,9 +81,9 @@ describe('SQL Injection Prevention - Integration Tests', () => {
       });
 
       test('should block invalid direction keyword', async () => {
-        await expect(
-          repo.findMany('1=1', [], { orderBy: 'id UNION' })
-        ).rejects.toThrow('Invalid orderBy direction: UNION');
+        await expect(repo.findMany('1=1', [], { orderBy: 'id UNION' })).rejects.toThrow(
+          'Invalid orderBy direction: UNION'
+        );
       });
 
       test('should block stacked query injection', async () => {
@@ -96,7 +94,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('B. LEGITIMATE QUERIES (should pass)', () => {
-
       test('should accept valid column and direction', async () => {
         await repo.findMany('1=1', [], { orderBy: 'id DESC' });
 
@@ -107,7 +104,17 @@ describe('SQL Injection Prevention - Integration Tests', () => {
       });
 
       test('should accept all whitelisted columns', async () => {
-        const validColumns = ['id', 'created_at', 'updated_at', 'bssid', 'ssid', 'last_seen', 'first_seen', 'type', 'signal'];
+        const validColumns = [
+          'id',
+          'created_at',
+          'updated_at',
+          'bssid',
+          'ssid',
+          'last_seen',
+          'first_seen',
+          'type',
+          'signal',
+        ];
 
         for (const column of validColumns) {
           jest.clearAllMocks();
@@ -134,7 +141,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('C. EDGE CASES', () => {
-
       test('should default to DESC when direction not specified', async () => {
         await repo.findMany('1=1', [], { orderBy: 'id' });
 
@@ -209,29 +215,28 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('A. INJECTION ATTEMPTS (should fail)', () => {
-
       test('should block SQL injection in sort parameter', async () => {
-        await expect(
-          repo.getPaginated({ sort: 'id; DROP TABLE networks; --' })
-        ).rejects.toThrow('Invalid sort column: id; DROP TABLE networks; --');
+        await expect(repo.getPaginated({ sort: 'id; DROP TABLE networks; --' })).rejects.toThrow(
+          'Invalid sort column: id; DROP TABLE networks; --'
+        );
       });
 
       test('should block UNION injection in sort', async () => {
-        await expect(
-          repo.getPaginated({ sort: 'id UNION SELECT * FROM users' })
-        ).rejects.toThrow('Invalid sort column');
+        await expect(repo.getPaginated({ sort: 'id UNION SELECT * FROM users' })).rejects.toThrow(
+          'Invalid sort column'
+        );
       });
 
       test('should block invalid sort column', async () => {
-        await expect(
-          repo.getPaginated({ sort: 'malicious_column' })
-        ).rejects.toThrow('Invalid sort column: malicious_column');
+        await expect(repo.getPaginated({ sort: 'malicious_column' })).rejects.toThrow(
+          'Invalid sort column: malicious_column'
+        );
       });
 
       test('should block invalid order direction', async () => {
-        await expect(
-          repo.getPaginated({ sort: 'last_seen', order: 'UNION' })
-        ).rejects.toThrow('Invalid order direction: UNION');
+        await expect(repo.getPaginated({ sort: 'last_seen', order: 'UNION' })).rejects.toThrow(
+          'Invalid order direction: UNION'
+        );
       });
 
       test('should block stacked queries in order', async () => {
@@ -242,7 +247,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('B. LEGITIMATE QUERIES (should pass)', () => {
-
       test('should accept valid sort and order', async () => {
         await repo.getPaginated({ sort: 'last_seen', order: 'DESC' });
 
@@ -253,13 +257,20 @@ describe('SQL Injection Prevention - Integration Tests', () => {
       });
 
       test('should accept all whitelisted sort columns', async () => {
-        const validColumns = ['last_seen', 'first_seen', 'bssid', 'ssid', 'type', 'encryption', 'bestlevel', 'lasttime'];
+        const validColumns = [
+          'last_seen',
+          'first_seen',
+          'bssid',
+          'ssid',
+          'type',
+          'encryption',
+          'bestlevel',
+          'lasttime',
+        ];
 
         for (const column of validColumns) {
           jest.clearAllMocks();
-          query
-            .mockResolvedValueOnce({ rows: [] })
-            .mockResolvedValueOnce({ rows: [{ total: 0 }] });
+          query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ total: 0 }] });
 
           await repo.getPaginated({ sort: column, order: 'ASC' });
 
@@ -296,7 +307,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('C. EDGE CASES', () => {
-
       test('should default to last_seen DESC when not specified', async () => {
         await repo.getPaginated({});
 
@@ -320,9 +330,7 @@ describe('SQL Injection Prevention - Integration Tests', () => {
 
         for (const orderVariation of variations) {
           jest.clearAllMocks();
-          query
-            .mockResolvedValueOnce({ rows: [] })
-            .mockResolvedValueOnce({ rows: [{ total: 0 }] });
+          query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ total: 0 }] });
 
           await repo.getPaginated({ sort: 'last_seen', order: orderVariation });
 
@@ -347,11 +355,9 @@ describe('SQL Injection Prevention - Integration Tests', () => {
   // ============================================================================
 
   describe('Fix #3: NetworkRepository.getDashboardMetrics() - Config Parameterization', () => {
-
     // No beforeEach - each test sets up its own mocks
 
     describe('A. INJECTION PREVENTION (parameterization)', () => {
-
       test('should parameterize CONFIG.MIN_VALID_TIMESTAMP instead of interpolating', async () => {
         const repo = new NetworkRepository();
         jest.clearAllMocks();
@@ -446,7 +452,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('B. LEGITIMATE QUERIES (should pass)', () => {
-
       test('should return complete dashboard metrics', async () => {
         const freshRepo = new NetworkRepository();
         jest.clearAllMocks();
@@ -456,11 +461,13 @@ describe('SQL Injection Prevention - Integration Tests', () => {
           .mockResolvedValueOnce({ rows: [{ bssid: 'AA:BB:CC' }, { bssid: 'DD:EE:FF' }] })
           .mockResolvedValueOnce({ rows: [{ count: 256 }] })
           .mockResolvedValueOnce({ rows: [{ count: 45123 }] })
-          .mockResolvedValueOnce({ rows: [
-            { radio_type: 'WiFi', count: 150000 },
-            { radio_type: 'BLE', count: 20000 },
-            { radio_type: 'BT', count: 3000 },
-          ] });
+          .mockResolvedValueOnce({
+            rows: [
+              { radio_type: 'WiFi', count: 150000 },
+              { radio_type: 'BLE', count: 20000 },
+              { radio_type: 'BT', count: 3000 },
+            ],
+          });
 
         const metrics = await freshRepo.getDashboardMetrics();
 
@@ -513,7 +520,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
     });
 
     describe('C. EDGE CASES', () => {
-
       test('should handle database errors gracefully', async () => {
         const freshRepo = new NetworkRepository();
         jest.clearAllMocks();
@@ -563,7 +569,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
   // ============================================================================
 
   describe('Cross-Cutting Attack Vector Prevention', () => {
-
     test('should prevent time-based blind SQL injection', async () => {
       const repo = new BaseRepository('app.networks');
       query.mockResolvedValue({ rows: [] });
@@ -579,21 +584,17 @@ describe('SQL Injection Prevention - Integration Tests', () => {
 
       // "id AND 1=1 DESC" splits into column="id AND 1=1" direction="DESC"
       // But "id AND 1=1" is not in whitelist, so should be blocked
-      await expect(
-        repo.findMany('1=1', [], { orderBy: 'id AND 1=1 DESC' })
-      ).rejects.toThrow(); // Either column or direction error is fine
+      await expect(repo.findMany('1=1', [], { orderBy: 'id AND 1=1 DESC' })).rejects.toThrow(); // Either column or direction error is fine
     });
 
     test('should prevent second-order SQL injection', async () => {
       const repo = new NetworkRepository();
-      query
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ total: 0 }] });
+      query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ total: 0 }] });
 
       // Attacker stores malicious value, tries to trigger on read
-      await expect(
-        repo.getPaginated({ sort: "'; DROP TABLE networks; --" })
-      ).rejects.toThrow('Invalid sort column');
+      await expect(repo.getPaginated({ sort: "'; DROP TABLE networks; --" })).rejects.toThrow(
+        'Invalid sort column'
+      );
     });
 
     test('should prevent encoding-based injection (URL encoded)', async () => {
@@ -612,7 +613,6 @@ describe('SQL Injection Prevention - Integration Tests', () => {
   // ============================================================================
 
   describe('Performance & Security Metrics', () => {
-
     test('validation should complete in under 1ms', async () => {
       const repo = new BaseRepository('app.networks');
       query.mockResolvedValue({ rows: [] });
@@ -647,9 +647,7 @@ describe('SQL Injection Prevention - Integration Tests', () => {
       const commonColumns = ['id', 'created_at', 'updated_at', 'bssid', 'ssid'];
 
       for (const col of commonColumns) {
-        await expect(
-          repo.findMany('1=1', [], { orderBy: `${col} DESC` })
-        ).resolves.not.toThrow();
+        await expect(repo.findMany('1=1', [], { orderBy: `${col} DESC` })).resolves.not.toThrow();
       }
     });
   });

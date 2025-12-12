@@ -4,9 +4,7 @@
     "es2021": true,
     "jest": true
   },
-  "extends": [
-    "eslint:recommended"
-  ],
+  "extends": ["eslint:recommended"],
   "parserOptions": {
     "ecmaVersion": 2021,
     "sourceType": "commonjs"
@@ -16,27 +14,36 @@
     "linebreak-style": ["error", "unix"],
     "quotes": ["error", "single", { "avoidEscape": true }],
     "semi": ["error", "always"],
-    "no-unused-vars": ["warn", {
-      "argsIgnorePattern": "^_",
-      "varsIgnorePattern": "^_"
-    }],
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
     "no-console": "off",
-    "comma-dangle": ["error", {
-      "arrays": "always-multiline",
-      "objects": "always-multiline",
-      "imports": "always-multiline",
-      "exports": "always-multiline",
-      "functions": "never"
-    }],
+    "comma-dangle": [
+      "error",
+      {
+        "arrays": "always-multiline",
+        "objects": "always-multiline",
+        "imports": "always-multiline",
+        "exports": "always-multiline",
+        "functions": "never"
+      }
+    ],
     "no-trailing-spaces": "error",
     "eol-last": ["error", "always"],
     "object-curly-spacing": ["error", "always"],
     "array-bracket-spacing": ["error", "never"],
-    "space-before-function-paren": ["error", {
-      "anonymous": "always",
-      "named": "never",
-      "asyncArrow": "always"
-    }],
+    "space-before-function-paren": [
+      "error",
+      {
+        "anonymous": "always",
+        "named": "never",
+        "asyncArrow": "always"
+      }
+    ],
     "keyword-spacing": ["error", { "before": true, "after": true }],
     "space-infix-ops": "error",
     "arrow-spacing": ["error", { "before": true, "after": true }],
@@ -57,7 +64,7 @@
     "no-eval": "error",
     "no-implied-eval": "error",
     "no-return-await": "error",
-    "require-await": "warn",
+    "require-await": "off",
     "no-throw-literal": "error"
   },
   "overrides": [
@@ -67,8 +74,17 @@
         "jest": true
       },
       "rules": {
-        "no-unused-expressions": "off"
+        "no-unused-expressions": "off",
+        "no-unused-vars": "off",
+        "require-await": "off"
+      }
+    },
+    {
+      "files": ["vite.config.js", "*.config.js"],
+      "parserOptions": {
+        "sourceType": "module"
       }
     }
-  ]
+  ],
+  "ignorePatterns": ["src/**/*.tsx", "src/**/*.ts", "src/**/*.jsx"]
 }

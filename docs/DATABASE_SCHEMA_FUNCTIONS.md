@@ -3,6 +3,7 @@
 ## 1. Network Management Functions
 
 ### Upsert Network
+
 ```sql
 CREATE OR REPLACE FUNCTION app.upsert_network(
     p_bssid MACADDR,
@@ -24,7 +25,7 @@ BEGIN
     IF p_latitude IS NOT NULL AND p_longitude IS NOT NULL THEN
         v_location := ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography;
     END IF;
-    
+
     INSERT INTO app.networks (
         bssid, ssid, channel, frequency_mhz, encryption,
         latitude, longitude, location,
@@ -50,13 +51,14 @@ BEGIN
         observation_count = networks.observation_count + 1,
         metadata = networks.metadata || EXCLUDED.metadata,
         updated_at = NOW();
-    
+
     RETURN p_bssid;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
 ### Calculate Threat Score
+
 ```sql
 CREATE OR REPLACE FUNCTION app.calculate_threat_score(p_bssid MACADDR)
 RETURNS NUMERIC AS $$
@@ -68,41 +70,41 @@ DECLARE
 BEGIN
     -- Get network details
     SELECT * INTO v_network FROM app.networks WHERE bssid = p_bssid;
-    
+
     IF NOT FOUND THEN
         RETURN NULL;
     END IF;
-    
+
     -- Get observation stats
     SELECT COUNT(*), COUNT(DISTINCT ST_SnapToGrid(location::geometry, 0.001))
     INTO v_obs_count, v_unique_locs
     FROM app.observations
     WHERE bssid = p_bssid;
-    
+
     -- Scoring logic
     -- Hidden SSID: +0.2
     IF v_network.ssid_hidden THEN
         v_score := v_score + 0.2;
     END IF;
-    
+
     -- Open network: +0.1
     IF v_network.encryption IS NULL OR array_length(v_network.encryption, 1) = 0 THEN
         v_score := v_score + 0.1;
     END IF;
-    
+
     -- Mobile (many locations): +0.3
     IF v_unique_locs > 10 THEN
         v_score := v_score + 0.3;
     END IF;
-    
+
     -- Suspicious manufacturer
     IF v_network.manufacturer IN ('Pineapple', 'Hak5', 'Unknown') THEN
         v_score := v_score + 0.2;
     END IF;
-    
+
     -- Clamp to 0-1
     v_score := LEAST(GREATEST(v_score, 0.0), 1.0);
-    
+
     RETURN v_score;
 END;
 $$ LANGUAGE plpgsql;
@@ -111,6 +113,7 @@ $$ LANGUAGE plpgsql;
 ## 2. Trilateration Functions
 
 ### Calculate AP Location
+
 ```sql
 CREATE OR REPLACE FUNCTION app.calculate_ap_location(
     p_bssid MACADDR,
@@ -125,11 +128,11 @@ BEGIN
     SELECT COUNT(*) INTO v_obs_count
     FROM app.observations
     WHERE bssid = p_bssid AND location IS NOT NULL;
-    
+
     IF v_obs_count < p_min_observations THEN
         RETURN NULL;
     END IF;
-    
+
     -- Weighted centroid based on signal strength
     SELECT ST_Centroid(
         ST_Collect(
@@ -145,7 +148,7 @@ BEGIN
         AND signal_dbm > -90  -- Filter weak signals
     ORDER BY signal_dbm DESC
     LIMIT 100;  -- Use top 100 strongest signals
-    
+
     RETURN v_location;
 END;
 $$ LANGUAGE plpgsql;
@@ -154,6 +157,7 @@ $$ LANGUAGE plpgsql;
 ## 3. Import Functions
 
 ### Import WiGLE CSV
+
 ```sql
 CREATE OR REPLACE FUNCTION app.import_wigle_csv(
     p_import_id BIGINT,
@@ -179,7 +183,7 @@ BEGIN
                 p_observed_at := (v_row->>'FirstSeen')::timestamptz,
                 p_metadata := jsonb_build_object('source', 'wigle_app', 'import_id', p_import_id)
             );
-            
+
             -- Insert observation
             INSERT INTO app.observations (
                 bssid, latitude, longitude, location, signal_dbm,
@@ -197,14 +201,14 @@ BEGIN
                 'wigle_app',
                 p_import_id
             );
-            
+
             v_imported := v_imported + 1;
-            
+
         EXCEPTION WHEN OTHERS THEN
             v_failed := v_failed + 1;
         END;
     END LOOP;
-    
+
     RETURN QUERY SELECT v_imported, v_updated, v_failed;
 END;
 $$ LANGUAGE plpgsql;
@@ -213,6 +217,7 @@ $$ LANGUAGE plpgsql;
 ## 4. Geospatial Functions
 
 ### Find Networks Near Location
+
 ```sql
 CREATE OR REPLACE FUNCTION app.find_networks_near(
     p_latitude NUMERIC,
@@ -252,6 +257,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 ### Get Network Movement Pattern
+
 ```sql
 CREATE OR REPLACE FUNCTION app.get_network_movement(
     p_bssid MACADDR,
@@ -282,6 +288,7 @@ $$ LANGUAGE plpgsql;
 ## 5. Utility Functions
 
 ### Update Network Statistics
+
 ```sql
 CREATE OR REPLACE FUNCTION app.update_network_stats(p_bssid MACADDR)
 RETURNS void AS $$

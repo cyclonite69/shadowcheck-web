@@ -3,13 +3,17 @@
 ## ✅ Fixed Issues
 
 ### 1. Mapbox Map Rendering
+
 **Status:** FIXED
+
 - Updated geospatial.html to load token from `/api/mapbox-token`
 - Shows error message if token not configured
 - Token should be set in Admin settings page
 
 ### 2. Threat Detection
+
 **Status:** FIXED
+
 - Created new simplified threat detection endpoint
 - Works without requiring home location marker
 - Detects threats based on:
@@ -21,6 +25,7 @@
 **Results:** 61 threats detected from current data
 
 **Example Threat:**
+
 ```json
 {
   "bssid": "310260_10943488_4368449837",
@@ -37,7 +42,9 @@
 ## 🔄 In Progress
 
 ### 3. WiGLE API Integration
+
 **Status:** PLANNED
+
 - Created comprehensive implementation plan (see WIGLE_ENRICHMENT_PLAN.md)
 - Need to implement:
   - WiGLE API client service
@@ -49,24 +56,28 @@
 ## 📋 Next Steps (Priority Order)
 
 ### Phase 1: Test Current Fixes (Today)
+
 1. ✅ Verify threat detection works
 2. ⏳ Test Mapbox map rendering (need to set token in Admin)
 3. ⏳ Verify all export functions work
 4. ⏳ Test backup/restore
 
 ### Phase 2: WiGLE Integration (This Week)
+
 1. Create WiGLE service (`/src/services/wigleService.js`)
 2. Create enrichment staging table
 3. Implement single BSSID lookup
 4. Test API connectivity
 
 ### Phase 3: Bulk Enrichment (Next Week)
+
 1. Add network selection checkboxes to networks table
 2. Create bulk enrichment endpoint
 3. Implement rate limiting
 4. Add progress tracking
 
 ### Phase 4: Deduplication (Following Week)
+
 1. Implement merge logic
 2. Add enrichment history tracking
 3. Create conflict resolution rules
@@ -74,17 +85,17 @@
 
 ## API Endpoints Status
 
-| Endpoint | Status | Notes |
-|----------|--------|-------|
+| Endpoint                 | Status     | Notes                  |
+| ------------------------ | ---------- | ---------------------- |
 | `/api/dashboard-metrics` | ✅ Working | Returns network counts |
-| `/api/threats/quick` | ✅ Working | 61 threats detected |
-| `/api/export/csv` | ✅ Working | Exports observations |
-| `/api/export/json` | ✅ Working | Full data export |
-| `/api/export/geojson` | ✅ Working | Map-ready format |
-| `/api/backup/backup` | ✅ Working | JSON backup (301MB) |
-| `/api/settings/wigle` | ✅ Working | Keyring storage |
-| `/api/settings/mapbox` | ✅ Working | Keyring storage |
-| `/api/mapbox-token` | ✅ Working | Returns token for map |
+| `/api/threats/quick`     | ✅ Working | 61 threats detected    |
+| `/api/export/csv`        | ✅ Working | Exports observations   |
+| `/api/export/json`       | ✅ Working | Full data export       |
+| `/api/export/geojson`    | ✅ Working | Map-ready format       |
+| `/api/backup/backup`     | ✅ Working | JSON backup (301MB)    |
+| `/api/settings/wigle`    | ✅ Working | Keyring storage        |
+| `/api/settings/mapbox`   | ✅ Working | Keyring storage        |
+| `/api/mapbox-token`      | ✅ Working | Returns token for map  |
 
 ## Database Status
 
@@ -98,15 +109,19 @@
 ### API Endpoints to Use
 
 1. **Network Detail**
+
    ```
    GET /api/v2/network/detail?netid={bssid}
    ```
+
    Returns full details for single BSSID
 
 2. **Network Search**
+
    ```
    GET /api/v2/network/search?ssid={ssid}
    ```
+
    Search by SSID
 
 3. **Location Search**
@@ -162,6 +177,7 @@ CREATE TABLE app.wigle_enrichment_staging (
 ### Rate Limiting
 
 WiGLE API limits:
+
 - Free tier: ~100 queries/day
 - Need to queue requests
 - Process in batches

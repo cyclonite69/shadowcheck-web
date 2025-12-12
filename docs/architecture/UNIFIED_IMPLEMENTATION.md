@@ -3,6 +3,7 @@
 ## Current Status
 
 ### ✅ Completed
+
 1. **Snap-to-Grid**: Cards snap to 20px grid (toggle with "🔲 Snap" button)
 2. **Scrollable Pages**: All pages can scroll when cards exceed viewport
 3. **Card Library**: Reusable network list, threat list, and map components
@@ -10,12 +11,14 @@
 5. **Layout Persistence**: Layouts saved per-page in localStorage
 
 ### ⚠️ Needs Fixing
+
 1. **Navigation Uniformity**: Complex pages (networks, geospatial, surveillance, analytics) have custom headers
 2. **Header Integration**: Need to standardize all headers to use grid layout
 
 ## Design Decisions & Best Practices
 
 ### 1. Shared Components (Implemented)
+
 **File**: `/assets/js/unified-card-library.js`
 
 - **Network List Card**: Reusable across Networks and Geospatial pages
@@ -23,35 +26,44 @@
 - **Map Viewer Card**: Can be added to any page
 
 **Benefits**:
+
 - Single source of truth for data display
 - Consistent filtering and sorting
 - Column customization per-card instance
 
 ### 2. Snap-to-Grid (Implemented)
+
 **Grid Size**: 20px
 **Toggle**: "🔲 Snap" button in header
 
 **Benefits**:
+
 - Clean, aligned layouts
 - Easier to create organized dashboards
 - Can be disabled for pixel-perfect positioning
 
 ### 3. Scrollable Pages (Implemented)
+
 **CSS**: `.app-main { overflow-y: auto; }`
 
 **Benefits**:
+
 - Unlimited cards per page
 - No viewport constraints
 - Future-proof for adding more cards
 
 ### 4. Column Customization (Framework Ready)
+
 Each card can have different visible columns:
+
 - Networks page: Show all technical columns
 - Geospatial page: Show location-focused columns
 - Saved per-card instance
 
 ### 5. Card Library System (Implemented)
+
 Any card can be added to any page via:
+
 ```javascript
 window.cardManager.addCard('networkList', 'container-id');
 ```
@@ -61,32 +73,34 @@ window.cardManager.addCard('networkList', 'container-id');
 ### Priority 1: Fix Navigation Uniformity
 
 All pages should use this exact header structure:
+
 ```html
 <header class="app-header">
-    <div class="header-left">
-        <div class="logo">SC</div>
-        <span class="font-semibold">ShadowCheck</span>
+  <div class="header-left">
+    <div class="logo">SC</div>
+    <span class="font-semibold">ShadowCheck</span>
+  </div>
+  <nav class="nav-links">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/networks.html" class="nav-link">Networks</a>
+    <a href="/geospatial.html" class="nav-link">Geospatial</a>
+    <a href="/surveillance.html" class="nav-link">Surveillance</a>
+    <a href="/analytics.html" class="nav-link">Analytics</a>
+    <a href="/admin.html" class="nav-link">Admin</a>
+  </nav>
+  <div class="header-right">
+    <button class="btn btn-sm" onclick="window.unifiedCards.toggleSnap()">🔲 Snap</button>
+    <button class="btn btn-sm" onclick="window.unifiedCards.resetLayout()">↺ Reset</button>
+    <div class="status-indicator">
+      <div class="status-dot"></div>
+      <span>Online</span>
     </div>
-    <nav class="nav-links">
-        <a href="/" class="nav-link">Dashboard</a>
-        <a href="/networks.html" class="nav-link">Networks</a>
-        <a href="/geospatial.html" class="nav-link">Geospatial</a>
-        <a href="/surveillance.html" class="nav-link">Surveillance</a>
-        <a href="/analytics.html" class="nav-link">Analytics</a>
-        <a href="/admin.html" class="nav-link">Admin</a>
-    </nav>
-    <div class="header-right">
-        <button class="btn btn-sm" onclick="window.unifiedCards.toggleSnap()">🔲 Snap</button>
-        <button class="btn btn-sm" onclick="window.unifiedCards.resetLayout()">↺ Reset</button>
-        <div class="status-indicator">
-            <div class="status-dot"></div>
-            <span>Online</span>
-        </div>
-    </div>
+  </div>
 </header>
 ```
 
 **CSS ensures**:
+
 - Grid layout: `grid-template-columns: 1fr auto 1fr`
 - Nav always centered
 - Left/right sections flex to edges
@@ -94,11 +108,13 @@ All pages should use this exact header structure:
 ### Priority 2: Implement Column Picker
 
 Add modal for selecting visible columns:
+
 ```javascript
 CardLibrary.networkList.openColumnPicker('container-id');
 ```
 
 Should show:
+
 - Checkboxes for each available column
 - Drag to reorder columns
 - Save per-card instance
@@ -106,15 +122,17 @@ Should show:
 ### Priority 3: Integrate Unified Filters
 
 Add to each card that needs filtering:
+
 ```javascript
 window.unifiedFilters.subscribe((filters) => {
-    CardLibrary.networkList.loadData(containerId, columns, filters);
+  CardLibrary.networkList.loadData(containerId, columns, filters);
 });
 ```
 
 ### Priority 4: Card Library UI
 
 Create modal to add cards to current page:
+
 - Show available card types
 - Preview of each card
 - Click to add to page
@@ -144,6 +162,7 @@ Create modal to add cards to current page:
 ## Usage Examples
 
 ### Add Network List to Any Page
+
 ```javascript
 const container = document.createElement('div');
 container.id = 'my-network-list';
@@ -151,14 +170,15 @@ container.className = 'panel';
 document.querySelector('.app-main').appendChild(container);
 
 CardLibrary.networkList.render(container, {
-    columns: ['ssid', 'bssid', 'signal', 'lastSeen'],
-    filters: { type: 'W' }
+  columns: ['ssid', 'bssid', 'signal', 'lastSeen'],
+  filters: { type: 'W' },
 });
 
 window.unifiedCards.enableCard(container);
 ```
 
 ### Add Threat List to Geospatial Page
+
 ```javascript
 const container = document.createElement('div');
 container.id = 'threat-sidebar';
@@ -171,12 +191,13 @@ window.unifiedCards.enableCard(container);
 ```
 
 ### Subscribe to Global Filters
+
 ```javascript
 window.unifiedFilters.subscribe((filters) => {
-    console.log('Active filters:', filters);
-    // Re-render all cards with new filters
-    CardLibrary.networkList.loadData('network-list', columns, filters);
-    CardLibrary.threatList.loadData('threat-list', columns, filters);
+  console.log('Active filters:', filters);
+  // Re-render all cards with new filters
+  CardLibrary.networkList.loadData('network-list', columns, filters);
+  CardLibrary.threatList.loadData('threat-list', columns, filters);
 });
 ```
 

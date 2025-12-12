@@ -3,6 +3,7 @@
 ## Quick Setup (5 minutes)
 
 ### 1. LocationIQ (5,000 requests/day)
+
 1. Go to: https://locationiq.com/register
 2. Sign up with email
 3. Verify email
@@ -11,6 +12,7 @@
 6. Add to `.env`: `LOCATIONIQ_API_KEY=your_token_here`
 
 ### 2. OpenCage (2,500 requests/day)
+
 1. Go to: https://opencagedata.com/users/sign_up
 2. Sign up with email
 3. Verify email
@@ -19,6 +21,7 @@
 6. Add to `.env`: `OPENCAGE_API_KEY=your_key_here`
 
 ### 3. Geoapify (3,000 requests/day)
+
 1. Go to: https://www.geoapify.com/get-started-with-maps-api
 2. Sign up with email
 3. Verify email
@@ -27,6 +30,7 @@
 6. Add to `.env`: `GEOAPIFY_API_KEY=your_key_here`
 
 ### 4. HERE (250,000 requests/month!)
+
 1. Go to: https://developer.here.com/sign-up
 2. Sign up with email
 3. Verify email
@@ -37,10 +41,12 @@
 ## Total Free Capacity
 
 **With all 4 keys:**
+
 - **260,500 requests/day**
 - **7.8 million requests/month**
 
 **Current database:**
+
 - ~28,000 addresses need enrichment
 - With keys: ~30 minutes to complete
 - Without keys: ~8 hours to complete
@@ -61,11 +67,13 @@ tail -f address_enrich_fast.log
 ## Performance
 
 **Without API keys (current):**
+
 - Speed: ~100 addresses/hour
 - APIs: Overpass + Nominatim only
 - Rate limited: 1 req/second
 
 **With API keys:**
+
 - Speed: ~1,000 addresses/hour
 - APIs: All 4 in parallel
 - Rate limited: 5 concurrent requests

@@ -3,6 +3,7 @@
 ## Overview
 
 Comprehensive integration tests for the 3 critical SQL injection vulnerabilities fixed in:
+
 - `src/repositories/baseRepository.js`
 - `src/repositories/networkRepository.js`
 
@@ -19,6 +20,7 @@ Time:        ~0.77s
 ### Fix #1: BaseRepository.findMany() - ORDER BY Validation (15 tests)
 
 **A. Injection Attempts (6 tests)**
+
 - ✅ Blocks SQL injection via semicolon and DROP TABLE
 - ✅ Blocks UNION-based injection
 - ✅ Blocks comment-based injection
@@ -27,11 +29,13 @@ Time:        ~0.77s
 - ✅ Blocks stacked query injection
 
 **B. Legitimate Queries (3 tests)**
+
 - ✅ Accepts valid column and direction
 - ✅ Accepts all whitelisted columns
 - ✅ Parameterizes LIMIT and OFFSET
 
 **C. Edge Cases (6 tests)**
+
 - ✅ Defaults to DESC when direction not specified
 - ✅ Handles mixed case direction (normalize to uppercase)
 - ✅ Sanitizes limit to prevent injection
@@ -42,6 +46,7 @@ Time:        ~0.77s
 ### Fix #2: NetworkRepository.getPaginated() - Sort Validation (12 tests)
 
 **A. Injection Attempts (5 tests)**
+
 - ✅ Blocks SQL injection in sort parameter
 - ✅ Blocks UNION injection in sort
 - ✅ Blocks invalid sort column
@@ -49,11 +54,13 @@ Time:        ~0.77s
 - ✅ Blocks stacked queries in order
 
 **B. Legitimate Queries (3 tests)**
+
 - ✅ Accepts valid sort and order
 - ✅ Accepts all whitelisted sort columns
 - ✅ Returns paginated results with metadata
 
 **C. Edge Cases (4 tests)**
+
 - ✅ Defaults to last_seen DESC when not specified
 - ✅ Normalizes order to uppercase
 - ✅ Handles mixed case order (desc, Desc, DESC, DeSc)
@@ -62,17 +69,20 @@ Time:        ~0.77s
 ### Fix #3: NetworkRepository.getDashboardMetrics() - Config Parameterization (9 tests)
 
 **A. Injection Prevention (4 tests)**
+
 - ✅ Parameterizes CONFIG.MIN_VALID_TIMESTAMP instead of interpolating
 - ✅ Parameterizes CONFIG.MIN_OBSERVATIONS
 - ✅ No string interpolation in any query
 - ✅ Safely handles compromised config values
 
 **B. Legitimate Queries (3 tests)**
+
 - ✅ Returns complete dashboard metrics
 - ✅ Executes all 5 queries
 - ✅ Handles empty results gracefully
 
 **C. Edge Cases (3 tests)**
+
 - ✅ Handles database errors gracefully
 - ✅ Parses string counts to integers
 - ✅ Handles null/undefined counts
@@ -109,16 +119,19 @@ npm test -- tests/integration/sql-injection-fixes.test.js --watch
 ## Test Strategy
 
 **Mocking Approach:**
+
 - Database queries are mocked using Jest
 - No actual database connection required
 - Tests focus on validation logic, not database operations
 
 **Test Structure:**
+
 - Each fix has dedicated test suite
 - Tests organized into: Injection Attempts, Legitimate Queries, Edge Cases
 - Clear test descriptions explaining the threat
 
 **Assertions:**
+
 - Injection attempts must throw validation errors
 - Legitimate queries must execute successfully
 - Parameterization must be used (no string interpolation)
@@ -161,21 +174,26 @@ npm test -- tests/integration/sql-injection-fixes.test.js --watch
 ## Validation Rules
 
 ### ORDER BY Columns (baseRepository.js)
+
 Whitelist: `id`, `created_at`, `updated_at`, `bssid`, `ssid`, `last_seen`, `first_seen`, `type`, `signal`
 
 ### Sort Columns (networkRepository.js)
+
 Whitelist: `last_seen`, `first_seen`, `bssid`, `ssid`, `type`, `encryption`, `bestlevel`, `lasttime`
 
 ### Sort Directions (both)
+
 Whitelist: `ASC`, `DESC`
 
 ### Config Values
+
 - Must use parameterized queries (`$1`, `$2`)
 - Never use string interpolation (`${CONFIG.x}`)
 
 ## Continuous Integration
 
 These tests run automatically on:
+
 - Every commit (pre-commit hook)
 - Pull requests
 - CI/CD pipeline

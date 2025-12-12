@@ -13,7 +13,7 @@ const { isAppError, toAppError } = require('./AppError');
  * @returns {function} Express error handling middleware
  */
 function createErrorHandler(logger) {
-  return (err, req, res, next) => {
+  return (err, req, res, _next) => {
     // Convert unknown errors to AppError
     const appError = isAppError(err) ? err : toAppError(err);
 

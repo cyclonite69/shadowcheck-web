@@ -16,20 +16,21 @@ Added `ResizeObserver` to watch for panel size changes:
 
 ```javascript
 if (window.ResizeObserver) {
-    const resizeObserver = new ResizeObserver(entries => {
-        for (const entry of entries) {
-            // Debounce resize to avoid too many calls
-            clearTimeout(entry.target.resizeTimeout);
-            entry.target.resizeTimeout = setTimeout(() => {
-                resizeChartsInPanel(entry.target);
-            }, 100);
-        }
-    });
-    resizeObserver.observe(panel);
+  const resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      // Debounce resize to avoid too many calls
+      clearTimeout(entry.target.resizeTimeout);
+      entry.target.resizeTimeout = setTimeout(() => {
+        resizeChartsInPanel(entry.target);
+      }, 100);
+    }
+  });
+  resizeObserver.observe(panel);
 }
 ```
 
 **Benefits:**
+
 - Automatically detects ANY size change to panels
 - Works for drag-resize, expand/collapse, and CSS changes
 - Debounced to prevent performance issues
@@ -42,73 +43,77 @@ Created dedicated functions to resize charts:
 ```javascript
 // Resize charts within a specific panel
 function resizeChartsInPanel(panel) {
-    const canvases = panel.querySelectorAll('canvas');
-    canvases.forEach(canvas => {
-        const chartId = canvas.id;
-        if (chartId === 'threatChart' && threatChart) {
-            threatChart.resize();
-        } else if (chartId === 'temporalChart' && temporalChart) {
-            temporalChart.resize();
-        }
-    });
+  const canvases = panel.querySelectorAll('canvas');
+  canvases.forEach((canvas) => {
+    const chartId = canvas.id;
+    if (chartId === 'threatChart' && threatChart) {
+      threatChart.resize();
+    } else if (chartId === 'temporalChart' && temporalChart) {
+      temporalChart.resize();
+    }
+  });
 }
 
 // Resize all charts on the page
 function resizeAllCharts() {
-    if (threatChart) threatChart.resize();
-    if (temporalChart) temporalChart.resize();
+  if (threatChart) threatChart.resize();
+  if (temporalChart) temporalChart.resize();
 }
 ```
 
 ### 3. **Integrated with Existing Resize Events**
 
 **Drag-to-Resize:**
+
 ```javascript
 document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    const delta = e.clientY - startY;
-    const newHeight = Math.max(200, Math.min(startHeight + delta, window.innerHeight - 200));
-    panel.style.height = newHeight + 'px';
+  if (!isResizing) return;
+  const delta = e.clientY - startY;
+  const newHeight = Math.max(200, Math.min(startHeight + delta, window.innerHeight - 200));
+  panel.style.height = newHeight + 'px';
 
-    // Trigger chart resize during drag
-    resizeChartsInPanel(panel);
+  // Trigger chart resize during drag
+  resizeChartsInPanel(panel);
 });
 ```
 
 **On Mouse Release:**
+
 ```javascript
 document.addEventListener('mouseup', () => {
-    if (isResizing) {
-        isResizing = false;
-        savePanelSizes();
-        // Final chart resize after drag completes
-        resizeChartsInPanel(panel);
-    }
+  if (isResizing) {
+    isResizing = false;
+    savePanelSizes();
+    // Final chart resize after drag completes
+    resizeChartsInPanel(panel);
+  }
 });
 ```
 
 **Expand/Collapse:**
+
 ```javascript
 function togglePanelExpand(panel) {
-    panel.classList.toggle('expanded');
-    savePanelSizes();
+  panel.classList.toggle('expanded');
+  savePanelSizes();
 
-    // Resize charts after expand/collapse animation
-    setTimeout(() => {
-        resizeChartsInPanel(panel);
-        // Also resize other visible charts since grid layout changes
-        resizeAllCharts();
-    }, 50);
+  // Resize charts after expand/collapse animation
+  setTimeout(() => {
+    resizeChartsInPanel(panel);
+    // Also resize other visible charts since grid layout changes
+    resizeAllCharts();
+  }, 50);
 }
 ```
 
 **Window Resize:**
+
 ```javascript
 window.addEventListener('resize', () => {
-    clearTimeout(window.windowResizeTimeout);
-    window.windowResizeTimeout = setTimeout(() => {
-        resizeAllCharts();
-    }, 150);
+  clearTimeout(window.windowResizeTimeout);
+  window.windowResizeTimeout = setTimeout(() => {
+    resizeAllCharts();
+  }, 150);
 });
 ```
 
@@ -118,19 +123,20 @@ Updated chart container styles for better responsiveness:
 
 ```css
 .chart-container {
-    height: 100%;
-    width: 100%;
-    position: relative;
-    min-height: 200px;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  min-height: 200px;
 }
 
 .chart-container canvas {
-    width: 100% !important;
-    height: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 ```
 
 **Changes:**
+
 - Added `width: 100%` to ensure horizontal filling
 - Added `min-height: 200px` to prevent charts from collapsing too small
 - Force canvas dimensions with `!important` to override Chart.js inline styles
@@ -184,6 +190,7 @@ options: {
 ```
 
 **Key Settings:**
+
 - `responsive: true`: Chart responds to container size changes
 - `maintainAspectRatio: false`: Allows chart to stretch to fill height
 - Without these, the fix would not work!
@@ -222,16 +229,19 @@ options: {
 ### Debouncing Strategy
 
 **ResizeObserver Debounce: 100ms**
+
 - Prevents excessive resize calls during continuous resize
 - Balances responsiveness with performance
 - Chart updates feel smooth, not laggy
 
 **Window Resize Debounce: 150ms**
+
 - Slightly longer delay for window resize (more expensive)
 - Prevents resize storm when user drags window edge
 - Single resize call after user stops dragging
 
 **Drag Resize: Immediate**
+
 - No debounce during drag for instant feedback
 - Final resize on mouseup ensures accuracy
 - Smooth visual experience during interaction
@@ -248,12 +258,12 @@ options: {
 ### ResizeObserver Support
 
 | Browser | Version | Support |
-|---------|---------|---------|
-| Chrome | 64+ | ✅ Full |
-| Edge | 79+ | ✅ Full |
-| Firefox | 69+ | ✅ Full |
-| Safari | 13.1+ | ✅ Full |
-| Opera | 51+ | ✅ Full |
+| ------- | ------- | ------- |
+| Chrome  | 64+     | ✅ Full |
+| Edge    | 79+     | ✅ Full |
+| Firefox | 69+     | ✅ Full |
+| Safari  | 13.1+   | ✅ Full |
+| Opera   | 51+     | ✅ Full |
 
 **Fallback:** If `ResizeObserver` is not available (very old browsers), the manual resize triggers (drag, expand, window resize) still work.
 
@@ -304,13 +314,15 @@ options: {
 **Solutions:**
 
 1. **Increase Debounce Delay**
+
    ```javascript
    entry.target.resizeTimeout = setTimeout(() => {
-       resizeChartsInPanel(entry.target);
+     resizeChartsInPanel(entry.target);
    }, 200); // Increase from 100ms to 200ms
    ```
 
 2. **Disable Animations During Resize**
+
    ```javascript
    chart.resize(0); // 0 = no animation
    ```
@@ -324,6 +336,7 @@ options: {
 **File:** `public/surveillance.html`
 
 **Key Changes:**
+
 - Lines 374-384: Chart container CSS improvements
 - Lines 1493-1494: Resize during drag
 - Lines 1501-1502: Resize after drag complete

@@ -74,6 +74,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 ### Current: Monolithic Single-File Server
 
 **Characteristics:**
+
 - All API endpoints in `server.js` (~1700 lines)
 - Business logic mixed with database queries
 - No separation of concerns
@@ -81,11 +82,13 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 - CommonJS module system
 
 **Pros:**
+
 - Simple to understand and debug
 - Fast initial development
 - Low complexity for small team
 
 **Cons:**
+
 - Hard to test in isolation
 - Difficult to scale codebase
 - Code reuse is limited
@@ -253,11 +256,12 @@ const threatScore = (network) => {
 
   // CRITICAL: Seen both at home AND away from home
   if (network.seenAtHome && network.seenAwayFromHome) {
-    score += 40;  // Strongest indicator of tracking
+    score += 40; // Strongest indicator of tracking
   }
 
   // HIGH: Distance range exceeds WiFi range (200m)
-  if (network.distanceRange > 0.2) {  // km
+  if (network.distanceRange > 0.2) {
+    // km
     score += 25;
   }
 
@@ -278,8 +282,9 @@ const threatScore = (network) => {
   }
 
   // ADVANCED: Movement speed analysis
-  if (network.maxSpeed > 100) {  // km/h
-    score += 20;  // Vehicular tracking device
+  if (network.maxSpeed > 100) {
+    // km/h
+    score += 20; // Vehicular tracking device
   } else if (network.maxSpeed > 50) {
     score += 15;
   } else if (network.maxSpeed > 20) {
@@ -293,6 +298,7 @@ const threatScore = (network) => {
 ### Detection Modes
 
 **1. Quick Detection (Paginated)**
+
 - Location: `server.js:344-494`
 - Endpoint: `GET /api/threats/quick`
 - Features:
@@ -303,6 +309,7 @@ const threatScore = (network) => {
 - Use Case: Dashboard overview, initial screening
 
 **2. Advanced Detection (Full Analysis)**
+
 - Location: `server.js:496-679`
 - Endpoint: `GET /api/threats/detect`
 - Features:
@@ -333,6 +340,7 @@ HAVING COUNT(DISTINCT location_id) >= 2
 ### Authentication & Authorization
 
 **API Key Authentication (Optional)**
+
 - Environment variable: `API_KEY`
 - Header: `x-api-key`
 - Protected endpoints:
@@ -341,6 +349,7 @@ HAVING COUNT(DISTINCT location_id) >= 2
   - `POST /api/ml/train`
 
 **Threat Model**
+
 - **Primary Threat**: Unauthorized data access and manipulation
 - **Mitigation**:
   - Rate limiting (1000 req/15min per IP)
@@ -354,11 +363,12 @@ HAVING COUNT(DISTINCT location_id) >= 2
 
 ```javascript
 // CSP, X-Frame-Options, X-XSS-Protection
-res.setHeader('Content-Security-Policy',
+res.setHeader(
+  'Content-Security-Policy',
   "default-src 'self'; " +
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
-  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-  "connect-src 'self' https://api.mapbox.com;"
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "connect-src 'self' https://api.mapbox.com;"
 );
 res.setHeader('X-Frame-Options', 'DENY');
 res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -368,10 +378,12 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ### Secrets Management
 
 **Current:**
+
 - `.env` file (not in version control)
 - Hardcoded Mapbox token in frontend (security risk)
 
 **Recommended:**
+
 - System keyring for passwords (keytar npm package)
 - Environment variables for non-sensitive config
 - Vault or AWS Secrets Manager for production
@@ -382,18 +394,21 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ### Current Limitations
 
 **Database:**
+
 - Single PostgreSQL instance
 - No read replicas
 - Connection pool: 20 max connections
 - No query caching (except OS-level)
 
 **Application:**
+
 - Single-threaded Node.js
 - No horizontal scaling
 - No load balancer
 - No CDN for static assets
 
 **Storage:**
+
 - ~566K location records
 - ~173K unique networks
 - Growing linearly with observations
@@ -401,6 +416,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ### Scaling Path
 
 **Short-Term (0-100K users)**
+
 ```
 ┌────────────┐
 │  Nginx LB  │
@@ -418,6 +434,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ```
 
 **Medium-Term (100K-1M users)**
+
 - Add Redis for caching (threat scores, analytics)
 - Separate read/write databases
 - CDN for static frontend (CloudFlare)
@@ -425,6 +442,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - Database partitioning by time range
 
 **Long-Term (1M+ users)**
+
 - Microservices architecture:
   - Threat Detection Service
   - Enrichment Service
@@ -438,6 +456,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ## Future Architecture Goals
 
 ### Phase 1: Modularization (Current Sprint)
+
 - [ ] Break `server.js` into modules
 - [ ] Implement repository pattern
 - [ ] Add service layer for business logic
@@ -445,6 +464,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - [ ] Add comprehensive unit tests
 
 ### Phase 2: Data Layer Optimization
+
 - [ ] Add Redis caching layer
 - [ ] Implement database read replicas
 - [ ] Add connection pool monitoring
@@ -452,6 +472,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - [ ] Implement background job queue (Bull)
 
 ### Phase 3: Security Hardening
+
 - [ ] Move to system keyring for secrets
 - [ ] Implement OAuth2 authentication
 - [ ] Add audit logging for all mutations
@@ -459,6 +480,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - [ ] Add API versioning (v1, v2)
 
 ### Phase 4: ML Enhancement
+
 - [ ] Real-time threat detection (websockets)
 - [ ] Improved ML model (ensemble methods)
 - [ ] Anomaly detection (isolation forest)
@@ -466,6 +488,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - [ ] Automated retraining pipeline
 
 ### Phase 5: Observability
+
 - [ ] Structured logging (JSON format)
 - [ ] Correlation IDs for request tracing
 - [ ] Prometheus metrics export
@@ -476,28 +499,33 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ## Technology Stack
 
 **Backend:**
-- Node.js 18+ (LTS)
+
+- Node.js 20+ (LTS)
 - Express 4.x (HTTP server)
 - pg 8.x (PostgreSQL client)
 - PostgreSQL 18 + PostGIS (geospatial database)
 
 **Frontend:**
+
 - Vanilla JavaScript (no framework)
 - Tailwind CSS (utility-first CSS)
 - Chart.js (visualizations)
 - Mapbox GL JS (mapping)
 
 **DevOps:**
+
 - Docker + Docker Compose (containerization)
 - GitHub Actions (CI/CD)
 - PostgreSQL (database)
 - Redis (future: caching)
 
 **Testing:**
+
 - Jest (unit & integration tests)
 - Supertest (API testing)
 
 **Code Quality:**
+
 - ESLint (linting)
 - Prettier (formatting)
 - EditorConfig (editor consistency)

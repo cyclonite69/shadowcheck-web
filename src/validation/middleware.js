@@ -38,7 +38,13 @@ function validateQuery(validators) {
       const result = validator(req.query[param]);
       if (result.valid) {
         // Use the most specific returned value
-        req.validated[param] = result.cleaned || result.value || result.normalized || result.page || result.limit || req.query[param];
+        req.validated[param] =
+          result.cleaned ||
+          result.value ||
+          result.normalized ||
+          result.page ||
+          result.limit ||
+          req.query[param];
       }
     });
 
@@ -78,7 +84,8 @@ function validateBody(validators) {
     Object.entries(validators).forEach(([param, validator]) => {
       const result = validator(req.body[param]);
       if (result.valid) {
-        req.validated[param] = result.cleaned || result.value || result.normalized || req.body[param];
+        req.validated[param] =
+          result.cleaned || result.value || result.normalized || req.body[param];
       }
     });
 
@@ -118,7 +125,8 @@ function validateParams(validators) {
     Object.entries(validators).forEach(([param, validator]) => {
       const result = validator(req.params[param]);
       if (result.valid) {
-        req.validated[param] = result.cleaned || result.value || result.normalized || req.params[param];
+        req.validated[param] =
+          result.cleaned || result.value || result.normalized || req.params[param];
       }
     });
 
@@ -186,10 +194,7 @@ function bssidParamMiddleware(req, res, next) {
 function coordinatesMiddleware(source = 'body') {
   return (req, res, next) => {
     const source_obj = source === 'body' ? req.body : req.query;
-    const validation = schemas.validateCoordinates(
-      source_obj.latitude,
-      source_obj.longitude
-    );
+    const validation = schemas.validateCoordinates(source_obj.latitude, source_obj.longitude);
 
     if (!validation.valid) {
       return res.status(400).json({
@@ -293,7 +298,7 @@ function createParameterRateLimit(paramName, maxRequests, windowMs) {
  */
 function sanitizeMiddleware(req, res, next) {
   // Sanitize query parameters
-  Object.keys(req.query).forEach(key => {
+  Object.keys(req.query).forEach((key) => {
     if (typeof req.query[key] === 'string') {
       // Remove potentially dangerous characters but preserve URL-safe ones
       req.query[key] = req.query[key]
@@ -304,11 +309,9 @@ function sanitizeMiddleware(req, res, next) {
 
   // Sanitize body parameters
   if (req.body && typeof req.body === 'object') {
-    Object.keys(req.body).forEach(key => {
+    Object.keys(req.body).forEach((key) => {
       if (typeof req.body[key] === 'string') {
-        req.body[key] = req.body[key]
-          .replace(/[<>]/g, '')
-          .trim();
+        req.body[key] = req.body[key].replace(/[<>]/g, '').trim();
       }
     });
   }

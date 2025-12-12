@@ -9,6 +9,7 @@
 ## Overview
 
 Production-grade secrets management with 3-tier fallback:
+
 1. **Docker Secrets** (production) - `/run/secrets/*`
 2. **System Keyring** (local dev) - Encrypted file
 3. **Environment Variables** (fallback/testing) - `.env` file
@@ -48,6 +49,7 @@ All secrets loaded?
 ### Required Secrets (App won't start without these)
 
 **1. DB_PASSWORD**
+
 - **Purpose:** PostgreSQL authentication
 - **Format:** String (any characters)
 - **Docker Secret:** `/run/secrets/db_password`
@@ -56,6 +58,7 @@ All secrets loaded?
 - **Used By:** Database connection pool
 
 **2. MAPBOX_TOKEN**
+
 - **Purpose:** Mapbox API authentication
 - **Format:** `pk.ey...` (starts with pk.)
 - **Docker Secret:** `/run/secrets/mapbox_token`
@@ -66,6 +69,7 @@ All secrets loaded?
 ### Optional Secrets (App starts without these, features disabled)
 
 **3. API_KEY**
+
 - **Purpose:** Application API authentication
 - **Format:** String (recommend 32+ chars)
 - **Docker Secret:** `/run/secrets/api_key`
@@ -75,6 +79,7 @@ All secrets loaded?
 - **Behavior if missing:** Authentication disabled (open access)
 
 **4. WIGLE_API_NAME**
+
 - **Purpose:** WiGLE username
 - **Format:** String
 - **Docker Secret:** `/run/secrets/wigle_api_name`
@@ -84,6 +89,7 @@ All secrets loaded?
 - **Behavior if missing:** WiGLE features disabled
 
 **5. WIGLE_API_TOKEN**
+
 - **Purpose:** WiGLE API token
 - **Format:** String
 - **Docker Secret:** `/run/secrets/wigle_api_token`
@@ -93,6 +99,7 @@ All secrets loaded?
 - **Behavior if missing:** WiGLE features disabled
 
 **6. LOCATIONIQ_API_KEY**
+
 - **Purpose:** LocationIQ geocoding
 - **Format:** String
 - **Docker Secret:** `/run/secrets/locationiq_api_key`
@@ -102,6 +109,7 @@ All secrets loaded?
 - **Behavior if missing:** LocationIQ enrichment disabled
 
 **7. OPENCAGE_API_KEY**
+
 - **Purpose:** OpenCage geocoding
 - **Format:** String
 - **Docker Secret:** `/run/secrets/opencage_api_key`
@@ -117,6 +125,7 @@ All secrets loaded?
 ### Priority Order (Highest to Lowest)
 
 **1. Docker Secrets** (Production)
+
 ```javascript
 // Check /run/secrets/<secret_name>
 const secretPath = `/run/secrets/${secretName}`;
@@ -126,12 +135,14 @@ if (fs.existsSync(secretPath)) {
 ```
 
 **Why First:**
+
 - Standard for containerized deployments
 - Kubernetes native support
 - Docker Swarm native support
 - Secrets never in environment or logs
 
 **2. System Keyring** (Local Development)
+
 ```javascript
 // Check ~/.local/share/shadowcheck/keyring.enc
 const value = await keyringService.getCredential(keyName);
@@ -141,12 +152,14 @@ if (value) {
 ```
 
 **Why Second:**
+
 - Encrypted at rest
 - Machine-specific
 - Good for local development
 - Not suitable for production (file-based)
 
 **3. Environment Variables** (Fallback/Testing)
+
 ```javascript
 // Check process.env.*
 const value = process.env[envVarName];
@@ -157,6 +170,7 @@ if (value && value !== 'your-key-here') {
 ```
 
 **Why Last:**
+
 - Visible in process list
 - Visible in Docker inspect
 - Easy to leak in logs
@@ -210,6 +224,7 @@ if (mapboxToken && !mapboxToken.startsWith('pk.')) {
 ## Key Naming Conventions
 
 ### Docker Secrets (lowercase with underscores)
+
 ```
 /run/secrets/db_password
 /run/secrets/mapbox_token
@@ -221,6 +236,7 @@ if (mapboxToken && !mapboxToken.startsWith('pk.')) {
 ```
 
 ### Keyring Keys (lowercase with underscores)
+
 ```
 db_password
 mapbox_token_default
@@ -232,6 +248,7 @@ opencage_api_key
 ```
 
 ### Environment Variables (UPPERCASE with underscores)
+
 ```
 DB_PASSWORD
 MAPBOX_TOKEN
@@ -247,12 +264,14 @@ OPENCAGE_API_KEY
 ## Rotation Procedure
 
 ### Step 1: Generate New Key
+
 ```bash
 # Generate new API key
 openssl rand -hex 32
 ```
 
 ### Step 2: Store New Key (with version)
+
 ```bash
 # Docker
 echo "new_key_value" | docker secret create api_key_v2 -
@@ -265,17 +284,20 @@ export API_KEY_V2=new_key_value
 ```
 
 ### Step 3: Update Application
+
 ```javascript
 // Support both versions during transition
-const apiKey = await secrets.get('api_key_v2') || await secrets.get('api_key');
+const apiKey = (await secrets.get('api_key_v2')) || (await secrets.get('api_key'));
 ```
 
 ### Step 4: Verify New Key Works
+
 ```bash
 curl -H "x-api-key: new_key_value" http://localhost:3001/api/tag-network
 ```
 
 ### Step 5: Revoke Old Key
+
 ```bash
 # Docker
 docker secret rm api_key
@@ -292,6 +314,7 @@ unset API_KEY
 ## Implementation Checklist
 
 ### Phase 1: Core Infrastructure
+
 - [ ] Create src/services/secretsManager.js
 - [ ] Implement Docker secrets reader
 - [ ] Implement 3-tier fallback
@@ -299,24 +322,28 @@ unset API_KEY
 - [ ] Add error messages
 
 ### Phase 2: Integration
+
 - [ ] Update server.js to use SecretsManager
 - [ ] Update all route files
 - [ ] Update all scripts
-- [ ] Remove direct process.env.* access
+- [ ] Remove direct process.env.\* access
 
 ### Phase 3: Docker Support
+
 - [ ] Update Dockerfile
 - [ ] Update docker-compose.yml with secrets
 - [ ] Create secrets setup script
 - [ ] Test in Docker environment
 
 ### Phase 4: Documentation
+
 - [ ] Update .env.example
 - [ ] Create DOCKER_SECRETS_SETUP.md
 - [ ] Update README.md
 - [ ] Create secrets rotation guide
 
 ### Phase 5: Testing
+
 - [ ] Unit tests for SecretsManager
 - [ ] Integration tests with Docker secrets
 - [ ] Test all fallback scenarios
@@ -332,7 +359,7 @@ unset API_KEY
 ✅ Clear error messages if secrets missing  
 ✅ No secrets in logs or process list  
 ✅ Secrets can be rotated without code changes  
-✅ Audit log of secret access  
+✅ Audit log of secret access
 
 ---
 

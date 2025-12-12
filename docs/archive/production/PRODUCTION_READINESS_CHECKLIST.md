@@ -438,7 +438,7 @@ npm test -- --verbose
 
 ✅ **PASS:** Dockerfile exists
 - Multi-stage build possible
-- Node.js 18+ base image
+- Node.js 20+ base image
 - Production-ready
 
 ✅ **PASS:** docker-compose.yml maintained
@@ -614,7 +614,7 @@ app.get('/metrics', async (req, res) => {
 # Deployment Guide
 
 ## Prerequisites
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL 18+ with PostGIS
 - 2GB RAM minimum
 

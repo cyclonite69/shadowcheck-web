@@ -1,9 +1,11 @@
 # ShadowCheck Database V2 - Implementation Plan
 
 ## Overview
+
 Complete redesign of ShadowCheck database following KISS principles, PostgreSQL 18 + PostGIS 3.4 best practices, and multi-source import strategy.
 
 ## Documentation Structure
+
 1. **DATABASE_DESIGN_V2.md** - Design principles and overview
 2. **DATABASE_SCHEMA_ENTITIES.md** - Core entity tables
 3. **DATABASE_SCHEMA_IMPORT.md** - Import, audit, and supporting tables
@@ -15,6 +17,7 @@ Complete redesign of ShadowCheck database following KISS principles, PostgreSQL 
 ## Key Features
 
 ### Multi-Source Import Support
+
 - ✅ WiGLE Wardriving App (CSV)
 - ✅ WiGLE API v2 (JSON)
 - ✅ WiGLE API v3 Alpha (JSON)
@@ -22,6 +25,7 @@ Complete redesign of ShadowCheck database following KISS principles, PostgreSQL 
 - ✅ ShadowCheckPentest scans
 
 ### PostgreSQL 18 Features Used
+
 - ✅ Native MACADDR type for MAC addresses
 - ✅ GEOGRAPHY/GEOMETRY types (PostGIS)
 - ✅ JSONB with GIN indexes
@@ -35,6 +39,7 @@ Complete redesign of ShadowCheck database following KISS principles, PostgreSQL 
 - ✅ pg_notify for real-time alerts
 
 ### Performance Optimizations
+
 - ✅ Partitioned observations table (time-series)
 - ✅ Materialized views for dashboards
 - ✅ GiST indexes for spatial queries
@@ -47,6 +52,7 @@ Complete redesign of ShadowCheck database following KISS principles, PostgreSQL 
 ## Implementation Phases
 
 ### Phase 1: Core Schema (Day 1)
+
 **Goal:** Basic tables and relationships
 
 ```bash
@@ -60,6 +66,7 @@ psql -f sql/v2/06_create_imports.sql
 ```
 
 **Tables:**
+
 - app.networks
 - app.observations (partitioned)
 - app.devices
@@ -69,6 +76,7 @@ psql -f sql/v2/06_create_imports.sql
 **Deliverable:** Can insert and query basic network data
 
 ### Phase 2: Supporting Tables (Day 1-2)
+
 **Goal:** Enrichment, trilateration, tracking
 
 ```bash
@@ -81,6 +89,7 @@ psql -f sql/v2/12_create_ml_models.sql
 ```
 
 **Tables:**
+
 - app.enrichments
 - app.ap_locations
 - app.tracked_devices
@@ -91,6 +100,7 @@ psql -f sql/v2/12_create_ml_models.sql
 **Deliverable:** Full data model in place
 
 ### Phase 3: Functions (Day 2)
+
 **Goal:** Business logic in database
 
 ```bash
@@ -102,6 +112,7 @@ psql -f sql/v2/24_functions_utility.sql
 ```
 
 **Functions:**
+
 - upsert_network()
 - calculate_threat_score()
 - calculate_ap_location()
@@ -112,6 +123,7 @@ psql -f sql/v2/24_functions_utility.sql
 **Deliverable:** Can import data programmatically
 
 ### Phase 4: Triggers (Day 2-3)
+
 **Goal:** Automation and data quality
 
 ```bash
@@ -125,6 +137,7 @@ psql -f sql/v2/36_triggers_validation.sql
 ```
 
 **Triggers:**
+
 - Auto-update timestamps
 - Audit trail for tags
 - Auto-populate geography columns
@@ -136,6 +149,7 @@ psql -f sql/v2/36_triggers_validation.sql
 **Deliverable:** Self-maintaining database
 
 ### Phase 5: Analytics (Day 3)
+
 **Goal:** Materialized views for dashboards
 
 ```bash
@@ -149,6 +163,7 @@ psql -f sql/v2/46_mv_refresh_function.sql
 ```
 
 **Materialized Views:**
+
 - analytics.network_stats
 - analytics.daily_activity
 - analytics.threat_dashboard
@@ -159,9 +174,11 @@ psql -f sql/v2/46_mv_refresh_function.sql
 **Deliverable:** Fast dashboard queries
 
 ### Phase 6: Import ETL (Day 3-4)
+
 **Goal:** Import from all sources
 
 **Scripts to create:**
+
 - scripts/import/wigle_csv.js
 - scripts/import/wigle_api_v2.js
 - scripts/import/wigle_api_v3.js
@@ -171,6 +188,7 @@ psql -f sql/v2/46_mv_refresh_function.sql
 **Deliverable:** Can import from all sources
 
 ### Phase 7: Backup Strategy (Day 4)
+
 **Goal:** Automated backups
 
 ```bash
@@ -188,6 +206,7 @@ crontab -e
 **Deliverable:** Automated backup system
 
 ### Phase 8: Migration from V1 (Day 4-5)
+
 **Goal:** Migrate existing data
 
 ```bash
@@ -195,6 +214,7 @@ psql -f sql/v2/90_migrate_from_v1.sql
 ```
 
 **Tasks:**
+
 - Export data from current schema
 - Transform to new schema
 - Import with validation
@@ -203,18 +223,22 @@ psql -f sql/v2/90_migrate_from_v1.sql
 **Deliverable:** All existing data migrated
 
 ### Phase 9: API Updates (Day 5)
+
 **Goal:** Update server.js to use new schema
 
 **Files to update:**
+
 - server.js (API endpoints)
-- public/*.html (frontend queries)
+- public/\*.html (frontend queries)
 
 **Deliverable:** Application works with new schema
 
 ### Phase 10: Testing & Optimization (Day 5-6)
+
 **Goal:** Performance tuning
 
 **Tasks:**
+
 - Load testing with large datasets
 - Query optimization
 - Index tuning
@@ -226,6 +250,7 @@ psql -f sql/v2/90_migrate_from_v1.sql
 ## Rollback Plan
 
 If issues arise:
+
 1. Keep V1 schema in separate schema: `app_v1`
 2. Can switch back by updating connection strings
 3. Export V2 data before major changes
@@ -245,6 +270,7 @@ If issues arise:
 ## Next Steps
 
 **Before proceeding:**
+
 1. Review all documentation files
 2. Discuss any missing requirements
 3. Agree on implementation timeline
@@ -252,6 +278,7 @@ If issues arise:
 5. Backup current database
 
 **Ready to start?**
+
 - Create Phase 1 migration scripts
 - Test on empty database
 - Import sample data

@@ -7,6 +7,7 @@
 ## Pre-Deployment Verification
 
 ### ✅ Code Quality
+
 - [x] All tests passing (206/214 tests, 96%)
 - [x] No critical security vulnerabilities
 - [x] SQL injection vulnerabilities fixed
@@ -14,6 +15,7 @@
 - [x] Error handling comprehensive
 
 ### ✅ Security
+
 - [x] Secrets management implemented (3-tier fallback)
 - [x] SQL injection prevention (parameterized queries)
 - [x] LIKE wildcard escaping
@@ -23,12 +25,14 @@
 - [x] CORS properly configured
 
 ### ✅ Observability
+
 - [x] Health check endpoint (`/health`)
 - [x] Request ID middleware
 - [x] Error logging with request IDs
 - [x] Graceful shutdown handlers
 
 ### ✅ Documentation
+
 - [x] README.md complete
 - [x] API documentation
 - [x] Secrets management guide
@@ -42,6 +46,7 @@
 #### Configure Secrets (Choose One)
 
 **Option A: Docker Secrets (Recommended for Production)**
+
 ```bash
 mkdir -p secrets
 chmod 700 secrets
@@ -59,6 +64,7 @@ ls -la secrets/
 ```
 
 **Option B: System Keyring (Development/Staging)**
+
 ```bash
 node scripts/keyring-cli.js set db_password
 node scripts/keyring-cli.js set mapbox_token
@@ -69,6 +75,7 @@ node scripts/keyring-cli.js list
 ```
 
 **Option C: Environment Variables (Fallback)**
+
 ```bash
 cp .env.example .env
 # Edit .env with your secrets
@@ -76,6 +83,7 @@ nano .env
 ```
 
 #### Verify Secrets Configuration
+
 ```bash
 # Start server and check logs
 npm start
@@ -111,6 +119,7 @@ psql -U shadowcheck -d shadowcheck -c "SELECT COUNT(*) FROM app.networks;"
 ### 3. Application Deployment
 
 #### Docker Compose (Recommended)
+
 ```bash
 # Build image
 docker-compose build
@@ -126,6 +135,7 @@ curl http://localhost:3001/health | jq .
 ```
 
 #### Systemd Service (Alternative)
+
 ```bash
 # Create service file
 sudo nano /etc/systemd/system/shadowcheck.service
@@ -155,6 +165,7 @@ sudo systemctl status shadowcheck
 ### 4. Load Balancer Configuration
 
 #### Nginx
+
 ```nginx
 upstream shadowcheck {
   server 127.0.0.1:3001 max_fails=3 fail_timeout=30s;
@@ -190,6 +201,7 @@ server {
 ```
 
 #### HAProxy
+
 ```haproxy
 backend shadowcheck
   mode http
@@ -217,47 +229,48 @@ spec:
         app: shadowcheck
     spec:
       containers:
-      - name: api
-        image: shadowcheck:latest
-        ports:
-        - containerPort: 3001
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: DB_HOST
-          value: "postgres-service"
-        - name: DB_USER
-          value: "shadowcheck"
-        - name: DB_NAME
-          value: "shadowcheck"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 2
-          failureThreshold: 2
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        - name: api
+          image: shadowcheck:latest
+          ports:
+            - containerPort: 3001
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: DB_HOST
+              value: 'postgres-service'
+            - name: DB_USER
+              value: 'shadowcheck'
+            - name: DB_NAME
+              value: 'shadowcheck'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
 ```
 
 ## Post-Deployment Verification
 
 ### 1. Health Check
+
 ```bash
 # Check health endpoint
 curl http://your-domain.com/health | jq .
@@ -277,6 +290,7 @@ curl http://your-domain.com/health | jq .
 ```
 
 ### 2. Request ID Verification
+
 ```bash
 # Check X-Request-ID header
 curl -v http://your-domain.com/api/networks 2>&1 | grep X-Request-ID
@@ -286,6 +300,7 @@ curl -v http://your-domain.com/api/networks 2>&1 | grep X-Request-ID
 ```
 
 ### 3. API Functionality
+
 ```bash
 # Test dashboard metrics
 curl http://your-domain.com/api/dashboard-metrics | jq .
@@ -298,6 +313,7 @@ curl http://your-domain.com/api/threats/quick | jq .
 ```
 
 ### 4. Error Handling
+
 ```bash
 # Trigger an error
 curl http://your-domain.com/api/networks/invalid-bssid
@@ -312,6 +328,7 @@ curl http://your-domain.com/api/networks/invalid-bssid
 ```
 
 ### 5. Performance Check
+
 ```bash
 # Check response times
 time curl -s http://your-domain.com/api/networks > /dev/null
@@ -322,6 +339,7 @@ time curl -s http://your-domain.com/api/networks > /dev/null
 ## Monitoring Setup
 
 ### 1. Health Monitoring Script
+
 ```bash
 #!/bin/bash
 # /opt/shadowcheck/monitor-health.sh
@@ -333,20 +351,21 @@ while true; do
   response=$(curl -s $ENDPOINT)
   status=$(echo $response | jq -r '.status')
   timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-  
+
   echo "[$timestamp] Status: $status" >> $LOG_FILE
-  
+
   if [ "$status" != "healthy" ]; then
     echo "[$timestamp] ALERT: Service is $status" >> $LOG_FILE
     echo "$response" | jq . >> $LOG_FILE
     # Send alert (email, Slack, PagerDuty, etc.)
   fi
-  
+
   sleep 60
 done
 ```
 
 ### 2. Log Rotation
+
 ```bash
 # /etc/logrotate.d/shadowcheck
 /var/log/shadowcheck/*.log {
@@ -364,6 +383,7 @@ done
 ```
 
 ### 3. Alerting (Optional)
+
 ```bash
 # Install monitoring agent
 # - Datadog
@@ -377,28 +397,31 @@ done
 ### If Issues Occur
 
 1. **Check Health Endpoint**
+
    ```bash
    curl http://localhost:3001/health | jq .
    ```
 
 2. **Check Logs**
+
    ```bash
    # Docker
    docker-compose logs -f api
-   
+
    # Systemd
    journalctl -u shadowcheck -f
-   
+
    # File
    tail -f /var/log/shadowcheck/server.log
    ```
 
 3. **Rollback to Previous Version**
+
    ```bash
    # Docker
    docker-compose down
    docker-compose up -d --build
-   
+
    # Systemd
    sudo systemctl stop shadowcheck
    # Restore previous code
@@ -414,6 +437,7 @@ done
 ## Security Hardening
 
 ### 1. Firewall Rules
+
 ```bash
 # Allow only necessary ports
 sudo ufw allow 22/tcp    # SSH
@@ -423,12 +447,14 @@ sudo ufw enable
 ```
 
 ### 2. SSL/TLS Certificate
+
 ```bash
 # Let's Encrypt
 sudo certbot --nginx -d shadowcheck.example.com
 ```
 
 ### 3. Database Security
+
 ```bash
 # Restrict PostgreSQL access
 sudo nano /etc/postgresql/*/main/pg_hba.conf
@@ -438,6 +464,7 @@ host    shadowcheck    shadowcheck    127.0.0.1/32    scram-sha-256
 ```
 
 ### 4. Application Security
+
 - [x] Secrets not in environment variables (use Docker secrets)
 - [x] Rate limiting enabled
 - [x] CORS configured
@@ -447,12 +474,14 @@ host    shadowcheck    shadowcheck    127.0.0.1/32    scram-sha-256
 ## Performance Tuning
 
 ### 1. Node.js
+
 ```bash
 # Increase memory limit if needed
 NODE_OPTIONS="--max-old-space-size=2048" npm start
 ```
 
 ### 2. PostgreSQL
+
 ```sql
 -- Optimize for production
 ALTER SYSTEM SET shared_buffers = '256MB';
@@ -472,7 +501,9 @@ sudo systemctl restart postgresql
 ```
 
 ### 3. Connection Pooling
+
 Already configured in `server.js`:
+
 ```javascript
 max: 5,
 idleTimeoutMillis: 10000,
@@ -482,6 +513,7 @@ connectionTimeoutMillis: 5000
 ## Backup Strategy
 
 ### 1. Database Backup
+
 ```bash
 #!/bin/bash
 # /opt/shadowcheck/backup-db.sh
@@ -502,6 +534,7 @@ echo "Backup completed: $BACKUP_FILE.gz"
 ```
 
 ### 2. Automated Backups
+
 ```bash
 # Add to crontab
 crontab -e
@@ -529,10 +562,10 @@ crontab -e
 - [ ] Backups configured
 - [ ] Documentation reviewed
 
-**Deployed By:** _________________  
-**Date:** _________________  
-**Version:** _________________  
-**Environment:** _________________
+**Deployed By:** **\*\*\*\***\_**\*\*\*\***  
+**Date:** **\*\*\*\***\_**\*\*\*\***  
+**Version:** **\*\*\*\***\_**\*\*\*\***  
+**Environment:** **\*\*\*\***\_**\*\*\*\***
 
 ---
 

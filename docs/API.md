@@ -30,16 +30,19 @@ Production: `https://your-domain.com/api`
 Most endpoints are public. Sensitive endpoints require API key authentication.
 
 **Protected Endpoints:**
+
 - `POST /api/tag-network`
 - `DELETE /api/tag-network/:bssid`
 - `POST /api/ml/train`
 
 **Header:**
+
 ```http
 x-api-key: your-api-key-here
 ```
 
 **Example:**
+
 ```bash
 curl -H "x-api-key: your-key" -X POST http://localhost:3001/api/ml/train
 ```
@@ -62,11 +65,14 @@ Most endpoints return JSON with this structure:
 ```json
 {
   "ok": true,
-  "data": { /* response data */ }
+  "data": {
+    /* response data */
+  }
 }
 ```
 
 **Exceptions:**
+
 - `/api/dashboard-metrics`: Returns raw object
 - `/api/networks`: Returns array with pagination metadata
 
@@ -80,6 +86,7 @@ Most endpoints return JSON with this structure:
 ```
 
 HTTP Status Codes:
+
 - `200 OK`: Successful request
 - `400 Bad Request`: Invalid parameters
 - `401 Unauthorized`: Missing or invalid API key
@@ -90,11 +97,13 @@ HTTP Status Codes:
 ## Error Handling
 
 All errors include:
+
 - `error`: Human-readable error message
 - `details`: (Optional) Additional error context
 - Appropriate HTTP status code
 
 **Example Error:**
+
 ```json
 {
   "error": "Invalid limit parameter. Must be between 1 and 5000.",
@@ -115,6 +124,7 @@ GET /api/dashboard-metrics
 ```
 
 **Response:**
+
 ```json
 {
   "totalNetworks": 173326,
@@ -125,6 +135,7 @@ GET /api/dashboard-metrics
 ```
 
 **Fields:**
+
 - `totalNetworks`: Total unique networks in database
 - `threatsCount`: Networks with threat score ≥ 40
 - `surveillanceCount`: Networks tagged as INVESTIGATE or THREAT
@@ -143,11 +154,13 @@ GET /api/threats/quick?page=1&limit=100&minSeverity=40
 ```
 
 **Query Parameters:**
+
 - `page` (integer, default: 1): Page number
 - `limit` (integer, default: 100, max: 5000): Results per page
 - `minSeverity` (integer, default: 40, range: 0-100): Minimum threat score
 
 **Response:**
+
 ```json
 {
   "threats": [
@@ -180,6 +193,7 @@ GET /api/threats/quick?page=1&limit=100&minSeverity=40
 ```
 
 **Threat Score Breakdown:**
+
 - **40+ points:** Seen at home AND away (strongest indicator)
 - **25 points:** Distance range > 200m
 - **5-15 points:** Multiple unique days (2-7+)
@@ -197,9 +211,11 @@ GET /api/threats/detect
 ```
 
 **Query Parameters:**
+
 - `minSeverity` (integer, default: 40): Minimum threat score
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -220,7 +236,7 @@ GET /api/threats/detect
         "observations": [
           {
             "lat": 40.7128,
-            "lon": -74.0060,
+            "lon": -74.006,
             "time": "2025-12-02T08:00:00Z",
             "signal_strength": -65,
             "speed_to_next_kmh": 45
@@ -252,6 +268,7 @@ GET /api/networks?page=1&limit=100&sort=lastSeen&order=DESC
 ```
 
 **Query Parameters:**
+
 - `page` (integer, default: 1): Page number
 - `limit` (integer, default: 100, max: 5000): Results per page
 - `sort` (string, default: lastSeen): Sort field
@@ -260,6 +277,7 @@ GET /api/networks?page=1&limit=100&sort=lastSeen&order=DESC
   - Options: `ASC`, `DESC`
 
 **Response:**
+
 ```json
 {
   "networks": [
@@ -294,14 +312,17 @@ GET /api/networks/observations/:bssid
 ```
 
 **Path Parameters:**
+
 - `bssid` (string, required): MAC address or cellular tower ID
 
 **Example:**
+
 ```bash
 curl http://localhost:3001/api/networks/observations/AA:BB:CC:DD:EE:FF
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -313,7 +334,7 @@ curl http://localhost:3001/api/networks/observations/AA:BB:CC:DD:EE:FF
       {
         "id": 12345,
         "lat": 40.7128,
-        "lon": -74.0060,
+        "lon": -74.006,
         "signal_strength": -65,
         "time": "2025-12-02T08:00:00Z",
         "accuracy": 10
@@ -335,14 +356,17 @@ GET /api/networks/search/:ssid
 ```
 
 **Path Parameters:**
+
 - `ssid` (string, required): SSID to search (supports wildcards with %)
 
 **Example:**
+
 ```bash
 curl http://localhost:3001/api/networks/search/Starbucks
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -368,12 +392,14 @@ POST /api/tag-network
 ```
 
 **Headers:**
+
 ```http
 Content-Type: application/json
 x-api-key: your-api-key
 ```
 
 **Request Body:**
+
 ```json
 {
   "bssid": "AA:BB:CC:DD:EE:FF",
@@ -384,6 +410,7 @@ x-api-key: your-api-key
 ```
 
 **Fields:**
+
 - `bssid` (string, required): Network MAC address or tower ID
 - `tag_type` (string, required): One of:
   - `LEGIT`: Confirmed safe network (threat score: 0.0)
@@ -394,6 +421,7 @@ x-api-key: your-api-key
 - `notes` (string, optional): Additional context
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -416,14 +444,17 @@ DELETE /api/tag-network/:bssid
 ```
 
 **Headers:**
+
 ```http
 x-api-key: your-api-key
 ```
 
 **Path Parameters:**
+
 - `bssid` (string, required): Network MAC address
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -446,6 +477,7 @@ GET /api/analytics/network-types
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -471,6 +503,7 @@ GET /api/analytics/signal-strength
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -495,6 +528,7 @@ GET /api/analytics/temporal-activity
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -519,6 +553,7 @@ GET /api/analytics/security
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -536,6 +571,7 @@ GET /api/analytics/security
 ```
 
 **Security Type Classification:**
+
 - `WPA3-E`: WPA3 Enterprise (802.1X)
 - `WPA3-P`: WPA3 Personal (SAE/PSK)
 - `WPA2-E`: WPA2 Enterprise
@@ -556,6 +592,7 @@ GET /api/analytics/radio-type-over-time
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -586,11 +623,13 @@ POST /api/ml/train
 ```
 
 **Headers:**
+
 ```http
 x-api-key: your-api-key
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -610,6 +649,7 @@ x-api-key: your-api-key
 ```
 
 **Requirements:**
+
 - Minimum 10 tagged networks
 - At least 2 different tag types (LEGIT vs THREAT/INVESTIGATE)
 
@@ -624,6 +664,7 @@ GET /api/ml/status
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -654,9 +695,11 @@ GET /api/ml/predict/:bssid
 ```
 
 **Path Parameters:**
+
 - `bssid` (string, required): Network MAC address
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -689,14 +732,17 @@ GET /api/manufacturer/:bssid
 ```
 
 **Path Parameters:**
+
 - `bssid` (string, required): MAC address
 
 **Example:**
+
 ```bash
 curl http://localhost:3001/api/manufacturer/AA:BB:CC:DD:EE:FF
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -721,6 +767,7 @@ curl http://localhost:3001/api/manufacturer/AA:BB:CC:DD:EE:FF
 ## Timestamp Format
 
 All timestamps are ISO 8601 UTC:
+
 ```
 2025-12-02T08:30:00Z
 ```

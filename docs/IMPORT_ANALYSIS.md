@@ -3,35 +3,42 @@
 ## What Was Wrong
 
 ### 1. **Import Script Was Never Run**
+
 The SQLite database (`backup-1764309125210.sqlite`) containing **419,969 location records** and **129,633 network records** was never imported into PostgreSQL. Instead, the system was running on a small subset of data from `import.wigle_networks_raw` (only 7,001 records).
 
 **Result:** Only 72,408 observations in PostgreSQL instead of 416,089.
 
 ### 2. **Database Trigger Bugs**
+
 - `validate_observation()` trigger referenced non-existent column `identifier` instead of `bssid`
 - This caused all import attempts to fail silently
 
 ### 3. **Invalid Timestamps in Source Data**
+
 - SQLite database contained 3,880 records with `time = 0` (epoch 1970-01-01)
 - PostgreSQL partitioning failed because no partition existed for 1970
 - These records were from incomplete/corrupted scans
 
 ### 4. **Invalid Coordinates in Network Table**
+
 - SQLite network table contained 294 records with `Infinity` values for coordinates
 - PostgreSQL numeric(10,7) columns cannot store infinity
 - Caused overflow errors during import
 
 ### 5. **Enum Type Mismatch**
-- Import script used `'wigle'::source_type` 
+
+- Import script used `'wigle'::source_type`
 - Valid enum values are: `wigle_app`, `wigle_api_v2`, `wigle_api_v3`, `kismet`, etc.
 - Should have been `'wigle_app'::source_type`
 
 ### 6. **Missing Channel/Frequency Backfill**
+
 - Networks imported without channel data
 - Frequency-to-channel conversion was not applied
 - Channel-to-frequency conversion was not applied
 
 ### 7. **Network Metadata Not Populated**
+
 - The `upsert_network_from_observation` trigger only creates network records
 - It doesn't populate SSID, frequency, capabilities from the SQLite network table
 - Manual UPDATE was required to merge network metadata
@@ -39,6 +46,7 @@ The SQLite database (`backup-1764309125210.sqlite`) containing **419,969 locatio
 ## What Was Fixed
 
 ### 1. **Fixed validate_observation Trigger**
+
 ```sql
 -- Changed from:
 NEW.identifier := UPPER(NEW.identifier);
@@ -48,13 +56,16 @@ NEW.bssid := UPPER(NEW.bssid);
 ```
 
 ### 2. **Added Timestamp Filtering**
+
 ```sql
 WHERE time >= 946684800000  -- 2000-01-01 in milliseconds
   AND time <= EXTRACT(EPOCH FROM NOW()) * 1000 + 86400000
 ```
+
 **Result:** Filtered out 3,880 invalid records with time=0
 
 ### 3. **Fixed Source Type Enum**
+
 ```sql
 -- Changed from:
 'wigle'::source_type
@@ -64,6 +75,7 @@ WHERE time >= 946684800000  -- 2000-01-01 in milliseconds
 ```
 
 ### 4. **Added Coordinate Validation for Network Updates**
+
 ```sql
 lastlat = CASE WHEN sn.lastlat BETWEEN -90 AND 90 THEN sn.lastlat ELSE NULL END,
 lastlon = CASE WHEN sn.lastlon BETWEEN -180 AND 180 THEN sn.lastlon ELSE NULL END,
@@ -72,6 +84,7 @@ bestlon = CASE WHEN sn.bestlon BETWEEN -180 AND 180 THEN sn.bestlon ELSE NULL EN
 ```
 
 ### 5. **Implemented Channel/Frequency Backfill**
+
 ```sql
 -- Frequency to Channel (2.4 GHz, 5 GHz, 6 GHz bands)
 UPDATE app.networks
@@ -94,9 +107,10 @@ WHERE (frequency IS NULL OR frequency = 0) AND channel IS NOT NULL;
 ```
 
 ### 6. **Populated Network Metadata**
+
 ```sql
 UPDATE app.networks n
-SET 
+SET
     ssid = NULLIF(sn.ssid, ''),
     frequency = CASE WHEN sn.frequency > 0 THEN sn.frequency ELSE NULL END,
     capabilities = NULLIF(sn.capabilities, ''),
@@ -114,14 +128,16 @@ WHERE n.bssid = UPPER(sn.bssid);
 ## Final Results
 
 ### Import Statistics
-| Metric | SQLite Source | PostgreSQL Imported | Import Rate |
-|--------|---------------|---------------------|-------------|
-| **Observations** | 419,969 | 416,089 | 99.1% |
-| **Networks** | 129,633 | 117,687 | 90.8% |
-| **Invalid timestamps** | 3,880 | 0 (filtered) | - |
-| **Invalid coordinates** | 356 (obs) + 550 (net) | 0 (filtered) | - |
+
+| Metric                  | SQLite Source         | PostgreSQL Imported | Import Rate |
+| ----------------------- | --------------------- | ------------------- | ----------- |
+| **Observations**        | 419,969               | 416,089             | 99.1%       |
+| **Networks**            | 129,633               | 117,687             | 90.8%       |
+| **Invalid timestamps**  | 3,880                 | 0 (filtered)        | -           |
+| **Invalid coordinates** | 356 (obs) + 550 (net) | 0 (filtered)        | -           |
 
 ### Data Quality (PostgreSQL)
+
 - ✅ **100%** uppercase BSSIDs
 - ✅ **100%** valid timestamps (2025-03-19 to 2025-11-28)
 - ✅ **100%** valid coordinates (-90 to 90 lat, -180 to 180 lon)
@@ -131,16 +147,18 @@ WHERE n.bssid = UPPER(sn.bssid);
 - ✅ **92.6%** networks have capabilities (109,008 / 117,687)
 
 ### Radio Type Distribution
-| Type | Count | Percentage | Description |
-|------|-------|------------|-------------|
-| **E** | 75,163 | 63.9% | Bluetooth Low Energy |
-| **W** | 36,391 | 30.9% | WiFi |
-| **B** | 5,754 | 4.9% | Bluetooth Classic |
-| **L** | 209 | 0.2% | LTE/4G |
-| **G** | 120 | 0.1% | GSM/2G |
-| **N** | 50 | 0.04% | 5G NR |
+
+| Type  | Count  | Percentage | Description          |
+| ----- | ------ | ---------- | -------------------- |
+| **E** | 75,163 | 63.9%      | Bluetooth Low Energy |
+| **W** | 36,391 | 30.9%      | WiFi                 |
+| **B** | 5,754  | 4.9%       | Bluetooth Classic    |
+| **L** | 209    | 0.2%       | LTE/4G               |
+| **G** | 120    | 0.1%       | GSM/2G               |
+| **N** | 50     | 0.04%      | 5G NR                |
 
 ### Top 10 Most Observed Networks
+
 1. **310260_42748_5895435** - 1,174 observations (LTE tower)
 2. **7C:F1:7E:CA:E8:A2** - 1,084 observations
 3. **7C:F1:7E:CA:E8:A3** - 996 observations
@@ -153,6 +171,7 @@ WHERE n.bssid = UPPER(sn.bssid);
 10. **34:13:43:0B:5D:2C** - 885 observations
 
 ### API Dashboard Metrics
+
 ```json
 {
   "totalNetworks": 117687,
@@ -165,6 +184,7 @@ WHERE n.bssid = UPPER(sn.bssid);
 ## Schema Comparison
 
 ### SQLite Schema
+
 ```sql
 -- location table (source of observations)
 CREATE TABLE location (
@@ -200,6 +220,7 @@ CREATE TABLE network (
 ```
 
 ### PostgreSQL Schema
+
 ```sql
 -- app.observations (partitioned by observed_at)
 CREATE TABLE app.observations (

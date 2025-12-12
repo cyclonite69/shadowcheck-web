@@ -17,6 +17,7 @@
 ## 🎯 Key Decisions Made
 
 ### Architecture
+
 ✅ PostgreSQL 18 + PostGIS 3.4 (shared across all repos)
 ✅ MACADDR native type for MAC addresses
 ✅ GEOGRAPHY for real-world distances, GEOMETRY for operations
@@ -26,12 +27,14 @@
 ✅ Clean Architecture pattern (from ShadowCheckPentest)
 
 ### Cross-Repository Integration
+
 ✅ **ShadowCheckStatic** - Web dashboard (Node.js/Express)
 ✅ **ShadowCheckPentest** - Active scanning (Python/SQLAlchemy)
 ✅ **ShadowCheckMobile** - Wardriving (Kotlin/Room → sync to PostgreSQL)
 ✅ Single shared database: `shadowcheck_postgres:5432/shadowcheck_db`
 
 ### Security (NO HARDCODED SECRETS)
+
 ✅ All API keys in system keyring
 ✅ Database password from keyring
 ✅ Map tokens (Mapbox, Google) from keyring
@@ -41,6 +44,7 @@
 ✅ Python keyring library for all repos
 
 ### Map Visualization
+
 ✅ Mapbox GL JS (primary)
 ✅ Google Maps
 ✅ Google Earth (KML export)
@@ -48,6 +52,7 @@
 ✅ GeoJSON API endpoint for all maps
 
 ### Import Sources
+
 ✅ WiGLE Wardriving App (CSV)
 ✅ WiGLE API v2 (JSON)
 ✅ WiGLE API v3 Alpha (JSON)
@@ -56,6 +61,7 @@
 ✅ ShadowCheckMobile (HTTP sync API)
 
 ### Performance Features
+
 ✅ Table partitioning (observations by month)
 ✅ Auto-create partitions via trigger
 ✅ GiST indexes for spatial queries
@@ -119,6 +125,7 @@
 ## ✅ Pre-Implementation Checklist
 
 ### Infrastructure
+
 - [x] PostgreSQL 18 + PostGIS 3.4 running in Docker
 - [x] Database `shadowcheck_db` created
 - [x] User `shadowcheck_user` created
@@ -128,6 +135,7 @@
 - [ ] WAL archiving configured
 
 ### Security
+
 - [x] Keyring library installed
 - [x] Database password in keyring
 - [ ] Mapbox token in keyring
@@ -138,6 +146,7 @@
 - [ ] No secrets in git history
 
 ### Code Preparation
+
 - [ ] Create git branch `database-v2`
 - [ ] Create `utils/keyring.js` helper
 - [ ] Update `server.js` to use keyring
@@ -145,6 +154,7 @@
 - [ ] Backup current database schema
 
 ### Documentation Review
+
 - [ ] All team members reviewed design docs
 - [ ] Consensus on schema design
 - [ ] Consensus on naming conventions
@@ -154,7 +164,9 @@
 ## 🚀 Implementation Timeline
 
 ### Week 1: Core Schema
+
 **Days 1-2:** Core tables
+
 - Create schemas (app, analytics, import, audit)
 - Create networks table with PostGIS
 - Create observations table (partitioned)
@@ -164,6 +176,7 @@
 - Test basic CRUD operations
 
 **Days 3-4:** Supporting tables
+
 - Create enrichments table
 - Create ap_locations table
 - Create tracked_devices table
@@ -172,6 +185,7 @@
 - Create ml_models table
 
 **Day 5:** Functions
+
 - upsert_network()
 - calculate_threat_score()
 - calculate_ap_location()
@@ -180,7 +194,9 @@
 - get_network_movement()
 
 ### Week 2: Automation & Analytics
+
 **Days 1-2:** Triggers
+
 - Timestamp triggers
 - Audit trail triggers
 - Geography auto-population
@@ -190,6 +206,7 @@
 - Validation triggers
 
 **Days 3-4:** Materialized Views
+
 - network_stats
 - daily_activity
 - threat_dashboard
@@ -199,6 +216,7 @@
 - Refresh function
 
 **Day 5:** Import ETL
+
 - WiGLE CSV importer
 - WiGLE API v2 importer
 - WiGLE API v3 importer
@@ -206,7 +224,9 @@
 - Mobile sync API
 
 ### Week 3: Integration & Testing
+
 **Days 1-2:** API Updates
+
 - Update server.js endpoints
 - Create GeoJSON endpoint
 - Create KML export endpoint
@@ -214,6 +234,7 @@
 - Keyring integration
 
 **Days 3-4:** Map Integration
+
 - Mapbox GL JS setup
 - Google Maps setup
 - Kepler.gl setup
@@ -221,25 +242,30 @@
 - Test all visualizations
 
 **Day 5:** Cross-repo Integration
+
 - ShadowCheckPentest connection
 - ShadowCheckMobile sync API
 - Test data flow
 - Verify referential integrity
 
 ### Week 4: Migration & Production
+
 **Days 1-2:** Data Migration
+
 - Export V1 data
 - Transform to V2 schema
 - Import with validation
 - Verify data integrity
 
 **Days 3-4:** Backup & Monitoring
+
 - Setup daily backups
 - Configure WAL archiving
 - Setup monitoring
 - Performance tuning
 
 **Day 5:** Documentation & Training
+
 - Update README
 - Create user guides
 - Team training
@@ -248,6 +274,7 @@
 ## 🎬 Ready to Execute?
 
 ### Immediate Next Steps
+
 1. **Review all documentation** (10 files)
 2. **Get team consensus** on design
 3. **Copy SQLite database** to project (if exists)
@@ -256,6 +283,7 @@
 6. **Start Phase 1** - Core schema migration
 
 ### Questions to Answer
+
 1. Where is the SQLite database to import?
 2. Do you have WiGLE API v3 alpha access?
 3. What's the Mapbox token?
@@ -267,6 +295,7 @@
 ## 📞 Consensus Required
 
 **Please confirm:**
+
 - [ ] Schema design approved
 - [ ] Naming conventions approved
 - [ ] Cross-repo integration approved
@@ -307,6 +336,7 @@
    - Bounding box of session
 
 ### Features
+
 ✅ Store media files directly in PostgreSQL (BYTEA)
 ✅ Full EXIF/metadata extraction and storage
 ✅ Automatic deduplication via SHA256 hash
@@ -316,6 +346,7 @@
 ✅ Session statistics auto-update via triggers
 
 ### Storage Strategy
+
 - Files stored as BYTEA (up to 100MB)
 - Compression enabled
 - Alternative: Large Objects (OID) for >1GB files
@@ -323,8 +354,8 @@
 - Hash-based deduplication
 
 ### Updated Tables
-- **app.observations** - Added device_uuid and session_uuid columns
 
+- **app.observations** - Added device_uuid and session_uuid columns
 
 ---
 
@@ -338,6 +369,7 @@
 ✅ **All statistics computed in views/MVs**
 
 ### Data Type Changes
+
 - Coordinates: `NUMERIC(10,7)` → `DOUBLE PRECISION`
 - Signal: `INTEGER` → `DOUBLE PRECISION`
 - Frequency: `INTEGER` → `DOUBLE PRECISION`
@@ -346,7 +378,9 @@
 - Sensor values: `REAL` → `DOUBLE PRECISION`
 
 ### Removed Computed Fields
+
 **From app.networks:**
+
 - observation_count → Computed in view
 - observation_days → Computed in view
 - max_signal_dbm → Computed in view
@@ -354,16 +388,17 @@
 - avg_signal_dbm → Computed in view
 
 **From app.device_sessions:**
+
 - networks_found → Computed in view
 - observations_recorded → Computed in view
 - distance_traveled_meters → Computed in view
 - media_captured → Computed in view
 
 ### Views for Statistics
+
 - `app.network_statistics` - Real-time computed stats
 - `app.network_signal_stats` - Signal statistics
 - `app.session_stats` - Session statistics
 - `analytics.network_stats` (MV) - Cached for performance
 
 See **DATABASE_SCHEMA_PRECISION.md** for complete details.
-

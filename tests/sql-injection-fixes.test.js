@@ -7,7 +7,6 @@ const BaseRepository = require('../src/repositories/baseRepository');
 const NetworkRepository = require('../src/repositories/networkRepository');
 
 describe('SQL Injection Prevention', () => {
-
   describe('BaseRepository.findMany() - ORDER BY Validation', () => {
     let repo;
 
@@ -30,21 +29,21 @@ describe('SQL Injection Prevention', () => {
     test('should reject SQL injection attempt in orderBy', async () => {
       const maliciousOrderBy = 'id; DROP TABLE networks; --';
 
-      await expect(
-        repo.findMany('1=1', [], { orderBy: maliciousOrderBy })
-      ).rejects.toThrow('Invalid orderBy column');
+      await expect(repo.findMany('1=1', [], { orderBy: maliciousOrderBy })).rejects.toThrow(
+        'Invalid orderBy column'
+      );
     });
 
     test('should reject invalid column name', async () => {
-      await expect(
-        repo.findMany('1=1', [], { orderBy: 'malicious_column DESC' })
-      ).rejects.toThrow('Invalid orderBy column: malicious_column');
+      await expect(repo.findMany('1=1', [], { orderBy: 'malicious_column DESC' })).rejects.toThrow(
+        'Invalid orderBy column: malicious_column'
+      );
     });
 
     test('should reject invalid direction', async () => {
-      await expect(
-        repo.findMany('1=1', [], { orderBy: 'id UNION' })
-      ).rejects.toThrow('Invalid orderBy direction: UNION');
+      await expect(repo.findMany('1=1', [], { orderBy: 'id UNION' })).rejects.toThrow(
+        'Invalid orderBy direction: UNION'
+      );
     });
 
     test('should parameterize LIMIT and OFFSET', async () => {
@@ -75,7 +74,8 @@ describe('SQL Injection Prevention', () => {
     });
 
     test('should accept valid sort column', async () => {
-      repo.query = jest.fn()
+      repo.query = jest
+        .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ total: 0 }] });
 
@@ -86,25 +86,26 @@ describe('SQL Injection Prevention', () => {
     });
 
     test('should reject SQL injection in sort parameter', async () => {
-      await expect(
-        repo.getPaginated({ sort: 'id; DROP TABLE networks; --' })
-      ).rejects.toThrow('Invalid sort column');
+      await expect(repo.getPaginated({ sort: 'id; DROP TABLE networks; --' })).rejects.toThrow(
+        'Invalid sort column'
+      );
     });
 
     test('should reject invalid sort column', async () => {
-      await expect(
-        repo.getPaginated({ sort: 'malicious_column' })
-      ).rejects.toThrow('Invalid sort column: malicious_column');
+      await expect(repo.getPaginated({ sort: 'malicious_column' })).rejects.toThrow(
+        'Invalid sort column: malicious_column'
+      );
     });
 
     test('should reject invalid order direction', async () => {
-      await expect(
-        repo.getPaginated({ sort: 'last_seen', order: 'UNION' })
-      ).rejects.toThrow('Invalid order direction: UNION');
+      await expect(repo.getPaginated({ sort: 'last_seen', order: 'UNION' })).rejects.toThrow(
+        'Invalid order direction: UNION'
+      );
     });
 
     test('should normalize order to uppercase', async () => {
-      repo.query = jest.fn()
+      repo.query = jest
+        .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ total: 0 }] });
 
@@ -124,7 +125,8 @@ describe('SQL Injection Prevention', () => {
 
     test('should parameterize CONFIG values instead of interpolating', async () => {
       // Mock all queries
-      repo.query = jest.fn()
+      repo.query = jest
+        .fn()
         .mockResolvedValueOnce({ rows: [{ count: 100 }] }) // totalNetworks
         .mockResolvedValueOnce({ rows: [] }) // threatsResult
         .mockResolvedValueOnce({ rows: [{ count: 5 }] }) // surveillanceCount
@@ -144,7 +146,8 @@ describe('SQL Injection Prevention', () => {
     });
 
     test('should not contain string interpolation in SQL', async () => {
-      repo.query = jest.fn()
+      repo.query = jest
+        .fn()
         .mockResolvedValueOnce({ rows: [{ count: 100 }] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ count: 5 }] })
@@ -172,17 +175,13 @@ describe('SQL Injection Prevention', () => {
     test('should prevent comment-based injection', async () => {
       const repo = new BaseRepository('app.networks');
 
-      await expect(
-        repo.findMany('1=1', [], { orderBy: 'id; -- comment' })
-      ).rejects.toThrow();
+      await expect(repo.findMany('1=1', [], { orderBy: 'id; -- comment' })).rejects.toThrow();
     });
 
     test('should prevent stacked query injection', async () => {
       const repo = new NetworkRepository();
 
-      await expect(
-        repo.getPaginated({ sort: 'id; DELETE FROM networks; --' })
-      ).rejects.toThrow();
+      await expect(repo.getPaginated({ sort: 'id; DELETE FROM networks; --' })).rejects.toThrow();
     });
   });
 });

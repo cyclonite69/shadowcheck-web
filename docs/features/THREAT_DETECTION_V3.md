@@ -18,6 +18,7 @@ Priority Order:
 ```
 
 **ML Scoring Formula:**
+
 - Base score: `ml_confidence * 100`
 - High confidence bonus:
   - ≥0.9 confidence: +50 points
@@ -31,6 +32,7 @@ Priority Order:
 The algorithm now focuses on the core surveillance pattern: **network seen at home, then detected at increasing distances**.
 
 **Scoring Tiers:**
+
 - ≥10km from home: **100 points** (Critical)
 - ≥5km from home: **80 points** (High severity)
 - ≥2km from home: **60 points** (Medium-high severity)
@@ -43,12 +45,14 @@ The algorithm now focuses on the core surveillance pattern: **network seen at ho
 ### 3. **Location-to-Location Jump Detection** (Surveillance Pattern)
 
 New CTE (Common Table Expression) `location_jumps` calculates:
+
 - Networks seen at location A, then at location B (>300m apart)
 - Jump count: Number of distinct location pairs >300m apart
 - Average jump distance
 - Max jump distance
 
 **Scoring:**
+
 ```sql
 location_jump_score = jump_count × multiplier
 
@@ -61,6 +65,7 @@ Multiplier:
 ```
 
 **Threat Points:**
+
 - Jump score ≥3.0: +80 points (Multiple long jumps = definite surveillance)
 - Jump score ≥2.0: +60 points (Several jumps)
 - Jump score ≥1.0: +40 points (Some jumps)
@@ -71,6 +76,7 @@ Multiplier:
 **CHANGED:** `seen_away_from_home` threshold reduced from **500m to 300m**
 
 Rationale:
+
 - WiFi range: ~100m outdoors
 - Bluetooth range: ~10-100m
 - 300m is well outside typical radio beacon range
@@ -80,16 +86,17 @@ Rationale:
 
 **Frontend Enhancement:** All threat cards now display radio type badges with color coding:
 
-| Type | Label | Color | Icon | Description |
-|------|-------|-------|------|-------------|
-| W | WiFi | Blue (#3b82f6) | 📡 | Wireless LAN |
-| E | BLE | Purple (#8b5cf6) | 🔵 | Bluetooth Low Energy |
-| B | BT | Violet (#a855f7) | 🔵 | Bluetooth Classic |
-| L | LTE | Pink (#ec4899) | 📱 | 4G LTE Cellular |
-| N | 5G | Rose (#f43f5e) | 📶 | 5G New Radio |
-| G | GSM | Red (#ef4444) | 📡 | 2G/3G Cellular |
+| Type | Label | Color            | Icon | Description          |
+| ---- | ----- | ---------------- | ---- | -------------------- |
+| W    | WiFi  | Blue (#3b82f6)   | 📡   | Wireless LAN         |
+| E    | BLE   | Purple (#8b5cf6) | 🔵   | Bluetooth Low Energy |
+| B    | BT    | Violet (#a855f7) | 🔵   | Bluetooth Classic    |
+| L    | LTE   | Pink (#ec4899)   | 📱   | 4G LTE Cellular      |
+| N    | 5G    | Rose (#f43f5e)   | 📶   | 5G New Radio         |
+| G    | GSM   | Red (#ef4444)    | 📡   | 2G/3G Cellular       |
 
 **Implementation:**
+
 - Added `getRadioTypeBadge()` function in `surveillance.html`
 - Badge displays on all threat cards, confirmed threats, and tagged safe lists
 - API response includes both `type` and `radioType` fields
@@ -110,6 +117,7 @@ TOTAL_SCORE =
 ```
 
 **1. Core Surveillance (seen at home + distance)**
+
 ```
 IF seen_at_home AND max_distance ≥10km: 100 points
 IF seen_at_home AND max_distance ≥5km:  80 points
@@ -120,6 +128,7 @@ IF seen_at_home AND seen_away (≥300m):  30 points
 ```
 
 **2. Location-to-Location Jumps**
+
 ```
 IF location_jump_score ≥3.0: 80 points
 IF location_jump_score ≥2.0: 60 points
@@ -128,6 +137,7 @@ IF location_jump_score ≥0.5: 20 points
 ```
 
 **3. Distance Weighting** (absolute max distance)
+
 ```
 IF max_distance ≥10km: 40 points
 IF max_distance ≥5km:  30 points
@@ -137,6 +147,7 @@ IF max_distance ≥0.5km: 5 points
 ```
 
 **4. Multiple Locations** (tracking pattern)
+
 ```
 IF unique_locations ≥10: 40 points
 IF unique_locations ≥7:  30 points
@@ -145,6 +156,7 @@ IF unique_locations ≥3:  10 points
 ```
 
 **5. Temporal Persistence** (sustained tracking)
+
 ```
 IF unique_days ≥7: 30 points
 IF unique_days ≥3: 20 points
@@ -152,6 +164,7 @@ IF unique_days ≥2: 10 points
 ```
 
 **6. Observation Frequency** (persistent presence)
+
 ```
 IF observation_count ≥50: 20 points
 IF observation_count ≥20: 10 points
@@ -159,6 +172,7 @@ IF observation_count ≥10:  5 points
 ```
 
 **7. Penalties** (reduce false positives)
+
 ```
 Strong stationary WiFi (type='W' AND max_signal > -50dBm): -25 points
 Single location only (unique_locations = 1): -30 points
@@ -168,12 +182,12 @@ Single location only (unique_locations = 1): -30 points
 
 Based on final threat score (0-100):
 
-| Severity | Score Range | Color | Description |
-|----------|-------------|-------|-------------|
-| **Critical** | 80-100 | Red | Definite tracking device, immediate investigation |
-| **High** | 70-79 | Orange | Highly suspicious, prioritize investigation |
-| **Medium** | 50-69 | Yellow | Concerning pattern, monitor closely |
-| **Low** | 30-49 | Blue | Potential concern, review when possible |
+| Severity     | Score Range | Color  | Description                                       |
+| ------------ | ----------- | ------ | ------------------------------------------------- |
+| **Critical** | 80-100      | Red    | Definite tracking device, immediate investigation |
+| **High**     | 70-79       | Orange | Highly suspicious, prioritize investigation       |
+| **Medium**   | 50-69       | Yellow | Concerning pattern, monitor closely               |
+| **Low**      | 30-49       | Blue   | Potential concern, review when possible           |
 
 **Default Threshold:** 30 points (configurable via `minSeverity` parameter)
 
@@ -181,28 +195,30 @@ Based on final threat score (0-100):
 
 Networks are automatically categorized:
 
-| Threat Type | Condition | Description |
-|-------------|-----------|-------------|
-| User Tagged Threat | `tag_type = THREAT` | User manually confirmed |
-| User Tagged Investigate | `tag_type = INVESTIGATE` | User flagged for review |
-| User Tagged False Positive | `tag_type = FALSE_POSITIVE` | User marked as safe |
-| Long-Range Tracking Device | `seen_at_home AND max_distance ≥5km` | Definite tracking |
-| Potential Tracking Device | `seen_at_home AND seen_away_from_home` | Likely tracking |
-| Location-to-Location Surveillance | `location_jump_score ≥2.0` | Multiple location jumps |
-| Mobile Device Pattern | `distance_range >1km` | Movement detected |
-| Movement Detected | (default) | Generic movement |
+| Threat Type                       | Condition                              | Description             |
+| --------------------------------- | -------------------------------------- | ----------------------- |
+| User Tagged Threat                | `tag_type = THREAT`                    | User manually confirmed |
+| User Tagged Investigate           | `tag_type = INVESTIGATE`               | User flagged for review |
+| User Tagged False Positive        | `tag_type = FALSE_POSITIVE`            | User marked as safe     |
+| Long-Range Tracking Device        | `seen_at_home AND max_distance ≥5km`   | Definite tracking       |
+| Potential Tracking Device         | `seen_at_home AND seen_away_from_home` | Likely tracking         |
+| Location-to-Location Surveillance | `location_jump_score ≥2.0`             | Multiple location jumps |
+| Mobile Device Pattern             | `distance_range >1km`                  | Movement detected       |
+| Movement Detected                 | (default)                              | Generic movement        |
 
 ## API Response Format
 
 ### Endpoint: `/api/threats/quick`
 
 **Parameters:**
+
 - `page` (integer, default: 1): Page number
 - `limit` (integer, default: 100, max: 5000): Results per page
 - `minSeverity` (integer, 0-100, default: 30): Minimum threat score
 - `exclude_tagged` (boolean, default: false): Exclude user-tagged networks
 
 **Response Structure:**
+
 ```json
 {
   "ok": true,
@@ -249,6 +265,7 @@ Networks are automatically categorized:
 ```
 
 **New Fields:**
+
 - `radioType`: Explicit radio type field for frontend display
 - `patterns.locationJumps`: Number of location-to-location jumps (>300m)
 - `patterns.locationJumpScore`: Weighted jump score (jump_count × distance multiplier)
@@ -288,6 +305,7 @@ location_jumps AS (
 ### Enhanced: Threat Score Calculation
 
 Now uses 3-tier priority:
+
 1. User override
 2. ML predictions (if confidence >0.7)
 3. Rule-based scoring
@@ -297,11 +315,13 @@ Now uses 3-tier priority:
 ### File: `public/surveillance.html`
 
 **New Function:** `getRadioTypeBadge(type)`
+
 - Returns styled HTML badge for radio type
 - Color-coded by network type
 - Includes icon and label
 
 **Updated Rendering:**
+
 - All threat cards show radio type badge
 - Confirmed threats list shows radio type
 - Tagged safe list shows radio type
@@ -319,10 +339,12 @@ curl -X POST http://localhost:3001/api/ml/train \
 ```
 
 **Requirements:**
+
 - Minimum 10 tagged networks (mix of THREAT and FALSE_POSITIVE)
 - API key configured in `.env` (optional)
 
 **Model Features:**
+
 - Distance range (km)
 - Unique days observed
 - Observation count
@@ -337,6 +359,7 @@ curl http://localhost:3001/api/ml/status
 ```
 
 Returns:
+
 - Model training status
 - Number of tagged networks
 - Threat/safe ratio
@@ -366,6 +389,7 @@ curl "http://localhost:3001/api/threats/quick?page=1&limit=50&minSeverity=20"
 **Test Date:** 2025-12-04
 
 **Sample Output:**
+
 ```json
 {
   "bssid": "310260_10943488_4368449837",
@@ -428,6 +452,7 @@ The `location_jumps` CTE can be expensive for large datasets (O(n²) complexity)
 ### Configuration Options
 
 Future `.env` settings:
+
 - `THREAT_MIN_SCORE`: Default minimum threshold (default: 30)
 - `LOCATION_JUMP_THRESHOLD`: Minimum distance for jumps (default: 300m)
 - `HOME_RADIUS`: Home location radius (default: 100m)
@@ -438,12 +463,14 @@ Future `.env` settings:
 ### No Threats Detected
 
 **Possible Causes:**
+
 1. Home location not set in `app.location_markers` table
 2. Threshold too high (try `minSeverity=20`)
 3. Insufficient observations (need ≥2 per network)
 4. All networks have been tagged
 
 **Solution:**
+
 ```sql
 -- Check home location
 SELECT * FROM app.location_markers WHERE marker_type = 'home';
@@ -455,11 +482,13 @@ SELECT bssid, COUNT(*) FROM app.observations GROUP BY bssid HAVING COUNT(*) >= 2
 ### ML Not Integrating
 
 **Possible Causes:**
+
 1. ML model not trained
 2. No networks have `ml_confidence` values
 3. ML confidence below 0.7 threshold
 
 **Solution:**
+
 ```bash
 # Train ML model
 curl -X POST http://localhost:3001/api/ml/train -H "x-api-key: YOUR_KEY"
@@ -471,11 +500,13 @@ curl http://localhost:3001/api/ml/status
 ### Radio Type Not Showing
 
 **Possible Causes:**
+
 1. Browser cache (clear cache and reload)
 2. Network `type` field is NULL
 3. JavaScript error (check browser console)
 
 **Solution:**
+
 ```sql
 -- Check network types
 SELECT type, COUNT(*) FROM app.networks GROUP BY type;

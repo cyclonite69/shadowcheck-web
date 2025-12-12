@@ -3,6 +3,7 @@
 ## Problem Statement
 
 The surveillance page has 3 cards but needs 4 distinct states:
+
 1. **UNDETERMINED** (Active Threats) - Untagged threats that need review
 2. **CRITICAL/HIGH/MEDIUM/LOW** (Confirmed Threats) - Tagged as THREAT
 3. **SAFE** (Tagged Safe) - Tagged as FALSE_POSITIVE
@@ -11,6 +12,7 @@ The surveillance page has 3 cards but needs 4 distinct states:
 ## Root Cause
 
 The "Active Threats" card was showing ALL threats regardless of tag status. When a user tagged a threat, it would:
+
 - ✅ Save the tag to database
 - ✅ Reload all lists
 - ❌ **Still show in Active Threats** (because it wasn't filtering out tagged items)
@@ -90,6 +92,7 @@ Network moves from Active → Confirmed ✅
 ## Data Structure
 
 ### network_tags table:
+
 ```sql
 CREATE TABLE app.network_tags (
   bssid TEXT PRIMARY KEY,
@@ -104,6 +107,7 @@ CREATE TABLE app.network_tags (
 ```
 
 ### API Response Fields:
+
 ```javascript
 {
   bssid: "AA:BB:CC:DD:EE:FF",
@@ -119,6 +123,7 @@ CREATE TABLE app.network_tags (
 ## Testing
 
 ### Test Case 1: Tag as Threat
+
 1. Open `/surveillance.html`
 2. Note count in "Active Threats" badge (e.g., 61)
 3. Click "🔴 Threat" on any network
@@ -128,6 +133,7 @@ CREATE TABLE app.network_tags (
    - Network removed from "Active Threats" card
 
 ### Test Case 2: Tag as Safe
+
 1. Click "🟢 Safe" on any network in Active Threats
 2. Verify:
    - Active Threats count decreases
@@ -135,6 +141,7 @@ CREATE TABLE app.network_tags (
    - Network removed from Active Threats
 
 ### Test Case 3: Untag
+
 1. Click "✕ Untag" on any network in Confirmed Threats
 2. Verify:
    - Network removed from Confirmed Threats
@@ -144,21 +151,25 @@ CREATE TABLE app.network_tags (
 ## API Endpoints
 
 ### Get Undetermined Threats (Active)
+
 ```
 GET /api/threats/quick?page=1&limit=100&exclude_tagged=true
 ```
 
 ### Get Confirmed Threats
+
 ```
 GET /api/networks/tagged?tag_type=THREAT&page=1&limit=100
 ```
 
 ### Get Tagged Safe
+
 ```
 GET /api/networks/tagged?tag_type=FALSE_POSITIVE&page=1&limit=100
 ```
 
 ### Tag Network
+
 ```
 POST /api/tag-network
 Body: {
@@ -170,6 +181,7 @@ Body: {
 ```
 
 ### Untag Network
+
 ```
 DELETE /api/tag-network/:bssid
 ```
@@ -200,6 +212,7 @@ curl "http://localhost:3001/api/networks/tagged?tag_type=FALSE_POSITIVE&page=1&l
 ✅ **DEPLOYED** - Server running with changes
 
 The surveillance page now has proper 4-state card management:
+
 - **UNDETERMINED** → Active Threats (untagged)
 - **THREAT** → Confirmed Threats (tagged as threat)
 - **SAFE** → Tagged Safe (tagged as false positive)

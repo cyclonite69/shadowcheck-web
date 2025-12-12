@@ -76,14 +76,16 @@ router.get('/settings/wigle/test', requireAuth, async (req, res) => {
 router.get('/settings/mapbox', requireAuth, async (req, res) => {
   try {
     const tokens = await keyringService.listMapboxTokens();
-    const tokensWithMasked = await Promise.all(tokens.map(async (t) => {
-      const token = await keyringService.getMapboxToken(t.label);
-      return {
-        label: t.label,
-        isPrimary: t.isPrimary,
-        token: token ? `${token.substring(0, 10)}...${token.slice(-4)}` : null,
-      };
-    }));
+    const tokensWithMasked = await Promise.all(
+      tokens.map(async (t) => {
+        const token = await keyringService.getMapboxToken(t.label);
+        return {
+          label: t.label,
+          isPrimary: t.isPrimary,
+          token: token ? `${token.substring(0, 10)}...${token.slice(-4)}` : null,
+        };
+      })
+    );
     res.json({ tokens: tokensWithMasked });
   } catch (error) {
     res.status(500).json({ error: error.message });

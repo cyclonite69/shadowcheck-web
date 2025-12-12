@@ -3,6 +3,7 @@
 ## Features Implemented
 
 ### 1. Double-Click to Jump to Map ✅
+
 **Networks Page → Geospatial Page**
 
 - Double-click any network row in the networks table
@@ -11,10 +12,12 @@
 - Popup shows network details
 
 **Requirements**:
+
 - Network must have latitude/longitude data
 - If no location data, shows alert message
 
 ### 2. Multi-Select and Jump to Map ✅
+
 **Networks Page → Geospatial Page**
 
 - Checkbox column added to networks table
@@ -24,11 +27,13 @@
 - Click button to jump to map with all selected networks
 
 **Map Behavior**:
+
 - Fits bounds to show all selected networks
 - Adds popup for each selected network
 - 100px padding around bounds
 
 ### 3. Selection Counter ✅
+
 - Shows count of selected networks: "📍 Jump to Map (3)"
 - Updates in real-time as checkboxes change
 - Button disabled when count is 0
@@ -36,12 +41,14 @@
 ## How to Use
 
 ### Double-Click Single Network
+
 1. Go to Networks page
 2. Find a network with location data
 3. Double-click the row
 4. Map opens and flies to that network
 
 ### Select Multiple Networks
+
 1. Go to Networks page
 2. Check boxes next to networks you want to view
 3. Or click "Select All" checkbox in header
@@ -53,12 +60,14 @@
 ### Networks Page Changes
 
 **Table Structure**:
+
 ```html
-<th><input type="checkbox" id="select-all"></th>
+<th><input type="checkbox" id="select-all" /></th>
 <!-- Checkbox column added as first column -->
 ```
 
 **Row Data Attributes**:
+
 ```javascript
 tr.dataset.bssid = network.bssid;
 tr.dataset.lat = network.latitude;
@@ -66,11 +75,13 @@ tr.dataset.lng = network.longitude;
 ```
 
 **Functions Added**:
+
 - `jumpToMapSelected()` - Jump with selected networks
 - `jumpToMapSingle(bssid, lat, lng)` - Jump to single network
 - `updateSelectionCount()` - Update button text and state
 
 **Event Handlers**:
+
 - Double-click on tbody → `jumpToMapSingle()`
 - Checkbox change → `updateSelectionCount()`
 - Select all checkbox → Toggle all checkboxes
@@ -78,13 +89,16 @@ tr.dataset.lng = network.longitude;
 ### Geospatial Page Changes
 
 **URL Parameters**:
+
 - `?selected=BSSID1,BSSID2` - Multiple networks
 - `?selected=BSSID&lat=43.0&lng=-83.6` - Single network with coords
 
 **Function Added**:
+
 - `highlightSelectedNetworks(bssids)` - Fetch and highlight networks
 
 **Map Load Handler**:
+
 - Checks URL parameters
 - Flies to single network or fits bounds for multiple
 - Shows popups for selected networks
@@ -131,12 +145,14 @@ Show popups
 ## Testing
 
 ### Test Double-Click
+
 1. Go to http://localhost:3001/networks.html
 2. Double-click any network row
 3. Should navigate to geospatial page
 4. Map should fly to network location
 
 ### Test Multi-Select
+
 1. Go to http://localhost:3001/networks.html
 2. Check 3-5 network checkboxes
 3. Click "📍 Jump to Map (N)" button
@@ -144,6 +160,7 @@ Show popups
 5. Map should show all selected networks with popups
 
 ### Test Select All
+
 1. Go to http://localhost:3001/networks.html
 2. Click "Select All" checkbox in header
 3. All network checkboxes should be checked

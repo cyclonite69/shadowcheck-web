@@ -18,9 +18,6 @@ delete process.env.PGUSER;
     const cors = require('cors');
     const compression = require('compression');
     const rateLimit = require('express-rate-limit');
-    const multer = require('multer');
-    const fs = require('fs').promises;
-    const { spawn } = require('child_process');
 
     // ============================================================================
     // 2. SECRETS MANAGEMENT
@@ -40,12 +37,14 @@ delete process.env.PGUSER;
     // ============================================================================
     const healthRoutes = require('./src/api/routes/v1/health');
     const networksRoutes = require('./src/api/routes/v1/networks');
+    const explorerRoutes = require('./src/api/routes/v1/explorer');
     const threatsRoutes = require('./src/api/routes/v1/threats');
     const wigleRoutes = require('./src/api/routes/v1/wigle');
     const adminRoutes = require('./src/api/routes/v1/admin');
     const mlRoutes = require('./src/api/routes/v1/ml');
     const geospatialRoutes = require('./src/api/routes/v1/geospatial');
     const analyticsRoutes = require('./src/api/routes/v1/analytics');
+    const networksV2Routes = require('./src/api/routes/v2/networks');
     const dashboardRoutes = require('./src/api/routes/v1/dashboard');
     const locationMarkersRoutes = require('./src/api/routes/v1/location-markers');
     const backupRoutes = require('./src/api/routes/v1/backup');
@@ -86,14 +85,15 @@ delete process.env.PGUSER;
       if (FORCE_HTTPS) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
       }
-      res.setHeader('Content-Security-Policy',
+      res.setHeader(
+        'Content-Security-Policy',
         "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://api.mapbox.com; " +
-      "worker-src 'self' blob:; " +
-      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
-      "font-src 'self' https://fonts.gstatic.com; " +
-      "img-src 'self' data: https:; " +
-      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://d1a3f4spazzrp4.cloudfront.net;"
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://api.mapbox.com; " +
+          "worker-src 'self' blob:; " +
+          "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
+          "font-src 'self' https://fonts.gstatic.com; " +
+          "img-src 'self' data: https:; " +
+          "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://d1a3f4spazzrp4.cloudfront.net;"
       );
       next();
     });
@@ -103,20 +103,24 @@ delete process.env.PGUSER;
 
     // CORS
     const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
       : ['http://localhost:3001', 'http://127.0.0.1:3001'];
 
-    app.use(cors({
-      origin: function (origin, callback) {
-        if (!origin) {return callback(null, true);}
-        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
-      credentials: true,
-    }));
+    app.use(
+      cors({
+        origin: function (origin, callback) {
+          if (!origin) {
+            return callback(null, true);
+          }
+          if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+            callback(null, true);
+          } else {
+            callback(new Error('Not allowed by CORS'));
+          }
+        },
+        credentials: true,
+      })
+    );
 
     // Rate limiting
     const apiLimiter = rateLimit({
@@ -173,10 +177,22 @@ delete process.env.PGUSER;
     // ============================================================================
     // 8. STATIC FILES
     // ============================================================================
-    app.use(express.static(path.join(__dirname, 'public'), {
-      maxAge: '1h',
-      etag: true,
-    }));
+    // Serve built React app
+    app.use(
+      express.static(path.join(__dirname, 'dist'), {
+        maxAge: '1h',
+        etag: true,
+      })
+    );
+
+    // Fallback to old public files for legacy endpoints
+    app.use(
+      '/legacy',
+      express.static(path.join(__dirname, 'public'), {
+        maxAge: '1h',
+        etag: true,
+      })
+    );
 
     // ============================================================================
     // 9. ROUTE MOUNTING
@@ -206,9 +222,11 @@ delete process.env.PGUSER;
     app.use('/api', threatsRoutes);
     app.use('/api', wigleRoutes);
     app.use('/api', adminRoutes);
+    app.use('/api', explorerRoutes);
     app.use('/api', mlRoutes);
     app.use('/api', analyticsRoutes);
     app.use('/api', dashboardRoutes.router);
+    app.use('/api', networksV2Routes);
     app.use('/api', locationMarkersRoutes(query));
     app.use('/api', backupRoutes);
     app.use('/api', exportRoutes);
@@ -218,7 +236,7 @@ delete process.env.PGUSER;
     app.get('/api/kepler/data', async (req, res) => {
       try {
         const { bbox, limit } = req.query;
-        
+
         let queryText = `
           SELECT bssid, 
                  COALESCE(ssid, 'Hidden Network') as ssid,
@@ -233,26 +251,26 @@ delete process.env.PGUSER;
                  COALESCE(capabilities, 'Unknown') as capabilities
           FROM app.networks WHERE location IS NOT NULL
         `;
-        
+
         let params = [];
         if (bbox) {
           const coords = bbox.split(',').map(Number);
-          queryText += ` AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))`;
+          queryText += ' AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))';
           params = coords;
         }
-        
-        queryText += ` ORDER BY bestlevel DESC`;
-        
+
+        queryText += ' ORDER BY bestlevel DESC';
+
         // Only add LIMIT if explicitly provided
         if (limit) {
           queryText += ` LIMIT ${parseInt(limit)}`;
         }
-        
+
         const result = await query(queryText, params);
-        
+
         const geojson = {
           type: 'FeatureCollection',
-          features: result.rows.map(row => ({
+          features: result.rows.map((row) => ({
             type: 'Feature',
             geometry: row.geometry,
             properties: {
@@ -268,11 +286,11 @@ delete process.env.PGUSER;
               channel: row.channel,
               frequency: row.frequency,
               type: row.type,
-              capabilities: row.capabilities
-            }
-          }))
+              capabilities: row.capabilities,
+            },
+          })),
         };
-        
+
         res.json(geojson);
       } catch (error) {
         console.error('Kepler data error:', error);
@@ -284,7 +302,7 @@ delete process.env.PGUSER;
     app.get('/api/kepler/observations', async (req, res) => {
       try {
         const { bbox, limit } = req.query;
-        
+
         let queryText = `
           SELECT bssid, 
                  ST_AsGeoJSON(location)::json as geometry,
@@ -293,41 +311,41 @@ delete process.env.PGUSER;
           FROM app.observations 
           WHERE location IS NOT NULL
         `;
-        
+
         let params = [];
         if (bbox) {
           const coords = bbox.split(',').map(Number);
-          queryText += ` AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))`;
+          queryText += ' AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))';
           params = coords;
         }
-        
-        queryText += ` ORDER BY observed_at DESC`;
-        
+
+        queryText += ' ORDER BY observed_at DESC';
+
         if (limit) {
           queryText += ` LIMIT ${parseInt(limit)}`;
         }
-        
+
         const result = await query(queryText, params);
-        
+
         const geojson = {
           type: 'FeatureCollection',
-          features: result.rows.map(row => ({
+          features: result.rows.map((row) => ({
             type: 'Feature',
             geometry: row.geometry,
             properties: {
               bssid: row.bssid,
-              ssid: 'Network-' + row.bssid.substring(0,8),
+              ssid: `Network-${row.bssid.substring(0, 8)}`,
               signal: row.signal_dbm || 0,
               timestamp: row.observed_at,
               source: row.source_type,
               device: row.source_device,
               accuracy: row.accuracy_meters,
               altitude: row.altitude_meters,
-              fingerprint: row.fingerprint
-            }
-          }))
+              fingerprint: row.fingerprint,
+            },
+          })),
         };
-        
+
         res.json(geojson);
       } catch (error) {
         console.error('Observations data error:', error);
@@ -338,12 +356,24 @@ delete process.env.PGUSER;
     console.log('✓ All routes mounted successfully');
 
     // ============================================================================
-    // 10. ERROR HANDLING
+    // 10. SPA FALLBACK (React Router support)
+    // ============================================================================
+    // Serve index.html for all non-API routes (must be after API routes)
+    app.get('*', (req, res) => {
+      // Don't handle API routes
+      if (req.path.startsWith('/api') || req.path.startsWith('/legacy')) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+
+    // ============================================================================
+    // 11. ERROR HANDLING
     // ============================================================================
     app.use(errorHandler);
 
     // ============================================================================
-    // 11. SERVER STARTUP
+    // 12. SERVER STARTUP
     // ============================================================================
     app.listen(port, () => {
       console.log(`✓ Server listening on port ${port}`);
@@ -363,7 +393,6 @@ delete process.env.PGUSER;
       await pool.end();
       process.exit(0);
     });
-
   } catch (err) {
     console.error('✗ Fatal error starting server:', err);
     process.exit(1);

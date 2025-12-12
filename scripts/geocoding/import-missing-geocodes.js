@@ -15,7 +15,7 @@ async function main() {
       continue;
     }
 
-    const [, id, lat, lon, address] = match;
+    const [, id, _lat, _lon, address] = match;
     if (!address) {
       continue;
     }

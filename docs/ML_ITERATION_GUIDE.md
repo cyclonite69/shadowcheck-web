@@ -48,6 +48,7 @@ chmod +x ml-iterate.py
 ## Output
 
 The script generates:
+
 - Console output with model comparison
 - `ml_iteration_results.json` with detailed results
 
@@ -88,16 +89,19 @@ The script generates:
 ## Hyperparameter Grids
 
 ### Logistic Regression
+
 - C: [0.01, 0.1, 1, 10, 100]
 - penalty: ['l2']
 - max_iter: [1000]
 
 ### Random Forest
+
 - n_estimators: [50, 100, 200]
 - max_depth: [3, 5, 7, None]
 - min_samples_split: [2, 5, 10]
 
 ### Gradient Boosting
+
 - n_estimators: [50, 100, 200]
 - learning_rate: [0.01, 0.1, 0.2]
 - max_depth: [3, 5, 7]
@@ -123,21 +127,27 @@ After finding the best model, you can:
 ## Troubleshooting
 
 ### Not Enough Data
+
 ```
 ❌ Need at least 10 tagged networks, found 5
 ```
+
 **Solution:** Tag more networks using the UI or API
 
 ### Database Connection Error
+
 ```
 psycopg2.OperationalError: could not connect to server
 ```
+
 **Solution:** Check `.env` file and database credentials
 
 ### Import Error
+
 ```
 ModuleNotFoundError: No module named 'sklearn'
 ```
+
 **Solution:** Run `pip install -r requirements.txt`
 
 ## Advanced Usage
@@ -159,12 +169,12 @@ param_grid = {
 ```python
 def test_svm(self, X_train, X_test, y_train, y_test):
     from sklearn.svm import SVC
-    
+
     param_grid = {
         'C': [0.1, 1, 10],
         'kernel': ['rbf', 'linear']
     }
-    
+
     model = GridSearchCV(SVC(probability=True), param_grid, cv=5)
     model.fit(X_train, y_train)
     # ... rest of implementation

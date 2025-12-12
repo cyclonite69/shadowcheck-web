@@ -5,7 +5,9 @@
 **Date:** December 3, 2025, 20:56 EST
 
 ### What Happened
+
 WiGLE API credentials were exposed in chat conversation:
+
 - **API Name:** AIDc40fa13ea2238ef65909f4a816b48e60
 - **API Token:** 4100473fda765a037a5d0aefc67c5bbb
 - **Encoded:** QUlEYzQwZmExM2VhMjIzOGVmNjU5MDlmNGE4MTZiNDhlNjA6NDEwMDQ3M2ZkYTc2NWEwMzdhNWQwYWVmYzY3YzViYmI=
@@ -42,18 +44,21 @@ WiGLE API credentials were exposed in chat conversation:
 ### New Security Implementation
 
 ✅ **Admin Settings Page Created**
+
 - Location: `/public/admin.html`
 - Requires API key authentication
 - All credentials stored in system keyring
 - Never stored in database or files
 
 ✅ **Keyring Service**
+
 - Uses `keytar` npm package
 - Integrates with OS keyring (Linux Secret Service)
 - Encrypted at rest by operating system
 - Credentials: `shadowcheck/wigle_api_name`, `shadowcheck/wigle_api_token`
 
 ✅ **API Routes**
+
 - `/api/settings/wigle` - Get/Set WiGLE credentials
 - `/api/settings/wigle/test` - Test WiGLE connection
 - `/api/settings/mapbox` - Get/Set Mapbox token
@@ -62,11 +67,13 @@ WiGLE API credentials were exposed in chat conversation:
 ### WiGLE API Authentication
 
 WiGLE uses HTTP Basic Authentication:
+
 ```
 Authorization: Basic <base64(apiName:apiToken)>
 ```
 
 Example:
+
 ```bash
 curl -i -H 'Accept:application/json' \
   -u AIDxxxxx:xxxxxx \
@@ -74,6 +81,7 @@ curl -i -H 'Accept:application/json' \
 ```
 
 Our implementation:
+
 ```javascript
 const encoded = Buffer.from(`${apiName}:${apiToken}`).toString('base64');
 headers['Authorization'] = `Basic ${encoded}`;
@@ -90,6 +98,7 @@ After entering new credentials in admin page:
    - Display result (success/failure)
 
 3. Verify with curl:
+
 ```bash
 curl -i -H 'Accept:application/json' \
   -u YOUR_NEW_API_NAME:YOUR_NEW_API_TOKEN \
@@ -122,6 +131,7 @@ curl -i -H 'Accept:application/json' \
 ### Support
 
 If you need help:
+
 - WiGLE API docs: https://api.wigle.net
 - WiGLE support: WiGLE-admin@wigle.net
 - Include username and use case for increased API limits

@@ -3,6 +3,7 @@
 ## Overview
 
 ShadowCheckStatic now has a comprehensive typed error system that:
+
 - Prevents information disclosure in production
 - Provides consistent error responses
 - Integrates with structured logging
@@ -31,18 +32,20 @@ AppError (base)
 ## Quick Usage Examples
 
 ### Validation Error
+
 ```javascript
 const { ValidationError } = require('../errors/AppError');
 
 // In route handler
 if (!bssid) {
   throw new ValidationError('BSSID is required', [
-    { parameter: 'bssid', error: 'Must not be empty' }
+    { parameter: 'bssid', error: 'Must not be empty' },
   ]);
 }
 ```
 
 ### Not Found Error
+
 ```javascript
 const { NotFoundError } = require('../errors/AppError');
 
@@ -53,6 +56,7 @@ if (!network.rows.length) {
 ```
 
 ### Database Error
+
 ```javascript
 const { DatabaseError } = require('../errors/AppError');
 
@@ -64,6 +68,7 @@ try {
 ```
 
 ### Duplicate Error
+
 ```javascript
 const { DuplicateError } = require('../errors/AppError');
 
@@ -74,6 +79,7 @@ if (existing.rows.length > 0) {
 ```
 
 ### Business Logic Error
+
 ```javascript
 const { BusinessLogicError } = require('../errors/AppError');
 
@@ -85,6 +91,7 @@ if (network.threat_score > 90 && !authorized) {
 ## Error Response Format
 
 ### Validation Error (400)
+
 ```json
 {
   "ok": false,
@@ -103,6 +110,7 @@ if (network.threat_score > 90 && !authorized) {
 ```
 
 ### Not Found Error (404)
+
 ```json
 {
   "ok": false,
@@ -115,6 +123,7 @@ if (network.threat_score > 90 && !authorized) {
 ```
 
 ### Database Error (500) - Production
+
 ```json
 {
   "ok": false,
@@ -127,6 +136,7 @@ if (network.threat_score > 90 && !authorized) {
 ```
 
 ### Database Error (500) - Development
+
 ```json
 {
   "ok": false,
@@ -143,6 +153,7 @@ if (network.threat_score > 90 && !authorized) {
 ```
 
 ### Rate Limit Error (429)
+
 ```json
 {
   "ok": false,
@@ -160,6 +171,7 @@ if (network.threat_score > 90 && !authorized) {
 ### Step 1: Update server.js
 
 Replace the old error handler:
+
 ```javascript
 // OLD
 const errorHandler = require('./utils/errorHandler');
@@ -179,6 +191,7 @@ app.use(createErrorHandler(logger));
 ### Step 2: Update Route Handlers
 
 Wrap route handlers with asyncHandler:
+
 ```javascript
 // OLD
 app.get('/api/networks/:bssid', async (req, res, next) => {
@@ -190,9 +203,12 @@ app.get('/api/networks/:bssid', async (req, res, next) => {
 });
 
 // NEW
-app.get('/api/networks/:bssid', asyncHandler(async (req, res) => {
-  // logic - errors automatically caught and passed to error handler
-}));
+app.get(
+  '/api/networks/:bssid',
+  asyncHandler(async (req, res) => {
+    // logic - errors automatically caught and passed to error handler
+  })
+);
 ```
 
 ### Step 3: Throw Typed Errors in Handlers
@@ -201,7 +217,8 @@ app.get('/api/networks/:bssid', asyncHandler(async (req, res) => {
 const { ValidationError, NotFoundError, DatabaseError } = require('../errors/AppError');
 const { asyncHandler } = require('../errors/errorHandler');
 
-app.get('/api/tag-network/:bssid',
+app.get(
+  '/api/tag-network/:bssid',
   requireAuth,
   asyncHandler(async (req, res) => {
     const { tag_type, confidence } = req.body;
@@ -219,10 +236,10 @@ app.get('/api/tag-network/:bssid',
 
     // Database operation
     try {
-      const result = await query(
-        'INSERT INTO network_tags (bssid, tag_type) VALUES ($1, $2)',
-        [req.params.bssid, tag_type]
-      );
+      const result = await query('INSERT INTO network_tags (bssid, tag_type) VALUES ($1, $2)', [
+        req.params.bssid,
+        tag_type,
+      ]);
       res.json({ ok: true, tag: result.rows[0] });
     } catch (error) {
       throw new DatabaseError(error, 'Failed to tag network');
@@ -242,6 +259,7 @@ console.log(error.getUserMessage()); // Same as above
 ```
 
 Never expose:
+
 - ❌ Stack traces
 - ❌ SQL queries
 - ❌ Database table/column names
@@ -250,6 +268,7 @@ Never expose:
 - ❌ API keys or credentials
 
 Always provide:
+
 - ✅ User-friendly error message
 - ✅ Error code for debugging
 - ✅ HTTP status code
@@ -258,39 +277,49 @@ Always provide:
 ## Best Practices
 
 1. **Throw typed errors, not generic Error**
+
    ```javascript
    // ❌ Bad
    throw new Error('Network not found');
-   
+
    // ✅ Good
    throw new NotFoundError('Network');
    ```
 
 2. **Include context when throwing**
+
    ```javascript
    // ✅ Good
    throw new DatabaseError(pgError, 'Failed to update network threat score');
    ```
 
 3. **Use asyncHandler for all async routes**
+
    ```javascript
    // ❌ Bad - manual try/catch
    app.get('/api/data', async (req, res, next) => {
      try {
        // ...
-     } catch (err) { next(err); }
+     } catch (err) {
+       next(err);
+     }
    });
-   
+
    // ✅ Good - automatic error catching
-   app.get('/api/data', asyncHandler(async (req, res) => {
-     // ...
-   }));
+   app.get(
+     '/api/data',
+     asyncHandler(async (req, res) => {
+       // ...
+     })
+   );
    ```
 
 4. **Validate early**
+
    ```javascript
    // Validation errors should occur before database operations
-   app.post('/api/networks',
+   app.post(
+     '/api/networks',
      validateBody({ bssid: validateBSSID }),
      asyncHandler(async (req, res) => {
        // Body already validated, safe to use
@@ -313,6 +342,7 @@ Always provide:
 ### Migrating Existing Error Handling
 
 Before:
+
 ```javascript
 app.get('/api/networks', async (req, res, next) => {
   try {
@@ -326,11 +356,15 @@ app.get('/api/networks', async (req, res, next) => {
 ```
 
 After:
+
 ```javascript
-app.get('/api/networks', asyncHandler(async (req, res) => {
-  const { rows } = await query('SELECT * FROM networks');
-  res.json(rows);
-}));
+app.get(
+  '/api/networks',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query('SELECT * FROM networks');
+    res.json(rows);
+  })
+);
 // Errors automatically caught, logged, and formatted
 ```
 
@@ -343,6 +377,7 @@ Errors are automatically logged based on severity:
 - **Other**: Debug level
 
 Log format includes:
+
 - Timestamp
 - Error code
 - Status code
@@ -375,9 +410,7 @@ Example test for error handling:
 
 ```javascript
 test('returns 404 when network not found', async () => {
-  const response = await request(app)
-    .get('/api/networks/invalid-bssid')
-    .expect(404);
+  const response = await request(app).get('/api/networks/invalid-bssid').expect(404);
 
   expect(response.body).toEqual({
     ok: false,
@@ -412,6 +445,7 @@ The new error handling system provides:
 6. **Integration**: Works with structured logging (Phase 4)
 
 Next steps:
+
 - Implement structured logging (Phase 4)
 - Add comprehensive tests for error scenarios
 - Document API error responses

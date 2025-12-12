@@ -9,6 +9,7 @@
 ## Files Checked
 
 ### Excluded from Git (via .gitignore)
+
 - `.env` - Contains actual database password and API keys
 - `backup-*.sql` - Contains password hashes
 - `*.sqlite` - SQLite database files
@@ -19,6 +20,7 @@
 - `server.log`, `nohup.out` - May contain sensitive runtime data
 
 ### Safe in Repository
+
 - `.env.example` - Template with placeholder values only
 - `server.js` - Uses `process.env.*` for all secrets
 - `scripts/import/*.js` - Uses keyring retrieval functions
@@ -27,9 +29,11 @@
 ## Credential Management
 
 ### Current Implementation
+
 All credentials are retrieved via:
 
 1. **Environment Variables** (`.env` file, not in git)
+
    ```javascript
    const dbPassword = process.env.DB_PASSWORD;
    const mapboxToken = process.env.MAPBOX_TOKEN;
@@ -43,19 +47,23 @@ All credentials are retrieved via:
 ### Credentials Inventory
 
 #### Database
+
 - `DB_PASSWORD` - PostgreSQL password (in .env, not in git)
 - Stored in keyring as: `shadowcheck/postgres_password`
 
 #### API Keys
+
 - `MAPBOX_TOKEN` - Mapbox API token (in .env, not in git)
 - `API_KEY` - Internal API authentication (in .env, not in git)
 
 #### Optional APIs (not yet configured)
+
 - `OPENCAGE_API_KEY` - OpenCage geocoding
 - `LOCATIONIQ_API_KEY` - LocationIQ geocoding
 - `ABSTRACT_API_KEY` - Abstract API geocoding
 
 #### WiGLE API (not yet configured)
+
 - Multiple API keys needed for rate limiting
 - Should be stored in keyring
 - Format: `wigle_api_key_1`, `wigle_api_key_2`, etc.
@@ -117,24 +125,28 @@ All credentials are retrieved via:
 ## Implementation Plan
 
 ### Phase 1: Keyring Integration
+
 - [ ] Install `keytar` npm package
 - [ ] Create keyring service wrapper
 - [ ] Migrate existing .env secrets to keyring
 - [ ] Update server.js to read from keyring
 
 ### Phase 2: Admin Settings UI
+
 - [ ] Create `/admin/settings` page
 - [ ] Add authentication middleware
 - [ ] Build settings form (API keys, tokens)
 - [ ] Implement save/retrieve from keyring
 
 ### Phase 3: WiGLE Integration
+
 - [ ] Research WiGLE API v2 and v3 alpha
 - [ ] Implement multi-key rotation
 - [ ] Add rate limiting logic
 - [ ] Test with real API keys
 
 ### Phase 4: Backup/Export
+
 - [ ] Database backup functionality
 - [ ] Database restore functionality
 - [ ] GeoJSON export

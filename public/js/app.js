@@ -26,20 +26,20 @@
 
     // Map filenames to nav data-page values
     const pageMap = {
-      'index': 'dashboard',
-      'dashboard': 'dashboard',
-      'geospatial': 'geospatial',
-      'analytics': 'analytics',
-      'networks': 'networks',
-      'surveillance': 'surveillance',
-      'admin': 'admin',
-      '': 'dashboard'
+      index: 'dashboard',
+      dashboard: 'dashboard',
+      geospatial: 'geospatial',
+      analytics: 'analytics',
+      networks: 'networks',
+      surveillance: 'surveillance',
+      admin: 'admin',
+      '': 'dashboard',
     };
 
     const pageKey = pageMap[currentPage] || currentPage;
 
     // Find and activate the corresponding nav tab
-    document.querySelectorAll('.nav-tab').forEach(tab => {
+    document.querySelectorAll('.nav-tab').forEach((tab) => {
       tab.classList.remove('active');
       if (tab.dataset.page === pageKey) {
         tab.classList.add('active');
@@ -53,7 +53,9 @@
    */
   function initializeTheme() {
     const storedTheme = localStorage.getItem('theme-preference');
-    const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
     const theme = storedTheme || systemPreference || 'dark';
 
     document.documentElement.dataset.theme = theme;
@@ -71,14 +73,14 @@
    * API helper: Construct dynamic API base URL
    * Supports deployment flexibility (localhost:3001, https://api.example.com, etc.)
    */
-  window.getApiBaseUrl = function() {
+  window.getApiBaseUrl = function () {
     const { protocol, hostname, port } = window.location;
-    
+
     // Use the current host but with port 3001 for API
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return `${protocol}//${hostname}:3001`;
     }
-    
+
     // For deployed environments, assume API is at same origin
     return `${protocol}//${hostname}${port ? ':' + port : ''}`;
   };
@@ -87,15 +89,15 @@
    * Fetch wrapper with error handling
    * Returns { ok, data } or { ok, error }
    */
-  window.fetchAPI = async function(endpoint, options = {}) {
+  window.fetchAPI = async function (endpoint, options = {}) {
     try {
       const url = `${window.getApiBaseUrl()}${endpoint}`;
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          ...options.headers
-        }
+          ...options.headers,
+        },
       });
 
       if (!response.ok) {
@@ -114,13 +116,13 @@
   /**
    * HTML entity escape for XSS prevention
    */
-  window.escapeHtml = function(text) {
+  window.escapeHtml = function (text) {
     const map = {
       '&': '&amp;',
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
-      "'": '&#039;'
+      "'": '&#039;',
     };
     return text.replace(/[&<>"']/g, (char) => map[char]);
   };
@@ -128,14 +130,14 @@
   /**
    * Format number with thousands separator
    */
-  window.formatNumber = function(num) {
+  window.formatNumber = function (num) {
     return num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') || '0';
   };
 
   /**
    * Format timestamp to readable date
    */
-  window.formatDate = function(timestamp) {
+  window.formatDate = function (timestamp) {
     if (!timestamp) return '';
     try {
       return new Date(parseInt(timestamp)).toLocaleString();
@@ -173,6 +175,6 @@
   console.log('ShadowCheck App Initialized', {
     page: getCurrentPage(),
     theme: document.documentElement.dataset.theme,
-    apiBase: window.getApiBaseUrl()
+    apiBase: window.getApiBaseUrl(),
   });
 })();

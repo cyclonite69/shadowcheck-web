@@ -9,7 +9,6 @@ const DATA_DIR = process.env.XDG_DATA_HOME
   : path.join(os.homedir(), '.local', 'share', 'shadowcheck');
 
 const KEYRING_FILE = path.join(DATA_DIR, 'keyring.enc');
-const SERVICE_NAME = 'shadowcheck';
 
 // Derive encryption key from machine-specific data
 function getMachineKey() {
@@ -30,12 +29,16 @@ class FileKeyringService {
     try {
       await fs.mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
     } catch (err) {
-      if (err.code !== 'EEXIST') {throw err;}
+      if (err.code !== 'EEXIST') {
+        throw err;
+      }
     }
   }
 
   async loadKeyring() {
-    if (this.cache) {return this.cache;}
+    if (this.cache) {
+      return this.cache;
+    }
 
     try {
       const encrypted = await fs.readFile(KEYRING_FILE, 'utf8');
@@ -121,20 +124,24 @@ class FileKeyringService {
     const apiToken = await this.getCredential('wigle_api_token');
     const encoded = await this.getCredential('wigle_api_encoded');
 
-    if (!apiName || !apiToken) {return null;}
+    if (!apiName || !apiToken) {
+      return null;
+    }
 
     return { apiName, apiToken, encoded };
   }
 
   async testWigleCredentials() {
     const creds = await this.getWigleCredentials();
-    if (!creds) {return { success: false, error: 'No credentials stored' };}
+    if (!creds) {
+      return { success: false, error: 'No credentials stored' };
+    }
 
     try {
       const response = await fetch('https://api.wigle.net/api/v2/profile/user', {
         headers: {
-          'Accept': 'application/json',
-          'Authorization': `Basic ${creds.encoded}`,
+          Accept: 'application/json',
+          Authorization: `Basic ${creds.encoded}`,
         },
       });
 
@@ -161,12 +168,17 @@ class FileKeyringService {
 
   async getMapboxToken(label = null) {
     if (!label) {
-      label = await this.getCredential('mapbox_primary') || 'default';
+      label = (await this.getCredential('mapbox_primary')) || 'default';
     }
     const token = await this.getCredential(`mapbox_token_${label}`);
 
     // Fallback to environment variable
-    if (!token && label === 'default' && process.env.MAPBOX_TOKEN && process.env.MAPBOX_TOKEN !== 'your-mapbox-token-here') {
+    if (
+      !token &&
+      label === 'default' &&
+      process.env.MAPBOX_TOKEN &&
+      process.env.MAPBOX_TOKEN !== 'your-mapbox-token-here'
+    ) {
       return process.env.MAPBOX_TOKEN;
     }
 
@@ -175,9 +187,9 @@ class FileKeyringService {
 
   async listMapboxTokens() {
     const all = await this.listCredentials();
-    const tokens = all.filter(k => k.startsWith('mapbox_token_'));
+    const tokens = all.filter((k) => k.startsWith('mapbox_token_'));
     const primary = await this.getCredential('mapbox_primary');
-    return tokens.map(k => ({
+    return tokens.map((k) => ({
       label: k.replace('mapbox_token_', ''),
       isPrimary: k.replace('mapbox_token_', '') === primary,
     }));

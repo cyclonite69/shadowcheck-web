@@ -11,6 +11,7 @@ http://localhost:3001/api
 ## Authentication
 
 Protected endpoints require API key:
+
 ```http
 x-api-key: your-api-key-here
 ```
@@ -31,6 +32,7 @@ Set via: `API_KEY=your-secret-key` in `.env`
 Platform statistics.
 
 **Response:**
+
 ```json
 {
   "totalNetworks": 173326,
@@ -49,26 +51,30 @@ Platform statistics.
 Fast paginated threat detection.
 
 **Parameters:**
+
 - `page` (int, default: 1)
 - `limit` (int, default: 100, max: 5000)
 - `minSeverity` (int, default: 40, range: 0-100)
 
 **Response:**
+
 ```json
 {
-  "threats": [{
-    "bssid": "AA:BB:CC:DD:EE:FF",
-    "ssid": "Hidden Network",
-    "type": "W",
-    "threat_score": 75,
-    "distance_range_km": 2.5,
-    "observation_count": 45,
-    "unique_days": 8,
-    "seen_at_home": true,
-    "seen_away_from_home": true,
-    "max_speed_kmh": 65,
-    "manufacturer": "Apple Inc."
-  }],
+  "threats": [
+    {
+      "bssid": "AA:BB:CC:DD:EE:FF",
+      "ssid": "Hidden Network",
+      "type": "W",
+      "threat_score": 75,
+      "distance_range_km": 2.5,
+      "observation_count": 45,
+      "unique_days": 8,
+      "seen_at_home": true,
+      "seen_away_from_home": true,
+      "max_speed_kmh": 65,
+      "manufacturer": "Apple Inc."
+    }
+  ],
   "pagination": {
     "page": 1,
     "total": 1842,
@@ -90,6 +96,7 @@ Advanced threat detection with speed calculations.
 List networks with pagination.
 
 **Parameters:**
+
 - `page`, `limit`, `sort`, `order`
 
 ### GET /api/networks/observations/:bssid
@@ -105,6 +112,7 @@ Search by SSID.
 Tag a network (requires API key).
 
 **Request:**
+
 ```json
 {
   "bssid": "AA:BB:CC:DD:EE:FF",
@@ -115,6 +123,7 @@ Tag a network (requires API key).
 ```
 
 **Tag Types:**
+
 - `LEGIT`: Safe (threat: 0.0)
 - `FALSE_POSITIVE`: Incorrectly flagged (0.05)
 - `INVESTIGATE`: Needs review (0.7)
@@ -153,6 +162,7 @@ WiFi security type distribution.
 Network types over time.
 
 **Parameters:**
+
 - `range`: `24h`, `7d`, `30d`, `90d`, `all`
 
 ---

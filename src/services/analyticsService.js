@@ -33,7 +33,7 @@ async function getNetworkTypes() {
       ORDER BY count DESC
     `);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       type: row.network_type,
       count: parseInt(row.count),
     }));
@@ -66,7 +66,7 @@ async function getSignalStrengthDistribution() {
       ORDER BY signal_range DESC
     `);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       range: row.signal_range,
       count: parseInt(row.count),
     }));
@@ -82,7 +82,8 @@ async function getSignalStrengthDistribution() {
  */
 async function getTemporalActivity(minTimestamp) {
   try {
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         EXTRACT(HOUR FROM last_seen) as hour,
         COUNT(*) as count
@@ -91,9 +92,11 @@ async function getTemporalActivity(minTimestamp) {
         AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1
       GROUP BY hour
       ORDER BY hour
-    `, [minTimestamp]);
+    `,
+      [minTimestamp]
+    );
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       hour: parseInt(row.hour),
       count: parseInt(row.count),
     }));
@@ -110,34 +113,8 @@ async function getTemporalActivity(minTimestamp) {
  */
 async function getRadioTypeOverTime(range, minTimestamp) {
   try {
-    // Determine SQL CASE expressions based on range
-    let dateFormatCase = 'DATE(last_seen)';
-    let timeFilterCase = "last_seen >= NOW() - INTERVAL '30 days'";
-
-    switch (range) {
-      case '24h':
-        dateFormatCase = "DATE_TRUNC('hour', last_seen)";
-        timeFilterCase = "last_seen >= NOW() - INTERVAL '24 hours'";
-        break;
-      case '7d':
-        dateFormatCase = 'DATE(last_seen)';
-        timeFilterCase = "last_seen >= NOW() - INTERVAL '7 days'";
-        break;
-      case '30d':
-        dateFormatCase = 'DATE(last_seen)';
-        timeFilterCase = "last_seen >= NOW() - INTERVAL '30 days'";
-        break;
-      case '90d':
-        dateFormatCase = 'DATE(last_seen)';
-        timeFilterCase = "last_seen >= NOW() - INTERVAL '90 days'";
-        break;
-      case 'all':
-        dateFormatCase = "DATE_TRUNC('week', last_seen)";
-        timeFilterCase = 'TRUE';
-        break;
-    }
-
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       WITH time_counts AS (
         SELECT
           CASE $1
@@ -174,9 +151,11 @@ async function getRadioTypeOverTime(range, minTimestamp) {
         ORDER BY date, network_type
       )
       SELECT * FROM time_counts
-    `, [range, minTimestamp]);
+    `,
+      [range, minTimestamp]
+    );
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       date: row.date,
       type: row.network_type,
       count: parseInt(row.count),
@@ -226,7 +205,7 @@ async function getSecurityDistribution() {
       ORDER BY count DESC
     `);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       type: row.security_type,
       count: parseInt(row.count),
     }));
@@ -242,7 +221,8 @@ async function getSecurityDistribution() {
  */
 async function getTopNetworks(limit = 100) {
   try {
-    const { rows } = await query(`
+    const { rows } = await query(
+      `
       SELECT
         bssid,
         ssid,
@@ -255,9 +235,11 @@ async function getTopNetworks(limit = 100) {
       GROUP BY bssid, ssid, type, bestlevel
       ORDER BY observation_count DESC
       LIMIT $1
-    `, [limit]);
+    `,
+      [limit]
+    );
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       bssid: row.bssid,
       ssid: row.ssid || '<Hidden>',
       type: row.type,
@@ -277,9 +259,10 @@ async function getTopNetworks(limit = 100) {
  */
 async function getDashboardStats() {
   try {
-    const [totalNetworks, threatCount, securityCount, enrichedCount, radioTypes] = await Promise.all([
-      query('SELECT COUNT(*) as count FROM app.networks'),
-      query(`
+    const [totalNetworks, threatCount, securityCount, enrichedCount, radioTypes] =
+      await Promise.all([
+        query('SELECT COUNT(*) as count FROM app.networks'),
+        query(`
         SELECT COUNT(DISTINCT n.bssid) as count
         FROM app.networks n
         JOIN app.observations o ON n.bssid = o.bssid
@@ -287,9 +270,11 @@ async function getDashboardStats() {
         GROUP BY n.bssid
         HAVING COUNT(DISTINCT o.unified_id) >= 2
       `),
-      query('SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type = \'THREAT\''),
-      query('SELECT COUNT(*) as count FROM app.networks WHERE manufacturer IS NOT NULL OR address IS NOT NULL'),
-      query(`
+        query("SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type = 'THREAT'"),
+        query(
+          'SELECT COUNT(*) as count FROM app.networks WHERE manufacturer IS NOT NULL OR address IS NOT NULL'
+        ),
+        query(`
         SELECT
           CASE
             WHEN type = 'W' THEN 'WiFi'
@@ -305,10 +290,10 @@ async function getDashboardStats() {
         WHERE type IS NOT NULL
         GROUP BY radio_type
       `),
-    ]);
+      ]);
 
     const radioCounts = {};
-    radioTypes.rows.forEach(row => {
+    radioTypes.rows.forEach((row) => {
       radioCounts[row.radio_type] = parseInt(row.count);
     });
 

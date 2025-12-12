@@ -3,19 +3,22 @@
 ## Current Situation
 
 ### ShadowCheckMobile (Separate Tables)
+
 ```
 wifi_networks       - WiFi observations
 bluetooth_devices   - Bluetooth Classic
-ble_devices        - BLE observations  
+ble_devices        - BLE observations
 cellular_towers    - Cellular observations
 ```
 
 ### WiGLE (Single Table)
+
 ```
 network (type: W/B/C) - All radio types together
 ```
 
 ### Our Current Design
+
 ```
 app.observations - Single table (WiFi only so far)
 ```
@@ -23,6 +26,7 @@ app.observations - Single table (WiFi only so far)
 ## Options Analysis
 
 ### Option A: Separate Tables (Mobile Way)
+
 ```sql
 app.wifi_observations
 app.bluetooth_observations
@@ -45,6 +49,7 @@ app.cellular_observations
 ❌ More complex import logic
 
 ### Option B: Single Table (WiGLE Way)
+
 ```sql
 app.observations (radio_type: wifi/bluetooth/ble/cellular)
 ```
@@ -63,6 +68,7 @@ app.observations (radio_type: wifi/bluetooth/ble/cellular)
 ❌ More complex queries (always filter by type)
 
 ### Option C: Hybrid (Recommended)
+
 ```sql
 -- Base table (partitioned)
 app.observations (radio_type enum)
@@ -106,34 +112,34 @@ CREATE TYPE radio_type AS ENUM (
 
 CREATE TABLE app.observations (
     id BIGSERIAL,
-    
+
     -- Radio Type
     radio_type radio_type NOT NULL,
-    
+
     -- Universal Identifier (MAC, BSSID, Cell ID, etc.)
     identifier TEXT NOT NULL, -- Flexible for all types
-    
+
     -- Common Fields (all radio types)
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
     altitude_meters DOUBLE PRECISION,
     location GEOGRAPHY(POINT, 4326) NOT NULL,
     accuracy_meters DOUBLE PRECISION,
-    
+
     signal_dbm DOUBLE PRECISION,
     observed_at TIMESTAMPTZ NOT NULL,
-    
+
     -- Source tracking
     source_type source_type NOT NULL,
     device_uuid UUID,
     session_uuid UUID,
-    
+
     -- Type-specific fields (JSONB)
     radio_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    
+
     -- General metadata
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    
+
     PRIMARY KEY (id, observed_at)
 ) PARTITION BY RANGE (observed_at);
 
@@ -149,6 +155,7 @@ CREATE INDEX idx_observations_radio_metadata ON app.observations USING gin(radio
 ### Type-Specific Views
 
 #### WiFi View
+
 ```sql
 CREATE VIEW app.wifi_observations AS
 SELECT
@@ -180,6 +187,7 @@ WHERE radio_type = 'wifi';
 ```
 
 #### Bluetooth Classic View
+
 ```sql
 CREATE VIEW app.bluetooth_observations AS
 SELECT
@@ -202,6 +210,7 @@ WHERE radio_type = 'bluetooth_classic';
 ```
 
 #### BLE View
+
 ```sql
 CREATE VIEW app.ble_observations AS
 SELECT
@@ -225,6 +234,7 @@ WHERE radio_type = 'bluetooth_le';
 ```
 
 #### Cellular View
+
 ```sql
 CREATE VIEW app.cellular_observations AS
 SELECT
@@ -251,6 +261,7 @@ WHERE radio_type = 'cellular_gsm';
 ### Import Examples
 
 #### WiFi Import
+
 ```sql
 INSERT INTO app.observations (
     radio_type, identifier,
@@ -278,6 +289,7 @@ INSERT INTO app.observations (
 ```
 
 #### BLE Import
+
 ```sql
 INSERT INTO app.observations (
     radio_type, identifier,
@@ -365,6 +377,7 @@ SELECT 'cellular_gsm', cellId::text, ... FROM mobile.cellular_towers;
 ## Recommendation
 
 **Go with Option C (Hybrid)** because:
+
 1. Matches mobile architecture through views
 2. Single source of truth (observations table)
 3. No wasted space (JSONB for type-specific fields)

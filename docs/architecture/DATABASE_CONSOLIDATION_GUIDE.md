@@ -5,6 +5,7 @@
 ### Current Situation (Dual Configuration)
 
 **server.js** (lines 138-150):
+
 - Force hardcoded IPv4: `'127.0.0.1'`
 - Max connections: 5
 - Idle timeout: 10 seconds
@@ -13,6 +14,7 @@
 - Purpose: Specific to Docker environments
 
 **src/config/database.js** (lines 19-28):
+
 - Uses configurable host: `process.env.DB_HOST`
 - Max connections: 20
 - Idle timeout: 30 seconds
@@ -20,6 +22,7 @@
 - Purpose: General reusable configuration
 
 ### Issues with Dual Configuration
+
 1. **Confusion**: Which config is used? When?
 2. **Inconsistency**: Different timeouts and connection limits
 3. **Maintenance**: Changes need to happen in two places
@@ -34,6 +37,7 @@
 ### Strategy
 
 Create a single, **environment-aware** database configuration that:
+
 - Supports all environments (development, testing, production, Docker)
 - Uses environment variables effectively
 - Provides reasonable defaults
@@ -63,37 +67,32 @@ Create `src/config/environment.js` to validate and document required variables:
  * Ensures all required database configuration exists at startup
  */
 
-const requiredEnvVars = [
-  'DB_USER',
-  'DB_PASSWORD',
-  'DB_NAME',
-  'DB_PORT',
-];
+const requiredEnvVars = ['DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_PORT'];
 
 const optionalEnvVars = {
-  'DB_HOST': 'localhost',           // Default: localhost
-  'DB_POOL_MAX': '20',              // Default: 20 connections
-  'DB_IDLE_TIMEOUT': '30000',       // Default: 30 seconds
-  'DB_CONNECTION_TIMEOUT': '5000',  // Default: 5 seconds
-  'LOG_LEVEL': 'info',              // Default: info
-  'NODE_ENV': 'development',        // Default: development
+  DB_HOST: 'localhost', // Default: localhost
+  DB_POOL_MAX: '20', // Default: 20 connections
+  DB_IDLE_TIMEOUT: '30000', // Default: 30 seconds
+  DB_CONNECTION_TIMEOUT: '5000', // Default: 5 seconds
+  LOG_LEVEL: 'info', // Default: info
+  NODE_ENV: 'development', // Default: development
 };
 
 function validateEnvironment() {
   const missing = [];
-  
+
   for (const varName of requiredEnvVars) {
     if (!process.env[varName]) {
       missing.push(varName);
     }
   }
-  
+
   if (missing.length > 0) {
     console.error('Missing required environment variables:', missing);
     console.error('Please set these variables before starting the server.');
     process.exit(1);
   }
-  
+
   // Log configuration being used
   console.log('Database Configuration:');
   console.log(`  Host: ${process.env.DB_HOST || optionalEnvVars.DB_HOST}`);
@@ -130,17 +129,17 @@ validateEnvironment();
 // Determine host based on environment
 function getHost() {
   const nodeEnv = process.env.NODE_ENV || 'development';
-  
+
   // In Docker, use service name instead of localhost
   if (nodeEnv === 'docker' || process.env.DOCKER_ENV === 'true') {
     return process.env.DB_HOST || 'db'; // 'db' is service name in docker-compose
   }
-  
+
   // In development/testing, prefer localhost
   if (nodeEnv === 'development' || nodeEnv === 'test') {
     return process.env.DB_HOST || 'localhost';
   }
-  
+
   // In production, use configured host (must be set)
   return process.env.DB_HOST;
 }
@@ -149,12 +148,12 @@ function getHost() {
 function getPoolMax() {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const configuredMax = parseInt(process.env.DB_POOL_MAX);
-  
+
   // In testing, use smaller pool
   if (nodeEnv === 'test') {
     return configuredMax || 5;
   }
-  
+
   // Default: 20 connections
   return configuredMax || 20;
 }
@@ -162,7 +161,7 @@ function getPoolMax() {
 // Determine timeouts based on environment
 function getTimeouts() {
   const nodeEnv = process.env.NODE_ENV || 'development';
-  
+
   // In Docker, use longer timeouts for stability
   if (process.env.DOCKER_ENV === 'true') {
     return {
@@ -170,7 +169,7 @@ function getTimeouts() {
       connection: parseInt(process.env.DB_CONNECTION_TIMEOUT) || 10000,
     };
   }
-  
+
   // In production, use configured values or defaults
   return {
     idle: parseInt(process.env.DB_IDLE_TIMEOUT) || 30000,
@@ -208,14 +207,16 @@ pool.on('error', (err) => {
 // Query wrapper with retry logic
 async function query(text, params = [], tries = 2) {
   const transientErrors = ['57P01', '53300', '08006', '08003', '08000'];
-  
+
   try {
     return await pool.query(text, params);
   } catch (error) {
-    if (tries > 1 && (transientErrors.includes(error.code) || 
-        ['ETIMEDOUT', 'ECONNRESET'].includes(error.errno))) {
+    if (
+      tries > 1 &&
+      (transientErrors.includes(error.code) || ['ETIMEDOUT', 'ECONNRESET'].includes(error.errno))
+    ) {
       console.warn(`Transient database error, retrying... (${tries - 1} attempts left)`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       return query(text, params, tries - 1);
     }
     throw error;
@@ -293,7 +294,7 @@ Replace hardcoded pool with import from `src/config/database.js`:
 const { Pool } = require('pg');
 const pool = new Pool({
   user: process.env.DB_USER,
-  host: '127.0.0.1',  // HARDCODED!
+  host: '127.0.0.1', // HARDCODED!
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: 5432,
@@ -361,7 +362,8 @@ DB_POOL_MAX=10
 LOG_LEVEL=debug
 ```
 
-**Result**: 
+**Result**:
+
 - Connects to localhost
 - Small connection pool (10)
 - Detailed logging
@@ -378,6 +380,7 @@ LOG_LEVEL=warn
 ```
 
 **Result**:
+
 - Connects to `db` service (docker-compose)
 - Moderate connection pool (20)
 - Limited logging
@@ -395,6 +398,7 @@ LOG_LEVEL=warn
 ```
 
 **Result**:
+
 - Connects to production database
 - Large connection pool (30)
 - Minimal logging
@@ -411,6 +415,7 @@ LOG_LEVEL=debug node server.js
 ```
 
 Should see:
+
 ```
 Database Configuration:
   Host: localhost

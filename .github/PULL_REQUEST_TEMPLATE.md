@@ -4,7 +4,6 @@ about: Create a pull request to help us improve
 title: ''
 labels: ''
 assignees: ''
-
 ---
 
 **What kind of change does this PR introduce?** (check at least one)

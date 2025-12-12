@@ -27,7 +27,6 @@ const NetworkRepository = require('../../src/repositories/networkRepository');
 const { escapeLikePattern } = require('../../src/utils/escapeSQL');
 
 describe('LIKE Wildcard Escaping - Integration Tests', () => {
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -45,7 +44,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
     });
 
     describe('Wildcard injection prevention', () => {
-
       test('should escape percent sign to prevent wildcard matching', async () => {
         await repo.searchBySSID('test%');
 
@@ -92,7 +90,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
     });
 
     describe('Normal input (backward compatibility)', () => {
-
       test('should not modify normal SSID', async () => {
         await repo.searchBySSID('Starbucks WiFi');
 
@@ -127,7 +124,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
     });
 
     describe('Security scenarios', () => {
-
       test('should prevent information disclosure via wildcard injection', async () => {
         // Attacker tries to find all SSIDs starting with "admin"
         await repo.searchBySSID('admin%');
@@ -160,7 +156,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
     });
 
     describe('Real-world SSID examples', () => {
-
       test('should handle SSID with percent in name', async () => {
         await repo.searchBySSID('100% WiFi');
 
@@ -192,7 +187,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // ============================================================================
 
   describe('escapeLikePattern() utility function', () => {
-
     test('should be reusable across codebase', () => {
       expect(typeof escapeLikePattern).toBe('function');
     });
@@ -220,7 +214,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // ============================================================================
 
   describe('Before/After Fix Comparison', () => {
-
     test('BEFORE: "test%" would match unintended results', () => {
       // Old vulnerable behavior:
       const userInput = 'test%';
@@ -278,7 +271,6 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // ============================================================================
 
   describe('Performance', () => {
-
     test('escaping should be fast (<1ms for typical input)', () => {
       const start = Date.now();
 
@@ -310,17 +302,10 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // ============================================================================
 
   describe('Backward Compatibility', () => {
-
     test('normal searches should work exactly as before', async () => {
       const repo = new NetworkRepository();
 
-      const normalSSIDs = [
-        'Starbucks WiFi',
-        'Home Network',
-        'Guest',
-        'Office-5G',
-        'Café Internet',
-      ];
+      const normalSSIDs = ['Starbucks WiFi', 'Home Network', 'Guest', 'Office-5G', 'Café Internet'];
 
       for (const ssid of normalSSIDs) {
         jest.clearAllMocks();

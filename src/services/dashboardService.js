@@ -1,62 +1,59 @@
-/**
- * Dashboard service
- * Business logic for dashboard operations
- */
-
 class DashboardService {
   constructor(networkRepository) {
     this.networkRepository = networkRepository;
   }
 
-  /**
-   * Get dashboard metrics
-   * Aggregates various statistics for the dashboard
-   * @returns {Promise<Object>} Dashboard metrics
-   */
   async getMetrics() {
     try {
       const metrics = await this.networkRepository.getDashboardMetrics();
-
-      // Add any business logic transformations here
-      // For example, calculate percentages, trends, etc.
-
       return {
-        totalNetworks: metrics.totalNetworks,
-        threatsCount: metrics.threatsCount,
-        surveillanceCount: metrics.surveillanceCount,
-        enrichedCount: metrics.enrichedCount,
-        wifiCount: metrics.wifiCount,
-        btCount: metrics.btCount,
-        bleCount: metrics.bleCount,
-        lteCount: metrics.lteCount,
-        gsmCount: metrics.gsmCount,
-        // Could add derived metrics:
-        // enrichmentPercentage: Math.round((metrics.enrichedCount / metrics.totalNetworks) * 100),
-        // threatPercentage: Math.round((metrics.threatsCount / metrics.totalNetworks) * 100),
+        ...metrics,
+        lastUpdated: new Date().toISOString(),
       };
-    } catch (err) {
-      console.error('DashboardService: Error fetching metrics', err);
-      throw new Error('Failed to fetch dashboard metrics');
+    } catch (error) {
+      console.error('Error getting dashboard metrics:', error);
+      throw error;
     }
   }
 
-  /**
-   * Get dashboard summary with additional context
-   * @returns {Promise<Object>}
-   */
-  async getSummary() {
-    const metrics = await this.getMetrics();
+  async getThreats() {
+    try {
+      const networks = await this.networkRepository.getThreatenedNetworks();
 
-    return {
-      ...metrics,
-      summary: {
-        hasThreats: metrics.threatsCount > 0,
-        hasSurveillance: metrics.surveillanceCount > 0,
-        enrichmentRate: metrics.totalNetworks > 0
-          ? Math.round((metrics.enrichedCount / metrics.totalNetworks) * 100)
-          : 0,
-      },
-    };
+      return networks
+        .sort((a, b) => (b.threatScore || 0) - (a.threatScore || 0))
+        .slice(0, 100)
+        .map((n) => ({
+          bssid: n.bssid,
+          ssid: n.ssid,
+          threatScore: n.threatScore,
+          threatLevel: n.threatLevel,
+          type: n.type,
+          signal: n.signal,
+          observations: n.observations,
+          lastSeen: n.lastSeen,
+        }));
+    } catch (error) {
+      console.error('Error getting threats:', error);
+      throw error;
+    }
+  }
+
+  async getNetworkDistribution() {
+    try {
+      const metrics = await this.networkRepository.getDashboardMetrics();
+
+      return {
+        wifi: metrics.wifiCount,
+        ble: metrics.bleCount,
+        bluetooth: metrics.bluetoothCount,
+        lte: metrics.lteCount,
+        total: metrics.totalNetworks,
+      };
+    } catch (error) {
+      console.error('Error getting network distribution:', error);
+      throw error;
+    }
   }
 }
 

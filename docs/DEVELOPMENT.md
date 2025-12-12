@@ -49,6 +49,7 @@ npm install
 ```
 
 This installs all dependencies from `package.json`:
+
 - express, pg, dotenv (core dependencies)
 - jest, eslint, prettier (development dependencies)
 
@@ -139,6 +140,7 @@ curl http://localhost:3001/api/dashboard-metrics
 ```
 
 Expected output:
+
 ```json
 {
   "totalNetworks": 0,
@@ -196,6 +198,7 @@ ShadowCheckStatic/
 ### Making Changes
 
 1. **Create Feature Branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -206,6 +209,7 @@ ShadowCheckStatic/
    - Update documentation if needed
 
 3. **Test Changes**
+
    ```bash
    # Run linter
    npm run lint
@@ -224,6 +228,7 @@ ShadowCheckStatic/
    ```
 
 4. **Commit Changes**
+
    ```bash
    git add .
    git commit -m "feat: add new feature description"
@@ -407,6 +412,7 @@ npx husky add .husky/pre-commit "npm run lint-staged"
 ```
 
 Add to `package.json`:
+
 ```json
 {
   "lint-staged": {
@@ -466,7 +472,7 @@ LOG_LEVEL=debug
 // In server.js
 const pool = new Pool({
   // ... config
-  log: (msg) => console.log('DB:', msg)  // Enable query logging
+  log: (msg) => console.log('DB:', msg), // Enable query logging
 });
 ```
 
@@ -475,6 +481,7 @@ const pool = new Pool({
 ### Add New API Endpoint
 
 1. Add route handler in `server.js`:
+
 ```javascript
 app.get('/api/your-endpoint', async (req, res) => {
   try {
@@ -493,6 +500,7 @@ app.get('/api/your-endpoint', async (req, res) => {
 ### Add Database Migration
 
 1. Create SQL file in `sql/migrations/`:
+
 ```sql
 -- sql/migrations/add_your_feature.sql
 CREATE TABLE IF NOT EXISTS app.your_table (
@@ -502,6 +510,7 @@ CREATE TABLE IF NOT EXISTS app.your_table (
 ```
 
 2. Run migration:
+
 ```bash
 psql -U shadowcheck_user -d shadowcheck_dev -f sql/migrations/add_your_feature.sql
 ```
@@ -511,6 +520,7 @@ psql -U shadowcheck_user -d shadowcheck_dev -f sql/migrations/add_your_feature.s
 ### Add Enrichment Script
 
 1. Create script in `scripts/enrichment/`:
+
 ```javascript
 // scripts/enrichment/your-enrichment.js
 const { Pool } = require('pg');
@@ -528,15 +538,19 @@ async function enrichData() {
   // Your enrichment logic
 }
 
-enrichData().catch(console.error).finally(() => pool.end());
+enrichData()
+  .catch(console.error)
+  .finally(() => pool.end());
 ```
 
 2. Make executable:
+
 ```bash
 chmod +x scripts/enrichment/your-enrichment.js
 ```
 
 3. Run script:
+
 ```bash
 node scripts/enrichment/your-enrichment.js
 ```
@@ -548,6 +562,7 @@ node scripts/enrichment/your-enrichment.js
 **Error:** `ECONNREFUSED`
 
 **Solution:**
+
 ```bash
 # Check PostgreSQL is running
 docker ps | grep postgres
@@ -561,6 +576,7 @@ sudo systemctl status postgresql
 **Error:** `password authentication failed`
 
 **Solution:**
+
 ```bash
 # Reset password in PostgreSQL
 sudo -u postgres psql
@@ -574,6 +590,7 @@ postgres=# ALTER USER shadowcheck_user WITH PASSWORD 'new_password';
 **Error:** `EADDRINUSE: address already in use :::3001`
 
 **Solution:**
+
 ```bash
 # Find process using port
 lsof -i :3001
@@ -591,6 +608,7 @@ kill -9 <PID>
 **Error:** `relation already exists`
 
 **Solution:**
+
 ```bash
 # Drop and recreate (development only!)
 psql -U shadowcheck_user -d shadowcheck_dev << EOF
@@ -606,6 +624,7 @@ EOF
 **Error:** `JavaScript heap out of memory`
 
 **Solution:**
+
 ```bash
 # Increase Node.js memory limit
 NODE_OPTIONS=--max-old-space-size=4096 npm start
@@ -614,11 +633,13 @@ NODE_OPTIONS=--max-old-space-size=4096 npm start
 ### Slow Queries
 
 Check query performance:
+
 ```sql
 EXPLAIN ANALYZE SELECT ...;
 ```
 
 Add indexes if needed:
+
 ```sql
 CREATE INDEX idx_locations_bssid ON app.locations_legacy(bssid);
 ```

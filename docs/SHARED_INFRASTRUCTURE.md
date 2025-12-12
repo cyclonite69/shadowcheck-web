@@ -33,6 +33,7 @@ All ShadowCheck projects connect to **shared** Docker containers:
 ## Current Shared Containers
 
 ### PostgreSQL
+
 - **Container**: `shadowcheck_postgres`
 - **Image**: `postgis/postgis:16-3.4`
 - **Port**: 5432
@@ -40,6 +41,7 @@ All ShadowCheck projects connect to **shared** Docker containers:
 - **Extensions**: PostGIS for geospatial queries
 
 ### PgAdmin
+
 - **Container**: `shadowcheck_pgadmin`
 - **Image**: `dpage/pgadmin4:latest`
 - **Port**: 5050
@@ -50,6 +52,7 @@ All ShadowCheck projects connect to **shared** Docker containers:
 All projects use the same database: `shadowcheck`
 
 ### Shared Tables
+
 ```sql
 -- Core schema
 app.networks_legacy         -- Network metadata (WiFi, BLE, Cellular)
@@ -111,6 +114,7 @@ docker network inspect shadowcheck_net
 ## Project-Specific Services
 
 Each project has its own:
+
 - **API Container** (different ports)
 - **Redis Cache** (optional, project-specific)
 - **Application Code** (mounted volumes)
@@ -155,13 +159,13 @@ REDIS_PORT=6379
 
 ## Port Allocation
 
-| Service | Container | Port | Project |
-|---------|-----------|------|---------|
-| PostgreSQL | shadowcheck_postgres | 5432 | Shared |
-| PgAdmin | shadowcheck_pgadmin | 5050 | Shared |
-| API (Static) | shadowcheck_static_api | 3001 | ShadowCheckStatic |
-| API (Pentest) | shadowcheck_pentest_api | 8000 | ShadowCheckPentest |
-| Redis (Static) | shadowcheck_static_redis | 6379 | ShadowCheckStatic |
+| Service         | Container                 | Port | Project            |
+| --------------- | ------------------------- | ---- | ------------------ |
+| PostgreSQL      | shadowcheck_postgres      | 5432 | Shared             |
+| PgAdmin         | shadowcheck_pgadmin       | 5050 | Shared             |
+| API (Static)    | shadowcheck_static_api    | 3001 | ShadowCheckStatic  |
+| API (Pentest)   | shadowcheck_pentest_api   | 8000 | ShadowCheckPentest |
+| Redis (Static)  | shadowcheck_static_redis  | 6379 | ShadowCheckStatic  |
 | Redis (Pentest) | shadowcheck_pentest_redis | 6380 | ShadowCheckPentest |
 
 ## Managing Shared Infrastructure
@@ -232,6 +236,7 @@ docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck < mi
 Access shared PgAdmin at: http://localhost:5050
 
 **Server Configuration**:
+
 - Host: `shadowcheck_postgres` (Docker container name)
 - Port: `5432`
 - Username: `shadowcheck_user`
@@ -284,26 +289,31 @@ docker-compose down && docker-compose up -d
 ## Best Practices
 
 ### 1. Database Credentials
+
 - Use same credentials across all projects
 - Store in `.env` file (gitignored)
 - Use keyring for production
 
 ### 2. Network Management
+
 - All ShadowCheck containers should be on `shadowcheck_net`
 - Don't create project-specific PostgreSQL instances
 - Use external network definition in docker-compose
 
 ### 3. Data Isolation
+
 - All projects share same database tables
 - Use application-level logic to filter data if needed
 - Consider adding `project_source` column for tracking
 
 ### 4. Backup Strategy
+
 - Backup shared PostgreSQL container
 - One backup covers all projects
 - Schedule: `pg_dump -U shadowcheck_user shadowcheck > backup.sql`
 
 ### 5. Monitoring
+
 - Monitor shared PostgreSQL performance
 - All projects contribute to DB load
 - Use `pg_stat_activity` to track connections
@@ -347,6 +357,7 @@ curl http://localhost:3001/api/dashboard-metrics
 - ✅ **Optional Redis per project** (different ports)
 
 This architecture:
+
 - Reduces resource usage
 - Simplifies backup/restore
 - Enables cross-project queries

@@ -3,6 +3,7 @@
 ## Overview
 
 ShadowCheckStatic now implements enterprise-grade structured logging with Winston that provides:
+
 - **Multiple transports**: Console, file, error-specific files
 - **Log levels**: error, warn, info, http, debug
 - **Structured JSON format**: Machine-readable, queryable logs
@@ -13,6 +14,7 @@ ShadowCheckStatic now implements enterprise-grade structured logging with Winsto
 ## Architecture
 
 ### Log Files
+
 ```
 data/logs/
 ├── error.log       - Only errors (5MB max, keeps 5 files)
@@ -21,6 +23,7 @@ data/logs/
 ```
 
 ### Log Levels (in order of severity)
+
 1. **error** (0) - Fatal issues requiring immediate attention
 2. **warn** (1) - Warnings, security events, slow requests
 3. **info** (2) - General information, API calls, data access
@@ -32,11 +35,13 @@ data/logs/
 ### Step 1: Update package.json
 
 Add required dependencies:
+
 ```bash
 npm install winston uuid
 ```
 
 This adds:
+
 - `winston@^3.11.0` - Logging library
 - `uuid@^9.0.0` - Request ID generation
 
@@ -75,7 +80,7 @@ app.use(requestIdMiddleware);
 app.get('/api/networks', (req, res) => {
   // req.id - unique request ID
   // req.logger - logger with this request's ID in all logs
-  
+
   req.logger.info('Processing network list request');
   req.logger.debug('Query parameters:', req.query);
 });
@@ -148,6 +153,7 @@ app.use(createErrorHandler(logger));
 ```
 
 Errors are automatically logged with:
+
 - Stack traces (development only)
 - Error codes
 - HTTP status codes
@@ -157,6 +163,7 @@ Errors are automatically logged with:
 ## Log Output Examples
 
 ### Console Output (Development)
+
 ```
 2025-12-05 04:10:15 info: Server started on port 3001
 2025-12-05 04:10:16 http: Incoming: GET /api/networks
@@ -165,6 +172,7 @@ Errors are automatically logged with:
 ```
 
 ### File Output (JSON Format)
+
 ```json
 {
   "level": "error",
@@ -195,6 +203,7 @@ LOG_LEVEL=debug
 ### Log Retention
 
 Files are automatically rotated:
+
 - **Max file size**: 5MB
 - **Max files per type**: 5 (oldest deleted when exceeded)
 - **Total potential storage**: ~75MB
@@ -205,36 +214,37 @@ Files are automatically rotated:
 
 ```javascript
 // Core logging
-logger.error(msg, meta)
-logger.warn(msg, meta)
-logger.info(msg, meta)
-logger.http(msg, meta)
-logger.debug(msg, meta)
+logger.error(msg, meta);
+logger.warn(msg, meta);
+logger.info(msg, meta);
+logger.http(msg, meta);
+logger.debug(msg, meta);
 
 // Specialized helpers
-logger.logRequest(req)          // Log incoming request
-logger.logResponse(req, status, duration)  // Log response
-logger.logQuery(query, params, duration)   // Log DB query
-logger.logSecurityEvent(event, details)    // Log security event
-logger.logPerformance(metric, value, unit) // Log metric
-logger.createRequestLogger(id)  // Get request-scoped logger
+logger.logRequest(req); // Log incoming request
+logger.logResponse(req, status, duration); // Log response
+logger.logQuery(query, params, duration); // Log DB query
+logger.logSecurityEvent(event, details); // Log security event
+logger.logPerformance(metric, value, unit); // Log metric
+logger.createRequestLogger(id); // Get request-scoped logger
 ```
 
 ### Middleware Functions
 
 ```javascript
-requestIdMiddleware              // Adds request ID
-requestLoggingMiddleware         // Logs req/res
-performanceMiddleware(ms)        // Tracks slow requests
-logSecurityEvent(req, event)     // Log security events
-logQuery(query, params, ms)      // Log DB queries
-logQueryError(query, params, err) // Log query errors
-logDataAccess(req, resource, action, count) // Compliance logging
+requestIdMiddleware; // Adds request ID
+requestLoggingMiddleware; // Logs req/res
+performanceMiddleware(ms); // Tracks slow requests
+logSecurityEvent(req, event); // Log security events
+logQuery(query, params, ms); // Log DB queries
+logQueryError(query, params, err); // Log query errors
+logDataAccess(req, resource, action, count); // Compliance logging
 ```
 
 ## Request ID Tracing
 
 Every request gets a unique ID that:
+
 1. Is generated or extracted from `X-Request-ID` header
 2. Is available as `req.id`
 3. Is included in response header `X-Request-ID`
@@ -260,19 +270,21 @@ Grep all logs for this request: `grep "550e8400-e29b-41d4-a716-446655440000" dat
 ## Best Practices
 
 1. **Use appropriate log levels**
+
    ```javascript
    // ✅ Correct
-   logger.error('Database connection failed');  // Server errors
-   logger.warn('Slow query detected');          // Warnings
-   logger.info('User logged in');               // Important events
+   logger.error('Database connection failed'); // Server errors
+   logger.warn('Slow query detected'); // Warnings
+   logger.info('User logged in'); // Important events
    logger.debug('Processing filter parameter'); // Development info
-   
+
    // ❌ Wrong
-   logger.info('Database connection failed');   // Too verbose for prod
-   logger.debug('User action');                 // Important info buried
+   logger.info('Database connection failed'); // Too verbose for prod
+   logger.debug('User action'); // Important info buried
    ```
 
 2. **Include context in metadata**
+
    ```javascript
    // ✅ Good
    logger.warn('Failed login attempt', {
@@ -280,43 +292,49 @@ Grep all logs for this request: `grep "550e8400-e29b-41d4-a716-446655440000" dat
      attempts: failCount,
      ip: req.ip,
    });
-   
+
    // ❌ Bad
-   logger.warn('Failed login');  // No context
+   logger.warn('Failed login'); // No context
    ```
 
 3. **Never log sensitive data**
+
    ```javascript
    // ✅ Safe
    logger.info('User authenticated', { userId: user.id });
-   
+
    // ❌ Dangerous
    logger.info('User authenticated', { password: user.password });
    ```
 
 4. **Use request-scoped logger in routes**
+
    ```javascript
    // ✅ Good - includes request ID
    req.logger.info('Processing request', { query: req.query });
-   
+
    // ❌ Bad - missing request ID
    logger.info('Processing request', { query: req.query });
    ```
 
 5. **Log at entry and exit points**
+
    ```javascript
-   app.post('/api/networks', asyncHandler(async (req, res) => {
-     req.logger.info('Creating network');
-     
-     try {
-       const network = await createNetwork(req.body);
-       req.logger.info('Network created', { networkId: network.id });
-       res.json(network);
-     } catch (error) {
-       req.logger.error('Network creation failed', { error: error.message });
-       throw error;
-     }
-   }));
+   app.post(
+     '/api/networks',
+     asyncHandler(async (req, res) => {
+       req.logger.info('Creating network');
+
+       try {
+         const network = await createNetwork(req.body);
+         req.logger.info('Network created', { networkId: network.id });
+         res.json(network);
+       } catch (error) {
+         req.logger.error('Network creation failed', { error: error.message });
+         throw error;
+       }
+     })
+   );
    ```
 
 ## Integration Checklist
@@ -359,6 +377,7 @@ grep '"path":' data/logs/combined.log | sort | uniq -c
 ## Next Steps
 
 After logging is integrated:
+
 1. Monitor logs during development
 2. Adjust log levels as needed
 3. Add log analysis tools (ELK stack, Datadog, etc.)
