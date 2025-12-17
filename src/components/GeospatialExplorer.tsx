@@ -112,6 +112,8 @@ export default function GeospatialExplorer() {
   const [error, setError] = useState<string | null>(null);
   const [observationsByBssid, setObservationsByBssid] = useState<Record<string, Observation[]>>({});
   const [pagination, setPagination] = useState({ page: 1, hasMore: true });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -271,7 +273,7 @@ export default function GeospatialExplorer() {
       try {
         const params = new URLSearchParams({
           page: pagination.page.toString(),
-          limit: '50',
+          limit: '500',
         });
         if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
@@ -315,7 +317,7 @@ export default function GeospatialExplorer() {
 
         setPagination((prev) => ({
           ...prev,
-          hasMore: mapped.length === 50,
+          hasMore: mapped.length === 500,
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
@@ -329,6 +331,38 @@ export default function GeospatialExplorer() {
     fetchNetworks();
     return () => controller.abort();
   }, [pagination.page, searchTerm]);
+
+  // Infinite scroll with debouncing
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container || !pagination.hasMore || isLoadingMore) return;
+
+    let timeoutId: NodeJS.Timeout;
+
+    const handleScroll = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        if (scrollHeight - scrollTop <= clientHeight + 100) {
+          setIsLoadingMore(true);
+          setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
+        }
+      }, 150);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [pagination.hasMore, isLoadingMore]);
+
+  // Reset loading state after fetch
+  useEffect(() => {
+    if (!loadingNetworks && isLoadingMore) {
+      setIsLoadingMore(false);
+    }
+  }, [loadingNetworks, isLoadingMore]);
 
   // Fetch observations for selected networks
   useEffect(() => {
@@ -550,111 +584,92 @@ export default function GeospatialExplorer() {
         >
           <div
             style={{
-              padding: '12px 16px',
+              padding: '8px 12px',
               borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
               background: 'rgba(15, 23, 42, 0.6)',
               borderRadius: '12px 12px 0 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
               Networks Explorer
             </h2>
-          </div>
-
-          {/* Search and Controls */}
-          <div
-            style={{
-              padding: '8px 12px',
-              borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <input
-              type="text"
-              placeholder="Search SSID or BSSID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                background: 'rgba(71, 85, 105, 0.6)',
-                border: '1px solid rgba(71, 85, 105, 0.5)',
-                borderRadius: '6px',
-                padding: '6px 8px',
-                fontSize: '11px',
-                color: 'white',
-                outline: 'none',
-              }}
-            />
-            <div className="relative" ref={columnDropdownRef}>
-              <button
-                onClick={() => setShowColumnSelector((v) => !v)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="Search SSID or BSSID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
-                  padding: '6px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  color: '#cbd5e1',
+                  background: 'rgba(71, 85, 105, 0.6)',
+                  border: '1px solid rgba(71, 85, 105, 0.5)',
+                  borderRadius: '6px',
+                  padding: '6px 8px',
+                  fontSize: '11px',
+                  color: 'white',
+                  outline: 'none',
                 }}
-              >
-                ⚙️
-              </button>
-              {showColumnSelector && (
-                <div
+              />
+              <div className="relative" ref={columnDropdownRef}>
+                <button
+                  onClick={() => setShowColumnSelector((v) => !v)}
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    background: 'rgba(30, 41, 59, 0.95)',
-                    border: '1px solid rgba(71, 85, 105, 0.5)',
-                    borderRadius: '6px',
-                    zIndex: 50,
-                    minWidth: '200px',
-                    backdropFilter: 'blur(8px)',
+                    padding: '6px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: '#cbd5e1',
                   }}
                 >
+                  ⚙️
+                </button>
+                {showColumnSelector && (
                   <div
                     style={{
-                      padding: '8px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      color: '#cbd5e1',
-                      borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      background: 'rgba(30, 41, 59, 0.95)',
+                      border: '1px solid rgba(71, 85, 105, 0.5)',
+                      borderRadius: '6px',
+                      zIndex: 50,
+                      minWidth: '200px',
+                      backdropFilter: 'blur(8px)',
                     }}
                   >
-                    Visible Columns
+                    {Object.entries(NETWORK_COLUMNS).map(([col, column]) => (
+                      <label
+                        key={col}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          color: '#e2e8f0',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(col as keyof NetworkRow | 'select')}
+                          onChange={() => toggleColumn(col as keyof NetworkRow | 'select')}
+                          style={{ marginRight: '8px' }}
+                        />
+                        {column.label}
+                      </label>
+                    ))}
                   </div>
-                  {Object.entries(NETWORK_COLUMNS).map(([col, column]) => (
-                    <label
-                      key={col}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '6px 8px',
-                        cursor: 'pointer',
-                        fontSize: '11px',
-                        color: '#e2e8f0',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.includes(col as keyof NetworkRow | 'select')}
-                        onChange={() => toggleColumn(col as keyof NetworkRow | 'select')}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      {column.label}
-                    </label>
-                  ))}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
           {/* Table */}
-          <div className="flex-1 overflow-auto min-h-0">
+          <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
               <thead
                 style={{
@@ -805,6 +820,18 @@ export default function GeospatialExplorer() {
                   ))}
               </tbody>
             </table>
+            {isLoadingMore && (
+              <div
+                style={{
+                  padding: '16px',
+                  textAlign: 'center',
+                  color: '#64748b',
+                  fontSize: '12px',
+                }}
+              >
+                Loading more networks...
+              </div>
+            )}
           </div>
 
           {/* Footer */}

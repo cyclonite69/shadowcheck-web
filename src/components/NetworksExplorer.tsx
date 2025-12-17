@@ -101,7 +101,7 @@ export default function NetworksExplorer({
 
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 shadow-xl">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <div>
           <h2 className="text-xl font-semibold">{title}</h2>
           <p className="text-slate-400 text-sm">
