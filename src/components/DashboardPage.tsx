@@ -131,8 +131,7 @@ export default function DashboardPage() {
       id: 1,
       title: 'CRITICAL',
       value: 238,
-      color: 'from-red-600 to-red-800',
-      textColor: 'text-red-100',
+      gradient: 'linear-gradient(to bottom right, #dc2626, #991b1b)',
       icon: AlertTriangle,
       x: 0,
       y: 80,
@@ -144,8 +143,7 @@ export default function DashboardPage() {
       id: 2,
       title: 'HIGH',
       value: 205,
-      color: 'from-orange-600 to-orange-800',
-      textColor: 'text-orange-100',
+      gradient: 'linear-gradient(to bottom right, #ea580c, #9a3412)',
       icon: AlertTriangle,
       x: 25,
       y: 80,
@@ -157,8 +155,7 @@ export default function DashboardPage() {
       id: 3,
       title: 'MEDIUM',
       value: 62,
-      color: 'from-yellow-600 to-yellow-800',
-      textColor: 'text-yellow-100',
+      gradient: 'linear-gradient(to bottom right, #ca8a04, #854d0e)',
       icon: AlertTriangle,
       x: 50,
       y: 80,
@@ -170,8 +167,7 @@ export default function DashboardPage() {
       id: 4,
       title: 'LOW',
       value: 0,
-      color: 'from-green-600 to-green-800',
-      textColor: 'text-green-100',
+      gradient: 'linear-gradient(to bottom right, #16a34a, #166534)',
       icon: AlertTriangle,
       x: 75,
       y: 80,
@@ -185,8 +181,7 @@ export default function DashboardPage() {
       id: 5,
       title: 'TOTAL NETWORKS',
       value: 117687,
-      color: 'from-blue-700 to-blue-900',
-      textColor: 'text-blue-100',
+      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
       icon: Network,
       x: 0,
       y: 280,
@@ -198,8 +193,7 @@ export default function DashboardPage() {
       id: 6,
       title: 'THREATS DETECTED',
       value: 53282,
-      color: 'from-blue-700 to-blue-900',
-      textColor: 'text-blue-100',
+      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
       icon: AlertTriangle,
       x: 20,
       y: 280,
@@ -211,8 +205,7 @@ export default function DashboardPage() {
       id: 7,
       title: 'ACTIVE SURVEILLANCE',
       value: 49,
-      color: 'from-blue-700 to-blue-900',
-      textColor: 'text-blue-100',
+      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
       icon: Eye,
       x: 40,
       y: 280,
@@ -224,8 +217,7 @@ export default function DashboardPage() {
       id: 8,
       title: 'DATA ENRICHED',
       value: 0,
-      color: 'from-blue-700 to-blue-900',
-      textColor: 'text-blue-100',
+      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
       icon: Database,
       x: 60,
       y: 280,
@@ -237,8 +229,7 @@ export default function DashboardPage() {
       id: 9,
       title: 'WIFI NETWORKS',
       value: 36391,
-      color: 'from-blue-700 to-blue-900',
-      textColor: 'text-blue-100',
+      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
       icon: Wifi,
       x: 80,
       y: 280,
@@ -252,8 +243,7 @@ export default function DashboardPage() {
       id: 10,
       title: 'WIFI',
       value: 36391,
-      color: 'from-blue-600 to-blue-800',
-      textColor: 'text-blue-100',
+      gradient: 'linear-gradient(to bottom right, #2563eb, #1e40af)',
       icon: Wifi,
       x: 0,
       y: 420,
@@ -265,8 +255,7 @@ export default function DashboardPage() {
       id: 11,
       title: 'BLE',
       value: 75163,
-      color: 'from-purple-600 to-purple-800',
-      textColor: 'text-purple-100',
+      gradient: 'linear-gradient(to bottom right, #9333ea, #6b21a8)',
       icon: Radio,
       x: 17,
       y: 420,
@@ -278,8 +267,7 @@ export default function DashboardPage() {
       id: 12,
       title: 'BLUETOOTH',
       value: 5754,
-      color: 'from-cyan-600 to-cyan-800',
-      textColor: 'text-cyan-100',
+      gradient: 'linear-gradient(to bottom right, #0891b2, #155e75)',
       icon: Bluetooth,
       x: 34,
       y: 420,
@@ -291,8 +279,7 @@ export default function DashboardPage() {
       id: 13,
       title: 'LTE',
       value: 259,
-      color: 'from-emerald-600 to-emerald-800',
-      textColor: 'text-emerald-100',
+      gradient: 'linear-gradient(to bottom right, #059669, #065f46)',
       icon: Network,
       x: 51,
       y: 420,
@@ -304,8 +291,7 @@ export default function DashboardPage() {
       id: 14,
       title: 'GSM',
       value: 120,
-      color: 'from-indigo-600 to-indigo-800',
-      textColor: 'text-indigo-100',
+      gradient: 'linear-gradient(to bottom right, #4f46e5, #3730a3)',
       icon: Radio,
       x: 68,
       y: 420,
@@ -453,9 +439,8 @@ export default function DashboardPage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-slate-300 text-sm mt-2">
-            Real-time surveillance and threat detection metrics • Drag cards to reposition • Resize
-            from corners
+          <p className="text-slate-300 text-sm mt-2 font-light tracking-wide">
+            Real-time surveillance and threat detection metrics
           </p>
         </div>
       </div>
@@ -475,41 +460,47 @@ export default function DashboardPage() {
               top: `${card.y}px`,
               width: width,
               height: `${card.h}px`,
+              background: card.gradient,
               transition: dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
               cursor: dragging === card.id ? 'grabbing' : 'grab',
               userSelect: dragging || resizing ? 'none' : 'auto',
             }}
             onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-            className={`relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br ${card.color} shadow-2xl hover:shadow-3xl transition-shadow group backdrop-blur-sm p-4 flex flex-col justify-between`}
+            className="relative overflow-hidden rounded-xl border border-white/10 shadow-2xl hover:shadow-3xl transition-shadow group backdrop-blur-sm p-4 flex flex-col justify-between"
           >
             {/* Soft gradient overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-15 bg-gradient-to-br from-white/10 via-white/5 to-transparent" />
+            <div className="absolute inset-0 pointer-events-none opacity-20 bg-gradient-to-br from-white/20 via-transparent to-black/20" />
 
-            {/* Header */}
-            <div className="flex items-start justify-between mb-2 relative z-10">
-              <div className="flex-1">
-                <p className="text-xs font-bold uppercase tracking-wider opacity-90 text-white">
+            {/* Card Content - Centered & Balanced */}
+            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center">
+              {/* Icon */}
+              <div className="mb-3">
+                <Icon
+                  size={card.type === 'threat' ? 48 : 40}
+                  className="text-white/80 drop-shadow-lg"
+                />
+              </div>
+
+              {/* Value - Large and Bold */}
+              <div className="mb-2">
+                <p className="text-5xl font-extrabold text-white drop-shadow-2xl tracking-tight leading-none">
+                  {card.value.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Title - Elegant Typography */}
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-widest text-white/90 drop-shadow">
                   {card.title}
                 </p>
-                {card.type === 'threat' && (
-                  <p className="text-white/60 text-xs mt-1">Drag to move • Drag edge to resize</p>
-                )}
               </div>
-              <GripHorizontal
-                size={16}
-                className="text-white/40 group-hover:text-white/70 transition-colors flex-shrink-0 ml-2"
-              />
             </div>
 
-            {/* Value */}
-            <div className="flex items-end justify-between relative z-10">
-              <div className="flex-1">
-                <p className="text-4xl font-bold text-white mb-1">{card.value.toLocaleString()}</p>
-                {card.type === 'radio' && <p className="text-white/60 text-xs">devices detected</p>}
-              </div>
-              <Icon
-                size={card.type === 'threat' ? 40 : 32}
-                className="text-white/30 flex-shrink-0"
+            {/* Grip Handle - Subtle corner indicator */}
+            <div className="absolute top-2 right-2 z-20">
+              <GripHorizontal
+                size={14}
+                className="text-white/30 group-hover:text-white/60 transition-colors"
               />
             </div>
 
