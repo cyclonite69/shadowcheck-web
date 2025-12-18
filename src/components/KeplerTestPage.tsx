@@ -66,7 +66,7 @@ const KeplerTestPage: React.FC = () => {
 
   // Controls
   const [layerType, setLayerType] = useState<LayerType>('scatterplot');
-  const [pointSize, setPointSize] = useState<number>(2);
+  const [pointSize, setPointSize] = useState<number>(0.5);
   const [signalThreshold, setSignalThreshold] = useState<number>(-100);
   const [pitch, setPitch] = useState<number>(0);
   const [height3d, setHeight3d] = useState<number>(1);
@@ -139,31 +139,137 @@ const KeplerTestPage: React.FC = () => {
       },
       controller: drawMode === 'none',
       useDevicePixels: false,
-      getTooltip: ({ object }: { object: any }) =>
-        object && {
+      getTooltip: ({ object }: { object: any }) => {
+        if (!object) return null;
+
+        const radioType = interpretWigleType(object.type);
+        const security = interpretSecurity(
+          object.capabilities || object.encryption,
+          object.encryption
+        );
+        const signalStrength = interpretSignalStrength(object.signal || object.bestlevel || 0);
+        const networkIcon = getNetworkIcon(object.type);
+
+        // Calculate observation time span if we have both first and last seen
+        let obsTimeSpan = '';
+        let obsCount = object.obs_count || object.observation_count || 0;
+        const firstSeen = object.timestamp || object.first_seen;
+        const lastSeen = object.last_seen;
+
+        if (firstSeen && lastSeen) {
+          const first = new Date(firstSeen);
+          const last = new Date(lastSeen);
+          const diffMs = last.getTime() - first.getTime();
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+          if (diffDays > 0) {
+            obsTimeSpan = `${diffDays}d ${diffHours}h`;
+          } else if (diffHours > 0) {
+            obsTimeSpan = `${diffHours}h`;
+          } else {
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            obsTimeSpan = `${diffMins}m`;
+          }
+        }
+
+        // Only show channel/frequency for WiFi
+        const isWiFi = !object.type || object.type === 'W' || object.type === 'wifi';
+        const channelInfo =
+          isWiFi && object.channel
+            ? `
+          <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
+            <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Channel</span>
+            <div style="color: #e2e8f0; margin-top: 3px; font-size: 10px;">Ch ${object.channel}${object.frequency ? ` • ${object.frequency} MHz` : ''}</div>
+          </div>
+        `
+            : '';
+
+        return {
           html: `
-            <div style="background: rgba(15, 23, 42, 0.95); color: #f8fafc; padding: 15px; border-radius: 8px; max-width: 380px; font-size: 11px; border: 1px solid rgba(148, 163, 184, 0.2);">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                <svg viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16"><path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/><path d="M12 14c-1.7 0-3.3.6-4.6 1.8a1 1 0 1 0 1.4 1.4A5 5 0 0 1 12 16a5 5 0 0 1 3.2 1.2 1 1 0 1 0 1.3-1.5A6.9 6.9 0 0 0 12 14z"/></svg>
-                <span style="color: #22d3ee; font-weight: bold; font-size: 15px;">${object.ssid || 'Hidden Network'}</span>
+            <div style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%); color: #f8fafc; padding: 16px; border-radius: 12px; max-width: 450px; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
+                ${networkIcon}
+                <div style="flex: 1;">
+                  <div style="color: #60a5fa; font-weight: bold; font-size: 16px;">${object.ssid || 'Hidden Network'}</div>
+                  <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">${radioType.name} Network</div>
+                </div>
               </div>
-              
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                <div><span style="color: #94a3b8; font-size: 10px;">BSSID</span><br><span style="font-family: monospace; font-size: 10px;">${object.bssid}</span></div>
-                <div><span style="color: #94a3b8; font-size: 10px;">Signal</span><br><span style="color: ${object.bestlevel > -50 ? '#22c55e' : object.bestlevel > -70 ? '#fbbf24' : '#ef4444'};">${object.bestlevel || 0} dBm</span></div>
-                <div><span style="color: #94a3b8; font-size: 10px;">Device</span><br>${object.device_id || 'Unknown'}</div>
-                <div><span style="color: #94a3b8; font-size: 10px;">Source</span><br>${object.source_tag || 'Unknown'}</div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                  <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">BSSID</span>
+                  <div style="font-family: 'Courier New', monospace; font-size: 10px; margin-top: 3px; color: #e2e8f0;">${object.bssid}</div>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                  <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Signal</span>
+                  <div style="margin-top: 3px;">
+                    <span style="color: ${signalStrength.color}; font-weight: bold;">${object.signal || object.bestlevel || 0} dBm</span>
+                    <span style="color: #64748b; font-size: 9px; margin-left: 4px;">(${signalStrength.text})</span>
+                  </div>
+                </div>
+                ${
+                  isWiFi
+                    ? `
+                <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                  <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Security</span>
+                  <div style="color: ${security.color}; font-weight: 600; margin-top: 3px; font-size: 10px;">${security.text}</div>
+                </div>
+                `
+                    : ''
+                }
+                ${channelInfo}
               </div>
-              
-              <div style="border-top: 1px solid rgba(148, 163, 184, 0.2); padding-top: 8px;">
-                <div style="margin-bottom: 4px;"><span style="color: #94a3b8;">Coordinates:</span> <span style="font-family: monospace; font-size: 10px;">${object.position ? object.position[1].toFixed(6) + ', ' + object.position[0].toFixed(6) : 'Unknown'}</span></div>
-                ${object.first_seen ? `<div style="margin-bottom: 4px;"><span style="color: #94a3b8;">Observed:</span> <span style="color: #e2e8f0;">${new Date(object.first_seen).toLocaleString()}</span></div>` : ''}
-                ${object.altitude ? `<div><span style="color: #94a3b8;">Altitude:</span> ${object.altitude}m</div>` : ''}
+
+              ${
+                object.manufacturer && object.manufacturer !== 'Unknown'
+                  ? `
+              <div style="background: rgba(59, 130, 246, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #3b82f6;">
+                <div style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Manufacturer</div>
+                <div style="color: #60a5fa; font-weight: 500;">${object.manufacturer}</div>
+              </div>`
+                  : ''
+              }
+
+              <!-- Observation Times - Highlighted -->
+              <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(251, 191, 36, 0.3);">
+                <div style="color: #fbbf24; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">⏱️ Observation Timeline</div>
+                ${
+                  firstSeen
+                    ? `
+                <div style="margin-bottom: 4px;">
+                  <span style="color: #94a3b8; font-size: 9px;">First Seen:</span>
+                  <div style="color: #fde68a; font-weight: 600; font-size: 11px; margin-top: 2px;">${new Date(firstSeen).toLocaleString()}</div>
+                </div>`
+                    : ''
+                }
+                ${
+                  lastSeen && lastSeen !== firstSeen
+                    ? `
+                <div style="margin-bottom: 4px;">
+                  <span style="color: #94a3b8; font-size: 9px;">Last Seen:</span>
+                  <div style="color: #fde68a; font-weight: 600; font-size: 11px; margin-top: 2px;">${new Date(lastSeen).toLocaleString()}</div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(251, 191, 36, 0.2);">
+                  ${obsTimeSpan ? `<div><span style="color: #94a3b8; font-size: 9px;">Span:</span> <span style="color: #fbbf24; font-weight: 600; font-size: 10px;">${obsTimeSpan}</span></div>` : ''}
+                  ${obsCount > 0 ? `<div><span style="color: #94a3b8; font-size: 9px;">Observations:</span> <span style="color: #fbbf24; font-weight: 600; font-size: 10px;">${obsCount}</span></div>` : ''}
+                </div>
+                `
+                    : ''
+                }
+              </div>
+
+              <div style="border-top: 1px solid rgba(59, 130, 246, 0.2); padding-top: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 10px;">
+                  <span style="color: #94a3b8;">📍</span>
+                  <span style="font-family: 'Courier New', monospace; color: #94a3b8;">${object.position ? object.position[1].toFixed(6) + ', ' + object.position[0].toFixed(6) : 'Unknown'}</span>
+                </div>
               </div>
             </div>
           `,
           style: { backgroundColor: 'transparent', fontSize: '12px' },
-        },
+        };
+      },
       onClick: ({ object }: { object: any }) => {
         if (object && !selectedPoints.find((p) => p.bssid === object.bssid)) {
           setSelectedPoints((prev) => [...prev, object]);
@@ -314,18 +420,40 @@ const KeplerTestPage: React.FC = () => {
 
       {/* Controls Panel */}
       <div
-        className="text-white p-4 rounded-lg max-w-xs space-y-3 text-sm shadow-2xl"
+        className="text-white rounded-xl max-w-sm space-y-3.5 text-sm"
         style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid rgba(148, 163, 184, 0.3)',
-          backdropFilter: 'blur(12px)',
+          backgroundColor: 'rgba(17, 24, 39, 0.92)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          backdropFilter: 'blur(16px)',
+          boxShadow:
+            '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)',
           zIndex: 99999,
           position: 'fixed',
-          top: '16px',
-          left: '16px',
+          top: '20px',
+          left: '20px',
+          padding: '20px',
         }}
       >
-        <h3 className="text-lg font-semibold text-blue-400">🛡️ ShadowCheck Networks</h3>
+        <div
+          style={{
+            borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+            paddingBottom: '14px',
+            marginBottom: '6px',
+          }}
+        >
+          <h3
+            className="text-xl font-bold"
+            style={{
+              background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            🛡️ ShadowCheck
+          </h3>
+          <p className="text-xs text-slate-400 mt-1">Network Visualization</p>
+        </div>
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">Dataset:</label>
@@ -380,9 +508,9 @@ const KeplerTestPage: React.FC = () => {
           <label className="block mb-1 text-xs text-slate-300">Point Size: {pointSize}</label>
           <input
             type="range"
-            min="0.5"
-            max="20"
-            step="0.5"
+            min="0.1"
+            max="10"
+            step="0.1"
             value={pointSize}
             onChange={(e) => setPointSize(parseFloat(e.target.value))}
             className="w-full"
@@ -424,19 +552,90 @@ const KeplerTestPage: React.FC = () => {
           />
         </div>
 
-        <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
-          📊 {filteredCount.toLocaleString()} / {networkData.length.toLocaleString()} networks
-          <br />
-          🔥 FULL DATASET - GPU BEAST MODE
-          <br />
-          🎯 Selected: {selectedPoints.length} networks
-          <br />
-          📍 Interactive tooltips & selection
-          <br />⚡ WebGL performance at scale
+        <div
+          className="text-xs pt-3 mt-2"
+          style={{
+            borderTop: '1px solid rgba(59, 130, 246, 0.2)',
+            background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent)',
+            padding: '12px',
+            margin: '0 -20px -20px -20px',
+            borderRadius: '0 0 12px 12px',
+          }}
+        >
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Networks:</span>
+              <span className="text-blue-400 font-semibold">
+                {filteredCount.toLocaleString()} / {networkData.length.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Selected:</span>
+              <span className="text-emerald-400 font-semibold">{selectedPoints.length}</span>
+            </div>
+            <div className="text-slate-500 text-[10px] mt-2 pt-2 border-t border-slate-700/50">
+              ⚡ WebGL • 📍 Interactive • 🔥 GPU Accelerated
+            </div>
+          </div>
         </div>
       </div>
     </>
   );
 };
+
+// Helper functions for tooltip rendering
+function interpretWigleType(type: string) {
+  const typeMap: Record<string, string> = {
+    W: 'WiFi',
+    E: 'BLE',
+    B: 'Bluetooth',
+    L: 'LTE',
+    N: '5G NR',
+    G: 'GSM',
+  };
+  if (!type || type === 'Unknown' || type === '') return { name: 'WiFi', code: 'W' };
+  const typeCode = type.toString().toUpperCase();
+  return { name: typeMap[typeCode] || typeCode || 'Unknown', code: typeCode };
+}
+
+function interpretSecurity(capabilities: string, encryption: string) {
+  if (!capabilities || capabilities === 'Unknown') {
+    if (encryption && encryption !== 'Open/Unknown') return { text: encryption, color: '#fbbf24' };
+    return { text: 'Open', color: '#ef4444' };
+  }
+  if (capabilities.includes('WPA3')) return { text: 'WPA3 (Secure)', color: '#22c55e' };
+  if (capabilities.includes('WPA2')) return { text: 'WPA2 (Secure)', color: '#22c55e' };
+  if (capabilities.includes('WPA')) return { text: 'WPA (Moderate)', color: '#f59e0b' };
+  if (capabilities.includes('WEP')) return { text: 'WEP (Insecure)', color: '#ef4444' };
+  return { text: 'Open', color: '#ef4444' };
+}
+
+function interpretSignalStrength(signal: number) {
+  if (signal > -50) return { color: '#22c55e', text: 'Excellent' };
+  if (signal > -60) return { color: '#84cc16', text: 'Good' };
+  if (signal > -70) return { color: '#fbbf24', text: 'Fair' };
+  if (signal > -80) return { color: '#f97316', text: 'Weak' };
+  return { color: '#ef4444', text: 'Very Weak' };
+}
+
+function getNetworkIcon(networkType: string) {
+  const type = (networkType || 'wifi').toLowerCase();
+  if (type.includes('ble') || type.includes('bluetooth') || type === 'b' || type === 'e') {
+    return `<svg viewBox="0 0 24 24" fill="#3b82f6" width="18" height="18"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg>`;
+  }
+  if (
+    type.includes('cellular') ||
+    type.includes('cell') ||
+    type.includes('gsm') ||
+    type.includes('lte') ||
+    type.includes('5g') ||
+    type === 'g' ||
+    type === 'l' ||
+    type === 'n'
+  ) {
+    return `<svg viewBox="0 0 24 24" fill="#3b82f6" width="18" height="18"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/><circle cx="12" cy="3.5" r=".75"/></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" fill="#3b82f6" width="18" height="18"><path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/><path d="M12 14c-1.7 0-3.3.6-4.6 1.8a1 1 0 1 0 1.4 1.4A5 5 0 0 1 12 16a5 5 0 0 1 3.2 1.2 1 1 0 1 0 1.3-1.5A6.9 6.9 0 0 0 12 14z"/><path d="M12 9.5c-3 0-5.8 1.1-8 3.2a1 1 0 1 0 1.4 1.4c1.8-1.8 4.1-2.7 6.6-2.7 2.5 0 4.8.9 6.6 2.7a1 1 0 1 0 1.4-1.4c-2.2-2.1-5.1-3.2-8-3.2z"/></svg>`;
+}
 
 export default KeplerTestPage;

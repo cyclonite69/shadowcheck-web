@@ -78,10 +78,46 @@ const INITIAL_VIEW = {
   zoom: 12,
 };
 
+const MAP_STYLES = [
+  {
+    value: 'mapbox://styles/mapbox/standard',
+    label: 'Standard (Day)',
+    config: { lightPreset: 'day' },
+  },
+  {
+    value: 'mapbox://styles/mapbox/standard-dawn',
+    label: 'Standard (Dawn)',
+    config: { lightPreset: 'dawn' },
+  },
+  {
+    value: 'mapbox://styles/mapbox/standard-dusk',
+    label: 'Standard (Dusk)',
+    config: { lightPreset: 'dusk' },
+  },
+  {
+    value: 'mapbox://styles/mapbox/standard-night',
+    label: 'Standard (Night)',
+    config: { lightPreset: 'night' },
+  },
+  { value: 'mapbox://styles/mapbox/streets-v12', label: 'Streets' },
+  { value: 'mapbox://styles/mapbox/outdoors-v12', label: 'Outdoors' },
+  { value: 'mapbox://styles/mapbox/light-v11', label: 'Light' },
+  { value: 'mapbox://styles/mapbox/dark-v11', label: 'Dark' },
+  { value: 'mapbox://styles/mapbox/satellite-v9', label: 'Satellite' },
+  { value: 'mapbox://styles/mapbox/satellite-streets-v12', label: 'Satellite Streets' },
+  { value: 'mapbox://styles/mapbox/navigation-day-v1', label: 'Navigation Day' },
+  { value: 'mapbox://styles/mapbox/navigation-night-v1', label: 'Navigation Night' },
+] as const;
+
 export default function GeospatialExplorer() {
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
   const [mapHeight, setMapHeight] = useState<number>(500);
   const [containerHeight, setContainerHeight] = useState<number>(800);
+  const [mapStyle, setMapStyle] = useState<string>(() => {
+    return localStorage.getItem('shadowcheck_map_style') || 'mapbox://styles/mapbox/dark-v11';
+  });
+  const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
+  const [showTerrain, setShowTerrain] = useState<boolean>(false);
 
   // Update container height on window resize
   useEffect(() => {
@@ -205,9 +241,15 @@ export default function GeospatialExplorer() {
           mapContainerRef.current.innerHTML = '';
         }
 
+        // Find the style config for Standard variants
+        const styleConfig = MAP_STYLES.find((s) => s.value === mapStyle);
+        const actualStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
+          ? 'mapbox://styles/mapbox/standard'
+          : mapStyle;
+
         const map = new mapboxgl.Map({
           container: mapContainerRef.current as HTMLDivElement,
-          style: 'mapbox://styles/mapbox/dark-v11',
+          style: actualStyleUrl,
           center: INITIAL_VIEW.center,
           zoom: INITIAL_VIEW.zoom,
           attributionControl: false,
@@ -217,6 +259,11 @@ export default function GeospatialExplorer() {
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
         map.on('load', () => {
+          // Apply light preset for Standard style variants
+          if (styleConfig?.config?.lightPreset) {
+            map.setConfigProperty('basemap', 'lightPreset', styleConfig.config.lightPreset);
+          }
+
           // Add observation source and layer
           map.addSource('observations', {
             type: 'geojson',
@@ -458,6 +505,179 @@ export default function GeospatialExplorer() {
     setVisibleColumns((v) => (v.includes(col) ? v.filter((c) => c !== col) : [...v, col]));
   };
 
+  // Map style change handler
+  const changeMapStyle = (styleUrl: string) => {
+    if (!mapRef.current) return;
+
+    const currentCenter = mapRef.current.getCenter();
+    const currentZoom = mapRef.current.getZoom();
+
+    // Save the style preference
+    localStorage.setItem('shadowcheck_map_style', styleUrl);
+    setMapStyle(styleUrl);
+
+    // Find the style config for Standard variants
+    const styleConfig = MAP_STYLES.find((s) => s.value === styleUrl);
+
+    // Get the actual style URL (Standard variants all use the same base URL)
+    const actualStyleUrl = styleUrl.startsWith('mapbox://styles/mapbox/standard')
+      ? 'mapbox://styles/mapbox/standard'
+      : styleUrl;
+
+    mapRef.current.setStyle(actualStyleUrl);
+
+    mapRef.current.once('style.load', () => {
+      if (!mapRef.current) return;
+
+      mapRef.current.setCenter(currentCenter);
+      mapRef.current.setZoom(currentZoom);
+
+      // Apply light preset for Standard style variants
+      if (styleConfig?.config?.lightPreset) {
+        mapRef.current.setConfigProperty('basemap', 'lightPreset', styleConfig.config.lightPreset);
+      }
+
+      // Re-add observation source and layer
+      mapRef.current.addSource('observations', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+      });
+
+      mapRef.current.addLayer({
+        id: 'observation-points',
+        type: 'circle',
+        source: 'observations',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#3b82f6',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+
+      // Restore layers if they were enabled
+      if (show3DBuildings) {
+        add3DBuildings();
+      }
+      if (showTerrain) {
+        addTerrain();
+      }
+
+      // Re-render observations
+      if (activeObservationSets.length > 0) {
+        const features = activeObservationSets.flatMap((set) =>
+          set.observations.map((obs) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [obs.lon, obs.lat],
+            },
+            properties: {
+              bssid: obs.bssid,
+              signal: obs.signal,
+              time: obs.time,
+            },
+          }))
+        );
+
+        if (mapRef.current.getSource('observations')) {
+          (mapRef.current.getSource('observations') as mapboxgl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: features as any,
+          });
+        }
+      }
+    });
+  };
+
+  // 3D Buildings toggle
+  const toggle3DBuildings = (enabled: boolean) => {
+    if (!mapRef.current) return;
+
+    if (enabled) {
+      add3DBuildings();
+    } else {
+      if (mapRef.current.getLayer('3d-buildings')) {
+        mapRef.current.removeLayer('3d-buildings');
+      }
+    }
+    setShow3DBuildings(enabled);
+  };
+
+  const add3DBuildings = () => {
+    if (!mapRef.current || mapRef.current.getLayer('3d-buildings')) return;
+
+    const layers = mapRef.current.getStyle().layers;
+    const labelLayerId = layers?.find(
+      (layer: any) => layer.type === 'symbol' && layer.layout?.['text-field']
+    )?.id;
+
+    mapRef.current.addLayer(
+      {
+        id: '3d-buildings',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['==', 'extrude', 'true'],
+        type: 'fill-extrusion',
+        minzoom: 15,
+        paint: {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            15,
+            0,
+            15.05,
+            ['get', 'height'],
+          ],
+          'fill-extrusion-base': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            15,
+            0,
+            15.05,
+            ['get', 'min_height'],
+          ],
+          'fill-extrusion-opacity': 0.6,
+        },
+      } as any,
+      labelLayerId
+    );
+  };
+
+  // Terrain toggle
+  const toggleTerrain = (enabled: boolean) => {
+    if (!mapRef.current) return;
+
+    if (enabled) {
+      addTerrain();
+    } else {
+      mapRef.current.setTerrain(null);
+      if (mapRef.current.getSource('mapbox-dem')) {
+        mapRef.current.removeSource('mapbox-dem');
+      }
+    }
+    setShowTerrain(enabled);
+  };
+
+  const addTerrain = () => {
+    if (!mapRef.current || mapRef.current.getSource('mapbox-dem')) return;
+
+    mapRef.current.addSource('mapbox-dem', {
+      type: 'raster-dem',
+      url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+      tileSize: 512,
+      maxzoom: 14,
+    });
+
+    mapRef.current.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+  };
+
   return (
     <div
       className="relative w-full min-h-screen overflow-hidden"
@@ -484,11 +704,70 @@ export default function GeospatialExplorer() {
               borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
               background: 'rgba(15, 23, 42, 0.6)',
               borderRadius: '12px 12px 0 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
             }}
           >
             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
-              Map
+              📍 Map
             </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}>
+              <select
+                value={mapStyle}
+                onChange={(e) => changeMapStyle(e.target.value)}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  color: '#f8fafc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                {MAP_STYLES.map((style) => (
+                  <option key={style.value} value={style.value}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  color: '#cbd5e1',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={show3DBuildings}
+                  onChange={(e) => toggle3DBuildings(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>🏢 3D Buildings</span>
+              </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  color: '#cbd5e1',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={showTerrain}
+                  onChange={(e) => toggleTerrain(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>⛰️ Terrain</span>
+              </label>
+            </div>
           </div>
 
           <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
