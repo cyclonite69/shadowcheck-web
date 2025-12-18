@@ -450,8 +450,8 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
         <div className="bg-slate-900/30 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
-            Threat Dashboard
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Dashboard
           </h1>
           <p className="text-slate-300 text-sm mt-2">
             Real-time surveillance and threat detection metrics • Drag cards to reposition • Resize
@@ -480,7 +480,7 @@ export default function DashboardPage() {
               userSelect: dragging || resizing ? 'none' : 'auto',
             }}
             onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-            className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60 p-4 flex flex-col justify-between"
+            className={`relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br ${card.color} shadow-2xl hover:shadow-3xl transition-shadow group backdrop-blur-sm p-4 flex flex-col justify-between`}
           >
             {/* Soft gradient overlay */}
             <div className="absolute inset-0 pointer-events-none opacity-15 bg-gradient-to-br from-white/10 via-white/5 to-transparent" />
