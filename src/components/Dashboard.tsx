@@ -330,8 +330,8 @@ export default function Dashboard() {
     >
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
-        <h1 className="text-3xl font-bold text-white">Threat Dashboard</h1>
-        <p className="text-gray-400 text-sm">Drag to move • Drag edge to resize</p>
+        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+        <p className="text-gray-400 text-sm">Drag cards to move • Drag corner to resize</p>
       </div>
 
       {/* Cards Container */}
