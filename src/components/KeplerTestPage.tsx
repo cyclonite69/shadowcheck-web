@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 declare global {
   interface Window {
@@ -71,85 +71,108 @@ const KeplerTestPage: React.FC = () => {
   const [pitch, setPitch] = useState<number>(0);
   const [height3d, setHeight3d] = useState<number>(1);
   const [drawMode, setDrawMode] = useState<DrawMode>('none');
+  const [datasetType, setDatasetType] = useState<'observations' | 'networks'>('observations');
 
-  // Drawing state
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([]);
-  const [showDrawingPanel, setShowDrawingPanel] = useState<boolean>(false);
+  const initDeck = (token: string, data: NetworkData[]) => {
+    if (!window.deck || !mapRef.current) return;
 
-  const generateTooltip = useCallback((network: NetworkData) => {
-    const radioType = interpretWigleType(network.type);
-    const security = interpretSecurity(network.capabilities, network.encryption);
-    const signalStrength = interpretSignalStrength(network.signal);
-    const networkIcon = getNetworkIcon(network.type);
+    let centerLon = -83.6968; // Default to Flint, MI
+    let centerLat = 43.0234;
+    let zoom = 10;
 
-    return `
-      <div style="background: rgba(15, 23, 42, 0.95); color: #f8fafc; padding: 15px; border-radius: 8px; max-width: 380px; font-size: 11px; border: 1px solid rgba(148, 163, 184, 0.2);">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          ${networkIcon}
-          <span style="color: #22d3ee; font-weight: bold; font-size: 15px;">${network.ssid}</span>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-          <div><span style="color: #94a3b8; font-size: 10px;">BSSID</span><br><span style="font-family: monospace; font-size: 10px;">${network.bssid}</span></div>
-          <div><span style="color: #94a3b8; font-size: 10px;">Signal</span><br><span style="color: ${signalStrength.color};">${network.signal} dBm (${signalStrength.text})</span></div>
-          <div><span style="color: #94a3b8; font-size: 10px;">Channel</span><br>${network.channel}</div>
-          <div><span style="color: #94a3b8; font-size: 10px;">Frequency</span><br>${network.frequency} MHz</div>
-          <div><span style="color: #94a3b8; font-size: 10px;">Security</span><br><span style="color: ${security.color};">${security.text}</span></div>
-          <div><span style="color: #94a3b8; font-size: 10px;">Level</span><br>${network.level}</div>
-        </div>
-        
-        <div style="border-top: 1px solid rgba(148, 163, 184, 0.2); padding-top: 8px; margin-bottom: 8px;">
-          <div style="margin-bottom: 6px;"><span style="color: #94a3b8;">Radio Type:</span> <span style="color: #22d3ee;">${radioType.name}</span> <span style="color: #64748b; font-size: 10px;">(${radioType.code})</span></div>
-          ${network.manufacturer !== 'Unknown' ? `<div style="margin-bottom: 6px;"><span style="color: #94a3b8;">Manufacturer:</span> ${network.manufacturer}</div>` : ''}
-          ${network.device_type !== 'Unknown' ? `<div style="margin-bottom: 6px;"><span style="color: #94a3b8;">Device Type:</span> ${network.device_type}</div>` : ''}
-          ${network.capabilities !== 'Unknown' ? `<div style="margin-bottom: 6px;"><span style="color: #94a3b8;">Capabilities:</span> <span style="font-family: monospace; font-size: 10px;">${network.capabilities}</span></div>` : ''}
-        </div>
-        
-        <div style="border-top: 1px solid rgba(148, 163, 184, 0.2); padding-top: 8px;">
-          <div style="margin-bottom: 4px;"><span style="color: #94a3b8;">Coordinates:</span> <span style="font-family: monospace; font-size: 10px;">${network.position[1].toFixed(6)}, ${network.position[0].toFixed(6)}</span></div>
-          ${network.timestamp ? `<div style="margin-bottom: 4px;"><span style="color: #94a3b8;">First Seen:</span> <span style="color: #e2e8f0;">${new Date(network.timestamp).toLocaleString()}</span></div>` : ''}
-          ${network.last_seen ? `<div><span style="color: #94a3b8;">Last Seen:</span> <span style="color: #e2e8f0;">${new Date(network.last_seen).toLocaleString()}</span></div>` : ''}
-        </div>
-      </div>
-    `;
-  }, []);
+    // Validate data and calculate bounding box only if we have valid data
+    if (data && data.length > 0) {
+      // Filter for valid coordinates with both lon and lat values
+      const validData = data.filter(
+        (d) =>
+          d.position &&
+          d.position.length >= 2 &&
+          typeof d.position[0] === 'number' &&
+          typeof d.position[1] === 'number' &&
+          !isNaN(d.position[0]) &&
+          !isNaN(d.position[1])
+      );
 
-  const initDeck = useCallback(
-    (token: string) => {
-      if (!window.deck || !mapRef.current) return;
+      if (validData.length > 0) {
+        // Calculate bounds without spread operator to handle large datasets
+        let minLon = Infinity,
+          maxLon = -Infinity;
+        let minLat = Infinity,
+          maxLat = -Infinity;
 
-      const { DeckGL } = window.deck;
-      deckRef.current = new DeckGL({
-        container: mapRef.current,
-        mapboxApiAccessToken: token,
-        mapStyle: 'mapbox://styles/mapbox/dark-v11',
-        initialViewState: {
-          longitude: -83.6968,
-          latitude: 43.0234,
-          zoom: 10,
-          pitch: pitch,
-          bearing: 0,
-          minZoom: 1,
-          maxZoom: 24,
+        for (const d of validData) {
+          const [lon, lat] = d.position;
+          if (lon < minLon) minLon = lon;
+          if (lon > maxLon) maxLon = lon;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        }
+
+        const bounds = { minLon, maxLon, minLat, maxLat };
+
+        centerLon = (bounds.minLon + bounds.maxLon) / 2;
+        centerLat = (bounds.minLat + bounds.maxLat) / 2;
+
+        // Calculate zoom to fit all points, prevent Math.log2(0)
+        const lonDiff = bounds.maxLon - bounds.minLon;
+        const latDiff = bounds.maxLat - bounds.minLat;
+        const maxDiff = Math.max(lonDiff, latDiff, 0.01); // Prevent 0
+        zoom = Math.max(1, Math.min(15, 10 - Math.log2(maxDiff)));
+      }
+    }
+
+    const { DeckGL } = window.deck;
+    const mapboxgl = window.mapboxgl;
+    deckRef.current = new DeckGL({
+      container: mapRef.current,
+      mapLib: mapboxgl,
+      mapboxApiAccessToken: token,
+      mapStyle: 'mapbox://styles/mapbox/dark-v11',
+      initialViewState: {
+        longitude: centerLon,
+        latitude: centerLat,
+        zoom: zoom,
+        pitch: pitch,
+        bearing: 0,
+        minZoom: 1,
+        maxZoom: 24,
+      },
+      controller: drawMode === 'none',
+      useDevicePixels: false,
+      getTooltip: ({ object }: { object: any }) =>
+        object && {
+          html: `
+            <div style="background: rgba(15, 23, 42, 0.95); color: #f8fafc; padding: 15px; border-radius: 8px; max-width: 380px; font-size: 11px; border: 1px solid rgba(148, 163, 184, 0.2);">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <svg viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16"><path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/><path d="M12 14c-1.7 0-3.3.6-4.6 1.8a1 1 0 1 0 1.4 1.4A5 5 0 0 1 12 16a5 5 0 0 1 3.2 1.2 1 1 0 1 0 1.3-1.5A6.9 6.9 0 0 0 12 14z"/></svg>
+                <span style="color: #22d3ee; font-weight: bold; font-size: 15px;">${object.ssid || 'Hidden Network'}</span>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                <div><span style="color: #94a3b8; font-size: 10px;">BSSID</span><br><span style="font-family: monospace; font-size: 10px;">${object.bssid}</span></div>
+                <div><span style="color: #94a3b8; font-size: 10px;">Signal</span><br><span style="color: ${object.bestlevel > -50 ? '#22c55e' : object.bestlevel > -70 ? '#fbbf24' : '#ef4444'};">${object.bestlevel || 0} dBm</span></div>
+                <div><span style="color: #94a3b8; font-size: 10px;">Device</span><br>${object.device_id || 'Unknown'}</div>
+                <div><span style="color: #94a3b8; font-size: 10px;">Source</span><br>${object.source_tag || 'Unknown'}</div>
+              </div>
+              
+              <div style="border-top: 1px solid rgba(148, 163, 184, 0.2); padding-top: 8px;">
+                <div style="margin-bottom: 4px;"><span style="color: #94a3b8;">Coordinates:</span> <span style="font-family: monospace; font-size: 10px;">${object.position ? object.position[1].toFixed(6) + ', ' + object.position[0].toFixed(6) : 'Unknown'}</span></div>
+                ${object.first_seen ? `<div style="margin-bottom: 4px;"><span style="color: #94a3b8;">Observed:</span> <span style="color: #e2e8f0;">${new Date(object.first_seen).toLocaleString()}</span></div>` : ''}
+                ${object.altitude ? `<div><span style="color: #94a3b8;">Altitude:</span> ${object.altitude}m</div>` : ''}
+              </div>
+            </div>
+          `,
+          style: { backgroundColor: 'transparent', fontSize: '12px' },
         },
-        controller: drawMode === 'none',
-        getTooltip: ({ object }: { object: any }) =>
-          object && {
-            html: generateTooltip(object),
-            style: { backgroundColor: 'transparent', fontSize: '12px' },
-          },
-        onClick: ({ object }: { object: any }) => {
-          if (object && !selectedPoints.find((p) => p.bssid === object.bssid)) {
-            setSelectedPoints((prev) => [...prev, object]);
-          }
-        },
-      });
-    },
-    [pitch, drawMode, generateTooltip, selectedPoints]
-  );
+      onClick: ({ object }: { object: any }) => {
+        if (object && !selectedPoints.find((p) => p.bssid === object.bssid)) {
+          setSelectedPoints((prev) => [...prev, object]);
+        }
+      },
+    });
+  };
 
-  const updateVisualization = useCallback(() => {
+  const updateVisualization = () => {
     if (!deckRef.current || !window.deck) return;
 
     const filteredData = networkData.filter((d) => d.signal >= signalThreshold);
@@ -184,7 +207,7 @@ const KeplerTestPage: React.FC = () => {
         data: filteredData,
         getPosition: (d: NetworkData) => d.position,
         radius: 200,
-        elevationScale: 4,
+        elevationScale: height3d * 4,
         extruded: true,
         pickable: true,
         getFillColor: [255, 140, 0, 180],
@@ -192,39 +215,23 @@ const KeplerTestPage: React.FC = () => {
     }
 
     deckRef.current.setProps({ layers: [layer] });
-  }, [networkData, layerType, pointSize, signalThreshold]);
+  };
 
-  const update3D = useCallback(() => {
-    if (!deckRef.current) return;
-
-    deckRef.current.setProps({
-      initialViewState: {
-        longitude: -83.6968,
-        latitude: 43.0234,
-        zoom: 10,
-        pitch: pitch,
-        bearing: 0,
-      },
-    });
-  }, [pitch]);
-
-  const clearSelection = useCallback(() => {
+  const clearSelection = () => {
     setSelectedPoints([]);
-  }, []);
+  };
 
   useEffect(() => {
     const setup = async () => {
       try {
         setLoading(true);
 
-        // Load external dependencies
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'),
           loadScript('https://cdn.jsdelivr.net/npm/deck.gl@8.9.0/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'),
         ]);
 
-        // Get token and data
         const [tokenRes, dataRes] = await Promise.all([
           fetch('/api/mapbox-token'),
           fetch('/api/kepler/observations'),
@@ -256,7 +263,7 @@ const KeplerTestPage: React.FC = () => {
         }));
 
         setNetworkData(processedData);
-        initDeck(tokenData.token);
+        initDeck(tokenData.token, processedData);
         setLoading(false);
       } catch (err: any) {
         console.error('Error:', err);
@@ -266,43 +273,67 @@ const KeplerTestPage: React.FC = () => {
     };
 
     setup();
-  }, [initDeck]);
+  }, []);
 
   useEffect(() => {
     updateVisualization();
-  }, [updateVisualization]);
+  }, [networkData, layerType, pointSize, signalThreshold, height3d]);
 
   useEffect(() => {
-    update3D();
-  }, [update3D]);
+    if (deckRef.current) {
+      deckRef.current.setProps({
+        initialViewState: {
+          ...deckRef.current.props.initialViewState,
+          pitch: pitch,
+        },
+      });
+    }
+  }, [pitch]);
 
   const filteredCount = networkData.filter((d) => d.signal >= signalThreshold).length;
 
   return (
-    <div className="min-h-screen text-white relative bg-black">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 z-50">
-          <div className="px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
-            Loading network data…
+    <>
+      <div className="min-h-screen text-white relative bg-black">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 z-50">
+            <div className="px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
+              Loading network data…
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-900 text-red-100 px-4 py-2 rounded-lg border border-red-700 z-50">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-900 text-red-100 px-4 py-2 rounded-lg border border-red-700 z-50">
+            {error}
+          </div>
+        )}
 
-      <div ref={mapRef} className="w-full h-screen" />
+        <div ref={mapRef} className="w-full h-screen" />
+      </div>
 
       {/* Controls Panel */}
-      <div className="absolute top-4 left-4 z-40 bg-black/80 text-white p-4 rounded-lg max-w-xs space-y-3 text-sm">
-        <h3 className="text-lg font-semibold">🛡️ ShadowCheck Networks</h3>
+      <div
+        className="text-white p-4 rounded-lg max-w-xs space-y-3 text-sm shadow-2xl"
+        style={{
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          border: '1px solid rgba(148, 163, 184, 0.3)',
+          backdropFilter: 'blur(12px)',
+          zIndex: 99999,
+          position: 'fixed',
+          top: '16px',
+          left: '16px',
+        }}
+      >
+        <h3 className="text-lg font-semibold text-blue-400">🛡️ ShadowCheck Networks</h3>
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">Dataset:</label>
-          <select className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs">
+          <select
+            value={datasetType}
+            onChange={(e) => setDatasetType(e.target.value as 'observations' | 'networks')}
+            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+          >
             <option value="observations">Observations (416K raw)</option>
             <option value="networks">Networks (117K trilaterated)</option>
           </select>
@@ -404,61 +435,8 @@ const KeplerTestPage: React.FC = () => {
           <br />⚡ WebGL performance at scale
         </div>
       </div>
-    </div>
+    </>
   );
 };
-
-// Helper functions
-function interpretWigleType(type: string) {
-  const typeMap: Record<string, string> = {
-    W: 'WiFi',
-    E: 'BLE',
-    B: 'Bluetooth',
-    L: 'LTE',
-    N: '5G NR',
-    G: 'GSM',
-  };
-  if (!type || type === 'Unknown' || type === '') return { name: 'WiFi', code: 'W' };
-  const typeCode = type.toString().toUpperCase();
-  return { name: typeMap[typeCode] || typeCode || 'Unknown', code: typeCode };
-}
-
-function interpretSecurity(capabilities: string, encryption: string) {
-  if (!capabilities || capabilities === 'Unknown') {
-    if (encryption && encryption !== 'Open/Unknown') return { text: encryption, color: '#fbbf24' };
-    return { text: 'Open', color: '#ef4444' };
-  }
-  if (capabilities.includes('WPA3')) return { text: 'WPA3 (Secure)', color: '#22c55e' };
-  if (capabilities.includes('WPA2')) return { text: 'WPA2 (Secure)', color: '#22c55e' };
-  if (capabilities.includes('WPA')) return { text: 'WPA (Weak)', color: '#f59e0b' };
-  if (capabilities.includes('WEP')) return { text: 'WEP (Insecure)', color: '#ef4444' };
-  return { text: 'Open', color: '#ef4444' };
-}
-
-function interpretSignalStrength(signal: number) {
-  if (signal > -50) return { color: '#22c55e', text: 'Strong' };
-  if (signal > -70) return { color: '#fbbf24', text: 'Medium' };
-  return { color: '#ef4444', text: 'Weak' };
-}
-
-function getNetworkIcon(networkType: string) {
-  const type = (networkType || 'wifi').toLowerCase();
-  if (type.includes('ble') || type.includes('bluetooth') || type === 'b' || type === 'e') {
-    return `<svg viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg>`;
-  }
-  if (
-    type.includes('cellular') ||
-    type.includes('cell') ||
-    type.includes('gsm') ||
-    type.includes('lte') ||
-    type.includes('5g') ||
-    type === 'g' ||
-    type === 'l' ||
-    type === 'n'
-  ) {
-    return `<svg viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16"><path d="M17.77 3.77L16 2 6 12l10 10 1.77-1.77L9.54 12z"/><path d="M6 12l10-10 1.77 1.77L9.54 12l8.23 8.23L16 22z"/><path d="M6 12l5-5v10z"/></svg>`;
-  }
-  return `<svg viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16"><path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/><path d="M12 14c-1.7 0-3.3.6-4.6 1.8a1 1 0 1 0 1.4 1.4A5 5 0 0 1 12 16a5 5 0 0 1 3.2 1.2 1 1 0 1 0 1.3-1.5A6.9 6.9 0 0 0 12 14z"/><path d="M12 9.5c-3 0-5.8 1.1-8 3.2a1 1 0 1 0 1.4 1.4c1.8-1.8 4.1-2.7 6.6-2.7 2.5 0 4.8.9 6.6 2.7a1 1 0 1 0 1.4-1.4c-2.2-2.1-5.1-3.2-8-3.2z"/><path d="M12 5c-4.3 0-8.3 1.6-11.3 4.6a1 1 0 1 0 1.4 1.4C4.6 7.5 8.2 6 12 6s7.4 1.5 9.9 4a1 1 0 1 0 1.4-1.4C20.3 6.6 16.3 5 12 5z"/></svg>`;
-}
 
 export default KeplerTestPage;
