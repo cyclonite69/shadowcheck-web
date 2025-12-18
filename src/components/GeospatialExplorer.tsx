@@ -110,6 +110,7 @@ const MAP_STYLES = [
 ] as const;
 
 export default function GeospatialExplorer() {
+  // All state declarations first
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
   const [mapHeight, setMapHeight] = useState<number>(500);
   const [containerHeight, setContainerHeight] = useState<number>(800);
@@ -118,6 +119,47 @@ export default function GeospatialExplorer() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
   const [showTerrain, setShowTerrain] = useState<boolean>(false);
+  const [resizing, setResizing] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(
+    Object.keys(NETWORK_COLUMNS).filter(
+      (k) => NETWORK_COLUMNS[k as keyof typeof NETWORK_COLUMNS].default
+    ) as (keyof NetworkRow | 'select')[]
+  );
+  const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
+  const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // For immediate UI updates
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [loadingNetworks, setLoadingNetworks] = useState(false);
+  const [loadingObservations, setLoadingObservations] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [observationsByBssid, setObservationsByBssid] = useState<Record<string, Observation[]>>({});
+  const [pagination, setPagination] = useState({ page: 1, hasMore: true });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  // Refs
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInitRef = useRef(false);
+  const columnDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Debounce search input (500ms delay)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    setPagination({ page: 1, hasMore: true });
+    setNetworks([]); // Clear existing results
+  }, [searchTerm]);
 
   // Update container height on window resize
   useEffect(() => {
@@ -131,33 +173,6 @@ export default function GeospatialExplorer() {
     window.addEventListener('resize', updateHeight);
     return () => window.removeEventListener('resize', updateHeight);
   }, []);
-  const [resizing, setResizing] = useState(false);
-
-  const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(
-    Object.keys(NETWORK_COLUMNS).filter(
-      (k) => NETWORK_COLUMNS[k as keyof typeof NETWORK_COLUMNS].default
-    ) as (keyof NetworkRow | 'select')[]
-  );
-  const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
-  const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-
-  const [loadingNetworks, setLoadingNetworks] = useState(false);
-  const [loadingObservations, setLoadingObservations] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [observationsByBssid, setObservationsByBssid] = useState<Record<string, Observation[]>>({});
-  const [pagination, setPagination] = useState({ page: 1, hasMore: true });
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInitRef = useRef(false);
-  const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-
-  const columnDropdownRef = useRef<HTMLDivElement | null>(null);
   const activeObservationSets = useMemo(
     () =>
       Array.from(selectedNetworks).map((bssid) => ({
@@ -711,14 +726,14 @@ export default function GeospatialExplorer() {
             }}
           >
             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
-              📍 Map
+              🌐 Geospatial Intelligence
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}>
               <select
                 value={mapStyle}
                 onChange={(e) => changeMapStyle(e.target.value)}
                 style={{
-                  padding: '4px 8px',
+                  padding: '6px 10px',
                   fontSize: '11px',
                   background: 'rgba(30, 41, 59, 0.9)',
                   border: '1px solid rgba(148, 163, 184, 0.2)',
@@ -733,79 +748,119 @@ export default function GeospatialExplorer() {
                   </option>
                 ))}
               </select>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer',
-                  color: '#cbd5e1',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={show3DBuildings}
-                  onChange={(e) => toggle3DBuildings(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
-                />
-                <span>🏢 3D Buildings</span>
-              </label>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer',
-                  color: '#cbd5e1',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={showTerrain}
-                  onChange={(e) => toggleTerrain(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
-                />
-                <span>⛰️ Terrain</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
-            <div
-              className="absolute top-3 left-3 z-10 flex gap-2"
-              style={{
-                background: 'rgba(15, 23, 42, 0.8)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-              }}
-            >
               <button
+                onClick={() => toggle3DBuildings(!show3DBuildings)}
                 style={{
+                  padding: '6px 10px',
                   fontSize: '11px',
-                  padding: '4px 8px',
+                  background: show3DBuildings ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
+                  border: show3DBuildings
+                    ? '1px solid rgba(59, 130, 246, 0.5)'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                  color: show3DBuildings ? '#60a5fa' : '#cbd5e1',
                   borderRadius: '4px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontWeight: show3DBuildings ? '600' : '400',
+                }}
+              >
+                🏢 3D Buildings
+              </button>
+              <button
+                onClick={() => toggleTerrain(!showTerrain)}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '11px',
+                  background: showTerrain ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
+                  border: showTerrain
+                    ? '1px solid rgba(59, 130, 246, 0.5)'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                  color: showTerrain ? '#60a5fa' : '#cbd5e1',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontWeight: showTerrain ? '600' : '400',
+                }}
+              >
+                ⛰️ Terrain
+              </button>
+              <div
+                style={{ width: '1px', height: '20px', background: 'rgba(148, 163, 184, 0.3)' }}
+              />
+              <button
+                onClick={() => {
+                  if (!mapRef.current || activeObservationSets.length === 0) return;
+                  const allCoords = activeObservationSets.flatMap((set) =>
+                    set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
+                  );
+                  if (allCoords.length === 0) return;
+                  const bounds = allCoords.reduce(
+                    (bounds, coord) => bounds.extend(coord),
+                    new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+                  );
+                  mapRef.current.fitBounds(bounds, { padding: 50 });
+                }}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '11px',
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  color: '#cbd5e1',
+                  borderRadius: '4px',
                   cursor: 'pointer',
                 }}
               >
                 🎯 Fit
               </button>
               <button
+                onClick={() => {
+                  if (!mapRef.current) return;
+                  mapRef.current.flyTo({ center: INITIAL_VIEW.center, zoom: INITIAL_VIEW.zoom });
+                }}
                 style={{
+                  padding: '6px 10px',
                   fontSize: '11px',
-                  padding: '4px 8px',
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  color: '#cbd5e1',
                   borderRadius: '4px',
-                  background: 'rgba(71, 85, 105, 0.6)',
-                  color: 'white',
-                  border: 'none',
                   cursor: 'pointer',
                 }}
               >
                 🏠 Home
               </button>
+              <button
+                onClick={() => {
+                  if (!mapRef.current) return;
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      mapRef.current?.flyTo({
+                        center: [position.coords.longitude, position.coords.latitude],
+                        zoom: 15,
+                      });
+                    },
+                    (error) => {
+                      console.error('Geolocation error:', error);
+                      alert('Unable to get your location. Please enable location services.');
+                    }
+                  );
+                }}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '11px',
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  color: '#cbd5e1',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                📍 GPS
+              </button>
             </div>
+          </div>
+
+          <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
             {!mapReady && !mapError && (
               <div
                 className="absolute inset-0 flex items-center justify-center"
@@ -878,9 +933,9 @@ export default function GeospatialExplorer() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
                 type="text"
-                placeholder="Search SSID or BSSID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search SSID or BSSID across entire database..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 style={{
                   background: 'rgba(71, 85, 105, 0.6)',
                   border: '1px solid rgba(71, 85, 105, 0.5)',
@@ -889,6 +944,7 @@ export default function GeospatialExplorer() {
                   fontSize: '11px',
                   color: 'white',
                   outline: 'none',
+                  minWidth: '280px',
                 }}
               />
               <div className="relative" ref={columnDropdownRef}>
