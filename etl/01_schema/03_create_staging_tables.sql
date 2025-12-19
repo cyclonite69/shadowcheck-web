@@ -69,7 +69,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS staging_locations_s22_backup (
 CREATE UNLOGGED TABLE IF NOT EXISTS staging_networks (
   device_id text NOT NULL REFERENCES device_sources(code),
   bssid text NOT NULL,
-  ssid text NOT NULL,
+  ssid text,
   frequency integer NOT NULL,
   capabilities text NOT NULL,
   lasttime bigint NOT NULL,
@@ -79,9 +79,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS staging_networks (
   bestlevel integer NOT NULL,
   bestlat double precision NOT NULL,
   bestlon double precision NOT NULL,
-  rcois text NOT NULL,
+  rcois text,
   mfgrid integer NOT NULL,
-  service text NOT NULL
+  service text
 );
 
 CREATE UNLOGGED TABLE IF NOT EXISTS staging_locations_all (
@@ -112,6 +112,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS staging_locations_all_enriched (
   altitude double precision NOT NULL,
   accuracy double precision NOT NULL,
   time_ms bigint NOT NULL,
+  observed_at_ms bigint NOT NULL,
   observed_at timestamptz NOT NULL,
   external boolean NOT NULL,
   mfgrid integer NOT NULL,
