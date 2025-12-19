@@ -491,42 +491,17 @@ export default function GeospatialExplorer() {
             },
           });
 
-          // Circle layer for observation points
+          // Circle layer for observation points (fixed size)
           map.addLayer({
             id: 'observation-points',
             type: 'circle',
             source: 'observations',
             paint: {
-              'circle-radius': [
-                'case',
-                ['has', 'signalRadius'],
-                ['max', 6, ['min', 20, ['/', ['get', 'signalRadius'], 8]]], // Scale down signal radius for display
-                8, // Default radius
-              ],
+              'circle-radius': 7, // Fixed size - not based on signal
               'circle-color': ['get', 'color'],
               'circle-stroke-width': 2,
               'circle-stroke-color': '#ffffff',
               'circle-opacity': 0.8,
-            },
-          });
-
-          // Signal range circles (larger, semi-transparent)
-          map.addLayer({
-            id: 'signal-range-circles',
-            type: 'circle',
-            source: 'observations',
-            paint: {
-              'circle-radius': [
-                'case',
-                ['has', 'signalRadius'],
-                ['max', 10, ['min', 100, ['/', ['get', 'signalRadius'], 3]]], // Larger circles for signal range
-                25, // Default range radius
-              ],
-              'circle-color': ['get', 'color'],
-              'circle-opacity': 0.1,
-              'circle-stroke-width': 1,
-              'circle-stroke-color': ['get', 'color'],
-              'circle-stroke-opacity': 0.3,
             },
           });
 
@@ -1045,9 +1020,9 @@ export default function GeospatialExplorer() {
           bssid: obs.bssid,
           signal: obs.signal,
           time: obs.time,
+          frequency: obs.frequency,
           number: index + 1, // Start at 1 for each network
           color: bssidColors[obs.bssid],
-          signalRadius: calculateSignalRange(obs.signal, null, mapRef.current?.getZoom() || 10),
         },
       }))
     );
@@ -1157,42 +1132,17 @@ export default function GeospatialExplorer() {
         },
       });
 
-      // Circle layer for observation points
+      // Circle layer for observation points (fixed size)
       mapRef.current.addLayer({
         id: 'observation-points',
         type: 'circle',
         source: 'observations',
         paint: {
-          'circle-radius': [
-            'case',
-            ['has', 'signalRadius'],
-            ['max', 6, ['min', 20, ['/', ['get', 'signalRadius'], 8]]], // Scale down signal radius for display
-            8, // Default radius
-          ],
+          'circle-radius': 7, // Fixed size - not based on signal
           'circle-color': ['get', 'color'],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
           'circle-opacity': 0.8,
-        },
-      });
-
-      // Signal range circles (larger, semi-transparent)
-      mapRef.current.addLayer({
-        id: 'signal-range-circles',
-        type: 'circle',
-        source: 'observations',
-        paint: {
-          'circle-radius': [
-            'case',
-            ['has', 'signalRadius'],
-            ['max', 10, ['min', 100, ['/', ['get', 'signalRadius'], 3]]], // Larger circles for signal range
-            25, // Default range radius
-          ],
-          'circle-color': ['get', 'color'],
-          'circle-opacity': 0.1,
-          'circle-stroke-width': 1,
-          'circle-stroke-color': ['get', 'color'],
-          'circle-stroke-opacity': 0.3,
         },
       });
 
