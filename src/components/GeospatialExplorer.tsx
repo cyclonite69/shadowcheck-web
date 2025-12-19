@@ -1337,7 +1337,43 @@ export default function GeospatialExplorer() {
             </div>
           </div>
 
-          {/* Table */}
+          {/* Header Table - Never scrolls */}
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+              fontSize: '11px',
+            }}
+          >
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)' }}>
+                {visibleColumns.map((col) => {
+                  const column = NETWORK_COLUMNS[col];
+                  return (
+                    <th
+                      key={col}
+                      style={{
+                        width: column.width,
+                        minWidth: column.width,
+                        padding: '8px 6px',
+                        background: 'rgba(15, 23, 42, 0.98)',
+                        backdropFilter: 'blur(8px)',
+                        textAlign: 'left',
+                        color: '#cbd5e1',
+                        fontWeight: '600',
+                        borderRight: '1px solid rgba(71, 85, 105, 0.2)',
+                      }}
+                    >
+                      {column.label}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+          </table>
+
+          {/* Data Table - Only this scrolls */}
           <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
             <table
               style={{
@@ -1347,37 +1383,6 @@ export default function GeospatialExplorer() {
                 fontSize: '11px',
               }}
             >
-              <thead
-                style={{
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 100,
-                  background: 'rgba(15, 23, 42, 0.98)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)' }}>
-                  {visibleColumns.map((col) => {
-                    const column = NETWORK_COLUMNS[col];
-                    return (
-                      <th
-                        key={col}
-                        style={{
-                          width: column.width,
-                          minWidth: column.width,
-                          padding: '8px 6px',
-                          textAlign: 'left',
-                          color: '#cbd5e1',
-                          fontWeight: '600',
-                          borderRight: '1px solid rgba(71, 85, 105, 0.2)',
-                        }}
-                      >
-                        {column.label}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
               <tbody>
                 {loadingNetworks && (
                   <tr>
