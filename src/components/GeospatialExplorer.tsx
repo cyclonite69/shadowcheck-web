@@ -223,6 +223,7 @@ export default function GeospatialExplorer() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchingLocation, setSearchingLocation] = useState(false);
+  const [homeButtonActive, setHomeButtonActive] = useState(false);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -1529,16 +1530,23 @@ export default function GeospatialExplorer() {
               <button
                 onClick={() => {
                   if (!mapRef.current) return;
-                  mapRef.current.flyTo({ center: INITIAL_VIEW.center, zoom: INITIAL_VIEW.zoom });
+                  setHomeButtonActive(true);
+                  mapRef.current.flyTo({ center: INITIAL_VIEW.center, zoom: 17 }); // Higher zoom ~100-200m up
+                  setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
                 }}
                 style={{
                   padding: '6px 10px',
                   fontSize: '11px',
-                  background: 'rgba(30, 41, 59, 0.9)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  color: '#cbd5e1',
+                  background: homeButtonActive
+                    ? 'rgba(16, 185, 129, 0.9)'
+                    : 'rgba(30, 41, 59, 0.9)',
+                  border: homeButtonActive
+                    ? '1px solid #10b981'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                  color: homeButtonActive ? '#ffffff' : '#cbd5e1',
                   borderRadius: '4px',
                   cursor: 'pointer',
+                  transition: 'all 0.3s ease',
                 }}
               >
                 🏠 Home
