@@ -36,7 +36,7 @@ function parseIntParam(value, defaultValue, max) {
 }
 
 // GET /api/explorer/networks
-// Returns latest snapshot per BSSID from mv_network_latest + metadata
+// Returns latest snapshot per BSSID from access_points + observations
 router.get('/explorer/networks', async (req, res, _next) => {
   try {
     const rawLimit = req.query.limit;
@@ -46,13 +46,13 @@ router.get('/explorer/networks', async (req, res, _next) => {
         : parseIntParam(rawLimit, 500, 5000);
     const offset = limit === null ? 0 : Math.max(0, parseInt(req.query.offset, 10) || 0);
     const search = req.query.search ? String(req.query.search).trim() : '';
-    const sort = (req.query.sort || 'observed_at').toLowerCase();
+    const sort = (req.query.sort || 'last_seen').toLowerCase();
     const order = (req.query.order || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     // Sort uses columns exposed in the outer select (no inner aliases)
     const sortMap = {
       observed_at: 'observed_at',
-      last_seen: 'observed_at',
+      last_seen: 'last_seen',
       ssid: 'ssid',
       bssid: 'bssid',
       signal: 'level',
@@ -61,7 +61,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       distance_from_home_km: 'distance_from_home_km',
       accuracy_meters: 'accuracy_meters',
     };
-    const sortColumn = sortMap[sort] || sortMap.observed_at;
+    const sortColumn = sortMap[sort] || 'last_seen';
 
     // Use fixed home point (no dependency on location_markers)
     const homeLon = -83.69682688;
@@ -72,83 +72,69 @@ router.get('/explorer/networks', async (req, res, _next) => {
     if (search) {
       params.push(`%${search}%`);
       params.push(`%${search}%`);
-      where.push(`(ml.ssid ILIKE $${params.length - 1} OR ml.bssid ILIKE $${params.length})`);
+      where.push(
+        `(ap.latest_ssid ILIKE $${params.length - 1} OR ap.bssid ILIKE $${params.length})`
+      );
     }
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const orderClause = `ORDER BY ${sortColumn} ${order}`;
     const sql = `
-      WITH sn_latest AS (
+      WITH obs_latest AS (
         SELECT DISTINCT ON (bssid)
           bssid,
-          frequency,
-          capabilities,
-          type
-        FROM staging_networks
-        ORDER BY bssid, lasttime DESC
-      ),
-      obs_latest AS (
-        SELECT DISTINCT ON (bssid)
-          bssid,
+          ssid,
           lat,
           lon,
           level,
           accuracy AS accuracy_meters,
-          time AS observed_at
-        FROM observations
+          time AS observed_at,
+          radio_type,
+          radio_frequency,
+          radio_capabilities
+        FROM public.observations
         ORDER BY bssid, time DESC
-      ),
-      base AS (
-        SELECT
-          ml.bssid,
-          COALESCE(NULLIF(ml.ssid, ''), ap.latest_ssid) AS ssid,
-          ml.device_id,
-          ml.source_tag,
-          COALESCE(ml.observed_at, obs_latest.observed_at) AS observed_at,
-          COALESCE(ml.level, obs_latest.level) AS level,
-          COALESCE(ml.lat, obs_latest.lat) AS lat,
-          COALESCE(ml.lon, obs_latest.lon) AS lon,
-          ml.external,
-          COALESCE(ap.total_observations, 0) AS observations,
-          ap.first_seen,
-          ap.last_seen,
-          ap.is_5ghz,
-          ap.is_6ghz,
-          ap.is_hidden,
-          sn.frequency,
-          NULL::integer AS channel,
-          obs_latest.accuracy_meters,
-          sn.type,
-          sn.capabilities,
-          CASE
-            WHEN COALESCE(ml.lat, obs_latest.lat) IS NOT NULL AND COALESCE(ml.lon, obs_latest.lon) IS NOT NULL THEN
-              ST_Distance(
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-                ST_SetSRID(ST_MakePoint(COALESCE(ml.lon, obs_latest.lon), COALESCE(ml.lat, obs_latest.lat)), 4326)::geography
-              ) / 1000.0
-            ELSE NULL
-          END AS distance_from_home_km
-        FROM mv_network_latest ml
-        LEFT JOIN access_points ap ON ap.bssid = ml.bssid
-        LEFT JOIN sn_latest sn ON sn.bssid = ml.bssid
-        LEFT JOIN obs_latest ON obs_latest.bssid = ml.bssid
-        ${whereClause}
       )
       SELECT
-        *,
+        ap.bssid,
+        COALESCE(NULLIF(obs.ssid, ''), ap.latest_ssid) AS ssid,
+        obs.observed_at,
+        obs.level,
+        obs.lat,
+        obs.lon,
+        ap.total_observations AS observations,
+        ap.first_seen,
+        ap.last_seen,
+        ap.is_5ghz,
+        ap.is_6ghz,
+        ap.is_hidden,
+        obs.radio_frequency AS frequency,
+        obs.radio_capabilities AS capabilities,
+        obs.accuracy_meters,
+        COALESCE(obs.radio_type, 'W') AS type,
+        CASE
+          WHEN obs.lat IS NOT NULL AND obs.lon IS NOT NULL THEN
+            ST_Distance(
+              ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(obs.lon, obs.lat), 4326)::geography
+            ) / 1000.0
+          ELSE NULL
+        END AS distance_from_home_km,
         COUNT(*) OVER() AS total
-      FROM base
+      FROM public.access_points ap
+      LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
+      ${whereClause}
       ${orderClause}
       ${
-  limit === null
-    ? ''
-    : (() => {
-      const limitIndex = params.length + 1;
-      const offsetIndex = params.length + 2;
-      params.push(limit, offset);
-      return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
-    })()
-};
+        limit === null
+          ? ''
+          : (() => {
+              const limitIndex = params.length + 1;
+              const offsetIndex = params.length + 2;
+              params.push(limit, offset);
+              return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+            })()
+      };
     `;
 
     const result = await query(sql, params);
@@ -157,13 +143,10 @@ router.get('/explorer/networks', async (req, res, _next) => {
       rows: result.rows.map((row) => ({
         bssid: row.bssid ? row.bssid.toUpperCase() : null,
         ssid: row.ssid || '(hidden)',
-        device_id: row.device_id,
-        source_tag: row.source_tag,
         observed_at: row.observed_at,
         signal: row.level,
         lat: row.lat,
         lon: row.lon,
-        external: row.external,
         observations: row.observations,
         first_seen: row.first_seen,
         last_seen: row.last_seen,
@@ -173,7 +156,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
         type: row.type || 'W',
         frequency: row.frequency,
         capabilities: row.capabilities,
-        security: inferSecurity(row.capabilities, row.encryption),
+        security: inferSecurity(row.capabilities, null),
         distance_from_home_km: row.distance_from_home_km,
         accuracy_meters: row.accuracy_meters,
       })),

@@ -346,7 +346,7 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
         ROW_NUMBER() OVER (ORDER BY o.time) as id,
         o.bssid,
         COALESCE(NULLIF(o.ssid, ''), '(hidden)') as ssid,
-        o.type as type,
+        o.radio_type as type,
         o.lat,
         o.lon,
         o.level as signal,

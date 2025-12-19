@@ -79,6 +79,19 @@ const INITIAL_VIEW = {
   zoom: 12,
 };
 
+const NETWORK_COLORS = [
+  '#3b82f6', // blue
+  '#ef4444', // red
+  '#10b981', // green
+  '#f59e0b', // amber
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#f97316', // orange
+  '#84cc16', // lime
+  '#6366f1', // indigo
+];
+
 const MAP_STYLES = [
   {
     value: 'mapbox://styles/mapbox/standard',
@@ -373,7 +386,7 @@ export default function GeospatialExplorer() {
             map.setConfigProperty('basemap', 'lightPreset', styleConfig.config.lightPreset);
           }
 
-          // Add observation source and layer
+          // Add observation sources and layers
           map.addSource('observations', {
             type: 'geojson',
             data: {
@@ -382,15 +395,51 @@ export default function GeospatialExplorer() {
             },
           });
 
+          map.addSource('observation-lines', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [],
+            },
+          });
+
+          // Line layer connecting observations
+          map.addLayer({
+            id: 'observation-lines',
+            type: 'line',
+            source: 'observation-lines',
+            paint: {
+              'line-color': ['get', 'color'],
+              'line-width': 2,
+              'line-opacity': 0.6,
+            },
+          });
+
+          // Circle layer for observation points
           map.addLayer({
             id: 'observation-points',
             type: 'circle',
             source: 'observations',
             paint: {
-              'circle-radius': 6,
-              'circle-color': '#3b82f6',
+              'circle-radius': 8,
+              'circle-color': ['get', 'color'],
               'circle-stroke-width': 2,
               'circle-stroke-color': '#ffffff',
+            },
+          });
+
+          // Number labels on observation points
+          map.addLayer({
+            id: 'observation-labels',
+            type: 'symbol',
+            source: 'observations',
+            layout: {
+              'text-field': ['get', 'number'],
+              'text-size': 12,
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            },
+            paint: {
+              'text-color': '#ffffff',
             },
           });
 
@@ -582,13 +631,25 @@ export default function GeospatialExplorer() {
     });
   };
 
+  const selectNetworkExclusive = (bssid: string) => {
+    setSelectedNetworks(new Set([bssid]));
+  };
+
   // Update map observations when selection changes
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
 
     const map = mapRef.current;
+
+    // Assign colors to each selected network
+    const bssidColors: Record<string, string> = {};
+    activeObservationSets.forEach((set, index) => {
+      bssidColors[set.bssid] = NETWORK_COLORS[index % NETWORK_COLORS.length];
+    });
+
+    // Create numbered point features for each observation (numbered per network)
     const features = activeObservationSets.flatMap((set) =>
-      set.observations.map((obs) => ({
+      set.observations.map((obs, index) => ({
         type: 'Feature',
         geometry: {
           type: 'Point',
@@ -598,15 +659,49 @@ export default function GeospatialExplorer() {
           bssid: obs.bssid,
           signal: obs.signal,
           time: obs.time,
+          number: index + 1, // Start at 1 for each network
+          color: bssidColors[obs.bssid],
         },
       }))
     );
+
+    // Create line features connecting observations for each network
+    const lineFeatures = activeObservationSets
+      .filter((set) => set.observations.length > 1)
+      .map((set) => ({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: set.observations.map((obs) => [obs.lon, obs.lat]),
+        },
+        properties: {
+          bssid: set.bssid,
+          color: bssidColors[set.bssid],
+        },
+      }));
 
     if (map.getSource('observations')) {
       (map.getSource('observations') as mapboxgl.GeoJSONSource).setData({
         type: 'FeatureCollection',
         features: features as any,
       });
+    }
+
+    if (map.getSource('observation-lines')) {
+      (map.getSource('observation-lines') as mapboxgl.GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: lineFeatures as any,
+      });
+    }
+
+    // Auto-zoom to fit bounds of all observations
+    if (features.length > 0) {
+      const coords = features.map((f: any) => f.geometry.coordinates as [number, number]);
+      const bounds = coords.reduce(
+        (bounds, coord) => bounds.extend(coord),
+        new mapboxgl.LngLatBounds(coords[0], coords[0])
+      );
+      map.fitBounds(bounds, { padding: 50, duration: 1000 });
     }
   }, [activeObservationSets, mapReady]);
 
@@ -646,7 +741,7 @@ export default function GeospatialExplorer() {
         mapRef.current.setConfigProperty('basemap', 'lightPreset', styleConfig.config.lightPreset);
       }
 
-      // Re-add observation source and layer
+      // Re-add observation sources and layers
       mapRef.current.addSource('observations', {
         type: 'geojson',
         data: {
@@ -655,15 +750,51 @@ export default function GeospatialExplorer() {
         },
       });
 
+      mapRef.current.addSource('observation-lines', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+      });
+
+      // Line layer connecting observations
+      mapRef.current.addLayer({
+        id: 'observation-lines',
+        type: 'line',
+        source: 'observation-lines',
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 2,
+          'line-opacity': 0.6,
+        },
+      });
+
+      // Circle layer for observation points
       mapRef.current.addLayer({
         id: 'observation-points',
         type: 'circle',
         source: 'observations',
         paint: {
-          'circle-radius': 6,
-          'circle-color': '#3b82f6',
+          'circle-radius': 8,
+          'circle-color': ['get', 'color'],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
+        },
+      });
+
+      // Number labels on observation points
+      mapRef.current.addLayer({
+        id: 'observation-labels',
+        type: 'symbol',
+        source: 'observations',
+        layout: {
+          'text-field': ['get', 'number'],
+          'text-size': 12,
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        },
+        paint: {
+          'text-color': '#ffffff',
         },
       });
 
@@ -1272,7 +1403,7 @@ export default function GeospatialExplorer() {
                           : 'transparent',
                         cursor: 'pointer',
                       }}
-                      onClick={() => toggleSelectNetwork(net.bssid)}
+                      onClick={() => selectNetworkExclusive(net.bssid)}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.background = selectedNetworks.has(net.bssid)
                           ? 'rgba(59, 130, 246, 0.15)'
