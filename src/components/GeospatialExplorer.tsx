@@ -206,7 +206,6 @@ export default function GeospatialExplorer() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
   const [showTerrain, setShowTerrain] = useState<boolean>(false);
-  const [showSignalCircles, setShowSignalCircles] = useState<boolean>(true);
   const [resizing, setResizing] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(
     Object.keys(NETWORK_COLUMNS).filter(
@@ -231,6 +230,7 @@ export default function GeospatialExplorer() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchingLocation, setSearchingLocation] = useState(false);
   const [homeButtonActive, setHomeButtonActive] = useState(false);
+  const [fitButtonActive, setFitButtonActive] = useState(false);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -1268,17 +1268,6 @@ export default function GeospatialExplorer() {
     setShowTerrain(enabled);
   };
 
-  // Signal circles toggle
-  const toggleSignalCircles = (enabled: boolean) => {
-    if (!mapRef.current) return;
-
-    const visibility = enabled ? 'visible' : 'none';
-    if (mapRef.current.getLayer('signal-range-circles')) {
-      mapRef.current.setLayoutProperty('signal-range-circles', 'visibility', visibility);
-    }
-    setShowSignalCircles(enabled);
-  };
-
   const addTerrain = () => {
     if (!mapRef.current || mapRef.current.getSource('mapbox-dem')) return;
 
@@ -1491,31 +1480,9 @@ export default function GeospatialExplorer() {
                 ⛰️ Terrain
               </button>
               <button
-                onClick={() => toggleSignalCircles(!showSignalCircles)}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background: showSignalCircles
-                    ? 'rgba(59, 130, 246, 0.2)'
-                    : 'rgba(30, 41, 59, 0.9)',
-                  border: showSignalCircles
-                    ? '1px solid rgba(59, 130, 246, 0.5)'
-                    : '1px solid rgba(148, 163, 184, 0.2)',
-                  color: showSignalCircles ? '#60a5fa' : '#cbd5e1',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontWeight: showSignalCircles ? '600' : '400',
-                }}
-              >
-                📡 Signal Range
-              </button>
-              <div
-                style={{ width: '1px', height: '20px', background: 'rgba(148, 163, 184, 0.3)' }}
-              />
-              <button
                 onClick={() => {
                   if (!mapRef.current || activeObservationSets.length === 0) return;
+                  setFitButtonActive(true);
                   const allCoords = activeObservationSets.flatMap((set) =>
                     set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
                   );
@@ -1525,16 +1492,25 @@ export default function GeospatialExplorer() {
                     new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
                   );
                   mapRef.current.fitBounds(bounds, { padding: 50 });
+                  setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
                 }}
                 style={{
                   padding: '6px 10px',
                   fontSize: '11px',
-                  background: 'rgba(30, 41, 59, 0.9)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  color: '#cbd5e1',
+                  background:
+                    fitButtonActive || selectedNetworks.size > 0
+                      ? 'rgba(59, 130, 246, 0.9)'
+                      : 'rgba(30, 41, 59, 0.9)',
+                  border:
+                    fitButtonActive || selectedNetworks.size > 0
+                      ? '1px solid #3b82f6'
+                      : '1px solid rgba(148, 163, 184, 0.2)',
+                  color: fitButtonActive || selectedNetworks.size > 0 ? '#ffffff' : '#cbd5e1',
                   borderRadius: '4px',
-                  cursor: 'pointer',
+                  cursor: selectedNetworks.size > 0 ? 'pointer' : 'not-allowed',
+                  opacity: selectedNetworks.size > 0 ? 1 : 0.5,
                 }}
+                disabled={selectedNetworks.size === 0}
               >
                 🎯 Fit
               </button>
