@@ -92,6 +92,72 @@ const NETWORK_COLORS = [
   '#6366f1', // indigo
 ];
 
+// Signal range calculation (from ShadowCheckLite)
+const calculateSignalRange = (
+  signalDbm: number | null,
+  frequencyMhz?: number | null,
+  zoom: number = 10
+): number => {
+  if (!signalDbm || signalDbm === null) return 50;
+
+  let freq = frequencyMhz;
+  if (typeof freq === 'string') {
+    freq = parseFloat((freq as any).replace(' GHz', '')) * 1000;
+  }
+  if (!freq || freq <= 0) freq = 2437; // Default to channel 6 (2.4GHz)
+
+  // Signal strength to distance mapping (inverse relationship)
+  let distanceM;
+  if (signalDbm >= -30) distanceM = 10;
+  else if (signalDbm >= -50) distanceM = 50;
+  else if (signalDbm >= -70) distanceM = 150;
+  else if (signalDbm >= -80) distanceM = 300;
+  else distanceM = 500;
+
+  // Frequency adjustment
+  if (freq > 5000)
+    distanceM *= 0.6; // 5GHz has shorter range
+  else distanceM *= 0.8; // 2.4GHz adjustment
+
+  // Convert to pixels for display (simplified)
+  const pixelsPerMeter = Math.pow(2, zoom - 12) * 0.1;
+  let radiusPixels = distanceM * pixelsPerMeter;
+
+  // Zoom scaling
+  const zoomScale = Math.pow(1.15, zoom - 10);
+  radiusPixels *= Math.min(zoomScale, 4);
+
+  // Clamp radius for display
+  return Math.max(3, Math.min(radiusPixels, 250));
+};
+
+// BSSID-based color generation (from ShadowCheckLite)
+const macColor = (mac: string): string => {
+  if (!mac || mac.length < 6) return '#999999';
+
+  const BASE_HUES = [0, 60, 120, 180, 240, 270, 300, 330];
+  const stringToHash = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  };
+
+  const cleanedMac = mac.replace(/[^0-9A-F]/gi, '');
+  if (cleanedMac.length < 6) return '#999999';
+
+  const oui = cleanedMac.substring(0, 6); // Manufacturer part
+  const devicePart = cleanedMac.substring(6); // Device-specific part
+
+  const hue = BASE_HUES[stringToHash(oui) % BASE_HUES.length];
+  let saturation = 50 + (stringToHash(devicePart) % 41); // 50-90%
+  let lightness = 40 + (stringToHash(devicePart) % 31); // 40-70%
+
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
 const MAP_STYLES = [
   {
     value: 'mapbox://styles/mapbox/standard',
@@ -133,6 +199,7 @@ export default function GeospatialExplorer() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
   const [showTerrain, setShowTerrain] = useState<boolean>(false);
+  const [showSignalCircles, setShowSignalCircles] = useState<boolean>(true);
   const [resizing, setResizing] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(
     Object.keys(NETWORK_COLUMNS).filter(
@@ -165,6 +232,7 @@ export default function GeospatialExplorer() {
   const columnDropdownRef = useRef<HTMLDivElement | null>(null);
   const locationSearchRef = useRef<HTMLDivElement | null>(null);
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const hoverPopupRef = useRef<mapboxgl.Popup | null>(null);
 
   // Geocoding search function
   const searchLocation = useCallback(async (query: string) => {
@@ -421,10 +489,36 @@ export default function GeospatialExplorer() {
             type: 'circle',
             source: 'observations',
             paint: {
-              'circle-radius': 8,
+              'circle-radius': [
+                'case',
+                ['has', 'signalRadius'],
+                ['max', 6, ['min', 20, ['/', ['get', 'signalRadius'], 8]]], // Scale down signal radius for display
+                8, // Default radius
+              ],
               'circle-color': ['get', 'color'],
               'circle-stroke-width': 2,
               'circle-stroke-color': '#ffffff',
+              'circle-opacity': 0.8,
+            },
+          });
+
+          // Signal range circles (larger, semi-transparent)
+          map.addLayer({
+            id: 'signal-range-circles',
+            type: 'circle',
+            source: 'observations',
+            paint: {
+              'circle-radius': [
+                'case',
+                ['has', 'signalRadius'],
+                ['max', 10, ['min', 100, ['/', ['get', 'signalRadius'], 3]]], // Larger circles for signal range
+                25, // Default range radius
+              ],
+              'circle-color': ['get', 'color'],
+              'circle-opacity': 0.1,
+              'circle-stroke-width': 1,
+              'circle-stroke-color': ['get', 'color'],
+              'circle-stroke-opacity': 0.3,
             },
           });
 
@@ -441,6 +535,146 @@ export default function GeospatialExplorer() {
             paint: {
               'text-color': '#ffffff',
             },
+          });
+
+          // Add click handlers for observation points with signal circle tooltips
+          map.on('click', 'observation-points', (e) => {
+            if (!e.features || e.features.length === 0) return;
+
+            const feature = e.features[0];
+            const props = feature.properties;
+            if (!props) return;
+
+            const currentZoom = map.getZoom();
+            const signalRadius = calculateSignalRange(props.signal, null, currentZoom);
+            const bssidColor = macColor(props.bssid);
+
+            // Create signal strength class
+            let signalClass = 'signal-weak';
+            if (props.signal >= -50) signalClass = 'signal-strong';
+            else if (props.signal >= -70) signalClass = 'signal-medium';
+
+            const popupHTML = `
+              <div style="color: #1e293b; font-family: system-ui; max-width: 280px;">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #0f172a;">
+                  Observation #${props.number}
+                </div>
+                <div style="font-size: 12px; margin-bottom: 6px;">
+                  <strong>BSSID:</strong> <span style="font-family: monospace; color: ${bssidColor};">${props.bssid}</span>
+                </div>
+                <div style="font-size: 12px; margin-bottom: 6px;">
+                  <strong>Signal:</strong> 
+                  <span style="color: ${signalClass === 'signal-strong' ? '#10b981' : signalClass === 'signal-medium' ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
+                    ${props.signal ? `${props.signal} dBm` : 'N/A'}
+                  </span>
+                </div>
+                ${
+                  props.signal
+                    ? `
+                  <div style="margin: 8px 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 11px; color: #64748b;">Signal Range:</span>
+                    <div style="
+                      width: ${Math.min(signalRadius / 3, 40)}px; 
+                      height: ${Math.min(signalRadius / 3, 40)}px; 
+                      border: 2px solid ${bssidColor}; 
+                      border-radius: 50%; 
+                      background: ${bssidColor}20; 
+                      display: inline-block;
+                    "></div>
+                    <span style="font-size: 11px; color: #64748b;">${Math.round(signalRadius)}px radius</span>
+                  </div>
+                `
+                    : ''
+                }
+                <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
+                  ${props.time ? new Date(props.time).toLocaleString() : 'Time unknown'}
+                </div>
+              </div>
+            `;
+
+            new mapboxgl.Popup({ offset: 15 }).setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
+          });
+
+          // Show tooltip on hover
+          map.on('mouseenter', 'observation-points', (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+
+            if (!e.features || e.features.length === 0) return;
+
+            const feature = e.features[0];
+            const props = feature.properties;
+            if (!props || !e.lngLat) return;
+
+            // Remove existing hover popup
+            if (hoverPopupRef.current) {
+              hoverPopupRef.current.remove();
+            }
+
+            const currentZoom = map.getZoom();
+            const signalRadius = calculateSignalRange(props.signal, null, currentZoom);
+            const bssidColor = macColor(props.bssid);
+
+            // Create signal strength class
+            let signalClass = 'signal-weak';
+            if (props.signal >= -50) signalClass = 'signal-strong';
+            else if (props.signal >= -70) signalClass = 'signal-medium';
+
+            const popupHTML = `
+              <div style="color: #1e293b; font-family: system-ui; max-width: 280px;">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #0f172a;">
+                  Observation #${props.number}
+                </div>
+                <div style="font-size: 12px; margin-bottom: 6px;">
+                  <strong>BSSID:</strong> <span style="font-family: monospace; color: ${bssidColor};">${props.bssid}</span>
+                </div>
+                <div style="font-size: 12px; margin-bottom: 6px;">
+                  <strong>Signal:</strong>
+                  <span style="color: ${signalClass === 'signal-strong' ? '#10b981' : signalClass === 'signal-medium' ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
+                    ${props.signal ? `${props.signal} dBm` : 'N/A'}
+                  </span>
+                </div>
+                ${
+                  props.signal
+                    ? `
+                  <div style="margin: 8px 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 11px; color: #64748b;">Signal Range:</span>
+                    <div style="
+                      width: ${Math.min(signalRadius / 3, 40)}px;
+                      height: ${Math.min(signalRadius / 3, 40)}px;
+                      border: 2px solid ${bssidColor};
+                      border-radius: 50%;
+                      background: ${bssidColor}20;
+                      display: inline-block;
+                    "></div>
+                    <span style="font-size: 11px; color: #64748b;">${Math.round(signalRadius)}px radius</span>
+                  </div>
+                `
+                    : ''
+                }
+                <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
+                  ${props.time ? new Date(props.time).toLocaleString() : 'Time unknown'}
+                </div>
+              </div>
+            `;
+
+            hoverPopupRef.current = new mapboxgl.Popup({
+              offset: 15,
+              closeButton: false,
+              closeOnClick: false,
+            })
+              .setLngLat(e.lngLat)
+              .setHTML(popupHTML)
+              .addTo(map);
+          });
+
+          map.on('mouseleave', 'observation-points', () => {
+            map.getCanvas().style.cursor = '';
+
+            // Remove hover popup
+            if (hoverPopupRef.current) {
+              hoverPopupRef.current.remove();
+              hoverPopupRef.current = null;
+            }
           });
 
           setMapReady(true);
@@ -655,10 +889,10 @@ export default function GeospatialExplorer() {
 
     const map = mapRef.current;
 
-    // Assign colors to each selected network
+    // Assign colors to each selected network using BSSID-based algorithm
     const bssidColors: Record<string, string> = {};
     activeObservationSets.forEach((set, index) => {
-      bssidColors[set.bssid] = NETWORK_COLORS[index % NETWORK_COLORS.length];
+      bssidColors[set.bssid] = macColor(set.bssid); // Use BSSID-based color instead of fixed colors
     });
 
     // Create numbered point features for each observation (numbered per network)
@@ -675,6 +909,7 @@ export default function GeospatialExplorer() {
           time: obs.time,
           number: index + 1, // Start at 1 for each network
           color: bssidColors[obs.bssid],
+          signalRadius: calculateSignalRange(obs.signal, null, mapRef.current?.getZoom() || 10),
         },
       }))
     );
@@ -790,10 +1025,36 @@ export default function GeospatialExplorer() {
         type: 'circle',
         source: 'observations',
         paint: {
-          'circle-radius': 8,
+          'circle-radius': [
+            'case',
+            ['has', 'signalRadius'],
+            ['max', 6, ['min', 20, ['/', ['get', 'signalRadius'], 8]]], // Scale down signal radius for display
+            8, // Default radius
+          ],
           'circle-color': ['get', 'color'],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.8,
+        },
+      });
+
+      // Signal range circles (larger, semi-transparent)
+      mapRef.current.addLayer({
+        id: 'signal-range-circles',
+        type: 'circle',
+        source: 'observations',
+        paint: {
+          'circle-radius': [
+            'case',
+            ['has', 'signalRadius'],
+            ['max', 10, ['min', 100, ['/', ['get', 'signalRadius'], 3]]], // Larger circles for signal range
+            25, // Default range radius
+          ],
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.1,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': ['get', 'color'],
+          'circle-stroke-opacity': 0.3,
         },
       });
 
@@ -917,6 +1178,17 @@ export default function GeospatialExplorer() {
       }
     }
     setShowTerrain(enabled);
+  };
+
+  // Signal circles toggle
+  const toggleSignalCircles = (enabled: boolean) => {
+    if (!mapRef.current) return;
+
+    const visibility = enabled ? 'visible' : 'none';
+    if (mapRef.current.getLayer('signal-range-circles')) {
+      mapRef.current.setLayoutProperty('signal-range-circles', 'visibility', visibility);
+    }
+    setShowSignalCircles(enabled);
   };
 
   const addTerrain = () => {
@@ -1129,6 +1401,26 @@ export default function GeospatialExplorer() {
                 }}
               >
                 ⛰️ Terrain
+              </button>
+              <button
+                onClick={() => toggleSignalCircles(!showSignalCircles)}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '11px',
+                  background: showSignalCircles
+                    ? 'rgba(59, 130, 246, 0.2)'
+                    : 'rgba(30, 41, 59, 0.9)',
+                  border: showSignalCircles
+                    ? '1px solid rgba(59, 130, 246, 0.5)'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                  color: showSignalCircles ? '#60a5fa' : '#cbd5e1',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontWeight: showSignalCircles ? '600' : '400',
+                }}
+              >
+                📡 Signal Range
               </button>
               <div
                 style={{ width: '1px', height: '20px', background: 'rgba(148, 163, 184, 0.3)' }}
@@ -1515,7 +1807,7 @@ export default function GeospatialExplorer() {
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               borderRight: '1px solid rgba(71, 85, 105, 0.1)',
-                              color: col === 'bssid' ? '#cbd5e1' : '#f1f5f9',
+                              color: col === 'bssid' ? macColor(net.bssid) : '#f1f5f9',
                               fontFamily: col === 'bssid' ? 'monospace' : 'inherit',
                             }}
                           >
