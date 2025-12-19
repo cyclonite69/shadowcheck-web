@@ -1339,13 +1339,20 @@ export default function GeospatialExplorer() {
 
           {/* Table */}
           <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'separate',
+                borderSpacing: 0,
+                fontSize: '11px',
+              }}
+            >
               <thead
                 style={{
                   position: 'sticky',
                   top: 0,
-                  zIndex: 10,
-                  background: 'rgba(15, 23, 42, 0.95)',
+                  zIndex: 100,
+                  background: 'rgba(15, 23, 42, 0.98)',
                   backdropFilter: 'blur(8px)',
                 }}
               >
