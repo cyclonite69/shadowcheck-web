@@ -435,11 +435,40 @@ export default function DashboardPage() {
     >
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
-        <div className="bg-slate-900/30 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Dashboard
+        <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
+          <h1
+            style={{
+              fontSize: '22px',
+              fontWeight: '900',
+              margin: 0,
+              letterSpacing: '-0.5px',
+              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
+              filter:
+                'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
+            }}
+          >
+            ShadowCheck Dashboard
           </h1>
-          <p className="text-slate-300 text-sm mt-2 font-light tracking-wide">
+          <p
+            style={{
+              fontSize: '12px',
+              fontWeight: '300',
+              margin: 0,
+              marginTop: '4px',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase',
+              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+              opacity: 0.8,
+            }}
+          >
             Real-time surveillance and threat detection metrics
           </p>
         </div>

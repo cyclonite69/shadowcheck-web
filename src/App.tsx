@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navigation from './components/Navigation';
 import DashboardPage from './components/DashboardPage';
 import GeospatialPage from './components/GeospatialPage';
 import GeospatialIntelligencePage from './components/GeospatialIntelligencePage';
@@ -18,6 +19,7 @@ function App() {
         v7_relativeSplatPath: true,
       }}
     >
+      <Navigation />
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -27,7 +29,7 @@ function App() {
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/ml-training" element={<MLTrainingPage />} />
         <Route path="/kepler-test" element={<KeplerTestPage />} />
-        <Route path="/api-test" element={<ApiTestPage />} />
+        <Route path="/endpoint-test" element={<ApiTestPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import PageTitle from './PageTitle';
 
 type NetworkRow = {
   bssid: string;
@@ -138,6 +139,10 @@ export default function GeospatialExplorer() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchingLocation, setSearchingLocation] = useState(false);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -145,6 +150,95 @@ export default function GeospatialExplorer() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInitRef = useRef(false);
   const columnDropdownRef = useRef<HTMLDivElement | null>(null);
+  const locationSearchRef = useRef<HTMLDivElement | null>(null);
+  const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
+  // Geocoding search function
+  const searchLocation = useCallback(async (query: string) => {
+    if (!query.trim() || !mapboxgl.accessToken) return;
+
+    setSearchingLocation(true);
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&limit=5`
+      );
+      const data = await response.json();
+      setSearchResults(data.features || []);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchingLocation(false);
+    }
+  }, []);
+
+  // Debounced location search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (locationSearch.trim()) {
+        searchLocation(locationSearch);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [locationSearch, searchLocation]);
+
+  // Click outside to close search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (locationSearchRef.current && !locationSearchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fly to selected location
+  const flyToLocation = useCallback((result: any) => {
+    if (!mapRef.current) return;
+
+    const [lng, lat] = result.center;
+
+    // Remove existing search marker
+    if (searchMarkerRef.current) {
+      searchMarkerRef.current.remove();
+    }
+
+    // Add new marker
+    searchMarkerRef.current = new mapboxgl.Marker({ color: '#3b82f6' })
+      .setLngLat([lng, lat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 25 }).setHTML(
+          `<div style="color: #000; font-weight: 600;">${result.place_name}</div>`
+        )
+      )
+      .addTo(mapRef.current);
+
+    // Fly to location
+    mapRef.current.flyTo({
+      center: [lng, lat],
+      zoom: result.bbox ? undefined : 14,
+      essential: true,
+      duration: 2000,
+    });
+
+    // Fit to bbox if available
+    if (result.bbox) {
+      mapRef.current.fitBounds(result.bbox, {
+        padding: 50,
+        duration: 2000,
+      });
+    }
+
+    setShowSearchResults(false);
+    setLocationSearch('');
+  }, []);
 
   // Debounce search input (500ms delay)
   useEffect(() => {
@@ -725,10 +819,117 @@ export default function GeospatialExplorer() {
               gap: '12px',
             }}
           >
-            <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
-              🌐 Geospatial Intelligence
+            <h2
+              style={{
+                fontSize: '22px',
+                fontWeight: '900',
+                margin: 0,
+                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter:
+                  'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 20px rgba(100, 116, 139, 0.3))',
+                letterSpacing: '-0.5px',
+              }}
+            >
+              ShadowCheck Geospatial Intelligence
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                flexWrap: 'wrap',
+              }}
+            >
+              {/* Location Search */}
+              <div ref={locationSearchRef} style={{ position: 'relative', minWidth: '300px' }}>
+                <input
+                  type="text"
+                  value={locationSearch}
+                  onChange={(e) => setLocationSearch(e.target.value)}
+                  placeholder="🔍 Search worldwide locations..."
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background: 'rgba(30, 41, 59, 0.9)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    borderRadius: '4px',
+                    color: '#f1f5f9',
+                    outline: 'none',
+                  }}
+                  onFocus={() => {
+                    if (searchResults.length > 0) {
+                      setShowSearchResults(true);
+                    }
+                  }}
+                />
+                {searchingLocation && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#60a5fa',
+                      fontSize: '10px',
+                    }}
+                  >
+                    ⏳
+                  </div>
+                )}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: '4px',
+                      background: 'rgba(30, 41, 59, 0.98)',
+                      border: '1px solid rgba(148, 163, 184, 0.3)',
+                      borderRadius: '6px',
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+                      zIndex: 1000,
+                    }}
+                  >
+                    {searchResults.map((result, index) => (
+                      <div
+                        key={index}
+                        onClick={() => flyToLocation(result)}
+                        style={{
+                          padding: '8px 10px',
+                          cursor: 'pointer',
+                          borderBottom:
+                            index < searchResults.length - 1
+                              ? '1px solid rgba(148, 163, 184, 0.1)'
+                              : 'none',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#f1f5f9' }}>
+                          {result.text}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                          {result.place_name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <select
                 value={mapStyle}
                 onChange={(e) => changeMapStyle(e.target.value)}
