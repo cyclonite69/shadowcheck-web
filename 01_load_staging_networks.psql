@@ -1,6 +1,0 @@
-\echo 'Loading networks CSVs into staging_networks'
-
-\copy staging_networks (device_id,bssid,ssid,frequency,capabilities,lasttime,lastlat,lastlon,type,bestlevel,bestlat,bestlon,rcois,mfgrid,service) FROM 'j24_networks.csv' CSV;
-\copy staging_networks (device_id,bssid,ssid,frequency,capabilities,lasttime,lastlat,lastlon,type,bestlevel,bestlat,bestlon,rcois,mfgrid,service) FROM 'g63_networks.csv' CSV;
-\copy staging_networks (device_id,bssid,ssid,frequency,capabilities,lasttime,lastlat,lastlon,type,bestlevel,bestlat,bestlon,rcois,mfgrid,service) FROM 's22_networks.csv' CSV;
-\copy staging_networks (device_id,bssid,ssid,frequency,capabilities,lasttime,lastlat,lastlon,type,bestlevel,bestlat,bestlon,rcois,mfgrid,service) FROM 'backup_networks.csv' CSV;

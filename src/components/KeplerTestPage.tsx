@@ -22,6 +22,10 @@ type NetworkData = {
   capabilities: string;
   timestamp: string;
   last_seen: string;
+  device_id?: string;
+  source_tag?: string;
+  accuracy?: number;
+  altitude?: number;
 };
 
 type LayerType = 'scatterplot' | 'heatmap' | 'hexagon';
@@ -204,7 +208,7 @@ const KeplerTestPage: React.FC = () => {
                 <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
                   <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Signal</span>
                   <div style="margin-top: 3px;">
-                    <span style="color: ${signalStrength.color}; font-weight: bold;">${object.signal || object.bestlevel || 0} dBm</span>
+                    <span style="color: ${signalStrength.color}; font-weight: bold;">${object.signal || object.bestlevel ? `${object.signal || object.bestlevel} dBm` : 'N/A'}</span>
                     <span style="color: #64748b; font-size: 9px; margin-left: 4px;">(${signalStrength.text})</span>
                   </div>
                 </div>
@@ -230,6 +234,17 @@ const KeplerTestPage: React.FC = () => {
               </div>`
                   : ''
               }
+
+              <!-- Observation Details -->
+              <div style="background: rgba(16, 185, 129, 0.08); padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                <div style="color: #10b981; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">📡 Observation Data</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 10px;">
+                  ${object.device_id ? `<div><span style="color: #94a3b8;">Device ID:</span><br><span style="color: #6ee7b7; font-family: monospace;">${object.device_id}</span></div>` : ''}
+                  ${object.source_tag ? `<div><span style="color: #94a3b8;">Source:</span><br><span style="color: #6ee7b7;">${object.source_tag}</span></div>` : ''}
+                  ${object.accuracy ? `<div><span style="color: #94a3b8;">GPS Accuracy:</span><br><span style="color: #6ee7b7;">±${object.accuracy}m</span></div>` : ''}
+                  ${object.altitude ? `<div><span style="color: #94a3b8;">Altitude:</span><br><span style="color: #6ee7b7;">${object.altitude}m</span></div>` : ''}
+                </div>
+              </div>
 
               <!-- Observation Times - Highlighted -->
               <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(251, 191, 36, 0.3);">
@@ -351,22 +366,30 @@ const KeplerTestPage: React.FC = () => {
           throw new Error(`Invalid data format`);
         if (geojson.features.length === 0) throw new Error('No network data found');
 
-        const processedData: NetworkData[] = geojson.features.map((f: any) => ({
-          position: f.geometry.coordinates,
-          bssid: f.properties.bssid,
-          ssid: f.properties.ssid,
-          signal: f.properties.bestlevel || 0,
-          level: f.properties.bestlevel || 0,
-          encryption: f.properties.encryption,
-          channel: f.properties.channel,
-          frequency: f.properties.frequency,
-          manufacturer: f.properties.manufacturer,
-          device_type: f.properties.device_type,
-          type: f.properties.type,
-          capabilities: f.properties.capabilities,
-          timestamp: f.properties.first_seen,
-          last_seen: f.properties.last_seen,
-        }));
+        const processedData: NetworkData[] = geojson.features
+          .filter(
+            (f: any) => f.geometry && f.geometry.coordinates && f.geometry.coordinates.length >= 2
+          )
+          .map((f: any) => ({
+            position: f.geometry.coordinates,
+            bssid: f.properties.bssid || 'Unknown',
+            ssid: f.properties.ssid || 'Hidden Network',
+            signal: f.properties.bestlevel || f.properties.signal || -90,
+            level: f.properties.bestlevel || f.properties.signal || -90,
+            encryption: f.properties.encryption || 'Unknown',
+            channel: f.properties.channel || 0,
+            frequency: f.properties.frequency || 0,
+            manufacturer: f.properties.manufacturer || 'Unknown',
+            device_type: f.properties.device_type || 'Unknown',
+            type: f.properties.type || 'W',
+            capabilities: f.properties.capabilities || '',
+            timestamp: f.properties.first_seen || f.properties.timestamp,
+            last_seen: f.properties.last_seen || f.properties.timestamp,
+            device_id: f.properties.device_id,
+            source_tag: f.properties.source_tag,
+            accuracy: f.properties.accuracy,
+            altitude: f.properties.altitude,
+          }));
 
         setNetworkData(processedData);
         initDeck(tokenData.token, processedData);

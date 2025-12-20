@@ -3,6 +3,18 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import PageTitle from './PageTitle';
 
+type ThreatInfo = {
+  score: number;
+  level: 'NONE' | 'LOW' | 'MED' | 'HIGH';
+  summary: string;
+  flags?: string[];
+  signals?: Array<{
+    code: string;
+    weight: number;
+    evidence: any;
+  }>;
+};
+
 type NetworkRow = {
   bssid: string;
   ssid: string;
@@ -16,7 +28,19 @@ type NetworkRow = {
   longitude: number | null;
   distanceFromHome?: number | null;
   accuracy?: number | null;
+  firstSeen?: string | null; // Add first seen
   lastSeen: string | null;
+  timespanDays?: number | null; // Add timespan calculation
+  threat?: ThreatInfo | null;
+  // Enrichment fields (networks-v2 API)
+  manufacturer?: string | null;
+  manufacturer_address?: string | null;
+  min_altitude_m?: number | null;
+  max_altitude_m?: number | null;
+  altitude_span_m?: number | null;
+  max_distance_meters?: number | null;
+  last_altitude_m?: number | null;
+  is_sentinel?: boolean | null;
 };
 
 type Observation = {
@@ -38,6 +62,7 @@ const NETWORK_COLUMNS: Record<
   type: { label: 'Type', width: 60, sortable: true, default: true },
   ssid: { label: 'SSID', width: 150, sortable: true, default: true },
   bssid: { label: 'BSSID', width: 140, sortable: true, default: true },
+  threat: { label: 'Threat', width: 75, sortable: true, default: true },
   signal: { label: 'Signal (dBm)', width: 100, sortable: true, default: true },
   security: { label: 'Security', width: 80, sortable: true, default: true },
   frequency: { label: 'Frequency', width: 90, sortable: true, default: false },
@@ -47,7 +72,18 @@ const NETWORK_COLUMNS: Record<
   longitude: { label: 'Longitude', width: 100, sortable: true, default: false },
   distanceFromHome: { label: 'Distance (km)', width: 100, sortable: true, default: true },
   accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
+  firstSeen: { label: 'First Seen', width: 160, sortable: true, default: false },
   lastSeen: { label: 'Last Seen', width: 160, sortable: true, default: true },
+  timespanDays: { label: 'Timespan (days)', width: 120, sortable: true, default: false },
+  // Enrichment columns (networks-v2 API) - hidden by default
+  manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
+  manufacturer_address: { label: 'Mfg. Address', width: 200, sortable: true, default: false },
+  min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
+  max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: true, default: false },
+  altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: true, default: false },
+  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: false },
+  last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
+  is_sentinel: { label: 'Sentinel', width: 80, sortable: true, default: false },
 };
 
 const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
@@ -75,6 +111,34 @@ const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
       }}
     >
       {config.label}
+    </span>
+  );
+};
+
+const ThreatBadge = ({ threat }: { threat?: ThreatInfo | null }) => {
+  if (!threat || threat.level === 'NONE') return null;
+
+  const config = {
+    HIGH: { label: 'HIGH', color: '#ef4444', bg: '#ef444420' },
+    MED: { label: 'MED', color: '#f97316', bg: '#f9731620' },
+    LOW: { label: 'LOW', color: '#eab308', bg: '#eab30820' },
+    NONE: { label: '', color: '#6b7280', bg: '#6b728020' },
+  };
+
+  const levelConfig = config[threat.level];
+
+  return (
+    <span
+      className="px-2 py-1 rounded text-xs font-semibold"
+      style={{
+        backgroundColor: levelConfig.bg,
+        color: levelConfig.color,
+        border: `1px solid ${levelConfig.color}40`,
+        cursor: 'help',
+      }}
+      title={`${threat.summary}\nScore: ${(threat.score * 100).toFixed(0)}%`}
+    >
+      {levelConfig.label}
     </span>
   );
 };
@@ -670,7 +734,7 @@ export default function GeospatialExplorer() {
                   <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
                     <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Signal</span>
                     <div style="margin-top: 3px;">
-                      <span style="color: ${signalStrength.color}; font-weight: bold;">${props.signal || 0} dBm</span>
+                      <span style="color: ${signalStrength.color}; font-weight: bold;">${props.signal ? `${props.signal} dBm` : 'N/A'}</span>
                       <div style="color: #64748b; font-size: 9px; margin-top: 2px;">${signalStrength.text}</div>
                     </div>
                   </div>
@@ -837,23 +901,34 @@ export default function GeospatialExplorer() {
     };
   }, []);
 
+  // Reset pagination when sort changes
+  useEffect(() => {
+    setPagination({ page: 1, hasMore: true });
+    setNetworks([]); // Clear existing results immediately
+  }, [JSON.stringify(sort)]); // Use JSON.stringify for deep comparison
+
   // Fetch networks
   useEffect(() => {
     const controller = new AbortController();
     const fetchNetworks = async () => {
-      if (loadingNetworks) return;
-
+      // Remove the loadingNetworks guard that was preventing initial fetch
       setLoadingNetworks(true);
       setError(null);
       try {
+        // Build sort parameters for API (multi-column support)
+        const sortColumns = sort.map((s) => s.column).join(',');
+        const sortOrders = sort.map((s) => s.direction).join(',');
+
         const params = new URLSearchParams({
           page: pagination.page.toString(),
           limit: '500',
+          sort: sortColumns,
+          order: sortOrders,
         });
         if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
-        console.log('Fetching networks from:', `/api/explorer/networks?${params.toString()}`);
-        const res = await fetch(`/api/explorer/networks?${params.toString()}`, {
+        console.log('Fetching networks from:', `/api/explorer/networks-v2?${params.toString()}`);
+        const res = await fetch(`/api/explorer/networks-v2?${params.toString()}`, {
           signal: controller.signal,
         });
         console.log('Networks response status:', res.status);
@@ -866,24 +941,121 @@ export default function GeospatialExplorer() {
           const securityValue = row.security || row.capabilities || row.encryption || 'OPEN';
           const bssidValue = (row.bssid || `unknown-${idx}`).toString().toUpperCase();
 
+          // Calculate WiFi channel from frequency
+          const calculateChannel = (freq: number | null): number | null => {
+            if (!freq || typeof freq !== 'number') return null;
+
+            // 2.4GHz channels (1-14)
+            if (freq >= 2412 && freq <= 2484) {
+              if (freq === 2484) return 14; // Channel 14
+              return Math.floor((freq - 2412) / 5) + 1;
+            }
+
+            // 5GHz channels
+            if (freq >= 5000 && freq <= 5900) {
+              return Math.floor((freq - 5000) / 5);
+            }
+
+            // 6GHz channels
+            if (freq >= 5925 && freq <= 7125) {
+              return Math.floor((freq - 5925) / 5);
+            }
+
+            return null; // Non-WiFi frequencies don't have channels
+          };
+
+          // Fallback type inference if database returns null/unknown
+          const inferNetworkType = (
+            dbType: string | null,
+            frequency: number | null,
+            ssid: string | null,
+            capabilities: string | null
+          ): NetworkRow['type'] => {
+            // If database provided a valid type, use it
+            if (dbType && dbType !== '?' && dbType !== 'Unknown' && dbType !== null) {
+              return dbType as NetworkRow['type'];
+            }
+
+            const ssidUpper = String(ssid || '').toUpperCase();
+            const capUpper = String(capabilities || '').toUpperCase();
+
+            // Frequency-based inference (most reliable)
+            if (frequency) {
+              if (frequency >= 2412 && frequency <= 2484) return 'W'; // 2.4GHz WiFi
+              if (frequency >= 5000 && frequency <= 5900) return 'W'; // 5GHz WiFi
+              if (frequency >= 5925 && frequency <= 7125) return 'W'; // 6GHz WiFi
+            }
+
+            // Capability-based inference
+            if (
+              capUpper.includes('WPA') ||
+              capUpper.includes('WEP') ||
+              capUpper.includes('WPS') ||
+              capUpper.includes('RSN') ||
+              capUpper.includes('ESS') ||
+              capUpper.includes('CCMP') ||
+              capUpper.includes('TKIP')
+            ) {
+              return 'W';
+            }
+
+            // SSID-based inference
+            if (ssidUpper.includes('5G') || capUpper.includes('NR')) return 'N';
+            if (ssidUpper.includes('LTE') || ssidUpper.includes('4G')) return 'L';
+            if (ssidUpper.includes('BLUETOOTH') || capUpper.includes('BLUETOOTH')) {
+              if (capUpper.includes('LOW ENERGY') || capUpper.includes('BLE')) return 'E';
+              return 'B';
+            }
+
+            return '?';
+          };
+
+          const frequency = typeof row.frequency === 'number' ? row.frequency : null;
+          const networkType = inferNetworkType(row.type, frequency, row.ssid, row.capabilities);
+          const isWiFi = networkType === 'W';
+
+          // Calculate timespan in days
+          const calculateTimespan = (first: string | null, last: string | null): number | null => {
+            if (!first || !last) return null;
+            const firstDate = new Date(first);
+            const lastDate = new Date(last);
+            if (isNaN(firstDate.getTime()) || isNaN(lastDate.getTime())) return null;
+            const diffMs = lastDate.getTime() - firstDate.getTime();
+            return Math.round(diffMs / (1000 * 60 * 60 * 24)); // Convert to days
+          };
+
           return {
             bssid: bssidValue,
             ssid: row.ssid || '(hidden)',
-            type: (row.type || '?') as NetworkRow['type'],
+            type: networkType,
             signal: typeof row.signal === 'number' ? row.signal : null,
             security: securityValue,
-            frequency: typeof row.frequency === 'number' ? row.frequency : null,
-            channel: typeof row.channel === 'number' ? row.channel : null,
+            frequency: frequency,
+            channel: isWiFi ? calculateChannel(frequency) : null, // Only show channels for WiFi
             observations: parseInt(String(row.observations || 0), 10),
             latitude: typeof row.lat === 'number' ? row.lat : null,
             longitude: typeof row.lon === 'number' ? row.lon : null,
             distanceFromHome:
               typeof row.distance_from_home_km === 'number' ? row.distance_from_home_km : null,
             accuracy: typeof row.accuracy_meters === 'number' ? row.accuracy_meters : null,
+            firstSeen: row.first_seen || null,
             lastSeen: row.last_seen || row.observed_at || null,
+            timespanDays: calculateTimespan(row.first_seen, row.last_seen || row.observed_at),
+            threat: row.threat || null,
+            // Enrichment fields (networks-v2 API)
+            manufacturer: row.manufacturer || null,
+            manufacturer_address: row.manufacturer_address || null,
+            min_altitude_m: typeof row.min_altitude_m === 'number' ? row.min_altitude_m : null,
+            max_altitude_m: typeof row.max_altitude_m === 'number' ? row.max_altitude_m : null,
+            altitude_span_m: typeof row.altitude_span_m === 'number' ? row.altitude_span_m : null,
+            max_distance_meters:
+              typeof row.max_distance_meters === 'number' ? row.max_distance_meters : null,
+            last_altitude_m: typeof row.last_altitude_m === 'number' ? row.last_altitude_m : null,
+            is_sentinel: typeof row.is_sentinel === 'boolean' ? row.is_sentinel : null,
           };
         });
 
+        // CRITICAL: Reset networks on page 1, append on subsequent pages
         if (pagination.page === 1) {
           setNetworks(mapped);
         } else {
@@ -892,7 +1064,7 @@ export default function GeospatialExplorer() {
 
         setPagination((prev) => ({
           ...prev,
-          hasMore: mapped.length === 500,
+          hasMore: data.hasMore || mapped.length === 500,
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
@@ -905,9 +1077,9 @@ export default function GeospatialExplorer() {
 
     fetchNetworks();
     return () => controller.abort();
-  }, [pagination.page, searchTerm]);
+  }, [pagination.page, searchTerm, JSON.stringify(sort)]); // Use JSON.stringify for deep comparison
 
-  // Infinite scroll with debouncing
+  // Infinite scroll with scroll position preservation
   useEffect(() => {
     const container = tableContainerRef.current;
     if (!container || !pagination.hasMore || isLoadingMore) return;
@@ -918,11 +1090,20 @@ export default function GeospatialExplorer() {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;
-        if (scrollHeight - scrollTop <= clientHeight + 100) {
+        if (scrollHeight - scrollTop <= clientHeight + 200) {
+          // Trigger earlier
+          const currentScrollTop = scrollTop; // Save scroll position
           setIsLoadingMore(true);
           setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
+
+          // Restore scroll position after a brief delay
+          setTimeout(() => {
+            if (container.scrollTop !== currentScrollTop) {
+              container.scrollTop = currentScrollTop;
+            }
+          }, 50);
         }
-      }, 150);
+      }, 100); // Reduced debounce time
     };
 
     container.addEventListener('scroll', handleScroll);
@@ -991,7 +1172,39 @@ export default function GeospatialExplorer() {
     };
   }, [selectedNetworks]);
 
+  // Server-side sorting - no client-side sorting needed
   const filteredNetworks = useMemo(() => networks, [networks]);
+
+  const handleColumnSort = (column: keyof NetworkRow, shiftKey: boolean) => {
+    if (!NETWORK_COLUMNS[column].sortable) return;
+
+    setSort((prevSort) => {
+      // Shift+click: Add to multi-column sort
+      if (shiftKey) {
+        const existing = prevSort.find((s) => s.column === column);
+        if (existing) {
+          // Toggle direction for existing sort column
+          return prevSort.map((s) =>
+            s.column === column ? { ...s, direction: s.direction === 'asc' ? 'desc' : 'asc' } : s
+          );
+        } else {
+          // Add new sort column
+          return [...prevSort, { column, direction: 'asc' }];
+        }
+      }
+      // Regular click: Single column sort
+      else {
+        const existing = prevSort.find((s) => s.column === column);
+        if (existing && prevSort.length === 1) {
+          // Toggle direction if already sorting by this column only
+          return [{ column, direction: existing.direction === 'asc' ? 'desc' : 'asc' }];
+        } else {
+          // Set as primary sort
+          return [{ column, direction: 'asc' }];
+        }
+      }
+    });
+  };
 
   const toggleSelectNetwork = (bssid: string) => {
     setSelectedNetworks((prev) => {
@@ -1665,7 +1878,7 @@ export default function GeospatialExplorer() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
                 type="text"
-                placeholder="Search SSID or BSSID across entire database..."
+                placeholder="Search SSID, BSSID, or manufacturer across entire database..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 style={{
@@ -1741,6 +1954,7 @@ export default function GeospatialExplorer() {
           <table
             style={{
               width: '100%',
+              tableLayout: 'fixed',
               borderCollapse: 'separate',
               borderSpacing: 0,
               fontSize: '11px',
@@ -1750,20 +1964,37 @@ export default function GeospatialExplorer() {
               <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)' }}>
                 {visibleColumns.map((col) => {
                   const column = NETWORK_COLUMNS[col];
+                  const sortIndex = sort.findIndex((s) => s.column === col);
+                  const sortState = sortIndex >= 0 ? sort[sortIndex] : null;
+
                   return (
                     <th
                       key={col}
+                      onClick={(e) =>
+                        col !== 'select' && handleColumnSort(col as keyof NetworkRow, e.shiftKey)
+                      }
                       style={{
                         width: column.width,
                         minWidth: column.width,
+                        maxWidth: column.width,
                         padding: '8px 6px',
-                        background: 'rgba(15, 23, 42, 0.98)',
+                        background: sortState
+                          ? 'rgba(59, 130, 246, 0.15)'
+                          : 'rgba(15, 23, 42, 0.98)',
                         backdropFilter: 'blur(8px)',
                         textAlign: 'left',
-                        color: '#cbd5e1',
+                        color: sortState ? '#93c5fd' : '#cbd5e1',
                         fontWeight: '600',
                         borderRight: '1px solid rgba(71, 85, 105, 0.2)',
+                        cursor: column.sortable && col !== 'select' ? 'pointer' : 'default',
+                        userSelect: 'none',
+                        position: 'relative',
                       }}
+                      title={
+                        column.sortable && col !== 'select'
+                          ? 'Click to sort, Shift+Click for multi-column sort'
+                          : undefined
+                      }
                     >
                       {col === 'select' ? (
                         <input
@@ -1776,7 +2007,15 @@ export default function GeospatialExplorer() {
                           style={{ cursor: 'pointer' }}
                         />
                       ) : (
-                        column.label
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>{column.label}</span>
+                          {sortState && (
+                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                              {sortState.direction === 'asc' ? '↑' : '↓'}
+                              {sort.length > 1 && <sup>{sortIndex + 1}</sup>}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </th>
                   );
@@ -1790,6 +2029,7 @@ export default function GeospatialExplorer() {
             <table
               style={{
                 width: '100%',
+                tableLayout: 'fixed',
                 borderCollapse: 'separate',
                 borderSpacing: 0,
                 fontSize: '11px',
@@ -1859,6 +2099,8 @@ export default function GeospatialExplorer() {
                         }
                         if (col === 'type') {
                           content = <TypeBadge type={(value as NetworkRow['type']) || '?'} />;
+                        } else if (col === 'threat') {
+                          content = <ThreatBadge threat={net.threat} />;
                         } else if (col === 'signal') {
                           const signalValue = value as number | null;
                           let color = '#6b7280';
@@ -1888,6 +2130,105 @@ export default function GeospatialExplorer() {
                               {value as number}
                             </span>
                           );
+                        } else if (col === 'is_sentinel') {
+                          // Boolean badge for sentinel flag
+                          const isSentinel = value as boolean | null;
+                          content = isSentinel ? (
+                            <span
+                              style={{
+                                background: 'rgba(234, 179, 8, 0.2)',
+                                color: '#facc15',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                border: '1px solid rgba(234, 179, 8, 0.3)',
+                              }}
+                            >
+                              YES
+                            </span>
+                          ) : null;
+                        } else if (col === 'timespanDays') {
+                          const days = value as number | null;
+                          if (days !== null && days >= 0) {
+                            content = (
+                              <span
+                                style={{
+                                  background:
+                                    days > 30
+                                      ? 'rgba(239, 68, 68, 0.2)'
+                                      : days > 7
+                                        ? 'rgba(251, 191, 36, 0.2)'
+                                        : 'rgba(34, 197, 94, 0.2)',
+                                  color: days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  border: `1px solid ${days > 30 ? 'rgba(239, 68, 68, 0.3)' : days > 7 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                                }}
+                              >
+                                {days === 0 ? 'Same day' : `${days} days`}
+                              </span>
+                            );
+                          } else {
+                            content = 'N/A';
+                          }
+                        } else if (col === 'channel') {
+                          // Only show channel for WiFi networks
+                          const channelValue = value as number | null;
+                          const networkType = net.type;
+                          if (networkType === 'W' && channelValue !== null) {
+                            content = (
+                              <span
+                                style={{
+                                  background: 'rgba(16, 185, 129, 0.2)',
+                                  color: '#10b981',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                }}
+                              >
+                                {channelValue}
+                              </span>
+                            );
+                          } else {
+                            content = networkType === 'W' ? 'N/A' : '—'; // Show dash for non-WiFi
+                          }
+                        } else if (col === 'frequency') {
+                          // Show frequency for all network types, but format differently
+                          const freqValue = value as number | null;
+                          if (freqValue !== null) {
+                            const isWiFi = net.type === 'W';
+                            content = (
+                              <span
+                                style={{
+                                  color: isWiFi ? '#10b981' : '#94a3b8',
+                                  fontWeight: isWiFi ? '600' : '400',
+                                }}
+                              >
+                                {freqValue} MHz
+                              </span>
+                            );
+                          } else {
+                            content = 'N/A';
+                          }
+                          // Format altitude values with 1 decimal place
+                          const altValue = value as number | null;
+                          content = altValue != null ? `${altValue.toFixed(1)} m` : 'N/A';
+                        } else if (col === 'max_distance_meters') {
+                          // Format distance in meters or km
+                          const distValue = value as number | null;
+                          if (distValue != null) {
+                            content =
+                              distValue >= 1000
+                                ? `${(distValue / 1000).toFixed(2)} km`
+                                : `${distValue.toFixed(0)} m`;
+                          } else {
+                            content = 'N/A';
+                          }
                         }
 
                         return (
@@ -1896,6 +2237,7 @@ export default function GeospatialExplorer() {
                             style={{
                               width: column.width,
                               minWidth: column.width,
+                              maxWidth: column.width,
                               padding: '4px 6px',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',

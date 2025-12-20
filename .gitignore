@@ -1,50 +1,101 @@
+# ============================================================================
 # Dependencies
+# ============================================================================
 node_modules/
+package-lock.json.backup
+yarn.lock
+pnpm-lock.yaml
 
-# Environment variables
+# ============================================================================
+# Environment & Configuration
+# ============================================================================
 .env
 .env.*
 !.env.example
+!.env.local.example
 
 # Secrets (Docker secrets directory)
 secrets/
 *.secret
+.secrets/
 
+# ============================================================================
 # Logs
+# ============================================================================
 logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 server.log
 nohup.out
+pnpm-debug.log*
 
-# Editor directories and files
+# ============================================================================
+# Editor & IDE
+# ============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
 
-# Claude Code
+# ============================================================================
+# AI Assistants
+# ============================================================================
 .claude/
 .claude/settings.local.json
+.cursor/
+.cursorrules
 
-# Backup files
+# ============================================================================
+# Build Output
+# ============================================================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# ============================================================================
+# Backup Files
+# ============================================================================
 *.backup
 *.old
 *.bak
 *.tar.gz
+*.zip
 backup-*.sql
 *.dump
-backups/
+backups/*.sql
+backups/*.dump
 
-# Database files
+# Keep backup directory structure but not large files
+!backups/.gitkeep
+
+# Analysis reports with sensitive data
+backups/analysis-reports/*.txt
+backups/analysis-reports/*-analysis.*
+
+# ============================================================================
+# Database Files (DO NOT COMMIT TO GIT)
+# ============================================================================
 *.db
 *.sqlite
 *.sqlite3
 backup-*.sqlite
+backups/sqlite/
+*.sql.gz
 
-# Credentials and secrets
+# ============================================================================
+# Credentials & Secrets (NEVER COMMIT)
+# ============================================================================
 .pgpass
 pgadmin-servers.json
 credentials.json
@@ -54,54 +105,105 @@ credentials.json
 *.pfx
 *password*
 *secret*
+.ssh/
+.gnupg/
+
+# Keyring scripts (contain sensitive operations)
 get-keyring-password.py
 list-keyring-items.py
 setup-postgres-keyring.sh
 install-keyring-tool.sh
 
-# OS files
-Thumbs.db
-
-# From plan
-dist/
-build/
-shadowcheck-static.backup/
-tooltip-search.js
-tooltip-search-backup.js
-
-# Data files
-data/csv/*.csv
-data/logs/*.log
+# ============================================================================
+# Data Files (DO NOT COMMIT - Use backups/ for local storage)
+# ============================================================================
+# CSV data files
 *.csv
-/tmp/*.csv
+!**/examples/**/*.csv
+data/csv/
+data/imports/
+data/exports/
+backups/csv/
 
-# Coverage reports
-coverage/
-.nyc_output/
-
-# Test results
-test-results/
-junit.xml
-
-# Temporary files
+# Temporary data
 /tmp/
 temp/
+tmp/
 *_snapshot.txt
+*.tmp
+
+# ============================================================================
+# Test & Coverage
+# ============================================================================
+coverage/
+.nyc_output/
+test-results/
+junit.xml
+.jest-cache/
+
+# Test files in root (should be in tests/)
+/test-*.js
+/test_*.sh
+
+# ============================================================================
+# Temporary & Generated Files
+# ============================================================================
 compose_snapshot.txt
 project_snapshot.txt
 postgres_schema_current.sql
+shadowcheck-static.backup/
+shadowcheck-debug.tar.gz
+*.tmp
+*.temp
 
-# Test scripts in root (should be in tests/)
-test-*.js
+# Setup scripts in root (should be in scripts/)
+/setup_*.sh
+/*_setup_*.sh
 
-# Setup scripts (should be in scripts/)
-setup_*.sh
-*_setup_*.sh
+# ============================================================================
+# OS & System Files
+# ============================================================================
+Thumbs.db
+.DS_Store
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
-# Random executables and images
-*.exe
-assets/images/
-
-# PgAdmin
+# ============================================================================
+# Docker & Infrastructure
+# ============================================================================
 pgadmin-config/
 pgadmin_data/
+postgres_data/
+docker-data/
+
+# Keep infrastructure docs
+!docker/infrastructure/README.md
+
+# ============================================================================
+# Build Artifacts
+# ============================================================================
+*.exe
+*.dll
+*.so
+*.dylib
+
+# ============================================================================
+# Project Specific
+# ============================================================================
+# Database audit results (contain sensitive data)
+scripts/db-usage-audit-results.txt
+scripts/*-audit-results.txt
+
+# Legacy/deprecated files
+tooltip-search.js
+tooltip-search-backup.js
+assets/images/
+
+# Local development overrides
+docker-compose.override.yml
+
+# Analysis and debug files (move to docs/archive/)
+/analyze-*.sql
+/database-analysis.*
+/DATABASE_ANALYSIS_*.md

@@ -286,6 +286,177 @@ router.get('/explorer/networks', async (req, res, _next) => {
   }
 });
 
+// ============================================================================
+// GET /api/explorer/networks-v2 (FORENSIC GRADE - uses DB view)
+// All intelligence in Postgres, thin transport layer
+// FIXED: Multi-column sorting, pagination-based loading (not offset-based)
+// ============================================================================
+router.get('/explorer/networks-v2', async (req, res, next) => {
+  try {
+    const rawLimit = req.query.limit;
+    const limit =
+      typeof rawLimit === 'string' && rawLimit.toLowerCase() === 'all'
+        ? null
+        : parseIntParam(rawLimit, 500, 5000);
+
+    // Use page-based pagination instead of offset for better performance
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const offset = limit === null ? 0 : (page - 1) * limit;
+
+    const search = req.query.search ? String(req.query.search).trim() : '';
+
+    // Multi-column sorting support
+    const sortParam = req.query.sort || 'last_seen';
+    const orderParam = req.query.order || 'desc';
+
+    // Parse comma-separated sort columns and orders
+    const sortColumns = String(sortParam)
+      .toLowerCase()
+      .split(',')
+      .map((s) => s.trim());
+    const sortOrders = String(orderParam)
+      .toLowerCase()
+      .split(',')
+      .map((o) => o.trim());
+
+    // Sort mapping (view column names) - UPDATED with all sortable fields
+    const sortMap = {
+      observed_at: 'observed_at',
+      last_seen: 'last_seen',
+      first_seen: 'first_seen',
+      ssid: 'ssid',
+      bssid: 'bssid',
+      signal: 'signal',
+      frequency: 'frequency',
+      observations: 'observations',
+      distance: 'distance_from_home_km',
+      distancefromhome: 'distance_from_home_km',
+      distance_from_home_km: 'distance_from_home_km',
+      accuracy: 'accuracy_meters',
+      accuracy_meters: 'accuracy_meters',
+      type: 'type',
+      security: 'security',
+      manufacturer: 'manufacturer',
+      threat: "(threat->>'score')::numeric", // Sort by threat score numerically
+      'threat.score': "(threat->>'score')::numeric", // Alternative syntax
+      min_altitude_m: 'min_altitude_m',
+      max_altitude_m: 'max_altitude_m',
+      altitude_span_m: 'altitude_span_m',
+      max_distance_meters: 'max_distance_meters',
+      maxdistancemeters: 'max_distance_meters',
+      max_distance: 'max_distance_meters',
+      last_altitude_m: 'last_altitude_m',
+      is_sentinel: 'is_sentinel',
+      // Frontend column mappings (CRITICAL FIX)
+      lastseen: 'last_seen',
+      lastSeen: 'last_seen', // CamelCase variant
+      distanceFromHome: 'distance_from_home_km', // CamelCase variant
+    };
+
+    // Build ORDER BY clause with multiple columns
+    const orderByClauses = sortColumns
+      .map((col, idx) => {
+        const mappedCol = sortMap[col] || 'last_seen';
+        const order = sortOrders[idx] === 'asc' ? 'ASC' : 'DESC';
+        return `${mappedCol} ${order} NULLS LAST`;
+      })
+      .join(', ');
+
+    const params = [];
+    const where = [];
+
+    if (search) {
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      where.push(
+        `(ssid ILIKE $${params.length - 3}
+          OR bssid ILIKE $${params.length - 2}
+          OR manufacturer ILIKE $${params.length - 1}
+          OR manufacturer_address ILIKE $${params.length})`
+      );
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const orderClause = `ORDER BY ${orderByClauses}`;
+
+    // Optimized query with performance hints
+    const sql = `
+      SELECT
+        bssid, ssid, observed_at, signal, lat, lon,
+        observations, first_seen, last_seen,
+        is_5ghz, is_6ghz, is_hidden,
+        type, frequency, capabilities, security,
+        distance_from_home_km, accuracy_meters,
+        -- New enrichment fields (non-breaking)
+        manufacturer, manufacturer_address,
+        min_altitude_m, max_altitude_m, altitude_span_m, max_distance_meters,
+        last_altitude_m, is_sentinel,
+        -- Threat intelligence (v3)
+        threat,
+        COUNT(*) OVER() AS total
+      FROM public.api_network_explorer
+      ${whereClause}
+      ${orderClause}
+      ${limit !== null ? `LIMIT $${params.length + 1} OFFSET $${params.length + 2}` : ''};
+    `;
+
+    if (limit !== null) {
+      params.push(limit, offset);
+    }
+
+    const result = await query(sql, params);
+
+    // Set performance headers
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'X-Total-Count': result.rows[0]?.total || '0',
+      'X-Page': page.toString(),
+      'X-Has-More': (limit !== null && result.rows.length === limit).toString(),
+    });
+
+    // Response (minimal Node transform - only uppercase BSSID for legacy compat)
+    res.json({
+      total: result.rows[0]?.total || 0,
+      page: page,
+      limit: limit,
+      hasMore: limit !== null && result.rows.length === limit,
+      rows: result.rows.map((row) => ({
+        bssid: row.bssid ? row.bssid.toUpperCase() : null, // Already uppercase in DB, but ensure
+        ssid: row.ssid, // Already has '(hidden)' fallback in view
+        observed_at: row.observed_at,
+        signal: row.signal,
+        lat: row.lat,
+        lon: row.lon,
+        observations: row.observations,
+        first_seen: row.first_seen,
+        last_seen: row.last_seen,
+        is_5ghz: row.is_5ghz,
+        is_6ghz: row.is_6ghz,
+        is_hidden: row.is_hidden,
+        type: row.type, // Already inferred in view
+        frequency: row.frequency,
+        capabilities: row.capabilities,
+        security: row.security, // Already inferred in view
+        distance_from_home_km: row.distance_from_home_km,
+        accuracy_meters: row.accuracy_meters,
+        // New enrichment fields (non-breaking)
+        manufacturer: row.manufacturer,
+        manufacturer_address: row.manufacturer_address,
+        min_altitude_m: row.min_altitude_m,
+        max_altitude_m: row.max_altitude_m,
+        altitude_span_m: row.altitude_span_m,
+        max_distance_meters: row.max_distance_meters,
+        last_altitude_m: row.last_altitude_m,
+        is_sentinel: row.is_sentinel,
+        // Threat intelligence (v3 - rule-based scoring)
+        threat: row.threat, // JSONB object from view
+      })),
+    });
+  } catch (err) {
+    console.error('Explorer networks-v2 query failed:', err);
+    next(err);
+  }
+});
+
 // GET /api/explorer/timeline/:bssid
 router.get('/explorer/timeline/:bssid', async (req, res, next) => {
   try {

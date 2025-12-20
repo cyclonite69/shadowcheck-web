@@ -13,31 +13,37 @@ ShadowCheck is a wireless network threat detection platform that analyzes WiFi, 
 ## Quick Start
 
 ```bash
-# Development
-npm run dev              # Start backend API with auto-reload (port 3001)
-npm run dev:frontend     # Start Vite dev server (port 5173)
-npm test                 # Run tests
-npm run lint:fix         # Fix linting issues
-
-# Build
-npm run build            # Build React frontend for production
-
-# Database (REQUIRED - runs in Docker)
-docker-compose up -d     # Starts PostgreSQL 18 + PostGIS container
-docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db  # Access DB
+# Database Setup (REQUIRED FIRST STEP)
+# PostgreSQL 18 + PostGIS must be running in shared Docker network
+docker ps | grep shadowcheck_postgres  # Verify shared postgres is running
+docker-compose up -d                    # Starts Redis and API containers
 
 # Development (Recommended: Run API in Docker)
 docker-compose up -d --build api   # Build and run API in Docker container
 npm run build                       # Build React frontend
 # Access at http://localhost:3001
 
-# Alternative: Local development (requires Docker PostgreSQL running)
+# Alternative: Local development (Docker PostgreSQL must be running)
 npm run dev              # Start backend API with auto-reload (port 3001)
 npm run dev:frontend     # Start Vite dev server (port 5173)
 
-# Testing & Linting
-npm test                 # Run tests
-npm run lint:fix         # Fix linting issues
+# Testing
+npm test                 # All tests
+npm run test:watch       # Watch mode
+npm run test:cov         # With coverage
+npm run test:integration # Integration tests only
+
+# Linting & Formatting
+npm run lint             # Check for linting issues
+npm run lint:fix         # Fix linting issues automatically
+npm run format           # Format code with Prettier
+npm run format:check     # Check formatting without changes
+
+# Docker Management
+npm run docker:build     # Build Docker image
+npm run docker:up        # Start all services
+npm run docker:down      # Stop all services
+npm run docker:logs      # Follow API logs
 
 # Production
 npm run build            # Build React frontend for production
@@ -46,9 +52,11 @@ docker-compose up -d     # Start all services in Docker
 
 **IMPORTANT**:
 
-- PostgreSQL MUST run in Docker (`shadowcheck_postgres` container)
+- PostgreSQL MUST run in Docker (`shadowcheck_postgres` container) on external network `shadowcheck_net`
+- Redis is managed by this project's docker-compose.yml (`shadowcheck_static_redis`)
 - If running API locally (not in Docker), ensure local PostgreSQL service is STOPPED
 - Backend API: port 3001, Frontend dev server: port 5173
+- Node.js version: 20+ (specified in package.json engines)
 
 ## Architecture
 
@@ -73,6 +81,13 @@ src/
 - **Service Layer**: Business logic in `src/services/`
 - **Global Error Handling**: Custom `AppError` class with middleware
 
+**Infrastructure**:
+
+- **Shared PostgreSQL**: External container `shadowcheck_postgres` on network `shadowcheck_net`
+- **Project Redis**: Container `shadowcheck_static_redis` for caching (512MB, LRU eviction)
+- **Secrets**: Docker secrets (`/run/secrets/`) → System keyring → Environment variables (priority order)
+- **Static Assets**: Built frontend served from `dist/`, legacy pages from `public/`
+
 See [docs/architecture/](docs/architecture/) for detailed system design.
 
 ## Database Schema
@@ -89,7 +104,7 @@ PostgreSQL 18 with PostGIS extension. Primary tables in `app` schema:
 
 **Note**: Legacy tables (`networks_legacy`, `locations_legacy`) exist but are deprecated. All new code uses `app.networks` and `app.observations`.
 
-See [docs/reference/DATABASE_SCHEMA.md](docs/reference/DATABASE_SCHEMA.md) for full schema.
+See [docs/DATABASE_SCHEMA_ENTITIES.md](docs/DATABASE_SCHEMA_ENTITIES.md) and related schema docs in `docs/` for full schema details.
 
 ## Development Patterns
 
@@ -154,31 +169,63 @@ logger.info('Processing threat detection', {
 ```bash
 npm test                 # All tests
 npm run test:watch       # Watch mode
-npm run test:cov         # With coverage
-npm run test:integration # Integration only
+npm run test:cov         # With coverage (70% threshold)
+npm run test:integration # Integration tests only
+
+# Run a single test file
+npx jest tests/unit/secretsManager.test.js
+
+# Run tests matching a pattern
+npx jest --testNamePattern="threat detection"
 ```
 
-### Database Migrations
+### Database Access
 
 ```bash
-# Apply migration
-psql -U shadowcheck_user -d shadowcheck -f sql/migrations/your_migration.sql
+# Access PostgreSQL directly (via Docker)
+docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 
-# Or via npm
-npm run db:migrate
+# Run a SQL file
+docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/your_migration.sql
+
+# Or via local psql (if Docker port 5432 is exposed)
+psql -h localhost -U shadowcheck_user -d shadowcheck_db -f sql/migrations/your_migration.sql
+
+# Via npm script
+npm run db:migrate  # Runs sql/migrations/00_init_schema.sql
 ```
 
-### Checking Secrets
+### Secrets Management
 
 ```bash
 # Set a secret (JavaScript)
 node scripts/set-secret.js db_password "your-password"
 
-# List secrets (Python)
+# List all secrets (Python)
 python3 scripts/keyring/list-keyring-items.py
 
-# Get a secret (Python)
+# Get a specific secret (Python)
 python3 scripts/keyring/get-keyring-password.py db_password
+
+# Generate secure password
+node scripts/generate-password.js
+
+# Rotate database password
+node scripts/rotate-db-password.js
+```
+
+### ML Model Training
+
+```bash
+# Train model via API
+curl -X POST http://localhost:3001/api/ml/train
+
+# Check model status
+curl http://localhost:3001/api/ml/status
+
+# Advanced ML iteration (requires Python dependencies)
+pip install -r scripts/ml/requirements.txt
+python3 scripts/ml/ml-iterate.py  # Tests multiple algorithms with hyperparameter tuning
 ```
 
 ## Code Style
@@ -277,36 +324,152 @@ Networks are scored based on:
 
 ## Documentation
 
-- **[docs/README.md](docs/README.md)** - Documentation index
-- **[docs/architecture/](docs/architecture/)** - System architecture
-- **[docs/development/](docs/development/)** - Development guides
-- **[docs/reference/](docs/reference/)** - API & database reference
-- **[docs/security/](docs/security/)** - Security policies & guides
+- **[docs/README.md](docs/README.md)** or **[docs/INDEX.md](docs/INDEX.md)** - Documentation index
+- **[docs/architecture/](docs/architecture/)** - System architecture guides
+- **[docs/security/](docs/security/)** - Security policies & secrets management
+- **[docs/DATABASE\_\*.md](docs/)** - Database schema documentation
+- **[docs/API.md](docs/API.md)** & **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)** - API documentation
+- **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Development guide
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Deployment instructions
+
+## Frontend Structure
+
+The project is migrating from legacy HTML/JS (in `public/`) to a modern React + Vite frontend:
+
+**React Pages** (`src/` components):
+
+- `/` or `/dashboard` - Main dashboard (React)
+- `/geospatial` or `/geospatial-intel` - Geospatial analysis (React)
+- `/analytics` - Analytics charts (React)
+- `/api-test` - API testing interface (React)
+- `/ml-training` - ML model training UI (React)
+
+**Legacy Pages** (served until feature parity):
+
+- `public/geospatial.html` - Legacy geospatial view
+- `public/networks.html` - Legacy network list
+- `public/analytics.html` - Legacy analytics
+- `public/surveillance.html` - Legacy threat detection
+
+**Frontend Tech Stack**:
+
+- React 18 with TypeScript (.tsx files)
+- Vite for build and dev server
+- Tailwind CSS for styling
+- Mapbox GL JS for maps
+- Recharts for charts
+- React Router for routing
+
+## Utility Scripts
+
+**Import & Data Processing**:
+
+- `scripts/import/turbo-import.js` - Fast parallel data import
+- `scripts/import/import-wigle-parallel.js` - WiGLE data import
+
+**Geocoding & Enrichment**:
+
+- `scripts/geocoding/geocode-batch.js` - Batch geocoding
+- `scripts/enrichment/enrich-addresses-fast.js` - Address enrichment
+- `scripts/enrichment/enrich-multi-source.js` - Multi-source enrichment (4 APIs)
+
+**ML & Analytics**:
+
+- `scripts/ml/ml-trainer.js` - Train ML models (JavaScript)
+- `scripts/ml/ml-iterate.py` - Advanced ML iteration (Python)
+
+**Database & Maintenance**:
+
+- `scripts/set-home.js` - Set home location for threat detection
+- `scripts/rebuild-networks-precision.js` - Rebuild network precision data
 
 ## Project Structure
 
 ```
 /
 ├── src/                     # Source code
-│   ├── api/routes/v1/      # Backend API endpoints
-│   ├── services/           # Backend business logic
-│   ├── repositories/       # Backend data access
-│   ├── config/             # Backend configuration
-│   ├── components/         # React components (Dashboard, Maps, etc.)
+│   ├── api/routes/v1/      # Backend API endpoints (CommonJS)
+│   ├── services/           # Backend business logic (CommonJS)
+│   ├── repositories/       # Backend data access (CommonJS)
+│   ├── config/             # Backend configuration (DI container, DB pool)
+│   ├── validation/         # Request validation schemas
+│   ├── errors/             # Custom error classes
+│   ├── logging/            # Winston structured logging
+│   ├── utils/              # Utility functions (SQL escaping, secrets)
+│   ├── components/         # React components (TSX, ES modules)
 │   ├── App.tsx             # React app router
 │   ├── main.tsx            # React entry point
-│   └── index.css           # Global styles
-├── public/                  # Static assets
-├── scripts/                 # Utility scripts
-├── sql/                     # Database migrations
-├── tests/                   # Jest tests
+│   └── index.css           # Global styles (Tailwind)
+├── public/                  # Static assets & legacy HTML pages
+├── scripts/                 # Utility scripts (import, geocoding, ML)
+├── sql/                     # Database migrations & functions
+├── tests/                   # Jest tests (unit, integration, API)
 ├── docs/                    # Documentation
 ├── server.js                # Express backend entry point
 ├── vite.config.js           # Vite configuration
+├── docker-compose.yml       # Docker services (API + Redis)
 └── tsconfig.json            # TypeScript configuration
+```
+
+## Root Directory Organization
+
+**Best Practices for Keeping Root Clean**:
+
+The root directory should only contain essential configuration files. All code, data, and generated files belong in subdirectories.
+
+**Files That Belong in Root**:
+
+- ✅ Configuration: `package.json`, `.env.example`, `tsconfig.json`, `vite.config.js`, `jest.config.js`
+- ✅ Docker: `docker-compose.yml`, `docker-compose.dev.yml`, `Dockerfile`
+- ✅ Documentation: `README.md`, `CLAUDE.md`, `CHANGELOG.md`, `LICENSE`, `CONTRIBUTING.md`
+- ✅ Entry points: `server.js`, `index.html`
+- ✅ Dotfiles: `.gitignore`, `.eslintrc.json`, `.prettierrc.json`, `.nvmrc`
+
+**Files That Should NOT Be in Root**:
+
+- ❌ Data files: `*.csv`, `*.sqlite`, `*.db` → Move to `backups/` or `data/`
+- ❌ SQL scripts: `*.sql`, `*.psql` → Move to `sql/` or `sql/temp/`
+- ❌ Test files: `test-*.js`, `*_test.sh` → Move to `tests/`
+- ❌ Logs: `*.log` → Auto-cleaned by `.gitignore`, stored in `logs/`
+- ❌ Analysis reports: `*_analysis.md`, `*_report.md` → Move to `docs/archive/`
+- ❌ Debug files: `*.tar.gz`, `*.dump` → Move to `backups/` or delete
+
+**Directory Structure**:
+
+```
+/
+├── backups/             # Database dumps, CSV exports (gitignored)
+│   ├── csv/            # CSV data backups
+│   ├── sqlite/         # SQLite database backups
+│   └── analysis-reports/ # Analysis and debug reports
+├── data/               # Runtime data (gitignored, needs permissions fix)
+├── docker/
+│   └── infrastructure/ # Shared infrastructure compose files
+├── sql/
+│   ├── functions/      # SQL functions
+│   ├── migrations/     # Schema migrations
+│   └── temp/           # Temporary SQL scripts
+├── src/                # Application source code
+├── tests/              # Test files
+├── docs/               # Documentation
+├── scripts/            # Utility scripts
+└── public/             # Static assets
+```
+
+**Maintenance Commands**:
+
+```bash
+# Check for files that shouldn't be in root
+ls -la | grep -E '\.(csv|sqlite|log|sql)$'
+
+# Clean up common clutter
+rm -f *.log *.csv *.sqlite test-*.js
+
+# Check what's being tracked by git in root
+git ls-files --directory ./ --exclude-standard | grep -v '/'
 ```
 
 ---
 
-**Last Updated**: 2025-12-10
-**See**: [docs/CHANGELOG.md](CHANGELOG.md) for version history
+**Last Updated**: 2025-12-19
+**See**: [CHANGELOG.md](CHANGELOG.md) for version history
