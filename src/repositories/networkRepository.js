@@ -104,13 +104,13 @@ class NetworkRepository {
           COUNT(*) FILTER (WHERE type = 'E') as ble_count,
           COUNT(*) FILTER (WHERE type = 'B') as bluetooth_count,
           COUNT(*) FILTER (WHERE type = 'L') as lte_count,
-          COUNT(*) FILTER (WHERE ml_threat_score >= 80) as critical_threats,
-          COUNT(*) FILTER (WHERE ml_threat_score >= 60 AND ml_threat_score < 80) as high_threats,
-          COUNT(*) FILTER (WHERE ml_threat_score >= 40 AND ml_threat_score < 60) as medium_threats,
-          COUNT(*) FILTER (WHERE ml_threat_score < 40 AND ml_threat_score > 0) as low_threats,
-          COUNT(*) FILTER (WHERE ml_threat_score >= 40) as active_surveillance,
+          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 80) as critical_threats,
+          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 60 AND ml_threat_score < 80) as high_threats,
+          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 40 AND ml_threat_score < 60) as medium_threats,
+          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 20 AND ml_threat_score < 40) as low_threats,
+          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 40) as active_surveillance,
           COUNT(*) FILTER (WHERE location IS NOT NULL) as enriched_count
-        FROM app.networks
+        FROM public.networks
       `);
 
       const row = result.rows[0] || {};

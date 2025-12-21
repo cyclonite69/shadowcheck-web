@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import PageTitle from './PageTitle';
+import { FilterPanel } from './FilterPanel';
+import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
+import { useFilterURLSync } from '../hooks/useFilteredData';
 
 type ThreatInfo = {
   score: number;
@@ -13,6 +15,12 @@ type ThreatInfo = {
     weight: number;
     evidence: any;
   }>;
+};
+
+type ThreatEvidence = {
+  rule: string;
+  observedValue: number | string | null;
+  threshold: number | string | null;
 };
 
 type NetworkRow = {
@@ -32,6 +40,9 @@ type NetworkRow = {
   lastSeen: string | null;
   timespanDays?: number | null; // Add timespan calculation
   threat?: ThreatInfo | null;
+  threatReasons?: string[];
+  threatEvidence?: ThreatEvidence[];
+  stationaryConfidence?: number | null;
   // Enrichment fields (networks-v2 API)
   manufacturer?: string | null;
   manufacturer_address?: string | null;
@@ -50,6 +61,7 @@ type Observation = {
   lon: number;
   signal?: number | null;
   time?: string;
+  frequency?: number | null;
   acc?: number | null;
   distance_from_home_km?: number | null;
 };
@@ -72,6 +84,7 @@ const NETWORK_COLUMNS: Record<
   longitude: { label: 'Longitude', width: 100, sortable: true, default: false },
   distanceFromHome: { label: 'Distance (km)', width: 100, sortable: true, default: true },
   accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
+  stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
   firstSeen: { label: 'First Seen', width: 160, sortable: true, default: false },
   lastSeen: { label: 'Last Seen', width: 160, sortable: true, default: true },
   timespanDays: { label: 'Timespan (days)', width: 120, sortable: true, default: false },
@@ -84,6 +97,22 @@ const NETWORK_COLUMNS: Record<
   max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: false },
   last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
   is_sentinel: { label: 'Sentinel', width: 80, sortable: true, default: false },
+};
+
+const SORT_KEY_MAP: Record<string, string> = {
+  lastSeen: 'last_seen',
+  firstSeen: 'first_seen',
+  observed_at: 'observed_at',
+  observations: 'observations',
+  signal: 'signal',
+  threat: 'threat_score',
+  distanceFromHome: 'distance_from_home_km',
+  stationaryConfidence: 'stationary_confidence',
+  ssid: 'ssid',
+  bssid: 'bssid',
+  security: 'security',
+  type: 'type',
+  frequency: 'frequency',
 };
 
 const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
@@ -115,7 +144,15 @@ const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
   );
 };
 
-const ThreatBadge = ({ threat }: { threat?: ThreatInfo | null }) => {
+const ThreatBadge = ({
+  threat,
+  reasons,
+  evidence,
+}: {
+  threat?: ThreatInfo | null;
+  reasons?: string[];
+  evidence?: ThreatEvidence[];
+}) => {
   if (!threat || threat.level === 'NONE') return null;
 
   const config = {
@@ -126,6 +163,16 @@ const ThreatBadge = ({ threat }: { threat?: ThreatInfo | null }) => {
   };
 
   const levelConfig = config[threat.level];
+  const reasonsList = (reasons || []).join(', ') || 'None';
+  const evidenceLines =
+    evidence && evidence.length > 0
+      ? evidence
+          .map(
+            (e) =>
+              `${e.rule}: observed=${e.observedValue ?? 'n/a'} threshold=${e.threshold ?? 'n/a'}`
+          )
+          .join('\n')
+      : 'No evidence';
 
   return (
     <span
@@ -136,7 +183,7 @@ const ThreatBadge = ({ threat }: { threat?: ThreatInfo | null }) => {
         border: `1px solid ${levelConfig.color}40`,
         cursor: 'help',
       }}
-      title={`${threat.summary}\nScore: ${(threat.score * 100).toFixed(0)}%`}
+      title={`${threat.summary}\nScore: ${(threat.score * 100).toFixed(0)}%\nReasons: ${reasonsList}\n${evidenceLines}`}
     >
       {levelConfig.label}
     </span>
@@ -287,8 +334,6 @@ export default function GeospatialExplorer() {
   );
   const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
   const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState(''); // For immediate UI updates
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [loadingNetworks, setLoadingNetworks] = useState(false);
   const [loadingObservations, setLoadingObservations] = useState(false);
@@ -304,6 +349,13 @@ export default function GeospatialExplorer() {
   const [searchingLocation, setSearchingLocation] = useState(false);
   const [homeButtonActive, setHomeButtonActive] = useState(false);
   const [fitButtonActive, setFitButtonActive] = useState(false);
+
+  useFilterURLSync();
+  const { enabled, setFilter } = useFilterStore();
+  const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
+    useFilterStore.getState().getAPIFilters()
+  );
+  useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -402,20 +454,11 @@ export default function GeospatialExplorer() {
     setLocationSearch('');
   }, []);
 
-  // Debounce search input (500ms delay)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setSearchTerm(searchInput);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchInput]);
-
-  // Reset pagination when search term changes
+  // Reset pagination when filters change
   useEffect(() => {
     setPagination({ page: 1, hasMore: true });
-    setNetworks([]); // Clear existing results
-  }, [searchTerm]);
+    setNetworks([]);
+  }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort)]);
 
   // Update container height on window resize
   useEffect(() => {
@@ -429,6 +472,28 @@ export default function GeospatialExplorer() {
     window.addEventListener('resize', updateHeight);
     return () => window.removeEventListener('resize', updateHeight);
   }, []);
+
+  // Map-driven bounding box filter
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !enabled.boundingBox) return;
+
+    const map = mapRef.current;
+    const updateBounds = () => {
+      const bounds = map.getBounds();
+      setFilter('boundingBox', {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+      });
+    };
+
+    updateBounds();
+    map.on('moveend', updateBounds);
+    return () => {
+      map.off('moveend', updateBounds);
+    };
+  }, [mapReady, enabled.boundingBox, setFilter]);
   const activeObservationSets = useMemo(
     () =>
       Array.from(selectedNetworks).map((bssid) => ({
@@ -718,56 +783,80 @@ export default function GeospatialExplorer() {
             // Interpret signal strength
             const signalStrength = interpretSignalStrength(props.signal || 0);
 
+            // Calculate WiFi channel if it's a WiFi network
+            const wifiChannel =
+              props.frequency && props.type === 'W'
+                ? Math.round((props.frequency - 2412) / 5) + 1
+                : null;
+
+            // Format dates
+            const formatDate = (dateStr) => {
+              if (!dateStr) return 'N/A';
+              const date = new Date(dateStr);
+              return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            };
+
+            // Calculate days span
+            const calculateDaysSpan = (firstSeen, lastSeen) => {
+              if (!firstSeen || !lastSeen) return 'N/A';
+              const first = new Date(firstSeen);
+              const last = new Date(lastSeen);
+              const diffTime = Math.abs(last - first);
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              return diffDays === 0 ? 'Same day' : `${diffDays} days`;
+            };
+
             const popupHTML = `
-              <div style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%); color: #f8fafc; padding: 16px; border-radius: 12px; max-width: 400px; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
-                  <div style="background: ${bssidColor}20; border: 2px solid ${bssidColor}; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: ${bssidColor};">
+              <div style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%); color: #f8fafc; padding: 12px; border-radius: 8px; max-width: 280px; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
+                  <div style="background: ${bssidColor}20; border: 2px solid ${bssidColor}; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: ${bssidColor};">
                     ${props.number}
                   </div>
                   <div style="flex: 1;">
-                    <div style="color: #60a5fa; font-weight: bold; font-size: 14px;">Observation #${props.number}</div>
-                    <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">${props.bssid}</div>
+                    <div style="color: #60a5fa; font-weight: bold; font-size: 12px;">Obs #${props.number}</div>
+                    <div style="color: #94a3b8; font-size: 9px; font-family: monospace;">${props.bssid}</div>
                   </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                  <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
-                    <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Signal</span>
-                    <div style="margin-top: 3px;">
-                      <span style="color: ${signalStrength.color}; font-weight: bold;">${props.signal ? `${props.signal} dBm` : 'N/A'}</span>
-                      <div style="color: #64748b; font-size: 9px; margin-top: 2px;">${signalStrength.text}</div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; font-size: 10px;">
+                  <div>
+                    <span style="color: #94a3b8; font-size: 8px;">Signal:</span>
+                    <span style="color: ${signalStrength.color}; font-weight: bold; margin-left: 4px;">${props.signal ? `${props.signal}dBm` : 'N/A'}</span>
                   </div>
-                  <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
-                    <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Range</span>
-                    <div style="margin-top: 3px;">
-                      <div style="display: flex; align-items: center; gap: 6px;">
-                        <div style="width: 16px; height: 16px; border: 2px solid ${bssidColor}; border-radius: 50%; background: ${bssidColor}20;"></div>
-                        <span style="color: #e2e8f0; font-size: 10px; font-weight: 600;">${Math.round(signalRadius)}px</span>
-                      </div>
-                    </div>
+                  <div>
+                    <span style="color: #94a3b8; font-size: 8px;">Freq:</span>
+                    <span style="color: #e2e8f0; font-weight: bold; margin-left: 4px;">${props.frequency ? `${props.frequency}MHz` : 'N/A'}</span>
+                    ${wifiChannel ? `<span style="color: #64748b; font-size: 8px; margin-left: 4px;">(Ch${wifiChannel})</span>` : ''}
                   </div>
                 </div>
 
                 ${
-                  props.time
+                  props.first_seen || props.last_seen
                     ? `
-                <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%); padding: 10px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.3); margin-bottom: 10px;">
-                  <div style="color: #fbbf24; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">⏱️ Observed</div>
-                  <div style="color: #fde68a; font-weight: 600; font-size: 11px;">${new Date(props.time).toLocaleString()}</div>
+                <div style="background: rgba(251, 191, 36, 0.1); padding: 6px; border-radius: 4px; margin-bottom: 8px; font-size: 9px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    ${props.first_seen ? `<div><span style="color: #92400e;">First:</span> <span style="color: #fbbf24;">${new Date(props.first_seen).toLocaleDateString()}</span></div>` : ''}
+                    ${props.last_seen ? `<div><span style="color: #92400e;">Last:</span> <span style="color: #fbbf24;">${new Date(props.last_seen).toLocaleDateString()}</span></div>` : ''}
+                  </div>
                 </div>
                 `
                     : ''
                 }
 
-                <div style="border-top: 1px solid rgba(59, 130, 246, 0.2); padding-top: 8px; margin-top: 8px;">
-                  <div style="display: flex; align-items: center; gap: 6px; font-size: 10px;">
-                    <span style="color: #94a3b8;">Network Color:</span>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                      <div style="width: 12px; height: 12px; background: ${bssidColor}; border-radius: 2px; border: 1px solid rgba(255, 255, 255, 0.2);"></div>
-                      <span style="font-family: 'Courier New', monospace; color: #94a3b8;">${bssidColor}</span>
-                    </div>
-                  </div>
+                ${
+                  props.time
+                    ? `
+                <div style="background: rgba(34, 197, 94, 0.1); padding: 6px; border-radius: 4px; margin-bottom: 8px; font-size: 9px;">
+                  <div style="color: #15803d;">This obs:</div>
+                  <div style="color: #22c55e; font-weight: 600;">${new Date(props.time).toLocaleString()}</div>
+                  ${props.accuracy ? `<div style="color: #15803d; margin-top: 2px;">±${props.accuracy}m accuracy</div>` : ''}
+                </div>
+                `
+                    : ''
+                }
+
+                <div style="font-size: 9px; color: #64748b; text-align: center;">
+                  ${feature.geometry.coordinates[1].toFixed(4)}, ${feature.geometry.coordinates[0].toFixed(4)}
                 </div>
               </div>
             `;
@@ -901,12 +990,6 @@ export default function GeospatialExplorer() {
     };
   }, []);
 
-  // Reset pagination when sort changes
-  useEffect(() => {
-    setPagination({ page: 1, hasMore: true });
-    setNetworks([]); // Clear existing results immediately
-  }, [JSON.stringify(sort)]); // Use JSON.stringify for deep comparison
-
   // Fetch networks
   useEffect(() => {
     const controller = new AbortController();
@@ -916,26 +999,25 @@ export default function GeospatialExplorer() {
       setError(null);
       try {
         // Build sort parameters for API (multi-column support)
-        const sortColumns = sort.map((s) => s.column).join(',');
+        const sortColumns = sort.map((s) => SORT_KEY_MAP[s.column] || s.column).join(',');
         const sortOrders = sort.map((s) => s.direction).join(',');
 
         const params = new URLSearchParams({
-          page: pagination.page.toString(),
           limit: '500',
+          offset: ((pagination.page - 1) * 500).toString(),
           sort: sortColumns,
           order: sortOrders,
+          filters: JSON.stringify(debouncedFilterState.filters),
+          enabled: JSON.stringify(debouncedFilterState.enabled),
         });
-        if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
-        console.log('Fetching networks from:', `/api/explorer/networks-v2?${params.toString()}`);
-        const res = await fetch(`/api/explorer/networks-v2?${params.toString()}`, {
+        const res = await fetch(`/api/v2/networks/filtered?${params.toString()}`, {
           signal: controller.signal,
         });
         console.log('Networks response status:', res.status);
         if (!res.ok) throw new Error(`networks ${res.status}`);
         const data = await res.json();
-        console.log('Networks data received:', data);
-        const rows = data.rows || [];
+        const rows = data.data || [];
 
         const mapped: NetworkRow[] = rows.map((row: any, idx: number) => {
           const securityValue = row.security || row.capabilities || row.encryption || 'OPEN';
@@ -1042,6 +1124,10 @@ export default function GeospatialExplorer() {
             lastSeen: row.last_seen || row.observed_at || null,
             timespanDays: calculateTimespan(row.first_seen, row.last_seen || row.observed_at),
             threat: row.threat || null,
+            threatReasons: Array.isArray(row.threatReasons) ? row.threatReasons : [],
+            threatEvidence: Array.isArray(row.threatEvidence) ? row.threatEvidence : [],
+            stationaryConfidence:
+              typeof row.stationary_confidence === 'number' ? row.stationary_confidence : null,
             // Enrichment fields (networks-v2 API)
             manufacturer: row.manufacturer || null,
             manufacturer_address: row.manufacturer_address || null,
@@ -1064,7 +1150,7 @@ export default function GeospatialExplorer() {
 
         setPagination((prev) => ({
           ...prev,
-          hasMore: data.hasMore || mapped.length === 500,
+          hasMore: data.pagination?.hasMore || mapped.length === 500,
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
@@ -1077,7 +1163,7 @@ export default function GeospatialExplorer() {
 
     fetchNetworks();
     return () => controller.abort();
-  }, [pagination.page, searchTerm, JSON.stringify(sort)]); // Use JSON.stringify for deep comparison
+  }, [pagination.page, JSON.stringify(debouncedFilterState), JSON.stringify(sort)]);
 
   // Infinite scroll with scroll position preservation
   useEffect(() => {
@@ -1120,7 +1206,7 @@ export default function GeospatialExplorer() {
     }
   }, [loadingNetworks, isLoadingMore]);
 
-  // Fetch observations for selected networks
+  // Fetch observations for selected networks (filtered)
   useEffect(() => {
     const controller = new AbortController();
     const fetchObservations = async () => {
@@ -1132,31 +1218,35 @@ export default function GeospatialExplorer() {
       setLoadingObservations(true);
       setError(null);
       try {
-        const entries = await Promise.all(
-          Array.from(selectedNetworks).map(async (bssid) => {
-            const res = await fetch(`/api/networks/observations/${encodeURIComponent(bssid)}`, {
-              signal: controller.signal,
-            });
-            if (!res.ok) throw new Error(`observations ${res.status}`);
-            const data = await res.json();
-            const obs: Observation[] = (data.observations || [])
-              .filter((o: any) => typeof o.lat === 'number' && typeof o.lon === 'number')
-              .map((o: any) => ({
-                id: o.id || `${bssid}-${o.time}`,
-                bssid,
-                lat: o.lat,
-                lon: o.lon,
-                signal: typeof o.signal === 'number' ? o.signal : (o.signal ?? null),
-                time: o.time,
-                acc: o.acc ?? null,
-                distance_from_home_km: o.distance_from_home_km ?? null,
-              }));
-            return [bssid, obs] as const;
-          })
-        );
+        const params = new URLSearchParams({
+          filters: JSON.stringify(debouncedFilterState.filters),
+          enabled: JSON.stringify(debouncedFilterState.enabled),
+          bssids: JSON.stringify(Array.from(selectedNetworks)),
+        });
+        const res = await fetch(`/api/v2/networks/filtered/observations?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`observations ${res.status}`);
+        const data = await res.json();
+        const rows = data.data || [];
 
-        const newObservationsByBssid = Object.fromEntries(entries);
-        setObservationsByBssid(newObservationsByBssid);
+        const grouped = rows.reduce((acc: Record<string, Observation[]>, row: any) => {
+          const bssid = String(row.bssid || '').toUpperCase();
+          if (!acc[bssid]) acc[bssid] = [];
+          acc[bssid].push({
+            id: row.obs_number || `${bssid}-${row.time}`,
+            bssid,
+            lat: row.lat,
+            lon: row.lon,
+            signal: typeof row.level === 'number' ? row.level : (row.level ?? null),
+            time: row.time,
+            frequency: typeof row.radio_frequency === 'number' ? row.radio_frequency : null,
+            acc: row.accuracy ?? null,
+          });
+          return acc;
+        }, {});
+
+        setObservationsByBssid(grouped);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           setError(err.message);
@@ -1170,7 +1260,7 @@ export default function GeospatialExplorer() {
     return () => {
       controller.abort();
     };
-  }, [selectedNetworks]);
+  }, [selectedNetworks, JSON.stringify(debouncedFilterState)]);
 
   // Server-side sorting - no client-side sorting needed
   const filteredNetworks = useMemo(() => networks, [networks]);
@@ -1525,507 +1615,423 @@ export default function GeospatialExplorer() {
           'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
       }}
     >
-      <div className="flex flex-col gap-3 p-3 h-screen">
-        {/* Map Card */}
-        <div
-          className="overflow-hidden"
-          style={{
-            height: `${mapHeight}px`,
-            background: 'rgba(30, 41, 59, 0.4)',
-            borderRadius: '12px',
-            border: '1px solid rgba(71, 85, 105, 0.3)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
+      <div className="flex h-screen">
+        <FilterPanel />
+        <div className="flex flex-col gap-3 p-3 h-screen flex-1">
+          {/* Map Card */}
           <div
+            className="overflow-hidden"
             style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
-              background: 'rgba(15, 23, 42, 0.6)',
-              borderRadius: '12px 12px 0 0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
+              height: `${mapHeight}px`,
+              background: 'rgba(30, 41, 59, 0.4)',
+              borderRadius: '12px',
+              border: '1px solid rgba(71, 85, 105, 0.3)',
+              backdropFilter: 'blur(8px)',
             }}
           >
-            <h2
-              style={{
-                fontSize: '22px',
-                fontWeight: '900',
-                margin: 0,
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                filter:
-                  'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 20px rgba(100, 116, 139, 0.3))',
-                letterSpacing: '-0.5px',
-              }}
-            >
-              ShadowCheck Geospatial Intelligence
-            </h2>
             <div
               style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
+                background: 'rgba(15, 23, 42, 0.6)',
+                borderRadius: '12px 12px 0 0',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                fontSize: '11px',
-                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                gap: '12px',
               }}
             >
-              {/* Location Search */}
-              <div ref={locationSearchRef} style={{ position: 'relative', minWidth: '300px' }}>
-                <input
-                  type="text"
-                  value={locationSearch}
-                  onChange={(e) => setLocationSearch(e.target.value)}
-                  placeholder="🔍 Search worldwide locations..."
+              <h2
+                style={{
+                  fontSize: '22px',
+                  fontWeight: '900',
+                  margin: 0,
+                  background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  filter:
+                    'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 20px rgba(100, 116, 139, 0.3))',
+                  letterSpacing: '-0.5px',
+                }}
+              >
+                ShadowCheck Geospatial Intelligence
+              </h2>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '11px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* Location Search */}
+                <div ref={locationSearchRef} style={{ position: 'relative', minWidth: '300px' }}>
+                  <input
+                    type="text"
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                    placeholder="🔍 Search worldwide locations..."
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      background: 'rgba(30, 41, 59, 0.9)',
+                      border: '1px solid rgba(148, 163, 184, 0.2)',
+                      borderRadius: '4px',
+                      color: '#f1f5f9',
+                      outline: 'none',
+                    }}
+                    onFocus={() => {
+                      if (searchResults.length > 0) {
+                        setShowSearchResults(true);
+                      }
+                    }}
+                  />
+                  {searchingLocation && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#60a5fa',
+                        fontSize: '10px',
+                      }}
+                    >
+                      ⏳
+                    </div>
+                  )}
+                  {showSearchResults && searchResults.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        background: 'rgba(30, 41, 59, 0.98)',
+                        border: '1px solid rgba(148, 163, 184, 0.3)',
+                        borderRadius: '6px',
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+                        zIndex: 1000,
+                      }}
+                    >
+                      {searchResults.map((result, index) => (
+                        <div
+                          key={index}
+                          onClick={() => flyToLocation(result)}
+                          style={{
+                            padding: '8px 10px',
+                            cursor: 'pointer',
+                            borderBottom:
+                              index < searchResults.length - 1
+                                ? '1px solid rgba(148, 163, 184, 0.1)'
+                                : 'none',
+                            transition: 'background 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          <div style={{ fontSize: '12px', fontWeight: '600', color: '#f1f5f9' }}>
+                            {result.text}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                            {result.place_name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <select
+                  value={mapStyle}
+                  onChange={(e) => changeMapStyle(e.target.value)}
                   style={{
-                    width: '100%',
                     padding: '6px 10px',
                     fontSize: '11px',
                     background: 'rgba(30, 41, 59, 0.9)',
                     border: '1px solid rgba(148, 163, 184, 0.2)',
-                    borderRadius: '4px',
-                    color: '#f1f5f9',
-                    outline: 'none',
-                  }}
-                  onFocus={() => {
-                    if (searchResults.length > 0) {
-                      setShowSearchResults(true);
-                    }
-                  }}
-                />
-                {searchingLocation && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#60a5fa',
-                      fontSize: '10px',
-                    }}
-                  >
-                    ⏳
-                  </div>
-                )}
-                {showSearchResults && searchResults.length > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      marginTop: '4px',
-                      background: 'rgba(30, 41, 59, 0.98)',
-                      border: '1px solid rgba(148, 163, 184, 0.3)',
-                      borderRadius: '6px',
-                      maxHeight: '300px',
-                      overflowY: 'auto',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-                      zIndex: 1000,
-                    }}
-                  >
-                    {searchResults.map((result, index) => (
-                      <div
-                        key={index}
-                        onClick={() => flyToLocation(result)}
-                        style={{
-                          padding: '8px 10px',
-                          cursor: 'pointer',
-                          borderBottom:
-                            index < searchResults.length - 1
-                              ? '1px solid rgba(148, 163, 184, 0.1)'
-                              : 'none',
-                          transition: 'background 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#f1f5f9' }}>
-                          {result.text}
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                          {result.place_name}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <select
-                value={mapStyle}
-                onChange={(e) => changeMapStyle(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background: 'rgba(30, 41, 59, 0.9)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  color: '#f8fafc',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                {MAP_STYLES.map((style) => (
-                  <option key={style.value} value={style.value}>
-                    {style.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => toggle3DBuildings(!show3DBuildings)}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background: show3DBuildings ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-                  border: show3DBuildings
-                    ? '1px solid rgba(59, 130, 246, 0.5)'
-                    : '1px solid rgba(148, 163, 184, 0.2)',
-                  color: show3DBuildings ? '#60a5fa' : '#cbd5e1',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontWeight: show3DBuildings ? '600' : '400',
-                }}
-              >
-                🏢 3D Buildings
-              </button>
-              <button
-                onClick={() => toggleTerrain(!showTerrain)}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background: showTerrain ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-                  border: showTerrain
-                    ? '1px solid rgba(59, 130, 246, 0.5)'
-                    : '1px solid rgba(148, 163, 184, 0.2)',
-                  color: showTerrain ? '#60a5fa' : '#cbd5e1',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontWeight: showTerrain ? '600' : '400',
-                }}
-              >
-                ⛰️ Terrain
-              </button>
-              <button
-                onClick={() => {
-                  if (!mapRef.current || activeObservationSets.length === 0) return;
-                  setFitButtonActive(true);
-                  const allCoords = activeObservationSets.flatMap((set) =>
-                    set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
-                  );
-                  if (allCoords.length === 0) return;
-                  const bounds = allCoords.reduce(
-                    (bounds, coord) => bounds.extend(coord),
-                    new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
-                  );
-                  mapRef.current.fitBounds(bounds, { padding: 50 });
-                  setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
-                }}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background:
-                    fitButtonActive || selectedNetworks.size > 0
-                      ? 'rgba(59, 130, 246, 0.9)'
-                      : 'rgba(30, 41, 59, 0.9)',
-                  border:
-                    fitButtonActive || selectedNetworks.size > 0
-                      ? '1px solid #3b82f6'
-                      : '1px solid rgba(148, 163, 184, 0.2)',
-                  color: fitButtonActive || selectedNetworks.size > 0 ? '#ffffff' : '#cbd5e1',
-                  borderRadius: '4px',
-                  cursor: selectedNetworks.size > 0 ? 'pointer' : 'not-allowed',
-                  opacity: selectedNetworks.size > 0 ? 1 : 0.5,
-                }}
-                disabled={selectedNetworks.size === 0}
-              >
-                🎯 Fit
-              </button>
-              <button
-                onClick={() => {
-                  if (!mapRef.current) return;
-                  setHomeButtonActive(true);
-                  mapRef.current.flyTo({ center: INITIAL_VIEW.center, zoom: 17 }); // Higher zoom ~100-200m up
-                  setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
-                }}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background: homeButtonActive
-                    ? 'rgba(16, 185, 129, 0.9)'
-                    : 'rgba(30, 41, 59, 0.9)',
-                  border: homeButtonActive
-                    ? '1px solid #10b981'
-                    : '1px solid rgba(148, 163, 184, 0.2)',
-                  color: homeButtonActive ? '#ffffff' : '#cbd5e1',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                🏠 Home
-              </button>
-              <button
-                onClick={() => {
-                  if (!mapRef.current) return;
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      mapRef.current?.flyTo({
-                        center: [position.coords.longitude, position.coords.latitude],
-                        zoom: 15,
-                      });
-                    },
-                    (error) => {
-                      console.error('Geolocation error:', error);
-                      alert('Unable to get your location. Please enable location services.');
-                    }
-                  );
-                }}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  background: 'rgba(30, 41, 59, 0.9)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  color: '#cbd5e1',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                📍 GPS
-              </button>
-            </div>
-          </div>
-
-          <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
-            {!mapReady && !mapError && (
-              <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ color: '#cbd5e1', background: 'rgba(30, 41, 59, 0.8)' }}
-              >
-                Loading map...
-              </div>
-            )}
-            {mapError && (
-              <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ color: '#f87171', background: 'rgba(30, 41, 59, 0.8)' }}
-              >
-                {mapError}
-              </div>
-            )}
-            <div
-              ref={mapContainerRef}
-              className="w-full h-full"
-              style={{ background: 'rgba(30, 41, 59, 0.8)' }}
-            />
-          </div>
-        </div>
-
-        {/* Resize Handle */}
-        <div
-          className="cursor-row-resize hover:bg-blue-500/20 transition-colors flex items-center justify-center"
-          style={{
-            height: '8px',
-            background: 'rgba(71, 85, 105, 0.3)',
-            borderRadius: '4px',
-            userSelect: 'none',
-          }}
-          onMouseDown={handleMouseDown}
-        >
-          <div
-            style={{
-              width: '24px',
-              height: '2px',
-              background: 'rgba(148, 163, 184, 0.6)',
-              borderRadius: '1px',
-            }}
-          ></div>
-        </div>
-
-        {/* Networks Explorer Card */}
-        <div
-          className="flex-1 flex flex-col overflow-hidden min-h-0"
-          style={{
-            background: 'rgba(30, 41, 59, 0.4)',
-            borderRadius: '12px',
-            border: '1px solid rgba(71, 85, 105, 0.3)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          <div
-            style={{
-              padding: '8px 12px',
-              borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
-              background: 'rgba(15, 23, 42, 0.6)',
-              borderRadius: '12px 12px 0 0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
-              Networks Explorer
-            </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input
-                type="text"
-                placeholder="Search SSID, BSSID, or manufacturer across entire database..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                style={{
-                  background: 'rgba(71, 85, 105, 0.6)',
-                  border: '1px solid rgba(71, 85, 105, 0.5)',
-                  borderRadius: '6px',
-                  padding: '6px 8px',
-                  fontSize: '11px',
-                  color: 'white',
-                  outline: 'none',
-                  minWidth: '280px',
-                }}
-              />
-              <div className="relative" ref={columnDropdownRef}>
-                <button
-                  onClick={() => setShowColumnSelector((v) => !v)}
-                  style={{
-                    padding: '6px',
-                    background: 'transparent',
-                    border: 'none',
+                    color: '#f8fafc',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    color: '#cbd5e1',
                   }}
                 >
-                  ⚙️
+                  {MAP_STYLES.map((style) => (
+                    <option key={style.value} value={style.value}>
+                      {style.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => toggle3DBuildings(!show3DBuildings)}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background: show3DBuildings
+                      ? 'rgba(59, 130, 246, 0.2)'
+                      : 'rgba(30, 41, 59, 0.9)',
+                    border: show3DBuildings
+                      ? '1px solid rgba(59, 130, 246, 0.5)'
+                      : '1px solid rgba(148, 163, 184, 0.2)',
+                    color: show3DBuildings ? '#60a5fa' : '#cbd5e1',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontWeight: show3DBuildings ? '600' : '400',
+                  }}
+                >
+                  🏢 3D Buildings
                 </button>
-                {showColumnSelector && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '4px',
-                      background: 'rgba(30, 41, 59, 0.95)',
-                      border: '1px solid rgba(71, 85, 105, 0.5)',
-                      borderRadius: '6px',
-                      zIndex: 50,
-                      minWidth: '200px',
-                      maxHeight: '400px',
-                      overflowY: 'auto',
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    {Object.entries(NETWORK_COLUMNS).map(([col, column]) => (
-                      <label
-                        key={col}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          color: '#e2e8f0',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={visibleColumns.includes(col as keyof NetworkRow | 'select')}
-                          onChange={() => toggleColumn(col as keyof NetworkRow | 'select')}
-                          style={{ marginRight: '8px' }}
-                        />
-                        {column.label}
-                      </label>
-                    ))}
-                  </div>
-                )}
+                <button
+                  onClick={() => toggleTerrain(!showTerrain)}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background: showTerrain ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
+                    border: showTerrain
+                      ? '1px solid rgba(59, 130, 246, 0.5)'
+                      : '1px solid rgba(148, 163, 184, 0.2)',
+                    color: showTerrain ? '#60a5fa' : '#cbd5e1',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontWeight: showTerrain ? '600' : '400',
+                  }}
+                >
+                  ⛰️ Terrain
+                </button>
+                <button
+                  onClick={() => {
+                    if (!mapRef.current || activeObservationSets.length === 0) return;
+                    setFitButtonActive(true);
+                    const allCoords = activeObservationSets.flatMap((set) =>
+                      set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
+                    );
+                    if (allCoords.length === 0) return;
+                    const bounds = allCoords.reduce(
+                      (bounds, coord) => bounds.extend(coord),
+                      new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+                    );
+                    mapRef.current.fitBounds(bounds, { padding: 50 });
+                    setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background:
+                      fitButtonActive || selectedNetworks.size > 0
+                        ? 'rgba(59, 130, 246, 0.9)'
+                        : 'rgba(30, 41, 59, 0.9)',
+                    border:
+                      fitButtonActive || selectedNetworks.size > 0
+                        ? '1px solid #3b82f6'
+                        : '1px solid rgba(148, 163, 184, 0.2)',
+                    color: fitButtonActive || selectedNetworks.size > 0 ? '#ffffff' : '#cbd5e1',
+                    borderRadius: '4px',
+                    cursor: selectedNetworks.size > 0 ? 'pointer' : 'not-allowed',
+                    opacity: selectedNetworks.size > 0 ? 1 : 0.5,
+                  }}
+                  disabled={selectedNetworks.size === 0}
+                >
+                  🎯 Fit
+                </button>
+                <button
+                  onClick={() => {
+                    if (!mapRef.current) return;
+                    setHomeButtonActive(true);
+                    mapRef.current.flyTo({ center: INITIAL_VIEW.center, zoom: 17 }); // Higher zoom ~100-200m up
+                    setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background: homeButtonActive
+                      ? 'rgba(16, 185, 129, 0.9)'
+                      : 'rgba(30, 41, 59, 0.9)',
+                    border: homeButtonActive
+                      ? '1px solid #10b981'
+                      : '1px solid rgba(148, 163, 184, 0.2)',
+                    color: homeButtonActive ? '#ffffff' : '#cbd5e1',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  🏠 Home
+                </button>
+                <button
+                  onClick={() => {
+                    if (!mapRef.current) return;
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        mapRef.current?.flyTo({
+                          center: [position.coords.longitude, position.coords.latitude],
+                          zoom: 15,
+                        });
+                      },
+                      (error) => {
+                        console.error('Geolocation error:', error);
+                        alert('Unable to get your location. Please enable location services.');
+                      }
+                    );
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background: 'rgba(30, 41, 59, 0.9)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    color: '#cbd5e1',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📍 GPS
+                </button>
               </div>
+            </div>
+
+            <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
+              {!mapReady && !mapError && (
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ color: '#cbd5e1', background: 'rgba(30, 41, 59, 0.8)' }}
+                >
+                  Loading map...
+                </div>
+              )}
+              {mapError && (
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ color: '#f87171', background: 'rgba(30, 41, 59, 0.8)' }}
+                >
+                  {mapError}
+                </div>
+              )}
+              <div
+                ref={mapContainerRef}
+                className="w-full h-full"
+                style={{ background: 'rgba(30, 41, 59, 0.8)' }}
+              />
             </div>
           </div>
 
-          {/* Header Table - Never scrolls */}
-          <table
+          {/* Resize Handle */}
+          <div
+            className="cursor-row-resize hover:bg-blue-500/20 transition-colors flex items-center justify-center"
             style={{
-              width: '100%',
-              tableLayout: 'fixed',
-              borderCollapse: 'separate',
-              borderSpacing: 0,
-              fontSize: '11px',
+              height: '8px',
+              background: 'rgba(71, 85, 105, 0.3)',
+              borderRadius: '4px',
+              userSelect: 'none',
+            }}
+            onMouseDown={handleMouseDown}
+          >
+            <div
+              style={{
+                width: '24px',
+                height: '2px',
+                background: 'rgba(148, 163, 184, 0.6)',
+                borderRadius: '1px',
+              }}
+            ></div>
+          </div>
+
+          {/* Networks Explorer Card */}
+          <div
+            className="flex-1 flex flex-col overflow-hidden min-h-0"
+            style={{
+              background: 'rgba(30, 41, 59, 0.4)',
+              borderRadius: '12px',
+              border: '1px solid rgba(71, 85, 105, 0.3)',
+              backdropFilter: 'blur(8px)',
             }}
           >
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)' }}>
-                {visibleColumns.map((col) => {
-                  const column = NETWORK_COLUMNS[col];
-                  const sortIndex = sort.findIndex((s) => s.column === col);
-                  const sortState = sortIndex >= 0 ? sort[sortIndex] : null;
-
-                  return (
-                    <th
-                      key={col}
-                      onClick={(e) =>
-                        col !== 'select' && handleColumnSort(col as keyof NetworkRow, e.shiftKey)
-                      }
+            <div
+              style={{
+                padding: '8px 12px',
+                borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
+                background: 'rgba(15, 23, 42, 0.6)',
+                borderRadius: '12px 12px 0 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
+                Networks Explorer
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  Filters apply across list + map.
+                </span>
+                <div className="relative" ref={columnDropdownRef}>
+                  <button
+                    onClick={() => setShowColumnSelector((v) => !v)}
+                    style={{
+                      padding: '6px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      color: '#cbd5e1',
+                    }}
+                  >
+                    ⚙️
+                  </button>
+                  {showColumnSelector && (
+                    <div
                       style={{
-                        width: column.width,
-                        minWidth: column.width,
-                        maxWidth: column.width,
-                        padding: '8px 6px',
-                        background: sortState
-                          ? 'rgba(59, 130, 246, 0.15)'
-                          : 'rgba(15, 23, 42, 0.98)',
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '4px',
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        border: '1px solid rgba(71, 85, 105, 0.5)',
+                        borderRadius: '6px',
+                        zIndex: 50,
+                        minWidth: '200px',
+                        maxHeight: '400px',
+                        overflowY: 'auto',
                         backdropFilter: 'blur(8px)',
-                        textAlign: 'left',
-                        color: sortState ? '#93c5fd' : '#cbd5e1',
-                        fontWeight: '600',
-                        borderRight: '1px solid rgba(71, 85, 105, 0.2)',
-                        cursor: column.sortable && col !== 'select' ? 'pointer' : 'default',
-                        userSelect: 'none',
-                        position: 'relative',
                       }}
-                      title={
-                        column.sortable && col !== 'select'
-                          ? 'Click to sort, Shift+Click for multi-column sort'
-                          : undefined
-                      }
                     >
-                      {col === 'select' ? (
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
-                          ref={(el) => {
-                            if (el) el.indeterminate = someSelected;
+                      {Object.entries(NETWORK_COLUMNS).map(([col, column]) => (
+                        <label
+                          key={col}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#e2e8f0',
                           }}
-                          onChange={toggleSelectAll}
-                          style={{ cursor: 'pointer' }}
-                        />
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span>{column.label}</span>
-                          {sortState && (
-                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
-                              {sortState.direction === 'asc' ? '↑' : '↓'}
-                              {sort.length > 1 && <sup>{sortIndex + 1}</sup>}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-          </table>
+                        >
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.includes(col as keyof NetworkRow | 'select')}
+                            onChange={() => toggleColumn(col as keyof NetworkRow | 'select')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          {column.label}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
-          {/* Data Table - Only this scrolls */}
-          <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
+            {/* Header Table - Never scrolls */}
             <table
               style={{
                 width: '100%',
@@ -2035,267 +2041,352 @@ export default function GeospatialExplorer() {
                 fontSize: '11px',
               }}
             >
-              <tbody>
-                {loadingNetworks && (
-                  <tr>
-                    <td
-                      colSpan={visibleColumns.length}
-                      style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
-                    >
-                      Loading networks…
-                    </td>
-                  </tr>
-                )}
-                {!loadingNetworks && filteredNetworks.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={visibleColumns.length}
-                      style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
-                    >
-                      {error ? `Error: ${error}` : 'No networks found'}
-                    </td>
-                  </tr>
-                )}
-                {!loadingNetworks &&
-                  filteredNetworks.map((net, idx) => (
-                    <tr
-                      key={`${net.bssid}-${idx}`}
-                      style={{
-                        borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
-                        background: selectedNetworks.has(net.bssid)
-                          ? 'rgba(59, 130, 246, 0.1)'
-                          : 'transparent',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => selectNetworkExclusive(net.bssid)}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = selectedNetworks.has(net.bssid)
-                          ? 'rgba(59, 130, 246, 0.15)'
-                          : 'rgba(71, 85, 105, 0.1)')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = selectedNetworks.has(net.bssid)
-                          ? 'rgba(59, 130, 246, 0.1)'
-                          : 'transparent')
-                      }
-                    >
-                      {visibleColumns.map((col) => {
-                        const column = NETWORK_COLUMNS[col];
-                        const value = net[col as keyof NetworkRow];
-                        let content: React.ReactNode = value ?? 'N/A';
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)' }}>
+                  {visibleColumns.map((col) => {
+                    const column = NETWORK_COLUMNS[col];
+                    const sortIndex = sort.findIndex((s) => s.column === col);
+                    const sortState = sortIndex >= 0 ? sort[sortIndex] : null;
 
-                        if (col === 'select') {
-                          return (
-                            <td key={col} style={{ width: column.width, padding: '4px 6px' }}>
-                              <input
-                                type="checkbox"
-                                checked={selectedNetworks.has(net.bssid)}
-                                onChange={() => toggleSelectNetwork(net.bssid)}
-                                style={{ cursor: 'pointer' }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </td>
-                          );
+                    return (
+                      <th
+                        key={col}
+                        onClick={(e) =>
+                          col !== 'select' && handleColumnSort(col as keyof NetworkRow, e.shiftKey)
                         }
-                        if (col === 'type') {
-                          content = <TypeBadge type={(value as NetworkRow['type']) || '?'} />;
-                        } else if (col === 'threat') {
-                          content = <ThreatBadge threat={net.threat} />;
-                        } else if (col === 'signal') {
-                          const signalValue = value as number | null;
-                          let color = '#6b7280';
-                          if (signalValue != null) {
-                            if (signalValue >= -50) color = '#10b981';
-                            else if (signalValue >= -70) color = '#f59e0b';
-                            else color = '#ef4444';
-                          }
-                          content = (
-                            <span style={{ color, fontWeight: 600 }}>
-                              {signalValue != null ? `${signalValue} dBm` : 'N/A'}
-                            </span>
-                          );
-                        } else if (col === 'observations') {
-                          content = (
-                            <span
-                              style={{
-                                background: 'rgba(59, 130, 246, 0.2)',
-                                color: '#93c5fd',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                border: '1px solid rgba(59, 130, 246, 0.3)',
-                              }}
-                            >
-                              {value as number}
-                            </span>
-                          );
-                        } else if (col === 'is_sentinel') {
-                          // Boolean badge for sentinel flag
-                          const isSentinel = value as boolean | null;
-                          content = isSentinel ? (
-                            <span
-                              style={{
-                                background: 'rgba(234, 179, 8, 0.2)',
-                                color: '#facc15',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                border: '1px solid rgba(234, 179, 8, 0.3)',
-                              }}
-                            >
-                              YES
-                            </span>
-                          ) : null;
-                        } else if (col === 'timespanDays') {
-                          const days = value as number | null;
-                          if (days !== null && days >= 0) {
-                            content = (
-                              <span
-                                style={{
-                                  background:
-                                    days > 30
-                                      ? 'rgba(239, 68, 68, 0.2)'
-                                      : days > 7
-                                        ? 'rgba(251, 191, 36, 0.2)'
-                                        : 'rgba(34, 197, 94, 0.2)',
-                                  color: days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '10px',
-                                  fontWeight: '600',
-                                  border: `1px solid ${days > 30 ? 'rgba(239, 68, 68, 0.3)' : days > 7 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
-                                }}
-                              >
-                                {days === 0 ? 'Same day' : `${days} days`}
-                              </span>
-                            );
-                          } else {
-                            content = 'N/A';
-                          }
-                        } else if (col === 'channel') {
-                          // Only show channel for WiFi networks
-                          const channelValue = value as number | null;
-                          const networkType = net.type;
-                          if (networkType === 'W' && channelValue !== null) {
-                            content = (
-                              <span
-                                style={{
-                                  background: 'rgba(16, 185, 129, 0.2)',
-                                  color: '#10b981',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '10px',
-                                  fontWeight: '600',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                }}
-                              >
-                                {channelValue}
-                              </span>
-                            );
-                          } else {
-                            content = networkType === 'W' ? 'N/A' : '—'; // Show dash for non-WiFi
-                          }
-                        } else if (col === 'frequency') {
-                          // Show frequency for all network types, but format differently
-                          const freqValue = value as number | null;
-                          if (freqValue !== null) {
-                            const isWiFi = net.type === 'W';
-                            content = (
-                              <span
-                                style={{
-                                  color: isWiFi ? '#10b981' : '#94a3b8',
-                                  fontWeight: isWiFi ? '600' : '400',
-                                }}
-                              >
-                                {freqValue} MHz
-                              </span>
-                            );
-                          } else {
-                            content = 'N/A';
-                          }
-                          // Format altitude values with 1 decimal place
-                          const altValue = value as number | null;
-                          content = altValue != null ? `${altValue.toFixed(1)} m` : 'N/A';
-                        } else if (col === 'max_distance_meters') {
-                          // Format distance in meters or km
-                          const distValue = value as number | null;
-                          if (distValue != null) {
-                            content =
-                              distValue >= 1000
-                                ? `${(distValue / 1000).toFixed(2)} km`
-                                : `${distValue.toFixed(0)} m`;
-                          } else {
-                            content = 'N/A';
-                          }
+                        style={{
+                          width: column.width,
+                          minWidth: column.width,
+                          maxWidth: column.width,
+                          padding: '8px 6px',
+                          background: sortState
+                            ? 'rgba(59, 130, 246, 0.15)'
+                            : 'rgba(15, 23, 42, 0.98)',
+                          backdropFilter: 'blur(8px)',
+                          textAlign: 'left',
+                          color: sortState ? '#93c5fd' : '#cbd5e1',
+                          fontWeight: '600',
+                          borderRight: '1px solid rgba(71, 85, 105, 0.2)',
+                          cursor: column.sortable && col !== 'select' ? 'pointer' : 'default',
+                          userSelect: 'none',
+                          position: 'relative',
+                        }}
+                        title={
+                          column.sortable && col !== 'select'
+                            ? 'Click to sort, Shift+Click for multi-column sort'
+                            : undefined
                         }
-
-                        return (
-                          <td
-                            key={col}
-                            style={{
-                              width: column.width,
-                              minWidth: column.width,
-                              maxWidth: column.width,
-                              padding: '4px 6px',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              borderRight: '1px solid rgba(71, 85, 105, 0.1)',
-                              color: col === 'bssid' ? macColor(net.bssid) : '#f1f5f9',
-                              fontFamily: col === 'bssid' ? 'monospace' : 'inherit',
+                      >
+                        {col === 'select' ? (
+                          <input
+                            type="checkbox"
+                            checked={allSelected}
+                            ref={(el) => {
+                              if (el) el.indeterminate = someSelected;
                             }}
-                          >
-                            {content}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-              </tbody>
+                            onChange={toggleSelectAll}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>{column.label}</span>
+                            {sortState && (
+                              <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                                {sortState.direction === 'asc' ? '↑' : '↓'}
+                                {sort.length > 1 && <sup>{sortIndex + 1}</sup>}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
             </table>
-            {isLoadingMore && (
-              <div
+
+            {/* Data Table - Only this scrolls */}
+            <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
+              <table
                 style={{
-                  padding: '16px',
-                  textAlign: 'center',
-                  color: '#64748b',
-                  fontSize: '12px',
+                  width: '100%',
+                  tableLayout: 'fixed',
+                  borderCollapse: 'separate',
+                  borderSpacing: 0,
+                  fontSize: '11px',
                 }}
               >
-                Loading more networks...
-              </div>
-            )}
-          </div>
+                <tbody>
+                  {loadingNetworks && (
+                    <tr>
+                      <td
+                        colSpan={visibleColumns.length}
+                        style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
+                      >
+                        Loading networks…
+                      </td>
+                    </tr>
+                  )}
+                  {!loadingNetworks && filteredNetworks.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={visibleColumns.length}
+                        style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
+                      >
+                        {error ? `Error: ${error}` : 'No networks found'}
+                      </td>
+                    </tr>
+                  )}
+                  {!loadingNetworks &&
+                    filteredNetworks.map((net, idx) => (
+                      <tr
+                        key={`${net.bssid}-${idx}`}
+                        style={{
+                          borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
+                          background: selectedNetworks.has(net.bssid)
+                            ? 'rgba(59, 130, 246, 0.1)'
+                            : 'transparent',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => selectNetworkExclusive(net.bssid)}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = selectedNetworks.has(net.bssid)
+                            ? 'rgba(59, 130, 246, 0.15)'
+                            : 'rgba(71, 85, 105, 0.1)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = selectedNetworks.has(net.bssid)
+                            ? 'rgba(59, 130, 246, 0.1)'
+                            : 'transparent')
+                        }
+                      >
+                        {visibleColumns.map((col) => {
+                          const column = NETWORK_COLUMNS[col];
+                          const value = net[col as keyof NetworkRow];
+                          let content: React.ReactNode = value ?? 'N/A';
 
-          {/* Footer */}
-          <div
-            style={{
-              padding: '8px 12px',
-              borderTop: '1px solid rgba(71, 85, 105, 0.3)',
-              fontSize: '11px',
-              color: '#cbd5e1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'rgba(15, 23, 42, 0.6)',
-              borderRadius: '0 0 12px 12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span>Visible: {filteredNetworks.length}</span>
-              <span>Selected: {selectedNetworks.size}</span>
-              <span>Observations: {observationCount}</span>
+                          if (col === 'select') {
+                            return (
+                              <td key={col} style={{ width: column.width, padding: '4px 6px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedNetworks.has(net.bssid)}
+                                  onChange={() => toggleSelectNetwork(net.bssid)}
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </td>
+                            );
+                          }
+                          if (col === 'type') {
+                            content = <TypeBadge type={(value as NetworkRow['type']) || '?'} />;
+                          } else if (col === 'threat') {
+                            content = (
+                              <ThreatBadge
+                                threat={net.threat}
+                                reasons={net.threatReasons}
+                                evidence={net.threatEvidence}
+                              />
+                            );
+                          } else if (col === 'signal') {
+                            const signalValue = value as number | null;
+                            let color = '#6b7280';
+                            if (signalValue != null) {
+                              if (signalValue >= -50) color = '#10b981';
+                              else if (signalValue >= -70) color = '#f59e0b';
+                              else color = '#ef4444';
+                            }
+                            content = (
+                              <span style={{ color, fontWeight: 600 }}>
+                                {signalValue != null ? `${signalValue} dBm` : 'N/A'}
+                              </span>
+                            );
+                          } else if (col === 'observations') {
+                            content = (
+                              <span
+                                style={{
+                                  background: 'rgba(59, 130, 246, 0.2)',
+                                  color: '#93c5fd',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                                }}
+                              >
+                                {value as number}
+                              </span>
+                            );
+                          } else if (col === 'is_sentinel') {
+                            // Boolean badge for sentinel flag
+                            const isSentinel = value as boolean | null;
+                            content = isSentinel ? (
+                              <span
+                                style={{
+                                  background: 'rgba(234, 179, 8, 0.2)',
+                                  color: '#facc15',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                                }}
+                              >
+                                YES
+                              </span>
+                            ) : null;
+                          } else if (col === 'timespanDays') {
+                            const days = value as number | null;
+                            if (days !== null && days >= 0) {
+                              content = (
+                                <span
+                                  style={{
+                                    background:
+                                      days > 30
+                                        ? 'rgba(239, 68, 68, 0.2)'
+                                        : days > 7
+                                          ? 'rgba(251, 191, 36, 0.2)'
+                                          : 'rgba(34, 197, 94, 0.2)',
+                                    color: days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    border: `1px solid ${days > 30 ? 'rgba(239, 68, 68, 0.3)' : days > 7 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                                  }}
+                                >
+                                  {days === 0 ? 'Same day' : `${days} days`}
+                                </span>
+                              );
+                            } else {
+                              content = 'N/A';
+                            }
+                          } else if (col === 'channel') {
+                            // Only show channel for WiFi networks
+                            const channelValue = value as number | null;
+                            const networkType = net.type;
+                            if (networkType === 'W' && channelValue !== null) {
+                              content = (
+                                <span
+                                  style={{
+                                    background: 'rgba(16, 185, 129, 0.2)',
+                                    color: '#10b981',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  }}
+                                >
+                                  {channelValue}
+                                </span>
+                              );
+                            } else {
+                              content = networkType === 'W' ? 'N/A' : '—'; // Show dash for non-WiFi
+                            }
+                          } else if (col === 'frequency') {
+                            // Show frequency for all network types, but format differently
+                            const freqValue = value as number | null;
+                            if (freqValue !== null) {
+                              const isWiFi = net.type === 'W';
+                              content = (
+                                <span
+                                  style={{
+                                    color: isWiFi ? '#10b981' : '#94a3b8',
+                                    fontWeight: isWiFi ? '600' : '400',
+                                  }}
+                                >
+                                  {freqValue} MHz
+                                </span>
+                              );
+                            } else {
+                              content = 'N/A';
+                            }
+                          } else if (col === 'stationaryConfidence') {
+                            const conf = value as number | null;
+                            content =
+                              conf !== null && conf !== undefined
+                                ? `${(conf * 100).toFixed(0)}%`
+                                : 'N/A';
+                          } else if (col === 'max_distance_meters') {
+                            // Format distance in meters or km
+                            const distValue = value as number | null;
+                            if (distValue != null) {
+                              content =
+                                distValue >= 1000
+                                  ? `${(distValue / 1000).toFixed(2)} km`
+                                  : `${distValue.toFixed(0)} m`;
+                            } else {
+                              content = 'N/A';
+                            }
+                          }
+
+                          return (
+                            <td
+                              key={col}
+                              style={{
+                                width: column.width,
+                                minWidth: column.width,
+                                maxWidth: column.width,
+                                padding: '4px 6px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                borderRight: '1px solid rgba(71, 85, 105, 0.1)',
+                                color: col === 'bssid' ? macColor(net.bssid) : '#f1f5f9',
+                                fontFamily: col === 'bssid' ? 'monospace' : 'inherit',
+                              }}
+                            >
+                              {content}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              {isLoadingMore && (
+                <div
+                  style={{
+                    padding: '16px',
+                    textAlign: 'center',
+                    color: '#64748b',
+                    fontSize: '12px',
+                  }}
+                >
+                  Loading more networks...
+                </div>
+              )}
             </div>
-            <div style={{ color: '#94a3b8' }}>
-              {loadingNetworks
-                ? 'Loading networks…'
-                : loadingObservations
-                  ? 'Loading observations…'
-                  : selectedNetworks.size > 0 && observationCount === 0
-                    ? 'No observations for selection'
-                    : 'Ready'}
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: '8px 12px',
+                borderTop: '1px solid rgba(71, 85, 105, 0.3)',
+                fontSize: '11px',
+                color: '#cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(15, 23, 42, 0.6)',
+                borderRadius: '0 0 12px 12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span>Visible: {filteredNetworks.length}</span>
+                <span>Selected: {selectedNetworks.size}</span>
+                <span>Observations: {observationCount}</span>
+              </div>
+              <div style={{ color: '#94a3b8' }}>
+                {loadingNetworks
+                  ? 'Loading networks…'
+                  : loadingObservations
+                    ? 'Loading observations…'
+                    : selectedNetworks.size > 0 && observationCount === 0
+                      ? 'No observations for selection'
+                      : 'Ready'}
+              </div>
             </div>
           </div>
         </div>

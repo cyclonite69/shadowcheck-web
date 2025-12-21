@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // SVG Icons
 const AlertTriangle = ({ size = 24, className = '' }) => (
@@ -11,7 +11,7 @@ const AlertTriangle = ({ size = 24, className = '' }) => (
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
     <line x1="12" y1="9" x2="12" y2="13" />
     <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
@@ -119,243 +119,197 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
 );
 
 export default function DashboardPage() {
-  const [dashboardData, setDashboardData] = useState({
-    threats: { critical: 238, high: 205, medium: 62, low: 0 },
-    metrics: { total: 117687, detected: 53282, surveillance: 49, enriched: 0, wifi: 36391 },
-    radioTypes: { wifi: 36391, ble: 75163, bluetooth: 5754, lte: 259, gsm: 120 },
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [cards, setCards] = useState([
-    // Threat severity cards (top row)
+    // Main metrics (top row - large cards)
     {
       id: 1,
-      title: 'CRITICAL',
-      value: 238,
-      gradient: 'linear-gradient(to bottom right, #dc2626, #991b1b)',
-      icon: AlertTriangle,
+      title: 'Total Networks',
+      value: 0,
+      icon: Network,
+      color: '#3b82f6',
       x: 0,
-      y: 80,
-      w: 25,
-      h: 180,
-      type: 'threat',
+      y: 110,
+      w: 33.33,
+      h: 220,
+      type: 'total-networks',
     },
     {
       id: 2,
-      title: 'HIGH',
-      value: 205,
-      gradient: 'linear-gradient(to bottom right, #ea580c, #9a3412)',
-      icon: AlertTriangle,
-      x: 25,
-      y: 80,
-      w: 25,
-      h: 180,
-      type: 'threat',
+      title: 'WiFi Networks',
+      value: 0,
+      icon: Wifi,
+      color: '#10b981',
+      x: 33.33,
+      y: 110,
+      w: 33.33,
+      h: 220,
+      type: 'wifi-count',
     },
     {
       id: 3,
-      title: 'MEDIUM',
-      value: 62,
-      gradient: 'linear-gradient(to bottom right, #ca8a04, #854d0e)',
-      icon: AlertTriangle,
-      x: 50,
-      y: 80,
-      w: 25,
-      h: 180,
-      type: 'threat',
-    },
-    {
-      id: 4,
-      title: 'LOW',
+      title: 'BLE Devices',
       value: 0,
-      gradient: 'linear-gradient(to bottom right, #16a34a, #166534)',
-      icon: AlertTriangle,
-      x: 75,
-      y: 80,
-      w: 25,
-      h: 180,
-      type: 'threat',
+      icon: Radio,
+      color: '#8b5cf6',
+      x: 66.66,
+      y: 110,
+      w: 33.34,
+      h: 220,
+      type: 'radio-ble',
     },
 
-    // Metric cards (second row)
+    // Radio type breakdown (second row - medium cards)
+    {
+      id: 4,
+      title: 'Bluetooth',
+      value: 0,
+      icon: Bluetooth,
+      color: '#06b6d4',
+      x: 0,
+      y: 350,
+      w: 20,
+      h: 160,
+      type: 'radio-bt',
+    },
     {
       id: 5,
-      title: 'TOTAL NETWORKS',
-      value: 117687,
-      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
+      title: 'LTE',
+      value: 0,
       icon: Network,
-      x: 0,
-      y: 280,
+      color: '#ec4899',
+      x: 20,
+      y: 350,
       w: 20,
-      h: 120,
-      type: 'metric',
+      h: 160,
+      type: 'radio-lte',
     },
     {
       id: 6,
-      title: 'THREATS DETECTED',
-      value: 53282,
-      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
-      icon: AlertTriangle,
-      x: 20,
-      y: 280,
+      title: 'GSM',
+      value: 0,
+      icon: Radio,
+      color: '#f59e0b',
+      x: 40,
+      y: 350,
       w: 20,
-      h: 120,
-      type: 'metric',
+      h: 160,
+      type: 'radio-gsm',
     },
     {
       id: 7,
-      title: 'ACTIVE SURVEILLANCE',
-      value: 49,
-      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
-      icon: Eye,
-      x: 40,
-      y: 280,
+      title: '5G NR',
+      value: 0,
+      icon: Network,
+      color: '#10b981',
+      x: 60,
+      y: 350,
       w: 20,
-      h: 120,
-      type: 'metric',
+      h: 160,
+      type: 'radio-nr',
     },
     {
       id: 8,
-      title: 'DATA ENRICHED',
-      value: 0,
-      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
+      title: 'Analytics',
+      value: '→',
       icon: Database,
-      x: 60,
-      y: 280,
-      w: 20,
-      h: 120,
-      type: 'metric',
-    },
-    {
-      id: 9,
-      title: 'WIFI NETWORKS',
-      value: 36391,
-      gradient: 'linear-gradient(to bottom right, #1d4ed8, #1e3a8a)',
-      icon: Wifi,
+      color: '#64748b',
       x: 80,
-      y: 280,
+      y: 350,
       w: 20,
-      h: 120,
-      type: 'metric',
-    },
-
-    // Radio type cards (individual network types)
-    {
-      id: 10,
-      title: 'WIFI',
-      value: 36391,
-      gradient: 'linear-gradient(to bottom right, #2563eb, #1e40af)',
-      icon: Wifi,
-      x: 0,
-      y: 420,
-      w: 16,
-      h: 140,
-      type: 'radio',
-    },
-    {
-      id: 11,
-      title: 'BLE',
-      value: 75163,
-      gradient: 'linear-gradient(to bottom right, #9333ea, #6b21a8)',
-      icon: Radio,
-      x: 17,
-      y: 420,
-      w: 16,
-      h: 140,
-      type: 'radio',
-    },
-    {
-      id: 12,
-      title: 'BLUETOOTH',
-      value: 5754,
-      gradient: 'linear-gradient(to bottom right, #0891b2, #155e75)',
-      icon: Bluetooth,
-      x: 34,
-      y: 420,
-      w: 16,
-      h: 140,
-      type: 'radio',
-    },
-    {
-      id: 13,
-      title: 'LTE',
-      value: 259,
-      gradient: 'linear-gradient(to bottom right, #059669, #065f46)',
-      icon: Network,
-      x: 51,
-      y: 420,
-      w: 16,
-      h: 140,
-      type: 'radio',
-    },
-    {
-      id: 14,
-      title: 'GSM',
-      value: 120,
-      gradient: 'linear-gradient(to bottom right, #4f46e5, #3730a3)',
-      icon: Radio,
-      x: 68,
-      y: 420,
-      w: 16,
-      h: 140,
-      type: 'radio',
+      h: 160,
+      type: 'analytics-link',
     },
   ]);
 
   const [dragging, setDragging] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizing, setResizing] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const resizeStartRef = useRef({
+    startX: 0,
+    startY: 0,
+    startWidthPx: 0,
+    startHeightPx: 0,
+    cardXPercent: 0,
+  });
 
-  // Load real data
+  // Fetch dashboard data
   useEffect(() => {
-    const loadData = async () => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await fetch('/api/dashboard');
-        if (response.ok) {
-          const data = await response.json();
-          setDashboardData(data);
-          // Update card values with real data
-          setCards((prevCards) =>
-            prevCards.map((card) => {
-              switch (card.id) {
-                case 1:
-                  return { ...card, value: data.threats?.critical || 238 };
-                case 2:
-                  return { ...card, value: data.threats?.high || 205 };
-                case 3:
-                  return { ...card, value: data.threats?.medium || 62 };
-                case 4:
-                  return { ...card, value: data.threats?.low || 0 };
-                case 5:
-                  return { ...card, value: data.metrics?.total || 117687 };
-                case 6:
-                  return { ...card, value: data.metrics?.detected || 53282 };
-                case 7:
-                  return { ...card, value: data.metrics?.surveillance || 49 };
-                case 8:
-                  return { ...card, value: data.metrics?.enriched || 0 };
-                case 9:
-                  return { ...card, value: data.metrics?.wifi || 36391 };
-                case 10:
-                  return { ...card, value: data.radioTypes?.wifi || 36391 };
-                case 11:
-                  return { ...card, value: data.radioTypes?.ble || 75163 };
-                case 12:
-                  return { ...card, value: data.radioTypes?.bluetooth || 5754 };
-                case 13:
-                  return { ...card, value: data.radioTypes?.lte || 259 };
-                case 14:
-                  return { ...card, value: data.radioTypes?.gsm || 120 };
-                default:
-                  return card;
-              }
-            })
-          );
+        const response = await fetch('/api/analytics/network-types');
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
         }
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
+        const result = await response.json();
+        const data = result.data || [];
+
+        // Convert analytics data to dashboard format
+        const networkCounts = {};
+        let totalNetworks = 0;
+
+        data.forEach((item) => {
+          totalNetworks += item.count;
+          switch (item.type) {
+            case 'WiFi':
+              networkCounts.wifi = item.count;
+              break;
+            case 'BLE':
+              networkCounts.ble = item.count;
+              break;
+            case 'BT':
+              networkCounts.bluetooth = item.count;
+              break;
+            case 'LTE':
+              networkCounts.lte = item.count;
+              break;
+            case 'GSM':
+              networkCounts.gsm = item.count;
+              break;
+            case 'NR':
+              networkCounts.nr = item.count;
+              break;
+          }
+        });
+
+        // Update card values
+        setCards((prevCards) =>
+          prevCards.map((card) => {
+            switch (card.type) {
+              case 'total-networks':
+                return { ...card, value: totalNetworks };
+              case 'wifi-count':
+                return { ...card, value: networkCounts.wifi || 0 };
+              case 'radio-ble':
+                return { ...card, value: networkCounts.ble || 0 };
+              case 'radio-bt':
+                return { ...card, value: networkCounts.bluetooth || 0 };
+              case 'radio-lte':
+                return { ...card, value: networkCounts.lte || 0 };
+              case 'radio-gsm':
+                return { ...card, value: networkCounts.gsm || 0 };
+              case 'radio-nr':
+                return { ...card, value: networkCounts.nr || 0 };
+              case 'analytics-link':
+                return { ...card, value: '→' };
+              default:
+                return card;
+            }
+          })
+        );
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
-    loadData();
+
+    fetchDashboardData();
   }, []);
 
   const handleMouseDown = (e, cardId, mode = 'move') => {
@@ -369,41 +323,45 @@ export default function DashboardPage() {
         y: e.clientY - card.y,
       });
     } else if (mode === 'resize') {
+      const card = cards.find((c) => c.id === cardId);
+      if (!card) return;
+      resizeStartRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidthPx: (card.w / 100) * window.innerWidth,
+        startHeightPx: card.h,
+        cardXPercent: card.x,
+      };
       setResizing(cardId);
     }
   };
 
-  const handleMouseMove = React.useCallback(
+  const handleMouseMove = useCallback(
     (e) => {
       if (dragging) {
         setCards((prev) =>
           prev.map((card) => {
-            if (card.id === dragging) {
-              const newX = Math.max(
-                0,
-                Math.min(100 - card.w, ((e.clientX - dragOffset.x) / window.innerWidth) * 100)
-              );
-              const newY = Math.max(80, e.clientY - dragOffset.y);
-              return { ...card, x: newX, y: newY };
-            }
-            return card;
+            if (card.id !== dragging) return card;
+            const newX = Math.max(
+              0,
+              Math.min(100 - card.w, ((e.clientX - dragOffset.x) / window.innerWidth) * 100)
+            );
+            const newY = Math.max(0, e.clientY - dragOffset.y);
+            return { ...card, x: newX, y: newY };
           })
         );
       } else if (resizing) {
+        const start = resizeStartRef.current;
         setCards((prev) =>
           prev.map((card) => {
-            if (card.id === resizing) {
-              const newW = Math.max(
-                15,
-                Math.min(
-                  100 - card.x,
-                  ((e.clientX - (card.x * window.innerWidth) / 100) / window.innerWidth) * 100
-                )
-              );
-              const newH = Math.max(100, e.clientY - card.y);
-              return { ...card, w: newW, h: newH };
-            }
-            return card;
+            if (card.id !== resizing) return card;
+            const widthPx = Math.max(200, start.startWidthPx + (e.clientX - start.startX));
+            const newW = Math.max(
+              15,
+              Math.min(100 - start.cardXPercent, (widthPx / window.innerWidth) * 100)
+            );
+            const newH = Math.max(120, start.startHeightPx + (e.clientY - start.startY));
+            return { ...card, w: newW, h: newH };
           })
         );
       }
@@ -411,12 +369,16 @@ export default function DashboardPage() {
     [dragOffset.x, dragOffset.y, dragging, resizing]
   );
 
-  const handleMouseUp = React.useCallback(() => {
-    setDragging(null);
-    setResizing(null);
-  }, []);
+  const handleMouseUp = useCallback(() => {
+    if (dragging) {
+      setDragging(null);
+    }
+    if (resizing) {
+      setResizing(null);
+    }
+  }, [dragging, resizing]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!dragging && !resizing) return;
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
@@ -428,8 +390,13 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="relative w-full min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 overflow-hidden"
-      onMouseMove={(e) => handleMouseMove(e.nativeEvent)}
+      className="relative w-full min-h-screen overflow-y-auto overflow-x-hidden"
+      style={{
+        background:
+          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
+        height: '100vh',
+      }}
+      onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
@@ -489,43 +456,56 @@ export default function DashboardPage() {
               top: `${card.y}px`,
               width: width,
               height: `${card.h}px`,
-              background: card.gradient,
               transition: dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
               cursor: dragging === card.id ? 'grabbing' : 'grab',
               userSelect: dragging || resizing ? 'none' : 'auto',
             }}
             onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-            className="relative overflow-hidden rounded-xl border border-white/10 shadow-2xl hover:shadow-3xl transition-shadow group backdrop-blur-sm p-4 flex flex-col justify-between"
+            className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
           >
-            {/* Soft gradient overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-20 bg-gradient-to-br from-white/20 via-transparent to-black/20" />
+            <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
-            {/* Card Content - Centered & Balanced */}
-            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center">
-              {/* Icon */}
-              <div className="mb-3">
-                <Icon
-                  size={card.type === 'threat' ? 48 : 40}
-                  className="text-white/80 drop-shadow-lg"
-                />
-              </div>
+            {/* Card Content */}
+            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center p-4">
+              {loading ? (
+                <div className="text-slate-400 text-sm">Loading...</div>
+              ) : error ? (
+                <div className="text-red-400 text-xs">Error</div>
+              ) : (
+                <>
+                  {/* Icon */}
+                  <div className="mb-3">
+                    <Icon
+                      size={card.h > 180 ? 48 : card.h > 150 ? 40 : 32}
+                      className="drop-shadow-lg"
+                      style={{ color: card.color }}
+                    />
+                  </div>
 
-              {/* Value - Large and Bold */}
-              <div className="mb-2">
-                <p className="text-5xl font-extrabold text-white drop-shadow-2xl tracking-tight leading-none">
-                  {card.value.toLocaleString()}
-                </p>
-              </div>
+                  {/* Value - Large and Bold */}
+                  <div className="mb-2">
+                    <p
+                      className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
+                      style={{
+                        fontSize: card.h > 180 ? '48px' : card.h > 150 ? '36px' : '28px',
+                        color: card.color,
+                      }}
+                    >
+                      {card.value.toLocaleString()}
+                    </p>
+                  </div>
 
-              {/* Title - Elegant Typography */}
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-widest text-white/90 drop-shadow">
-                  {card.title}
-                </p>
-              </div>
+                  {/* Title - Elegant Typography */}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-300 drop-shadow">
+                      {card.title}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Grip Handle - Subtle corner indicator */}
+            {/* Grip Handle */}
             <div className="absolute top-2 right-2 z-20">
               <GripHorizontal
                 size={14}

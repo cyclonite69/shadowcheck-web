@@ -149,72 +149,164 @@ router.post('/ml/reassess', async (req, res, next) => {
   try {
     console.log('🔄 Starting network reassessment...');
 
-    // Get networks with basic stats
+    // Get WiFi networks with behavioral stats
     const { rows: networks } = await query(`
+      WITH home_location AS (
+        SELECT location::geography as home_point
+        FROM app.location_markers
+        WHERE marker_type = 'home'
+        LIMIT 1
+      )
       SELECT
         n.bssid,
+        n.type,
+        n.ssid,
+        n.encryption,
         COUNT(DISTINCT l.unified_id) as observation_count,
         COUNT(DISTINCT DATE(l.observed_at)) as unique_days,
         COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
-        MAX(l.signal_dbm) as max_signal
+        MAX(l.signal_dbm) as max_signal,
+        MIN(l.signal_dbm) as min_signal,
+        COALESCE(MAX(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        )) / 1000.0, 0) as max_distance_km,
+        COALESCE(MIN(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        )) / 1000.0, 0) as min_distance_km,
+        BOOL_OR(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        ) < 100) as seen_at_home,
+        BOOL_OR(ST_Distance(
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+          h.home_point
+        ) > 500) as seen_away
       FROM app.networks n
       JOIN app.observations l ON n.bssid = l.bssid
-      WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
-      GROUP BY n.bssid
-      LIMIT 1000
+      CROSS JOIN home_location h
+      WHERE l.latitude IS NOT NULL 
+        AND l.longitude IS NOT NULL
+        AND n.type = 'W'
+      GROUP BY n.bssid, n.type, n.ssid, n.encryption
+      HAVING COUNT(DISTINCT l.unified_id) >= 3
+      LIMIT 5000
     `);
 
-    console.log(`Found ${networks.length} networks to reassess`);
+    console.log(`Found ${networks.length} WiFi networks to reassess`);
 
     let updated = 0;
 
-    // Process each network
-    for (const network of networks) {
+    for (const net of networks) {
       try {
-        // Calculate threat score based on network behavior
         let score = 0;
+        const reasons = [];
 
-        // More observations = higher threat potential
-        score += Math.min(network.observation_count * 2, 40);
+        // MOBILITY INDICATORS (40 points max)
+        const distanceRange = net.max_distance_km - net.min_distance_km;
+        if (distanceRange > 10) {
+          score += 40;
+          reasons.push('high_mobility');
+        } else if (distanceRange > 5) {
+          score += 25;
+          reasons.push('moderate_mobility');
+        } else if (distanceRange > 2) {
+          score += 15;
+          reasons.push('local_mobility');
+        }
 
-        // Seen over multiple days = higher threat
-        score += Math.min(network.unique_days * 3, 30);
-
-        // Multiple locations = mobile/suspicious
-        score += Math.min(network.unique_locations * 4, 20);
-
-        // Strong signal = closer/more dangerous
-        if (network.max_signal > -50) {
+        // PERSISTENCE (30 points max)
+        if (net.unique_days >= 7) {
+          score += 30;
+          reasons.push('persistent_tracking');
+        } else if (net.unique_days >= 3) {
+          score += 20;
+          reasons.push('multi_day_presence');
+        } else if (net.unique_days >= 2) {
           score += 10;
+          reasons.push('repeated_sighting');
+        }
+
+        // FOLLOWING BEHAVIOR (20 points)
+        if (net.seen_at_home && net.seen_away && distanceRange > 1) {
+          score += 20;
+          reasons.push('follows_home_location');
+        }
+
+        // SIGNAL STRENGTH ANOMALIES (10 points)
+        if (net.max_signal > -40) {
+          score += 10;
+          reasons.push('very_close_proximity');
+        } else if (net.max_signal > -50) {
+          score += 5;
+          reasons.push('close_proximity');
+        }
+
+        // SUSPICIOUS CHARACTERISTICS
+        // Hidden SSID
+        if (!net.ssid || net.ssid.trim() === '') {
+          score += 5;
+          reasons.push('hidden_ssid');
+        }
+
+        // Open network (unusual for surveillance but possible)
+        if (net.encryption === 'OPEN' && net.observation_count > 5) {
+          score += 5;
+          reasons.push('open_network_mobile');
+        }
+
+        // Multiple unique locations (geographic spread)
+        if (net.unique_locations > 10) {
+          score += 10;
+          reasons.push('high_location_diversity');
+        } else if (net.unique_locations > 5) {
+          score += 5;
+          reasons.push('moderate_location_diversity');
         }
 
         const mlScore = Math.min(score, 100);
 
-        // Update the network
         await query(
           `
           UPDATE app.networks 
-          SET ml_threat_score = $1, updated_at = NOW()
-          WHERE bssid = $2
+          SET 
+            ml_threat_score = $1, 
+            threat_indicators = $2,
+            updated_at = NOW()
+          WHERE bssid = $3
         `,
-          [mlScore, network.bssid]
+          [mlScore, JSON.stringify(reasons), net.bssid]
         );
 
         updated++;
       } catch (err) {
-        console.warn(`Failed to score ${network.bssid}:`, err.message);
+        console.warn(`Failed to score ${net.bssid}:`, err.message);
       }
     }
 
-    console.log(`✓ Successfully updated ${updated} networks`);
+    console.log(`✓ Successfully updated ${updated} WiFi networks`);
 
     res.json({
       ok: true,
-      message: 'Networks reassessed successfully',
+      message: 'WiFi networks reassessed successfully',
       networksUpdated: updated,
       modelUsed: {
-        type: 'behavioral_scoring',
-        features: ['observation_count', 'unique_days', 'unique_locations', 'max_signal'],
+        type: 'wifi_behavioral_scoring',
+        features: [
+          'distance_range',
+          'unique_days',
+          'follows_home',
+          'signal_strength',
+          'hidden_ssid',
+          'location_diversity',
+        ],
+        thresholds: {
+          critical: '≥80 (persistent mobile tracking)',
+          high: '60-79 (suspicious mobility)',
+          medium: '40-59 (unusual behavior)',
+          low: '20-39 (minor anomalies)',
+        },
       },
     });
   } catch (err) {

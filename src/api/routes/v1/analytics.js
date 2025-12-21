@@ -217,4 +217,66 @@ router.get(
   })
 );
 
+/**
+ * GET /api/analytics/threat-distribution
+ * Get distribution of threat scores across ranges
+ */
+router.get(
+  '/threat-distribution',
+  asyncHandler(async (req, res) => {
+    req.logger?.info('Retrieving threat score distribution');
+
+    const data = await analyticsService.getThreatDistribution();
+
+    req.logger?.info('Threat score distribution retrieved', {
+      ranges: data.length,
+    });
+
+    res.json({
+      ok: true,
+      data,
+    });
+  })
+);
+
+/**
+ * GET /api/analytics/threat-trends
+ * Get threat score trends over time
+ *
+ * Query parameters:
+ * - range: '24h' | '7d' | '30d' | '90d' | 'all' (default: '30d')
+ */
+router.get(
+  '/threat-trends',
+  asyncHandler(async (req, res) => {
+    const range = req.query.range || '30d';
+
+    // Validate range parameter
+    const rangeValidation = validateTimeRange(range);
+    if (!rangeValidation.valid) {
+      throw new ValidationError('Invalid range parameter', [
+        { parameter: 'range', error: rangeValidation.error },
+      ]);
+    }
+
+    req.logger?.info('Retrieving threat trends', { range });
+
+    const data = await analyticsService.getThreatTrends(
+      rangeValidation.value,
+      CONFIG.MIN_VALID_TIMESTAMP
+    );
+
+    req.logger?.info('Threat trends retrieved', {
+      range,
+      dataPoints: data.length,
+    });
+
+    res.json({
+      ok: true,
+      range: rangeValidation.value,
+      data,
+    });
+  })
+);
+
 module.exports = router;

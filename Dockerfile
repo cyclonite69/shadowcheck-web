@@ -13,6 +13,9 @@ RUN npm ci
 # Copy application files
 COPY . .
 
+# Build frontend
+RUN npm run build
+
 # Remove development dependencies
 RUN npm prune --production
 
@@ -34,6 +37,7 @@ WORKDIR /app
 # Copy package files and installed dependencies from builder
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
 
 # Copy application code
 COPY --chown=nodejs:nodejs server.js ./

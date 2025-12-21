@@ -26,6 +26,10 @@ type NetworkData = {
   source_tag?: string;
   accuracy?: number;
   altitude?: number;
+  obs_count?: number;
+  threat_level?: string;
+  is_suspicious?: boolean;
+  distance_from_home?: number;
 };
 
 type LayerType = 'scatterplot' | 'heatmap' | 'hexagon';
@@ -67,10 +71,14 @@ const KeplerTestPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [networkData, setNetworkData] = useState<NetworkData[]>([]);
   const [selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
+  const [actualCounts, setActualCounts] = useState<{
+    observations: number;
+    networks: number;
+  } | null>(null);
 
   // Controls
   const [layerType, setLayerType] = useState<LayerType>('scatterplot');
-  const [pointSize, setPointSize] = useState<number>(0.5);
+  const [pointSize, setPointSize] = useState<number>(0.1);
   const [signalThreshold, setSignalThreshold] = useState<number>(-100);
   const [pitch, setPitch] = useState<number>(0);
   const [height3d, setHeight3d] = useState<number>(1);
@@ -237,12 +245,12 @@ const KeplerTestPage: React.FC = () => {
 
               <!-- Observation Details -->
               <div style="background: rgba(16, 185, 129, 0.08); padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                <div style="color: #10b981; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">📡 Observation Data</div>
+                <div style="color: #10b981; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">📡 Network Intelligence</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 10px;">
-                  ${object.device_id ? `<div><span style="color: #94a3b8;">Device ID:</span><br><span style="color: #6ee7b7; font-family: monospace;">${object.device_id}</span></div>` : ''}
-                  ${object.source_tag ? `<div><span style="color: #94a3b8;">Source:</span><br><span style="color: #6ee7b7;">${object.source_tag}</span></div>` : ''}
-                  ${object.accuracy ? `<div><span style="color: #94a3b8;">GPS Accuracy:</span><br><span style="color: #6ee7b7;">±${object.accuracy}m</span></div>` : ''}
-                  ${object.altitude ? `<div><span style="color: #94a3b8;">Altitude:</span><br><span style="color: #6ee7b7;">${object.altitude}m</span></div>` : ''}
+                  ${obsCount > 0 ? `<div><span style="color: #94a3b8;">Observations:</span><br><span style="color: #6ee7b7; font-weight: 600;">${obsCount}</span></div>` : ''}
+                  ${object.threat_level ? `<div><span style="color: #94a3b8;">Threat Level:</span><br><span style="color: ${object.threat_level === 'HIGH' ? '#ef4444' : object.threat_level === 'MEDIUM' ? '#f59e0b' : '#22c55e'}; font-weight: 600;">${object.threat_level}</span></div>` : ''}
+                  ${object.distance_from_home ? `<div><span style="color: #94a3b8;">Distance:</span><br><span style="color: #6ee7b7;">${object.distance_from_home.toFixed(1)}km</span></div>` : ''}
+                  ${object.is_suspicious ? `<div><span style="color: #94a3b8;">Status:</span><br><span style="color: #ef4444; font-weight: 600;">⚠️ Suspicious</span></div>` : ''}
                 </div>
               </div>
 
@@ -355,11 +363,17 @@ const KeplerTestPage: React.FC = () => {
 
         const [tokenRes, dataRes] = await Promise.all([
           fetch('/api/mapbox-token'),
-          fetch('/api/kepler/observations'),
+          fetch('/api/kepler/observations'), // Back to raw observations for full dataset
         ]);
 
         const tokenData = await tokenRes.json();
         const geojson = await dataRes.json();
+
+        // Set actual counts from the data itself
+        setActualCounts({
+          observations: geojson.features?.length || 0,
+          networks: 0, // Will be updated when we add networks endpoint
+        });
 
         if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
         if (!geojson.features || !Array.isArray(geojson.features))
@@ -485,8 +499,14 @@ const KeplerTestPage: React.FC = () => {
             onChange={(e) => setDatasetType(e.target.value as 'observations' | 'networks')}
             className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
           >
-            <option value="observations">Observations (416K raw)</option>
-            <option value="networks">Networks (117K trilaterated)</option>
+            <option value="observations">
+              Observations ({actualCounts ? actualCounts.observations.toLocaleString() : '416K'}{' '}
+              raw)
+            </option>
+            <option value="networks">
+              Networks ({actualCounts ? actualCounts.networks.toLocaleString() : '117K'}{' '}
+              trilaterated)
+            </option>
           </select>
         </div>
 
@@ -587,7 +607,13 @@ const KeplerTestPage: React.FC = () => {
         >
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">Networks:</span>
+              <span className="text-slate-400">DB Total:</span>
+              <span className="text-blue-400 font-semibold">
+                {actualCounts ? actualCounts.observations.toLocaleString() : 'Loading...'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Rendered:</span>
               <span className="text-blue-400 font-semibold">
                 {filteredCount.toLocaleString()} / {networkData.length.toLocaleString()}
               </span>

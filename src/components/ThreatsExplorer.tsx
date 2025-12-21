@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 type NetworkRow = {
   bssid: string;
-  ssid: string;
-  device_id: string;
-  observed_at: string;
+  ssid: string | null;
+  device_id?: string | null;
+  observed_at?: string | null;
   signal: number | null;
 };
 
@@ -95,7 +95,7 @@ export default function ThreatsExplorer({
                 </span>
               </div>
               <div className="text-xs text-slate-400 mt-1 font-mono">{net.bssid}</div>
-              <div className="text-xs text-slate-500 mt-1">{net.device_id}</div>
+              {net.device_id && <div className="text-xs text-slate-500 mt-1">{net.device_id}</div>}
             </div>
           ))
         )}
