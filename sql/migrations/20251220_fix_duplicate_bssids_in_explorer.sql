@@ -402,8 +402,22 @@ CROSS JOIN home_location home
 LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
 LEFT JOIN movement_metrics mm ON mm.bssid = ap.bssid
 LEFT JOIN threat_scores ts ON ts.bssid = ap.bssid
-LEFT JOIN unique_manufacturers rm
-  ON UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', '')) = rm.prefix_24bit
+LEFT JOIN LATERAL (
+  SELECT
+    manufacturer,
+    address,
+    bit_length,
+    prefix
+  FROM app.radio_manufacturers r
+  WHERE r.prefix =
+    SUBSTRING(
+      REPLACE(ap.bssid, ':', ''),
+      1,
+      r.bit_length / 4
+    )
+  ORDER BY r.bit_length DESC
+  LIMIT 1
+) rm ON true
 WHERE COALESCE(ap.is_sentinel, FALSE) = FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_observations_bssid_time
