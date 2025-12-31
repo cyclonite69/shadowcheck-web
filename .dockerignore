@@ -10,6 +10,7 @@ yarn-error.log
 
 # Data files
 data/
+backups/
 *.csv
 *.db
 *.sqlite
@@ -51,11 +52,15 @@ __tests__/
 logs/
 *.log
 
+# Secrets
+secrets/
+
 # Build artifacts
 dist/
 build/
 
 # Database admin files
+pgadmin-config/
 pgadmin-servers.json
 pgpass
 .pgpass
@@ -69,3 +74,7 @@ scripts/ml/requirements.txt
 docker-compose.yml
 Dockerfile
 .dockerignore
+
+# Cache/temp
+.cache/
+tmp/
