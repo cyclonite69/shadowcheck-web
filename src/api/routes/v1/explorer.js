@@ -245,15 +245,15 @@ router.get('/explorer/networks', async (req, res, _next) => {
       ${whereClause}
       ${orderClause}
       ${
-        limit === null
-          ? ''
-          : (() => {
-              const limitIndex = params.length + 1;
-              const offsetIndex = params.length + 2;
-              params.push(limit, offset);
-              return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
-            })()
-      };
+  limit === null
+    ? ''
+    : (() => {
+      const limitIndex = params.length + 1;
+      const offsetIndex = params.length + 2;
+      params.push(limit, offset);
+      return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+    })()
+};
     `;
 
     const result = await query(sql, params);
@@ -387,12 +387,12 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
         signal,
         lat,
         lon,
-        obs_count AS observations,
-        first_observed_at AS first_seen,
-        last_observed_at AS last_seen,
-        (frequency BETWEEN 5000 AND 5900) AS is_5ghz,
-        (frequency BETWEEN 5925 AND 7125) AS is_6ghz,
-        (ssid IS NULL OR TRIM(ssid) = '' OR ssid = '(hidden)') AS is_hidden,
+        observations,
+        first_seen,
+        last_seen,
+        is_5ghz,
+        is_6ghz,
+        is_hidden,
         type,
         frequency,
         capabilities,
@@ -402,16 +402,16 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
         -- New enrichment fields (non-breaking)
         manufacturer,
         manufacturer_address,
-        NULL::numeric AS min_altitude_m,
-        NULL::numeric AS max_altitude_m,
-        NULL::numeric AS altitude_span_m,
-        NULL::numeric AS max_distance_meters,
-        NULL::numeric AS last_altitude_m,
-        FALSE AS is_sentinel,
+        min_altitude_m,
+        max_altitude_m,
+        altitude_span_m,
+        max_distance_meters,
+        last_altitude_m,
+        is_sentinel,
         -- Threat intelligence (v3)
         threat,
         COUNT(*) OVER() AS total
-      FROM public.api_network_explorer_full_mv_v2
+      FROM public.api_network_explorer_mv
       ${whereClause}
       ${orderClause}
       ${limit !== null ? `LIMIT $${params.length + 1} OFFSET $${params.length + 2}` : ''};
