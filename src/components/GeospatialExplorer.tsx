@@ -352,6 +352,7 @@ export default function GeospatialExplorer() {
   const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [useObservationFilters, setUseObservationFilters] = useState(false);
   const [loadingNetworks, setLoadingNetworks] = useState(false);
   const [loadingObservations, setLoadingObservations] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1403,11 +1404,14 @@ export default function GeospatialExplorer() {
         let truncated = false;
         let renderBudgetLimit: number | null = null;
         let allRows: any[] = [];
+        const observationFilters = useObservationFilters
+          ? debouncedFilterState
+          : { filters: {}, enabled: {} };
 
         while (true) {
           const params = new URLSearchParams({
-            filters: JSON.stringify(debouncedFilterState.filters),
-            enabled: JSON.stringify(debouncedFilterState.enabled),
+            filters: JSON.stringify(observationFilters.filters),
+            enabled: JSON.stringify(observationFilters.enabled),
             bssids: JSON.stringify(selectedBssids),
             limit: String(limit),
             offset: String(offset),
@@ -1489,7 +1493,7 @@ export default function GeospatialExplorer() {
     return () => {
       controller.abort();
     };
-  }, [selectedNetworks, JSON.stringify(debouncedFilterState)]);
+  }, [selectedNetworks, JSON.stringify(debouncedFilterState), useObservationFilters]);
 
   // Server-side sorting - no client-side sorting needed
   const filteredNetworks = useMemo(() => networks, [networks]);
@@ -2308,6 +2312,28 @@ export default function GeospatialExplorer() {
                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                   Filters apply across list + map.
                 </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '11px',
+                    color: '#cbd5e1',
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(71, 85, 105, 0.4)',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                  }}
+                  title="When off, observations ignore global filters and fetch all points for selected networks."
+                >
+                  <input
+                    type="checkbox"
+                    checked={useObservationFilters}
+                    onChange={(e) => setUseObservationFilters(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  Use filters for observations
+                </label>
                 {expensiveSort && (
                   <span
                     style={{

@@ -75,6 +75,8 @@ backup-*.sql
 *.dump
 backups/*.sql
 backups/*.dump
+backups/**
+checksums.sha256
 
 # Keep backup directory structure but not large files
 !backups/.gitkeep

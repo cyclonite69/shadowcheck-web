@@ -114,6 +114,14 @@ const Navigation: React.FC = () => {
           Analytics
         </a>
         <a
+          href="/wigle-test"
+          style={linkStyle('/wigle-test')}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          WiGLE Test
+        </a>
+        <a
           href="/ml-training"
           style={linkStyle('/ml-training')}
           onMouseEnter={handleMouseEnter}

@@ -449,12 +449,12 @@ class UniversalFilterQueryBuilder {
     }
 
     if (e.radiusFilter && f.radiusFilter) {
+      const radiusLon = this.addParam(f.radiusFilter.longitude);
+      const radiusLat = this.addParam(f.radiusFilter.latitude);
       where.push(
         `ST_DWithin(
           ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
-          ST_SetSRID(ST_MakePoint(${this.addParam(f.radiusFilter.longitude)}, ${this.addParam(
-            f.radiusFilter.latitude
-          )}), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(${radiusLon}, ${radiusLat}), 4326)::geography,
           ${this.addParam(f.radiusFilter.radiusMeters)}
         )`
       );
@@ -1366,8 +1366,8 @@ class UniversalFilterQueryBuilder {
         ne.threat
       FROM filtered_obs o
       LEFT JOIN public.api_network_explorer_full_mv_v2 ne ON UPPER(ne.bssid) = UPPER(o.bssid)
-      WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
-        OR o.geom IS NOT NULL
+      WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
+        OR o.geom IS NOT NULL)
         ${whereClause}
       ORDER BY o.time ASC
       LIMIT ${this.addParam(limit)}
@@ -1398,8 +1398,8 @@ class UniversalFilterQueryBuilder {
       ${cte}
       SELECT COUNT(*)::bigint AS total
       FROM filtered_obs o
-      WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
-        OR o.geom IS NOT NULL
+      WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
+        OR o.geom IS NOT NULL)
         ${whereClause}
     `;
 

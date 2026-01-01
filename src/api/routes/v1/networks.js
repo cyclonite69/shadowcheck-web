@@ -170,6 +170,15 @@ router.get('/networks', async (req, res, next) => {
       }
     }
 
+    const typeExpr = `
+      CASE
+        WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN ne.type
+        WHEN ne.frequency BETWEEN 2412 AND 7125 THEN 'W'
+        WHEN COALESCE(ne.capabilities, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
+        ELSE '?'
+      END
+    `;
+
     const sortColumnMap = {
       last_seen: 'last_observed_at',
       last_observed_at: 'last_observed_at',
@@ -177,7 +186,7 @@ router.get('/networks', async (req, res, next) => {
       observed_at: 'observed_at',
       ssid: 'lower(ssid)',
       bssid: 'bssid',
-      type: 'type',
+      type: typeExpr,
       security: 'security',
       signal: 'signal',
       frequency: 'frequency',
@@ -363,7 +372,7 @@ router.get('/networks', async (req, res, next) => {
     }
     if (radioTypes && radioTypes.length > 0) {
       params.push(radioTypes);
-      whereClauses.push(`type = ANY($${params.length})`);
+      whereClauses.push(`(${typeExpr}) = ANY($${params.length})`);
     }
 
     if (quickSearchRaw !== undefined && String(quickSearchRaw).trim() !== '') {
@@ -384,12 +393,7 @@ router.get('/networks', async (req, res, next) => {
       SELECT
         ne.bssid,
         ne.ssid,
-        CASE
-          WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN ne.type
-          WHEN ne.frequency BETWEEN 2412 AND 7125 THEN 'W'
-          WHEN COALESCE(ne.capabilities, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
-          ELSE '?'
-        END AS type,
+        ${typeExpr} AS type,
         ne.observed_at,
         ne.lat,
         ne.lon,
@@ -552,7 +556,7 @@ router.get('/networks', async (req, res, next) => {
       const { rows } = await client.query(sql, params);
       const countSql = `
         SELECT COUNT(*)::bigint AS total
-        FROM public.api_network_explorer_full_mv_v2
+        FROM public.api_network_explorer_full_mv_v2 ne
         ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       `;
       const countResult = await client.query(countSql, params.slice(0, params.length - 2));

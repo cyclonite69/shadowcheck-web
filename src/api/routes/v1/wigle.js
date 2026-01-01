@@ -164,4 +164,64 @@ router.get('/wigle/search', async (req, res, next) => {
   }
 });
 
+// GET /api/wigle/networks-v2 - Fetch WiGLE v2 networks for map testing
+router.get('/wigle/networks-v2', async (req, res, next) => {
+  try {
+    const limitRaw = req.query.limit;
+    const offsetRaw = req.query.offset;
+    const typeRaw = req.query.type;
+    const includeTotal = String(req.query.include_total || '') === '1';
+
+    const limit = Math.min(parseInt(limitRaw, 10) || 20000, 50000);
+    const offset = Math.max(parseInt(offsetRaw, 10) || 0, 0);
+    const params = [limit, offset];
+    const whereClauses = ['trilat IS NOT NULL', 'trilong IS NOT NULL'];
+
+    if (typeRaw && String(typeRaw).trim() !== '') {
+      params.unshift(String(typeRaw).trim());
+      whereClauses.push('type = $1');
+    }
+
+    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const sql = `
+      SELECT
+        bssid,
+        ssid,
+        trilat,
+        trilong,
+        type,
+        encryption,
+        lasttime
+      FROM public.wigle_v2_networks_search
+      ${whereSql}
+      ORDER BY lasttime DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const { rows } = await query(sql, params);
+    let total = null;
+    if (includeTotal) {
+      const countParams = typeRaw && String(typeRaw).trim() !== '' ? [String(typeRaw).trim()] : [];
+      const countSql = `
+        SELECT COUNT(*)::bigint AS total
+        FROM public.wigle_v2_networks_search
+        ${whereSql}
+      `;
+      const countResult = await query(countSql, countParams);
+      total = parseInt(countResult.rows[0]?.total || 0, 10);
+    }
+
+    res.json({
+      ok: true,
+      data: rows,
+      limit,
+      offset,
+      total,
+      truncated: total !== null ? offset + rows.length < total : false,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
