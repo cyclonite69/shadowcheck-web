@@ -1,0 +1,23 @@
+version: 2.1
+
+jobs:
+  playwright-tests:
+    docker:
+      - image: cimg/base:2023.11
+    parallelism: 4
+    resource_class: large
+    steps:
+      - checkout
+      - run:
+          command: |
+            mkdir test-results
+            pnpm run serve &
+            TESTFILES=$(circleci tests glob "specs/e2e/**/*.spec.ts")
+            echo "$TESTFILES" | circleci tests run --command="xargs pnpm playwright test --config=playwright.config.ci.ts --reporter=junit" --verbose --split-by=timings
+      - store_test_results:
+          path: test-results
+
+workflows:
+  test:
+    jobs:
+      - playwright-tests
