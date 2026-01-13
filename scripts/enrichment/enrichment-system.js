@@ -91,7 +91,7 @@ class APIManager {
           source: 'overpass',
         };
       }
-    } catch (e) {
+    } catch {
       return null;
     }
     return null;
@@ -118,7 +118,7 @@ class APIManager {
           source: 'nominatim',
         };
       }
-    } catch (e) {
+    } catch {
       return null;
     }
     return null;
@@ -146,7 +146,7 @@ class APIManager {
           source: 'locationiq',
         };
       }
-    } catch (e) {
+    } catch {
       return null;
     }
     return null;
@@ -176,7 +176,7 @@ class APIManager {
           source: 'opencage',
         };
       }
-    } catch (e) {
+    } catch {
       return null;
     }
     return null;
@@ -326,7 +326,7 @@ class BatchController {
             this.stats.failed++;
             return null;
           }
-        } catch (err) {
+        } catch {
           this.stats.failed++;
           return null;
         }

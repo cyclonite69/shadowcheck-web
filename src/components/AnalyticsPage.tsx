@@ -160,11 +160,15 @@ const SECURITY_TYPE_COLORS = {
 
 export default function Analytics() {
   const [timeFrame, setTimeFrame] = useState('30d'); // '30d', '90d', '6mo', '1yr', 'all'
+  const [showFilters, setShowFilters] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useFilterURLSync();
   const { setFilter, enableFilter } = useFilterStore();
+  const activeFilterCount = useFilterStore(
+    (state) => Object.values(state.enabled).filter(Boolean).length
+  );
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );
@@ -810,7 +814,7 @@ export default function Analytics() {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      <FilterPanel />
+      {showFilters && <FilterPanel density="compact" />}
       <div className="relative flex-1 overflow-y-auto">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
@@ -852,7 +856,7 @@ export default function Analytics() {
             </p>
 
             {/* Time Frame Selector */}
-            <div className="pointer-events-auto mt-4 flex justify-center gap-2">
+            <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-2">
               {[
                 { value: '30d', label: '30 Days' },
                 { value: '90d', label: '90 Days' },
@@ -897,6 +901,32 @@ export default function Analytics() {
                   {option.label}
                 </button>
               ))}
+              <button
+                onClick={() => setShowFilters((prev) => !prev)}
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(71, 85, 105, 0.5)',
+                  background: 'rgba(15, 23, 42, 0.55)',
+                  color: '#cbd5e1',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  backdropFilter: 'blur(4px)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
+                  e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.7)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.55)';
+                  e.currentTarget.style.borderColor = 'rgba(71, 85, 105, 0.5)';
+                }}
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </button>
             </div>
           </div>
         </div>

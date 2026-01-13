@@ -201,7 +201,7 @@ export default function GeospatialIntelligencePage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4">
-        <FilterPanel />
+        <FilterPanel density="compact" />
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card title="Networks" value={networks.length} accent="#38bdf8" />

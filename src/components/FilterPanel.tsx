@@ -34,27 +34,59 @@ const Filter = ({ className = '' }) => (
   </svg>
 );
 
+type FilterPanelDensity = 'normal' | 'compact';
+
 interface FilterSectionProps {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  compact?: boolean;
 }
 
-const FilterSection: React.FC<FilterSectionProps> = ({ title, children, defaultOpen = false }) => {
+const FilterSection: React.FC<FilterSectionProps> = ({
+  title,
+  children,
+  defaultOpen = false,
+  compact = false,
+}) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="border-b border-slate-700">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3 text-left hover:bg-slate-800/50 transition-colors"
+        className={`filter-panel__section-toggle w-full flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors ${
+          compact ? 'px-2.5 py-1.5' : 'px-3 py-2.5'
+        }`}
       >
-        <span className="font-medium text-slate-200">{title}</span>
-        <ChevronDown
-          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        />
+        <span
+          className={`filter-panel__section-title font-medium text-slate-200 ${
+            compact ? 'text-xs' : 'text-sm'
+          }`}
+        >
+          {title}
+        </span>
+        <span
+          className={`inline-flex items-center justify-center rounded-md border border-slate-700/80 bg-slate-800/70 ${
+            compact ? 'h-4 w-4' : 'h-5 w-5'
+          }`}
+        >
+          <ChevronDown
+            className={`filter-panel__section-icon text-slate-300 transition-transform ${
+              compact ? 'w-3 h-3' : 'w-4 h-4'
+            } ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </span>
       </button>
-      {isOpen && <div className="p-3 space-y-3 bg-slate-900/30">{children}</div>}
+      {isOpen && (
+        <div
+          className={`filter-panel__section-body space-y-2 bg-slate-900/30 ${
+            compact ? 'px-2.5 py-2' : 'px-3 py-2.5'
+          }`}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -64,24 +96,37 @@ interface FilterInputProps {
   enabled: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  compact?: boolean;
 }
 
-const FilterInput: React.FC<FilterInputProps> = ({ label, enabled, onToggle, children }) => (
-  <div className="space-y-2">
-    <label className="flex items-center space-x-2">
+const FilterInput: React.FC<FilterInputProps> = ({
+  label,
+  enabled,
+  onToggle,
+  children,
+  compact = false,
+}) => (
+  <div className={`filter-panel__input ${compact ? 'space-y-1.5' : 'space-y-2'}`}>
+    <label className={`flex items-center space-x-2 ${compact ? 'text-xs' : 'text-sm'}`}>
       <input
         type="checkbox"
         checked={enabled}
         onChange={onToggle}
-        className="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
+        className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
       />
-      <span className="text-sm text-slate-300">{label}</span>
+      <span className="filter-panel__label text-slate-300">{label}</span>
     </label>
-    {enabled && <div className="ml-6">{children}</div>}
+    {enabled && (
+      <div className={`filter-panel__input-body ${compact ? 'ml-5' : 'ml-6'}`}>{children}</div>
+    )}
   </div>
 );
 
-export const FilterPanel: React.FC = () => {
+interface FilterPanelProps {
+  density?: FilterPanelDensity;
+}
+
+export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) => {
   const {
     filters,
     enabled,
@@ -99,25 +144,37 @@ export const FilterPanel: React.FC = () => {
   const activeFilterCount = Object.values(enabled).filter(Boolean).length;
   const [presetName, setPresetName] = useState('');
 
+  const isCompact = density === 'compact';
+  const listLayoutClass = isCompact ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+  const listItemTextClass = isCompact ? 'text-[11px]' : 'text-xs';
+  const controlBase =
+    'filter-panel__control w-full bg-slate-800 border border-slate-600 rounded text-slate-200';
+  const controlSize = isCompact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm';
+  const controlClass = `${controlBase} ${controlSize}`;
+
   return (
     <div
-      className="w-80 bg-slate-900 border-r border-slate-700 flex flex-col h-full flex-shrink-0"
+      className={`filter-panel w-80 bg-slate-900 border-r border-slate-700 flex flex-col h-full flex-shrink-0 ${
+        isCompact ? 'filter-panel--compact' : ''
+      }`}
       style={{
-        width: 320,
-        minWidth: 320,
+        width: isCompact ? 280 : 320,
+        minWidth: isCompact ? 280 : 320,
         background: 'rgba(15, 23, 42, 0.92)',
         borderRight: '1px solid rgba(71, 85, 105, 0.6)',
         color: '#e2e8f0',
       }}
     >
       {/* Header */}
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex items-center justify-between mb-3">
+      <div
+        className={`filter-panel__header border-b border-slate-700 ${isCompact ? 'p-3' : 'p-4'}`}
+      >
+        <div className={`flex items-center justify-between ${isCompact ? 'mb-2' : 'mb-3'}`}>
           <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-slate-400" />
-            <h2 className="font-semibold text-slate-200">Filters</h2>
+            <Filter className="filter-panel__header-icon w-5 h-5 text-slate-400" />
+            <h2 className="filter-panel__title font-semibold text-slate-200">Filters</h2>
             {activeFilterCount > 0 && (
-              <span className="px-2 py-1 text-xs bg-blue-600 text-white rounded-full">
+              <span className="filter-panel__badge px-2 py-1 text-xs bg-blue-600 text-white rounded-full">
                 {activeFilterCount}
               </span>
             )}
@@ -126,13 +183,17 @@ export const FilterPanel: React.FC = () => {
         <div className="flex space-x-2">
           <button
             onClick={clearFilters}
-            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
+            className={`bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors ${
+              isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'
+            }`}
           >
             Clear All
           </button>
           <button
             onClick={resetFilters}
-            className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
+            className={`bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors ${
+              isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'
+            }`}
           >
             Reset
           </button>
@@ -142,18 +203,19 @@ export const FilterPanel: React.FC = () => {
       {/* Filter Sections */}
       <div className="flex-1 overflow-y-auto">
         {/* Identity Filters */}
-        <FilterSection title="Identity" defaultOpen>
+        <FilterSection title="Identity" defaultOpen compact={isCompact}>
           <FilterInput
             label="SSID"
             enabled={enabled.ssid || false}
             onToggle={() => toggleFilter('ssid')}
+            compact={isCompact}
           >
             <input
               type="text"
               value={filters.ssid || ''}
               onChange={(e) => setFilter('ssid', e.target.value)}
               placeholder="Network name..."
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
           </FilterInput>
 
@@ -161,13 +223,14 @@ export const FilterPanel: React.FC = () => {
             label="BSSID (exact or prefix)"
             enabled={enabled.bssid || false}
             onToggle={() => toggleFilter('bssid')}
+            compact={isCompact}
           >
             <input
               type="text"
               value={filters.bssid || ''}
               onChange={(e) => setFilter('bssid', e.target.value)}
               placeholder="AA:BB:CC:DD:EE:FF or AA:BB:CC"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
             <p className="mt-1 text-xs text-slate-500">
               Full BSSID = exact match. Prefix = starts-with match.
@@ -178,13 +241,14 @@ export const FilterPanel: React.FC = () => {
             label="Manufacturer / OUI"
             enabled={enabled.manufacturer || false}
             onToggle={() => toggleFilter('manufacturer')}
+            compact={isCompact}
           >
             <input
               type="text"
               value={filters.manufacturer || ''}
               onChange={(e) => setFilter('manufacturer', e.target.value)}
               placeholder="Apple, Samsung, 001A2B..."
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
           </FilterInput>
 
@@ -192,25 +256,27 @@ export const FilterPanel: React.FC = () => {
             label="Internal Network ID"
             enabled={enabled.networkId || false}
             onToggle={() => toggleFilter('networkId')}
+            compact={isCompact}
           >
             <input
               type="text"
               value={filters.networkId || ''}
               onChange={(e) => setFilter('networkId', e.target.value)}
               placeholder="unified_id..."
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
           </FilterInput>
         </FilterSection>
 
         {/* Radio / Physical Layer */}
-        <FilterSection title="Radio & Physical">
+        <FilterSection title="Radio & Physical" compact={isCompact}>
           <FilterInput
             label="Radio Types"
             enabled={enabled.radioTypes || false}
             onToggle={() => toggleFilter('radioTypes')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(['W', 'E', 'B', 'L', 'G', 'N', '?'] as RadioType[]).map((type) => (
                 <label key={type} className="flex items-center space-x-2">
                   <input
@@ -223,9 +289,9 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((t) => t !== type);
                       setFilter('radioTypes', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
-                  <span className="text-xs text-slate-300">
+                  <span className={`${listItemTextClass} text-slate-300`}>
                     {type === 'W'
                       ? 'WiFi'
                       : type === 'E'
@@ -249,8 +315,9 @@ export const FilterPanel: React.FC = () => {
             label="Frequency Band"
             enabled={enabled.frequencyBands || false}
             onToggle={() => toggleFilter('frequencyBands')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(['2.4GHz', '5GHz', '6GHz', 'BLE', 'Cellular'] as FrequencyBand[]).map((band) => (
                 <label key={band} className="flex items-center space-x-2">
                   <input
@@ -263,9 +330,9 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((b) => b !== band);
                       setFilter('frequencyBands', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
-                  <span className="text-xs text-slate-300">{band}</span>
+                  <span className={`${listItemTextClass} text-slate-300`}>{band}</span>
                 </label>
               ))}
             </div>
@@ -275,13 +342,14 @@ export const FilterPanel: React.FC = () => {
             label="Channel Min"
             enabled={enabled.channelMin || false}
             onToggle={() => toggleFilter('channelMin')}
+            compact={isCompact}
           >
             <input
               type="number"
               value={filters.channelMin ?? ''}
               onChange={(e) => setFilter('channelMin', parseInt(e.target.value, 10))}
               placeholder="e.g. 1"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -289,13 +357,14 @@ export const FilterPanel: React.FC = () => {
             label="Channel Max"
             enabled={enabled.channelMax || false}
             onToggle={() => toggleFilter('channelMax')}
+            compact={isCompact}
           >
             <input
               type="number"
               value={filters.channelMax ?? ''}
               onChange={(e) => setFilter('channelMax', parseInt(e.target.value, 10))}
               placeholder="e.g. 165"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -303,13 +372,14 @@ export const FilterPanel: React.FC = () => {
             label="RSSI Min (dBm)"
             enabled={enabled.rssiMin || false}
             onToggle={() => toggleFilter('rssiMin')}
+            compact={isCompact}
           >
             <input
               type="number"
               value={filters.rssiMin ?? ''}
               onChange={(e) => setFilter('rssiMin', parseInt(e.target.value, 10))}
               placeholder="-95"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
             <p className="mt-1 text-xs text-slate-500">Noise floor enforced at -95 dBm.</p>
           </FilterInput>
@@ -318,25 +388,27 @@ export const FilterPanel: React.FC = () => {
             label="RSSI Max (dBm)"
             enabled={enabled.rssiMax || false}
             onToggle={() => toggleFilter('rssiMax')}
+            compact={isCompact}
           >
             <input
               type="number"
               value={filters.rssiMax ?? ''}
               onChange={(e) => setFilter('rssiMax', parseInt(e.target.value, 10))}
               placeholder="-30"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
         </FilterSection>
 
         {/* Security */}
-        <FilterSection title="Security">
+        <FilterSection title="Security" compact={isCompact}>
           <FilterInput
             label="Encryption Types"
             enabled={enabled.encryptionTypes || false}
             onToggle={() => toggleFilter('encryptionTypes')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(['OPEN', 'WEP', 'WPA', 'WPA2', 'WPA3'] as EncryptionType[]).map((type) => (
                 <label key={type} className="flex items-center space-x-2">
                   <input
@@ -349,9 +421,9 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((t) => t !== type);
                       setFilter('encryptionTypes', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
-                  <span className="text-xs text-slate-300">{type}</span>
+                  <span className={`${listItemTextClass} text-slate-300`}>{type}</span>
                 </label>
               ))}
             </div>
@@ -361,8 +433,9 @@ export const FilterPanel: React.FC = () => {
             label="Auth Methods"
             enabled={enabled.authMethods || false}
             onToggle={() => toggleFilter('authMethods')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(['PSK', 'Enterprise', 'SAE', 'OWE', 'None'] as AuthMethod[]).map((method) => (
                 <label key={method} className="flex items-center space-x-2">
                   <input
@@ -375,9 +448,9 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((m) => m !== method);
                       setFilter('authMethods', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
-                  <span className="text-xs text-slate-300">{method}</span>
+                  <span className={`${listItemTextClass} text-slate-300`}>{method}</span>
                 </label>
               ))}
             </div>
@@ -387,8 +460,9 @@ export const FilterPanel: React.FC = () => {
             label="Insecure Flags"
             enabled={enabled.insecureFlags || false}
             onToggle={() => toggleFilter('insecureFlags')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(['open', 'wep', 'wps', 'deprecated'] as InsecureFlag[]).map((flag) => (
                 <label key={flag} className="flex items-center space-x-2">
                   <input
@@ -401,9 +475,9 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((f) => f !== flag);
                       setFilter('insecureFlags', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
-                  <span className="text-xs text-slate-300 capitalize">{flag}</span>
+                  <span className={`${listItemTextClass} text-slate-300 capitalize`}>{flag}</span>
                 </label>
               ))}
             </div>
@@ -413,8 +487,9 @@ export const FilterPanel: React.FC = () => {
             label="Security Inference Flags"
             enabled={enabled.securityFlags || false}
             onToggle={() => toggleFilter('securityFlags')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(
                 ['insecure', 'deprecated', 'enterprise', 'personal', 'unknown'] as SecurityFlag[]
               ).map((flag) => (
@@ -429,9 +504,9 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((f) => f !== flag);
                       setFilter('securityFlags', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
-                  <span className="text-xs text-slate-300 capitalize">{flag}</span>
+                  <span className={`${listItemTextClass} text-slate-300 capitalize`}>{flag}</span>
                 </label>
               ))}
             </div>
@@ -439,7 +514,7 @@ export const FilterPanel: React.FC = () => {
         </FilterSection>
 
         {/* Temporal */}
-        <FilterSection title="Time Range" defaultOpen>
+        <FilterSection title="Time Range" defaultOpen compact={isCompact}>
           <FilterInput
             label="Timeframe"
             enabled={enabled.timeframe || false}
@@ -448,6 +523,7 @@ export const FilterPanel: React.FC = () => {
               enableFilter('timeframe', next);
               enableFilter('temporalScope', next);
             }}
+            compact={isCompact}
           >
             <div className="space-y-3">
               <div>
@@ -455,7 +531,7 @@ export const FilterPanel: React.FC = () => {
                 <select
                   value={filters.temporalScope || TemporalScope.OBSERVATION_TIME}
                   onChange={(e) => setFilter('temporalScope', e.target.value as TemporalScope)}
-                  className="mt-1 w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                  className={`${controlClass} mt-1`}
                 >
                   <option value={TemporalScope.OBSERVATION_TIME}>Observation Time</option>
                   <option value={TemporalScope.NETWORK_LIFETIME}>Network Lifetime</option>
@@ -473,7 +549,7 @@ export const FilterPanel: React.FC = () => {
                       type: e.target.value as 'relative' | 'absolute',
                     })
                   }
-                  className="mt-1 w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                  className={`${controlClass} mt-1`}
                 >
                   <option value="relative">Relative</option>
                   <option value="absolute">Absolute</option>
@@ -491,7 +567,7 @@ export const FilterPanel: React.FC = () => {
                         relativeWindow: e.target.value as any,
                       })
                     }
-                    className="mt-1 w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                    className={`${controlClass} mt-1`}
                   >
                     <option value="24h">Last 24 hours</option>
                     <option value="7d">Last 7 days</option>
@@ -514,7 +590,7 @@ export const FilterPanel: React.FC = () => {
                           endTimestamp: filters.timeframe?.endTimestamp,
                         })
                       }
-                      className="mt-1 w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                      className={`${controlClass} mt-1`}
                     />
                   </div>
                   <div>
@@ -529,7 +605,7 @@ export const FilterPanel: React.FC = () => {
                           endTimestamp: e.target.value,
                         })
                       }
-                      className="mt-1 w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                      className={`${controlClass} mt-1`}
                     />
                   </div>
                 </div>
@@ -539,11 +615,12 @@ export const FilterPanel: React.FC = () => {
         </FilterSection>
 
         {/* Threat & Heuristics */}
-        <FilterSection title="Threat Analysis">
+        <FilterSection title="Threat Analysis" compact={isCompact}>
           <FilterInput
             label="Threat Score Min"
             enabled={enabled.threatScoreMin || false}
             onToggle={() => toggleFilter('threatScoreMin')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -552,7 +629,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.threatScoreMin || ''}
               onChange={(e) => setFilter('threatScoreMin', parseInt(e.target.value, 10))}
               placeholder="Min"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -560,6 +637,7 @@ export const FilterPanel: React.FC = () => {
             label="Threat Score Max"
             enabled={enabled.threatScoreMax || false}
             onToggle={() => toggleFilter('threatScoreMax')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -568,7 +646,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.threatScoreMax || ''}
               onChange={(e) => setFilter('threatScoreMax', parseInt(e.target.value, 10))}
               placeholder="Max"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -576,8 +654,9 @@ export const FilterPanel: React.FC = () => {
             label="Threat Categories"
             enabled={enabled.threatCategories || false}
             onToggle={() => toggleFilter('threatCategories')}
+            compact={isCompact}
           >
-            <div className="space-y-2">
+            <div className={listLayoutClass}>
               {(['critical', 'high', 'medium', 'low'] as ThreatCategory[]).map((category) => (
                 <label key={category} className="flex items-center space-x-2">
                   <input
@@ -590,10 +669,10 @@ export const FilterPanel: React.FC = () => {
                         : current.filter((c) => c !== category);
                       setFilter('threatCategories', updated);
                     }}
-                    className="rounded border-slate-600 bg-slate-800 text-blue-500"
+                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />
                   <span
-                    className={`text-xs capitalize ${
+                    className={`${listItemTextClass} capitalize ${
                       category === 'critical'
                         ? 'text-red-400'
                         : category === 'high'
@@ -614,6 +693,7 @@ export const FilterPanel: React.FC = () => {
             label="Stationary Confidence Min"
             enabled={enabled.stationaryConfidenceMin || false}
             onToggle={() => toggleFilter('stationaryConfidenceMin')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -623,7 +703,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.stationaryConfidenceMin ?? ''}
               onChange={(e) => setFilter('stationaryConfidenceMin', parseFloat(e.target.value))}
               placeholder="0.0 - 1.0"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -631,6 +711,7 @@ export const FilterPanel: React.FC = () => {
             label="Stationary Confidence Max"
             enabled={enabled.stationaryConfidenceMax || false}
             onToggle={() => toggleFilter('stationaryConfidenceMax')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -640,7 +721,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.stationaryConfidenceMax ?? ''}
               onChange={(e) => setFilter('stationaryConfidenceMax', parseFloat(e.target.value))}
               placeholder="0.0 - 1.0"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
             <p className="mt-1 text-xs text-slate-500">
               Derived from spatial variance + temporal spread + observation density.
@@ -649,7 +730,7 @@ export const FilterPanel: React.FC = () => {
         </FilterSection>
 
         {/* Observation Quality */}
-        <FilterSection title="Data Quality">
+        <FilterSection title="Data Quality" compact={isCompact}>
           <p className="text-xs text-slate-500">
             Credibility heuristics only. Disabled by default.
           </p>
@@ -657,6 +738,7 @@ export const FilterPanel: React.FC = () => {
             label="Observation Count Min"
             enabled={enabled.observationCountMin || false}
             onToggle={() => toggleFilter('observationCountMin')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -664,7 +746,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.observationCountMin || ''}
               onChange={(e) => setFilter('observationCountMin', parseInt(e.target.value, 10))}
               placeholder="Min obs"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -672,6 +754,7 @@ export const FilterPanel: React.FC = () => {
             label="Observation Count Max"
             enabled={enabled.observationCountMax || false}
             onToggle={() => toggleFilter('observationCountMax')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -679,7 +762,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.observationCountMax || ''}
               onChange={(e) => setFilter('observationCountMax', parseInt(e.target.value, 10))}
               placeholder="Max obs"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -687,6 +770,7 @@ export const FilterPanel: React.FC = () => {
             label="GPS Accuracy Limit"
             enabled={enabled.gpsAccuracyMax || false}
             onToggle={() => toggleFilter('gpsAccuracyMax')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -694,7 +778,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.gpsAccuracyMax || 100}
               onChange={(e) => setFilter('gpsAccuracyMax', parseInt(e.target.value))}
               placeholder="Max meters"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -702,6 +786,7 @@ export const FilterPanel: React.FC = () => {
             label="Exclude Invalid Coordinates"
             enabled={enabled.excludeInvalidCoords || false}
             onToggle={() => toggleFilter('excludeInvalidCoords')}
+            compact={isCompact}
           >
             <p className="text-xs text-slate-400">
               Removes observations with NULL or out-of-range lat/lon.
@@ -710,11 +795,12 @@ export const FilterPanel: React.FC = () => {
         </FilterSection>
 
         {/* Spatial / Proximity */}
-        <FilterSection title="Spatial & Proximity">
+        <FilterSection title="Spatial & Proximity" compact={isCompact}>
           <FilterInput
             label="Distance From Home Min (meters)"
             enabled={enabled.distanceFromHomeMin || false}
             onToggle={() => toggleFilter('distanceFromHomeMin')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -722,7 +808,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.distanceFromHomeMin ?? ''}
               onChange={(e) => setFilter('distanceFromHomeMin', parseInt(e.target.value, 10))}
               placeholder="Min meters"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -730,6 +816,7 @@ export const FilterPanel: React.FC = () => {
             label="Distance From Home Max (meters)"
             enabled={enabled.distanceFromHomeMax || false}
             onToggle={() => toggleFilter('distanceFromHomeMax')}
+            compact={isCompact}
           >
             <input
               type="number"
@@ -737,7 +824,7 @@ export const FilterPanel: React.FC = () => {
               value={filters.distanceFromHomeMax ?? ''}
               onChange={(e) => setFilter('distanceFromHomeMax', parseInt(e.target.value, 10))}
               placeholder="Max meters"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
           </FilterInput>
 
@@ -745,6 +832,7 @@ export const FilterPanel: React.FC = () => {
             label="Bounding Box"
             enabled={enabled.boundingBox || false}
             onToggle={() => toggleFilter('boundingBox')}
+            compact={isCompact}
           >
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -757,7 +845,7 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="North"
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
               <input
                 type="number"
@@ -769,7 +857,7 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="South"
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
               <input
                 type="number"
@@ -781,7 +869,7 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="East"
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
               <input
                 type="number"
@@ -793,7 +881,7 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="West"
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
             </div>
             <p className="mt-1 text-xs text-slate-500">
@@ -805,6 +893,7 @@ export const FilterPanel: React.FC = () => {
             label="Radius Filter (meters)"
             enabled={enabled.radiusFilter || false}
             onToggle={() => toggleFilter('radiusFilter')}
+            compact={isCompact}
           >
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -817,7 +906,7 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="Latitude"
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
               <input
                 type="number"
@@ -829,7 +918,7 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="Longitude"
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
               <input
                 type="number"
@@ -841,21 +930,21 @@ export const FilterPanel: React.FC = () => {
                   })
                 }
                 placeholder="Radius (m)"
-                className="col-span-2 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control col-span-2 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
               />
             </div>
           </FilterInput>
         </FilterSection>
 
         {/* Presets */}
-        <FilterSection title="Presets">
+        <FilterSection title="Presets" compact={isCompact}>
           <div className="space-y-2">
             <input
               type="text"
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
               placeholder="Preset name"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+              className={controlClass}
             />
             <button
               onClick={() => {

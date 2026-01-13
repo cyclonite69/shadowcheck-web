@@ -62,7 +62,7 @@ router.get('/api/mapbox-style', async (req, res) => {
     let styleJson;
     try {
       styleJson = JSON.parse(bodyText);
-    } catch (err) {
+    } catch {
       return res.status(500).json({ error: 'Invalid JSON from Mapbox style', body: bodyText });
     }
 
@@ -83,7 +83,7 @@ router.get('/api/mapbox-proxy', async (req, res) => {
     let target;
     try {
       target = new URL(String(rawUrl));
-    } catch (err) {
+    } catch {
       return res.status(400).json({ error: 'Invalid URL' });
     }
 

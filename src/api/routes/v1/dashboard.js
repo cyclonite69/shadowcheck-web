@@ -7,7 +7,7 @@ function initDashboardRoutes(options) {
   dashboardService = options.dashboardService;
 }
 
-router.get('/dashboard/metrics', async (req, res) => {
+const sendDashboardMetrics = async (req, res) => {
   try {
     if (!dashboardService) {
       return res.status(500).json({ error: 'Dashboard service not initialized' });
@@ -35,7 +35,10 @@ router.get('/dashboard/metrics', async (req, res) => {
     console.error('Dashboard metrics error:', error);
     res.status(500).json({ error: error.message });
   }
-});
+};
+
+router.get('/dashboard/metrics', sendDashboardMetrics);
+router.get('/dashboard-metrics', sendDashboardMetrics);
 
 router.get('/dashboard/threats', async (req, res) => {
   try {

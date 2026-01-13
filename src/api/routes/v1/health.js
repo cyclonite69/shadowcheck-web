@@ -43,7 +43,7 @@ router.get('/health', async (req, res) => {
   try {
     await keyringService.getCredential('test_health_check');
     checks.keyring = { status: 'ok' };
-  } catch (err) {
+  } catch {
     checks.keyring = { status: 'degraded', error: 'Keyring not accessible' };
     if (overallStatus === 'healthy') {
       overallStatus = 'degraded';

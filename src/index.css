@@ -32,3 +32,66 @@ body {
   resize: both;
   overflow: auto;
 }
+
+/* Compact filter panel adjustments */
+.filter-panel--compact {
+  width: 280px;
+  min-width: 280px;
+}
+
+.filter-panel--compact .filter-panel__header {
+  padding: 12px;
+}
+
+.filter-panel--compact .filter-panel__title {
+  font-size: 0.875rem;
+}
+
+.filter-panel--compact .filter-panel__badge {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.65rem;
+}
+
+.filter-panel--compact .filter-panel__header-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.filter-panel--compact .filter-panel__section-toggle {
+  padding: 0.5rem 0.75rem;
+}
+
+.filter-panel--compact .filter-panel__section-title {
+  font-size: 0.8125rem;
+}
+
+.filter-panel--compact .filter-panel__section-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.filter-panel--compact .filter-panel__section-body {
+  padding: 0.5rem 0.75rem;
+}
+
+.filter-panel--compact .filter-panel__section-body > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem;
+}
+
+.filter-panel--compact .filter-panel__label {
+  font-size: 0.75rem;
+}
+
+.filter-panel--compact .filter-panel__checkbox {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.filter-panel--compact .filter-panel__input-body {
+  margin-left: 0.75rem;
+}
+
+.filter-panel--compact .filter-panel__control {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+}

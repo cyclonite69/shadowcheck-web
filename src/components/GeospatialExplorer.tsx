@@ -232,7 +232,7 @@ const calculateSignalRange = (
   frequencyMhz?: number | null,
   zoom: number = 10
 ): number => {
-  if (!signalDbm || signalDbm === null) return 50;
+  if (!signalDbm || signalDbm === null) return 40;
 
   let freq = frequencyMhz;
   if (typeof freq === 'string') {
@@ -241,37 +241,27 @@ const calculateSignalRange = (
   if (!freq || freq <= 0) freq = 2437; // Default to channel 6 (2.4GHz)
 
   // Signal strength to distance mapping (inverse relationship)
+  // Stronger signal = closer = smaller circle, weaker signal = farther = larger circle
   let distanceM;
-  if (signalDbm >= -30) distanceM = 10;
-  else if (signalDbm >= -50) distanceM = 50;
-  else if (signalDbm >= -70) distanceM = 150;
-  else if (signalDbm >= -80) distanceM = 300;
-  else distanceM = 500;
+  if (signalDbm >= -30) distanceM = 15;
+  else if (signalDbm >= -50) distanceM = 40;
+  else if (signalDbm >= -60) distanceM = 80;
+  else if (signalDbm >= -70) distanceM = 120;
+  else if (signalDbm >= -80) distanceM = 180;
+  else distanceM = 250;
 
-  // Frequency adjustment
-  if (freq > 5000)
-    distanceM *= 0.6; // 5GHz has shorter range
-  else distanceM *= 0.8; // 2.4GHz adjustment
+  // Frequency adjustment (5GHz has shorter range)
+  if (freq > 5000) distanceM *= 0.7;
 
-  // Convert to pixels for display (simplified)
-  const pixelsPerMeter = Math.pow(2, zoom - 12) * 0.1;
-  let radiusPixels = distanceM * pixelsPerMeter;
+  // Zoom-based scaling - make circle larger at higher zoom levels
+  // At zoom 12, base scale is 1.0
+  // At zoom 15, scale is ~2.0
+  // At zoom 18, scale is ~4.0
+  const zoomScale = Math.pow(1.25, zoom - 12);
+  let radiusPixels = distanceM * Math.max(0.5, Math.min(zoomScale, 6));
 
-  // Zoom scaling
-  const zoomScale = Math.pow(1.15, zoom - 10);
-  radiusPixels *= Math.min(zoomScale, 4);
-
-  // Clamp radius for display
-  return Math.max(3, Math.min(radiusPixels, 250));
-};
-
-// Signal strength interpretation (from Kepler)
-const interpretSignalStrength = (signal: number): { color: string; text: string } => {
-  if (signal > -50) return { color: '#22c55e', text: 'Excellent' };
-  if (signal > -60) return { color: '#84cc16', text: 'Good' };
-  if (signal > -70) return { color: '#fbbf24', text: 'Fair' };
-  if (signal > -80) return { color: '#f97316', text: 'Weak' };
-  return { color: '#ef4444', text: 'Very Weak' };
+  // Clamp radius for display - ensure minimum visibility
+  return Math.max(20, Math.min(radiusPixels, 300));
 };
 
 // BSSID-based color generation (from ShadowCheckLite)
@@ -404,7 +394,6 @@ export default function GeospatialExplorer() {
   const columnDropdownRef = useRef<HTMLDivElement | null>(null);
   const locationSearchRef = useRef<HTMLDivElement | null>(null);
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const hoverPopupRef = useRef<mapboxgl.Popup | null>(null);
 
   // Geocoding search function
   const searchLocation = useCallback(async (query: string) => {
@@ -822,7 +811,7 @@ export default function GeospatialExplorer() {
               .addTo(map);
           });
 
-          // Add hover circle source and layer
+          // Add hover circle source and layer (added BEFORE observation-points so it renders below)
           map.addSource('hover-circle', {
             type: 'geojson',
             data: {
@@ -831,21 +820,25 @@ export default function GeospatialExplorer() {
             },
           });
 
-          map.addLayer({
-            id: 'hover-circle-fill',
-            type: 'circle',
-            source: 'hover-circle',
-            paint: {
-              'circle-radius': ['get', 'radius'],
-              'circle-color': ['get', 'color'],
-              'circle-opacity': 0.15,
-              'circle-stroke-width': 2,
-              'circle-stroke-color': ['get', 'strokeColor'],
-              'circle-stroke-opacity': 0.6,
+          // Insert hover circle layer BEFORE observation-lines so it appears below the points
+          map.addLayer(
+            {
+              id: 'hover-circle-fill',
+              type: 'circle',
+              source: 'hover-circle',
+              paint: {
+                'circle-radius': ['get', 'radius'],
+                'circle-color': ['get', 'color'],
+                'circle-opacity': 0.35,
+                'circle-stroke-width': 4,
+                'circle-stroke-color': ['get', 'strokeColor'],
+                'circle-stroke-opacity': 0.9,
+              },
             },
-          });
+            'observation-lines' // Insert before observation-lines layer
+          );
 
-          // Show tooltip and signal circle on hover
+          // Show signal circle on hover (tooltip removed - click for details)
           map.on('mouseenter', 'observation-points', (e) => {
             map.getCanvas().style.cursor = 'pointer';
 
@@ -880,42 +873,10 @@ export default function GeospatialExplorer() {
                 ],
               });
             }
-
-            // Interpret signal strength
-            const signalStrength = interpretSignalStrength(props.signal || 0);
-
-            // Calculate WiFi channel if it's a WiFi network
-            const wifiChannel =
-              props.frequency && props.type === 'W'
-                ? Math.round((props.frequency - 2412) / 5) + 1
-                : null;
-
-            // Format dates
-            const formatDate = (dateStr) => {
-              if (!dateStr) return 'N/A';
-              const date = new Date(dateStr);
-              return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-            };
-
-            // Calculate days span
-            const calculateDaysSpan = (firstSeen, lastSeen) => {
-              if (!firstSeen || !lastSeen) return 'N/A';
-              const first = new Date(firstSeen);
-              const last = new Date(lastSeen);
-              const diffTime = Math.abs(last - first);
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              return diffDays === 0 ? 'Same day' : `${diffDays} days`;
-            };
           });
 
           map.on('mouseleave', 'observation-points', () => {
             map.getCanvas().style.cursor = '';
-
-            // Remove hover popup
-            if (hoverPopupRef.current) {
-              hoverPopupRef.current.remove();
-              hoverPopupRef.current = null;
-            }
 
             // Clear hover circle from map
             const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
@@ -923,6 +884,38 @@ export default function GeospatialExplorer() {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
                 features: [],
+              });
+            }
+          });
+
+          map.on('mousemove', 'observation-points', (e) => {
+            if (!e.features || e.features.length === 0 || !e.lngLat) return;
+            const feature = e.features[0];
+            const props = feature.properties;
+            if (!props) return;
+
+            const currentZoom = map.getZoom();
+            const signalRadius = calculateSignalRange(props.signal, props.frequency, currentZoom);
+            const bssidColor = macColor(props.bssid);
+
+            const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
+            if (hoverCircleSource) {
+              hoverCircleSource.setData({
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [e.lngLat.lng, e.lngLat.lat],
+                    },
+                    properties: {
+                      radius: signalRadius,
+                      color: bssidColor,
+                      strokeColor: bssidColor,
+                    },
+                  },
+                ],
               });
             }
           });
@@ -1745,6 +1738,33 @@ export default function GeospatialExplorer() {
         },
       });
 
+      // Re-add hover circle source and layer for signal range visualization
+      mapRef.current.addSource('hover-circle', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+      });
+
+      // Insert hover circle layer BEFORE observation-lines so it appears below the points
+      mapRef.current.addLayer(
+        {
+          id: 'hover-circle-fill',
+          type: 'circle',
+          source: 'hover-circle',
+          paint: {
+            'circle-radius': ['get', 'radius'],
+            'circle-color': ['get', 'color'],
+            'circle-opacity': 0.35,
+            'circle-stroke-width': 4,
+            'circle-stroke-color': ['get', 'strokeColor'],
+            'circle-stroke-opacity': 0.9,
+          },
+        },
+        'observation-lines' // Insert before observation-lines layer
+      );
+
       // Restore layers if they were enabled
       if (show3DBuildings) {
         add3DBuildings();
@@ -1948,7 +1968,7 @@ export default function GeospatialExplorer() {
             </div>
           </div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            <FilterPanel />
+            <FilterPanel density="compact" />
           </div>
         </div>
       )}
@@ -2391,14 +2411,14 @@ export default function GeospatialExplorer() {
                 <button
                   onClick={() => setFiltersOpen((open) => !open)}
                   style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
+                    padding: '4px 8px',
+                    fontSize: '10px',
                     background: filtersOpen ? 'rgba(59, 130, 246, 0.9)' : 'rgba(30, 41, 59, 0.9)',
                     border: filtersOpen
                       ? '1px solid rgba(59, 130, 246, 0.8)'
                       : '1px solid rgba(148, 163, 184, 0.3)',
                     color: '#f8fafc',
-                    borderRadius: '6px',
+                    borderRadius: '5px',
                     cursor: 'pointer',
                   }}
                 >

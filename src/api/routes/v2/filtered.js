@@ -17,7 +17,7 @@ const parseJsonParam = (value, fallback, name) => {
   }
   try {
     return JSON.parse(value);
-  } catch (err) {
+  } catch {
     throw new Error(`Invalid JSON for ${name}`);
   }
 };

@@ -84,7 +84,7 @@ async function queryOverpass(lat, lon) {
               } else {
                 resolve(null);
               }
-            } catch (e) {
+            } catch {
               resolve(null);
             }
           });
@@ -99,7 +99,7 @@ async function queryOverpass(lat, lon) {
       if (result && result.name) {
         return result;
       }
-    } catch (err) {
+    } catch {
       // Continue to next query type
     }
 

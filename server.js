@@ -365,61 +365,86 @@ delete process.env.PGUSER;
     // Kepler.gl data endpoint
     app.get('/api/kepler/data', async (req, res) => {
       try {
-        // Simple test data to verify the component works
+        const { _bbox, limit: limitRaw } = req.query;
+        const limit = limitRaw ? Math.min(parseInt(limitRaw, 10) || 5000, 50000) : 5000;
+
+        // Get latest observation per network (similar to networks endpoint but simpler)
+        const result = await query(
+          `
+          WITH obs_latest AS (
+            SELECT DISTINCT ON (bssid)
+              bssid,
+              ssid,
+              lat,
+              lon,
+              level,
+              accuracy,
+              time AS observed_at,
+              radio_type,
+              radio_frequency,
+              radio_capabilities
+            FROM public.observations
+            WHERE lat IS NOT NULL AND lon IS NOT NULL
+            ORDER BY bssid, time DESC
+          )
+          SELECT
+            obs.bssid,
+            obs.ssid,
+            obs.lat,
+            obs.lon,
+            obs.level,
+            obs.accuracy,
+            obs.observed_at,
+            obs.radio_frequency AS frequency,
+            obs.radio_capabilities AS capabilities,
+            obs.radio_type AS type,
+            COALESCE(ap.total_observations, 1) AS observations,
+            ap.first_seen,
+            ap.last_seen
+          FROM obs_latest obs
+          LEFT JOIN public.access_points ap ON ap.bssid = obs.bssid
+          WHERE obs.lat IS NOT NULL AND obs.lon IS NOT NULL
+          ORDER BY obs.observed_at DESC
+          LIMIT $1
+        `,
+          [limit]
+        );
+
         const geojson = {
           type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [-83.6968, 43.0234],
-              },
-              properties: {
-                bssid: 'AA:BB:CC:DD:EE:FF',
-                ssid: 'Test Network 1',
-                bestlevel: -45,
-                max_signal: -45,
-                first_seen: '2025-12-17T18:00:00Z',
-                last_seen: '2025-12-17T18:00:00Z',
-                manufacturer: 'Unknown',
-                device_type: 'Unknown',
-                encryption: 'WPA2',
-                channel: '6',
-                frequency: '2437',
-                type: 'W',
-                capabilities: 'WPA2-PSK',
-              },
+          features: result.rows.map((row) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [row.lon, row.lat],
             },
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [-83.697, 43.0236],
-              },
-              properties: {
-                bssid: '11:22:33:44:55:66',
-                ssid: 'Test Network 2',
-                bestlevel: -67,
-                max_signal: -67,
-                first_seen: '2025-12-17T18:00:00Z',
-                last_seen: '2025-12-17T18:00:00Z',
-                manufacturer: 'Unknown',
-                device_type: 'Unknown',
-                encryption: 'Open',
-                channel: '11',
-                frequency: '2462',
-                type: 'W',
-                capabilities: 'Open',
-              },
+            properties: {
+              bssid: row.bssid,
+              ssid: row.ssid || 'Hidden Network',
+              bestlevel: row.level || 0,
+              signal: row.level || 0,
+              level: row.level || 0,
+              first_seen: row.first_seen || row.observed_at,
+              last_seen: row.last_seen || row.observed_at,
+              timestamp: row.last_seen || row.observed_at,
+              manufacturer: 'Unknown',
+              device_type: 'Unknown',
+              type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
+              channel: row.frequency ? Math.floor((row.frequency - 2407) / 5) : null,
+              frequency: row.frequency || null,
+              capabilities: row.capabilities || '',
+              encryption: row.capabilities || 'Open/Unknown',
+              altitude: null,
+              accuracy: row.accuracy,
+              obs_count: row.observations || 0,
             },
-          ],
+          })),
         };
 
         res.json(geojson);
       } catch (error) {
         console.error('Kepler data error:', error);
-        res.status(500).json({ error: 'Failed to fetch kepler data' });
+        res.status(500).json({ error: error.message || 'Failed to fetch kepler data' });
       }
     });
 
@@ -485,6 +510,93 @@ delete process.env.PGUSER;
         res.json(geojson);
       } catch (error) {
         console.error('Observations data error:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Networks endpoint - Trilaterated networks from access_points
+    app.get('/api/kepler/networks', async (req, res) => {
+      try {
+        const { bbox: _bbox, limit: _limit } = req.query;
+
+        // Get networks from access_points with latest observation data
+        const result = await query(`
+          WITH obs_latest AS (
+            SELECT DISTINCT ON (bssid)
+              bssid,
+              ssid,
+              lat,
+              lon,
+              level,
+              accuracy,
+              time AS observed_at,
+              radio_type,
+              radio_frequency,
+              radio_capabilities
+            FROM public.observations
+            WHERE lat IS NOT NULL AND lon IS NOT NULL
+            ORDER BY bssid, time DESC
+          )
+          SELECT
+            ap.bssid,
+            COALESCE(NULLIF(obs.ssid, ''), ap.latest_ssid) AS ssid,
+            obs.lat,
+            obs.lon,
+            obs.level,
+            obs.accuracy,
+            ap.total_observations AS observations,
+            ap.first_seen,
+            ap.last_seen,
+            obs.radio_frequency AS frequency,
+            obs.radio_capabilities AS capabilities,
+            obs.radio_type AS type,
+            ST_SetSRID(ST_MakePoint(obs.lon, obs.lat), 4326) AS geom
+          FROM public.access_points ap
+          LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
+          WHERE obs.lat IS NOT NULL 
+            AND obs.lon IS NOT NULL
+          ORDER BY ap.last_seen DESC
+          LIMIT 50000
+        `);
+
+        const geojson = {
+          type: 'FeatureCollection',
+          features: result.rows
+            .filter((row) => row.geom)
+            .map((row) => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [row.lon, row.lat],
+              },
+              properties: {
+                bssid: row.bssid,
+                ssid: row.ssid || 'Hidden Network',
+                bestlevel: row.level || 0,
+                signal: row.level || 0,
+                level: row.level || 0,
+                first_seen: row.first_seen,
+                last_seen: row.last_seen,
+                timestamp: row.last_seen,
+                manufacturer: 'Unknown',
+                device_type: 'Unknown',
+                type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
+                channel: row.frequency ? Math.floor((row.frequency - 2407) / 5) : null,
+                frequency: row.frequency || null,
+                capabilities: row.capabilities || '',
+                encryption: row.capabilities || 'Open/Unknown',
+                altitude: null,
+                accuracy: row.accuracy,
+                obs_count: row.observations || 0,
+                observation_count: row.observations || 0,
+                observations: row.observations || 0,
+              },
+            })),
+        };
+
+        res.json(geojson);
+      } catch (error) {
+        console.error('Networks data error:', error);
         res.status(500).json({ error: error.message });
       }
     });

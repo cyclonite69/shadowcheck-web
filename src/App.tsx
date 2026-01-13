@@ -8,6 +8,8 @@ import AnalyticsPage from './components/AnalyticsPage';
 import AdminPage from './components/AdminPage';
 import MLTrainingPage from './components/MLTrainingPage';
 import WigleTestPage from './components/WigleTestPage';
+import KeplerTestPage from './components/KeplerTestPage';
+import ApiTestPage from './components/ApiTestPage';
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/wigle-test" element={<WigleTestPage />} />
         <Route path="/ml-training" element={<MLTrainingPage />} />
+        <Route path="/kepler-test" element={<KeplerTestPage />} />
+        <Route path="/endpoint-test" element={<ApiTestPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>

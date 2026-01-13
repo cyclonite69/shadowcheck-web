@@ -352,21 +352,21 @@ router.get('/networks', async (req, res, next) => {
     if (ssidRaw !== undefined && ssidRaw !== '') {
       const ssidSearch = ssidRaw.trim().toLowerCase().replace(/[%_]/g, '\\$&');
       params.push(`%${ssidSearch}%`);
-      whereClauses.push(`lower(ssid) LIKE $${params.length} ESCAPE '\\'`);
+      whereClauses.push(`lower(ne.ssid) LIKE $${params.length} ESCAPE '\\'`);
     }
     if (bssidRaw !== undefined && String(bssidRaw).trim() !== '') {
       const raw = String(bssidRaw).trim().toUpperCase();
       const cleaned = raw.replace(/[^0-9A-F]/g, '');
       if (raw.length === 17 && raw.includes(':')) {
         params.push(raw);
-        whereClauses.push(`upper(bssid) = $${params.length}`);
+        whereClauses.push(`upper(ne.bssid) = $${params.length}`);
       } else {
         const likeMac = `${raw.replace(/[%_]/g, '\\$&')}%`;
         const likeClean = `${cleaned}%`;
         params.push(likeMac, likeClean);
         whereClauses.push(
-          `(upper(bssid) LIKE $${params.length - 1} ESCAPE '\\' OR ` +
-            `upper(replace(bssid, ':', '')) LIKE $${params.length})`
+          `(upper(ne.bssid) LIKE $${params.length - 1} ESCAPE '\\' OR ` +
+            `upper(replace(ne.bssid, ':', '')) LIKE $${params.length})`
         );
       }
     }
@@ -382,10 +382,10 @@ router.get('/networks', async (req, res, next) => {
       const likeBssid = normalizedBssid ? `%${normalizedBssid}%` : like;
       params.push(like, like, likeBssid, like);
       whereClauses.push(
-        `(lower(ssid) LIKE $${params.length - 3} ESCAPE '\\' OR ` +
-          `lower(bssid) LIKE $${params.length - 2} ESCAPE '\\' OR ` +
-          `lower(replace(bssid, ':', '')) LIKE $${params.length - 1} ESCAPE '\\' OR ` +
-          `lower(manufacturer) LIKE $${params.length} ESCAPE '\\')`
+        `(lower(ne.ssid) LIKE $${params.length - 3} ESCAPE '\\' OR ` +
+          `lower(ne.bssid) LIKE $${params.length - 2} ESCAPE '\\' OR ` +
+          `lower(replace(ne.bssid, ':', '')) LIKE $${params.length - 1} ESCAPE '\\' OR ` +
+          `lower(COALESCE(mv.manufacturer, ne.manufacturer)) LIKE $${params.length} ESCAPE '\\')`
       );
     }
 
@@ -646,7 +646,7 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
         LIMIT 1
       `);
       home = homeResult.rows[0] || null;
-    } catch (err) {
+    } catch {
       // Table doesn't exist, use fallback
       home = null;
     }

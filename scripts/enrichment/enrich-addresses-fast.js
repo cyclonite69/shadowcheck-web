@@ -37,7 +37,7 @@ const APIs = {
               } else {
                 resolve(null);
               }
-            } catch (e) {
+            } catch {
               resolve(null);
             }
           });
@@ -65,7 +65,7 @@ const APIs = {
               } else {
                 resolve(null);
               }
-            } catch (e) {
+            } catch {
               resolve(null);
             }
           });
@@ -94,7 +94,7 @@ const APIs = {
                 category: json.type,
                 source: 'locationiq',
               });
-            } catch (e) {
+            } catch {
               resolve(null);
             }
           });
@@ -131,7 +131,7 @@ const APIs = {
               } else {
                 resolve(null);
               }
-            } catch (e) {
+            } catch {
               resolve(null);
             }
           });

@@ -38,7 +38,7 @@ const APIs = {
             } else {
               resolve(null);
             }
-          } catch (e) {
+          } catch {
             resolve(null);
           }
         });
@@ -78,7 +78,7 @@ const APIs = {
               } else {
                 resolve(null);
               }
-            } catch (e) {
+            } catch {
               resolve(null);
             }
           });
@@ -113,7 +113,7 @@ const APIs = {
               source: 'locationiq',
               confidence: 0.8,
             });
-          } catch (e) {
+          } catch {
             resolve(null);
           }
         });
@@ -157,7 +157,7 @@ const APIs = {
             } else {
               resolve(null);
             }
-          } catch (e) {
+          } catch {
             resolve(null);
           }
         });
@@ -262,7 +262,7 @@ async function main() {
           return { success: true, poi };
         }
         return { success: false };
-      } catch (err) {
+      } catch {
         return { success: false };
       }
     });

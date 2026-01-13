@@ -83,7 +83,7 @@ async function main() {
           console.log(`  ✓ ${i + 1}/${total}`);
         }
         await new Promise((r) => setTimeout(r, DELAY_MS));
-      } catch (err) {
+      } catch {
         results.push({ ...addr, lat: null, lon: null, full_address: null });
       }
     }
