@@ -160,7 +160,7 @@ const SECURITY_TYPE_COLORS = {
 
 export default function Analytics() {
   const [timeFrame, setTimeFrame] = useState('30d'); // '30d', '90d', '6mo', '1yr', 'all'
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -190,38 +190,20 @@ export default function Analytics() {
       title: 'Network Types',
       icon: Wifi,
       x: 0,
-      y: 110,
-      w: 100,
+      y: 60,
+      w: 50,
       h: 320,
       type: 'network-types',
     },
-    {
-      id: 2,
-      title: 'Signal Strength',
-      icon: Signal,
-      x: 0,
-      y: 430,
-      w: 100,
-      h: 320,
-      type: 'signal',
-    },
-    {
-      id: 3,
-      title: 'Security Types',
-      icon: Lock,
-      x: 0,
-      y: 750,
-      w: 100,
-      h: 320,
-      type: 'security',
-    },
+    { id: 2, title: 'Signal Strength', icon: Signal, x: 50, y: 60, w: 50, h: 320, type: 'signal' },
+    { id: 3, title: 'Security Types', icon: Lock, x: 0, y: 390, w: 50, h: 320, type: 'security' },
     {
       id: 4,
       title: 'Threat Score Distribution',
       icon: AlertTriangle,
-      x: 0,
-      y: 1070,
-      w: 100,
+      x: 50,
+      y: 390,
+      w: 50,
       h: 320,
       type: 'threat-distribution',
     },
@@ -230,8 +212,8 @@ export default function Analytics() {
       title: 'Temporal Activity',
       icon: Clock,
       x: 0,
-      y: 1390,
-      w: 100,
+      y: 720,
+      w: 50,
       h: 320,
       type: 'temporal',
     },
@@ -239,9 +221,9 @@ export default function Analytics() {
       id: 6,
       title: 'Radio Types Over Time',
       icon: TrendingUp,
-      x: 0,
-      y: 1710,
-      w: 100,
+      x: 50,
+      y: 720,
+      w: 50,
       h: 320,
       type: 'radio-time',
     },
@@ -250,8 +232,8 @@ export default function Analytics() {
       title: 'Threat Score Trends',
       icon: AlertTriangle,
       x: 0,
-      y: 2030,
-      w: 100,
+      y: 1050,
+      w: 50,
       h: 320,
       type: 'threat-trends',
     },
@@ -259,10 +241,10 @@ export default function Analytics() {
       id: 8,
       title: 'Top WiFi Networks',
       icon: BarChartIcon,
-      x: 0,
-      y: 2350,
-      w: 100,
-      h: 260,
+      x: 50,
+      y: 1050,
+      w: 50,
+      h: 320,
       type: 'top-networks',
     },
   ]);
@@ -535,6 +517,7 @@ export default function Analytics() {
                 outerRadius="70%"
                 paddingAngle={2}
                 dataKey="value"
+                animationDuration={300}
               >
                 {networkTypesData.map((entry, idx) => (
                   <Cell key={idx} fill={entry.color} />
@@ -593,6 +576,7 @@ export default function Analytics() {
                 outerRadius="70%"
                 paddingAngle={2}
                 dataKey="value"
+                animationDuration={300}
               >
                 {securityData.map((entry, idx) => (
                   <Cell key={idx} fill={entry.color} />

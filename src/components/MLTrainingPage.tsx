@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // SVG Icons
 const Brain = ({ size = 24, className = '' }) => (
@@ -73,11 +73,73 @@ export default function MLTrainingPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const [cards] = useState([
-    { id: 1, title: 'Model Training', icon: Brain, x: 0, y: 110, w: 100, h: 400, type: 'training' },
-    { id: 2, title: 'Training Data', icon: BarChart3, x: 0, y: 510, w: 100, h: 350, type: 'data' },
-    { id: 3, title: 'Model Status', icon: Target, x: 0, y: 860, w: 100, h: 300, type: 'status' },
+  const [cards, setCards] = useState([
+    { id: 1, title: 'Model Training', icon: Brain, x: 0, y: 60, w: 50, h: 280, type: 'training' },
+    { id: 2, title: 'Training Data', icon: BarChart3, x: 50, y: 60, w: 50, h: 280, type: 'data' },
+    { id: 3, title: 'Model Status', icon: Target, x: 0, y: 350, w: 50, h: 280, type: 'status' },
   ]);
+
+  const [dragging, setDragging] = useState(null);
+  const [resizing, setResizing] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
+
+  const handleMouseDown = useCallback(
+    (e, cardId, action) => {
+      e.preventDefault();
+      if (action === 'move') {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        setDragging(cardId);
+      } else if (action === 'resize') {
+        const card = cards.find((c) => c.id === cardId);
+        resizeStartRef.current = {
+          startX: e.clientX,
+          startY: e.clientY,
+          startW: card.w,
+          startH: card.h,
+        };
+        setResizing(cardId);
+      }
+    },
+    [cards]
+  );
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (dragging) {
+        const container = e.currentTarget.getBoundingClientRect();
+        const newX = ((e.clientX - container.left - dragOffset.x) / container.width) * 100;
+        const newY = e.clientY - container.top - dragOffset.y;
+        setCards((prev) =>
+          prev.map((card) =>
+            card.id === dragging
+              ? { ...card, x: Math.max(0, Math.min(50, newX)), y: Math.max(60, newY) }
+              : card
+          )
+        );
+      } else if (resizing) {
+        const deltaX = e.clientX - resizeStartRef.current.startX;
+        const deltaY = e.clientY - resizeStartRef.current.startY;
+        const container = e.currentTarget.getBoundingClientRect();
+        const newW = resizeStartRef.current.startW + (deltaX / container.width) * 100;
+        const newH = resizeStartRef.current.startH + deltaY;
+        setCards((prev) =>
+          prev.map((card) =>
+            card.id === resizing
+              ? { ...card, w: Math.max(25, Math.min(100, newW)), h: Math.max(200, newH) }
+              : card
+          )
+        );
+      }
+    },
+    [dragging, resizing, dragOffset]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setDragging(null);
+    setResizing(null);
+  }, []);
 
   useEffect(() => {
     loadStatus();

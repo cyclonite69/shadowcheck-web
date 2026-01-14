@@ -81,16 +81,16 @@ const AdminPage: React.FC = () => {
   const [wigleToken, setWigleToken] = useState('');
   const [wigleApiName, setWigleApiName] = useState('');
 
-  const [cards] = useState([
-    { id: 1, title: 'SQLite Import', icon: Database, x: 0, y: 110, w: 100, h: 400, type: 'import' },
+  const [cards, setCards] = useState([
+    { id: 1, title: 'SQLite Import', icon: Database, x: 0, y: 60, w: 50, h: 280, type: 'import' },
     {
       id: 2,
       title: 'Mapbox Configuration',
       icon: Key,
-      x: 0,
-      y: 510,
-      w: 100,
-      h: 300,
+      x: 50,
+      y: 60,
+      w: 50,
+      h: 280,
       type: 'mapbox',
     },
     {
@@ -98,24 +98,86 @@ const AdminPage: React.FC = () => {
       title: 'Home Location',
       icon: Settings,
       x: 0,
-      y: 810,
-      w: 100,
-      h: 300,
+      y: 350,
+      w: 50,
+      h: 280,
       type: 'location',
     },
-    { id: 4, title: 'WiGLE API', icon: Key, x: 0, y: 1110, w: 100, h: 400, type: 'wigle' },
+    { id: 4, title: 'WiGLE API', icon: Key, x: 50, y: 350, w: 50, h: 280, type: 'wigle' },
     {
       id: 5,
       title: 'WiGLE Import',
       icon: Upload,
       x: 0,
-      y: 1510,
-      w: 100,
-      h: 300,
+      y: 640,
+      w: 50,
+      h: 280,
       type: 'wigle-import',
     },
-    { id: 6, title: 'Data Export', icon: Upload, x: 0, y: 1810, w: 100, h: 300, type: 'export' },
+    { id: 6, title: 'Data Export', icon: Upload, x: 50, y: 640, w: 50, h: 280, type: 'export' },
   ]);
+
+  const [dragging, setDragging] = useState(null);
+  const [resizing, setResizing] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
+
+  const handleMouseDown = useCallback(
+    (e, cardId, action) => {
+      e.preventDefault();
+      if (action === 'move') {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        setDragging(cardId);
+      } else if (action === 'resize') {
+        const card = cards.find((c) => c.id === cardId);
+        resizeStartRef.current = {
+          startX: e.clientX,
+          startY: e.clientY,
+          startW: card.w,
+          startH: card.h,
+        };
+        setResizing(cardId);
+      }
+    },
+    [cards]
+  );
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (dragging) {
+        const container = e.currentTarget.getBoundingClientRect();
+        const newX = ((e.clientX - container.left - dragOffset.x) / container.width) * 100;
+        const newY = e.clientY - container.top - dragOffset.y;
+        setCards((prev) =>
+          prev.map((card) =>
+            card.id === dragging
+              ? { ...card, x: Math.max(0, Math.min(50, newX)), y: Math.max(60, newY) }
+              : card
+          )
+        );
+      } else if (resizing) {
+        const deltaX = e.clientX - resizeStartRef.current.startX;
+        const deltaY = e.clientY - resizeStartRef.current.startY;
+        const container = e.currentTarget.getBoundingClientRect();
+        const newW = resizeStartRef.current.startW + (deltaX / container.width) * 100;
+        const newH = resizeStartRef.current.startH + deltaY;
+        setCards((prev) =>
+          prev.map((card) =>
+            card.id === resizing
+              ? { ...card, w: Math.max(25, Math.min(100, newW)), h: Math.max(200, newH) }
+              : card
+          )
+        );
+      }
+    },
+    [dragging, resizing, dragOffset]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setDragging(null);
+    setResizing(null);
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -268,13 +330,25 @@ const AdminPage: React.FC = () => {
                 className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
               />
             </div>
-            <button
-              onClick={saveMapboxToken}
-              disabled={isLoading || !mapboxToken}
-              className="w-full p-2 rounded bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium"
-            >
-              💾 Save Token
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={saveMapboxToken}
+                disabled={isLoading || !mapboxToken}
+                style={{
+                  padding: '6px 16px',
+                  background:
+                    isLoading || !mapboxToken ? 'rgba(34, 197, 94, 0.5)' : 'rgba(34, 197, 94, 0.7)',
+                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                  cursor: isLoading || !mapboxToken ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                }}
+              >
+                💾 Save
+              </button>
+            </div>
           </div>
         );
 
@@ -306,13 +380,28 @@ const AdminPage: React.FC = () => {
                 />
               </div>
             </div>
-            <button
-              onClick={saveHomeLocation}
-              disabled={isLoading || !homeLocation.lat || !homeLocation.lng}
-              className="w-full p-2 rounded bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium"
-            >
-              📍 Save Location
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={saveHomeLocation}
+                disabled={isLoading || !homeLocation.lat || !homeLocation.lng}
+                style={{
+                  padding: '6px 16px',
+                  background:
+                    isLoading || !homeLocation.lat || !homeLocation.lng
+                      ? 'rgba(168, 85, 247, 0.5)'
+                      : 'rgba(168, 85, 247, 0.7)',
+                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                  cursor:
+                    isLoading || !homeLocation.lat || !homeLocation.lng ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                }}
+              >
+                📍 Save
+              </button>
+            </div>
           </div>
         );
 
@@ -361,11 +450,24 @@ const AdminPage: React.FC = () => {
                 }
               }}
               disabled={isLoading || !wigleApiName || !wigleToken}
-              className="w-full p-2 rounded bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-sm font-medium mb-3"
+              style={{
+                padding: '6px 16px',
+                background:
+                  isLoading || !wigleApiName || !wigleToken
+                    ? 'rgba(6, 182, 212, 0.5)'
+                    : 'rgba(6, 182, 212, 0.7)',
+                border: '1px solid rgba(71, 85, 105, 0.4)',
+                borderRadius: '6px',
+                color: '#e2e8f0',
+                cursor: isLoading || !wigleApiName || !wigleToken ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                fontWeight: '500',
+                marginBottom: '8px',
+              }}
             >
-              💾 Save Credentials
+              💾 Save
             </button>
-            <div className="space-y-2">
+            <div className="space-y-1.5 flex flex-col items-center">
               <button
                 onClick={async () => {
                   try {
@@ -382,9 +484,18 @@ const AdminPage: React.FC = () => {
                   }
                 }}
                 disabled={isLoading}
-                className="w-full p-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium"
+                style={{
+                  padding: '5px 12px',
+                  background: isLoading ? 'rgba(59, 130, 246, 0.5)' : 'rgba(59, 130, 246, 0.7)',
+                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                }}
               >
-                🔌 Test Connection
+                🔌 Test
               </button>
               <button
                 onClick={async () => {
@@ -402,9 +513,18 @@ const AdminPage: React.FC = () => {
                   }
                 }}
                 disabled={isLoading}
-                className="w-full p-2 rounded bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium"
+                style={{
+                  padding: '5px 12px',
+                  background: isLoading ? 'rgba(34, 197, 94, 0.5)' : 'rgba(34, 197, 94, 0.7)',
+                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                }}
               >
-                📥 Import Nearby Networks
+                📥 Import
               </button>
             </div>
           </div>

@@ -350,7 +350,7 @@ const WigleTestPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col">
-      <div className="border-b border-slate-800 bg-slate-900/70 px-6 py-4">
+      <div className="border-b border-slate-800 bg-slate-900/70 px-6 py-2">
         <div className="flex flex-wrap items-center gap-4">
           <div>
             <div className="text-lg font-semibold">WiGLE v2 Test Map</div>

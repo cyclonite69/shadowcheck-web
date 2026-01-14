@@ -41,7 +41,7 @@ router.get('/networks', async (req, res, next) => {
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
     const planCheck = req.query.planCheck === '1';
-    const qualityFilter = req.query.quality_filter; // none, temporal, extreme, duplicate, all
+    const _qualityFilter = req.query.quality_filter; // none, temporal, extreme, duplicate, all
     const locationModeRaw = String(req.query.location_mode || 'latest_observation');
     const locationMode = [
       'latest_observation',

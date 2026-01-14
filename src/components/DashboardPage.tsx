@@ -152,9 +152,9 @@ export default function DashboardPage() {
       icon: Network,
       color: '#3b82f6',
       x: 0,
-      y: 110,
-      w: 100,
-      h: 280,
+      y: 80,
+      w: 50,
+      h: 200,
       type: 'total-networks',
     },
     {
@@ -163,10 +163,10 @@ export default function DashboardPage() {
       value: 0,
       icon: Wifi,
       color: '#10b981',
-      x: 0,
-      y: 390,
-      w: 100,
-      h: 280,
+      x: 50,
+      y: 80,
+      w: 50,
+      h: 200,
       type: 'wifi-count',
     },
     {
@@ -176,9 +176,9 @@ export default function DashboardPage() {
       icon: Smartphone,
       color: '#8b5cf6',
       x: 0,
-      y: 670,
-      w: 100,
-      h: 280,
+      y: 290,
+      w: 50,
+      h: 200,
       type: 'radio-ble',
     },
     {
@@ -187,10 +187,10 @@ export default function DashboardPage() {
       value: 0,
       icon: Bluetooth,
       color: '#06b6d4',
-      x: 0,
-      y: 950,
-      w: 100,
-      h: 280,
+      x: 50,
+      y: 290,
+      w: 50,
+      h: 200,
       type: 'radio-bt',
     },
     {
@@ -200,9 +200,9 @@ export default function DashboardPage() {
       icon: Tower,
       color: '#ec4899',
       x: 0,
-      y: 1230,
-      w: 100,
-      h: 280,
+      y: 500,
+      w: 50,
+      h: 200,
       type: 'radio-lte',
     },
     {
@@ -211,10 +211,10 @@ export default function DashboardPage() {
       value: 0,
       icon: Radio,
       color: '#f59e0b',
-      x: 0,
-      y: 1510,
-      w: 100,
-      h: 280,
+      x: 50,
+      y: 500,
+      w: 50,
+      h: 200,
       type: 'radio-gsm',
     },
     {
@@ -224,9 +224,9 @@ export default function DashboardPage() {
       icon: Tower,
       color: '#10b981',
       x: 0,
-      y: 1790,
-      w: 100,
-      h: 280,
+      y: 710,
+      w: 50,
+      h: 200,
       type: 'radio-nr',
     },
     {
@@ -235,9 +235,10 @@ export default function DashboardPage() {
       value: '→',
       icon: BarChart3,
       color: '#64748b',
-      x: 0,
-      y: 2070,
-      w: 100,
+      x: 50,
+      y: 710,
+      w: 50,
+      h: 200,
       h: 200,
       type: 'analytics-link',
     },
@@ -420,8 +421,8 @@ export default function DashboardPage() {
     >
       <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
-          <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
+        <div className="absolute top-0 left-0 right-0 p-3 z-50 pointer-events-none">
+          <div className="text-center">
             <h1
               style={{
                 fontSize: '22px',
@@ -455,13 +456,13 @@ export default function DashboardPage() {
                 opacity: 0.8,
               }}
             >
-              Real-time surveillance and threat detection metrics
+              Real-time network intelligence and threat monitoring
             </p>
           </div>
         </div>
 
         {/* Cards */}
-        <div style={{ minHeight: '2400px', position: 'relative' }}>
+        <div style={{ minHeight: '2400px', position: 'relative', paddingTop: '60px' }}>
           {cards.map((card) => {
             const Icon = card.icon;
             const width = `${card.w}%`;
@@ -500,8 +501,17 @@ export default function DashboardPage() {
 
                 {/* Content */}
                 <div
-                  className="p-4 overflow-hidden flex flex-col items-center justify-center text-center"
-                  style={{ height: `${card.h - 60}px` }}
+                  className={`p-2 overflow-hidden flex flex-col items-center justify-center text-center ${
+                    card.type === 'analytics-link'
+                      ? 'cursor-pointer hover:bg-[#132744]/50 transition-colors'
+                      : ''
+                  }`}
+                  style={{ height: `${card.h - 40}px` }}
+                  onClick={() => {
+                    if (card.type === 'analytics-link') {
+                      window.location.href = '/analytics';
+                    }
+                  }}
                 >
                   {loading ? (
                     <div className="text-slate-400 text-sm">Loading...</div>
@@ -510,20 +520,16 @@ export default function DashboardPage() {
                   ) : (
                     <>
                       {/* Icon */}
-                      <div className="mb-4">
-                        <Icon
-                          size={card.h > 250 ? 64 : card.h > 200 ? 48 : 40}
-                          className="drop-shadow-lg"
-                          style={{ color: card.color }}
-                        />
+                      <div className="mb-2">
+                        <Icon size={32} className="drop-shadow-lg" style={{ color: card.color }} />
                       </div>
 
                       {/* Value - Large and Bold */}
-                      <div className="mb-2">
+                      <div className="mb-1">
                         <p
                           className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
                           style={{
-                            fontSize: card.h > 250 ? '56px' : card.h > 200 ? '42px' : '32px',
+                            fontSize: '28px',
                             color: card.color,
                           }}
                         >
