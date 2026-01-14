@@ -191,7 +191,7 @@ export default function Analytics() {
       icon: Wifi,
       x: 0,
       y: 110,
-      w: 33.33,
+      w: 100,
       h: 320,
       type: 'network-types',
     },
@@ -199,9 +199,9 @@ export default function Analytics() {
       id: 2,
       title: 'Signal Strength',
       icon: Signal,
-      x: 33.33,
-      y: 110,
-      w: 33.33,
+      x: 0,
+      y: 430,
+      w: 100,
       h: 320,
       type: 'signal',
     },
@@ -209,9 +209,9 @@ export default function Analytics() {
       id: 3,
       title: 'Security Types',
       icon: Lock,
-      x: 66.66,
-      y: 110,
-      w: 33.34,
+      x: 0,
+      y: 750,
+      w: 100,
       h: 320,
       type: 'security',
     },
@@ -220,8 +220,8 @@ export default function Analytics() {
       title: 'Threat Score Distribution',
       icon: AlertTriangle,
       x: 0,
-      y: 460,
-      w: 50,
+      y: 1070,
+      w: 100,
       h: 320,
       type: 'threat-distribution',
     },
@@ -229,9 +229,9 @@ export default function Analytics() {
       id: 5,
       title: 'Temporal Activity',
       icon: Clock,
-      x: 50,
-      y: 460,
-      w: 50,
+      x: 0,
+      y: 1390,
+      w: 100,
       h: 320,
       type: 'temporal',
     },
@@ -240,7 +240,7 @@ export default function Analytics() {
       title: 'Radio Types Over Time',
       icon: TrendingUp,
       x: 0,
-      y: 810,
+      y: 1710,
       w: 100,
       h: 320,
       type: 'radio-time',
@@ -250,7 +250,7 @@ export default function Analytics() {
       title: 'Threat Score Trends',
       icon: AlertTriangle,
       x: 0,
-      y: 1160,
+      y: 2030,
       w: 100,
       h: 320,
       type: 'threat-trends',
@@ -260,7 +260,7 @@ export default function Analytics() {
       title: 'Top WiFi Networks',
       icon: BarChartIcon,
       x: 0,
-      y: 1510,
+      y: 2350,
       w: 100,
       h: 260,
       type: 'top-networks',
@@ -313,7 +313,7 @@ export default function Analytics() {
           setNetworkTypesData(
             data.networkTypes.map((item) => ({
               name: item.network_type,
-              value: item.count,
+              value: Number(item.count),
               color: NETWORK_TYPE_COLORS[item.network_type] || '#64748b',
             }))
           );
@@ -323,7 +323,7 @@ export default function Analytics() {
           setSignalStrengthData(
             data.signalStrength.map((item) => ({
               range: `${item.signal_range} dBm`,
-              count: item.count,
+              count: Number(item.count),
             }))
           );
         }
@@ -332,7 +332,7 @@ export default function Analytics() {
           setSecurityData(
             data.security.map((item) => ({
               name: item.security_type,
-              value: item.count,
+              value: Number(item.count),
               color: SECURITY_TYPE_COLORS[item.security_type] || '#64748b',
             }))
           );
@@ -342,7 +342,7 @@ export default function Analytics() {
           setThreatDistributionData(
             data.threatDistribution.map((item) => ({
               range: item.range,
-              count: item.count,
+              count: Number(item.count),
             }))
           );
         }
@@ -351,7 +351,7 @@ export default function Analytics() {
           setTemporalData(
             data.temporalActivity.map((item) => ({
               hour: item.hour,
-              count: item.count,
+              count: Number(item.count),
             }))
           );
         }
@@ -366,7 +366,7 @@ export default function Analytics() {
             if (!radioTimeMap.has(dateKey)) {
               radioTimeMap.set(dateKey, { label: dateKey });
             }
-            radioTimeMap.get(dateKey)[item.network_type] = item.count;
+            radioTimeMap.get(dateKey)[item.network_type] = Number(item.count);
           });
           setRadioTimeData(Array.from(radioTimeMap.values()));
         }
@@ -378,9 +378,9 @@ export default function Analytics() {
                 month: 'short',
                 day: 'numeric',
               }),
-              avgScore: item.avg_score,
-              criticalCount: item.critical_count,
-              highCount: item.high_count,
+              avgScore: Number(item.avg_score),
+              criticalCount: Number(item.critical_count),
+              highCount: Number(item.high_count),
             }))
           );
         }
@@ -390,7 +390,7 @@ export default function Analytics() {
             data.topNetworks.map((item) => ({
               bssid: item.bssid,
               ssid: item.ssid || '(hidden)',
-              observations: item.observation_count,
+              observations: Number(item.observation_count),
             }))
           );
         }
@@ -531,12 +531,10 @@ export default function Analytics() {
                 data={networkTypesData}
                 cx="50%"
                 cy="50%"
-                innerRadius={40}
-                outerRadius={70}
+                innerRadius="50%"
+                outerRadius="70%"
                 paddingAngle={2}
                 dataKey="value"
-                label={(entry) => `${entry.name}: ${entry.value.toLocaleString()}`}
-                labelLine={false}
               >
                 {networkTypesData.map((entry, idx) => (
                   <Cell key={idx} fill={entry.color} />
@@ -591,12 +589,10 @@ export default function Analytics() {
                 data={securityData}
                 cx="50%"
                 cy="50%"
-                innerRadius={40}
-                outerRadius={70}
+                innerRadius="50%"
+                outerRadius="70%"
                 paddingAngle={2}
                 dataKey="value"
-                label={(entry) => `${entry.name}: ${entry.value.toLocaleString()}`}
-                labelLine={false}
               >
                 {securityData.map((entry, idx) => (
                   <Cell key={idx} fill={entry.color} />
@@ -804,18 +800,17 @@ export default function Analytics() {
 
   return (
     <div
-      className="relative w-full min-h-screen overflow-x-hidden flex"
+      className="relative w-full h-screen overflow-hidden flex"
       style={{
         background:
           'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
-        minHeight: '2000px',
       }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
       {showFilters && <FilterPanel density="compact" />}
-      <div className="relative flex-1 overflow-y-auto">
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
           <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
@@ -932,61 +927,63 @@ export default function Analytics() {
         </div>
 
         {/* Cards */}
-        {cards.map((card) => {
-          const Icon = card.icon;
-          const width = `${card.w}%`;
-          const left = `${card.x}%`;
+        <div style={{ minHeight: '2700px', position: 'relative' }}>
+          {cards.map((card) => {
+            const Icon = card.icon;
+            const width = `${card.w}%`;
+            const left = `${card.x}%`;
 
-          return (
-            <div
-              key={card.id}
-              style={{
-                position: 'absolute',
-                left: left,
-                top: `${card.y}px`,
-                width: width,
-                height: `${card.h}px`,
-                transition:
-                  dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
-                cursor: dragging === card.id ? 'grabbing' : 'grab',
-                userSelect: dragging || resizing ? 'none' : 'auto',
-              }}
-              onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-              className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
-            >
-              <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-                <div className="flex items-center gap-2">
-                  <Icon size={18} className="text-blue-400" />
-                  <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+            return (
+              <div
+                key={card.id}
+                style={{
+                  position: 'absolute',
+                  left: left,
+                  top: `${card.y}px`,
+                  width: width,
+                  height: `${card.h}px`,
+                  transition:
+                    dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
+                  cursor: dragging === card.id ? 'grabbing' : 'grab',
+                  userSelect: dragging || resizing ? 'none' : 'auto',
+                }}
+                onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
+                className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+              >
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                  <div className="flex items-center gap-2">
+                    <Icon size={18} className="text-blue-400" />
+                    <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+                  </div>
+                  <GripHorizontal
+                    size={16}
+                    className="text-white/50 group-hover:text-white transition-colors flex-shrink-0"
+                  />
                 </div>
-                <GripHorizontal
-                  size={16}
-                  className="text-white/50 group-hover:text-white transition-colors flex-shrink-0"
+
+                {/* Content */}
+                <div className="p-4 overflow-hidden">{renderChart(card)}</div>
+
+                {/* Resize Handle */}
+                <div
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleMouseDown(e, card.id, 'resize');
+                  }}
+                  className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
+                    borderRadius: '0 0 10px 0',
+                  }}
                 />
               </div>
-
-              {/* Content */}
-              <div className="p-4 overflow-hidden">{renderChart(card)}</div>
-
-              {/* Resize Handle */}
-              <div
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleMouseDown(e, card.id, 'resize');
-                }}
-                className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                style={{
-                  background:
-                    'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
-                  borderRadius: '0 0 10px 0',
-                }}
-              />
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

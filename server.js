@@ -618,6 +618,59 @@ delete process.env.PGUSER;
     // ============================================================================
     // 11. ERROR HANDLING
     // ============================================================================
+    // 11. IMPORT ENDPOINTS
+    // ============================================================================
+    const { importWigleDirectory } = require('./src/services/wigleImportService');
+
+    app.post('/api/import/wigle', async (req, res) => {
+      try {
+        const importDir = path.join(__dirname, 'imports', 'wigle');
+        const result = await importWigleDirectory(importDir);
+        res.json({ success: true, ...result });
+      } catch (error) {
+        console.error('WiGLE import error:', error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    // Data quality endpoint
+    app.get('/api/data-quality', async (req, res) => {
+      try {
+        const filter = req.query.filter || 'none'; // none, temporal, extreme, duplicate, all
+        const { DATA_QUALITY_FILTERS } = require('./src/services/dataQualityFilters');
+
+        let whereClause = '';
+        if (filter === 'temporal') {
+          whereClause = DATA_QUALITY_FILTERS.temporal_clusters;
+        } else if (filter === 'extreme') {
+          whereClause = DATA_QUALITY_FILTERS.extreme_signals;
+        } else if (filter === 'duplicate') {
+          whereClause = DATA_QUALITY_FILTERS.duplicate_coords;
+        } else if (filter === 'all') {
+          whereClause = DATA_QUALITY_FILTERS.all();
+        }
+
+        const query = `
+          SELECT COUNT(*) as total_observations,
+                 COUNT(DISTINCT bssid) as unique_networks,
+                 MIN(time) as earliest_time,
+                 MAX(time) as latest_time
+          FROM observations 
+          WHERE 1=1 ${whereClause}
+        `;
+
+        const result = await pool.query(query);
+        res.json({
+          filter_applied: filter,
+          ...result.rows[0],
+        });
+      } catch (error) {
+        console.error('Data quality error:', error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    // ============================================================================
     app.use(errorHandler);
 
     // ============================================================================

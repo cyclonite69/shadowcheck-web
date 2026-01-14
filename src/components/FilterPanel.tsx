@@ -783,6 +783,25 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
           </FilterInput>
 
           <FilterInput
+            label="Quality Filter"
+            enabled={enabled.qualityFilter || false}
+            onToggle={() => toggleFilter('qualityFilter')}
+            compact={isCompact}
+          >
+            <select
+              value={filters.qualityFilter || 'none'}
+              onChange={(e) => setFilter('qualityFilter', e.target.value)}
+              className={controlClass}
+            >
+              <option value="none">No Filter</option>
+              <option value="temporal">Exclude Temporal Clusters</option>
+              <option value="extreme">Exclude Extreme Signals</option>
+              <option value="duplicate">Exclude Duplicate Coords</option>
+              <option value="all">Exclude All Anomalies</option>
+            </select>
+          </FilterInput>
+
+          <FilterInput
             label="Exclude Invalid Coordinates"
             enabled={enabled.excludeInvalidCoords || false}
             onToggle={() => toggleFilter('excludeInvalidCoords')}

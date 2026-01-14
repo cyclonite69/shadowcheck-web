@@ -320,6 +320,7 @@ const MAP_STYLES = [
   { value: 'mapbox://styles/mapbox/satellite-streets-v12', label: 'Satellite Streets' },
   { value: 'mapbox://styles/mapbox/navigation-day-v1', label: 'Navigation Day' },
   { value: 'mapbox://styles/mapbox/navigation-night-v1', label: 'Navigation Night' },
+  { value: 'google-earth', label: '🌍 Google Earth' },
 ] as const;
 
 export default function GeospatialExplorer() {
@@ -1648,6 +1649,17 @@ export default function GeospatialExplorer() {
 
   // Map style change handler
   const changeMapStyle = (styleUrl: string) => {
+    // Handle Google Earth option
+    if (styleUrl === 'google-earth') {
+      const center = mapRef.current?.getCenter() || { lat: 43.0234, lng: -83.6968 };
+      const zoom = mapRef.current?.getZoom() || 12;
+      const altitude =
+        (Math.pow(2, 22 - zoom) * 156543.03392 * Math.cos((center.lat * Math.PI) / 180)) / 2;
+      const url = `https://earth.google.com/web/@${center.lat},${center.lng},${altitude}a,${altitude}d,35y,0h,0t,0r`;
+      window.open(url, '_blank');
+      return;
+    }
+
     if (!mapRef.current) return;
 
     const currentCenter = mapRef.current.getCenter();

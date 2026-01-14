@@ -27,6 +27,7 @@ const FILTER_KEYS = [
   'observationCountMax',
   'gpsAccuracyMax',
   'excludeInvalidCoords',
+  'qualityFilter',
   'distanceFromHomeMin',
   'distanceFromHomeMax',
   'boundingBox',
@@ -357,6 +358,35 @@ class UniversalFilterQueryBuilder {
       this.addApplied('radio', 'rssiMax', f.rssiMax);
     }
 
+    // Quality filters for anomalous data
+    if (e.qualityFilter && f.qualityFilter && f.qualityFilter !== 'none') {
+      console.log('QUALITY FILTER APPLIED:', f.qualityFilter);
+      const { DATA_QUALITY_FILTERS } = require('./dataQualityFilters');
+      let qualityWhere = '';
+      if (f.qualityFilter === 'temporal') {
+        qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;
+      } else if (f.qualityFilter === 'extreme') {
+        qualityWhere = DATA_QUALITY_FILTERS.extreme_signals;
+      } else if (f.qualityFilter === 'duplicate') {
+        qualityWhere = DATA_QUALITY_FILTERS.duplicate_coords;
+      } else if (f.qualityFilter === 'all') {
+        qualityWhere = DATA_QUALITY_FILTERS.all();
+      }
+
+      if (qualityWhere) {
+        // Remove the leading "AND" from the filter
+        const cleanFilter = qualityWhere.replace(/^\s*AND\s+/, '');
+        where.push(`(${cleanFilter})`);
+        this.addApplied('quality', 'qualityFilter', f.qualityFilter);
+        console.log('QUALITY WHERE CLAUSE:', cleanFilter);
+      }
+    } else {
+      console.log('QUALITY FILTER NOT APPLIED:', {
+        enabled: e.qualityFilter,
+        value: f.qualityFilter,
+      });
+    }
+
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
       where.push(`${SECURITY_EXPR('o')} = ANY(${this.addParam(f.encryptionTypes)})`);
       this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
@@ -662,7 +692,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ne.threat,
           NULL::text AS network_id
-        FROM public.api_network_explorer_full_mv_v2 ne
+        FROM public.api_network_explorer ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -929,7 +959,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ne.threat,
           NULL::text AS network_id
-        FROM public.api_network_explorer_full_mv_v2 ne
+        FROM public.api_network_explorer ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ${whereClause}
         ORDER BY ${safeOrderBy}
@@ -1064,7 +1094,7 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM obs_rollup r
       JOIN obs_latest l ON l.bssid = r.bssid
-      JOIN public.api_network_explorer_full_mv_v2 ne ON ne.bssid = r.bssid
+      JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
       ORDER BY ${orderBy}
@@ -1084,7 +1114,7 @@ class UniversalFilterQueryBuilder {
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       return {
-        sql: 'SELECT COUNT(*) AS total FROM public.api_network_explorer_full_mv_v2',
+        sql: 'SELECT COUNT(*) AS total FROM public.api_network_explorer',
         params: [],
       };
     }
@@ -1217,7 +1247,7 @@ class UniversalFilterQueryBuilder {
 
       const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
       return {
-        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer_full_mv_v2 ne ${whereClause}`,
+        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer ne ${whereClause}`,
         params: [...this.params],
       };
     }
@@ -1269,7 +1299,7 @@ class UniversalFilterQueryBuilder {
       )
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
-      JOIN public.api_network_explorer_full_mv_v2 ne ON ne.bssid = r.bssid
+      JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
     `;
@@ -1365,7 +1395,7 @@ class UniversalFilterQueryBuilder {
         ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
         ne.threat
       FROM filtered_obs o
-      LEFT JOIN public.api_network_explorer_full_mv_v2 ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+      LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
         ${whereClause}
@@ -1431,7 +1461,7 @@ class UniversalFilterQueryBuilder {
           END AS network_type,
           COUNT(DISTINCT ne.bssid) AS count
         FROM filtered_obs o
-        JOIN public.api_network_explorer_full_mv_v2 ne ON ne.bssid = o.bssid
+        JOIN public.api_network_explorer ne ON ne.bssid = o.bssid
         GROUP BY network_type
         ORDER BY count DESC
       `),
@@ -1520,14 +1550,8 @@ class UniversalFilterQueryBuilder {
         )
         SELECT
           d.date,
-          ROUND(AVG((ne.threat->>'score')::numeric * 100)::numeric, 1) AS avg_score,
-          COUNT(*) FILTER (WHERE (ne.threat->>'score')::numeric * 100 >= 80) AS critical_count,
-          COUNT(*) FILTER (WHERE (ne.threat->>'score')::numeric * 100 >= 70
-            AND (ne.threat->>'score')::numeric * 100 < 80) AS high_count,
-          COUNT(*) FILTER (WHERE (ne.threat->>'score')::numeric * 100 >= 40
-            AND (ne.threat->>'score')::numeric * 100 < 70) AS medium_count
+          COUNT(*) AS network_count
         FROM daily_networks d
-        JOIN public.api_network_explorer_mv ne ON ne.bssid = d.bssid
         GROUP BY d.date
         ORDER BY d.date
       `),

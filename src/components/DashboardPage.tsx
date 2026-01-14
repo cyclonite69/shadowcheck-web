@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-// SVG Icons
+// SVG Icons - Industry Standard
 const AlertTriangle = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -48,36 +48,6 @@ const Network = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const Eye = ({ size = 24, className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
-const Database = ({ size = 24, className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <ellipse cx="12" cy="5" rx="9" ry="3" />
-    <path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
-  </svg>
-);
-
 const Bluetooth = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -107,6 +77,58 @@ const Radio = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const BarChart3 = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M3 3v18h18" />
+    <path d="M18 17V9" />
+    <path d="M13 17V5" />
+    <path d="M8 17v-3" />
+  </svg>
+);
+
+const Smartphone = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+
+const Tower = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M4 11a9 9 0 0 1 16 0" />
+    <path d="M6 11a7 7 0 0 1 12 0" />
+    <path d="M8 11a5 5 0 0 1 8 0" />
+    <path d="M10 11a3 3 0 0 1 4 0" />
+    <path d="M12 11v10" />
+    <path d="M8 21l8-4" />
+    <path d="M16 21l-8-4" />
+  </svg>
+);
+
 const GripHorizontal = ({ size = 24, className = '' }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
     <circle cx="9" cy="5" r="1.5" />
@@ -123,7 +145,6 @@ export default function DashboardPage() {
   const [error, setError] = useState(null);
 
   const [cards, setCards] = useState([
-    // Main metrics (top row - large cards)
     {
       id: 1,
       title: 'Total Networks',
@@ -132,8 +153,8 @@ export default function DashboardPage() {
       color: '#3b82f6',
       x: 0,
       y: 110,
-      w: 33.33,
-      h: 220,
+      w: 100,
+      h: 280,
       type: 'total-networks',
     },
     {
@@ -142,84 +163,82 @@ export default function DashboardPage() {
       value: 0,
       icon: Wifi,
       color: '#10b981',
-      x: 33.33,
-      y: 110,
-      w: 33.33,
-      h: 220,
+      x: 0,
+      y: 390,
+      w: 100,
+      h: 280,
       type: 'wifi-count',
     },
     {
       id: 3,
       title: 'BLE Devices',
       value: 0,
-      icon: Radio,
+      icon: Smartphone,
       color: '#8b5cf6',
-      x: 66.66,
-      y: 110,
-      w: 33.34,
-      h: 220,
+      x: 0,
+      y: 670,
+      w: 100,
+      h: 280,
       type: 'radio-ble',
     },
-
-    // Radio type breakdown (second row - medium cards)
     {
       id: 4,
-      title: 'Bluetooth',
+      title: 'Bluetooth Classic',
       value: 0,
       icon: Bluetooth,
       color: '#06b6d4',
       x: 0,
-      y: 350,
-      w: 20,
-      h: 160,
+      y: 950,
+      w: 100,
+      h: 280,
       type: 'radio-bt',
     },
     {
       id: 5,
-      title: 'LTE',
+      title: 'LTE Networks',
       value: 0,
-      icon: Network,
+      icon: Tower,
       color: '#ec4899',
-      x: 20,
-      y: 350,
-      w: 20,
-      h: 160,
+      x: 0,
+      y: 1230,
+      w: 100,
+      h: 280,
       type: 'radio-lte',
     },
     {
       id: 6,
-      title: 'GSM',
+      title: 'GSM Networks',
       value: 0,
       icon: Radio,
       color: '#f59e0b',
-      x: 40,
-      y: 350,
-      w: 20,
-      h: 160,
+      x: 0,
+      y: 1510,
+      w: 100,
+      h: 280,
       type: 'radio-gsm',
     },
     {
       id: 7,
-      title: '5G NR',
+      title: '5G NR Networks',
       value: 0,
-      icon: Network,
+      icon: Tower,
       color: '#10b981',
-      x: 60,
-      y: 350,
-      w: 20,
-      h: 160,
+      x: 0,
+      y: 1790,
+      w: 100,
+      h: 280,
       type: 'radio-nr',
     },
     {
       id: 8,
-      title: 'Analytics',
+      title: 'Analytics Dashboard',
       value: '→',
-      icon: Database,
+      icon: BarChart3,
       color: '#64748b',
-      x: 80,
-      y: 350,
-      w: 20,
-      h: 160,
+      x: 0,
+      y: 2070,
+      w: 100,
+      h: 200,
       type: 'analytics-link',
     },
   ]);
@@ -390,145 +409,161 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="relative w-full min-h-screen overflow-y-auto overflow-x-hidden"
+      className="relative w-full h-screen overflow-hidden flex"
       style={{
         background:
           'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
-        height: '100vh',
       }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
-          <h1
-            style={{
-              fontSize: '22px',
-              fontWeight: '900',
-              margin: 0,
-              letterSpacing: '-0.5px',
-              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-              filter:
-                'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-            }}
-          >
-            ShadowCheck Dashboard
-          </h1>
-          <p
-            style={{
-              fontSize: '12px',
-              fontWeight: '300',
-              margin: 0,
-              marginTop: '4px',
-              letterSpacing: '1.5px',
-              textTransform: 'uppercase',
-              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
-              opacity: 0.8,
-            }}
-          >
-            Real-time surveillance and threat detection metrics
-          </p>
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
+        {/* Header */}
+        <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
+          <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
+            <h1
+              style={{
+                fontSize: '22px',
+                fontWeight: '900',
+                margin: 0,
+                letterSpacing: '-0.5px',
+                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
+                filter:
+                  'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
+              }}
+            >
+              ShadowCheck Dashboard
+            </h1>
+            <p
+              style={{
+                fontSize: '12px',
+                fontWeight: '300',
+                margin: 0,
+                marginTop: '4px',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+                opacity: 0.8,
+              }}
+            >
+              Real-time surveillance and threat detection metrics
+            </p>
+          </div>
+        </div>
+
+        {/* Cards */}
+        <div style={{ minHeight: '2400px', position: 'relative' }}>
+          {cards.map((card) => {
+            const Icon = card.icon;
+            const width = `${card.w}%`;
+            const left = `${card.x}%`;
+
+            return (
+              <div
+                key={card.id}
+                style={{
+                  position: 'absolute',
+                  left: left,
+                  top: `${card.y}px`,
+                  width: width,
+                  height: `${card.h}px`,
+                  transition:
+                    dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
+                  cursor: dragging === card.id ? 'grabbing' : 'grab',
+                  userSelect: dragging || resizing ? 'none' : 'auto',
+                }}
+                onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
+                className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+              >
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                  <div className="flex items-center gap-2">
+                    <Icon size={18} className="text-blue-400" />
+                    <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+                  </div>
+                  <GripHorizontal
+                    size={16}
+                    className="text-white/50 group-hover:text-white transition-colors flex-shrink-0"
+                  />
+                </div>
+
+                {/* Content */}
+                <div
+                  className="p-4 overflow-hidden flex flex-col items-center justify-center text-center"
+                  style={{ height: `${card.h - 60}px` }}
+                >
+                  {loading ? (
+                    <div className="text-slate-400 text-sm">Loading...</div>
+                  ) : error ? (
+                    <div className="text-red-400 text-xs">Error</div>
+                  ) : (
+                    <>
+                      {/* Icon */}
+                      <div className="mb-4">
+                        <Icon
+                          size={card.h > 250 ? 64 : card.h > 200 ? 48 : 40}
+                          className="drop-shadow-lg"
+                          style={{ color: card.color }}
+                        />
+                      </div>
+
+                      {/* Value - Large and Bold */}
+                      <div className="mb-2">
+                        <p
+                          className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
+                          style={{
+                            fontSize: card.h > 250 ? '56px' : card.h > 200 ? '42px' : '32px',
+                            color: card.color,
+                          }}
+                        >
+                          {typeof card.value === 'number'
+                            ? card.value.toLocaleString()
+                            : card.value}
+                        </p>
+                      </div>
+
+                      {/* Subtitle */}
+                      <div>
+                        <p className="text-xs font-medium text-slate-400">
+                          {card.type === 'analytics-link'
+                            ? 'View detailed analytics'
+                            : 'Active networks detected'}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Resize Handle */}
+                <div
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleMouseDown(e, card.id, 'resize');
+                  }}
+                  className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
+                    borderRadius: '0 0 10px 0',
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
-
-      {/* Cards */}
-      {cards.map((card) => {
-        const Icon = card.icon;
-        const width = `${card.w}%`;
-        const left = `${card.x}%`;
-
-        return (
-          <div
-            key={card.id}
-            style={{
-              position: 'absolute',
-              left: left,
-              top: `${card.y}px`,
-              width: width,
-              height: `${card.h}px`,
-              transition: dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
-              cursor: dragging === card.id ? 'grabbing' : 'grab',
-              userSelect: dragging || resizing ? 'none' : 'auto',
-            }}
-            onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-            className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
-          >
-            <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
-
-            {/* Card Content */}
-            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center p-4">
-              {loading ? (
-                <div className="text-slate-400 text-sm">Loading...</div>
-              ) : error ? (
-                <div className="text-red-400 text-xs">Error</div>
-              ) : (
-                <>
-                  {/* Icon */}
-                  <div className="mb-3">
-                    <Icon
-                      size={card.h > 180 ? 48 : card.h > 150 ? 40 : 32}
-                      className="drop-shadow-lg"
-                      style={{ color: card.color }}
-                    />
-                  </div>
-
-                  {/* Value - Large and Bold */}
-                  <div className="mb-2">
-                    <p
-                      className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
-                      style={{
-                        fontSize: card.h > 180 ? '48px' : card.h > 150 ? '36px' : '28px',
-                        color: card.color,
-                      }}
-                    >
-                      {card.value.toLocaleString()}
-                    </p>
-                  </div>
-
-                  {/* Title - Elegant Typography */}
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-300 drop-shadow">
-                      {card.title}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Grip Handle */}
-            <div className="absolute top-2 right-2 z-20">
-              <GripHorizontal
-                size={14}
-                className="text-white/30 group-hover:text-white/60 transition-colors"
-              />
-            </div>
-
-            {/* Resize Handle */}
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleMouseDown(e, card.id, 'resize');
-              }}
-              className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
-              style={{
-                background: 'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
-                borderRadius: '0 0 10px 0',
-              }}
-            />
-          </div>
-        );
-      })}
     </div>
   );
 }

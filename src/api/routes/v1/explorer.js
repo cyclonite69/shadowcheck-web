@@ -167,6 +167,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
     const search = req.query.search ? String(req.query.search).trim() : '';
     const sort = (req.query.sort || 'last_seen').toLowerCase();
     const order = (req.query.order || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const qualityFilter = req.query.qualityFilter || 'none';
 
     // Sort uses columns exposed in the outer select (no inner aliases)
     const sortMap = {
@@ -185,6 +186,19 @@ router.get('/explorer/networks', async (req, res, _next) => {
     // Use fixed home point (no dependency on location_markers)
     const homeLon = -83.69682688;
     const homeLat = 43.02345147; // fallback trilateration point
+
+    // Apply quality filters
+    const { DATA_QUALITY_FILTERS } = require('../../../services/dataQualityFilters');
+    let qualityWhere = '';
+    if (qualityFilter === 'temporal') {
+      qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;
+    } else if (qualityFilter === 'extreme') {
+      qualityWhere = DATA_QUALITY_FILTERS.extreme_signals;
+    } else if (qualityFilter === 'duplicate') {
+      qualityWhere = DATA_QUALITY_FILTERS.duplicate_coords;
+    } else if (qualityFilter === 'all') {
+      qualityWhere = DATA_QUALITY_FILTERS.all();
+    }
 
     const params = [homeLon, homeLat];
     const where = [];
@@ -212,6 +226,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
           radio_frequency,
           radio_capabilities
         FROM public.observations
+        WHERE 1=1 ${qualityWhere}
         ORDER BY bssid, time DESC
       )
       SELECT
@@ -245,15 +260,15 @@ router.get('/explorer/networks', async (req, res, _next) => {
       ${whereClause}
       ${orderClause}
       ${
-  limit === null
-    ? ''
-    : (() => {
-      const limitIndex = params.length + 1;
-      const offsetIndex = params.length + 2;
-      params.push(limit, offset);
-      return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
-    })()
-};
+        limit === null
+          ? ''
+          : (() => {
+              const limitIndex = params.length + 1;
+              const offsetIndex = params.length + 2;
+              params.push(limit, offset);
+              return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+            })()
+      };
     `;
 
     const result = await query(sql, params);

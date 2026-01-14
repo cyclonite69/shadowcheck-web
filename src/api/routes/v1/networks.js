@@ -41,6 +41,7 @@ router.get('/networks', async (req, res, next) => {
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
     const planCheck = req.query.planCheck === '1';
+    const qualityFilter = req.query.quality_filter; // none, temporal, extreme, duplicate, all
     const locationModeRaw = String(req.query.location_mode || 'latest_observation');
     const locationMode = [
       'latest_observation',
@@ -180,39 +181,39 @@ router.get('/networks', async (req, res, next) => {
     `;
 
     const sortColumnMap = {
-      last_seen: 'last_observed_at',
-      last_observed_at: 'last_observed_at',
-      first_observed_at: 'first_observed_at',
-      observed_at: 'observed_at',
-      ssid: 'lower(ssid)',
-      bssid: 'bssid',
+      last_seen: 'ne.last_observed_at',
+      last_observed_at: 'ne.last_observed_at',
+      first_observed_at: 'ne.first_observed_at',
+      observed_at: 'ne.observed_at',
+      ssid: 'lower(ne.ssid)',
+      bssid: 'ne.bssid',
       type: typeExpr,
-      security: 'security',
-      signal: 'signal',
-      frequency: 'frequency',
-      channel: 'channel',
-      obs_count: 'obs_count',
-      observations: 'obs_count',
-      distance_from_home_km: 'distance_from_home_km',
-      accuracy_meters: 'accuracy_meters',
-      avg_signal: 'avg_signal',
-      min_signal: 'min_signal',
-      max_signal: 'max_signal',
-      unique_days: 'unique_days',
-      unique_locations: 'unique_locations',
-      threat: 'threat',
-      lat: 'lat',
-      lon: 'lon',
-      manufacturer: 'manufacturer',
-      manufacturer_address: 'manufacturer_address',
-      capabilities: 'capabilities',
-      min_altitude_m: 'min_altitude_m',
-      max_altitude_m: 'max_altitude_m',
-      altitude_span_m: 'altitude_span_m',
-      max_distance_meters: 'max_distance_meters',
-      last_altitude_m: 'last_altitude_m',
-      is_sentinel: 'is_sentinel',
-      timespan_days: 'EXTRACT(EPOCH FROM (last_observed_at - first_observed_at)) / 86400.0',
+      security: 'ne.security',
+      signal: 'ne.signal',
+      frequency: 'ne.frequency',
+      channel: 'ne.channel',
+      obs_count: 'ne.obs_count',
+      observations: 'ne.obs_count',
+      distance_from_home_km: 'ne.distance_from_home_km',
+      accuracy_meters: 'ne.accuracy_meters',
+      avg_signal: 'ne.avg_signal',
+      min_signal: 'ne.min_signal',
+      max_signal: 'ne.max_signal',
+      unique_days: 'ne.unique_days',
+      unique_locations: 'ne.unique_locations',
+      threat: 'ne.threat',
+      lat: 'ne.lat',
+      lon: 'ne.lon',
+      manufacturer: 'COALESCE(mv.manufacturer, ne.manufacturer)',
+      manufacturer_address: 'COALESCE(mv.manufacturer_address, ne.manufacturer_address)',
+      capabilities: 'ne.capabilities',
+      min_altitude_m: 'mv.min_altitude_m',
+      max_altitude_m: 'mv.max_altitude_m',
+      altitude_span_m: 'mv.altitude_span_m',
+      max_distance_meters: 'mv.max_distance_meters',
+      last_altitude_m: 'mv.last_altitude_m',
+      is_sentinel: 'mv.is_sentinel',
+      timespan_days: 'EXTRACT(EPOCH FROM (ne.last_observed_at - ne.first_observed_at)) / 86400.0',
     };
 
     const parseSortJson = (value) => {
@@ -308,7 +309,7 @@ router.get('/networks', async (req, res, next) => {
 
     const orderByClause = `${sortEntries
       .map((entry) => `${sortColumnMap[entry.column]} ${entry.direction}`)
-      .join(', ')}, bssid ASC`;
+      .join(', ')}, ne.bssid ASC`;
 
     const params = [];
     const whereClauses = [];

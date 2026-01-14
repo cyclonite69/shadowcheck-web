@@ -33,6 +33,7 @@ export interface NetworkFilters {
   observationCountMax?: number;
   gpsAccuracyMax?: number; // meters
   excludeInvalidCoords?: boolean;
+  qualityFilter?: 'none' | 'temporal' | 'extreme' | 'duplicate' | 'all';
 
   // F. Spatial / Proximity
   distanceFromHomeMin?: number; // meters, per-observation

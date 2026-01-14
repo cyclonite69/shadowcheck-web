@@ -86,6 +86,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   observationCountMax: false,
   gpsAccuracyMax: false,
   excludeInvalidCoords: false,
+  qualityFilter: false,
 
   // Spatial - disabled by default
   distanceFromHomeMin: false,

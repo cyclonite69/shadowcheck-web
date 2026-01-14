@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // SVG Icons
 const Settings = ({ size = 24, className = '' }) => (
@@ -62,6 +62,17 @@ const Key = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const GripHorizontal = ({ size = 24, className = '' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
+    <circle cx="9" cy="5" r="1.5" />
+    <circle cx="9" cy="12" r="1.5" />
+    <circle cx="9" cy="19" r="1.5" />
+    <circle cx="15" cy="5" r="1.5" />
+    <circle cx="15" cy="12" r="1.5" />
+    <circle cx="15" cy="19" r="1.5" />
+  </svg>
+);
+
 const AdminPage: React.FC = () => {
   const [mapboxToken, setMapboxToken] = useState('');
   const [homeLocation, setHomeLocation] = useState({ lat: '', lng: '' });
@@ -70,21 +81,54 @@ const AdminPage: React.FC = () => {
   const [wigleToken, setWigleToken] = useState('');
   const [wigleApiName, setWigleApiName] = useState('');
 
+  const [cards] = useState([
+    { id: 1, title: 'SQLite Import', icon: Database, x: 0, y: 110, w: 100, h: 400, type: 'import' },
+    {
+      id: 2,
+      title: 'Mapbox Configuration',
+      icon: Key,
+      x: 0,
+      y: 510,
+      w: 100,
+      h: 300,
+      type: 'mapbox',
+    },
+    {
+      id: 3,
+      title: 'Home Location',
+      icon: Settings,
+      x: 0,
+      y: 810,
+      w: 100,
+      h: 300,
+      type: 'location',
+    },
+    { id: 4, title: 'WiGLE API', icon: Key, x: 0, y: 1110, w: 100, h: 400, type: 'wigle' },
+    {
+      id: 5,
+      title: 'WiGLE Import',
+      icon: Upload,
+      x: 0,
+      y: 1510,
+      w: 100,
+      h: 300,
+      type: 'wigle-import',
+    },
+    { id: 6, title: 'Data Export', icon: Upload, x: 0, y: 1810, w: 100, h: 300, type: 'export' },
+  ]);
+
   useEffect(() => {
-    // Load current settings
     loadSettings();
   }, []);
 
   const loadSettings = async () => {
     try {
-      // Load Mapbox token
       const tokenResponse = await fetch('/api/mapbox-token');
       const tokenData = await tokenResponse.json();
       if (tokenData.token && tokenData.token !== 'your-mapbox-token-here') {
         setMapboxToken(tokenData.token);
       }
 
-      // Load home location
       const homeResponse = await fetch('/api/home-location');
       const homeData = await homeResponse.json();
       if (homeData.latitude && homeData.longitude) {
@@ -106,14 +150,12 @@ const AdminPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: mapboxToken }),
       });
-
       if (response.ok) {
         alert('Mapbox token saved successfully!');
       } else {
         alert('Failed to save Mapbox token');
       }
     } catch (error) {
-      console.error('Error saving token:', error);
       alert('Error saving Mapbox token');
     } finally {
       setIsLoading(false);
@@ -131,14 +173,12 @@ const AdminPage: React.FC = () => {
           longitude: parseFloat(homeLocation.lng),
         }),
       });
-
       if (response.ok) {
         alert('Home location saved successfully!');
       } else {
         alert('Failed to save home location');
       }
     } catch (error) {
-      console.error('Error saving location:', error);
       alert('Error saving home location');
     } finally {
       setIsLoading(false);
@@ -169,94 +209,24 @@ const AdminPage: React.FC = () => {
         setImportStatus(`Import failed: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Import error:', error);
       setImportStatus('Import failed: Network error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="app-container">
-      {/* Page Title */}
-      <div style={{ padding: '20px 12px 0 12px' }}>
-        <div
-          style={{
-            background: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(24px)',
-            borderRadius: '16px',
-            padding: '24px',
-            border: '1px solid rgba(51, 65, 85, 0.6)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            textAlign: 'center',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '22px',
-              fontWeight: '900',
-              margin: 0,
-              letterSpacing: '-0.5px',
-              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-              filter:
-                'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-            }}
-          >
-            ShadowCheck Administration
-          </h1>
-          <p
-            style={{
-              fontSize: '12px',
-              fontWeight: '300',
-              margin: 0,
-              marginTop: '4px',
-              letterSpacing: '1.5px',
-              textTransform: 'uppercase',
-              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
-              opacity: 0.8,
-            }}
-          >
-            System configuration and data management
-          </p>
-        </div>
-      </div>
+  const renderCardContent = (card) => {
+    const height = card.h - 60;
 
-      <main
-        className="app-main"
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px' }}
-      >
-        {/* SQLite Import Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Database size={18} className="text-blue-400" />
-              <h3 className="text-sm font-semibold text-white">SQLite Import</h3>
-            </div>
-          </div>
-          <div className="panel-content" style={{ padding: '16px' }}>
-            <div className="text-sm text-secondary mb-4">Import WiGLE SQLite databases</div>
-
+    switch (card.type) {
+      case 'import':
+        return (
+          <div className="p-4" style={{ height }}>
+            <div className="text-sm text-slate-400 mb-4">Import WiGLE SQLite databases</div>
             <div className="mb-4">
-              <label className="text-xs font-medium mb-2 block">Select SQLite Database</label>
+              <label className="text-xs font-medium mb-2 block text-white">
+                Select SQLite Database
+              </label>
               <input
                 type="file"
                 accept=".sqlite,.db,.sqlite3"
@@ -265,7 +235,6 @@ const AdminPage: React.FC = () => {
                 className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
               />
             </div>
-
             {importStatus && (
               <div
                 className={`text-sm p-2 rounded mb-4 ${
@@ -279,35 +248,18 @@ const AdminPage: React.FC = () => {
                 {importStatus}
               </div>
             )}
-
             {isLoading && <div className="text-center text-sm text-slate-400">Processing...</div>}
           </div>
-        </div>
+        );
 
-        {/* Mapbox Token Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Key size={18} className="text-green-400" />
-              <h3 className="text-sm font-semibold text-white">Mapbox Configuration</h3>
-            </div>
-          </div>
-          <div className="panel-content" style={{ padding: '16px' }}>
-            <div className="text-sm text-secondary mb-4">Configure Mapbox access token</div>
-
+      case 'mapbox':
+        return (
+          <div className="p-4" style={{ height }}>
+            <div className="text-sm text-slate-400 mb-4">Configure Mapbox access token</div>
             <div className="mb-4">
-              <label className="text-xs font-medium mb-2 block">Mapbox Access Token</label>
+              <label className="text-xs font-medium mb-2 block text-white">
+                Mapbox Access Token
+              </label>
               <input
                 type="password"
                 value={mapboxToken}
@@ -316,42 +268,23 @@ const AdminPage: React.FC = () => {
                 className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
               />
             </div>
-
             <button
               onClick={saveMapboxToken}
               disabled={isLoading || !mapboxToken}
-              className="btn btn-sm w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
+              className="w-full p-2 rounded bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium"
             >
               💾 Save Token
             </button>
           </div>
-        </div>
+        );
 
-        {/* Home Location Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Settings size={18} className="text-purple-400" />
-              <h3 className="text-sm font-semibold text-white">Home Location</h3>
-            </div>
-          </div>
-          <div className="panel-content" style={{ padding: '16px' }}>
-            <div className="text-sm text-secondary mb-4">Set your home coordinates</div>
-
+      case 'location':
+        return (
+          <div className="p-4" style={{ height }}>
+            <div className="text-sm text-slate-400 mb-4">Set your home coordinates</div>
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div>
-                <label className="text-xs font-medium mb-1 block">Latitude</label>
+                <label className="text-xs font-medium mb-1 block text-white">Latitude</label>
                 <input
                   type="number"
                   step="any"
@@ -362,7 +295,7 @@ const AdminPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block">Longitude</label>
+                <label className="text-xs font-medium mb-1 block text-white">Longitude</label>
                 <input
                   type="number"
                   step="any"
@@ -373,95 +306,22 @@ const AdminPage: React.FC = () => {
                 />
               </div>
             </div>
-
             <button
               onClick={saveHomeLocation}
               disabled={isLoading || !homeLocation.lat || !homeLocation.lng}
-              className="btn btn-sm w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+              className="w-full p-2 rounded bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium"
             >
               📍 Save Location
             </button>
           </div>
-        </div>
+        );
 
-        {/* System Status Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Upload size={18} className="text-orange-400" />
-              <h3 className="text-sm font-semibold text-white">System Status</h3>
-            </div>
-          </div>
-          <div className="panel-content" style={{ padding: '16px' }}>
-            <div className="text-sm text-secondary mb-4">System information and status</div>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Database:</span>
-                <span className="text-green-400">Connected</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">API Server:</span>
-                <span className="text-green-400">Running</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Mapbox:</span>
-                <span className={mapboxToken ? 'text-green-400' : 'text-red-400'}>
-                  {mapboxToken ? 'Configured' : 'Not Configured'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Home Location:</span>
-                <span
-                  className={
-                    homeLocation.lat && homeLocation.lng ? 'text-green-400' : 'text-red-400'
-                  }
-                >
-                  {homeLocation.lat && homeLocation.lng ? 'Set' : 'Not Set'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* WiGLE API Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Key size={18} className="text-cyan-400" />
-              <h3 className="text-sm font-semibold text-white">WiGLE API</h3>
-            </div>
-          </div>
-          <div
-            className="panel-content"
-            style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}
-          >
-            <div className="text-sm text-secondary mb-4">Configure WiGLE API credentials</div>
-
+      case 'wigle':
+        return (
+          <div className="p-4 overflow-y-auto" style={{ height }}>
+            <div className="text-sm text-slate-400 mb-4">Configure WiGLE API credentials</div>
             <div className="mb-3">
-              <label className="text-xs font-medium mb-2 block">API Name</label>
+              <label className="text-xs font-medium mb-2 block text-white">API Name</label>
               <input
                 type="text"
                 value={wigleApiName}
@@ -470,9 +330,8 @@ const AdminPage: React.FC = () => {
                 className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
               />
             </div>
-
             <div className="mb-4">
-              <label className="text-xs font-medium mb-2 block">API Token</label>
+              <label className="text-xs font-medium mb-2 block text-white">API Token</label>
               <input
                 type="password"
                 value={wigleToken}
@@ -481,7 +340,6 @@ const AdminPage: React.FC = () => {
                 className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
               />
             </div>
-
             <button
               onClick={async () => {
                 try {
@@ -497,21 +355,17 @@ const AdminPage: React.FC = () => {
                     alert('Failed to save WiGLE credentials');
                   }
                 } catch (error) {
-                  console.error('Error saving credentials:', error);
                   alert('Error saving WiGLE credentials');
                 } finally {
                   setIsLoading(false);
                 }
               }}
               disabled={isLoading || !wigleApiName || !wigleToken}
-              className="btn btn-sm w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 mb-3"
+              className="w-full p-2 rounded bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-sm font-medium mb-3"
             >
               💾 Save Credentials
             </button>
-
-            <div className="border-t border-slate-700 pt-3 mt-3 space-y-2">
-              <div className="text-xs font-medium mb-2">API Actions</div>
-
+            <div className="space-y-2">
               <button
                 onClick={async () => {
                   try {
@@ -528,57 +382,10 @@ const AdminPage: React.FC = () => {
                   }
                 }}
                 disabled={isLoading}
-                className="btn btn-sm w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="w-full p-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium"
               >
                 🔌 Test Connection
               </button>
-
-              <button
-                onClick={async () => {
-                  try {
-                    setIsLoading(true);
-                    const response = await fetch('/api/wigle/v3/wifi-detail', { method: 'POST' });
-                    const data = await response.json();
-                    alert(
-                      response.ok ? `Fetched ${data.count || 0} WiFi details` : 'Request failed'
-                    );
-                  } catch (error) {
-                    alert('WiFi detail request failed');
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading}
-                className="btn btn-sm w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-              >
-                📶 v3 WiFi Detail
-              </button>
-
-              <button
-                onClick={async () => {
-                  try {
-                    setIsLoading(true);
-                    const response = await fetch('/api/wigle/v2/network-summary', {
-                      method: 'POST',
-                    });
-                    const data = await response.json();
-                    alert(
-                      response.ok
-                        ? `Fetched ${data.count || 0} network summaries`
-                        : 'Request failed'
-                    );
-                  } catch (error) {
-                    alert('Network summary request failed');
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading}
-                className="btn btn-sm w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50"
-              >
-                📊 v2 Network Summary
-              </button>
-
               <button
                 onClick={async () => {
                   try {
@@ -595,155 +402,178 @@ const AdminPage: React.FC = () => {
                   }
                 }}
                 disabled={isLoading}
-                className="btn btn-sm w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                className="w-full p-2 rounded bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium"
               >
                 📥 Import Nearby Networks
               </button>
+            </div>
+          </div>
+        );
 
+      case 'wigle-import':
+        return (
+          <div className="p-4" style={{ height }}>
+            <div className="text-sm text-slate-400 mb-4">Import WiGLE JSON files</div>
+            <div className="space-y-3">
+              <div className="text-xs text-slate-500">
+                Place JSON files in:{' '}
+                <code className="bg-slate-700 px-1 rounded">imports/wigle/</code>
+              </div>
               <button
                 onClick={async () => {
+                  setIsLoading(true);
                   try {
-                    setIsLoading(true);
-                    const response = await fetch('/api/wigle/enrich', { method: 'POST' });
-                    const data = await response.json();
-                    alert(
-                      response.ok ? `Enriched ${data.enriched || 0} networks` : 'Enrichment failed'
-                    );
+                    const response = await fetch('/api/import/wigle', { method: 'POST' });
+                    const result = await response.json();
+                    if (result.success) {
+                      setImportStatus(
+                        `✅ Imported ${result.totalImported} networks from ${result.results.length} files`
+                      );
+                    } else {
+                      setImportStatus(`❌ Error: ${result.error}`);
+                    }
                   } catch (error) {
-                    alert('Enrichment failed');
+                    setImportStatus(`❌ Error: ${error.message}`);
                   } finally {
                     setIsLoading(false);
                   }
                 }}
                 disabled={isLoading}
-                className="btn btn-sm w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+                className="w-full p-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium"
               >
-                ✨ Enrich Existing Networks
+                {isLoading ? '⏳ Importing...' : '📥 Import WiGLE JSONs'}
               </button>
-            </div>
-
-            <button
-              onClick={() => window.open('https://api.wigle.net/', '_blank')}
-              className="btn btn-sm w-full bg-slate-600 hover:bg-slate-700 mt-3"
-            >
-              🔗 Get API Key
-            </button>
-          </div>
-        </div>
-
-        {/* Geocoding Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Settings size={18} className="text-yellow-400" />
-              <h3 className="text-sm font-semibold text-white">Geocoding</h3>
+              {importStatus && (
+                <div className="text-xs p-2 rounded bg-slate-700 text-slate-300">
+                  {importStatus}
+                </div>
+              )}
             </div>
           </div>
-          <div className="panel-content" style={{ padding: '16px' }}>
-            <div className="text-sm text-secondary mb-4">Convert addresses to coordinates</div>
+        );
 
-            <div className="mb-4">
-              <label className="text-xs font-medium mb-2 block">Address</label>
-              <input
-                type="text"
-                placeholder="123 Main St, City, State"
-                className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
-                id="geocode-input"
-              />
-            </div>
-
-            <button
-              onClick={async () => {
-                const input = document.getElementById('geocode-input') as HTMLInputElement;
-                const address = input?.value;
-                if (!address) return;
-
-                try {
-                  setIsLoading(true);
-                  const response = await fetch('/api/geocode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ address }),
-                  });
-                  const data = await response.json();
-
-                  if (response.ok && data.lat && data.lng) {
-                    alert(
-                      `Coordinates: ${data.lat}, ${data.lng}\nFormatted: ${data.formatted_address || address}`
-                    );
-                  } else {
-                    alert('Geocoding failed: ' + (data.error || 'Unknown error'));
-                  }
-                } catch (error) {
-                  alert('Geocoding request failed');
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-              className="btn btn-sm w-full bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50"
-            >
-              🌍 Geocode Address
-            </button>
-          </div>
-        </div>
-
-        {/* Export/Data Management Panel */}
-        <div
-          className="panel"
-          style={{
-            background: '#0f1e34',
-            opacity: 0.95,
-            border: '1px solid #20324d',
-            borderRadius: '12px',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            outline: '1px solid rgba(19, 34, 58, 0.6)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
-            <div className="flex items-center gap-2">
-              <Upload size={18} className="text-orange-400" />
-              <h3 className="text-sm font-semibold text-white">Data Export</h3>
-            </div>
-          </div>
-          <div className="panel-content" style={{ padding: '16px' }}>
-            <div className="text-sm text-secondary mb-4">Export data and generate reports</div>
-
+      case 'export':
+        return (
+          <div className="p-4" style={{ height }}>
+            <div className="text-sm text-slate-400 mb-4">Export data and generate reports</div>
             <div className="space-y-3">
               <button
-                className="btn btn-sm w-full bg-blue-600 hover:bg-blue-700 mb-3"
+                className="w-full p-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
                 onClick={() => window.open('/api/export/networks/csv', '_blank')}
               >
                 📊 Export Networks CSV
               </button>
               <button
-                className="btn btn-sm w-full bg-green-600 hover:bg-green-700 mb-3"
+                className="w-full p-2 rounded bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
                 onClick={() => window.open('/api/export/threats/json', '_blank')}
               >
                 🚨 Export Threats JSON
               </button>
               <button
-                className="btn btn-sm w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full p-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium"
                 onClick={() => window.open('/api/export/observations/geojson', '_blank')}
               >
                 🗺️ Export GeoJSON
               </button>
             </div>
           </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      className="relative w-full h-screen overflow-hidden flex"
+      style={{
+        background:
+          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
+      }}
+    >
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
+        {/* Header */}
+        <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
+          <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
+            <h1
+              style={{
+                fontSize: '22px',
+                fontWeight: '900',
+                margin: 0,
+                letterSpacing: '-0.5px',
+                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
+                filter:
+                  'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
+              }}
+            >
+              ShadowCheck Administration
+            </h1>
+            <p
+              style={{
+                fontSize: '12px',
+                fontWeight: '300',
+                margin: 0,
+                marginTop: '4px',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+                opacity: 0.8,
+              }}
+            >
+              System configuration and data management
+            </p>
+          </div>
         </div>
-      </main>
+
+        {/* Cards */}
+        <div style={{ minHeight: '2100px', position: 'relative' }}>
+          {cards.map((card) => {
+            const Icon = card.icon;
+            const width = `${card.w}%`;
+            const left = `${card.x}%`;
+
+            return (
+              <div
+                key={card.id}
+                style={{
+                  position: 'absolute',
+                  left: left,
+                  top: `${card.y}px`,
+                  width: width,
+                  height: `${card.h}px`,
+                }}
+                className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+              >
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                  <div className="flex items-center gap-2">
+                    <Icon size={18} className="text-blue-400" />
+                    <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+                  </div>
+                  <GripHorizontal
+                    size={16}
+                    className="text-white/50 group-hover:text-white transition-colors flex-shrink-0"
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="overflow-hidden">{renderCardContent(card)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
