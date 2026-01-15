@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FilterPanel } from './FilterPanel';
+import { ActiveFiltersSummary } from './ActiveFiltersSummary';
+import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
+import { useFilterURLSync } from '../hooks/useFilteredData';
+import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { getPageCapabilities } from '../utils/filterCapabilities';
 
 // SVG Icons - Industry Standard
 const AlertTriangle = ({ size = 24, className = '' }) => (
@@ -143,6 +149,12 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Universal filter system
+  const capabilities = getPageCapabilities('dashboard');
+  const adaptedFilters = useAdaptedFilters(capabilities);
+  useFilterURLSync();
 
   const [cards, setCards] = useState([
     {
@@ -255,82 +267,92 @@ export default function DashboardPage() {
     cardXPercent: 0,
   });
 
-  // Fetch dashboard data
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch('/api/analytics/network-types');
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-        const result = await response.json();
-        const data = result.data || [];
+  // Fetch dashboard data with filters
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { filtersForPage, enabledForPage } = adaptedFilters;
+      const params = new URLSearchParams({
+        filters: JSON.stringify(filtersForPage),
+        enabled: JSON.stringify(enabledForPage),
+      });
 
-        // Convert analytics data to dashboard format
-        const networkCounts = {};
-        let totalNetworks = 0;
-
-        data.forEach((item) => {
-          totalNetworks += item.count;
-          switch (item.type) {
-            case 'WiFi':
-              networkCounts.wifi = item.count;
-              break;
-            case 'BLE':
-              networkCounts.ble = item.count;
-              break;
-            case 'BT':
-              networkCounts.bluetooth = item.count;
-              break;
-            case 'LTE':
-              networkCounts.lte = item.count;
-              break;
-            case 'GSM':
-              networkCounts.gsm = item.count;
-              break;
-            case 'NR':
-              networkCounts.nr = item.count;
-              break;
-          }
-        });
-
-        // Update card values
-        setCards((prevCards) =>
-          prevCards.map((card) => {
-            switch (card.type) {
-              case 'total-networks':
-                return { ...card, value: totalNetworks };
-              case 'wifi-count':
-                return { ...card, value: networkCounts.wifi || 0 };
-              case 'radio-ble':
-                return { ...card, value: networkCounts.ble || 0 };
-              case 'radio-bt':
-                return { ...card, value: networkCounts.bluetooth || 0 };
-              case 'radio-lte':
-                return { ...card, value: networkCounts.lte || 0 };
-              case 'radio-gsm':
-                return { ...card, value: networkCounts.gsm || 0 };
-              case 'radio-nr':
-                return { ...card, value: networkCounts.nr || 0 };
-              case 'analytics-link':
-                return { ...card, value: '→' };
-              default:
-                return card;
-            }
-          })
-        );
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      const response = await fetch(`/api/analytics/network-types?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
       }
-    };
+      const result = await response.json();
+      const data = result.data || [];
 
+      // Convert analytics data to dashboard format
+      const networkCounts = {};
+      let totalNetworks = 0;
+
+      data.forEach((item) => {
+        totalNetworks += item.count;
+        switch (item.type) {
+          case 'WiFi':
+            networkCounts.wifi = item.count;
+            break;
+          case 'BLE':
+            networkCounts.ble = item.count;
+            break;
+          case 'BT':
+            networkCounts.bluetooth = item.count;
+            break;
+          case 'LTE':
+            networkCounts.lte = item.count;
+            break;
+          case 'GSM':
+            networkCounts.gsm = item.count;
+            break;
+          case 'NR':
+            networkCounts.nr = item.count;
+            break;
+        }
+      });
+
+      // Update card values
+      setCards((prevCards) =>
+        prevCards.map((card) => {
+          switch (card.type) {
+            case 'total-networks':
+              return { ...card, value: totalNetworks };
+            case 'wifi-count':
+              return { ...card, value: networkCounts.wifi || 0 };
+            case 'radio-ble':
+              return { ...card, value: networkCounts.ble || 0 };
+            case 'radio-bt':
+              return { ...card, value: networkCounts.bluetooth || 0 };
+            case 'radio-lte':
+              return { ...card, value: networkCounts.lte || 0 };
+            case 'radio-gsm':
+              return { ...card, value: networkCounts.gsm || 0 };
+            case 'radio-nr':
+              return { ...card, value: networkCounts.nr || 0 };
+            case 'analytics-link':
+              return { ...card, value: '→' };
+            default:
+              return card;
+          }
+        })
+      );
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [adaptedFilters]);
+
+  // Debounced filter updates
+  useDebouncedFilters(fetchDashboardData, 500);
+
+  // Initial load
+  useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   const handleMouseDown = (e, cardId, mode = 'move') => {
     e.preventDefault();
@@ -458,8 +480,28 @@ export default function DashboardPage() {
             >
               Real-time network intelligence and threat monitoring
             </p>
+            {/* Filter toggle button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="pointer-events-auto mt-3 px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg border border-blue-500 shadow-lg transition-all hover:shadow-xl"
+              style={{
+                background: showFilters
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              }}
+            >
+              {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
+            </button>
           </div>
         </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="absolute top-24 left-4 right-4 z-40 max-w-md mx-auto space-y-2">
+            <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+            <FilterPanel density="compact" />
+          </div>
+        )}
 
         {/* Cards */}
         <div style={{ minHeight: '2400px', position: 'relative', paddingTop: '60px' }}>

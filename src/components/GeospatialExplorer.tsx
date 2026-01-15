@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
+import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 
 type ThreatInfo = {
   score: number;
@@ -320,8 +321,36 @@ const MAP_STYLES = [
   { value: 'mapbox://styles/mapbox/satellite-streets-v12', label: 'Satellite Streets' },
   { value: 'mapbox://styles/mapbox/navigation-day-v1', label: 'Navigation Day' },
   { value: 'mapbox://styles/mapbox/navigation-night-v1', label: 'Navigation Night' },
+  // Google Maps styles
+  { value: 'google-roadmap', label: '🗺️ Google Roadmap', isGoogle: true },
+  { value: 'google-satellite', label: '🛰️ Google Satellite', isGoogle: true },
+  { value: 'google-hybrid', label: '🌐 Google Hybrid', isGoogle: true },
+  { value: 'google-terrain', label: '⛰️ Google Terrain', isGoogle: true },
+  // Export option
   { value: 'google-earth', label: '🌍 Export to Google Earth' },
 ] as const;
+
+// Helper to create a Google Maps tile style for Mapbox GL
+const createGoogleStyle = (type: string) => ({
+  version: 8 as const,
+  sources: {
+    'google-tiles': {
+      type: 'raster' as const,
+      tiles: [`/api/google-maps-tile/${type}/{z}/{x}/{y}`],
+      tileSize: 256,
+      attribution: '© Google Maps',
+    },
+  },
+  layers: [
+    {
+      id: 'google-tiles-layer',
+      type: 'raster' as const,
+      source: 'google-tiles',
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+});
 
 export default function GeospatialExplorer() {
   // All state declarations first
@@ -620,20 +649,35 @@ export default function GeospatialExplorer() {
 
         // Find the style config for Standard variants
         const styleConfig = MAP_STYLES.find((s) => s.value === mapStyle);
-        const actualStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
-          ? 'mapbox://styles/mapbox/standard'
-          : mapStyle;
+
+        // Determine initial style (Google or Mapbox)
+        let initialStyle;
+        if (mapStyle.startsWith('google-')) {
+          const googleType = mapStyle.replace('google-', '');
+          initialStyle = createGoogleStyle(googleType);
+        } else {
+          initialStyle = mapStyle.startsWith('mapbox://styles/mapbox/standard')
+            ? 'mapbox://styles/mapbox/standard'
+            : mapStyle;
+        }
 
         const map = new mapboxgl.Map({
           container: mapContainerRef.current as HTMLDivElement,
-          style: actualStyleUrl,
+          style: initialStyle,
           center: INITIAL_VIEW.center,
           zoom: INITIAL_VIEW.zoom,
           attributionControl: false,
         });
 
         mapRef.current = map;
+
+        // Add navigation control (compass + zoom) and scale bar
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        attachMapOrientationControls(map, {
+          scalePosition: 'bottom-right',
+          scaleUnit: 'metric',
+          ensureNavigation: false, // Already added above
+        });
 
         map.on('load', () => {
           // Apply light preset for Standard style variants
@@ -1712,7 +1756,7 @@ export default function GeospatialExplorer() {
 
   // Map style change handler
   const changeMapStyle = (styleUrl: string) => {
-    // Handle Google Earth option
+    // Handle Google Earth export option
     if (styleUrl === 'google-earth') {
       exportToGoogleEarth();
       return;
@@ -1730,12 +1774,18 @@ export default function GeospatialExplorer() {
     // Find the style config for Standard variants
     const styleConfig = MAP_STYLES.find((s) => s.value === styleUrl);
 
-    // Get the actual style URL (Standard variants all use the same base URL)
-    const actualStyleUrl = styleUrl.startsWith('mapbox://styles/mapbox/standard')
-      ? 'mapbox://styles/mapbox/standard'
-      : styleUrl;
-
-    mapRef.current.setStyle(actualStyleUrl);
+    // Handle Google Maps styles
+    if (styleUrl.startsWith('google-')) {
+      const googleType = styleUrl.replace('google-', ''); // roadmap, satellite, hybrid, terrain
+      const googleStyle = createGoogleStyle(googleType);
+      mapRef.current.setStyle(googleStyle);
+    } else {
+      // Get the actual style URL (Standard variants all use the same base URL)
+      const actualStyleUrl = styleUrl.startsWith('mapbox://styles/mapbox/standard')
+        ? 'mapbox://styles/mapbox/standard'
+        : styleUrl;
+      mapRef.current.setStyle(actualStyleUrl);
+    }
 
     mapRef.current.once('style.load', () => {
       if (!mapRef.current) return;

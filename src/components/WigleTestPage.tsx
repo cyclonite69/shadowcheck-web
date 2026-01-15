@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { attachMapOrientationControls } from '../utils/mapOrientationControls';
+import { FilterPanel } from './FilterPanel';
+import { ActiveFiltersSummary } from './ActiveFiltersSummary';
+import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
+import { useFilterURLSync } from '../hooks/useFilteredData';
+import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { getPageCapabilities } from '../utils/filterCapabilities';
 
 type WigleRow = {
   bssid: string;
@@ -93,6 +100,12 @@ const WigleTestPage: React.FC = () => {
   const [tokenStatus, setTokenStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [tilesReady, setTilesReady] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Universal filter system
+  const capabilities = getPageCapabilities('wigle');
+  const adaptedFilters = useAdaptedFilters(capabilities);
+  useFilterURLSync();
 
   const updateClusterColors = () => {
     const map = mapRef.current;
@@ -169,7 +182,15 @@ const WigleTestPage: React.FC = () => {
           zoom: 3,
         });
         mapRef.current = map;
+
+        // Add navigation control (compass + zoom) and scale bar
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        attachMapOrientationControls(map, {
+          scalePosition: 'bottom-right',
+          scaleUnit: 'metric',
+          ensureNavigation: false, // Already added above
+        });
+
         updateSize();
 
         map.on('load', () => {
@@ -334,6 +355,11 @@ const WigleTestPage: React.FC = () => {
       if (typeFilter.trim()) {
         params.set('type', typeFilter.trim());
       }
+      // Add adapted filters
+      const { filtersForPage, enabledForPage } = adaptedFilters;
+      params.set('filters', JSON.stringify(filtersForPage));
+      params.set('enabled', JSON.stringify(enabledForPage));
+
       const res = await fetch(`/api/wigle/networks-v2?${params.toString()}`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -348,8 +374,22 @@ const WigleTestPage: React.FC = () => {
     }
   };
 
+  // Debounced filter updates
+  useDebouncedFilters(fetchPoints, 500);
+
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col relative">
+      {/* Filter Panel */}
+      {showFilters && (
+        <div
+          className="absolute top-16 right-4 z-50 max-w-md space-y-2"
+          style={{ maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
+        >
+          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+          <FilterPanel density="compact" />
+        </div>
+      )}
+
       <div className="border-b border-slate-800 bg-slate-900/70 px-6 py-2">
         <div className="flex flex-wrap items-center gap-4">
           <div>
@@ -413,9 +453,20 @@ const WigleTestPage: React.FC = () => {
           </div>
           <button
             onClick={fetchPoints}
-            className="rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900"
+            className="rounded-md bg-cyan-500 hover:bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-900 transition-colors shadow-md"
           >
             {loading ? 'Loading…' : 'Load Points'}
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+            style={{
+              background: showFilters
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            }}
+          >
+            {showFilters ? '✕ Hide Filters' : '🔍 Filters'}
           </button>
           <div className="text-xs text-slate-400">
             Loaded: {rows.length.toLocaleString()}

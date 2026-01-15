@@ -1,4 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { attachMapOrientationControls } from '../utils/mapOrientationControls';
+import { FilterPanel } from './FilterPanel';
+import { ActiveFiltersSummary } from './ActiveFiltersSummary';
+import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
+import { useFilterURLSync } from '../hooks/useFilteredData';
+import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { getPageCapabilities } from '../utils/filterCapabilities';
 
 declare global {
   interface Window {
@@ -76,6 +83,12 @@ const KeplerTestPage: React.FC = () => {
     observations: number;
     networks: number;
   } | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Universal filter system
+  const capabilities = getPageCapabilities('kepler');
+  const adaptedFilters = useAdaptedFilters(capabilities);
+  useFilterURLSync();
 
   // Controls
   const [layerType, setLayerType] = useState<LayerType>('scatterplot');
@@ -300,6 +313,24 @@ const KeplerTestPage: React.FC = () => {
         }
       },
     });
+
+    // Add orientation controls to the underlying Mapbox map
+    // DeckGL wraps Mapbox, access it after a brief delay to ensure initialization
+    setTimeout(() => {
+      try {
+        const mapboxMap = deckRef.current?.deck?.getMapboxMap?.();
+        if (mapboxMap) {
+          attachMapOrientationControls(mapboxMap, {
+            scalePosition: 'bottom-right',
+            scaleUnit: 'metric',
+            ensureNavigation: true,
+            navigationPosition: 'top-right',
+          });
+        }
+      } catch (e) {
+        console.warn('Could not attach map controls to DeckGL:', e);
+      }
+    }, 100);
   };
 
   const updateVisualization = () => {
@@ -358,7 +389,18 @@ const KeplerTestPage: React.FC = () => {
 
       const endpoint =
         type === 'observations' ? '/api/kepler/observations' : '/api/kepler/networks';
-      const [tokenRes, dataRes] = await Promise.all([fetch('/api/mapbox-token'), fetch(endpoint)]);
+
+      // Add adapted filters to request
+      const { filtersForPage, enabledForPage } = adaptedFilters;
+      const params = new URLSearchParams();
+      params.set('filters', JSON.stringify(filtersForPage));
+      params.set('enabled', JSON.stringify(enabledForPage));
+
+      const endpointWithFilters = `${endpoint}?${params}`;
+      const [tokenRes, dataRes] = await Promise.all([
+        fetch('/api/mapbox-token'),
+        fetch(endpointWithFilters),
+      ]);
 
       const tokenData = await tokenRes.json();
       const geojson = await dataRes.json();
@@ -456,14 +498,21 @@ const KeplerTestPage: React.FC = () => {
     if (!scriptsLoadedRef.current) {
       setup();
     }
-  }, []);
+  }, [datasetType, adaptedFilters]);
+
+  // Debounced filter updates
+  useDebouncedFilters(() => {
+    if (scriptsLoadedRef.current && window.deck && window.mapboxgl) {
+      loadData(datasetType);
+    }
+  }, 500);
 
   useEffect(() => {
     // Reload data when datasetType changes (only if scripts are already loaded)
     if (scriptsLoadedRef.current && window.deck && window.mapboxgl) {
       loadData(datasetType);
     }
-  }, [datasetType]);
+  }, [datasetType, adaptedFilters]);
 
   useEffect(() => {
     if (deckRef.current && networkData.length > 0) {
@@ -505,6 +554,20 @@ const KeplerTestPage: React.FC = () => {
         <div ref={mapRef} className="w-full h-screen" />
       </div>
 
+      {/* Filter Panel */}
+      {showFilters && (
+        <div
+          className="fixed top-20 right-4 z-[99998] max-w-md space-y-2"
+          style={{
+            maxHeight: 'calc(100vh - 100px)',
+            overflowY: 'auto',
+          }}
+        >
+          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+          <FilterPanel density="compact" />
+        </div>
+      )}
+
       {/* Controls Panel */}
       <div
         className="text-white rounded-xl max-w-sm space-y-3.5 text-sm"
@@ -540,6 +603,18 @@ const KeplerTestPage: React.FC = () => {
             🛡️ ShadowCheck
           </h3>
           <p className="text-xs text-slate-400 mt-1">Network Visualization</p>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl"
+            style={{
+              background: showFilters
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              borderColor: showFilters ? '#dc2626' : '#2563eb',
+            }}
+          >
+            {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
+          </button>
         </div>
 
         <div>
