@@ -147,15 +147,12 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
 );
 
 export default function DashboardPage() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start false
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Universal filter system
-  const capabilities = getPageCapabilities('dashboard');
-  const adaptedFilters = useAdaptedFilters(capabilities);
-  // TEMPORARILY DISABLED - causing loop
-  // useFilterURLSync();
+  // FILTERS COMPLETELY DISABLED - causing infinite loop
+  // Will re-enable after fixing root cause
 
   const [cards, setCards] = useState([
     {
