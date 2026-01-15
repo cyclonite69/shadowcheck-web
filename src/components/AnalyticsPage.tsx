@@ -119,6 +119,20 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const FilterIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </svg>
+);
+
 const AlertTriangle = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -837,10 +851,10 @@ export default function Analytics() {
             {/* Time Frame Selector */}
             <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-2">
               {[
-                { value: '30d', label: '30 Days' },
-                { value: '90d', label: '90 Days' },
-                { value: '6mo', label: '6 Months' },
+                { value: '9mo', label: '9 Months' },
                 { value: '1yr', label: '1 Year' },
+                { value: '18mo', label: '18 Months' },
+                { value: '2yr', label: '2 Years' },
                 { value: 'all', label: 'All Time' },
               ].map((option) => (
                 <button
@@ -893,6 +907,9 @@ export default function Analytics() {
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                   backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
@@ -903,7 +920,8 @@ export default function Analytics() {
                   e.currentTarget.style.borderColor = 'rgba(71, 85, 105, 0.5)';
                 }}
               >
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                <FilterIcon size={14} />
+                {showFilters ? 'Hide' : 'Filters'}
                 {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </button>
             </div>

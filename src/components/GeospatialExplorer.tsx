@@ -320,7 +320,7 @@ const MAP_STYLES = [
   { value: 'mapbox://styles/mapbox/satellite-streets-v12', label: 'Satellite Streets' },
   { value: 'mapbox://styles/mapbox/navigation-day-v1', label: 'Navigation Day' },
   { value: 'mapbox://styles/mapbox/navigation-night-v1', label: 'Navigation Night' },
-  { value: 'google-earth', label: '🌍 Google Earth' },
+  { value: 'google-earth', label: '🌍 Export to Google Earth' },
 ] as const;
 
 export default function GeospatialExplorer() {
@@ -1647,16 +1647,74 @@ export default function GeospatialExplorer() {
     setVisibleColumns((v) => (v.includes(col) ? v.filter((c) => c !== col) : [...v, col]));
   };
 
-  // Map style change handler
-  const changeMapStyle = (styleUrl: string) => {
-    // Handle Google Earth option
-    if (styleUrl === 'google-earth') {
+  // Export KML for Google Earth
+  const exportToGoogleEarth = async () => {
+    // Require network selection first
+    if (activeObservationSets.size === 0) {
+      alert(
+        'Please select one or more networks first.\n\n' +
+          'Click the eye icon next to a network in the table below to show its observations, ' +
+          'then select Google Earth to export only those networks.'
+      );
+      return;
+    }
+
+    try {
+      // Export only the selected networks
+      const bssids = Array.from(activeObservationSets).join(',');
+      const url = `/api/kml?bssids=${encodeURIComponent(bssids)}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to export KML');
+      }
+
+      const kmlData = await response.text();
+
+      // Create a blob and download link
+      const blob = new Blob([kmlData], { type: 'application/vnd.google-earth.kml+xml' });
+      const downloadUrl = URL.createObjectURL(blob);
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const networkCount = activeObservationSets.size;
+      link.download = `shadowcheck_${networkCount}_networks_${new Date().toISOString().split('T')[0]}.kml`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+
+      // Open Google Earth Web at current location
       const center = mapRef.current?.getCenter() || { lat: 43.0234, lng: -83.6968 };
       const zoom = mapRef.current?.getZoom() || 12;
       const altitude =
         (Math.pow(2, 22 - zoom) * 156543.03392 * Math.cos((center.lat * Math.PI) / 180)) / 2;
-      const url = `https://earth.google.com/web/@${center.lat},${center.lng},${altitude}a,${altitude}d,35y,0h,0t,0r`;
-      window.open(url, '_blank');
+      const earthUrl = `https://earth.google.com/web/@${center.lat},${center.lng},${altitude}a,${altitude}d,35y,0h,0t,0r`;
+
+      // Show instruction to user
+      const openEarth = window.confirm(
+        `KML file with ${networkCount} network(s) downloaded!\n\n` +
+          'To view in Google Earth:\n' +
+          '1. Open Google Earth Pro (desktop) and File > Open the KML file, OR\n' +
+          '2. Go to Google Earth Web and drag the KML file onto the map\n\n' +
+          'Click OK to open Google Earth Web now.'
+      );
+
+      if (openEarth) {
+        window.open(earthUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Failed to export KML:', error);
+      alert('Failed to export KML data. Please try again.');
+    }
+  };
+
+  // Map style change handler
+  const changeMapStyle = (styleUrl: string) => {
+    // Handle Google Earth option
+    if (styleUrl === 'google-earth') {
+      exportToGoogleEarth();
       return;
     }
 
