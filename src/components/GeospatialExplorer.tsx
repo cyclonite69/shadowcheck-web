@@ -1766,16 +1766,21 @@ export default function GeospatialExplorer() {
 
   // Map style change handler
   const changeMapStyle = (styleUrl: string) => {
-    // Handle embedded Google views
-    if (styleUrl === 'google-street-view') {
-      setEmbeddedView('street-view');
-      localStorage.setItem('shadowcheck_map_style', styleUrl);
-      setMapStyle(styleUrl);
-      return;
+    // Handle Google Earth - open in new tab (can't be embedded)
+    if (styleUrl === 'google-earth') {
+      if (mapRef.current) {
+        const center = mapRef.current.getCenter();
+        window.open(
+          `https://earth.google.com/web/@${center.lat},${center.lng},0a,1000d,35y,0h,0t,0r`,
+          '_blank'
+        );
+      }
+      return; // Don't change the current map style
     }
 
-    if (styleUrl === 'google-earth') {
-      setEmbeddedView('earth');
+    // Handle Street View embed
+    if (styleUrl === 'google-street-view') {
+      setEmbeddedView('street-view');
       localStorage.setItem('shadowcheck_map_style', styleUrl);
       setMapStyle(styleUrl);
       return;
@@ -2389,21 +2394,10 @@ export default function GeospatialExplorer() {
                 </div>
               )}
 
-              {/* Embedded Google Views */}
+              {/* Embedded Google Street View */}
               {embeddedView === 'street-view' && mapRef.current && (
                 <iframe
                   src={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mapRef.current.getCenter().lat},${mapRef.current.getCenter().lng}`}
-                  className="w-full h-full"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              )}
-
-              {embeddedView === 'earth' && mapRef.current && (
-                <iframe
-                  src={`https://earth.google.com/web/@${mapRef.current.getCenter().lat},${mapRef.current.getCenter().lng},0a,1000d,35y,0h,0t,0r`}
                   className="w-full h-full"
                   style={{ border: 0 }}
                   allowFullScreen
