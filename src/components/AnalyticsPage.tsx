@@ -17,6 +17,7 @@ import {
 import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
+import { usePageFilters } from '../hooks/usePageFilters';
 
 // SVG Icons
 const Wifi = ({ size = 24, className = '' }) => (
