@@ -1704,7 +1704,7 @@ export default function GeospatialExplorer() {
   // Export KML for Google Earth
   const exportToGoogleEarth = async () => {
     // Require network selection first
-    if (activeObservationSets.size === 0) {
+    if (activeObservationSets.length === 0) {
       alert(
         'Please select one or more networks first.\n\n' +
           'Click the eye icon next to a network in the table below to show its observations, ' +
@@ -1715,7 +1715,7 @@ export default function GeospatialExplorer() {
 
     try {
       // Export only the selected networks
-      const bssids = Array.from(activeObservationSets).join(',');
+      const bssids = activeObservationSets.map((set) => set.bssid).join(',');
       const url = `/api/kml?bssids=${encodeURIComponent(bssids)}`;
 
       const response = await fetch(url);
@@ -1732,7 +1732,7 @@ export default function GeospatialExplorer() {
       // Create download link
       const link = document.createElement('a');
       link.href = downloadUrl;
-      const networkCount = activeObservationSets.size;
+      const networkCount = activeObservationSets.length;
       link.download = `shadowcheck_${networkCount}_networks_${new Date().toISOString().split('T')[0]}.kml`;
       document.body.appendChild(link);
       link.click();
