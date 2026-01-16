@@ -533,44 +533,46 @@ const KeplerTestPage: React.FC = () => {
     if (deckRef.current && networkData.length > 0) {
       logDebug(`[Kepler] Updating visualization with ${networkData.length} points`);
       updateVisualization();
-
-      // Auto-fit bounds only once when data first loads
-      if (!hasFitBounds) {
-        const lons = networkData.map((d) => d.position[0]);
-        const lats = networkData.map((d) => d.position[1]);
-        const minLon = Math.min(...lons);
-        const maxLon = Math.max(...lons);
-        const minLat = Math.min(...lats);
-        const maxLat = Math.max(...lats);
-
-        const centerLon = (minLon + maxLon) / 2;
-        const centerLat = (minLat + maxLat) / 2;
-        const lonDiff = maxLon - minLon;
-        const latDiff = maxLat - minLat;
-        const maxDiff = Math.max(lonDiff, latDiff);
-
-        let zoom = 10;
-        if (maxDiff < 0.01) zoom = 15;
-        else if (maxDiff < 0.05) zoom = 13;
-        else if (maxDiff < 0.1) zoom = 12;
-        else if (maxDiff < 0.5) zoom = 10;
-        else if (maxDiff < 1) zoom = 9;
-        else if (maxDiff < 5) zoom = 7;
-        else zoom = 5;
-
-        deckRef.current.setProps({
-          initialViewState: {
-            ...deckRef.current.props.initialViewState,
-            longitude: centerLon,
-            latitude: centerLat,
-            zoom: zoom,
-          },
-        });
-
-        setHasFitBounds(true);
-      }
     }
   }, [networkData, layerType, pointSize, signalThreshold, height3d]);
+
+  // Auto-fit bounds only when networkData changes (new data loaded)
+  useEffect(() => {
+    if (deckRef.current && networkData.length > 0 && !hasFitBounds) {
+      const lons = networkData.map((d) => d.position[0]);
+      const lats = networkData.map((d) => d.position[1]);
+      const minLon = Math.min(...lons);
+      const maxLon = Math.max(...lons);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+
+      const centerLon = (minLon + maxLon) / 2;
+      const centerLat = (minLat + maxLat) / 2;
+      const lonDiff = maxLon - minLon;
+      const latDiff = maxLat - minLat;
+      const maxDiff = Math.max(lonDiff, latDiff);
+
+      let zoom = 10;
+      if (maxDiff < 0.01) zoom = 15;
+      else if (maxDiff < 0.05) zoom = 13;
+      else if (maxDiff < 0.1) zoom = 12;
+      else if (maxDiff < 0.5) zoom = 10;
+      else if (maxDiff < 1) zoom = 9;
+      else if (maxDiff < 5) zoom = 7;
+      else zoom = 5;
+
+      deckRef.current.setProps({
+        initialViewState: {
+          ...deckRef.current.props.initialViewState,
+          longitude: centerLon,
+          latitude: centerLat,
+          zoom: zoom,
+        },
+      });
+
+      setHasFitBounds(true);
+    }
+  }, [networkData]);
 
   // Update pitch and controller
   useEffect(() => {
