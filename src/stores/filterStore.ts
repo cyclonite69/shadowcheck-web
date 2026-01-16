@@ -269,7 +269,16 @@ export const useFilterStore = create<HardenedFilterStore>()(
       setFromURLParams: (params) => {
         const rawFilters = params.get('filters');
         const rawEnabled = params.get('enabled');
-        if (!rawFilters || !rawEnabled) return;
+
+        // Skip if missing or invalid
+        if (
+          !rawFilters ||
+          !rawEnabled ||
+          rawFilters === 'undefined' ||
+          rawEnabled === 'undefined'
+        ) {
+          return;
+        }
 
         try {
           const parsedFilters = JSON.parse(rawFilters);
