@@ -85,8 +85,8 @@ const KeplerTestPage: React.FC = () => {
   } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Universal filter system
-  const capabilities = getPageCapabilities('kepler');
+  // Universal filter system - memoize capabilities to prevent re-renders
+  const capabilities = useMemo(() => getPageCapabilities('kepler'), []);
   const adaptedFilters = useAdaptedFilters(capabilities);
   useFilterURLSync();
 
@@ -384,6 +384,7 @@ const KeplerTestPage: React.FC = () => {
 
   const loadData = async (type: 'observations' | 'networks') => {
     try {
+      console.log('[Kepler] loadData called, type:', type);
       setLoading(true);
       setError('');
 
@@ -397,13 +398,18 @@ const KeplerTestPage: React.FC = () => {
       params.set('enabled', JSON.stringify(enabledForPage));
 
       const endpointWithFilters = `${endpoint}?${params}`;
+      console.log('[Kepler] Fetching from:', endpointWithFilters);
+
       const [tokenRes, dataRes] = await Promise.all([
         fetch('/api/mapbox-token'),
         fetch(endpointWithFilters),
       ]);
 
+      console.log('[Kepler] Fetch complete, parsing...');
       const tokenData = await tokenRes.json();
       const geojson = await dataRes.json();
+
+      console.log('[Kepler] Data received, features:', geojson.features?.length);
 
       if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
       if (!geojson.features || !Array.isArray(geojson.features))
@@ -493,6 +499,10 @@ const KeplerTestPage: React.FC = () => {
         ]);
         scriptsLoadedRef.current = true;
         console.log('[Kepler] Scripts loaded');
+        // Trigger data load after scripts are ready
+        if (window.deck && window.mapboxgl) {
+          loadData(datasetType);
+        }
       } catch (err: any) {
         console.error('Error loading scripts:', err);
         setError('Failed to load required libraries');
@@ -502,10 +512,9 @@ const KeplerTestPage: React.FC = () => {
     setup();
   }, []); // Only once
 
-  // Load data when scripts ready or filters/dataset change
+  // Load data when filters/dataset change (but only if scripts are ready)
   useEffect(() => {
     if (!scriptsLoadedRef.current || !window.deck || !window.mapboxgl) {
-      console.log('[Kepler] Scripts not ready yet');
       return;
     }
 

@@ -451,8 +451,6 @@ delete process.env.PGUSER;
     // All observations endpoint - THE FULL DATASET!
     app.get('/api/kepler/observations', async (req, res) => {
       try {
-        const { bbox: _bbox, limit: _limit } = req.query;
-
         const result = await query(`
           SELECT
             bssid,
@@ -517,8 +515,6 @@ delete process.env.PGUSER;
     // Networks endpoint - Trilaterated networks from access_points
     app.get('/api/kepler/networks', async (req, res) => {
       try {
-        const { bbox: _bbox, limit: _limit } = req.query;
-
         // Get networks from access_points with latest observation data
         const result = await query(`
           WITH obs_latest AS (
@@ -556,7 +552,6 @@ delete process.env.PGUSER;
           WHERE obs.lat IS NOT NULL 
             AND obs.lon IS NOT NULL
           ORDER BY ap.last_seen DESC
-          LIMIT 50000
         `);
 
         const geojson = {
