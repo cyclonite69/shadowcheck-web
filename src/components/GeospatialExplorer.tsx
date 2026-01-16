@@ -364,11 +364,19 @@ export default function GeospatialExplorer() {
   const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
   const [showTerrain, setShowTerrain] = useState<boolean>(false);
   const [resizing, setResizing] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(
-    Object.keys(NETWORK_COLUMNS).filter(
+  const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
+    const saved = localStorage.getItem('shadowcheck_visible_columns');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // Fall through to default
+      }
+    }
+    return Object.keys(NETWORK_COLUMNS).filter(
       (k) => NETWORK_COLUMNS[k as keyof typeof NETWORK_COLUMNS].default
-    ) as (keyof NetworkRow | 'select')[]
-  );
+    ) as (keyof NetworkRow | 'select')[];
+  });
   const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
   const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
   const [showColumnSelector, setShowColumnSelector] = useState(false);
@@ -451,6 +459,11 @@ export default function GeospatialExplorer() {
 
     return () => clearTimeout(timeoutId);
   }, [locationSearch, searchLocation]);
+
+  // Persist visible columns to localStorage
+  useEffect(() => {
+    localStorage.setItem('shadowcheck_visible_columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   // Click outside to close search results
   useEffect(() => {
