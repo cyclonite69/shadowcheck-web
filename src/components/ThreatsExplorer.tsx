@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { logError } from '../logging/clientLogger';
 
 type NetworkRow = {
   bssid: string;
@@ -43,7 +44,7 @@ export default function ThreatsExplorer({
         const data = await res.json();
         setNetworks(data.rows || []);
       } catch (err) {
-        console.error(err);
+        logError('Threats explorer load failed', err);
         setError('Failed to load threats data');
       } finally {
         setLoading(false);

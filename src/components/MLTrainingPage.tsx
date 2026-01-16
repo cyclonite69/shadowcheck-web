@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { logError } from '../logging/clientLogger';
 
 // SVG Icons
 const Brain = ({ size = 24, className = '' }) => (
@@ -151,7 +152,7 @@ export default function MLTrainingPage() {
       const data = await res.json();
 
       if (data.error) {
-        console.error('ML status error:', data.error);
+        logError('ML status error', data.error);
         setStatus({
           modelTrained: false,
           taggedNetworks: [],
@@ -162,7 +163,7 @@ export default function MLTrainingPage() {
 
       setStatus(data);
     } catch (err) {
-      console.error('Error loading status:', err);
+      logError('Error loading status', err);
     }
   };
 

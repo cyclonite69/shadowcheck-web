@@ -5,6 +5,7 @@ import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { attachMapOrientationControls } from '../utils/mapOrientationControls';
+import { logError, logDebug } from '../logging/clientLogger';
 
 type ThreatInfo = {
   score: number;
@@ -354,7 +355,6 @@ const createGoogleStyle = (type: string) => ({
 
 export default function GeospatialExplorer() {
   // All state declarations first
-  const isDev = import.meta.env.DEV;
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
   const [mapHeight, setMapHeight] = useState<number>(500);
   const [containerHeight, setContainerHeight] = useState<number>(800);
@@ -431,7 +431,7 @@ export default function GeospatialExplorer() {
       setSearchResults(data.features || []);
       setShowSearchResults(true);
     } catch (error) {
-      console.error('Geocoding error:', error);
+      logError('Geocoding error', error);
       setSearchResults([]);
     } finally {
       setSearchingLocation(false);
@@ -568,9 +568,7 @@ export default function GeospatialExplorer() {
   // Handle resize drag
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (isDev) {
-        console.log('Resize handle clicked!', e.clientY);
-      }
+      logDebug(`Resize handle clicked: ${e.clientY}`);
       e.preventDefault();
       e.stopPropagation();
       setResizing(true);
@@ -582,9 +580,7 @@ export default function GeospatialExplorer() {
         e.preventDefault();
         const deltaY = e.clientY - startY;
         const newHeight = Math.max(150, Math.min(containerHeight - 150, startHeight + deltaY));
-        if (isDev) {
-          console.log('Resizing to:', newHeight);
-        }
+        logDebug(`Resizing to: ${newHeight}`);
         setMapHeight(newHeight);
 
         // Force map resize if it exists
@@ -594,9 +590,7 @@ export default function GeospatialExplorer() {
       };
 
       const handleMouseUp = (e: MouseEvent) => {
-        if (isDev) {
-          console.log('Resize ended');
-        }
+        logDebug('Resize ended');
         e.preventDefault();
         setResizing(false);
         document.removeEventListener('mousemove', handleMouseMove);
@@ -1039,11 +1033,11 @@ export default function GeospatialExplorer() {
         });
 
         map.on('error', (e) => {
-          console.error('Map error:', e);
+          logError('Map error', e);
           setMapError('Map failed to load');
         });
       } catch (err) {
-        console.error('Map init failed', err);
+        logError('Map init failed', err);
         setMapError(err instanceof Error ? err.message : 'Map initialization failed');
       }
     };
@@ -1180,9 +1174,7 @@ export default function GeospatialExplorer() {
         const res = await fetch(`/api/networks?${params.toString()}`, {
           signal: controller.signal,
         });
-        if (isDev) {
-          console.log('Networks response status:', res.status);
-        }
+        logDebug(`Networks response status: ${res.status}`);
         if (!res.ok) throw new Error(`networks ${res.status}`);
         const data = await res.json();
         const rows = data.networks || [];
@@ -1740,7 +1732,7 @@ export default function GeospatialExplorer() {
         window.open(earthUrl, '_blank');
       }
     } catch (error) {
-      console.error('Failed to export KML:', error);
+      logError('Failed to export KML', error);
       alert('Failed to export KML data. Please try again.');
     }
   };
@@ -2316,7 +2308,7 @@ export default function GeospatialExplorer() {
                         });
                       },
                       (error) => {
-                        console.error('Geolocation error:', error);
+                        logError('Geolocation error', error);
                         alert('Unable to get your location. Please enable location services.');
                       }
                     );

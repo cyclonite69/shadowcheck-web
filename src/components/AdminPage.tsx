@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { logError } from '../logging/clientLogger';
 
 // SVG Icons
 const Settings = ({ size = 24, className = '' }) => (
@@ -200,7 +201,7 @@ const AdminPage: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      logError('Failed to load settings', error);
     }
   };
 

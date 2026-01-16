@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { NetworkFilters, FilterState, TemporalScope } from '../types/filters';
+import { logWarn } from '../logging/clientLogger';
 
 interface PageFilterState {
   filters: NetworkFilters;
@@ -253,7 +254,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
             },
           });
         } else {
-          console.warn('Invalid filter state:', validationErrors);
+          logWarn('Invalid filter state', validationErrors);
         }
       },
 
@@ -294,7 +295,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
             },
           });
         } catch (e) {
-          console.warn('Failed to parse filter params:', e);
+          logWarn('Failed to parse filter params', e);
         }
       },
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { logError } from '../logging/clientLogger';
 import { FilterPanel } from './FilterPanel';
 import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
@@ -315,7 +316,7 @@ export default function DashboardPage() {
         setError(null);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          console.error('Dashboard fetch error:', err);
+          logError('Dashboard fetch error', err);
           setError('Failed to load metrics');
         }
       } finally {

@@ -6,6 +6,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { NetworkFilters } from '../types/filters';
+import { logError } from '../logging/clientLogger';
 
 interface UseFilteredDataOptions {
   endpoint: 'networks' | 'geospatial' | 'analytics' | 'observations';
@@ -92,7 +93,7 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
 
         setTotal(result.pagination?.total || result.data?.length || 0);
       } catch (err) {
-        console.error('Filter data fetch error:', err);
+        logError('Filter data fetch error', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
         if (resetOffset) {
           setData([]);

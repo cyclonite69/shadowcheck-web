@@ -9,6 +9,7 @@ import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
+import { logDebug } from '../logging/clientLogger';
 
 type WigleRow = {
   bssid: string;
@@ -89,7 +90,6 @@ const dominantClusterColor = (bssids: string[]): string => {
 const WigleTestPage: React.FC = () => {
   // Set current page for filter scoping
   usePageFilters('wigle');
-  const isDev = import.meta.env.DEV;
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -332,19 +332,12 @@ const WigleTestPage: React.FC = () => {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.getSource('wigle-points')) {
-      if (isDev) {
-        console.log(
-          '[WiGLE] Map or source not ready, map:',
-          !!map,
-          'source:',
-          !!map?.getSource('wigle-points')
-        );
-      }
+      logDebug(
+        `[WiGLE] Map or source not ready, map: ${!!map} source: ${!!map?.getSource('wigle-points')}`
+      );
       return;
     }
-    if (isDev) {
-      console.log('[WiGLE] Updating map with', rows.length, 'points');
-    }
+    logDebug(`[WiGLE] Updating map with ${rows.length} points`);
     const source = map.getSource('wigle-points') as mapboxgl.GeoJSONSource;
     clusterColorCache.current = {};
     map.removeFeatureState({ source: 'wigle-points' });
@@ -375,9 +368,7 @@ const WigleTestPage: React.FC = () => {
   }, []);
 
   const fetchPoints = useCallback(async () => {
-    if (isDev) {
-      console.log('[WiGLE] Fetch triggered');
-    }
+    logDebug('[WiGLE] Fetch triggered');
     setLoading(true);
     setError(null);
     try {
@@ -399,9 +390,7 @@ const WigleTestPage: React.FC = () => {
         throw new Error(`HTTP ${res.status}`);
       }
       const payload = await res.json();
-      if (isDev) {
-        console.log('[WiGLE] Received', payload.data?.length, 'rows');
-      }
+      logDebug(`[WiGLE] Received ${payload.data?.length || 0} rows`);
       setRows(payload.data || []); // REPLACE, not append
       setTotal(typeof payload.total === 'number' ? payload.total : null);
     } catch (err: any) {

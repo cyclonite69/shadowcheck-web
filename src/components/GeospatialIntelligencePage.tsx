@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { logError } from '../logging/clientLogger';
 import NetworksExplorer from './NetworksExplorer';
 import ThreatsExplorer from './ThreatsExplorer';
 import { FilterPanel } from './FilterPanel';
@@ -124,7 +125,7 @@ export default function GeospatialIntelligencePage() {
         }
         setNetworks(data.data || []);
       } catch (err) {
-        console.error(err);
+        logError('Failed to load filtered networks', err);
         const message = 'Failed to load filtered networks';
         setNetworks([]);
         setNetworksError(message);
@@ -157,7 +158,7 @@ export default function GeospatialIntelligencePage() {
         setHeatmap(heatData || []);
         setRoutes(routeData || []);
       } catch (err) {
-        console.error(err);
+        logError('Failed to load explorer data', err);
         setError('Failed to load explorer data');
       }
     };
@@ -178,7 +179,7 @@ export default function GeospatialIntelligencePage() {
         const data = await res.json();
         setTimeline(data || []);
       } catch (err) {
-        console.error(err);
+        logError('Failed to load timeline', err);
         setTimeline([]);
       }
     };

@@ -7,6 +7,7 @@ import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
+import { logDebug, logError, logWarn } from '../logging/clientLogger';
 
 declare global {
   interface Window {
@@ -75,7 +76,6 @@ const loadCss = (href: string) =>
 const KeplerTestPage: React.FC = () => {
   // Set current page for filter scoping
   usePageFilters('kepler');
-  const isDev = import.meta.env.DEV;
 
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
@@ -333,7 +333,7 @@ const KeplerTestPage: React.FC = () => {
           });
         }
       } catch (e) {
-        console.warn('Could not attach map controls to DeckGL:', e);
+        logWarn('Could not attach map controls to DeckGL', e);
       }
     }, 100);
   };
@@ -389,9 +389,7 @@ const KeplerTestPage: React.FC = () => {
 
   const loadData = async (type: 'observations' | 'networks') => {
     try {
-      if (isDev) {
-        console.log('[Kepler] loadData called, type:', type);
-      }
+      logDebug(`[Kepler] loadData called, type: ${type}`);
       setLoading(true);
       setError('');
 
@@ -405,24 +403,18 @@ const KeplerTestPage: React.FC = () => {
       params.set('enabled', JSON.stringify(enabledForPage));
 
       const endpointWithFilters = `${endpoint}?${params}`;
-      if (isDev) {
-        console.log('[Kepler] Fetching from:', endpointWithFilters);
-      }
+      logDebug(`[Kepler] Fetching from: ${endpointWithFilters}`);
 
       const [tokenRes, dataRes] = await Promise.all([
         fetch('/api/mapbox-token'),
         fetch(endpointWithFilters),
       ]);
 
-      if (isDev) {
-        console.log('[Kepler] Fetch complete, parsing...');
-      }
+      logDebug('[Kepler] Fetch complete, parsing...');
       const tokenData = await tokenRes.json();
       const geojson = await dataRes.json();
 
-      if (isDev) {
-        console.log('[Kepler] Data received, features:', geojson.features?.length);
-      }
+      logDebug(`[Kepler] Data received, features: ${geojson.features?.length || 0}`);
 
       if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
       if (!geojson.features || !Array.isArray(geojson.features))
@@ -489,7 +481,7 @@ const KeplerTestPage: React.FC = () => {
       setNetworkData(processedData);
       setLoading(false);
     } catch (err: any) {
-      console.error('Error loading data:', err);
+      logError('Error loading data', err);
       setError(err?.message || 'Failed to load network data');
       setLoading(false);
     }
@@ -504,24 +496,20 @@ const KeplerTestPage: React.FC = () => {
 
     const setup = async () => {
       try {
-        if (isDev) {
-          console.log('[Kepler] Loading scripts...');
-        }
+        logDebug('[Kepler] Loading scripts...');
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'),
           loadScript('https://cdn.jsdelivr.net/npm/deck.gl@8.9.0/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;
-        if (isDev) {
-          console.log('[Kepler] Scripts loaded');
-        }
+        logDebug('[Kepler] Scripts loaded');
         // Trigger data load after scripts are ready
         if (window.deck && window.mapboxgl) {
           loadData(datasetType);
         }
       } catch (err: any) {
-        console.error('Error loading scripts:', err);
+        logError('Error loading scripts', err);
         setError('Failed to load required libraries');
       }
     };
@@ -535,19 +523,49 @@ const KeplerTestPage: React.FC = () => {
       return;
     }
 
-    if (isDev) {
-      console.log('[Kepler] Loading data, filterKey:', filterKey.substring(0, 100));
-    }
+    logDebug(`[Kepler] Loading data, filterKey: ${filterKey.substring(0, 100)}`);
     loadData(datasetType);
   }, [datasetType, filterKey]); // Stable dependencies
 
   // Update visualization when data or settings change
   useEffect(() => {
     if (deckRef.current && networkData.length > 0) {
-      if (isDev) {
-        console.log('[Kepler] Updating visualization with', networkData.length, 'points');
-      }
+      logDebug(`[Kepler] Updating visualization with ${networkData.length} points`);
       updateVisualization();
+
+      // Auto-fit bounds to include all points
+      const lons = networkData.map((d) => d.position[0]);
+      const lats = networkData.map((d) => d.position[1]);
+      const minLon = Math.min(...lons);
+      const maxLon = Math.max(...lons);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+
+      // Calculate center and zoom
+      const centerLon = (minLon + maxLon) / 2;
+      const centerLat = (minLat + maxLat) / 2;
+      const lonDiff = maxLon - minLon;
+      const latDiff = maxLat - minLat;
+      const maxDiff = Math.max(lonDiff, latDiff);
+
+      // Calculate zoom level (rough approximation)
+      let zoom = 10;
+      if (maxDiff < 0.01) zoom = 15;
+      else if (maxDiff < 0.05) zoom = 13;
+      else if (maxDiff < 0.1) zoom = 12;
+      else if (maxDiff < 0.5) zoom = 10;
+      else if (maxDiff < 1) zoom = 9;
+      else if (maxDiff < 5) zoom = 7;
+      else zoom = 5;
+
+      deckRef.current.setProps({
+        initialViewState: {
+          ...deckRef.current.props.initialViewState,
+          longitude: centerLon,
+          latitude: centerLat,
+          zoom: zoom,
+        },
+      });
     }
   }, [networkData, layerType, pointSize, signalThreshold, height3d]);
 
