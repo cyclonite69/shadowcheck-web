@@ -568,10 +568,12 @@ const KeplerTestPage: React.FC = () => {
       {/* Filter Panel */}
       {showFilters && (
         <div
-          className="fixed top-20 right-4 z-[99998] max-w-md space-y-2"
+          className="fixed top-20 right-4 max-w-md space-y-2"
           style={{
             maxHeight: 'calc(100vh - 100px)',
             overflowY: 'auto',
+            zIndex: 100000,
+            pointerEvents: 'auto',
           }}
         >
           <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
@@ -588,11 +590,12 @@ const KeplerTestPage: React.FC = () => {
           backdropFilter: 'blur(16px)',
           boxShadow:
             '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)',
-          zIndex: 99999,
+          zIndex: 100000,
           position: 'fixed',
           top: '20px',
           left: '20px',
           padding: '20px',
+          pointerEvents: 'auto',
         }}
       >
         <div

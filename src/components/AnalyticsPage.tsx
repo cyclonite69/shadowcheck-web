@@ -807,125 +807,74 @@ export default function Analytics() {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {showFilters && <FilterPanel density="compact" />}
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
-          <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
-            <h1
-              style={{
-                fontSize: '22px',
-                fontWeight: '900',
-                margin: 0,
-                letterSpacing: '-0.5px',
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-                filter:
-                  'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-              }}
-            >
-              ShadowCheck Analytics
-            </h1>
-            <p
-              style={{
-                fontSize: '12px',
-                fontWeight: '300',
-                margin: 0,
-                marginTop: '4px',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
-                opacity: 0.8,
-              }}
-            >
-              Advanced threat analysis and network intelligence
-            </p>
+      {/* Filter Panel */}
+      {showFilters && (
+        <div
+          className="fixed top-20 right-4 max-w-md space-y-2"
+          style={{
+            maxHeight: 'calc(100vh - 100px)',
+            overflowY: 'auto',
+            zIndex: 100000,
+            pointerEvents: 'auto',
+          }}
+        >
+          <FilterPanel density="compact" />
+        </div>
+      )}
 
-            {/* Time Frame Selector */}
-            <div className="pointer-events-auto mt-4 flex flex-wrap items-center justify-center gap-2">
-              {[
-                { value: '9mo', label: '9 Months' },
-                { value: '1yr', label: '1 Year' },
-                { value: '18mo', label: '18 Months' },
-                { value: '2yr', label: '2 Years' },
-                { value: 'all', label: 'All Time' },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setTimeFrame(option.value)}
-                  style={{
-                    padding: '6px 16px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    borderRadius: '8px',
-                    border:
-                      timeFrame === option.value
-                        ? '1px solid rgba(59, 130, 246, 0.6)'
-                        : '1px solid rgba(71, 85, 105, 0.3)',
-                    background:
-                      timeFrame === option.value
-                        ? 'rgba(59, 130, 246, 0.2)'
-                        : 'rgba(15, 23, 42, 0.4)',
-                    color: timeFrame === option.value ? '#60a5fa' : '#94a3b8',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    backdropFilter: 'blur(4px)',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (timeFrame !== option.value) {
-                      e.currentTarget.style.background = 'rgba(15, 23, 42, 0.6)';
-                      e.currentTarget.style.borderColor = 'rgba(71, 85, 105, 0.5)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (timeFrame !== option.value) {
-                      e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
-                      e.currentTarget.style.borderColor = 'rgba(71, 85, 105, 0.3)';
-                    }
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-              <button
-                onClick={() => setShowFilters((prev) => !prev)}
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(71, 85, 105, 0.5)',
-                  background: 'rgba(15, 23, 42, 0.55)',
-                  color: '#cbd5e1',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  backdropFilter: 'blur(4px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
-                  e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.7)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.55)';
-                  e.currentTarget.style.borderColor = 'rgba(71, 85, 105, 0.5)';
-                }}
-              >
-                <FilterIcon size={14} />
-                {showFilters ? 'Hide' : 'Filters'}
-                {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-              </button>
-            </div>
-          </div>
+      {/* Filter Icon Button */}
+      <button
+        onClick={() => setShowFilters(!showFilters)}
+        className="fixed top-4 right-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all hover:scale-110"
+        style={{
+          background: showFilters
+            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          zIndex: 100000,
+          pointerEvents: 'auto',
+        }}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+      </button>
+
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
+        {/* Time Frame Selector */}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+          {[
+            { value: '9mo', label: '9 Months' },
+            { value: '1yr', label: '1 Year' },
+            { value: '18mo', label: '18 Months' },
+            { value: '2yr', label: '2 Years' },
+            { value: 'all', label: 'All Time' },
+          ].map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setTimeFrame(option.value)}
+              className="px-4 py-2 text-xs font-semibold rounded-lg transition-all"
+              style={{
+                background:
+                  timeFrame === option.value
+                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                    : 'rgba(15, 23, 42, 0.8)',
+                border:
+                  timeFrame === option.value
+                    ? '1px solid rgba(59, 130, 246, 0.6)'
+                    : '1px solid rgba(71, 85, 105, 0.3)',
+                color: timeFrame === option.value ? '#fff' : '#cbd5e1',
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
 
         {/* Cards */}

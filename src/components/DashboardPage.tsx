@@ -415,72 +415,44 @@ export default function DashboardPage() {
       {/* Filter Panel */}
       {showFilters && (
         <div
-          className="absolute top-16 right-4 z-50 max-w-md space-y-2"
-          style={{ maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
+          className="fixed top-20 right-4 max-w-md space-y-2"
+          style={{
+            maxHeight: 'calc(100vh - 100px)',
+            overflowY: 'auto',
+            zIndex: 100000,
+            pointerEvents: 'auto',
+          }}
         >
           <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
           <FilterPanel density="compact" />
         </div>
       )}
 
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 p-3 z-50">
-          <div className="flex items-center justify-between">
-            <div className="flex-1" />
-            <div className="text-center flex-1">
-              <h1
-                style={{
-                  fontSize: '22px',
-                  fontWeight: '900',
-                  margin: 0,
-                  letterSpacing: '-0.5px',
-                  background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-                  filter:
-                    'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-                }}
-              >
-                ShadowCheck Dashboard
-              </h1>
-              <p
-                style={{
-                  fontSize: '12px',
-                  fontWeight: '300',
-                  margin: 0,
-                  marginTop: '4px',
-                  letterSpacing: '1.5px',
-                  textTransform: 'uppercase',
-                  background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
-                  opacity: 0.8,
-                }}
-              >
-                Real-time network intelligence and threat monitoring
-              </p>
-            </div>
-            <div className="flex-1 flex justify-end">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-                style={{
-                  background: showFilters
-                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                }}
-              >
-                {showFilters ? 'Hide Filters' : 'Filters'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Filter Icon Button */}
+      <button
+        onClick={() => setShowFilters(!showFilters)}
+        className="fixed top-4 right-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all hover:scale-110"
+        style={{
+          background: showFilters
+            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          zIndex: 100000,
+          pointerEvents: 'auto',
+        }}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+      </button>
 
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
         {/* Cards */}
         <div style={{ minHeight: '2400px', position: 'relative', paddingTop: '60px' }}>
           {cards.map((card) => {

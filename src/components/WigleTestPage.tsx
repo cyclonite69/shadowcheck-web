@@ -101,9 +101,22 @@ const WigleTestPage: React.FC = () => {
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [tilesReady, setTilesReady] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
+  const [show3dBuildings, setShow3dBuildings] = useState(false);
+  const [showTerrain, setShowTerrain] = useState(false);
+
+  const mapStyles = [
+    { label: 'Dark', value: 'mapbox://styles/mapbox/dark-v11' },
+    { label: 'Light', value: 'mapbox://styles/mapbox/light-v11' },
+    { label: 'Streets', value: 'mapbox://styles/mapbox/streets-v12' },
+    { label: 'Outdoors', value: 'mapbox://styles/mapbox/outdoors-v12' },
+    { label: 'Satellite', value: 'mapbox://styles/mapbox/satellite-v9' },
+    { label: 'Satellite Streets', value: 'mapbox://styles/mapbox/satellite-streets-v12' },
+  ];
 
   // Universal filter system
-  const capabilities = getPageCapabilities('wigle');
+  const capabilities = useMemo(() => getPageCapabilities('wigle'), []);
   const adaptedFilters = useAdaptedFilters(capabilities);
   useFilterURLSync();
 
@@ -177,7 +190,7 @@ const WigleTestPage: React.FC = () => {
         if (!mounted || !mapContainerRef.current) return;
         const map = new mapboxgl.Map({
           container: mapContainerRef.current,
-          style: 'mapbox://styles/mapbox/dark-v11',
+          style: mapStyle,
           center: [-98.5795, 39.8283],
           zoom: 3,
         });
@@ -313,7 +326,16 @@ const WigleTestPage: React.FC = () => {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.getSource('wigle-points')) return;
+    if (!map || !map.getSource('wigle-points')) {
+      console.log(
+        '[WiGLE] Map or source not ready, map:',
+        !!map,
+        'source:',
+        !!map?.getSource('wigle-points')
+      );
+      return;
+    }
+    console.log('[WiGLE] Updating map with', rows.length, 'points');
     const source = map.getSource('wigle-points') as mapboxgl.GeoJSONSource;
     clusterColorCache.current = {};
     map.removeFeatureState({ source: 'wigle-points' });
@@ -376,6 +398,163 @@ const WigleTestPage: React.FC = () => {
     }
   }, [limit, offset, typeFilter, adaptedFilters]);
 
+  // Handle map style changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const recreateLayers = () => {
+      // Recreate wigle-points source and layers after style change
+      if (!map.getSource('wigle-points')) {
+        map.addSource('wigle-points', {
+          type: 'geojson',
+          data: featureCollection as any,
+          cluster: true,
+          clusterMaxZoom: 12,
+          clusterRadius: 40,
+        });
+
+        map.addLayer({
+          id: 'wigle-clusters',
+          type: 'circle',
+          source: 'wigle-points',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': ['coalesce', ['feature-state', 'color'], '#38bdf8'],
+            'circle-opacity': 0.75,
+            'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40],
+            'circle-stroke-width': 2.5,
+            'circle-stroke-color': '#0f172a',
+          },
+        });
+
+        map.addLayer({
+          id: 'wigle-cluster-count',
+          type: 'symbol',
+          source: 'wigle-points',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-size': 12,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          },
+          paint: {
+            'text-color': '#0f172a',
+          },
+        });
+
+        map.addLayer({
+          id: 'wigle-unclustered',
+          type: 'circle',
+          source: 'wigle-points',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-opacity': 0.8,
+            'circle-radius': 3,
+            'circle-stroke-width': 0.5,
+            'circle-stroke-color': '#0f172a',
+          },
+        });
+      }
+    };
+
+    map.setStyle(mapStyle);
+    map.once('style.load', recreateLayers);
+  }, [mapStyle, mapReady, featureCollection]);
+
+  // Handle 3D buildings
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const toggleBuildings = () => {
+      if (show3dBuildings) {
+        if (!map.getLayer('3d-buildings')) {
+          const layers = map.getStyle().layers;
+          const labelLayerId = layers?.find(
+            (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
+          )?.id;
+
+          map.addLayer(
+            {
+              id: '3d-buildings',
+              source: 'composite',
+              'source-layer': 'building',
+              filter: ['==', 'extrude', 'true'],
+              type: 'fill-extrusion',
+              minzoom: 15,
+              paint: {
+                'fill-extrusion-color': '#aaa',
+                'fill-extrusion-height': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  15,
+                  0,
+                  15.05,
+                  ['get', 'height'],
+                ],
+                'fill-extrusion-base': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  15,
+                  0,
+                  15.05,
+                  ['get', 'min_height'],
+                ],
+                'fill-extrusion-opacity': 0.6,
+              },
+            },
+            labelLayerId
+          );
+        }
+      } else {
+        if (map.getLayer('3d-buildings')) {
+          map.removeLayer('3d-buildings');
+        }
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      toggleBuildings();
+    } else {
+      map.once('style.load', toggleBuildings);
+    }
+  }, [show3dBuildings, mapReady, mapStyle]);
+
+  // Handle terrain
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const toggleTerrain = () => {
+      if (showTerrain) {
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize: 512,
+            maxzoom: 14,
+          });
+        }
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+      } else {
+        map.setTerrain(null);
+        if (map.getSource('mapbox-dem')) {
+          map.removeSource('mapbox-dem');
+        }
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      toggleTerrain();
+    } else {
+      map.once('style.load', toggleTerrain);
+    }
+  }, [showTerrain, mapReady, mapStyle]);
+
   // Stable filter key for change detection
   const filterKey = useMemo(
     () => JSON.stringify({ limit, offset, typeFilter, filters: adaptedFilters }),
@@ -390,104 +569,119 @@ const WigleTestPage: React.FC = () => {
       {/* Filter Panel */}
       {showFilters && (
         <div
-          className="absolute top-16 right-4 z-50 max-w-md space-y-2"
-          style={{ maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
+          className="fixed top-20 right-4 max-w-md space-y-2"
+          style={{
+            maxHeight: 'calc(100vh - 100px)',
+            overflowY: 'auto',
+            zIndex: 100000,
+            pointerEvents: 'auto',
+          }}
         >
           <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
           <FilterPanel density="compact" />
         </div>
       )}
 
-      <div className="border-b border-slate-800 bg-slate-900/70 px-6 py-2">
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <div className="text-lg font-semibold">WiGLE v2 Test Map</div>
-            <div className="text-xs text-slate-400">Source: public.wigle_v2_networks_search</div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span>Mapbox:</span>
-            <span style={{ color: mapReady ? '#34d399' : '#f59e0b' }}>
-              {mapReady ? 'ready' : 'loading'}
-            </span>
-            <span>Token:</span>
-            <span
-              style={{
-                color:
-                  tokenStatus === 'ok'
-                    ? '#34d399'
-                    : tokenStatus === 'error'
-                      ? '#f87171'
-                      : '#f59e0b',
-              }}
-            >
-              {tokenStatus === 'ok' ? 'ok' : tokenStatus === 'error' ? 'error' : 'pending'}
-            </span>
-            <span>Size:</span>
-            <span>
-              {mapSize.width}×{mapSize.height}
-            </span>
-            <span>Tiles:</span>
-            <span style={{ color: tilesReady ? '#34d399' : '#f59e0b' }}>
-              {tilesReady ? 'ready' : 'loading'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <label className="text-slate-400">Limit</label>
-            <input
-              type="number"
-              value={limit}
-              onChange={(e) => setLimit(Math.max(1, Number(e.target.value || 0)))}
-              className="w-28 rounded-md bg-slate-800 px-2 py-1 text-slate-100"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <label className="text-slate-400">Offset</label>
-            <input
-              type="number"
-              value={offset}
-              onChange={(e) => setOffset(Math.max(0, Number(e.target.value || 0)))}
-              className="w-28 rounded-md bg-slate-800 px-2 py-1 text-slate-100"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <label className="text-slate-400">Type</label>
-            <input
-              type="text"
-              placeholder="W, B, E..."
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-28 rounded-md bg-slate-800 px-2 py-1 text-slate-100"
-            />
-          </div>
-          <button
-            onClick={fetchPoints}
-            className="rounded-md bg-cyan-500 hover:bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-900 transition-colors shadow-md"
-          >
-            {loading ? 'Loading…' : 'Load Points'}
-          </button>
+      {/* SC Icon Button */}
+      <button
+        onClick={() => setShowControls(!showControls)}
+        className="fixed top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg shadow-lg transition-all hover:scale-110"
+        style={{
+          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          zIndex: 100000,
+          pointerEvents: 'auto',
+        }}
+      >
+        SC
+      </button>
+
+      {/* Control Panel */}
+      {showControls && (
+        <div
+          className="fixed top-20 left-4 rounded-xl p-4 space-y-3 text-sm"
+          style={{
+            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+            zIndex: 100000,
+            pointerEvents: 'auto',
+            maxWidth: '280px',
+          }}
+        >
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+            className="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
             style={{
               background: showFilters
                 ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                 : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
             }}
           >
-            {showFilters ? '✕ Hide Filters' : '🔍 Filters'}
+            {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
           </button>
-          <div className="text-xs text-slate-400">
-            Loaded: {rows.length.toLocaleString()}
-            {total != null && ` / ${total.toLocaleString()}`}
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Map Style</label>
+            <select
+              value={mapStyle}
+              onChange={(e) => setMapStyle(e.target.value)}
+              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100"
+            >
+              {mapStyles.map((style) => (
+                <option key={style.value} value={style.value}>
+                  {style.label}
+                </option>
+              ))}
+            </select>
           </div>
-          {error && <div className="text-xs text-red-400">{error}</div>}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShow3dBuildings(!show3dBuildings)}
+              className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                show3dBuildings
+                  ? 'bg-cyan-500 text-slate-900 shadow-lg'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {show3dBuildings ? '✓ ' : ''}3D Buildings
+            </button>
+            <button
+              onClick={() => setShowTerrain(!showTerrain)}
+              className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                showTerrain
+                  ? 'bg-cyan-500 text-slate-900 shadow-lg'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {showTerrain ? '✓ ' : ''}Terrain
+            </button>
+          </div>
+
+          <button
+            onClick={fetchPoints}
+            className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
+            style={{
+              background: loading
+                ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            }}
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : '📍 Load Points'}
+          </button>
+
+          <div className="pt-2 border-t border-slate-700 text-xs text-slate-400">
+            <div>Loaded: {rows.length.toLocaleString()}</div>
+            {total != null && <div>Total: {total.toLocaleString()}</div>}
+          </div>
         </div>
-      </div>
+      )}
       <div
         className="flex-1"
         style={{
-          minHeight: 600,
-          height: '70vh',
+          minHeight: '100vh',
           background: '#0b1220',
           position: 'relative',
         }}
