@@ -330,7 +330,7 @@ const MAP_STYLES = [
   { value: 'google-terrain', label: '⛰️ Google Terrain', isGoogle: true },
   // Google embedded views
   { value: 'google-street-view', label: '🚶 Google Street View', isGoogle: true },
-  { value: 'google-earth', label: '🌍 Google Earth', isGoogle: true },
+  { value: 'google-earth', label: '🌍 Export to Google Earth', isGoogle: true },
 ] as const;
 
 // Helper to create a Google Maps tile style for Mapbox GL
@@ -1766,16 +1766,10 @@ export default function GeospatialExplorer() {
 
   // Map style change handler
   const changeMapStyle = (styleUrl: string) => {
-    // Handle Google Earth - open in new tab (can't be embedded)
+    // Handle Google Earth - generate KML with observations
     if (styleUrl === 'google-earth') {
-      if (mapRef.current) {
-        const center = mapRef.current.getCenter();
-        window.open(
-          `https://earth.google.com/web/@${center.lat},${center.lng},0a,1000d,35y,0h,0t,0r`,
-          '_blank'
-        );
-      }
-      return; // Don't change the current map style
+      exportToGoogleEarth();
+      return;
     }
 
     // Handle Street View embed
