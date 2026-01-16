@@ -19,7 +19,7 @@ Added Kepler.gl visualization support to ShadowCheck for advanced geospatial ana
 - `first_seen`, `last_seen`
 - Point geometry from PostGIS
 
-### 2. Test Page: `/kepler-test.html`
+### 2. Test Page: `/kepler-test`
 
 Simple Kepler.gl implementation that:
 
@@ -30,7 +30,7 @@ Simple Kepler.gl implementation that:
 ## Usage
 
 1. Start ShadowCheck server: `npm start`
-2. Visit: `http://localhost:3001/kepler-test.html`
+2. Visit: `http://localhost:3001/kepler-test`
 3. Kepler.gl will load with your network data
 
 ## Performance Notes

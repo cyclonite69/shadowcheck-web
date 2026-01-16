@@ -15,7 +15,6 @@ shadowcheck-static/
 ├── server.js                 # Express server entrypoint
 ├── server/                   # Express API modules (v1/v2)
 ├── src/                      # React/Vite frontend + shared server modules
-├── public/                   # Legacy HTML/JS (kept until parity)
 ├── etl/                      # ETL pipelines (load/transform/promote)
 │
 ├── docs/                     # Documentation
@@ -128,13 +127,6 @@ React/Vite frontend and shared backend modules:
 ### `/etl`
 
 Data pipelines and SQL for load/transform/promote steps.
-
-### `/public`
-
-Legacy frontend pages (served alongside the React app until parity):
-
-- HTML pages for different views
-- CSS and JavaScript assets
 
 ### `/tests`
 

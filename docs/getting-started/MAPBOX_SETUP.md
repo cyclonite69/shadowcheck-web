@@ -53,7 +53,7 @@ You need to set a real Mapbox token.
    ```
 
 5. **Test the map:**
-   - Open: http://localhost:3001/geospatial.html
+   - Open: http://localhost:3001/geospatial
    - Map should now load correctly
 
 ### Option 2: Using Environment Variable (Quick Test)

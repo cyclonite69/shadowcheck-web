@@ -279,15 +279,6 @@ delete process.env.PGUSER;
       })
     );
 
-    // Fallback to old public files for legacy endpoints
-    app.use(
-      '/legacy',
-      express.static(path.join(__dirname, 'public'), {
-        maxAge: '1h',
-        etag: true,
-      })
-    );
-
     // ============================================================================
     // 9. ROUTE MOUNTING
     // ============================================================================
@@ -605,7 +596,7 @@ delete process.env.PGUSER;
     // Serve index.html for all non-API routes (must be after API routes)
     app.get('*', (req, res) => {
       // Don't handle API routes
-      if (req.path.startsWith('/api') || req.path.startsWith('/legacy')) {
+      if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'Not found' });
       }
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));

@@ -21,7 +21,7 @@ WiGLE API credentials were exposed in chat conversation:
    - Generate new API key
 
 2. **Use New Admin Settings Page**
-   - Access: http://localhost:3001/admin.html
+   - Access: http://localhost:3001/admin
    - Enter new WiGLE credentials
    - Credentials stored in system keyring (encrypted)
    - Test connection before saving
@@ -39,13 +39,13 @@ WiGLE API credentials were exposed in chat conversation:
 4. Click "Revoke" or "Delete" next to current key
 5. Click "Generate New API Token"
 6. Copy new API Name and API Token
-7. Enter in Admin Settings page (http://localhost:3001/admin.html)
+7. Enter in Admin Settings page (http://localhost:3001/admin)
 
 ### New Security Implementation
 
 ✅ **Admin Settings Page Created**
 
-- Location: `/public/admin.html`
+- Location: `/admin`
 - Requires API key authentication
 - All credentials stored in system keyring
 - Never stored in database or files
@@ -118,7 +118,7 @@ curl -i -H 'Accept:application/json' \
 
 - `/src/services/keyringService.js` - Keyring integration
 - `/src/api/routes/v1/settings.js` - Settings API routes
-- `/public/admin.html` - Admin settings UI
+- `/admin` - Admin settings UI
 
 ### Next Steps
 

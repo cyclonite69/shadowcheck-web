@@ -44,12 +44,11 @@ COPY --chown=nodejs:nodejs server.js ./
 COPY --chown=nodejs:nodejs src ./src/
 COPY --chown=nodejs:nodejs utils ./utils/
 COPY --chown=nodejs:nodejs scripts ./scripts/
-COPY --chown=nodejs:nodejs public ./public/
 COPY --chown=nodejs:nodejs sql ./sql/
 
-# Create directories for data and logs
+# Create directories for data and logs with proper ownership
 RUN mkdir -p data/logs data/csv && \
-    chown -R nodejs:nodejs data/
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs

@@ -5,11 +5,6 @@ const fetch = require('node-fetch');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
 
-// GET / - Root redirect to index.html
-router.get('/', (req, res) => {
-  res.redirect('/index.html');
-});
-
 // GET /api/mapbox-token - Get Mapbox API token
 router.get('/api/mapbox-token', (req, res) => {
   try {

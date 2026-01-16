@@ -1,6 +1,5 @@
 /* Import existing styles first */
 @import url('./unified.css');
-@import url('/assets/styles/unified.css');
 
 /* Tailwind CSS directives */
 @tailwind base;

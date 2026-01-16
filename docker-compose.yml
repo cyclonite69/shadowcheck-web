@@ -23,6 +23,8 @@ services:
       # Connect to SHARED Redis (if available)
       REDIS_HOST: ${REDIS_HOST:-shadowcheck_redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
+      # Google Maps API Key
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     secrets:
       - db_password
       - mapbox_token

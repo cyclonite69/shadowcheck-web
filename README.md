@@ -14,8 +14,7 @@
 ## Current Development Direction
 
 - React/Vite front-end is being introduced (`src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`), backed by new PostGIS materialized views for fast explorer pages.
-- Legacy HTML/JS under `public/` stays in place (and is still served) until the React refactor reaches full feature parity—do not remove legacy assets yet.
-- Backend serves both: Express APIs at `/api/*` plus React build assets (`dist/`) once built; legacy pages remain accessible under their existing paths.
+- Backend serves Express APIs at `/api/*` plus the React build assets (`dist/`) once built.
 - ETL pipeline lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed.
 
 ## Features
@@ -32,7 +31,7 @@
 ## Architecture
 
 **Backend:** Node.js/Express REST API with PostgreSQL + PostGIS  
-**Frontend:** React + Vite (new explorers and dashboards) and legacy HTML/JS (Mapbox/Chart.js) until parity is reached  
+**Frontend:** React + Vite (explorers and dashboards)  
 **Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
 
 ## Prerequisites
@@ -94,14 +93,16 @@ npm start
 
 Server runs on `http://localhost:3001`
 
-## Pages (legacy + new React)
+## Pages
 
 - Dashboard (React): `/` and `/dashboard`
 - Geospatial Intelligence (React): `/geospatial` or `/geospatial-intel`
 - Analytics (React): `/analytics`
-- API Test (React): `/api-test`
+- API Test (React): `/endpoint-test`
 - ML Training (React): `/ml-training`
-- Legacy HTML (kept until parity): `/geospatial.html`, `/networks.html`, `/analytics.html`, `/surveillance.html`, `/kepler-test.html`
+- Admin: `/admin`
+- WiGLE Test (React): `/wigle-test`
+- Kepler Test (React): `/kepler-test`
 
 ## API Endpoints
 
@@ -195,7 +196,6 @@ shadowcheck-static/
 ├── server.js              # 🔧 Backend Express server
 ├── index.html             # ⚛️ Frontend HTML template
 ├── vite.config.js         # ⚛️ Frontend build config
-├── public/                # Static assets
 ├── scripts/               # Utility scripts
 │   ├── import/            # Data import utilities
 │   ├── enrichment/        # Address enrichment

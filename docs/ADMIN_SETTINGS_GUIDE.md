@@ -12,7 +12,7 @@ Your WiGLE API credentials were exposed. **Revoke them immediately:**
 
 ## Access Admin Settings
 
-**URL:** http://localhost:3001/admin.html
+**URL:** http://localhost:3001/admin
 
 **Authentication:** Requires API key in localStorage
 
@@ -24,7 +24,7 @@ localStorage.setItem('shadowcheck_api_key', 'your-secure-random-key-here');
 
 ### Step 1: Enter Credentials
 
-1. Open admin page: http://localhost:3001/admin.html
+1. Open admin page: http://localhost:3001/admin
 2. Enter your **new** WiGLE API Name (starts with `AID`)
 3. Enter your **new** WiGLE API Token (32 character hex)
 4. Click "Save & Test"

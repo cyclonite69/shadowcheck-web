@@ -184,12 +184,6 @@ ShadowCheckStatic/
 │   └── repositories/      # Backend data access
 ├── utils/                 # Utility modules
 │   └── errorHandler.js
-├── public/                # Static frontend files
-│   ├── index.html
-│   ├── geospatial.html
-│   ├── networks.html
-│   ├── analytics.html
-│   └── surveillance.html
 ├── scripts/               # Utility scripts
 │   ├── enrichment/        # Address enrichment
 │   ├── geocoding/         # Reverse geocoding

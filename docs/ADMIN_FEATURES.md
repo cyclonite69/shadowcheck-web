@@ -228,11 +228,11 @@ curl -X POST -H "X-API-Key: your-key" \
 2. `/src/api/routes/v1/settings.js` - Settings API
 3. `/src/api/routes/v1/export.js` - Export API
 4. `/src/api/routes/v1/backup.js` - Backup/restore API
-5. `/public/admin.html` - Admin UI
+5. `/admin` - Admin UI route
 
 ## Usage
 
-1. **Access:** http://localhost:3001/admin.html
+1. **Access:** http://localhost:3001/admin
 2. **Set API Key:** `localStorage.setItem('shadowcheck_api_key', 'your-key')`
 3. **Configure WiGLE:** Enter API Name and Token, click "Save & Test"
 4. **Export Data:** Click any export button to download

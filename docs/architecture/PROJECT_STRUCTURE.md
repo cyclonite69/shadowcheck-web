@@ -36,12 +36,6 @@ shadowcheck-static/
 │   ├── main.tsx               # React entry point
 │   └── index.css              # Global Tailwind styles
 │
-├── 📁 public/                 # Static Assets & Legacy Pages
-│   ├── geospatial.html        # Legacy geospatial view (to be replaced)
-│   ├── networks.html          # Legacy network list
-│   ├── analytics.html         # Legacy analytics
-│   └── surveillance.html      # Legacy threat detection
-│
 ├── 📁 tests/                  # Test Suite
 │   ├── unit/                  # Unit tests
 │   ├── integration/           # Integration tests
@@ -144,7 +138,7 @@ shadowcheck-static/
 | `*.js` (backend) | Backend JavaScript (CommonJS) | `src/api/`, `src/services/`, `src/repositories/` |
 | `*.tsx`, `*.jsx` | Frontend React components     | `src/components/`, `src/App.tsx`, `src/main.tsx` |
 | `*.ts` (scripts) | TypeScript scripts/utilities  | `scripts/`, `scripts/enrichment/`                |
-| `*.css`          | Frontend styles               | `src/`, `public/css/`                            |
+| `*.css`          | Frontend styles               | `src/`                                           |
 | `*.sql`          | Database migrations           | `sql/migrations/`                                |
 | `*.test.js`      | Backend tests                 | `tests/`                                         |
 
@@ -299,17 +293,9 @@ export const Dashboard: React.FC = () => {
 
 **Naming**: `*.test.js` or `*.spec.js`
 
-## Migration Status: Legacy → React
+## Migration Status
 
-The project is migrating from legacy HTML/JS pages to modern React components.
-
-**Current State**:
-
-- ✅ React pages: Dashboard, Geospatial, Analytics, ML Training, API Test
-- 🔄 Legacy pages: Still served from `public/` until feature parity
-- 📦 Build: Vite bundles React app to `dist/`, served by Express
-
-**Do NOT delete legacy pages** (`public/*.html`) until React migration is complete.
+The React/Vite frontend has replaced the legacy HTML pages. The server now serves the React app only.
 
 ## Git Workflow
 

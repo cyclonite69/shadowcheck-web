@@ -195,10 +195,10 @@ Complete feature list for the SIGINT Forensics Platform.
 ### Pages
 
 - Dashboard (`/`)
-- Geospatial (`/geospatial.html`)
-- Networks (`/networks.html`)
-- Analytics (`/analytics.html`)
-- Surveillance (`/surveillance.html`)
+- Geospatial (`/geospatial` or `/geospatial-intel`)
+- Networks (`/geospatial-explorer`)
+- Analytics (`/analytics`)
+- Threats (`/` dashboard cards and `/geospatial-intel`)
 
 ### UI Features
 
