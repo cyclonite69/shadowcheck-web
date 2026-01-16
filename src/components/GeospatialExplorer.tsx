@@ -1046,6 +1046,14 @@ export default function GeospatialExplorer() {
         });
 
         map.on('error', (e) => {
+          // Suppress Google Maps tile errors (they spam the console)
+          if (e?.error?.message === 'sn' || e?.sourceId === 'google-tiles') {
+            // Google Maps tile loading error - likely API key issue
+            if (mapStyle.startsWith('google-')) {
+              setMapError('Google Maps tiles failed to load. Check API key configuration.');
+            }
+            return;
+          }
           logError('Map error', e);
           setMapError('Map failed to load');
         });
@@ -1774,6 +1782,10 @@ export default function GeospatialExplorer() {
     if (styleUrl.startsWith('google-')) {
       const googleType = styleUrl.replace('google-', ''); // roadmap, satellite, hybrid, terrain
       const googleStyle = createGoogleStyle(googleType);
+
+      // Clear any previous error when switching styles
+      setMapError(null);
+
       mapRef.current.setStyle(googleStyle);
     } else {
       // Get the actual style URL (Standard variants all use the same base URL)
