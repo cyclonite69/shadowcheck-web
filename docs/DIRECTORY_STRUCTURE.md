@@ -12,7 +12,11 @@ shadowcheck-static/
 ├── CLAUDE.md                 # AI assistant interaction log
 ├── package.json              # Node.js dependencies
 ├── package-lock.json         # Locked dependency versions
-├── server.js                 # Main Express server
+├── server.js                 # Express server entrypoint
+├── server/                   # Express API modules (v1/v2)
+├── src/                      # React/Vite frontend + shared server modules
+├── public/                   # Legacy HTML/JS (kept until parity)
+├── etl/                      # ETL pipelines (load/transform/promote)
 │
 ├── docs/                     # Documentation
 │   ├── README.md             # Documentation index
@@ -63,18 +67,16 @@ shadowcheck-static/
 │       └── server.log
 │
 ├── tests/                    # Test files
-│   ├── test-db-direct.js
-│   ├── test-minimal.js
+│   ├── api/
+│   ├── integration/
+│   ├── unit/
 │   └── test-*.js
 │
-├── public/                   # Frontend files
-│   ├── index.html            # Dashboard
-│   ├── geospatial.html       # Map view
-│   ├── networks.html         # Network list
-│   ├── analytics.html        # Analytics
-│   ├── surveillance.html     # Threat detection
-│   ├── css/                  # Stylesheets
-│   └── js/                   # Client-side JavaScript
+├── docker/                   # Docker helpers
+├── docker-compose.yml        # Docker configuration
+├── docker-compose.dev.yml    # Dev Docker configuration
+├── vite.config.js            # Vite config
+├── tailwind.config.js        # Tailwind config
 │
 └── utils/                    # Utility modules
     └── errorHandler.js       # Error handling
@@ -111,9 +113,25 @@ All documentation:
 - **enrichment/**: Enrichment system documentation
 - **archive/**: Historical documentation
 
+### `/server`
+
+Express API modules and route handlers.
+
+### `/src`
+
+React/Vite frontend and shared backend modules:
+
+- `src/main.tsx` (frontend entry)
+- `src/App.tsx` (frontend routing)
+- `src/api/`, `src/services/`, `src/repositories/` (backend)
+
+### `/etl`
+
+Data pipelines and SQL for load/transform/promote steps.
+
 ### `/public`
 
-Frontend web application:
+Legacy frontend pages (served alongside the React app until parity):
 
 - HTML pages for different views
 - CSS and JavaScript assets
@@ -134,7 +152,10 @@ Test files for various components
 - CONTRIBUTING.md
 - SECURITY.md
 - package.json / package-lock.json
-- server.js (main application)
+- server.js (server entrypoint)
+- server/ (backend modules)
+- src/ (frontend + shared modules)
+- etl/ (data pipelines)
 - .gitignore, .env.example
 
 **Should NOT contain:**

@@ -55,9 +55,9 @@ npm install
 Create PostgreSQL database with PostGIS:
 
 ```sql
-CREATE ROLE shadowcheck WITH LOGIN PASSWORD 'your_password';
-CREATE DATABASE shadowcheck OWNER shadowcheck;
-\c shadowcheck
+CREATE ROLE shadowcheck_user WITH LOGIN PASSWORD 'your_password';
+CREATE DATABASE shadowcheck_db OWNER shadowcheck_user;
+\c shadowcheck_db
 CREATE EXTENSION postgis;
 ```
 
@@ -66,23 +66,24 @@ CREATE EXTENSION postgis;
 Create `.env` in project root (or load secrets via keyring):
 
 ```
-DB_USER=shadowcheck
-DB_HOST=localhost
-DB_NAME=shadowcheck
+DB_USER=shadowcheck_user
+DB_HOST=shadowcheck_postgres
+DB_NAME=shadowcheck_db
 DB_PASSWORD=your_password
 DB_PORT=5432
 PORT=3001
 ```
 
 See `.env.example` for all options.
+If you're running PostgreSQL locally, set `DB_HOST=localhost` and use your local database name.
 
 ### 4. Run Migrations
 
 ```bash
-psql -U shadowcheck -d shadowcheck -f sql/functions/create_scoring_function.sql
-psql -U shadowcheck -d shadowcheck -f sql/functions/fix_kismet_functions.sql
-psql -U shadowcheck -d shadowcheck -f sql/migrations/migrate_network_tags_v2.sql
-psql -U shadowcheck -d shadowcheck -f sql/migrations/README.md  # see migration order guidance
+psql -U shadowcheck_user -d shadowcheck_db -f sql/functions/create_scoring_function.sql
+psql -U shadowcheck_user -d shadowcheck_db -f sql/functions/fix_kismet_functions.sql
+psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/migrate_network_tags_v2.sql
+# Follow the order in sql/migrations/README.md for remaining migrations
 ```
 
 ### 5. Start Server

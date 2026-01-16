@@ -11,7 +11,6 @@ docs/
 ├── development/         # Development guides & workflows
 ├── deployment/          # Production deployment guides
 ├── security/            # Security policies & guides
-├── reference/           # API & technical reference
 ├── features/            # Feature-specific documentation
 ├── guides/              # Implementation guides
 ├── enrichment/          # Network enrichment system
@@ -38,7 +37,7 @@ docs/
 ### Development
 
 - **[Development Setup](DEVELOPMENT.md)** - Local development environment
-- **[Testing Guide](development/)** - Writing & running tests
+- **[Development Notes](development/agents.md)** - Agent guidance
 - **[Common Patterns](../CLAUDE.md#development-patterns)** - Code patterns & best practices
 
 ### Deployment
@@ -125,7 +124,7 @@ docs/
 **Development**
 
 - [Development Setup](DEVELOPMENT.md)
-- [Testing](../CLAUDE.md#running-tests)
+- [Testing](DEVELOPMENT.md#testing)
 - [Code Style](../CLAUDE.md#code-style)
 - [Common Patterns](../CLAUDE.md#development-patterns)
 

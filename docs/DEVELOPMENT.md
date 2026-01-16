@@ -18,7 +18,7 @@ Complete guide for setting up and developing ShadowCheck-Static.
 
 ### Required Software
 
-- **Node.js** 18+ (LTS recommended)
+- **Node.js** 20+ (LTS recommended)
 - **PostgreSQL** 18+ with PostGIS extension
 - **Docker** (optional, for containerized development)
 - **Git** for version control
@@ -66,8 +66,8 @@ Edit `.env` with your configuration:
 ```env
 # Database Configuration
 DB_USER=shadowcheck_user
-DB_HOST=localhost
-DB_NAME=shadowcheck_dev
+DB_HOST=shadowcheck_postgres
+DB_NAME=shadowcheck_db
 DB_PASSWORD=your_secure_password
 DB_PORT=5432
 
@@ -91,19 +91,23 @@ LOCATIONIQ_API_KEY=your_locationiq_key
 ABSTRACT_API_KEY=your_abstract_key
 ```
 
+If you're running PostgreSQL locally (not the shared Docker container), set `DB_HOST=localhost` and use the database name you created.
+
 ### 4. Setup Database
 
 #### Option A: Docker (Recommended)
 
-```bash
-# Start PostgreSQL with PostGIS
-docker-compose up -d postgres
+This repo expects a shared Postgres container (`shadowcheck_postgres`) on the `shadowcheck_net` network. Start it via your shared database stack before continuing.
 
-# Wait for database to be ready
-docker-compose exec postgres pg_isready -U shadowcheck_user
+```bash
+# Ensure shared PostgreSQL container is running
+docker ps | grep shadowcheck_postgres
+
+# Wait for database to be ready (shared Postgres container)
+docker exec shadowcheck_postgres pg_isready -U shadowcheck_user
 
 # Run migrations
-docker-compose exec postgres psql -U shadowcheck_user -d shadowcheck_dev < sql/migrations/00_init_schema.sql
+docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/00_init_schema.sql
 ```
 
 #### Option B: Manual Installation
@@ -115,22 +119,22 @@ sudo apt-get install postgresql-18 postgresql-18-postgis-3
 # Create database and user
 sudo -u postgres psql << EOF
 CREATE USER shadowcheck_user WITH PASSWORD 'your_password';
-CREATE DATABASE shadowcheck_dev OWNER shadowcheck_user;
-\c shadowcheck_dev
+CREATE DATABASE shadowcheck_db OWNER shadowcheck_user;
+\c shadowcheck_db
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE SCHEMA IF NOT EXISTS app;
 GRANT ALL ON SCHEMA app TO shadowcheck_user;
 EOF
 
 # Run migrations
-psql -U shadowcheck_user -d shadowcheck_dev -f sql/migrations/00_init_schema.sql
+psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/00_init_schema.sql
 ```
 
 ### 5. Verify Installation
 
 ```bash
 # Test database connection
-npm run test:db
+node tests/test-db.js
 
 # Start development server
 npm run dev
@@ -161,6 +165,9 @@ npm start
 # Development mode with auto-reload (requires nodemon)
 npm run dev
 
+# Frontend dev server (Vite)
+npm run dev:frontend
+
 # Debug mode
 npm run debug
 ```
@@ -169,7 +176,12 @@ npm run debug
 
 ```
 ShadowCheckStatic/
-├── server.js              # Main application (monolithic)
+├── server.js              # Express server entrypoint
+├── server/                # Express API modules
+├── src/                   # React/Vite frontend + shared server modules
+│   ├── api/               # Backend API routes
+│   ├── services/          # Backend business logic
+│   └── repositories/      # Backend data access
 ├── utils/                 # Utility modules
 │   └── errorHandler.js
 ├── public/                # Static frontend files
@@ -188,7 +200,9 @@ ShadowCheckStatic/
 │   └── functions/         # SQL functions
 ├── tests/                 # Test files
 │   ├── setup.js
-│   └── *.test.js
+│   ├── api/
+│   ├── integration/
+│   └── unit/
 ├── docs/                  # Documentation
 └── data/                  # Data files (not in git)
     ├── csv/
@@ -224,7 +238,7 @@ ShadowCheckStatic/
    npm test
 
    # Run specific test
-   npm test -- tests/api.test.js
+   npm test -- tests/unit/your-test.test.js
    ```
 
 4. **Commit Changes**
@@ -255,40 +269,40 @@ ShadowCheckStatic/
 
 ```bash
 # Via Docker
-docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_dev
+docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 
 # Direct connection
-psql -U shadowcheck_user -d shadowcheck_dev
+psql -U shadowcheck_user -d shadowcheck_db
 ```
 
 #### Run Migration
 
 ```bash
 # Via Docker
-docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_dev < sql/migrations/your_migration.sql
+docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/your_migration.sql
 
 # Direct
-psql -U shadowcheck_user -d shadowcheck_dev -f sql/migrations/your_migration.sql
+psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/your_migration.sql
 ```
 
 #### Backup Database
 
 ```bash
 # Full backup
-pg_dump -U shadowcheck_user -d shadowcheck_dev -F c -f backup_$(date +%Y%m%d).dump
+pg_dump -U shadowcheck_user -d shadowcheck_db -F c -f backup_$(date +%Y%m%d).dump
 
 # Schema only
-pg_dump -U shadowcheck_user -d shadowcheck_dev -s > schema_backup.sql
+pg_dump -U shadowcheck_user -d shadowcheck_db -s > schema_backup.sql
 ```
 
 #### Restore Database
 
 ```bash
 # From custom format
-pg_restore -U shadowcheck_user -d shadowcheck_dev backup.dump
+pg_restore -U shadowcheck_user -d shadowcheck_db backup.dump
 
 # From SQL
-psql -U shadowcheck_user -d shadowcheck_dev < backup.sql
+psql -U shadowcheck_user -d shadowcheck_db < backup.sql
 ```
 
 ### Useful Queries
@@ -327,7 +341,7 @@ npm test
 ### Run Specific Test
 
 ```bash
-npm test -- tests/api.test.js
+npm test -- tests/unit/your-test.test.js
 ```
 
 ### Run Tests with Coverage
@@ -343,9 +357,9 @@ Coverage report will be generated in `coverage/` directory.
 Create test files in `tests/` directory:
 
 ```javascript
-// tests/api.test.js
+// tests/api/dashboard-metrics.test.js
 const request = require('supertest');
-const app = require('../server');
+const app = require('../../server');
 
 describe('GET /api/dashboard-metrics', () => {
   it('should return dashboard metrics', async () => {
@@ -363,14 +377,8 @@ describe('GET /api/dashboard-metrics', () => {
 ### Integration Tests
 
 ```bash
-# Start test database
-docker-compose -f docker-compose.test.yml up -d
-
 # Run integration tests
 NODE_ENV=test npm run test:integration
-
-# Cleanup
-docker-compose -f docker-compose.test.yml down -v
 ```
 
 ## Code Quality
@@ -493,7 +501,7 @@ app.get('/api/your-endpoint', async (req, res) => {
 });
 ```
 
-2. Add tests in `tests/api.test.js`
+2. Add tests in `tests/api/your-endpoint.test.js`
 3. Update `API.md` documentation
 4. Test endpoint manually
 
@@ -512,7 +520,7 @@ CREATE TABLE IF NOT EXISTS app.your_table (
 2. Run migration:
 
 ```bash
-psql -U shadowcheck_user -d shadowcheck_dev -f sql/migrations/add_your_feature.sql
+psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/add_your_feature.sql
 ```
 
 3. Update schema documentation
@@ -611,7 +619,7 @@ kill -9 <PID>
 
 ```bash
 # Drop and recreate (development only!)
-psql -U shadowcheck_user -d shadowcheck_dev << EOF
+psql -U shadowcheck_user -d shadowcheck_db << EOF
 DROP SCHEMA app CASCADE;
 CREATE SCHEMA app;
 EOF

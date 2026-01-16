@@ -174,7 +174,7 @@ docker-compose logs -f api
 
 ```bash
 # Run migrations
-docker-compose exec postgres psql -U shadowcheck_user -d shadowcheck < sql/migrations/00_init_schema.sql
+docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/00_init_schema.sql
 
 # Verify
 docker-compose exec api curl http://localhost:3001/api/dashboard-metrics
@@ -339,7 +339,7 @@ GRANT ALL ON SCHEMA app TO shadowcheck_user;
 EOF
 
 # Run migrations
-psql -U shadowcheck_user -d shadowcheck -f sql/migrations/00_init_schema.sql
+psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/00_init_schema.sql
 ```
 
 ### 3. Deploy Application
@@ -605,7 +605,7 @@ DATE=$(date +%Y%m%d_%H%M%S)
 KEEP_DAYS=7
 
 # Create backup
-pg_dump -U shadowcheck_user -d shadowcheck -F c -f "$BACKUP_DIR/shadowcheck_$DATE.dump"
+pg_dump -U shadowcheck_user -d shadowcheck_db -F c -f "$BACKUP_DIR/shadowcheck_$DATE.dump"
 
 # Compress
 gzip "$BACKUP_DIR/shadowcheck_$DATE.dump"
@@ -743,7 +743,7 @@ BACKUP_ROOT="/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 
 # Database backup
-pg_dump -U shadowcheck_user -d shadowcheck -F c -f "$BACKUP_ROOT/db_$DATE.dump"
+pg_dump -U shadowcheck_user -d shadowcheck_db -F c -f "$BACKUP_ROOT/db_$DATE.dump"
 
 # Application files
 tar -czf "$BACKUP_ROOT/app_$DATE.tar.gz" /opt/shadowcheck/app
@@ -762,7 +762,7 @@ rsync -avz $BACKUP_ROOT/ user@backup-server:/backups/shadowcheck/
 1. **Restore Database**
 
    ```bash
-   pg_restore -U shadowcheck_user -d shadowcheck backup.dump
+   pg_restore -U shadowcheck_user -d shadowcheck_db backup.dump
    ```
 
 2. **Restore Application**

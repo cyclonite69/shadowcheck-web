@@ -257,4 +257,4 @@ If system keyring is unavailable (e.g., headless Linux), a file-based fallback i
 
 - [Security Policy](../SECURITY.md)
 - [Production Deployment](../deployment/PRODUCTION.md)
-- [Environment Configuration](../reference/CONFIGURATION.md)
+- [Environment Configuration](../DEVELOPMENT.md#configure-environment)

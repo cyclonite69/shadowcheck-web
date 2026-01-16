@@ -507,7 +507,7 @@ npm run db:migrate       # Run migrations
    ```
 
 6. **Write Initial Tests**
-   - Create `tests/api.test.js`
+   - Create `tests/api/your-endpoint.test.js`
    - Test dashboard-metrics endpoint
    - Test threat detection endpoint
 
