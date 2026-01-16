@@ -173,7 +173,10 @@ const SECURITY_TYPE_COLORS = {
 };
 
 export default function Analytics() {
-  const [timeFrame, setTimeFrame] = useState('30d'); // '30d', '90d', '6mo', '1yr', 'all'
+  // Set current page for filter scoping
+  usePageFilters('analytics');
+
+  const [timeFrame, setTimeFrame] = useState('30d');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -181,7 +184,7 @@ export default function Analytics() {
   useFilterURLSync();
   const { setFilter, enableFilter } = useFilterStore();
   const activeFilterCount = useFilterStore(
-    (state) => Object.values(state.enabled).filter(Boolean).length
+    (state) => Object.values(state.getCurrentEnabled()).filter(Boolean).length
   );
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()

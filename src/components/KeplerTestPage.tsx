@@ -1,3 +1,4 @@
+import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 import { FilterPanel } from './FilterPanel';
@@ -72,6 +73,9 @@ const loadCss = (href: string) =>
   });
 
 const KeplerTestPage: React.FC = () => {
+  // Set current page for filter scoping
+  usePageFilters('kepler');
+
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
   const scriptsLoadedRef = useRef<boolean>(false);

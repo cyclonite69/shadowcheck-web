@@ -12,9 +12,9 @@ import { adaptFiltersToPage, PageFilterCapabilities } from '../utils/filterCapab
  * Returns only the filters the page supports, plus metadata about ignored filters
  */
 export function useAdaptedFilters(capabilities: PageFilterCapabilities) {
-  // Use individual selectors to avoid re-renders when isLoading changes
-  const filters = useFilterStore((state) => state.filters);
-  const enabled = useFilterStore((state) => state.enabled);
+  // Use getCurrentFilters/getCurrentEnabled for per-page state
+  const filters = useFilterStore((state) => state.getCurrentFilters());
+  const enabled = useFilterStore((state) => state.getCurrentEnabled());
 
   const adapted = useMemo(() => {
     return adaptFiltersToPage(filters, enabled, capabilities);

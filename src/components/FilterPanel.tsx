@@ -128,8 +128,8 @@ interface FilterPanelProps {
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) => {
   const {
-    filters,
-    enabled,
+    getCurrentFilters,
+    getCurrentEnabled,
     setFilter,
     toggleFilter,
     enableFilter,
@@ -141,7 +141,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
     presets,
   } = useFilterStore();
 
-  const activeFilterCount = Object.values(enabled).filter(Boolean).length;
+  const filters = getCurrentFilters();
+  const enabled = getCurrentEnabled();
+  const activeFilterCount = Object.values(enabled || {}).filter(Boolean).length;
   const [presetName, setPresetName] = useState('');
 
   const isCompact = density === 'compact';

@@ -4,6 +4,7 @@ import ThreatsExplorer from './ThreatsExplorer';
 import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
+import { usePageFilters } from '../hooks/usePageFilters';
 import { NetworkFilters } from '../types/filters';
 
 type HeatTile = {
@@ -76,6 +77,9 @@ const Pill = ({ label, color }: { label: string; color: string }) => (
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleString() : '—');
 
 export default function GeospatialIntelligencePage() {
+  // Set current page for filter scoping
+  usePageFilters('geospatial');
+
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
   const [heatmap, setHeatmap] = useState<HeatTile[]>([]);
   const [routes, setRoutes] = useState<RouteRow[]>([]);

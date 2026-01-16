@@ -1,3 +1,4 @@
+import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -86,6 +87,9 @@ const dominantClusterColor = (bssids: string[]): string => {
 };
 
 const WigleTestPage: React.FC = () => {
+  // Set current page for filter scoping
+  usePageFilters('wigle');
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const clusterColorCache = useRef<Record<number, string>>({});

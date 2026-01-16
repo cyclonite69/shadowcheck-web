@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FilterPanel } from './FilterPanel';
 import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { usePageFilters } from '../hooks/usePageFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 
 // SVG Icons - Industry Standard
@@ -145,6 +146,9 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
 );
 
 export default function DashboardPage() {
+  // Set current page for filter scoping
+  usePageFilters('dashboard');
+
   const [cards, setCards] = useState([
     {
       id: 1,

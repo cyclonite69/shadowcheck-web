@@ -1,21 +1,31 @@
 /**
- * Hardened Universal Filter Store
- * Single source of truth with explicit enable/disable and forensic integrity
+ * Hardened Universal Filter Store with Per-Page Persistence
+ * Single source of truth with page-scoped filter state
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { NetworkFilters, FilterState, TemporalScope } from '../types/filters';
 
-interface HardenedFilterStore {
-  // State
+interface PageFilterState {
   filters: NetworkFilters;
   enabled: Record<keyof NetworkFilters, boolean>;
+}
+
+interface HardenedFilterStore {
+  // State - now page-scoped
+  currentPage: string;
+  pageStates: Record<string, PageFilterState>;
   presets: Record<string, FilterState>;
   isLoading: boolean;
-  lastAppliedFilters: any[]; // Track what filters were actually applied
+  lastAppliedFilters: any[];
 
-  // Actions
+  // Page management
+  setCurrentPage: (pageName: string) => void;
+  getCurrentFilters: () => NetworkFilters;
+  getCurrentEnabled: () => Record<keyof NetworkFilters, boolean>;
+
+  // Actions - operate on current page
   setFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
   toggleFilter: (key: keyof NetworkFilters) => void;
   enableFilter: (key: keyof NetworkFilters, enabled: boolean) => void;
@@ -27,13 +37,13 @@ interface HardenedFilterStore {
   loadPreset: (name: string) => void;
   deletePreset: (name: string) => void;
 
-  // Serialization with validation
+  // Serialization
   getFilterState: () => FilterState;
   setFilterState: (state: FilterState) => void;
   getURLParams: () => URLSearchParams;
   setFromURLParams: (params: URLSearchParams) => void;
 
-  // API Integration with transparency
+  // API Integration
   getAPIFilters: () => { filters: NetworkFilters; enabled: Record<keyof NetworkFilters, boolean> };
   setLoading: (loading: boolean) => void;
   setLastAppliedFilters: (appliedFilters: any[]) => void;
@@ -47,7 +57,6 @@ interface HardenedFilterStore {
 
 // Forensically correct defaults - NO implicit filtering
 const defaultFilters: NetworkFilters = {
-  // Temporal scope defaults to OBSERVATION_TIME, but is not applied unless enabled
   temporalScope: TemporalScope.OBSERVATION_TIME,
   timeframe: {
     type: 'relative',
@@ -57,44 +66,31 @@ const defaultFilters: NetworkFilters = {
 
 // EXPLICIT enable/disable - most filters DISABLED by default
 const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
-  // Identity - disabled by default
   ssid: false,
   bssid: false,
   manufacturer: false,
   networkId: false,
-
-  // Radio - disabled by default
   radioTypes: false,
   frequencyBands: false,
   channelMin: false,
   channelMax: false,
   rssiMin: false,
   rssiMax: false,
-
-  // Security - disabled by default
   encryptionTypes: false,
   authMethods: false,
   insecureFlags: false,
   securityFlags: false,
-
-  // Temporal - disabled by default (no implicit filters)
   timeframe: false,
   temporalScope: false,
-
-  // Observation Quality - DISABLED by default (credibility heuristics)
-  observationCountMin: false, // CRITICAL: disabled to avoid excluding valid data
+  observationCountMin: false,
   observationCountMax: false,
   gpsAccuracyMax: false,
   excludeInvalidCoords: false,
   qualityFilter: false,
-
-  // Spatial - disabled by default
   distanceFromHomeMin: false,
   distanceFromHomeMax: false,
   boundingBox: false,
   radiusFilter: false,
-
-  // Threat - disabled by default
   threatScoreMin: false,
   threatScoreMax: false,
   threatCategories: false,
@@ -102,68 +98,130 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   stationaryConfidenceMax: false,
 };
 
+const createDefaultPageState = (): PageFilterState => ({
+  filters: defaultFilters,
+  enabled: defaultEnabled,
+});
+
+const getPageState = (
+  pageStates: Record<string, PageFilterState>,
+  page: string
+): PageFilterState => {
+  if (!pageStates[page]) {
+    return createDefaultPageState();
+  }
+  return pageStates[page];
+};
+
 export const useFilterStore = create<HardenedFilterStore>()(
   persist(
     (set, get) => ({
-      filters: defaultFilters,
-      enabled: defaultEnabled,
+      currentPage: 'default',
+      pageStates: {},
       presets: {},
       isLoading: false,
       lastAppliedFilters: [],
 
+      setCurrentPage: (pageName) => {
+        set({ currentPage: pageName });
+      },
+
+      getCurrentFilters: () => {
+        const { pageStates, currentPage } = get();
+        return getPageState(pageStates, currentPage).filters;
+      },
+
+      getCurrentEnabled: () => {
+        const { pageStates, currentPage } = get();
+        return getPageState(pageStates, currentPage).enabled;
+      },
+
       setFilter: (key, value) => {
-        set((state) => ({
-          filters: { ...state.filters, [key]: value },
-          enabled: { ...state.enabled, [key]: true },
-        }));
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
+        set({
+          pageStates: {
+            ...pageStates,
+            [currentPage]: {
+              filters: { ...pageState.filters, [key]: value },
+              enabled: { ...pageState.enabled, [key]: true },
+            },
+          },
+        });
       },
 
       toggleFilter: (key) => {
-        set((state) => ({
-          enabled: { ...state.enabled, [key]: !state.enabled[key] },
-        }));
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
+        set({
+          pageStates: {
+            ...pageStates,
+            [currentPage]: {
+              ...pageState,
+              enabled: { ...pageState.enabled, [key]: !pageState.enabled[key] },
+            },
+          },
+        });
       },
 
       enableFilter: (key, enabled) => {
-        set((state) => ({
-          enabled: { ...state.enabled, [key]: enabled },
-        }));
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
+        set({
+          pageStates: {
+            ...pageStates,
+            [currentPage]: {
+              ...pageState,
+              enabled: { ...pageState.enabled, [key]: enabled },
+            },
+          },
+        });
       },
 
       clearFilters: () => {
+        const { currentPage, pageStates } = get();
         set({
-          filters: defaultFilters,
-          enabled: Object.fromEntries(
-            Object.keys(defaultEnabled).map((key) => [key, false])
-          ) as Record<keyof NetworkFilters, boolean>,
+          pageStates: {
+            ...pageStates,
+            [currentPage]: createDefaultPageState(),
+          },
         });
       },
 
       resetFilters: () => {
+        const { currentPage, pageStates } = get();
         set({
-          filters: defaultFilters,
-          enabled: defaultEnabled,
+          pageStates: {
+            ...pageStates,
+            [currentPage]: createDefaultPageState(),
+          },
         });
       },
 
       // Preset management
       savePreset: (name) => {
-        const { filters, enabled } = get();
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
         set((state) => ({
           presets: {
             ...state.presets,
-            [name]: { filters, enabled },
+            [name]: { filters: pageState.filters, enabled: pageState.enabled },
           },
         }));
       },
 
       loadPreset: (name) => {
-        const { presets } = get();
+        const { presets, currentPage, pageStates } = get();
         const preset = presets[name];
         if (preset) {
           set({
-            filters: preset.filters,
-            enabled: preset.enabled,
+            pageStates: {
+              ...pageStates,
+              [currentPage]: {
+                filters: preset.filters,
+                enabled: preset.enabled,
+              },
+            },
           });
         }
       },
@@ -176,17 +234,23 @@ export const useFilterStore = create<HardenedFilterStore>()(
       },
 
       getFilterState: () => {
-        const { filters, enabled } = get();
-        return { filters, enabled };
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
+        return { filters: pageState.filters, enabled: pageState.enabled };
       },
 
       setFilterState: (state) => {
-        // Validate state before setting
         const validationErrors = get().validateFilters(state.filters, state.enabled);
         if (validationErrors.length === 0) {
+          const { currentPage, pageStates } = get();
           set({
-            filters: state.filters,
-            enabled: state.enabled,
+            pageStates: {
+              ...pageStates,
+              [currentPage]: {
+                filters: state.filters,
+                enabled: state.enabled,
+              },
+            },
           });
         } else {
           console.warn('Invalid filter state:', validationErrors);
@@ -194,25 +258,31 @@ export const useFilterStore = create<HardenedFilterStore>()(
       },
 
       getURLParams: () => {
-        const { filters, enabled } = get();
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
         const params = new URLSearchParams();
-        params.set('filters', JSON.stringify(filters));
-        params.set('enabled', JSON.stringify(enabled));
+        params.set('filters', JSON.stringify(pageState.filters));
+        params.set('enabled', JSON.stringify(pageState.enabled));
         return params;
       },
 
       setFromURLParams: (params) => {
         const rawFilters = params.get('filters');
         const rawEnabled = params.get('enabled');
-        if (!rawFilters || !rawEnabled) {
-          return;
-        }
+        if (!rawFilters || !rawEnabled) return;
+
         try {
           const parsedFilters = JSON.parse(rawFilters);
           const parsedEnabled = JSON.parse(rawEnabled);
+          const { currentPage, pageStates } = get();
           set({
-            filters: { ...defaultFilters, ...parsedFilters },
-            enabled: { ...defaultEnabled, ...parsedEnabled },
+            pageStates: {
+              ...pageStates,
+              [currentPage]: {
+                filters: { ...defaultFilters, ...parsedFilters },
+                enabled: { ...defaultEnabled, ...parsedEnabled },
+              },
+            },
           });
         } catch (e) {
           console.warn('Failed to parse filter params:', e);
@@ -220,8 +290,9 @@ export const useFilterStore = create<HardenedFilterStore>()(
       },
 
       getAPIFilters: () => {
-        const { filters, enabled } = get();
-        return { filters, enabled };
+        const { currentPage, pageStates } = get();
+        const pageState = getPageState(pageStates, currentPage);
+        return { filters: pageState.filters, enabled: pageState.enabled };
       },
 
       setLoading: (loading) => {
@@ -233,63 +304,73 @@ export const useFilterStore = create<HardenedFilterStore>()(
       },
 
       // Validation for forensic integrity
-      validateFilters: (filters = get().filters, enabled = get().enabled) => {
+      validateFilters: (filters, enabled) => {
+        const currentFilters = filters || get().getCurrentFilters();
+        const currentEnabled = enabled || get().getCurrentEnabled();
         const errors: string[] = [];
 
         // RSSI validation
-        if (enabled.rssiMin && filters.rssiMin !== undefined && filters.rssiMin < -95) {
+        if (
+          currentEnabled.rssiMin &&
+          currentFilters.rssiMin !== undefined &&
+          currentFilters.rssiMin < -95
+        ) {
           errors.push('RSSI minimum below noise floor (-95 dBm)');
         }
-        if (enabled.rssiMax && filters.rssiMax !== undefined && filters.rssiMax > 0) {
+        if (
+          currentEnabled.rssiMax &&
+          currentFilters.rssiMax !== undefined &&
+          currentFilters.rssiMax > 0
+        ) {
           errors.push('RSSI maximum above 0 dBm (impossible)');
         }
         if (
-          enabled.rssiMin &&
-          enabled.rssiMax &&
-          filters.rssiMin !== undefined &&
-          filters.rssiMax !== undefined &&
-          filters.rssiMin > filters.rssiMax
+          currentEnabled.rssiMin &&
+          currentEnabled.rssiMax &&
+          currentFilters.rssiMin !== undefined &&
+          currentFilters.rssiMax !== undefined &&
+          currentFilters.rssiMin > currentFilters.rssiMax
         ) {
           errors.push('RSSI minimum greater than maximum');
         }
 
         // GPS accuracy validation
         if (
-          enabled.gpsAccuracyMax &&
-          filters.gpsAccuracyMax !== undefined &&
-          filters.gpsAccuracyMax > 1000
+          currentEnabled.gpsAccuracyMax &&
+          currentFilters.gpsAccuracyMax !== undefined &&
+          currentFilters.gpsAccuracyMax > 1000
         ) {
           errors.push('GPS accuracy limit too high (>1000m)');
         }
 
         // Threat score validation
         if (
-          enabled.threatScoreMin &&
-          filters.threatScoreMin !== undefined &&
-          (filters.threatScoreMin < 0 || filters.threatScoreMin > 100)
+          currentEnabled.threatScoreMin &&
+          currentFilters.threatScoreMin !== undefined &&
+          (currentFilters.threatScoreMin < 0 || currentFilters.threatScoreMin > 100)
         ) {
           errors.push('Threat score minimum out of range (0-100)');
         }
         if (
-          enabled.threatScoreMax &&
-          filters.threatScoreMax !== undefined &&
-          (filters.threatScoreMax < 0 || filters.threatScoreMax > 100)
+          currentEnabled.threatScoreMax &&
+          currentFilters.threatScoreMax !== undefined &&
+          (currentFilters.threatScoreMax < 0 || currentFilters.threatScoreMax > 100)
         ) {
           errors.push('Threat score maximum out of range (0-100)');
         }
 
         // Stationary confidence validation
         if (
-          enabled.stationaryConfidenceMin &&
-          filters.stationaryConfidenceMin !== undefined &&
-          (filters.stationaryConfidenceMin < 0 || filters.stationaryConfidenceMin > 1)
+          currentEnabled.stationaryConfidenceMin &&
+          currentFilters.stationaryConfidenceMin !== undefined &&
+          (currentFilters.stationaryConfidenceMin < 0 || currentFilters.stationaryConfidenceMin > 1)
         ) {
           errors.push('Stationary confidence minimum out of range (0.0-1.0)');
         }
         if (
-          enabled.stationaryConfidenceMax &&
-          filters.stationaryConfidenceMax !== undefined &&
-          (filters.stationaryConfidenceMax < 0 || filters.stationaryConfidenceMax > 1)
+          currentEnabled.stationaryConfidenceMax &&
+          currentFilters.stationaryConfidenceMax !== undefined &&
+          (currentFilters.stationaryConfidenceMax < 0 || currentFilters.stationaryConfidenceMax > 1)
         ) {
           errors.push('Stationary confidence maximum out of range (0.0-1.0)');
         }
@@ -298,10 +379,10 @@ export const useFilterStore = create<HardenedFilterStore>()(
       },
     }),
     {
-      name: 'shadowcheck-hardened-filters',
+      name: 'shadowcheck-filters-v2',
       partialize: (state) => ({
-        filters: state.filters,
-        enabled: state.enabled,
+        currentPage: state.currentPage,
+        pageStates: state.pageStates,
         presets: state.presets,
       }),
     }
@@ -318,10 +399,9 @@ export const useDebouncedFilters = (
   }) => void,
   delay = 500
 ) => {
-  // Select filters and enabled separately to get stable references
-  // DO NOT use getAPIFilters() as selector - it returns a new object every time!
-  const filters = useFilterStore((state) => state.filters);
-  const enabled = useFilterStore((state) => state.enabled);
+  // Use getCurrentFilters/getCurrentEnabled to get stable references
+  const filters = useFilterStore((state) => state.getCurrentFilters());
+  const enabled = useFilterStore((state) => state.getCurrentEnabled());
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
