@@ -826,31 +826,37 @@ export default function Analytics() {
         </div>
       )}
 
-      {/* Filter Icon Button */}
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className="fixed top-4 right-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all hover:scale-110"
+      {/* Filter Icon Button - Only visible on hover in upper left */}
+      <div
+        className="fixed top-0 left-0 w-16 h-16 group"
         style={{
-          background: showFilters
-            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
           zIndex: 100000,
           pointerEvents: 'auto',
         }}
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="24"
-          height="24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+          style={{
+            background: showFilters
+              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          }}
         >
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-        </svg>
-      </button>
+          <svg
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+        </button>
+      </div>
 
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh', paddingTop: 0 }}>
         {/* Time Frame Selector */}
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
           {[

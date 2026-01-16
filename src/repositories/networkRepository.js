@@ -1,4 +1,5 @@
 const { query } = require('../config/database');
+const logger = require('../logging/logger');
 
 class NetworkRepository {
   async getAllNetworks() {
@@ -27,7 +28,7 @@ class NetworkRepository {
 
       return result.rows || [];
     } catch (error) {
-      console.error('Error fetching networks:', error);
+      logger.error(`Error fetching networks: ${error.message}`, { error });
       return [];
     }
   }
@@ -60,7 +61,7 @@ class NetworkRepository {
 
       return result.rows || [];
     } catch (error) {
-      console.error(`Error fetching ${type} networks:`, error);
+      logger.error(`Error fetching ${type} networks: ${error.message}`, { error });
       return [];
     }
   }
@@ -90,7 +91,7 @@ class NetworkRepository {
 
       return result.rows || [];
     } catch (error) {
-      console.error('Error fetching threatened networks:', error);
+      logger.error(`Error fetching threatened networks: ${error.message}`, { error });
       return [];
     }
   }
@@ -226,7 +227,7 @@ class NetworkRepository {
         filtersApplied: conditions.length,
       };
     } catch (error) {
-      console.error('Error fetching dashboard metrics:', error);
+      logger.error(`Error fetching dashboard metrics: ${error.message}`, { error });
       return {
         totalNetworks: 0,
         wifiCount: 0,

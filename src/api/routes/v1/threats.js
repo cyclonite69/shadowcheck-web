@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { query, CONFIG } = require('../../../config/database');
+const logger = require('../../../logging/logger');
 
 // GET /api/threats/quick - Quick threat detection
 router.get('/threats/quick', async (req, res) => {
@@ -139,7 +140,7 @@ router.get('/threats/quick', async (req, res) => {
       totalPages: Math.ceil(totalCount / limit),
     });
   } catch (error) {
-    console.error('Threat detection error:', error);
+    logger.error(`Threat detection error: ${error.message}`, { error });
     res.status(500).json({ error: error.message });
   }
 });

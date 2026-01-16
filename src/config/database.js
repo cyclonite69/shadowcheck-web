@@ -6,6 +6,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 const secretsManager = require('../services/secretsManager');
+const logger = require('../logging/logger');
 
 // Normalized connection settings with safe defaults for shared Docker postgres
 const DB_USER = process.env.DB_USER || 'shadowcheck_user';
@@ -41,7 +42,7 @@ const pool = new Pool({
 
 // Pool error handler
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  logger.error(`Unexpected error on idle client: ${err.message}`, { error: err });
   process.exit(-1);
 });
 
@@ -62,8 +63,8 @@ async function query(text, params = []) {
 async function testConnection() {
   const result = await query('SELECT current_user, current_database()');
   const row = result.rows[0] || {};
-  console.log(
-    `✓ Database connection successful as ${row.current_user || 'unknown'} on ${row.current_database || 'unknown'}`
+  logger.info(
+    `Database connection successful as ${row.current_user || 'unknown'} on ${row.current_database || 'unknown'}`
   );
   return true;
 }
@@ -74,7 +75,7 @@ async function testConnection() {
  */
 async function closePool() {
   await pool.end();
-  console.log('Database pool closed');
+  logger.info('Database pool closed');
 }
 
 module.exports = {

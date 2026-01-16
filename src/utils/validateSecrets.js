@@ -1,13 +1,14 @@
 const secretsManager = require('../services/secretsManager');
+const logger = require('../logging/logger');
 
 async function validateSecrets() {
   try {
     await secretsManager.load();
     return true;
   } catch (error) {
-    console.error('\n❌ SECRETS VALIDATION FAILED\n');
-    console.error(error.message);
-    console.error('\nServer cannot start without required secrets.\n');
+    logger.error('SECRETS VALIDATION FAILED');
+    logger.error(error.message);
+    logger.error('Server cannot start without required secrets.');
     process.exit(1);
   }
 }

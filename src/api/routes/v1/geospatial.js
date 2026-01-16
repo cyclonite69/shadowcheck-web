@@ -3,6 +3,7 @@ const router = express.Router();
 const secretsManager = require('../../../services/secretsManager');
 const fetch = require('node-fetch');
 const { URL } = require('url');
+const logger = require('../../../logging/logger');
 
 // GET / - Root redirect to index.html
 router.get('/', (req, res) => {
@@ -108,7 +109,7 @@ router.get('/api/mapbox-proxy', async (req, res) => {
 
     upstream.body.pipe(res);
   } catch (err) {
-    console.error('Mapbox proxy error', err);
+    logger.error(`Mapbox proxy error: ${err.message}`, { error: err });
     res.status(500).json({ error: err.message || 'Mapbox proxy failed' });
   }
 });
@@ -166,7 +167,7 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
 
     response.body.pipe(res);
   } catch (err) {
-    console.error('Google Maps tile proxy error:', err);
+    logger.error(`Google Maps tile proxy error: ${err.message}`, { error: err });
     res.status(500).json({ error: err.message });
   }
 });

@@ -354,6 +354,7 @@ const createGoogleStyle = (type: string) => ({
 
 export default function GeospatialExplorer() {
   // All state declarations first
+  const isDev = import.meta.env.DEV;
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
   const [mapHeight, setMapHeight] = useState<number>(500);
   const [containerHeight, setContainerHeight] = useState<number>(800);
@@ -567,7 +568,9 @@ export default function GeospatialExplorer() {
   // Handle resize drag
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      console.log('Resize handle clicked!', e.clientY);
+      if (isDev) {
+        console.log('Resize handle clicked!', e.clientY);
+      }
       e.preventDefault();
       e.stopPropagation();
       setResizing(true);
@@ -579,7 +582,9 @@ export default function GeospatialExplorer() {
         e.preventDefault();
         const deltaY = e.clientY - startY;
         const newHeight = Math.max(150, Math.min(containerHeight - 150, startHeight + deltaY));
-        console.log('Resizing to:', newHeight);
+        if (isDev) {
+          console.log('Resizing to:', newHeight);
+        }
         setMapHeight(newHeight);
 
         // Force map resize if it exists
@@ -589,7 +594,9 @@ export default function GeospatialExplorer() {
       };
 
       const handleMouseUp = (e: MouseEvent) => {
-        console.log('Resize ended');
+        if (isDev) {
+          console.log('Resize ended');
+        }
         e.preventDefault();
         setResizing(false);
         document.removeEventListener('mousemove', handleMouseMove);
@@ -1173,7 +1180,9 @@ export default function GeospatialExplorer() {
         const res = await fetch(`/api/networks?${params.toString()}`, {
           signal: controller.signal,
         });
-        console.log('Networks response status:', res.status);
+        if (isDev) {
+          console.log('Networks response status:', res.status);
+        }
         if (!res.ok) throw new Error(`networks ${res.status}`);
         const data = await res.json();
         const rows = data.networks || [];

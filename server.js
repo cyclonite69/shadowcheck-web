@@ -1,5 +1,3 @@
-console.log('Starting server...');
-
 // Clear PostgreSQL environment variables that might interfere
 delete process.env.PGHOST;
 delete process.env.PGPORT;
@@ -132,11 +130,14 @@ delete process.env.PGUSER;
     // 1. CORE DEPENDENCIES
     // ============================================================================
     require('dotenv').config({ override: true });
+    const logger = require('./src/logging/logger');
     const express = require('express');
     const path = require('path');
     const cors = require('cors');
     const compression = require('compression');
     const rateLimit = require('express-rate-limit');
+
+    logger.info('Starting server...');
 
     // ============================================================================
     // 2. SECRETS MANAGEMENT
@@ -261,7 +262,7 @@ delete process.env.PGUSER;
     const { pool, query, testConnection } = require('./src/config/database');
 
     pool.on('connect', (client) => {
-      console.log('Pool connected:', client.host, client.port);
+      logger.debug(`Pool connected: ${client.host}:${client.port}`);
     });
 
     // Fail fast if the database is unreachable or misconfigured
@@ -357,7 +358,7 @@ delete process.env.PGUSER;
           res.status(404).json({ error: 'Address not found' });
         }
       } catch (error) {
-        console.error('Geocoding error:', error);
+        logger.error(`Geocoding error: ${error.message}`, { error });
         res.status(500).json({ error: 'Geocoding failed' });
       }
     });
@@ -443,7 +444,7 @@ delete process.env.PGUSER;
 
         res.json(geojson);
       } catch (error) {
-        console.error('Kepler data error:', error);
+        logger.error(`Kepler data error: ${error.message}`, { error });
         res.status(500).json({ error: error.message || 'Failed to fetch kepler data' });
       }
     });
@@ -507,7 +508,7 @@ delete process.env.PGUSER;
 
         res.json(geojson);
       } catch (error) {
-        console.error('Observations data error:', error);
+        logger.error(`Observations data error: ${error.message}`, { error });
         res.status(500).json({ error: error.message });
       }
     });
@@ -591,12 +592,12 @@ delete process.env.PGUSER;
 
         res.json(geojson);
       } catch (error) {
-        console.error('Networks data error:', error);
+        logger.error(`Networks data error: ${error.message}`, { error });
         res.status(500).json({ error: error.message });
       }
     });
 
-    console.log('✓ All routes mounted successfully');
+    logger.info('All routes mounted successfully');
 
     // ============================================================================
     // 10. SPA FALLBACK (React Router support)
@@ -623,7 +624,7 @@ delete process.env.PGUSER;
         const result = await importWigleDirectory(importDir);
         res.json({ success: true, ...result });
       } catch (error) {
-        console.error('WiGLE import error:', error);
+        logger.error(`WiGLE import error: ${error.message}`, { error });
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -660,7 +661,7 @@ delete process.env.PGUSER;
           ...result.rows[0],
         });
       } catch (error) {
-        console.error('Data quality error:', error);
+        logger.error(`Data quality error: ${error.message}`, { error });
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -672,25 +673,26 @@ delete process.env.PGUSER;
     // 12. SERVER STARTUP
     // ============================================================================
     app.listen(port, host, () => {
-      console.log(`✓ Server listening on port ${port}`);
-      console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`✓ HTTPS redirect: ${FORCE_HTTPS ? 'enabled' : 'disabled'}`);
+      logger.info(`Server listening on port ${port}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`HTTPS redirect: ${FORCE_HTTPS ? 'enabled' : 'disabled'}`);
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
-      console.log('SIGTERM received, closing server gracefully...');
+      logger.info('SIGTERM received, closing server gracefully...');
       await pool.end();
       process.exit(0);
     });
 
     process.on('SIGINT', async () => {
-      console.log('\nSIGINT received, closing server gracefully...');
+      logger.info('SIGINT received, closing server gracefully...');
       await pool.end();
       process.exit(0);
     });
   } catch (err) {
-    console.error('✗ Fatal error starting server:', err);
+    const logger = require('./src/logging/logger');
+    logger.error(`Fatal error starting server: ${err.message}`, { error: err });
     process.exit(1);
   }
 })();

@@ -6,16 +6,17 @@
 const express = require('express');
 const router = express.Router();
 const { query, CONFIG } = require('../../../config/database');
+const logger = require('../../../logging/logger');
 
 // Load ML model with error handling
 let ThreatMLModel, mlModel;
 try {
   ThreatMLModel = require('../../../../scripts/ml/ml-trainer');
   mlModel = new ThreatMLModel();
-  console.log('✓ ML model module loaded successfully');
+  logger.info('ML model module loaded successfully');
 } catch (err) {
-  console.warn('⚠️  ML model module not found or failed to load:', err.message);
-  console.warn('⚠️  ML training endpoints will be disabled');
+  logger.warn(`ML model module not found or failed to load: ${err.message}`);
+  logger.warn('ML training endpoints will be disabled');
   mlModel = null;
 }
 
@@ -29,7 +30,7 @@ router.post('/ml/train', async (req, res, next) => {
       });
     }
 
-    console.log('🤖 Training ML model on tagged networks...');
+    logger.info('Training ML model on tagged networks...');
 
     const { rows } = await query(
       `
@@ -100,10 +101,11 @@ router.post('/ml/train', async (req, res, next) => {
       ]
     );
 
-    console.log('✓ ML model trained successfully');
-    console.log('  Features:', trainingResult.featureNames.join(', '));
-    console.log('  Training samples:', trainingResult.trainingSamples);
-    console.log('  Threats:', trainingResult.threatCount, 'Safe:', trainingResult.safeCount);
+    logger.info('ML model trained successfully');
+    logger.debug(`Features: ${trainingResult.featureNames.join(', ')}`);
+    logger.debug(
+      `Training samples: ${trainingResult.trainingSamples} | Threats: ${trainingResult.threatCount} | Safe: ${trainingResult.safeCount}`
+    );
 
     res.json({
       ok: true,
@@ -112,7 +114,7 @@ router.post('/ml/train', async (req, res, next) => {
       sqlFormula: sqlFormula,
     });
   } catch (err) {
-    console.error('✗ ML training error:', err);
+    logger.error(`ML training error: ${err.message}`, { error: err });
     next(err);
   }
 });
@@ -147,7 +149,7 @@ router.get('/ml/status', async (req, res, next) => {
 // POST /api/ml/reassess - Reassess all networks with trained model
 router.post('/ml/reassess', async (req, res, next) => {
   try {
-    console.log('🔄 Starting network reassessment...');
+    logger.info('Starting network reassessment...');
 
     // Get WiFi networks with behavioral stats
     const { rows: networks } = await query(`
@@ -194,7 +196,7 @@ router.post('/ml/reassess', async (req, res, next) => {
       LIMIT 5000
     `);
 
-    console.log(`Found ${networks.length} WiFi networks to reassess`);
+    logger.info(`Found ${networks.length} WiFi networks to reassess`);
 
     let updated = 0;
 
@@ -281,11 +283,11 @@ router.post('/ml/reassess', async (req, res, next) => {
 
         updated++;
       } catch (err) {
-        console.warn(`Failed to score ${net.bssid}:`, err.message);
+        logger.warn(`Failed to score ${net.bssid}: ${err.message}`);
       }
     }
 
-    console.log(`✓ Successfully updated ${updated} WiFi networks`);
+    logger.info(`Successfully updated ${updated} WiFi networks`);
 
     res.json({
       ok: true,
@@ -310,7 +312,7 @@ router.post('/ml/reassess', async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error('✗ Reassessment error:', err);
+    logger.error(`Reassessment error: ${err.message}`, { error: err });
     next(err);
   }
 });

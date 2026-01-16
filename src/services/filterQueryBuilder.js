@@ -5,6 +5,7 @@
 
 const NOISE_FLOOR_DBM = -95;
 const MAX_GPS_ACCURACY_METERS = 1000;
+const logger = require('../logging/logger');
 
 const FILTER_KEYS = [
   'ssid',
@@ -360,7 +361,9 @@ class UniversalFilterQueryBuilder {
 
     // Quality filters for anomalous data
     if (e.qualityFilter && f.qualityFilter && f.qualityFilter !== 'none') {
-      console.log('QUALITY FILTER APPLIED:', f.qualityFilter);
+      if (process.env.DEBUG_FILTERS === 'true') {
+        logger.debug(`Quality filter applied: ${f.qualityFilter}`);
+      }
       const { DATA_QUALITY_FILTERS } = require('./dataQualityFilters');
       let qualityWhere = '';
       if (f.qualityFilter === 'temporal') {
@@ -378,13 +381,17 @@ class UniversalFilterQueryBuilder {
         const cleanFilter = qualityWhere.replace(/^\s*AND\s+/, '');
         where.push(`(${cleanFilter})`);
         this.addApplied('quality', 'qualityFilter', f.qualityFilter);
-        console.log('QUALITY WHERE CLAUSE:', cleanFilter);
+        if (process.env.DEBUG_FILTERS === 'true') {
+          logger.debug(`Quality where clause: ${cleanFilter}`);
+        }
       }
     } else {
-      console.log('QUALITY FILTER NOT APPLIED:', {
-        enabled: e.qualityFilter,
-        value: f.qualityFilter,
-      });
+      if (process.env.DEBUG_FILTERS === 'true') {
+        logger.debug('Quality filter not applied', {
+          enabled: e.qualityFilter,
+          value: f.qualityFilter,
+        });
+      }
     }
 
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {

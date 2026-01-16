@@ -1,3 +1,5 @@
+const logger = require('../logging/logger');
+
 class DashboardService {
   constructor(networkRepository) {
     this.networkRepository = networkRepository;
@@ -11,7 +13,7 @@ class DashboardService {
         lastUpdated: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error getting dashboard metrics:', error);
+      logger.error(`Error getting dashboard metrics: ${error.message}`, { error });
       throw error;
     }
   }
@@ -34,7 +36,7 @@ class DashboardService {
           lastSeen: n.lastSeen,
         }));
     } catch (error) {
-      console.error('Error getting threats:', error);
+      logger.error(`Error getting threats: ${error.message}`, { error });
       throw error;
     }
   }
@@ -51,7 +53,7 @@ class DashboardService {
         total: metrics.totalNetworks,
       };
     } catch (error) {
-      console.error('Error getting network distribution:', error);
+      logger.error(`Error getting network distribution: ${error.message}`, { error });
       throw error;
     }
   }

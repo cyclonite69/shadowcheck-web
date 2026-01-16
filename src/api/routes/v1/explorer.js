@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
+const logger = require('../../../logging/logger');
 
 function inferSecurity(capabilities, encryption) {
   const cap = String(capabilities || encryption || '').toUpperCase();
@@ -296,7 +297,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       })),
     });
   } catch (err) {
-    console.error('Explorer networks query failed', err);
+    logger.error(`Explorer networks query failed: ${err.message}`, { error: err });
     res.status(500).json({ error: 'networks query failed', code: err.code, message: err.message });
   }
 });
@@ -485,7 +486,7 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       })),
     });
   } catch (err) {
-    console.error('Explorer networks-v2 query failed:', err);
+    logger.error(`Explorer networks-v2 query failed: ${err.message}`, { error: err });
     next(err);
   }
 });

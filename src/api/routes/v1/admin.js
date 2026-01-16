@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
 const { query, CONFIG } = require('../../../config/database');
+const logger = require('../../../logging/logger');
 
 // Configure multer for SQLite file uploads
 const upload = multer({
@@ -38,7 +39,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
     const sqliteFile = req.file.path;
     const originalName = req.file.originalname;
 
-    console.log(`Starting turbo SQLite import: ${originalName}`);
+    logger.info(`Starting turbo SQLite import: ${originalName}`);
 
     // Use the fastest turbo import script
     const scriptPath = path.join(__dirname, '../../../../scripts/import/turbo-import.js');
@@ -52,12 +53,12 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
 
     importProcess.stdout.on('data', (data) => {
       output += data.toString();
-      console.log(data.toString());
+      logger.debug(data.toString().trim());
     });
 
     importProcess.stderr.on('data', (data) => {
       errorOutput += data.toString();
-      console.error(data.toString());
+      logger.warn(data.toString().trim());
     });
 
     importProcess.on('close', async (code) => {
@@ -65,7 +66,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
         // Clean up uploaded file
         await fs.unlink(sqliteFile);
       } catch (e) {
-        console.warn('Failed to clean up temp file:', e.message);
+        logger.warn(`Failed to clean up temp file: ${e.message}`);
       }
 
       if (code === 0) {
@@ -79,8 +80,8 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
 
           const result = counts.rows[0] || { observations: 0, networks: 0 };
 
-          console.log(
-            `✓ Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`
+          logger.info(
+            `Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`
           );
 
           res.json({
@@ -91,7 +92,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
             output: output,
           });
         } catch (e) {
-          console.error('Error getting final counts:', e);
+          logger.error(`Error getting final counts: ${e.message}`, { error: e });
           res.json({
             ok: true,
             message: 'SQLite database imported successfully (counts unavailable)',
@@ -99,7 +100,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
           });
         }
       } else {
-        console.error(`Import script failed with code ${code}`);
+        logger.error(`Import script failed with code ${code}`);
         res.status(500).json({
           error: 'Import script failed',
           code: code,
@@ -110,11 +111,11 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
     });
 
     importProcess.on('error', async (error) => {
-      console.error('Failed to start import script:', error);
+      logger.error(`Failed to start import script: ${error.message}`, { error });
       try {
         await fs.unlink(sqliteFile);
       } catch (e) {
-        console.warn('Failed to clean up temp file:', e.message);
+        logger.warn(`Failed to clean up temp file: ${e.message}`);
       }
       res.status(500).json({
         error: 'Failed to start import process',
@@ -127,7 +128,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
       try {
         await fs.unlink(req.file.path);
       } catch (e) {
-        console.warn('Failed to clean up temp file:', e.message);
+        logger.warn(`Failed to clean up temp file: ${e.message}`);
       }
     }
     next(err);
@@ -188,7 +189,7 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
 // POST /api/admin/cleanup-duplicates - Remove duplicate observations
 router.post('/admin/cleanup-duplicates', async (req, res, next) => {
   try {
-    console.log('Removing duplicate observations...');
+    logger.info('Removing duplicate observations...');
 
     const before = await query(`
       SELECT 
@@ -221,7 +222,7 @@ router.post('/admin/cleanup-duplicates', async (req, res, next) => {
       WHERE latitude IS NOT NULL AND longitude IS NOT NULL
     `);
 
-    console.log(`✓ Removed ${result.rowCount} duplicate observations`);
+    logger.info(`Removed ${result.rowCount} duplicate observations`);
 
     res.json({
       ok: true,
@@ -231,7 +232,7 @@ router.post('/admin/cleanup-duplicates', async (req, res, next) => {
       removed: result.rowCount,
     });
   } catch (err) {
-    console.error('✗ Error removing duplicates:', err);
+    logger.error(`Error removing duplicates: ${err.message}`, { error: err });
     next(err);
   }
 });
@@ -239,7 +240,7 @@ router.post('/admin/cleanup-duplicates', async (req, res, next) => {
 // POST /api/admin/refresh-colocation - Create/refresh co-location materialized view
 router.post('/admin/refresh-colocation', async (req, res, next) => {
   try {
-    console.log('Creating/refreshing co-location materialized view...');
+    logger.info('Creating/refreshing co-location materialized view...');
 
     await query('DROP MATERIALIZED VIEW IF EXISTS app.network_colocation_scores CASCADE');
 
@@ -310,14 +311,14 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
       'CREATE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)'
     );
 
-    console.log('✓ Co-location view created successfully');
+    logger.info('Co-location view created successfully');
 
     res.json({
       ok: true,
       message: 'Co-location materialized view created/refreshed successfully',
     });
   } catch (err) {
-    console.error('✗ Error creating co-location view:', err);
+    logger.error(`Error creating co-location view: ${err.message}`, { error: err });
     next(err);
   }
 });

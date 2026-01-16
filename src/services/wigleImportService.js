@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const logger = require('../logging/logger');
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
@@ -61,7 +62,7 @@ async function importWigleV2Json(jsonFilePath) {
         );
         imported++;
       } catch (err) {
-        console.error(`Error inserting network ${network.netid}:`, err.message);
+        logger.error(`Error inserting network ${network.netid}: ${err.message}`);
       }
     }
 

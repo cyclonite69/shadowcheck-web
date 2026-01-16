@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const logger = require('../../../logging/logger');
 
 let dashboardService = null;
 
@@ -24,7 +25,7 @@ const sendDashboardMetrics = async (req, res) => {
         enabled = JSON.parse(req.query.enabled);
       }
     } catch (parseErr) {
-      console.warn('Failed to parse filter params:', parseErr.message);
+      logger.warn(`Failed to parse filter params: ${parseErr.message}`);
     }
 
     const metrics = await dashboardService.getMetrics(filters, enabled);
@@ -50,7 +51,7 @@ const sendDashboardMetrics = async (req, res) => {
       timestamp: metrics.lastUpdated,
     });
   } catch (error) {
-    console.error('Dashboard metrics error:', error);
+    logger.error(`Dashboard metrics error: ${error.message}`, { error });
     res.status(500).json({ error: error.message });
   }
 };
@@ -70,7 +71,7 @@ router.get('/dashboard/threats', async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Dashboard threats error:', error);
+    logger.error(`Dashboard threats error: ${error.message}`, { error });
     res.status(500).json({ error: error.message });
   }
 });
@@ -96,7 +97,7 @@ router.get('/dashboard/summary', async (req, res) => {
       timestamp: metrics.lastUpdated,
     });
   } catch (error) {
-    console.error('Dashboard summary error:', error);
+    logger.error(`Dashboard summary error: ${error.message}`, { error });
     res.status(500).json({ error: error.message });
   }
 });

@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
+const logger = require('../../../logging/logger');
 
 // GET /api/wigle/live/:bssid - Query live WiGLE API for network
 router.get('/wigle/live/:bssid', async (req, res, next) => {
@@ -22,7 +23,7 @@ router.get('/wigle/live/:bssid', async (req, res, next) => {
     // Encode credentials as base64(apiname:apitoken) for Basic auth
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
 
-    console.log(`[WiGLE] Querying for BSSID: ${bssid}`);
+    logger.info(`[WiGLE] Querying for BSSID: ${bssid}`);
 
     const response = await fetch(
       `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssid)}`,
@@ -36,7 +37,7 @@ router.get('/wigle/live/:bssid', async (req, res, next) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[WiGLE] API error ${response.status}:`, errorText);
+      logger.error(`[WiGLE] API error ${response.status}: ${errorText}`);
       return res.status(response.status).json({
         error: 'WiGLE API request failed',
         status: response.status,
@@ -45,7 +46,7 @@ router.get('/wigle/live/:bssid', async (req, res, next) => {
     }
 
     const data = await response.json();
-    console.log(`[WiGLE] Found ${data.resultCount || 0} results for ${bssid}`);
+    logger.info(`[WiGLE] Found ${data.resultCount || 0} results for ${bssid}`);
 
     res.json({
       success: true,
@@ -54,7 +55,7 @@ router.get('/wigle/live/:bssid', async (req, res, next) => {
       results: data.results || [],
     });
   } catch (err) {
-    console.error('[WiGLE] Error:', err);
+    logger.error(`[WiGLE] Error: ${err.message}`, { error: err });
     next(err);
   }
 });

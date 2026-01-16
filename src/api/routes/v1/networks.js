@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { pool, query } = require('../../../config/database');
 const { escapeLikePattern } = require('../../../utils/escapeSQL');
+const logger = require('../../../logging/logger');
 
 // Utility: Sanitize BSSID
 function sanitizeBSSID(bssid) {
@@ -550,7 +551,7 @@ router.get('/networks', async (req, res, next) => {
           planText.includes('HashAggregate') ||
           planText.includes('Sort');
         if (regression) {
-          console.error('Planner regression detected for /api/networks', planText);
+          logger.warn(`Planner regression detected for /api/networks:\n${planText}`);
         }
       }
 
@@ -719,7 +720,9 @@ router.get('/networks/tagged', async (req, res, next) => {
     }
 
     const offset = (page - 1) * limit;
-    console.log('📊 Networks query - page:', page, 'limit:', limit, 'offset:', offset);
+    if (process.env.DEBUG_QUERIES === 'true') {
+      logger.debug(`Networks query page=${page} limit=${limit} offset=${offset}`);
+    }
 
     const { rows } = await query(
       `
@@ -943,7 +946,7 @@ router.post('/networks/tag-threats', async (req, res, next) => {
         results.push({ bssid: cleanBSSID, success: true, tag: result.rows[0] });
         successCount++;
       } catch (err) {
-        console.error(`Failed to tag ${bssid}:`, err.message);
+        logger.warn(`Failed to tag ${bssid}: ${err.message}`);
         results.push({ bssid, error: err.message });
         errorCount++;
       }

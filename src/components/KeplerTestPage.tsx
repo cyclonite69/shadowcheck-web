@@ -75,6 +75,7 @@ const loadCss = (href: string) =>
 const KeplerTestPage: React.FC = () => {
   // Set current page for filter scoping
   usePageFilters('kepler');
+  const isDev = import.meta.env.DEV;
 
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
@@ -388,7 +389,9 @@ const KeplerTestPage: React.FC = () => {
 
   const loadData = async (type: 'observations' | 'networks') => {
     try {
-      console.log('[Kepler] loadData called, type:', type);
+      if (isDev) {
+        console.log('[Kepler] loadData called, type:', type);
+      }
       setLoading(true);
       setError('');
 
@@ -402,18 +405,24 @@ const KeplerTestPage: React.FC = () => {
       params.set('enabled', JSON.stringify(enabledForPage));
 
       const endpointWithFilters = `${endpoint}?${params}`;
-      console.log('[Kepler] Fetching from:', endpointWithFilters);
+      if (isDev) {
+        console.log('[Kepler] Fetching from:', endpointWithFilters);
+      }
 
       const [tokenRes, dataRes] = await Promise.all([
         fetch('/api/mapbox-token'),
         fetch(endpointWithFilters),
       ]);
 
-      console.log('[Kepler] Fetch complete, parsing...');
+      if (isDev) {
+        console.log('[Kepler] Fetch complete, parsing...');
+      }
       const tokenData = await tokenRes.json();
       const geojson = await dataRes.json();
 
-      console.log('[Kepler] Data received, features:', geojson.features?.length);
+      if (isDev) {
+        console.log('[Kepler] Data received, features:', geojson.features?.length);
+      }
 
       if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
       if (!geojson.features || !Array.isArray(geojson.features))
@@ -495,14 +504,18 @@ const KeplerTestPage: React.FC = () => {
 
     const setup = async () => {
       try {
-        console.log('[Kepler] Loading scripts...');
+        if (isDev) {
+          console.log('[Kepler] Loading scripts...');
+        }
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'),
           loadScript('https://cdn.jsdelivr.net/npm/deck.gl@8.9.0/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;
-        console.log('[Kepler] Scripts loaded');
+        if (isDev) {
+          console.log('[Kepler] Scripts loaded');
+        }
         // Trigger data load after scripts are ready
         if (window.deck && window.mapboxgl) {
           loadData(datasetType);
@@ -522,14 +535,18 @@ const KeplerTestPage: React.FC = () => {
       return;
     }
 
-    console.log('[Kepler] Loading data, filterKey:', filterKey.substring(0, 100));
+    if (isDev) {
+      console.log('[Kepler] Loading data, filterKey:', filterKey.substring(0, 100));
+    }
     loadData(datasetType);
   }, [datasetType, filterKey]); // Stable dependencies
 
   // Update visualization when data or settings change
   useEffect(() => {
     if (deckRef.current && networkData.length > 0) {
-      console.log('[Kepler] Updating visualization with', networkData.length, 'points');
+      if (isDev) {
+        console.log('[Kepler] Updating visualization with', networkData.length, 'points');
+      }
       updateVisualization();
     }
   }, [networkData, layerType, pointSize, signalThreshold, height3d]);
