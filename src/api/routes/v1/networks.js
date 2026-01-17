@@ -43,6 +43,16 @@ router.get('/networks', async (req, res, next) => {
     const orderRaw = req.query.order || 'DESC';
     const planCheck = req.query.planCheck === '1';
     const _qualityFilter = req.query.quality_filter; // none, temporal, extreme, duplicate, all
+
+    // Spatial filter parameters
+    const bboxMinLatRaw = req.query.bbox_min_lat;
+    const bboxMaxLatRaw = req.query.bbox_max_lat;
+    const bboxMinLngRaw = req.query.bbox_min_lng;
+    const bboxMaxLngRaw = req.query.bbox_max_lng;
+    const radiusCenterLatRaw = req.query.radius_center_lat;
+    const radiusCenterLngRaw = req.query.radius_center_lng;
+    const radiusMetersRaw = req.query.radius_meters;
+
     const locationModeRaw = String(req.query.location_mode || 'latest_observation');
     const locationMode = [
       'latest_observation',
@@ -123,6 +133,69 @@ router.get('/networks', async (req, res, next) => {
           .json({ error: 'Invalid distance_from_home_km_max parameter. Must be >= 0.' });
       }
       distanceFromHomeMaxKm = parsed;
+    }
+
+    // Parse spatial filter parameters
+    let bboxMinLat = null,
+      bboxMaxLat = null,
+      bboxMinLng = null,
+      bboxMaxLng = null;
+    if (
+      bboxMinLatRaw !== undefined &&
+      bboxMaxLatRaw !== undefined &&
+      bboxMinLngRaw !== undefined &&
+      bboxMaxLngRaw !== undefined
+    ) {
+      const minLat = parseFloat(bboxMinLatRaw);
+      const maxLat = parseFloat(bboxMaxLatRaw);
+      const minLng = parseFloat(bboxMinLngRaw);
+      const maxLng = parseFloat(bboxMaxLngRaw);
+
+      if (
+        !Number.isNaN(minLat) &&
+        !Number.isNaN(maxLat) &&
+        !Number.isNaN(minLng) &&
+        !Number.isNaN(maxLng) &&
+        minLat >= -90 &&
+        maxLat <= 90 &&
+        minLat <= maxLat &&
+        minLng >= -180 &&
+        maxLng <= 180 &&
+        minLng <= maxLng
+      ) {
+        bboxMinLat = minLat;
+        bboxMaxLat = maxLat;
+        bboxMinLng = minLng;
+        bboxMaxLng = maxLng;
+      }
+    }
+
+    let radiusCenterLat = null,
+      radiusCenterLng = null,
+      radiusMeters = null;
+    if (
+      radiusCenterLatRaw !== undefined &&
+      radiusCenterLngRaw !== undefined &&
+      radiusMetersRaw !== undefined
+    ) {
+      const centerLat = parseFloat(radiusCenterLatRaw);
+      const centerLng = parseFloat(radiusCenterLngRaw);
+      const radius = parseFloat(radiusMetersRaw);
+
+      if (
+        !Number.isNaN(centerLat) &&
+        !Number.isNaN(centerLng) &&
+        !Number.isNaN(radius) &&
+        centerLat >= -90 &&
+        centerLat <= 90 &&
+        centerLng >= -180 &&
+        centerLng <= 180 &&
+        radius > 0
+      ) {
+        radiusCenterLat = centerLat;
+        radiusCenterLng = centerLng;
+        radiusMeters = radius;
+      }
     }
 
     let minSignal = null;
@@ -351,6 +424,31 @@ router.get('/networks', async (req, res, next) => {
       params.push(maxObsCount);
       whereClauses.push(`obs_count <= $${params.length}`);
     }
+
+    // Bounding box filter
+    if (bboxMinLat !== null && bboxMaxLat !== null && bboxMinLng !== null && bboxMaxLng !== null) {
+      params.push(bboxMinLat, bboxMaxLat, bboxMinLng, bboxMaxLng);
+      const latCol =
+        locationMode === 'latest_observation' || locationMode === 'triangulated' ? 'lat' : 'ne.lat';
+      const lonCol =
+        locationMode === 'latest_observation' || locationMode === 'triangulated' ? 'lon' : 'ne.lon';
+      whereClauses.push(
+        `${latCol} >= $${params.length - 3} AND ${latCol} <= $${params.length - 2} AND ${lonCol} >= $${params.length - 1} AND ${lonCol} <= $${params.length}`
+      );
+    }
+
+    // Radius filter using PostGIS
+    if (radiusCenterLat !== null && radiusCenterLng !== null && radiusMeters !== null) {
+      params.push(radiusCenterLng, radiusCenterLat, radiusMeters);
+      const latCol =
+        locationMode === 'latest_observation' || locationMode === 'triangulated' ? 'lat' : 'ne.lat';
+      const lonCol =
+        locationMode === 'latest_observation' || locationMode === 'triangulated' ? 'lon' : 'ne.lon';
+      whereClauses.push(
+        `ST_DWithin(ST_Point(${lonCol}, ${latCol})::geography, ST_Point($${params.length - 2}, $${params.length - 1})::geography, $${params.length})`
+      );
+    }
+
     if (ssidRaw !== undefined && ssidRaw !== '') {
       const ssidSearch = ssidRaw.trim().toLowerCase().replace(/[%_]/g, '\\$&');
       params.push(`%${ssidSearch}%`);

@@ -1177,6 +1177,57 @@ export default function GeospatialExplorer() {
         if (enabled.distanceFromHomeMin && minDistance !== null) {
           params.set('distance_from_home_km_min', String(minDistance / 1000));
         }
+
+        // Bounding box filter
+        if (enabled.boundingBox && filters.boundingBox) {
+          const { north, south, east, west } = filters.boundingBox;
+          const minLat = toFiniteNumber(south);
+          const maxLat = toFiniteNumber(north);
+          const minLng = toFiniteNumber(west);
+          const maxLng = toFiniteNumber(east);
+
+          if (
+            minLat !== null &&
+            maxLat !== null &&
+            minLng !== null &&
+            maxLng !== null &&
+            minLat >= -90 &&
+            maxLat <= 90 &&
+            minLat <= maxLat &&
+            minLng >= -180 &&
+            maxLng <= 180 &&
+            minLng <= maxLng
+          ) {
+            params.set('bbox_min_lat', String(minLat));
+            params.set('bbox_max_lat', String(maxLat));
+            params.set('bbox_min_lng', String(minLng));
+            params.set('bbox_max_lng', String(maxLng));
+          }
+        }
+
+        // Radius filter
+        if (enabled.radiusFilter && filters.radiusFilter) {
+          const { latitude, longitude, radiusMeters } = filters.radiusFilter;
+          const centerLat = toFiniteNumber(latitude);
+          const centerLng = toFiniteNumber(longitude);
+          const radius = toFiniteNumber(radiusMeters);
+
+          if (
+            centerLat !== null &&
+            centerLng !== null &&
+            radius !== null &&
+            centerLat >= -90 &&
+            centerLat <= 90 &&
+            centerLng >= -180 &&
+            centerLng <= 180 &&
+            radius > 0
+          ) {
+            params.set('radius_center_lat', String(centerLat));
+            params.set('radius_center_lng', String(centerLng));
+            params.set('radius_meters', String(radius));
+          }
+        }
+
         const liveState = useFilterStore.getState().getAPIFilters();
         const liveMaxDistance = toFiniteNumber(liveState.filters.distanceFromHomeMax);
         if (liveState.enabled.distanceFromHomeMax && liveMaxDistance !== null) {
