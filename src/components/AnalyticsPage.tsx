@@ -14,7 +14,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
@@ -178,15 +177,10 @@ export default function Analytics() {
   usePageFilters('analytics');
 
   const [timeFrame, setTimeFrame] = useState('30d');
-  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useFilterURLSync();
-  const { setFilter, enableFilter } = useFilterStore();
-  const activeFilterCount = useFilterStore(
-    (state) => Object.values(state.getCurrentEnabled()).filter(Boolean).length
-  );
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );
@@ -802,8 +796,9 @@ export default function Analytics() {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden flex"
+      className="relative w-full overflow-hidden flex"
       style={{
+        height: '100vh',
         background:
           'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
       }}
@@ -811,52 +806,7 @@ export default function Analytics() {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* Filter Panel */}
-      {showFilters && (
-        <div
-          className="fixed top-20 right-4 max-w-md space-y-2"
-          style={{
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-            zIndex: 100000,
-            pointerEvents: 'auto',
-          }}
-        >
-          <FilterPanel density="compact" />
-        </div>
-      )}
-
-      {/* Filter Icon Button - Only visible on hover in upper left */}
-      <div
-        className="fixed top-0 left-0 w-16 h-16 group"
-        style={{
-          zIndex: 100000,
-          pointerEvents: 'auto',
-        }}
-      >
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
-          style={{
-            background: showFilters
-              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-          }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh', paddingTop: 0 }}>
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
         {/* Time Frame Selector */}
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
           {[

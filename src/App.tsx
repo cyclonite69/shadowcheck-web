@@ -5,7 +5,6 @@ import DashboardPage from './components/DashboardPage';
 import GeospatialIntelligencePage from './components/GeospatialIntelligencePage';
 import GeospatialExplorer from './components/GeospatialExplorer';
 import AnalyticsPage from './components/AnalyticsPage';
-import AnalyticsRechartsPage from './components/AnalyticsRechartsPage';
 import AdminPage from './components/AdminPage';
 import MLTrainingPage from './components/MLTrainingPage';
 import WigleTestPage from './components/WigleTestPage';
@@ -28,7 +27,6 @@ function App() {
         <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
         <Route path="/geospatial-explorer" element={<GeospatialExplorer />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/analytics-recharts" element={<AnalyticsRechartsPage />} />
         <Route path="/wigle-test" element={<WigleTestPage />} />
         <Route path="/ml-training" element={<MLTrainingPage />} />
         <Route path="/kepler-test" element={<KeplerTestPage />} />
