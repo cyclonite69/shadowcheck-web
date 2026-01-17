@@ -14,6 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
@@ -177,11 +178,15 @@ export default function Analytics() {
   usePageFilters('analytics');
 
   const [timeFrame, setTimeFrame] = useState('30d');
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useFilterURLSync();
   const { setFilter, enableFilter } = useFilterStore();
+  const activeFilterCount = useFilterStore(
+    (state) => Object.values(state.getCurrentEnabled()).filter(Boolean).length
+  );
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );
@@ -807,37 +812,52 @@ export default function Analytics() {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
-        {/* Time Frame Selector */}
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
-          {[
-            { value: '9mo', label: '9 Months' },
-            { value: '1yr', label: '1 Year' },
-            { value: '18mo', label: '18 Months' },
-            { value: '2yr', label: '2 Years' },
-            { value: 'all', label: 'All Time' },
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setTimeFrame(option.value)}
-              className="px-4 py-2 text-xs font-semibold rounded-lg transition-all"
-              style={{
-                background:
-                  timeFrame === option.value
-                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                    : 'rgba(15, 23, 42, 0.8)',
-                border:
-                  timeFrame === option.value
-                    ? '1px solid rgba(59, 130, 246, 0.6)'
-                    : '1px solid rgba(71, 85, 105, 0.3)',
-                color: timeFrame === option.value ? '#fff' : '#cbd5e1',
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
+      {/* Filter Panel */}
+      {showFilters && (
+        <div
+          className="fixed top-20 right-4 max-w-md space-y-2"
+          style={{
+            maxHeight: 'calc(100vh - 100px)',
+            overflowY: 'auto',
+            zIndex: 100000,
+            pointerEvents: 'auto',
+          }}
+        >
+          <FilterPanel density="compact" />
         </div>
+      )}
 
+      {/* Filter Icon Button - Only visible on hover in upper left */}
+      <div
+        className="fixed top-0 left-0 w-16 h-16 group"
+        style={{
+          zIndex: 100000,
+          pointerEvents: 'auto',
+        }}
+      >
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+          style={{
+            background: showFilters
+              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
         {/* Cards */}
         <div style={{ minHeight: '2700px', position: 'relative' }}>
           {cards.map((card) => {

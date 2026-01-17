@@ -8,7 +8,7 @@
 4. **DATABASE_SCHEMA_ANALYTICS.md** - Materialized views for dashboards
 5. **DATABASE_SCHEMA_FUNCTIONS.md** - Stored procedures and functions
 6. **DATABASE_SCHEMA_TRIGGERS.md** - Automation and data quality
-7. **DATABASE_IMPLEMENTATION_PLAN.md** - 10-phase implementation plan
+7. **archive/legacy-html/DATABASE_IMPLEMENTATION_PLAN.md** - 10-phase implementation plan (archived)
 
 ## 🎯 Key Design Decisions
 

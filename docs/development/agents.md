@@ -4,12 +4,12 @@
 
 - Monorepo with Express backend and React/Vite frontend sharing `src/`.
 - Backend: `src/api/routes/v1/` (Express routes), `src/services/` (business logic), `src/repositories/` (Postgres access), `src/middleware/`, `src/config/`.
-- Frontend: `src/components/`, `src/App.tsx`, `src/main.tsx`, styles in `src/index.css` and `src/unified.css`; static assets in `public/`.
+- Frontend: `src/components/`, `src/App.tsx`, `src/main.tsx`, styles in `src/index.css` and `src/unified.css`.
 - Data and ops: SQL migrations in `sql/`, utility scripts in `scripts/`, docs in `docs/`, Jest tests in `tests/`, Docker entrypoints in `docker-compose*.yml` and `Dockerfile`.
 
 ## Build, Test, and Development Commands
 
-- `npm install` – install dependencies (Node 18+).
+- `npm install` – install dependencies (Node 20+).
 - `npm run dev` – start Express API on port 3001.
 - `npm run dev:frontend` – start Vite dev server on port 5173; proxies `/api` to backend.
 - `npm run build` – build React app to `dist/`; served by Express in production.

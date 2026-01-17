@@ -139,4 +139,4 @@
 
 ## Questions?
 
-See `UNIFIED_IMPLEMENTATION.md` for detailed technical documentation.
+Legacy UI implementation notes are archived in `docs/archive/legacy-html/UNIFIED_IMPLEMENTATION.md`.

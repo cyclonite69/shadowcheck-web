@@ -76,7 +76,7 @@ docs/
 
 ### Core Features
 
-- **[Threat Detection](features/THREAT_DETECTION_V3.md)** - Surveillance device detection
+- **[Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)** - Surveillance device detection
 - **[ML System](ML_ITERATION_GUIDE.md)** - Machine learning implementation
 - **[Surveillance Detection](SURVEILLANCE_DETECTION.md)** - Advanced threat analysis
 
@@ -88,9 +88,6 @@ docs/
 
 ### UI/UX Features
 
-- **[Network Explorer](features/NETWORK_EXPLORER_ENHANCEMENTS.md)** - Network browsing
-- **[Analytics Dashboard](features/ANALYTICS_DASHBOARD_IMPROVEMENTS.md)** - Data visualization
-- **[Map Features](features/MAP_JUMP_FEATURE.md)** - Interactive mapping
 - **[Map Controls Implementation](features/IMPLEMENTATION_SUMMARY_MAP_CONTROLS.md)** - Map orientation controls summary
 
 ## 📋 Implementation Guides
@@ -132,7 +129,7 @@ docs/
 
 **Features**
 
-- [Threat Detection](features/THREAT_DETECTION_V3.md)
+- [Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)
 - [Network Enrichment](enrichment/PRODUCTION_ENRICHMENT.md)
 - [ML System](ML_ITERATION_GUIDE.md)
 - [Surveillance Detection](SURVEILLANCE_DETECTION.md)
@@ -160,6 +157,7 @@ Historical documentation and completed initiatives:
 - **[Production Hardening](archive/production/)** - Production readiness work
 - **[Security Fixes](archive/sql-injection/)** - Historical security improvements
 - **[Session Notes](archive/sessions/)** - Development session summaries
+- **[Legacy HTML/UI](archive/legacy-html/)** - Superseded legacy frontend docs
 
 ## 🤝 Contributing
 
@@ -185,7 +183,7 @@ Historical documentation and completed initiatives:
 | Fix a security issue        | [Security Policy](../SECURITY.md)                               |
 | Report a bug                | [GitHub Issues](https://github.com/your-org/shadowcheck/issues) |
 | Configure secrets           | [Secrets Management](security/SECRETS_MANAGEMENT.md)            |
-| Understand threat detection | [Threat Detection](features/THREAT_DETECTION_V3.md)             |
+| Understand threat detection | [Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)       |
 | Use the API                 | [API Reference](API_REFERENCE.md)                               |
 
 ## 📚 Full Index
@@ -203,29 +201,14 @@ Historical documentation and completed initiatives:
 
 - [architecture/](architecture/) - System architecture documentation
   - DATABASE_CONSOLIDATION_GUIDE.md
-  - LAYOUT_STANDARD.md
   - MODULAR_ARCHITECTURE_GUIDE.md
-  - UNIFIED_IMPLEMENTATION.md
-  - UNIFIED_STATUS.md
-  - UNIFIED_SYSTEM.md
   - UNIFIED_TABLE_DESIGN.md
 
 ### Features
 
 - [features/](features/) - Feature-specific documentation
-  - ANALYTICS_DASHBOARD_IMPROVEMENTS.md
-  - CHART_RESIZE_FIX.md
-  - MAP_JUMP_FEATURE.md
-  - MULTI_SELECT_FEATURE.md
-  - NETWORK_EXPLORER_ENHANCEMENTS.md
-  - NETWORKS_EXPLORER_FIXES.md
-  - RESIZABLE_PANELS_UPDATE.md
-  - SURVEILLANCE_CARD_FIX.md
   - SURVEILLANCE_DETECTION_V2.md
-  - THREAT_DETECTION_V3.md
-  - UI_FIXES.md
-  - UI_FIXES_COMPLETE.md
-  - UI_UX_REFINEMENTS.md
+  - IMPLEMENTATION_SUMMARY_MAP_CONTROLS.md
 
 ### Guides
 
