@@ -177,7 +177,9 @@ export default function Analytics() {
   // Set current page for filter scoping
   usePageFilters('analytics');
 
-  const [timeFrame, setTimeFrame] = useState('30d');
+  const [timeFrame, setTimeFrame] = useState(() => {
+    return localStorage.getItem('analytics_timeframe') || '30d';
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -280,6 +282,7 @@ export default function Analytics() {
   const hasTimeframeSelectionRef = useRef(false);
 
   useEffect(() => {
+    localStorage.setItem('analytics_timeframe', timeFrame);
     setFilter('timeframe', { type: 'relative', relativeWindow: timeFrame });
     if (!hasTimeframeSelectionRef.current) {
       hasTimeframeSelectionRef.current = true;
@@ -295,6 +298,7 @@ export default function Analytics() {
     const fetchAnalytics = async () => {
       setLoading(true);
       setError(null);
+      // Don't clear data immediately - keep showing previous data while loading
       try {
         const params = new URLSearchParams({
           filters: JSON.stringify(debouncedFilterState.filters),
@@ -310,13 +314,14 @@ export default function Analytics() {
         const data = payload.data || {};
 
         if (data.networkTypes) {
-          setNetworkTypesData(
-            data.networkTypes.map((item) => ({
-              name: item.network_type,
-              value: Number(item.count),
-              color: NETWORK_TYPE_COLORS[item.network_type] || '#64748b',
-            }))
-          );
+          const processedData = data.networkTypes.map((item) => ({
+            name: item.network_type,
+            value: Number(item.count),
+            color: NETWORK_TYPE_COLORS[item.network_type] || '#64748b',
+          }));
+          setNetworkTypesData(processedData);
+        } else {
+          console.warn('No networkTypes data received');
         }
 
         if (data.signalStrength) {
@@ -523,7 +528,14 @@ export default function Analytics() {
 
     switch (card.type) {
       case 'network-types':
-        if (networkTypesData.length === 0) return null;
+        if (!networkTypesData || networkTypesData.length === 0) {
+          console.log('Network types data empty or null:', networkTypesData);
+          return (
+            <div className="flex items-center justify-center h-full text-slate-400">
+              {loading ? 'Loading...' : 'No data available'}
+            </div>
+          );
+        }
         return (
           <ResponsiveContainer
             width="100%"
