@@ -210,6 +210,7 @@ class NetworkRepository {
       // Get observation counts by radio type
       let obsRow = {};
       try {
+        console.log('Executing observations query with whereClause:', whereClause);
         const obsResult = await query(
           `
           SELECT
@@ -230,7 +231,9 @@ class NetworkRepository {
           params
         );
         obsRow = obsResult.rows[0] || {};
+        console.log('Observations query result:', obsRow);
       } catch (obsError) {
+        console.error(`Error fetching observation metrics: ${obsError.message}`, obsError);
         logger.error(`Error fetching observation metrics: ${obsError.message}`, { obsError });
         obsRow = {};
       }
