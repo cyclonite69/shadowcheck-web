@@ -161,7 +161,7 @@
 ## UI Design
 
 **Layout:** 3x2 grid (6 panels)
-**Styling:** Matches analytics.html exactly
+**Styling:** Matches the Analytics page styling
 
 - Same fonts (Inter)
 - Same colors (purple gradients)

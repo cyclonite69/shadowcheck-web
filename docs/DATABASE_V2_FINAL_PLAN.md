@@ -9,7 +9,7 @@
 5. **DATABASE_SCHEMA_ANALYTICS.md** - Materialized views for dashboards
 6. **DATABASE_SCHEMA_FUNCTIONS.md** - Stored procedures
 7. **DATABASE_SCHEMA_TRIGGERS.md** - Automation and data quality
-8. **DATABASE_IMPLEMENTATION_PLAN.md** - 10-phase rollout
+8. **archive/legacy-html/DATABASE_IMPLEMENTATION_PLAN.md** - 10-phase rollout (archived)
 9. **DATABASE_CROSS_REPO_INTEGRATION.md** - Multi-repo architecture
 10. **DATABASE_KEYRING_MAPS.md** - Security and visualization
 11. **This file** - Final consensus checklist

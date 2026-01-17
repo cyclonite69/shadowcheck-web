@@ -207,6 +207,34 @@ class NetworkRepository {
         params
       );
 
+      // Get observation counts by radio type
+      let obsRow = {};
+      try {
+        const obsResult = await query(
+          `
+          SELECT
+            COUNT(*) as total_observations,
+            COUNT(*) FILTER (WHERE radio_type = 'W') as wifi_observations,
+            COUNT(*) FILTER (WHERE radio_type = 'E') as ble_observations,
+            COUNT(*) FILTER (WHERE radio_type = 'B') as bluetooth_observations,
+            COUNT(*) FILTER (WHERE radio_type = 'L') as lte_observations,
+            COUNT(*) FILTER (WHERE radio_type = 'N') as nr_observations,
+            COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_observations
+          FROM public.observations
+          ${whereClause
+            .replace(/type/g, 'radio_type')
+            .replace(/bestlevel/g, 'level')
+            .replace(/lasttime_ms/g, 'time_ms')
+            .replace(/capabilities/g, 'radio_capabilities')}
+        `,
+          params
+        );
+        obsRow = obsResult.rows[0] || {};
+      } catch (obsError) {
+        logger.error(`Error fetching observation metrics: ${obsError.message}`, { obsError });
+        obsRow = {};
+      }
+
       const row = result.rows[0] || {};
 
       return {
@@ -217,6 +245,14 @@ class NetworkRepository {
         lteCount: parseInt(row.lte_count) || 0,
         nrCount: parseInt(row.nr_count) || 0,
         gsmCount: parseInt(row.gsm_count) || 0,
+        // Observation counts
+        totalObservations: parseInt(obsRow.total_observations) || 0,
+        wifiObservations: parseInt(obsRow.wifi_observations) || 0,
+        bleObservations: parseInt(obsRow.ble_observations) || 0,
+        bluetoothObservations: parseInt(obsRow.bluetooth_observations) || 0,
+        lteObservations: parseInt(obsRow.lte_observations) || 0,
+        nrObservations: parseInt(obsRow.nr_observations) || 0,
+        gsmObservations: parseInt(obsRow.gsm_observations) || 0,
         // Threat scoring not available without ml_threat_score column
         threatsCritical: 0,
         threatsHigh: 0,

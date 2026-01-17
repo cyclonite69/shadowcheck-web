@@ -294,19 +294,47 @@ export default function DashboardPage() {
           prev.map((card) => {
             switch (card.type) {
               case 'total-networks':
-                return { ...card, value: data.networks?.total || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.total || 0,
+                  observations: data.observations?.total || 0,
+                };
               case 'wifi-count':
-                return { ...card, value: data.networks?.wifi || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.wifi || 0,
+                  observations: data.observations?.wifi || 0,
+                };
               case 'radio-ble':
-                return { ...card, value: data.networks?.ble || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.ble || 0,
+                  observations: data.observations?.ble || 0,
+                };
               case 'radio-bt':
-                return { ...card, value: data.networks?.bluetooth || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.bluetooth || 0,
+                  observations: data.observations?.bluetooth || 0,
+                };
               case 'radio-lte':
-                return { ...card, value: data.networks?.lte || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.lte || 0,
+                  observations: data.observations?.lte || 0,
+                };
               case 'radio-gsm':
-                return { ...card, value: data.networks?.gsm || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.gsm || 0,
+                  observations: data.observations?.gsm || 0,
+                };
               case 'radio-nr':
-                return { ...card, value: data.networks?.nr || 0 };
+                return {
+                  ...card,
+                  value: data.networks?.nr || 0,
+                  observations: data.observations?.nr || 0,
+                };
               default:
                 return card;
             }
@@ -521,18 +549,29 @@ export default function DashboardPage() {
                     <Icon size={32} className="drop-shadow-lg" style={{ color: card.color }} />
                   </div>
 
-                  {/* Value - Large and Bold */}
+                  {/* Primary Metric - Unique Networks */}
                   <div className="mb-1">
                     <p
                       className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
                       style={{
-                        fontSize: '28px',
+                        fontSize: '32px',
                         color: card.color,
                       }}
                     >
                       {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
                     </p>
+                    <p className="text-xs font-medium text-slate-300 mt-1">Unique Networks</p>
                   </div>
+
+                  {/* Secondary Metric - Total Observations */}
+                  {card.observations !== undefined && (
+                    <div className="mt-3 pt-2 border-t border-slate-600/30">
+                      <p className="text-sm font-semibold text-slate-300">
+                        {card.observations.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-400">Total Observations</p>
+                    </div>
+                  )}
 
                   {/* Subtitle */}
                   <div>
