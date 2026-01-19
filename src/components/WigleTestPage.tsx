@@ -94,6 +94,7 @@ const WigleTestPage: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const clusterColorCache = useRef<Record<number, string>>({});
+  const featureCollectionRef = useRef<any>(null); // Ref for latest featureCollection
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [offset, setOffset] = useState(0);
   const [typeFilter, setTypeFilter] = useState('');
@@ -171,6 +172,9 @@ const WigleTestPage: React.FC = () => {
     };
   }, [rows]);
 
+  // Keep ref updated with latest featureCollection
+  featureCollectionRef.current = featureCollection;
+
   useEffect(() => {
     let mounted = true;
     const updateSize = () => {
@@ -214,7 +218,7 @@ const WigleTestPage: React.FC = () => {
         map.on('load', () => {
           map.addSource('wigle-points', {
             type: 'geojson',
-            data: featureCollection as any,
+            data: featureCollectionRef.current || { type: 'FeatureCollection', features: [] },
             cluster: true,
             clusterMaxZoom: 12,
             clusterRadius: 40,
@@ -400,7 +404,7 @@ const WigleTestPage: React.FC = () => {
     }
   }, [limit, offset, typeFilter, adaptedFilters]);
 
-  // Handle map style changes
+  // Handle map style changes - use ref to get latest featureCollection without causing re-runs
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -410,7 +414,7 @@ const WigleTestPage: React.FC = () => {
       if (!map.getSource('wigle-points')) {
         map.addSource('wigle-points', {
           type: 'geojson',
-          data: featureCollection as any,
+          data: featureCollectionRef.current as any,
           cluster: true,
           clusterMaxZoom: 12,
           clusterRadius: 40,
@@ -463,7 +467,7 @@ const WigleTestPage: React.FC = () => {
 
     map.setStyle(mapStyle);
     map.once('style.load', recreateLayers);
-  }, [mapStyle, mapReady, featureCollection]);
+  }, [mapStyle, mapReady]); // Removed featureCollection - was causing style resets on data load
 
   // Handle 3D buildings
   useEffect(() => {

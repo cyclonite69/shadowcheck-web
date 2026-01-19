@@ -168,6 +168,7 @@ delete process.env.PGUSER;
     const filteredRoutes = require('./src/api/routes/v2/filtered');
     const dashboardRoutes = require('./src/api/routes/v1/dashboard');
     const locationMarkersRoutes = require('./src/api/routes/v1/location-markers');
+    const homeLocationRoutes = require('./src/api/routes/v1/home-location');
     const backupRoutes = require('./src/api/routes/v1/backup');
     const exportRoutes = require('./src/api/routes/v1/export');
     const settingsRoutes = require('./src/api/routes/v1/settings');
@@ -311,6 +312,7 @@ delete process.env.PGUSER;
     app.use('/api/v2/networks/filtered', filteredRoutes);
     app.use('/api', networksV2Routes);
     app.use('/api', locationMarkersRoutes(query));
+    app.use('/api', homeLocationRoutes);
     app.use('/api', backupRoutes);
     app.use('/api', exportRoutes);
     app.use('/api', settingsRoutes);
@@ -589,6 +591,61 @@ delete process.env.PGUSER;
     });
 
     logger.info('All routes mounted successfully');
+
+    // Home location endpoints (add before catch-all route)
+    app.get('/api/home-location', async (req, res) => {
+      try {
+        const result = await query(`
+          SELECT latitude, longitude, radius, created_at
+          FROM app.location_markers
+          WHERE marker_type = 'home'
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+
+        if (result.rows.length === 0) {
+          return res.json({
+            latitude: 43.02345147,
+            longitude: -83.69682688,
+            radius: 100,
+          });
+        }
+
+        res.json(result.rows[0]);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/admin/home-location', async (req, res) => {
+      try {
+        const { latitude, longitude, radius = 100 } = req.body;
+
+        if (!latitude || !longitude) {
+          return res.status(400).json({ error: 'Latitude and longitude are required' });
+        }
+
+        await query("DELETE FROM app.location_markers WHERE marker_type = 'home'");
+
+        await query(
+          `
+          INSERT INTO app.location_markers (marker_type, latitude, longitude, radius, location, created_at)
+          VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($3, $2), 4326), NOW())
+        `,
+          ['home', latitude, longitude, radius]
+        );
+
+        res.json({
+          ok: true,
+          message: 'Home location saved successfully',
+          latitude,
+          longitude,
+          radius,
+        });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
 
     // ============================================================================
     // 10. SPA FALLBACK (React Router support)

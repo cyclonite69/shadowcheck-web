@@ -283,9 +283,13 @@ export default function Analytics() {
 
   useEffect(() => {
     localStorage.setItem('analytics_timeframe', timeFrame);
+    // setFilter auto-enables the filter, so we need to explicitly disable on first render
     setFilter('timeframe', { type: 'relative', relativeWindow: timeFrame });
     if (!hasTimeframeSelectionRef.current) {
       hasTimeframeSelectionRef.current = true;
+      // Disable timeframe filter on initial load to show all data
+      enableFilter('timeframe', false);
+      enableFilter('temporalScope', false);
       return;
     }
     enableFilter('timeframe', true);

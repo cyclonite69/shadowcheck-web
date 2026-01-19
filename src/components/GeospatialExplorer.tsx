@@ -211,9 +211,38 @@ const ThreatBadge = ({
 
 type SortState = { column: keyof NetworkRow; direction: 'asc' | 'desc' };
 
-const INITIAL_VIEW = {
-  center: [-83.69682688, 43.02345147] as [number, number],
-  zoom: 12,
+// Default view - will be overridden by home location from API
+const DEFAULT_CENTER: [number, number] = [-83.69682688, 43.02345147];
+const DEFAULT_ZOOM = 12;
+const DEFAULT_HOME_RADIUS = 100; // meters
+
+// Helper to create a GeoJSON circle polygon from center and radius in meters
+const createCirclePolygon = (
+  center: [number, number],
+  radiusMeters: number,
+  steps = 64
+): GeoJSON.Feature<GeoJSON.Polygon> => {
+  const coords: [number, number][] = [];
+  const km = radiusMeters / 1000;
+  const distanceX = km / (111.32 * Math.cos((center[1] * Math.PI) / 180));
+  const distanceY = km / 110.574;
+
+  for (let i = 0; i < steps; i++) {
+    const theta = (i / steps) * (2 * Math.PI);
+    const x = center[0] + distanceX * Math.cos(theta);
+    const y = center[1] + distanceY * Math.sin(theta);
+    coords.push([x, y]);
+  }
+  coords.push(coords[0]); // Close the polygon
+
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coords],
+    },
+  };
 };
 
 const NETWORK_COLORS = [
@@ -366,8 +395,12 @@ export default function GeospatialExplorer() {
   const [mapStyle, setMapStyle] = useState<string>(() => {
     return localStorage.getItem('shadowcheck_map_style') || 'mapbox://styles/mapbox/dark-v11';
   });
-  const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
-  const [showTerrain, setShowTerrain] = useState<boolean>(false);
+  const [show3DBuildings, setShow3DBuildings] = useState<boolean>(() => {
+    return localStorage.getItem('shadowcheck_show_3d_buildings') === 'true';
+  });
+  const [showTerrain, setShowTerrain] = useState<boolean>(() => {
+    return localStorage.getItem('shadowcheck_show_terrain') === 'true';
+  });
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [resizing, setResizing] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
@@ -411,6 +444,10 @@ export default function GeospatialExplorer() {
   const [homeButtonActive, setHomeButtonActive] = useState(false);
   const [fitButtonActive, setFitButtonActive] = useState(false);
   const [planCheck, setPlanCheck] = useState(false);
+  const [homeLocation, setHomeLocation] = useState<{
+    center: [number, number];
+    radius: number;
+  }>({ center: DEFAULT_CENTER, radius: DEFAULT_HOME_RADIUS });
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
   }, []);
@@ -470,6 +507,27 @@ export default function GeospatialExplorer() {
   useEffect(() => {
     localStorage.setItem('shadowcheck_visible_columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  // Fetch home location from API
+  useEffect(() => {
+    const fetchHomeLocation = async () => {
+      try {
+        const response = await fetch('/api/home-location');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.latitude && data.longitude) {
+            setHomeLocation({
+              center: [data.longitude, data.latitude],
+              radius: data.radius || DEFAULT_HOME_RADIUS,
+            });
+          }
+        }
+      } catch (error) {
+        logError('Failed to fetch home location', error);
+      }
+    };
+    fetchHomeLocation();
+  }, []);
 
   // Click outside to close search results
   useEffect(() => {
@@ -564,6 +622,56 @@ export default function GeospatialExplorer() {
       map.off('moveend', updateBounds);
     };
   }, [mapReady, enabled.boundingBox, setFilter]);
+
+  // Update home location on map when it changes
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+
+    // Update point source
+    const pointSource = map.getSource('home-location-point') as mapboxgl.GeoJSONSource;
+    if (pointSource) {
+      pointSource.setData({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: homeLocation.center,
+            },
+            properties: { title: 'Home' },
+          },
+        ],
+      });
+    }
+
+    // Update circle source
+    const circleSource = map.getSource('home-location-circle') as mapboxgl.GeoJSONSource;
+    if (circleSource) {
+      circleSource.setData({
+        type: 'FeatureCollection',
+        features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
+      });
+    }
+  }, [mapReady, homeLocation]);
+
+  // Apply persisted 3D buildings and terrain settings when map is ready
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+
+    // Apply 3D buildings if persisted as enabled
+    if (show3DBuildings) {
+      add3DBuildings();
+    }
+
+    // Apply terrain if persisted as enabled
+    if (showTerrain) {
+      addTerrain();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]); // Only run when map becomes ready, not when settings change
+
   const activeObservationSets = useMemo(
     () =>
       Array.from(selectedNetworks).map((bssid) => ({
@@ -671,8 +779,8 @@ export default function GeospatialExplorer() {
         const map = new mapboxgl.Map({
           container: mapContainerRef.current as HTMLDivElement,
           style: initialStyle,
-          center: INITIAL_VIEW.center,
-          zoom: INITIAL_VIEW.zoom,
+          center: homeLocation.center,
+          zoom: DEFAULT_ZOOM,
           attributionControl: false,
         });
 
@@ -774,9 +882,15 @@ export default function GeospatialExplorer() {
               if (freq >= 1000) return `${(freq / 1000).toFixed(1)} GHz`;
               return `${freq} MHz`;
             };
-            const threatLevel = String(props.threatLevel || 'LOW').toUpperCase();
+            const threatLevel = String(props.threatLevel || 'NONE').toUpperCase();
             const threatColor =
-              threatLevel === 'HIGH' ? '#ef4444' : threatLevel === 'MEDIUM' ? '#f59e0b' : '#10b981';
+              threatLevel === 'HIGH'
+                ? '#ef4444'
+                : threatLevel === 'MED' || threatLevel === 'MEDIUM'
+                  ? '#f59e0b'
+                  : threatLevel === 'LOW'
+                    ? '#eab308'
+                    : '#10b981';
             const timespanText =
               typeof props.timespan_days === 'number'
                 ? `${props.timespan_days} days`
@@ -972,8 +1086,8 @@ export default function GeospatialExplorer() {
             }
           });
 
-          // Add home marker and circle
-          map.addSource('home-location', {
+          // Add home marker point source
+          map.addSource('home-location-point', {
             type: 'geojson',
             data: {
               type: 'FeatureCollection',
@@ -982,7 +1096,7 @@ export default function GeospatialExplorer() {
                   type: 'Feature',
                   geometry: {
                     type: 'Point',
-                    coordinates: INITIAL_VIEW.center,
+                    coordinates: homeLocation.center,
                   },
                   properties: {
                     title: 'Home',
@@ -992,30 +1106,35 @@ export default function GeospatialExplorer() {
             },
           });
 
-          // Home circle (100 yard radius ≈ 91m)
+          // Add home circle polygon source (proper geographic radius)
+          map.addSource('home-location-circle', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
+            },
+          });
+
+          // Home circle fill (proper meter-based radius)
           map.addLayer({
-            id: 'home-circle',
-            type: 'circle',
-            source: 'home-location',
+            id: 'home-circle-fill',
+            type: 'fill',
+            source: 'home-location-circle',
             paint: {
-              'circle-radius': [
-                'interpolate',
-                ['exponential', 2],
-                ['zoom'],
-                10,
-                1.8,
-                15,
-                45,
-                18,
-                180,
-                20,
-                360,
-              ],
-              'circle-color': '#10b981',
-              'circle-opacity': 0.1,
-              'circle-stroke-width': 2,
-              'circle-stroke-color': '#10b981',
-              'circle-stroke-opacity': 0.8,
+              'fill-color': '#10b981',
+              'fill-opacity': 0.15,
+            },
+          });
+
+          // Home circle outline
+          map.addLayer({
+            id: 'home-circle-outline',
+            type: 'line',
+            source: 'home-location-circle',
+            paint: {
+              'line-color': '#10b981',
+              'line-width': 2,
+              'line-opacity': 0.8,
             },
           });
 
@@ -1023,7 +1142,7 @@ export default function GeospatialExplorer() {
           map.addLayer({
             id: 'home-dot',
             type: 'circle',
-            source: 'home-location',
+            source: 'home-location-point',
             paint: {
               'circle-radius': 8,
               'circle-color': '#10b981',
@@ -1036,7 +1155,7 @@ export default function GeospatialExplorer() {
           map.addLayer({
             id: 'home-marker',
             type: 'symbol',
-            source: 'home-location',
+            source: 'home-location-point',
             layout: {
               'text-field': 'H',
               'text-size': 14,
@@ -1347,14 +1466,26 @@ export default function GeospatialExplorer() {
             return Math.round(diffMs / (1000 * 60 * 60 * 24)); // Convert to days
           };
 
-          const threatInfo: ThreatInfo | null =
-            row.threat === true
-              ? {
-                  score: 1,
-                  level: 'HIGH',
-                  summary: 'Signal above threat threshold',
-                }
-              : null;
+          // Parse threat info - handles both old boolean format and new JSONB format
+          let threatInfo: ThreatInfo | null = null;
+          if (row.threat === true) {
+            // Old format: boolean true means HIGH threat
+            threatInfo = {
+              score: 1,
+              level: 'HIGH',
+              summary: 'Signal above threat threshold',
+            };
+          } else if (row.threat && typeof row.threat === 'object') {
+            // New format: JSONB object with score, level, summary, etc.
+            const t = row.threat as { score?: number; level?: string; summary?: string };
+            if (t.level && t.level !== 'NONE') {
+              threatInfo = {
+                score: typeof t.score === 'number' ? t.score / 100 : 0.5, // Normalize 0-100 to 0-1
+                level: t.level as 'HIGH' | 'MED' | 'LOW',
+                summary: t.summary || `Threat level: ${t.level}`,
+              };
+            }
+          }
 
           const channelValue =
             typeof row.channel === 'number'
@@ -2025,6 +2156,7 @@ export default function GeospatialExplorer() {
         mapRef.current.removeLayer('3d-buildings');
       }
     }
+    localStorage.setItem('shadowcheck_show_3d_buildings', String(enabled));
     setShow3DBuildings(enabled);
   };
 
@@ -2083,6 +2215,7 @@ export default function GeospatialExplorer() {
         mapRef.current.removeSource('mapbox-dem');
       }
     }
+    localStorage.setItem('shadowcheck_show_terrain', String(enabled));
     setShowTerrain(enabled);
   };
 
@@ -2370,7 +2503,7 @@ export default function GeospatialExplorer() {
                   onClick={() => {
                     if (!mapRef.current) return;
                     setHomeButtonActive(true);
-                    mapRef.current.flyTo({ center: INITIAL_VIEW.center, zoom: 17 }); // Higher zoom ~100-200m up
+                    mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
                     setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
                   }}
                   style={{
