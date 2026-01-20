@@ -70,23 +70,25 @@ class NetworkRepository {
     try {
       const result = await query(`
         SELECT
-          bssid,
-          ssid,
-          type,
-          channel,
-          max_signal as maxSignal,
-          bestlevel as signalDbm,
-          encryption,
-          ST_X(location::geometry) as longitude,
-          ST_Y(location::geometry) as latitude,
-          first_seen as firstSeen,
-          last_seen as lastSeen,
-          ml_threat_score as threatScore,
-          manufacturer,
-          device_type as deviceType
-        FROM app.networks
-        WHERE ml_threat_score >= 40
-        ORDER BY ml_threat_score DESC
+          ne.bssid,
+          ne.ssid,
+          ne.type,
+          ne.signal,
+          ne.frequency,
+          ne.security,
+          ne.lon as longitude,
+          ne.lat as latitude,
+          ne.last_seen as lastSeen,
+          ne.observations,
+          (ne.threat->>'score')::numeric as threatScore,
+          ne.threat->>'level' as threatLevel,
+          ne.threat->>'summary' as threatSummary,
+          ne.manufacturer
+        FROM public.api_network_explorer ne
+        WHERE (ne.threat->>'score')::numeric >= 25
+          AND ne.threat->>'level' != 'NONE'
+        ORDER BY (ne.threat->>'score')::numeric DESC
+        LIMIT 100
       `);
 
       return result.rows || [];
@@ -238,6 +240,25 @@ class NetworkRepository {
         obsRow = {};
       }
 
+      // Get threat counts from materialized view
+      let threatCounts = {};
+      try {
+        const threatResult = await query(`
+          SELECT
+            COUNT(*) FILTER (WHERE (threat->>'level') = 'HIGH') as threats_high,
+            COUNT(*) FILTER (WHERE (threat->>'level') = 'MED') as threats_medium,
+            COUNT(*) FILTER (WHERE (threat->>'level') = 'LOW') as threats_low,
+            COUNT(*) FILTER (WHERE (threat->>'score')::numeric >= 70) as threats_critical
+          FROM public.api_network_explorer
+          WHERE (threat->>'score')::numeric > 0
+            AND threat->>'level' != 'NONE'
+        `);
+        threatCounts = threatResult.rows[0] || {};
+      } catch (threatError) {
+        logger.error(`Error fetching threat metrics: ${threatError.message}`, { threatError });
+        threatCounts = {};
+      }
+
       const row = result.rows[0] || {};
 
       return {
@@ -256,12 +277,12 @@ class NetworkRepository {
         lteObservations: parseInt(obsRow.lte_observations) || 0,
         nrObservations: parseInt(obsRow.nr_observations) || 0,
         gsmObservations: parseInt(obsRow.gsm_observations) || 0,
-        // Threat scoring not available without ml_threat_score column
-        threatsCritical: 0,
-        threatsHigh: 0,
-        threatsMedium: 0,
-        threatsLow: 0,
-        activeSurveillance: 0,
+        // Threat counts from new JSONB format
+        threatsCritical: parseInt(threatCounts.threats_critical) || 0,
+        threatsHigh: parseInt(threatCounts.threats_high) || 0,
+        threatsMedium: parseInt(threatCounts.threats_medium) || 0,
+        threatsLow: parseInt(threatCounts.threats_low) || 0,
+        activeSurveillance: parseInt(threatCounts.threats_high) || 0,
         enrichedCount: parseInt(row.enriched_count) || 0,
         filtersApplied: conditions.length,
       };

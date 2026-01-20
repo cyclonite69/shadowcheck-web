@@ -1300,6 +1300,13 @@ export default function GeospatialExplorer() {
         ) {
           params.set('radioTypes', filters.radioTypes.join(','));
         }
+        if (
+          enabled.encryptionTypes &&
+          Array.isArray(filters.encryptionTypes) &&
+          filters.encryptionTypes.length > 0
+        ) {
+          params.set('encryptionTypes', filters.encryptionTypes.join(','));
+        }
         if (enabled.rssiMin && filters.rssiMin !== undefined) {
           params.set('min_signal', String(filters.rssiMin));
         }
@@ -1825,7 +1832,14 @@ export default function GeospatialExplorer() {
         x: e.clientX,
         y: e.clientY,
         network,
-        tag: { bssid: network.bssid, is_ignored: false, ignore_reason: null, threat_tag: null, notes: null, exists: false },
+        tag: {
+          bssid: network.bssid,
+          is_ignored: false,
+          ignore_reason: null,
+          threat_tag: null,
+          notes: null,
+          exists: false,
+        },
       });
     }
   };
@@ -1834,7 +1848,10 @@ export default function GeospatialExplorer() {
     setContextMenu((prev) => ({ ...prev, visible: false }));
   };
 
-  const handleTagAction = async (action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear', notes?: string) => {
+  const handleTagAction = async (
+    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear',
+    notes?: string
+  ) => {
     if (!contextMenu.network) return;
     setTagLoading(true);
     try {
@@ -3455,7 +3472,13 @@ export default function GeospatialExplorer() {
           }}
         >
           {/* Header */}
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid #475569', background: '#334155' }}>
+          <div
+            style={{
+              padding: '8px 12px',
+              borderBottom: '1px solid #475569',
+              background: '#334155',
+            }}
+          >
             <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '2px' }}>
               {contextMenu.network.ssid || '<Hidden>'}
             </div>
@@ -3466,17 +3489,32 @@ export default function GeospatialExplorer() {
 
           {/* Current Status */}
           {contextMenu.tag?.exists && (
-            <div style={{ padding: '6px 12px', borderBottom: '1px solid #475569', background: '#334155', fontSize: '10px' }}>
+            <div
+              style={{
+                padding: '6px 12px',
+                borderBottom: '1px solid #475569',
+                background: '#334155',
+                fontSize: '10px',
+              }}
+            >
               {contextMenu.tag.is_ignored && (
                 <span style={{ color: '#94a3b8', marginRight: '8px' }}>✓ Ignored</span>
               )}
               {contextMenu.tag.threat_tag && (
-                <span style={{
-                  color: contextMenu.tag.threat_tag === 'THREAT' ? '#ef4444' :
-                         contextMenu.tag.threat_tag === 'SUSPECT' ? '#f59e0b' :
-                         contextMenu.tag.threat_tag === 'FALSE_POSITIVE' ? '#22c55e' :
-                         contextMenu.tag.threat_tag === 'INVESTIGATE' ? '#3b82f6' : '#94a3b8'
-                }}>
+                <span
+                  style={{
+                    color:
+                      contextMenu.tag.threat_tag === 'THREAT'
+                        ? '#ef4444'
+                        : contextMenu.tag.threat_tag === 'SUSPECT'
+                          ? '#f59e0b'
+                          : contextMenu.tag.threat_tag === 'FALSE_POSITIVE'
+                            ? '#22c55e'
+                            : contextMenu.tag.threat_tag === 'INVESTIGATE'
+                              ? '#3b82f6'
+                              : '#94a3b8',
+                  }}
+                >
                   {contextMenu.tag.threat_tag}
                 </span>
               )}
@@ -3516,7 +3554,10 @@ export default function GeospatialExplorer() {
                 display: 'block',
                 width: '100%',
                 padding: '8px 12px',
-                background: contextMenu.tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                background:
+                  contextMenu.tag?.threat_tag === 'THREAT'
+                    ? 'rgba(239, 68, 68, 0.2)'
+                    : 'transparent',
                 border: 'none',
                 color: '#ef4444',
                 textAlign: 'left',
@@ -3524,7 +3565,12 @@ export default function GeospatialExplorer() {
                 fontSize: '12px',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  contextMenu.tag?.threat_tag === 'THREAT'
+                    ? 'rgba(239, 68, 68, 0.2)'
+                    : 'transparent')
+              }
             >
               ⚠️ Mark as Threat
             </button>
@@ -3536,7 +3582,10 @@ export default function GeospatialExplorer() {
                 display: 'block',
                 width: '100%',
                 padding: '8px 12px',
-                background: contextMenu.tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                background:
+                  contextMenu.tag?.threat_tag === 'SUSPECT'
+                    ? 'rgba(245, 158, 11, 0.2)'
+                    : 'transparent',
                 border: 'none',
                 color: '#f59e0b',
                 textAlign: 'left',
@@ -3544,7 +3593,12 @@ export default function GeospatialExplorer() {
                 fontSize: '12px',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  contextMenu.tag?.threat_tag === 'SUSPECT'
+                    ? 'rgba(245, 158, 11, 0.2)'
+                    : 'transparent')
+              }
             >
               🔶 Mark as Suspect
             </button>
@@ -3556,7 +3610,10 @@ export default function GeospatialExplorer() {
                 display: 'block',
                 width: '100%',
                 padding: '8px 12px',
-                background: contextMenu.tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
+                background:
+                  contextMenu.tag?.threat_tag === 'FALSE_POSITIVE'
+                    ? 'rgba(34, 197, 94, 0.2)'
+                    : 'transparent',
                 border: 'none',
                 color: '#22c55e',
                 textAlign: 'left',
@@ -3564,7 +3621,12 @@ export default function GeospatialExplorer() {
                 fontSize: '12px',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  contextMenu.tag?.threat_tag === 'FALSE_POSITIVE'
+                    ? 'rgba(34, 197, 94, 0.2)'
+                    : 'transparent')
+              }
             >
               ✓ Mark as False Positive
             </button>
@@ -3579,7 +3641,10 @@ export default function GeospatialExplorer() {
                 display: 'block',
                 width: '100%',
                 padding: '8px 12px',
-                background: contextMenu.tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                background:
+                  contextMenu.tag?.threat_tag === 'INVESTIGATE'
+                    ? 'rgba(59, 130, 246, 0.2)'
+                    : 'transparent',
                 border: 'none',
                 color: '#3b82f6',
                 textAlign: 'left',
@@ -3587,7 +3652,12 @@ export default function GeospatialExplorer() {
                 fontSize: '12px',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  contextMenu.tag?.threat_tag === 'INVESTIGATE'
+                    ? 'rgba(59, 130, 246, 0.2)'
+                    : 'transparent')
+              }
             >
               🔍 Investigate (WiGLE Lookup)
             </button>
@@ -3621,7 +3691,14 @@ export default function GeospatialExplorer() {
 
           {/* Loading Indicator */}
           {tagLoading && (
-            <div style={{ padding: '8px 12px', textAlign: 'center', color: '#94a3b8', fontSize: '11px' }}>
+            <div
+              style={{
+                padding: '8px 12px',
+                textAlign: 'center',
+                color: '#94a3b8',
+                fontSize: '11px',
+              }}
+            >
               Saving...
             </div>
           )}

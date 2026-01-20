@@ -69,20 +69,19 @@ const OBS_TYPE_EXPR = (alias = 'o') => `
 const SECURITY_EXPR = (alias = 'o') => `
   CASE
     WHEN COALESCE(${alias}.radio_capabilities, '') = '' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' THEN
-      CASE
-        WHEN UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT|ENT)' THEN 'WPA3-E'
-        ELSE 'WPA3-P'
-      END
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' THEN
-      CASE
-        WHEN UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT|ENT)' THEN 'WPA2-E'
-        ELSE 'WPA2-P'
-      END
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPA%' THEN 'WPA'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
+    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
+    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-SAE' THEN 'WPA3-SAE'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA3-E'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' THEN 'WPA3'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA2-E'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' THEN 'WPA2'
+    WHEN UPPER(${alias}.radio_capabilities) ~ 'WPA-' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
+    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA3%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPA'
     WHEN UPPER(${alias}.radio_capabilities) LIKE '%WEP%' THEN 'WEP'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPS%'
-      AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA%' THEN 'WPS'
+    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPS%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPS'
+    WHEN UPPER(${alias}.radio_capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
     ELSE 'Unknown'
   END
 `;
@@ -395,13 +394,61 @@ class UniversalFilterQueryBuilder {
     }
 
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
-      where.push(`${SECURITY_EXPR('o')} = ANY(${this.addParam(f.encryptionTypes)})`);
-      this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
+      // Use computed security expression that matches materialized view logic
+      const securityClauses = [];
+      f.encryptionTypes.forEach((type) => {
+        switch (type) {
+          case 'OPEN':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'OPEN'`);
+            break;
+          case 'WEP':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WEP'`);
+            break;
+          case 'WPA':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA'`);
+            break;
+          case 'WPA2':
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2', 'WPA2-E')`);
+            break;
+          case 'WPA3':
+            securityClauses.push(
+              `${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-SAE', 'WPA3-OWE', 'WPA3-E')`
+            );
+            break;
+        }
+      });
+      if (securityClauses.length > 0) {
+        where.push(`(${securityClauses.join(' OR ')})`);
+        this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
+      }
     }
 
     if (e.authMethods && Array.isArray(f.authMethods) && f.authMethods.length > 0) {
-      where.push(`${AUTH_EXPR('o')} = ANY(${this.addParam(f.authMethods)})`);
-      this.addApplied('security', 'authMethods', f.authMethods);
+      // Map auth methods to security expression patterns
+      const authClauses = [];
+      f.authMethods.forEach((method) => {
+        switch (method) {
+          case 'PSK':
+            authClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
+            break;
+          case 'Enterprise':
+            authClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
+            break;
+          case 'SAE':
+            authClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-SAE')`);
+            break;
+          case 'OWE':
+            authClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-OWE'`);
+            break;
+          case 'None':
+            authClauses.push(`${SECURITY_EXPR('o')} = 'OPEN'`);
+            break;
+        }
+      });
+      if (authClauses.length > 0) {
+        where.push(`(${authClauses.join(' OR ')})`);
+        this.addApplied('security', 'authMethods', f.authMethods);
+      }
     }
 
     if (e.insecureFlags && Array.isArray(f.insecureFlags) && f.insecureFlags.length > 0) {
@@ -413,7 +460,7 @@ class UniversalFilterQueryBuilder {
         insecureClauses.push(`${SECURITY_EXPR('o')} = 'WEP'`);
       }
       if (f.insecureFlags.includes('wps')) {
-        insecureClauses.push("UPPER(o.radio_capabilities) LIKE '%WPS%'");
+        insecureClauses.push(`${SECURITY_EXPR('o')} = 'WPS'`);
       }
       if (f.insecureFlags.includes('deprecated')) {
         insecureClauses.push(`${SECURITY_EXPR('o')} IN ('WEP', 'WPS')`);
@@ -436,7 +483,7 @@ class UniversalFilterQueryBuilder {
         flagClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
       }
       if (f.securityFlags.includes('personal')) {
-        flagClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2-P', 'WPA3-P')`);
+        flagClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
       }
       if (f.securityFlags.includes('unknown')) {
         flagClauses.push(`${SECURITY_EXPR('o')} = 'Unknown'`);
@@ -890,12 +937,12 @@ class UniversalFilterQueryBuilder {
       ) {
         // Map frontend threat categories to database values
         const threatLevelMap = {
-          'critical': 'HIGH',
-          'high': 'HIGH',
-          'medium': 'MED',
-          'low': 'LOW',
+          critical: 'HIGH',
+          high: 'HIGH',
+          medium: 'MED',
+          low: 'LOW',
         };
-        const dbThreatLevels = f.threatCategories.map(cat => threatLevelMap[cat]).filter(Boolean);
+        const dbThreatLevels = f.threatCategories.map((cat) => threatLevelMap[cat]).filter(Boolean);
         if (dbThreatLevels.length > 0) {
           where.push(`ne.threat->>'level' = ANY(${this.addParam(dbThreatLevels)})`);
           this.addApplied('threat', 'threatCategories', f.threatCategories);
@@ -1409,6 +1456,7 @@ class UniversalFilterQueryBuilder {
         o.radio_capabilities,
         o.radio_type,
         o.altitude,
+        ${SECURITY_EXPR('o')} AS security,
         ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
         ne.threat
       FROM filtered_obs o

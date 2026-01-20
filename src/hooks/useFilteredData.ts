@@ -163,8 +163,8 @@ export const useFilteredAnalytics = (options: Omit<UseFilteredDataOptions, 'endp
 // URL synchronization hook
 export const useFilterURLSync = () => {
   const { setFromURLParams } = useFilterStore();
-  const filters = useFilterStore((state) => state.filters);
-  const enabled = useFilterStore((state) => state.enabled);
+  const filters = useFilterStore((state) => state.getCurrentFilters());
+  const enabled = useFilterStore((state) => state.getCurrentEnabled());
 
   // Load from URL on mount only
   useEffect(() => {

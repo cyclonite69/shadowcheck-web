@@ -34,45 +34,24 @@ router.post('/ml/train', async (req, res, next) => {
 
     const { rows } = await query(
       `
-      WITH home_location AS (
-        SELECT location::geography as home_point
-        FROM app.location_markers
-        WHERE marker_type = 'home'
-        LIMIT 1
-      )
       SELECT
         nt.bssid,
-        nt.tag_type,
-        n.type,
-        COUNT(DISTINCT l.unified_id) as observation_count,
-        COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
-        COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
-        MAX(l.signal_dbm) as max_signal,
-        MAX(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        )) / 1000.0 - MIN(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        )) / 1000.0 as distance_range_km,
-        BOOL_OR(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        ) < 100) as seen_at_home,
-        BOOL_OR(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        ) > 500) as seen_away_from_home
+        nt.threat_tag as tag_type,
+        mv.type,
+        mv.security,
+        mv.observations as observation_count,
+        mv.unique_days,
+        mv.unique_locations,
+        mv.signal as max_signal,
+        mv.max_distance_meters / 1000.0 as distance_range_km,
+        (mv.distance_from_home_km < 0.1) as seen_at_home,
+        (mv.distance_from_home_km > 0.5) as seen_away_from_home
       FROM app.network_tags nt
-      JOIN app.networks n ON nt.bssid = n.bssid
-      JOIN app.observations l ON n.bssid = l.bssid
-      CROSS JOIN home_location h
-      WHERE nt.tag_type IN ('THREAT', 'FALSE_POSITIVE')
-        AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
-        AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
-      GROUP BY nt.bssid, nt.tag_type, n.type
+      JOIN public.api_network_explorer_mv mv ON nt.bssid = mv.bssid
+      WHERE nt.threat_tag IN ('THREAT', 'FALSE_POSITIVE')
+        AND mv.observations > 0
     `,
-      [CONFIG.MIN_VALID_TIMESTAMP]
+      []
     );
 
     if (rows.length < 10) {
@@ -129,10 +108,10 @@ router.get('/ml/status', async (req, res, next) => {
     `);
 
     const tagCount = await query(`
-      SELECT tag_type, COUNT(*) as count
+      SELECT threat_tag as tag_type, COUNT(*) as count
       FROM app.network_tags
-      WHERE tag_type IN ('THREAT', 'FALSE_POSITIVE')
-      GROUP BY tag_type
+      WHERE threat_tag IN ('THREAT', 'FALSE_POSITIVE')
+      GROUP BY threat_tag
     `);
 
     res.json({

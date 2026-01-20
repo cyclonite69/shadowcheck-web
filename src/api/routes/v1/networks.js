@@ -41,6 +41,7 @@ router.get('/networks', async (req, res, next) => {
     const ssidRaw = req.query.ssid;
     const bssidRaw = req.query.bssid;
     const radioTypesRaw = req.query.radioTypes;
+    const encryptionTypesRaw = req.query.encryptionTypes;
     const quickSearchRaw = req.query.q;
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
@@ -95,39 +96,49 @@ router.get('/networks', async (req, res, next) => {
       if (validLevels.includes(threatLevelRaw.toUpperCase())) {
         threatLevel = threatLevelRaw.toUpperCase();
       } else {
-        return res.status(400).json({ error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, or HIGH.' });
+        return res
+          .status(400)
+          .json({ error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, or HIGH.' });
       }
     }
 
     if (threatCategoriesRaw !== undefined) {
       try {
-        const categories = Array.isArray(threatCategoriesRaw) ? threatCategoriesRaw : JSON.parse(threatCategoriesRaw);
+        const categories = Array.isArray(threatCategoriesRaw)
+          ? threatCategoriesRaw
+          : JSON.parse(threatCategoriesRaw);
         if (Array.isArray(categories) && categories.length > 0) {
           // Map frontend threat categories to database values
           const threatLevelMap = {
-            'critical': 'HIGH',
-            'high': 'HIGH',
-            'medium': 'MED',
-            'low': 'LOW',
+            critical: 'HIGH',
+            high: 'HIGH',
+            medium: 'MED',
+            low: 'LOW',
           };
-          threatCategories = categories.map(cat => threatLevelMap[cat]).filter(Boolean);
+          threatCategories = categories.map((cat) => threatLevelMap[cat]).filter(Boolean);
         }
       } catch (_e) {
-        return res.status(400).json({ error: 'Invalid threat_categories parameter. Must be JSON array.' });
+        return res
+          .status(400)
+          .json({ error: 'Invalid threat_categories parameter. Must be JSON array.' });
       }
     }
 
     if (threatScoreMinRaw !== undefined) {
       threatScoreMin = parseFloat(threatScoreMinRaw);
       if (isNaN(threatScoreMin) || threatScoreMin < 0 || threatScoreMin > 100) {
-        return res.status(400).json({ error: 'Invalid threat_score_min parameter. Must be 0-100.' });
+        return res
+          .status(400)
+          .json({ error: 'Invalid threat_score_min parameter. Must be 0-100.' });
       }
     }
 
     if (threatScoreMaxRaw !== undefined) {
       threatScoreMax = parseFloat(threatScoreMaxRaw);
       if (isNaN(threatScoreMax) || threatScoreMax < 0 || threatScoreMax > 100) {
-        return res.status(400).json({ error: 'Invalid threat_score_max parameter. Must be 0-100.' });
+        return res
+          .status(400)
+          .json({ error: 'Invalid threat_score_max parameter. Must be 0-100.' });
       }
     }
 
@@ -283,6 +294,17 @@ router.get('/networks', async (req, res, next) => {
       }
     }
 
+    let encryptionTypes = null;
+    if (encryptionTypesRaw !== undefined) {
+      const values = String(encryptionTypesRaw)
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (values.length > 0) {
+        encryptionTypes = values;
+      }
+    }
+
     const typeExpr = `
       CASE
         WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN ne.type
@@ -376,9 +398,9 @@ router.get('/networks', async (req, res, next) => {
       const orderColumns = Array.isArray(parsedOrderJson)
         ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
         : String(orderRaw)
-          .split(',')
-          .map((value) => value.trim().toUpperCase())
-          .filter(Boolean);
+            .split(',')
+            .map((value) => value.trim().toUpperCase())
+            .filter(Boolean);
 
       const normalizedOrders =
         orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;
@@ -427,7 +449,7 @@ router.get('/networks', async (req, res, next) => {
 
     // Filter out networks with no observations when sorting by distance-related columns
     const distanceColumns = ['max_distance_meters', 'distance_from_home_km'];
-    const sortingByDistance = sortEntries.some(entry => distanceColumns.includes(entry.column));
+    const sortingByDistance = sortEntries.some((entry) => distanceColumns.includes(entry.column));
     if (sortingByDistance) {
       whereClauses.push('ne.observations > 0');
     }
@@ -532,6 +554,10 @@ router.get('/networks', async (req, res, next) => {
     if (radioTypes && radioTypes.length > 0) {
       params.push(radioTypes);
       whereClauses.push(`(${typeExpr}) = ANY($${params.length})`);
+    }
+    if (encryptionTypes && encryptionTypes.length > 0) {
+      params.push(encryptionTypes);
+      whereClauses.push(`ne.security = ANY($${params.length})`);
     }
 
     if (quickSearchRaw !== undefined && String(quickSearchRaw).trim() !== '') {
