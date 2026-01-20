@@ -37,7 +37,7 @@
   "dependencies": {
     "@deck.gl/core": "^9.2.5",
     "@deck.gl/layers": "^9.2.6",
-    "@deck.gl/react": "^9.2.5",
+    "@deck.gl/react": "^9.2.6",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
