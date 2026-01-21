@@ -192,6 +192,7 @@ const ThreatBadge = ({
   if (!threat || threat.level === 'NONE') return null;
 
   const config = {
+    CRITICAL: { label: 'CRITICAL', color: '#dc2626', bg: '#dc262620' },
     HIGH: { label: 'HIGH', color: '#ef4444', bg: '#ef444420' },
     MED: { label: 'MED', color: '#f97316', bg: '#f9731620' },
     LOW: { label: 'LOW', color: '#eab308', bg: '#eab30820' },
@@ -546,6 +547,21 @@ export default function GeospatialExplorer() {
           <div style="color: #60a5fa; font-weight: 500;">${props.manufacturer}</div>
         </div>
         ` : ''}
+
+        <!-- THREAT ASSESSMENT CARD -->
+        <div style="background: linear-gradient(135deg, ${threatColor}15 0%, ${threatColor}08 100%); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid ${threatColor}40; border-left: 4px solid ${threatColor};">
+          <div style="color: ${threatColor}; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 700;">🚨 Threat Assessment</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <span style="color: #94a3b8; font-size: 9px;">Level</span>
+              <div style="color: ${threatColor}; font-weight: 800; margin-top: 3px; font-size: 12px; text-transform: uppercase;">${threatLevel}</div>
+            </div>
+            <div>
+              <span style="color: #94a3b8; font-size: 9px;">Score</span>
+              <div style="color: ${threatColor}; font-weight: 700; margin-top: 3px; font-size: 12px;">${props.threat_score ? props.threat_score.toFixed(2) : 'N/A'}</div>
+            </div>
+          </div>
+        </div>
 
         <!-- LOCATION CARD -->
         <div style="background: rgba(59, 130, 246, 0.08); padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(59, 130, 246, 0.2);">

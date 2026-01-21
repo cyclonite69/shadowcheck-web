@@ -335,6 +335,8 @@ router.get('/networks', async (req, res, next) => {
       unique_days: 'ne.unique_days',
       unique_locations: 'ne.unique_locations',
       threat: 'ne.threat',
+      threat_score: '(nts.final_threat_score)::numeric',
+      threat_level: 'nts.final_threat_level',
       lat: 'ne.lat',
       lon: 'ne.lon',
       manufacturer: 'ne.manufacturer',
@@ -596,7 +598,21 @@ router.get('/networks', async (req, res, next) => {
         ne.signal as avg_signal,
         ne.signal as min_signal,
         ne.signal as max_signal,
-        ne.threat,
+        -- Blend ML score (70%) with manual tag confidence (30%)
+        JSONB_BUILD_OBJECT(
+          'score', COALESCE(
+            (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + 
+             COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3),
+            0
+          )::text,
+          'level', CASE
+            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 80 THEN 'CRITICAL'
+            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 60 THEN 'HIGH'
+            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 40 THEN 'MED'
+            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 20 THEN 'LOW'
+            ELSE 'NONE'
+          END
+        ) AS threat,
         ne.distance_from_home_km,
         ne.manufacturer AS manufacturer,
         ne.manufacturer AS manufacturer_address,
@@ -607,6 +623,8 @@ router.get('/networks', async (req, res, next) => {
         ne.last_altitude_m,
         ne.is_sentinel
       FROM public.api_network_explorer_mv ne
+      LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid AND nts.model_version = '2.0.0'
+      LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
       ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       ORDER BY ${orderByClause}
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}

@@ -2,14 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 
-// Map frontend sort keys to SQL columns (use outer select aliases)
+// Map frontend sort keys to SQL columns
 const SORT_MAP = {
-  observed_at: 'observed_at',
+  observed_at: 'latest_time',
   ssid: 'ssid',
   bssid: 'bssid',
-  signal: 'level',
+  signal: 'latest_signal',
   frequency: 'frequency',
-  observations: 'observations',
+  observations: 'obs_count',
+  threat_score: 'final_threat_score',
+  threat_level: 'final_threat_level',
 };
 
 router.get('/v2/networks', async (req, res, next) => {
@@ -25,41 +27,57 @@ router.get('/v2/networks', async (req, res, next) => {
     const where = [];
     if (search) {
       params.push(`%${search}%`, `%${search}%`);
-      where.push(`(ml.ssid ILIKE $${params.length - 1} OR ml.bssid ILIKE $${params.length})`);
+      where.push(`(obs_latest.ssid ILIKE $${params.length - 1} OR obs_latest.bssid ILIKE $${params.length})`);
     }
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     params.push(limit, offset);
 
     const sql = `
-      WITH base AS (
+      WITH obs_latest AS (
+        SELECT DISTINCT ON (bssid)
+          bssid,
+          ssid,
+          lat,
+          lon,
+          level as signal,
+          accuracy,
+          time as latest_time,
+          radio_frequency as frequency,
+          radio_capabilities as capabilities
+        FROM public.observations
+        ORDER BY bssid, time DESC
+      ),
+      obs_agg AS (
         SELECT
-          ml.bssid,
-          COALESCE(NULLIF(ml.ssid, ''), ap.latest_ssid) AS ssid,
-          ml.device_id,
-          ml.source_tag,
-          ml.observed_at,
-          ml.level,
-          ml.lat,
-          ml.lon,
-          ml.external,
-          COALESCE(ap.total_observations, 0) AS observations,
-          ap.first_seen,
-          ap.last_seen,
-          ap.is_5ghz,
-          ap.is_6ghz,
-          ap.is_hidden,
-          NULL::text AS type,
-          NULL::numeric AS frequency,
-          NULL::text AS capabilities
-        FROM mv_network_latest ml
-        LEFT JOIN access_points ap ON ap.bssid = ml.bssid
-        ${whereClause}
+          o.bssid,
+          COUNT(*) as obs_count,
+          MAX(o.time) as last_seen,
+          MIN(o.time) as first_seen
+        FROM public.observations o
+        GROUP BY o.bssid
       )
       SELECT
-        *,
-        COUNT(*) OVER() AS total
-      FROM base
+        obs_latest.bssid,
+        obs_latest.ssid,
+        obs_latest.lat,
+        obs_latest.lon,
+        obs_latest.signal as latest_signal,
+        obs_latest.accuracy,
+        obs_latest.latest_time,
+        obs_latest.frequency,
+        obs_latest.capabilities,
+        obs_agg.obs_count,
+        obs_agg.first_seen,
+        obs_agg.last_seen,
+        nts.final_threat_score,
+        nts.final_threat_level,
+        nts.model_version,
+        COUNT(*) OVER() as total
+      FROM obs_latest
+      LEFT JOIN obs_agg ON obs_agg.bssid = obs_latest.bssid
+      LEFT JOIN app.network_threat_scores nts ON nts.bssid = obs_latest.bssid AND nts.model_version = '2.0.0'
+      ${whereClause}
       ORDER BY ${sortColumn} ${order}
       LIMIT $${params.length - 1} OFFSET $${params.length};
     `;
@@ -70,22 +88,19 @@ router.get('/v2/networks', async (req, res, next) => {
       rows: result.rows.map((row) => ({
         bssid: row.bssid,
         ssid: row.ssid || '(hidden)',
-        device_id: row.device_id,
-        source_tag: row.source_tag,
-        observed_at: row.observed_at,
-        signal: row.level,
+        observed_at: row.latest_time,
+        signal: row.latest_signal,
         lat: row.lat,
         lon: row.lon,
-        external: row.external,
-        observations: row.observations,
+        observations: parseInt(row.obs_count) || 0,
         first_seen: row.first_seen,
         last_seen: row.last_seen,
-        is_5ghz: row.is_5ghz,
-        is_6ghz: row.is_6ghz,
-        is_hidden: row.is_hidden,
-        type: row.type || 'W',
         frequency: row.frequency,
         capabilities: row.capabilities,
+        accuracy_meters: row.accuracy,
+        threat_score: row.final_threat_score ? parseFloat(row.final_threat_score) : 0,
+        threat_level: row.final_threat_level || 'NONE',
+        model_version: row.model_version || '2.0.0',
       })),
     });
   } catch (err) {
@@ -96,66 +111,82 @@ router.get('/v2/networks', async (req, res, next) => {
 router.get('/v2/networks/:bssid', async (req, res, next) => {
   try {
     const bssid = String(req.params.bssid || '').toLowerCase();
-    const [latest, timeline, ssidHistory] = await Promise.all([
+    
+    const [latest, timeline, threatData] = await Promise.all([
       query(
         `
-        SELECT
-          ml.bssid,
-          COALESCE(NULLIF(ml.ssid, ''), ap.latest_ssid) AS ssid,
-          ml.device_id,
-          ml.source_tag,
-          ml.observed_at,
-          ml.level,
-          ml.lat,
-          ml.lon,
-          ml.external,
-          COALESCE(ap.total_observations, 0) AS observations,
-          ap.first_seen,
-          ap.last_seen,
-          ap.is_5ghz,
-          ap.is_6ghz,
-          ap.is_hidden,
-          sn.type,
-          sn.frequency,
-          sn.capabilities
-        FROM mv_network_latest ml
-        LEFT JOIN access_points ap ON ap.bssid = ml.bssid
-        LEFT JOIN LATERAL (
-          SELECT type, frequency, capabilities
-          FROM staging_networks s
-          WHERE s.bssid = ml.bssid
-          ORDER BY s.lasttime DESC
-          LIMIT 1
-        ) sn ON true
-        WHERE ml.bssid = $1
+        SELECT DISTINCT ON (bssid)
+          bssid,
+          ssid,
+          lat,
+          lon,
+          level as signal,
+          accuracy,
+          time as observed_at,
+          radio_frequency as frequency,
+          radio_capabilities as capabilities,
+          altitude
+        FROM public.observations
+        WHERE bssid = $1
+        ORDER BY bssid, time DESC
         LIMIT 1
         `,
         [bssid]
       ),
       query(
         `
-        SELECT bucket, obs_count, avg_level, min_level, max_level
-        FROM mv_network_timeline
+        SELECT
+          DATE_TRUNC('hour', time) as bucket,
+          COUNT(*) as obs_count,
+          AVG(level) as avg_signal,
+          MIN(level) as min_signal,
+          MAX(level) as max_signal
+        FROM public.observations
         WHERE bssid = $1
-        ORDER BY bucket ASC
+        GROUP BY DATE_TRUNC('hour', time)
+        ORDER BY bucket DESC
+        LIMIT 168
         `,
         [bssid]
       ),
       query(
         `
-        SELECT ssid, first_seen, last_seen
-        FROM ssid_history
+        SELECT
+          bssid,
+          final_threat_score,
+          final_threat_level,
+          model_version,
+          ml_threat_probability,
+          created_at,
+          updated_at
+        FROM app.network_threat_scores
         WHERE bssid = $1
-        ORDER BY last_seen DESC
         `,
         [bssid]
       ),
     ]);
 
+    const obsCount = await query(
+      `SELECT COUNT(*) as count FROM public.observations WHERE bssid = $1`,
+      [bssid]
+    );
+
+    const firstLast = await query(
+      `
+      SELECT MIN(time) as first_seen, MAX(time) as last_seen
+      FROM public.observations
+      WHERE bssid = $1
+      `,
+      [bssid]
+    );
+
     res.json({
       latest: latest.rows[0] || null,
       timeline: timeline.rows,
-      ssid_history: ssidHistory.rows,
+      threat: threatData.rows[0] || null,
+      observation_count: parseInt(obsCount.rows[0]?.count) || 0,
+      first_seen: firstLast.rows[0]?.first_seen || null,
+      last_seen: firstLast.rows[0]?.last_seen || null,
     });
   } catch (err) {
     next(err);
@@ -164,39 +195,40 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
 
 router.get('/v2/dashboard/metrics', async (_req, res, next) => {
   try {
-    const counts = await query(
-      `
-      SELECT
-        (SELECT COUNT(*) FROM access_points) AS total_networks,
-        (SELECT COUNT(*) FROM observations) AS observations,
-        (SELECT COUNT(*) FROM ssid_history) AS ssid_history,
-        (SELECT COUNT(*) FROM access_points WHERE is_hidden) AS hidden_networks
-      `
-    );
     const threatCounts = await query(
       `
       SELECT
-        SUM(CASE WHEN level >= -50 THEN 1 ELSE 0 END) AS critical,
-        SUM(CASE WHEN level BETWEEN -70 AND -51 THEN 1 ELSE 0 END) AS high,
-        SUM(CASE WHEN level BETWEEN -80 AND -71 THEN 1 ELSE 0 END) AS medium,
-        SUM(CASE WHEN level < -80 THEN 1 ELSE 0 END) AS low
-      FROM mv_network_latest
+        SUM(CASE WHEN nts.final_threat_level = 'CRITICAL' THEN 1 ELSE 0 END) AS critical,
+        SUM(CASE WHEN nts.final_threat_level = 'HIGH' THEN 1 ELSE 0 END) AS high,
+        SUM(CASE WHEN nts.final_threat_level = 'MED' THEN 1 ELSE 0 END) AS medium,
+        SUM(CASE WHEN nts.final_threat_level IN ('LOW', 'NONE') THEN 1 ELSE 0 END) AS low
+      FROM app.network_threat_scores nts
+      WHERE nts.model_version = '2.0.0'
       `
     );
+
+    const counts = await query(
+      `
+      SELECT
+        (SELECT COUNT(DISTINCT bssid) FROM public.observations) as total_networks,
+        (SELECT COUNT(*) FROM public.observations) as observations
+      `
+    );
+
     res.json({
       networks: {
-        total: Number(counts.rows[0]?.total_networks || 0),
-        hidden: Number(counts.rows[0]?.hidden_networks || 0),
-        wifi: Number(counts.rows[0]?.total_networks || 0),
+        total: parseInt(counts.rows[0]?.total_networks) || 0,
+        hidden: 0,
+        wifi: parseInt(counts.rows[0]?.total_networks) || 0,
       },
       threats: {
-        critical: Number(threatCounts.rows[0]?.critical || 0),
-        high: Number(threatCounts.rows[0]?.high || 0),
-        medium: Number(threatCounts.rows[0]?.medium || 0),
-        low: Number(threatCounts.rows[0]?.low || 0),
+        critical: parseInt(threatCounts.rows[0]?.critical) || 0,
+        high: parseInt(threatCounts.rows[0]?.high) || 0,
+        medium: parseInt(threatCounts.rows[0]?.medium) || 0,
+        low: parseInt(threatCounts.rows[0]?.low) || 0,
       },
-      observations: Number(counts.rows[0]?.observations || 0),
-      ssid_history: Number(counts.rows[0]?.ssid_history || 0),
+      observations: parseInt(counts.rows[0]?.observations) || 0,
+      ssid_history: 0,
       enriched: null,
       surveillance: null,
     });
@@ -205,34 +237,40 @@ router.get('/v2/dashboard/metrics', async (_req, res, next) => {
   }
 });
 
-// Threat + observation map payload for Kepler
+// Threat + observation map payload
 router.get('/v2/threats/map', async (req, res, next) => {
   try {
     const severity = (req.query.severity || '').toLowerCase();
-    const allowedSeverities = ['critical', 'high', 'medium', 'low'];
+    const allowedSeverities = ['critical', 'high', 'med', 'low', 'none'];
     const severityFilter =
-      severity && allowedSeverities.includes(severity) ? 'AND t.threat_level = $1' : '';
-    const params = severityFilter ? [severity] : [];
+      severity && allowedSeverities.includes(severity) ? 'AND nts.final_threat_level = $1' : '';
+    const params = severityFilter ? [severity.toUpperCase()] : [];
 
-    // Limit observations window to avoid huge payloads (default 30d, configurable)
     const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 180);
     params.push(days);
 
     const threatsSql = `
       SELECT
-        t.bssid,
-        COALESCE(t.ssid, '(hidden)') AS ssid,
-        LOWER(COALESCE(t.threat_level, 'low')) AS severity,
-        t.threat_score,
-        t.first_seen,
-        t.last_seen,
-        t.lat,
-        t.lon,
-        t.observation_count
-      FROM access_points t
-      WHERE t.threat_level IS NOT NULL
+        nts.bssid,
+        COALESCE(ol.ssid, '(hidden)') AS ssid,
+        LOWER(nts.final_threat_level) AS severity,
+        nts.final_threat_score AS threat_score,
+        nts.created_at AS first_seen,
+        nts.updated_at AS last_seen,
+        ol.lat,
+        ol.lon,
+        (SELECT COUNT(*) FROM public.observations WHERE bssid = nts.bssid) AS observation_count
+      FROM app.network_threat_scores nts
+      LEFT JOIN LATERAL (
+        SELECT DISTINCT ON (bssid) bssid, ssid, lat, lon
+        FROM public.observations
+        WHERE bssid = nts.bssid
+        ORDER BY bssid, time DESC
+        LIMIT 1
+      ) ol ON true
+      WHERE nts.model_version = '2.0.0'
         ${severityFilter}
-      ORDER BY COALESCE(t.threat_score, 0) DESC
+      ORDER BY COALESCE(nts.final_threat_score, 0) DESC
       LIMIT 5000
     `;
 
@@ -241,15 +279,14 @@ router.get('/v2/threats/map', async (req, res, next) => {
         o.bssid,
         o.lat,
         o.lon,
-        o.observed_at,
+        o.time as observed_at,
         o.level AS rssi,
-        o.device_code,
-        LOWER(ap.threat_level) AS severity
-      FROM observations o
-      JOIN access_points ap ON ap.bssid = o.bssid
-      WHERE ap.threat_level IS NOT NULL
-        AND o.observed_at >= NOW() - ($${params.length} || ' days')::interval
-        ${severityFilter ? 'AND ap.threat_level = $1' : ''}
+        LOWER(nts.final_threat_level) AS severity
+      FROM public.observations o
+      JOIN app.network_threat_scores nts ON nts.bssid = o.bssid
+      WHERE nts.model_version = '2.0.0'
+        AND o.time >= NOW() - ($${params.length} || ' days')::interval
+        ${severityFilter ? 'AND nts.final_threat_level = $1' : ''}
       LIMIT 500000
     `;
 
@@ -266,6 +303,7 @@ router.get('/v2/threats/map', async (req, res, next) => {
         days,
         threat_count: threats.rowCount,
         observation_count: observations.rowCount,
+        model_version: '2.0.0',
       },
     });
   } catch (err) {
