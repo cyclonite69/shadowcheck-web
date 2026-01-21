@@ -569,7 +569,7 @@ export default function GeospatialExplorer() {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div>
               <div style="color: #94a3b8; font-size: 11px;">Total Observations</div>
-              <div style="color: #e2e8f0; font-size: 13px; font-weight: bold;">${props.observation_count || '1'}</div>
+              <div style="color: #e2e8f0; font-size: 13px; font-weight: bold;">${props.observation_count || props.observations || '1'}</div>
             </div>
             <div>
               <div style="color: #94a3b8; font-size: 11px;">Unique Days</div>
@@ -613,6 +613,9 @@ export default function GeospatialExplorer() {
             <div style="color: #e2e8f0; font-size: 13px;">${props.timespan_days || 'N/A'} days</div>
           </div>
         </div>
+
+        <!-- DIVIDER -->
+        <div style="height: 1px; background: #334155; margin: 12px 0;"></div>
 
         <!-- GPS ACCURACY -->
         <div>
