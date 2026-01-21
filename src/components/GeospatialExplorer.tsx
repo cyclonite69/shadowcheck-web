@@ -499,128 +499,90 @@ export default function GeospatialExplorer() {
     };
 
     return `
-      <div style="background: #0f172a; border: 2px solid ${threatColor}; border-radius: 8px; padding: 16px; min-width: 420px; max-width: 500px; color: #e2e8f0; font-family: monospace; font-size: 13px; line-height: 1.6;">
+      <div style="background: #0f172a; border: 2px solid ${threatColor}; border-radius: 6px; padding: 12px; min-width: 320px; max-width: 380px; color: #e2e8f0; font-family: monospace; font-size: 11px; line-height: 1.4;">
         <!-- HEADER -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid ${threatColor};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid ${threatColor};">
           <div>
-            <div style="font-size: 14px; font-weight: bold; color: #f1f5f9;">${props.ssid || '(hidden)'}</div>
-            <div style="font-size: 12px; color: #94a3b8;">${(props.type || 'W') === 'W' ? 'WIFI' : props.type} Network</div>
+            <div style="font-size: 12px; font-weight: bold; color: #f1f5f9;">${props.ssid || '(hidden)'}</div>
+            <div style="font-size: 10px; color: #94a3b8;">${(props.type || 'W') === 'W' ? 'WIFI' : props.type} Network</div>
           </div>
-          <div style="padding: 6px 12px; background: ${threatColor}; color: #000; border-radius: 4px; font-weight: bold; font-size: 12px;">${threatLevel}</div>
+          <div style="padding: 4px 8px; background: ${threatColor}; color: #000; border-radius: 3px; font-weight: bold; font-size: 10px;">${threatLevel}</div>
         </div>
 
         <!-- TWO-COLUMN LAYOUT -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
           <!-- LEFT COLUMN -->
           <div>
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">MAC ADDRESS</div>
-            <div style="color: #60a5fa; font-size: 13px; font-weight: bold; margin-bottom: 8px;">${props.bssid}</div>
+            <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">MAC ADDRESS</div>
+            <div style="color: #60a5fa; font-size: 11px; font-weight: bold; margin-bottom: 6px;">${props.bssid}</div>
             
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">MANUFACTURER</div>
-            <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${props.manufacturer || 'Unknown'}</div>
+            <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">MANUFACTURER</div>
+            <div style="color: #e2e8f0; font-size: 11px; margin-bottom: 6px;">${props.manufacturer || 'Unknown'}</div>
             
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">FREQUENCY</div>
-            <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${formatFrequency(props.frequency)}</div>
-            
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">CHANNEL</div>
-            <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${props.channel || 'N/A'}</div>
+            <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">FREQUENCY</div>
+            <div style="color: #e2e8f0; font-size: 11px; margin-bottom: 6px;">${formatFrequency(props.frequency)}</div>
           </div>
 
           <!-- RIGHT COLUMN -->
           <div>
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">SIGNAL STRENGTH</div>
-            <div style="color: #fbbf24; font-size: 13px; font-weight: bold; margin-bottom: 8px;">${props.signal ? `${props.signal} dBm` : 'N/A'}</div>
+            <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">SIGNAL</div>
+            <div style="color: #fbbf24; font-size: 11px; font-weight: bold; margin-bottom: 6px;">${props.signal ? `${props.signal} dBm` : 'N/A'}</div>
             
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">ENCRYPTION</div>
-            <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${props.security || 'OPEN'}</div>
+            <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">ENCRYPTION</div>
+            <div style="color: #e2e8f0; font-size: 11px; margin-bottom: 6px;">${props.security || 'OPEN'}</div>
             
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">BAND</div>
-            <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${props.frequency ? (props.frequency > 5000 ? '5 GHz' : props.frequency > 1000 ? '2.4 GHz' : '6 GHz') : 'N/A'}</div>
-            
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">THREAT SCORE</div>
-            <div style="color: ${threatColor}; font-size: 13px; font-weight: bold; margin-bottom: 8px;">${props.threat_score || 'N/A'}</div>
+            <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">THREAT SCORE</div>
+            <div style="color: ${threatColor}; font-size: 11px; font-weight: bold; margin-bottom: 6px;">${props.threat_score || 'N/A'}</div>
           </div>
         </div>
 
         <!-- DIVIDER -->
-        <div style="height: 1px; background: #334155; margin: 12px 0;"></div>
+        <div style="height: 1px; background: #334155; margin: 8px 0;"></div>
 
-        <!-- LOCATION & COORDINATES -->
-        <div style="margin-bottom: 12px;">
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">COORDINATES</div>
-          <div style="display: flex; gap: 16px; margin-bottom: 8px;">
-            <div><span style="color: #94a3b8;">Latitude:</span><span style="color: #60a5fa; font-weight: bold; margin-left: 6px;">${coords.lat}</span></div>
-            <div><span style="color: #94a3b8;">Longitude:</span><span style="color: #60a5fa; font-weight: bold; margin-left: 6px;">${coords.lon}</span></div>
+        <!-- LOCATION -->
+        <div style="margin-bottom: 8px;">
+          <div style="color: #64748b; font-size: 9px; margin-bottom: 2px;">COORDINATES</div>
+          <div style="display: flex; gap: 12px; margin-bottom: 4px;">
+            <div><span style="color: #94a3b8; font-size: 10px;">Lat:</span><span style="color: #60a5fa; font-weight: bold; margin-left: 4px; font-size: 10px;">${coords.lat}</span></div>
+            <div><span style="color: #94a3b8; font-size: 10px;">Lon:</span><span style="color: #60a5fa; font-weight: bold; margin-left: 4px; font-size: 10px;">${coords.lon}</span></div>
           </div>
-          
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">ALTITUDE</div>
-          <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${props.altitude != null ? `${props.altitude.toFixed(1)} m` : 'N/A'}</div>
-          
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">DISTANCE FROM HOME</div>
-          <div style="color: #e2e8f0; font-size: 13px; margin-bottom: 8px;">${props.distance_from_home_km ? `${props.distance_from_home_km.toFixed(2)} km` : 'N/A'}</div>
-        </div>
-
-        <!-- DIVIDER -->
-        <div style="height: 1px; background: #334155; margin: 12px 0;"></div>
-
-        <!-- OBSERVATION STATISTICS -->
-        <div style="margin-bottom: 12px;">
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 6px; font-weight: bold;">OBSERVATION STATISTICS</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div>
-              <div style="color: #94a3b8; font-size: 11px;">Total Observations</div>
-              <div style="color: #e2e8f0; font-size: 13px; font-weight: bold;">${props.observation_count || props.observations || '1'}</div>
-            </div>
-            <div>
-              <div style="color: #94a3b8; font-size: 11px;">Unique Days</div>
-              <div style="color: #e2e8f0; font-size: 13px; font-weight: bold;">${props.unique_days || '1'}</div>
-            </div>
-            <div>
-              <div style="color: #94a3b8; font-size: 11px;">Unique Locations</div>
-              <div style="color: #e2e8f0; font-size: 13px; font-weight: bold;">${props.unique_locations || '1'}</div>
-            </div>
-            <div>
-              <div style="color: #94a3b8; font-size: 11px;">Max Distance</div>
-              <div style="color: #e2e8f0; font-size: 13px; font-weight: bold;">${props.max_distance_km ? `${props.max_distance_km.toFixed(2)} km` : 'N/A'}</div>
-            </div>
+          <div style="display: flex; gap: 12px;">
+            <div><span style="color: #94a3b8; font-size: 10px;">Alt:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 10px;">${props.altitude != null ? `${props.altitude.toFixed(1)} m` : 'N/A'}</span></div>
+            <div><span style="color: #94a3b8; font-size: 10px;">Dist:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 10px;">${props.distance_from_home_km ? `${props.distance_from_home_km.toFixed(1)} km` : 'N/A'}</span></div>
           </div>
         </div>
 
         <!-- DIVIDER -->
-        <div style="height: 1px; background: #334155; margin: 12px 0;"></div>
+        <div style="height: 1px; background: #334155; margin: 8px 0;"></div>
 
-        <!-- TEMPORAL INFORMATION -->
-        <div style="margin-bottom: 12px;">
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 6px; font-weight: bold;">TEMPORAL INFORMATION</div>
-          
-          <div>
-            <div style="color: #94a3b8; font-size: 11px;">First Observed</div>
-            <div style="color: #e2e8f0; font-size: 13px;">${formatDate(props.first_seen)} ${formatTime(props.first_seen)}</div>
-          </div>
-          
-          <div style="margin-top: 6px;">
-            <div style="color: #94a3b8; font-size: 11px;">Last Observed</div>
-            <div style="color: #e2e8f0; font-size: 13px;">${formatDate(props.last_seen)} ${formatTime(props.last_seen)}</div>
-          </div>
-          
-          <div style="margin-top: 6px;">
-            <div style="color: #94a3b8; font-size: 11px;">Most Recent</div>
-            <div style="color: #a78bfa; font-size: 13px; font-weight: bold;">${formatDate(props.time)} ${formatTime(props.time)}</div>
-          </div>
-          
-          <div style="margin-top: 6px;">
-            <div style="color: #94a3b8; font-size: 11px;">Timespan Active</div>
-            <div style="color: #e2e8f0; font-size: 13px;">${props.timespan_days || 'N/A'} days</div>
+        <!-- STATISTICS -->
+        <div style="margin-bottom: 8px;">
+          <div style="color: #64748b; font-size: 9px; margin-bottom: 4px; font-weight: bold;">STATISTICS</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <div style="color: #94a3b8; font-size: 9px;">Observations</div>
+              <div style="color: #e2e8f0; font-size: 11px; font-weight: bold;">${props.observation_count || props.observations || '1'}</div>
+            </div>
+            <div>
+              <div style="color: #94a3b8; font-size: 9px;">Days</div>
+              <div style="color: #e2e8f0; font-size: 11px; font-weight: bold;">${props.unique_days || '1'}</div>
+            </div>
           </div>
         </div>
 
-        <!-- DIVIDER -->
-        <div style="height: 1px; background: #334155; margin: 12px 0;"></div>
+        <!-- TEMPORAL -->
+        <div style="margin-bottom: 8px;">
+          <div style="color: #64748b; font-size: 9px; margin-bottom: 4px; font-weight: bold;">TEMPORAL</div>
+          <div style="display: flex; justify-content: space-between;">
+            <div><span style="color: #94a3b8; font-size: 9px;">First:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 9px;">${formatDate(props.first_seen)}</span></div>
+            <div><span style="color: #94a3b8; font-size: 9px;">Last:</span><span style="color: #a78bfa; margin-left: 4px; font-size: 9px;">${formatDate(props.last_seen)}</span></div>
+          </div>
+        </div>
 
         <!-- GPS ACCURACY -->
         <div>
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">GPS ACCURACY</div>
-          <div style="color: #e2e8f0; font-size: 13px;">±${props.accuracy ? `${props.accuracy.toFixed(1)} m` : 'N/A'}</div>
+          <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">GPS ACCURACY</div>
+          <div style="color: #e2e8f0; font-size: 10px;">±${props.accuracy ? `${props.accuracy.toFixed(1)} m` : 'N/A'}</div>
         </div>
       </div>
     `;
@@ -1153,7 +1115,40 @@ export default function GeospatialExplorer() {
               channel: props.channel,
             });
 
-            new mapboxgl.Popup({ offset: 15, className: 'sc-popup' })
+            // Smart positioning to keep popup in viewport
+            const mapContainer = map.getContainer();
+            const mapRect = mapContainer.getBoundingClientRect();
+            const point = map.project(e.lngLat);
+            
+            // Estimate popup dimensions (compact version)
+            const popupWidth = 380;
+            const popupHeight = 400;
+            
+            // Calculate if popup would go off screen
+            const wouldOverflowRight = point.x + popupWidth > mapRect.width;
+            const wouldOverflowBottom = point.y + popupHeight > mapRect.height;
+            
+            // Determine anchor and offset
+            let anchor = 'bottom';
+            let offset = [0, -15];
+            
+            if (wouldOverflowBottom && wouldOverflowRight) {
+              anchor = 'top-right';
+              offset = [15, 15];
+            } else if (wouldOverflowBottom) {
+              anchor = 'top';
+              offset = [0, 15];
+            } else if (wouldOverflowRight) {
+              anchor = 'bottom-right';
+              offset = [15, -15];
+            }
+
+            new mapboxgl.Popup({ 
+              offset: offset, 
+              className: 'sc-popup',
+              anchor: anchor,
+              maxWidth: '380px'
+            })
               .setLngLat(e.lngLat)
               .setHTML(popupHTML)
               .addTo(map);
