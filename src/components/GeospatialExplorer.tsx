@@ -467,15 +467,31 @@ export default function GeospatialExplorer() {
   }>({ center: DEFAULT_CENTER, radius: DEFAULT_HOME_RADIUS });
 
   // Context menu state for network tagging
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    network: NetworkRow | null;
+    tag: NetworkTag | null;
+    position: 'below' | 'above';
+  }>({
     visible: false,
     x: 0,
     y: 0,
     network: null,
     tag: null,
+    position: 'below',
   });
   const [tagLoading, setTagLoading] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // Note modal state
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [selectedBssid, setSelectedBssid] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [noteType, setNoteType] = useState('general');
+  const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
@@ -1814,23 +1830,60 @@ export default function GeospatialExplorer() {
     e.preventDefault();
     e.stopPropagation();
 
+    const menuHeight = 320; // Height of context menu in pixels
+    const menuWidth = 200; // Width of context menu in pixels
+    const padding = 10; // Padding from screen edge
+    
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    let posX = e.clientX;
+    let posY = e.clientY;
+    let position: 'below' | 'above' = 'below';
+
+    // ========== VERTICAL POSITIONING ==========
+    // Check if menu would go off bottom of screen
+    if (posY + menuHeight + padding > viewportHeight) {
+      // Flip menu upward
+      posY = e.clientY - menuHeight;
+      position = 'above';
+    }
+
+    // Ensure menu doesn't go above top of screen
+    if (posY < padding) {
+      posY = padding;
+      position = 'below'; // Reset to below if we hit top
+    }
+
+    // ========== HORIZONTAL POSITIONING ==========
+    // Check if menu would go off right side of screen
+    if (posX + menuWidth + padding > viewportWidth) {
+      posX = viewportWidth - menuWidth - padding;
+    }
+
+    // Check if menu would go off left side of screen
+    if (posX - padding < 0) {
+      posX = padding;
+    }
+
     // Fetch current tag state for this network
     try {
       const response = await fetch(`/api/network-tags/${encodeURIComponent(network.bssid)}`);
       const tag = await response.json();
       setContextMenu({
         visible: true,
-        x: e.clientX,
-        y: e.clientY,
+        x: posX,
+        y: posY,
         network,
         tag,
+        position,
       });
     } catch (err) {
       logError('Failed to fetch network tag', err);
       setContextMenu({
         visible: true,
-        x: e.clientX,
-        y: e.clientY,
+        x: posX,
+        y: posY,
         network,
         tag: {
           bssid: network.bssid,
@@ -1840,6 +1893,7 @@ export default function GeospatialExplorer() {
           notes: null,
           exists: false,
         },
+        position,
       });
     }
   };
@@ -1905,6 +1959,74 @@ export default function GeospatialExplorer() {
       setTagLoading(false);
       closeContextMenu();
     }
+  };
+
+  // Save note function
+  const handleSaveNote = async () => {
+    if (!noteContent.trim() || !selectedBssid) return;
+
+    try {
+      // Step 1: Create the note
+      const response = await fetch('/api/admin/network-notes/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bssid: selectedBssid,
+          content: noteContent,
+          note_type: noteType,
+          user_id: 'geospatial_user',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create note');
+
+      const data = await response.json();
+      const noteId = data.note_id;
+
+      // Step 2: Upload attachments if any
+      if (noteAttachments.length > 0) {
+        for (const file of noteAttachments) {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('bssid', selectedBssid);
+
+          const mediaResponse = await fetch(
+            `/api/admin/network-notes/${noteId}/media`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+
+          if (!mediaResponse.ok) {
+            console.warn(`Failed to upload media: ${file.name}`);
+          }
+        }
+      }
+
+      // Success: Reset form
+      setShowNoteModal(false);
+      setNoteContent('');
+      setNoteType('general');
+      setSelectedBssid('');
+      setNoteAttachments([]);
+    } catch (err) {
+      logError('Failed to save note', err);
+    }
+  };
+
+  // Handle file selection for attachments
+  const handleAddAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setNoteAttachments(prev => [...prev, ...files]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove attachment from pending list
+  const removeAttachment = (index: number) => {
+    setNoteAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   // Close context menu on click outside
@@ -3460,7 +3582,8 @@ export default function GeospatialExplorer() {
           ref={contextMenuRef}
           style={{
             position: 'fixed',
-            top: contextMenu.y,
+            top: contextMenu.position === 'below' ? contextMenu.y : 'auto',
+            bottom: contextMenu.position === 'above' ? window.innerHeight - contextMenu.y : 'auto',
             left: contextMenu.x,
             zIndex: 10000,
             background: '#1e293b',
@@ -3687,6 +3810,32 @@ export default function GeospatialExplorer() {
                 </button>
               </>
             )}
+
+            {/* Add Note */}
+            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+            <button
+              onClick={() => {
+                setShowNoteModal(true);
+                setSelectedBssid(contextMenu.network?.bssid || '');
+                closeContextMenu();
+              }}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: 'transparent',
+                border: 'none',
+                color: '#a78bfa',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              📝 Add Note
+            </button>
           </div>
 
           {/* Loading Indicator */}
@@ -3702,6 +3851,264 @@ export default function GeospatialExplorer() {
               Saving...
             </div>
           )}
+        </div>
+      )}
+
+      {/* Note Modal with Media Attachments */}
+      {showNoteModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 20000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => setShowNoteModal(false)}
+        >
+          <div
+            style={{
+              background: '#1e293b',
+              border: '1px solid #475569',
+              borderRadius: '8px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '550px',
+              color: '#e2e8f0',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add Note & Media</h3>
+              <button
+                onClick={() => {
+                  setShowNoteModal(false);
+                  setNoteContent('');
+                  setNoteAttachments([]);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* BSSID Display */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+                BSSID: <span style={{ fontFamily: 'monospace', color: '#a78bfa' }}>{selectedBssid}</span>
+              </label>
+            </div>
+
+            {/* Note Type Selector */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+                Note Type
+              </label>
+              <select
+                value={noteType}
+                onChange={(e) => setNoteType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: '#334155',
+                  border: '1px solid #475569',
+                  borderRadius: '4px',
+                  color: '#e2e8f0',
+                  fontSize: '14px',
+                }}
+              >
+                <option value="general">General Observation</option>
+                <option value="threat">Threat Assessment</option>
+                <option value="location">Location Indicator</option>
+                <option value="device_info">Device Information</option>
+              </select>
+            </div>
+
+            {/* Note Content */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+                Note Content
+              </label>
+              <textarea
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                placeholder="Enter your observation..."
+                style={{
+                  width: '100%',
+                  height: '100px',
+                  padding: '8px 12px',
+                  background: '#334155',
+                  border: '1px solid #475569',
+                  borderRadius: '4px',
+                  color: '#e2e8f0',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            {/* Media Attachments */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+                📎 Attach Media (Optional)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,.pdf"
+                onChange={handleAddAttachment}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#334155',
+                  border: '2px dashed #475569',
+                  borderRadius: '4px',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#4ade80';
+                  e.currentTarget.style.color = '#4ade80';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#475569';
+                  e.currentTarget.style.color = '#94a3b8';
+                }}
+              >
+                Click to attach files (Images, Videos, PDF)
+              </button>
+            </div>
+
+            {/* Attached Files List */}
+            {noteAttachments.length > 0 && (
+              <div style={{ marginBottom: '20px', background: '#334155', padding: '12px', borderRadius: '4px' }}>
+                <p style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600', color: '#94a3b8' }}>
+                  Attached Files ({noteAttachments.length})
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {noteAttachments.map((file, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: '#1e293b',
+                        padding: '8px 12px',
+                        borderRadius: '4px',
+                        border: '1px solid #475569',
+                      }}
+                    >
+                      <span style={{ fontSize: '13px', color: '#e2e8f0' }}>
+                        📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                      <button
+                        onClick={() => removeAttachment(idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          padding: '0 4px',
+                          transition: 'color 0.2s',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#f87171')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#ef4444')}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handleSaveNote}
+                disabled={!noteContent.trim()}
+                style={{
+                  flex: 1,
+                  padding: '10px 20px',
+                  background: noteContent.trim() ? '#a78bfa' : '#475569',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: noteContent.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (noteContent.trim()) {
+                    e.currentTarget.style.background = '#c4b5fd';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (noteContent.trim()) {
+                    e.currentTarget.style.background = '#a78bfa';
+                  }
+                }}
+              >
+                Save Note {noteAttachments.length > 0 && `+ ${noteAttachments.length} File${noteAttachments.length !== 1 ? 's' : ''}`}
+              </button>
+              <button
+                onClick={() => {
+                  setShowNoteModal(false);
+                  setNoteContent('');
+                  setNoteType('general');
+                  setNoteAttachments([]);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px 20px',
+                  background: 'transparent',
+                  border: '1px solid #475569',
+                  borderRadius: '4px',
+                  color: '#94a3b8',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#475569';
+                  e.currentTarget.style.color = '#e2e8f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#94a3b8';
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Context Menu Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 30px; }
+        
+        .network-table { 
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #dee2e6; }
+        
+        .network-row { cursor: context-menu; transition: background-color 0.2s; }
+        .network-row:hover { background: #f8f9fa; }
+        
+        .threat-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .threat-high { background: #fee; color: #c53030; }
+        .threat-med { background: #fffbeb; color: #d69e2e; }
+        .threat-low { background: #f0fff4; color: #38a169; }
+        
+        .note-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 160px;
+            display: none;
+        }
+        
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover { background: #f8f9fa; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title { font-size: 18px; font-weight: 600; margin: 0; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-textarea { resize: vertical; height: 80px; }
+        
+        .file-drop {
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-drop:hover { border-color: #007bff; background: #f8f9ff; }
+        
+        .attached-files {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        
+        .attached-file {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .attached-file:last-child { margin-bottom: 0; }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; }
+        
+        .btn-group { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-group .btn { flex: 1; }
+        
+        .notes-section {
+            margin-top: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .notes-header {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+        
+        .note-item {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .note-item:last-child { border-bottom: none; }
+        
+        .note-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .note-type {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .note-date { font-size: 12px; color: #666; margin-top: 4px; }
+        .note-content { color: #333; line-height: 1.5; }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .delete-btn:hover { background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Network Threat Analysis - Right-Click Demo</h1>
+        
+        <div class="network-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>BSSID</th>
+                        <th>SSID</th>
+                        <th>Threat Level</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="networkTableBody">
+                    <!-- Networks will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Context Menu -->
+        <div id="contextMenu" class="context-menu">
+            <div class="context-menu-item" onclick="openNoteModal()">
+                📝 Add Note
+            </div>
+            <div class="context-menu-item" onclick="openFileDialog()">
+                📎 Attach Media
+            </div>
+            <div class="context-menu-item" onclick="closeContextMenu()">
+                ❌ Close
+            </div>
+        </div>
+
+        <!-- Note Modal -->
+        <div id="noteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Add Note</h2>
+                    <button class="close-btn" onclick="closeNoteModal()">&times;</button>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">BSSID: <span id="modalBssid" style="font-family: monospace; color: #007bff;"></span></label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Note Type</label>
+                    <select id="noteType" class="form-select">
+                        <option value="general">General Observation</option>
+                        <option value="threat">Threat Assessment</option>
+                        <option value="location">Location Indicator</option>
+                        <option value="device_info">Device Information</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Note Content</label>
+                    <textarea id="noteContent" class="form-textarea" placeholder="Enter your observation..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Media Attachments</label>
+                    <div class="file-drop" onclick="document.getElementById('fileInput').click()">
+                        📎 Click to attach files (images, videos, PDFs)
+                    </div>
+                    <input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf" style="display: none;" onchange="handleFileSelect(event)">
+                    <div id="attachedFiles" class="attached-files" style="display: none;"></div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveNote()">Save Note</button>
+                    <button class="btn btn-secondary" onclick="closeNoteModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes Display -->
+        <div id="notesSection" class="notes-section" style="display: none;">
+            <div class="notes-header">
+                <span id="notesTitle">Notes for Network</span>
+            </div>
+            <div id="notesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentBssid = null;
+        let attachedFiles = [];
+        let networkNotes = {};
+
+        // Sample network data - replace with real data from API
+        const sampleNetworks = [
+            { bssid: '00:00:00:00:6E:36', ssid: 'TestNetwork', threat_level: 'HIGH' },
+            { bssid: 'AA:BB:CC:DD:EE:FF', ssid: '(hidden)', threat_level: 'MED' },
+            { bssid: '11:22:33:44:55:66', ssid: 'CoffeeShop_WiFi', threat_level: 'LOW' }
+        ];
+
+        // Load networks into table
+        function loadNetworks() {
+            const tbody = document.getElementById('networkTableBody');
+            tbody.innerHTML = '';
+            
+            sampleNetworks.forEach(network => {
+                const row = document.createElement('tr');
+                row.className = 'network-row';
+                row.oncontextmenu = (e) => showContextMenu(e, network.bssid);
+                
+                const threatClass = `threat-${network.threat_level.toLowerCase()}`;
+                const noteCount = networkNotes[network.bssid] ? networkNotes[network.bssid].length : 0;
+                
+                row.innerHTML = `
+                    <td style="font-family: monospace;">${network.bssid}</td>
+                    <td>${network.ssid}</td>
+                    <td><span class="threat-badge ${threatClass}">${network.threat_level}</span></td>
+                    <td>${noteCount > 0 ? `<span class="note-badge">📝 ${noteCount}</span>` : ''}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Show context menu
+        function showContextMenu(e, bssid) {
+            e.preventDefault();
+            currentBssid = bssid;
+            
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        }
+
+        // Close context menu
+        function closeContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        // Open note modal
+        function openNoteModal() {
+            document.getElementById('modalBssid').textContent = currentBssid;
+            document.getElementById('noteModal').style.display = 'flex';
+            closeContextMenu();
+        }
+
+        // Close note modal
+        function closeNoteModal() {
+            document.getElementById('noteModal').style.display = 'none';
+            document.getElementById('noteContent').value = '';
+            document.getElementById('noteType').value = 'general';
+            attachedFiles = [];
+            updateAttachedFilesDisplay();
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            attachedFiles = [...attachedFiles, ...files];
+            updateAttachedFilesDisplay();
+        }
+
+        // Update attached files display
+        function updateAttachedFilesDisplay() {
+            const container = document.getElementById('attachedFiles');
+            
+            if (attachedFiles.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 8px;">Attached Files (${attachedFiles.length})</div>
+                ${attachedFiles.map((file, index) => `
+                    <div class="attached-file">
+                        <span>${file.name}</span>
+                        <button onclick="removeAttachment(${index})" style="background: none; border: none; color: #dc3545; cursor: pointer;">✕</button>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Remove attachment
+        function removeAttachment(index) {
+            attachedFiles.splice(index, 1);
+            updateAttachedFilesDisplay();
+        }
+
+        // Save note
+        async function saveNote() {
+            const content = document.getElementById('noteContent').value.trim();
+            const noteType = document.getElementById('noteType').value;
+            
+            if (!content) {
+                alert('Please enter note content');
+                return;
+            }
+
+            try {
+                // Add note
+                const noteResponse = await fetch('/api/admin/network-notes/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bssid: currentBssid,
+                        content: content,
+                        note_type: noteType,
+                        user_id: 'demo_user'
+                    })
+                });
+
+                if (noteResponse.ok) {
+                    const noteData = await noteResponse.json();
+                    
+                    // Upload media if attached
+                    for (const file of attachedFiles) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('bssid', currentBssid);
+                        
+                        await fetch(`/api/admin/network-notes/${noteData.note_id}/media`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                    }
+
+                    // Refresh notes
+                    await loadNotesForNetwork(currentBssid);
+                    loadNetworks(); // Refresh table to show note count
+                    closeNoteModal();
+                    alert('Note saved successfully!');
+                } else {
+                    alert('Failed to save note');
+                }
+            } catch (error) {
+                console.error('Error saving note:', error);
+                alert('Error saving note');
+            }
+        }
+
+        // Load notes for network
+        async function loadNotesForNetwork(bssid) {
+            try {
+                const response = await fetch(`/api/admin/network-notes/${bssid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    networkNotes[bssid] = data.notes;
+                    displayNotes(bssid, data.notes);
+                }
+            } catch (error) {
+                console.error('Error loading notes:', error);
+            }
+        }
+
+        // Display notes
+        function displayNotes(bssid, notes) {
+            const section = document.getElementById('notesSection');
+            const title = document.getElementById('notesTitle');
+            const list = document.getElementById('notesList');
+            
+            if (notes.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            title.textContent = `Notes for ${bssid}`;
+            section.style.display = 'block';
+            
+            list.innerHTML = notes.map(note => `
+                <div class="note-item">
+                    <div class="note-meta">
+                        <div>
+                            <div class="note-type">${note.note_type}</div>
+                            <div class="note-date">${new Date(note.created_at).toLocaleString()}</div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteNote('${bssid}', ${note.id})">🗑️</button>
+                    </div>
+                    <div class="note-content">${note.content}</div>
+                </div>
+            `).join('');
+        }
+
+        // Delete note
+        async function deleteNote(bssid, noteId) {
+            if (!confirm('Delete this note?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/network-notes/${noteId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadNotesForNetwork(bssid);
+                    loadNetworks();
+                }
+            } catch (error) {
+                console.error('Error deleting note:', error);
+            }
+        }
+
+        // Open file dialog
+        function openFileDialog() {
+            document.getElementById('fileInput').click();
+            closeContextMenu();
+        }
+
+        // Close context menu when clicking elsewhere
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#contextMenu')) {
+                closeContextMenu();
+            }
+        });
+
+        // Initialize
+        loadNetworks();
+    </script>
+</body>
+</html>

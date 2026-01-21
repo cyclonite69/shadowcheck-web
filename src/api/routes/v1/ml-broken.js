@@ -117,10 +117,203 @@ router.post('/ml/train', async (req, res, next) => {
 });
 
 // ============================================
+// POST /api/ml/test-behavioral - Simple test route
+// ============================================
+router.post('/ml/test-behavioral', async (req, res, next) => {
+  try {
+    res.json({ ok: true, message: 'Behavioral test route working' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ============================================
+// POST /api/ml/score-behavioral - Behavioral threat scoring (v2.0)
+// ============================================
+router.post('/ml/score-behavioral', async (req, res, next) => {
+  try {
+    res.json({
+      ok: true,
+      model_version: '2.0.0',
+      model_type: 'behavioral_mobility',
+      message: 'Behavioral scoring endpoint working'
+    });
+  } catch (err) {
+    logger.error('[ML] Behavioral scoring failed:', err);
+    next(err);
+  }
+});
+
+// ============================================
+// POST /api/ml/score-behavioral-v2 - Behavioral threat scoring (v2.0)
+// ============================================
+router.post('/ml/score-behavioral-v2', async (req, res, next) => {
+  try {
+    logger.info('[ML] Using behavioral scoring model v2.0');
+    
+    // Simple behavioral scoring - just mobility + persistence
+    const result = await query(`
+      SELECT 
+        ap.bssid,
+        COUNT(DISTINCT obs.id) as observation_count,
+        COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
+        COALESCE(MAX(ST_Distance(
+          ST_SetSRID(ST_MakePoint(obs.longitude, obs.latitude), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(-79.3832, 43.6532), 4326)::geography
+        )) / 1000.0, 0) as max_distance_km
+      FROM public.access_points ap
+      LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
+      WHERE ap.bssid IS NOT NULL AND obs.id IS NOT NULL
+      GROUP BY ap.bssid
+      HAVING COUNT(DISTINCT obs.id) > 5
+      LIMIT 50
+    `);
+
+    const scores = result.rows.map(net => {
+      const mobility = net.max_distance_km > 5 ? 80 : net.max_distance_km > 1 ? 40 : 0;
+      const persistence = net.unique_days > 7 ? 60 : net.unique_days > 3 ? 30 : 0;
+      const threatScore = mobility * 0.6 + persistence * 0.4;
+      
+      return {
+        bssid: net.bssid,
+        threat_score: threatScore,
+        threat_level: threatScore >= 60 ? 'HIGH' : threatScore >= 30 ? 'MED' : 'LOW',
+        factors: { mobility, persistence },
+        raw: { max_distance_km: net.max_distance_km, unique_days: net.unique_days }
+      };
+    });
+
+    // Persist behavioral scores to database
+    let inserted = 0;
+    for (const score of scores) {
+      try {
+        await query(`
+          INSERT INTO app.network_threat_scores 
+            (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
+             rule_based_score, final_threat_score, final_threat_level, model_version)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (bssid) DO UPDATE SET
+            ml_threat_score = EXCLUDED.ml_threat_score,
+            ml_threat_probability = EXCLUDED.ml_threat_probability,
+            final_threat_score = EXCLUDED.final_threat_score,
+            final_threat_level = EXCLUDED.final_threat_level,
+            model_version = EXCLUDED.model_version,
+            updated_at = NOW()
+        `, [
+          score.bssid, 
+          score.threat_score, 
+          score.threat_score / 100.0,
+          score.threat_score >= 60 ? 'THREAT' : 'LEGITIMATE',
+          0,
+          score.threat_score,
+          score.threat_level,
+          '2.0.0'
+        ]);
+        inserted++;
+      } catch (err) {
+        logger.debug(`[ML Behavioral] Error persisting ${score.bssid}: ${err.message}`);
+      }
+    }
+
+    logger.info(`[ML Behavioral v2.0] Scored ${scores.length}, persisted ${inserted} networks`);
+
+    res.json({
+      ok: true,
+      model_version: '2.0.0',
+      scored: scores.length,
+      persisted: inserted,
+      scores: scores.slice(0, 10)
+    });
+  } catch (err) {
+    logger.error('[ML] Behavioral scoring failed:', err);
+    next(err);
+  }
+});
+
+// ============================================
 // POST /api/ml/score-all - Legacy ML scoring (v1.0)
 // ============================================
 router.post('/ml/score-all', async (req, res, next) => {
   try {
+    const { model = 'legacy' } = req.body;
+    logger.info(`[ML] Request body: ${JSON.stringify(req.body)}, model: ${model}`);
+    
+    if (model === 'behavioral') {
+      logger.info('[ML] Using behavioral scoring model v2.0');
+      // Simple behavioral scoring - just mobility + persistence
+      const result = await query(`
+        SELECT 
+          ap.bssid,
+          COUNT(DISTINCT obs.id) as observation_count,
+          COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
+          COALESCE(MAX(ST_Distance(
+            ST_SetSRID(ST_MakePoint(obs.longitude, obs.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(-79.3832, 43.6532), 4326)::geography
+          )) / 1000.0, 0) as max_distance_km
+        FROM public.access_points ap
+        LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
+        WHERE ap.bssid IS NOT NULL AND obs.id IS NOT NULL
+        GROUP BY ap.bssid
+        HAVING COUNT(DISTINCT obs.id) > 5
+        LIMIT 50
+      `);
+
+      const scores = result.rows.map(net => {
+        const mobility = net.max_distance_km > 5 ? 80 : net.max_distance_km > 1 ? 40 : 0;
+        const persistence = net.unique_days > 7 ? 60 : net.unique_days > 3 ? 30 : 0;
+        const threatScore = mobility * 0.6 + persistence * 0.4;
+        
+        return {
+          bssid: net.bssid,
+          threat_score: threatScore,
+          threat_level: threatScore >= 60 ? 'HIGH' : threatScore >= 30 ? 'MED' : 'LOW',
+          factors: { mobility, persistence },
+          raw: { max_distance_km: net.max_distance_km, unique_days: net.unique_days }
+        };
+      });
+
+      // Persist behavioral scores to database
+      let inserted = 0;
+      for (const score of scores) {
+        try {
+          await query(`
+            INSERT INTO app.network_threat_scores 
+              (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
+               rule_based_score, final_threat_score, final_threat_level, model_version)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (bssid) DO UPDATE SET
+              ml_threat_score = EXCLUDED.ml_threat_score,
+              ml_threat_probability = EXCLUDED.ml_threat_probability,
+              final_threat_score = EXCLUDED.final_threat_score,
+              final_threat_level = EXCLUDED.final_threat_level,
+              model_version = EXCLUDED.model_version,
+              updated_at = NOW()
+          `, [
+            score.bssid, 
+            score.threat_score, 
+            score.threat_score / 100.0,
+            score.threat_score >= 60 ? 'THREAT' : 'LEGITIMATE',
+            0,
+            score.threat_score,
+            score.threat_level,
+            '2.0.0'
+          ]);
+          inserted++;
+        } catch (err) {
+          logger.debug(`[ML Behavioral] Error persisting ${score.bssid}: ${err.message}`);
+        }
+      }
+
+      logger.info(`[ML Behavioral v2.0] Scored ${scores.length}, persisted ${inserted} networks`);
+
+      return res.json({
+        ok: true,
+        model_version: '2.0.0',
+        scored: scores.length,
+        persisted: inserted,
+        scores: scores.slice(0, 10)
+      });
+    }
     logger.info('[ML] Starting ML scoring of all networks...');
 
     // Get trained model

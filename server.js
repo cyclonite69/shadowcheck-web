@@ -594,6 +594,10 @@ delete process.env.PGUSER;
 
     logger.info('All routes mounted successfully');
 
+    // Initialize background jobs
+    const BackgroundJobsService = require('./src/services/backgroundJobsService');
+    await BackgroundJobsService.initialize();
+
     // Home location endpoints (add before catch-all route)
     app.get('/api/home-location', async (req, res) => {
       try {
@@ -731,6 +735,8 @@ delete process.env.PGUSER;
     // Graceful shutdown
     process.on('SIGTERM', async () => {
       logger.info('SIGTERM received, closing server gracefully...');
+      const BackgroundJobsService = require('./src/services/backgroundJobsService');
+      BackgroundJobsService.shutdown();
       await pool.end();
       process.exit(0);
     });
