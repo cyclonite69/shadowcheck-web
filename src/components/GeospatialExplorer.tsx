@@ -454,7 +454,7 @@ export default function GeospatialExplorer() {
    */
   const renderNetworkTooltip = (props: any) => {
     const formatDate = (date: string) => {
-      if (!date) return 'N/A';
+      if (!date) return '';
       return new Date(date).toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
@@ -532,7 +532,7 @@ export default function GeospatialExplorer() {
             <div style="color: #e2e8f0; font-size: 11px; margin-bottom: 6px;">${props.security || 'OPEN'}</div>
             
             <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">THREAT SCORE</div>
-            <div style="color: ${threatColor}; font-size: 11px; font-weight: bold; margin-bottom: 6px;">${props.threat_score || 'N/A'}</div>
+            <div style="color: ${threatColor}; font-size: 11px; font-weight: bold; margin-bottom: 6px;">${props.threat_score ? props.threat_score.toFixed(1) : '0.0'}</div>
           </div>
         </div>
 
@@ -548,7 +548,7 @@ export default function GeospatialExplorer() {
           </div>
           <div style="display: flex; gap: 12px;">
             <div><span style="color: #94a3b8; font-size: 10px;">Alt:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 10px;">${props.altitude != null ? `${props.altitude.toFixed(1)} m` : 'N/A'}</span></div>
-            <div><span style="color: #94a3b8; font-size: 10px;">Dist:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 10px;">${props.distance_from_home_km ? `${props.distance_from_home_km.toFixed(1)} km` : 'N/A'}</span></div>
+            <div><span style="color: #94a3b8; font-size: 10px;">Dist:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 10px;">${props.distance_from_home_km ? `${props.distance_from_home_km.toFixed(1)} km` : '0.0 km'}</span></div>
           </div>
         </div>
 
@@ -571,19 +571,23 @@ export default function GeospatialExplorer() {
         </div>
 
         <!-- TEMPORAL -->
+        ${(props.first_seen || props.last_seen) ? `
         <div style="margin-bottom: 8px;">
           <div style="color: #64748b; font-size: 9px; margin-bottom: 4px; font-weight: bold;">TEMPORAL</div>
           <div style="display: flex; justify-content: space-between;">
-            <div><span style="color: #94a3b8; font-size: 9px;">First:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 9px;">${formatDate(props.first_seen)}</span></div>
-            <div><span style="color: #94a3b8; font-size: 9px;">Last:</span><span style="color: #a78bfa; margin-left: 4px; font-size: 9px;">${formatDate(props.last_seen)}</span></div>
+            ${props.first_seen ? `<div><span style="color: #94a3b8; font-size: 9px;">First:</span><span style="color: #e2e8f0; margin-left: 4px; font-size: 9px;">${formatDate(props.first_seen)}</span></div>` : ''}
+            ${props.last_seen ? `<div><span style="color: #94a3b8; font-size: 9px;">Last:</span><span style="color: #a78bfa; margin-left: 4px; font-size: 9px;">${formatDate(props.last_seen)}</span></div>` : ''}
           </div>
         </div>
+        ` : ''}
 
         <!-- GPS ACCURACY -->
+        ${props.accuracy ? `
         <div>
           <div style="color: #64748b; font-size: 9px; margin-bottom: 1px;">GPS ACCURACY</div>
-          <div style="color: #e2e8f0; font-size: 10px;">±${props.accuracy ? `${props.accuracy.toFixed(1)} m` : 'N/A'}</div>
+          <div style="color: #e2e8f0; font-size: 10px;">±${props.accuracy.toFixed(1)} m</div>
         </div>
+        ` : ''}
       </div>
     `;
   };
