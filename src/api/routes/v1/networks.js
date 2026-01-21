@@ -398,9 +398,9 @@ router.get('/networks', async (req, res, next) => {
       const orderColumns = Array.isArray(parsedOrderJson)
         ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
         : String(orderRaw)
-            .split(',')
-            .map((value) => value.trim().toUpperCase())
-            .filter(Boolean);
+          .split(',')
+          .map((value) => value.trim().toUpperCase())
+          .filter(Boolean);
 
       const normalizedOrders =
         orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;

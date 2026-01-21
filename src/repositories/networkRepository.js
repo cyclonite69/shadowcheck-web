@@ -225,10 +225,10 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_observations
           FROM public.observations
           ${whereClause
-            .replace(/type/g, 'radio_type')
-            .replace(/bestlevel/g, 'level')
-            .replace(/lasttime_ms/g, 'time_ms')
-            .replace(/capabilities/g, 'radio_capabilities')}
+    .replace(/type/g, 'radio_type')
+    .replace(/bestlevel/g, 'level')
+    .replace(/lasttime_ms/g, 'time_ms')
+    .replace(/capabilities/g, 'radio_capabilities')}
         `,
           params
         );

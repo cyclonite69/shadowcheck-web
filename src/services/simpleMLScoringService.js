@@ -15,7 +15,7 @@ class SimpleMLScoringService {
       return {
         ok: true,
         message: 'ML Scoring Service is working',
-        modelCount: result.rows[0].count
+        modelCount: result.rows[0].count,
       };
     } catch (error) {
       console.error('[Simple ML Scoring] Error:', error);
@@ -29,7 +29,7 @@ class SimpleMLScoringService {
   static async insertTestScore() {
     try {
       const testBssid = 'AA:BB:CC:DD:EE:FF';
-      
+
       await query(`
         INSERT INTO app.network_threat_scores 
           (bssid, ml_threat_score, ml_threat_probability, ml_primary_class, 
@@ -43,7 +43,7 @@ class SimpleMLScoringService {
       return {
         ok: true,
         message: 'Test score inserted successfully',
-        bssid: testBssid
+        bssid: testBssid,
       };
     } catch (error) {
       console.error('[Simple ML Scoring] Insert error:', error);
@@ -60,10 +60,10 @@ class SimpleMLScoringService {
         'SELECT * FROM app.network_threat_scores WHERE bssid = $1',
         ['AA:BB:CC:DD:EE:FF']
       );
-      
+
       return {
         ok: true,
-        score: result.rows[0] || null
+        score: result.rows[0] || null,
       };
     } catch (error) {
       console.error('[Simple ML Scoring] Get error:', error);

@@ -41,7 +41,7 @@ const mediaStorage = multer.diskStorage({
     const timestamp = Date.now();
     const ext = path.extname(file.originalname);
     cb(null, `${bssid}-${timestamp}${ext}`);
-  }
+  },
 });
 
 const mediaUpload = multer({
@@ -54,7 +54,7 @@ const mediaUpload = multer({
     } else {
       cb(new Error('File type not allowed'));
     }
-  }
+  },
 });
 
 // POST /api/admin/import-sqlite - Import SQLite database
@@ -371,7 +371,7 @@ router.post('/admin/add-note', async (req, res) => {
   try {
     const { bssid, content } = req.body;
     const result = await query(
-      `SELECT app.network_add_note($1, $2, 'general', 'user') as note_id`,
+      'SELECT app.network_add_note($1, $2, \'general\', \'user\') as note_id',
       [bssid, content]
     );
     res.json({ ok: true, note_id: result.rows[0].note_id });
@@ -466,7 +466,7 @@ router.get('/admin/simple-test', (req, res) => {
 router.post('/admin/ml-score-all', async (req, res, next) => {
   try {
     logger.info('Starting ML scoring of all networks...');
-    
+
     // Get the trained model
     const modelResult = await query(
       `SELECT coefficients, intercept, feature_names, version 
@@ -477,7 +477,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
     if (!modelResult.rows.length) {
       return res.status(400).json({
         ok: false,
-        message: 'No trained model found. Train a model first.'
+        message: 'No trained model found. Train a model first.',
       });
     }
 
@@ -517,7 +517,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
         observation_count: network.observation_count || 0,
         max_signal: network.max_signal || -100,
         unique_locations: network.unique_locations || 0,
-        seen_both_locations: (network.seen_at_home && network.seen_away_from_home) ? 1 : 0
+        seen_both_locations: (network.seen_at_home && network.seen_away_from_home) ? 1 : 0,
       };
 
       // Compute logistic regression prediction
@@ -533,10 +533,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
 
       // Determine threat level
       let threatLevel = 'NONE';
-      if (threatScore >= 70) threatLevel = 'CRITICAL';
-      else if (threatScore >= 50) threatLevel = 'HIGH';
-      else if (threatScore >= 30) threatLevel = 'MED';
-      else if (threatScore >= 10) threatLevel = 'LOW';
+      if (threatScore >= 70) {threatLevel = 'CRITICAL';} else if (threatScore >= 50) {threatLevel = 'HIGH';} else if (threatScore >= 30) {threatLevel = 'MED';} else if (threatScore >= 10) {threatLevel = 'LOW';}
 
       scores.push({
         bssid: network.bssid,
@@ -546,7 +543,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
         rule_based_score: network.rule_based_score,
         final_threat_score: Math.max(threatScore, network.rule_based_score),
         final_threat_level: threatLevel,
-        model_version: modelVersion
+        model_version: modelVersion,
       });
     }
 
@@ -569,7 +566,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
             scored_at = NOW(),
             updated_at = NOW()
         `, [s.bssid, s.ml_threat_score, s.ml_threat_probability, s.ml_primary_class,
-            s.rule_based_score, s.final_threat_score, s.final_threat_level, s.model_version]);
+          s.rule_based_score, s.final_threat_score, s.final_threat_level, s.model_version]);
       }
     }
 
@@ -579,7 +576,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
       ok: true,
       scored: scores.length,
       message: `Successfully scored ${scores.length} networks`,
-      modelVersion
+      modelVersion,
     });
   } catch (error) {
     logger.error(`ML scoring error: ${error.message}`, { error });
@@ -591,10 +588,10 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
 router.get('/admin/ml-scores', async (req, res, next) => {
   try {
     const { level, limit = 10 } = req.query;
-    
+
     let whereClause = '';
-    let params = [limit];
-    
+    const params = [limit];
+
     if (level) {
       whereClause = 'WHERE final_threat_level = $2';
       params.push(level);
@@ -613,7 +610,7 @@ router.get('/admin/ml-scores', async (req, res, next) => {
     res.json({
       ok: true,
       scores: result.rows,
-      count: result.rows.length
+      count: result.rows.length,
     });
   } catch (error) {
     logger.error(`ML scores get error: ${error.message}`, { error });
@@ -627,11 +624,11 @@ router.post('/admin/ml-score-now', async (req, res, next) => {
     logger.info('[Admin] Manual ML scoring requested');
     const BackgroundJobsService = require('../../../services/backgroundJobsService');
     await BackgroundJobsService.scoreNow();
-    
+
     res.json({
       ok: true,
       message: 'ML scoring completed',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error(`[Admin] ML scoring error: ${error.message}`);
@@ -656,7 +653,7 @@ router.get('/admin/ml-jobs-status', async (req, res, next) => {
       const nextHour = Math.ceil(hour / 4) * 4;
       const next = new Date(now);
       next.setHours(nextHour, 0, 0, 0);
-      if (next <= now) next.setHours(nextHour + 4);
+      if (next <= now) {next.setHours(nextHour + 4);}
       return next.toISOString();
     };
 
@@ -665,7 +662,7 @@ router.get('/admin/ml-jobs-status', async (req, res, next) => {
       jobsScheduled: true,
       schedule: 'Every 4 hours (0, 4, 8, 12, 16, 20:00)',
       lastScoresSummary: lastScoringResult.rows,
-      nextRun: getNextRunTime()
+      nextRun: getNextRunTime(),
     });
   } catch (error) {
     next(error);
@@ -676,10 +673,10 @@ router.get('/admin/ml-jobs-status', async (req, res, next) => {
 router.post('/admin/network-tags/toggle', async (req, res, next) => {
   try {
     const { bssid, tag, notes } = req.body;
-    
+
     if (!bssid || !tag) {
       return res.status(400).json({
-        error: { message: 'BSSID and tag are required' }
+        error: { message: 'BSSID and tag are required' },
       });
     }
 
@@ -687,7 +684,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
     const validTags = ['THREAT', 'INVESTIGATE', 'FALSE_POSITIVE', 'SUSPECT'];
     if (!validTags.includes(tag)) {
       return res.status(400).json({
-        error: { message: `Invalid tag. Must be one of: ${validTags.join(', ')}` }
+        error: { message: `Invalid tag. Must be one of: ${validTags.join(', ')}` },
       });
     }
 
@@ -698,7 +695,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
     );
 
     let action, newTags;
-    
+
     if (existingResult.rows.length === 0) {
       // Network doesn't exist, create with tag
       await query(`
@@ -711,7 +708,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
       // Network exists, toggle the tag
       const currentTags = existingResult.rows[0].tags || [];
       const hasTag = currentTags.includes(tag);
-      
+
       if (hasTag) {
         // Remove tag
         await query(`
@@ -746,7 +743,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
       ok: true,
       action: action,
       message: `Tag '${tag}' ${action} ${action === 'added' ? 'to' : 'from'} network ${bssid}`,
-      network: result.rows[0]
+      network: result.rows[0],
     });
   } catch (error) {
     logger.error(`Toggle tag error: ${error.message}`);
@@ -758,10 +755,10 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
 router.delete('/admin/network-tags/remove', async (req, res, next) => {
   try {
     const { bssid, tag } = req.body;
-    
+
     if (!bssid || !tag) {
       return res.status(400).json({
-        error: { message: 'BSSID and tag are required' }
+        error: { message: 'BSSID and tag are required' },
       });
     }
 
@@ -782,7 +779,7 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
     res.json({
       ok: true,
       message: `Tag '${tag}' removed from network ${bssid}`,
-      network: result.rows[0]
+      network: result.rows[0],
     });
   } catch (error) {
     logger.error(`Remove tag error: ${error.message}`);
@@ -794,7 +791,7 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
 router.get('/admin/network-tags/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
-    
+
     const result = await query(`
       SELECT 
         bssid,
@@ -813,13 +810,13 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
 
     if (!result.rows.length) {
       return res.status(404).json({
-        error: { message: `No tags found for network ${bssid}` }
+        error: { message: `No tags found for network ${bssid}` },
       });
     }
 
     res.json({
       ok: true,
-      network: result.rows[0]
+      network: result.rows[0],
     });
   } catch (error) {
     next(error);
@@ -830,15 +827,15 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
 router.get('/admin/network-tags/search', async (req, res, next) => {
   try {
     const { tags, limit = 50 } = req.query;
-    
+
     if (!tags) {
       return res.status(400).json({
-        error: { message: 'tags parameter required (comma-separated)' }
+        error: { message: 'tags parameter required (comma-separated)' },
       });
     }
 
     const tagArray = tags.split(',').map(t => t.trim());
-    
+
     // Find networks that have ALL specified tags
     const result = await query(`
       SELECT 
@@ -861,7 +858,7 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
       ok: true,
       searchTags: tagArray,
       networks: result.rows,
-      count: result.rows.length
+      count: result.rows.length,
     });
   } catch (error) {
     next(error);
@@ -872,17 +869,17 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
 router.post('/admin/network-notations/add', async (req, res, next) => {
   try {
     const { bssid, text, type = 'general' } = req.body;
-    
+
     if (!bssid || !text) {
       return res.status(400).json({
-        error: { message: 'BSSID and text are required' }
+        error: { message: 'BSSID and text are required' },
       });
     }
 
     const validTypes = ['general', 'observation', 'technical', 'location', 'behavior'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
-        error: { message: `Invalid type. Must be one of: ${validTypes.join(', ')}` }
+        error: { message: `Invalid type. Must be one of: ${validTypes.join(', ')}` },
       });
     }
 
@@ -895,7 +892,7 @@ router.post('/admin/network-notations/add', async (req, res, next) => {
     res.json({
       ok: true,
       message: 'Notation added successfully',
-      notation: result.rows[0].notation
+      notation: result.rows[0].notation,
     });
   } catch (error) {
     logger.error(`Add notation error: ${error.message}`);
@@ -907,7 +904,7 @@ router.post('/admin/network-notations/add', async (req, res, next) => {
 router.get('/admin/network-notations/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
-    
+
     const result = await query(
       'SELECT detailed_notes FROM app.network_tags WHERE bssid = $1',
       [bssid]
@@ -919,7 +916,7 @@ router.get('/admin/network-notations/:bssid', async (req, res, next) => {
       ok: true,
       bssid,
       notations,
-      count: notations.length
+      count: notations.length,
     });
   } catch (error) {
     next(error);
@@ -930,16 +927,16 @@ router.get('/admin/network-notations/:bssid', async (req, res, next) => {
 router.post('/admin/network-media/upload', async (req, res, next) => {
   try {
     const { bssid, media_type, filename, media_data_base64, description, mime_type } = req.body;
-    
+
     if (!bssid || !media_type || !filename || !media_data_base64) {
       return res.status(400).json({
-        error: { message: 'BSSID, media_type, filename, and media_data_base64 are required' }
+        error: { message: 'BSSID, media_type, filename, and media_data_base64 are required' },
       });
     }
 
     if (!['image', 'video'].includes(media_type)) {
       return res.status(400).json({
-        error: { message: 'media_type must be "image" or "video"' }
+        error: { message: 'media_type must be "image" or "video"' },
       });
     }
 
@@ -958,7 +955,7 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
     res.json({
       ok: true,
       message: `${media_type} uploaded successfully`,
-      media: result.rows[0]
+      media: result.rows[0],
     });
   } catch (error) {
     logger.error(`Upload media error: ${error.message}`);
@@ -970,7 +967,7 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
 router.get('/admin/network-media/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
-    
+
     const result = await query(`
       SELECT id, media_type, filename, original_filename, file_size, 
              mime_type, description, uploaded_by, created_at
@@ -983,7 +980,7 @@ router.get('/admin/network-media/:bssid', async (req, res, next) => {
       ok: true,
       bssid,
       media: result.rows,
-      count: result.rows.length
+      count: result.rows.length,
     });
   } catch (error) {
     next(error);
@@ -994,7 +991,7 @@ router.get('/admin/network-media/:bssid', async (req, res, next) => {
 router.get('/admin/network-media/download/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const result = await query(
       'SELECT filename, mime_type, media_data FROM app.network_media WHERE id = $1',
       [id]
@@ -1002,17 +999,17 @@ router.get('/admin/network-media/download/:id', async (req, res, next) => {
 
     if (!result.rows.length) {
       return res.status(404).json({
-        error: { message: 'Media not found' }
+        error: { message: 'Media not found' },
       });
     }
 
     const media = result.rows[0];
-    
+
     res.set({
       'Content-Type': media.mime_type || 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${media.filename}"`
+      'Content-Disposition': `attachment; filename="${media.filename}"`,
     });
-    
+
     res.send(media.media_data);
   } catch (error) {
     next(error);
@@ -1023,7 +1020,7 @@ router.get('/admin/network-media/download/:id', async (req, res, next) => {
 router.get('/admin/network-summary/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
-    
+
     const result = await query(`
       SELECT bssid, tags, tag_array, is_threat, is_investigate, is_false_positive, is_suspect,
              notes, detailed_notes, notation_count, image_count, video_count, total_media_count,
@@ -1034,13 +1031,13 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
 
     if (!result.rows.length) {
       return res.status(404).json({
-        error: { message: `No data found for network ${bssid}` }
+        error: { message: `No data found for network ${bssid}` },
       });
     }
 
     res.json({
       ok: true,
-      network: result.rows[0]
+      network: result.rows[0],
     });
   } catch (error) {
     next(error);
@@ -1058,12 +1055,12 @@ router.post('/admin/network-notes/add', async (req, res) => {
     if (!bssid || !content) {
       return res.status(400).json({
         ok: false,
-        error: 'BSSID and content are required'
+        error: 'BSSID and content are required',
       });
     }
 
     const result = await query(
-      `SELECT app.network_add_note($1, $2, $3, $4) as note_id`,
+      'SELECT app.network_add_note($1, $2, $3, $4) as note_id',
       [bssid, content, note_type, user_id]
     );
 
@@ -1071,14 +1068,14 @@ router.post('/admin/network-notes/add', async (req, res) => {
       ok: true,
       bssid,
       note_id: result.rows[0].note_id,
-      message: 'Note added successfully'
+      message: 'Note added successfully',
     });
   } catch (error) {
     logger.error('Add note failed:', error);
-    res.status(500).json({ 
-      ok: false, 
+    res.status(500).json({
+      ok: false,
       error: 'Failed to add note',
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -1102,14 +1099,14 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
       ok: true,
       bssid,
       notes: result.rows,
-      count: result.rows.length
+      count: result.rows.length,
     });
   } catch (error) {
     logger.error('Get notes failed:', error);
-    res.status(500).json({ 
-      ok: false, 
+    res.status(500).json({
+      ok: false,
       error: 'Failed to get notes',
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -1124,7 +1121,7 @@ router.post('/admin/network-notes/add', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'BSSID and content required' });
     }
     const result = await query(
-      `SELECT app.network_add_note($1, $2, $3, $4) as note_id`,
+      'SELECT app.network_add_note($1, $2, $3, $4) as note_id',
       [bssid, content, note_type, user_id]
     );
     res.json({ ok: true, bssid, note_id: result.rows[0].note_id, message: 'Note added' });
@@ -1160,7 +1157,7 @@ router.delete('/admin/network-notes/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
     const result = await query(
-      `DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid`,
+      'DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid',
       [noteId]
     );
     if (result.rows.length === 0) {
@@ -1192,14 +1189,14 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
       `/api/media/${req.file.filename}`,
       req.file.originalname,
       req.file.size,
-      req.file.mimetype
+      req.file.mimetype,
     ]);
     res.json({
       ok: true,
       note_id: noteId,
       media_id: result.rows[0].id,
       file_path: result.rows[0].file_path,
-      message: 'Media uploaded'
+      message: 'Media uploaded',
     });
   } catch (error) {
     logger.error('Media upload failed:', error);
@@ -1216,7 +1213,7 @@ router.get('/media/:filename', (req, res) => {
     const filepath = path.join(__dirname, '../../..', 'data/notes-media', filename);
     const normalized = path.normalize(filepath);
     const baseDir = path.normalize(path.join(__dirname, '../../..', 'data/notes-media'));
-    
+
     if (!normalized.startsWith(baseDir)) {
       return res.status(403).json({ ok: false, error: 'Access denied' });
     }
@@ -1424,6 +1421,426 @@ router.get('/demo/context-menu', (req, res) => {
                 alert('Error saving note');
             }
         }
+    </script>
+</body>
+</html>
+  `);
+});
+
+/**
+ * GET /api/admin/oui/groups
+ * Get all OUI device groups with collective threat scores
+ */
+router.get('/admin/oui/groups', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        oui,
+        device_count,
+        collective_threat_score,
+        threat_level,
+        primary_bssid,
+        secondary_bssids,
+        has_randomization,
+        randomization_confidence,
+        last_updated
+      FROM app.oui_device_groups
+      WHERE device_count > 1
+      ORDER BY collective_threat_score DESC
+    `);
+
+    res.json({
+      ok: true,
+      groups: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    logger.error('Failed to get OUI groups:', err);
+    res.status(500).json({ ok: false, error: 'Failed to fetch OUI groups' });
+  }
+});
+
+/**
+ * GET /api/admin/oui/:oui/details
+ * Get detailed info for specific OUI group
+ */
+router.get('/admin/oui/:oui/details', async (req, res) => {
+  try {
+    const { oui } = req.params;
+
+    const group = await query(`
+      SELECT * FROM app.oui_device_groups WHERE oui = $1
+    `, [oui]);
+
+    const randomization = await query(`
+      SELECT * FROM app.mac_randomization_suspects WHERE oui = $1
+    `, [oui]);
+
+    const networks = await query(`
+      SELECT 
+        ap.bssid,
+        nts.final_threat_score,
+        nts.final_threat_level,
+        ap.ssid,
+        COUNT(obs.id) as observation_count
+      FROM public.access_points ap
+      LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
+      LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
+      WHERE SUBSTRING(ap.bssid, 1, 8) = $1
+      GROUP BY ap.bssid, nts.final_threat_score, nts.final_threat_level, ap.ssid
+      ORDER BY nts.final_threat_score DESC
+    `, [oui]);
+
+    res.json({
+      ok: true,
+      group: group.rows[0],
+      randomization: randomization.rows[0],
+      networks: networks.rows,
+    });
+  } catch (err) {
+    logger.error('Failed to get OUI details:', err);
+    res.status(500).json({ ok: false, error: 'Failed to fetch OUI details' });
+  }
+});
+
+/**
+ * GET /api/admin/oui/randomization/suspects
+ * Get all suspected MAC randomization devices
+ */
+router.get('/admin/oui/randomization/suspects', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        oui,
+        status,
+        confidence_score,
+        avg_distance_km,
+        movement_speed_kmh,
+        array_length(mac_sequence, 1) as mac_count,
+        created_at
+      FROM app.mac_randomization_suspects
+      ORDER BY confidence_score DESC
+    `);
+
+    res.json({
+      ok: true,
+      suspects: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    logger.error('Failed to get randomization suspects:', err);
+    res.status(500).json({ ok: false, error: 'Failed to fetch suspects' });
+  }
+});
+
+/**
+ * POST /api/admin/oui/analyze
+ * Trigger OUI grouping and MAC randomization analysis
+ */
+router.post('/admin/oui/analyze', async (req, res) => {
+  try {
+    const OUIGroupingService = require('../../../services/ouiGroupingService');
+    
+    logger.info('[Admin] Starting OUI analysis...');
+    await OUIGroupingService.generateOUIGroups();
+    await OUIGroupingService.detectMACRandomization();
+    
+    res.json({
+      ok: true,
+      message: 'OUI analysis completed successfully',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    logger.error('OUI analysis failed:', err);
+    res.status(500).json({ ok: false, error: 'OUI analysis failed' });
+  }
+});
+
+/**
+ * GET /api/admin/demo/oui-grouping - Serve OUI grouping demo page
+ */
+router.get('/admin/demo/oui-grouping', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🛡️ ShadowCheck: OUI Grouping + MAC Spoofing Detection</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #2c3e50; text-align: center; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats { display: flex; gap: 20px; margin: 20px 0; }
+        .stat-card { flex: 1; background: #3498db; color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-card.critical { background: #e74c3c; }
+        .stat-card.high { background: #f39c12; }
+        .stat-card.medium { background: #f1c40f; color: #2c3e50; }
+        .stat-number { font-size: 2em; font-weight: bold; }
+        .stat-label { font-size: 0.9em; opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #34495e; color: white; }
+        .threat-critical { background: #ffebee; color: #c62828; font-weight: bold; }
+        .threat-high { background: #fff3e0; color: #ef6c00; font-weight: bold; }
+        .threat-med { background: #fffde7; color: #f57f17; font-weight: bold; }
+        .threat-low { background: #f3e5f5; color: #7b1fa2; }
+        .oui { font-family: monospace; font-weight: bold; color: #2980b9; }
+        .bssid { font-family: monospace; font-size: 0.9em; color: #7f8c8d; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .loading { text-align: center; padding: 40px; color: #7f8c8d; }
+        .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #e8f5e8; color: #2e7d32; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .device-count { background: #ecf0f1; padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ ShadowCheck: OUI Grouping + MAC Spoofing Detection</h1>
+        
+        <div class="section">
+            <h2>📊 Detection Overview</h2>
+            <p><strong>OUI Grouping</strong> detects multiple BSSIDs from the same physical device (multi-radio devices).</p>
+            <p><strong>MAC Randomization</strong> identifies devices that change their MAC addresses over time for privacy.</p>
+            
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalGroups">-</div>
+                    <div class="stat-label">OUI Groups</div>
+                </div>
+                <div class="stat-card critical">
+                    <div class="stat-number" id="criticalGroups">-</div>
+                    <div class="stat-label">Critical Threats</div>
+                </div>
+                <div class="stat-card high">
+                    <div class="stat-number" id="highGroups">-</div>
+                    <div class="stat-label">High Threats</div>
+                </div>
+                <div class="stat-card medium">
+                    <div class="stat-number" id="randomizationSuspects">-</div>
+                    <div class="stat-label">MAC Randomization</div>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="runAnalysis()">🔄 Run OUI Analysis</button>
+            <button class="btn btn-success" onclick="loadData()">📊 Refresh Data</button>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Top OUI Device Groups</h2>
+            <div id="ouiGroupsLoading" class="loading">Loading OUI groups...</div>
+            <div id="ouiGroupsError" class="error" style="display: none;"></div>
+            <table id="ouiGroupsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>OUI</th>
+                        <th>Device Count</th>
+                        <th>Collective Threat</th>
+                        <th>Threat Level</th>
+                        <th>Primary BSSID</th>
+                        <th>Secondary BSSIDs (Sample)</th>
+                    </tr>
+                </thead>
+                <tbody id="ouiGroupsBody"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>🚶 MAC Randomization Suspects</h2>
+            <div id="randomizationLoading" class="loading">Loading MAC randomization suspects...</div>
+            <div id="randomizationError" class="error" style="display: none;"></div>
+            <table id="randomizationTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>OUI</th>
+                        <th>Status</th>
+                        <th>Confidence</th>
+                        <th>MAC Count</th>
+                        <th>Avg Distance</th>
+                        <th>Movement Speed</th>
+                        <th>Detected</th>
+                    </tr>
+                </thead>
+                <tbody id="randomizationBody"></tbody>
+            </table>
+            <div id="noRandomization" style="display: none;">
+                <p>✅ No MAC randomization suspects detected. This could mean:</p>
+                <ul>
+                    <li>No devices are using MAC randomization in your dataset</li>
+                    <li>Detection thresholds are too strict</li>
+                    <li>Insufficient temporal data for pattern detection</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ouiGroups = [];
+        let randomizationSuspects = [];
+
+        async function runAnalysis() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '🔄 Running Analysis...';
+            
+            try {
+                const response = await fetch('/api/admin/oui/analyze', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    document.getElementById('ouiGroupsError').style.display = 'none';
+                    const success = document.createElement('div');
+                    success.className = 'success';
+                    success.textContent = '✅ OUI analysis completed successfully!';
+                    btn.parentNode.appendChild(success);
+                    setTimeout(() => success.remove(), 3000);
+                    
+                    // Refresh data
+                    await loadData();
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                const errorDiv = document.getElementById('ouiGroupsError');
+                errorDiv.textContent = \`❌ Analysis failed: \${error.message}\`;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 Run OUI Analysis';
+            }
+        }
+
+        async function loadData() {
+            await Promise.all([loadOUIGroups(), loadRandomizationSuspects()]);
+            updateStats();
+        }
+
+        async function loadOUIGroups() {
+            try {
+                document.getElementById('ouiGroupsLoading').style.display = 'block';
+                document.getElementById('ouiGroupsTable').style.display = 'none';
+                
+                const response = await fetch('/api/admin/oui/groups');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    ouiGroups = data.groups;
+                    renderOUIGroups();
+                    document.getElementById('ouiGroupsError').style.display = 'none';
+                } else {
+                    throw new Error(data.error || 'Failed to load OUI groups');
+                }
+            } catch (error) {
+                const errorDiv = document.getElementById('ouiGroupsError');
+                errorDiv.textContent = \`❌ Failed to load OUI groups: \${error.message}\`;
+                errorDiv.style.display = 'block';
+            } finally {
+                document.getElementById('ouiGroupsLoading').style.display = 'none';
+            }
+        }
+
+        async function loadRandomizationSuspects() {
+            try {
+                document.getElementById('randomizationLoading').style.display = 'block';
+                document.getElementById('randomizationTable').style.display = 'none';
+                document.getElementById('noRandomization').style.display = 'none';
+                
+                const response = await fetch('/api/admin/oui/randomization/suspects');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    randomizationSuspects = data.suspects;
+                    if (randomizationSuspects.length > 0) {
+                        renderRandomizationSuspects();
+                    } else {
+                        document.getElementById('noRandomization').style.display = 'block';
+                    }
+                    document.getElementById('randomizationError').style.display = 'none';
+                } else {
+                    throw new Error(data.error || 'Failed to load randomization suspects');
+                }
+            } catch (error) {
+                const errorDiv = document.getElementById('randomizationError');
+                errorDiv.textContent = \`❌ Failed to load randomization suspects: \${error.message}\`;
+                errorDiv.style.display = 'block';
+            } finally {
+                document.getElementById('randomizationLoading').style.display = 'none';
+            }
+        }
+
+        function renderOUIGroups() {
+            const tbody = document.getElementById('ouiGroupsBody');
+            tbody.innerHTML = '';
+            
+            // Show top 20 groups
+            const topGroups = ouiGroups.slice(0, 20);
+            
+            topGroups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                const threatClass = group.threat_level.toLowerCase().replace('critical', 'critical');
+                row.className = \`threat-\${threatClass}\`;
+                
+                const secondaryBssids = group.secondary_bssids || [];
+                const sampleSecondary = secondaryBssids.slice(0, 3).join(', ');
+                const moreCount = secondaryBssids.length > 3 ? \` (+\${secondaryBssids.length - 3} more)\` : '';
+                
+                row.innerHTML = \`
+                    <td class="oui">\${group.oui}</td>
+                    <td><span class="device-count">\${group.device_count}</span></td>
+                    <td>\${parseFloat(group.collective_threat_score).toFixed(1)}</td>
+                    <td>\${group.threat_level}</td>
+                    <td class="bssid">\${group.primary_bssid}</td>
+                    <td class="bssid">\${sampleSecondary}\${moreCount}</td>
+                \`;
+                
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('ouiGroupsTable').style.display = 'table';
+        }
+
+        function renderRandomizationSuspects() {
+            const tbody = document.getElementById('randomizationBody');
+            tbody.innerHTML = '';
+            
+            randomizationSuspects.forEach(suspect => {
+                const row = document.createElement('tr');
+                
+                const confidenceClass = parseFloat(suspect.confidence_score) >= 0.8 ? 'threat-critical' : 
+                                       parseFloat(suspect.confidence_score) >= 0.6 ? 'threat-high' : 'threat-med';
+                row.className = confidenceClass;
+                
+                row.innerHTML = \`
+                    <td class="oui">\${suspect.oui}</td>
+                    <td>\${suspect.status.toUpperCase()}</td>
+                    <td>\${(parseFloat(suspect.confidence_score) * 100).toFixed(1)}%</td>
+                    <td>\${suspect.mac_count}</td>
+                    <td>\${parseFloat(suspect.avg_distance_km).toFixed(1)} km</td>
+                    <td>\${parseFloat(suspect.movement_speed_kmh).toFixed(1)} km/h</td>
+                    <td>\${new Date(suspect.created_at).toLocaleDateString()}</td>
+                \`;
+                
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('randomizationTable').style.display = 'table';
+        }
+
+        function updateStats() {
+            document.getElementById('totalGroups').textContent = ouiGroups.length;
+            
+            const critical = ouiGroups.filter(g => g.threat_level === 'CRITICAL').length;
+            const high = ouiGroups.filter(g => g.threat_level === 'HIGH').length;
+            
+            document.getElementById('criticalGroups').textContent = critical;
+            document.getElementById('highGroups').textContent = high;
+            document.getElementById('randomizationSuspects').textContent = randomizationSuspects.length;
+        }
+
+        // Load data on page load
+        window.addEventListener('load', loadData);
     </script>
 </body>
 </html>

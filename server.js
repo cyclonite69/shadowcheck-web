@@ -271,7 +271,15 @@ delete process.env.PGUSER;
     await testConnection();
 
     // ============================================================================
-    // 8. STATIC FILES
+    // 8. DEMO ROUTES (before static files)
+    // ============================================================================
+    // Demo pages
+    app.get('/demo/oui-grouping', (req, res) => {
+      res.sendFile(path.join(__dirname, 'public', 'oui-grouping-demo.html'));
+    });
+
+    // ============================================================================
+    // 9. STATIC FILES
     // ============================================================================
     // Serve built React app
     app.use(
@@ -282,7 +290,7 @@ delete process.env.PGUSER;
     );
 
     // ============================================================================
-    // 9. ROUTE MOUNTING
+    // 10. ROUTE MOUNTING
     // ============================================================================
 
     // Make secretsManager available to routes
@@ -658,8 +666,8 @@ delete process.env.PGUSER;
     // ============================================================================
     // Serve index.html for all non-API routes (must be after API routes)
     app.get('*', (req, res) => {
-      // Don't handle API routes
-      if (req.path.startsWith('/api')) {
+      // Don't handle API routes or demo routes
+      if (req.path.startsWith('/api') || req.path.startsWith('/demo')) {
         return res.status(404).json({ error: 'Not found' });
       }
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));

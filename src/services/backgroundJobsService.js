@@ -128,6 +128,14 @@ class BackgroundJobsService {
 
       const duration = Date.now() - startTime;
       logger.info(`[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0 in ${duration}ms`);
+
+      // Step 2: Run OUI grouping and MAC randomization detection
+      logger.info('[ML Scoring Job] Running OUI grouping analysis...');
+      const OUIGroupingService = require('./ouiGroupingService');
+      await OUIGroupingService.generateOUIGroups();
+      await OUIGroupingService.detectMACRandomization();
+      logger.info('[ML Scoring Job] OUI grouping complete');
+
     } catch (error) {
       logger.error(`[ML Scoring Job] Failed: ${error.message}`);
     }

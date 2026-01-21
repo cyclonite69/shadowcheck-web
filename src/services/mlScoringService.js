@@ -66,7 +66,7 @@ class MLScoringService {
           observation_count: network.observation_count || 0,
           max_signal: network.max_signal || -100,
           unique_locations: network.unique_locations || 0,
-          seen_both_locations: (network.seen_at_home && network.seen_away_from_home) ? 1 : 0
+          seen_both_locations: (network.seen_at_home && network.seen_away_from_home) ? 1 : 0,
         };
 
         // Compute logistic regression prediction
@@ -82,10 +82,7 @@ class MLScoringService {
 
         // Determine threat level
         let threatLevel = 'NONE';
-        if (threatScore >= 70) threatLevel = 'CRITICAL';
-        else if (threatScore >= 50) threatLevel = 'HIGH';
-        else if (threatScore >= 30) threatLevel = 'MED';
-        else if (threatScore >= 10) threatLevel = 'LOW';
+        if (threatScore >= 70) {threatLevel = 'CRITICAL';} else if (threatScore >= 50) {threatLevel = 'HIGH';} else if (threatScore >= 30) {threatLevel = 'MED';} else if (threatScore >= 10) {threatLevel = 'LOW';}
 
         scores.push({
           bssid: network.bssid,
@@ -97,7 +94,7 @@ class MLScoringService {
           rule_based_flags: network.rule_based_flags,
           final_threat_score: Math.max(threatScore, network.rule_based_score),
           final_threat_level: threatLevel,
-          model_version: modelVersion
+          model_version: modelVersion,
         });
       }
 
@@ -110,11 +107,11 @@ class MLScoringService {
              final_threat_score, final_threat_level, model_version, scored_at)
           VALUES 
             ${scores.map((_, i) => {
-              const offset = i * 11;
-              return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, 
+    const offset = i * 11;
+    return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, 
                        $${offset + 5}, $${offset + 6}, $${offset + 7}, 
                        $${offset + 8}, $${offset + 9}, $${offset + 10}, NOW())`;
-            }).join(',')}
+  }).join(',')}
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
             ml_threat_probability = EXCLUDED.ml_threat_probability,
@@ -139,7 +136,7 @@ class MLScoringService {
           s.rule_based_flags,
           s.final_threat_score,
           s.final_threat_level,
-          s.model_version
+          s.model_version,
         ]);
 
         await query(insertQuery, values);
@@ -148,7 +145,7 @@ class MLScoringService {
       return {
         scored: scores.length,
         message: `Successfully scored ${scores.length} networks`,
-        modelVersion
+        modelVersion,
       };
     } catch (error) {
       console.error('[ML Scoring] Error scoring networks:', error);
@@ -161,7 +158,7 @@ class MLScoringService {
    */
   static async getNetworkThreatScore(bssid) {
     const result = await query(
-      `SELECT * FROM app.network_threat_scores WHERE bssid = $1`,
+      'SELECT * FROM app.network_threat_scores WHERE bssid = $1',
       [bssid]
     );
     return result.rows[0] || null;

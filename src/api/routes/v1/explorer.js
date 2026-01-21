@@ -261,15 +261,15 @@ router.get('/explorer/networks', async (req, res, _next) => {
       ${whereClause}
       ${orderClause}
       ${
-        limit === null
-          ? ''
-          : (() => {
-              const limitIndex = params.length + 1;
-              const offsetIndex = params.length + 2;
-              params.push(limit, offset);
-              return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
-            })()
-      };
+  limit === null
+    ? ''
+    : (() => {
+      const limitIndex = params.length + 1;
+      const offsetIndex = params.length + 2;
+      params.push(limit, offset);
+      return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+    })()
+};
     `;
 
     const result = await query(sql, params);
