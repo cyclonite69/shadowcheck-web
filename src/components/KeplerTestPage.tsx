@@ -1,6 +1,5 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 import { FilterPanel } from './FilterPanel';
 import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
@@ -325,17 +324,38 @@ const KeplerTestPage: React.FC = () => {
       try {
         const mapboxMap = deckRef.current?.deck?.getMapboxMap?.();
         if (mapboxMap) {
-          attachMapOrientationControls(mapboxMap, {
-            scalePosition: 'bottom-right',
-            scaleUnit: 'metric',
-            ensureNavigation: true,
-            navigationPosition: 'top-right',
-          });
+          // Dynamically load orientation controls to reduce initial bundle size
+          import('../utils/mapOrientationControls')
+            .then(({ attachMapOrientationControls }) => {
+              attachMapOrientationControls(mapboxMap, {
+                scalePosition: 'bottom-right',
+                scaleUnit: 'metric',
+                ensureNavigation: true,
+                navigationPosition: 'top-right',
+              });
+            })
+            .catch((err) => {
+              logWarn('Failed to load map orientation controls module', err);
+            });
         }
       } catch (e) {
         logWarn('Could not attach map controls to DeckGL', e);
       }
     }, 100);
+
+    setTimeout(() => {
+      try {
+        const attribList = mapRef.current?.querySelector(
+          '.mapboxgl-ctrl-attrib-inner[role="list"]'
+        );
+        if (!attribList) return;
+        attribList.querySelectorAll('a').forEach((anchor) => {
+          anchor.setAttribute('role', 'listitem');
+        });
+      } catch {
+        // Mapbox attribution markup is vendor-controlled; fail silently.
+      }
+    }, 150);
   };
 
   const updateVisualization = () => {
@@ -703,7 +723,7 @@ const KeplerTestPage: React.FC = () => {
               id="selection-mode-select"
               value={drawMode}
               onChange={(e) => setDrawMode(e.target.value as DrawMode)}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+              className="w-full min-h-[44px] bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-xs"
             >
               <option value="none">None</option>
               <option value="rectangle">Rectangle Select</option>
@@ -714,7 +734,7 @@ const KeplerTestPage: React.FC = () => {
 
           <button
             onClick={clearSelection}
-            className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
+            className="w-full min-h-[44px] px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
           >
             Clear Selection
           </button>
@@ -778,8 +798,7 @@ const KeplerTestPage: React.FC = () => {
               backgroundColor: 'rgba(17, 24, 39, 0.92)',
               border: '1px solid rgba(59, 130, 246, 0.25)',
               backdropFilter: 'blur(16px)',
-              boxShadow:
-                '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
               maxHeight: 'calc(100vh - 180px)',
             }}
           >

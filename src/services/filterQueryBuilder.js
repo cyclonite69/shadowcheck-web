@@ -663,7 +663,7 @@ class UniversalFilterQueryBuilder {
       FROM public.observations o
       ${homeJoin}
       ${joins.join('\n')}
-      WHERE ${whereClause}
+      WHERE ${whereClause} AND o.bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF') AND o.bssid IS NOT NULL
     )
     `;
 
@@ -1515,9 +1515,6 @@ class UniversalFilterQueryBuilder {
         ORDER BY UPPER(o.bssid), o.time DESC NULLS LAST
       )`
       : '';
-    const networkTypesJoin = useLatestPerBssid
-      ? 'UPPER(ne.bssid) = UPPER(o.bssid)'
-      : 'ne.bssid = o.bssid';
     const signalStrengthCte = useLatestPerBssid
       ? ''
       : `
@@ -1540,17 +1537,16 @@ class UniversalFilterQueryBuilder {
       networkTypes: base(`
         SELECT
           CASE
-            WHEN ne.type = 'W' THEN 'WiFi'
-            WHEN ne.type = 'E' THEN 'BLE'
-            WHEN ne.type = 'B' THEN 'BT'
-            WHEN ne.type = 'L' THEN 'LTE'
-            WHEN ne.type = 'N' THEN 'NR'
-            WHEN ne.type = 'G' THEN 'GSM'
+            WHEN ${OBS_TYPE_EXPR('o')} = 'W' THEN 'WiFi'
+            WHEN ${OBS_TYPE_EXPR('o')} = 'E' THEN 'BLE'
+            WHEN ${OBS_TYPE_EXPR('o')} = 'B' THEN 'BT'
+            WHEN ${OBS_TYPE_EXPR('o')} = 'L' THEN 'LTE'
+            WHEN ${OBS_TYPE_EXPR('o')} = 'N' THEN 'NR'
+            WHEN ${OBS_TYPE_EXPR('o')} = 'G' THEN 'GSM'
             ELSE 'Other'
           END AS network_type,
-          COUNT(DISTINCT ne.bssid) AS count
+          COUNT(DISTINCT o.bssid) AS count
         FROM ${useLatestPerBssid ? 'latest_per_bssid' : 'filtered_obs'} o
-        JOIN public.api_network_explorer ne ON ${networkTypesJoin}
         GROUP BY network_type
         ORDER BY count DESC
       `),

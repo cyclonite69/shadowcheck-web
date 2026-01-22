@@ -174,8 +174,6 @@ const SECURITY_TYPE_COLORS = {
 };
 
 const DEBUG_ANALYTICS = false;
-const ALL_TIME_ANALYTICS_MESSAGE =
-  'Analytics unavailable for all-time. Try enabling timeframe (e.g., 30d).';
 
 export default function Analytics() {
   // Set current page for filter scoping
@@ -327,6 +325,32 @@ export default function Analytics() {
         }
         if (!res.ok || payload?.ok === false) {
           const message = payload?.message || payload?.error || `HTTP ${res.status}`;
+          // Don't throw error for all-time queries that timeout - let them show empty state
+          if (isAllTime && (res.status === 504 || message.includes('timeout'))) {
+            if (DEBUG_ANALYTICS) {
+              console.warn('[analytics] All-time query timed out, showing empty state');
+            }
+            // Return empty data instead of throwing
+            const emptyData = {
+              networkTypes: [],
+              signalStrength: [],
+              security: [],
+              threatDistribution: [],
+              temporalActivity: [],
+              radioTypeOverTime: [],
+              threatTrends: [],
+              topNetworks: [],
+            };
+            setNetworkTypesData(emptyData.networkTypes);
+            setSignalStrengthData(emptyData.signalStrength);
+            setSecurityData(emptyData.security);
+            setThreatDistributionData(emptyData.threatDistribution);
+            setTemporalData(emptyData.temporalActivity);
+            setRadioTimeData(emptyData.radioTypeOverTime);
+            setThreatTrendsData(emptyData.threatTrends);
+            setTopNetworksData(emptyData.topNetworks);
+            return;
+          }
           throw new Error(message);
         }
         const data = payload.data || {};
@@ -419,8 +443,7 @@ export default function Analytics() {
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
-          const message = isAllTime ? ALL_TIME_ANALYTICS_MESSAGE : err.message;
-          setError(message);
+          setError(err.message);
           if (DEBUG_ANALYTICS) {
             console.warn('[analytics] fetch error', err);
           }

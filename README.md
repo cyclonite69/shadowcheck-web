@@ -241,6 +241,45 @@ Key environment variables (see `.env.example`):
 - Restrict API access via rate limiting (already enabled)
 - See `SECURITY.md` for detailed security guidelines
 
+### Security Headers & Lighthouse Audits
+
+For accurate Lighthouse Best Practices audits, use the static server with security headers:
+
+```bash
+npm run build
+npm run serve:dist
+# Then run Lighthouse against http://localhost:4000
+```
+
+The static server (`server/static-server.js`) applies these headers:
+
+- `Content-Security-Policy` (allows Mapbox CDN)
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: geolocation=(), microphone=(), camera=()`
+- `Cross-Origin-Opener-Policy: same-origin-allow-popups`
+
+### Third-Party Cookies Notice
+
+**Expected Lighthouse warning:** "Uses third-party cookies" from `api.mapbox.com`.
+
+This is an expected behavior when using Mapbox GL JS. Mapbox sets cookies for:
+
+- Session management and rate limiting
+- Telemetry (can be disabled via `mapboxgl.config.COLLECT_TELEMETRY = false`)
+- Tile caching
+
+These cookies are required for Mapbox functionality and cannot be eliminated without self-hosting all map tiles (impractical for most use cases).
+
+### SEO Indexing
+
+By default, `robots.txt` disallows all crawling (dev/staging). For production:
+
+```bash
+npm run build:public  # Sets ROBOTS_ALLOW_INDEXING=true
+```
+
 ## Documentation
 
 Additional documentation is available in the `docs` directory. See [docs/README.md](docs/README.md) for navigation.

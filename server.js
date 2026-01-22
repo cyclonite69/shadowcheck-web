@@ -281,11 +281,28 @@ delete process.env.PGUSER;
     // ============================================================================
     // 9. STATIC FILES
     // ============================================================================
-    // Serve built React app
+    // Serve hashed assets with long cache (1 year, immutable)
+    // Vite generates unique hashes in filenames, so aggressive caching is safe
+    app.use(
+      '/assets',
+      express.static(path.join(__dirname, 'dist', 'assets'), {
+        maxAge: '1y',
+        immutable: true,
+        etag: false, // Not needed with immutable + hashed filenames
+      })
+    );
+
+    // Serve other static files with short cache (index.html, favicon, etc.)
     app.use(
       express.static(path.join(__dirname, 'dist'), {
-        maxAge: '1h',
+        maxAge: 0, // No cache for index.html (allows instant updates)
         etag: true,
+        setHeaders: (res, filePath) => {
+          // Ensure index.html is never cached
+          if (filePath.endsWith('index.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          }
+        },
       })
     );
 
