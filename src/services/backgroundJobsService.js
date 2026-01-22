@@ -72,31 +72,77 @@ class BackgroundJobsService {
       const networks = networkResult.rows;
       const scores = [];
 
-      logger.info(`[ML Scoring Job] Analyzing ${networks.length} networks with simple behavioral model`);
+      logger.info(`[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`);
 
-      // Score each network with simple behavioral model
+      // Step 1: Query all manual tags for feedback-aware scoring
+      const tagResult = await query(`
+        SELECT bssid, threat_tag, threat_confidence, notes
+        FROM app.network_tags 
+        WHERE threat_tag IS NOT NULL
+      `);
+
+      // Step 2: Create tag lookup map
+      const tagMap = new Map();
+      for (const tag of tagResult.rows) {
+        tagMap.set(tag.bssid, {
+          tag: tag.threat_tag,
+          confidence: tag.threat_confidence || 1.0,
+          notes: tag.notes
+        });
+      }
+
+      logger.info(`[ML Scoring Job] Found ${tagMap.size} manual tags for feedback adjustment`);
+
+      // Step 3: Score each network with feedback-aware model
       for (const net of networks) {
         try {
-          // Simple mobility scoring
+          // Calculate base ML score using behavioral model
           const mobility = net.max_distance_km > 5 ? 80 : net.max_distance_km > 1 ? 40 : 0;
           const persistence = net.unique_days > 7 ? 60 : net.unique_days > 3 ? 30 : 0;
-          const threatScore = mobility * 0.6 + persistence * 0.4;
+          const baseMlScore = mobility * 0.6 + persistence * 0.4;
 
-          // Threat level with behavioral thresholds
+          // Step 4: Apply feedback adjustment based on manual tags
+          let finalScore = baseMlScore;
+          let feedbackApplied = false;
+          
+          const tag = tagMap.get(net.bssid);
+          if (tag) {
+            feedbackApplied = true;
+            switch (tag.tag) {
+              case 'FALSE_POSITIVE':
+                finalScore = baseMlScore * 0.1; // Suppress threat
+                break;
+              case 'THREAT':
+                finalScore = baseMlScore * (1.0 + tag.confidence * 0.3); // Boost threat
+                break;
+              case 'SUSPECT':
+                finalScore = baseMlScore * (1.0 + tag.confidence * 0.15); // Moderate boost
+                break;
+              case 'INVESTIGATE':
+                finalScore = baseMlScore; // Keep ML score unchanged
+                break;
+            }
+          }
+
+          // Step 5: Calculate final threat level from adjusted score
           let threatLevel = 'NONE';
-          if (threatScore >= 60) threatLevel = 'HIGH';      // Suspicious mobility
-          else if (threatScore >= 30) threatLevel = 'MED';  // Unusual patterns
-          else if (threatScore >= 10) threatLevel = 'LOW';  // Minor anomalies
+          if (finalScore >= 80) threatLevel = 'CRITICAL';
+          else if (finalScore >= 60) threatLevel = 'HIGH';
+          else if (finalScore >= 40) threatLevel = 'MED';
+          else if (finalScore >= 20) threatLevel = 'LOW';
 
+          // Step 6: Store both ML and final scores with feedback metadata
           scores.push({
             bssid: net.bssid,
-            ml_threat_score: threatScore,
-            ml_threat_probability: threatScore / 100.0,
-            ml_primary_class: threatScore >= 60 ? 'THREAT' : 'LEGITIMATE',
+            ml_threat_score: baseMlScore,
+            ml_threat_probability: baseMlScore / 100.0,
+            ml_primary_class: baseMlScore >= 60 ? 'THREAT' : 'LEGITIMATE',
             rule_based_score: 0,
-            final_threat_score: threatScore,
+            final_threat_score: finalScore,
             final_threat_level: threatLevel,
-            model_version: '2.0.0'
+            model_version: '2.0.0',
+            feedback_applied: feedbackApplied,
+            manual_tag: tag ? tag.tag : null
           });
         } catch (netError) {
           logger.debug(`[ML Scoring Job] Error scoring ${net.bssid}: ${netError.message}`);

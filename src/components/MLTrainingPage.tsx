@@ -61,7 +61,11 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const API_BASE = `${window.location.protocol}//${window.location.hostname}:3001/api`;
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const apiUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return API_BASE ? `${API_BASE}${normalizedPath}` : normalizedPath;
+};
 
 interface MLStatus {
   modelTrained: boolean;
@@ -148,7 +152,7 @@ export default function MLTrainingPage() {
 
   const loadStatus = async () => {
     try {
-      const res = await fetch(`${API_BASE}/ml/status`);
+      const res = await fetch(apiUrl('/api/ml/status'));
       const data = await res.json();
 
       if (data.error) {
@@ -172,7 +176,7 @@ export default function MLTrainingPage() {
     setResult(null);
 
     try {
-      const res = await fetch(`${API_BASE}/ml/train`, { method: 'POST' });
+      const res = await fetch(apiUrl('/api/ml/train'), { method: 'POST' });
       const data = await res.json();
 
       if (data.ok) {
@@ -394,7 +398,7 @@ export default function MLTrainingPage() {
                 <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
                   <div className="flex items-center gap-2">
                     <Icon size={18} className="text-blue-400" />
-                    <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+                    <h2 className="text-sm font-semibold text-white">{card.title}</h2>
                   </div>
                   <GripHorizontal
                     size={16}

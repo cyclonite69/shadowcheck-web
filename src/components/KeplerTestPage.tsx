@@ -638,7 +638,11 @@ const KeplerTestPage: React.FC = () => {
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">Dataset:</label>
+          <label className="sr-only" htmlFor="dataset-select">
+            Dataset
+          </label>
           <select
+            id="dataset-select"
             value={datasetType}
             onChange={(e) => setDatasetType(e.target.value as 'observations' | 'networks')}
             className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
@@ -656,7 +660,11 @@ const KeplerTestPage: React.FC = () => {
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">3D View - Pitch: {pitch}°</label>
+          <label className="sr-only" htmlFor="pitch-slider">
+            3D view pitch
+          </label>
           <input
+            id="pitch-slider"
             type="range"
             min="0"
             max="60"
@@ -668,7 +676,11 @@ const KeplerTestPage: React.FC = () => {
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">3D Height: {height3d}</label>
+          <label className="sr-only" htmlFor="height-3d-slider">
+            3D height
+          </label>
           <input
+            id="height-3d-slider"
             type="range"
             min="1"
             max="50"
@@ -680,7 +692,11 @@ const KeplerTestPage: React.FC = () => {
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">Visualization Type:</label>
+          <label className="sr-only" htmlFor="render-mode-select">
+            Render mode
+          </label>
           <select
+            id="render-mode-select"
             value={layerType}
             onChange={(e) => setLayerType(e.target.value as LayerType)}
             className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
@@ -693,7 +709,11 @@ const KeplerTestPage: React.FC = () => {
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">Point Size: {pointSize}</label>
+          <label className="sr-only" htmlFor="point-size-slider">
+            Point size
+          </label>
           <input
+            id="point-size-slider"
             type="range"
             min="0.1"
             max="10"
@@ -706,7 +726,11 @@ const KeplerTestPage: React.FC = () => {
 
         <div>
           <label className="block mb-1 text-xs text-slate-300">Drawing Mode:</label>
+          <label className="sr-only" htmlFor="selection-mode-select">
+            Selection tool
+          </label>
           <select
+            id="selection-mode-select"
             value={drawMode}
             onChange={(e) => setDrawMode(e.target.value as DrawMode)}
             className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
@@ -729,7 +753,11 @@ const KeplerTestPage: React.FC = () => {
           <label className="block mb-1 text-xs text-slate-300">
             Signal Threshold: {signalThreshold} dBm
           </label>
+          <label className="sr-only" htmlFor="signal-threshold-slider">
+            Signal threshold (dBm)
+          </label>
           <input
+            id="signal-threshold-slider"
             type="range"
             min="-100"
             max="-30"

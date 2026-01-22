@@ -173,6 +173,10 @@ const SECURITY_TYPE_COLORS = {
   WPS: '#f97316',
 };
 
+const DEBUG_ANALYTICS = false;
+const ALL_TIME_ANALYTICS_MESSAGE =
+  'Analytics unavailable for all-time. Try enabling timeframe (e.g., 30d).';
+
 export default function Analytics() {
   // Set current page for filter scoping
   usePageFilters('analytics');
@@ -299,11 +303,15 @@ export default function Analytics() {
   // Fetch analytics with unified filters
   useEffect(() => {
     const controller = new AbortController();
+    const isAllTime = !debouncedFilterState?.enabled?.timeframe;
     const fetchAnalytics = async () => {
       setLoading(true);
       setError(null);
       // Don't clear data immediately - keep showing previous data while loading
       try {
+        if (DEBUG_ANALYTICS) {
+          console.info('[analytics] fetch start', { isAllTime });
+        }
         const params = new URLSearchParams({
           filters: JSON.stringify(debouncedFilterState.filters),
           enabled: JSON.stringify(debouncedFilterState.enabled),
@@ -311,10 +319,16 @@ export default function Analytics() {
         const res = await fetch(`/api/v2/networks/filtered/analytics?${params.toString()}`, {
           signal: controller.signal,
         });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+        let payload = null;
+        try {
+          payload = await res.json();
+        } catch (parseError) {
+          payload = null;
         }
-        const payload = await res.json();
+        if (!res.ok || payload?.ok === false) {
+          const message = payload?.message || payload?.error || `HTTP ${res.status}`;
+          throw new Error(message);
+        }
         const data = payload.data || {};
 
         if (data.networkTypes) {
@@ -405,10 +419,17 @@ export default function Analytics() {
         }
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setError(err.message);
+          const message = isAllTime ? ALL_TIME_ANALYTICS_MESSAGE : err.message;
+          setError(message);
+          if (DEBUG_ANALYTICS) {
+            console.warn('[analytics] fetch error', err);
+          }
         }
       } finally {
         setLoading(false);
+        if (DEBUG_ANALYTICS) {
+          console.info('[analytics] fetch end');
+        }
       }
     };
 
@@ -497,48 +518,38 @@ export default function Analytics() {
 
     if (loading && [1, 2, 3, 4, 8].includes(card.id)) {
       return (
-        <div
-          style={{
-            height,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#94a3b8',
-          }}
-        >
-          Loading...
+        <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-slate-200" />
+            Loading analytics...
+          </div>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div
-          style={{
-            height,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ef4444',
-            fontSize: '12px',
-            padding: '20px',
-            textAlign: 'center',
-          }}
-        >
-          Error: {error}
+        <div className="flex items-center justify-center h-full px-4">
+          <div className="w-full rounded-lg border border-red-500/40 bg-red-900/20 px-3 py-2 text-center text-xs text-red-200">
+            {error}
+          </div>
         </div>
       );
     }
 
+    const renderEmptyState = (message = 'No data available') => (
+      <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+        {message}
+      </div>
+    );
+
     switch (card.type) {
       case 'network-types':
         if (!networkTypesData || networkTypesData.length === 0) {
-          console.log('Network types data empty or null:', networkTypesData);
-          return (
-            <div className="flex items-center justify-center h-full text-slate-400">
-              {loading ? 'Loading...' : 'No data available'}
-            </div>
-          );
+          if (DEBUG_ANALYTICS) {
+            console.info('Network types data empty or null:', networkTypesData);
+          }
+          return renderEmptyState();
         }
         return (
           <ResponsiveContainer
@@ -580,7 +591,7 @@ export default function Analytics() {
           </ResponsiveContainer>
         );
       case 'signal':
-        if (signalStrengthData.length === 0) return null;
+        if (signalStrengthData.length === 0) return renderEmptyState();
         return (
           <ResponsiveContainer width="100%" height={height}>
             <BarChart
@@ -602,7 +613,7 @@ export default function Analytics() {
           </ResponsiveContainer>
         );
       case 'security':
-        if (securityData.length === 0) return null;
+        if (securityData.length === 0) return renderEmptyState();
         return (
           <ResponsiveContainer width="100%" height={height} key={`security-${securityData.length}`}>
             <PieChart>
@@ -639,7 +650,7 @@ export default function Analytics() {
           </ResponsiveContainer>
         );
       case 'temporal': {
-        if (temporalData.length === 0) return null;
+        if (temporalData.length === 0) return renderEmptyState();
         return (
           <ResponsiveContainer width="100%" height={height}>
             <BarChart data={temporalData} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
@@ -653,7 +664,7 @@ export default function Analytics() {
         );
       }
       case 'radio-time': {
-        if (radioTimeData.length === 0) return null;
+        if (radioTimeData.length === 0) return renderEmptyState();
         const interval = Math.max(1, Math.floor(radioTimeData.length / 8));
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -680,7 +691,7 @@ export default function Analytics() {
         );
       }
       case 'threat-distribution':
-        if (threatDistributionData.length === 0) return null;
+        if (threatDistributionData.length === 0) return renderEmptyState();
         return (
           <ResponsiveContainer width="100%" height={height}>
             <BarChart
@@ -706,7 +717,7 @@ export default function Analytics() {
           </ResponsiveContainer>
         );
       case 'threat-trends': {
-        if (threatTrendsData.length === 0) return null;
+        if (threatTrendsData.length === 0) return renderEmptyState();
         const interval = Math.max(1, Math.floor(threatTrendsData.length / 8));
         return (
           <ResponsiveContainer width="100%" height={height}>
@@ -776,7 +787,7 @@ export default function Analytics() {
         );
       }
       case 'top-networks':
-        if (topNetworksData.length === 0) return null;
+        if (topNetworksData.length === 0) return renderEmptyState();
         return (
           <div style={{ height: height, overflowY: 'auto', paddingRight: 8 }}>
             {topNetworksData.map((network, idx) => (
@@ -856,6 +867,9 @@ export default function Analytics() {
         }}
       >
         <button
+          type="button"
+          aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+          title={showFilters ? 'Hide filters' : 'Show filters'}
           onClick={() => setShowFilters(!showFilters)}
           className="absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
           style={{
@@ -871,6 +885,8 @@ export default function Analytics() {
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
+            aria-hidden="true"
+            focusable="false"
           >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
           </svg>

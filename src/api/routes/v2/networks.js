@@ -111,7 +111,7 @@ router.get('/v2/networks', async (req, res, next) => {
 router.get('/v2/networks/:bssid', async (req, res, next) => {
   try {
     const bssid = String(req.params.bssid || '').toLowerCase();
-    
+
     const [latest, timeline, threatData] = await Promise.all([
       query(
         `
@@ -167,7 +167,7 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
     ]);
 
     const obsCount = await query(
-      `SELECT COUNT(*) as count FROM public.observations WHERE bssid = $1`,
+      'SELECT COUNT(*) as count FROM public.observations WHERE bssid = $1',
       [bssid]
     );
 

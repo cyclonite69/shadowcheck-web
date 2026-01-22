@@ -601,16 +601,35 @@ router.get('/networks', async (req, res, next) => {
         -- Blend ML score (70%) with manual tag confidence (30%)
         JSONB_BUILD_OBJECT(
           'score', COALESCE(
-            (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + 
-             COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3),
+            CASE 
+              WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
+              WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
+              WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
+              ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
+            END,
             0
           )::text,
           'level', CASE
-            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 80 THEN 'CRITICAL'
-            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 60 THEN 'HIGH'
-            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 40 THEN 'MED'
-            WHEN COALESCE(nts.final_threat_score, 0) * 0.7 + COALESCE(nt.threat_confidence, 0) * 100 * 0.3 >= 20 THEN 'LOW'
-            ELSE 'NONE'
+            WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
+            WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
+            WHEN nt.threat_tag = 'THREAT' THEN (
+              CASE
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 40 THEN 'MED'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
+                ELSE 'NONE'
+              END
+            )
+            ELSE (
+              CASE
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 40 THEN 'MED'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
+                ELSE 'NONE'
+              END
+            )
           END
         ) AS threat,
         ne.distance_from_home_km,

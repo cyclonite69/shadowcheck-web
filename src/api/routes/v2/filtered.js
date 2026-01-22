@@ -9,7 +9,10 @@ const {
   UniversalFilterQueryBuilder,
   validateFilterPayload,
 } = require('../../../services/filterQueryBuilder');
-const { query } = require('../../../config/database');
+const { query, pool } = require('../../../config/database');
+
+const DEBUG_ANALYTICS = false;
+const ANALYTICS_TIMEOUT_MS = 15000;
 
 const parseJsonParam = (value, fallback, name) => {
   if (!value) {
@@ -359,45 +362,71 @@ router.get('/analytics', async (req, res, next) => {
       return res.status(400).json({ ok: false, errors });
     }
 
+    const useLatestPerBssid = !enabled?.timeframe || !filters?.timeframe;
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
-    const queries = builder.buildAnalyticsQueries();
+    const queries = builder.buildAnalyticsQueries({ useLatestPerBssid });
 
-    const [
-      networkTypes,
-      signalStrength,
-      security,
-      threatDistribution,
-      temporalActivity,
-      radioTypeOverTime,
-      threatTrends,
-      topNetworks,
-    ] = await Promise.all([
-      query(queries.networkTypes.sql, queries.networkTypes.params),
-      query(queries.signalStrength.sql, queries.signalStrength.params),
-      query(queries.security.sql, queries.security.params),
-      query(queries.threatDistribution.sql, queries.threatDistribution.params),
-      query(queries.temporalActivity.sql, queries.temporalActivity.params),
-      query(queries.radioTypeOverTime.sql, queries.radioTypeOverTime.params),
-      query(queries.threatTrends.sql, queries.threatTrends.params),
-      query(queries.topNetworks.sql, queries.topNetworks.params),
-    ]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SET LOCAL statement_timeout = ${ANALYTICS_TIMEOUT_MS}`);
 
-    res.json({
-      ok: true,
-      data: {
-        networkTypes: networkTypes.rows,
-        signalStrength: signalStrength.rows,
-        security: security.rows,
-        threatDistribution: threatDistribution.rows,
-        temporalActivity: temporalActivity.rows,
-        radioTypeOverTime: radioTypeOverTime.rows,
-        threatTrends: threatTrends.rows,
-        topNetworks: topNetworks.rows,
-      },
-      meta: {
-        queryTime: Date.now(),
-      },
-    });
+      const runQuery = async (label, statement) => {
+        const start = Date.now();
+        const result = await client.query(statement.sql, statement.params);
+        if (DEBUG_ANALYTICS) {
+          console.info(`[analytics] ${label} ${Date.now() - start}ms`);
+        }
+        return result;
+      };
+
+      const networkTypes = await runQuery('networkTypes', queries.networkTypes);
+      const signalStrength = await runQuery('signalStrength', queries.signalStrength);
+      const security = await runQuery('security', queries.security);
+      const threatDistribution = await runQuery('threatDistribution', queries.threatDistribution);
+      const temporalActivity = await runQuery('temporalActivity', queries.temporalActivity);
+      const radioTypeOverTime = await runQuery('radioTypeOverTime', queries.radioTypeOverTime);
+      const threatTrends = await runQuery('threatTrends', queries.threatTrends);
+      const topNetworks = await runQuery('topNetworks', queries.topNetworks);
+
+      await client.query('COMMIT');
+
+      res.json({
+        ok: true,
+        data: {
+          networkTypes: networkTypes.rows,
+          signalStrength: signalStrength.rows,
+          security: security.rows,
+          threatDistribution: threatDistribution.rows,
+          temporalActivity: temporalActivity.rows,
+          radioTypeOverTime: radioTypeOverTime.rows,
+          threatTrends: threatTrends.rows,
+          topNetworks: topNetworks.rows,
+        },
+        meta: {
+          queryTime: Date.now(),
+          fastPath: useLatestPerBssid,
+        },
+      });
+    } catch (err) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        if (DEBUG_ANALYTICS) {
+          console.warn('[analytics] rollback failed', rollbackError);
+        }
+      }
+      if (err && err.code === '57014') {
+        return res.status(504).json({
+          ok: false,
+          error: 'analytics_timeout',
+          message: `Analytics query exceeded ${ANALYTICS_TIMEOUT_MS / 1000}s. Narrow timeframe.`,
+        });
+      }
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     next(err);
   }

@@ -157,12 +157,12 @@ const Navigation: React.FC = () => {
             transform: 'translateX(-50%)',
             zIndex: 9998,
             padding: '6px 16px',
-            background: 'rgba(0, 0, 0, 0.4)',
+            background: 'rgba(15, 23, 42, 0.92)',
             backdropFilter: 'blur(10px)',
             borderRadius: '0 0 10px 10px',
-            border: '1px solid rgba(100, 116, 139, 0.2)',
+            border: '1px solid rgba(71, 85, 105, 0.5)',
             borderTop: 'none',
-            color: '#64748b',
+            color: '#f1f5f9',
             fontSize: '11px',
             fontWeight: '600',
             letterSpacing: '1.5px',
@@ -172,8 +172,8 @@ const Navigation: React.FC = () => {
           }}
           onMouseEnter={(e) => {
             setNavVisible(true);
-            e.currentTarget.style.color = '#94a3b8';
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.background = 'rgba(15, 23, 42, 0.98)';
           }}
         >
           ▼ Nav

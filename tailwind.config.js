@@ -2,6 +2,26 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   safelist: [
+    // Modal positioning classes (ensure generation for dynamic components)
+    'fixed',
+    '!fixed',
+    'top-0',
+    '!top-0',
+    'left-0',
+    '!left-0',
+    'right-0',
+    '!right-0',
+    'bottom-0',
+    '!bottom-0',
+    'inset-0',
+    '!inset-0',
+    'z-[50000]',
+    '!z-[50000]',
+    'z-[20000]',
+    'z-[9999]',
+    'bg-black/80',
+    'max-w-7xl',
+    'max-h-[90vh]',
     // Dashboard gradient colors
     'from-red-600',
     'to-red-800',

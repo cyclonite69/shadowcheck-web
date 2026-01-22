@@ -1504,11 +1504,35 @@ class UniversalFilterQueryBuilder {
     };
   }
 
-  buildAnalyticsQueries() {
+  buildAnalyticsQueries({ useLatestPerBssid = false } = {}) {
     const { cte, params } = this.buildFilteredObservationsCte();
+    const latestPerBssidCte = useLatestPerBssid
+      ? `,
+      latest_per_bssid AS (
+        SELECT DISTINCT ON (UPPER(o.bssid))
+          o.*
+        FROM filtered_obs o
+        ORDER BY UPPER(o.bssid), o.time DESC NULLS LAST
+      )`
+      : '';
+    const networkTypesJoin = useLatestPerBssid
+      ? 'UPPER(ne.bssid) = UPPER(o.bssid)'
+      : 'ne.bssid = o.bssid';
+    const signalStrengthCte = useLatestPerBssid
+      ? ''
+      : `
+        , latest AS (
+          SELECT DISTINCT ON (bssid)
+            bssid,
+            level
+          FROM filtered_obs
+          ORDER BY bssid, time DESC
+        )
+      `;
+    const signalStrengthSource = useLatestPerBssid ? 'latest_per_bssid' : 'latest';
 
     const base = (query) => ({
-      sql: `${cte}\n${query}`,
+      sql: `${cte}${latestPerBssidCte}\n${query}`,
       params: [...params],
     });
 
@@ -1525,19 +1549,13 @@ class UniversalFilterQueryBuilder {
             ELSE 'Other'
           END AS network_type,
           COUNT(DISTINCT ne.bssid) AS count
-        FROM filtered_obs o
-        JOIN public.api_network_explorer ne ON ne.bssid = o.bssid
+        FROM ${useLatestPerBssid ? 'latest_per_bssid' : 'filtered_obs'} o
+        JOIN public.api_network_explorer ne ON ${networkTypesJoin}
         GROUP BY network_type
         ORDER BY count DESC
       `),
       signalStrength: base(`
-        , latest AS (
-          SELECT DISTINCT ON (bssid)
-            bssid,
-            level
-          FROM filtered_obs
-          ORDER BY bssid, time DESC
-        )
+        ${signalStrengthCte}
         SELECT
           CASE
             WHEN level >= -30 THEN '-30'
@@ -1549,7 +1567,7 @@ class UniversalFilterQueryBuilder {
             ELSE '-90'
           END AS signal_range,
           COUNT(*) AS count
-        FROM latest
+        FROM ${signalStrengthSource}
         WHERE level IS NOT NULL
         GROUP BY signal_range
         ORDER BY signal_range DESC
@@ -1558,7 +1576,7 @@ class UniversalFilterQueryBuilder {
         SELECT
           ${SECURITY_EXPR('o')} AS security_type,
           COUNT(*) AS count
-        FROM filtered_obs o
+        FROM ${useLatestPerBssid ? 'latest_per_bssid' : 'filtered_obs'} o
         GROUP BY security_type
         ORDER BY count DESC
       `),

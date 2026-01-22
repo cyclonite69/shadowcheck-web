@@ -217,13 +217,13 @@ const AdminPage: React.FC = () => {
                       value={mapboxToken}
                       onChange={(e) => setMapboxToken(e.target.value)}
                       placeholder="pk.eyJ1..."
-                      className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+                      className="w-full px-3 py-3 min-h-[44px] bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
                     />
                   </div>
                   <button
                     onClick={saveMapboxToken}
                     disabled={isLoading}
-                    className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all"
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-500 hover:to-blue-600 transition-all shadow-lg disabled:opacity-50"
                   >
                     {isLoading ? 'Saving...' : 'Save Token'}
                   </button>
@@ -254,7 +254,7 @@ const AdminPage: React.FC = () => {
                         value={homeLocation.lat}
                         onChange={(e) => setHomeLocation({ ...homeLocation, lat: e.target.value })}
                         placeholder="39.1031"
-                        className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-3 min-h-[44px] bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500"
                       />
                     </div>
                     <div>
@@ -266,14 +266,14 @@ const AdminPage: React.FC = () => {
                         value={homeLocation.lng}
                         onChange={(e) => setHomeLocation({ ...homeLocation, lng: e.target.value })}
                         placeholder="-84.5120"
-                        className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-3 min-h-[44px] bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500"
                       />
                     </div>
                   </div>
                   <button
                     onClick={saveHomeLocation}
                     disabled={isLoading}
-                    className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition-all"
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold hover:from-green-500 hover:to-green-600 transition-all shadow-lg disabled:opacity-50"
                   >
                     {isLoading ? 'Saving...' : 'Save Location'}
                   </button>
@@ -297,7 +297,11 @@ const AdminPage: React.FC = () => {
               {/* Content */}
               <div className="p-6 space-y-4">
                 <p className="text-slate-400">Import networks from SQLite database files</p>
+                <label className="sr-only" htmlFor="sqlite-upload">
+                  Upload SQLite database
+                </label>
                 <input
+                  id="sqlite-upload"
                   type="file"
                   accept=".sqlite,.db,.sqlite3"
                   onChange={handleFileImport}
@@ -335,19 +339,19 @@ const AdminPage: React.FC = () => {
               <div className="p-6 space-y-3">
                 <button
                   onClick={() => window.open('/api/export/networks/csv', '_blank')}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all"
+                  className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all"
                 >
                   Export Networks (CSV)
                 </button>
                 <button
                   onClick={() => window.open('/api/export/threats/json', '_blank')}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-700 hover:to-red-800 transition-all"
+                  className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-700 hover:to-red-800 transition-all"
                 >
                   Export Threats (JSON)
                 </button>
                 <button
                   onClick={() => window.open('/api/export/observations/geojson', '_blank')}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all"
+                  className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all"
                 >
                   Export GeoJSON
                 </button>

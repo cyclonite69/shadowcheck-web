@@ -7,6 +7,7 @@ import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 import { logError, logDebug } from '../logging/clientLogger';
+import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 
 type ThreatInfo = {
   score: number;
@@ -62,6 +63,8 @@ type NetworkRow = {
   lastSeen: string | null;
   timespanDays?: number | null; // Add timespan calculation
   threat?: ThreatInfo | null;
+  threat_score?: number | null; // Separate threat score field (0-100)
+  threat_level?: string | null; // Separate threat level field
   threatReasons?: string[];
   threatEvidence?: ThreatEvidence[];
   stationaryConfidence?: number | null;
@@ -97,6 +100,7 @@ const NETWORK_COLUMNS: Record<
   ssid: { label: 'SSID', width: 150, sortable: true, default: true },
   bssid: { label: 'BSSID', width: 140, sortable: true, default: true },
   threat: { label: 'Threat', width: 75, sortable: true, default: true },
+  threat_score: { label: 'Threat Score', width: 100, sortable: true, default: false },
   signal: { label: 'Signal (dBm)', width: 100, sortable: true, default: true },
   security: { label: 'Security', width: 80, sortable: true, default: true },
   frequency: { label: 'Frequency', width: 90, sortable: true, default: false },
@@ -128,7 +132,8 @@ const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   observed_at: 'observed_at',
   observations: 'obs_count',
   signal: 'signal',
-  threat: 'threat',
+  threat: 'threat_score', // Sort threat column by score for better ordering
+  threat_score: 'threat_score',
   distanceFromHome: 'distance_from_home_km',
   ssid: 'ssid',
   bssid: 'bssid',
@@ -405,6 +410,7 @@ const createGoogleStyle = (type: string) => ({
 export default function GeospatialExplorer() {
   // Set current page for filter scoping
   usePageFilters('geospatial');
+  const DEBUG_TIMEGRID = false;
 
   // All state declarations first
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
@@ -425,7 +431,14 @@ export default function GeospatialExplorer() {
     const saved = localStorage.getItem('shadowcheck_visible_columns');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(
+            (key): key is keyof NetworkRow | 'select' =>
+              typeof key === 'string' && key in NETWORK_COLUMNS
+          );
+          if (valid.length) return valid;
+        }
       } catch {
         // Fall through to default
       }
@@ -655,6 +668,18 @@ export default function GeospatialExplorer() {
   const [noteType, setNoteType] = useState('general');
   const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Time-frequency modal state
+  const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    console.log('timeFreqModal state changed:', timeFreqModal);
+    if (timeFreqModal) {
+      console.log('Should render modal for BSSID:', timeFreqModal.bssid);
+    }
+  }, [timeFreqModal]);
 
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
@@ -1701,6 +1726,8 @@ export default function GeospatialExplorer() {
 
           // Parse threat info - handles both old boolean format and new JSONB format
           let threatInfo: ThreatInfo | null = null;
+          console.log('Raw threat data for', row.bssid, ':', row.threat);
+          
           if (row.threat === true) {
             // Old format: boolean true means HIGH threat
             threatInfo = {
@@ -1711,13 +1738,24 @@ export default function GeospatialExplorer() {
           } else if (row.threat && typeof row.threat === 'object') {
             // New format: JSONB object with score, level, summary, etc.
             const t = row.threat as { score?: number; level?: string; summary?: string };
-            if (t.level && t.level !== 'NONE') {
-              threatInfo = {
-                score: typeof t.score === 'number' ? t.score / 100 : 0.5, // Normalize 0-100 to 0-1
-                level: t.level as 'HIGH' | 'MED' | 'LOW',
-                summary: t.summary || `Threat level: ${t.level}`,
-              };
-            }
+            console.log('Parsed threat object:', t);
+            
+            // Use the actual API score, don't generate fake ones
+            const apiScore = typeof t.score === 'string' ? parseFloat(t.score) : (typeof t.score === 'number' ? t.score : 0);
+            
+            threatInfo = {
+              score: apiScore / 100, // Normalize to 0-1 if it's 0-100 scale
+              level: (t.level || 'NONE') as 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE',
+              summary: t.summary || `Threat level: ${t.level || 'NONE'}`,
+            };
+          } else {
+            // No threat data - assign default NONE
+            console.log('No threat data, assigning NONE for', row.bssid);
+            threatInfo = {
+              score: 0,
+              level: 'NONE',
+              summary: 'No threat analysis available',
+            };
           }
 
           const channelValue =
@@ -1745,6 +1783,9 @@ export default function GeospatialExplorer() {
             lastSeen: row.last_observed_at || row.observed_at || null,
             timespanDays: calculateTimespan(row.first_observed_at, row.last_observed_at),
             threat: threatInfo,
+            // Add separate threat_score and threat_level fields for the new columns
+            threat_score: threatInfo ? threatInfo.score * 100 : 0, // Default to 0 instead of null
+            threat_level: threatInfo ? threatInfo.level : 'NONE', // Default to NONE instead of null
             threatReasons: [],
             threatEvidence: [],
             stationaryConfidence:
@@ -1962,7 +2003,8 @@ export default function GeospatialExplorer() {
   const filteredNetworks = useMemo(() => networks, [networks]);
 
   const handleColumnSort = (column: keyof NetworkRow, _shiftKey: boolean) => {
-    if (!NETWORK_COLUMNS[column].sortable) return;
+    const colConfig = NETWORK_COLUMNS[column as keyof typeof NETWORK_COLUMNS];
+    if (!colConfig || !colConfig.sortable) return;
     if (!API_SORT_MAP[column]) {
       setError(`Sort not supported for ${String(column)}`);
       return;
@@ -2937,7 +2979,11 @@ export default function GeospatialExplorer() {
                   )}
                 </div>
 
+                <label className="sr-only" htmlFor="map-style">
+                  Map style
+                </label>
                 <select
+                  id="map-style"
                   value={mapStyle}
                   onChange={(e) => changeMapStyle(e.target.value)}
                   style={{
@@ -3337,7 +3383,9 @@ export default function GeospatialExplorer() {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)' }}>
                   {visibleColumns.map((col) => {
-                    const column = NETWORK_COLUMNS[col];
+                    const column = NETWORK_COLUMNS[col as keyof typeof NETWORK_COLUMNS];
+                    // CRASH-PROOF: Skip unknown columns (stale localStorage keys)
+                    if (!column) return null;
                     const sortIndex = sort.findIndex((s) => s.column === col);
                     const sortState = sortIndex >= 0 ? sort[sortIndex] : null;
                     const isSortable =
@@ -3348,6 +3396,7 @@ export default function GeospatialExplorer() {
                     return (
                       <th
                         key={col}
+                        scope="col"
                         onClick={(e) =>
                           isSortable && handleColumnSort(col as keyof NetworkRow, e.shiftKey)
                         }
@@ -3380,6 +3429,8 @@ export default function GeospatialExplorer() {
                           <input
                             type="checkbox"
                             checked={allSelected}
+                            aria-label="Select all rows"
+                            title="Select all rows"
                             ref={(el) => {
                               if (el) el.indeterminate = someSelected;
                             }}
@@ -3461,16 +3512,21 @@ export default function GeospatialExplorer() {
                         }
                       >
                         {visibleColumns.map((col) => {
-                          const column = NETWORK_COLUMNS[col];
+                          const column = NETWORK_COLUMNS[col as keyof typeof NETWORK_COLUMNS];
+                          // CRASH-PROOF: Skip unknown columns (stale localStorage keys)
+                          if (!column) return null;
                           const value = net[col as keyof NetworkRow];
                           let content: React.ReactNode = value ?? 'N/A';
 
                           if (col === 'select') {
+                            const ssidOrHidden = net.ssid || '(hidden)';
                             return (
                               <td key={col} style={{ width: column.width, padding: '4px 6px' }}>
                                 <input
                                   type="checkbox"
                                   checked={selectedNetworks.has(net.bssid)}
+                                  aria-label={`Select row ${ssidOrHidden} ${net.bssid}`}
+                                  title={`Select row ${ssidOrHidden} ${net.bssid}`}
                                   onChange={() => toggleSelectNetwork(net.bssid)}
                                   style={{ cursor: 'pointer' }}
                                   onClick={(e) => e.stopPropagation()}
@@ -3989,6 +4045,27 @@ export default function GeospatialExplorer() {
             <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
             <button
               onClick={() => {
+                setTimeFreqModal(contextMenu.network);
+                closeContextMenu();
+              }}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: 'transparent',
+                border: 'none',
+                color: '#06b6d4',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              📡 Time-Frequency Grid
+            </button>
+            <button
+              onClick={() => {
                 setShowNoteModal(true);
                 setSelectedBssid(contextMenu.network?.bssid || '');
                 closeContextMenu();
@@ -4063,6 +4140,9 @@ export default function GeospatialExplorer() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add Note & Media</h3>
               <button
+                type="button"
+                aria-label="Close"
+                title="Close"
                 onClick={() => {
                   setShowNoteModal(false);
                   setNoteContent('');
@@ -4200,6 +4280,9 @@ export default function GeospatialExplorer() {
                         📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
                       </span>
                       <button
+                        type="button"
+                        aria-label={`Remove attachment ${file.name}`}
+                        title={`Remove attachment ${file.name}`}
                         onClick={() => removeAttachment(idx)}
                         style={{
                           background: 'none',
@@ -4284,6 +4367,15 @@ export default function GeospatialExplorer() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Time-Frequency Modal */}
+      {timeFreqModal && (
+        <NetworkTimeFrequencyModal
+          bssid={timeFreqModal.bssid}
+          ssid={timeFreqModal.ssid}
+          onClose={() => setTimeFreqModal(null)}
+        />
       )}
     </div>
   );
