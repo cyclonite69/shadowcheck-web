@@ -6,114 +6,236 @@ Complete feature list for the SIGINT Forensics Platform.
 
 ### 1. Dashboard
 
-- Real-time network statistics
-- Threat count overview
-- Surveillance device detection
-- Enrichment status tracking
-- Quick metrics at a glance
+- Real-time network statistics with live updates
+- Threat count overview with severity levels
+- Surveillance device detection and classification
+- Enrichment status tracking across multiple APIs
+- Quick metrics at a glance with interactive cards
+- Responsive design with dark theme
+- Filter integration with universal filter system
 
 ### 2. Geospatial Analysis
 
-- Interactive Mapbox GL JS map
-- Network location visualization
-- Observation clustering
-- Home location marker
-- Distance calculations
-- Heatmap overlays
-- Custom marker support
+- Interactive Mapbox GL JS map with custom styling
+- Network location visualization with clustering
+- Observation clustering with density-based grouping
+- Home location marker with distance calculations
+- Distance calculations using PostGIS functions
+- Heatmap overlays for threat density
+- Custom marker support with threat-based coloring
+- Map orientation controls (compass, pitch, bearing)
+- Lazy loading for performance optimization
 
 ### 3. Network Analysis
 
-- 173,326+ unique networks tracked
-- 566,400+ location observations
-- Multi-radio support (WiFi, BLE, Bluetooth, LTE, 5G, GSM)
-- Signal strength tracking
-- Encryption detection
-- Channel/frequency analysis
-- Manufacturer identification (MAC OUI lookup)
+- 173,326+ unique networks tracked (current database stats)
+- 566,400+ location observations with temporal data
+- Multi-radio support (WiFi, BLE, Bluetooth, LTE, 5G, GSM, NFC)
+- Signal strength tracking with RSSI analysis
+- Encryption detection with WPA3/WPA2/WEP classification
+- Channel/frequency analysis with band detection
+- Manufacturer identification (MAC OUI lookup with 40,000+ entries)
+- Universal filter system with 20+ filter types
+- Advanced filtering with temporal, spatial, and behavioral filters
+- Real-time search with debounced input
+- Sortable tables with pagination (up to 5000 records per page)
 
 ### 4. Threat Detection
 
-- ML-powered threat scoring (0-100)
-- Behavioral pattern analysis
-- Movement tracking
-- Speed calculations
-- Distance range monitoring
-- Home/away detection
-- Temporal pattern analysis
+- ML-powered threat scoring (0-100 scale) with confidence intervals
+- Behavioral pattern analysis using movement algorithms
+- Movement tracking with speed calculations (km/h)
+- Distance range monitoring from home location
+- Home/away detection with configurable thresholds
+- Temporal pattern analysis (24-hour activity cycles)
 - User tagging system (LEGIT, FALSE_POSITIVE, INVESTIGATE, THREAT)
+- Stationary confidence scoring for fixed vs mobile devices
+- Multi-algorithm threat detection with ensemble methods
+- Real-time threat classification with background processing
 
 ### 5. Analytics
 
-- Network type distribution
-- Signal strength histograms
-- Temporal activity patterns (24-hour)
-- Security/encryption analysis
-- Radio type trends over time
+- Network type distribution with radio type breakdown
+- Signal strength histograms with statistical analysis
+- Temporal activity patterns (24-hour heatmaps)
+- Security/encryption analysis with vulnerability assessment
+- Radio type trends over time with forecasting
 - Customizable time ranges (24h, 7d, 30d, 90d, all)
+- Interactive Chart.js visualizations with drill-down
+- Export capabilities (CSV, JSON) with filtered datasets
+- Performance metrics and query optimization insights
+
+## Modern Frontend Architecture
+
+### React + Vite Frontend
+
+- **React 18** with TypeScript support
+- **Vite** build system for fast development and optimized production builds
+- **Lazy loading** for heavy components (maps, analytics)
+- **Suspense** boundaries for graceful loading states
+- **React Router** with future-ready configuration
+- **Tailwind CSS** for responsive, dark-themed UI
+- **Component-based architecture** with reusable UI elements
+
+### Pages & Routing
+
+- **Dashboard** (`/` and `/dashboard`) - Real-time metrics and threat overview
+- **Geospatial Intelligence** (`/geospatial` or `/geospatial-intel`) - Interactive mapping
+- **Analytics** (`/analytics`) - Charts and statistical analysis
+- **API Test** (`/endpoint-test`) - Development API testing interface
+- **ML Training** (`/ml-training`) - Machine learning model management
+- **Admin** (`/admin`) - System administration and configuration
+- **WiGLE Test** (`/wigle-test`) - WiGLE API integration testing
+- **Kepler Test** (`/kepler-test`) - Kepler.gl visualization testing
+
+### State Management
+
+- **Zustand** for global filter state management
+- **React hooks** for component-level state
+- **Custom hooks** for data fetching and filter adaptation
+- **Context providers** for shared functionality
+
+### Performance Optimizations
+
+- **Code splitting** with dynamic imports
+- **Bundle optimization** with Vite's tree shaking
+- **Image optimization** and lazy loading
+- **Debounced search** for real-time filtering
+- **Virtualized lists** for large datasets
+- **Memoized components** to prevent unnecessary re-renders
 
 ## Intelligence Features
 
 ### Address Enrichment
 
-- Multi-API venue identification (4 sources)
-- Business name lookup
-- Address resolution
-- Conflict resolution between sources
-- Confidence scoring
+- Multi-API venue identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass)
+- Business name lookup with confidence scoring
+- Address resolution with geocoding validation
+- Conflict resolution between sources using weighted algorithms
+- Confidence scoring based on source reliability
+- Batch processing for large datasets
+- Rate limiting and API key rotation
 
 ### Device Classification
 
-- Automatic device type detection
-- Vehicle identification
-- IoT device recognition
-- Smartphone detection
-- Manufacturer categorization
+- Automatic device type detection using ML algorithms
+- Vehicle identification based on movement patterns
+- IoT device recognition through behavioral analysis
+- Smartphone detection via signal characteristics
+- Manufacturer categorization with OUI database (40,000+ entries)
+- Device fingerprinting for tracking across sessions
 
 ### Contextual Analysis
 
-- Government facility detection
+- Government facility detection using geofencing
 - Educational institution identification
-- Commercial venue recognition
-- Residential area mapping
+- Commercial venue recognition with business type classification
+- Residential area mapping with privacy considerations
+- Critical infrastructure identification
+- Surveillance zone detection and alerting
 
-### Trilateration
+### Trilateration & Positioning
 
 - AP location calculation from multiple observations
-- Accuracy estimation
-- Multi-point positioning
+- Accuracy estimation using statistical methods
+- Multi-point positioning with error bounds
+- GPS coordinate validation and filtering
+- Indoor positioning estimation
+- Movement pattern analysis for mobile devices
 
-### UUID Tracking
+### UUID Tracking & Behavioral Analysis
 
-- Device movement patterns
-- Behavioral profiling
-- Cross-session tracking
-- Temporal correlation
+- Device movement patterns with trajectory analysis
+- Behavioral profiling using ML clustering
+- Cross-session tracking with privacy safeguards
+- Temporal correlation analysis
+- Anomaly detection in movement patterns
+- Speed and acceleration calculations
 
-## Machine Learning
+## Machine Learning & AI
 
 ### Threat Detection Model
 
-- Logistic regression classifier
-- Feature engineering:
-  - Distance range
-  - Observation count
-  - Unique days
-  - Home/away patterns
-  - Signal strength
-  - Movement speed
-- Training on user-tagged networks
-- Confidence scoring
-- Real-time prediction
+- **Logistic regression classifier** with hyperparameter optimization
+- **Random Forest** and **Gradient Boosting** ensemble methods
+- **Feature engineering** with domain expertise:
+  - Distance range from home location
+  - Observation count and frequency
+  - Unique days seen over time
+  - Home/away behavioral patterns
+  - Signal strength characteristics (RSSI)
+  - Movement speed and acceleration
+  - Temporal activity patterns
+  - Network security characteristics
+- **Training pipeline** with cross-validation
+- **Model persistence** and versioning
+- **Real-time prediction** with confidence scoring
+- **Incremental learning** for model updates
 
-### Model Training
+### Model Training & Evaluation
 
-- Minimum 10 tagged samples
-- Automatic retraining
-- Performance metrics
-- Feature importance analysis
+- **Minimum 10 tagged samples** for training
+- **Automatic retraining** when new tags are added
+- **Performance metrics**: Accuracy, Precision, Recall, F1-Score, ROC-AUC
+- **Feature importance analysis** for interpretability
+- **Hyperparameter grid search** for optimization
+- **Cross-validation** with stratified sampling
+- **Model comparison** across multiple algorithms
+- **Training history** and performance tracking
 
-## Data Management
+### Advanced Analytics
+
+- **Clustering algorithms** for device grouping
+- **Anomaly detection** for unusual patterns
+- **Time series analysis** for temporal trends
+- **Geospatial clustering** for location-based insights
+- **Network topology analysis** for infrastructure mapping
+
+## Development & DevOps Features
+
+### Development Environment
+
+- **DevContainer** support with VS Code integration
+- **Docker Compose** for consistent development setup
+- **Hot reload** with nodemon for backend development
+- **Vite dev server** for frontend development with HMR
+- **Environment configuration** with .env file management
+- **Secrets management** with keyring integration
+- **Database migrations** with ordered execution
+- **Seed data** for development and testing
+
+### Code Quality & Testing
+
+- **ESLint** configuration with custom rules
+- **Prettier** formatting with consistent style
+- **Husky** pre-commit hooks for quality gates
+- **Jest** testing framework with coverage reporting
+- **Integration tests** for API endpoints
+- **Unit tests** for business logic
+- **SQL injection prevention** with parameterized queries
+- **Security scanning** with automated tools
+
+### Build & Deployment
+
+- **Vite build system** with optimized production builds
+- **Static server** with security headers for Lighthouse audits
+- **Docker containerization** with multi-stage builds
+- **CI/CD pipeline** with GitHub Actions
+- **Environment-specific builds** (development, staging, production)
+- **SEO optimization** with sitemap generation and robots.txt
+- **Performance monitoring** with built-in metrics
+
+### Security Features
+
+- **Content Security Policy** (CSP) with Mapbox allowlist
+- **Security headers** (X-Frame-Options, X-Content-Type-Options, etc.)
+- **HTTPS enforcement** with automatic redirects
+- **Rate limiting** (1000 requests per 15 minutes per IP)
+- **CORS configuration** with origin validation
+- **Input validation** and sanitization
+- **SQL injection prevention** with parameterized queries
+- **XSS protection** with output encoding
+- **Secrets management** with OS-level keyring integration
 
 ### Import/Export
 

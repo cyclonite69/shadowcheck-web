@@ -6,140 +6,235 @@ This document describes the high-level architecture of the ShadowCheck-Static pl
 
 - [Overview](#overview)
 - [System Architecture](#system-architecture)
+- [Frontend Architecture](#frontend-architecture)
+- [Backend Architecture](#backend-architecture)
 - [Data Flow](#data-flow)
 - [Database Schema](#database-schema)
 - [Threat Detection Algorithm](#threat-detection-algorithm)
 - [Security Architecture](#security-architecture)
+- [Development Architecture](#development-architecture)
 - [Scalability Considerations](#scalability-considerations)
 - [Future Architecture Goals](#future-architecture-goals)
 
 ## Overview
 
-ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built on a monolithic Node.js/Express architecture with PostgreSQL + PostGIS for geospatial data processing.
+ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built on a hybrid architecture combining a React/Vite frontend with a Node.js/Express backend, using PostgreSQL + PostGIS for geospatial data processing.
 
 ### Core Components
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Frontend (Static HTML)                   │
+│                   React Frontend (Vite)                      │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │Dashboard │  │Geospatial│  │ Networks │  │Surveillance│   │
+│  │Dashboard │  │Geospatial│  │ Analytics│  │ML Training│   │
+│  │   Page   │  │   Intel  │  │   Page   │  │   Page    │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │  Admin   │  │ API Test │  │WiGLE Test│  │Kepler Test│   │
+│  │   Page   │  │   Page   │  │   Page   │  │   Page    │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│                                                             │
+│  State Management: Zustand + React Hooks                   │
+│  Routing: React Router with lazy loading                   │
+│  Styling: Tailwind CSS with dark theme                     │
 └───────────────────────────┬─────────────────────────────────┘
                             │ REST API (JSON)
 ┌───────────────────────────┴─────────────────────────────────┐
-│                    Express Server (Node.js)                   │
+│                 Express Server (Node.js)                     │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  API Layer (server.js)                               │   │
+│  │  API Layer (Hybrid Architecture)                     │   │
+│  │  • Legacy routes in server.js (v1 API)              │   │
+│  │  • Modern routes in src/api/ (v2 API)               │   │
 │  │  • /api/dashboard-metrics                            │   │
 │  │  • /api/threats/quick (paginated)                    │   │
-│  │  • /api/threats/detect (advanced with speed calc)    │   │
 │  │  • /api/networks/* (CRUD operations)                 │   │
 │  │  • /api/analytics/* (temporal, signal, security)     │   │
 │  │  • /api/ml/* (training, prediction)                  │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
+│  │  Business Logic Layer                                 │   │
+│  │  • src/services/ (modular business logic)            │   │
+│  │  • src/repositories/ (data access layer)             │   │
+│  │  • Threat scoring algorithms                         │   │
+│  │  • ML training & prediction services                 │   │
+│  │  • Filter query builder with 20+ filter types       │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
 │  │  Middleware Stack                                     │   │
 │  │  • CORS + Rate Limiting (1000 req/15min)            │   │
 │  │  • Security Headers (CSP, X-Frame-Options)           │   │
-│  │  • HTTPS Redirect (optional)                         │   │
+│  │  • HTTPS Redirect (configurable)                     │   │
 │  │  • Request Body Size Limiting (10MB)                 │   │
-│  │  • Error Handler with Structured Logging             │   │
-│  └──────────────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  Business Logic                                       │   │
-│  │  • Threat Scoring Algorithm                          │   │
-│  │  • ML Training & Prediction (Logistic Regression)    │   │
-│  │  • Geospatial Distance Calculations (PostGIS)        │   │
-│  │  • Network Classification & Tagging                  │   │
+│  │  • Structured Logging with Winston                   │   │
+│  │  • Error Handler with client logger integration      │   │
 │  └──────────────────────────────────────────────────────┘   │
 └───────────────────────────┬─────────────────────────────────┘
                             │ Connection Pool (pg)
 ┌───────────────────────────┴─────────────────────────────────┐
 │            PostgreSQL 18 + PostGIS (Geospatial)              │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  Schema: app                                          │   │
+│  │  Schema: app (Production Data)                        │   │
 │  │  • networks_legacy (BSSID, SSID, type, encryption)   │   │
 │  │  • locations_legacy (observations with lat/lon)      │   │
 │  │  • network_tags (user classifications)               │   │
 │  │  • location_markers (home/work coordinates)          │   │
 │  │  • wigle_networks_enriched (WiGLE API data)          │   │
 │  │  • radio_manufacturers (OUI → manufacturer mapping)  │   │
+│  │  • ml_model_metadata (ML model versioning)           │   │
+│  │  • network_threat_scores (precomputed scores)        │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Materialized Views (Performance)                     │   │
+│  │  • api_network_explorer_mv (fast network queries)    │   │
+│  │  • threat_analysis_mv (precomputed threat metrics)   │   │
+│  │  • analytics_summary_mv (dashboard metrics)          │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## System Architecture
 
-### Current: Monolithic Single-File Server
+### Current: Hybrid React + Express Architecture
 
-**Characteristics:**
+**Frontend Characteristics:**
 
-- All API endpoints in `server.js` (~1700 lines)
-- Business logic mixed with database queries
-- No separation of concerns
-- Direct SQL queries (parameterized for security)
-- CommonJS module system
+- **React 18** with TypeScript support
+- **Vite** build system for fast development and optimized builds
+- **Component-based architecture** with lazy loading
+- **Zustand** for global state management
+- **Tailwind CSS** for responsive, dark-themed UI
+- **React Router** with code splitting
+
+**Backend Characteristics:**
+
+- **Hybrid API structure**: Legacy routes in `server.js` + modern routes in `src/api/`
+- **Modular services** in `src/services/` for business logic
+- **Repository pattern** in `src/repositories/` for data access
+- **Universal filter system** with 20+ filter types
+- **Structured logging** with Winston
+- **Connection pooling** with PostgreSQL
 
 **Pros:**
 
-- Simple to understand and debug
-- Fast initial development
-- Low complexity for small team
+- **Modern development experience** with hot reload and TypeScript
+- **Performance optimized** with lazy loading and code splitting
+- **Maintainable** with separation of concerns
+- **Scalable** frontend architecture
+- **SEO ready** with static server and security headers
 
-**Cons:**
+**Migration Status:**
 
-- Hard to test in isolation
-- Difficult to scale codebase
-- Code reuse is limited
-- Refactoring is risky
+- ✅ React frontend with modern tooling
+- ✅ Component-based UI architecture
+- ✅ Universal filter system
+- ✅ Modular backend services (partial)
+- 🔄 API route migration (in progress)
+- ⏳ Full repository pattern adoption
 
-### Target: Modular Layered Architecture
+### Frontend Architecture
 
 ```
 src/
-├── api/                    # HTTP layer
-│   ├── routes/            # Route handlers
-│   │   ├── v1/
-│   │   │   ├── networks.js
-│   │   │   ├── threats.js
-│   │   │   ├── analytics.js
-│   │   │   └── ml.js
-│   ├── middleware/        # Express middleware
-│   │   ├── auth.js
-│   │   ├── validation.js
-│   │   ├── errorHandler.js
-│   │   └── requestLogger.js
-│   └── schemas/           # Request/response validation
-│       ├── network.js
-│       └── threat.js
+├── components/           # React components
+│   ├── DashboardPage.tsx        # Main dashboard
+│   ├── GeospatialIntelligencePage.tsx  # Map interface
+│   ├── AnalyticsPage.tsx        # Charts and analytics
+│   ├── MLTrainingPage.tsx       # ML model management
+│   ├── AdminPage.tsx            # System administration
+│   ├── FilterPanel.tsx          # Universal filter UI
+│   ├── Navigation.tsx           # App navigation
+│   └── modals/                  # Modal components
+├── hooks/                # Custom React hooks
+│   ├── useFilteredData.ts       # Data filtering logic
+│   ├── useAdaptedFilters.ts     # Filter adaptation
+│   └── usePageFilters.ts        # Page-specific filters
+├── stores/               # State management
+│   └── filterStore.ts           # Zustand filter store
+├── utils/                # Utility functions
+│   ├── filterCapabilities.ts   # Filter configuration
+│   ├── mapboxLoader.ts         # Mapbox integration
+│   └── mapOrientationControls.ts  # Map controls
+├── logging/              # Client-side logging
+│   └── clientLogger.ts          # Error reporting
+├── types/                # TypeScript definitions
+│   └── filters.ts               # Filter type definitions
+├── App.tsx               # Main app component
+└── main.tsx              # Application entry point
+```
+
+### Backend Architecture
+
+```
+server.js                 # Main Express server (legacy + new)
+src/
+├── api/                  # Modern API routes (v2)
+│   └── routes/           # Route handlers
+├── services/             # Business logic layer
+│   ├── filterQueryBuilder.js   # Universal filter system
+│   ├── threatScoringService.js # Threat detection
+│   ├── mlScoringService.js     # ML predictions
+│   ├── analyticsService.js     # Analytics queries
+│   ├── backgroundJobsService.js # Background processing
+│   └── secretsManager.js       # Secrets management
+├── repositories/         # Data access layer
+│   ├── networkRepository.js    # Network data access
+│   └── baseRepository.js       # Base repository class
+├── config/               # Configuration
+│   └── database.js             # Database configuration
+├── validation/           # Input validation
+│   ├── schemas.js              # Joi validation schemas
+│   └── middleware.js           # Validation middleware
+├── errors/               # Error handling
+│   ├── AppError.js             # Custom error classes
+│   └── errorHandler.js         # Global error handler
+└── logging/              # Server-side logging
+    ├── logger.js               # Winston logger
+    └── middleware.js           # Request logging
+```
+
+├── api/ # HTTP layer
+│ ├── routes/ # Route handlers
+│ │ ├── v1/
+│ │ │ ├── networks.js
+│ │ │ ├── threats.js
+│ │ │ ├── analytics.js
+│ │ │ └── ml.js
+│ ├── middleware/ # Express middleware
+│ │ ├── auth.js
+│ │ ├── validation.js
+│ │ ├── errorHandler.js
+│ │ └── requestLogger.js
+│ └── schemas/ # Request/response validation
+│ ├── network.js
+│ └── threat.js
 │
-├── services/              # Business logic layer
-│   ├── threatService.js
-│   ├── analyticsService.js
-│   ├── networkService.js
-│   └── mlService.js
+├── services/ # Business logic layer
+│ ├── threatService.js
+│ ├── analyticsService.js
+│ ├── networkService.js
+│ └── mlService.js
 │
-├── repositories/          # Data access layer
-│   ├── networkRepository.js
-│   ├── locationRepository.js
-│   ├── networkTagsRepository.js
-│   └── unitOfWork.js
+├── repositories/ # Data access layer
+│ ├── networkRepository.js
+│ ├── locationRepository.js
+│ ├── networkTagsRepository.js
+│ └── unitOfWork.js
 │
-├── models/                # Domain models
-│   ├── Network.js
-│   ├── Threat.js
-│   └── NetworkTag.js
+├── models/ # Domain models
+│ ├── Network.js
+│ ├── Threat.js
+│ └── NetworkTag.js
 │
-├── config/                # Configuration management
-│   ├── index.js
-│   ├── database.js
-│   └── secrets.js
+├── config/ # Configuration management
+│ ├── index.js
+│ ├── database.js
+│ └── secrets.js
 │
-└── utils/                 # Utilities
-    ├── logger.js
-    ├── validation.js
-    └── errorHandler.js
+└── utils/ # Utilities
+├── logger.js
+├── validation.js
+└── errorHandler.js
+
 ```
 
 ## Data Flow
@@ -147,45 +242,49 @@ src/
 ### Threat Detection Request Flow
 
 ```
+
 User Request
-    ↓
+↓
 [Frontend] → GET /api/threats/quick?page=1&limit=100&minSeverity=40
-    ↓
+↓
 [Middleware] → Rate Limiting → CORS → Authentication
-    ↓
+↓
 [Route Handler] → Parse & Validate Query Params
-    ↓
+↓
 [Threat Service] → Calculate Threat Scores
-    ↓
+↓
 [Repository Layer] → Query Database (CTEs)
-    ↓
+↓
 [PostgreSQL] → Execute Query with PostGIS Distance Calculations
-    ↓
+↓
 [Repository Layer] → Map DB Results to Domain Models
-    ↓
+↓
 [Threat Service] → Apply Pagination & Filtering
-    ↓
+↓
 [Route Handler] → Format Response
-    ↓
+↓
 [Frontend] → Render Threat Table
+
 ```
 
 ### Enrichment Data Flow
 
 ```
+
 [WiGLE CSV Import] → Import Script
-    ↓
+↓
 [PostgreSQL] → app.wigle_networks_enriched
-    ↓
+↓
 [Enrichment System] → Multi-API Venue Lookup
-    ├─→ [LocationIQ API] → Conflict Resolution
-    ├─→ [OpenCage API]   → Voting System
-    ├─→ [Overpass API]   → Best Match Selection
-    └─→ [Nominatim API]  → Gap Filling
-    ↓
+├─→ [LocationIQ API] → Conflict Resolution
+├─→ [OpenCage API] → Voting System
+├─→ [Overpass API] → Best Match Selection
+└─→ [Nominatim API] → Gap Filling
+↓
 [PostgreSQL] → app.ap_addresses (venue names, categories)
-    ↓
+↓
 [Frontend] → Display Enriched Network Data
+
 ```
 
 ## Database Schema
@@ -193,42 +292,44 @@ User Request
 ### Entity Relationship Diagram
 
 ```
-┌──────────────────────────┐         ┌───────────────────────────┐
-│   networks_legacy        │         │   locations_legacy        │
-├──────────────────────────┤         ├───────────────────────────┤
-│ bssid (PK)               │────┐    │ id (PK)                   │
-│ ssid                     │    │    │ bssid (FK)                │
-│ type (W/E/B/L/N/G)       │    └───→│ lat                       │
-│ encryption               │         │ lon                       │
-│ last_seen                │         │ signal_strength           │
-│ capabilities             │         │ time                      │
-└──────────────────────────┘         │ accuracy                  │
-          │                           └───────────────────────────┘
-          │
-          │ 1:1
-          ↓
-┌──────────────────────────┐         ┌───────────────────────────┐
-│   network_tags           │         │   location_markers        │
-├──────────────────────────┤         ├───────────────────────────┤
-│ bssid (PK, FK)           │         │ id (PK)                   │
-│ tag_type                 │         │ name ('home'/'work')      │
-│ confidence               │         │ lat                       │
-│ threat_score             │         │ lon                       │
-│ notes                    │         └───────────────────────────┘
-│ created_at               │
-│ ml_confidence            │
+
+┌──────────────────────────┐ ┌───────────────────────────┐
+│ networks_legacy │ │ locations_legacy │
+├──────────────────────────┤ ├───────────────────────────┤
+│ bssid (PK) │────┐ │ id (PK) │
+│ ssid │ │ │ bssid (FK) │
+│ type (W/E/B/L/N/G) │ └───→│ lat │
+│ encryption │ │ lon │
+│ last_seen │ │ signal_strength │
+│ capabilities │ │ time │
+└──────────────────────────┘ │ accuracy │
+│ └───────────────────────────┘
+│
+│ 1:1
+↓
+┌──────────────────────────┐ ┌───────────────────────────┐
+│ network_tags │ │ location_markers │
+├──────────────────────────┤ ├───────────────────────────┤
+│ bssid (PK, FK) │ │ id (PK) │
+│ tag_type │ │ name ('home'/'work') │
+│ confidence │ │ lat │
+│ threat_score │ │ lon │
+│ notes │ └───────────────────────────┘
+│ created_at │
+│ ml_confidence │
 └──────────────────────────┘
 
-┌──────────────────────────┐         ┌───────────────────────────┐
-│ wigle_networks_enriched  │         │   radio_manufacturers     │
-├──────────────────────────┤         ├───────────────────────────┤
-│ bssid (PK, FK)           │         │ id (PK)                   │
-│ trilat_lat               │         │ mac_prefix                │
-│ trilat_lon               │         │ manufacturer              │
-│ qos                      │         │ category                  │
-│ first_seen               │         └───────────────────────────┘
+┌──────────────────────────┐ ┌───────────────────────────┐
+│ wigle_networks_enriched │ │ radio_manufacturers │
+├──────────────────────────┤ ├───────────────────────────┤
+│ bssid (PK, FK) │ │ id (PK) │
+│ trilat_lat │ │ mac_prefix │
+│ trilat_lon │ │ manufacturer │
+│ qos │ │ category │
+│ first_seen │ └───────────────────────────┘
 └──────────────────────────┘
-```
+
+````
 
 ### Key Indexes
 
@@ -244,7 +345,7 @@ CREATE INDEX idx_network_tags_bssid ON app.network_tags(bssid);
 CREATE INDEX idx_locations_geom ON app.locations_legacy USING GIST (
   ST_SetSRID(ST_MakePoint(lon, lat), 4326)
 );
-```
+````
 
 ## Threat Detection Algorithm
 

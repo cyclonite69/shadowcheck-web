@@ -13,26 +13,38 @@
 
 ## Current Development Direction
 
-- React/Vite front-end is being introduced (`src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`), backed by new PostGIS materialized views for fast explorer pages.
-- Backend serves Express APIs at `/api/*` plus the React build assets (`dist/`) once built.
-- ETL pipeline lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed.
+- **React/Vite frontend** with TypeScript support is fully integrated (`src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`)
+- **Hybrid backend architecture** with legacy routes in `server.js` and modern modular services in `src/api/`, `src/services/`, and `src/repositories/`
+- **Universal filter system** with 20+ filter types supporting complex queries across all pages
+- **DevContainer support** for consistent development environments with VS Code integration
+- **Static server** with security headers for production deployment and Lighthouse audits
+- **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence
+- **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
+- **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
 
 ## Features
 
-- **Dashboard:** Real-time network environment overview with threat indicators
-- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation
-- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns
-- **Threat Detection:** ML-powered identification of surveillance devices and anomalies
-- **Analytics:** Advanced charts and graphs for network pattern analysis
-- **Address Enrichment:** Multi-API venue and business identification (4 sources)
+- **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards
+- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, and map orientation controls
+- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering
+- **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms
+- **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations
+- **Address Enrichment:** Multi-API venue and business identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass)
 - **Device Classification:** Automatic identification of device types and behavioral profiling
-- **Trilateration:** AP location calculation from multiple observations
+- **Trilateration:** AP location calculation from multiple observations with accuracy estimation
+- **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning
+- **Universal Filters:** 20+ filter types supporting complex temporal, spatial, and behavioral queries
+- **DevContainer Support:** Consistent development environment with VS Code integration
+- **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization
+- **Admin Features:** System administration interface with configuration management, user settings, and system monitoring
 
 ## Architecture
 
 **Backend:** Node.js/Express REST API with PostgreSQL + PostGIS  
-**Frontend:** React + Vite (explorers and dashboards)  
-**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
+**Frontend:** React + Vite with TypeScript (explorers and dashboards)  
+**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)  
+**Development:** DevContainer support with VS Code integration  
+**Deployment:** Static server with security headers for production
 
 ## Prerequisites
 

@@ -1509,10 +1509,12 @@ class UniversalFilterQueryBuilder {
     const latestPerBssidCte = useLatestPerBssid
       ? `,
       latest_per_bssid AS (
-        SELECT DISTINCT ON (UPPER(o.bssid))
-          o.*
-        FROM filtered_obs o
-        ORDER BY UPPER(o.bssid), o.time DESC NULLS LAST
+        SELECT *
+        FROM (
+          SELECT o.*, ROW_NUMBER() OVER (PARTITION BY UPPER(o.bssid) ORDER BY o.time DESC NULLS LAST) as rn
+          FROM filtered_obs o
+        ) ranked
+        WHERE rn = 1
       )`
       : '';
     const signalStrengthCte = useLatestPerBssid

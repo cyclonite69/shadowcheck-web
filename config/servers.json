@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "ShadowCheck PostgreSQL",
+      "Group": "Servers",
+      "Host": "shadowcheck_postgres",
+      "Port": 5432,
+      "MaintenanceDB": "shadowcheck_db",
+      "Username": "shadowcheck_user",
+      "SSLMode": "prefer",
+      "Comment": "ShadowCheck main database"
+    }
+  }
+}

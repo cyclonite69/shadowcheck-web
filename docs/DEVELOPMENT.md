@@ -1,15 +1,18 @@
 # Development Guide
 
-Complete guide for setting up and developing ShadowCheck-Static.
+Complete guide for setting up and developing ShadowCheck-Static with modern React + Express architecture.
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Initial Setup](#initial-setup)
 - [Development Workflow](#development-workflow)
+- [Frontend Development](#frontend-development)
+- [Backend Development](#backend-development)
 - [Database Management](#database-management)
 - [Testing](#testing)
 - [Code Quality](#code-quality)
+- [DevContainer Setup](#devcontainer-setup)
 - [Debugging](#debugging)
 - [Common Tasks](#common-tasks)
 - [Troubleshooting](#troubleshooting)
@@ -18,28 +21,32 @@ Complete guide for setting up and developing ShadowCheck-Static.
 
 ### Required Software
 
-- **Node.js** 20+ (LTS recommended)
+- **Node.js** 20+ (LTS recommended) - Check with `node --version`
 - **PostgreSQL** 18+ with PostGIS extension
 - **Docker** (optional, for containerized development)
 - **Git** for version control
+- **VS Code** (recommended) with DevContainer support
 
 ### Recommended Tools
 
-- **VS Code** with extensions:
+- **VS Code Extensions**:
   - ESLint
-  - Prettier
+  - Prettier - Code formatter
   - PostgreSQL (by Chris Kolkman)
   - REST Client
-- **Postman** or **Insomnia** for API testing
-- **pgAdmin** or **DBeaver** for database management
+  - Dev Containers
+  - Tailwind CSS IntelliSense
+  - TypeScript Importer
+- **Database Tools**: pgAdmin, DBeaver, or TablePlus
+- **API Testing**: Postman, Insomnia, or VS Code REST Client
 
 ## Initial Setup
 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-username/ShadowCheckStatic.git
-cd ShadowCheckStatic
+git clone https://github.com/cyclonite69/shadowcheck-static.git
+cd shadowcheck-static
 ```
 
 ### 2. Install Dependencies
@@ -48,12 +55,13 @@ cd ShadowCheckStatic
 npm install
 ```
 
-This installs all dependencies from `package.json`:
+This installs all dependencies including:
 
-- express, pg, dotenv (core dependencies)
-- jest, eslint, prettier (development dependencies)
+- **Frontend**: React, Vite, Tailwind CSS, TypeScript
+- **Backend**: Express, PostgreSQL client, Winston logging
+- **Development**: ESLint, Prettier, Jest, Husky
 
-### 3. Configure Environment
+### 3. Environment Configuration
 
 Create `.env` file in project root:
 
@@ -66,7 +74,7 @@ Edit `.env` with your configuration:
 ```env
 # Database Configuration
 DB_USER=shadowcheck_user
-DB_HOST=shadowcheck_postgres
+DB_HOST=localhost  # or shadowcheck_postgres for Docker
 DB_NAME=shadowcheck_db
 DB_PASSWORD=your_secure_password
 DB_PORT=5432
@@ -77,130 +85,253 @@ NODE_ENV=development
 FORCE_HTTPS=false
 
 # CORS Configuration (comma-separated origins)
-CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001
+CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173
 
-# API Authentication (optional for development)
-API_KEY=dev-key-123
-
-# Frontend Configuration
+# Frontend Configuration (stored in keyring or .env)
 MAPBOX_TOKEN=pk.your_mapbox_token_here
 
-# Enrichment APIs (optional)
+# Optional: API Keys for enrichment
 OPENCAGE_API_KEY=your_opencage_key
 LOCATIONIQ_API_KEY=your_locationiq_key
 ABSTRACT_API_KEY=your_abstract_key
 ```
 
-If you're running PostgreSQL locally (not the shared Docker container), set `DB_HOST=localhost` and use the database name you created.
+**Note**: For production, use the keyring system instead of storing secrets in `.env`.
 
-### 4. Setup Database
+## DevContainer Setup (Recommended)
 
-#### Option A: Docker (Recommended)
+The project includes a complete DevContainer configuration for consistent development environments.
 
-This repo expects a shared Postgres container (`shadowcheck_postgres`) on the `shadowcheck_net` network. Start it via your shared database stack before continuing.
+### 1. Prerequisites for DevContainer
 
-```bash
-# Ensure shared PostgreSQL container is running
-docker ps | grep shadowcheck_postgres
+- **Docker Desktop** installed and running
+- **VS Code** with the **Dev Containers** extension
 
-# Wait for database to be ready (shared Postgres container)
-docker exec shadowcheck_postgres pg_isready -U shadowcheck_user
-
-# Run migrations
-docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/00_init_schema.sql
-```
-
-#### Option B: Manual Installation
+### 2. Open in DevContainer
 
 ```bash
-# Install PostgreSQL 18 and PostGIS
-sudo apt-get install postgresql-18 postgresql-18-postgis-3
+# Option 1: Command Palette
+# Ctrl+Shift+P -> "Dev Containers: Reopen in Container"
 
-# Create database and user
-sudo -u postgres psql << EOF
-CREATE USER shadowcheck_user WITH PASSWORD 'your_password';
-CREATE DATABASE shadowcheck_db OWNER shadowcheck_user;
-\c shadowcheck_db
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE SCHEMA IF NOT EXISTS app;
-GRANT ALL ON SCHEMA app TO shadowcheck_user;
-EOF
-
-# Run migrations
-psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/00_init_schema.sql
+# Option 2: VS Code will prompt when opening the project
+# Click "Reopen in Container" when prompted
 ```
 
-### 5. Verify Installation
+### 3. DevContainer Features
+
+The DevContainer includes:
+
+- **Node.js 20** with npm
+- **PostgreSQL 18** with PostGIS
+- **All VS Code extensions** pre-installed
+- **Database setup** with sample data
+- **Port forwarding** for development servers
+- **Git configuration** preserved from host
+
+### 4. Development in DevContainer
 
 ```bash
-# Test database connection
-node tests/test-db.js
+# Install dependencies (if not already done)
+npm install
 
-# Start development server
-npm run dev
+# Start development servers
+npm run dev          # Backend with nodemon
+npm run dev:frontend # Frontend with Vite (separate terminal)
 
-# Test API endpoint
-curl http://localhost:3001/api/dashboard-metrics
-```
+# Run tests
+npm test
 
-Expected output:
-
-```json
-{
-  "totalNetworks": 0,
-  "threatsCount": 0,
-  "surveillanceCount": 0,
-  "enrichedCount": 0
-}
+# Access the application
+# Backend: http://localhost:3001
+# Frontend: http://localhost:5173 (Vite dev server)
 ```
 
 ## Development Workflow
 
-### Start Development Server
+### Start Development Servers
 
 ```bash
-# Standard mode
-npm start
-
-# Development mode with auto-reload (requires nodemon)
+# Backend development server (with auto-reload)
 npm run dev
 
-# Frontend dev server (Vite)
+# Frontend development server (Vite with HMR)
 npm run dev:frontend
 
-# Debug mode
-npm run debug
+# Full-stack development (run both in separate terminals)
+# Terminal 1:
+npm run dev
+
+# Terminal 2:
+npm run dev:frontend
 ```
 
-### Project Structure
+### Build and Preview
+
+```bash
+# Build frontend for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Serve production build with security headers
+npm run serve:dist
+```
+
+## Frontend Development
+
+### React + Vite Architecture
+
+The frontend uses modern React with TypeScript and Vite for fast development.
+
+#### Key Technologies
+
+- **React 18** with hooks and functional components
+- **TypeScript** for type safety
+- **Vite** for fast builds and HMR
+- **Tailwind CSS** for styling
+- **Zustand** for state management
+- **React Router** for navigation
+
+#### Component Structure
 
 ```
-ShadowCheckStatic/
-├── server.js              # Express server entrypoint
-├── server/                # Express API modules
-├── src/                   # React/Vite frontend + shared server modules
-│   ├── api/               # Backend API routes
-│   ├── services/          # Backend business logic
-│   └── repositories/      # Backend data access
-├── utils/                 # Utility modules
-│   └── errorHandler.js
-├── scripts/               # Utility scripts
-│   ├── enrichment/        # Address enrichment
-│   ├── geocoding/         # Reverse geocoding
-│   ├── ml/                # Machine learning
-│   └── import/            # Data import
-├── sql/                   # SQL files
-│   ├── migrations/        # Schema migrations
-│   └── functions/         # SQL functions
-├── tests/                 # Test files
-│   ├── setup.js
-│   ├── api/
-│   ├── integration/
-│   └── unit/
-├── docs/                  # Documentation
-└── data/                  # Data files (not in git)
-    ├── csv/
-    └── logs/
+src/components/
+├── DashboardPage.tsx           # Main dashboard with metrics
+├── GeospatialIntelligencePage.tsx  # Interactive map interface
+├── AnalyticsPage.tsx           # Charts and data visualization
+├── MLTrainingPage.tsx          # ML model management
+├── AdminPage.tsx               # System administration
+├── FilterPanel.tsx             # Universal filter interface
+├── ActiveFiltersSummary.tsx    # Filter status display
+├── Navigation.tsx              # App navigation bar
+└── modals/                     # Modal dialogs
+    └── NetworkContextMenu.jsx  # Right-click context menu
+```
+
+#### State Management
+
+```typescript
+// Global filter state with Zustand
+import { useFilterStore } from '../stores/filterStore';
+
+const MyComponent = () => {
+  const { filters, setFilter, clearFilters } = useFilterStore();
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilter(key, value);
+  };
+
+  return (
+    <FilterPanel
+      filters={filters}
+      onFilterChange={handleFilterChange}
+    />
+  );
+};
+```
+
+#### Custom Hooks
+
+```typescript
+// Data fetching with filters
+import { useFilteredData } from '../hooks/useFilteredData';
+
+const NetworksList = () => {
+  const { data, loading, error } = useFilteredData('/api/networks');
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return <NetworkTable data={data} />;
+};
+```
+
+#### Styling with Tailwind
+
+```tsx
+// Dark theme with responsive design
+const DashboardCard = ({ title, value, icon }) => (
+  <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-slate-400 text-sm font-medium">{title}</p>
+        <p className="text-2xl font-bold text-white mt-1">{value}</p>
+      </div>
+      <div className="text-blue-400">{icon}</div>
+    </div>
+  </div>
+);
+```
+
+### Adding New Components
+
+1. **Create Component File**
+
+```tsx
+// src/components/MyNewPage.tsx
+import React, { useState, useEffect } from 'react';
+import { logError } from '../logging/clientLogger';
+
+interface MyNewPageProps {
+  // Define props
+}
+
+const MyNewPage: React.FC<MyNewPageProps> = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch('/api/my-endpoint');
+      const result = await response.json();
+      setData(result);
+    } catch (error) {
+      logError('Failed to fetch data', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center p-8">Loading...</div>;
+  }
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-white mb-6">My New Page</h1>
+      {/* Your component content */}
+    </div>
+  );
+};
+
+export default MyNewPage;
+```
+
+2. **Add Route to App.tsx**
+
+```tsx
+// src/App.tsx
+import { lazy } from 'react';
+
+const MyNewPage = lazy(() => import('./components/MyNewPage'));
+
+// In the Routes component:
+<Route path="/my-new-page" element={<MyNewPage />} />;
+```
+
+3. **Add Navigation Link**
+
+```tsx
+// src/components/Navigation.tsx
+const navItems = [
+  // ... existing items
+  { path: '/my-new-page', label: 'My New Page', icon: MyIcon },
+];
 ```
 
 ### Making Changes

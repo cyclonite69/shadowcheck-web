@@ -537,7 +537,7 @@ export default function Analytics() {
   }, [dragging, resizing, handleMouseMove, handleMouseUp]);
 
   const renderChart = (card) => {
-    const height = card.h - 50;
+    const height = card.h - 50; // for content div height
 
     if (loading && [1, 2, 3, 4, 8].includes(card.id)) {
       return (
@@ -560,11 +560,15 @@ export default function Analytics() {
       );
     }
 
-    const renderEmptyState = (message = 'No data available') => (
-      <div className="flex items-center justify-center h-full text-slate-400 text-xs">
-        {message}
-      </div>
-    );
+    const renderEmptyState = (message = 'No data available') => {
+      const isAllTime = !debouncedFilterState?.enabled?.timeframe;
+      const fullMessage = isAllTime ? `${message} (all time)` : message;
+      return (
+        <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+          {fullMessage}
+        </div>
+      );
+    };
 
     switch (card.type) {
       case 'network-types':
@@ -577,7 +581,7 @@ export default function Analytics() {
         return (
           <ResponsiveContainer
             width="100%"
-            height={height}
+            height="100%"
             key={`network-types-${networkTypesData.length}`}
           >
             <PieChart>
@@ -616,7 +620,7 @@ export default function Analytics() {
       case 'signal':
         if (signalStrengthData.length === 0) return renderEmptyState();
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={signalStrengthData}
               margin={{ top: 10, right: 20, left: 0, bottom: 30 }}
@@ -638,7 +642,7 @@ export default function Analytics() {
       case 'security':
         if (securityData.length === 0) return renderEmptyState();
         return (
-          <ResponsiveContainer width="100%" height={height} key={`security-${securityData.length}`}>
+          <ResponsiveContainer width="100%" height="100%" key={`security-${securityData.length}`}>
             <PieChart>
               <Pie
                 data={securityData}
@@ -675,7 +679,7 @@ export default function Analytics() {
       case 'temporal': {
         if (temporalData.length === 0) return renderEmptyState();
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={temporalData} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
               <XAxis dataKey="hour" tick={{ fill: '#94a3b8', fontSize: 10 }} />
@@ -690,7 +694,7 @@ export default function Analytics() {
         if (radioTimeData.length === 0) return renderEmptyState();
         const interval = Math.max(1, Math.floor(radioTimeData.length / 8));
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={radioTimeData} margin={{ top: 10, right: 20, left: 0, bottom: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
               <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10 }} interval={interval} />
@@ -716,7 +720,7 @@ export default function Analytics() {
       case 'threat-distribution':
         if (threatDistributionData.length === 0) return renderEmptyState();
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={threatDistributionData}
               margin={{ top: 10, right: 20, left: 0, bottom: 30 }}
@@ -743,7 +747,7 @@ export default function Analytics() {
         if (threatTrendsData.length === 0) return renderEmptyState();
         const interval = Math.max(1, Math.floor(threatTrendsData.length / 8));
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={threatTrendsData} margin={{ top: 10, right: 20, left: 0, bottom: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
               <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10 }} interval={interval} />
@@ -955,7 +959,9 @@ export default function Analytics() {
                 </div>
 
                 {/* Content */}
-                <div className="p-4 overflow-hidden">{renderChart(card)}</div>
+                <div className="p-4 overflow-hidden" style={{ height: `${card.h - 50}px` }}>
+                  {renderChart(card)}
+                </div>
 
                 {/* Resize Handle */}
                 <div
