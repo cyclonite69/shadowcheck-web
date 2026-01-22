@@ -1,8 +1,6 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { attachMapOrientationControls } from '../utils/mapOrientationControls';
+import type mapboxglType from 'mapbox-gl';
 import { FilterPanel } from './FilterPanel';
 import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
@@ -92,7 +90,8 @@ const WigleTestPage: React.FC = () => {
   usePageFilters('wigle');
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<mapboxglType.Map | null>(null);
+  const mapboxRef = useRef<mapboxglType | null>(null);
   const clusterColorCache = useRef<Record<number, string>>({});
   const featureCollectionRef = useRef<any>(null); // Ref for latest featureCollection
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
@@ -129,7 +128,7 @@ const WigleTestPage: React.FC = () => {
   const updateClusterColors = () => {
     const map = mapRef.current;
     if (!map) return;
-    const source = map.getSource('wigle-points') as mapboxgl.GeoJSONSource | undefined;
+    const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource | undefined;
     if (!source) return;
     const clusters = map.querySourceFeatures('wigle-points', { filter: ['has', 'point_count'] });
     clusters.forEach((feature) => {
@@ -185,6 +184,10 @@ const WigleTestPage: React.FC = () => {
     };
     const initMap = async () => {
       try {
+        const mapboxgl = mapboxRef.current ?? (await import('mapbox-gl')).default;
+        mapboxRef.current = mapboxgl;
+        await import('mapbox-gl/dist/mapbox-gl.css');
+
         if (!mapboxgl.supported()) {
           throw new Error('Mapbox GL not supported (WebGL unavailable)');
         }
@@ -207,10 +210,13 @@ const WigleTestPage: React.FC = () => {
 
         // Add navigation control (compass + zoom) and scale bar
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        attachMapOrientationControls(map, {
-          scalePosition: 'bottom-right',
-          scaleUnit: 'metric',
-          ensureNavigation: false, // Already added above
+        // Dynamically load orientation controls to reduce initial bundle size
+        import('../utils/mapOrientationControls').then(({ attachMapOrientationControls }) => {
+          attachMapOrientationControls(map, {
+            scalePosition: 'bottom-right',
+            scaleUnit: 'metric',
+            ensureNavigation: false, // Already added above
+          });
         });
 
         updateSize();
@@ -288,7 +294,7 @@ const WigleTestPage: React.FC = () => {
           map.on('click', 'wigle-clusters', (e) => {
             const features = map.queryRenderedFeatures(e.point, { layers: ['wigle-clusters'] });
             const clusterId = features[0]?.properties?.cluster_id;
-            const source = map.getSource('wigle-points') as mapboxgl.GeoJSONSource;
+            const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource;
             if (!source || clusterId == null) return;
             source.getClusterExpansionZoom(clusterId, (err, zoom) => {
               if (err || zoom == null) return;
@@ -335,14 +341,15 @@ const WigleTestPage: React.FC = () => {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.getSource('wigle-points')) {
+    const mapboxgl = mapboxRef.current;
+    if (!map || !mapboxgl || !map.getSource('wigle-points')) {
       logDebug(
         `[WiGLE] Map or source not ready, map: ${!!map} source: ${!!map?.getSource('wigle-points')}`
       );
       return;
     }
     logDebug(`[WiGLE] Updating map with ${rows.length} points`);
-    const source = map.getSource('wigle-points') as mapboxgl.GeoJSONSource;
+    const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource;
     clusterColorCache.current = {};
     map.removeFeatureState({ source: 'wigle-points' });
     source.setData(featureCollection as any);

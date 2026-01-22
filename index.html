@@ -4,10 +4,37 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ShadowCheck geospatial SIGINT and network forensics explorer." />
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="ShadowCheck - Advanced geospatial intelligence and network analysis platform for security professionals."
+    />
+    <meta name="keywords" content="geospatial, intelligence, network analysis, security, mapping" />
+    <meta name="author" content="ShadowCheck Team" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ShadowCheck - Geospatial Intelligence Platform" />
+    <meta
+      property="og:description"
+      content="Advanced geospatial intelligence and network analysis platform"
+    />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ShadowCheck" />
+    <meta name="twitter:description" content="Advanced geospatial intelligence platform" />
     <title>ShadowCheck - Geospatial</title>
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+    <!-- Preconnect to Mapbox API for faster tile/token loading -->
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.mapbox.com" />
+    <!-- Preconnect to Google Fonts to reduce render-blocking -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <!-- Note: Mapbox GL JS/CSS loaded from npm bundle (not CDN) for better code splitting -->
   </head>
   <body data-page="geospatial">
     <div id="root"></div>

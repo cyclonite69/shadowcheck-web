@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import type mapboxglType from 'mapbox-gl';
 import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
-import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 import { logError, logDebug } from '../logging/clientLogger';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 
@@ -502,13 +500,14 @@ export default function GeospatialExplorer() {
 
     const coords = formatCoordinates(props.lat || 0, props.lon || 0);
     const threatLevel = props.threat_level || 'NONE';
-    const threatColor = {
-      CRITICAL: '#ef4444',
-      HIGH: '#f97316',
-      MED: '#eab308',
-      LOW: '#22c55e',
-      NONE: '#94a3b8',
-    }[threatLevel] || '#94a3b8';
+    const threatColor =
+      {
+        CRITICAL: '#ef4444',
+        HIGH: '#f97316',
+        MED: '#eab308',
+        LOW: '#22c55e',
+        NONE: '#94a3b8',
+      }[threatLevel] || '#94a3b8';
 
     const formatFrequency = (freq: number | null) => {
       if (!freq) return 'N/A';
@@ -554,12 +553,16 @@ export default function GeospatialExplorer() {
         </div>
 
         <!-- MANUFACTURER CARD -->
-        ${props.manufacturer && props.manufacturer !== 'Unknown' ? `
+        ${
+          props.manufacturer && props.manufacturer !== 'Unknown'
+            ? `
         <div style="background: rgba(59, 130, 246, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #3b82f6;">
           <div style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Manufacturer</div>
           <div style="color: #60a5fa; font-weight: 500;">${props.manufacturer}</div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- THREAT ASSESSMENT CARD -->
         <div style="background: linear-gradient(135deg, ${threatColor}15 0%, ${threatColor}08 100%); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid ${threatColor}40; border-left: 4px solid ${threatColor};">
@@ -590,19 +593,29 @@ export default function GeospatialExplorer() {
         <!-- TEMPORAL CARD -->
         <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(251, 191, 36, 0.3);">
           <div style="color: #fbbf24; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">⏱️ Observed</div>
-          ${props.time ? `
+          ${
+            props.time
+              ? `
           <div style="margin-bottom: 4px;">
             <span style="color: #94a3b8; font-size: 9px;">This Observation:</span>
             <div style="color: #fde68a; font-weight: 600; font-size: 11px; margin-top: 2px;">${formatDateTime(props.time)}</div>
           </div>
-          ` : ''}
-          ${props.first_seen ? `
+          `
+              : ''
+          }
+          ${
+            props.first_seen
+              ? `
           <div style="margin-bottom: 4px;">
             <span style="color: #94a3b8; font-size: 9px;">First:</span>
             <div style="color: #fde68a; font-weight: 600; font-size: 11px; margin-top: 2px;">${formatDateTime(props.first_seen)}</div>
           </div>
-          ` : ''}
-          ${props.last_seen && props.last_seen !== props.first_seen ? `
+          `
+              : ''
+          }
+          ${
+            props.last_seen && props.last_seen !== props.first_seen
+              ? `
           <div style="margin-bottom: 4px;">
             <span style="color: #94a3b8; font-size: 9px;">Last:</span>
             <div style="color: #fde68a; font-weight: 600; font-size: 11px; margin-top: 2px;">${formatDateTime(props.last_seen)}</div>
@@ -611,16 +624,22 @@ export default function GeospatialExplorer() {
             ${props.timespan_days ? `<div><span style="color: #94a3b8; font-size: 9px;">Span:</span> <span style="color: #fbbf24; font-weight: 600; font-size: 10px;">${props.timespan_days}d</span></div>` : ''}
             ${props.observation_count || props.observations ? `<div><span style="color: #94a3b8; font-size: 9px;">Count:</span> <span style="color: #fbbf24; font-weight: 600; font-size: 10px;">${props.observation_count || props.observations}</span></div>` : ''}
           </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
 
         <!-- GPS ACCURACY -->
-        ${props.accuracy ? `
+        ${
+          props.accuracy
+            ? `
         <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
           <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">GPS Accuracy</span>
           <div style="color: #e2e8f0; font-weight: 600; margin-top: 3px; font-size: 10px;">±${props.accuracy.toFixed(1)}m</div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   };
@@ -670,9 +689,7 @@ export default function GeospatialExplorer() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Time-frequency modal state
-  const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(
-    null
-  );
+  const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(null);
 
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
@@ -688,16 +705,18 @@ export default function GeospatialExplorer() {
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<mapboxglType.Map | null>(null);
+  const mapboxRef = useRef<mapboxglType | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInitRef = useRef(false);
   const columnDropdownRef = useRef<HTMLDivElement | null>(null);
   const locationSearchRef = useRef<HTMLDivElement | null>(null);
-  const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const searchMarkerRef = useRef<mapboxglType.Marker | null>(null);
 
   // Geocoding search function
   const searchLocation = useCallback(async (query: string) => {
-    if (!query.trim() || !mapboxgl.accessToken) return;
+    const mapboxgl = mapboxRef.current;
+    if (!query.trim() || !mapboxgl?.accessToken) return;
 
     setSearchingLocation(true);
     try {
@@ -769,7 +788,8 @@ export default function GeospatialExplorer() {
 
   // Fly to selected location
   const flyToLocation = useCallback((result: any) => {
-    if (!mapRef.current) return;
+    const mapboxgl = mapboxRef.current;
+    if (!mapRef.current || !mapboxgl) return;
 
     const [lng, lat] = result.center;
 
@@ -855,7 +875,7 @@ export default function GeospatialExplorer() {
     const map = mapRef.current;
 
     // Update point source
-    const pointSource = map.getSource('home-location-point') as mapboxgl.GeoJSONSource;
+    const pointSource = map.getSource('home-location-point') as mapboxglType.GeoJSONSource;
     if (pointSource) {
       pointSource.setData({
         type: 'FeatureCollection',
@@ -873,7 +893,7 @@ export default function GeospatialExplorer() {
     }
 
     // Update circle source
-    const circleSource = map.getSource('home-location-circle') as mapboxgl.GeoJSONSource;
+    const circleSource = map.getSource('home-location-circle') as mapboxglType.GeoJSONSource;
     if (circleSource) {
       circleSource.setData({
         type: 'FeatureCollection',
@@ -982,6 +1002,10 @@ export default function GeospatialExplorer() {
         if (!tokenBody?.token) {
           throw new Error(tokenBody?.error || `Mapbox token not available`);
         }
+
+        const mapboxgl = mapboxRef.current ?? (await import('mapbox-gl')).default;
+        mapboxRef.current = mapboxgl;
+        await import('mapbox-gl/dist/mapbox-gl.css');
         mapboxgl.accessToken = String(tokenBody.token).trim();
 
         if (mapContainerRef.current) {
@@ -1014,10 +1038,13 @@ export default function GeospatialExplorer() {
 
         // Add navigation control (compass + zoom) and scale bar
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        attachMapOrientationControls(map, {
-          scalePosition: 'bottom-right',
-          scaleUnit: 'metric',
-          ensureNavigation: false, // Already added above
+        // Dynamically load orientation controls to reduce initial bundle size
+        import('../utils/mapOrientationControls').then(({ attachMapOrientationControls }) => {
+          attachMapOrientationControls(map, {
+            scalePosition: 'bottom-right',
+            scaleUnit: 'metric',
+            ensureNavigation: false, // Already added above
+          });
         });
 
         map.on('load', () => {
@@ -1161,29 +1188,29 @@ export default function GeospatialExplorer() {
             const popupWidth = 380;
             const popupHeight = 400;
             const padding = 10;
-            
+
             // Get viewport dimensions
             const viewportHeight = window.innerHeight;
             const viewportWidth = window.innerWidth;
-            
+
             // Get click position in screen coordinates
             const mapContainer = map.getContainer();
             const mapRect = mapContainer.getBoundingClientRect();
             const screenX = mapRect.left + map.project(e.lngLat).x;
             const screenY = mapRect.top + map.project(e.lngLat).y;
-            
+
             // Calculate optimal position
             let anchor = 'bottom';
             let offsetX = 0;
             let offsetY = -15;
-            
+
             // Vertical positioning
             if (screenY + popupHeight + padding > viewportHeight) {
               // Flip to top if would overflow bottom
               anchor = 'top';
               offsetY = 15;
             }
-            
+
             // Horizontal positioning
             if (screenX + popupWidth + padding > viewportWidth) {
               // Flip to left side if would overflow right
@@ -1194,20 +1221,20 @@ export default function GeospatialExplorer() {
               }
               offsetX = 15;
             }
-            
+
             // Ensure doesn't go off left edge
             if (screenX - popupWidth < padding && offsetX > 0) {
               offsetX = -15; // Reset to left side
               anchor = anchor.includes('top') ? 'top-left' : 'bottom-left';
             }
 
-            new mapboxgl.Popup({ 
-              offset: [offsetX, offsetY], 
+            new mapboxgl.Popup({
+              offset: [offsetX, offsetY],
               className: 'sc-popup',
               anchor: anchor,
               maxWidth: '380px',
               closeOnClick: true,
-              closeButton: true
+              closeButton: true,
             })
               .setLngLat(e.lngLat)
               .setHTML(popupHTML)
@@ -1256,7 +1283,7 @@ export default function GeospatialExplorer() {
             const bssidColor = macColor(props.bssid);
 
             // Add signal range circle to map
-            const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
+            const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;
             if (hoverCircleSource) {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
@@ -1282,7 +1309,7 @@ export default function GeospatialExplorer() {
             map.getCanvas().style.cursor = '';
 
             // Clear hover circle from map
-            const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
+            const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;
             if (hoverCircleSource) {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
@@ -1301,7 +1328,7 @@ export default function GeospatialExplorer() {
             const signalRadius = calculateSignalRange(props.signal, props.frequency, currentZoom);
             const bssidColor = macColor(props.bssid);
 
-            const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
+            const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;
             if (hoverCircleSource) {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
@@ -1720,7 +1747,7 @@ export default function GeospatialExplorer() {
           // Parse threat info - handles both old boolean format and new JSONB format
           let threatInfo: ThreatInfo | null = null;
           console.log('Raw threat data for', row.bssid, ':', row.threat);
-          
+
           if (row.threat === true) {
             // Old format: boolean true means HIGH threat
             threatInfo = {
@@ -1732,10 +1759,15 @@ export default function GeospatialExplorer() {
             // New format: JSONB object with score, level, summary, etc.
             const t = row.threat as { score?: number; level?: string; summary?: string };
             console.log('Parsed threat object:', t);
-            
+
             // Use the actual API score, don't generate fake ones
-            const apiScore = typeof t.score === 'string' ? parseFloat(t.score) : (typeof t.score === 'number' ? t.score : 0);
-            
+            const apiScore =
+              typeof t.score === 'string'
+                ? parseFloat(t.score)
+                : typeof t.score === 'number'
+                  ? t.score
+                  : 0;
+
             threatInfo = {
               score: apiScore / 100, // Normalize to 0-1 if it's 0-100 scale
               level: (t.level || 'NONE') as 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE',
@@ -2042,10 +2074,10 @@ export default function GeospatialExplorer() {
     const menuHeight = 320; // Height of context menu in pixels
     const menuWidth = 200; // Width of context menu in pixels
     const padding = 10; // Padding from screen edge
-    
+
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    
+
     let posX = e.clientX;
     let posY = e.clientY;
     let position: 'below' | 'above' = 'below';
@@ -2199,13 +2231,10 @@ export default function GeospatialExplorer() {
           formData.append('file', file);
           formData.append('bssid', selectedBssid);
 
-          const mediaResponse = await fetch(
-            `/api/admin/network-notes/${noteId}/media`,
-            {
-              method: 'POST',
-              body: formData,
-            }
-          );
+          const mediaResponse = await fetch(`/api/admin/network-notes/${noteId}/media`, {
+            method: 'POST',
+            body: formData,
+          });
 
           if (!mediaResponse.ok) {
             console.warn(`Failed to upload media: ${file.name}`);
@@ -2227,7 +2256,7 @@ export default function GeospatialExplorer() {
   // Handle file selection for attachments
   const handleAddAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setNoteAttachments(prev => [...prev, ...files]);
+    setNoteAttachments((prev) => [...prev, ...files]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -2235,7 +2264,7 @@ export default function GeospatialExplorer() {
 
   // Remove attachment from pending list
   const removeAttachment = (index: number) => {
-    setNoteAttachments(prev => prev.filter((_, i) => i !== index));
+    setNoteAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Close context menu on click outside
@@ -2270,6 +2299,8 @@ export default function GeospatialExplorer() {
     if (!mapReady || !mapRef.current) return;
 
     const map = mapRef.current;
+    const mapboxgl = mapboxRef.current;
+    if (!mapboxgl) return;
 
     // Assign colors to each selected network using BSSID-based algorithm
     const bssidColors: Record<string, string> = {};
@@ -2340,14 +2371,14 @@ export default function GeospatialExplorer() {
       }));
 
     if (map.getSource('observations')) {
-      (map.getSource('observations') as mapboxgl.GeoJSONSource).setData({
+      (map.getSource('observations') as mapboxglType.GeoJSONSource).setData({
         type: 'FeatureCollection',
         features: features as any,
       });
     }
 
     if (map.getSource('observation-lines')) {
-      (map.getSource('observation-lines') as mapboxgl.GeoJSONSource).setData({
+      (map.getSource('observation-lines') as mapboxglType.GeoJSONSource).setData({
         type: 'FeatureCollection',
         features: lineFeatures as any,
       });
@@ -2701,7 +2732,7 @@ export default function GeospatialExplorer() {
         );
 
         if (mapRef.current.getSource('observations')) {
-          (mapRef.current.getSource('observations') as mapboxgl.GeoJSONSource).setData({
+          (mapRef.current.getSource('observations') as mapboxglType.GeoJSONSource).setData({
             type: 'FeatureCollection',
             features: features as any,
           });
@@ -3035,7 +3066,8 @@ export default function GeospatialExplorer() {
                 </button>
                 <button
                   onClick={() => {
-                    if (!mapRef.current || activeObservationSets.length === 0) return;
+                    const mapboxgl = mapboxRef.current;
+                    if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
                     setFitButtonActive(true);
                     const allCoords = activeObservationSets.flatMap((set) =>
                       set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
@@ -4135,7 +4167,14 @@ export default function GeospatialExplorer() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+              }}
+            >
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add Note & Media</h3>
               <button
                 type="button"
@@ -4160,8 +4199,16 @@ export default function GeospatialExplorer() {
 
             {/* BSSID Display */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
-                BSSID: <span style={{ fontFamily: 'monospace', color: '#a78bfa' }}>{selectedBssid}</span>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
+                BSSID:{' '}
+                <span style={{ fontFamily: 'monospace', color: '#a78bfa' }}>{selectedBssid}</span>
               </label>
             </div>
 
@@ -4169,7 +4216,12 @@ export default function GeospatialExplorer() {
             <div style={{ marginBottom: '16px' }}>
               <label
                 htmlFor="note-type-select"
-                style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}
+                style={{
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
               >
                 Note Type
               </label>
@@ -4196,7 +4248,14 @@ export default function GeospatialExplorer() {
 
             {/* Note Content */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
                 Note Content
               </label>
               <textarea
@@ -4222,7 +4281,12 @@ export default function GeospatialExplorer() {
             <div style={{ marginBottom: '16px' }}>
               <label
                 htmlFor="note-attachments"
-                style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}
+                style={{
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
               >
                 📎 Attach Media (Optional)
               </label>
@@ -4264,8 +4328,22 @@ export default function GeospatialExplorer() {
 
             {/* Attached Files List */}
             {noteAttachments.length > 0 && (
-              <div style={{ marginBottom: '20px', background: '#334155', padding: '12px', borderRadius: '4px' }}>
-                <p style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600', color: '#94a3b8' }}>
+              <div
+                style={{
+                  marginBottom: '20px',
+                  background: '#334155',
+                  padding: '12px',
+                  borderRadius: '4px',
+                }}
+              >
+                <p
+                  style={{
+                    margin: '0 0 12px 0',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#94a3b8',
+                  }}
+                >
                   Attached Files ({noteAttachments.length})
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -4338,7 +4416,9 @@ export default function GeospatialExplorer() {
                   }
                 }}
               >
-                Save Note {noteAttachments.length > 0 && `+ ${noteAttachments.length} File${noteAttachments.length !== 1 ? 's' : ''}`}
+                Save Note{' '}
+                {noteAttachments.length > 0 &&
+                  `+ ${noteAttachments.length} File${noteAttachments.length !== 1 ? 's' : ''}`}
               </button>
               <button
                 onClick={() => {

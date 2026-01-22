@@ -1,15 +1,38 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
+import LazyMapComponent from './components/LazyMapComponent';
+
+// Eager load: lightweight pages that are commonly accessed first
 import DashboardPage from './components/DashboardPage';
-import GeospatialIntelligencePage from './components/GeospatialIntelligencePage';
-import GeospatialExplorer from './components/GeospatialExplorer';
-import AnalyticsPage from './components/AnalyticsPage';
-import AdminPage from './components/AdminPage';
-import MLTrainingPage from './components/MLTrainingPage';
-import WigleTestPage from './components/WigleTestPage';
-import KeplerTestPage from './components/KeplerTestPage';
-import ApiTestPage from './components/ApiTestPage';
+
+// Lazy load: heavy map/visualization pages (reduce initial bundle size)
+const GeospatialIntelligencePage = lazy(() => import('./components/GeospatialIntelligencePage'));
+const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
+const AdminPage = lazy(() => import('./components/AdminPage'));
+const MLTrainingPage = lazy(() => import('./components/MLTrainingPage'));
+const WigleTestPage = lazy(() => import('./components/WigleTestPage'));
+const KeplerTestPage = lazy(() => import('./components/KeplerTestPage'));
+const ApiTestPage = lazy(() => import('./components/ApiTestPage'));
+
+/**
+ * Route loading fallback - minimal, no layout shift
+ * Uses fixed positioning to overlay without affecting page structure
+ */
+function RouteLoadingFallback() {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm"
+      role="status"
+      aria-label="Loading page"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-slate-400">Loading...</span>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -27,19 +50,21 @@ function App() {
       </a>
       <Navigation />
       <main id="main-content" className="flex h-screen">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/geospatial" element={<GeospatialIntelligencePage />} />
-          <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
-          <Route path="/geospatial-explorer" element={<GeospatialExplorer />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/wigle-test" element={<WigleTestPage />} />
-          <Route path="/ml-training" element={<MLTrainingPage />} />
-          <Route path="/kepler-test" element={<KeplerTestPage />} />
-          <Route path="/endpoint-test" element={<ApiTestPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-        </Routes>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/geospatial" element={<GeospatialIntelligencePage />} />
+            <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
+            <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/wigle-test" element={<WigleTestPage />} />
+            <Route path="/ml-training" element={<MLTrainingPage />} />
+            <Route path="/kepler-test" element={<KeplerTestPage />} />
+            <Route path="/endpoint-test" element={<ApiTestPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </Router>
   );
