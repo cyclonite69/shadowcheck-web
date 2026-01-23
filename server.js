@@ -7,10 +7,8 @@ clearPostgresEnv();
     // ============================================================================
     // 1. CORE DEPENDENCIES
     // ============================================================================
-    require('dotenv').config({ override: true });
-    const logger = require('./src/logging/logger');
-    const express = require('express');
-    const path = require('path');
+    const { loadCoreDependencies, loadRouteModules } = require('./src/utils/serverDependencies');
+    const { logger, express, path } = loadCoreDependencies();
 
     logger.info('Starting server...');
 
@@ -34,26 +32,28 @@ clearPostgresEnv();
     // ============================================================================
     // 4. ROUTE MODULES
     // ============================================================================
-    const healthRoutes = require('./src/api/routes/v1/health');
-    const networksRoutes = require('./src/api/routes/v1/networks');
-    const explorerRoutes = require('./src/api/routes/v1/explorer');
-    const threatsRoutes = require('./src/api/routes/v1/threats');
-    const wigleRoutes = require('./src/api/routes/v1/wigle');
-    const adminRoutes = require('./src/api/routes/v1/admin');
-    const mlRoutes = require('./src/api/routes/v1/ml');
-    const geospatialRoutes = require('./src/api/routes/v1/geospatial');
-    const analyticsRoutes = require('./src/api/routes/v1/analytics');
-    const networksV2Routes = require('./src/api/routes/v2/networks');
-    const filteredRoutes = require('./src/api/routes/v2/filtered');
-    const dashboardRoutes = require('./src/api/routes/v1/dashboard');
-    const locationMarkersRoutes = require('./src/api/routes/v1/location-markers');
-    const homeLocationRoutes = require('./src/api/routes/v1/home-location');
-    const keplerRoutes = require('./src/api/routes/v1/kepler');
-    const backupRoutes = require('./src/api/routes/v1/backup');
-    const exportRoutes = require('./src/api/routes/v1/export');
-    const settingsRoutes = require('./src/api/routes/v1/settings');
-    const networkTagsRoutes = require('./src/api/routes/v1/network-tags');
-    const miscRoutes = require('./src/api/routes/v1/misc');
+    const {
+      healthRoutes,
+      networksRoutes,
+      explorerRoutes,
+      threatsRoutes,
+      wigleRoutes,
+      adminRoutes,
+      mlRoutes,
+      geospatialRoutes,
+      analyticsRoutes,
+      networksV2Routes,
+      filteredRoutes,
+      dashboardRoutes,
+      locationMarkersRoutes,
+      homeLocationRoutes,
+      keplerRoutes,
+      backupRoutes,
+      exportRoutes,
+      settingsRoutes,
+      networkTagsRoutes,
+      miscRoutes,
+    } = loadRouteModules();
 
     // ============================================================================
     // 5. APP INITIALIZATION
