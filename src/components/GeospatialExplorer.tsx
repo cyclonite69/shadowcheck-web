@@ -9,6 +9,7 @@ import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
+import { MapHeader } from './geospatial/MapHeader';
 import { MapToolbar } from './geospatial/MapToolbar';
 import { MapViewport } from './geospatial/MapViewport';
 import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
@@ -1828,95 +1829,71 @@ export default function GeospatialExplorer() {
               backdropFilter: 'blur(8px)',
             }}
           >
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
-                background: 'rgba(15, 23, 42, 0.6)',
-                borderRadius: '12px 12px 0 0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: '22px',
-                  fontWeight: '900',
-                  margin: 0,
-                  background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  filter:
-                    'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 20px rgba(100, 116, 139, 0.3))',
-                  letterSpacing: '-0.5px',
-                }}
-              >
-                ShadowCheck Geospatial Intelligence
-              </h2>
-              <MapToolbar
-                searchContainerRef={locationSearchRef}
-                locationSearch={locationSearch}
-                onLocationSearchChange={setLocationSearch}
-                onLocationSearchFocus={() => {
-                  if (searchResults.length > 0) {
-                    setShowSearchResults(true);
-                  }
-                }}
-                searchingLocation={searchingLocation}
-                showSearchResults={showSearchResults}
-                searchResults={searchResults}
-                onSelectSearchResult={flyToLocation}
-                mapStyle={mapStyle}
-                onMapStyleChange={changeMapStyle}
-                mapStyles={MAP_STYLES}
-                show3DBuildings={show3DBuildings}
-                onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
-                showTerrain={showTerrain}
-                onToggleTerrain={() => toggleTerrain(!showTerrain)}
-                fitButtonActive={fitButtonActive}
-                canFit={selectedNetworks.size > 0}
-                onFit={() => {
-                  const mapboxgl = mapboxRef.current;
-                  if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
-                  setFitButtonActive(true);
-                  const allCoords = activeObservationSets.flatMap((set) =>
-                    set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
-                  );
-                  if (allCoords.length === 0) return;
-                  const bounds = allCoords.reduce(
-                    (bounds, coord) => bounds.extend(coord),
-                    new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
-                  );
-                  mapRef.current.fitBounds(bounds, { padding: 50 });
-                  setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
-                }}
-                homeButtonActive={homeButtonActive}
-                onHome={() => {
-                  if (!mapRef.current) return;
-                  setHomeButtonActive(true);
-                  mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
-                  setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
-                }}
-                onGps={() => {
-                  if (!mapRef.current) return;
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      mapRef.current?.flyTo({
-                        center: [position.coords.longitude, position.coords.latitude],
-                        zoom: 15,
-                      });
-                    },
-                    (error) => {
-                      logError('Geolocation error', error);
-                      alert('Unable to get your location. Please enable location services.');
+            <MapHeader
+              title="ShadowCheck Geospatial Intelligence"
+              toolbar={
+                <MapToolbar
+                  searchContainerRef={locationSearchRef}
+                  locationSearch={locationSearch}
+                  onLocationSearchChange={setLocationSearch}
+                  onLocationSearchFocus={() => {
+                    if (searchResults.length > 0) {
+                      setShowSearchResults(true);
                     }
-                  );
-                }}
-              />
-            </div>
+                  }}
+                  searchingLocation={searchingLocation}
+                  showSearchResults={showSearchResults}
+                  searchResults={searchResults}
+                  onSelectSearchResult={flyToLocation}
+                  mapStyle={mapStyle}
+                  onMapStyleChange={changeMapStyle}
+                  mapStyles={MAP_STYLES}
+                  show3DBuildings={show3DBuildings}
+                  onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
+                  showTerrain={showTerrain}
+                  onToggleTerrain={() => toggleTerrain(!showTerrain)}
+                  fitButtonActive={fitButtonActive}
+                  canFit={selectedNetworks.size > 0}
+                  onFit={() => {
+                    const mapboxgl = mapboxRef.current;
+                    if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
+                    setFitButtonActive(true);
+                    const allCoords = activeObservationSets.flatMap((set) =>
+                      set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
+                    );
+                    if (allCoords.length === 0) return;
+                    const bounds = allCoords.reduce(
+                      (bounds, coord) => bounds.extend(coord),
+                      new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+                    );
+                    mapRef.current.fitBounds(bounds, { padding: 50 });
+                    setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
+                  }}
+                  homeButtonActive={homeButtonActive}
+                  onHome={() => {
+                    if (!mapRef.current) return;
+                    setHomeButtonActive(true);
+                    mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
+                    setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
+                  }}
+                  onGps={() => {
+                    if (!mapRef.current) return;
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        mapRef.current?.flyTo({
+                          center: [position.coords.longitude, position.coords.latitude],
+                          zoom: 15,
+                        });
+                      },
+                      (error) => {
+                        logError('Geolocation error', error);
+                        alert('Unable to get your location. Please enable location services.');
+                      }
+                    );
+                  }}
+                />
+              }
+            />
 
             <MapViewport
               mapReady={mapReady}
