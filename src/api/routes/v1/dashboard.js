@@ -4,6 +4,28 @@ const logger = require('../../../logging/logger');
 
 let dashboardService = null;
 
+/**
+ * Safely parses JSON query parameters.
+ * @param {any} value - Raw query value
+ * @param {string} fieldName - Field name for error messages
+ * @returns {{ ok: boolean, value?: object, error?: string }}
+ */
+function parseJsonQuery(value, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return { ok: true, value: {} };
+  }
+
+  try {
+    const parsed = JSON.parse(String(value));
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { ok: true, value: parsed };
+    }
+    return { ok: false, error: `${fieldName} must be a JSON object` };
+  } catch {
+    return { ok: false, error: `${fieldName} must be valid JSON` };
+  }
+}
+
 function initDashboardRoutes(options) {
   dashboardService = options.dashboardService;
 }
@@ -15,18 +37,18 @@ const sendDashboardMetrics = async (req, res) => {
     }
 
     // Parse filters from query params
-    let filters = {};
-    let enabled = {};
-    try {
-      if (req.query.filters) {
-        filters = JSON.parse(req.query.filters);
-      }
-      if (req.query.enabled) {
-        enabled = JSON.parse(req.query.enabled);
-      }
-    } catch (parseErr) {
-      logger.warn(`Failed to parse filter params: ${parseErr.message}`);
+    const filtersResult = parseJsonQuery(req.query.filters, 'filters');
+    if (!filtersResult.ok) {
+      return res.status(400).json({ error: filtersResult.error });
     }
+
+    const enabledResult = parseJsonQuery(req.query.enabled, 'enabled');
+    if (!enabledResult.ok) {
+      return res.status(400).json({ error: enabledResult.error });
+    }
+
+    const filters = filtersResult.value;
+    const enabled = enabledResult.value;
 
     const metrics = await dashboardService.getMetrics(filters, enabled);
     res.json({

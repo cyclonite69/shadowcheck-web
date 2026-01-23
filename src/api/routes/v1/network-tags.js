@@ -7,10 +7,36 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
+const { validateQuery, optional } = require('../../../validation/middleware');
+const {
+  validateBoolean,
+  validateIntegerRange,
+  validateString,
+} = require('../../../validation/schemas');
+
+/**
+ * Validates query parameters for listing network tags.
+ * @type {function}
+ */
+const validateNetworkTagsQuery = validateQuery({
+  ignored: optional(validateBoolean),
+  threat_tag: optional((value) => validateString(String(value), 1, 64, 'threat_tag')),
+  has_notes: optional(validateBoolean),
+  pending_wigle: optional(validateBoolean),
+  limit: optional((value) => validateIntegerRange(value, 1, 5000, 'limit')),
+  offset: optional((value) => validateIntegerRange(value, 0, 10000000, 'offset')),
+});
 
 // Valid threat tag values
 const VALID_THREAT_TAGS = ['THREAT', 'SUSPECT', 'FALSE_POSITIVE', 'INVESTIGATE'];
-const VALID_IGNORE_REASONS = ['own_device', 'known_friend', 'neighbor', 'business', 'infrastructure', 'other'];
+const VALID_IGNORE_REASONS = [
+  'own_device',
+  'known_friend',
+  'neighbor',
+  'business',
+  'infrastructure',
+  'other',
+];
 
 /**
  * GET /api/network-tags/:bssid
@@ -54,7 +80,10 @@ router.get('/:bssid', async (req, res) => {
 
     res.json({ ...result.rows[0], exists: true });
   } catch (error) {
-    logger.error(`Error fetching network tag: ${error.message}`, { error, bssid: req.params.bssid });
+    logger.error(`Error fetching network tag: ${error.message}`, {
+      error,
+      bssid: req.params.bssid,
+    });
     res.status(500).json({ error: error.message });
   }
 });
@@ -70,14 +99,22 @@ router.post('/:bssid', async (req, res) => {
     const { is_ignored, ignore_reason, threat_tag, threat_confidence, notes } = req.body;
 
     // Validate threat_tag if provided
-    if (threat_tag !== undefined && threat_tag !== null && !VALID_THREAT_TAGS.includes(threat_tag)) {
+    if (
+      threat_tag !== undefined &&
+      threat_tag !== null &&
+      !VALID_THREAT_TAGS.includes(threat_tag)
+    ) {
       return res.status(400).json({
         error: `Invalid threat_tag. Must be one of: ${VALID_THREAT_TAGS.join(', ')}`,
       });
     }
 
     // Validate ignore_reason if provided
-    if (ignore_reason !== undefined && ignore_reason !== null && !VALID_IGNORE_REASONS.includes(ignore_reason)) {
+    if (
+      ignore_reason !== undefined &&
+      ignore_reason !== null &&
+      !VALID_IGNORE_REASONS.includes(ignore_reason)
+    ) {
       return res.status(400).json({
         error: `Invalid ignore_reason. Must be one of: ${VALID_IGNORE_REASONS.join(', ')}`,
       });
@@ -139,10 +176,9 @@ router.patch('/:bssid/ignore', async (req, res) => {
     const { ignore_reason } = req.body;
 
     // First check if tag exists and get current state
-    const existing = await query(
-      'SELECT is_ignored FROM app.network_tags WHERE bssid = $1',
-      [normalizedBssid]
-    );
+    const existing = await query('SELECT is_ignored FROM app.network_tags WHERE bssid = $1', [
+      normalizedBssid,
+    ]);
 
     let result;
     if (existing.rows.length === 0) {
@@ -196,10 +232,9 @@ router.patch('/:bssid/threat', async (req, res) => {
     }
 
     // Check if exists
-    const existing = await query(
-      'SELECT id FROM app.network_tags WHERE bssid = $1',
-      [normalizedBssid]
-    );
+    const existing = await query('SELECT id FROM app.network_tags WHERE bssid = $1', [
+      normalizedBssid,
+    ]);
 
     let result;
     if (existing.rows.length === 0) {
@@ -245,10 +280,9 @@ router.patch('/:bssid/notes', async (req, res) => {
     const { notes } = req.body;
 
     // Check if exists
-    const existing = await query(
-      'SELECT id FROM app.network_tags WHERE bssid = $1',
-      [normalizedBssid]
-    );
+    const existing = await query('SELECT id FROM app.network_tags WHERE bssid = $1', [
+      normalizedBssid,
+    ]);
 
     let result;
     if (existing.rows.length === 0) {
@@ -286,10 +320,9 @@ router.patch('/:bssid/investigate', async (req, res) => {
     const normalizedBssid = bssid.toUpperCase();
 
     // Check if exists
-    const existing = await query(
-      'SELECT id FROM app.network_tags WHERE bssid = $1',
-      [normalizedBssid]
-    );
+    const existing = await query('SELECT id FROM app.network_tags WHERE bssid = $1', [
+      normalizedBssid,
+    ]);
 
     let result;
     if (existing.rows.length === 0) {
@@ -315,7 +348,10 @@ router.patch('/:bssid/investigate', async (req, res) => {
 
     res.json({ ok: true, tag: result.rows[0] });
   } catch (error) {
-    logger.error(`Error queuing investigation: ${error.message}`, { error, bssid: req.params.bssid });
+    logger.error(`Error queuing investigation: ${error.message}`, {
+      error,
+      bssid: req.params.bssid,
+    });
     res.status(500).json({ error: error.message });
   }
 });
@@ -329,10 +365,9 @@ router.delete('/:bssid', async (req, res) => {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    const result = await query(
-      'DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid',
-      [normalizedBssid]
-    );
+    const result = await query('DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid', [
+      normalizedBssid,
+    ]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'No tags found for this network' });
@@ -351,16 +386,21 @@ router.delete('/:bssid', async (req, res) => {
  * GET /api/network-tags
  * List all tagged networks with optional filters
  */
-router.get('/', async (req, res) => {
+router.get('/', validateNetworkTagsQuery, async (req, res) => {
   try {
-    const { ignored, threat_tag, has_notes, pending_wigle, limit = 100, offset = 0 } = req.query;
+    const ignored = req.validated?.ignored;
+    const threat_tag = req.validated?.threat_tag;
+    const has_notes = req.validated?.has_notes;
+    const pending_wigle = req.validated?.pending_wigle;
+    const limit = req.validated?.limit ?? 100;
+    const offset = req.validated?.offset ?? 0;
 
     const whereClauses = [];
     const params = [];
 
-    if (ignored === 'true') {
+    if (ignored === true) {
       whereClauses.push('nt.is_ignored = true');
-    } else if (ignored === 'false') {
+    } else if (ignored === false) {
       whereClauses.push('nt.is_ignored = false');
     }
 
@@ -369,16 +409,16 @@ router.get('/', async (req, res) => {
       whereClauses.push(`nt.threat_tag = $${params.length}`);
     }
 
-    if (has_notes === 'true') {
+    if (has_notes === true) {
       whereClauses.push('nt.notes IS NOT NULL');
     }
 
-    if (pending_wigle === 'true') {
+    if (pending_wigle === true) {
       whereClauses.push('nt.wigle_lookup_requested = true AND nt.wigle_result IS NULL');
     }
 
-    params.push(parseInt(limit));
-    params.push(parseInt(offset));
+    params.push(limit);
+    params.push(offset);
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
@@ -408,8 +448,8 @@ router.get('/', async (req, res) => {
         return rest;
       }),
       total: totalCount,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit,
+      offset,
     });
   } catch (error) {
     logger.error(`Error listing network tags: ${error.message}`, { error });

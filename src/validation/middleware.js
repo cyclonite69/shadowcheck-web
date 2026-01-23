@@ -39,11 +39,11 @@ function validateQuery(validators) {
       if (result.valid) {
         // Use the most specific returned value
         req.validated[param] =
-          result.cleaned ||
-          result.value ||
-          result.normalized ||
-          result.page ||
-          result.limit ||
+          result.cleaned ??
+          result.value ??
+          result.normalized ??
+          result.page ??
+          result.limit ??
           req.query[param];
       }
     });
@@ -99,7 +99,7 @@ function validateBody(validators) {
       const result = validator(req.body[param]);
       if (result.valid) {
         req.validated[param] =
-          result.cleaned || result.value || result.normalized || req.body[param];
+          result.cleaned ?? result.value ?? result.normalized ?? req.body[param];
       }
     });
 
@@ -140,7 +140,7 @@ function validateParams(validators) {
       const result = validator(req.params[param]);
       if (result.valid) {
         req.validated[param] =
-          result.cleaned || result.value || result.normalized || req.params[param];
+          result.cleaned ?? result.value ?? result.normalized ?? req.params[param];
       }
     });
 
