@@ -11,6 +11,7 @@ import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbar } from './geospatial/MapToolbar';
 import { MapViewport } from './geospatial/MapViewport';
+import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
 
 // Types
 import type {
@@ -2560,307 +2561,28 @@ export default function GeospatialExplorer() {
       </div>
 
       {/* Network Tagging Context Menu */}
-      {contextMenu.visible && contextMenu.network && (
-        <div
-          ref={contextMenuRef}
-          style={{
-            position: 'fixed',
-            top: contextMenu.position === 'below' ? contextMenu.y : 'auto',
-            bottom: contextMenu.position === 'above' ? window.innerHeight - contextMenu.y : 'auto',
-            left: contextMenu.x,
-            zIndex: 10000,
-            background: '#1e293b',
-            border: '1px solid #475569',
-            borderRadius: '8px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-            minWidth: '200px',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              padding: '8px 12px',
-              borderBottom: '1px solid #475569',
-              background: '#334155',
-            }}
-          >
-            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '2px' }}>
-              {contextMenu.network.ssid || '<Hidden>'}
-            </div>
-            <div style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>
-              {contextMenu.network.bssid}
-            </div>
-          </div>
-
-          {/* Current Status */}
-          {contextMenu.tag?.exists && (
-            <div
-              style={{
-                padding: '6px 12px',
-                borderBottom: '1px solid #475569',
-                background: '#334155',
-                fontSize: '10px',
-              }}
-            >
-              {contextMenu.tag.is_ignored && (
-                <span style={{ color: '#94a3b8', marginRight: '8px' }}>✓ Ignored</span>
-              )}
-              {contextMenu.tag.threat_tag && (
-                <span
-                  style={{
-                    color:
-                      contextMenu.tag.threat_tag === 'THREAT'
-                        ? '#ef4444'
-                        : contextMenu.tag.threat_tag === 'SUSPECT'
-                          ? '#f59e0b'
-                          : contextMenu.tag.threat_tag === 'FALSE_POSITIVE'
-                            ? '#22c55e'
-                            : contextMenu.tag.threat_tag === 'INVESTIGATE'
-                              ? '#3b82f6'
-                              : '#94a3b8',
-                  }}
-                >
-                  {contextMenu.tag.threat_tag}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Menu Items */}
-          <div style={{ padding: '4px 0' }}>
-            {/* Ignore/Unignore Toggle */}
-            <button
-              onClick={() => handleTagAction('ignore')}
-              disabled={tagLoading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background: 'transparent',
-                border: 'none',
-                color: '#e2e8f0',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              {contextMenu.tag?.is_ignored ? '👁️ Unignore (Show)' : '👁️‍🗨️ Ignore (Known/Friendly)'}
-            </button>
-
-            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
-
-            {/* Threat Classification */}
-            <button
-              onClick={() => handleTagAction('threat')}
-              disabled={tagLoading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background:
-                  contextMenu.tag?.threat_tag === 'THREAT'
-                    ? 'rgba(239, 68, 68, 0.2)'
-                    : 'transparent',
-                border: 'none',
-                color: '#ef4444',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)')}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background =
-                  contextMenu.tag?.threat_tag === 'THREAT'
-                    ? 'rgba(239, 68, 68, 0.2)'
-                    : 'transparent')
-              }
-            >
-              ⚠️ Mark as Threat
-            </button>
-
-            <button
-              onClick={() => handleTagAction('suspect')}
-              disabled={tagLoading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background:
-                  contextMenu.tag?.threat_tag === 'SUSPECT'
-                    ? 'rgba(245, 158, 11, 0.2)'
-                    : 'transparent',
-                border: 'none',
-                color: '#f59e0b',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)')}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background =
-                  contextMenu.tag?.threat_tag === 'SUSPECT'
-                    ? 'rgba(245, 158, 11, 0.2)'
-                    : 'transparent')
-              }
-            >
-              🔶 Mark as Suspect
-            </button>
-
-            <button
-              onClick={() => handleTagAction('false_positive')}
-              disabled={tagLoading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background:
-                  contextMenu.tag?.threat_tag === 'FALSE_POSITIVE'
-                    ? 'rgba(34, 197, 94, 0.2)'
-                    : 'transparent',
-                border: 'none',
-                color: '#22c55e',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)')}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background =
-                  contextMenu.tag?.threat_tag === 'FALSE_POSITIVE'
-                    ? 'rgba(34, 197, 94, 0.2)'
-                    : 'transparent')
-              }
-            >
-              ✓ Mark as False Positive
-            </button>
-
-            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
-
-            {/* WiGLE Investigation */}
-            <button
-              onClick={() => handleTagAction('investigate')}
-              disabled={tagLoading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background:
-                  contextMenu.tag?.threat_tag === 'INVESTIGATE'
-                    ? 'rgba(59, 130, 246, 0.2)'
-                    : 'transparent',
-                border: 'none',
-                color: '#3b82f6',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)')}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background =
-                  contextMenu.tag?.threat_tag === 'INVESTIGATE'
-                    ? 'rgba(59, 130, 246, 0.2)'
-                    : 'transparent')
-              }
-            >
-              🔍 Investigate (WiGLE Lookup)
-            </button>
-
-            {/* Clear Tags */}
-            {contextMenu.tag?.exists && (
-              <>
-                <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
-                <button
-                  onClick={() => handleTagAction('clear')}
-                  disabled={tagLoading}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#94a3b8',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  🗑️ Clear All Tags
-                </button>
-              </>
-            )}
-
-            {/* Add Note */}
-            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
-            <button
-              onClick={() => {
-                const n = contextMenu.network;
-                const payload = n
-                  ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') }
-                  : null;
-                setTimeFreqModal(payload);
-                closeContextMenu();
-              }}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background: 'transparent',
-                border: 'none',
-                color: '#06b6d4',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              📡 Time-Frequency Grid
-            </button>
-            <button
-              onClick={() => {
-                setShowNoteModal(true);
-                setSelectedBssid(contextMenu.network?.bssid || '');
-                closeContextMenu();
-              }}
-              disabled={tagLoading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                background: 'transparent',
-                border: 'none',
-                color: '#a78bfa',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              📝 Add Note
-            </button>
-          </div>
-
-          {/* Loading Indicator */}
-          {tagLoading && (
-            <div
-              style={{
-                padding: '8px 12px',
-                textAlign: 'center',
-                color: '#94a3b8',
-                fontSize: '11px',
-              }}
-            >
-              Saving...
-            </div>
-          )}
-        </div>
-      )}
+      <NetworkTagMenu
+        visible={contextMenu.visible}
+        network={contextMenu.network}
+        tag={contextMenu.tag}
+        position={contextMenu.position}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        tagLoading={tagLoading}
+        contextMenuRef={contextMenuRef}
+        onTagAction={handleTagAction}
+        onTimeFrequency={() => {
+          const n = contextMenu.network;
+          const payload = n ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') } : null;
+          setTimeFreqModal(payload);
+          closeContextMenu();
+        }}
+        onAddNote={() => {
+          setShowNoteModal(true);
+          setSelectedBssid(contextMenu.network?.bssid || '');
+          closeContextMenu();
+        }}
+      />
 
       {/* Note Modal with Media Attachments */}
       {showNoteModal && (
