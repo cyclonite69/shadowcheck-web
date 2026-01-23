@@ -29,6 +29,7 @@ clearPostgresEnv();
     // ============================================================================
     const { createErrorHandler, notFoundHandler } = require('./src/errors/errorHandler');
     const { mountDemoRoutes, mountApiRoutes } = require('./src/utils/routeMounts');
+    const { getServerConfig } = require('./src/utils/serverConfig');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -58,9 +59,7 @@ clearPostgresEnv();
     // 5. APP INITIALIZATION
     // ============================================================================
     const app = express();
-    const port = process.env.PORT || 3001;
-    const host = process.env.HOST || '0.0.0.0';
-    const FORCE_HTTPS = process.env.FORCE_HTTPS === 'true';
+    const { port, host, forceHttps, allowedOrigins } = getServerConfig();
 
     // ============================================================================
     // 6. MIDDLEWARE SETUP
@@ -71,17 +70,12 @@ clearPostgresEnv();
     app.use(requestIdMiddleware);
 
     // HTTPS redirect (if enabled)
-    if (FORCE_HTTPS) {
+    if (forceHttps) {
       const { createHttpsRedirect } = require('./src/middleware/httpsRedirect');
       app.use(createHttpsRedirect());
     }
 
-    app.use(createSecurityHeaders(FORCE_HTTPS));
-
-    // CORS
-    const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-      : ['http://localhost:3001', 'http://127.0.0.1:3001'];
+    app.use(createSecurityHeaders(forceHttps));
 
     mountCommonMiddleware(app, { allowedOrigins });
 
@@ -163,7 +157,7 @@ clearPostgresEnv();
     app.listen(port, host, () => {
       logger.info(`Server listening on port ${port}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`HTTPS redirect: ${FORCE_HTTPS ? 'enabled' : 'disabled'}`);
+      logger.info(`HTTPS redirect: ${forceHttps ? 'enabled' : 'disabled'}`);
     });
 
     // Graceful shutdown
