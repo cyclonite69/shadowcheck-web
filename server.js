@@ -23,7 +23,7 @@ clearPostgresEnv();
     // ============================================================================
     // 3. UTILITIES & ERROR HANDLING
     // ============================================================================
-    const { createErrorHandler, notFoundHandler } = require('./src/errors/errorHandler');
+    const { registerErrorHandlers } = require('./src/utils/errorHandlingInit');
     const { mountDemoRoutes } = require('./src/utils/routeMounts');
     const { getServerConfig } = require('./src/utils/serverConfig');
     const { startServer } = require('./src/utils/serverStartup');
@@ -128,8 +128,7 @@ clearPostgresEnv();
     // ============================================================================
     // 11. ERROR HANDLING
     // ============================================================================
-    app.use(notFoundHandler);
-    app.use(createErrorHandler(logger));
+    registerErrorHandlers(app, logger);
 
     // ============================================================================
     // 12. SERVER STARTUP
