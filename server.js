@@ -28,6 +28,7 @@ clearPostgresEnv();
     // 3. UTILITIES & ERROR HANDLING
     // ============================================================================
     const { createErrorHandler, notFoundHandler } = require('./src/errors/errorHandler');
+    const { mountDemoRoutes, mountApiRoutes } = require('./src/utils/routeMounts');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -95,7 +96,7 @@ clearPostgresEnv();
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
     // ============================================================================
-    app.use('/', miscRoutes);
+    mountDemoRoutes(app, miscRoutes);
 
     // ============================================================================
     // 9. STATIC FILES
@@ -114,30 +115,28 @@ clearPostgresEnv();
     const { initializeDashboardRoutes } = require('./src/utils/dashboardInit');
     initializeDashboardRoutes(dashboardRoutes);
 
-    // Health check (no prefix, available at /health)
-    app.use('/', healthRoutes);
-
-    // Geospatial routes (includes root redirect)
-    app.use('/', geospatialRoutes);
-
-    // API routes
-    app.use('/api', networksRoutes);
-    app.use('/api', threatsRoutes);
-    app.use('/api', wigleRoutes);
-    app.use('/api', adminRoutes);
-    app.use('/api', explorerRoutes);
-    app.use('/api', mlRoutes);
-    app.use('/api/analytics', analyticsRoutes);
-    app.use('/api', dashboardRoutes.router);
-    app.use('/api/v2/networks/filtered', filteredRoutes);
-    app.use('/api', networksV2Routes);
-    app.use('/api', locationMarkersRoutes(query));
-    app.use('/api', homeLocationRoutes);
-    app.use('/api', keplerRoutes);
-    app.use('/api', backupRoutes);
-    app.use('/api', exportRoutes);
-    app.use('/api', settingsRoutes);
-    app.use('/api/network-tags', networkTagsRoutes);
+    mountApiRoutes(app, {
+      healthRoutes,
+      geospatialRoutes,
+      networksRoutes,
+      threatsRoutes,
+      wigleRoutes,
+      adminRoutes,
+      explorerRoutes,
+      mlRoutes,
+      analyticsRoutes,
+      dashboardRoutes,
+      networksV2Routes,
+      filteredRoutes,
+      locationMarkersRoutes,
+      homeLocationRoutes,
+      keplerRoutes,
+      backupRoutes,
+      exportRoutes,
+      settingsRoutes,
+      networkTagsRoutes,
+      query,
+    });
 
     logger.info('All routes mounted successfully');
 
