@@ -28,6 +28,7 @@ clearPostgresEnv();
     const { getServerConfig } = require('./src/utils/serverConfig');
     const { startServer } = require('./src/utils/serverStartup');
     const { initializeMiddleware } = require('./src/utils/middlewareInit');
+    const { initializeDatabaseConnection } = require('./src/utils/databaseSetup');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -69,10 +70,7 @@ clearPostgresEnv();
     // ============================================================================
     // 7. DATABASE SETUP
     // ============================================================================
-    const { pool, query, testConnection } = require('./src/config/database');
-
-    const { initializeDatabase } = require('./src/utils/databaseInit');
-    await initializeDatabase({ pool, testConnection, logger });
+    const { pool, query } = await initializeDatabaseConnection(logger);
 
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
