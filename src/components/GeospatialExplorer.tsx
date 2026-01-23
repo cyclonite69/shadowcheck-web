@@ -12,6 +12,7 @@ import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbar } from './geospatial/MapToolbar';
 import { MapViewport } from './geospatial/MapViewport';
 import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
+import { MapStatusBar } from './geospatial/MapStatusBar';
 
 // Types
 import type {
@@ -2512,50 +2513,19 @@ export default function GeospatialExplorer() {
               )}
             </div>
 
-            {/* Footer */}
-            <div
-              style={{
-                padding: '8px 12px',
-                borderTop: '1px solid rgba(71, 85, 105, 0.3)',
-                fontSize: '11px',
-                color: '#cbd5e1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'rgba(15, 23, 42, 0.6)',
-                borderRadius: '0 0 12px 12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span>Visible: {filteredNetworks.length}</span>
-                {networkTruncated && (
-                  <span style={{ color: '#fbbf24' }}>
-                    Networks truncated ({filteredNetworks.length}/{networkTotal ?? 'unknown'})
-                  </span>
-                )}
-                <span>Selected: {selectedNetworks.size}</span>
-                <span>Observations: {observationCount}</span>
-                {observationsTruncated && (
-                  <span style={{ color: '#fbbf24' }}>
-                    Observations truncated ({observationCount}/{observationsTotal ?? 'unknown'})
-                  </span>
-                )}
-                {renderBudgetExceeded && (
-                  <span style={{ color: '#f59e0b' }}>
-                    Render budget exceeded ({observationsTotal ?? 'unknown'}/{renderBudget ?? 0})
-                  </span>
-                )}
-              </div>
-              <div style={{ color: '#94a3b8' }}>
-                {loadingNetworks
-                  ? 'Loading networks…'
-                  : loadingObservations
-                    ? 'Loading observations…'
-                    : selectedNetworks.size > 0 && observationCount === 0
-                      ? 'No observations for selection'
-                      : 'Ready'}
-              </div>
-            </div>
+            <MapStatusBar
+              visibleCount={filteredNetworks.length}
+              networkTruncated={networkTruncated}
+              networkTotal={networkTotal}
+              selectedCount={selectedNetworks.size}
+              observationCount={observationCount}
+              observationsTruncated={observationsTruncated}
+              observationsTotal={observationsTotal}
+              renderBudgetExceeded={renderBudgetExceeded}
+              renderBudget={renderBudget}
+              loadingNetworks={loadingNetworks}
+              loadingObservations={loadingObservations}
+            />
           </div>
         </div>
       </div>
