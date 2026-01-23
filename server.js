@@ -113,11 +113,8 @@ delete process.env.PGUSER;
     app.locals.secretsManager = secretsManager;
 
     // Initialize dashboard routes with dependencies
-    const NetworkRepository = require('./src/repositories/networkRepository');
-    const DashboardService = require('./src/services/dashboardService');
-    const networkRepository = new NetworkRepository();
-    const dashboardService = new DashboardService(networkRepository);
-    dashboardRoutes.initDashboardRoutes({ dashboardService });
+    const { initializeDashboardRoutes } = require('./src/utils/dashboardInit');
+    initializeDashboardRoutes(dashboardRoutes);
 
     // Health check (no prefix, available at /health)
     app.use('/', healthRoutes);
@@ -147,8 +144,8 @@ delete process.env.PGUSER;
     logger.info('All routes mounted successfully');
 
     // Initialize background jobs
-    const BackgroundJobsService = require('./src/services/backgroundJobsService');
-    await BackgroundJobsService.initialize();
+    const { initializeBackgroundJobs } = require('./src/utils/backgroundJobsInit');
+    await initializeBackgroundJobs();
 
     // ============================================================================
     // 10. SPA FALLBACK (React Router support)
