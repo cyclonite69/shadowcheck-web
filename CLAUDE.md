@@ -347,7 +347,7 @@ Networks are scored based on:
 
 The project is migrating from legacy HTML/JS (in `public/`) to a modern React + Vite frontend:
 
-**React Pages** (`src/` components):
+**React Pages** (`src/components/`):
 
 - `/` or `/dashboard` - Main dashboard (React)
 - `/geospatial` or `/geospatial-intel` - Geospatial analysis (React)
@@ -370,6 +370,38 @@ The project is migrating from legacy HTML/JS (in `public/`) to a modern React + 
 - Mapbox GL JS for maps
 - Recharts for charts
 - React Router for routing
+- Zustand for state management (`src/stores/`)
+
+**Frontend Module Organization**:
+
+```
+src/
+├── components/           # React components
+│   ├── badges/          # Reusable badge components (TypeBadge, ThreatBadge)
+│   ├── modals/          # Modal components
+│   └── *.tsx            # Page components
+├── hooks/               # Custom React hooks
+│   ├── useNetworkData.ts    # Network fetching, pagination, sorting
+│   ├── useObservations.ts   # Observation fetching for selections
+│   ├── useFilteredData.ts   # Filter URL sync
+│   └── usePageFilters.ts    # Page-scoped filters
+├── stores/              # Zustand state stores
+│   └── filterStore.ts   # Global filter state with debouncing
+├── types/               # TypeScript type definitions
+│   └── network.ts       # NetworkRow, Observation, ThreatInfo, etc.
+├── constants/           # Shared constants
+│   └── network.ts       # Column configs, map styles, colors
+├── utils/               # Utility functions
+│   └── mapHelpers.ts    # Map circle/signal calculations
+└── logging/             # Client-side logging
+```
+
+**Key Frontend Patterns**:
+
+- **Custom hooks for data fetching**: `useNetworkData` and `useObservations` handle API calls, pagination, and state
+- **Centralized types**: All network-related types in `src/types/network.ts`
+- **Shared constants**: Column configurations, colors, map styles in `src/constants/network.ts`
+- **Filter state**: Global filter store with URL sync and debouncing
 
 ## Utility Scripts
 
@@ -482,5 +514,5 @@ git ls-files --directory ./ --exclude-standard | grep -v '/'
 
 ---
 
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-23
 **See**: [CHANGELOG.md](CHANGELOG.md) for version history
