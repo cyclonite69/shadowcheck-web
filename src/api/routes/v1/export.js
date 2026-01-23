@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
+const { validateQuery, optional } = require('../../../validation/middleware');
+const {
+  validateBSSIDList,
+  validateBoundingBoxString,
+  validateIntegerRange,
+} = require('../../../validation/schemas');
 
 // Middleware to require authentication
 const requireAuth = (req, res, next) => {
@@ -12,6 +18,16 @@ const requireAuth = (req, res, next) => {
   }
   next();
 };
+
+/**
+ * Validates optional KML export query parameters.
+ * @type {function}
+ */
+const validateKmlQuery = validateQuery({
+  bssids: optional((value) => validateBSSIDList(value, 5000)),
+  limit: optional((value) => validateIntegerRange(value, 1, 10000, 'limit')),
+  bbox: optional(validateBoundingBoxString),
+});
 
 // Export as GeoJSON
 router.get('/geojson', requireAuth, async (req, res) => {
@@ -87,23 +103,24 @@ router.get('/json', requireAuth, async (req, res) => {
 });
 
 // Export as KML (for Google Earth)
-router.get('/kml', async (req, res) => {
+router.get('/kml', validateKmlQuery, async (req, res) => {
   try {
     // Parse optional filters from query params
-    const { bssids, limit = 5000, bbox } = req.query;
+    const bssids = req.validated?.bssids;
+    const limit = req.validated?.limit ?? 5000;
+    const bbox = req.validated?.bbox;
 
     let whereClause = '';
     const params = [];
 
-    if (bssids) {
-      const bssidList = bssids.split(',').map((b) => b.trim().toUpperCase());
-      params.push(bssidList);
+    if (bssids && bssids.length > 0) {
+      params.push(bssids);
       whereClause = `WHERE o.bssid = ANY($${params.length})`;
     }
 
     if (bbox) {
       // bbox format: minLng,minLat,maxLng,maxLat
-      const [minLng, minLat, maxLng, maxLat] = bbox.split(',').map(Number);
+      const { minLng, minLat, maxLng, maxLat } = bbox;
       if (!whereClause) {
         whereClause = 'WHERE';
       } else {

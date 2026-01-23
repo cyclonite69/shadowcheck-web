@@ -8,9 +8,52 @@ const router = express.Router();
 const { query } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
 const logger = require('../../../logging/logger');
+const { bssidParamMiddleware, validateQuery, optional } = require('../../../validation/middleware');
+const { validateIntegerRange, validateString } = require('../../../validation/schemas');
+
+/**
+ * Parses and validates include_total query flag.
+ * @param {any} value - Raw include_total query value
+ * @returns {{ valid: boolean, value?: boolean, error?: string }}
+ */
+function parseIncludeTotalFlag(value) {
+  if (value === undefined || value === null || value === '') {
+    return { valid: true, value: false };
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === '1' || normalized === 'true') {
+    return { valid: true, value: true };
+  }
+  if (normalized === '0' || normalized === 'false') {
+    return { valid: true, value: false };
+  }
+
+  return { valid: false, error: 'include_total must be 1, 0, true, or false' };
+}
+
+/**
+ * Validates WiGLE search query parameters.
+ * @type {function}
+ */
+const validateWigleSearchQuery = validateQuery({
+  ssid: optional((value) => validateString(String(value), 1, 64, 'ssid')),
+  bssid: optional((value) => validateString(String(value), 1, 64, 'bssid')),
+  limit: optional((value) => validateIntegerRange(value, 1, 500, 'limit')),
+});
+
+/**
+ * Validates WiGLE v2 network query parameters.
+ * @type {function}
+ */
+const validateWigleNetworksQuery = validateQuery({
+  limit: optional((value) => validateIntegerRange(value, 1, 50000, 'limit')),
+  offset: optional((value) => validateIntegerRange(value, 0, 10000000, 'offset')),
+  type: optional((value) => validateString(String(value), 1, 16, 'type')),
+});
 
 // GET /api/wigle/live/:bssid - Query live WiGLE API for network
-router.get('/wigle/live/:bssid', async (req, res, next) => {
+router.get('/wigle/live/:bssid', bssidParamMiddleware, async (req, res, next) => {
   try {
     const { bssid } = req.params;
     const wigleApiName = secretsManager.get('wigle_api_name');
@@ -61,7 +104,7 @@ router.get('/wigle/live/:bssid', async (req, res, next) => {
 });
 
 // GET /api/wigle/network/:bssid - Get WiGLE data for a specific network (local DB)
-router.get('/wigle/network/:bssid', async (req, res, next) => {
+router.get('/wigle/network/:bssid', bssidParamMiddleware, async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
@@ -99,15 +142,17 @@ router.get('/wigle/network/:bssid', async (req, res, next) => {
 });
 
 // GET /api/wigle/search - Search WiGLE database
-router.get('/wigle/search', async (req, res, next) => {
+router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => {
   try {
-    const { ssid, bssid, limit = 50 } = req.query;
+    const ssid = req.validated?.ssid ? String(req.validated.ssid).trim() : '';
+    const bssid = req.validated?.bssid ? String(req.validated.bssid).trim() : '';
+    const limit = req.validated?.limit ?? 50;
 
     if (!ssid && !bssid) {
       return res.status(400).json({ error: 'Either ssid or bssid parameter is required' });
     }
 
-    const searchLimit = Math.min(parseInt(limit) || 50, 500);
+    const searchLimit = limit;
 
     let searchQuery;
     let params;
@@ -166,15 +211,19 @@ router.get('/wigle/search', async (req, res, next) => {
 });
 
 // GET /api/wigle/networks-v2 - Fetch WiGLE v2 networks for map testing
-router.get('/wigle/networks-v2', async (req, res, next) => {
+router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, next) => {
   try {
-    const limitRaw = req.query.limit;
-    const offsetRaw = req.query.offset;
-    const typeRaw = req.query.type;
-    const includeTotal = String(req.query.include_total || '') === '1';
+    const limitRaw = req.validated?.limit;
+    const offsetRaw = req.validated?.offset;
+    const typeRaw = req.validated?.type;
+    const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
+    if (!includeTotalValidation.valid) {
+      return res.status(400).json({ error: includeTotalValidation.error });
+    }
+    const includeTotal = includeTotalValidation.value;
 
-    const limit = Math.min(parseInt(limitRaw, 10) || 20000, 50000);
-    const offset = Math.max(parseInt(offsetRaw, 10) || 0, 0);
+    const limit = limitRaw ?? 20000;
+    const offset = offsetRaw ?? 0;
     const params = [limit, offset];
     const whereClauses = ['trilat IS NOT NULL', 'trilong IS NOT NULL'];
 

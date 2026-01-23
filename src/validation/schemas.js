@@ -280,6 +280,132 @@ function validateEnum(value, allowed, fieldName = 'Field') {
 }
 
 /**
+ * Validates integer within an inclusive range
+ * @param {any} value - Value to validate
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
+ * @param {string} fieldName - Field name for error messages
+ * @returns {object} { valid: boolean, error?: string, value?: number }
+ */
+function validateIntegerRange(value, min = 0, max = Number.MAX_SAFE_INTEGER, fieldName = 'Value') {
+  const parsed = parseInt(value, 10);
+
+  if (Number.isNaN(parsed)) {
+    return { valid: false, error: `${fieldName} must be an integer` };
+  }
+
+  if (parsed < min || parsed > max) {
+    return { valid: false, error: `${fieldName} must be between ${min} and ${max}` };
+  }
+
+  return { valid: true, value: parsed };
+}
+
+/**
+ * Validates numeric value within an inclusive range
+ * @param {any} value - Value to validate
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
+ * @param {string} fieldName - Field name for error messages
+ * @returns {object} { valid: boolean, error?: string, value?: number }
+ */
+function validateNumberRange(value, min = 0, max = Number.MAX_SAFE_INTEGER, fieldName = 'Value') {
+  const parsed = parseFloat(value);
+
+  if (Number.isNaN(parsed)) {
+    return { valid: false, error: `${fieldName} must be a number` };
+  }
+
+  if (parsed < min || parsed > max) {
+    return { valid: false, error: `${fieldName} must be between ${min} and ${max}` };
+  }
+
+  return { valid: true, value: parsed };
+}
+
+/**
+ * Validates list of BSSIDs from a comma-separated string or array
+ * @param {string|string[]} value - List of BSSIDs
+ * @param {number} maxItems - Maximum allowed items
+ * @returns {object} { valid: boolean, error?: string, value?: string[] }
+ */
+function validateBSSIDList(value, maxItems = 1000) {
+  if (!value) {
+    return { valid: false, error: 'BSSID list must be provided' };
+  }
+
+  const items = Array.isArray(value)
+    ? value
+    : String(value)
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  if (items.length === 0) {
+    return { valid: false, error: 'BSSID list cannot be empty' };
+  }
+
+  if (items.length > maxItems) {
+    return { valid: false, error: `BSSID list cannot exceed ${maxItems} items` };
+  }
+
+  const cleaned = [];
+  for (const item of items) {
+    const validation = validateBSSID(item);
+    if (!validation.valid) {
+      return { valid: false, error: `Invalid BSSID: ${item}. ${validation.error}` };
+    }
+    cleaned.push(validation.cleaned);
+  }
+
+  return { valid: true, value: cleaned };
+}
+
+/**
+ * Validates a bounding box string in format: minLng,minLat,maxLng,maxLat
+ * @param {string} value - Bounding box string
+ * @returns {object} { valid: boolean, error?: string, value?: object }
+ */
+function validateBoundingBoxString(value) {
+  if (!value || typeof value !== 'string') {
+    return { valid: false, error: 'bbox must be a comma-separated string' };
+  }
+
+  const parts = value.split(',').map((entry) => parseFloat(entry.trim()));
+  if (parts.length !== 4 || parts.some((entry) => Number.isNaN(entry))) {
+    return { valid: false, error: 'bbox must include four numeric values' };
+  }
+
+  const [minLng, minLat, maxLng, maxLat] = parts;
+
+  if (minLat < -90 || minLat > 90 || maxLat < -90 || maxLat > 90) {
+    return { valid: false, error: 'bbox latitude values must be between -90 and 90' };
+  }
+
+  if (minLng < -180 || minLng > 180 || maxLng < -180 || maxLng > 180) {
+    return { valid: false, error: 'bbox longitude values must be between -180 and 180' };
+  }
+
+  if (minLat >= maxLat) {
+    return { valid: false, error: 'bbox minLat must be less than maxLat' };
+  }
+
+  if (minLng >= maxLng) {
+    return { valid: false, error: 'bbox minLng must be less than maxLng' };
+  }
+
+  return {
+    valid: true,
+    value: {
+      minLng,
+      minLat,
+      maxLng,
+      maxLat,
+    },
+  };
+}
+
+/**
  * Combines multiple validation results
  * @param {array} results - Array of validation result objects
  * @returns {object} { valid: boolean, errors?: array }
@@ -308,5 +434,9 @@ module.exports = {
   validateSeverity,
   validateBoolean,
   validateEnum,
+  validateIntegerRange,
+  validateNumberRange,
+  validateBSSIDList,
+  validateBoundingBoxString,
   combineValidations,
 };

@@ -6,25 +6,45 @@
 const express = require('express');
 const router = express.Router();
 const { query, CONFIG } = require('../../../config/database');
+const { paginationMiddleware, validateQuery, optional } = require('../../../validation/middleware');
+const {
+  validateIntegerRange,
+  validateNumberRange,
+  validateSeverity,
+} = require('../../../validation/schemas');
 const logger = require('../../../logging/logger');
 
+/**
+ * Validates optional threat detection query parameters.
+ * @type {function}
+ */
+const validateThreatsQuickQuery = validateQuery({
+  minObs: optional((value) => validateIntegerRange(value, 1, 100000, 'minObs')),
+  minDays: optional((value) => validateIntegerRange(value, 1, 3650, 'minDays')),
+  minLocs: optional((value) => validateIntegerRange(value, 1, 100000, 'minLocs')),
+  minRange: optional((value) => validateNumberRange(value, 0, 10000, 'minRange')),
+  minScore: optional(validateSeverity),
+});
+
 // GET /api/threats/quick - Quick threat detection
-router.get('/threats/quick', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
-    const offset = (page - 1) * limit;
-    const minTimestamp = CONFIG.MIN_VALID_TIMESTAMP;
+router.get(
+  '/threats/quick',
+  paginationMiddleware(5000),
+  validateThreatsQuickQuery,
+  async (req, res) => {
+    try {
+      const { page, limit, offset } = req.pagination;
+      const minTimestamp = CONFIG.MIN_VALID_TIMESTAMP;
 
-    // Configurable thresholds
-    const minObservations = parseInt(req.query.minObs) || 5;
-    const minUniqueDays = parseInt(req.query.minDays) || 3;
-    const minUniqueLocations = parseInt(req.query.minLocs) || 5;
-    const minRangeKm = parseFloat(req.query.minRange) || 0.5;
-    const minThreatScore = parseInt(req.query.minScore) || 40;
+      // Configurable thresholds
+      const minObservations = req.validated?.minObs ?? 5;
+      const minUniqueDays = req.validated?.minDays ?? 3;
+      const minUniqueLocations = req.validated?.minLocs ?? 5;
+      const minRangeKm = req.validated?.minRange ?? 0.5;
+      const minThreatScore = req.validated?.minScore ?? 40;
 
-    const result = await query(
-      `
+      const result = await query(
+        `
       WITH network_patterns AS (
         SELECT 
           o.bssid,
@@ -84,64 +104,65 @@ router.get('/threats/quick', async (req, res) => {
       ORDER BY threat_score DESC
       LIMIT $2 OFFSET $3
     `,
-      [
-        minTimestamp,
+        [
+          minTimestamp,
+          limit,
+          offset,
+          minObservations,
+          minUniqueDays,
+          minUniqueLocations,
+          minRangeKm,
+          minThreatScore,
+        ]
+      );
+
+      const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+      res.json({
+        threats: result.rows.map((row) => ({
+          // Network identification
+          bssid: row.bssid,
+          ssid: row.ssid || '<Hidden>',
+          radioType: row.radio_type || 'wifi',
+          type: row.radio_type || 'wifi',
+
+          // Network properties
+          channel: row.channel,
+          signal: row.signal_dbm,
+          signalDbm: row.signal_dbm,
+          maxSignal: row.max_signal,
+          encryption: row.encryption,
+
+          // Location
+          latitude: row.latitude,
+          longitude: row.longitude,
+
+          // Timestamps from observations
+          firstSeen: row.first_seen,
+          lastSeen: row.last_seen,
+
+          // Observations
+          observations: parseInt(row.observations),
+          totalObservations: parseInt(row.observations),
+          uniqueDays: parseInt(row.unique_days),
+          uniqueLocations: parseInt(row.unique_locations),
+
+          // Threat metrics
+          distanceRangeKm: parseFloat(row.distance_range_km).toFixed(2),
+          threatScore: parseInt(row.threat_score),
+          threatLevel: row.threat_score >= 70 ? 'high' : row.threat_score >= 50 ? 'medium' : 'low',
+        })),
+        total: totalCount,
+        page,
         limit,
-        offset,
-        minObservations,
-        minUniqueDays,
-        minUniqueLocations,
-        minRangeKm,
-        minThreatScore,
-      ]
-    );
-
-    const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
-
-    res.json({
-      threats: result.rows.map((row) => ({
-        // Network identification
-        bssid: row.bssid,
-        ssid: row.ssid || '<Hidden>',
-        radioType: row.radio_type || 'wifi',
-        type: row.radio_type || 'wifi',
-
-        // Network properties
-        channel: row.channel,
-        signal: row.signal_dbm,
-        signalDbm: row.signal_dbm,
-        maxSignal: row.max_signal,
-        encryption: row.encryption,
-
-        // Location
-        latitude: row.latitude,
-        longitude: row.longitude,
-
-        // Timestamps from observations
-        firstSeen: row.first_seen,
-        lastSeen: row.last_seen,
-
-        // Observations
-        observations: parseInt(row.observations),
-        totalObservations: parseInt(row.observations),
-        uniqueDays: parseInt(row.unique_days),
-        uniqueLocations: parseInt(row.unique_locations),
-
-        // Threat metrics
-        distanceRangeKm: parseFloat(row.distance_range_km).toFixed(2),
-        threatScore: parseInt(row.threat_score),
-        threatLevel: row.threat_score >= 70 ? 'high' : row.threat_score >= 50 ? 'medium' : 'low',
-      })),
-      total: totalCount,
-      page,
-      limit,
-      totalPages: Math.ceil(totalCount / limit),
-    });
-  } catch (error) {
-    logger.error(`Threat detection error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+        totalPages: Math.ceil(totalCount / limit),
+      });
+    } catch (error) {
+      logger.error(`Threat detection error: ${error.message}`, { error });
+      res.status(500).json({ error: error.message });
+    }
   }
-});
+);
 
 // GET /api/threats/detect - Detailed threat analysis
 router.get('/threats/detect', async (req, res, next) => {

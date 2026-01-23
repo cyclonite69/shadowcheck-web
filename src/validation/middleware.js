@@ -53,6 +53,20 @@ function validateQuery(validators) {
 }
 
 /**
+ * Wraps a validator to allow empty values
+ * @param {function} validator - Validator function
+ * @returns {function} Wrapped validator that accepts undefined/null/empty string
+ */
+function optional(validator) {
+  return (value) => {
+    if (value === undefined || value === null || value === '') {
+      return { valid: true, value: undefined };
+    }
+    return validator(value);
+  };
+}
+
+/**
  * Creates middleware to validate body parameters
  * @param {object} validators - Object mapping param names to validator functions
  * @returns {function} Express middleware
@@ -140,8 +154,24 @@ function validateParams(validators) {
  */
 function paginationMiddleware(maxLimit = 5000) {
   return (req, res, next) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const pageRaw = req.query.page;
+    const limitRaw = req.query.limit;
+    const page = pageRaw === undefined ? 1 : parseInt(pageRaw, 10);
+    const limit = limitRaw === undefined ? 50 : parseInt(limitRaw, 10);
+
+    if (pageRaw !== undefined && Number.isNaN(page)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Page must be a positive integer',
+      });
+    }
+
+    if (limitRaw !== undefined && Number.isNaN(limit)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Limit must be a positive integer',
+      });
+    }
 
     if (page <= 0) {
       return res.status(400).json({
@@ -327,6 +357,7 @@ module.exports = {
   bssidParamMiddleware,
   coordinatesMiddleware,
   sortMiddleware,
+  optional,
   createParameterRateLimit,
   sanitizeMiddleware,
 };
