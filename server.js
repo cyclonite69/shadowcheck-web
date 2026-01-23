@@ -1,7 +1,3 @@
-// Clear PostgreSQL environment variables that might interfere
-const { clearPostgresEnv } = require('./src/utils/envSanitizer');
-clearPostgresEnv();
-
 (async () => {
   try {
     // ============================================================================

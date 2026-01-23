@@ -7,6 +7,9 @@
  * @returns {{ express: Function, path: import('path'), logger: object }}
  */
 function loadCoreDependencies() {
+  const { clearPostgresEnv } = require('./envSanitizer');
+  clearPostgresEnv();
+
   require('dotenv').config({ override: true });
   const logger = require('../logging/logger');
   const express = require('express');
