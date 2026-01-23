@@ -8,17 +8,202 @@ const router = express.Router();
 const { pool, query } = require('../../../config/database');
 const { escapeLikePattern } = require('../../../utils/escapeSQL');
 const logger = require('../../../logging/logger');
+const {
+  validateBSSID,
+  validateBSSIDList,
+  validateConfidence,
+  validateEnum,
+  validateIntegerRange,
+  validateNumberRange,
+  validateString,
+} = require('../../../validation/schemas');
 
-// Utility: Sanitize BSSID
-function sanitizeBSSID(bssid) {
-  if (!bssid || typeof bssid !== 'string') {
+const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
+
+/**
+ * Parses a required integer query parameter with bounds.
+ * @param {any} value - Raw parameter value
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
+ * @param {string} fieldName - Parameter name for error messages
+ * @param {string} missingMessage - Error message for missing value
+ * @param {string} invalidMessage - Error message for invalid value
+ * @returns {{ ok: boolean, value?: number, error?: string }}
+ */
+function parseRequiredInteger(value, min, max, fieldName, missingMessage, invalidMessage) {
+  if (value === undefined) {
+    return { ok: false, error: missingMessage };
+  }
+
+  const validation = validateIntegerRange(value, min, max, fieldName);
+  if (!validation.valid) {
+    return { ok: false, error: invalidMessage || validation.error };
+  }
+
+  return { ok: true, value: validation.value };
+}
+
+/**
+ * Parses an optional number query parameter with bounds.
+ * @param {any} value - Raw parameter value
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
+ * @param {string} fieldName - Parameter name for error messages
+ * @returns {{ ok: boolean, value?: number|null, error?: string }}
+ */
+function parseOptionalNumber(value, min, max, fieldName) {
+  if (value === undefined) {
+    return { ok: true, value: null };
+  }
+
+  if (value === '') {
+    return { ok: false, error: `Invalid ${fieldName} parameter.` };
+  }
+
+  const validation = validateNumberRange(value, min, max, fieldName);
+  if (!validation.valid) {
+    return { ok: false, error: validation.error };
+  }
+
+  return { ok: true, value: validation.value };
+}
+
+/**
+ * Parses an optional integer query parameter with bounds.
+ * @param {any} value - Raw parameter value
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
+ * @param {string} fieldName - Parameter name for error messages
+ * @returns {{ ok: boolean, value?: number|null, error?: string }}
+ */
+function parseOptionalInteger(value, min, max, fieldName) {
+  if (value === undefined) {
+    return { ok: true, value: null };
+  }
+
+  if (value === '') {
+    return { ok: false, error: `Invalid ${fieldName} parameter.` };
+  }
+
+  const validation = validateIntegerRange(value, min, max, fieldName);
+  if (!validation.valid) {
+    return { ok: false, error: validation.error };
+  }
+
+  return { ok: true, value: validation.value };
+}
+
+/**
+ * Parses a comma-delimited list from a query parameter.
+ * @param {any} value - Raw parameter value
+ * @param {number} maxItems - Maximum allowed items
+ * @returns {string[]|null} Normalized values or null
+ */
+function parseCommaList(value, maxItems = 50) {
+  if (value === undefined) {
     return null;
   }
-  const cleaned = bssid.trim().toUpperCase();
-  if (!/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/.test(cleaned)) {
+
+  const values = String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (values.length === 0) {
     return null;
   }
-  return cleaned;
+
+  return values.slice(0, maxItems);
+}
+
+/**
+ * Parses a bounding box from query parameters.
+ * Returns null when values are missing or invalid to preserve prior behavior.
+ * @param {any} minLatRaw - Minimum latitude
+ * @param {any} maxLatRaw - Maximum latitude
+ * @param {any} minLngRaw - Minimum longitude
+ * @param {any} maxLngRaw - Maximum longitude
+ * @returns {{ ok: boolean, value?: object|null, error?: string }}
+ */
+function parseBoundingBoxParams(minLatRaw, maxLatRaw, minLngRaw, maxLngRaw) {
+  if (
+    minLatRaw === undefined ||
+    maxLatRaw === undefined ||
+    minLngRaw === undefined ||
+    maxLngRaw === undefined
+  ) {
+    return { ok: true, value: null };
+  }
+
+  const minLat = parseFloat(minLatRaw);
+  const maxLat = parseFloat(maxLatRaw);
+  const minLng = parseFloat(minLngRaw);
+  const maxLng = parseFloat(maxLngRaw);
+
+  if (
+    Number.isNaN(minLat) ||
+    Number.isNaN(maxLat) ||
+    Number.isNaN(minLng) ||
+    Number.isNaN(maxLng)
+  ) {
+    return { ok: true, value: null };
+  }
+
+  if (
+    minLat < -90 ||
+    maxLat > 90 ||
+    minLat > maxLat ||
+    minLng < -180 ||
+    maxLng > 180 ||
+    minLng > maxLng
+  ) {
+    return { ok: true, value: null };
+  }
+
+  return {
+    ok: true,
+    value: {
+      minLat,
+      maxLat,
+      minLng,
+      maxLng,
+    },
+  };
+}
+
+/**
+ * Parses radius filter values from query parameters.
+ * Returns null when values are missing or invalid to preserve prior behavior.
+ * @param {any} latRaw - Center latitude
+ * @param {any} lngRaw - Center longitude
+ * @param {any} radiusRaw - Radius meters
+ * @returns {{ ok: boolean, value?: object|null, error?: string }}
+ */
+function parseRadiusParams(latRaw, lngRaw, radiusRaw) {
+  if (latRaw === undefined || lngRaw === undefined || radiusRaw === undefined) {
+    return { ok: true, value: null };
+  }
+
+  const centerLat = parseFloat(latRaw);
+  const centerLng = parseFloat(lngRaw);
+  const radius = parseFloat(radiusRaw);
+
+  if (Number.isNaN(centerLat) || Number.isNaN(centerLng) || Number.isNaN(radius)) {
+    return { ok: true, value: null };
+  }
+
+  if (centerLat < -90 || centerLat > 90 || centerLng < -180 || centerLng > 180 || radius <= 0) {
+    return { ok: true, value: null };
+  }
+
+  return {
+    ok: true,
+    value: {
+      centerLat,
+      centerLng,
+      radius,
+    },
+  };
 }
 
 // GET /api/networks - List all networks with pagination and filtering
@@ -67,24 +252,32 @@ router.get('/networks', async (req, res, next) => {
       ? locationModeRaw
       : 'latest_observation';
 
-    if (limitRaw === undefined) {
-      return res.status(400).json({ error: 'Missing limit parameter.' });
-    }
-    if (offsetRaw === undefined) {
-      return res.status(400).json({ error: 'Missing offset parameter.' });
+    const limitResult = parseRequiredInteger(
+      limitRaw,
+      1,
+      1000,
+      'limit',
+      'Missing limit parameter.',
+      'Invalid limit parameter. Must be between 1 and 1000.'
+    );
+    if (!limitResult.ok) {
+      return res.status(400).json({ error: limitResult.error });
     }
 
-    const limit = parseInt(limitRaw, 10);
-    const offset = parseInt(offsetRaw, 10);
+    const offsetResult = parseRequiredInteger(
+      offsetRaw,
+      0,
+      10000000,
+      'offset',
+      'Missing offset parameter.',
+      'Invalid offset parameter. Must be >= 0.'
+    );
+    if (!offsetResult.ok) {
+      return res.status(400).json({ error: offsetResult.error });
+    }
 
-    if (isNaN(limit) || limit <= 0 || limit > 1000) {
-      return res
-        .status(400)
-        .json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
-    }
-    if (isNaN(offset) || offset < 0) {
-      return res.status(400).json({ error: 'Invalid offset parameter. Must be >= 0.' });
-    }
+    const limit = limitResult.value;
+    const offset = offsetResult.value;
 
     let threatLevel = null;
     let threatCategories = null;
@@ -92,14 +285,17 @@ router.get('/networks', async (req, res, next) => {
     let threatScoreMax = null;
 
     if (threatLevelRaw !== undefined) {
-      const validLevels = ['NONE', 'LOW', 'MED', 'HIGH'];
-      if (validLevels.includes(threatLevelRaw.toUpperCase())) {
-        threatLevel = threatLevelRaw.toUpperCase();
-      } else {
+      const validation = validateEnum(
+        threatLevelRaw,
+        ['NONE', 'LOW', 'MED', 'HIGH'],
+        'threat_level'
+      );
+      if (!validation.valid) {
         return res
           .status(400)
           .json({ error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, or HIGH.' });
       }
+      threatLevel = validation.value;
     }
 
     if (threatCategoriesRaw !== undefined) {
@@ -125,21 +321,23 @@ router.get('/networks', async (req, res, next) => {
     }
 
     if (threatScoreMinRaw !== undefined) {
-      threatScoreMin = parseFloat(threatScoreMinRaw);
-      if (isNaN(threatScoreMin) || threatScoreMin < 0 || threatScoreMin > 100) {
+      const validation = validateNumberRange(threatScoreMinRaw, 0, 100, 'threat_score_min');
+      if (!validation.valid) {
         return res
           .status(400)
           .json({ error: 'Invalid threat_score_min parameter. Must be 0-100.' });
       }
+      threatScoreMin = validation.value;
     }
 
     if (threatScoreMaxRaw !== undefined) {
-      threatScoreMax = parseFloat(threatScoreMaxRaw);
-      if (isNaN(threatScoreMax) || threatScoreMax < 0 || threatScoreMax > 100) {
+      const validation = validateNumberRange(threatScoreMaxRaw, 0, 100, 'threat_score_max');
+      if (!validation.valid) {
         return res
           .status(400)
           .json({ error: 'Invalid threat_score_max parameter. Must be 0-100.' });
       }
+      threatScoreMax = validation.value;
     }
 
     let lastSeen = null;
@@ -151,156 +349,107 @@ router.get('/networks', async (req, res, next) => {
       lastSeen = parsed.toISOString();
     }
 
-    let distanceFromHomeKm = null;
-    if (distanceRaw !== undefined) {
-      const parsed = parseFloat(distanceRaw);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        return res
-          .status(400)
-          .json({ error: 'Invalid distance_from_home_km parameter. Must be >= 0.' });
-      }
-      distanceFromHomeKm = parsed;
+    const distanceResult = parseOptionalNumber(
+      distanceRaw,
+      0,
+      Number.MAX_SAFE_INTEGER,
+      'distance_from_home_km'
+    );
+    if (!distanceResult.ok) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid distance_from_home_km parameter. Must be >= 0.' });
     }
+    const distanceFromHomeKm = distanceResult.value;
 
-    let distanceFromHomeMinKm = null;
-    if (distanceMinRaw !== undefined) {
-      const parsed = parseFloat(distanceMinRaw);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        return res
-          .status(400)
-          .json({ error: 'Invalid distance_from_home_km_min parameter. Must be >= 0.' });
-      }
-      distanceFromHomeMinKm = parsed;
+    const distanceMinResult = parseOptionalNumber(
+      distanceMinRaw,
+      0,
+      Number.MAX_SAFE_INTEGER,
+      'distance_from_home_km_min'
+    );
+    if (!distanceMinResult.ok) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid distance_from_home_km_min parameter. Must be >= 0.' });
     }
+    const distanceFromHomeMinKm = distanceMinResult.value;
 
-    let distanceFromHomeMaxKm = null;
-    if (distanceMaxRaw !== undefined) {
-      const parsed = parseFloat(distanceMaxRaw);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        return res
-          .status(400)
-          .json({ error: 'Invalid distance_from_home_km_max parameter. Must be >= 0.' });
-      }
-      distanceFromHomeMaxKm = parsed;
+    const distanceMaxResult = parseOptionalNumber(
+      distanceMaxRaw,
+      0,
+      Number.MAX_SAFE_INTEGER,
+      'distance_from_home_km_max'
+    );
+    if (!distanceMaxResult.ok) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid distance_from_home_km_max parameter. Must be >= 0.' });
     }
+    const distanceFromHomeMaxKm = distanceMaxResult.value;
 
-    // Parse spatial filter parameters
-    let bboxMinLat = null,
-      bboxMaxLat = null,
-      bboxMinLng = null,
-      bboxMaxLng = null;
-    if (
-      bboxMinLatRaw !== undefined &&
-      bboxMaxLatRaw !== undefined &&
-      bboxMinLngRaw !== undefined &&
-      bboxMaxLngRaw !== undefined
-    ) {
-      const minLat = parseFloat(bboxMinLatRaw);
-      const maxLat = parseFloat(bboxMaxLatRaw);
-      const minLng = parseFloat(bboxMinLngRaw);
-      const maxLng = parseFloat(bboxMaxLngRaw);
+    const bboxResult = parseBoundingBoxParams(
+      bboxMinLatRaw,
+      bboxMaxLatRaw,
+      bboxMinLngRaw,
+      bboxMaxLngRaw
+    );
+    const bboxMinLat = bboxResult.value?.minLat ?? null;
+    const bboxMaxLat = bboxResult.value?.maxLat ?? null;
+    const bboxMinLng = bboxResult.value?.minLng ?? null;
+    const bboxMaxLng = bboxResult.value?.maxLng ?? null;
 
-      if (
-        !Number.isNaN(minLat) &&
-        !Number.isNaN(maxLat) &&
-        !Number.isNaN(minLng) &&
-        !Number.isNaN(maxLng) &&
-        minLat >= -90 &&
-        maxLat <= 90 &&
-        minLat <= maxLat &&
-        minLng >= -180 &&
-        maxLng <= 180 &&
-        minLng <= maxLng
-      ) {
-        bboxMinLat = minLat;
-        bboxMaxLat = maxLat;
-        bboxMinLng = minLng;
-        bboxMaxLng = maxLng;
-      }
+    const radiusResult = parseRadiusParams(radiusCenterLatRaw, radiusCenterLngRaw, radiusMetersRaw);
+    const radiusCenterLat = radiusResult.value?.centerLat ?? null;
+    const radiusCenterLng = radiusResult.value?.centerLng ?? null;
+    const radiusMeters = radiusResult.value?.radius ?? null;
+
+    const minSignalResult = parseOptionalInteger(
+      minSignalRaw,
+      Number.MIN_SAFE_INTEGER,
+      Number.MAX_SAFE_INTEGER,
+      'min_signal'
+    );
+    if (!minSignalResult.ok) {
+      return res.status(400).json({ error: 'Invalid min_signal parameter.' });
     }
+    const minSignal = minSignalResult.value;
 
-    let radiusCenterLat = null,
-      radiusCenterLng = null,
-      radiusMeters = null;
-    if (
-      radiusCenterLatRaw !== undefined &&
-      radiusCenterLngRaw !== undefined &&
-      radiusMetersRaw !== undefined
-    ) {
-      const centerLat = parseFloat(radiusCenterLatRaw);
-      const centerLng = parseFloat(radiusCenterLngRaw);
-      const radius = parseFloat(radiusMetersRaw);
-
-      if (
-        !Number.isNaN(centerLat) &&
-        !Number.isNaN(centerLng) &&
-        !Number.isNaN(radius) &&
-        centerLat >= -90 &&
-        centerLat <= 90 &&
-        centerLng >= -180 &&
-        centerLng <= 180 &&
-        radius > 0
-      ) {
-        radiusCenterLat = centerLat;
-        radiusCenterLng = centerLng;
-        radiusMeters = radius;
-      }
+    const maxSignalResult = parseOptionalInteger(
+      maxSignalRaw,
+      Number.MIN_SAFE_INTEGER,
+      Number.MAX_SAFE_INTEGER,
+      'max_signal'
+    );
+    if (!maxSignalResult.ok) {
+      return res.status(400).json({ error: 'Invalid max_signal parameter.' });
     }
+    const maxSignal = maxSignalResult.value;
 
-    let minSignal = null;
-    if (minSignalRaw !== undefined) {
-      const parsed = parseInt(minSignalRaw, 10);
-      if (Number.isNaN(parsed)) {
-        return res.status(400).json({ error: 'Invalid min_signal parameter.' });
-      }
-      minSignal = parsed;
+    const minObsResult = parseOptionalInteger(minObsRaw, 0, 100000000, 'min_obs_count');
+    if (!minObsResult.ok) {
+      return res.status(400).json({ error: 'Invalid min_obs_count parameter.' });
     }
+    const minObsCount = minObsResult.value;
 
-    let maxSignal = null;
-    if (maxSignalRaw !== undefined) {
-      const parsed = parseInt(maxSignalRaw, 10);
-      if (Number.isNaN(parsed)) {
-        return res.status(400).json({ error: 'Invalid max_signal parameter.' });
-      }
-      maxSignal = parsed;
+    const maxObsResult = parseOptionalInteger(maxObsRaw, 0, 100000000, 'max_obs_count');
+    if (!maxObsResult.ok) {
+      return res.status(400).json({ error: 'Invalid max_obs_count parameter.' });
     }
-
-    let minObsCount = null;
-    if (minObsRaw !== undefined) {
-      const parsed = parseInt(minObsRaw, 10);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        return res.status(400).json({ error: 'Invalid min_obs_count parameter.' });
-      }
-      minObsCount = parsed;
-    }
-
-    let maxObsCount = null;
-    if (maxObsRaw !== undefined) {
-      const parsed = parseInt(maxObsRaw, 10);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        return res.status(400).json({ error: 'Invalid max_obs_count parameter.' });
-      }
-      maxObsCount = parsed;
-    }
+    const maxObsCount = maxObsResult.value;
 
     let radioTypes = null;
     if (radioTypesRaw !== undefined) {
-      const values = String(radioTypesRaw)
-        .split(',')
-        .map((value) => value.trim().toUpperCase())
-        .filter(Boolean);
-      if (values.length > 0) {
-        radioTypes = values;
+      const values = parseCommaList(radioTypesRaw, 20);
+      if (values && values.length > 0) {
+        radioTypes = values.map((value) => value.toUpperCase());
       }
     }
 
     let encryptionTypes = null;
     if (encryptionTypesRaw !== undefined) {
-      const values = String(encryptionTypesRaw)
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean);
-      if (values.length > 0) {
+      const values = parseCommaList(encryptionTypesRaw, 50);
+      if (values && values.length > 0) {
         encryptionTypes = values;
       }
     }
@@ -400,9 +549,9 @@ router.get('/networks', async (req, res, next) => {
       const orderColumns = Array.isArray(parsedOrderJson)
         ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
         : String(orderRaw)
-          .split(',')
-          .map((value) => value.trim().toUpperCase())
-          .filter(Boolean);
+            .split(',')
+            .map((value) => value.trim().toUpperCase())
+            .filter(Boolean);
 
       const normalizedOrders =
         orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;
@@ -533,11 +682,19 @@ router.get('/networks', async (req, res, next) => {
     }
 
     if (ssidRaw !== undefined && ssidRaw !== '') {
-      const ssidSearch = ssidRaw.trim().toLowerCase().replace(/[%_]/g, '\\$&');
+      const validation = validateString(String(ssidRaw), 1, 256, 'ssid');
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid ssid parameter.' });
+      }
+      const ssidSearch = String(ssidRaw).trim().toLowerCase().replace(/[%_]/g, '\\$&');
       params.push(`%${ssidSearch}%`);
       whereClauses.push(`lower(ne.ssid) LIKE $${params.length} ESCAPE '\\'`);
     }
     if (bssidRaw !== undefined && String(bssidRaw).trim() !== '') {
+      const validation = validateString(String(bssidRaw), 1, 64, 'bssid');
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid bssid parameter.' });
+      }
       const raw = String(bssidRaw).trim().toUpperCase();
       const cleaned = raw.replace(/[^0-9A-F]/g, '');
       if (raw.length === 17 && raw.includes(':')) {
@@ -563,6 +720,10 @@ router.get('/networks', async (req, res, next) => {
     }
 
     if (quickSearchRaw !== undefined && String(quickSearchRaw).trim() !== '') {
+      const validation = validateString(String(quickSearchRaw), 1, 128, 'q');
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid q parameter.' });
+      }
       const search = String(quickSearchRaw).trim().toLowerCase();
       const like = `%${search.replace(/[%_]/g, '\\$&')}%`;
       const normalizedBssid = search.replace(/[^0-9a-f]/g, '');
@@ -812,11 +973,12 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
   try {
     const { ssid } = req.params;
 
-    if (!ssid || typeof ssid !== 'string' || ssid.trim() === '') {
+    const ssidValidation = validateString(String(ssid || ''), 1, 128, 'ssid');
+    if (!ssidValidation.valid) {
       return res.status(400).json({ error: 'SSID parameter is required and cannot be empty.' });
     }
 
-    const escapedSSID = escapeLikePattern(ssid);
+    const escapedSSID = escapeLikePattern(String(ssid).trim());
     const searchPattern = `%${escapedSSID}%`;
 
     const { rows } = await query(
@@ -855,6 +1017,10 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
 router.get('/networks/observations/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
+    const bssidValidation = validateBSSID(bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
+    }
 
     let home = null;
     try {
@@ -900,12 +1066,12 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
       ORDER BY o.time ASC
       LIMIT 1000
     `,
-      [home?.lon, home?.lat, bssid]
+      [home?.lon, home?.lat, bssidValidation.cleaned]
     );
 
     res.json({
       ok: true,
-      bssid: bssid,
+      bssid: bssidValidation.cleaned,
       observations: rows,
       home: home,
       count: rows.length,
@@ -919,24 +1085,25 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
 router.get('/networks/tagged', async (req, res, next) => {
   try {
     const { tag_type } = req.query;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
-
-    const validTagTypes = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
-    if (!tag_type || !validTagTypes.includes(tag_type.toUpperCase())) {
+    const tagValidation = validateEnum(tag_type, VALID_TAG_TYPES, 'tag_type');
+    if (!tagValidation.valid) {
       return res
         .status(400)
-        .json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
+        .json({ error: `Valid tag_type is required (one of: ${VALID_TAG_TYPES.join(', ')})` });
     }
 
-    if (page <= 0) {
+    const pageResult = parseOptionalInteger(req.query.page, 1, 1000000, 'page');
+    if (!pageResult.ok) {
       return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
     }
-    if (limit <= 0 || limit > 1000) {
+    const limitResult = parseOptionalInteger(req.query.limit, 1, 1000, 'limit');
+    if (!limitResult.ok) {
       return res
         .status(400)
         .json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
     }
+    const page = pageResult.value ?? 1;
+    const limit = limitResult.value ?? 50;
 
     const offset = (page - 1) * limit;
     if (process.env.DEBUG_QUERIES === 'true') {
@@ -960,14 +1127,14 @@ router.get('/networks/tagged', async (req, res, next) => {
       ORDER BY t.updated_at DESC
       LIMIT $2 OFFSET $3
     `,
-      [tag_type.toUpperCase(), limit, offset]
+      [tagValidation.value, limit, offset]
     );
 
     const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
     res.json({
       ok: true,
-      tag_type: tag_type.toUpperCase(),
+      tag_type: tagValidation.value,
       networks: rows.map((row) => ({
         bssid: row.bssid,
         ssid: row.ssid || '<Hidden>',
@@ -992,20 +1159,20 @@ router.post('/tag-network', async (req, res, next) => {
   try {
     const { bssid, tag_type, confidence, notes } = req.body;
 
-    const cleanBSSID = sanitizeBSSID(bssid);
-    if (!cleanBSSID) {
-      return res.status(400).json({ error: 'Invalid BSSID format' });
+    const bssidValidation = validateBSSID(bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
     }
 
-    const validTagTypes = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
-    if (!tag_type || !validTagTypes.includes(tag_type.toUpperCase())) {
+    const tagValidation = validateEnum(tag_type, VALID_TAG_TYPES, 'tag_type');
+    if (!tagValidation.valid) {
       return res
         .status(400)
-        .json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
+        .json({ error: `Valid tag_type is required (one of: ${VALID_TAG_TYPES.join(', ')})` });
     }
 
-    const parsedConfidence = parseFloat(confidence);
-    if (isNaN(parsedConfidence) || parsedConfidence < 0 || parsedConfidence > 100) {
+    const confidenceValidation = validateConfidence(confidence);
+    if (!confidenceValidation.valid) {
       return res.status(400).json({ error: 'Confidence must be a number between 0 and 100' });
     }
 
@@ -1017,7 +1184,7 @@ router.post('/tag-network', async (req, res, next) => {
       `
       SELECT ssid FROM app.networks WHERE bssid = $1 LIMIT 1
     `,
-      [cleanBSSID]
+      [bssidValidation.cleaned]
     );
 
     if (networkResult.rowCount === 0) {
@@ -1028,7 +1195,7 @@ router.post('/tag-network', async (req, res, next) => {
       `
       DELETE FROM app.network_tags WHERE bssid = $1
     `,
-      [cleanBSSID]
+      [bssidValidation.cleaned]
     );
 
     const result = await query(
@@ -1037,7 +1204,12 @@ router.post('/tag-network', async (req, res, next) => {
       VALUES ($1, $2, $3, $4)
       RETURNING bssid, tag_type, confidence, threat_score, ml_confidence
     `,
-      [cleanBSSID, tag_type.toUpperCase(), parsedConfidence / 100.0, notes || null]
+      [
+        bssidValidation.cleaned,
+        tagValidation.value,
+        confidenceValidation.value / 100.0,
+        notes || null,
+      ]
     );
 
     res.json({
@@ -1054,16 +1226,16 @@ router.delete('/tag-network/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const cleanBSSID = sanitizeBSSID(bssid);
-    if (!cleanBSSID) {
-      return res.status(400).json({ error: 'Invalid BSSID format' });
+    const bssidValidation = validateBSSID(bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
     }
 
     const result = await query(
       `
       DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid
     `,
-      [cleanBSSID]
+      [bssidValidation.cleaned]
     );
 
     if (result.rowCount === 0) {
@@ -1073,7 +1245,7 @@ router.delete('/tag-network/:bssid', async (req, res, next) => {
     res.json({
       ok: true,
       message: 'Tag removed successfully',
-      bssid: cleanBSSID,
+      bssid: bssidValidation.cleaned,
     });
   } catch (err) {
     next(err);
@@ -1085,12 +1257,12 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const cleanBSSID = sanitizeBSSID(bssid);
-    if (!cleanBSSID) {
-      return res.status(400).json({ error: 'Invalid BSSID format' });
+    const bssidValidation = validateBSSID(bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
     }
 
-    const prefix = cleanBSSID.replace(/:/g, '').substring(0, 6).toUpperCase();
+    const prefix = bssidValidation.cleaned.replace(/:/g, '').substring(0, 6).toUpperCase();
 
     const { rows } = await query(
       `
@@ -1108,7 +1280,7 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
     if (rows.length === 0) {
       return res.json({
         ok: true,
-        bssid: cleanBSSID,
+        bssid: bssidValidation.cleaned,
         manufacturer: 'Unknown',
         prefix: prefix,
       });
@@ -1116,7 +1288,7 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
 
     res.json({
       ok: true,
-      bssid: cleanBSSID,
+      bssid: bssidValidation.cleaned,
       manufacturer: rows[0].manufacturer,
       address: rows[0].address,
       prefix: rows[0].prefix,
@@ -1131,23 +1303,24 @@ router.post('/networks/tag-threats', async (req, res, next) => {
   try {
     const { bssids, reason } = req.body;
 
-    if (!bssids || !Array.isArray(bssids) || bssids.length === 0) {
-      return res.status(400).json({ error: 'BSSIDs array is required' });
+    const bssidListValidation = validateBSSIDList(bssids, 10000);
+    if (!bssidListValidation.valid) {
+      return res.status(400).json({ error: bssidListValidation.error });
+    }
+    const reasonValidation =
+      reason === undefined
+        ? { valid: true, value: undefined }
+        : validateString(String(reason), 0, 512, 'reason');
+    if (!reasonValidation.valid) {
+      return res.status(400).json({ error: reasonValidation.error });
     }
 
     const results = [];
     let successCount = 0;
     let errorCount = 0;
 
-    for (const bssid of bssids) {
+    for (const bssid of bssidListValidation.value) {
       try {
-        const cleanBSSID = sanitizeBSSID(bssid);
-        if (!cleanBSSID) {
-          results.push({ bssid, error: 'Invalid BSSID format' });
-          errorCount++;
-          continue;
-        }
-
         const result = await query(
           `
           INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes)
@@ -1159,10 +1332,10 @@ router.post('/networks/tag-threats', async (req, res, next) => {
             notes = $2
           RETURNING bssid, tag_type, confidence, threat_score
         `,
-          [cleanBSSID, reason || 'Manual threat tag']
+          [bssid, reasonValidation.value || 'Manual threat tag']
         );
 
-        results.push({ bssid: cleanBSSID, success: true, tag: result.rows[0] });
+        results.push({ bssid: bssid, success: true, tag: result.rows[0] });
         successCount++;
       } catch (err) {
         logger.warn(`Failed to tag ${bssid}: ${err.message}`);

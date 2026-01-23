@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
+const { validateBSSID, validateIntegerRange } = require('../../../validation/schemas');
 
 function inferSecurity(capabilities, encryption) {
   const cap = String(capabilities || encryption || '').toUpperCase();
@@ -146,29 +147,122 @@ function inferRadioType(radioType, ssid, frequency, capabilities) {
   return '?';
 }
 
-// Basic input guards
-function parseIntParam(value, defaultValue, max) {
-  const n = parseInt(value, 10);
-  if (Number.isNaN(n) || n <= 0) {
-    return defaultValue;
+/**
+ * Parses an optional string query parameter with length limits.
+ * @param {any} value - Raw parameter value
+ * @param {number} maxLength - Maximum allowed length
+ * @param {string} fieldName - Field name for error messages
+ * @returns {{ ok: boolean, value?: string }}
+ */
+function parseOptionalString(value, maxLength, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return { ok: true, value: '' };
   }
-  return max ? Math.min(n, max) : n;
+
+  const normalized = String(value).trim();
+  if (normalized.length > maxLength) {
+    logger.warn(`Trimming ${fieldName} to ${maxLength} characters`);
+    return { ok: true, value: normalized.slice(0, maxLength) };
+  }
+
+  return { ok: true, value: normalized };
+}
+
+/**
+ * Parses limit parameter that can be numeric or the string "all".
+ * @param {any} value - Raw limit parameter
+ * @param {number} defaultValue - Default limit when missing
+ * @param {number} maxValue - Maximum allowed limit
+ * @returns {{ ok: boolean, value?: number|null }}
+ */
+function parseLimit(value, defaultValue, maxValue) {
+  if (value === undefined || value === null || value === '') {
+    return { ok: true, value: defaultValue };
+  }
+
+  if (typeof value === 'string' && value.toLowerCase() === 'all') {
+    return { ok: true, value: null };
+  }
+
+  const validation = validateIntegerRange(value, 1, maxValue, 'limit');
+  if (!validation.valid) {
+    return { ok: true, value: defaultValue };
+  }
+
+  return { ok: true, value: validation.value };
+}
+
+/**
+ * Parses pagination page parameter.
+ * @param {any} value - Raw page parameter
+ * @param {number} defaultValue - Default page
+ * @param {number} maxValue - Maximum allowed page
+ * @returns {{ ok: boolean, value?: number }}
+ */
+function parsePage(value, defaultValue, maxValue) {
+  if (value === undefined || value === null || value === '') {
+    return { ok: true, value: defaultValue };
+  }
+
+  const validation = validateIntegerRange(value, 1, maxValue, 'page');
+  if (!validation.valid) {
+    return { ok: true, value: defaultValue };
+  }
+
+  return { ok: true, value: validation.value };
+}
+
+/**
+ * Parses offset parameter.
+ * @param {any} value - Raw offset parameter
+ * @param {number} defaultValue - Default offset
+ * @param {number} maxValue - Maximum allowed offset
+ * @returns {{ ok: boolean, value?: number }}
+ */
+function parseOffset(value, defaultValue, maxValue) {
+  if (value === undefined || value === null || value === '') {
+    return { ok: true, value: defaultValue };
+  }
+
+  const validation = validateIntegerRange(value, 0, maxValue, 'offset');
+  if (!validation.valid) {
+    return { ok: true, value: defaultValue };
+  }
+
+  return { ok: true, value: validation.value };
+}
+
+/**
+ * Normalizes quality filter values.
+ * @param {any} value - Raw quality filter value
+ * @returns {string} Normalized quality filter value
+ */
+function normalizeQualityFilter(value) {
+  const normalized = String(value || 'none')
+    .trim()
+    .toLowerCase();
+  const allowed = ['none', 'temporal', 'extreme', 'duplicate', 'all'];
+  return allowed.includes(normalized) ? normalized : 'none';
 }
 
 // GET /api/explorer/networks
 // Returns latest snapshot per BSSID from access_points + observations
 router.get('/explorer/networks', async (req, res, _next) => {
   try {
-    const rawLimit = req.query.limit;
-    const limit =
-      typeof rawLimit === 'string' && rawLimit.toLowerCase() === 'all'
-        ? null
-        : parseIntParam(rawLimit, 500, 5000);
-    const offset = limit === null ? 0 : Math.max(0, parseInt(req.query.offset, 10) || 0);
-    const search = req.query.search ? String(req.query.search).trim() : '';
-    const sort = (req.query.sort || 'last_seen').toLowerCase();
-    const order = (req.query.order || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    const qualityFilter = req.query.qualityFilter || 'none';
+    const limit = parseLimit(req.query.limit, 500, 5000).value;
+    const offset = limit === null ? 0 : parseOffset(req.query.offset, 0, 1000000).value;
+    const search = parseOptionalString(req.query.search, 200, 'search').value || '';
+    const sort = (
+      parseOptionalString(req.query.sort || 'last_seen', 64, 'sort').value || 'last_seen'
+    ).toLowerCase();
+    const order =
+      (
+        parseOptionalString(req.query.order || 'desc', 16, 'order').value || 'desc'
+      ).toUpperCase() === 'ASC'
+        ? 'ASC'
+        : 'DESC';
+
+    const qualityFilter = normalizeQualityFilter(req.query.qualityFilter);
 
     // Sort uses columns exposed in the outer select (no inner aliases)
     const sortMap = {
@@ -261,15 +355,15 @@ router.get('/explorer/networks', async (req, res, _next) => {
       ${whereClause}
       ${orderClause}
       ${
-  limit === null
-    ? ''
-    : (() => {
-      const limitIndex = params.length + 1;
-      const offsetIndex = params.length + 2;
-      params.push(limit, offset);
-      return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
-    })()
-};
+        limit === null
+          ? ''
+          : (() => {
+              const limitIndex = params.length + 1;
+              const offsetIndex = params.length + 2;
+              params.push(limit, offset);
+              return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+            })()
+      };
     `;
 
     const result = await query(sql, params);
@@ -309,21 +403,18 @@ router.get('/explorer/networks', async (req, res, _next) => {
 // ============================================================================
 router.get('/explorer/networks-v2', async (req, res, next) => {
   try {
-    const rawLimit = req.query.limit;
-    const limit =
-      typeof rawLimit === 'string' && rawLimit.toLowerCase() === 'all'
-        ? null
-        : parseIntParam(rawLimit, 500, 5000);
+    const limit = parseLimit(req.query.limit, 500, 5000).value;
 
     // Use page-based pagination instead of offset for better performance
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const page = parsePage(req.query.page, 1, 1000000).value;
     const offset = limit === null ? 0 : (page - 1) * limit;
 
-    const search = req.query.search ? String(req.query.search).trim() : '';
+    const search = parseOptionalString(req.query.search, 200, 'search').value || '';
 
     // Multi-column sorting support
-    const sortParam = req.query.sort || 'last_seen';
-    const orderParam = req.query.order || 'desc';
+    const sortParam =
+      parseOptionalString(req.query.sort || 'last_seen', 256, 'sort').value || 'last_seen';
+    const orderParam = parseOptionalString(req.query.order || 'desc', 256, 'order').value || 'desc';
 
     // Parse comma-separated sort columns and orders
     const sortColumns = String(sortParam)
@@ -494,7 +585,11 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
 // GET /api/explorer/timeline/:bssid
 router.get('/explorer/timeline/:bssid', async (req, res, next) => {
   try {
-    const bssid = String(req.params.bssid || '').toLowerCase();
+    const bssidValidation = validateBSSID(req.params.bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
+    }
+    const bssid = bssidValidation.cleaned.toLowerCase();
     const data = await query(
       `
         SELECT bucket, obs_count, avg_level, min_level, max_level
