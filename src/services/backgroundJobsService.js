@@ -7,8 +7,27 @@ const schedule = require('node-schedule');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
-class BackgroundJobsService {
+const ML_SCORING_CRON = '0 */4 * * *';
+const ML_SCORING_LIMIT = 10000;
+const MAX_BSSID_LENGTH = 17;
+const MIN_OBSERVATIONS = 2;
+const MOBILITY_HIGH_KM = 5;
+const MOBILITY_MED_KM = 1;
+const PERSISTENCE_HIGH_DAYS = 7;
+const PERSISTENCE_MED_DAYS = 3;
+const THREAT_LEVEL_THRESHOLDS = {
+  CRITICAL: 80,
+  HIGH: 60,
+  MED: 40,
+  LOW: 20,
+};
+const FEEDBACK_MULTIPLIERS = {
+  FALSE_POSITIVE: 0.1,
+  THREAT_BOOST: 0.3,
+  SUSPECT_BOOST: 0.15,
+};
 
+class BackgroundJobsService {
   /**
    * Initialize background jobs
    */
@@ -31,7 +50,7 @@ class BackgroundJobsService {
    */
   static scheduleMLScoring() {
     // Cron pattern: 0 */4 * * * (at minute 0 of every 4th hour)
-    const rule = '0 */4 * * *';
+    const rule = ML_SCORING_CRON;
 
     this.jobs.mlScoring = schedule.scheduleJob(rule, async () => {
       await this.runMLScoring();
@@ -60,18 +79,20 @@ class BackgroundJobsService {
         LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
         WHERE ap.bssid IS NOT NULL
           AND obs.id IS NOT NULL
-          AND LENGTH(ap.bssid) <= 17
+          AND LENGTH(ap.bssid) <= ${MAX_BSSID_LENGTH}
           AND obs.lon IS NOT NULL
           AND obs.lat IS NOT NULL
         GROUP BY ap.bssid
-        HAVING COUNT(DISTINCT obs.id) > 2
-        LIMIT 10000
+        HAVING COUNT(DISTINCT obs.id) > ${MIN_OBSERVATIONS}
+        LIMIT ${ML_SCORING_LIMIT}
       `);
 
       const networks = networkResult.rows;
       const scores = [];
 
-      logger.info(`[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`);
+      logger.info(
+        `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`
+      );
 
       // Step 1: Query all manual tags for feedback-aware scoring
       const tagResult = await query(`
@@ -96,8 +117,18 @@ class BackgroundJobsService {
       for (const net of networks) {
         try {
           // Calculate base ML score using behavioral model
-          const mobility = net.max_distance_km > 5 ? 80 : net.max_distance_km > 1 ? 40 : 0;
-          const persistence = net.unique_days > 7 ? 60 : net.unique_days > 3 ? 30 : 0;
+          const mobility =
+            net.max_distance_km > MOBILITY_HIGH_KM
+              ? 80
+              : net.max_distance_km > MOBILITY_MED_KM
+                ? 40
+                : 0;
+          const persistence =
+            net.unique_days > PERSISTENCE_HIGH_DAYS
+              ? 60
+              : net.unique_days > PERSISTENCE_MED_DAYS
+                ? 30
+                : 0;
           const baseMlScore = mobility * 0.6 + persistence * 0.4;
 
           // Step 4: Apply feedback adjustment based on manual tags
@@ -109,13 +140,15 @@ class BackgroundJobsService {
             feedbackApplied = true;
             switch (tag.tag) {
               case 'FALSE_POSITIVE':
-                finalScore = baseMlScore * 0.1; // Suppress threat
+                finalScore = baseMlScore * FEEDBACK_MULTIPLIERS.FALSE_POSITIVE; // Suppress threat
                 break;
               case 'THREAT':
-                finalScore = baseMlScore * (1.0 + tag.confidence * 0.3); // Boost threat
+                finalScore =
+                  baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.THREAT_BOOST); // Boost threat
                 break;
               case 'SUSPECT':
-                finalScore = baseMlScore * (1.0 + tag.confidence * 0.15); // Moderate boost
+                finalScore =
+                  baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.SUSPECT_BOOST); // Moderate boost
                 break;
               case 'INVESTIGATE':
                 finalScore = baseMlScore; // Keep ML score unchanged
@@ -125,13 +158,13 @@ class BackgroundJobsService {
 
           // Step 5: Calculate final threat level from adjusted score
           let threatLevel = 'NONE';
-          if (finalScore >= 80) {
+          if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) {
             threatLevel = 'CRITICAL';
-          } else if (finalScore >= 60) {
+          } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) {
             threatLevel = 'HIGH';
-          } else if (finalScore >= 40) {
+          } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) {
             threatLevel = 'MED';
-          } else if (finalScore >= 20) {
+          } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.LOW) {
             threatLevel = 'LOW';
           }
 
@@ -156,7 +189,8 @@ class BackgroundJobsService {
       // Bulk insert scores
       let inserted = 0;
       for (const score of scores) {
-        await query(`
+        await query(
+          `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
              rule_based_score, final_threat_score, final_threat_level, model_version)
@@ -168,16 +202,25 @@ class BackgroundJobsService {
             final_threat_level = EXCLUDED.final_threat_level,
             model_version = EXCLUDED.model_version,
             updated_at = NOW()
-        `, [
-          score.bssid, score.ml_threat_score, score.ml_threat_probability,
-          score.ml_primary_class, score.rule_based_score, score.final_threat_score,
-          score.final_threat_level, score.model_version,
-        ]);
+        `,
+          [
+            score.bssid,
+            score.ml_threat_score,
+            score.ml_threat_probability,
+            score.ml_primary_class,
+            score.rule_based_score,
+            score.final_threat_score,
+            score.final_threat_level,
+            score.model_version,
+          ]
+        );
         inserted++;
       }
 
       const duration = Date.now() - startTime;
-      logger.info(`[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0 in ${duration}ms`);
+      logger.info(
+        `[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0 in ${duration}ms`
+      );
 
       // Step 2: Run OUI grouping and MAC randomization detection
       logger.info('[ML Scoring Job] Running OUI grouping analysis...');
@@ -185,7 +228,6 @@ class BackgroundJobsService {
       await OUIGroupingService.generateOUIGroups();
       await OUIGroupingService.detectMACRandomization();
       logger.info('[ML Scoring Job] OUI grouping complete');
-
     } catch (error) {
       logger.error(`[ML Scoring Job] Failed: ${error.message}`);
     }
