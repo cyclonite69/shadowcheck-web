@@ -307,6 +307,14 @@ router.get('/explorer/networks', async (req, res, _next) => {
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const orderClause = `ORDER BY ${sortColumn} ${order}`;
+    let limitClause = '';
+    if (limit !== null) {
+      const limitIndex = params.length + 1;
+      const offsetIndex = params.length + 2;
+      params.push(limit, offset);
+      limitClause = `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+    }
+
     const sql = `
       WITH obs_latest AS (
         SELECT DISTINCT ON (bssid)
@@ -354,16 +362,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
       ${whereClause}
       ${orderClause}
-      ${
-        limit === null
-          ? ''
-          : (() => {
-              const limitIndex = params.length + 1;
-              const offsetIndex = params.length + 2;
-              params.push(limit, offset);
-              return `LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
-            })()
-      };
+      ${limitClause}
     `;
 
     const result = await query(sql, params);

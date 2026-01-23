@@ -11,7 +11,13 @@ const fs = require('fs').promises;
 const { spawn } = require('child_process');
 const { query, CONFIG } = require('../../../config/database');
 const logger = require('../../../logging/logger');
-const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');
+const {
+  validateBSSID,
+  validateEnum,
+  validateIntegerRange,
+  validateString,
+  validateTimestampMs,
+} = require('../../../validation/schemas');
 
 // Configure multer for SQLite file uploads
 const upload = multer({
@@ -615,12 +621,26 @@ router.get('/admin/ml-scores', async (req, res, next) => {
   try {
     const { level, limit = 10 } = req.query;
 
+    const limitValidation = validateIntegerRange(limit, 1, 500, 'limit');
+    if (!limitValidation.valid) {
+      return res.status(400).json({ error: limitValidation.error });
+    }
+
     let whereClause = '';
-    const params = [limit];
+    const params = [limitValidation.value];
 
     if (level) {
+      const levelValidation = validateEnum(
+        level,
+        ['CRITICAL', 'HIGH', 'MED', 'LOW', 'NONE'],
+        'level'
+      );
+      if (!levelValidation.valid) {
+        return res.status(400).json({ error: levelValidation.error });
+      }
+
       whereClause = 'WHERE final_threat_level = $2';
-      params.push(level);
+      params.push(levelValidation.value);
     }
 
     const result = await query(
@@ -871,13 +891,27 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
   try {
     const { tags, limit = 50 } = req.query;
 
-    if (!tags) {
+    const tagsValidation = validateString(String(tags || ''), 1, 512, 'tags');
+    if (!tagsValidation.valid) {
+      return res.status(400).json({
+        error: { message: tagsValidation.error || 'tags parameter required (comma-separated)' },
+      });
+    }
+
+    const tagArray = String(tags)
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (tagArray.length === 0) {
       return res.status(400).json({
         error: { message: 'tags parameter required (comma-separated)' },
       });
     }
 
-    const tagArray = tags.split(',').map((t) => t.trim());
+    const limitValidation = validateIntegerRange(limit, 1, 1000, 'limit');
+    if (!limitValidation.valid) {
+      return res.status(400).json({ error: { message: limitValidation.error } });
+    }
 
     // Find networks that have ALL specified tags
     const result = await query(
@@ -897,7 +931,7 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
       ORDER BY updated_at DESC
       LIMIT $2
     `,
-      [tagArray, parseInt(limit)]
+      [tagArray, limitValidation.value]
     );
 
     res.json({

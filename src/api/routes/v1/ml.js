@@ -7,6 +7,11 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
+const {
+  validateBSSID,
+  validateEnum,
+  validateIntegerRange,
+} = require('../../../validation/schemas');
 
 // Load ML model with error handling
 let ThreatMLModel, mlModel;
@@ -37,9 +42,7 @@ router.get('/ml/status', async (req, res, next) => {
        GROUP BY threat_tag`
     );
 
-    const scoreRows = await query(
-      'SELECT COUNT(*) as count FROM app.network_threat_scores'
-    );
+    const scoreRows = await query('SELECT COUNT(*) as count FROM app.network_threat_scores');
 
     res.json({
       ok: true,
@@ -142,9 +145,9 @@ router.post('/ml/score-all', async (req, res, next) => {
     // CRITICAL: Ensure coefficients are proper numbers
     let coefficients;
     if (Array.isArray(model.coefficients)) {
-      coefficients = model.coefficients.map(c => parseFloat(c));
+      coefficients = model.coefficients.map((c) => parseFloat(c));
     } else {
-      coefficients = JSON.parse(JSON.stringify(model.coefficients)).map(c => parseFloat(c));
+      coefficients = JSON.parse(JSON.stringify(model.coefficients)).map((c) => parseFloat(c));
     }
 
     const intercept = parseFloat(model.intercept) || 0;
@@ -197,7 +200,9 @@ router.post('/ml/score-all', async (req, res, next) => {
 
         // Normalize function: (value - min) / (max - min)
         const normalize = (value, min, max) => {
-          if (max === min) {return 0;}
+          if (max === min) {
+            return 0;
+          }
           return (value - min) / (max - min);
         };
 
@@ -208,7 +213,7 @@ router.post('/ml/score-all', async (req, res, next) => {
           observation_count: parseInt(net.observation_count || 0),
           max_signal: parseInt(net.max_signal || -100),
           unique_locations: parseInt(net.unique_locations || 0),
-          seen_both_locations: (net.seen_at_home && net.seen_away_from_home) ? 1 : 0,
+          seen_both_locations: net.seen_at_home && net.seen_away_from_home ? 1 : 0,
         };
 
         // Normalize each feature
@@ -289,7 +294,8 @@ router.post('/ml/score-all', async (req, res, next) => {
 
     // Insert scores
     for (const score of scores) {
-      await query(`
+      await query(
+        `
         INSERT INTO app.network_threat_scores 
           (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
            rule_based_score, final_threat_score, final_threat_level, model_version)
@@ -300,11 +306,18 @@ router.post('/ml/score-all', async (req, res, next) => {
           final_threat_score = EXCLUDED.final_threat_score,
           final_threat_level = EXCLUDED.final_threat_level,
           updated_at = NOW()
-      `, [
-        score.bssid, score.ml_threat_score, score.ml_threat_probability,
-        score.ml_primary_class, score.rule_based_score, score.final_threat_score,
-        score.final_threat_level, score.model_version,
-      ]);
+      `,
+        [
+          score.bssid,
+          score.ml_threat_score,
+          score.ml_threat_probability,
+          score.ml_primary_class,
+          score.rule_based_score,
+          score.final_threat_score,
+          score.final_threat_level,
+          score.model_version,
+        ]
+      );
     }
 
     logger.info(`[ML] Scored ${scores.length} networks`);
@@ -325,12 +338,13 @@ router.post('/ml/score-all', async (req, res, next) => {
 // ============================================
 router.get('/ml/scores/:bssid', async (req, res, next) => {
   try {
-    const { bssid } = req.params;
+    const bssidValidation = validateBSSID(req.params.bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ ok: false, error: { message: bssidValidation.error } });
+    }
+    const bssid = bssidValidation.cleaned;
 
-    const result = await query(
-      'SELECT * FROM app.network_threat_scores WHERE bssid = $1',
-      [bssid]
-    );
+    const result = await query('SELECT * FROM app.network_threat_scores WHERE bssid = $1', [bssid]);
 
     if (!result.rows.length) {
       return res.status(404).json({
@@ -357,25 +371,37 @@ router.get('/ml/scores/level/:level', async (req, res, next) => {
     const { limit = 50 } = req.query;
 
     const validLevels = ['CRITICAL', 'HIGH', 'MED', 'LOW', 'NONE'];
-    if (!validLevels.includes(level)) {
+    const levelValidation = validateEnum(level, validLevels, 'level');
+    if (!levelValidation.valid) {
       return res.status(400).json({
         ok: false,
         error: { message: `Invalid threat level. Must be: ${validLevels.join(', ')}` },
       });
     }
 
-    const result = await query(`
+    const limitValidation = validateIntegerRange(limit, 1, 500, 'limit');
+    if (!limitValidation.valid) {
+      return res.status(400).json({
+        ok: false,
+        error: { message: limitValidation.error },
+      });
+    }
+
+    const result = await query(
+      `
       SELECT bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
              final_threat_score, final_threat_level, scored_at
       FROM app.network_threat_scores
       WHERE final_threat_level = $1
       ORDER BY final_threat_score DESC
       LIMIT $2
-    `, [level, parseInt(limit)]);
+    `,
+      [levelValidation.value, limitValidation.value]
+    );
 
     res.json({
       ok: true,
-      threatLevel: level,
+      threatLevel: levelValidation.value,
       networks: result.rows,
       count: result.rows.length,
     });
