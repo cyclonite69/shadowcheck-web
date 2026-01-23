@@ -23,13 +23,13 @@ clearPostgresEnv();
     // ============================================================================
     const { registerErrorHandlers } = require('./src/utils/errorHandlingInit');
     const { mountDemoRoutes } = require('./src/utils/routeMounts');
-    const { getServerConfig } = require('./src/utils/serverConfig');
     const { startServer } = require('./src/utils/serverStartup');
     const { initializeMiddleware } = require('./src/utils/middlewareInit');
     const { initializeDatabaseConnection } = require('./src/utils/databaseSetup');
     const { mountStaticAssets, registerSpaFallback } = require('./src/utils/staticSetup');
     const { initializeRoutes } = require('./src/utils/routesInit');
     const { initializeLifecycle } = require('./src/utils/serverLifecycle');
+    const { initializeApp } = require('./src/utils/appInit');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -60,8 +60,7 @@ clearPostgresEnv();
     // ============================================================================
     // 5. APP INITIALIZATION
     // ============================================================================
-    const app = express();
-    const { port, host, forceHttps, allowedOrigins } = getServerConfig();
+    const { app, port, host, forceHttps, allowedOrigins } = initializeApp(express);
 
     // ============================================================================
     // 6. MIDDLEWARE SETUP
