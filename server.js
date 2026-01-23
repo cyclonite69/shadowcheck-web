@@ -11,8 +11,6 @@ clearPostgresEnv();
     const logger = require('./src/logging/logger');
     const express = require('express');
     const path = require('path');
-    const { createSecurityHeaders } = require('./src/middleware/securityHeaders');
-    const { mountCommonMiddleware } = require('./src/middleware/commonMiddleware');
 
     logger.info('Starting server...');
 
@@ -31,6 +29,7 @@ clearPostgresEnv();
     const { mountDemoRoutes, mountApiRoutes } = require('./src/utils/routeMounts');
     const { getServerConfig } = require('./src/utils/serverConfig');
     const { startServer } = require('./src/utils/serverStartup');
+    const { initializeMiddleware } = require('./src/utils/middlewareInit');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -65,20 +64,7 @@ clearPostgresEnv();
     // ============================================================================
     // 6. MIDDLEWARE SETUP
     // ============================================================================
-
-    // Request ID middleware (first, so all requests have IDs)
-    const requestIdMiddleware = require('./src/middleware/requestId');
-    app.use(requestIdMiddleware);
-
-    // HTTPS redirect (if enabled)
-    if (forceHttps) {
-      const { createHttpsRedirect } = require('./src/middleware/httpsRedirect');
-      app.use(createHttpsRedirect());
-    }
-
-    app.use(createSecurityHeaders(forceHttps));
-
-    mountCommonMiddleware(app, { allowedOrigins });
+    initializeMiddleware(app, { forceHttps, allowedOrigins });
 
     // ============================================================================
     // 7. DATABASE SETUP
