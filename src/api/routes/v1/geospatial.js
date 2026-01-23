@@ -4,6 +4,7 @@ const secretsManager = require('../../../services/secretsManager');
 const fetch = require('node-fetch');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
+const { withRetry } = require('../../../services/externalServiceHandler');
 const { validateQuery, optional } = require('../../../validation/middleware');
 const { validateString } = require('../../../validation/schemas');
 
@@ -61,7 +62,11 @@ const validateMapboxProxyQuery = validateQuery({
   url: validateMapboxProxyUrl,
 });
 
-// GET /api/mapbox-token - Get Mapbox API token
+/**
+ * GET /api/mapbox-token - Get Mapbox API token
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ */
 router.get('/api/mapbox-token', (req, res) => {
   try {
     const tokenRaw = secretsManager.get('mapbox_token');
@@ -83,7 +88,11 @@ router.get('/api/mapbox-token', (req, res) => {
   }
 });
 
-// GET /api/mapbox-style - Proxy Mapbox style JSON to validate token/connectivity
+/**
+ * GET /api/mapbox-style - Proxy Mapbox style JSON to validate token/connectivity
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ */
 router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req, res) => {
   try {
     const tokenRaw = secretsManager.get('mapbox_token');
@@ -97,7 +106,11 @@ router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req, res) => {
     const styleId = req.validated?.style || 'mapbox/dark-v11';
     const url = `https://api.mapbox.com/styles/v1/${styleId}?access_token=${token}`;
 
-    const resp = await fetch(url);
+    const resp = await withRetry(() => fetch(url), {
+      serviceName: 'Mapbox style',
+      timeoutMs: 10000,
+      maxRetries: 2,
+    });
     const bodyText = await resp.text();
     if (!resp.ok) {
       return res
@@ -118,7 +131,11 @@ router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req, res) => {
   }
 });
 
-// GET /api/mapbox-proxy?url=ENCODED - Proxy Mapbox requests to avoid client egress issues
+/**
+ * GET /api/mapbox-proxy?url=ENCODED - Proxy Mapbox requests to avoid client egress issues
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ */
 router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
   try {
     const rawUrl = req.validated?.url;
@@ -147,7 +164,11 @@ router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
       target.searchParams.set('access_token', token);
     }
 
-    const upstream = await fetch(target.toString());
+    const upstream = await withRetry(() => fetch(target.toString()), {
+      serviceName: 'Mapbox proxy',
+      timeoutMs: 10000,
+      maxRetries: 1,
+    });
 
     res.status(upstream.status);
     upstream.headers.forEach((value, key) => {
@@ -161,7 +182,11 @@ router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
   }
 });
 
-// GET /api/google-maps-token - Get Google Maps API key for client-side use
+/**
+ * GET /api/google-maps-token - Get Google Maps API key for client-side use
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ */
 router.get('/api/google-maps-token', (req, res) => {
   try {
     const apiKey = secretsManager.get('google_maps_api_key');
@@ -177,8 +202,12 @@ router.get('/api/google-maps-token', (req, res) => {
   }
 });
 
-// GET /api/google-maps-tile/:type/:z/:x/:y - Proxy Google Maps tiles
-// Types: roadmap, satellite, hybrid, terrain
+/**
+ * GET /api/google-maps-tile/:type/:z/:x/:y - Proxy Google Maps tiles
+ * Types: roadmap, satellite, hybrid, terrain
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ */
 router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
   try {
     const apiKey = secretsManager.get('google_maps_api_key');
@@ -202,7 +231,11 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
     const server = Math.floor(Math.random() * 4); // mt0-mt3
     const tileUrl = `https://mt${server}.google.com/vt/lyrs=${lyrs}&x=${x}&y=${y}&z=${z}&key=${apiKey}`;
 
-    const response = await fetch(tileUrl);
+    const response = await withRetry(() => fetch(tileUrl), {
+      serviceName: 'Google Maps tile',
+      timeoutMs: 10000,
+      maxRetries: 1,
+    });
 
     if (!response.ok) {
       return res.status(response.status).json({ error: 'Failed to fetch tile' });

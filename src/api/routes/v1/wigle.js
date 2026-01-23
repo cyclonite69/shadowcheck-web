@@ -8,6 +8,7 @@ const router = express.Router();
 const { query } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
 const logger = require('../../../logging/logger');
+const { withRetry } = require('../../../services/externalServiceHandler');
 const { macParamMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const { validateIntegerRange, validateString } = require('../../../validation/schemas');
 
@@ -52,7 +53,12 @@ const validateWigleNetworksQuery = validateQuery({
   type: optional((value) => validateString(String(value), 1, 16, 'type')),
 });
 
-// GET /api/wigle/live/:bssid - Query live WiGLE API for network
+/**
+ * GET /api/wigle/live/:bssid - Query live WiGLE API for network
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ * @param {import('express').NextFunction} next - Express next
+ */
 router.get('/wigle/live/:bssid', macParamMiddleware, async (req, res, next) => {
   try {
     const { bssid } = req.params;
@@ -68,13 +74,18 @@ router.get('/wigle/live/:bssid', macParamMiddleware, async (req, res, next) => {
 
     logger.info(`[WiGLE] Querying for BSSID: ${bssid}`);
 
-    const response = await fetch(
-      `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssid)}`,
+    const response = await withRetry(
+      () =>
+        fetch(`https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssid)}`, {
+          headers: {
+            Authorization: `Basic ${encodedAuth}`,
+            Accept: 'application/json',
+          },
+        }),
       {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
+        serviceName: 'WiGLE API',
+        timeoutMs: 10000,
+        maxRetries: 2,
       }
     );
 
