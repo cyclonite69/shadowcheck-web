@@ -9,6 +9,7 @@ import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
+import { MapToolbar } from './geospatial/MapToolbar';
 
 // Types
 import type {
@@ -1850,251 +1851,66 @@ export default function GeospatialExplorer() {
               >
                 ShadowCheck Geospatial Intelligence
               </h2>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '11px',
-                  flexWrap: 'wrap',
+              <MapToolbar
+                searchContainerRef={locationSearchRef}
+                locationSearch={locationSearch}
+                onLocationSearchChange={setLocationSearch}
+                onLocationSearchFocus={() => {
+                  if (searchResults.length > 0) {
+                    setShowSearchResults(true);
+                  }
                 }}
-              >
-                {/* Location Search */}
-                <div ref={locationSearchRef} style={{ position: 'relative', minWidth: '300px' }}>
-                  <input
-                    type="text"
-                    value={locationSearch}
-                    onChange={(e) => setLocationSearch(e.target.value)}
-                    placeholder="🔍 Search worldwide locations..."
-                    style={{
-                      width: '100%',
-                      padding: '6px 10px',
-                      fontSize: '11px',
-                      background: 'rgba(30, 41, 59, 0.9)',
-                      border: '1px solid rgba(148, 163, 184, 0.2)',
-                      borderRadius: '4px',
-                      color: '#f1f5f9',
-                      outline: 'none',
-                    }}
-                    onFocus={() => {
-                      if (searchResults.length > 0) {
-                        setShowSearchResults(true);
-                      }
-                    }}
-                  />
-                  {searchingLocation && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        right: '10px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: '#60a5fa',
-                        fontSize: '10px',
-                      }}
-                    >
-                      ⏳
-                    </div>
-                  )}
-                  {showSearchResults && searchResults.length > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'rgba(30, 41, 59, 0.98)',
-                        border: '1px solid rgba(148, 163, 184, 0.3)',
-                        borderRadius: '6px',
-                        maxHeight: '300px',
-                        overflowY: 'auto',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-                        zIndex: 1000,
-                      }}
-                    >
-                      {searchResults.map((result, index) => (
-                        <div
-                          key={index}
-                          onClick={() => flyToLocation(result)}
-                          style={{
-                            padding: '8px 10px',
-                            cursor: 'pointer',
-                            borderBottom:
-                              index < searchResults.length - 1
-                                ? '1px solid rgba(148, 163, 184, 0.1)'
-                                : 'none',
-                            transition: 'background 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                          <div style={{ fontSize: '12px', fontWeight: '600', color: '#f1f5f9' }}>
-                            {result.text}
-                          </div>
-                          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                            {result.place_name}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <label className="sr-only" htmlFor="map-style">
-                  Map style
-                </label>
-                <select
-                  id="map-style"
-                  value={mapStyle}
-                  onChange={(e) => changeMapStyle(e.target.value)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    background: 'rgba(30, 41, 59, 0.9)',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
-                    color: '#f8fafc',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {MAP_STYLES.map((style) => (
-                    <option key={style.value} value={style.value}>
-                      {style.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => toggle3DBuildings(!show3DBuildings)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    background: show3DBuildings
-                      ? 'rgba(59, 130, 246, 0.2)'
-                      : 'rgba(30, 41, 59, 0.9)',
-                    border: show3DBuildings
-                      ? '1px solid rgba(59, 130, 246, 0.5)'
-                      : '1px solid rgba(148, 163, 184, 0.2)',
-                    color: show3DBuildings ? '#60a5fa' : '#cbd5e1',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    fontWeight: show3DBuildings ? '600' : '400',
-                  }}
-                >
-                  🏢 3D Buildings
-                </button>
-                <button
-                  onClick={() => toggleTerrain(!showTerrain)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    background: showTerrain ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-                    border: showTerrain
-                      ? '1px solid rgba(59, 130, 246, 0.5)'
-                      : '1px solid rgba(148, 163, 184, 0.2)',
-                    color: showTerrain ? '#60a5fa' : '#cbd5e1',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    fontWeight: showTerrain ? '600' : '400',
-                  }}
-                >
-                  ⛰️ Terrain
-                </button>
-                <button
-                  onClick={() => {
-                    const mapboxgl = mapboxRef.current;
-                    if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
-                    setFitButtonActive(true);
-                    const allCoords = activeObservationSets.flatMap((set) =>
-                      set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
-                    );
-                    if (allCoords.length === 0) return;
-                    const bounds = allCoords.reduce(
-                      (bounds, coord) => bounds.extend(coord),
-                      new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
-                    );
-                    mapRef.current.fitBounds(bounds, { padding: 50 });
-                    setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    background:
-                      fitButtonActive || selectedNetworks.size > 0
-                        ? 'rgba(59, 130, 246, 0.9)'
-                        : 'rgba(30, 41, 59, 0.9)',
-                    border:
-                      fitButtonActive || selectedNetworks.size > 0
-                        ? '1px solid #3b82f6'
-                        : '1px solid rgba(148, 163, 184, 0.2)',
-                    color: fitButtonActive || selectedNetworks.size > 0 ? '#ffffff' : '#cbd5e1',
-                    borderRadius: '4px',
-                    cursor: selectedNetworks.size > 0 ? 'pointer' : 'not-allowed',
-                    opacity: selectedNetworks.size > 0 ? 1 : 0.5,
-                  }}
-                  disabled={selectedNetworks.size === 0}
-                >
-                  🎯 Fit
-                </button>
-                <button
-                  onClick={() => {
-                    if (!mapRef.current) return;
-                    setHomeButtonActive(true);
-                    mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
-                    setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    background: homeButtonActive
-                      ? 'rgba(16, 185, 129, 0.9)'
-                      : 'rgba(30, 41, 59, 0.9)',
-                    border: homeButtonActive
-                      ? '1px solid #10b981'
-                      : '1px solid rgba(148, 163, 184, 0.2)',
-                    color: homeButtonActive ? '#ffffff' : '#cbd5e1',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                  }}
-                >
-                  🏠 Home
-                </button>
-                <button
-                  onClick={() => {
-                    if (!mapRef.current) return;
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        mapRef.current?.flyTo({
-                          center: [position.coords.longitude, position.coords.latitude],
-                          zoom: 15,
-                        });
-                      },
-                      (error) => {
-                        logError('Geolocation error', error);
-                        alert('Unable to get your location. Please enable location services.');
-                      }
-                    );
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    background: 'rgba(30, 41, 59, 0.9)',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
-                    color: '#cbd5e1',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  📍 GPS
-                </button>
-              </div>
+                searchingLocation={searchingLocation}
+                showSearchResults={showSearchResults}
+                searchResults={searchResults}
+                onSelectSearchResult={flyToLocation}
+                mapStyle={mapStyle}
+                onMapStyleChange={changeMapStyle}
+                mapStyles={MAP_STYLES}
+                show3DBuildings={show3DBuildings}
+                onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
+                showTerrain={showTerrain}
+                onToggleTerrain={() => toggleTerrain(!showTerrain)}
+                fitButtonActive={fitButtonActive}
+                canFit={selectedNetworks.size > 0}
+                onFit={() => {
+                  const mapboxgl = mapboxRef.current;
+                  if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
+                  setFitButtonActive(true);
+                  const allCoords = activeObservationSets.flatMap((set) =>
+                    set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
+                  );
+                  if (allCoords.length === 0) return;
+                  const bounds = allCoords.reduce(
+                    (bounds, coord) => bounds.extend(coord),
+                    new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+                  );
+                  mapRef.current.fitBounds(bounds, { padding: 50 });
+                  setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
+                }}
+                homeButtonActive={homeButtonActive}
+                onHome={() => {
+                  if (!mapRef.current) return;
+                  setHomeButtonActive(true);
+                  mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
+                  setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
+                }}
+                onGps={() => {
+                  if (!mapRef.current) return;
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      mapRef.current?.flyTo({
+                        center: [position.coords.longitude, position.coords.latitude],
+                        zoom: 15,
+                      });
+                    },
+                    (error) => {
+                      logError('Geolocation error', error);
+                      alert('Unable to get your location. Please enable location services.');
+                    }
+                  );
+                }}
+              />
             </div>
 
             <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
