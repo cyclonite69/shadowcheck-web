@@ -33,6 +33,7 @@ import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
 import { useMapPreferences } from './geospatial/useMapPreferences';
 import { useObservationSummary } from './geospatial/useObservationSummary';
 import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
+import { useExplorerPanels } from './geospatial/useExplorerPanels';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -111,8 +112,8 @@ export default function GeospatialExplorer() {
   const { visibleColumns, toggleColumn } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const { filtersOpen, showColumnSelector, toggleFilters, toggleColumnSelector } =
+    useExplorerPanels();
 
   // Map and location state
   const [mapReady, setMapReady] = useState(false);
@@ -334,12 +335,12 @@ export default function GeospatialExplorer() {
             locationMode={locationMode}
             onLocationModeChange={setLocationMode}
             filtersOpen={filtersOpen}
-            onToggleFilters={() => setFiltersOpen((open) => !open)}
+            onToggleFilters={toggleFilters}
             showColumnSelector={showColumnSelector}
             columnDropdownRef={columnDropdownRef}
             visibleColumns={visibleColumns}
             columns={NETWORK_COLUMNS}
-            onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
+            onToggleColumnSelector={toggleColumnSelector}
             onToggleColumn={toggleColumn}
             sort={sort}
             allSelected={allSelected}
