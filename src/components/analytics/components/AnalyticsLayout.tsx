@@ -76,8 +76,8 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
         <div className="relative min-h-[2700px]">
           {cards.map((card) => {
             const Icon = card.icon;
-            const width = `${card.w}%`;
-            const left = `${card.x}%`;
+            const width = `calc(${card.w}% - 16px)`;
+            const left = `calc(${card.x}% + 8px)`;
             const isActive = dragging === card.id || resizing === card.id;
 
             return (
@@ -85,23 +85,23 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
                 key={card.id}
                 style={{
                   left: left,
-                  top: `${card.y}px`,
+                  top: `${card.y + 8}px`,
                   width: width,
-                  height: `${card.h}px`,
+                  height: `${card.h - 16}px`,
                   ...(isActive ? { transition: 'none' } : {}),
                 }}
-                className="absolute p-2"
+                className="absolute"
               >
                 <div
                   onMouseDown={(e) => onMouseDown(e, card.id, 'move')}
-                  className={`h-full w-full overflow-hidden rounded-xl border border-slate-700/30 bg-slate-900/40 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm ${
+                  className={`h-full w-full overflow-hidden rounded-xl border border-slate-700/20 bg-slate-900/30 shadow-lg shadow-black/40 hover:shadow-xl hover:shadow-black/50 transition-all duration-200 group backdrop-blur-sm ${
                     isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
                   }`}
                 >
-                  <div className="absolute inset-0 pointer-events-none opacity-3 bg-gradient-to-br from-white/8 to-transparent" />
+                  <div className="absolute inset-0 pointer-events-none opacity-2 bg-gradient-to-br from-white/5 to-transparent" />
 
                   {/* Header */}
-                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/30">
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/20">
                     <div className="flex items-center gap-2">
                       <Icon size={16} className="text-slate-300/80" />
                       <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
