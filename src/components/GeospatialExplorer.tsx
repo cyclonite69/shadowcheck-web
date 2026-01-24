@@ -10,10 +10,8 @@ import { logError, logDebug } from '../logging/clientLogger';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbarActions } from './geospatial/MapToolbarActions';
 import { MapSection } from './geospatial/MapSection';
-import { FiltersSidebar } from './geospatial/FiltersSidebar';
-import { GeospatialContent } from './geospatial/GeospatialContent';
 import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
-import { GeospatialShell } from './geospatial/GeospatialShell';
+import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { NetworkExplorerSection } from './geospatial/NetworkExplorerSection';
 import { useMapLayersToggle } from './geospatial/MapLayersToggle';
 
@@ -1701,142 +1699,144 @@ export default function GeospatialExplorer() {
   const addTerrain = () => toggleTerrain(true);
 
   return (
-    <GeospatialShell>
-      <FiltersSidebar open={filtersOpen}>
-        <FilterPanel density="compact" />
-      </FiltersSidebar>
-      <GeospatialContent filtersOpen={filtersOpen}>
-        {/* Map Card */}
-        <MapSection
-          mapHeight={mapHeight}
-          title="ShadowCheck Geospatial Intelligence"
-          toolbar={
-            <MapToolbarActions
-              searchContainerRef={locationSearchRef}
-              locationSearch={locationSearch}
-              onLocationSearchChange={setLocationSearch}
-              onLocationSearchFocus={() => {
-                if (searchResults.length > 0) {
-                  setShowSearchResults(true);
-                }
-              }}
-              searchingLocation={searchingLocation}
-              showSearchResults={showSearchResults}
-              searchResults={searchResults}
-              onSelectSearchResult={flyToLocation}
-              mapStyle={mapStyle}
-              onMapStyleChange={changeMapStyle}
-              mapStyles={MAP_STYLES}
-              show3DBuildings={show3DBuildings}
-              onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
-              showTerrain={showTerrain}
-              onToggleTerrain={() => toggleTerrain(!showTerrain)}
-              fitButtonActive={fitButtonActive}
-              canFit={selectedNetworks.size > 0}
-              mapboxRef={mapboxRef}
-              mapRef={mapRef}
-              activeObservationSets={activeObservationSets}
-              setFitButtonActive={setFitButtonActive}
-              homeButtonActive={homeButtonActive}
-              setHomeButtonActive={setHomeButtonActive}
-              homeLocation={homeLocation}
-              logError={logError}
-            />
-          }
-          mapReady={mapReady}
-          mapError={mapError}
-          embeddedView={embeddedView}
-          mapRef={mapRef}
-          mapContainerRef={mapContainerRef}
-          onResizeMouseDown={handleMouseDown}
-        />
+    <GeospatialLayout
+      filtersOpen={filtersOpen}
+      filterPanel={<FilterPanel density="compact" />}
+      content={
+        <>
+          {/* Map Card */}
+          <MapSection
+            mapHeight={mapHeight}
+            title="ShadowCheck Geospatial Intelligence"
+            toolbar={
+              <MapToolbarActions
+                searchContainerRef={locationSearchRef}
+                locationSearch={locationSearch}
+                onLocationSearchChange={setLocationSearch}
+                onLocationSearchFocus={() => {
+                  if (searchResults.length > 0) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                searchingLocation={searchingLocation}
+                showSearchResults={showSearchResults}
+                searchResults={searchResults}
+                onSelectSearchResult={flyToLocation}
+                mapStyle={mapStyle}
+                onMapStyleChange={changeMapStyle}
+                mapStyles={MAP_STYLES}
+                show3DBuildings={show3DBuildings}
+                onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
+                showTerrain={showTerrain}
+                onToggleTerrain={() => toggleTerrain(!showTerrain)}
+                fitButtonActive={fitButtonActive}
+                canFit={selectedNetworks.size > 0}
+                mapboxRef={mapboxRef}
+                mapRef={mapRef}
+                activeObservationSets={activeObservationSets}
+                setFitButtonActive={setFitButtonActive}
+                homeButtonActive={homeButtonActive}
+                setHomeButtonActive={setHomeButtonActive}
+                homeLocation={homeLocation}
+                logError={logError}
+              />
+            }
+            mapReady={mapReady}
+            mapError={mapError}
+            embeddedView={embeddedView}
+            mapRef={mapRef}
+            mapContainerRef={mapContainerRef}
+            onResizeMouseDown={handleMouseDown}
+          />
 
-        <NetworkExplorerSection
-          expensiveSort={expensiveSort}
-          planCheck={planCheck}
-          onPlanCheckChange={setPlanCheck}
-          locationMode={locationMode}
-          onLocationModeChange={setLocationMode}
-          filtersOpen={filtersOpen}
-          onToggleFilters={() => setFiltersOpen((open) => !open)}
-          showColumnSelector={showColumnSelector}
-          columnDropdownRef={columnDropdownRef}
-          visibleColumns={visibleColumns}
-          columns={NETWORK_COLUMNS}
-          onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
-          onToggleColumn={toggleColumn}
-          sort={sort}
-          allSelected={allSelected}
-          someSelected={someSelected}
-          onToggleSelectAll={toggleSelectAll}
-          onColumnSort={handleColumnSort}
-          tableContainerRef={tableContainerRef}
-          loadingNetworks={loadingNetworks}
-          filteredNetworks={filteredNetworks}
-          error={error}
-          selectedNetworks={selectedNetworks}
-          onSelectExclusive={selectNetworkExclusive}
-          onOpenContextMenu={openContextMenu}
-          onToggleSelectNetwork={toggleSelectNetwork}
-          isLoadingMore={isLoadingMore}
-          hasMore={pagination.hasMore}
-          onLoadMore={loadMore}
-          visibleCount={filteredNetworks.length}
-          networkTruncated={networkTruncated}
-          networkTotal={networkTotal}
-          selectedCount={selectedNetworks.size}
-          observationCount={observationCount}
-          observationsTruncated={observationsTruncated}
-          observationsTotal={observationsTotal}
-          renderBudgetExceeded={renderBudgetExceeded}
-          renderBudget={renderBudget}
-          loadingObservations={loadingObservations}
+          <NetworkExplorerSection
+            expensiveSort={expensiveSort}
+            planCheck={planCheck}
+            onPlanCheckChange={setPlanCheck}
+            locationMode={locationMode}
+            onLocationModeChange={setLocationMode}
+            filtersOpen={filtersOpen}
+            onToggleFilters={() => setFiltersOpen((open) => !open)}
+            showColumnSelector={showColumnSelector}
+            columnDropdownRef={columnDropdownRef}
+            visibleColumns={visibleColumns}
+            columns={NETWORK_COLUMNS}
+            onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
+            onToggleColumn={toggleColumn}
+            sort={sort}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onToggleSelectAll={toggleSelectAll}
+            onColumnSort={handleColumnSort}
+            tableContainerRef={tableContainerRef}
+            loadingNetworks={loadingNetworks}
+            filteredNetworks={filteredNetworks}
+            error={error}
+            selectedNetworks={selectedNetworks}
+            onSelectExclusive={selectNetworkExclusive}
+            onOpenContextMenu={openContextMenu}
+            onToggleSelectNetwork={toggleSelectNetwork}
+            isLoadingMore={isLoadingMore}
+            hasMore={pagination.hasMore}
+            onLoadMore={loadMore}
+            visibleCount={filteredNetworks.length}
+            networkTruncated={networkTruncated}
+            networkTotal={networkTotal}
+            selectedCount={selectedNetworks.size}
+            observationCount={observationCount}
+            observationsTruncated={observationsTruncated}
+            observationsTotal={observationsTotal}
+            renderBudgetExceeded={renderBudgetExceeded}
+            renderBudget={renderBudget}
+            loadingObservations={loadingObservations}
+          />
+        </>
+      }
+      overlays={
+        <GeospatialOverlays
+          contextMenu={contextMenu}
+          tagLoading={tagLoading}
+          contextMenuRef={contextMenuRef}
+          onTagAction={handleTagAction}
+          onCloseContextMenu={closeContextMenu}
+          onOpenTimeFrequency={() => {
+            const n = contextMenu.network;
+            const payload = n ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') } : null;
+            setTimeFreqModal(payload);
+            closeContextMenu();
+          }}
+          onOpenNote={() => {
+            setShowNoteModal(true);
+            setSelectedBssid(contextMenu.network?.bssid || '');
+            closeContextMenu();
+          }}
+          showNoteModal={showNoteModal}
+          selectedBssid={selectedBssid}
+          noteType={noteType}
+          noteContent={noteContent}
+          noteAttachments={noteAttachments}
+          fileInputRef={fileInputRef}
+          onNoteTypeChange={setNoteType}
+          onNoteContentChange={setNoteContent}
+          onAddAttachment={handleAddAttachment}
+          onRemoveAttachment={removeAttachment}
+          onCloseNoteOverlay={() => setShowNoteModal(false)}
+          onCloseNote={() => {
+            setShowNoteModal(false);
+            setNoteContent('');
+            setNoteAttachments([]);
+          }}
+          onCancelNote={() => {
+            setShowNoteModal(false);
+            setNoteContent('');
+            setNoteType('general');
+            setNoteAttachments([]);
+          }}
+          onSaveNote={handleSaveNote}
+          timeFreqModal={timeFreqModal}
+          onCloseTimeFrequency={() => setTimeFreqModal(null)}
         />
-      </GeospatialContent>
-
-      <GeospatialOverlays
-        contextMenu={contextMenu}
-        tagLoading={tagLoading}
-        contextMenuRef={contextMenuRef}
-        onTagAction={handleTagAction}
-        onCloseContextMenu={closeContextMenu}
-        onOpenTimeFrequency={() => {
-          const n = contextMenu.network;
-          const payload = n ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') } : null;
-          setTimeFreqModal(payload);
-          closeContextMenu();
-        }}
-        onOpenNote={() => {
-          setShowNoteModal(true);
-          setSelectedBssid(contextMenu.network?.bssid || '');
-          closeContextMenu();
-        }}
-        showNoteModal={showNoteModal}
-        selectedBssid={selectedBssid}
-        noteType={noteType}
-        noteContent={noteContent}
-        noteAttachments={noteAttachments}
-        fileInputRef={fileInputRef}
-        onNoteTypeChange={setNoteType}
-        onNoteContentChange={setNoteContent}
-        onAddAttachment={handleAddAttachment}
-        onRemoveAttachment={removeAttachment}
-        onCloseNoteOverlay={() => setShowNoteModal(false)}
-        onCloseNote={() => {
-          setShowNoteModal(false);
-          setNoteContent('');
-          setNoteAttachments([]);
-        }}
-        onCancelNote={() => {
-          setShowNoteModal(false);
-          setNoteContent('');
-          setNoteType('general');
-          setNoteAttachments([]);
-        }}
-        onSaveNote={handleSaveNote}
-        timeFreqModal={timeFreqModal}
-        onCloseTimeFrequency={() => setTimeFreqModal(null)}
-      />
-    </GeospatialShell>
+      }
+    />
   );
 }
