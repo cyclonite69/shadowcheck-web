@@ -119,7 +119,7 @@ const Navigation: React.FC = () => {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          WiGLE Test
+          WiGLE
         </a>
         <a
           href="/ml-training"
