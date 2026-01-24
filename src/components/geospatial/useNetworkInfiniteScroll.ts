@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 
 type NetworkInfiniteScrollProps = {
@@ -14,6 +14,21 @@ export const useNetworkInfiniteScroll = ({
   isLoadingMore,
   onLoadMore,
 }: NetworkInfiniteScrollProps) => {
+  const savedScrollTop = useRef<number>(0);
+  const isLoadingMoreRef = useRef(false);
+
+  // Preserve scroll position during load more
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (isLoadingMoreRef.current && !isLoadingMore) {
+      // Restore scroll position after new content is loaded
+      container.scrollTop = savedScrollTop.current;
+      isLoadingMoreRef.current = false;
+    }
+  }, [isLoadingMore, containerRef]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !hasMore || isLoadingMore) return;
@@ -25,15 +40,10 @@ export const useNetworkInfiniteScroll = ({
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;
         if (scrollHeight - scrollTop <= clientHeight + 200) {
-          const currentScrollTop = scrollTop;
+          // Save scroll position before triggering load more
+          savedScrollTop.current = scrollTop;
+          isLoadingMoreRef.current = true;
           onLoadMore();
-
-          // Restore scroll position after a brief delay
-          setTimeout(() => {
-            if (container.scrollTop !== currentScrollTop) {
-              container.scrollTop = currentScrollTop;
-            }
-          }, 50);
         }
       }, 100);
     };

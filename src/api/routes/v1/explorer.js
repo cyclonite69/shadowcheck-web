@@ -443,7 +443,7 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       type: 'type',
       security: 'security',
       manufacturer: 'manufacturer',
-      threat: "(threat->>'score')::numeric", // Sort by threat score numerically
+      threat_score: "(threat->>'score')::numeric", // Sort by threat score numerically
       'threat.score': "(threat->>'score')::numeric", // Alternative syntax
       min_altitude_m: 'min_altitude_m',
       max_altitude_m: 'max_altitude_m',
@@ -459,11 +459,31 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       distanceFromHome: 'distance_from_home_km', // CamelCase variant
     };
 
+    // Special handling for threat level sorting by severity
+    const getThreatLevelSort = (order) => {
+      const severityOrder =
+        order === 'asc'
+          ? "CASE WHEN threat->>'level' = 'NONE' THEN 1 WHEN threat->>'level' = 'LOW' THEN 2 WHEN threat->>'level' = 'MED' THEN 3 WHEN threat->>'level' = 'HIGH' THEN 4 WHEN threat->>'level' = 'CRITICAL' THEN 5 ELSE 0 END"
+          : "CASE WHEN threat->>'level' = 'CRITICAL' THEN 1 WHEN threat->>'level' = 'HIGH' THEN 2 WHEN threat->>'level' = 'MED' THEN 3 WHEN threat->>'level' = 'LOW' THEN 4 WHEN threat->>'level' = 'NONE' THEN 5 ELSE 6 END";
+      return severityOrder;
+    };
+
     // Build ORDER BY clause with multiple columns
     const orderByClauses = sortColumns
       .map((col, idx) => {
-        const mappedCol = sortMap[col] || 'last_seen';
         const order = sortOrders[idx] === 'asc' ? 'ASC' : 'DESC';
+
+        // Special handling for threat level sorting
+        if (col === 'threat') {
+          return `${getThreatLevelSort(sortOrders[idx])} ${order}`;
+        }
+
+        // Special handling for threat_score with null handling
+        if (col === 'threat_score') {
+          return `(threat->>'score')::numeric ${order} NULLS LAST`;
+        }
+
+        const mappedCol = sortMap[col] || 'last_seen';
         return `${mappedCol} ${order} NULLS LAST`;
       })
       .join(', ');

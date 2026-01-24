@@ -14,7 +14,7 @@ export const FilterPanelWrapper: React.FC<FilterPanelWrapperProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-16 left-3 w-72 bg-slate-900/95 backdrop-blur-xl rounded-xl border border-blue-500/20 border-r-slate-600/60 shadow-2xl p-3 space-y-2 overflow-y-auto overflow-x-hidden z-40 max-h-[calc(100vh-80px)] pointer-events-auto">
+    <div className="fixed top-16 left-3 w-72 bg-slate-900/95 backdrop-blur-xl rounded-xl border border-slate-600/60 shadow-2xl p-3 space-y-2 overflow-y-auto overflow-x-hidden z-40 max-h-[calc(100vh-80px)] pointer-events-auto">
       <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
       <FilterPanel density="compact" />
     </div>

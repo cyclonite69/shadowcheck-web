@@ -54,7 +54,7 @@ export const NetworkTableBody = ({
           {!loadingNetworks &&
             filteredNetworks.map((net, idx) => (
               <NetworkTableRow
-                key={`${net.bssid}-${idx}`}
+                key={net.bssid}
                 net={net}
                 index={idx}
                 visibleColumns={visibleColumns}

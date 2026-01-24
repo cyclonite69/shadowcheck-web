@@ -21,6 +21,7 @@
     "test:integration": "jest --testPathPattern=integration",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:boundaries": "node scripts/check-client-imports.js",
     "format": "prettier --write \"**/*.{js,json,md,yml}\"",
     "format:check": "prettier --check \"**/*.{js,json,md,yml}\"",
     "docker:build": "docker build -t shadowcheck-static:latest .",

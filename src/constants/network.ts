@@ -47,7 +47,7 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   firstSeen: 'first_observed_at',
   observations: 'obs_count',
   signal: 'signal',
-  threat: 'threat_score',
+  threat: 'threat',
   threat_score: 'threat_score',
   distanceFromHome: 'distance_from_home_km',
   ssid: 'ssid',

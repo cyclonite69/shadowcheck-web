@@ -77,27 +77,27 @@ export default function NetworksExplorer({
       <div
         className={`overflow-auto ${compact ? 'max-h-[360px]' : 'max-h-[520px]'} rounded-lg border border-slate-800`}
       >
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead className="bg-slate-800/60 text-slate-300">
             <tr>
-              <th className="p-3 text-left">SSID</th>
-              <th className="p-3 text-left">BSSID</th>
-              <th className="p-3 text-left">Signal</th>
-              <th className="p-3 text-left">Obs</th>
-              <th className="p-3 text-left">Freq</th>
-              <th className="p-3 text-left">Seen</th>
+              <th className="p-3 text-left w-[25%]">SSID</th>
+              <th className="p-3 text-left w-[20%]">BSSID</th>
+              <th className="p-3 text-left w-[15%]">Signal</th>
+              <th className="p-3 text-left w-[10%]">Obs</th>
+              <th className="p-3 text-left w-[12%]">Freq</th>
+              <th className="p-3 text-left w-[18%]">Seen</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="p-4 text-center text-slate-400" colSpan={6}>
+                <td className="p-3 text-center text-slate-400" colSpan={6}>
                   Loading…
                 </td>
               </tr>
             ) : networks.length === 0 ? (
               <tr>
-                <td className="p-4 text-center text-slate-500" colSpan={6}>
+                <td className="p-3 text-center text-slate-500" colSpan={6}>
                   No networks
                 </td>
               </tr>
@@ -108,24 +108,30 @@ export default function NetworksExplorer({
                   className={`border-b border-slate-800/80 cursor-pointer hover:bg-slate-800/60 ${selectedBssid === net.bssid ? 'bg-slate-800/80' : ''}`}
                   onClick={() => onSelect && onSelect(net.bssid)}
                 >
-                  <td className="p-3">
-                    <div className="text-white font-semibold">{net.ssid || '(hidden)'}</div>
-                    <div className="text-slate-400 text-xs">
+                  <td className="p-3 w-[25%]">
+                    <div className="text-white font-semibold truncate">
+                      {net.ssid || '(hidden)'}
+                    </div>
+                    <div className="text-slate-400 text-xs truncate">
                       {net.network_id || net.manufacturer || '—'}
                     </div>
                   </td>
-                  <td className="p-3 font-mono text-xs text-slate-300">{net.bssid}</td>
-                  <td className="p-3 text-slate-200">
+                  <td className="p-3 font-mono text-xs text-slate-300 w-[20%] truncate">
+                    {net.bssid}
+                  </td>
+                  <td className="p-3 text-slate-200 w-[15%]">
                     {net.signal != null ? `${net.signal} dBm` : '—'}
                     <div className="text-xs text-slate-500">
                       {net.is_5ghz ? '5GHz' : net.is_6ghz ? '6GHz' : '2.4GHz'}
                     </div>
                   </td>
-                  <td className="p-3 text-slate-200">{net.observations ?? 0}</td>
-                  <td className="p-3 text-slate-200">
+                  <td className="p-3 text-slate-200 w-[10%]">{net.observations ?? 0}</td>
+                  <td className="p-3 text-slate-200 w-[12%]">
                     {net.frequency ? `${net.frequency} MHz` : '—'}
                   </td>
-                  <td className="p-3 text-slate-200">{formatDate(net.observed_at)}</td>
+                  <td className="p-3 text-slate-200 w-[18%] truncate">
+                    {formatDate(net.observed_at)}
+                  </td>
                 </tr>
               ))
             )}

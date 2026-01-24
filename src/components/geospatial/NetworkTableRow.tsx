@@ -25,7 +25,6 @@ export const NetworkTableRow = ({
 }: NetworkTableRowProps) => {
   return (
     <tr
-      key={`${net.bssid}-${index}`}
       style={{
         borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
         background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',

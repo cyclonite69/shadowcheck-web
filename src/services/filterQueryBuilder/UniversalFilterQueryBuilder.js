@@ -3,221 +3,17 @@
  * Forensically correct, parameterized SQL with explicit enable flags.
  */
 
-const NOISE_FLOOR_DBM = -95;
-const MAX_GPS_ACCURACY_METERS = 1000;
-const logger = require('../logging/logger');
+const logger = require('../../logging/logger');
 
-const FILTER_KEYS = [
-  'ssid',
-  'bssid',
-  'manufacturer',
-  'networkId',
-  'radioTypes',
-  'frequencyBands',
-  'channelMin',
-  'channelMax',
-  'rssiMin',
-  'rssiMax',
-  'encryptionTypes',
-  'authMethods',
-  'insecureFlags',
-  'securityFlags',
-  'timeframe',
-  'temporalScope',
-  'observationCountMin',
-  'observationCountMax',
-  'gpsAccuracyMax',
-  'excludeInvalidCoords',
-  'qualityFilter',
-  'distanceFromHomeMin',
-  'distanceFromHomeMax',
-  'boundingBox',
-  'radiusFilter',
-  'threatScoreMin',
-  'threatScoreMax',
-  'threatCategories',
-  'stationaryConfidenceMin',
-  'stationaryConfidenceMax',
-];
-
-const DEFAULT_ENABLED = FILTER_KEYS.reduce((acc, key) => {
-  acc[key] = false;
-  return acc;
-}, {});
-
-const RELATIVE_WINDOWS = {
-  '24h': '24 hours',
-  '7d': '7 days',
-  '30d': '30 days',
-  '90d': '90 days',
-  all: null,
-};
-
-const OBS_TYPE_EXPR = (alias = 'o') => `
-  COALESCE(${alias}.radio_type, CASE
-    WHEN ${alias}.radio_frequency BETWEEN 2412 AND 2484 THEN 'W'
-    WHEN ${alias}.radio_frequency BETWEEN 5000 AND 5900 THEN 'W'
-    WHEN ${alias}.radio_frequency BETWEEN 5925 AND 7125 THEN 'W'
-    WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(WPA|WEP|WPS|RSN|ESS|CCMP|TKIP)' THEN 'W'
-    WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
-    WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(BLUETOOTH)' THEN 'B'
-    WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(LTE|4G|EARFCN|5G|NR|3GPP)' THEN 'L'
-    ELSE '?'
-  END)
-`;
-
-const SECURITY_EXPR = (alias = 'o') => `
-  CASE
-    WHEN COALESCE(${alias}.radio_capabilities, '') = '' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-SAE' THEN 'WPA3-SAE'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA3-E'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' THEN 'WPA3'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA2-E'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' THEN 'WPA2'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'WPA-' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA3%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPA'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WEP%' THEN 'WEP'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPS%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPS'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-    ELSE 'Unknown'
-  END
-`;
-
-const _AUTH_EXPR = (alias = 'o') => `
-  CASE
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT|ENT)' THEN 'Enterprise'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(SAE)' THEN 'SAE'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(OWE)' THEN 'OWE'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(PSK)' THEN 'PSK'
-    WHEN COALESCE(${alias}.radio_capabilities, '') = '' THEN 'None'
-    ELSE 'Unknown'
-  END
-`;
-
-const WIFI_CHANNEL_EXPR = (alias = 'o') => `
-  CASE
-    WHEN ${alias}.radio_frequency BETWEEN 2412 AND 2484 THEN
-      CASE
-        WHEN ${alias}.radio_frequency = 2484 THEN 14
-        ELSE FLOOR((${alias}.radio_frequency - 2412) / 5) + 1
-      END
-    WHEN ${alias}.radio_frequency BETWEEN 5000 AND 5900 THEN FLOOR((${alias}.radio_frequency - 5000) / 5)
-    WHEN ${alias}.radio_frequency BETWEEN 5925 AND 7125 THEN FLOOR((${alias}.radio_frequency - 5925) / 5)
-    ELSE NULL
-  END
-`;
-
-const NETWORK_CHANNEL_EXPR = (alias = 'ne') => `
-  CASE
-    WHEN ${alias}.frequency BETWEEN 2412 AND 2484 THEN
-      CASE
-        WHEN ${alias}.frequency = 2484 THEN 14
-        ELSE FLOOR((${alias}.frequency - 2412) / 5) + 1
-      END
-    WHEN ${alias}.frequency BETWEEN 5000 AND 5900 THEN FLOOR((${alias}.frequency - 5000) / 5)
-    WHEN ${alias}.frequency BETWEEN 5925 AND 7125 THEN FLOOR((${alias}.frequency - 5925) / 5)
-    ELSE NULL
-  END
-`;
-
-const NETWORK_ONLY_FILTERS = new Set([
-  'ssid',
-  'bssid',
-  'manufacturer',
-  'radioTypes',
-  'frequencyBands',
-  'channelMin',
-  'channelMax',
-  'rssiMin',
-  'rssiMax',
-  'encryptionTypes',
-  'securityFlags',
-  'observationCountMin',
-  'observationCountMax',
-  'gpsAccuracyMax',
-  'excludeInvalidCoords',
-  'distanceFromHomeMin',
-  'distanceFromHomeMax',
-  'threatScoreMin',
-  'threatScoreMax',
-  'threatCategories',
-]);
-const normalizeEnabled = (enabled) => {
-  if (!enabled || typeof enabled !== 'object') {
-    return { ...DEFAULT_ENABLED };
-  }
-  const normalized = { ...DEFAULT_ENABLED };
-  const toBool = (value) => {
-    if (value === true || value === 'true' || value === 1 || value === '1') {
-      return true;
-    }
-    if (
-      value === false ||
-      value === 'false' ||
-      value === 0 ||
-      value === '0' ||
-      value === null ||
-      value === undefined
-    ) {
-      return false;
-    }
-    return Boolean(value);
-  };
-  FILTER_KEYS.forEach((key) => {
-    normalized[key] = toBool(enabled[key]);
-  });
-  return normalized;
-};
-
-const normalizeFilters = (filters) => (filters && typeof filters === 'object' ? filters : {});
-
-const isOui = (value) => /^[0-9A-F]{6}$/.test(value || '');
-
-const coerceOui = (value) =>
-  String(value || '')
-    .replace(/[^0-9A-Fa-f]/g, '')
-    .toUpperCase();
-
-const validateFilterPayload = (filters, enabled) => {
-  const errors = [];
-  const normalized = normalizeFilters(filters);
-  const flags = normalizeEnabled(enabled);
-
-  if (flags.rssiMin && normalized.rssiMin < NOISE_FLOOR_DBM) {
-    errors.push(`RSSI minimum below noise floor (${NOISE_FLOOR_DBM} dBm).`);
-  }
-  if (flags.rssiMax && normalized.rssiMax > 0) {
-    errors.push('RSSI maximum above 0 dBm.');
-  }
-  if (flags.rssiMin && flags.rssiMax && normalized.rssiMin > normalized.rssiMax) {
-    errors.push('RSSI minimum greater than maximum.');
-  }
-  if (flags.gpsAccuracyMax && normalized.gpsAccuracyMax > MAX_GPS_ACCURACY_METERS) {
-    errors.push('GPS accuracy limit too high (>1000m).');
-  }
-  if (flags.threatScoreMin && (normalized.threatScoreMin < 0 || normalized.threatScoreMin > 100)) {
-    errors.push('Threat score minimum out of range (0-100).');
-  }
-  if (flags.threatScoreMax && (normalized.threatScoreMax < 0 || normalized.threatScoreMax > 100)) {
-    errors.push('Threat score maximum out of range (0-100).');
-  }
-  if (
-    flags.stationaryConfidenceMin &&
-    (normalized.stationaryConfidenceMin < 0 || normalized.stationaryConfidenceMin > 1)
-  ) {
-    errors.push('Stationary confidence minimum out of range (0.0-1.0).');
-  }
-  if (
-    flags.stationaryConfidenceMax &&
-    (normalized.stationaryConfidenceMax < 0 || normalized.stationaryConfidenceMax > 1)
-  ) {
-    errors.push('Stationary confidence maximum out of range (0.0-1.0).');
-  }
-  return { errors, filters: normalized, enabled: flags };
-};
+const { NOISE_FLOOR_DBM, RELATIVE_WINDOWS, NETWORK_ONLY_FILTERS } = require('./constants');
+const {
+  OBS_TYPE_EXPR,
+  SECURITY_EXPR,
+  WIFI_CHANNEL_EXPR,
+  NETWORK_CHANNEL_EXPR,
+} = require('./sqlExpressions');
+const { isOui, coerceOui } = require('./normalizers');
+const { validateFilterPayload } = require('./validators');
 
 class UniversalFilterQueryBuilder {
   constructor(filters, enabled) {
@@ -363,7 +159,7 @@ class UniversalFilterQueryBuilder {
       if (process.env.DEBUG_FILTERS === 'true') {
         logger.debug(`Quality filter applied: ${f.qualityFilter}`);
       }
-      const { DATA_QUALITY_FILTERS } = require('./dataQualityFilters');
+      const { DATA_QUALITY_FILTERS } = require('../dataQualityFilters');
       let qualityWhere = '';
       if (f.qualityFilter === 'temporal') {
         qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;
@@ -1667,6 +1463,4 @@ class UniversalFilterQueryBuilder {
 
 module.exports = {
   UniversalFilterQueryBuilder,
-  validateFilterPayload,
-  DEFAULT_ENABLED,
 };

@@ -134,7 +134,13 @@ describe('Systematic Filter Testing', () => {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const result = builder.buildObservationFilters();
 
-      expect(result.where.some((w) => w.includes('= ANY'))).toBe(true);
+      // authMethods uses SECURITY_EXPR with IN clause, not = ANY
+      expect(result.where.some((w) => w.includes('IN ('))).toBe(true);
+      expect(builder.appliedFilters).toContainEqual({
+        type: 'security',
+        field: 'authMethods',
+        value: ['PSK'],
+      });
     });
   });
 
@@ -359,8 +365,9 @@ describe('Systematic Filter Testing', () => {
   });
 
   describe('threatCategories filter', () => {
-    test('surveillance category', () => {
-      const filters = { threatCategories: ['surveillance'] };
+    test('critical category', () => {
+      // Valid categories: critical, high, medium, low (mapped to HIGH, HIGH, MED, LOW)
+      const filters = { threatCategories: ['critical'] };
       const enabled = { threatCategories: true };
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const query = builder.buildNetworkListQuery();
@@ -368,7 +375,7 @@ describe('Systematic Filter Testing', () => {
       expect(query.appliedFilters).toContainEqual({
         type: 'threat',
         field: 'threatCategories',
-        value: ['surveillance'],
+        value: ['critical'],
       });
     });
   });
