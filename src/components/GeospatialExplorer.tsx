@@ -16,6 +16,7 @@ import { NetworkExplorerHeader } from './geospatial/NetworkExplorerHeader';
 import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
 import { MapStatusBar } from './geospatial/MapStatusBar';
 import { NetworkNoteModal } from './geospatial/NetworkNoteModal';
+import { ResizeHandle } from './geospatial/ResizeHandle';
 
 // Types
 import type {
@@ -1905,25 +1906,7 @@ export default function GeospatialExplorer() {
           </div>
 
           {/* Resize Handle */}
-          <div
-            className="cursor-row-resize hover:bg-blue-500/20 transition-colors flex items-center justify-center"
-            style={{
-              height: '8px',
-              background: 'rgba(71, 85, 105, 0.3)',
-              borderRadius: '4px',
-              userSelect: 'none',
-            }}
-            onMouseDown={handleMouseDown}
-          >
-            <div
-              style={{
-                width: '24px',
-                height: '2px',
-                background: 'rgba(148, 163, 184, 0.6)',
-                borderRadius: '1px',
-              }}
-            ></div>
-          </div>
+          <ResizeHandle onMouseDown={handleMouseDown} />
 
           {/* Networks Explorer Card */}
           <div
