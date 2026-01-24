@@ -26,6 +26,7 @@ import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
 import { useNetworkNotes } from './geospatial/useNetworkNotes';
 import { useMapResizeHandle } from './geospatial/useMapResizeHandle';
 import { useNetworkSelection } from './geospatial/useNetworkSelection';
+import { useColumnVisibility } from './geospatial/useColumnVisibility';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -102,25 +103,8 @@ export default function GeospatialExplorer() {
   });
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [resizing, setResizing] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
-    const saved = localStorage.getItem('shadowcheck_visible_columns');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const valid = parsed.filter(
-            (key): key is keyof NetworkRow | 'select' =>
-              typeof key === 'string' && key in NETWORK_COLUMNS
-          );
-          if (valid.length) return valid;
-        }
-      } catch {
-        // Fall through to default
-      }
-    }
-    return Object.keys(NETWORK_COLUMNS).filter(
-      (k) => NETWORK_COLUMNS[k as keyof typeof NETWORK_COLUMNS].default
-    ) as (keyof NetworkRow | 'select')[];
+  const { visibleColumns, toggleColumn } = useColumnVisibility({
+    columns: NETWORK_COLUMNS,
   });
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -191,11 +175,6 @@ export default function GeospatialExplorer() {
     locationSearchRef,
     flyToLocation,
   } = useLocationSearch({ mapRef, mapboxRef, logError });
-
-  // Persist visible columns to localStorage
-  useEffect(() => {
-    localStorage.setItem('shadowcheck_visible_columns', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
 
   // Location search moved into useLocationSearch hook
 
@@ -314,10 +293,6 @@ export default function GeospatialExplorer() {
     activeObservationSets,
     networkLookup,
   });
-
-  const toggleColumn = (col: keyof NetworkRow | 'select') => {
-    setVisibleColumns((v) => (v.includes(col) ? v.filter((c) => c !== col) : [...v, col]));
-  };
 
   const { toggle3DBuildings, toggleTerrain } = useMapLayersToggle({
     mapRef,
