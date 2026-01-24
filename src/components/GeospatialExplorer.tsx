@@ -20,6 +20,7 @@ import { ResizeHandle } from './geospatial/ResizeHandle';
 import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
 import { NetworkTableRow } from './geospatial/NetworkTableRow';
 import { NetworkTableFooter } from './geospatial/NetworkTableFooter';
+import { NetworkTableEmptyState } from './geospatial/NetworkTableEmptyState';
 
 // Types
 import type {
@@ -1959,26 +1960,12 @@ export default function GeospatialExplorer() {
                 }}
               >
                 <tbody>
-                  {loadingNetworks && (
-                    <tr>
-                      <td
-                        colSpan={visibleColumns.length}
-                        style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
-                      >
-                        Loading networks…
-                      </td>
-                    </tr>
-                  )}
-                  {!loadingNetworks && filteredNetworks.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={visibleColumns.length}
-                        style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
-                      >
-                        {error ? `Error: ${error}` : 'No networks match current filters'}
-                      </td>
-                    </tr>
-                  )}
+                  <NetworkTableEmptyState
+                    loading={loadingNetworks}
+                    empty={!loadingNetworks && filteredNetworks.length === 0}
+                    error={error}
+                    colSpan={visibleColumns.length}
+                  />
                   {!loadingNetworks &&
                     filteredNetworks.map((net, idx) => (
                       <NetworkTableRow
