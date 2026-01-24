@@ -2,9 +2,9 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type mapboxglType from 'mapbox-gl';
 import { HamburgerButton } from './HamburgerButton';
-import { FilterPanelWrapper } from './FilterPanelWrapper';
-import { FilterPanel } from './FilterPanel';
-import { ActiveFiltersSummary } from './ActiveFiltersSummary';
+import { WigleControlPanel } from './WigleControlPanel';
+import { WigleFilterPanel } from './WigleFilterPanel';
+import { WigleMap } from './WigleMap';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
@@ -584,133 +584,31 @@ const WiglePage: React.FC = () => {
     <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
       <HamburgerButton isOpen={showMenu} onClick={() => setShowMenu(!showMenu)} />
 
-      {/* Controls Panel - Kepler style */}
-      {showMenu && (
-        <div className="fixed top-16 left-4 w-80 max-h-[calc(100vh-100px)] bg-slate-900/95 border border-blue-500/25 backdrop-blur-xl rounded-xl shadow-2xl p-5 space-y-3.5 text-sm overflow-y-auto z-40 pointer-events-auto">
-          <div className="border-b border-blue-500/20 pb-3.5 mb-1.5">
-            <h3 className="text-xl font-bold text-blue-400">🛡️ ShadowCheck</h3>
-            <p className="text-xs text-slate-400 mt-1">Network Mapping</p>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl ${
-                showFilters
-                  ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-600'
-                  : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600'
-              }`}
-            >
-              {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
-            </button>
-          </div>
+      <WigleControlPanel
+        isOpen={showMenu}
+        onShowFilters={() => setShowFilters(!showFilters)}
+        showFilters={showFilters}
+        mapStyle={mapStyle}
+        onMapStyleChange={setMapStyle}
+        mapStyles={mapStyles}
+        show3dBuildings={show3dBuildings}
+        onToggle3dBuildings={() => setShow3dBuildings(!show3dBuildings)}
+        showTerrain={showTerrain}
+        onToggleTerrain={() => setShowTerrain(!showTerrain)}
+        onLoadPoints={fetchPoints}
+        loading={loading}
+        rowsLoaded={rows.length}
+        totalRows={total}
+      />
 
-          {/* Map Style */}
-          <div>
-            <label htmlFor="wigle-map-style" className="block mb-1 text-xs text-slate-300">
-              Map Style
-            </label>
-            <select
-              id="wigle-map-style"
-              value={mapStyle}
-              onChange={(e) => setMapStyle(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-            >
-              {mapStyles.map((style) => (
-                <option key={style.value} value={style.value}>
-                  {style.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      <WigleFilterPanel isOpen={showFilters && showMenu} adaptedFilters={adaptedFilters} />
 
-          {/* 3D & Terrain buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShow3dBuildings(!show3dBuildings)}
-              className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                show3dBuildings
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {show3dBuildings ? '✓ ' : ''}3D Buildings
-            </button>
-            <button
-              onClick={() => setShowTerrain(!showTerrain)}
-              className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                showTerrain
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {showTerrain ? '✓ ' : ''}Terrain
-            </button>
-          </div>
-
-          {/* Load Points button */}
-          <button
-            onClick={fetchPoints}
-            className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
-            style={{
-              background: loading
-                ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
-                : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-            }}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : '📍 Load Points'}
-          </button>
-
-          {/* Stats footer */}
-          <div className="pt-3 mt-2 border-t border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent p-3 -mx-5 -mb-5 rounded-b-xl text-xs">
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">Loaded:</span>
-                <span className="text-blue-400 font-semibold">{rows.length.toLocaleString()}</span>
-              </div>
-              {total != null && (
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Total:</span>
-                  <span className="text-blue-400 font-semibold">{total.toLocaleString()}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Panel - appears to the right */}
-      {showFilters && showMenu && (
-        <div className="fixed top-16 left-[352px] w-80 max-h-[calc(100vh-100px)] bg-slate-900/95 border border-blue-500/25 backdrop-blur-xl rounded-xl shadow-2xl p-4 space-y-2 overflow-y-auto z-40 pointer-events-auto">
-          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
-          <FilterPanel density="compact" />
-        </div>
-      )}
-
-      <div
-        className="flex-1"
-        style={{
-          minHeight: '100vh',
-          background: '#0b1220',
-          position: 'relative',
-        }}
-      >
-        <div ref={mapContainerRef} className="absolute inset-0" />
-        {!mapReady && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#94a3b8',
-              fontSize: '12px',
-              pointerEvents: 'none',
-            }}
-          >
-            Loading map…
-          </div>
-        )}
-      </div>
+      <WigleMap
+        mapContainerRef={mapContainerRef}
+        loading={loading}
+        error={error}
+        mapReady={mapReady}
+      />
     </div>
   );
 };
