@@ -122,7 +122,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div className="h-[240px] w-full">
+        <div className="h-[260px] w-full">
           <ResponsiveContainer
             width="100%"
             height="100%"
@@ -132,7 +132,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
               <Pie
                 data={validNetworkData}
                 cx="50%"
-                cy="45%"
+                cy="50%"
                 innerRadius="45%"
                 outerRadius="70%"
                 paddingAngle={2}
@@ -207,7 +207,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div className="h-[240px] w-full">
+        <div className="h-[260px] w-full">
           <ResponsiveContainer
             width="100%"
             height="100%"
@@ -217,7 +217,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
               <Pie
                 data={validSecurityData}
                 cx="50%"
-                cy="45%"
+                cy="50%"
                 innerRadius="45%"
                 outerRadius="70%"
                 paddingAngle={2}

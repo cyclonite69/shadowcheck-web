@@ -482,8 +482,8 @@ export default function DashboardPage() {
         <div className="relative min-h-[2400px]">
           {cards.map((card) => {
             const Icon = card.icon;
-            const width = `calc(${card.w}% - 16px)`;
-            const left = `calc(${card.x}% + 8px)`;
+            const width = `${card.w}%`;
+            const left = `${card.x}%`;
             const isActive = dragging === card.id || resizing === card.id;
 
             return (
@@ -491,111 +491,109 @@ export default function DashboardPage() {
                 key={card.id}
                 style={{
                   left: left,
-                  top: `${card.y + 8}px`,
+                  top: `${card.y}px`,
                   width: width,
-                  height: `${card.h - 16}px`,
+                  height: `${card.h}px`,
                   ...(isActive ? { transition: 'none' } : {}),
                 }}
-                className="absolute"
+                onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
+                className={`absolute ${isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'}`}
               >
-                <div
-                  onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-                  className={`h-full w-full overflow-hidden rounded-xl border border-slate-700/20 bg-slate-900/30 shadow-lg shadow-black/40 hover:shadow-xl hover:shadow-black/50 transition-all duration-200 group backdrop-blur-sm ${
-                    isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
-                  }`}
-                >
-                  <div className="absolute inset-0 pointer-events-none opacity-2 bg-gradient-to-br from-white/5 to-transparent" />
+                <div className="h-full w-full p-2">
+                  <div className="h-full w-full overflow-hidden rounded-xl border border-slate-700/20 bg-slate-900/35 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm">
+                    <div className="absolute inset-0 pointer-events-none opacity-2 bg-gradient-to-br from-white/5 to-transparent" />
 
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/20">
-                    <div className="flex items-center gap-2">
-                      <Icon size={16} className="text-slate-300/80" />
-                      <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
-                    </div>
-                    <GripHorizontal
-                      size={14}
-                      className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div
-                    className={`px-4 py-4 overflow-hidden flex flex-col ${
-                      card.type === 'analytics-link'
-                        ? 'cursor-pointer hover:bg-slate-800/20 transition-colors items-center justify-center'
-                        : 'justify-between'
-                    }`}
-                    style={{ height: `${card.h - 52 - 16}px` }}
-                    onClick={() => {
-                      if (card.type === 'analytics-link') {
-                        window.location.href = '/analytics';
-                      }
-                    }}
-                  >
-                    {card.type === 'analytics-link' ? (
-                      /* Analytics Link - Centered Layout */
-                      <div className="text-center space-y-3">
-                        <div className="text-5xl font-light text-slate-400">→</div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-slate-300">View Analytics</p>
-                          <p className="text-xs text-slate-500">Detailed charts & insights</p>
-                        </div>
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/20">
+                      <div className="flex items-center gap-2">
+                        <Icon size={16} className="text-slate-300/80" />
+                        <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
                       </div>
-                    ) : (
-                      /* KPI Tile - Improved hierarchy */
-                      <>
-                        <div className="space-y-3">
-                          {/* Primary Metric */}
+                      <GripHorizontal
+                        size={14}
+                        className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
+                      />
+                    </div>
+
+                    {/* Content */}
+                    <div
+                      className={`px-4 py-4 overflow-hidden flex flex-col ${
+                        card.type === 'analytics-link'
+                          ? 'cursor-pointer hover:bg-slate-800/20 hover:ring-1 hover:ring-slate-400/10 transition-all items-center justify-center'
+                          : 'justify-between'
+                      }`}
+                      style={{ height: `calc(100% - 52px)` }}
+                      onClick={() => {
+                        if (card.type === 'analytics-link') {
+                          window.location.href = '/analytics';
+                        }
+                      }}
+                    >
+                      {card.type === 'analytics-link' ? (
+                        /* Analytics Link - CTA */
+                        <div className="text-center space-y-3">
+                          <div className="text-5xl font-light text-slate-400">→</div>
                           <div className="space-y-1">
-                            <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">
-                              Unique Networks
-                            </p>
-                            <p
-                              className="text-4xl font-semibold tracking-tight leading-none"
-                              style={{ color: card.color }}
-                            >
-                              {typeof card.value === 'number'
-                                ? card.value.toLocaleString()
-                                : card.value}
-                            </p>
+                            <p className="text-sm font-medium text-slate-300">View Analytics</p>
+                            <p className="text-xs text-slate-500">Detailed charts & insights</p>
+                          </div>
+                        </div>
+                      ) : (
+                        /* KPI Tile - Improved composition */
+                        <>
+                          <div className="space-y-4">
+                            {/* Primary Metric */}
+                            <div className="space-y-2">
+                              <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">
+                                Unique Networks
+                              </p>
+                              <p
+                                className="text-4xl font-semibold tracking-tight leading-none tabular-nums"
+                                style={{ color: card.color }}
+                              >
+                                {typeof card.value === 'number'
+                                  ? card.value.toLocaleString()
+                                  : card.value}
+                              </p>
+                            </div>
+
+                            {/* Secondary Metric */}
+                            {card.observations !== undefined && (
+                              <div className="space-y-1">
+                                <p className="text-sm text-slate-300/90 tabular-nums font-medium">
+                                  {card.observations.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-slate-500">Total Observations</p>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Secondary Metric */}
-                          {card.observations !== undefined && (
-                            <div className="space-y-1">
-                              <p className="text-sm text-slate-300/90 tabular-nums font-medium">
-                                {card.observations.toLocaleString()}
-                              </p>
-                              <p className="text-xs text-slate-500">Total Observations</p>
-                            </div>
-                          )}
-                        </div>
+                          {/* Status - Always at bottom */}
+                          <div className="pt-2 border-t border-slate-700/15">
+                            <p className="text-xs text-slate-500/80">
+                              {loading
+                                ? 'Loading...'
+                                : error
+                                  ? error
+                                  : filtersApplied > 0
+                                    ? `${filtersApplied} filter${filtersApplied > 1 ? 's' : ''} active`
+                                    : 'All networks'}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-                        {/* Status - Always at bottom */}
-                        <div className="pt-2 border-t border-slate-700/20">
-                          <p className="text-xs text-slate-500/80">
-                            {loading
-                              ? 'Loading...'
-                              : error
-                                ? error
-                                : filtersApplied > 0
-                                  ? `${filtersApplied} filter${filtersApplied > 1 ? 's' : ''} active`
-                                  : 'All networks'}
-                          </p>
-                        </div>
-                      </>
-                    )}
+                    {/* Resize Handle */}
+                    <div
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleMouseDown(e, card.id, 'resize');
+                      }}
+                      className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
+                    />
                   </div>
-
-                  {/* Resize Handle */}
-                  <div
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleMouseDown(e, card.id, 'resize');
-                    }}
-                    className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
-                  />
                 </div>
               </div>
             );

@@ -76,8 +76,8 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
         <div className="relative min-h-[2700px]">
           {cards.map((card) => {
             const Icon = card.icon;
-            const width = `calc(${card.w}% - 16px)`;
-            const left = `calc(${card.x}% + 8px)`;
+            const width = `${card.w}%`;
+            const left = `${card.x}%`;
             const isActive = dragging === card.id || resizing === card.id;
 
             return (
@@ -85,57 +85,55 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
                 key={card.id}
                 style={{
                   left: left,
-                  top: `${card.y + 8}px`,
+                  top: `${card.y}px`,
                   width: width,
-                  height: `${card.h - 16}px`,
+                  height: `${card.h}px`,
                   ...(isActive ? { transition: 'none' } : {}),
                 }}
-                className="absolute"
+                onMouseDown={(e) => onMouseDown(e, card.id, 'move')}
+                className={`absolute ${isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'}`}
               >
-                <div
-                  onMouseDown={(e) => onMouseDown(e, card.id, 'move')}
-                  className={`h-full w-full overflow-hidden rounded-xl border border-slate-700/20 bg-slate-900/30 shadow-lg shadow-black/40 hover:shadow-xl hover:shadow-black/50 transition-all duration-200 group backdrop-blur-sm ${
-                    isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
-                  }`}
-                >
-                  <div className="absolute inset-0 pointer-events-none opacity-2 bg-gradient-to-br from-white/5 to-transparent" />
+                <div className="h-full w-full p-2">
+                  <div className="h-full w-full overflow-hidden rounded-xl border border-slate-700/20 bg-slate-900/35 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm">
+                    <div className="absolute inset-0 pointer-events-none opacity-2 bg-gradient-to-br from-white/5 to-transparent" />
 
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/20">
-                    <div className="flex items-center gap-2">
-                      <Icon size={16} className="text-slate-300/80" />
-                      <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/20">
+                      <div className="flex items-center gap-2">
+                        <Icon size={16} className="text-slate-300/80" />
+                        <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
+                      </div>
+                      <GripHorizontal
+                        size={14}
+                        className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
+                      />
                     </div>
-                    <GripHorizontal
-                      size={14}
-                      className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
+
+                    {/* Content */}
+                    <div
+                      className="px-4 py-3 overflow-hidden"
+                      style={{ height: `calc(100% - 52px)` }}
+                    >
+                      <AnalyticsCharts
+                        card={card}
+                        data={data}
+                        loading={loading}
+                        error={error}
+                        debouncedFilterState={debouncedFilterState}
+                        onMouseDown={onMouseDown}
+                      />
+                    </div>
+
+                    {/* Resize Handle */}
+                    <div
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onMouseDown(e, card.id, 'resize');
+                      }}
+                      className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
                     />
                   </div>
-
-                  {/* Content */}
-                  <div
-                    className="px-4 py-3 overflow-hidden"
-                    style={{ height: `${card.h - 52 - 16}px` }}
-                  >
-                    <AnalyticsCharts
-                      card={card}
-                      data={data}
-                      loading={loading}
-                      error={error}
-                      debouncedFilterState={debouncedFilterState}
-                      onMouseDown={onMouseDown}
-                    />
-                  </div>
-
-                  {/* Resize Handle */}
-                  <div
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      onMouseDown(e, card.id, 'resize');
-                    }}
-                    className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
-                  />
                 </div>
               </div>
             );
