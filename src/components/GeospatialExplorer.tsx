@@ -30,6 +30,8 @@ import { useColumnVisibility } from './geospatial/useColumnVisibility';
 import { useNetworkSort } from './geospatial/useNetworkSort';
 import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
+import { useMapPreferences } from './geospatial/useMapPreferences';
+import { useObservationSummary } from './geospatial/useObservationSummary';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -95,15 +97,14 @@ export default function GeospatialExplorer() {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
   const [containerHeight, setContainerHeight] = useState<number>(800);
-  const [mapStyle, setMapStyle] = useState<string>(() => {
-    return localStorage.getItem('shadowcheck_map_style') || 'mapbox://styles/mapbox/dark-v11';
-  });
-  const [show3DBuildings, setShow3DBuildings] = useState<boolean>(() => {
-    return localStorage.getItem('shadowcheck_show_3d_buildings') === 'true';
-  });
-  const [showTerrain, setShowTerrain] = useState<boolean>(() => {
-    return localStorage.getItem('shadowcheck_show_terrain') === 'true';
-  });
+  const {
+    mapStyle,
+    setMapStyle,
+    show3DBuildings,
+    setShow3DBuildings,
+    showTerrain,
+    setShowTerrain,
+  } = useMapPreferences();
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [resizing, setResizing] = useState(false);
   const { visibleColumns, toggleColumn } = useColumnVisibility({
@@ -212,25 +213,11 @@ export default function GeospatialExplorer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady]); // Only run when map becomes ready, not when settings change
 
-  const activeObservationSets = useMemo(
-    () =>
-      Array.from(selectedNetworks).map((bssid) => ({
-        bssid,
-        observations: observationsByBssid[bssid] || [],
-      })),
-    [observationsByBssid, selectedNetworks]
-  );
-  const observationCount = useMemo(
-    () => activeObservationSets.reduce((acc, set) => acc + set.observations.length, 0),
-    [activeObservationSets]
-  );
-  const networkLookup = useMemo(() => {
-    const map = new Map<string, NetworkRow>();
-    networks.forEach((net) => {
-      map.set(net.bssid, net);
-    });
-    return map;
-  }, [networks]);
+  const { activeObservationSets, observationCount, networkLookup } = useObservationSummary({
+    selectedNetworks,
+    observationsByBssid,
+    networks,
+  });
 
   const handleMouseDown = useMapResizeHandle({
     mapHeight,
