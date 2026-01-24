@@ -71,9 +71,9 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
         </button>
       </div>
 
-      <div className="relative flex-1 overflow-y-auto h-screen p-4">
+      <div className="relative flex-1 overflow-y-auto h-screen">
         {/* Cards */}
-        <div className="relative min-h-[2700px] space-y-4">
+        <div className="relative min-h-[2700px]">
           {cards.map((card) => {
             const Icon = card.icon;
             const width = `${card.w}%`;
@@ -90,46 +90,53 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
                   height: `${card.h}px`,
                   ...(isActive ? { transition: 'none' } : {}),
                 }}
-                onMouseDown={(e) => onMouseDown(e, card.id, 'move')}
-                className={`absolute overflow-hidden rounded-xl border border-slate-700/30 bg-slate-900/40 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm ${
-                  isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
-                }`}
+                className="absolute p-2"
               >
-                <div className="absolute inset-0 pointer-events-none opacity-3 bg-gradient-to-br from-white/8 to-transparent" />
-
-                {/* Header */}
-                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/30">
-                  <div className="flex items-center gap-2">
-                    <Icon size={16} className="text-slate-300/80" />
-                    <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
-                  </div>
-                  <GripHorizontal
-                    size={14}
-                    className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="px-4 py-3 overflow-hidden" style={{ height: `${card.h - 52}px` }}>
-                  <AnalyticsCharts
-                    card={card}
-                    data={data}
-                    loading={loading}
-                    error={error}
-                    debouncedFilterState={debouncedFilterState}
-                    onMouseDown={onMouseDown}
-                  />
-                </div>
-
-                {/* Resize Handle */}
                 <div
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onMouseDown(e, card.id, 'resize');
-                  }}
-                  className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
-                />
+                  onMouseDown={(e) => onMouseDown(e, card.id, 'move')}
+                  className={`h-full w-full overflow-hidden rounded-xl border border-slate-700/30 bg-slate-900/40 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm ${
+                    isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
+                  }`}
+                >
+                  <div className="absolute inset-0 pointer-events-none opacity-3 bg-gradient-to-br from-white/8 to-transparent" />
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/30">
+                    <div className="flex items-center gap-2">
+                      <Icon size={16} className="text-slate-300/80" />
+                      <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
+                    </div>
+                    <GripHorizontal
+                      size={14}
+                      className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div
+                    className="px-4 py-3 overflow-hidden"
+                    style={{ height: `${card.h - 52 - 16}px` }}
+                  >
+                    <AnalyticsCharts
+                      card={card}
+                      data={data}
+                      loading={loading}
+                      error={error}
+                      debouncedFilterState={debouncedFilterState}
+                      onMouseDown={onMouseDown}
+                    />
+                  </div>
+
+                  {/* Resize Handle */}
+                  <div
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onMouseDown(e, card.id, 'resize');
+                    }}
+                    className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
+                  />
+                </div>
               </div>
             );
           })}

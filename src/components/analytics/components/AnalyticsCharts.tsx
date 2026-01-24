@@ -122,46 +122,37 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div className="h-[240px] w-full">
-          <div className="h-[180px] w-full flex items-center justify-center">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              key={`network-types-${validNetworkData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
-            >
-              <PieChart>
-                <Pie
-                  data={validNetworkData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="45%"
-                  outerRadius="70%"
-                  paddingAngle={2}
-                  dataKey="value"
-                  animationDuration={300}
-                >
-                  {validNetworkData.map((entry, idx) => (
-                    <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  {...TOOLTIP_CONFIG}
-                  formatter={(value, name, props) => {
-                    const total = validNetworkData.reduce((sum, item) => sum + item.value, 0);
-                    return formatPieTooltip(value as number, name as string, total);
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="h-[60px] flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-2">
-            {validNetworkData.map((entry, idx) => (
-              <div key={`legend-${idx}`} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                <span className="text-xs text-slate-300">{entry.name}</span>
-              </div>
-            ))}
-          </div>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            key={`network-types-${validNetworkData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
+          >
+            <PieChart>
+              <Pie
+                data={validNetworkData}
+                cx="50%"
+                cy="50%"
+                innerRadius="45%"
+                outerRadius="70%"
+                paddingAngle={2}
+                dataKey="value"
+                animationDuration={300}
+              >
+                {validNetworkData.map((entry, idx) => (
+                  <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                {...TOOLTIP_CONFIG}
+                formatter={(value, name, props) => {
+                  const total = validNetworkData.reduce((sum, item) => sum + item.value, 0);
+                  return formatPieTooltip(value as number, name as string, total);
+                }}
+              />
+              <Legend {...LEGEND_CONFIG} />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       );
     case 'signal':
@@ -216,46 +207,37 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div className="h-[240px] w-full">
-          <div className="h-[180px] w-full flex items-center justify-center">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              key={`security-${validSecurityData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
-            >
-              <PieChart>
-                <Pie
-                  data={validSecurityData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="45%"
-                  outerRadius="70%"
-                  paddingAngle={2}
-                  dataKey="value"
-                  animationDuration={300}
-                >
-                  {validSecurityData.map((entry, idx) => (
-                    <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  {...TOOLTIP_CONFIG}
-                  formatter={(value, name, props) => {
-                    const total = validSecurityData.reduce((sum, item) => sum + item.value, 0);
-                    return formatPieTooltip(value as number, name as string, total);
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="h-[60px] flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-2">
-            {validSecurityData.map((entry, idx) => (
-              <div key={`legend-${idx}`} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                <span className="text-xs text-slate-300">{entry.name}</span>
-              </div>
-            ))}
-          </div>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            key={`security-${validSecurityData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
+          >
+            <PieChart>
+              <Pie
+                data={validSecurityData}
+                cx="50%"
+                cy="50%"
+                innerRadius="45%"
+                outerRadius="70%"
+                paddingAngle={2}
+                dataKey="value"
+                animationDuration={300}
+              >
+                {validSecurityData.map((entry, idx) => (
+                  <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                {...TOOLTIP_CONFIG}
+                formatter={(value, name, props) => {
+                  const total = validSecurityData.reduce((sum, item) => sum + item.value, 0);
+                  return formatPieTooltip(value as number, name as string, total);
+                }}
+              />
+              <Legend {...LEGEND_CONFIG} />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       );
     case 'temporal': {
