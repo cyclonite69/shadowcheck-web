@@ -14,6 +14,7 @@ import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { NetworkExplorerSection } from './geospatial/NetworkExplorerSection';
 import { useMapLayersToggle } from './geospatial/MapLayersToggle';
 import { GeospatialFiltersPanel } from './geospatial/GeospatialFiltersPanel';
+import { useLocationSearch } from './geospatial/useLocationSearch';
 
 // Types
 import type {
@@ -129,10 +130,6 @@ export default function GeospatialExplorer() {
   // Map and location state
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [locationSearch, setLocationSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchingLocation, setSearchingLocation] = useState(false);
   const [homeButtonActive, setHomeButtonActive] = useState(false);
   const [fitButtonActive, setFitButtonActive] = useState(false);
   const [homeLocation, setHomeLocation] = useState<{
@@ -187,43 +184,16 @@ export default function GeospatialExplorer() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInitRef = useRef(false);
   const columnDropdownRef = useRef<HTMLDivElement | null>(null);
-  const locationSearchRef = useRef<HTMLDivElement | null>(null);
-  const searchMarkerRef = useRef<mapboxglType.Marker | null>(null);
-
-  // Geocoding search function
-  const searchLocation = useCallback(async (query: string) => {
-    const mapboxgl = mapboxRef.current;
-    if (!query.trim() || !mapboxgl?.accessToken) return;
-
-    setSearchingLocation(true);
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&limit=5`
-      );
-      const data = await response.json();
-      setSearchResults(data.features || []);
-      setShowSearchResults(true);
-    } catch (error) {
-      logError('Geocoding error', error);
-      setSearchResults([]);
-    } finally {
-      setSearchingLocation(false);
-    }
-  }, []);
-
-  // Debounced location search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (locationSearch.trim()) {
-        searchLocation(locationSearch);
-      } else {
-        setSearchResults([]);
-        setShowSearchResults(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [locationSearch, searchLocation]);
+  const {
+    locationSearch,
+    setLocationSearch,
+    searchResults,
+    showSearchResults,
+    setShowSearchResults,
+    searchingLocation,
+    locationSearchRef,
+    flyToLocation,
+  } = useLocationSearch({ mapRef, mapboxRef, logError });
 
   // Persist visible columns to localStorage
   useEffect(() => {
@@ -251,59 +221,7 @@ export default function GeospatialExplorer() {
     fetchHomeLocation();
   }, []);
 
-  // Click outside to close search results
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (locationSearchRef.current && !locationSearchRef.current.contains(event.target as Node)) {
-        setShowSearchResults(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Fly to selected location
-  const flyToLocation = useCallback((result: any) => {
-    const mapboxgl = mapboxRef.current;
-    if (!mapRef.current || !mapboxgl) return;
-
-    const [lng, lat] = result.center;
-
-    // Remove existing search marker
-    if (searchMarkerRef.current) {
-      searchMarkerRef.current.remove();
-    }
-
-    // Add new marker
-    searchMarkerRef.current = new mapboxgl.Marker({ color: '#3b82f6' })
-      .setLngLat([lng, lat])
-      .setPopup(
-        new mapboxgl.Popup({ offset: 25 }).setHTML(
-          `<div style="color: #000; font-weight: 600;">${result.place_name}</div>`
-        )
-      )
-      .addTo(mapRef.current);
-
-    // Fly to location
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: result.bbox ? undefined : 14,
-      essential: true,
-      duration: 2000,
-    });
-
-    // Fit to bbox if available
-    if (result.bbox) {
-      mapRef.current.fitBounds(result.bbox, {
-        padding: 50,
-        duration: 2000,
-      });
-    }
-
-    setShowSearchResults(false);
-    setLocationSearch('');
-  }, []);
+  // Location search moved into useLocationSearch hook
 
   // Reset pagination when filters change
   useEffect(() => {
