@@ -9,8 +9,7 @@ import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbarActions } from './geospatial/MapToolbarActions';
-import { ResizeHandle } from './geospatial/ResizeHandle';
-import { MapPanel } from './geospatial/MapPanel';
+import { MapSection } from './geospatial/MapSection';
 import { FiltersSidebar } from './geospatial/FiltersSidebar';
 import { GeospatialContent } from './geospatial/GeospatialContent';
 import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
@@ -1784,7 +1783,7 @@ export default function GeospatialExplorer() {
       </FiltersSidebar>
       <GeospatialContent filtersOpen={filtersOpen}>
         {/* Map Card */}
-        <MapPanel
+        <MapSection
           mapHeight={mapHeight}
           title="ShadowCheck Geospatial Intelligence"
           toolbar={
@@ -1825,10 +1824,8 @@ export default function GeospatialExplorer() {
           embeddedView={embeddedView}
           mapRef={mapRef}
           mapContainerRef={mapContainerRef}
+          onResizeMouseDown={handleMouseDown}
         />
-
-        {/* Resize Handle */}
-        <ResizeHandle onMouseDown={handleMouseDown} />
 
         <NetworkExplorerSection
           expensiveSort={expensiveSort}
