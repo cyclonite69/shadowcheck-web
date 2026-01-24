@@ -67,7 +67,7 @@ export interface TimeframeFilter {
   type: 'absolute' | 'relative';
   startTimestamp?: string; // ISO string
   endTimestamp?: string; // ISO string
-  relativeWindow?: '24h' | '7d' | '30d' | '90d' | 'all';
+  relativeWindow?: '24h' | '7d' | '30d' | '90d' | '6mo' | '9mo' | '1y' | '18mo' | '2y' | 'all';
 }
 
 export interface BoundingBox {

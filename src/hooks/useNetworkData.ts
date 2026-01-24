@@ -397,11 +397,21 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         // Timeframe filter
         if (enabled.timeframe && filters.timeframe?.type === 'relative') {
           const window = filters.timeframe.relativeWindow || '30d';
-          const unit = window.slice(-1);
-          const value = parseInt(window.slice(0, -1), 10);
+          const unit = window.slice(-2) === 'mo' ? 'mo' : window.slice(-1);
+          const value = parseInt(window.slice(0, unit === 'mo' ? -2 : -1), 10);
           if (!Number.isNaN(value)) {
-            const ms =
-              unit === 'h' ? value * 3600000 : unit === 'm' ? value * 60000 : value * 86400000;
+            let ms;
+            if (unit === 'h') {
+              ms = value * 3600000; // hours
+            } else if (unit === 'm') {
+              ms = value * 60000; // minutes
+            } else if (unit === 'mo') {
+              ms = value * 30.44 * 86400000; // months (average 30.44 days)
+            } else if (unit === 'y') {
+              ms = value * 365 * 86400000; // years
+            } else {
+              ms = value * 86400000; // days (default)
+            }
             const since = new Date(Date.now() - ms).toISOString();
             params.set('last_seen', since);
           }

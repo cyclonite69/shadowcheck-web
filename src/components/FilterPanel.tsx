@@ -579,6 +579,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                     <option value="7d">Last 7 days</option>
                     <option value="30d">Last 30 days</option>
                     <option value="90d">Last 90 days</option>
+                    <option value="6mo">Last 6 months</option>
+                    <option value="9mo">Last 9 months</option>
+                    <option value="1y">Last 1 year</option>
+                    <option value="18mo">Last 18 months</option>
+                    <option value="2y">Last 2 years</option>
                     <option value="all">All time</option>
                   </select>
                 </div>
