@@ -19,6 +19,7 @@ import { MapPanel } from './geospatial/MapPanel';
 import { FiltersSidebar } from './geospatial/FiltersSidebar';
 import { GeospatialContent } from './geospatial/GeospatialContent';
 import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
+import { GeospatialShell } from './geospatial/GeospatialShell';
 
 // Types
 import type {
@@ -1781,13 +1782,7 @@ export default function GeospatialExplorer() {
   };
 
   return (
-    <div
-      className="relative w-full min-h-screen overflow-hidden"
-      style={{
-        background:
-          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
-      }}
-    >
+    <GeospatialShell>
       <FiltersSidebar open={filtersOpen}>
         <FilterPanel density="compact" />
       </FiltersSidebar>
@@ -1971,6 +1966,6 @@ export default function GeospatialExplorer() {
         timeFreqModal={timeFreqModal}
         onCloseTimeFrequency={() => setTimeFreqModal(null)}
       />
-    </div>
+    </GeospatialShell>
   );
 }
