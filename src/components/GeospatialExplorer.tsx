@@ -19,6 +19,7 @@ import { NetworkNoteModal } from './geospatial/NetworkNoteModal';
 import { ResizeHandle } from './geospatial/ResizeHandle';
 import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
 import { NetworkTableBody } from './geospatial/NetworkTableBody';
+import { NetworkExplorerCard } from './geospatial/NetworkExplorerCard';
 
 // Types
 import type {
@@ -1911,15 +1912,7 @@ export default function GeospatialExplorer() {
           <ResizeHandle onMouseDown={handleMouseDown} />
 
           {/* Networks Explorer Card */}
-          <div
-            className="flex-1 flex flex-col overflow-hidden min-h-0"
-            style={{
-              background: 'rgba(30, 41, 59, 0.4)',
-              borderRadius: '12px',
-              border: '1px solid rgba(71, 85, 105, 0.3)',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
+          <NetworkExplorerCard>
             <NetworkExplorerHeader
               expensiveSort={expensiveSort}
               planCheck={planCheck}
@@ -1975,7 +1968,7 @@ export default function GeospatialExplorer() {
               loadingNetworks={loadingNetworks}
               loadingObservations={loadingObservations}
             />
-          </div>
+          </NetworkExplorerCard>
         </div>
       </div>
 
