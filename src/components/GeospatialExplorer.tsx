@@ -1710,25 +1710,21 @@ export default function GeospatialExplorer() {
             title="ShadowCheck Geospatial Intelligence"
             toolbar={
               <MapToolbarActions
-                searchContainerRef={locationSearchRef}
+                locationSearchRef={locationSearchRef}
                 locationSearch={locationSearch}
-                onLocationSearchChange={setLocationSearch}
-                onLocationSearchFocus={() => {
-                  if (searchResults.length > 0) {
-                    setShowSearchResults(true);
-                  }
-                }}
+                setLocationSearch={setLocationSearch}
                 searchingLocation={searchingLocation}
                 showSearchResults={showSearchResults}
+                setShowSearchResults={setShowSearchResults}
                 searchResults={searchResults}
                 onSelectSearchResult={flyToLocation}
                 mapStyle={mapStyle}
                 onMapStyleChange={changeMapStyle}
                 mapStyles={MAP_STYLES}
                 show3DBuildings={show3DBuildings}
-                onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
+                toggle3DBuildings={toggle3DBuildings}
                 showTerrain={showTerrain}
-                onToggleTerrain={() => toggleTerrain(!showTerrain)}
+                toggleTerrain={toggleTerrain}
                 fitButtonActive={fitButtonActive}
                 canFit={selectedNetworks.size > 0}
                 mapboxRef={mapboxRef}

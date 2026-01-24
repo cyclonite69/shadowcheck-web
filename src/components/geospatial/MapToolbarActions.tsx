@@ -2,22 +2,28 @@ import React from 'react';
 import type mapboxglType from 'mapbox-gl';
 import { MapToolbar } from './MapToolbar';
 
+interface LocationSearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
 interface MapToolbarActionsProps {
-  searchContainerRef: React.RefObject<HTMLDivElement>;
+  locationSearchRef: React.RefObject<HTMLDivElement>;
   locationSearch: string;
-  onLocationSearchChange: (value: string) => void;
-  onLocationSearchFocus: () => void;
+  setLocationSearch: (value: string) => void;
   searchingLocation: boolean;
   showSearchResults: boolean;
-  searchResults: Array<{ display_name: string; lat: string; lon: string }>;
-  onSelectSearchResult: (result: { display_name: string; lat: string; lon: string }) => void;
+  setShowSearchResults: (value: boolean) => void;
+  searchResults: LocationSearchResult[];
+  onSelectSearchResult: (result: LocationSearchResult) => void;
   mapStyle: string;
   onMapStyleChange: (style: string) => void;
   mapStyles: Record<string, string>;
   show3DBuildings: boolean;
-  onToggle3DBuildings: () => void;
+  toggle3DBuildings: (enabled: boolean) => void;
   showTerrain: boolean;
-  onToggleTerrain: () => void;
+  toggleTerrain: (enabled: boolean) => void;
   fitButtonActive: boolean;
   canFit: boolean;
   mapboxRef: React.MutableRefObject<typeof mapboxglType | null>;
@@ -31,21 +37,21 @@ interface MapToolbarActionsProps {
 }
 
 export const MapToolbarActions = ({
-  searchContainerRef,
+  locationSearchRef,
   locationSearch,
-  onLocationSearchChange,
-  onLocationSearchFocus,
+  setLocationSearch,
   searchingLocation,
   showSearchResults,
+  setShowSearchResults,
   searchResults,
   onSelectSearchResult,
   mapStyle,
   onMapStyleChange,
   mapStyles,
   show3DBuildings,
-  onToggle3DBuildings,
+  toggle3DBuildings,
   showTerrain,
-  onToggleTerrain,
+  toggleTerrain,
   fitButtonActive,
   canFit,
   mapboxRef,
@@ -59,10 +65,14 @@ export const MapToolbarActions = ({
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
-      searchContainerRef={searchContainerRef}
+      searchContainerRef={locationSearchRef}
       locationSearch={locationSearch}
-      onLocationSearchChange={onLocationSearchChange}
-      onLocationSearchFocus={onLocationSearchFocus}
+      onLocationSearchChange={setLocationSearch}
+      onLocationSearchFocus={() => {
+        if (searchResults.length > 0) {
+          setShowSearchResults(true);
+        }
+      }}
       searchingLocation={searchingLocation}
       showSearchResults={showSearchResults}
       searchResults={searchResults}
@@ -71,9 +81,9 @@ export const MapToolbarActions = ({
       onMapStyleChange={onMapStyleChange}
       mapStyles={mapStyles}
       show3DBuildings={show3DBuildings}
-      onToggle3DBuildings={onToggle3DBuildings}
+      onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
       showTerrain={showTerrain}
-      onToggleTerrain={onToggleTerrain}
+      onToggleTerrain={() => toggleTerrain(!showTerrain)}
       fitButtonActive={fitButtonActive}
       canFit={canFit}
       onFit={() => {
