@@ -27,6 +27,7 @@ import { useNetworkNotes } from './geospatial/useNetworkNotes';
 import { useMapResizeHandle } from './geospatial/useMapResizeHandle';
 import { useNetworkSelection } from './geospatial/useNetworkSelection';
 import { useColumnVisibility } from './geospatial/useColumnVisibility';
+import { useNetworkSort } from './geospatial/useNetworkSort';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -259,32 +260,12 @@ export default function GeospatialExplorer() {
     onLoadMore: loadMore,
   });
 
-  const handleColumnSort = (column: keyof NetworkRow, _shiftKey: boolean) => {
-    const colConfig = NETWORK_COLUMNS[column as keyof typeof NETWORK_COLUMNS];
-    if (!colConfig || !colConfig.sortable) return;
-    if (!API_SORT_MAP[column]) {
-      setError(`Sort not supported for ${String(column)}`);
-      return;
-    }
-
-    setSort((prevSort) => {
-      const existingIndex = prevSort.findIndex((s) => s.column === column);
-      const nextDirection =
-        existingIndex >= 0 && prevSort[existingIndex].direction === 'asc' ? 'desc' : 'asc';
-
-      if (_shiftKey) {
-        const next = [...prevSort];
-        if (existingIndex >= 0) {
-          next[existingIndex] = { column, direction: nextDirection };
-        } else {
-          next.push({ column, direction: 'asc' });
-        }
-        return next;
-      }
-
-      return [{ column, direction: existingIndex >= 0 ? nextDirection : 'asc' }];
-    });
-  };
+  const { handleColumnSort } = useNetworkSort({
+    setSort,
+    setError,
+    sortMap: API_SORT_MAP,
+    columnConfig: NETWORK_COLUMNS,
+  });
 
   useObservationLayers({
     mapReady,
