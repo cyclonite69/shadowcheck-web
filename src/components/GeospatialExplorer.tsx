@@ -9,9 +9,7 @@ import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
-import { MapHeader } from './geospatial/MapHeader';
 import { MapToolbar } from './geospatial/MapToolbar';
-import { MapViewport } from './geospatial/MapViewport';
 import { NetworkExplorerHeader } from './geospatial/NetworkExplorerHeader';
 import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
 import { MapStatusBar } from './geospatial/MapStatusBar';
@@ -20,6 +18,7 @@ import { ResizeHandle } from './geospatial/ResizeHandle';
 import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
 import { NetworkTableBody } from './geospatial/NetworkTableBody';
 import { NetworkExplorerCard } from './geospatial/NetworkExplorerCard';
+import { MapPanel } from './geospatial/MapPanel';
 
 // Types
 import type {
@@ -1823,90 +1822,77 @@ export default function GeospatialExplorer() {
           style={{ marginLeft: filtersOpen ? '332px' : 0 }}
         >
           {/* Map Card */}
-          <div
-            className="overflow-hidden"
-            style={{
-              height: `${mapHeight}px`,
-              background: 'rgba(30, 41, 59, 0.4)',
-              borderRadius: '12px',
-              border: '1px solid rgba(71, 85, 105, 0.3)',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            <MapHeader
-              title="ShadowCheck Geospatial Intelligence"
-              toolbar={
-                <MapToolbar
-                  searchContainerRef={locationSearchRef}
-                  locationSearch={locationSearch}
-                  onLocationSearchChange={setLocationSearch}
-                  onLocationSearchFocus={() => {
-                    if (searchResults.length > 0) {
-                      setShowSearchResults(true);
+          <MapPanel
+            mapHeight={mapHeight}
+            title="ShadowCheck Geospatial Intelligence"
+            toolbar={
+              <MapToolbar
+                searchContainerRef={locationSearchRef}
+                locationSearch={locationSearch}
+                onLocationSearchChange={setLocationSearch}
+                onLocationSearchFocus={() => {
+                  if (searchResults.length > 0) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                searchingLocation={searchingLocation}
+                showSearchResults={showSearchResults}
+                searchResults={searchResults}
+                onSelectSearchResult={flyToLocation}
+                mapStyle={mapStyle}
+                onMapStyleChange={changeMapStyle}
+                mapStyles={MAP_STYLES}
+                show3DBuildings={show3DBuildings}
+                onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
+                showTerrain={showTerrain}
+                onToggleTerrain={() => toggleTerrain(!showTerrain)}
+                fitButtonActive={fitButtonActive}
+                canFit={selectedNetworks.size > 0}
+                onFit={() => {
+                  const mapboxgl = mapboxRef.current;
+                  if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
+                  setFitButtonActive(true);
+                  const allCoords = activeObservationSets.flatMap((set) =>
+                    set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
+                  );
+                  if (allCoords.length === 0) return;
+                  const bounds = allCoords.reduce(
+                    (bounds, coord) => bounds.extend(coord),
+                    new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+                  );
+                  mapRef.current.fitBounds(bounds, { padding: 50 });
+                  setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
+                }}
+                homeButtonActive={homeButtonActive}
+                onHome={() => {
+                  if (!mapRef.current) return;
+                  setHomeButtonActive(true);
+                  mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
+                  setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
+                }}
+                onGps={() => {
+                  if (!mapRef.current) return;
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      mapRef.current?.flyTo({
+                        center: [position.coords.longitude, position.coords.latitude],
+                        zoom: 15,
+                      });
+                    },
+                    (error) => {
+                      logError('Geolocation error', error);
+                      alert('Unable to get your location. Please enable location services.');
                     }
-                  }}
-                  searchingLocation={searchingLocation}
-                  showSearchResults={showSearchResults}
-                  searchResults={searchResults}
-                  onSelectSearchResult={flyToLocation}
-                  mapStyle={mapStyle}
-                  onMapStyleChange={changeMapStyle}
-                  mapStyles={MAP_STYLES}
-                  show3DBuildings={show3DBuildings}
-                  onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
-                  showTerrain={showTerrain}
-                  onToggleTerrain={() => toggleTerrain(!showTerrain)}
-                  fitButtonActive={fitButtonActive}
-                  canFit={selectedNetworks.size > 0}
-                  onFit={() => {
-                    const mapboxgl = mapboxRef.current;
-                    if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
-                    setFitButtonActive(true);
-                    const allCoords = activeObservationSets.flatMap((set) =>
-                      set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
-                    );
-                    if (allCoords.length === 0) return;
-                    const bounds = allCoords.reduce(
-                      (bounds, coord) => bounds.extend(coord),
-                      new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
-                    );
-                    mapRef.current.fitBounds(bounds, { padding: 50 });
-                    setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
-                  }}
-                  homeButtonActive={homeButtonActive}
-                  onHome={() => {
-                    if (!mapRef.current) return;
-                    setHomeButtonActive(true);
-                    mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
-                    setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
-                  }}
-                  onGps={() => {
-                    if (!mapRef.current) return;
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        mapRef.current?.flyTo({
-                          center: [position.coords.longitude, position.coords.latitude],
-                          zoom: 15,
-                        });
-                      },
-                      (error) => {
-                        logError('Geolocation error', error);
-                        alert('Unable to get your location. Please enable location services.');
-                      }
-                    );
-                  }}
-                />
-              }
-            />
-
-            <MapViewport
-              mapReady={mapReady}
-              mapError={mapError}
-              embeddedView={embeddedView}
-              mapRef={mapRef}
-              mapContainerRef={mapContainerRef}
-            />
-          </div>
+                  );
+                }}
+              />
+            }
+            mapReady={mapReady}
+            mapError={mapError}
+            embeddedView={embeddedView}
+            mapRef={mapRef}
+            mapContainerRef={mapContainerRef}
+          />
 
           {/* Resize Handle */}
           <ResizeHandle onMouseDown={handleMouseDown} />
