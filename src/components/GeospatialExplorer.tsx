@@ -20,6 +20,7 @@ import { NetworkTableBody } from './geospatial/NetworkTableBody';
 import { NetworkExplorerCard } from './geospatial/NetworkExplorerCard';
 import { MapPanel } from './geospatial/MapPanel';
 import { FiltersSidebar } from './geospatial/FiltersSidebar';
+import { GeospatialContent } from './geospatial/GeospatialContent';
 
 // Types
 import type {
@@ -1792,147 +1793,142 @@ export default function GeospatialExplorer() {
       <FiltersSidebar open={filtersOpen}>
         <FilterPanel density="compact" />
       </FiltersSidebar>
-      <div className="flex h-screen">
-        <div
-          className="flex flex-col gap-3 p-3 h-screen flex-1"
-          style={{ marginLeft: filtersOpen ? '332px' : 0 }}
-        >
-          {/* Map Card */}
-          <MapPanel
-            mapHeight={mapHeight}
-            title="ShadowCheck Geospatial Intelligence"
-            toolbar={
-              <MapToolbar
-                searchContainerRef={locationSearchRef}
-                locationSearch={locationSearch}
-                onLocationSearchChange={setLocationSearch}
-                onLocationSearchFocus={() => {
-                  if (searchResults.length > 0) {
-                    setShowSearchResults(true);
+      <GeospatialContent filtersOpen={filtersOpen}>
+        {/* Map Card */}
+        <MapPanel
+          mapHeight={mapHeight}
+          title="ShadowCheck Geospatial Intelligence"
+          toolbar={
+            <MapToolbar
+              searchContainerRef={locationSearchRef}
+              locationSearch={locationSearch}
+              onLocationSearchChange={setLocationSearch}
+              onLocationSearchFocus={() => {
+                if (searchResults.length > 0) {
+                  setShowSearchResults(true);
+                }
+              }}
+              searchingLocation={searchingLocation}
+              showSearchResults={showSearchResults}
+              searchResults={searchResults}
+              onSelectSearchResult={flyToLocation}
+              mapStyle={mapStyle}
+              onMapStyleChange={changeMapStyle}
+              mapStyles={MAP_STYLES}
+              show3DBuildings={show3DBuildings}
+              onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
+              showTerrain={showTerrain}
+              onToggleTerrain={() => toggleTerrain(!showTerrain)}
+              fitButtonActive={fitButtonActive}
+              canFit={selectedNetworks.size > 0}
+              onFit={() => {
+                const mapboxgl = mapboxRef.current;
+                if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
+                setFitButtonActive(true);
+                const allCoords = activeObservationSets.flatMap((set) =>
+                  set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
+                );
+                if (allCoords.length === 0) return;
+                const bounds = allCoords.reduce(
+                  (bounds, coord) => bounds.extend(coord),
+                  new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+                );
+                mapRef.current.fitBounds(bounds, { padding: 50 });
+                setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
+              }}
+              homeButtonActive={homeButtonActive}
+              onHome={() => {
+                if (!mapRef.current) return;
+                setHomeButtonActive(true);
+                mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
+                setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
+              }}
+              onGps={() => {
+                if (!mapRef.current) return;
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    mapRef.current?.flyTo({
+                      center: [position.coords.longitude, position.coords.latitude],
+                      zoom: 15,
+                    });
+                  },
+                  (error) => {
+                    logError('Geolocation error', error);
+                    alert('Unable to get your location. Please enable location services.');
                   }
-                }}
-                searchingLocation={searchingLocation}
-                showSearchResults={showSearchResults}
-                searchResults={searchResults}
-                onSelectSearchResult={flyToLocation}
-                mapStyle={mapStyle}
-                onMapStyleChange={changeMapStyle}
-                mapStyles={MAP_STYLES}
-                show3DBuildings={show3DBuildings}
-                onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
-                showTerrain={showTerrain}
-                onToggleTerrain={() => toggleTerrain(!showTerrain)}
-                fitButtonActive={fitButtonActive}
-                canFit={selectedNetworks.size > 0}
-                onFit={() => {
-                  const mapboxgl = mapboxRef.current;
-                  if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
-                  setFitButtonActive(true);
-                  const allCoords = activeObservationSets.flatMap((set) =>
-                    set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
-                  );
-                  if (allCoords.length === 0) return;
-                  const bounds = allCoords.reduce(
-                    (bounds, coord) => bounds.extend(coord),
-                    new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
-                  );
-                  mapRef.current.fitBounds(bounds, { padding: 50 });
-                  setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
-                }}
-                homeButtonActive={homeButtonActive}
-                onHome={() => {
-                  if (!mapRef.current) return;
-                  setHomeButtonActive(true);
-                  mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
-                  setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
-                }}
-                onGps={() => {
-                  if (!mapRef.current) return;
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      mapRef.current?.flyTo({
-                        center: [position.coords.longitude, position.coords.latitude],
-                        zoom: 15,
-                      });
-                    },
-                    (error) => {
-                      logError('Geolocation error', error);
-                      alert('Unable to get your location. Please enable location services.');
-                    }
-                  );
-                }}
-              />
-            }
-            mapReady={mapReady}
-            mapError={mapError}
-            embeddedView={embeddedView}
-            mapRef={mapRef}
-            mapContainerRef={mapContainerRef}
+                );
+              }}
+            />
+          }
+          mapReady={mapReady}
+          mapError={mapError}
+          embeddedView={embeddedView}
+          mapRef={mapRef}
+          mapContainerRef={mapContainerRef}
+        />
+
+        {/* Resize Handle */}
+        <ResizeHandle onMouseDown={handleMouseDown} />
+
+        {/* Networks Explorer Card */}
+        <NetworkExplorerCard>
+          <NetworkExplorerHeader
+            expensiveSort={expensiveSort}
+            planCheck={planCheck}
+            onPlanCheckChange={setPlanCheck}
+            locationMode={locationMode}
+            onLocationModeChange={setLocationMode}
+            filtersOpen={filtersOpen}
+            onToggleFilters={() => setFiltersOpen((open) => !open)}
+            showColumnSelector={showColumnSelector}
+            columnDropdownRef={columnDropdownRef}
+            visibleColumns={visibleColumns}
+            columns={NETWORK_COLUMNS}
+            onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
+            onToggleColumn={toggleColumn}
           />
 
-          {/* Resize Handle */}
-          <ResizeHandle onMouseDown={handleMouseDown} />
+          {/* Header Table - Never scrolls */}
+          <NetworkTableHeader
+            visibleColumns={visibleColumns}
+            sort={sort}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onToggleSelectAll={toggleSelectAll}
+            onColumnSort={handleColumnSort}
+          />
 
-          {/* Networks Explorer Card */}
-          <NetworkExplorerCard>
-            <NetworkExplorerHeader
-              expensiveSort={expensiveSort}
-              planCheck={planCheck}
-              onPlanCheckChange={setPlanCheck}
-              locationMode={locationMode}
-              onLocationModeChange={setLocationMode}
-              filtersOpen={filtersOpen}
-              onToggleFilters={() => setFiltersOpen((open) => !open)}
-              showColumnSelector={showColumnSelector}
-              columnDropdownRef={columnDropdownRef}
-              visibleColumns={visibleColumns}
-              columns={NETWORK_COLUMNS}
-              onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
-              onToggleColumn={toggleColumn}
-            />
+          {/* Data Table - Only this scrolls */}
+          <NetworkTableBody
+            tableContainerRef={tableContainerRef}
+            visibleColumns={visibleColumns}
+            loadingNetworks={loadingNetworks}
+            filteredNetworks={filteredNetworks}
+            error={error}
+            selectedNetworks={selectedNetworks}
+            onSelectExclusive={selectNetworkExclusive}
+            onOpenContextMenu={openContextMenu}
+            onToggleSelectNetwork={toggleSelectNetwork}
+            isLoadingMore={isLoadingMore}
+            hasMore={pagination.hasMore}
+            onLoadMore={loadMore}
+          />
 
-            {/* Header Table - Never scrolls */}
-            <NetworkTableHeader
-              visibleColumns={visibleColumns}
-              sort={sort}
-              allSelected={allSelected}
-              someSelected={someSelected}
-              onToggleSelectAll={toggleSelectAll}
-              onColumnSort={handleColumnSort}
-            />
-
-            {/* Data Table - Only this scrolls */}
-            <NetworkTableBody
-              tableContainerRef={tableContainerRef}
-              visibleColumns={visibleColumns}
-              loadingNetworks={loadingNetworks}
-              filteredNetworks={filteredNetworks}
-              error={error}
-              selectedNetworks={selectedNetworks}
-              onSelectExclusive={selectNetworkExclusive}
-              onOpenContextMenu={openContextMenu}
-              onToggleSelectNetwork={toggleSelectNetwork}
-              isLoadingMore={isLoadingMore}
-              hasMore={pagination.hasMore}
-              onLoadMore={loadMore}
-            />
-
-            <MapStatusBar
-              visibleCount={filteredNetworks.length}
-              networkTruncated={networkTruncated}
-              networkTotal={networkTotal}
-              selectedCount={selectedNetworks.size}
-              observationCount={observationCount}
-              observationsTruncated={observationsTruncated}
-              observationsTotal={observationsTotal}
-              renderBudgetExceeded={renderBudgetExceeded}
-              renderBudget={renderBudget}
-              loadingNetworks={loadingNetworks}
-              loadingObservations={loadingObservations}
-            />
-          </NetworkExplorerCard>
-        </div>
-      </div>
+          <MapStatusBar
+            visibleCount={filteredNetworks.length}
+            networkTruncated={networkTruncated}
+            networkTotal={networkTotal}
+            selectedCount={selectedNetworks.size}
+            observationCount={observationCount}
+            observationsTruncated={observationsTruncated}
+            observationsTotal={observationsTotal}
+            renderBudgetExceeded={renderBudgetExceeded}
+            renderBudget={renderBudget}
+            loadingNetworks={loadingNetworks}
+            loadingObservations={loadingObservations}
+          />
+        </NetworkExplorerCard>
+      </GeospatialContent>
 
       {/* Network Tagging Context Menu */}
       <NetworkTagMenu
