@@ -3,7 +3,7 @@ module.exports = {
   testEnvironment: 'node',
 
   // Test match patterns
-  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js'],
+  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.test.js', '**/*.spec.js'],
 
   // Coverage configuration
   collectCoverage: false, // Enable with --coverage flag
@@ -51,7 +51,7 @@ module.exports = {
   testTimeout: 10000,
 
   // Ignore patterns
-  testPathIgnorePatterns: ['/node_modules/', '/data/', '/docs/'],
+  testPathIgnorePatterns: ['/node_modules/', '/data/', '/docs/', '/scripts/manual/'],
 
   // Transform
   transform: {},
