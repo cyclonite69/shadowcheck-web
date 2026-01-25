@@ -22,7 +22,7 @@ function pipeUpstreamBody(upstream, res) {
   }
 
   if (typeof upstream.body.pipe === 'function') {
-    pipeUpstreamBody(upstream, res);
+    upstream.body.pipe(res);
     return;
   }
 
@@ -196,7 +196,7 @@ router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
       res.setHeader(key, value);
     });
 
-    upstream.body.pipe(res);
+    pipeUpstreamBody(upstream, res);
   } catch (err) {
     logger.error(`Mapbox proxy error: ${err.message}`, { error: err });
     res.status(500).json({ error: err.message || 'Mapbox proxy failed' });
