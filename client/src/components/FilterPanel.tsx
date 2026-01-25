@@ -69,6 +69,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
       className={`filter-panel ${panelWidthClass} bg-slate-950/90 border border-slate-600/60 rounded-lg text-slate-200 flex flex-col h-full flex-shrink-0 overflow-x-hidden ${
         isCompact ? 'filter-panel--compact' : ''
       }`}
+      style={{ borderRight: '1px solid rgba(71, 85, 105, 0.8)' }}
     >
       {/* Header */}
       <div

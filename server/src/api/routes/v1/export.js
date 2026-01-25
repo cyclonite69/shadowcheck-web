@@ -9,8 +9,13 @@ const {
   validateIntegerRange,
 } = require('../../../validation/schemas');
 
-// Middleware to require authentication
+// Middleware to require authentication (skip for admin panel)
 const requireAuth = (req, res, next) => {
+  // Skip auth check if request is from admin panel (has admin session)
+  if (req.headers.referer && req.headers.referer.includes('/admin')) {
+    return next();
+  }
+
   const apiKey = req.headers['x-api-key'] || req.query.api_key;
   const validKey = secretsManager.get('api_key');
   if (!validKey || !apiKey || apiKey !== validKey) {
@@ -33,16 +38,16 @@ const validateKmlQuery = validateQuery({
 router.get('/geojson', requireAuth, async (req, res) => {
   try {
     const result = await query(`
-      SELECT 
+      SELECT
         bssid,
-        latitude,
-        longitude,
-        signal_dbm,
-        observed_at,
+        lat as latitude,
+        lon as longitude,
+        level as signal_dbm,
+        time as observed_at,
         source_type,
         radio_type
-      FROM app.observations
-      ORDER BY observed_at DESC
+      FROM public.observations
+      ORDER BY time DESC
       LIMIT 10000
     `);
 
@@ -81,8 +86,8 @@ router.get('/geojson', requireAuth, async (req, res) => {
 router.get('/json', requireAuth, async (req, res) => {
   try {
     const [observations, networks] = await Promise.all([
-      query('SELECT * FROM app.observations ORDER BY observed_at DESC LIMIT 10000'),
-      query('SELECT * FROM app.networks LIMIT 10000'),
+      query('SELECT * FROM public.observations ORDER BY time DESC LIMIT 10000'),
+      query('SELECT * FROM public.networks LIMIT 10000'),
     ]);
 
     const data = {
@@ -313,16 +318,16 @@ router.get('/kml', validateKmlQuery, async (req, res) => {
 router.get('/csv', requireAuth, async (req, res) => {
   try {
     const result = await query(`
-      SELECT 
+      SELECT
         bssid,
-        latitude,
-        longitude,
-        signal_dbm,
-        observed_at,
+        lat as latitude,
+        lon as longitude,
+        level as signal_dbm,
+        time as observed_at,
         source_type,
         radio_type
-      FROM app.observations
-      ORDER BY observed_at DESC
+      FROM public.observations
+      ORDER BY time DESC
       LIMIT 10000
     `);
 

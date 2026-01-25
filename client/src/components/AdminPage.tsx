@@ -285,16 +285,19 @@ const AdminPage: React.FC = () => {
       if (data.ok) {
         setMlResult({
           type: 'success',
-          message: `Model trained! Accuracy: ${(data.model.accuracy * 100).toFixed(1)}%, F1: ${(data.model.f1 * 100).toFixed(1)}%`,
+          message: `Model trained successfully! ${data.trainingSamples} samples (${data.threatCount} threats, ${data.safeCount} safe)`,
         });
         fetch('/api/ml/status')
           .then((r) => r.json())
           .then(setMlStatus);
       } else {
-        setMlResult({ type: 'error', message: data.error || 'Training failed' });
+        setMlResult({
+          type: 'error',
+          message: data.error || `HTTP ${res.status}: ${res.statusText}`,
+        });
       }
-    } catch {
-      setMlResult({ type: 'error', message: 'Network error during training' });
+    } catch (err) {
+      setMlResult({ type: 'error', message: `Network error: ${err.message}` });
     } finally {
       setMlLoading(false);
     }
@@ -693,16 +696,16 @@ const AdminPage: React.FC = () => {
             <Card icon={DownloadIcon} title="Network Exports" color="from-blue-500 to-blue-600">
               <div className="space-y-3">
                 <button
-                  onClick={() => window.open('/api/export/networks/csv', '_blank')}
+                  onClick={() => window.open('/api/export/csv', '_blank')}
                   className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all"
                 >
                   Export Networks (CSV)
                 </button>
                 <button
-                  onClick={() => window.open('/api/export/threats/json', '_blank')}
+                  onClick={() => window.open('/api/export/json', '_blank')}
                   className="w-full px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-500 hover:to-red-600 transition-all"
                 >
-                  Export Threats (JSON)
+                  Export Data (JSON)
                 </button>
               </div>
             </Card>
@@ -710,7 +713,7 @@ const AdminPage: React.FC = () => {
             <Card icon={DownloadIcon} title="Geospatial Export" color="from-green-500 to-green-600">
               <div className="space-y-3">
                 <button
-                  onClick={() => window.open('/api/export/observations/geojson', '_blank')}
+                  onClick={() => window.open('/api/export/geojson', '_blank')}
                   className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all"
                 >
                   Export GeoJSON
