@@ -24,7 +24,7 @@ Completed systematic refactoring of Tailwind CSS configuration and React compone
 - ✅ Added semantic z-index tokens: `z-dropdown` (100), `z-modal` (1000)
 - ✅ Removed extreme z-index values (999999, 100000, 50000)
 
-#### `src/index.css`
+#### `client/src/index.css`
 
 - ✅ Removed unused custom classes: `.cyber-text`, `.premium-card`, `.icon-container`
 - ✅ Added CSS variable tokens for palette colors (slate, blue, emerald)
@@ -34,7 +34,7 @@ Completed systematic refactoring of Tailwind CSS configuration and React compone
 
 ### Component Refactors
 
-#### `src/components/AdminPage.tsx`
+#### `client/src/components/AdminPage.tsx`
 
 - Replaced hardcoded hex colors (#132744, #1c3050, #0f1e34, etc.)
 - Mapped to Tailwind utilities: `bg-slate-900/90`, `border-slate-800/80`
@@ -42,7 +42,7 @@ Completed systematic refactoring of Tailwind CSS configuration and React compone
 - Updated all card frames consistently across tabs
 - ✅ No logic changes, structure preserved
 
-#### `src/components/FilterPanel.tsx`
+#### `client/src/components/FilterPanel.tsx`
 
 - Removed inline `style={{}}` with hardcoded widths (280px, 320px)
 - Added responsive width classes: `w-full sm:w-72 lg:w-80`
@@ -50,7 +50,7 @@ Completed systematic refactoring of Tailwind CSS configuration and React compone
 - Relied on existing `.filter-panel--compact` CSS for compact variant
 - ✅ Layout preserved, responsive behavior improved
 
-#### `src/components/MLTrainingPage.tsx`
+#### `client/src/components/MLTrainingPage.tsx`
 
 - Extracted complex radial/linear gradients to `.bg-ml-training` CSS class
 - Replaced inline text gradients with `.text-gradient-slate`
@@ -59,7 +59,7 @@ Completed systematic refactoring of Tailwind CSS configuration and React compone
 - Kept dynamic inline styles (e.g., `style={{ height }}`) where needed
 - ✅ Visual appearance identical
 
-#### `src/components/KeplerTestPage.tsx`
+#### `client/src/components/KeplerTestPage.tsx`
 
 - Converted panel backgrounds to `bg-slate-900/90`
 - Replaced custom borders with `border-blue-500/25`
@@ -69,15 +69,15 @@ Completed systematic refactoring of Tailwind CSS configuration and React compone
 - Left tooltip HTML strings mostly unchanged (risky to refactor)
 - ✅ JSX styles fully converted
 
-#### `src/App.tsx`
+#### `client/src/App.tsx`
 
 - Replaced `focus:z-[999999]` with `focus:z-modal`
 
-#### `src/components/modals/NetworkTimeFrequencyModal.tsx`
+#### `client/src/components/modals/NetworkTimeFrequencyModal.tsx`
 
 - Replaced `z-[999999]` with `z-modal`
 
-#### `src/components/WigleTestPage.tsx`
+#### `client/src/components/WigleTestPage.tsx`
 
 - Replaced `z-[100000]` with `z-modal`
 
@@ -166,8 +166,8 @@ When refactoring a new component:
 # 2. Follow the template prompt provided in the rules
 
 # 3. Use refactored components as examples
-@src/components/AdminPage.tsx
-@src/components/MLTrainingPage.tsx
+@client/src/components/AdminPage.tsx
+@client/src/components/MLTrainingPage.tsx
 
 # 4. Test before committing
 npm run lint && npm run build
@@ -188,14 +188,14 @@ Testing Checklist
 
 ```
 .cursor/rules/tailwind-css-refactoring.md (NEW) ......... 496 ++
-src/App.tsx ....................................... -1 ++
-src/components/AdminPage.tsx ......................... -28 ++40
-src/components/FilterPanel.tsx ....................... -8 ++3
-src/components/KeplerTestPage.tsx ..................... -46 ++10
-src/components/MLTrainingPage.tsx ..................... -38 ++7
-src/components/modals/NetworkTimeFrequencyModal.tsx ... -1 ++
-src/components/WigleTestPage.tsx ...................... -3 ++
-src/index.css ....................................... -46 ++43
+client/src/App.tsx ....................................... -1 ++
+client/src/components/AdminPage.tsx ......................... -28 ++40
+client/src/components/FilterPanel.tsx ....................... -8 ++3
+client/src/components/KeplerTestPage.tsx ..................... -46 ++10
+client/src/components/MLTrainingPage.tsx ..................... -38 ++7
+client/src/components/modals/NetworkTimeFrequencyModal.tsx ... -1 ++
+client/src/components/WigleTestPage.tsx ...................... -3 ++
+client/src/index.css ....................................... -46 ++43
 postcss.config.js ................................... -13 ++11
 tailwind.config.js .................................. -52 ++6
 

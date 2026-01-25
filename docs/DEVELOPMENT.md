@@ -196,7 +196,7 @@ The frontend uses modern React with TypeScript and Vite for fast development.
 #### Component Structure
 
 ```
-src/components/
+client/src/components/
 ├── DashboardPage.tsx           # Main dashboard with metrics
 ├── GeospatialIntelligencePage.tsx  # Interactive map interface
 ├── AnalyticsPage.tsx           # Charts and data visualization
@@ -269,7 +269,7 @@ const DashboardCard = ({ title, value, icon }) => (
 1. **Create Component File**
 
 ```tsx
-// src/components/MyNewPage.tsx
+// client/src/components/MyNewPage.tsx
 import React, { useState, useEffect } from 'react';
 import { logError } from '../logging/clientLogger';
 
@@ -315,7 +315,7 @@ export default MyNewPage;
 2. **Add Route to App.tsx**
 
 ```tsx
-// src/App.tsx
+// client/src/App.tsx
 import { lazy } from 'react';
 
 const MyNewPage = lazy(() => import('./components/MyNewPage'));
@@ -327,7 +327,7 @@ const MyNewPage = lazy(() => import('./components/MyNewPage'));
 3. **Add Navigation Link**
 
 ```tsx
-// src/components/Navigation.tsx
+// client/src/components/Navigation.tsx
 const navItems = [
   // ... existing items
   { path: '/my-new-page', label: 'My New Page', icon: MyIcon },
@@ -343,7 +343,7 @@ const navItems = [
    ```
 
 2. **Make Changes**
-   - Edit `server.js` or utility files
+   - Edit `server/server.js` or utility files
    - Add tests in `tests/` directory
    - Update documentation if needed
 
@@ -570,7 +570,7 @@ Create `.vscode/launch.json`:
       "request": "launch",
       "name": "Launch Server",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/server.js",
+      "program": "${workspaceFolder}/server/server.js",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal"
     },
@@ -602,7 +602,7 @@ LOG_LEVEL=debug
 ### Database Query Logging
 
 ```javascript
-// In server.js
+// In server/server.js
 const pool = new Pool({
   // ... config
   log: (msg) => console.log('DB:', msg), // Enable query logging
@@ -613,7 +613,7 @@ const pool = new Pool({
 
 ### Add New API Endpoint
 
-1. Add route handler in `server.js`:
+1. Add route handler in `server/server.js`:
 
 ```javascript
 app.get('/api/your-endpoint', async (req, res) => {

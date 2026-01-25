@@ -216,7 +216,7 @@ For production, change the default credentials:
 
 4. Update credentials in:
    - `.env` → `DB_PASSWORD=new-secure-password`
-   - Keyring: `node -e "require('./src/services/keyringService').setCredential('db_password', 'new-secure-password')"`
+   - Keyring: `node -e "require('./server/src/services/keyringService').setCredential('db_password', 'new-secure-password')"`
    - `secrets/db_password.txt`
 
 ### Access Control

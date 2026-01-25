@@ -33,8 +33,8 @@ You need to set a real Mapbox token.
 3. **Restart the server:**
 
    ```bash
-   pkill -f "node server.js"
-   node server.js > server.log 2>&1 &
+   pkill -f "node server/server.js"
+   node server/server.js > server.log 2>&1 &
    ```
 
 4. **Verify it's loaded:**
@@ -63,8 +63,8 @@ If you just want to test quickly:
 ```bash
 cd /home/cyclonite01/ShadowCheckStatic
 echo "MAPBOX_TOKEN=pk.YOUR_ACTUAL_TOKEN_HERE" >> .env
-pkill -f "node server.js"
-node server.js > server.log 2>&1 &
+pkill -f "node server/server.js"
+node server/server.js > server.log 2>&1 &
 ```
 
 **Note:** Environment variables take precedence over keyring, so if you later want to use keyring, remove this line from `.env`.

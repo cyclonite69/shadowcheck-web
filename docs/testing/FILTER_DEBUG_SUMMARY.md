@@ -112,11 +112,11 @@
 
 ### Previously Modified (This Session)
 
-- `src/stores/filterStore.ts` - Per-page state implementation
-- `src/hooks/usePageFilters.ts` - Page context hook
-- `src/hooks/useAdaptedFilters.ts` - Fixed getCurrentFilters/getCurrentEnabled
-- `src/components/FilterPanel.tsx` - Fixed store selectors
-- `src/components/ActiveFiltersSummary.tsx` - Added null safety
+- `client/src/stores/filterStore.ts` - Per-page state implementation
+- `client/src/hooks/usePageFilters.ts` - Page context hook
+- `client/src/hooks/useAdaptedFilters.ts` - Fixed getCurrentFilters/getCurrentEnabled
+- `client/src/components/FilterPanel.tsx` - Fixed store selectors
+- `client/src/components/ActiveFiltersSummary.tsx` - Added null safety
 - 5 page components - Added usePageFilters hook
 
 ## Success Metrics

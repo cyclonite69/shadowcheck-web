@@ -4,7 +4,7 @@
 
 ### 1. Reusable Utility Created
 
-**File:** `src/utils/mapOrientationControls.ts`
+**File:** `client/src/utils/mapOrientationControls.ts`
 
 - `attachMapOrientationControls(map, options)` - Main function
 - `useMapOrientationControls(mapRef, options)` - React hook (for future use)
@@ -16,21 +16,21 @@
 
 #### GeospatialExplorer ✅
 
-- **File:** `src/components/GeospatialExplorer.tsx`
+- **File:** `client/src/components/GeospatialExplorer.tsx`
 - **Line:** ~672
 - **Controls:** Scale bar (bottom-right, metric)
 - **Note:** Navigation control already existed (top-right)
 
 #### WigleTestPage ✅
 
-- **File:** `src/components/WigleTestPage.tsx`
+- **File:** `client/src/components/WigleTestPage.tsx`
 - **Line:** ~176
 - **Controls:** Scale bar (bottom-right, metric)
 - **Note:** Navigation control already existed (top-right)
 
 #### KeplerTestPage ✅
 
-- **File:** `src/components/KeplerTestPage.tsx`
+- **File:** `client/src/components/KeplerTestPage.tsx`
 - **Line:** ~307
 - **Controls:** Scale bar + Navigation (bottom-right + top-right, metric)
 - **Note:** Accesses underlying Mapbox map via DeckGL's `getMapboxMap()`
@@ -124,10 +124,10 @@ No errors related to map controls.
 
 ## Files Changed
 
-1. `src/utils/mapOrientationControls.ts` (new)
-2. `src/components/GeospatialExplorer.tsx` (modified)
-3. `src/components/WigleTestPage.tsx` (modified)
-4. `src/components/KeplerTestPage.tsx` (modified)
+1. `client/src/utils/mapOrientationControls.ts` (new)
+2. `client/src/components/GeospatialExplorer.tsx` (modified)
+3. `client/src/components/WigleTestPage.tsx` (modified)
+4. `client/src/components/KeplerTestPage.tsx` (modified)
 5. `docs/map-orientation-controls.md` (new)
 
 ## Testing Checklist

@@ -176,7 +176,7 @@ WHERE shared_locations >= 2;
 
 ### Backend
 
-**File**: `server.js` Line ~570-610
+**File**: `server/server.js` Line ~570-610
 
 The algorithm is implemented in the `/api/threats/quick` endpoint as a SQL CASE statement.
 
@@ -221,7 +221,7 @@ Pattern: Home + Away, 5+ locations, 7+ days, 50+ observations
 
 ## Tuning Parameters
 
-Adjust these values in `server.js` to fine-tune detection:
+Adjust these values in `server/server.js` to fine-tune detection:
 
 ```javascript
 // Increase sensitivity (more threats)

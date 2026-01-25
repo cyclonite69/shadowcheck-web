@@ -47,7 +47,7 @@
 - Implement covering indexes where beneficial
 - Use JSONB for flexible metadata (with GIN indexes)
 - Partition by time for observations (monthly)
-- Use connection pooling (already in server.js)
+- Use connection pooling (already in server/server.js)
 
 ## Schema Organization
 

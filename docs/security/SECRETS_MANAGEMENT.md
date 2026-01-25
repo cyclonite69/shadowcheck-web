@@ -13,7 +13,7 @@ ShadowCheck uses a multi-layered secrets management system that prioritizes secu
 2. **System Keyring** (via `keytar`) - Local development
 3. **Environment Variables** (`.env`) - CI/CD fallback
 
-Implementation: `src/services/secretsManager.js`
+Implementation: `server/src/services/secretsManager.js`
 
 ## Required Secrets
 
@@ -107,7 +107,7 @@ API_KEY=your_api_key_here
 ## Validation
 
 Secrets are validated at application startup:
-- `src/utils/validateSecrets.js` checks for required secrets
+- `server/src/utils/validateSecrets.js` checks for required secrets
 - Application exits with error if required secrets are missing
 - Error messages indicate which secrets are missing and where to configure them
 
@@ -232,7 +232,7 @@ const value = process.env[key.toUpperCase()];
 
 ### Startup Validation
 
-`src/utils/validateSecrets.js`:
+`server/src/utils/validateSecrets.js`:
 ```javascript
 async function validateSecrets() {
   const required = ['db_password', 'mapbox_token'];

@@ -183,8 +183,8 @@ Successfully audited and fixed database schema and API queries. All dashboard ca
 
 ## Files Modified
 
-1. `/home/cyclonite01/ShadowCheckStatic/src/repositories/networkRepository.js`
-2. `/home/cyclonite01/ShadowCheckStatic/server.js`
+1. `/home/cyclonite01/ShadowCheckStatic/server/src/repositories/networkRepository.js`
+2. `/home/cyclonite01/ShadowCheckStatic/server/server.js`
 
 ## Database Changes
 

@@ -109,7 +109,7 @@ a1b2c3d4e5f6...:<encrypted_json><16_byte_auth_tag>
 **Database:**
 
 - `DB_PASSWORD` - PostgreSQL password
-  - Used in: server.js, all scripts
+  - Used in: server/server.js, all scripts
   - Purpose: Database authentication
 
 **External APIs:**

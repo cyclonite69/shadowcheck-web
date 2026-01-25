@@ -380,7 +380,7 @@ User=shadowcheck
 Group=shadowcheck
 WorkingDirectory=/opt/shadowcheck/app
 EnvironmentFile=/opt/shadowcheck/app/.env
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node server/server.js
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -870,10 +870,10 @@ app.use(compression());
 
 ```bash
 # Check Node.js process
-top -p $(pgrep -f "node server.js")
+top -p $(pgrep -f "node server/server.js")
 
 # Enable profiling
-node --prof server.js
+node --prof server/server.js
 
 # Analyze profile
 node --prof-process isolate-*.log > profile.txt
@@ -887,7 +887,7 @@ free -h
 docker stats
 
 # Increase Node.js heap size
-NODE_OPTIONS="--max-old-space-size=4096" node server.js
+NODE_OPTIONS="--max-old-space-size=4096" node server/server.js
 ```
 
 ### Database Connection Issues

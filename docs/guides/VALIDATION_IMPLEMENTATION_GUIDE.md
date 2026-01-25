@@ -254,7 +254,7 @@ All validation errors follow this format:
 Create new validators by following this pattern:
 
 ```javascript
-// In src/validation/schemas.js
+// In server/src/validation/schemas.js
 function validateCustomType(value) {
   // Do validation logic
   if (valid) {

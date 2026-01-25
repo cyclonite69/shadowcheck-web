@@ -116,8 +116,8 @@ curl -i -H 'Accept:application/json' \
 
 ### Files Created
 
-- `/src/services/keyringService.js` - Keyring integration
-- `/src/api/routes/v1/settings.js` - Settings API routes
+- `/server/src/services/keyringService.js` - Keyring integration
+- `/server/src/api/routes/v1/settings.js` - Settings API routes
 - `/admin` - Admin settings UI
 
 ### Next Steps

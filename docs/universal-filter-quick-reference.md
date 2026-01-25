@@ -51,7 +51,7 @@ fetch(`/api/myendpoint?${params}`);
 
 ### Declaring Page Capabilities
 
-Edit `src/utils/filterCapabilities.ts`:
+Edit `client/src/utils/filterCapabilities.ts`:
 
 ```typescript
 export const PAGE_CAPABILITIES = {
@@ -70,9 +70,9 @@ export const PAGE_CAPABILITIES = {
 
 ### Adding a New Filter
 
-1. Add to `NetworkFilters` in `src/types/filters.ts`
-2. Add default value in `src/stores/filterStore.ts`
-3. Add UI in `src/components/FilterPanel.tsx`
+1. Add to `NetworkFilters` in `client/src/types/filters.ts`
+2. Add default value in `client/src/stores/filterStore.ts`
+3. Add UI in `client/src/components/FilterPanel.tsx`
 4. Update page capabilities as needed
 
 ## Architecture Summary
@@ -82,12 +82,12 @@ export const PAGE_CAPABILITIES = {
 │                   User Sets Filters                     │
 │                          ↓                              │
 │              Universal Filter Store                     │
-│         (src/stores/filterStore.ts)                     │
+│         (client/src/stores/filterStore.ts)                     │
 │                          ↓                              │
 │                   URL Sync                              │
 │                          ↓                              │
 │              Page Declares Capabilities                 │
-│         (src/utils/filterCapabilities.ts)               │
+│         (client/src/utils/filterCapabilities.ts)               │
 │                          ↓                              │
 │              adaptFiltersToPage()                       │
 │                          ↓                              │
@@ -102,14 +102,14 @@ export const PAGE_CAPABILITIES = {
 
 ## Key Files
 
-| File                                      | Purpose                 |
-| ----------------------------------------- | ----------------------- |
-| `src/types/filters.ts`                    | Canonical filter schema |
-| `src/stores/filterStore.ts`               | Universal filter store  |
-| `src/utils/filterCapabilities.ts`         | Page capability system  |
-| `src/hooks/useAdaptedFilters.ts`          | Adaptation hooks        |
-| `src/components/ActiveFiltersSummary.tsx` | Filter status UI        |
-| `src/components/FilterPanel.tsx`          | Filter configuration UI |
+| File                                             | Purpose                 |
+| ------------------------------------------------ | ----------------------- |
+| `client/src/types/filters.ts`                    | Canonical filter schema |
+| `client/src/stores/filterStore.ts`               | Universal filter store  |
+| `client/src/utils/filterCapabilities.ts`         | Page capability system  |
+| `client/src/hooks/useAdaptedFilters.ts`          | Adaptation hooks        |
+| `client/src/components/ActiveFiltersSummary.tsx` | Filter status UI        |
+| `client/src/components/FilterPanel.tsx`          | Filter configuration UI |
 
 ## Page Support Matrix
 

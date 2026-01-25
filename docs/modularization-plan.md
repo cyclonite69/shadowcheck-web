@@ -13,15 +13,15 @@
 
 ## Phase 1: Soft Boundaries (No Moves)
 
-- Add lint rule (or custom check) to block `src/` client imports from `src/api`, `src/services`, `src/repositories`, `src/middleware`, `src/validation`.
+- Add lint rule (or custom check) to block `client/` imports from `server/src/api`, `server/src/services`, `server/src/repositories`, `server/src/middleware`, `server/src/validation`.
 - Use `npm run lint:boundaries` for the boundary check.
 - Prefer import aliases (e.g., `@client/*`, `@server/*`) to make boundaries obvious.
 
 ## Phase 2: Minimal Folder Split (Implemented)
 
-- `client/`: `index.html`, `public/`, `src/`, `vite.config.js`, `postcss.config.js`, `tailwind.config.js`
-- `server/`: `server.js`, `server/` (static server), `src/api/`, `src/services/`, `src/repositories/`, `src/middleware/`, `src/validation/`
-- Scripts now use `--root client` and `server/server.js`.
+- `client/`: `index.html`, `client/public/`, `client/src/`, `client/vite.config.js`, `client/postcss.config.js`, `client/tailwind.config.js`
+- `server/`: `server/server.js`, `server/static-server.js`, `server/src/api/`, `server/src/services/`, `server/src/repositories/`, `server/src/middleware/`, `server/src/validation/`
+- Scripts now use `--config client/vite.config.js` and `server/server.js`.
 
 ## Phase 3: Cleanup (Optional)
 

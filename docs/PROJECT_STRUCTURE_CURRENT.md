@@ -12,27 +12,22 @@ ShadowCheckStatic/
 ├── .vscode/                # VS Code settings and extensions
 ├── coverage/               # Test coverage reports
 ├── data/                   # Runtime data (gitignored)
+├── client/                 # React/Vite frontend
 ├── docs/                   # Project documentation
-├── public/                 # Static assets for frontend
 ├── scripts/                # Utility and maintenance scripts
-├── server/                 # Server-specific modules
+├── server/                 # Express backend
 ├── sql/                    # Database schemas and migrations
-├── src/                    # Source code (frontend + backend)
 ├── tests/                  # Test files
-├── server.js               # Main Express server entry point
 ├── package.json            # Node.js dependencies and scripts
-├── vite.config.js          # Vite build configuration
-├── tailwind.config.js      # Tailwind CSS configuration
-├── tsconfig.json           # TypeScript configuration
 └── README.md               # Project overview
 ```
 
-## Frontend Architecture (`src/`)
+## Frontend Architecture (`client/`)
 
-### React Components (`src/components/`)
+### React Components (`client/src/components/`)
 
 ```
-src/components/
+client/src/components/
 ├── DashboardPage.tsx               # Main dashboard with real-time metrics
 ├── GeospatialIntelligencePage.tsx  # Interactive map with Mapbox GL JS
 ├── AnalyticsPage.tsx               # Charts and data visualization
@@ -52,50 +47,49 @@ src/components/
     └── [various modal components]
 ```
 
-### State Management (`src/stores/`)
+### State Management (`client/src/stores/`)
 
 ```
-src/stores/
+client/src/stores/
 └── filterStore.ts          # Zustand store for global filter state
 ```
 
-### Custom Hooks (`src/hooks/`)
+### Custom Hooks (`client/src/hooks/`)
 
 ```
-src/hooks/
+client/src/hooks/
 ├── useFilteredData.ts      # Data fetching with filter integration
 ├── useAdaptedFilters.ts    # Filter adaptation for different pages
 └── usePageFilters.ts       # Page-specific filter management
 ```
 
-### Utilities (`src/utils/`)
+### Client Utilities (`client/src/utils/`)
 
 ```
-src/utils/
+client/src/utils/
 ├── filterCapabilities.ts           # Filter configuration and capabilities
 ├── mapboxLoader.ts                 # Mapbox GL JS integration
 ├── mapOrientationControls.ts       # Map control utilities
-├── escapeSQL.js                    # SQL injection prevention
-└── validateSecrets.js              # Secret validation utilities
+└── renderNetworkTooltip.ts         # Map tooltip rendering
 ```
 
-### Type Definitions (`src/types/`)
+### Type Definitions (`client/src/types/`)
 
 ```
-src/types/
+client/src/types/
 └── filters.ts              # TypeScript definitions for filter system
 ```
 
-### Logging (`src/logging/`)
+### Logging (`client/src/logging/`)
 
 ```
-src/logging/
+client/src/logging/
 └── clientLogger.ts         # Client-side error logging
 ```
 
 ## Backend Architecture
 
-### Main Server (`server.js`)
+### Main Server (`server/server.js`)
 
 The main Express server file containing:
 
@@ -105,20 +99,20 @@ The main Express server file containing:
 - Error handling
 - Security headers
 
-### Modern Backend Structure (`src/`)
+### Modern Backend Structure (`server/src/`)
 
-#### API Routes (`src/api/`)
+#### API Routes (`server/src/api/`)
 
 ```
-src/api/
+server/src/api/
 └── routes/                 # Modern API route handlers (v2)
     └── [route modules]     # Modular route organization
 ```
 
-#### Business Logic (`src/services/`)
+#### Business Logic (`server/src/services/`)
 
 ```
-src/services/
+server/src/services/
 ├── filterQueryBuilder.js          # Universal filter system
 ├── threatScoringService.js         # Threat detection algorithms
 ├── mlScoringService.js             # Machine learning predictions
@@ -133,50 +127,50 @@ src/services/
 └── dataQualityFilters.js           # Data validation and filtering
 ```
 
-#### Data Access Layer (`src/repositories/`)
+#### Data Access Layer (`server/src/repositories/`)
 
 ```
-src/repositories/
+server/src/repositories/
 ├── baseRepository.js       # Base repository with common functionality
 └── networkRepository.js    # Network-specific data access
 ```
 
-#### Configuration (`src/config/`)
+#### Configuration (`server/src/config/`)
 
 ```
-src/config/
+server/src/config/
 ├── database.js             # Database connection configuration
 └── container.js            # Dependency injection container
 ```
 
-#### Validation (`src/validation/`)
+#### Validation (`server/src/validation/`)
 
 ```
-src/validation/
+server/src/validation/
 ├── schemas.js              # Joi validation schemas
 └── middleware.js           # Validation middleware
 ```
 
-#### Error Handling (`src/errors/`)
+#### Error Handling (`server/src/errors/`)
 
 ```
-src/errors/
+server/src/errors/
 ├── AppError.js             # Custom error classes
 └── errorHandler.js         # Global error handling
 ```
 
-#### Logging (`src/logging/`)
+#### Logging (`server/src/logging/`)
 
 ```
-src/logging/
+server/src/logging/
 ├── logger.js               # Winston logger configuration
 └── middleware.js           # Request logging middleware
 ```
 
-#### Middleware (`src/middleware/`)
+#### Middleware (`server/src/middleware/`)
 
 ```
-src/middleware/
+server/src/middleware/
 └── requestId.js            # Request ID generation
 ```
 
@@ -499,8 +493,8 @@ backups/                            # Database backups (gitignored)
 
 ### Entry Points
 
-- **`server.js`**: Main Express server with legacy API routes
-- **`src/main.tsx`**: React application entry point
+- **`server/server.js`**: Main Express server with legacy API routes
+- **`client/src/main.tsx`**: React application entry point
 - **`index.html`**: HTML template for Vite
 
 ### Configuration
@@ -512,15 +506,15 @@ backups/                            # Database backups (gitignored)
 
 ### Security
 
-- **`src/utils/escapeSQL.js`**: SQL injection prevention
-- **`src/services/secretsManager.js`**: Secure credential management
+- **`server/src/utils/escapeSQL.js`**: SQL injection prevention
+- **`server/src/services/secretsManager.js`**: Secure credential management
 - **`server/static-server.js`**: Production server with security headers
 
 ### Database
 
 - **`sql/migrations/README.md`**: Migration execution order
-- **`src/config/database.js`**: Database connection configuration
-- **`src/services/filterQueryBuilder.js`**: Universal filter system
+- **`server/src/config/database.js`**: Database connection configuration
+- **`server/src/services/filterQueryBuilder.js`**: Universal filter system
 
 This structure supports:
 

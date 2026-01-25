@@ -168,7 +168,7 @@ if (network.threat_score > 90 && !authorized) {
 
 ## Implementation Checklist
 
-### Step 1: Update server.js
+### Step 1: Update server/server.js
 
 Replace the old error handler:
 
@@ -178,8 +178,12 @@ const errorHandler = require('./utils/errorHandler');
 app.use(errorHandler);
 
 // NEW
-const { createErrorHandler, notFoundHandler, asyncHandler } = require('./src/errors/errorHandler');
-const logger = require('./src/logging/logger'); // (See Phase 4)
+const {
+  createErrorHandler,
+  notFoundHandler,
+  asyncHandler,
+} = require('./server/src/errors/errorHandler');
+const logger = require('./server/src/logging/logger'); // (See Phase 4)
 
 // Register 404 handler before error handler
 app.use(notFoundHandler);

@@ -43,8 +43,8 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │                 Express Server (Node.js)                     │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  API Layer (Hybrid Architecture)                     │   │
-│  │  • Legacy routes in server.js (v1 API)              │   │
-│  │  • Modern routes in src/api/ (v2 API)               │   │
+│  │  • Legacy routes in server/server.js (v1 API)              │   │
+│  │  • Modern routes in server/src/api/ (v2 API)               │   │
 │  │  • /api/dashboard-metrics                            │   │
 │  │  • /api/threats/quick (paginated)                    │   │
 │  │  • /api/networks/* (CRUD operations)                 │   │
@@ -53,8 +53,8 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Business Logic Layer                                 │   │
-│  │  • src/services/ (modular business logic)            │   │
-│  │  • src/repositories/ (data access layer)             │   │
+│  │  • server/src/services/ (modular business logic)            │   │
+│  │  • server/src/repositories/ (data access layer)             │   │
 │  │  • Threat scoring algorithms                         │   │
 │  │  • ML training & prediction services                 │   │
 │  │  • Filter query builder with 20+ filter types       │   │
@@ -107,9 +107,9 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 
 **Backend Characteristics:**
 
-- **Hybrid API structure**: Legacy routes in `server.js` + modern routes in `src/api/`
-- **Modular services** in `src/services/` for business logic
-- **Repository pattern** in `src/repositories/` for data access
+- **Hybrid API structure**: Legacy routes in `server/server.js` + modern routes in `server/src/api/`
+- **Modular services** in `server/src/services/` for business logic
+- **Repository pattern** in `server/src/repositories/` for data access
 - **Universal filter system** with 20+ filter types
 - **Structured logging** with Winston
 - **Connection pooling** with PostgreSQL
@@ -134,7 +134,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 ### Frontend Architecture
 
 ```
-src/
+client/src/
 ├── components/           # React components
 │   ├── DashboardPage.tsx        # Main dashboard
 │   ├── GeospatialIntelligencePage.tsx  # Map interface
@@ -165,8 +165,8 @@ src/
 ### Backend Architecture
 
 ```
-server.js                 # Main Express server (legacy + new)
-src/
+server/server.js                 # Main Express server (legacy + new)
+server/src/
 ├── api/                  # Modern API routes (v2)
 │   └── routes/           # Route handlers
 ├── services/             # Business logic layer
@@ -192,6 +192,7 @@ src/
     └── middleware.js           # Request logging
 ```
 
+server/src/
 ├── api/ # HTTP layer
 │ ├── routes/ # Route handlers
 │ │ ├── v1/
@@ -400,7 +401,7 @@ const threatScore = (network) => {
 
 **1. Quick Detection (Paginated)**
 
-- Location: `server.js:344-494`
+- Location: `server/server.js:344-494`
 - Endpoint: `GET /api/threats/quick`
 - Features:
   - Fast aggregation queries
@@ -411,7 +412,7 @@ const threatScore = (network) => {
 
 **2. Advanced Detection (Full Analysis)**
 
-- Location: `server.js:496-679`
+- Location: `server/server.js:496-679`
 - Endpoint: `GET /api/threats/detect`
 - Features:
   - Speed calculations between observations
@@ -558,7 +559,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 ### Phase 1: Modularization (Current Sprint)
 
-- [ ] Break `server.js` into modules
+- [ ] Break `server/server.js` into modules
 - [ ] Implement repository pattern
 - [ ] Add service layer for business logic
 - [ ] Create typed configuration management

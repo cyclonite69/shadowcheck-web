@@ -186,7 +186,7 @@ Body: { bssid, tag_type, confidence, notes }
 
 ### Database Query
 
-See `/src/api/routes/v1/threats.js` for full SQL implementation.
+See `/server/src/api/routes/v1/threats.js` for full SQL implementation.
 
 ### Key Tables
 

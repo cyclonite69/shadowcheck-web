@@ -13,28 +13,30 @@ All source code, data, tests, and generated files belong in their respective sub
 ```
 shadowcheck-static/
 ├── 📦 Core Application
-│   ├── server.js              # Express backend entry point
-│   ├── index.html             # Vite HTML template
 │   ├── package.json           # Node.js dependencies & scripts
 │   └── package-lock.json      # Locked dependency versions
 │
-├── 📁 server/                 # Express API modules (legacy v1/v2)
-│   └── routes/                # Route handlers
+├── 📁 client/                 # React/Vite frontend
+│   ├── index.html             # Vite HTML template
+│   ├── public/                # Static frontend assets
+│   ├── src/                   # React source (TS/TSX)
+│   ├── vite.config.js         # Vite build configuration
+│   ├── tailwind.config.js     # Tailwind CSS configuration
+│   ├── postcss.config.js      # PostCSS configuration
+│   └── tsconfig*.json         # TypeScript configs
 │
-├── 📁 src/                    # Application Source Code
-│   ├── api/                   # Backend API (CommonJS)
-│   │   └── routes/            # v1 + v2 route handlers
-│   ├── services/              # Business logic layer
-│   ├── repositories/          # Data access layer
-│   ├── config/                # Configuration (DB pool, DI container)
-│   ├── validation/            # Request validation schemas
-│   ├── errors/                # Custom error classes
-│   ├── logging/               # Winston structured logging
-│   ├── utils/                 # Utility functions
-│   ├── components/            # React components (TSX, ES modules)
-│   ├── App.tsx                # React app router
-│   ├── main.tsx               # React entry point
-│   └── index.css              # Global Tailwind styles
+├── 📁 server/                 # Express backend
+│   ├── server.js              # Main Express server entry point
+│   ├── static-server.js       # Production static server
+│   └── src/                   # Backend source (API/services/etc)
+│       ├── api/               # API routes (v1 + v2)
+│       ├── services/          # Business logic layer
+│       ├── repositories/      # Data access layer
+│       ├── config/            # Configuration (DB pool, DI container)
+│       ├── validation/        # Request validation schemas
+│       ├── errors/            # Custom error classes
+│       ├── logging/           # Winston structured logging
+│       └── utils/             # Utility functions
 │
 ├── 📁 tests/                  # Test Suite
 │   ├── unit/                  # Unit tests
@@ -92,11 +94,7 @@ shadowcheck-static/
 │
 ├── ⚙️ Configuration Files
 │   ├── .env.example           # Environment variable template
-│   ├── vite.config.js         # Vite build configuration
-│   ├── tsconfig.json          # TypeScript configuration
 │   ├── jest.config.js         # Jest test configuration
-│   ├── tailwind.config.js     # Tailwind CSS configuration
-│   ├── postcss.config.js      # PostCSS configuration
 │   ├── .eslintrc.json         # ESLint rules
 │   ├── .prettierrc.json       # Prettier formatting
 │   ├── .gitignore             # Git ignore patterns
@@ -133,14 +131,14 @@ shadowcheck-static/
 
 ## File Type Patterns
 
-| File Extension   | Purpose                       | Location                                         |
-| ---------------- | ----------------------------- | ------------------------------------------------ |
-| `*.js` (backend) | Backend JavaScript (CommonJS) | `src/api/`, `src/services/`, `src/repositories/` |
-| `*.tsx`, `*.jsx` | Frontend React components     | `src/components/`, `src/App.tsx`, `src/main.tsx` |
-| `*.ts` (scripts) | TypeScript scripts/utilities  | `scripts/`, `scripts/enrichment/`                |
-| `*.css`          | Frontend styles               | `src/`                                           |
-| `*.sql`          | Database migrations           | `sql/migrations/`                                |
-| `*.test.js`      | Backend tests                 | `tests/`                                         |
+| File Extension   | Purpose                       | Location                                                              |
+| ---------------- | ----------------------------- | --------------------------------------------------------------------- |
+| `*.js` (backend) | Backend JavaScript (CommonJS) | `server/src/api/`, `server/src/services/`, `server/src/repositories/` |
+| `*.tsx`, `*.jsx` | Frontend React components     | `client/src/components/`, `client/src/App.tsx`, `client/src/main.tsx` |
+| `*.ts` (scripts) | TypeScript scripts/utilities  | `scripts/`, `scripts/enrichment/`                                     |
+| `*.css`          | Frontend styles               | `client/src/`                                                         |
+| `*.sql`          | Database migrations           | `sql/migrations/`                                                     |
+| `*.test.js`      | Backend tests                 | `tests/`                                                              |
 
 ## File Organization Rules
 
@@ -152,8 +150,8 @@ shadowcheck-static/
 - Use `.gitkeep` to preserve empty directories in git
 - Document non-obvious directory purposes in README files
 - Use consistent naming conventions:
-  - **Backend (src/api, services, repositories)**: `camelCase.js` (CommonJS)
-  - **Frontend (src/components)**: `PascalCase.tsx` (TypeScript/React)
+  - **Backend (server/src/api, services, repositories)**: `camelCase.js` (CommonJS)
+  - **Frontend (client/src/components)**: `PascalCase.tsx` (TypeScript/React)
   - **Tests**: `*.test.js` or `*.spec.js`
   - **Config**: `kebab-case.config.js`
 
@@ -235,19 +233,19 @@ docker-compose up -d
 
 ### Backend (CommonJS)
 
-**Location**: `src/api/`, `src/services/`, `src/repositories/`
+**Location**: `server/src/api/`, `server/src/services/`, `server/src/repositories/`
 
 **Pattern**: Modular, layered architecture
 
-- **Routes** (`src/api/routes/v1/`): HTTP endpoint handlers
-- **Services** (`src/services/`): Business logic
-- **Repositories** (`src/repositories/`): Data access layer
-- **Config** (`src/config/`): Database pool, DI container
+- **Routes** (`server/src/api/routes/v1/`): HTTP endpoint handlers
+- **Services** (`server/src/services/`): Business logic
+- **Repositories** (`server/src/repositories/`): Data access layer
+- **Config** (`server/src/config/`): Database pool, DI container
 
 **Example**:
 
 ```javascript
-// src/api/routes/v1/networks.js
+// server/src/api/routes/v1/networks.js
 const express = require('express');
 const container = require('../../../config/container');
 const router = express.Router();
@@ -261,7 +259,7 @@ router.get('/', async (req, res, next) => {
 
 ### Frontend (React + TypeScript)
 
-**Location**: `src/components/`, `src/App.tsx`, `src/main.tsx`
+**Location**: `client/src/components/`, `client/src/App.tsx`, `client/src/main.tsx`
 
 **Pattern**: Functional components with hooks
 
@@ -273,7 +271,7 @@ router.get('/', async (req, res, next) => {
 **Example**:
 
 ```typescript
-// src/components/Dashboard.tsx
+// client/src/components/Dashboard.tsx
 import React from 'react';
 
 export const Dashboard: React.FC = () => {
@@ -301,7 +299,7 @@ The React/Vite frontend has replaced the legacy HTML pages. The server now serve
 
 ### What Gets Committed
 
-- ✅ Source code (`src/`)
+- ✅ Source code (`client/`, `server/`)
 - ✅ Tests (`tests/`)
 - ✅ Configuration files (root `*.config.js`, `.env.example`)
 - ✅ Documentation (`docs/`, root `*.md`)
@@ -348,7 +346,7 @@ mv *analysis*.md backups/analysis-reports/
 # Check what git is tracking in root
 git ls-files --directory ./ --exclude-standard | grep -v '/'
 
-# Should only see config files, package.json, server.js, index.html, and docs
+# Should only see config files, package.json, client/, server/, and docs/
 ```
 
 ### Fix Permissions

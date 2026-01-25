@@ -2,9 +2,9 @@
 
 ## Project Structure & Module Organization
 
-- Monorepo with Express backend and React/Vite frontend sharing `src/`.
-- Backend: `src/api/routes/v1/` (Express routes), `src/services/` (business logic), `src/repositories/` (Postgres access), `src/middleware/`, `src/config/`.
-- Frontend: `src/components/`, `src/App.tsx`, `src/main.tsx`, styles in `src/index.css` and `src/unified.css`.
+- Monorepo with Express backend (`server/`) and React/Vite frontend (`client/`).
+- Backend: `server/src/api/routes/v1/` (Express routes), `server/src/services/` (business logic), `server/src/repositories/` (Postgres access), `server/src/middleware/`, `server/src/config/`.
+- Frontend: `client/src/components/`, `client/src/App.tsx`, `client/src/main.tsx`, styles in `client/src/index.css` and `client/src/unified.css`.
 - Data and ops: SQL migrations in `sql/`, utility scripts in `scripts/`, docs in `docs/`, Jest tests in `tests/`, Docker entrypoints in `docker-compose*.yml` and `Dockerfile`.
 
 ## Build, Test, and Development Commands

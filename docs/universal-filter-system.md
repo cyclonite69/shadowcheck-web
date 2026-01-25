@@ -8,7 +8,7 @@ ShadowCheck now has a **universal filter system** that works consistently across
 
 ### 1. Canonical Filter Schema
 
-**Location:** `src/types/filters.ts`
+**Location:** `client/src/types/filters.ts`
 
 Single source of truth for all filter definitions:
 
@@ -22,7 +22,7 @@ Single source of truth for all filter definitions:
 
 ### 2. Universal Filter Store
 
-**Location:** `src/stores/filterStore.ts`
+**Location:** `client/src/stores/filterStore.ts`
 
 Zustand-based store with:
 
@@ -34,7 +34,7 @@ Zustand-based store with:
 
 ### 3. Page Capability System
 
-**Location:** `src/utils/filterCapabilities.ts`
+**Location:** `client/src/utils/filterCapabilities.ts`
 
 Each page declares which filters it supports:
 
@@ -72,7 +72,7 @@ Takes canonical filters and page capabilities, returns:
 
 ### 5. React Hooks
 
-**Location:** `src/hooks/useAdaptedFilters.ts`
+**Location:** `client/src/hooks/useAdaptedFilters.ts`
 
 ```typescript
 // Get adapted filters for current page
@@ -84,7 +84,7 @@ const { filters, enabled } = useFilterPayload(capabilities);
 
 ### 6. UI Components
 
-**ActiveFiltersSummary** (`src/components/ActiveFiltersSummary.tsx`)
+**ActiveFiltersSummary** (`client/src/components/ActiveFiltersSummary.tsx`)
 
 - Shows active filters
 - Indicates ignored filters with warning
@@ -245,10 +245,10 @@ Backend endpoints receive filters and apply only what they support. Unsupported 
 
 ## Adding a New Filter
 
-1. Add to `NetworkFilters` interface in `src/types/filters.ts`
-2. Add to `defaultFilters` and `defaultEnabled` in `src/stores/filterStore.ts`
-3. Add to FilterPanel UI in `src/components/FilterPanel.tsx`
-4. Update page capabilities in `src/utils/filterCapabilities.ts`
+1. Add to `NetworkFilters` interface in `client/src/types/filters.ts`
+2. Add to `defaultFilters` and `defaultEnabled` in `client/src/stores/filterStore.ts`
+3. Add to FilterPanel UI in `client/src/components/FilterPanel.tsx`
+4. Update page capabilities in `client/src/utils/filterCapabilities.ts`
 5. Backend handles it automatically (if supported)
 
 ## Adding a New Page
@@ -319,22 +319,22 @@ const { filtersForPage, enabledForPage } = adaptedFilters;
 
 ### New Files
 
-- `src/utils/filterCapabilities.ts` - Page capability system
-- `src/components/ActiveFiltersSummary.tsx` - Filter summary UI
-- `src/hooks/useAdaptedFilters.ts` - Adapted filter hooks
+- `client/src/utils/filterCapabilities.ts` - Page capability system
+- `client/src/components/ActiveFiltersSummary.tsx` - Filter summary UI
+- `client/src/hooks/useAdaptedFilters.ts` - Adapted filter hooks
 
 ### Modified Files
 
-- `src/components/DashboardPage.tsx` - Universal filter integration
-- `src/components/KeplerTestPage.tsx` - Universal filter integration
-- `src/components/WigleTestPage.tsx` - Universal filter integration
+- `client/src/components/DashboardPage.tsx` - Universal filter integration
+- `client/src/components/KeplerTestPage.tsx` - Universal filter integration
+- `client/src/components/WigleTestPage.tsx` - Universal filter integration
 
 ### Existing (Reused)
 
-- `src/types/filters.ts` - Canonical filter schema
-- `src/stores/filterStore.ts` - Universal filter store
-- `src/components/FilterPanel.tsx` - Filter UI
-- `src/hooks/useFilteredData.ts` - URL sync hook
+- `client/src/types/filters.ts` - Canonical filter schema
+- `client/src/stores/filterStore.ts` - Universal filter store
+- `client/src/components/FilterPanel.tsx` - Filter UI
+- `client/src/hooks/useFilteredData.ts` - URL sync hook
 
 ## Performance
 

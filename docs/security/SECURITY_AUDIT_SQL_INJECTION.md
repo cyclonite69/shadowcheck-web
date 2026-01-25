@@ -8,7 +8,7 @@ Found **1 CRITICAL** SQL injection vulnerability and **multiple instances** of t
 
 ### CRITICAL: Dynamic INTERVAL in WHERE Clause
 
-**File:** `server.js`
+**File:** `server/server.js`
 **Lines:** 524-526, 528-550
 **Severity:** HIGH (CVSS 7.5)
 

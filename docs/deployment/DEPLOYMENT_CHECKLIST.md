@@ -149,7 +149,7 @@ After=network.target postgresql.service
 Type=simple
 User=shadowcheck
 WorkingDirectory=/opt/shadowcheck
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node server/server.js
 Restart=always
 RestartSec=10
 
@@ -502,7 +502,7 @@ sudo systemctl restart postgresql
 
 ### 3. Connection Pooling
 
-Already configured in `server.js`:
+Already configured in `server/server.js`:
 
 ```javascript
 max: 5,

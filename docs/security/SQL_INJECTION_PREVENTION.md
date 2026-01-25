@@ -46,7 +46,7 @@ const result = await query('SELECT * FROM networks WHERE ssid = ' + ssid);
 
 ### Database Query Wrapper
 
-All queries use `src/config/database.js::query()`:
+All queries use `server/src/config/database.js::query()`:
 
 ```javascript
 async function query(text, params = [], tries = 2) {
@@ -68,7 +68,7 @@ async function query(text, params = [], tries = 2) {
 Special characters in LIKE patterns must be escaped:
 
 ```javascript
-// src/utils/escapeSQL.js
+// server/src/utils/escapeSQL.js
 function escapeLike(value) {
   if (typeof value !== 'string') return '';
   return value
@@ -149,7 +149,7 @@ describe('SQL Injection Prevention', () => {
 ### Layer 1: Input Validation
 
 ```javascript
-// src/validation/schemas.js
+// server/src/validation/schemas.js
 const Joi = require('joi');
 
 const bssidSchema = Joi.string()

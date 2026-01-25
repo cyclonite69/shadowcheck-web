@@ -149,7 +149,7 @@
 
 - [ ] Create git branch `database-v2`
 - [ ] Create `utils/keyring.js` helper
-- [ ] Update `server.js` to use keyring
+- [ ] Update `server/server.js` to use keyring
 - [ ] Create `sql/v2/` directory for migrations
 - [ ] Backup current database schema
 
@@ -227,7 +227,7 @@
 
 **Days 1-2:** API Updates
 
-- Update server.js endpoints
+- Update server/server.js endpoints
 - Create GeoJSON endpoint
 - Create KML export endpoint
 - Update frontend queries

@@ -69,7 +69,7 @@ Successfully migrated ALL intelligence logic from Node.js to PostgreSQL while ma
 
 ### 1. Radio Type Inference (inferRadioType)
 
-**Source**: `src/api/routes/v1/explorer.js` lines 31-146
+**Source**: `server/src/api/routes/v1/explorer.js` lines 31-146
 **Destination**: SQL CASE expression in view
 
 **Algorithm** (preserved exactly):
@@ -100,7 +100,7 @@ END AS type
 
 ### 2. Security Classification (inferSecurity)
 
-**Source**: `src/api/routes/v1/explorer.js` lines 5-27
+**Source**: `server/src/api/routes/v1/explorer.js` lines 5-27
 **Destination**: SQL CASE expression in view
 
 **Algorithm** (preserved exactly):
@@ -247,7 +247,7 @@ sql/migrations/20251219_api_network_explorer_forensic.sql
 ### 2. Node.js Route
 
 ```
-src/api/routes/v1/explorer.js
+server/src/api/routes/v1/explorer.js
 ```
 
 - Added `/api/explorer/networks-v2` endpoint
@@ -318,7 +318,7 @@ docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
 ### Phase 2: Deploy V2 Endpoint (COMPLETE)
 
 ```bash
-# Code already deployed in src/api/routes/v1/explorer.js
+# Code already deployed in server/src/api/routes/v1/explorer.js
 # Server restart picks up new route
 
 # Test
@@ -460,7 +460,7 @@ curl "http://localhost:3001/api/explorer/networks-v2?limit=all" | \
 ### Code Files
 
 - Migration: `sql/migrations/20251219_api_network_explorer_forensic.sql`
-- Endpoint: `src/api/routes/v1/explorer.js` (line 289+)
+- Endpoint: `server/src/api/routes/v1/explorer.js` (line 289+)
 - Validation: `scripts/validate-explorer-v2.sh`
 - Tests: `tests/integration/explorer-v2.test.js`
 

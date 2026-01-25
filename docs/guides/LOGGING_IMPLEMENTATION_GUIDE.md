@@ -48,7 +48,7 @@ This adds:
 ### Step 2: File Structure
 
 ```
-src/
+server/src/
 ├── logging/
 │   ├── logger.js       - Winston configuration
 │   └── middleware.js   - Logging middleware
@@ -61,7 +61,7 @@ src/
 ### Basic Logging
 
 ```javascript
-const logger = require('./src/logging/logger');
+const logger = require('./server/src/logging/logger');
 
 logger.error('Something went wrong', { detail: 'extra info' });
 logger.warn('Warning message');
@@ -89,7 +89,7 @@ app.get('/api/networks', (req, res) => {
 ### Security Event Logging
 
 ```javascript
-const { logSecurityEvent } = require('./src/logging/middleware');
+const { logSecurityEvent } = require('./server/src/logging/middleware');
 
 app.post('/api/login', (req, res) => {
   if (failedAttempts > 3) {
@@ -104,7 +104,7 @@ app.post('/api/login', (req, res) => {
 ### Database Query Logging
 
 ```javascript
-const { logQuery, logQueryError } = require('./src/logging/middleware');
+const { logQuery, logQueryError } = require('./server/src/logging/middleware');
 
 async function query(text, params) {
   const start = Date.now();
@@ -122,7 +122,7 @@ async function query(text, params) {
 ### Performance Monitoring
 
 ```javascript
-const { performanceMiddleware } = require('./src/logging/middleware');
+const { performanceMiddleware } = require('./server/src/logging/middleware');
 
 // Log requests taking longer than 2 seconds
 app.use(performanceMiddleware(2000));
@@ -131,7 +131,7 @@ app.use(performanceMiddleware(2000));
 ### Data Access Logging (Compliance)
 
 ```javascript
-const { logDataAccess } = require('./src/logging/middleware');
+const { logDataAccess } = require('./server/src/logging/middleware');
 
 app.get('/api/networks', (req, res) => {
   const networks = await query('SELECT * FROM networks');
@@ -145,8 +145,8 @@ app.get('/api/networks', (req, res) => {
 The logging system integrates seamlessly with the error handler from Phase 3:
 
 ```javascript
-const { createErrorHandler } = require('./src/errors/errorHandler');
-const logger = require('./src/logging/logger');
+const { createErrorHandler } = require('./server/src/errors/errorHandler');
+const logger = require('./server/src/logging/logger');
 
 // Register at the end of middleware stack
 app.use(createErrorHandler(logger));
@@ -340,9 +340,9 @@ Grep all logs for this request: `grep "550e8400-e29b-41d4-a716-446655440000" dat
 ## Integration Checklist
 
 - [ ] Add winston and uuid to package.json
-- [ ] Create `src/logging/logger.js`
-- [ ] Create `src/logging/middleware.js`
-- [ ] Update `server.js` to use logging middleware
+- [ ] Create `server/src/logging/logger.js`
+- [ ] Create `server/src/logging/middleware.js`
+- [ ] Update `server/server.js` to use logging middleware
 - [ ] Replace `console.log` with `logger.info`, `logger.debug`, etc.
 - [ ] Add request ID middleware to beginning of middleware stack
 - [ ] Add request logging middleware after request ID middleware

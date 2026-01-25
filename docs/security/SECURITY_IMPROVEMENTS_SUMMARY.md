@@ -14,7 +14,7 @@ We have systematically addressed **3 critical security and code quality phases**
 
 ### Key Changes
 
-- **File**: `server.js` (lines 486-551)
+- **File**: `server/server.js` (lines 486-551)
 - **Pattern**: Replaced template literal SQL with parameterized queries
 - **Result**: SQL injection impossible through query parameters
 
@@ -59,12 +59,12 @@ const { rows } = await query(
 
 #### New Files Created
 
-1. **`src/validation/schemas.js`** (306 lines)
+1. **`server/src/validation/schemas.js`** (306 lines)
    - 14 reusable validation functions
    - Type-safe parameter validation
    - Consistent error formats
 
-2. **`src/validation/middleware.js`** (329 lines)
+2. **`server/src/validation/middleware.js`** (329 lines)
    - 8 Express middleware factories
    - Automatic validation at request boundary
    - Per-parameter rate limiting support
@@ -152,12 +152,12 @@ app.get(
 
 #### New Files Created
 
-1. **`src/errors/AppError.js`** (345 lines)
+1. **`server/src/errors/AppError.js`** (345 lines)
    - 14 typed error classes
    - Safe error message generation
    - Environment-aware error details
 
-2. **`src/errors/errorHandler.js`** (210 lines)
+2. **`server/src/errors/errorHandler.js`** (210 lines)
    - Centralized error handling middleware
    - Automatic error logging
    - Typed error conversion
@@ -264,7 +264,7 @@ app.get(
 ### Added Directories
 
 ```
-src/
+server/src/
 ├── validation/
 │   ├── schemas.js      (14 validators)
 │   └── middleware.js   (8 middleware factories)
@@ -316,7 +316,7 @@ src/
 1. Update `package.json` with Phase 4 dependencies (winston/pino)
 2. Add structured logging configuration
 3. Create logger instance
-4. Update `server.js` to use new error handler and validation
+4. Update `server/server.js` to use new error handler and validation
 5. Gradually apply middleware to routes
 6. Add comprehensive tests
 
@@ -352,10 +352,10 @@ src/
 ### Code Files (New)
 
 ```
-src/validation/schemas.js        306 lines - Validation functions
-src/validation/middleware.js     329 lines - Middleware factories
-src/errors/AppError.js           345 lines - Error classes
-src/errors/errorHandler.js       210 lines - Error handler
+server/src/validation/schemas.js        306 lines - Validation functions
+server/src/validation/middleware.js     329 lines - Middleware factories
+server/src/errors/AppError.js           345 lines - Error classes
+server/src/errors/errorHandler.js       210 lines - Error handler
 ```
 
 ### Documentation Files (New)
@@ -370,7 +370,7 @@ SECURITY_IMPROVEMENTS_SUMMARY.md    (this file)
 ### Code Modified
 
 ```
-server.js                          Fixed SQL injection (lines 486-551)
+server/server.js                          Fixed SQL injection (lines 486-551)
 ```
 
 ---

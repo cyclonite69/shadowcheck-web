@@ -576,11 +576,11 @@ LIMIT 100;
 ### Files Modified
 
 - `sql/migrations/20251220_add_threat_intelligence_to_explorer.sql` - Database view with threat logic
-- `src/api/routes/v1/explorer.js:340-400` - V2 endpoint threat field passthrough
+- `server/src/api/routes/v1/explorer.js:340-400` - V2 endpoint threat field passthrough
 
 ### Files Unchanged (Backward Compatibility)
 
-- `src/api/routes/v1/explorer.js:159-287` - V1 endpoint (legacy)
+- `server/src/api/routes/v1/explorer.js:159-287` - V1 endpoint (legacy)
 - All frontend components (no breaking changes)
 
 ## Documentation

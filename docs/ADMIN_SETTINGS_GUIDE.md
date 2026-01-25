@@ -212,7 +212,7 @@ npm install keytar --save
 
 ### Keyring Service
 
-Location: `/src/services/keyringService.js`
+Location: `/server/src/services/keyringService.js`
 
 Methods:
 
@@ -225,7 +225,7 @@ Methods:
 
 ### Settings Routes
 
-Location: `/src/api/routes/v1/settings.js`
+Location: `/server/src/api/routes/v1/settings.js`
 
 Endpoints:
 

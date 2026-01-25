@@ -18,7 +18,7 @@ Completed a comprehensive analysis and update of the ShadowCheck documentation t
 
 - **Hybrid React + Express architecture**
 - **React 18 + Vite + TypeScript frontend**
-- **Modular backend services** in `src/services/`
+- **Modular backend services** in `server/src/services/`
 - **Universal filter system** with 20+ filter types
 - **DevContainer support** for consistent development
 - **Static server** with security headers for production
@@ -81,8 +81,8 @@ Completed a comprehensive analysis and update of the ShadowCheck documentation t
 
 ```
 ✅ Hybrid architecture (legacy + modern)
-✅ Modular services in src/services/
-✅ Repository pattern in src/repositories/
+✅ Modular services in server/src/services/
+✅ Repository pattern in server/src/repositories/
 ✅ Universal filter system (20+ types)
 ✅ Structured logging with Winston
 ✅ Error handling with custom classes

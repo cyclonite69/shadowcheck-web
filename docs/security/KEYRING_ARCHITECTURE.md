@@ -315,7 +315,7 @@ unset API_KEY
 
 ### Phase 1: Core Infrastructure
 
-- [ ] Create src/services/secretsManager.js
+- [ ] Create server/src/services/secretsManager.js
 - [ ] Implement Docker secrets reader
 - [ ] Implement 3-tier fallback
 - [ ] Add startup validation
@@ -323,7 +323,7 @@ unset API_KEY
 
 ### Phase 2: Integration
 
-- [ ] Update server.js to use SecretsManager
+- [ ] Update server/server.js to use SecretsManager
 - [ ] Update all route files
 - [ ] Update all scripts
 - [ ] Remove direct process.env.\* access

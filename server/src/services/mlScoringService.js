@@ -108,20 +108,22 @@ class MLScoringService {
 
       // 4. Bulk insert/update scores
       if (scores.length > 0) {
+        const valuesPlaceholder = scores
+          .map((_, i) => {
+            const offset = i * 11;
+            return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, 
+                   $${offset + 5}, $${offset + 6}, $${offset + 7}, 
+                   $${offset + 8}, $${offset + 9}, $${offset + 10}, NOW())`;
+          })
+          .join(',');
+
         const insertQuery = `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class, 
              ml_feature_values, rule_based_score, rule_based_flags, 
              final_threat_score, final_threat_level, model_version, scored_at)
           VALUES 
-            ${scores
-              .map((_, i) => {
-                const offset = i * 11;
-                return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, 
-                       $${offset + 5}, $${offset + 6}, $${offset + 7}, 
-                       $${offset + 8}, $${offset + 9}, $${offset + 10}, NOW())`;
-              })
-              .join(',')}
+            ${valuesPlaceholder}
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
             ml_threat_probability = EXCLUDED.ml_threat_probability,

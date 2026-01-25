@@ -104,7 +104,7 @@ This is **EXPECTED BEHAVIOR**:
 
 ## Code Changes Made
 
-### 1. src/repositories/networkRepository.js
+### 1. server/src/repositories/networkRepository.js
 
 ```diff
 - threat_score as threatScore
@@ -117,7 +117,7 @@ This is **EXPECTED BEHAVIOR**:
 + COUNT(*) FILTER (WHERE ml_threat_score >= 80)
 ```
 
-### 2. src/components/Dashboard.tsx
+### 2. client/src/components/Dashboard.tsx
 
 ```diff
 - const response = await fetch('http://localhost:3001/api/v1/dashboard/metrics');
@@ -167,12 +167,12 @@ node test-production.js
 
 ## Files Modified
 
-- `src/repositories/networkRepository.js` - Fixed column names
-- `src/components/Dashboard.tsx` - Fixed API endpoint
+- `server/src/repositories/networkRepository.js` - Fixed column names
+- `client/src/components/Dashboard.tsx` - Fixed API endpoint
 - `CLAUDE.md` - Added Docker PostgreSQL documentation
-- `src/index.css` - Added comprehensive CSS theme
+- `client/src/index.css` - Added comprehensive CSS theme
 - `.eslintrc.json` - Added React file ignores
-- `server.js` - Already configured to serve from dist/
+- `server/server.js` - Already configured to serve from dist/
 
 ---
 

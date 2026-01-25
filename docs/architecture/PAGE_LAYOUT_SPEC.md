@@ -3,6 +3,7 @@
 ## Current Architecture (As-Is)
 
 The Geospatial Intelligence page currently has:
+
 - ✅ NetworksExplorer component (with local filters)
 - ✅ ThreatsExplorer component (with local filters)
 - ✅ Heatmap, Routes, and Timeline sidebars
@@ -12,6 +13,7 @@ The Geospatial Intelligence page currently has:
 ## Target Architecture (To-Be)
 
 ### Layout Structure
+
 ```
 ┌────────────────────────────────────────────────────────────┐
 │  Geospatial Intelligence Header                           │
@@ -42,6 +44,7 @@ The Geospatial Intelligence page currently has:
 ```
 
 ### Component Hierarchy
+
 ```
 GeospatialIntelligencePage
 ├── Header (Title + Description)
@@ -60,18 +63,21 @@ GeospatialIntelligencePage
 ## Key Principles
 
 ### 1. No Local Filters
+
 - **Remove all filter UI** from NetworksExplorer
 - **Remove all filter UI** from ThreatsExplorer
 - **Remove search boxes, dropdowns, range sliders**
 - Components receive **pre-filtered data** from global filter context
 
 ### 2. Map-First Design
+
 - Mapbox map is the **primary** interaction point
 - Map occupies **full width** above explorers
 - Map height: **600px** (adjustable)
 - Clicking map markers updates explorers selection
 
 ### 3. Unified Data Flow
+
 ```
 Global Filter Context
        ↓
@@ -83,6 +89,7 @@ Map Data   Networks   Threats    Stats Cards
 ```
 
 ### 4. Responsive Layout
+
 ```
 Desktop (≥1280px):
 - Map: Full width
@@ -100,6 +107,7 @@ Mobile (<768px):
 ## Implementation Checklist
 
 ### Phase 1: Map Integration
+
 - [ ] Install and configure Mapbox GL JS
 - [ ] Create MapboxMap component with deck.gl
 - [ ] Add network markers layer
@@ -109,6 +117,7 @@ Mobile (<768px):
 - [ ] Wire up map click → explorer selection
 
 ### Phase 2: Explorer Refactoring
+
 - [ ] Remove search input from NetworksExplorer
 - [ ] Remove type filter dropdown from NetworksExplorer
 - [ ] Remove signal range slider from NetworksExplorer
@@ -118,6 +127,7 @@ Mobile (<768px):
 - [ ] Remove all local filter state from ThreatsExplorer
 
 ### Phase 3: Layout Updates
+
 - [ ] Update GeospatialIntelligencePage layout to:
   - Header at top
   - Stats cards below header
@@ -127,6 +137,7 @@ Mobile (<768px):
 - [ ] Add responsive breakpoints
 
 ### Phase 4: Route Cleanup
+
 - [ ] Remove /networks route from App.tsx
 - [ ] Remove /threats route from App.tsx
 - [ ] Delete NetworksPage.tsx component
@@ -134,8 +145,9 @@ Mobile (<768px):
 - [ ] Delete ThreatsExplorerPage.tsx component
 
 ### Phase 5: Global Filter Preparation
-- [ ] Create FilterContext (src/contexts/FilterContext.tsx)
-- [ ] Create FilterPanel component (src/components/FilterPanel.tsx)
+
+- [ ] Create FilterContext (client/src/contexts/FilterContext.tsx)
+- [ ] Create FilterPanel component (client/src/components/FilterPanel.tsx)
 - [ ] Add FilterProvider to App.tsx root
 - [ ] Update API calls to include filter parameter
 - [ ] Update backend to parse and apply filters
@@ -143,9 +155,10 @@ Mobile (<768px):
 ## Component APIs
 
 ### NetworksExplorer (Simplified)
+
 ```typescript
 interface NetworksExplorerProps {
-  networks: NetworkRow[];        // Pre-filtered from API
+  networks: NetworkRow[]; // Pre-filtered from API
   onSelect: (bssid: string) => void;
   selectedBssid: string | null;
   title?: string;
@@ -155,9 +168,10 @@ interface NetworksExplorerProps {
 ```
 
 ### ThreatsExplorer (Simplified)
+
 ```typescript
 interface ThreatsExplorerProps {
-  networks: NetworkRow[];        // Pre-filtered from API (threats only)
+  networks: NetworkRow[]; // Pre-filtered from API (threats only)
   onSelect: (bssid: string) => void;
   selectedBssid: string | null;
   title?: string;
@@ -167,6 +181,7 @@ interface ThreatsExplorerProps {
 ```
 
 ### MapboxMap (New Component)
+
 ```typescript
 interface MapboxMapProps {
   networks: NetworkRow[];
@@ -181,6 +196,7 @@ interface MapboxMapProps {
 ## Data Flow Example
 
 ### Before (Local Filters)
+
 ```
 User types in search box
   ↓
@@ -192,6 +208,7 @@ Table re-renders with filtered subset
 ```
 
 ### After (Global Filter)
+
 ```
 User interacts with Global Filter Panel
   ↓
@@ -211,51 +228,60 @@ No client-side filtering needed
 ## File Structure Changes
 
 ### Files to Keep (Modified)
-- ✅ `src/components/GeospatialIntelligencePage.tsx` (updated layout)
-- ✅ `src/components/NetworksExplorer.tsx` (remove filters)
-- ✅ `src/components/ThreatsExplorer.tsx` (remove filters)
+
+- ✅ `client/src/components/GeospatialIntelligencePage.tsx` (updated layout)
+- ✅ `client/src/components/NetworksExplorer.tsx` (remove filters)
+- ✅ `client/src/components/ThreatsExplorer.tsx` (remove filters)
 
 ### Files to Delete
-- ❌ `src/components/NetworksPage.tsx`
-- ❌ `src/components/NetworksTablePage.tsx`
-- ❌ `src/components/ThreatsExplorerPage.tsx`
+
+- ❌ `client/src/components/NetworksPage.tsx`
+- ❌ `client/src/components/NetworksTablePage.tsx`
+- ❌ `client/src/components/ThreatsExplorerPage.tsx`
 
 ### Files to Create
-- ➕ `src/components/MapboxMap.tsx` (Mapbox + deck.gl integration)
-- ➕ `src/contexts/FilterContext.tsx` (Global filter state)
-- ➕ `src/components/FilterPanel.tsx` (Global filter UI)
+
+- ➕ `client/src/components/MapboxMap.tsx` (Mapbox + deck.gl integration)
+- ➕ `client/src/contexts/FilterContext.tsx` (Global filter state)
+- ➕ `client/src/components/FilterPanel.tsx` (Global filter UI)
 
 ## Migration Steps
 
 ### Step 1: Document Current State ✅
+
 - This document
 
 ### Step 2: Remove Unused Pages
+
 ```bash
-git rm src/components/NetworksPage.tsx
-git rm src/components/NetworksTablePage.tsx
-git rm src/components/ThreatsExplorerPage.tsx
+git rm client/src/components/NetworksPage.tsx
+git rm client/src/components/NetworksTablePage.tsx
+git rm client/src/components/ThreatsExplorerPage.tsx
 ```
 
 ### Step 3: Update Routes
+
 ```diff
-// src/App.tsx
+// client/src/App.tsx
 - <Route path="/networks" element={<NetworksPage />} />
 - <Route path="/threats" element={<ThreatsExplorerPage />} />
 ```
 
 ### Step 4: Refactor Explorers
+
 - Remove filter UI components
 - Remove local state (useState for filters)
 - Remove filter logic
 - Accept pre-filtered data as props
 
 ### Step 5: Update Geospatial Intelligence Page
+
 - Add Map component at top
 - Rearrange explorers below map
 - Update grid layout
 
 ### Step 6: Commit Changes
+
 ```
 git add -A
 git commit -m "Consolidate explorers into Geospatial Intelligence page

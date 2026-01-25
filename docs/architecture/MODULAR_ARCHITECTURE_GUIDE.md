@@ -15,19 +15,19 @@ Request
  ├─ Logging
  └─ Error Handling
    ↓
-[Route Layer] (src/api/routes/v1/*)
+[Route Layer] (server/src/api/routes/v1/*)
  ├─ Receives request
  ├─ Validates input
  ├─ Calls service
  └─ Formats response
    ↓
-[Service Layer] (src/services/*)
+[Service Layer] (server/src/services/*)
  ├─ Business logic
  ├─ Data transformation
  ├─ Error handling
  └─ External calls
    ↓
-[Data Layer] (src/config/database.js)
+[Data Layer] (server/src/config/database.js)
  ├─ Query execution
  ├─ Connection management
  └─ Retry logic
@@ -38,7 +38,7 @@ Database
 ## Directory Structure
 
 ```
-src/
+server/src/
 ├── api/
 │   └── routes/
 │       └── v1/
@@ -74,12 +74,12 @@ src/
 
 ## New Modules Created
 
-### 1. Analytics Service (`src/services/analyticsService.js`)
+### 1. Analytics Service (`server/src/services/analyticsService.js`)
 
 Encapsulates all analytics business logic:
 
 ```javascript
-const analyticsService = require('./src/services/analyticsService');
+const analyticsService = require('./server/src/services/analyticsService');
 
 // Individual functions
 const networkTypes = await analyticsService.getNetworkTypes();
@@ -102,7 +102,7 @@ const allData = await analyticsService.getBulkAnalytics();
 - ✅ Easy to cache results
 - ✅ Clear data transformations
 
-### 2. Analytics Routes (`src/api/routes/v1/analytics.js`)
+### 2. Analytics Routes (`server/src/api/routes/v1/analytics.js`)
 
 Thin route handlers that:
 
@@ -136,7 +136,7 @@ router.get(
 #### Step 1: Create Service Function
 
 ```javascript
-// src/services/myNewService.js
+// server/src/services/myNewService.js
 async function getMyData(filters) {
   try {
     const { rows } = await query('SELECT * FROM app.table WHERE ...');
@@ -154,7 +154,7 @@ module.exports = {
 #### Step 2: Create Route Handler
 
 ```javascript
-// src/api/routes/v1/mynew.js
+// server/src/api/routes/v1/mynew.js
 const express = require('express');
 const router = express.Router();
 const { asyncHandler } = require('../../../errors/errorHandler');
@@ -173,11 +173,11 @@ router.get(
 module.exports = router;
 ```
 
-#### Step 3: Register in server.js
+#### Step 3: Register in server/server.js
 
 ```javascript
-// In server.js, add after other route registrations
-const myNewRoutes = require('./src/api/routes/v1/mynew');
+// In server/server.js, add after other route registrations
+const myNewRoutes = require('./server/src/api/routes/v1/mynew');
 app.use('/api/mynew', myNewRoutes);
 ```
 
@@ -284,8 +284,8 @@ curl http://localhost:3001/api/mynew/data
 ### Unit Test Example
 
 ```javascript
-const analyticsService = require('./src/services/analyticsService');
-const { DatabaseError } = require('./src/errors/AppError');
+const analyticsService = require('./server/src/services/analyticsService');
+const { DatabaseError } = require('./server/src/errors/AppError');
 
 describe('Analytics Service', () => {
   test('getNetworkTypes returns array', async () => {
@@ -345,7 +345,7 @@ describe('Analytics Routes', () => {
 As the application grows, add new service modules for each major feature:
 
 ```
-src/services/
+server/src/services/
 ├── analyticsService.js      ✅ Done
 ├── threatService.js         (future - threat scoring)
 ├── enrichmentService.js     (future - address enrichment)
@@ -359,7 +359,7 @@ src/services/
 For complex data access patterns, add repositories:
 
 ```
-src/repositories/
+server/src/repositories/
 ├── baseRepository.js         (base class)
 ├── networkRepository.js      (network CRUD)
 ├── observationRepository.js  (observation queries)
@@ -368,7 +368,7 @@ src/repositories/
 
 ### Dependency Injection Container
 
-The existing `src/config/container.js` can be expanded:
+The existing `server/src/config/container.js` can be expanded:
 
 ```javascript
 const container = {
@@ -401,9 +401,9 @@ const container = {
 ### Phase 2: Threat Module (Future)
 
 - [ ] Create threatService.js
-- [ ] Extract threat logic from server.js
+- [ ] Extract threat logic from server/server.js
 - [ ] Create threats.js routes
-- [ ] Update server.js to use modular routes
+- [ ] Update server/server.js to use modular routes
 
 ### Phase 3: Network Module (Future)
 
@@ -420,7 +420,7 @@ const container = {
 
 - [ ] All legacy logic moved to services
 - [ ] All routes modular
-- [ ] server.js contains only middleware and route registration
+- [ ] server/server.js contains only middleware and route registration
 - [ ] All logic in services and repositories
 
 ## Benefits of Modular Architecture
@@ -439,7 +439,7 @@ const container = {
 ### Old (Monolithic)
 
 ```javascript
-// server.js - 2000+ lines
+// server/server.js - 2000+ lines
 app.get('/api/analytics/network-types', async (req, res) => {
   try {
     const { rows } = await query(`
@@ -465,20 +465,20 @@ app.get('/api/analytics/signal-strength', async (req, res) => {
 ### New (Modular)
 
 ```javascript
-// src/services/analyticsService.js
+// server/src/services/analyticsService.js
 async function getNetworkTypes() {
   const { rows } = await query(`...`);
   return rows.map(row => ({...}));
 }
 
-// src/api/routes/v1/analytics.js
+// server/src/api/routes/v1/analytics.js
 router.get('/network-types', asyncHandler(async (req, res) => {
   const data = await analyticsService.getNetworkTypes();
   res.json({ ok: true, data });
 }));
 
-// server.js
-const analyticsRoutes = require('./src/api/routes/v1/analytics');
+// server/server.js
+const analyticsRoutes = require('./server/src/api/routes/v1/analytics');
 app.use('/api/analytics', analyticsRoutes);
 ```
 

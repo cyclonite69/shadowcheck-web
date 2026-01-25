@@ -4,7 +4,7 @@
 
 ### Current Situation (Dual Configuration)
 
-**server.js** (lines 138-150):
+**server/server.js** (lines 138-150):
 
 - Force hardcoded IPv4: `'127.0.0.1'`
 - Max connections: 5
@@ -13,7 +13,7 @@
 - Search path: 'public'
 - Purpose: Specific to Docker environments
 
-**src/config/database.js** (lines 19-28):
+**server/src/config/database.js** (lines 19-28):
 
 - Uses configurable host: `process.env.DB_HOST`
 - Max connections: 20
@@ -26,7 +26,7 @@
 1. **Confusion**: Which config is used? When?
 2. **Inconsistency**: Different timeouts and connection limits
 3. **Maintenance**: Changes need to happen in two places
-4. **Docker Issues**: Special-case hardcoding in server.js
+4. **Docker Issues**: Special-case hardcoding in server/server.js
 5. **Testing**: Different configs for different environments
 6. **Production Risk**: Forgetting to update one config
 
@@ -47,7 +47,7 @@ Create a single, **environment-aware** database configuration that:
 ### New Structure
 
 ```
-src/config/
+server/src/config/
 ├── database.js          (NEW - unified)
 ├── environment.js       (NEW - env validation)
 └── constants.js         (existing)
@@ -59,7 +59,7 @@ src/config/
 
 ### Step 1: Environment Validation
 
-Create `src/config/environment.js` to validate and document required variables:
+Create `server/src/config/environment.js` to validate and document required variables:
 
 ```javascript
 /**
@@ -111,7 +111,7 @@ module.exports = {
 
 ### Step 2: Unified Database Configuration
 
-Update `src/config/database.js` to be environment-aware:
+Update `server/src/config/database.js` to be environment-aware:
 
 ```javascript
 /**
@@ -275,19 +275,19 @@ module.exports = {
 
 ### Step 1: Create Environment Validation
 
-1. Create `src/config/environment.js`
+1. Create `server/src/config/environment.js`
 2. Define required and optional environment variables
 3. Add validation function
 
 ### Step 2: Update Database Configuration
 
-1. Update `src/config/database.js` with unified config
+1. Update `server/src/config/database.js` with unified config
 2. Add environment-aware logic
 3. Add validation at startup
 
-### Step 3: Update server.js
+### Step 3: Update server/server.js
 
-Replace hardcoded pool with import from `src/config/database.js`:
+Replace hardcoded pool with import from `server/src/config/database.js`:
 
 ```javascript
 // OLD (lines 138-180)
@@ -304,7 +304,7 @@ const pool = new Pool({
 const query = (text, params, tries) => queryWithPool(pool, text, params, tries);
 
 // NEW
-const { pool, query } = require('./src/config/database');
+const { pool, query } = require('./server/src/config/database');
 ```
 
 ### Step 4: Update package.json Scripts
@@ -314,11 +314,11 @@ Add environment-specific startup scripts:
 ```json
 {
   "scripts": {
-    "start": "node server.js",
-    "start:docker": "NODE_ENV=production DOCKER_ENV=true node server.js",
-    "start:dev": "NODE_ENV=development LOG_LEVEL=debug nodemon server.js",
-    "start:test": "NODE_ENV=test node server.js",
-    "db:test-connection": "node -e \"const { testConnection } = require('./src/config/database'); testConnection();\""
+    "start": "node server/server.js",
+    "start:docker": "NODE_ENV=production DOCKER_ENV=true node server/server.js",
+    "start:dev": "NODE_ENV=development LOG_LEVEL=debug nodemon server/server.js",
+    "start:test": "NODE_ENV=test node server/server.js",
+    "db:test-connection": "node -e \"const { testConnection } = require('./server/src/config/database'); testConnection();\""
   }
 }
 ```
@@ -411,7 +411,7 @@ LOG_LEVEL=warn
 ### Test 1: Verify Startup
 
 ```bash
-LOG_LEVEL=debug node server.js
+LOG_LEVEL=debug node server/server.js
 ```
 
 Should see:
@@ -435,7 +435,7 @@ npm run db:test-connection
 ### Test 3: Docker Configuration
 
 ```bash
-NODE_ENV=production DOCKER_ENV=true node server.js
+NODE_ENV=production DOCKER_ENV=true node server/server.js
 ```
 
 Should connect to `db` service instead of localhost.
@@ -446,8 +446,8 @@ Should connect to `db` service instead of localhost.
 
 If issues occur:
 
-1. **Revert server.js** imports
-2. **Keep old `src/config/database.js`** as backup
+1. **Revert server/server.js** imports
+2. **Keep old `server/src/config/database.js`** as backup
 3. **Run tests** to verify original functionality
 4. **Debug** specific issue and reapply fix
 
@@ -468,9 +468,9 @@ If issues occur:
 
 ## Migration Checklist
 
-- [ ] Create `src/config/environment.js`
-- [ ] Update `src/config/database.js` with unified logic
-- [ ] Update `server.js` to import from config
+- [ ] Create `server/src/config/environment.js`
+- [ ] Update `server/src/config/database.js` with unified logic
+- [ ] Update `server/server.js` to import from config
 - [ ] Update `package.json` scripts
 - [ ] Update `.env.example`
 - [ ] Test local development startup
@@ -485,7 +485,7 @@ If issues occur:
 ## Questions & Answers
 
 **Q: Why not just use the existing database.js?**
-A: The hardcoded config in server.js suggests specific Docker requirements. The unified approach honors both while being configurable.
+A: The hardcoded config in server/server.js suggests specific Docker requirements. The unified approach honors both while being configurable.
 
 **Q: What about connection pooling for clusters?**
 A: The unified config handles typical single-instance deployments. For clusters, consider external connection pooling (PgBouncer) and manage via environment variables.

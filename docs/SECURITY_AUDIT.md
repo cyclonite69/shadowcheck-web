@@ -22,7 +22,7 @@
 ### Safe in Repository
 
 - `.env.example` - Template with placeholder values only
-- `server.js` - Uses `process.env.*` for all secrets
+- `server/server.js` - Uses `process.env.*` for all secrets
 - `scripts/import/*.js` - Uses keyring retrieval functions
 - All other source files - No hardcoded credentials
 
@@ -129,7 +129,7 @@ All credentials are retrieved via:
 - [ ] Install `keytar` npm package
 - [ ] Create keyring service wrapper
 - [ ] Migrate existing .env secrets to keyring
-- [ ] Update server.js to read from keyring
+- [ ] Update server/server.js to read from keyring
 
 ### Phase 2: Admin Settings UI
 
