@@ -1,18 +1,43 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import type { ChangeEvent, MouseEvent } from 'react';
 import { MessageSquare, Paperclip, Trash2, X } from 'lucide-react';
 
-export default function NetworkContextMenu({ networks = [] }) {
-  const [contextMenu, setContextMenu] = useState(null);
-  const [selectedBSSID, setSelectedBSSID] = useState(null);
+type Network = {
+  bssid: string;
+  ssid?: string | null;
+  threat_level?: string | null;
+};
+
+type Note = {
+  id: number | string;
+  note_type: string;
+  created_at: string;
+  content: string;
+};
+
+type NotesByBssid = Record<string, Note[]>;
+
+type ContextMenuState = {
+  x: number;
+  y: number;
+};
+
+type NetworkContextMenuProps = {
+  networks?: Network[];
+};
+
+export default function NetworkContextMenu({ networks = [] }: NetworkContextMenuProps) {
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [selectedBSSID, setSelectedBSSID] = useState<string | null>(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState('general');
-  const [notes, setNotes] = useState({});
-  const [attachedFiles, setAttachedFiles] = useState([]);
-  const fileInputRef = useRef(null);
+  const [notes, setNotes] = useState<NotesByBssid>({});
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Handle right-click
-  const handleRightClick = (e, bssid) => {
+  const handleRightClick = (e: MouseEvent<HTMLTableRowElement>, bssid: string) => {
     e.preventDefault();
     setSelectedBSSID(bssid);
     setContextMenu({ x: e.clientX, y: e.clientY });
@@ -43,13 +68,13 @@ export default function NetworkContextMenu({ networks = [] }) {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Upload media if attached
         for (const file of attachedFiles) {
           const formData = new FormData();
           formData.append('file', file);
           formData.append('bssid', selectedBSSID);
-          
+
           await fetch(`/api/admin/network-notes/${data.note_id}/media`, {
             method: 'POST',
             body: formData,
@@ -58,8 +83,8 @@ export default function NetworkContextMenu({ networks = [] }) {
 
         // Refresh notes
         const notesResponse = await fetch(`/api/admin/network-notes/${selectedBSSID}`);
-        const notesData = await notesResponse.json();
-        setNotes(prev => ({ ...prev, [selectedBSSID]: notesData.notes }));
+        const notesData = (await notesResponse.json()) as { notes: Note[] };
+        setNotes((prev) => ({ ...prev, [selectedBSSID]: notesData.notes }));
 
         setNoteText('');
         setNoteType('general');
@@ -72,28 +97,33 @@ export default function NetworkContextMenu({ networks = [] }) {
   };
 
   // Handle file attachment
-  const handleFileAttach = (e) => {
-    const files = Array.from(e.target.files);
-    setAttachedFiles(prev => [...prev, ...files]);
+  const handleFileAttach = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setAttachedFiles((prev) => [...prev, ...files]);
   };
 
   // Remove attachment
-  const removeAttachment = (idx) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+  const removeAttachment = (idx: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Delete note
-  const handleDeleteNote = async (bssid, noteId) => {
+  const handleDeleteNote = async (bssid: string, noteId: number | string) => {
     try {
       await fetch(`/api/admin/network-notes/${noteId}`, { method: 'DELETE' });
-      setNotes(prev => ({
-        ...prev,
-        [bssid]: prev[bssid].filter(n => n.id !== noteId),
-      }));
+      setNotes((prev) => {
+        const current = prev[bssid] ?? [];
+        return {
+          ...prev,
+          [bssid]: current.filter((n) => n.id !== noteId),
+        };
+      });
     } catch (err) {
       console.error('Error deleting note:', err);
     }
   };
+
+  const selectedNotes = selectedBSSID ? notes[selectedBSSID] : undefined;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -111,20 +141,24 @@ export default function NetworkContextMenu({ networks = [] }) {
             </tr>
           </thead>
           <tbody>
-            {networks.map(net => (
+            {networks.map((net) => (
               <tr
                 key={net.bssid}
-                onContextMenu={e => handleRightClick(e, net.bssid)}
+                onContextMenu={(e) => handleRightClick(e, net.bssid)}
                 className="border-b hover:bg-gray-50 cursor-context-menu"
               >
                 <td className="px-6 py-4 text-sm font-mono">{net.bssid}</td>
                 <td className="px-6 py-4 text-sm">{net.ssid || '(hidden)'}</td>
                 <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    net.threat_level === 'HIGH' ? 'bg-red-100 text-red-800' :
-                    net.threat_level === 'MED' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      net.threat_level === 'HIGH'
+                        ? 'bg-red-100 text-red-800'
+                        : net.threat_level === 'MED'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                    }`}
+                  >
                     {net.threat_level || 'LOW'}
                   </span>
                 </td>
@@ -149,14 +183,20 @@ export default function NetworkContextMenu({ networks = [] }) {
           style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
         >
           <button
-            onClick={() => { setShowNoteModal(true); setContextMenu(null); }}
+            onClick={() => {
+              setShowNoteModal(true);
+              setContextMenu(null);
+            }}
             className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 border-b"
           >
             <MessageSquare size={16} className="text-blue-600" />
             Add Note
           </button>
           <button
-            onClick={() => { fileInputRef.current?.click(); setContextMenu(null); }}
+            onClick={() => {
+              fileInputRef.current?.click();
+              setContextMenu(null);
+            }}
             className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 flex items-center gap-2 border-b"
           >
             <Paperclip size={16} className="text-green-600" />
@@ -178,7 +218,11 @@ export default function NetworkContextMenu({ networks = [] }) {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Add Note</h2>
               <button
-                onClick={() => { setShowNoteModal(false); setNoteText(''); setAttachedFiles([]); }}
+                onClick={() => {
+                  setShowNoteModal(false);
+                  setNoteText('');
+                  setAttachedFiles([]);
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X size={20} />
@@ -202,7 +246,7 @@ export default function NetworkContextMenu({ networks = [] }) {
                 <select
                   id="context-note-type-select"
                   value={noteType}
-                  onChange={e => setNoteType(e.target.value)}
+                  onChange={(e) => setNoteType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="general">General Observation</option>
@@ -216,14 +260,17 @@ export default function NetworkContextMenu({ networks = [] }) {
                 <label className="block text-sm font-semibold mb-2">Note</label>
                 <textarea
                   value={noteText}
-                  onChange={e => setNoteText(e.target.value)}
+                  onChange={(e) => setNoteText(e.target.value)}
                   placeholder="Enter your observation..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" htmlFor="context-media-attachments">
+                <label
+                  className="block text-sm font-semibold mb-2"
+                  htmlFor="context-media-attachments"
+                >
                   Media Attachments
                 </label>
                 <input
@@ -248,7 +295,10 @@ export default function NetworkContextMenu({ networks = [] }) {
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                   <p className="text-sm font-semibold">Attached ({attachedFiles.length})</p>
                   {attachedFiles.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border">
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between bg-white p-2 rounded border"
+                    >
                       <span className="text-sm truncate">{file.name}</span>
                       <button
                         onClick={() => removeAttachment(idx)}
@@ -270,7 +320,11 @@ export default function NetworkContextMenu({ networks = [] }) {
                 Save Note
               </button>
               <button
-                onClick={() => { setShowNoteModal(false); setNoteText(''); setAttachedFiles([]); }}
+                onClick={() => {
+                  setShowNoteModal(false);
+                  setNoteText('');
+                  setAttachedFiles([]);
+                }}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50"
               >
                 Cancel
@@ -281,13 +335,13 @@ export default function NetworkContextMenu({ networks = [] }) {
       )}
 
       {/* Notes Display */}
-      {selectedBSSID && notes[selectedBSSID] && notes[selectedBSSID].length > 0 && (
+      {selectedBSSID && selectedNotes && selectedNotes.length > 0 && (
         <div className="mt-8 bg-white rounded-lg shadow overflow-hidden">
           <div className="bg-gray-100 px-6 py-4 border-b">
             <h2 className="text-lg font-bold">Notes for {selectedBSSID}</h2>
           </div>
           <div className="divide-y">
-            {notes[selectedBSSID].map(note => (
+            {selectedNotes.map((note) => (
               <div key={note.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div>

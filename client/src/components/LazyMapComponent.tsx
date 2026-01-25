@@ -1,8 +1,10 @@
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
+import type { ComponentProps } from 'react';
 
 const MapComponent = lazy(() => import('./GeospatialExplorer'));
+type LazyMapComponentProps = ComponentProps<typeof MapComponent>;
 
-export default function LazyMapComponent(props) {
+export default function LazyMapComponent(props: LazyMapComponentProps) {
   return (
     <Suspense
       fallback={

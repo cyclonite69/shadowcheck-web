@@ -3,7 +3,7 @@
  * Barrel export for backward compatibility.
  */
 
-const { UniversalFilterQueryBuilder } = require('./UniversalFilterQueryBuilder');
+const { UniversalFilterQueryBuilder } = require('./universalFilterQueryBuilder');
 const { validateFilterPayload } = require('./validators');
 const { DEFAULT_ENABLED } = require('./constants');
 
