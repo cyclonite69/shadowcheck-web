@@ -3,6 +3,21 @@
  * Validates that ORDER BY and config value vulnerabilities are fixed
  */
 
+jest.mock('../server/src/config/database', () => ({
+  query: jest.fn(),
+  pool: {
+    query: jest.fn(),
+    connect: jest.fn(),
+    end: jest.fn(),
+  },
+  CONFIG: {
+    MIN_VALID_TIMESTAMP: 946684800000,
+    MIN_OBSERVATIONS: 2,
+    MAX_PAGE_SIZE: 1000,
+    DEFAULT_PAGE_SIZE: 100,
+  },
+}));
+
 const BaseRepository = require('../server/src/repositories/baseRepository');
 const NetworkRepository = require('../server/src/repositories/networkRepository');
 

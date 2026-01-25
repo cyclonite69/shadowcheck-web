@@ -2,10 +2,6 @@
  * Dashboard API tests
  */
 
-const request = require('supertest');
-const NetworkRepository = require('../../server/src/repositories/networkRepository');
-const DashboardService = require('../../server/src/services/dashboardService');
-
 // Mock secretsManager
 jest.mock('../../server/src/services/secretsManager', () => ({
   get: jest.fn((key) => {
@@ -37,6 +33,10 @@ jest.mock('../../server/src/config/database', () => ({
     DEFAULT_PAGE_SIZE: 100,
   },
 }));
+
+const request = require('supertest');
+const NetworkRepository = require('../../server/src/repositories/networkRepository');
+const DashboardService = require('../../server/src/services/dashboardService');
 
 describe('Dashboard API', () => {
   let dashboardService;
