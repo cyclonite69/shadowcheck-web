@@ -24,7 +24,6 @@ router.get('/csv', requireAuth, async (req, res) => {
         accuracy
       FROM public.observations
       ORDER BY time DESC
-      LIMIT 50000
     `);
 
     const headers = [
@@ -70,12 +69,10 @@ router.get('/json', requireAuth, async (req, res) => {
       query(`
         SELECT * FROM public.observations
         ORDER BY time DESC
-        LIMIT 50000
       `),
       query(`
         SELECT * FROM public.networks
         ORDER BY lasttime DESC
-        LIMIT 50000
       `),
     ]);
 
@@ -116,7 +113,6 @@ router.get('/geojson', requireAuth, async (req, res) => {
       FROM public.observations
       WHERE lat IS NOT NULL AND lon IS NOT NULL
       ORDER BY time DESC
-      LIMIT 50000
     `);
 
     const features = result.rows.map((row) => ({
