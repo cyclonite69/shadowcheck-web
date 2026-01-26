@@ -7,35 +7,25 @@ const requireAuth = (req, res, next) => {
   return next();
 };
 
-// Enhanced export query with all important fields
-const getEnhancedObservationsQuery = (limit = 50000) => `
-  SELECT
-    o.bssid,
-    COALESCE(n.ssid, 'Unknown') as ssid,
-    o.lat as latitude,
-    o.lon as longitude,
-    o.level as signal_dbm,
-    o.time as observed_at,
-    o.radio_type,
-    o.radio_frequency as frequency,
-    o.radio_capabilities as capabilities,
-    o.accuracy,
-    COALESCE(n.manuf, 'Unknown') as manufacturer,
-    COALESCE(n.type, 'Unknown') as device_type,
-    COALESCE(n.capabilities, 'Unknown') as encryption,
-    n.channel,
-    n.firsttime as first_seen,
-    n.lasttime as last_seen
-  FROM public.observations o
-  LEFT JOIN public.networks n ON o.bssid = n.bssid
-  ORDER BY o.time DESC
-  LIMIT ${limit}
-`;
-
-// Export as CSV with all fields
+// Export as CSV with all available observation fields
 router.get('/csv', requireAuth, async (req, res) => {
   try {
-    const result = await query(getEnhancedObservationsQuery(50000));
+    const result = await query(`
+      SELECT
+        bssid,
+        ssid,
+        lat as latitude,
+        lon as longitude,
+        level as signal_dbm,
+        time as observed_at,
+        radio_type,
+        radio_frequency as frequency,
+        radio_capabilities as capabilities,
+        accuracy
+      FROM public.observations
+      ORDER BY time DESC
+      LIMIT 50000
+    `);
 
     const headers = [
       'bssid',
@@ -46,14 +36,8 @@ router.get('/csv', requireAuth, async (req, res) => {
       'observed_at',
       'radio_type',
       'frequency',
-      'channel',
       'capabilities',
-      'encryption',
-      'manufacturer',
-      'device_type',
       'accuracy',
-      'first_seen',
-      'last_seen',
     ];
 
     const csv = [
@@ -71,7 +55,7 @@ router.get('/csv', requireAuth, async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="shadowcheck_export_${Date.now()}.csv"`
+      `attachment; filename="shadowcheck_observations_${Date.now()}.csv"`
     );
     res.send(csv);
   } catch (error) {
@@ -79,12 +63,20 @@ router.get('/csv', requireAuth, async (req, res) => {
   }
 });
 
-// Export as JSON with all data
+// Export as JSON with observations and networks
 router.get('/json', requireAuth, async (req, res) => {
   try {
     const [observations, networks] = await Promise.all([
-      query(getEnhancedObservationsQuery(50000)),
-      query('SELECT * FROM public.networks LIMIT 50000'),
+      query(`
+        SELECT * FROM public.observations
+        ORDER BY time DESC
+        LIMIT 50000
+      `),
+      query(`
+        SELECT * FROM public.networks
+        ORDER BY lasttime DESC
+        LIMIT 50000
+      `),
     ]);
 
     const data = {
@@ -98,7 +90,7 @@ router.get('/json', requireAuth, async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="shadowcheck_export_${Date.now()}.json"`
+      `attachment; filename="shadowcheck_data_${Date.now()}.json"`
     );
     res.json(data);
   } catch (error) {
@@ -106,10 +98,26 @@ router.get('/json', requireAuth, async (req, res) => {
   }
 });
 
-// Export as GeoJSON with all properties
+// Export as GeoJSON
 router.get('/geojson', requireAuth, async (req, res) => {
   try {
-    const result = await query(getEnhancedObservationsQuery(50000));
+    const result = await query(`
+      SELECT
+        bssid,
+        ssid,
+        lat as latitude,
+        lon as longitude,
+        level as signal_dbm,
+        time as observed_at,
+        radio_type,
+        radio_frequency as frequency,
+        radio_capabilities as capabilities,
+        accuracy
+      FROM public.observations
+      WHERE lat IS NOT NULL AND lon IS NOT NULL
+      ORDER BY time DESC
+      LIMIT 50000
+    `);
 
     const features = result.rows.map((row) => ({
       type: 'Feature',
@@ -124,14 +132,8 @@ router.get('/geojson', requireAuth, async (req, res) => {
         observed_at: row.observed_at,
         radio_type: row.radio_type,
         frequency: row.frequency,
-        channel: row.channel,
         capabilities: row.capabilities,
-        encryption: row.encryption,
-        manufacturer: row.manufacturer,
-        device_type: row.device_type,
         accuracy: row.accuracy,
-        first_seen: row.first_seen,
-        last_seen: row.last_seen,
       },
     }));
 
@@ -147,7 +149,7 @@ router.get('/geojson', requireAuth, async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="shadowcheck_export_${Date.now()}.geojson"`
+      `attachment; filename="shadowcheck_geospatial_${Date.now()}.geojson"`
     );
     res.json(geojson);
   } catch (error) {
