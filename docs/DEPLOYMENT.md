@@ -733,6 +733,8 @@ app.get('/metrics', async (req, res) => {
 
 ## Backup & Recovery
 
+Local/manual option: use the Admin **Backups** tab to run `POST /api/admin/backup`, which writes dumps to `/app/backups/db` inside the API container. With docker-compose, mount `./backups:/app/backups` to access files on the host.
+
 ### Full System Backup
 
 ```bash

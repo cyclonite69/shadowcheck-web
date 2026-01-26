@@ -488,7 +488,7 @@ imports/                            # Import data staging
 
 ```
 backups/                            # Database backups (gitignored)
-└── [backup files]                  # Automated backup storage
+└── db/                             # Admin-triggered pg_dump files
 ```
 
 ## Key Files Explained

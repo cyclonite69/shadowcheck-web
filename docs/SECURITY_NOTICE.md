@@ -46,7 +46,7 @@ WiGLE API credentials were exposed in chat conversation:
 ✅ **Admin Settings Page Created**
 
 - Location: `/admin`
-- Requires API key authentication
+- Login not enforced yet (settings endpoints still require API key)
 - All credentials stored in system keyring
 - Never stored in database or files
 

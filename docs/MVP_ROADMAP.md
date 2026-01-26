@@ -99,11 +99,11 @@
 2. ❌ **Production secrets** - Need production secret management
 3. ❌ **Monitoring** - No application monitoring
 4. ❌ **Logging aggregation** - Logs not centralized
-5. ❌ **Backup automation** - No automated backups
+5. 🔄 **Backup automation** - Manual backup exists, automation missing
 
-**Important**: 6. ❌ **User authentication** - Multi-user support 7. ❌ **API rate limiting per user** - Currently per IP only 8. ❌ **Data import UI** - Currently CLI-only 9. ❌ **Export functionality** - No data export 10. ❌ **Error tracking** - No Sentry/error tracking service
+**Important**: 6. ❌ **User authentication** - Multi-user support 7. ❌ **API rate limiting per user** - Currently per IP only 8. 🔄 **Data import UI** - Admin UI supports imports, needs polish 9. ✅ **Export functionality** - CSV/JSON/GeoJSON exports available 10. ❌ **Error tracking** - No Sentry/error tracking service
 
-**Nice-to-Have**: 11. ❌ **Real-time updates** - WebSockets for live data 12. ❌ **Mobile responsiveness** - Better mobile UI 13. ❌ **Dark mode** - UI theme switching 14. ❌ **Notifications** - Alert system 15. ❌ **Admin panel** - System administration UI
+**Nice-to-Have**: 11. ❌ **Real-time updates** - WebSockets for live data 12. ❌ **Mobile responsiveness** - Better mobile UI 13. ❌ **Dark mode** - UI theme switching 14. ❌ **Notifications** - Alert system 15. ✅ **Admin panel** - System administration UI
 
 ## MVP Definition
 

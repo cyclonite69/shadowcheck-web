@@ -239,9 +239,9 @@ Complete feature list for the SIGINT Forensics Platform.
 
 ### Import/Export
 
-- CSV export (networks, observations)
-- JSON export
-- Filtered exports (threats, tagged)
+- CSV export (observations)
+- JSON export (observations + networks)
+- GeoJSON export (observations)
 - Bulk import support
 
 ### Database
@@ -254,10 +254,7 @@ Complete feature list for the SIGINT Forensics Platform.
 
 ### Backup/Restore
 
-- Database backup creation
-- Backup listing
-- Point-in-time restore
-- Automated backup scheduling
+- On-demand full database backup (admin)
 
 ## Security Features
 

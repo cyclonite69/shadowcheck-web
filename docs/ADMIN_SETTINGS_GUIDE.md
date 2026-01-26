@@ -14,7 +14,7 @@ Your WiGLE API credentials were exposed. **Revoke them immediately:**
 
 **URL:** http://localhost:3001/admin
 
-**Authentication:** Requires API key in localStorage
+**Authentication:** Admin UI is currently not gated. API key is only required for settings routes.
 
 ```javascript
 localStorage.setItem('shadowcheck_api_key', 'your-secure-random-key-here');
@@ -97,7 +97,7 @@ curl -i -H 'Accept:application/json' \
 
 ## API Routes
 
-All routes require `X-API-Key` header:
+Settings routes require `X-API-Key` header:
 
 ### Get WiGLE Status
 
@@ -153,10 +153,10 @@ Response:
 - API keys shown as: `AIDc40fa13...` and `****5bbb`
 - Full keys never displayed in UI
 
-✅ **Authentication Required**
+✅ **Authentication (Current)**
 
-- All settings routes require API key
-- Unauthorized access returns 401
+- Settings routes require API key
+- Admin UI and exports/backups are not gated yet
 
 ✅ **No Hardcoded Secrets**
 
@@ -164,25 +164,26 @@ Response:
 - `.env` excluded from git
 - `.env.example` provided as template
 
-## Backup & Export (Coming Soon)
+## Backup & Export
 
-### Database Backup
+### Database Backup (Admin Tab)
 
-- Encrypted SQL dump
-- Excludes credentials
-- Password-protected archive
+- **Run Full Backup** triggers `POST /api/admin/backup`
+- Stored locally inside the app container at `/app/backups/db`
+- When using docker-compose, bind-mount `./backups:/app/backups` to access files on the host
+- Retention controlled by `BACKUP_RETENTION_DAYS` (default 14)
 
 ### Export Formats
 
-- **GeoJSON** - Observations with coordinates
-- **JSON** - Full data export
-- **CSV** - Tabular format
+- **CSV:** `GET /api/csv`
+- **JSON:** `GET /api/json`
+- **GeoJSON:** `GET /api/geojson`
 
-All exports exclude sensitive data.
+**Note:** Exports are currently unauthenticated and return full datasets. Use only in trusted environments.
 
 ## Troubleshooting
 
-### "Unauthorized" Error
+### "Unauthorized" Error (Settings Routes)
 
 - Check API key in localStorage
 - Verify key matches `.env` file: `API_KEY=...`

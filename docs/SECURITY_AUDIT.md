@@ -90,8 +90,8 @@ All credentials are retrieved via:
    - Show usage statistics if available
 
 4. **Database Backup/Restore**
-   - Export to encrypted archive
-   - Import from encrypted archive
+   - Admin-triggered full backup (pg_dump) ✅
+   - Encryption not implemented yet
    - Never include credentials in exports
 
 5. **Export Formats**
@@ -103,7 +103,7 @@ All credentials are retrieved via:
 ### Security Requirements
 
 1. **Authentication**
-   - Admin page requires authentication
+   - Admin page login not enforced yet (settings still require API key)
    - Use existing `requireAuth` middleware
    - Session timeout after inactivity
 
@@ -114,11 +114,11 @@ All credentials are retrieved via:
 
 3. **Encryption**
    - All secrets in keyring (encrypted by OS)
-   - Database backups encrypted with password
+   - Database backups encrypted with password (not implemented yet)
    - Export files encrypted if they contain sensitive data
 
 4. **Access Control**
-   - Only admin users can access settings
+   - Only admin users can access settings (pending UI login)
    - Separate read/write permissions
    - Two-factor authentication recommended
 

@@ -178,6 +178,10 @@ docker ps --filter "name=shadowcheck"
 # Using management script
 ./docker-manage.sh backup-db
 
+# Admin UI backup (writes to /app/backups/db in the api container)
+# Ensure docker-compose mounts ./backups:/app/backups
+# Then run "Run Full Backup" in /admin
+
 # Manual backup
 docker exec shadowcheck_postgres pg_dump -U shadowcheck_user shadowcheck_db > backup.sql
 

@@ -245,13 +245,23 @@ Get settings.
 
 Update settings.
 
-### GET /api/export/networks
+### POST /api/admin/backup
 
-Export networks (CSV/JSON).
+Run a full database backup (no auth yet).
 
-### GET /api/export/observations
+### GET /api/csv
 
-Export observations.
+Export observations as CSV (full dataset).
+
+### GET /api/json
+
+Export observations + networks as JSON (full dataset).
+
+### GET /api/geojson
+
+Export observations as GeoJSON (full dataset).
+
+> Note: Backups/exports are currently unauthenticated and intended for trusted environments only.
 
 ---
 

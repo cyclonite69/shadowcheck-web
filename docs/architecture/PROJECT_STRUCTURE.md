@@ -177,6 +177,7 @@ shadowcheck-static/
 - `csv/` - CSV data files (exports, imports, device source files)
 - `sqlite/` - SQLite database backups
 - `analysis-reports/` - Database analysis and debug reports
+- `db/` - Admin-triggered pg_dump files
 - Root files: PostgreSQL dumps (`*.sql`, `*.dump`)
 
 **Usage**:
@@ -184,6 +185,9 @@ shadowcheck-static/
 ```bash
 # Create a backup
 docker exec shadowcheck_postgres pg_dump -U shadowcheck_user shadowcheck_db > backups/backup-$(date +%Y%m%d).sql
+
+# Admin UI backup (docker-compose must mount ./backups:/app/backups)
+# Run "Run Full Backup" in /admin to write into backups/db/
 
 # Store CSV exports
 mv *.csv backups/csv/

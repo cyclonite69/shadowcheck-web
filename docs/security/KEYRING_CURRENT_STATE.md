@@ -260,10 +260,16 @@ API returns 500 error
 
 - `POST /api/tag-network` - Tag network as threat
 - `DELETE /api/tag-network/:bssid` - Remove tag
-- `GET /api/backup` - Backup database
-- `POST /api/restore` - Restore database
-- `GET /api/export/*` - Export data
 - `GET /api/settings/*` - Settings management
+
+**Unauthenticated (current behavior):**
+
+- `POST /api/admin/backup` - Full database backup
+- `GET /api/csv` - Export observations (CSV)
+- `GET /api/json` - Export observations + networks (JSON)
+- `GET /api/geojson` - Export observations (GeoJSON)
+
+> Note: Admin UI login is not enforced yet. These routes should be protected before public exposure.
 
 **External API Endpoints:**
 
