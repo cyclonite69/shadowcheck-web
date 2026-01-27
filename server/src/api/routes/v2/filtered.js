@@ -10,8 +10,10 @@ const {
   validateFilterPayload,
 } = require('../../../services/filterQueryBuilder');
 const { query, pool } = require('../../../config/database');
+const logger = require('../../../logging/logger');
 
 const DEBUG_ANALYTICS = false;
+const DEBUG_GEOSPATIAL = process.env.DEBUG_GEOSPATIAL === 'true';
 const ANALYTICS_TIMEOUT_MS = 15000;
 
 const parseJsonParam = (value, fallback, name) => {
@@ -259,7 +261,20 @@ router.get('/geospatial', async (req, res, next) => {
       selectedBssids,
     });
 
+    const start = Date.now();
     const result = await query(sql, params);
+    const durationMs = Date.now() - start;
+
+    if (DEBUG_GEOSPATIAL || durationMs > 2000) {
+      logger.info('[geospatial] filtered/geospatial query', {
+        durationMs,
+        rows: result.rowCount || 0,
+        limit,
+        selectedBssids: Array.isArray(selectedBssids) ? selectedBssids.length : 0,
+        enabledCount: Object.values(enabled).filter(Boolean).length,
+        appliedCount: appliedFilters.length,
+      });
+    }
     const features = (result.rows || []).map((row) => {
       const transparency = normalizeThreatTransparency(row.threat);
       return {
@@ -298,6 +313,7 @@ router.get('/geospatial', async (req, res, next) => {
       },
       meta: {
         queryTime: Date.now(),
+        queryDurationMs: durationMs,
         resultCount: features.length,
       },
     });
@@ -330,14 +346,28 @@ router.get('/observations', async (req, res, next) => {
     const selectedBssids = parseJsonParam(req.query.bssids, [], 'bssids');
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
-    const { sql, params } = builder.buildGeospatialQuery({ limit, selectedBssids });
+    const { sql, params, appliedFilters } = builder.buildGeospatialQuery({ limit, selectedBssids });
+    const start = Date.now();
     const result = await query(sql, params);
+    const durationMs = Date.now() - start;
+
+    if (DEBUG_GEOSPATIAL || durationMs > 2000) {
+      logger.info('[geospatial] filtered/observations query', {
+        durationMs,
+        rows: result.rowCount || 0,
+        limit,
+        selectedBssids: Array.isArray(selectedBssids) ? selectedBssids.length : 0,
+        enabledCount: Object.values(enabled).filter(Boolean).length,
+        appliedCount: appliedFilters.length,
+      });
+    }
 
     res.json({
       ok: true,
       data: result.rows || [],
       meta: {
         queryTime: Date.now(),
+        queryDurationMs: durationMs,
         resultCount: result.rowCount || 0,
       },
     });
