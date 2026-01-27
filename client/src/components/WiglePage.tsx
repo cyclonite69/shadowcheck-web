@@ -113,6 +113,7 @@ const WiglePage: React.FC = () => {
   const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
   const [show3dBuildings, setShow3dBuildings] = useState(false);
   const [showTerrain, setShowTerrain] = useState(false);
+  const wigleHandlersAttachedRef = useRef(false);
 
   const mapStyles = [
     { label: 'Dark', value: 'mapbox://styles/mapbox/dark-v11' },
@@ -177,6 +178,106 @@ const WiglePage: React.FC = () => {
   // Keep ref updated with latest featureCollection
   featureCollectionRef.current = featureCollection;
 
+  const ensureWigleLayers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (!map.getSource('wigle-points')) {
+      map.addSource('wigle-points', {
+        type: 'geojson',
+        data: featureCollectionRef.current || { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 12,
+        clusterRadius: 40,
+      });
+    }
+
+    if (!map.getLayer('wigle-clusters')) {
+      map.addLayer({
+        id: 'wigle-clusters',
+        type: 'circle',
+        source: 'wigle-points',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': ['coalesce', ['feature-state', 'color'], '#38bdf8'],
+          'circle-opacity': 0.75,
+          'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40],
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#0f172a',
+        },
+      });
+    }
+
+    if (!map.getLayer('wigle-cluster-count')) {
+      map.addLayer({
+        id: 'wigle-cluster-count',
+        type: 'symbol',
+        source: 'wigle-points',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-size': 12,
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        },
+        paint: {
+          'text-color': '#0f172a',
+        },
+      });
+    }
+
+    if (!map.getLayer('wigle-unclustered')) {
+      map.addLayer({
+        id: 'wigle-unclustered',
+        type: 'circle',
+        source: 'wigle-points',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.8,
+          'circle-radius': 3,
+          'circle-stroke-width': 0.5,
+          'circle-stroke-color': '#0f172a',
+        },
+      });
+    }
+
+    if (!wigleHandlersAttachedRef.current) {
+      const mapboxgl = mapboxRef.current;
+      if (!mapboxgl) return;
+
+      map.on('click', 'wigle-unclustered', (e) => {
+        const feature = e.features && e.features[0];
+        const props = feature?.properties;
+        if (!props || !e.lngLat) return;
+        new mapboxgl.Popup({ offset: 12 })
+          .setLngLat(e.lngLat)
+          .setHTML(
+            `<div style="font-size:12px;color:#e2e8f0;">
+              <div style="font-weight:700;margin-bottom:4px;">${props.ssid}</div>
+              <div>BSSID: ${props.bssid}</div>
+              <div>Type: ${props.type}</div>
+              <div>Encryption: ${props.encryption}</div>
+              <div>Last: ${props.lasttime}</div>
+            </div>`
+          )
+          .addTo(map);
+      });
+
+      map.on('click', 'wigle-clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['wigle-clusters'] });
+        const clusterId = features[0]?.properties?.cluster_id;
+        const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource;
+        if (!source || clusterId == null) return;
+        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err || zoom == null) return;
+          map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
+        });
+      });
+
+      wigleHandlersAttachedRef.current = true;
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const updateSize = () => {
@@ -225,86 +326,13 @@ const WiglePage: React.FC = () => {
         updateSize();
 
         map.on('load', () => {
-          map.addSource('wigle-points', {
-            type: 'geojson',
-            data: featureCollectionRef.current || { type: 'FeatureCollection', features: [] },
-            cluster: true,
-            clusterMaxZoom: 12,
-            clusterRadius: 40,
-          });
-
-          map.addLayer({
-            id: 'wigle-clusters',
-            type: 'circle',
-            source: 'wigle-points',
-            filter: ['has', 'point_count'],
-            paint: {
-              'circle-color': ['coalesce', ['feature-state', 'color'], '#38bdf8'],
-              'circle-opacity': 0.75,
-              'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40],
-              'circle-stroke-width': 2.5,
-              'circle-stroke-color': '#0f172a',
-            },
-          });
-
-          map.addLayer({
-            id: 'wigle-cluster-count',
-            type: 'symbol',
-            source: 'wigle-points',
-            filter: ['has', 'point_count'],
-            layout: {
-              'text-field': ['get', 'point_count_abbreviated'],
-              'text-size': 12,
-              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-            },
-            paint: {
-              'text-color': '#0f172a',
-            },
-          });
-
-          map.addLayer({
-            id: 'wigle-unclustered',
-            type: 'circle',
-            source: 'wigle-points',
-            filter: ['!', ['has', 'point_count']],
-            paint: {
-              'circle-color': ['get', 'color'],
-              'circle-opacity': 0.8,
-              'circle-radius': 3,
-              'circle-stroke-width': 0.5,
-              'circle-stroke-color': '#0f172a',
-            },
-          });
-
-          map.on('click', 'wigle-unclustered', (e) => {
-            const feature = e.features && e.features[0];
-            const props = feature?.properties;
-            if (!props || !e.lngLat) return;
-            new mapboxgl.Popup({ offset: 12 })
-              .setLngLat(e.lngLat)
-              .setHTML(
-                `<div style="font-size:12px;color:#e2e8f0;">
-                  <div style="font-weight:700;margin-bottom:4px;">${props.ssid}</div>
-                  <div>BSSID: ${props.bssid}</div>
-                  <div>Type: ${props.type}</div>
-                  <div>Encryption: ${props.encryption}</div>
-                  <div>Last: ${props.lasttime}</div>
-                </div>`
-              )
-              .addTo(map);
-          });
-
-          map.on('click', 'wigle-clusters', (e) => {
-            const features = map.queryRenderedFeatures(e.point, { layers: ['wigle-clusters'] });
-            const clusterId = features[0]?.properties?.cluster_id;
-            const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource;
-            if (!source || clusterId == null) return;
-            source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-              if (err || zoom == null) return;
-              map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
-            });
-          });
-
+          ensureWigleLayers();
+          const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource | undefined;
+          if (source) {
+            source.setData(
+              (featureCollectionRef.current || { type: 'FeatureCollection', features: [] }) as any
+            );
+          }
           setMapReady(true);
           setTimeout(() => map.resize(), 0);
           updateClusterColors();
@@ -359,14 +387,36 @@ const WiglePage: React.FC = () => {
   useEffect(() => {
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl || !map.getSource('wigle-points')) {
-      logDebug(
-        `[WiGLE] Map or source not ready, map: ${!!map} source: ${!!map?.getSource('wigle-points')}`
-      );
+    if (!map || !mapboxgl) {
+      logDebug(`[WiGLE] Map not ready, map: ${!!map}`);
       return;
     }
+    if (!map.getSource('wigle-points')) {
+      if (map.isStyleLoaded()) {
+        ensureWigleLayers();
+      } else {
+        map.once('style.load', () => {
+          ensureWigleLayers();
+          const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource | undefined;
+          if (source) {
+            source.setData(
+              (featureCollectionRef.current || {
+                type: 'FeatureCollection',
+                features: [],
+              }) as any
+            );
+            updateClusterColors();
+          }
+        });
+        return;
+      }
+    }
     logDebug(`[WiGLE] Updating map with ${rows.length} points`);
-    const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource;
+    const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource | undefined;
+    if (!source) {
+      logDebug('[WiGLE] Source still missing after ensure, skipping update.');
+      return;
+    }
     clusterColorCache.current = {};
     map.removeFeatureState({ source: 'wigle-points' });
     source.setData(featureCollection as any);
@@ -434,64 +484,19 @@ const WiglePage: React.FC = () => {
     if (!map || !mapReady) return;
 
     const recreateLayers = () => {
-      // Recreate wigle-points source and layers after style change
-      if (!map.getSource('wigle-points')) {
-        map.addSource('wigle-points', {
-          type: 'geojson',
-          data: featureCollectionRef.current as any,
-          cluster: true,
-          clusterMaxZoom: 12,
-          clusterRadius: 40,
-        });
-
-        map.addLayer({
-          id: 'wigle-clusters',
-          type: 'circle',
-          source: 'wigle-points',
-          filter: ['has', 'point_count'],
-          paint: {
-            'circle-color': ['coalesce', ['feature-state', 'color'], '#38bdf8'],
-            'circle-opacity': 0.75,
-            'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40],
-            'circle-stroke-width': 2.5,
-            'circle-stroke-color': '#0f172a',
-          },
-        });
-
-        map.addLayer({
-          id: 'wigle-cluster-count',
-          type: 'symbol',
-          source: 'wigle-points',
-          filter: ['has', 'point_count'],
-          layout: {
-            'text-field': ['get', 'point_count_abbreviated'],
-            'text-size': 12,
-            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          },
-          paint: {
-            'text-color': '#0f172a',
-          },
-        });
-
-        map.addLayer({
-          id: 'wigle-unclustered',
-          type: 'circle',
-          source: 'wigle-points',
-          filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-color': ['get', 'color'],
-            'circle-opacity': 0.8,
-            'circle-radius': 3,
-            'circle-stroke-width': 0.5,
-            'circle-stroke-color': '#0f172a',
-          },
-        });
+      ensureWigleLayers();
+      const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource | undefined;
+      if (source) {
+        source.setData(
+          (featureCollectionRef.current || { type: 'FeatureCollection', features: [] }) as any
+        );
       }
+      updateClusterColors();
     };
 
     map.setStyle(mapStyle);
     map.once('style.load', recreateLayers);
-  }, [mapStyle, mapReady]); // Removed featureCollection - was causing style resets on data load
+  }, [mapStyle, mapReady, ensureWigleLayers]); // Removed featureCollection - was causing style resets on data load
 
   // Handle 3D buildings
   useEffect(() => {
