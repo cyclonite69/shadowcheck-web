@@ -60,7 +60,27 @@ export function useObservations(
         let renderBudgetLimit: number | null = null;
         let allRows: any[] = [];
 
-        const observationFilters = useFilters ? debouncedFilterState : { filters: {}, enabled: {} };
+        const observationFilters = (() => {
+          if (!useFilters) {
+            return { filters: {}, enabled: {} };
+          }
+          const networkOnlyFilters: Array<keyof typeof debouncedFilterState.filters> = [
+            'threatScoreMin',
+            'threatScoreMax',
+            'threatCategories',
+            'stationaryConfidenceMin',
+            'stationaryConfidenceMax',
+            'distanceFromHomeMin',
+            'distanceFromHomeMax',
+          ];
+          const enabled = { ...debouncedFilterState.enabled };
+          networkOnlyFilters.forEach((key) => {
+            if (key in enabled) {
+              enabled[key] = false;
+            }
+          });
+          return { filters: debouncedFilterState.filters, enabled };
+        })();
 
         while (true) {
           const params = new URLSearchParams({
