@@ -728,11 +728,11 @@ class UniversalFilterQueryBuilder {
         this.addApplied('spatial', 'distanceFromHomeMax', f.distanceFromHomeMax);
       }
       if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric * 100 >= ${this.addParam(f.threatScoreMin)}`);
+        where.push(`(ne.threat->>'score')::numeric >= ${this.addParam(f.threatScoreMin)}`);
         this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
       }
       if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`);
+        where.push(`(ne.threat->>'score')::numeric <= ${this.addParam(f.threatScoreMax)}`);
         this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
       }
       if (
@@ -742,7 +742,7 @@ class UniversalFilterQueryBuilder {
       ) {
         // Map frontend threat categories to database values
         const threatLevelMap = {
-          critical: 'HIGH',
+          critical: 'CRITICAL',
           high: 'HIGH',
           medium: 'MED',
           low: 'LOW',
@@ -1101,10 +1101,10 @@ class UniversalFilterQueryBuilder {
         where.push(`ne.distance_from_home_km <= ${this.addParam(f.distanceFromHomeMax)}`);
       }
       if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric * 100 >= ${this.addParam(f.threatScoreMin)}`);
+        where.push(`(ne.threat->>'score')::numeric >= ${this.addParam(f.threatScoreMin)}`);
       }
       if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`);
+        where.push(`(ne.threat->>'score')::numeric <= ${this.addParam(f.threatScoreMax)}`);
       }
       if (
         e.threatCategories &&
@@ -1182,15 +1182,11 @@ class UniversalFilterQueryBuilder {
     const networkWhere = [];
 
     if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-      networkWhere.push(
-        `(ne.threat->>'score')::numeric * 100 >= ${this.addParam(f.threatScoreMin)}`
-      );
+      networkWhere.push(`(ne.threat->>'score')::numeric >= ${this.addParam(f.threatScoreMin)}`);
       this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
     }
     if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-      networkWhere.push(
-        `(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`
-      );
+      networkWhere.push(`(ne.threat->>'score')::numeric <= ${this.addParam(f.threatScoreMax)}`);
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
@@ -1386,14 +1382,11 @@ class UniversalFilterQueryBuilder {
       threatDistribution: base(`
         SELECT
           CASE
-            WHEN (ne.threat->>'score')::numeric * 100 >= 90 THEN '90-100'
-            WHEN (ne.threat->>'score')::numeric * 100 >= 80 THEN '80-90'
-            WHEN (ne.threat->>'score')::numeric * 100 >= 70 THEN '70-80'
-            WHEN (ne.threat->>'score')::numeric * 100 >= 60 THEN '60-70'
-            WHEN (ne.threat->>'score')::numeric * 100 >= 50 THEN '50-60'
-            WHEN (ne.threat->>'score')::numeric * 100 >= 40 THEN '40-50'
-            WHEN (ne.threat->>'score')::numeric * 100 >= 30 THEN '30-40'
-            ELSE '0-30'
+            WHEN (ne.threat->>'score')::numeric >= 80 THEN '80-100'
+            WHEN (ne.threat->>'score')::numeric >= 60 THEN '60-80'
+            WHEN (ne.threat->>'score')::numeric >= 40 THEN '40-60'
+            WHEN (ne.threat->>'score')::numeric >= 20 THEN '20-40'
+            ELSE '0-20'
           END AS range,
           COUNT(DISTINCT ne.bssid) AS count
         FROM filtered_obs o
@@ -1436,9 +1429,9 @@ class UniversalFilterQueryBuilder {
         )
         SELECT
           d.date,
-          AVG(COALESCE((ne.threat->>'score')::numeric, 0) * 100) AS avg_score,
-          COUNT(CASE WHEN (ne.threat->>'score')::numeric * 100 >= 80 THEN 1 END) AS critical_count,
-          COUNT(CASE WHEN (ne.threat->>'score')::numeric * 100 BETWEEN 70 AND 79.9 THEN 1 END) AS high_count,
+          AVG(COALESCE((ne.threat->>'score')::numeric, 0)) AS avg_score,
+          COUNT(CASE WHEN (ne.threat->>'score')::numeric >= 80 THEN 1 END) AS critical_count,
+          COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 60 AND 79.9 THEN 1 END) AS high_count,
           COUNT(*) AS network_count
         FROM daily_networks d
         LEFT JOIN public.api_network_explorer ne ON ne.bssid = d.bssid

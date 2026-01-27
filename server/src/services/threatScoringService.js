@@ -1,4 +1,3 @@
-const cron = require('node-cron');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
@@ -22,35 +21,76 @@ class ThreatScoringService {
 
     this.isRunning = true;
     try {
-      logger.info('Starting incremental threat score computation', { batchSize, maxAgeHours });
+      const startTime = Date.now();
+      logger.info('Starting unified threat score computation', { batchSize, maxAgeHours });
 
-      const result = await query('SELECT * FROM refresh_threat_scores_incremental($1, $2)', [
-        batchSize,
-        maxAgeHours,
-      ]);
+      const insertQuery = `
+        WITH targets AS (
+          SELECT ap.bssid
+          FROM public.access_points ap
+          WHERE ap.bssid IS NOT NULL
+          ORDER BY ap.bssid
+          LIMIT $1
+        ),
+        scored AS (
+          SELECT
+            t.bssid,
+            calculate_threat_score_v3(t.bssid) AS details
+          FROM targets t
+        )
+        INSERT INTO app.network_threat_scores
+          (bssid, rule_based_score, rule_based_flags, final_threat_score,
+           final_threat_level, model_version, scored_at)
+        SELECT
+          bssid,
+          (details->>'score')::numeric,
+          details,
+          (details->>'score')::numeric,
+          CASE
+            WHEN (details->>'score')::numeric >= 80 THEN 'CRITICAL'
+            WHEN (details->>'score')::numeric >= 60 THEN 'HIGH'
+            WHEN (details->>'score')::numeric >= 40 THEN 'MED'
+            WHEN (details->>'score')::numeric >= 20 THEN 'LOW'
+            ELSE 'NONE'
+          END,
+          'rule-v3.1',
+          NOW()
+        FROM scored
+        ON CONFLICT (bssid) DO UPDATE SET
+          rule_based_score = EXCLUDED.rule_based_score,
+          rule_based_flags = EXCLUDED.rule_based_flags,
+          final_threat_score = EXCLUDED.final_threat_score,
+          final_threat_level = EXCLUDED.final_threat_level,
+          model_version = EXCLUDED.model_version,
+          scored_at = NOW(),
+          updated_at = NOW()
+      `;
 
-      const stats = result.rows[0];
+      const result = await query(insertQuery, [batchSize]);
+      const processed = result.rowCount || 0;
+      const executionTimeMs = Date.now() - startTime;
+
       this.stats = {
-        totalProcessed: this.stats.totalProcessed + stats.processed_count,
-        totalUpdated: this.stats.totalUpdated + stats.updated_count,
-        averageExecutionTime: stats.execution_time_ms,
+        totalProcessed: this.stats.totalProcessed + processed,
+        totalUpdated: this.stats.totalUpdated + processed,
+        averageExecutionTime: executionTimeMs,
         lastError: null,
       };
 
       this.lastRun = new Date();
 
-      logger.info('Threat score computation completed', {
-        processed: stats.processed_count,
-        updated: stats.updated_count,
-        executionTimeMs: stats.execution_time_ms,
+      logger.info('Unified threat score computation completed', {
+        processed,
+        updated: processed,
+        executionTimeMs: executionTimeMs,
         totalProcessed: this.stats.totalProcessed,
       });
 
       return {
         success: true,
-        processed: stats.processed_count,
-        updated: stats.updated_count,
-        executionTimeMs: stats.execution_time_ms,
+        processed,
+        updated: processed,
+        executionTimeMs: executionTimeMs,
       };
     } catch (error) {
       this.stats.lastError = error.message;
@@ -63,13 +103,8 @@ class ThreatScoringService {
 
   async markAllForRecompute() {
     try {
-      const result = await query(
-        'UPDATE public.api_network_explorer_mv SET needs_recompute = TRUE, threat_computed_at = NULL'
-      );
-      logger.info('Marked all networks for threat recomputation', {
-        rowsAffected: result.rowCount,
-      });
-      return { success: true, rowsAffected: result.rowCount };
+      const result = await this.computeThreatScores(1000000, 0);
+      return { success: true, rowsAffected: result.processed || 0 };
     } catch (error) {
       logger.error('Failed to mark networks for recomputation', { error: error.message });
       throw error;
@@ -85,38 +120,7 @@ class ThreatScoringService {
   }
 
   startScheduledJobs() {
-    // Run every 15 minutes during business hours (8 AM - 6 PM)
-    cron.schedule('*/15 8-18 * * *', async () => {
-      try {
-        await this.computeThreatScores(500, 1); // Smaller batches, more frequent
-      } catch (error) {
-        logger.error('Scheduled threat scoring failed', { error: error.message });
-      }
-    });
-
-    // Run larger batch every 2 hours outside business hours
-    cron.schedule('0 */2 * * *', async () => {
-      const hour = new Date().getHours();
-      if (hour < 8 || hour > 18) {
-        try {
-          await this.computeThreatScores(2000, 6); // Larger batches, older data
-        } catch (error) {
-          logger.error('Scheduled threat scoring failed', { error: error.message });
-        }
-      }
-    });
-
-    // Full recomputation weekly (Sunday 2 AM)
-    cron.schedule('0 2 * * 0', async () => {
-      try {
-        await this.markAllForRecompute();
-        await this.computeThreatScores(5000, 168); // Large batch, 1 week old data
-      } catch (error) {
-        logger.error('Weekly threat recomputation failed', { error: error.message });
-      }
-    });
-
-    logger.info('Threat scoring scheduled jobs started');
+    logger.info('Threat scoring scheduled jobs disabled (manual-only mode)');
   }
 }
 

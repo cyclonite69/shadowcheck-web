@@ -22,19 +22,19 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
     <div className="border-b border-slate-700">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`filter-panel__section-toggle w-full flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors ${
+        className={`filter-panel__section-toggle w-full flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors min-w-0 ${
           compact ? 'px-2.5 py-1.5' : 'px-3 py-2.5'
         }`}
       >
         <span
-          className={`filter-panel__section-title font-medium text-slate-200 ${
+          className={`filter-panel__section-title font-medium text-slate-200 truncate ${
             compact ? 'text-xs' : 'text-sm'
           }`}
         >
           {title}
         </span>
         <span
-          className={`inline-flex items-center justify-center rounded-md border border-slate-700/80 bg-slate-800/70 ${
+          className={`inline-flex items-center justify-center rounded-md border border-slate-700/80 bg-slate-800/70 flex-shrink-0 ml-2 ${
             compact ? 'h-4 w-4' : 'h-5 w-5'
           }`}
         >

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS app.network_threat_scores (
     
     -- Rule-based Scoring (from MV)
     rule_based_score NUMERIC(5,2),
-    rule_based_flags JSONB,                 -- Array of {code, weight, evidence}
+    rule_based_flags JSONB,                 -- Full rule-based details (summary, flags, factors, metrics)
     
     -- Combined Score
     final_threat_score NUMERIC(5,2),        -- Weighted combination of ML + rules

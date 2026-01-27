@@ -1,5 +1,7 @@
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
+const { UniversalFilterQueryBuilder } = require('../services/filterQueryBuilder');
+const { OBS_TYPE_EXPR } = require('../services/filterQueryBuilder/sqlExpressions');
 
 class NetworkRepository {
   async getAllNetworks() {
@@ -100,126 +102,28 @@ class NetworkRepository {
 
   async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
-      // Build WHERE clause from filters
-      // Available columns: bssid, ssid, type, frequency, capabilities, bestlevel, bestlat, bestlon, lastlat, lastlon, lasttime_ms
-      const conditions = [];
-      const params = [];
-      let paramIndex = 1;
+      // Debug logging
+      console.log('[NetworkRepo] getDashboardMetrics called with:');
+      console.log('[NetworkRepo] filters:', JSON.stringify(filters, null, 2));
+      console.log('[NetworkRepo] enabled:', JSON.stringify(enabled, null, 2));
 
-      // Radio types filter (type column: W, E, B, L, N, G)
-      if (enabled.radioTypes && filters.radioTypes && filters.radioTypes.length > 0) {
-        conditions.push(`type = ANY($${paramIndex})`);
-        params.push(filters.radioTypes);
-        paramIndex++;
-      }
+      const noFiltersEnabled = Object.values(enabled).every((value) => !value);
 
-      // RSSI filters (bestlevel column)
-      if (enabled.rssiMin && filters.rssiMin !== undefined) {
-        conditions.push(`bestlevel >= $${paramIndex}`);
-        params.push(filters.rssiMin);
-        paramIndex++;
-      }
-      if (enabled.rssiMax && filters.rssiMax !== undefined) {
-        conditions.push(`bestlevel <= $${paramIndex}`);
-        params.push(filters.rssiMax);
-        paramIndex++;
-      }
+      if (noFiltersEnabled) {
+        const networkResult = await query(`
+          SELECT
+            COUNT(*) as total_networks,
+            COUNT(*) FILTER (WHERE type = 'W') as wifi_count,
+            COUNT(*) FILTER (WHERE type = 'E') as ble_count,
+            COUNT(*) FILTER (WHERE type = 'B') as bluetooth_count,
+            COUNT(*) FILTER (WHERE type = 'L') as lte_count,
+            COUNT(*) FILTER (WHERE type = 'N') as nr_count,
+            COUNT(*) FILTER (WHERE type = 'G') as gsm_count,
+            COUNT(*) FILTER (WHERE bestlat != 0 AND bestlon != 0) as enriched_count
+          FROM public.networks
+        `);
 
-      // Timeframe filter (lasttime_ms column - milliseconds)
-      if (enabled.timeframe && filters.timeframe) {
-        const now = Date.now();
-        let startTime = null;
-
-        if (filters.timeframe.type === 'relative' && filters.timeframe.relativeWindow) {
-          const window = filters.timeframe.relativeWindow;
-          const match = window.match(/^(\d+)([hdwmy])$/);
-          if (match) {
-            const value = parseInt(match[1]);
-            const unit = match[2];
-            const msMultipliers = {
-              h: 3600000, // hour
-              d: 86400000, // day
-              w: 604800000, // week
-              m: 2592000000, // month (30 days)
-              y: 31536000000, // year
-            };
-            startTime = now - value * (msMultipliers[unit] || 86400000);
-          }
-        } else if (filters.timeframe.type === 'absolute' && filters.timeframe.startDate) {
-          startTime = new Date(filters.timeframe.startDate).getTime();
-        }
-
-        if (startTime) {
-          conditions.push(`lasttime_ms >= $${paramIndex}`);
-          params.push(startTime);
-          paramIndex++;
-        }
-
-        if (filters.timeframe.type === 'absolute' && filters.timeframe.endDate) {
-          const endTime = new Date(filters.timeframe.endDate).getTime();
-          conditions.push(`lasttime_ms <= $${paramIndex}`);
-          params.push(endTime);
-          paramIndex++;
-        }
-      }
-
-      // Encryption filter (capabilities column contains encryption info like [WPA2-PSK-CCMP])
-      if (
-        enabled.encryptionTypes &&
-        filters.encryptionTypes &&
-        filters.encryptionTypes.length > 0
-      ) {
-        const encPatterns = filters.encryptionTypes.map((enc) => `%${enc}%`);
-        const encConditions = encPatterns.map((_, i) => `capabilities ILIKE $${paramIndex + i}`);
-        conditions.push(`(${encConditions.join(' OR ')})`);
-        params.push(...encPatterns);
-        paramIndex += encPatterns.length;
-      }
-
-      // SSID filter
-      if (enabled.ssid && filters.ssid) {
-        conditions.push(`ssid ILIKE $${paramIndex}`);
-        params.push(`%${filters.ssid}%`);
-        paramIndex++;
-      }
-
-      // BSSID filter
-      if (enabled.bssid && filters.bssid) {
-        conditions.push(`bssid ILIKE $${paramIndex}`);
-        params.push(`%${filters.bssid.toUpperCase()}%`);
-        paramIndex++;
-      }
-
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-      const result = await query(
-        `
-        SELECT
-          COUNT(*) as total_networks,
-          COUNT(*) FILTER (WHERE type = 'W') as wifi_count,
-          COUNT(*) FILTER (WHERE type = 'E') as ble_count,
-          COUNT(*) FILTER (WHERE type = 'B') as bluetooth_count,
-          COUNT(*) FILTER (WHERE type = 'L') as lte_count,
-          COUNT(*) FILTER (WHERE type = 'N') as nr_count,
-          COUNT(*) FILTER (WHERE type = 'G') as gsm_count,
-          COUNT(*) FILTER (WHERE bestlat != 0 AND bestlon != 0) as enriched_count
-        FROM public.networks
-        ${whereClause}
-      `,
-        params
-      );
-
-      // Get observation counts by radio type
-      let obsRow = {};
-      try {
-        console.log('Executing observations query with whereClause:', whereClause);
-        const obsWhereClause = whereClause
-          .replace(/type/g, 'radio_type')
-          .replace(/bestlevel/g, 'level')
-          .replace(/lasttime_ms/g, '(EXTRACT(EPOCH FROM time) * 1000)')
-          .replace(/capabilities/g, 'radio_capabilities');
-        const obsResult = await query(
-          `
+        const obsResult = await query(`
           SELECT
             COUNT(*) as total_observations,
             COUNT(*) FILTER (WHERE radio_type = 'W') as wifi_observations,
@@ -229,37 +133,146 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE radio_type = 'N') as nr_observations,
             COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_observations
           FROM public.observations
-          ${obsWhereClause}
-        `,
-          params
-        );
-        obsRow = obsResult.rows[0] || {};
-        console.log('Observations query result:', obsRow);
-      } catch (obsError) {
-        console.error(`Error fetching observation metrics: ${obsError.message}`, obsError);
-        logger.error(`Error fetching observation metrics: ${obsError.message}`, { obsError });
-        obsRow = {};
-      }
+        `);
 
-      // Get threat counts from materialized view
-      let threatCounts = {};
-      try {
         const threatResult = await query(`
           SELECT
-            COUNT(*) FILTER (WHERE (threat->>'level') = 'HIGH') as threats_high,
-            COUNT(*) FILTER (WHERE (threat->>'level') = 'MED') as threats_medium,
-            COUNT(*) FILTER (WHERE (threat->>'level') = 'LOW') as threats_low,
-            COUNT(*) FILTER (WHERE (threat->>'score')::numeric >= 70) as threats_critical
-          FROM public.api_network_explorer
-          WHERE (threat->>'score')::numeric > 0
-            AND threat->>'level' != 'NONE'
+            COUNT(*) FILTER (WHERE final_threat_level = 'CRITICAL') as threats_critical,
+            COUNT(*) FILTER (WHERE final_threat_level = 'HIGH') as threats_high,
+            COUNT(*) FILTER (WHERE final_threat_level = 'MED') as threats_medium,
+            COUNT(*) FILTER (WHERE final_threat_level = 'LOW') as threats_low
+          FROM app.network_threat_scores
+          WHERE COALESCE(final_threat_score, 0) >= 20
+            AND COALESCE(final_threat_level, 'NONE') != 'NONE'
         `);
-        threatCounts = threatResult.rows[0] || {};
-      } catch (threatError) {
-        logger.error(`Error fetching threat metrics: ${threatError.message}`, { threatError });
-        threatCounts = {};
+
+        const netRow = networkResult.rows[0] || {};
+        const obsRow = obsResult.rows[0] || {};
+        const threatCounts = threatResult.rows[0] || {};
+
+        return {
+          totalNetworks: parseInt(netRow.total_networks) || 0,
+          wifiCount: parseInt(netRow.wifi_count) || 0,
+          bleCount: parseInt(netRow.ble_count) || 0,
+          bluetoothCount: parseInt(netRow.bluetooth_count) || 0,
+          lteCount: parseInt(netRow.lte_count) || 0,
+          nrCount: parseInt(netRow.nr_count) || 0,
+          gsmCount: parseInt(netRow.gsm_count) || 0,
+          totalObservations: parseInt(obsRow.total_observations) || 0,
+          wifiObservations: parseInt(obsRow.wifi_observations) || 0,
+          bleObservations: parseInt(obsRow.ble_observations) || 0,
+          bluetoothObservations: parseInt(obsRow.bluetooth_observations) || 0,
+          lteObservations: parseInt(obsRow.lte_observations) || 0,
+          nrObservations: parseInt(obsRow.nr_observations) || 0,
+          gsmObservations: parseInt(obsRow.gsm_observations) || 0,
+          threatsCritical: parseInt(threatCounts.threats_critical) || 0,
+          threatsHigh: parseInt(threatCounts.threats_high) || 0,
+          threatsMedium: parseInt(threatCounts.threats_medium) || 0,
+          threatsLow: parseInt(threatCounts.threats_low) || 0,
+          activeSurveillance: parseInt(threatCounts.threats_high) || 0,
+          enrichedCount: parseInt(netRow.enriched_count) || 0,
+          filtersApplied: 0,
+        };
       }
 
+      const builder = new UniversalFilterQueryBuilder(filters, enabled);
+      const { cte } = builder.buildFilteredObservationsCte();
+
+      const obsCountFilters = [];
+      if (enabled.observationCountMin && filters.observationCountMin !== undefined) {
+        obsCountFilters.push(
+          `r.observation_count >= ${builder.addParam(filters.observationCountMin)}`
+        );
+        builder.addApplied('quality', 'observationCountMin', filters.observationCountMin);
+      }
+      if (enabled.observationCountMax && filters.observationCountMax !== undefined) {
+        obsCountFilters.push(
+          `r.observation_count <= ${builder.addParam(filters.observationCountMax)}`
+        );
+        builder.addApplied('quality', 'observationCountMax', filters.observationCountMax);
+      }
+
+      const obsCountWhere =
+        obsCountFilters.length > 0 ? `WHERE ${obsCountFilters.join(' AND ')}` : '';
+
+      const sql = `
+        ${cte}
+        , obs_rollup AS (
+          SELECT
+            bssid,
+            COUNT(*) AS observation_count
+          FROM filtered_obs
+          GROUP BY bssid
+        ),
+        obs_latest AS (
+          SELECT DISTINCT ON (bssid)
+            bssid,
+            ssid,
+            lat,
+            lon,
+            level,
+            accuracy,
+            time,
+            radio_type,
+            radio_frequency,
+            radio_capabilities
+          FROM filtered_obs
+          ORDER BY bssid, time DESC
+        ),
+        network_set AS (
+          SELECT
+            l.bssid,
+            l.lat,
+            l.lon,
+            l.radio_type,
+            l.radio_frequency,
+            l.radio_capabilities
+          FROM obs_latest l
+          JOIN obs_rollup r ON r.bssid = l.bssid
+          ${obsCountWhere}
+        ),
+        network_counts AS (
+          SELECT
+            COUNT(*) AS total_networks,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('n')} = 'W') as wifi_count,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('n')} = 'E') as ble_count,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('n')} = 'B') as bluetooth_count,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('n')} = 'L') as lte_count,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('n')} = 'N') as nr_count,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('n')} = 'G') as gsm_count,
+            COUNT(*) FILTER (WHERE n.lat IS NOT NULL AND n.lon IS NOT NULL AND n.lat != 0 AND n.lon != 0) as enriched_count
+          FROM network_set n
+        ),
+        obs_counts AS (
+          SELECT
+            COUNT(*) as total_observations,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'W') as wifi_observations,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'E') as ble_observations,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'B') as bluetooth_observations,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'L') as lte_observations,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'N') as nr_observations,
+            COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'G') as gsm_observations
+          FROM filtered_obs o
+        ),
+        threat_counts AS (
+          SELECT
+            COUNT(*) FILTER (WHERE nts.final_threat_level = 'CRITICAL') as threats_critical,
+            COUNT(*) FILTER (WHERE nts.final_threat_level = 'HIGH') as threats_high,
+            COUNT(*) FILTER (WHERE nts.final_threat_level = 'MED') as threats_medium,
+            COUNT(*) FILTER (WHERE nts.final_threat_level = 'LOW') as threats_low
+          FROM network_set n
+          LEFT JOIN app.network_threat_scores nts ON nts.bssid = n.bssid
+          WHERE COALESCE(nts.final_threat_score, 0) >= 20
+            AND COALESCE(nts.final_threat_level, 'NONE') != 'NONE'
+        )
+        SELECT
+          network_counts.*,
+          obs_counts.*,
+          threat_counts.*
+        FROM network_counts, obs_counts, threat_counts
+      `;
+
+      const result = await query(sql, builder.params);
       const row = result.rows[0] || {};
 
       return {
@@ -270,22 +283,20 @@ class NetworkRepository {
         lteCount: parseInt(row.lte_count) || 0,
         nrCount: parseInt(row.nr_count) || 0,
         gsmCount: parseInt(row.gsm_count) || 0,
-        // Observation counts
-        totalObservations: parseInt(obsRow.total_observations) || 0,
-        wifiObservations: parseInt(obsRow.wifi_observations) || 0,
-        bleObservations: parseInt(obsRow.ble_observations) || 0,
-        bluetoothObservations: parseInt(obsRow.bluetooth_observations) || 0,
-        lteObservations: parseInt(obsRow.lte_observations) || 0,
-        nrObservations: parseInt(obsRow.nr_observations) || 0,
-        gsmObservations: parseInt(obsRow.gsm_observations) || 0,
-        // Threat counts from new JSONB format
-        threatsCritical: parseInt(threatCounts.threats_critical) || 0,
-        threatsHigh: parseInt(threatCounts.threats_high) || 0,
-        threatsMedium: parseInt(threatCounts.threats_medium) || 0,
-        threatsLow: parseInt(threatCounts.threats_low) || 0,
-        activeSurveillance: parseInt(threatCounts.threats_high) || 0,
+        totalObservations: parseInt(row.total_observations) || 0,
+        wifiObservations: parseInt(row.wifi_observations) || 0,
+        bleObservations: parseInt(row.ble_observations) || 0,
+        bluetoothObservations: parseInt(row.bluetooth_observations) || 0,
+        lteObservations: parseInt(row.lte_observations) || 0,
+        nrObservations: parseInt(row.nr_observations) || 0,
+        gsmObservations: parseInt(row.gsm_observations) || 0,
+        threatsCritical: parseInt(row.threats_critical) || 0,
+        threatsHigh: parseInt(row.threats_high) || 0,
+        threatsMedium: parseInt(row.threats_medium) || 0,
+        threatsLow: parseInt(row.threats_low) || 0,
+        activeSurveillance: parseInt(row.threats_high) || 0,
         enrichedCount: parseInt(row.enriched_count) || 0,
-        filtersApplied: conditions.length,
+        filtersApplied: builder.appliedFilters.length,
       };
     } catch (error) {
       logger.error(`Error fetching dashboard metrics: ${error.message}`, { error });

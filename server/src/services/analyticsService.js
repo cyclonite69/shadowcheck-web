@@ -335,47 +335,18 @@ async function getBulkAnalytics() {
 async function getThreatDistribution() {
   try {
     const { rows } = await query(`
-      WITH threat_scores AS (
-        SELECT
-          o.bssid,
-          (
-            CASE WHEN COUNT(DISTINCT DATE(o.observed_at)) >= 7 THEN 30
-                 WHEN COUNT(DISTINCT DATE(o.observed_at)) >= 3 THEN 20
-                 ELSE 10 END +
-            CASE WHEN ST_Distance(
-                   ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
-                   ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
-                 ) / 1000.0 > 1.0 THEN 40
-                 WHEN ST_Distance(
-                   ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
-                   ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
-                 ) / 1000.0 > 0.5 THEN 25
-                 ELSE 0 END +
-            CASE WHEN COUNT(DISTINCT o.id) >= 50 THEN 20
-                 WHEN COUNT(DISTINCT o.id) >= 20 THEN 10
-                 ELSE 5 END +
-            CASE WHEN COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) >= 10 THEN 15
-                 WHEN COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) >= 5 THEN 10
-                 ELSE 0 END
-          ) as threat_score
-        FROM public.observations o
-        WHERE o.observed_at >= NOW() - INTERVAL '90 days'
-        GROUP BY o.bssid
-        HAVING COUNT(DISTINCT o.id) >= 5
-      )
       SELECT
         CASE
-          WHEN threat_score >= 90 THEN '90-100'
-          WHEN threat_score >= 80 THEN '80-90'
-          WHEN threat_score >= 70 THEN '70-80'
-          WHEN threat_score >= 60 THEN '60-70'
-          WHEN threat_score >= 50 THEN '50-60'
-          WHEN threat_score >= 40 THEN '40-50'
-          WHEN threat_score >= 30 THEN '30-40'
-          ELSE '0-30'
+          WHEN nts.final_threat_score >= 80 THEN '80-100'
+          WHEN nts.final_threat_score >= 60 THEN '60-80'
+          WHEN nts.final_threat_score >= 40 THEN '40-60'
+          WHEN nts.final_threat_score >= 20 THEN '20-40'
+          ELSE '0-20'
         END as range,
         COUNT(*) as count
-      FROM threat_scores
+      FROM app.network_threat_scores nts
+      LEFT JOIN public.api_network_explorer_mv ne ON ne.bssid = nts.bssid
+      WHERE ne.last_seen >= NOW() - INTERVAL '90 days'
       GROUP BY range
       ORDER BY range DESC
     `);
@@ -409,27 +380,9 @@ async function getThreatTrends(range, minTimestamp) {
             WHEN 'all' THEN DATE_TRUNC('week', o.observed_at)
           END as time_period,
           o.bssid,
-          (
-            CASE WHEN COUNT(DISTINCT DATE(o.observed_at)) >= 7 THEN 30
-                 WHEN COUNT(DISTINCT DATE(o.observed_at)) >= 3 THEN 20
-                 ELSE 10 END +
-            CASE WHEN ST_Distance(
-                   ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
-                   ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
-                 ) / 1000.0 > 1.0 THEN 40
-                 WHEN ST_Distance(
-                   ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
-                   ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
-                 ) / 1000.0 > 0.5 THEN 25
-                 ELSE 0 END +
-            CASE WHEN COUNT(DISTINCT o.id) >= 50 THEN 20
-                 WHEN COUNT(DISTINCT o.id) >= 20 THEN 10
-                 ELSE 5 END +
-            CASE WHEN COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) >= 10 THEN 15
-                 WHEN COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) >= 5 THEN 10
-                 ELSE 0 END
-          ) as threat_score
+          COALESCE(nts.final_threat_score, 0) as threat_score
         FROM public.observations o
+        LEFT JOIN app.network_threat_scores nts ON nts.bssid = o.bssid
         WHERE o.observed_at IS NOT NULL
           AND EXTRACT(EPOCH FROM o.observed_at) * 1000 >= $2
           AND CASE $1
@@ -447,8 +400,8 @@ async function getThreatTrends(range, minTimestamp) {
         time_period as date,
         ROUND(AVG(threat_score)::numeric, 1) as avg_score,
         COUNT(*) FILTER (WHERE threat_score >= 80) as critical_count,
-        COUNT(*) FILTER (WHERE threat_score >= 70 AND threat_score < 80) as high_count,
-        COUNT(*) FILTER (WHERE threat_score >= 40 AND threat_score < 70) as medium_count
+        COUNT(*) FILTER (WHERE threat_score >= 60 AND threat_score < 80) as high_count,
+        COUNT(*) FILTER (WHERE threat_score >= 40 AND threat_score < 60) as medium_count
       FROM daily_threats
       GROUP BY time_period
       ORDER BY time_period

@@ -288,15 +288,15 @@ router.post('/ml/score-all', async (req, res, next) => {
 
         const threatScore = probability * 100;
 
-        // Determine threat level with very aggressive thresholds for over-sensitive model
+        // Determine threat level with unified thresholds
         let threatLevel = 'NONE';
-        if (threatScore >= 99) {
+        if (threatScore >= 80) {
           threatLevel = 'CRITICAL';
-        } else if (threatScore >= 95) {
+        } else if (threatScore >= 60) {
           threatLevel = 'HIGH';
-        } else if (threatScore >= 85) {
+        } else if (threatScore >= 40) {
           threatLevel = 'MED';
-        } else if (threatScore >= 70) {
+        } else if (threatScore >= 20) {
           threatLevel = 'LOW';
         }
 

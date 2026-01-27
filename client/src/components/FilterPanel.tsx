@@ -58,7 +58,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
   const listLayoutClass = isCompact ? 'grid grid-cols-2 gap-2' : 'space-y-2';
   const listItemTextClass = isCompact ? 'text-[11px]' : 'text-xs';
   const controlBase =
-    'filter-panel__control w-full bg-slate-800 border border-slate-600 rounded text-slate-200 box-border';
+    'filter-panel__control w-full bg-slate-800 border border-slate-600 rounded text-slate-200 min-w-0';
   const controlSize = isCompact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm';
   const controlClass = `${controlBase} ${controlSize}`;
 
@@ -66,10 +66,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
 
   return (
     <div
-      className={`filter-panel ${panelWidthClass} bg-slate-950/90 rounded-lg text-slate-200 flex flex-col h-full flex-shrink-0 overflow-x-hidden ${
+      className={`filter-panel w-[420px] bg-slate-950 border border-slate-600 rounded-xl text-slate-200 flex flex-col h-full flex-shrink-0 overflow-visible ${
         isCompact ? 'filter-panel--compact' : ''
       }`}
-      style={{ border: '1px solid #475569' }}
     >
       {/* Header */}
       <div
@@ -107,7 +106,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
       </div>
 
       {/* Filter Sections */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-visible">
         {/* Identity Filters */}
         <FilterSection title="Identity" compact={isCompact}>
           <FilterInput

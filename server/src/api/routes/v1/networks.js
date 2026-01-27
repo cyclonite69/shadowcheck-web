@@ -644,7 +644,7 @@ router.get('/networks', async (req, res, next) => {
         ne.last_altitude_m,
         ne.is_sentinel
       FROM public.api_network_explorer_mv ne
-      LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid AND nts.model_version = '2.0.0'
+      LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
       LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
       ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       ORDER BY ${orderByClause}

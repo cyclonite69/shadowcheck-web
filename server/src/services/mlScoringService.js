@@ -34,23 +34,20 @@ class MLScoringService {
         SELECT 
           ap.bssid,
           COALESCE(obs.ssid, ap.latest_ssid, '(hidden)') AS ssid,
-          mv.observation_count,
+          mv.observations AS observation_count,
           mv.unique_days,
           mv.unique_locations,
-          mv.max_signal,
-          mv.max_distance_km,
+          COALESCE(mv.signal, -100) AS max_signal,
+          COALESCE(mv.max_distance_meters, 0) / 1000.0 AS max_distance_km,
           mv.distance_from_home_km,
-          mv.seen_at_home,
-          mv.seen_away_from_home,
-          COALESCE(ts.raw_score, 0) AS rule_based_score,
-          COALESCE(ts.threat_flags, '[]'::jsonb) AS rule_based_flags
+          FALSE AS seen_at_home,
+          FALSE AS seen_away_from_home,
+          COALESCE(nts.rule_based_score, 0) AS rule_based_score,
+          COALESCE(nts.rule_based_flags, '{}'::jsonb) AS rule_based_flags
         FROM public.access_points ap
         LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
         LEFT JOIN observations obs ON ap.bssid = obs.bssid
-        LEFT JOIN (
-          SELECT bssid, raw_score, threat_flags 
-          FROM public.api_network_explorer_mv
-        ) ts ON ap.bssid = ts.bssid
+        LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
         WHERE ap.bssid IS NOT NULL
         LIMIT 10000
       `);
@@ -61,7 +58,7 @@ class MLScoringService {
       // 3. Score each network
       for (const network of networks) {
         const features = {
-          distance_range_km: (network.max_distance_km || 0) / 1000.0,
+          distance_range_km: network.max_distance_km || 0,
           unique_days: network.unique_days || 0,
           observation_count: network.observation_count || 0,
           max_signal: network.max_signal || -100,
@@ -80,15 +77,17 @@ class MLScoringService {
         const probability = 1 / (1 + Math.exp(-score));
         const threatScore = probability * 100;
 
-        // Determine threat level
+        const finalScore = Math.max(threatScore, network.rule_based_score);
+
+        // Determine threat level from final score
         let threatLevel = 'NONE';
-        if (threatScore >= 70) {
+        if (finalScore >= 80) {
           threatLevel = 'CRITICAL';
-        } else if (threatScore >= 50) {
+        } else if (finalScore >= 60) {
           threatLevel = 'HIGH';
-        } else if (threatScore >= 30) {
+        } else if (finalScore >= 40) {
           threatLevel = 'MED';
-        } else if (threatScore >= 10) {
+        } else if (finalScore >= 20) {
           threatLevel = 'LOW';
         }
 
@@ -100,7 +99,7 @@ class MLScoringService {
           ml_feature_values: JSON.stringify(features),
           rule_based_score: network.rule_based_score,
           rule_based_flags: network.rule_based_flags,
-          final_threat_score: Math.max(threatScore, network.rule_based_score),
+          final_threat_score: finalScore,
           final_threat_level: threatLevel,
           model_version: modelVersion,
         });

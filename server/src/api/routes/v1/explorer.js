@@ -249,6 +249,7 @@ function normalizeQualityFilter(value) {
 // Returns latest snapshot per BSSID from access_points + observations
 router.get('/explorer/networks', async (req, res, _next) => {
   try {
+    const { filters, enabled } = req.query;
     const limit = parseLimit(req.query.limit, 500, 5000).value;
     const offset = limit === null ? 0 : parseOffset(req.query.offset, 0, 1000000).value;
     const search = parseOptionalString(req.query.search, 200, 'search').value || '';
@@ -303,6 +304,56 @@ router.get('/explorer/networks', async (req, res, _next) => {
       where.push(
         `(ap.latest_ssid ILIKE $${params.length - 1} OR ap.bssid ILIKE $${params.length})`
       );
+    }
+
+    // Apply filters if provided
+    if (filters && enabled) {
+      try {
+        const filterObj = JSON.parse(filters);
+        const enabledObj = JSON.parse(enabled);
+
+        // SSID filter
+        if (enabledObj.ssid && filterObj.ssid) {
+          params.push(`%${filterObj.ssid}%`);
+          where.push(`COALESCE(NULLIF(obs.ssid, ''), ap.latest_ssid) ILIKE $${params.length}`);
+        }
+
+        // BSSID filter
+        if (enabledObj.bssid && filterObj.bssid) {
+          params.push(`${filterObj.bssid}%`);
+          where.push(`ap.bssid ILIKE $${params.length}`);
+        }
+
+        // RSSI filters
+        if (enabledObj.rssiMin && filterObj.rssiMin !== undefined) {
+          params.push(filterObj.rssiMin);
+          where.push(`obs.level >= $${params.length}`);
+        }
+
+        if (enabledObj.rssiMax && filterObj.rssiMax !== undefined) {
+          params.push(filterObj.rssiMax);
+          where.push(`obs.level <= $${params.length}`);
+        }
+
+        // GPS Accuracy filter
+        if (enabledObj.gpsAccuracyMax && filterObj.gpsAccuracyMax !== undefined) {
+          params.push(filterObj.gpsAccuracyMax);
+          where.push(`(obs.accuracy_meters IS NULL OR obs.accuracy_meters <= $${params.length})`);
+        }
+
+        // Observation count filters
+        if (enabledObj.observationCountMin && filterObj.observationCountMin !== undefined) {
+          params.push(filterObj.observationCountMin);
+          where.push(`ap.total_observations >= $${params.length}`);
+        }
+
+        if (enabledObj.observationCountMax && filterObj.observationCountMax !== undefined) {
+          params.push(filterObj.observationCountMax);
+          where.push(`ap.total_observations <= $${params.length}`);
+        }
+      } catch (e) {
+        logger.warn('Invalid filter parameters:', e.message);
+      }
     }
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';

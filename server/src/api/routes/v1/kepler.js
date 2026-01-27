@@ -225,7 +225,98 @@ router.get('/kepler/data', async (req, res) => {
  */
 router.get('/kepler/observations', async (req, res) => {
   try {
-    const result = await query(`
+    const { filters, enabled } = req.query;
+
+    let whereClause = 'WHERE geom IS NOT NULL';
+    const queryParams = [];
+    let paramIndex = 1;
+
+    // Apply filters if provided
+    if (filters && enabled) {
+      try {
+        const filterObj = JSON.parse(filters);
+        const enabledObj = JSON.parse(enabled);
+
+        // SSID filter
+        if (enabledObj.ssid && filterObj.ssid) {
+          whereClause += ` AND ssid ILIKE $${paramIndex}`;
+          queryParams.push(`%${filterObj.ssid}%`);
+          paramIndex++;
+        }
+
+        // BSSID filter
+        if (enabledObj.bssid && filterObj.bssid) {
+          whereClause += ` AND bssid ILIKE $${paramIndex}`;
+          queryParams.push(`${filterObj.bssid}%`);
+          paramIndex++;
+        }
+
+        // Radio Types filter
+        if (enabledObj.radioTypes && filterObj.radioTypes && filterObj.radioTypes.length > 0) {
+          whereClause += ` AND radio_type = ANY($${paramIndex})`;
+          queryParams.push(filterObj.radioTypes);
+          paramIndex++;
+        }
+
+        // RSSI filters
+        if (enabledObj.rssiMin && filterObj.rssiMin !== undefined) {
+          whereClause += ` AND level >= $${paramIndex}`;
+          queryParams.push(filterObj.rssiMin);
+          paramIndex++;
+        }
+
+        if (enabledObj.rssiMax && filterObj.rssiMax !== undefined) {
+          whereClause += ` AND level <= $${paramIndex}`;
+          queryParams.push(filterObj.rssiMax);
+          paramIndex++;
+        }
+
+        // GPS Accuracy filter
+        if (enabledObj.gpsAccuracyMax && filterObj.gpsAccuracyMax !== undefined) {
+          whereClause += ` AND (accuracy IS NULL OR accuracy <= $${paramIndex})`;
+          queryParams.push(filterObj.gpsAccuracyMax);
+          paramIndex++;
+        }
+
+        // Exclude invalid coordinates
+        if (enabledObj.excludeInvalidCoords) {
+          whereClause += ' AND lat BETWEEN -90 AND 90 AND lon BETWEEN -180 AND 180';
+        }
+
+        // Quality filters
+        if (
+          enabledObj.qualityFilter &&
+          filterObj.qualityFilter &&
+          filterObj.qualityFilter !== 'none'
+        ) {
+          switch (filterObj.qualityFilter) {
+            case 'extreme':
+              whereClause += ' AND level BETWEEN -100 AND -20';
+              break;
+            case 'duplicate':
+              whereClause += ` AND (lat, lon) NOT IN (
+                SELECT lat, lon FROM public.observations 
+                WHERE lat IS NOT NULL AND lon IS NOT NULL 
+                GROUP BY lat, lon HAVING COUNT(*) > 10
+              )`;
+              break;
+            case 'all':
+              whereClause += ' AND level BETWEEN -100 AND -20';
+              whereClause += ` AND (lat, lon) NOT IN (
+                SELECT lat, lon FROM public.observations 
+                WHERE lat IS NOT NULL AND lon IS NOT NULL 
+                GROUP BY lat, lon HAVING COUNT(*) > 10
+              )`;
+              break;
+          }
+        }
+      } catch (e) {
+        logger.warn('Invalid filter parameters:', e.message);
+      }
+    }
+
+    const result = await query(
+      `
       SELECT
         bssid,
         ssid,
@@ -242,9 +333,11 @@ router.get('/kepler/observations', async (req, res) => {
         radio_capabilities,
         ST_AsGeoJSON(geom)::json as geometry
       FROM public.observations
-      WHERE geom IS NOT NULL
+      ${whereClause}
       ORDER BY observed_at DESC
-    `);
+    `,
+      queryParams
+    );
 
     const geojson = {
       type: 'FeatureCollection',
@@ -292,8 +385,84 @@ router.get('/kepler/observations', async (req, res) => {
  */
 router.get('/kepler/networks', async (req, res) => {
   try {
+    const { filters, enabled } = req.query;
+
+    let whereClause = 'WHERE obs.lat IS NOT NULL AND obs.lon IS NOT NULL';
+    const queryParams = [];
+    let paramIndex = 1;
+
+    // Apply filters if provided
+    if (filters && enabled) {
+      try {
+        const filterObj = JSON.parse(filters);
+        const enabledObj = JSON.parse(enabled);
+
+        // SSID filter
+        if (enabledObj.ssid && filterObj.ssid) {
+          whereClause += ` AND (COALESCE(NULLIF(obs.ssid, ''), ap.latest_ssid) ILIKE $${paramIndex})`;
+          queryParams.push(`%${filterObj.ssid}%`);
+          paramIndex++;
+        }
+
+        // BSSID filter
+        if (enabledObj.bssid && filterObj.bssid) {
+          whereClause += ` AND ap.bssid ILIKE $${paramIndex}`;
+          queryParams.push(`${filterObj.bssid}%`);
+          paramIndex++;
+        }
+
+        // Radio Types filter
+        if (enabledObj.radioTypes && filterObj.radioTypes && filterObj.radioTypes.length > 0) {
+          whereClause += ` AND obs.radio_type = ANY($${paramIndex})`;
+          queryParams.push(filterObj.radioTypes);
+          paramIndex++;
+        }
+
+        // RSSI filters
+        if (enabledObj.rssiMin && filterObj.rssiMin !== undefined) {
+          whereClause += ` AND obs.level >= $${paramIndex}`;
+          queryParams.push(filterObj.rssiMin);
+          paramIndex++;
+        }
+
+        if (enabledObj.rssiMax && filterObj.rssiMax !== undefined) {
+          whereClause += ` AND obs.level <= $${paramIndex}`;
+          queryParams.push(filterObj.rssiMax);
+          paramIndex++;
+        }
+
+        // GPS Accuracy filter
+        if (enabledObj.gpsAccuracyMax && filterObj.gpsAccuracyMax !== undefined) {
+          whereClause += ` AND (obs.accuracy IS NULL OR obs.accuracy <= $${paramIndex})`;
+          queryParams.push(filterObj.gpsAccuracyMax);
+          paramIndex++;
+        }
+
+        // Exclude invalid coordinates
+        if (enabledObj.excludeInvalidCoords) {
+          whereClause += ' AND obs.lat BETWEEN -90 AND 90 AND obs.lon BETWEEN -180 AND 180';
+        }
+
+        // Observation count filters (for networks endpoint)
+        if (enabledObj.observationCountMin && filterObj.observationCountMin !== undefined) {
+          whereClause += ` AND ap.total_observations >= $${paramIndex}`;
+          queryParams.push(filterObj.observationCountMin);
+          paramIndex++;
+        }
+
+        if (enabledObj.observationCountMax && filterObj.observationCountMax !== undefined) {
+          whereClause += ` AND ap.total_observations <= $${paramIndex}`;
+          queryParams.push(filterObj.observationCountMax);
+          paramIndex++;
+        }
+      } catch (e) {
+        logger.warn('Invalid filter parameters:', e.message);
+      }
+    }
+
     // Get networks from access_points with latest observation data
-    const result = await query(`
+    const result = await query(
+      `
       WITH obs_latest AS (
         SELECT DISTINCT ON (bssid)
           bssid,
@@ -326,10 +495,11 @@ router.get('/kepler/networks', async (req, res) => {
         ST_SetSRID(ST_MakePoint(obs.lon, obs.lat), 4326) AS geom
       FROM public.access_points ap
       LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
-      WHERE obs.lat IS NOT NULL 
-        AND obs.lon IS NOT NULL
+      ${whereClause}
       ORDER BY ap.last_seen DESC
-    `);
+    `,
+      queryParams
+    );
 
     const geojson = {
       type: 'FeatureCollection',

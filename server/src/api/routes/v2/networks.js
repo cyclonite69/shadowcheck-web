@@ -78,7 +78,7 @@ router.get('/v2/networks', async (req, res, next) => {
         COUNT(*) OVER() as total
       FROM obs_latest
       LEFT JOIN obs_agg ON obs_agg.bssid = obs_latest.bssid
-      LEFT JOIN app.network_threat_scores nts ON nts.bssid = obs_latest.bssid AND nts.model_version = '2.0.0'
+      LEFT JOIN app.network_threat_scores nts ON nts.bssid = obs_latest.bssid
       ${whereClause}
       ORDER BY ${sortColumn} ${order}
       LIMIT $${params.length - 1} OFFSET $${params.length};
@@ -102,7 +102,7 @@ router.get('/v2/networks', async (req, res, next) => {
         accuracy_meters: row.accuracy,
         threat_score: row.final_threat_score ? parseFloat(row.final_threat_score) : 0,
         threat_level: row.final_threat_level || 'NONE',
-        model_version: row.model_version || '2.0.0',
+        model_version: row.model_version || 'rule-v3.1',
       })),
     });
   } catch (err) {
@@ -205,7 +205,7 @@ router.get('/v2/dashboard/metrics', async (_req, res, next) => {
         SUM(CASE WHEN nts.final_threat_level = 'MED' THEN 1 ELSE 0 END) AS medium,
         SUM(CASE WHEN nts.final_threat_level IN ('LOW', 'NONE') THEN 1 ELSE 0 END) AS low
       FROM app.network_threat_scores nts
-      WHERE nts.model_version = '2.0.0'
+      WHERE nts.final_threat_level IS NOT NULL
       `
     );
 
@@ -270,7 +270,7 @@ router.get('/v2/threats/map', async (req, res, next) => {
         ORDER BY bssid, time DESC
         LIMIT 1
       ) ol ON true
-      WHERE nts.model_version = '2.0.0'
+      WHERE nts.final_threat_level IS NOT NULL
         ${severityFilter}
       ORDER BY COALESCE(nts.final_threat_score, 0) DESC
       LIMIT 5000
@@ -286,7 +286,7 @@ router.get('/v2/threats/map', async (req, res, next) => {
         LOWER(nts.final_threat_level) AS severity
       FROM public.observations o
       JOIN app.network_threat_scores nts ON nts.bssid = o.bssid
-      WHERE nts.model_version = '2.0.0'
+      WHERE nts.final_threat_level IS NOT NULL
         AND o.time >= NOW() - ($${params.length} || ' days')::interval
         ${severityFilter ? 'AND nts.final_threat_level = $1' : ''}
       LIMIT 500000
@@ -305,7 +305,7 @@ router.get('/v2/threats/map', async (req, res, next) => {
         days,
         threat_count: threats.rowCount,
         observation_count: observations.rowCount,
-        model_version: '2.0.0',
+        model_version: 'rule-v3.1',
       },
     });
   } catch (err) {

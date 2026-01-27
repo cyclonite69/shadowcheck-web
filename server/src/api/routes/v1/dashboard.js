@@ -50,6 +50,10 @@ const sendDashboardMetrics = async (req, res) => {
     const filters = filtersResult.value;
     const enabled = enabledResult.value;
 
+    // Debug logging
+    console.log('[Dashboard] Received filters:', JSON.stringify(filters, null, 2));
+    console.log('[Dashboard] Received enabled:', JSON.stringify(enabled, null, 2));
+
     const metrics = await dashboardService.getMetrics(filters, enabled);
     res.json({
       threats: {

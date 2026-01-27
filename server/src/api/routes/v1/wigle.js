@@ -224,6 +224,7 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
 // GET /api/wigle/networks-v2 - Fetch WiGLE v2 networks for map testing
 router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, next) => {
   try {
+    const { filters, enabled } = req.query;
     const limitRaw = req.validated?.limit;
     const offsetRaw = req.validated?.offset;
     const typeRaw = req.validated?.type;
@@ -241,6 +242,31 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
     if (typeRaw && String(typeRaw).trim() !== '') {
       params.unshift(String(typeRaw).trim());
       whereClauses.push('type = $1');
+    }
+
+    // Apply filters if provided
+    if (filters && enabled) {
+      try {
+        const filterObj = JSON.parse(filters);
+        const enabledObj = JSON.parse(enabled);
+        let paramIndex = params.length + 1;
+
+        // SSID filter
+        if (enabledObj.ssid && filterObj.ssid) {
+          whereClauses.push(`ssid ILIKE $${paramIndex}`);
+          params.push(`%${filterObj.ssid}%`);
+          paramIndex++;
+        }
+
+        // BSSID filter
+        if (enabledObj.bssid && filterObj.bssid) {
+          whereClauses.push(`bssid ILIKE $${paramIndex}`);
+          params.push(`${filterObj.bssid}%`);
+          paramIndex++;
+        }
+      } catch (e) {
+        logger.warn('Invalid filter parameters:', e.message);
+      }
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -296,13 +322,11 @@ router.post('/wigle/search-api', async (req, res, next) => {
     const wigleApiToken = secretsManager.get('wigle_api_token');
 
     if (!wigleApiName || !wigleApiToken) {
-      return res
-        .status(503)
-        .json({
-          ok: false,
-          error:
-            'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.',
-        });
+      return res.status(503).json({
+        ok: false,
+        error:
+          'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.',
+      });
     }
 
     const {
@@ -344,12 +368,10 @@ router.post('/wigle/search-api', async (req, res, next) => {
     }
 
     if (!ssid && !bssid && !latrange1) {
-      return res
-        .status(400)
-        .json({
-          ok: false,
-          error: 'At least one search parameter required (ssid, bssid, or latrange)',
-        });
+      return res.status(400).json({
+        ok: false,
+        error: 'At least one search parameter required (ssid, bssid, or latrange)',
+      });
     }
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');

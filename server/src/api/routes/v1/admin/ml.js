@@ -37,19 +37,20 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
     const networksResult = await query(`
       SELECT
         ap.bssid,
-        mv.observation_count,
+        mv.observations AS observation_count,
         mv.unique_days,
         mv.unique_locations,
-        mv.max_signal,
-        mv.max_distance_km,
+        COALESCE(mv.signal, -100) AS max_signal,
+        COALESCE(mv.max_distance_meters, 0) / 1000.0 AS max_distance_km,
         mv.distance_from_home_km,
-        mv.seen_at_home,
-        mv.seen_away_from_home,
-        COALESCE(mv.raw_score, 0) AS rule_based_score
+        FALSE AS seen_at_home,
+        FALSE AS seen_away_from_home,
+        COALESCE(nts.rule_based_score, 0) AS rule_based_score
       FROM public.access_points ap
       LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+      LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
       WHERE ap.bssid IS NOT NULL
-        AND mv.observation_count > 0
+        AND COALESCE(mv.observations, 0) > 0
       LIMIT 100
     `);
 
@@ -59,7 +60,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
     // Score each network
     for (const network of networks) {
       const features = {
-        distance_range_km: (network.max_distance_km || 0) / 1000.0,
+        distance_range_km: network.max_distance_km || 0,
         unique_days: network.unique_days || 0,
         observation_count: network.observation_count || 0,
         max_signal: network.max_signal || -100,
@@ -78,15 +79,17 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
       const probability = 1 / (1 + Math.exp(-score));
       const threatScore = probability * 100;
 
-      // Determine threat level
+      const finalScore = Math.max(threatScore, network.rule_based_score);
+
+      // Determine threat level from final score
       let threatLevel = 'NONE';
-      if (threatScore >= 70) {
+      if (finalScore >= 80) {
         threatLevel = 'CRITICAL';
-      } else if (threatScore >= 50) {
+      } else if (finalScore >= 60) {
         threatLevel = 'HIGH';
-      } else if (threatScore >= 30) {
+      } else if (finalScore >= 40) {
         threatLevel = 'MED';
-      } else if (threatScore >= 10) {
+      } else if (finalScore >= 20) {
         threatLevel = 'LOW';
       }
 
@@ -96,7 +99,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
         ml_threat_probability: parseFloat(probability.toFixed(3)),
         ml_primary_class: threatScore >= 50 ? 'THREAT' : 'LEGITIMATE',
         rule_based_score: network.rule_based_score,
-        final_threat_score: Math.max(threatScore, network.rule_based_score),
+        final_threat_score: finalScore,
         final_threat_level: threatLevel,
         model_version: modelVersion,
       });
@@ -204,13 +207,10 @@ router.get('/admin/ml-scores', async (req, res, next) => {
 // POST /api/admin/ml-score-now - Manually trigger ML scoring
 router.post('/admin/ml-score-now', async (req, res, next) => {
   try {
-    logger.info('[Admin] Manual ML scoring requested');
-    const BackgroundJobsService = require('../../../../services/backgroundJobsService');
-    await BackgroundJobsService.scoreNow();
-
-    res.json({
-      ok: true,
-      message: 'ML scoring completed',
+    logger.info('[Admin] Manual ML scoring requested (blocked: manual-only mode)');
+    res.status(409).json({
+      ok: false,
+      message: 'Background ML scoring is disabled in manual-only mode.',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
