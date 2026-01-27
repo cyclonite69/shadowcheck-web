@@ -60,7 +60,11 @@ class UniversalFilterQueryBuilder {
     }
 
     if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
-      where.push(`o.accuracy IS NOT NULL AND o.accuracy <= ${this.addParam(f.gpsAccuracyMax)}`);
+      where.push(
+        `o.accuracy IS NOT NULL AND o.accuracy > 0 AND o.accuracy <= ${this.addParam(
+          f.gpsAccuracyMax
+        )}`
+      );
       this.addApplied('quality', 'gpsAccuracyMax', f.gpsAccuracyMax);
     }
 
@@ -712,7 +716,11 @@ class UniversalFilterQueryBuilder {
         this.addApplied('quality', 'observationCountMax', f.observationCountMax);
       }
       if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
-        where.push(`ne.accuracy_meters <= ${this.addParam(f.gpsAccuracyMax)}`);
+        where.push(
+          `ne.accuracy_meters IS NOT NULL AND ne.accuracy_meters > 0 AND ne.accuracy_meters <= ${this.addParam(
+            f.gpsAccuracyMax
+          )}`
+        );
         this.addApplied('quality', 'gpsAccuracyMax', f.gpsAccuracyMax);
       }
       if (e.excludeInvalidCoords && f.excludeInvalidCoords) {
@@ -1089,7 +1097,11 @@ class UniversalFilterQueryBuilder {
         where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
       }
       if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
-        where.push(`ne.accuracy_meters <= ${this.addParam(f.gpsAccuracyMax)}`);
+        where.push(
+          `ne.accuracy_meters IS NOT NULL AND ne.accuracy_meters > 0 AND ne.accuracy_meters <= ${this.addParam(
+            f.gpsAccuracyMax
+          )}`
+        );
       }
       if (e.excludeInvalidCoords && f.excludeInvalidCoords) {
         where.push('ne.lat IS NOT NULL AND ne.lon IS NOT NULL');

@@ -273,7 +273,7 @@ router.get('/kepler/observations', async (req, res) => {
 
         // GPS Accuracy filter
         if (enabledObj.gpsAccuracyMax && filterObj.gpsAccuracyMax !== undefined) {
-          whereClause += ` AND (accuracy IS NULL OR accuracy <= $${paramIndex})`;
+          whereClause += ` AND (accuracy IS NOT NULL AND accuracy > 0 AND accuracy <= $${paramIndex})`;
           queryParams.push(filterObj.gpsAccuracyMax);
           paramIndex++;
         }
@@ -433,7 +433,7 @@ router.get('/kepler/networks', async (req, res) => {
 
         // GPS Accuracy filter
         if (enabledObj.gpsAccuracyMax && filterObj.gpsAccuracyMax !== undefined) {
-          whereClause += ` AND (obs.accuracy IS NULL OR obs.accuracy <= $${paramIndex})`;
+          whereClause += ` AND (obs.accuracy IS NOT NULL AND obs.accuracy > 0 AND obs.accuracy <= $${paramIndex})`;
           queryParams.push(filterObj.gpsAccuracyMax);
           paramIndex++;
         }

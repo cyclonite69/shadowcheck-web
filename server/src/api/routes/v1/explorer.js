@@ -338,7 +338,9 @@ router.get('/explorer/networks', async (req, res, _next) => {
         // GPS Accuracy filter
         if (enabledObj.gpsAccuracyMax && filterObj.gpsAccuracyMax !== undefined) {
           params.push(filterObj.gpsAccuracyMax);
-          where.push(`(obs.accuracy_meters IS NULL OR obs.accuracy_meters <= $${params.length})`);
+          where.push(
+            `(obs.accuracy_meters IS NOT NULL AND obs.accuracy_meters > 0 AND obs.accuracy_meters <= $${params.length})`
+          );
         }
 
         // Observation count filters
