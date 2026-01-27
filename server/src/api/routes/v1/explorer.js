@@ -727,16 +727,65 @@ router.get('/explorer/timeline/:bssid', async (req, res, next) => {
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { cte, params } = builder.buildFilteredObservationsCte();
+    const networkWhere = builder.buildNetworkWhere();
+    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const data = await query(
       `
         ${cte}
+        , obs_rollup AS (
+          SELECT
+            bssid,
+            COUNT(*) AS observation_count
+          FROM filtered_obs
+          GROUP BY bssid
+        ),
+        obs_centroids AS (
+          SELECT
+            bssid,
+            ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+            MIN(time) AS first_time,
+            MAX(time) AS last_time,
+            COUNT(*) AS obs_count
+          FROM filtered_obs
+          WHERE geom IS NOT NULL
+          GROUP BY bssid
+        ),
+        obs_spatial AS (
+          SELECT
+            c.bssid,
+            CASE
+              WHEN c.obs_count < 2 THEN NULL
+              ELSE ROUND(
+                LEAST(1, GREATEST(0,
+                  (
+                    (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                    (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                    LEAST(c.obs_count / 50.0, 1) * 0.2
+                  )
+                ))::numeric,
+                3
+              )
+            END AS stationary_confidence
+          FROM filtered_obs o
+          JOIN obs_centroids c ON c.bssid = o.bssid
+          WHERE o.geom IS NOT NULL
+          GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
+        ),
+        filtered_networks AS (
+          SELECT r.bssid
+          FROM obs_rollup r
+          LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+          LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+          ${networkWhereClause}
+        )
         SELECT
           DATE_TRUNC('hour', time) AS bucket,
           COUNT(*) AS obs_count,
           AVG(level) AS avg_level,
           MIN(level) AS min_level,
           MAX(level) AS max_level
-        FROM filtered_obs
+        FROM filtered_obs o
+        JOIN filtered_networks fn ON fn.bssid = o.bssid
         GROUP BY bucket
         ORDER BY bucket ASC
       `,
@@ -770,10 +819,58 @@ router.get('/explorer/heatmap', async (req, res, next) => {
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { cte, params } = builder.buildFilteredObservationsCte();
+    const networkWhere = builder.buildNetworkWhere();
+    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const data = await query(
       `
         ${cte}
-        , tiles AS (
+        , obs_rollup AS (
+          SELECT
+            bssid,
+            COUNT(*) AS observation_count
+          FROM filtered_obs
+          GROUP BY bssid
+        ),
+        obs_centroids AS (
+          SELECT
+            bssid,
+            ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+            MIN(time) AS first_time,
+            MAX(time) AS last_time,
+            COUNT(*) AS obs_count
+          FROM filtered_obs
+          WHERE geom IS NOT NULL
+          GROUP BY bssid
+        ),
+        obs_spatial AS (
+          SELECT
+            c.bssid,
+            CASE
+              WHEN c.obs_count < 2 THEN NULL
+              ELSE ROUND(
+                LEAST(1, GREATEST(0,
+                  (
+                    (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                    (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                    LEAST(c.obs_count / 50.0, 1) * 0.2
+                  )
+                ))::numeric,
+                3
+              )
+            END AS stationary_confidence
+          FROM filtered_obs o
+          JOIN obs_centroids c ON c.bssid = o.bssid
+          WHERE o.geom IS NOT NULL
+          GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
+        ),
+        filtered_networks AS (
+          SELECT r.bssid
+          FROM obs_rollup r
+          LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+          LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+          ${networkWhereClause}
+        ),
+        tiles AS (
           SELECT
             ST_SnapToGrid(geom::geometry, 0.01) AS tile_geom,
             COUNT(*) AS obs_count,
@@ -782,7 +879,8 @@ router.get('/explorer/heatmap', async (req, res, next) => {
             MAX(level) AS max_level,
             MIN(time) AS first_seen,
             MAX(time) AS last_seen
-          FROM filtered_obs
+          FROM filtered_obs o
+          JOIN filtered_networks fn ON fn.bssid = o.bssid
           WHERE geom IS NOT NULL
           GROUP BY tile_geom
         )
@@ -828,15 +926,64 @@ router.get('/explorer/routes', async (req, res, next) => {
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { cte, params } = builder.buildFilteredObservationsCte();
+    const networkWhere = builder.buildNetworkWhere();
+    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const data = await query(
       `
         ${cte}
-        , route_points AS (
+        , obs_rollup AS (
+          SELECT
+            bssid,
+            COUNT(*) AS observation_count
+          FROM filtered_obs
+          GROUP BY bssid
+        ),
+        obs_centroids AS (
+          SELECT
+            bssid,
+            ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+            MIN(time) AS first_time,
+            MAX(time) AS last_time,
+            COUNT(*) AS obs_count
+          FROM filtered_obs
+          WHERE geom IS NOT NULL
+          GROUP BY bssid
+        ),
+        obs_spatial AS (
+          SELECT
+            c.bssid,
+            CASE
+              WHEN c.obs_count < 2 THEN NULL
+              ELSE ROUND(
+                LEAST(1, GREATEST(0,
+                  (
+                    (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                    (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                    LEAST(c.obs_count / 50.0, 1) * 0.2
+                  )
+                ))::numeric,
+                3
+              )
+            END AS stationary_confidence
+          FROM filtered_obs o
+          JOIN obs_centroids c ON c.bssid = o.bssid
+          WHERE o.geom IS NOT NULL
+          GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
+        ),
+        filtered_networks AS (
+          SELECT r.bssid
+          FROM obs_rollup r
+          LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+          LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+          ${networkWhereClause}
+        ),
+        route_points AS (
           SELECT
             device_id,
             time,
             geom
-          FROM filtered_obs
+          FROM filtered_obs o
+          JOIN filtered_networks fn ON fn.bssid = o.bssid
           WHERE device_id IS NOT NULL
             AND geom IS NOT NULL
         ),

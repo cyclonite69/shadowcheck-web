@@ -1417,13 +1417,69 @@ class UniversalFilterQueryBuilder {
 
   buildAnalyticsQueries({ useLatestPerBssid = false } = {}) {
     const { cte, params } = this.buildFilteredObservationsCte();
+    const networkWhere = this.buildNetworkWhere();
+    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+    const baseCtes = `
+      ${cte}
+      , obs_rollup AS (
+        SELECT
+          bssid,
+          COUNT(*) AS observation_count
+        FROM filtered_obs
+        GROUP BY bssid
+      ),
+      obs_centroids AS (
+        SELECT
+          bssid,
+          ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+          MIN(time) AS first_time,
+          MAX(time) AS last_time,
+          COUNT(*) AS obs_count
+        FROM filtered_obs
+        WHERE geom IS NOT NULL
+        GROUP BY bssid
+      ),
+      obs_spatial AS (
+        SELECT
+          c.bssid,
+          CASE
+            WHEN c.obs_count < 2 THEN NULL
+            ELSE ROUND(
+              LEAST(1, GREATEST(0,
+                (
+                  (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                  (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                  LEAST(c.obs_count / 50.0, 1) * 0.2
+                )
+              ))::numeric,
+              3
+            )
+          END AS stationary_confidence
+        FROM filtered_obs o
+        JOIN obs_centroids c ON c.bssid = o.bssid
+        WHERE o.geom IS NOT NULL
+        GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
+      ),
+      filtered_networks AS (
+        SELECT r.bssid
+        FROM obs_rollup r
+        LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        ${networkWhereClause}
+      ),
+      filtered_obs_scope AS (
+        SELECT o.*
+        FROM filtered_obs o
+        JOIN filtered_networks fn ON fn.bssid = o.bssid
+      )
+    `;
     const latestPerBssidCte = useLatestPerBssid
       ? `,
       latest_per_bssid AS (
         SELECT *
         FROM (
           SELECT o.*, ROW_NUMBER() OVER (PARTITION BY UPPER(o.bssid) ORDER BY o.time DESC NULLS LAST) as rn
-          FROM filtered_obs o
+          FROM filtered_obs_scope o
         ) ranked
         WHERE rn = 1
       )`
@@ -1435,14 +1491,14 @@ class UniversalFilterQueryBuilder {
           SELECT DISTINCT ON (bssid)
             bssid,
             level
-          FROM filtered_obs
+          FROM filtered_obs_scope
           ORDER BY bssid, time DESC
         )
       `;
     const signalStrengthSource = useLatestPerBssid ? 'latest_per_bssid' : 'latest';
 
     const base = (query) => ({
-      sql: `${cte}${latestPerBssidCte}\n${query}`,
+      sql: `${baseCtes}${latestPerBssidCte}\n${query}`,
       params: [...params],
     });
 
@@ -1459,7 +1515,7 @@ class UniversalFilterQueryBuilder {
             ELSE 'Other'
           END AS network_type,
           COUNT(DISTINCT o.bssid) AS count
-        FROM ${useLatestPerBssid ? 'latest_per_bssid' : 'filtered_obs'} o
+        FROM filtered_obs_scope o
         GROUP BY network_type
         ORDER BY count DESC
       `),
@@ -1485,7 +1541,7 @@ class UniversalFilterQueryBuilder {
         SELECT
           ${SECURITY_EXPR('o')} AS security_type,
           COUNT(*) AS count
-        FROM ${useLatestPerBssid ? 'latest_per_bssid' : 'filtered_obs'} o
+        FROM filtered_obs_scope o
         GROUP BY security_type
         ORDER BY count DESC
       `),
@@ -1499,8 +1555,8 @@ class UniversalFilterQueryBuilder {
             ELSE '0-20'
           END AS range,
           COUNT(DISTINCT ne.bssid) AS count
-        FROM filtered_obs o
-        JOIN public.api_network_explorer_mv ne ON ne.bssid = o.bssid
+        FROM filtered_networks fn
+        JOIN public.api_network_explorer_mv ne ON ne.bssid = fn.bssid
         GROUP BY range
         ORDER BY range DESC
       `),
@@ -1508,7 +1564,7 @@ class UniversalFilterQueryBuilder {
         SELECT
           EXTRACT(HOUR FROM time) AS hour,
           COUNT(*) AS count
-        FROM filtered_obs
+        FROM filtered_obs_scope
         GROUP BY hour
         ORDER BY hour
       `),
@@ -1525,7 +1581,7 @@ class UniversalFilterQueryBuilder {
             ELSE 'Other'
           END AS network_type,
           COUNT(*) AS count
-        FROM filtered_obs o
+        FROM filtered_obs_scope o
         GROUP BY date, network_type
         ORDER BY date, network_type
       `),
@@ -1534,7 +1590,7 @@ class UniversalFilterQueryBuilder {
           SELECT
             DATE_TRUNC('day', o.time) AS date,
             o.bssid
-          FROM filtered_obs o
+          FROM filtered_obs_scope o
           GROUP BY date, o.bssid
         )
         SELECT
@@ -1555,7 +1611,7 @@ class UniversalFilterQueryBuilder {
           COUNT(*) AS observation_count,
           MIN(o.time) AS first_seen,
           MAX(o.time) AS last_seen
-        FROM filtered_obs o
+        FROM filtered_obs_scope o
         GROUP BY o.bssid
         ORDER BY observation_count DESC
         LIMIT 50
