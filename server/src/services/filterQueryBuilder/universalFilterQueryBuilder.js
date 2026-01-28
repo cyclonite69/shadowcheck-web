@@ -440,7 +440,7 @@ class UniversalFilterQueryBuilder {
     return { where, joins: Array.from(this.obsJoins) };
   }
 
-  buildFilteredObservationsCte() {
+  buildFilteredObservationsCte({ selectedBssids = [] } = {}) {
     const { where, joins } = this.buildObservationFilters();
     const whereClause = where.length > 0 ? where.join(' AND ') : '1=1';
     const homeCte = this.requiresHome
@@ -454,6 +454,12 @@ class UniversalFilterQueryBuilder {
       : '';
 
     const homeJoin = this.requiresHome ? 'CROSS JOIN home' : '';
+    const selectionClause =
+      Array.isArray(selectedBssids) && selectedBssids.length > 0
+        ? `AND UPPER(o.bssid) = ANY(${this.addParam(
+            selectedBssids.map((value) => String(value).toUpperCase())
+          )})`
+        : '';
     const cte = `
     WITH ${homeCte ? `${homeCte},` : ''} filtered_obs AS (
       SELECT
@@ -472,7 +478,10 @@ class UniversalFilterQueryBuilder {
       FROM public.observations o
       ${homeJoin}
       ${joins.join('\n')}
-      WHERE ${whereClause} AND o.bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF') AND o.bssid IS NOT NULL
+      WHERE ${whereClause}
+        AND o.bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
+        AND o.bssid IS NOT NULL
+        ${selectionClause}
     )
     `;
 
@@ -1245,17 +1254,9 @@ class UniversalFilterQueryBuilder {
   }
 
   buildGeospatialQuery({ limit = 5000, offset = 0, selectedBssids = [] } = {}) {
-    const { cte, params } = this.buildFilteredObservationsCte();
+    const { cte, params } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
-    const selectionWhere = [];
-
-    if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
-      const normalized = selectedBssids.map((value) => String(value).toUpperCase());
-      selectionWhere.push(`UPPER(o.bssid) = ANY(${this.addParam(normalized)})`);
-    }
-
     const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
-    const selectionClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
 
     const sql = `
       ${cte}
@@ -1325,7 +1326,6 @@ class UniversalFilterQueryBuilder {
       LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
-        ${selectionClause}
       ORDER BY o.time ASC
       LIMIT ${this.addParam(limit)}
       OFFSET ${this.addParam(offset)}
@@ -1341,17 +1341,9 @@ class UniversalFilterQueryBuilder {
   }
 
   buildGeospatialCountQuery({ selectedBssids = [] } = {}) {
-    const { cte, params } = this.buildFilteredObservationsCte();
+    const { cte, params } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
-    const selectionWhere = [];
-
-    if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
-      const normalized = selectedBssids.map((value) => String(value).toUpperCase());
-      selectionWhere.push(`UPPER(o.bssid) = ANY(${this.addParam(normalized)})`);
-    }
-
     const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
-    const selectionClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
 
     const sql = `
       ${cte}
@@ -1406,7 +1398,6 @@ class UniversalFilterQueryBuilder {
       JOIN filtered_networks fn ON fn.bssid = o.bssid
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
-        ${selectionClause}
     `;
 
     return {

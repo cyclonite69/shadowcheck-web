@@ -72,7 +72,9 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
         if (orderBy) params.set('orderBy', orderBy);
 
         const endpointPath = endpoint === 'networks' ? '' : `/${endpoint}`;
-        const response = await fetch(`/api/v2/networks/filtered${endpointPath}?${params}`);
+        const response = await fetch(`/api/v2/networks/filtered${endpointPath}?${params}`, {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

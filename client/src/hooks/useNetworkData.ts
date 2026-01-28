@@ -120,7 +120,12 @@ const parseThreatInfo = (threat: any, bssid: string): ThreatInfo => {
       summary: 'Signal above threat threshold',
     };
   } else if (threat && typeof threat === 'object') {
-    const t = threat as { score?: number | string; level?: string; summary?: string };
+    const t = threat as {
+      score?: number | string;
+      level?: string;
+      summary?: string;
+      debug?: any;
+    };
     const apiScore =
       typeof t.score === 'string' ? parseFloat(t.score) : typeof t.score === 'number' ? t.score : 0;
 
@@ -128,6 +133,7 @@ const parseThreatInfo = (threat: any, bssid: string): ThreatInfo => {
       score: apiScore / 100,
       level: (t.level || 'NONE') as 'NONE' | 'LOW' | 'MED' | 'HIGH',
       summary: t.summary || `Threat level: ${t.level || 'NONE'}`,
+      debug: t.debug || undefined,
     };
   }
 
@@ -170,6 +176,10 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     threat: threatInfo,
     threat_score: threatInfo ? threatInfo.score * 100 : 0,
     threat_level: threatInfo ? threatInfo.level : 'NONE',
+    threat_rule_score: threatInfo?.debug?.rule_score ?? null,
+    threat_ml_score: threatInfo?.debug?.ml_score ?? null,
+    threat_ml_weight: threatInfo?.debug?.evidence_weight ?? null,
+    threat_ml_boost: threatInfo?.debug?.ml_boost ?? null,
     threatReasons: [],
     threatEvidence: [],
     stationaryConfidence:
@@ -298,6 +308,27 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           filters.encryptionTypes.length > 0
         ) {
           params.set('encryptionTypes', filters.encryptionTypes.join(','));
+        }
+        if (
+          enabled.authMethods &&
+          Array.isArray(filters.authMethods) &&
+          filters.authMethods.length > 0
+        ) {
+          params.set('authMethods', filters.authMethods.join(','));
+        }
+        if (
+          enabled.insecureFlags &&
+          Array.isArray(filters.insecureFlags) &&
+          filters.insecureFlags.length > 0
+        ) {
+          params.set('insecureFlags', filters.insecureFlags.join(','));
+        }
+        if (
+          enabled.securityFlags &&
+          Array.isArray(filters.securityFlags) &&
+          filters.securityFlags.length > 0
+        ) {
+          params.set('securityFlags', filters.securityFlags.join(','));
         }
         if (enabled.rssiMin && filters.rssiMin !== undefined) {
           params.set('min_signal', String(filters.rssiMin));

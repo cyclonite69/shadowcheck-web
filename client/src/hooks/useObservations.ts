@@ -97,6 +97,7 @@ export function useObservations(
 
           const res = await fetch(`/api/v2/networks/filtered/observations?${params.toString()}`, {
             signal: controller.signal,
+            credentials: 'include',
           });
 
           if (!res.ok) throw new Error(`observations ${res.status}`);

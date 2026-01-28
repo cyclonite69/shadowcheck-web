@@ -162,7 +162,34 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
 
       const threatScore = probability * 100;
       const ruleScore = parseFloat(net.rule_based_score || 0);
-      const finalScore = overwriteFinal ? Math.max(threatScore, ruleScore) : ruleScore;
+
+      // --- HYBRID GATED FORMULA ---
+      // Baseline is the rule-based score. ML can pull it UP, but only if evidence is strong.
+      const obsCount = parseInt(net.observation_count || 0);
+      const uniqueDays = parseInt(net.unique_days || 0);
+      const uniqueLocs = parseInt(net.unique_locations || 0);
+
+      // Evidence weight (0.0 to 1.0)
+      // Requires at least 3 observations AND 2 unique days to have ANY ML influence
+      let evidenceWeight = 0;
+      if (obsCount >= 3 && uniqueDays >= 2) {
+        // Logarithmic scale for observations (max influence at ~30)
+        // Linear scale for days (max influence at 7 days)
+        // Linear scale for locations (max influence at 5 locations)
+        evidenceWeight = Math.min(
+          1.0,
+          Math.log1p(obsCount) / Math.log1p(30),
+          uniqueDays / 7.0,
+          uniqueLocs / 5.0
+        );
+      }
+
+      // ML only boosts. It doesn't penalize a rule-based high threat.
+      const mlBoost = evidenceWeight * Math.max(0, threatScore - ruleScore);
+      const hybridScore = ruleScore + mlBoost;
+
+      // finalScore is the hybrid result if overwriteFinal is true, otherwise it's ruleScore (legacy behavior)
+      const finalScore = overwriteFinal ? hybridScore : ruleScore;
       const threatLevel = determineThreatLevel(finalScore);
 
       scores.push({
@@ -170,6 +197,13 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
         ml_threat_score: parseFloat(threatScore.toFixed(2)),
         ml_threat_probability: parseFloat(probability.toFixed(3)),
         ml_primary_class: threatScore >= 50 ? 'THREAT' : 'LEGITIMATE',
+        ml_feature_values: {
+          rule_score: parseFloat(ruleScore.toFixed(2)),
+          ml_score: parseFloat(threatScore.toFixed(2)),
+          evidence_weight: parseFloat(evidenceWeight.toFixed(3)),
+          ml_boost: parseFloat(mlBoost.toFixed(2)),
+          features: rawFeatures,
+        },
         rule_based_score: ruleScore,
         final_threat_score: parseFloat(finalScore.toFixed(2)),
         final_threat_level: threatLevel,
@@ -187,12 +221,13 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
           `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
-             rule_based_score, final_threat_score, final_threat_level, model_version)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ml_feature_values, rule_based_score, final_threat_score, final_threat_level, model_version)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
             ml_threat_probability = EXCLUDED.ml_threat_probability,
             ml_primary_class = EXCLUDED.ml_primary_class,
+            ml_feature_values = EXCLUDED.ml_feature_values,
             rule_based_score = EXCLUDED.rule_based_score,
             final_threat_score = EXCLUDED.final_threat_score,
             final_threat_level = EXCLUDED.final_threat_level,
@@ -205,6 +240,7 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
             score.ml_threat_score,
             score.ml_threat_probability,
             score.ml_primary_class,
+            JSON.stringify(score.ml_feature_values),
             score.rule_based_score,
             score.final_threat_score,
             score.final_threat_level,
@@ -218,12 +254,13 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
           `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
-             rule_based_score, final_threat_score, final_threat_level)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ml_feature_values, rule_based_score, final_threat_score, final_threat_level)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
             ml_threat_probability = EXCLUDED.ml_threat_probability,
             ml_primary_class = EXCLUDED.ml_primary_class,
+            ml_feature_values = EXCLUDED.ml_feature_values,
             updated_at = NOW()
         `,
           [
@@ -231,6 +268,7 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
             score.ml_threat_score,
             score.ml_threat_probability,
             score.ml_primary_class,
+            JSON.stringify(score.ml_feature_values),
             score.rule_based_score,
             score.final_threat_score,
             score.final_threat_level,
@@ -365,7 +403,7 @@ router.post('/ml/train', async (req, res, next) => {
 
     const autoScore = parseBoolean(req.body?.auto_score, true);
     const autoScoreLimit = parseInt(req.body?.auto_score_limit, 10) || DEFAULT_AUTO_SCORE_LIMIT;
-    const autoScoreOverwrite = parseBoolean(req.body?.auto_score_overwrite, false);
+    const autoScoreOverwrite = parseBoolean(req.body?.auto_score_overwrite, true);
 
     if (autoScore) {
       setImmediate(async () => {

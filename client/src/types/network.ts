@@ -5,6 +5,13 @@ export type ThreatInfo = {
   level: 'NONE' | 'LOW' | 'MED' | 'HIGH';
   summary: string;
   flags?: string[];
+  debug?: {
+    rule_score: number;
+    ml_score: number;
+    evidence_weight: number;
+    ml_boost: number;
+    features: any;
+  };
   signals?: Array<{
     code: string;
     weight: number;
@@ -48,6 +55,10 @@ export type NetworkRow = {
   threat?: ThreatInfo | null;
   threat_score?: number | null;
   threat_level?: string | null;
+  threat_rule_score?: number | null;
+  threat_ml_score?: number | null;
+  threat_ml_weight?: number | null;
+  threat_ml_boost?: number | null;
   threatReasons?: string[];
   threatEvidence?: ThreatEvidence[];
   stationaryConfidence?: number | null;

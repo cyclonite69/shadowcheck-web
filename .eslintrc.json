@@ -80,7 +80,7 @@
       }
     },
     {
-      "files": ["vite.config.js", "*.config.js"],
+      "files": ["vite.config.js", "*.config.js", "client/src/**/*.js"],
       "parserOptions": {
         "sourceType": "module"
       }

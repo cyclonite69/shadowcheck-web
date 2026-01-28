@@ -226,6 +226,16 @@ export const NetworkTableRow = ({
           } else {
             content = 'N/A';
           }
+        } else if (
+          ['threat_rule_score', 'threat_ml_score', 'threat_ml_boost', 'threat_score'].includes(
+            col as string
+          )
+        ) {
+          const val = value as number | null;
+          content = val !== null ? val.toFixed(1) : 'N/A';
+        } else if (col === 'threat_ml_weight') {
+          const val = value as number | null;
+          content = val !== null ? `${(val * 100).toFixed(0)}%` : 'N/A';
         }
 
         return (

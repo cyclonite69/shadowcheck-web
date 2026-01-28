@@ -26,6 +26,7 @@ const {
   parseBoundingBoxParams,
   parseRadiusParams,
 } = require('../../../validation/parameterParsers');
+const { NETWORK_CHANNEL_EXPR } = require('../../../services/filterQueryBuilder/sqlExpressions');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
@@ -50,6 +51,9 @@ router.get('/networks', async (req, res, next) => {
     const bssidRaw = req.query.bssid;
     const radioTypesRaw = req.query.radioTypes;
     const encryptionTypesRaw = req.query.encryptionTypes;
+    const authMethodsRaw = req.query.authMethods;
+    const insecureFlagsRaw = req.query.insecureFlags;
+    const securityFlagsRaw = req.query.securityFlags;
     const quickSearchRaw = req.query.q;
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
@@ -286,15 +290,83 @@ router.get('/networks', async (req, res, next) => {
         encryptionTypes = values;
       }
     }
+    let authMethods = null;
+    if (authMethodsRaw !== undefined) {
+      const values = parseCommaList(authMethodsRaw, 20);
+      if (values && values.length > 0) {
+        authMethods = values;
+      }
+    }
+    let insecureFlags = null;
+    if (insecureFlagsRaw !== undefined) {
+      const values = parseCommaList(insecureFlagsRaw, 20);
+      if (values && values.length > 0) {
+        insecureFlags = values;
+      }
+    }
+    let securityFlags = null;
+    if (securityFlagsRaw !== undefined) {
+      const values = parseCommaList(securityFlagsRaw, 20);
+      if (values && values.length > 0) {
+        securityFlags = values;
+      }
+    }
 
     const typeExpr = `
       CASE
-        WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN ne.type
+        WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN
+          CASE
+            WHEN UPPER(ne.type) IN ('W', 'WIFI', 'WI-FI') THEN 'W'
+            WHEN UPPER(ne.type) IN ('E', 'BLE', 'BTLE', 'BLUETOOTHLE', 'BLUETOOTH_LOW_ENERGY') THEN 'E'
+            WHEN UPPER(ne.type) IN ('B', 'BT', 'BLUETOOTH') THEN 'B'
+            WHEN UPPER(ne.type) IN ('L', 'LTE', '4G') THEN 'L'
+            WHEN UPPER(ne.type) IN ('N', 'NR', '5G') THEN 'N'
+            WHEN UPPER(ne.type) IN ('G', 'GSM', '2G') THEN 'G'
+            WHEN UPPER(ne.type) IN ('C', 'CDMA') THEN 'C'
+            WHEN UPPER(ne.type) IN ('D', '3G', 'UMTS') THEN 'D'
+            WHEN UPPER(ne.type) IN ('F', 'NFC') THEN 'F'
+            ELSE UPPER(ne.type)
+          END
         WHEN ne.frequency BETWEEN 2412 AND 7125 THEN 'W'
         WHEN COALESCE(ne.capabilities, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
+        WHEN COALESCE(ne.capabilities, '') ~* '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
+        WHEN COALESCE(ne.capabilities, '') ~* '(BLUETOOTH)' THEN 'B'
         ELSE '?'
       END
     `;
+    const channelExpr = NETWORK_CHANNEL_EXPR('ne');
+
+    const threatScoreExpr = `COALESCE(
+      CASE 
+        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
+        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
+        WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
+        ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
+      END,
+      0
+    )`;
+
+    const threatLevelExpr = `CASE
+      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
+      WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
+      ELSE (
+        CASE
+          WHEN ${threatScoreExpr} >= 80 THEN 'CRITICAL'
+          WHEN ${threatScoreExpr} >= 60 THEN 'HIGH'
+          WHEN ${threatScoreExpr} >= 40 THEN 'MED'
+          WHEN ${threatScoreExpr} >= 20 THEN 'LOW'
+          ELSE 'NONE'
+        END
+      )
+    END`;
+
+    const threatOrderExpr = `CASE ${threatLevelExpr}
+      WHEN 'CRITICAL' THEN 4
+      WHEN 'HIGH' THEN 3
+      WHEN 'MED' THEN 2
+      WHEN 'LOW' THEN 1
+      ELSE 0
+    END`;
 
     const sortColumnMap = {
       last_seen: 'ne.last_seen',
@@ -307,6 +379,7 @@ router.get('/networks', async (req, res, next) => {
       security: 'ne.security',
       signal: 'ne.signal',
       frequency: 'ne.frequency',
+      channel: channelExpr,
       obs_count: 'ne.observations',
       observations: 'ne.observations',
       distance_from_home_km: 'ne.distance_from_home_km',
@@ -316,9 +389,9 @@ router.get('/networks', async (req, res, next) => {
       max_signal: 'ne.signal',
       unique_days: 'ne.unique_days',
       unique_locations: 'ne.unique_locations',
-      threat: 'ne.threat',
-      threat_score: '(nts.final_threat_score)::numeric',
-      threat_level: 'nts.final_threat_level',
+      threat: threatOrderExpr,
+      threat_score: `(${threatScoreExpr})::numeric`,
+      threat_level: threatOrderExpr,
       lat: 'ne.lat',
       lon: 'ne.lon',
       manufacturer: 'ne.manufacturer',
@@ -432,30 +505,6 @@ router.get('/networks', async (req, res, next) => {
 
     const params = [];
     const whereClauses = [];
-
-    const threatScoreExpr = `COALESCE(
-      CASE 
-        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
-        WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-        ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-      END,
-      0
-    )`;
-
-    const threatLevelExpr = `CASE
-      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-      WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-      ELSE (
-        CASE
-          WHEN ${threatScoreExpr} >= 80 THEN 'CRITICAL'
-          WHEN ${threatScoreExpr} >= 60 THEN 'HIGH'
-          WHEN ${threatScoreExpr} >= 40 THEN 'MED'
-          WHEN ${threatScoreExpr} >= 20 THEN 'LOW'
-          ELSE 'NONE'
-        END
-      )
-    END`;
 
     // Filter out networks with no observations when sorting by distance-related columns
     const distanceColumns = ['max_distance_meters', 'distance_from_home_km'];
@@ -579,9 +628,114 @@ router.get('/networks', async (req, res, next) => {
       params.push(radioTypes);
       whereClauses.push(`(${typeExpr}) = ANY($${params.length})`);
     }
+    const securityUpper = "UPPER(COALESCE(ne.security, ''))";
+
     if (encryptionTypes && encryptionTypes.length > 0) {
-      params.push(encryptionTypes);
-      whereClauses.push(`ne.security = ANY($${params.length})`);
+      const normalized = encryptionTypes
+        .map((value) => String(value).trim().toUpperCase())
+        .filter(Boolean);
+      const clauses = [];
+      if (normalized.includes('OPEN')) {
+        clauses.push(`${securityUpper} = 'OPEN'`);
+      }
+      if (normalized.includes('WEP')) {
+        clauses.push(`${securityUpper} LIKE 'WEP%'`);
+      }
+      if (normalized.includes('WPA3')) {
+        clauses.push(`${securityUpper} LIKE 'WPA3%'`);
+      }
+      if (normalized.includes('WPA2')) {
+        clauses.push(`${securityUpper} LIKE 'WPA2%'`);
+      }
+      if (normalized.includes('WPA')) {
+        clauses.push(
+          `(${securityUpper} LIKE 'WPA%' AND ${securityUpper} NOT LIKE 'WPA2%' AND ${securityUpper} NOT LIKE 'WPA3%')`
+        );
+      }
+      if (normalized.includes('MIXED')) {
+        clauses.push(`${securityUpper} LIKE '%MIXED%'`);
+      }
+      if (clauses.length > 0) {
+        whereClauses.push(`(${clauses.join(' OR ')})`);
+      }
+    }
+
+    if (authMethods && authMethods.length > 0) {
+      const normalized = authMethods
+        .map((value) => String(value).trim().toUpperCase())
+        .filter(Boolean);
+      const clauses = [];
+      if (normalized.includes('PSK')) {
+        clauses.push(
+          `(${securityUpper} LIKE '%PSK%' OR ${securityUpper} IN ('WPA', 'WPA2', 'WPA3'))`
+        );
+      }
+      if (normalized.includes('ENTERPRISE')) {
+        clauses.push(`(${securityUpper} LIKE '%-E%' OR ${securityUpper} LIKE '%ENTERPRISE%')`);
+      }
+      if (normalized.includes('SAE')) {
+        clauses.push(`${securityUpper} LIKE '%SAE%'`);
+      }
+      if (normalized.includes('OWE')) {
+        clauses.push(`${securityUpper} LIKE '%OWE%'`);
+      }
+      if (normalized.includes('NONE')) {
+        clauses.push(`${securityUpper} = 'OPEN'`);
+      }
+      if (clauses.length > 0) {
+        whereClauses.push(`(${clauses.join(' OR ')})`);
+      }
+    }
+
+    if (insecureFlags && insecureFlags.length > 0) {
+      const normalized = insecureFlags
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean);
+      const clauses = [];
+      if (normalized.includes('open')) {
+        clauses.push(`${securityUpper} = 'OPEN'`);
+      }
+      if (normalized.includes('wep')) {
+        clauses.push(`${securityUpper} LIKE 'WEP%'`);
+      }
+      if (normalized.includes('wps')) {
+        clauses.push(`${securityUpper} LIKE 'WPS%'`);
+      }
+      if (normalized.includes('deprecated')) {
+        clauses.push(`(${securityUpper} LIKE 'WEP%' OR ${securityUpper} LIKE 'WPS%')`);
+      }
+      if (clauses.length > 0) {
+        whereClauses.push(`(${clauses.join(' OR ')})`);
+      }
+    }
+
+    if (securityFlags && securityFlags.length > 0) {
+      const normalized = securityFlags
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean);
+      const clauses = [];
+      if (normalized.includes('insecure')) {
+        clauses.push(
+          `(${securityUpper} = 'OPEN' OR ${securityUpper} LIKE 'WEP%' OR ${securityUpper} LIKE 'WPS%')`
+        );
+      }
+      if (normalized.includes('deprecated')) {
+        clauses.push(`${securityUpper} LIKE 'WEP%'`);
+      }
+      if (normalized.includes('enterprise')) {
+        clauses.push(`(${securityUpper} LIKE '%-E%' OR ${securityUpper} LIKE '%ENTERPRISE%')`);
+      }
+      if (normalized.includes('personal')) {
+        clauses.push(
+          `(${securityUpper} LIKE 'WPA%' AND ${securityUpper} NOT LIKE '%-E%' AND ${securityUpper} NOT LIKE '%OWE%')`
+        );
+      }
+      if (normalized.includes('unknown')) {
+        clauses.push(`${securityUpper} = 'UNKNOWN'`);
+      }
+      if (clauses.length > 0) {
+        whereClauses.push(`(${clauses.join(' OR ')})`);
+      }
     }
 
     if (quickSearchRaw !== undefined && String(quickSearchRaw).trim() !== '') {
@@ -613,7 +767,7 @@ router.get('/networks', async (req, res, next) => {
         ne.accuracy_meters,
         ne.signal,
         ne.frequency,
-        NULL as channel,
+        ${channelExpr} AS channel,
         ne.capabilities,
         ne.security,
         ne.observations as obs_count,
@@ -627,7 +781,8 @@ router.get('/networks', async (req, res, next) => {
         -- Blend ML score (70%) with manual tag confidence (30%)
         JSONB_BUILD_OBJECT(
           'score', (${threatScoreExpr})::text,
-          'level', ${threatLevelExpr}
+          'level', ${threatLevelExpr},
+          'debug', nts.ml_feature_values
         ) AS threat,
         ne.distance_from_home_km,
         ne.manufacturer AS manufacturer,

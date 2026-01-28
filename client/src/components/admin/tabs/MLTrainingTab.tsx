@@ -51,7 +51,8 @@ const TargetIcon = ({ size = 24, className = '' }) => (
 );
 
 export const MLTrainingTab: React.FC = () => {
-  const { mlStatus, mlLoading, mlResult, loadMLStatus, trainModel } = useMLTraining();
+  const { mlStatus, mlLoading, mlResult, loadMLStatus, trainModel, recalculateScores } =
+    useMLTraining();
 
   useEffect(() => {
     loadMLStatus();
@@ -59,18 +60,29 @@ export const MLTrainingTab: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-      <AdminCard icon={BrainIcon} title="Train Model" color="from-pink-500 to-pink-600">
+      <AdminCard icon={BrainIcon} title="Model Operations" color="from-pink-500 to-pink-600">
         <div className="space-y-4">
           <p className="text-sm text-slate-400">
-            Train machine learning model for threat detection
+            Manage machine learning model for threat detection
           </p>
-          <button
-            onClick={trainModel}
-            disabled={mlLoading}
-            className="w-full p-3 rounded-lg bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 text-white font-medium"
-          >
-            {mlLoading ? '🔄 Training...' : '🧠 Train Model'}
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={trainModel}
+              disabled={mlLoading}
+              className="w-full p-3 rounded-lg bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 text-white font-medium flex items-center justify-center gap-2"
+            >
+              <BrainIcon size={18} />
+              {mlLoading ? 'Training...' : 'Train Model'}
+            </button>
+            <button
+              onClick={() => recalculateScores(5000)}
+              disabled={mlLoading || !mlStatus?.modelTrained}
+              className="w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-medium border border-slate-700 flex items-center justify-center gap-2"
+            >
+              <BarChartIcon size={18} />
+              {mlLoading ? 'Calculating...' : 'Recalculate Scores'}
+            </button>
+          </div>
           {mlResult && (
             <div
               className={`p-3 rounded-lg text-sm ${
