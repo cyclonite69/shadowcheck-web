@@ -80,25 +80,24 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
 
   const networkResult = await query(
     `
-    SELECT 
-      ap.bssid,
-      mv.observations as observation_count,
-      mv.unique_days,
-      mv.unique_locations,
-      mv.signal as max_signal,
-      mv.max_distance_meters / 1000.0 as max_distance_km,
-      mv.distance_from_home_km,
-      (mv.distance_from_home_km < 0.1) as seen_at_home,
-      (mv.distance_from_home_km > 0.5) as seen_away_from_home,
-      COALESCE(nts.rule_based_score, (mv.threat->>'score')::numeric * 100, 0) AS rule_based_score
-    FROM public.access_points ap
-    LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
-    LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-    WHERE ap.bssid IS NOT NULL
-      AND mv.observations > 0
-    ORDER BY ap.bssid
-    LIMIT $1
-  `,
+      SELECT 
+        ap.bssid,
+        mv.observations as observation_count,
+        mv.unique_days,
+        mv.unique_locations,
+        mv.signal as max_signal,
+        mv.max_distance_meters / 1000.0 as max_distance_km,
+        mv.distance_from_home_km,
+        (mv.distance_from_home_km < 0.1) as seen_at_home,
+        (mv.distance_from_home_km > 0.5) as seen_away_from_home,
+        calculate_threat_score_v3(ap.bssid) as live_rule_result
+      FROM public.access_points ap
+      LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+      WHERE ap.bssid IS NOT NULL
+        AND mv.observations > 0
+      ORDER BY ap.bssid
+      LIMIT $1
+    `,
     [limitValidation.value]
   );
 
@@ -161,7 +160,10 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
       }
 
       const threatScore = probability * 100;
-      const ruleScore = parseFloat(net.rule_based_score || 0);
+
+      // Use LIVE rule-based result instead of stale column
+      const ruleResult = net.live_rule_result || {};
+      const ruleScore = parseFloat(ruleResult.score || 0);
 
       // --- HYBRID GATED FORMULA ---
       // Baseline is the rule-based score. ML can pull it UP, but only if evidence is strong.
@@ -205,6 +207,7 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
           features: rawFeatures,
         },
         rule_based_score: ruleScore,
+        rule_based_flags: ruleResult,
         final_threat_score: parseFloat(finalScore.toFixed(2)),
         final_threat_level: threatLevel,
         model_version: DEFAULT_MODEL_VERSION,
@@ -221,14 +224,15 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
           `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
-             ml_feature_values, rule_based_score, final_threat_score, final_threat_level, model_version)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ml_feature_values, rule_based_score, rule_based_flags, final_threat_score, final_threat_level, model_version)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
             ml_threat_probability = EXCLUDED.ml_threat_probability,
             ml_primary_class = EXCLUDED.ml_primary_class,
             ml_feature_values = EXCLUDED.ml_feature_values,
             rule_based_score = EXCLUDED.rule_based_score,
+            rule_based_flags = EXCLUDED.rule_based_flags,
             final_threat_score = EXCLUDED.final_threat_score,
             final_threat_level = EXCLUDED.final_threat_level,
             model_version = EXCLUDED.model_version,
@@ -242,6 +246,7 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
             score.ml_primary_class,
             JSON.stringify(score.ml_feature_values),
             score.rule_based_score,
+            JSON.stringify(score.rule_based_flags),
             score.final_threat_score,
             score.final_threat_level,
             score.model_version,
@@ -254,13 +259,15 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
           `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
-             ml_feature_values, rule_based_score, final_threat_score, final_threat_level)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ml_feature_values, rule_based_score, rule_based_flags, final_threat_score, final_threat_level)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
             ml_threat_probability = EXCLUDED.ml_threat_probability,
             ml_primary_class = EXCLUDED.ml_primary_class,
             ml_feature_values = EXCLUDED.ml_feature_values,
+            rule_based_score = EXCLUDED.rule_based_score,
+            rule_based_flags = EXCLUDED.rule_based_flags,
             updated_at = NOW()
         `,
           [
@@ -270,6 +277,7 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
             score.ml_primary_class,
             JSON.stringify(score.ml_feature_values),
             score.rule_based_score,
+            JSON.stringify(score.rule_based_flags),
             score.final_threat_score,
             score.final_threat_level,
           ]

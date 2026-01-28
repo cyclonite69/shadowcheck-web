@@ -457,8 +457,8 @@ class UniversalFilterQueryBuilder {
     const selectionClause =
       Array.isArray(selectedBssids) && selectedBssids.length > 0
         ? `AND UPPER(o.bssid) = ANY(${this.addParam(
-            selectedBssids.map((value) => String(value).toUpperCase())
-          )})`
+          selectedBssids.map((value) => String(value).toUpperCase())
+        )})`
         : '';
     const cte = `
     WITH ${homeCte ? `${homeCte},` : ''} filtered_obs AS (
