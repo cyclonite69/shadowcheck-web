@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
+const { adminQuery } = require('../../../services/adminDbService');
 const secretsManager = require('../../../services/secretsManager');
+const { requireAdmin } = require('../../../middleware/authMiddleware');
 const { validateString } = require('../../../validation/schemas');
 
 /**
@@ -36,7 +38,7 @@ const requireAuth = (req, res, next) => {
 };
 
 // Backup database as JSON (simpler than pg_dump version issues)
-router.get('/backup', requireAuth, async (req, res) => {
+router.get('/backup', requireAuth, requireAdmin, async (req, res) => {
   try {
     const timestamp = Date.now();
     const filename = `shadowcheck_backup_${timestamp}.json`;
@@ -73,7 +75,7 @@ router.get('/backup', requireAuth, async (req, res) => {
 });
 
 // Restore database from JSON backup
-router.post('/restore', requireAuth, async (req, res) => {
+router.post('/restore', requireAuth, requireAdmin, async (req, res) => {
   try {
     if (!req.files || !req.files.backup) {
       return res.status(400).json({ error: 'No backup file provided' });
@@ -87,8 +89,8 @@ router.post('/restore', requireAuth, async (req, res) => {
     }
 
     // Truncate tables
-    await query('TRUNCATE TABLE app.observations CASCADE');
-    await query('TRUNCATE TABLE app.networks CASCADE');
+    await adminQuery('TRUNCATE TABLE app.observations CASCADE');
+    await adminQuery('TRUNCATE TABLE app.networks CASCADE');
 
     // Restore data (simplified - would need proper INSERT statements)
     res.json({

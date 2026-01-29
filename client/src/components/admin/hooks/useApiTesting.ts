@@ -242,6 +242,7 @@ export const useApiTesting = () => {
     setApiError('');
     setApiResult(null);
     setApiLoading(true);
+    const start = performance.now();
 
     try {
       // Use manual endpoint if no preset, or constructed URL if preset active

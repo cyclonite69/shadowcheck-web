@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const Navigation: React.FC = () => {
   const [navVisible, setNavVisible] = useState(false);
   const location = useLocation();
+  const { isAdmin } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -129,14 +131,16 @@ const Navigation: React.FC = () => {
         >
           Kepler
         </a>
-        <a
-          href="/admin"
-          style={linkStyle('/admin')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          Admin
-        </a>
+        {isAdmin && (
+          <a
+            href="/admin"
+            style={linkStyle('/admin')}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            Admin
+          </a>
+        )}
       </div>
 
       {/* Pull-down indicator when nav is hidden */}

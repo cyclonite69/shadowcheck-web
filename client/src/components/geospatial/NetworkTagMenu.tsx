@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import type { NetworkRow, NetworkTag } from '../../types/network';
 
 interface NetworkTagMenuProps {
@@ -28,6 +29,7 @@ export const NetworkTagMenu = ({
   onTimeFrequency,
   onAddNote,
 }: NetworkTagMenuProps) => {
+  const { isAdmin } = useAuth();
   if (!visible || !network) return null;
 
   return (
@@ -99,133 +101,11 @@ export const NetworkTagMenu = ({
 
       {/* Menu Items */}
       <div style={{ padding: '4px 0' }}>
-        {/* Ignore/Unignore Toggle */}
-        <button
-          onClick={() => onTagAction('ignore')}
-          disabled={tagLoading}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 12px',
-            background: 'transparent',
-            border: 'none',
-            color: '#e2e8f0',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          {tag?.is_ignored ? '👁️ Unignore (Show)' : '👁️‍🗨️ Ignore (Known/Friendly)'}
-        </button>
-
-        <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
-
-        {/* Threat Classification */}
-        <button
-          onClick={() => onTagAction('threat')}
-          disabled={tagLoading}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 12px',
-            background: tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
-            border: 'none',
-            color: '#ef4444',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)')}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background =
-              tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent')
-          }
-        >
-          ⚠️ Mark as Threat
-        </button>
-
-        <button
-          onClick={() => onTagAction('suspect')}
-          disabled={tagLoading}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 12px',
-            background: tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
-            border: 'none',
-            color: '#f59e0b',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)')}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background =
-              tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent')
-          }
-        >
-          🔶 Mark as Suspect
-        </button>
-
-        <button
-          onClick={() => onTagAction('false_positive')}
-          disabled={tagLoading}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 12px',
-            background:
-              tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
-            border: 'none',
-            color: '#22c55e',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)')}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background =
-              tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent')
-          }
-        >
-          ✓ Mark as False Positive
-        </button>
-
-        <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
-
-        {/* WiGLE Investigation */}
-        <button
-          onClick={() => onTagAction('investigate')}
-          disabled={tagLoading}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 12px',
-            background:
-              tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-            border: 'none',
-            color: '#3b82f6',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)')}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background =
-              tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent')
-          }
-        >
-          🔍 Investigate (WiGLE Lookup)
-        </button>
-
-        {/* Clear Tags */}
-        {tag?.exists && (
+        {isAdmin && (
           <>
-            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+            {/* Ignore/Unignore Toggle */}
             <button
-              onClick={() => onTagAction('clear')}
+              onClick={() => onTagAction('ignore')}
               disabled={tagLoading}
               style={{
                 display: 'block',
@@ -233,7 +113,7 @@ export const NetworkTagMenu = ({
                 padding: '8px 12px',
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
+                color: '#e2e8f0',
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontSize: '12px',
@@ -241,13 +121,140 @@ export const NetworkTagMenu = ({
               onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              🗑️ Clear All Tags
+              {tag?.is_ignored ? '👁️ Unignore (Show)' : '👁️‍🗨️ Ignore (Known/Friendly)'}
             </button>
+
+            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+
+            {/* Threat Classification */}
+            <button
+              onClick={() => onTagAction('threat')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent')
+              }
+            >
+              ⚠️ Mark as Threat
+            </button>
+
+            <button
+              onClick={() => onTagAction('suspect')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background:
+                  tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#f59e0b',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent')
+              }
+            >
+              🔶 Mark as Suspect
+            </button>
+
+            <button
+              onClick={() => onTagAction('false_positive')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background:
+                  tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#22c55e',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent')
+              }
+            >
+              ✓ Mark as False Positive
+            </button>
+
+            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+
+            {/* WiGLE Investigation */}
+            <button
+              onClick={() => onTagAction('investigate')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background:
+                  tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#3b82f6',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent')
+              }
+            >
+              🔍 Investigate (WiGLE Lookup)
+            </button>
+
+            {/* Clear Tags */}
+            {tag?.exists && (
+              <>
+                <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+                <button
+                  onClick={() => onTagAction('clear')}
+                  disabled={tagLoading}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  🗑️ Clear All Tags
+                </button>
+              </>
+            )}
+            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
           </>
         )}
 
-        {/* Add Note */}
-        <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+        {/* View Actions */}
         <button
           onClick={onTimeFrequency}
           style={{
@@ -266,25 +273,28 @@ export const NetworkTagMenu = ({
         >
           📡 Time-Frequency Grid
         </button>
-        <button
-          onClick={onAddNote}
-          disabled={tagLoading}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 12px',
-            background: 'transparent',
-            border: 'none',
-            color: '#a78bfa',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          📝 Add Note
-        </button>
+
+        {isAdmin && (
+          <button
+            onClick={onAddNote}
+            disabled={tagLoading}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 12px',
+              background: 'transparent',
+              border: 'none',
+              color: '#a78bfa',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            📝 Add Note
+          </button>
+        )}
       </div>
 
       {/* Loading Indicator */}

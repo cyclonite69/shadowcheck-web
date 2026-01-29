@@ -27,13 +27,20 @@ Production: `https://your-domain.com/api`
 
 ## Authentication
 
-Most endpoints are public. Sensitive endpoints require API key authentication.
+Most GET endpoints are public. Sensitive operations require **Admin Role** or **API Key** authentication.
 
-**Protected Endpoints:**
+**Gated by Admin Role (Session required):**
 
-- `POST /api/tag-network`
-- `DELETE /api/tag-network/:bssid`
-- `POST /api/ml/train`
+- `POST /api/network-tags/:bssid` (upsert tags)
+- `PATCH /api/network-tags/:bssid/*` (partial updates)
+- `DELETE /api/network-tags/:bssid`
+- `POST /api/wigle/detail/:netid` (with `import: true`)
+- `POST /api/wigle/search-api` (with `import: true`)
+
+**Gated by API Key (Header required):**
+
+- `GET /api/admin/backup`
+- `POST /api/admin/restore`
 
 **Header:**
 
@@ -385,26 +392,25 @@ curl http://localhost:3001/api/networks/search/Starbucks
 
 #### Tag Network
 
-Classify a network with user tag.
+Classify a network with user tag. Requires **Admin Role**.
 
 ```http
-POST /api/tag-network
+POST /api/network-tags/:bssid
 ```
 
 **Headers:**
 
 ```http
 Content-Type: application/json
-x-api-key: your-api-key
 ```
 
 **Request Body:**
 
 ```json
 {
-  "bssid": "AA:BB:CC:DD:EE:FF",
-  "tag_type": "LEGIT",
-  "confidence": 95,
+  "is_ignored": false,
+  "threat_tag": "THREAT",
+  "threat_confidence": 0.95,
   "notes": "Home router confirmed"
 }
 ```
@@ -412,12 +418,12 @@ x-api-key: your-api-key
 **Fields:**
 
 - `bssid` (string, required): Network MAC address or tower ID
-- `tag_type` (string, required): One of:
-  - `LEGIT`: Confirmed safe network (threat score: 0.0)
-  - `FALSE_POSITIVE`: Incorrectly flagged (threat score: 0.05)
-  - `INVESTIGATE`: Requires investigation (threat score: 0.7)
-  - `THREAT`: Confirmed threat (threat score: 1.0)
-- `confidence` (integer, required, 0-100): User confidence level
+- `threat_tag` (string, optional): One of:
+  - `INVESTIGATE`: Requires investigation
+  - `THREAT`: Confirmed threat
+  - `SUSPECT`: Suspicious activity
+  - `FALSE_POSITIVE`: Incorrectly flagged
+- `threat_confidence` (float, optional, 0.0-1.0): User confidence level
 - `notes` (string, optional): Additional context
 
 **Response:**
@@ -437,16 +443,10 @@ x-api-key: your-api-key
 
 #### Delete Network Tag
 
-Remove classification tag from network.
+Remove classification tag from network. Requires **Admin Role**.
 
 ```http
-DELETE /api/tag-network/:bssid
-```
-
-**Headers:**
-
-```http
-x-api-key: your-api-key
+DELETE /api/network-tags/:bssid
 ```
 
 **Path Parameters:**

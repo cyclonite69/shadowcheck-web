@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleDetail } from '../hooks/useWigleDetail';
+import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -184,6 +185,41 @@ export const WigleDetailTab: React.FC = () => {
                 <div className="text-sm font-medium text-white px-2 py-0.5 bg-slate-700 rounded inline-block">
                   {data.encryption}
                 </div>
+              </div>
+            </div>
+
+            {/* Tooltip Preview (Unified Design) */}
+            <div className="bg-slate-900/40 p-4 rounded border border-slate-700/50">
+              <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
+                Forensic Tooltip Preview
+              </h4>
+              <div className="flex justify-center bg-slate-950/50 p-6 rounded-lg border border-slate-800 shadow-inner">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: renderNetworkTooltip({
+                      ssid: data.ssid || data.name,
+                      bssid: data.networkId,
+                      encryption: data.encryption,
+                      security: data.encryption,
+                      frequency: data.frequency,
+                      channel: data.channel,
+                      lat: data.trilateratedLatitude,
+                      lon: data.trilateratedLongitude,
+                      first_seen: data.firstSeen,
+                      last_seen: data.lastSeen,
+                      type:
+                        data.type === 'wifi'
+                          ? 'W'
+                          : data.type === 'gsm'
+                            ? 'G'
+                            : data.type === 'lte'
+                              ? 'L'
+                              : 'W',
+                      observation_count: observations?.length || 0,
+                      accuracy: data.locationClusters?.[0]?.accuracy || null,
+                    }),
+                  }}
+                />
               </div>
             </div>
 

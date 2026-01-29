@@ -25,7 +25,7 @@
 ## Features
 
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards
-- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, and map orientation controls
+- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, and **Unified Network Tooltips**
 - **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering
 - **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms
 - **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations
@@ -36,11 +36,12 @@
 - **Universal Filters:** 20+ filter types supporting complex temporal, spatial, and behavioral queries
 - **DevContainer Support:** Consistent development environment with VS Code integration
 - **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization
-- **Admin Features:** System administration interface with configuration management, user settings, and system monitoring
+- **Admin Features:** System administration interface with configuration management, user settings, and role-based gating
+- **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`
 
 ## Architecture
 
-**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS  
+**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS (Modular architecture with Repositories and Services)  
 **Frontend:** React + Vite with TypeScript (explorers and dashboards)  
 **Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)  
 **Development:** DevContainer support with VS Code integration  
@@ -63,14 +64,20 @@ npm install
 
 ### 2. Database Setup
 
-Create PostgreSQL database with PostGIS:
+Create PostgreSQL database with PostGIS and secure users:
 
 ```sql
+-- Standard application user (Read-only on production tables)
 CREATE ROLE shadowcheck_user WITH LOGIN PASSWORD 'your_password';
-CREATE DATABASE shadowcheck_db OWNER shadowcheck_user;
+-- Administrative user (Full access for imports/tagging)
+CREATE ROLE shadowcheck_admin WITH LOGIN PASSWORD 'admin_password';
+
+CREATE DATABASE shadowcheck_db OWNER shadowcheck_admin;
 \c shadowcheck_db
 CREATE EXTENSION postgis;
 ```
+
+Apply security migration: `psql -U shadowcheck_admin -d shadowcheck_db -f sql/migrations/20260129_implement_db_security.sql`
 
 ### 3. Environment Configuration
 

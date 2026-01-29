@@ -23,6 +23,7 @@ Complete feature list for the SIGINT Forensics Platform.
 - Distance calculations using PostGIS functions
 - Heatmap overlays for threat density
 - Custom marker support with threat-based coloring
+- **Unified Network Tooltips**: Rich, threat-color-coded tooltips with smart data hiding across all maps
 - Map orientation controls (compass, pitch, bearing)
 - Lazy loading for performance optimization
 
@@ -227,6 +228,8 @@ Complete feature list for the SIGINT Forensics Platform.
 
 ### Security Features
 
+- **Database Least Privilege**: Restricted `shadowcheck_user` (read-only) vs privileged `shadowcheck_admin`
+- **Role-Based Access Control**: UI and API gating based on user roles (Admin vs User)
 - **Content Security Policy** (CSP) with Mapbox allowlist
 - **Security headers** (X-Frame-Options, X-Content-Type-Options, etc.)
 - **HTTPS enforcement** with automatic redirects

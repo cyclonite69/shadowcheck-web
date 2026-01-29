@@ -24,6 +24,8 @@ This project follows strict security guidelines:
 
 - AES-256-GCM encryption for credential storage
 - Machine-specific encryption keys
+- **Role-Based Access Control (RBAC)**: Admin-only gating for sensitive operations
+- **Database Least Privilege**: Restricted `shadowcheck_user` (read-only) vs `shadowcheck_admin` (write access)
 - Rate limiting (1000 req/15min per IP)
 - CORS origin restrictions
 - Input validation on all endpoints
@@ -42,11 +44,14 @@ This project follows strict security guidelines:
    - Uses machine-specific encryption key
    - Not suitable for multi-user environments without additional access controls
 
-2. **Admin Interface**: Protected by API key authentication
-   - API key should be stored securely (in keyring)
-   - Change default API key in production
+2. **Admin Interface**: Protected by role-based authentication
+   - Access to `/admin` requires a user with the `admin` role
+   - Sensitive backend routes (tagging, imports, backups) are protected by `requireAdmin` middleware
 
 3. **Database**: PostgreSQL with PostGIS
+   - **Multi-user security**:
+     - `shadowcheck_user`: Used for general app operation. Restricted to read-only access on production tables.
+     - `shadowcheck_admin`: Used for administrative tasks (imports, tagging). Requires separate password.
    - Credentials should never be hardcoded
    - Use environment variables or keyring for passwords
    - Enable SSL connections in production

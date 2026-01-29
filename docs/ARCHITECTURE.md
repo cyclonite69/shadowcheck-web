@@ -51,11 +51,12 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │  │  • /api/analytics/* (temporal, signal, security)     │   │
 │  │  • /api/ml/* (training, prediction)                  │   │
 │  └──────────────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  Business Logic Layer                                 │   │
-│  │  • server/src/services/ (modular business logic)            │   │
-│  │  • server/src/repositories/ (data access layer)             │   │
-│  │  • Threat scoring algorithms                         │   │
+  │  ┌──────────────────────────────────────────────────────┐   │
+  │  Business Logic Layer                                 │   │
+  │  • server/src/services/ (modular business logic)            │   │
+  │  • server/src/repositories/ (data access layer)             │   │
+  │  • AdminDbService (privileged database operations)     │   │
+  │  • Threat scoring algorithms                         │   │
 │  │  • ML training & prediction services                 │   │
 │  │  • Filter query builder with 20+ filter types       │   │
 │  └──────────────────────────────────────────────────────┘   │
@@ -70,9 +71,13 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │  └──────────────────────────────────────────────────────┘   │
 └───────────────────────────┬─────────────────────────────────┘
                             │ Connection Pool (pg)
-┌───────────────────────────┴─────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────┐
 │            PostgreSQL 18 + PostGIS (Geospatial)              │
 │  ┌──────────────────────────────────────────────────────┐   │
+│  │  Multi-User Security Model                            │   │
+│  │  • shadowcheck_user (Read-Only Prod Data)            │   │
+│  │  • shadowcheck_admin (Full Admin Access)             │   │
+│  │                                                      │   │
 │  │  Schema: app (Production Data)                        │   │
 │  │  • networks_legacy (BSSID, SSID, type, encryption)   │   │
 │  │  • locations_legacy (observations with lat/lon)      │   │
@@ -441,14 +446,19 @@ HAVING COUNT(DISTINCT location_id) >= 2
 
 ### Authentication & Authorization
 
-**API Key Authentication (Optional)**
+**Role-Based Access Control (RBAC)**
+
+- **Admin Role**: Required for `/admin` page access and data-modifying operations (tagging, imports).
+- **User Role**: Standard access to dashboards and mapping.
+- **Middleware**: `requireAdmin` gates privileged backend routes.
+
+**API Key Authentication**
 
 - Environment variable: `API_KEY`
 - Header: `x-api-key`
 - Protected endpoints:
-  - `POST /api/tag-network`
-  - `DELETE /api/tag-network/:bssid`
-  - `POST /api/ml/train`
+  - `GET /api/admin/backup`
+  - `POST /api/admin/restore`
 
 **Threat Model**
 
@@ -481,15 +491,9 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 **Current:**
 
-- `.env` file (not in version control)
-- Hardcoded Mapbox token in frontend (security risk)
-
-**Recommended:**
-
-- System keyring for passwords (keytar npm package)
-- Environment variables for non-sensitive config
-- Vault or AWS Secrets Manager for production
-- API endpoint to serve frontend tokens
+- System keyring for credentials (db_password, wigle_api_token, etc.)
+- `secretsManager.js` handles loading from keyring, Docker secrets, or env vars.
+- No hardcoded tokens in frontend; served via protected backend endpoints.
 
 ## Scalability Considerations
 
@@ -609,10 +613,12 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 **Frontend:**
 
-- Vanilla JavaScript (no framework)
+- React 18 (TypeScript)
+- Vite (Build Tool)
 - Tailwind CSS (utility-first CSS)
-- Chart.js (visualizations)
-- Mapbox GL JS (mapping)
+- Recharts / Chart.js (visualizations)
+- Mapbox GL JS / Deck.gl (mapping)
+- Zustand (State Management)
 
 **DevOps:**
 

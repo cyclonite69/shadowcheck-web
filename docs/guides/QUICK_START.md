@@ -1,143 +1,136 @@
-# ShadowCheck Unified System - Quick Start
+# ShadowCheck Quick Start Guide
 
-## What's New? 🎉
+Welcome to ShadowCheck! This guide will help you get up and running with the SIGINT Forensics platform.
 
-### 1. Resizable & Movable Cards ✅
+## 🚀 Installation
 
-- **Resize**: Drag the `⋮⋮` handle in bottom-right corner
-- **Move**: Drag the card header to reposition
-- **Layouts Saved**: Your layout is saved automatically per-page
+### 1. Prerequisites
 
-### 2. Snap-to-Grid ✅
+- **Node.js**: v20 or newer
+- **PostgreSQL**: v18 or newer with **PostGIS** extension
 
-- **Toggle**: Click "🔲 Snap" button in header
-- **Grid Size**: 20px for clean alignment
-- **Turn Off**: For pixel-perfect positioning
+### 2. Setup Database
 
-### 3. Scrollable Pages ✅
+Create the database and set up secure users:
 
-- Pages now scroll when cards exceed viewport
-- Add unlimited cards without space constraints
+```sql
+-- Create Users
+CREATE ROLE shadowcheck_user WITH LOGIN PASSWORD 'user_password';
+CREATE ROLE shadowcheck_admin WITH LOGIN PASSWORD 'admin_password';
 
-### 4. Reset Layout ✅
+-- Create Database
+CREATE DATABASE shadowcheck_db OWNER shadowcheck_admin;
+\c shadowcheck_db
+CREATE EXTENSION postgis;
+```
 
-- Click "↺ Reset" button to restore default layout
-- Clears saved positions and sizes for current page
+### 3. Clone and Install
 
-### 5. Reusable Card Components ✅
+```bash
+git clone https://github.com/your-username/shadowcheck-static.git
+cd shadowcheck-static
+npm install
+```
 
-- Network List card
-- Threat List card
-- Map Viewer card
-- Can be added to any page
+### 4. Configuration
 
-## Current Issues to Fix
+Create a `.env` file in the root directory:
 
-### Navigation Bar Not Uniform ⚠️
+```env
+DB_USER=shadowcheck_user
+DB_ADMIN_USER=shadowcheck_admin
+DB_HOST=localhost
+DB_NAME=shadowcheck_db
+PORT=3001
+```
 
-**Problem**: Complex pages (networks, geospatial, surveillance, analytics) have custom headers that don't match the unified grid layout.
+Set your passwords in the system keyring:
 
-**Solution**: Need to update these 4 pages to use the standardized header structure.
+```bash
+node scripts/set-secret.js db_password "user_password"
+node scripts/set-secret.js db_admin_password "admin_password"
+node scripts/set-secret.js mapbox_token "your_mapbox_pk_here"
+```
 
-**Impact**: Navigation links won't be perfectly centered on these pages until fixed.
+### 5. Run Migrations
 
-## How to Use
+```bash
+# General application schema
+psql -U shadowcheck_admin -d shadowcheck_db -f sql/functions/create_scoring_function.sql
+# ... run remaining migrations in sql/migrations/
 
-### Resize a Card
+# Apply security policy
+psql -U shadowcheck_admin -d shadowcheck_db -f sql/migrations/20260129_implement_db_security.sql
+```
 
-1. Hover over bottom-right corner of any card
-2. Look for the `⋮⋮` handle
-3. Click and drag to resize
-4. Release to save
+## 🛠️ Running the App
 
-### Move a Card
+### Development Mode
 
-1. Click and hold on the card header (title bar)
-2. Drag to new position
-3. Release to save
-4. Card becomes absolutely positioned
+Runs the backend with nodemon and frontend with Vite HMR.
 
-### Toggle Snap-to-Grid
+```bash
+npm run dev
+```
 
-1. Click "🔲 Snap: ON" button in header
-2. Button changes to "🔲 Snap: OFF"
-3. Cards will snap to 20px grid when ON
-4. Free positioning when OFF
+### Production Build
 
-### Reset Your Layout
+```bash
+npm run build
+npm start
+```
 
-1. Click "↺ Reset" button in header
-2. Page reloads with default layout
-3. All custom positions/sizes cleared
+## 🛡️ Security & Roles
 
-## Best Practices
+ShadowCheck uses **Role-Based Access Control (RBAC)**:
 
-### Organizing Your Dashboard
+- **User Role**: Standard access to Dashboard, Geospatial, and Analytics.
+- **Admin Role**: Full access including the `/admin` panel, database imports, and network tagging.
 
-1. **Enable Snap**: Turn on snap-to-grid for clean alignment
-2. **Size Cards**: Resize cards to show the right amount of data
-3. **Position Cards**: Arrange by priority (top-left = most important)
-4. **Save Often**: Layout saves automatically, but test by refreshing
+**Note**: Non-admin users will see "Access Denied" on administrative pages and restricted options in map context menus.
 
-### Multi-Monitor Setup
+## 📍 Key Features
 
-1. **Disable Snap**: For precise positioning across monitors
-2. **Maximize Cards**: Resize cards to fill available space
-3. **Vertical Stacking**: Stack cards vertically for tall monitors
+### 1. Unified Network Tooltips
 
-### Adding More Cards (Coming Soon)
+Rich, threat-color-coded tooltips are available on all maps. Click any observation point or network marker to see:
 
-- Card library UI will let you add cards to any page
-- Network list can appear on geospatial page
-- Threat list can appear on dashboard
-- Map can appear on surveillance page
+- Threat Score & Level
+- Signal Strength (dBm) & Frequency
+- Proximity to Home (Delta/Delta-Last)
+- Sighting Timeline (First/Last Seen)
 
-## Keyboard Shortcuts (Future)
+### 2. Universal Filters
 
-- `Ctrl+R`: Reset layout
-- `Ctrl+S`: Toggle snap
-- `Ctrl+L`: Open card library
-- `Esc`: Cancel drag/resize
+The sidebar on mapping and analytics pages allows filtering the entire dataset by:
 
-## Troubleshooting
+- Radio Type (WiFi, BLE, Cellular)
+- Threat Severity
+- Signal Strength Range
+- Timeframe & Date Range
+- Spatial Bounding Box
 
-### Card Won't Move
+### 3. ML Training
 
-- Make sure you're clicking the header, not the content
-- Avoid clicking buttons or inputs in the header
+Admins can train the threat detection model in the **ML Training** tab of the Admin panel. A minimum of 10 manually tagged networks is required.
 
-### Card Won't Resize
+## ❓ Troubleshooting
 
-- Look for the `⋮⋮` handle in bottom-right corner
-- Make sure you're not clicking the header
+### Database Connection Failed
 
-### Layout Not Saving
+- Ensure PostgreSQL is running.
+- Verify `DB_HOST` and `DB_PORT` in `.env`.
+- Check if `db_password` is set correctly in the keyring.
 
-- Check browser localStorage is enabled
-- Try clearing cache and resetting layout
+### Map is Blank
 
-### Navigation Not Centered
+- Ensure `mapbox_token` is set in the keyring.
+- Check browser console for Mapbox GL errors.
 
-- This is a known issue on 4 pages (networks, geospatial, surveillance, analytics)
-- Will be fixed in next update
+### "Access Denied" on Admin Page
 
-## Legacy HTML Assets (Archived)
+- Verify your user account has the `admin` role assigned in the `app.users` table.
 
-These files refer to the legacy static HTML tooling and are not part of the current React app:
+---
 
-- `/assets/styles/unified.css` - Grid header, scrollable pages, card styles
-- `/assets/js/unified-components.js` - Snap-to-grid, resize, move
-- `/assets/js/unified-card-library.js` - Reusable card components
-- `/assets/js/unified-header.js` - Standardized header
-
-## Next Steps
-
-1. **Fix Navigation**: Update 4 complex pages to use unified header
-2. **Column Picker**: Add UI to customize visible columns per card
-3. **Card Library UI**: Modal to add cards to any page
-4. **Global Filters**: Integrate unified filter system
-5. **Card Templates**: Save/load entire page layouts
-
-## Questions?
-
-Legacy UI implementation notes are archived in `docs/archive/legacy-html/UNIFIED_IMPLEMENTATION.md`.
+For more detailed information, see the [Full Documentation](../README.md).

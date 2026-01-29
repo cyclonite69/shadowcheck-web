@@ -67,10 +67,10 @@ docs/
 - **[Legacy Schema](LEGACY_SCHEMA.md)** - Historical schema
 - **[Database Triggers](DATABASE_TRIGGERS.md)** - Automated database operations
 
-### Configuration
+**Configuration**
 
-- **[Environment Variables](../CLAUDE.md#key-configuration)** - Configuration options
-- **[Admin Settings](ADMIN_SETTINGS_GUIDE.md)** - Admin panel configuration
+- [Environment Variables](../CLAUDE.md#key-configuration) - Configuration options
+- [Admin Settings](ADMIN_SETTINGS_GUIDE.md) - Admin panel and role gating
 
 ## ⚡ Features
 
@@ -89,6 +89,7 @@ docs/
 ### UI/UX Features
 
 - **[Map Controls Implementation](features/IMPLEMENTATION_SUMMARY_MAP_CONTROLS.md)** - Map orientation controls summary
+- **Unified Tooltips** - Shared rich HTML tooltip renderer across maps
 
 ## 📋 Implementation Guides
 

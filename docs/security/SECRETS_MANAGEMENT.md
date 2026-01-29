@@ -17,7 +17,8 @@ Implementation: `server/src/services/secretsManager.js`
 
 ## Required Secrets
 
-- `db_password` - PostgreSQL database password
+- `db_password` - PostgreSQL database password (shadowcheck_user)
+- `db_admin_password` - PostgreSQL admin password (shadowcheck_admin)
 - `mapbox_token` - Mapbox GL JS API token for maps
 
 ## Optional Secrets
@@ -34,6 +35,7 @@ Implementation: `server/src/services/secretsManager.js`
 ```bash
 # Set secrets (JavaScript)
 node scripts/set-secret.js db_password "your-password"
+node scripts/set-secret.js db_admin_password "your-admin-password"
 node scripts/set-secret.js mapbox_token "pk.your-token"
 
 # List all stored secrets (Python)
@@ -137,9 +139,8 @@ Error: Required secret 'db_password' not found
 ```
 
 **Solutions**:
-1. Set via keyring: `node scripts/keyring-cli.js set db_password`
+1. Set via keyring: `node scripts/set-secret.js db_password "password"`
 2. Create Docker secret file: `echo "password" > secrets/db_password.txt`
-3. Add to `.env`: `DB_PASSWORD=password`
 
 ### Keyring Access Denied
 ```
@@ -195,14 +196,9 @@ npm run dev
 
 ```bash
 # 1. Export from keyring to file
-node scripts/keyring-cli.js get db_password > secrets/db_password.txt
-chmod 600 secrets/db_password.txt
-
-# 2. Update docker-compose.yml (see Docker Secrets section above)
-
-# 3. Restart containers
-docker-compose down
-docker-compose up -d
+# Use set-secret.js to manage keys, or direct keytar scripts
+node scripts/set-secret.js db_password "your-value"
+...
 ```
 
 ## Implementation Details
