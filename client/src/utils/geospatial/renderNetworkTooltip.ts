@@ -1,8 +1,10 @@
+import { macColor } from '../mapHelpers';
+
 /**
  * Network Tooltip Renderer
  * Usage: Works with Geospatial, Kepler, and WiGLE pages
  * Only displays data that's available - omits N/A fields
- * Uses threat color for SSID, icon, and BSSID
+ * Uses threat color for icon and status, BSSID color for network ID
  */
 
 export const renderNetworkTooltip = (props: any): string => {
@@ -74,6 +76,9 @@ export const renderNetworkTooltip = (props: any): string => {
       NONE: '#94a3b8',
     }[threatLevel] || '#94a3b8';
 
+  // BSSID-based color for consistent network identification
+  const bssidColor = macColor(props.bssid);
+
   // Helper: Format timespan
   const timespanText = (() => {
     if (!props.timespan_days) return '';
@@ -90,7 +95,7 @@ export const renderNetworkTooltip = (props: any): string => {
         <div style="width: 18px; height: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
           ${getRadioSVG(props.type, threatColor)}
         </div>
-        <div style="color: ${threatColor}; font-weight: 600; font-size: 14px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="color: ${bssidColor}; font-weight: 600; font-size: 14px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
           ${props.ssid || 'Hidden'}
         </div>
         <div style="background: ${threatColor}; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 10px; white-space: nowrap; text-transform: uppercase;">
