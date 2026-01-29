@@ -457,8 +457,8 @@ class UniversalFilterQueryBuilder {
     const selectionClause =
       Array.isArray(selectedBssids) && selectedBssids.length > 0
         ? `AND UPPER(o.bssid) = ANY(${this.addParam(
-          selectedBssids.map((value) => String(value).toUpperCase())
-        )})`
+            selectedBssids.map((value) => String(value).toUpperCase())
+          )})`
         : '';
     const cte = `
     WITH ${homeCte ? `${homeCte},` : ''} filtered_obs AS (
@@ -1256,7 +1256,49 @@ class UniversalFilterQueryBuilder {
   buildGeospatialQuery({ limit = 5000, offset = 0, selectedBssids = [] } = {}) {
     const { cte, params } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
-    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+
+    // Optimization: If no network-level filters are active, skip the expensive rollup/spatial CTEs
+    // filtering logic. We still join api_network_explorer to provide threat data if needed.
+    if (networkWhere.length === 0) {
+      const sql = `
+        ${cte}
+        SELECT
+          o.bssid,
+          o.ssid,
+          COALESCE(o.lat, ST_Y(o.geom::geometry)) AS lat,
+          COALESCE(o.lon, ST_X(o.geom::geometry)) AS lon,
+          o.level,
+          o.accuracy,
+          o.time,
+          o.radio_frequency,
+          o.radio_capabilities,
+          o.radio_type,
+          o.altitude,
+          ${SECURITY_EXPR('o')} AS security,
+          ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
+          ne.threat
+        FROM filtered_obs o
+        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+        WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
+          OR o.geom IS NOT NULL)
+        ORDER BY o.time ASC
+        ${limit !== null ? `LIMIT ${this.addParam(limit)}` : ''}
+        OFFSET ${this.addParam(offset)}
+      `;
+
+      // Ensure parameters are correctly ordered for the LIMIT/OFFSET which are added at the end
+      const finalParams = [...params, ...(limit !== null ? [limit] : []), offset];
+
+      return {
+        sql,
+        params: finalParams,
+        appliedFilters: this.appliedFilters,
+        ignoredFilters: this.ignoredFilters,
+        warnings: this.warnings,
+      };
+    }
+
+    const networkWhereClause = `WHERE ${networkWhere.join(' AND ')}`;
 
     const sql = `
       ${cte}
@@ -1327,13 +1369,15 @@ class UniversalFilterQueryBuilder {
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
       ORDER BY o.time ASC
-      LIMIT ${this.addParam(limit)}
+      ${limit !== null ? `LIMIT ${this.addParam(limit)}` : ''}
       OFFSET ${this.addParam(offset)}
     `;
 
+    const finalParams = [...params, ...(limit !== null ? [limit] : []), offset];
+
     return {
       sql,
-      params: [...params],
+      params: finalParams,
       appliedFilters: this.appliedFilters,
       ignoredFilters: this.ignoredFilters,
       warnings: this.warnings,
