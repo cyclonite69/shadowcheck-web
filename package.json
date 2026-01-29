@@ -92,6 +92,9 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "overrides": {
+    "tar": "^7.5.7"
+  },
   "lint-staged": {
     "*.{js,ts,tsx}": [
       "eslint --fix",
