@@ -48,6 +48,35 @@ type NetworkData = {
 type LayerType = 'scatterplot' | 'heatmap' | 'hexagon';
 type DrawMode = 'none' | 'rectangle' | 'polygon' | 'circle';
 
+// Format security capabilities string into readable label
+const formatSecurity = (capabilities: string | null | undefined): string => {
+  const value = String(capabilities || '').toUpperCase();
+  if (!value || value === 'UNKNOWN' || value === 'OPEN/UNKNOWN') {
+    return 'Open';
+  }
+  const hasWpa3 = value.includes('WPA3');
+  const hasWpa2 = value.includes('WPA2');
+  const hasWpa = value.includes('WPA');
+  const hasWep = value.includes('WEP');
+  const hasPsk = value.includes('PSK');
+  const hasEap = value.includes('EAP');
+  const hasSae = value.includes('SAE');
+  const hasOwe = value.includes('OWE');
+
+  if (hasOwe) return 'OWE';
+  if (hasWpa3 && hasSae) return 'WPA3-SAE';
+  if (hasWpa3 && hasEap) return 'WPA3-EAP';
+  if (hasWpa3) return 'WPA3';
+  if (hasWpa2 && hasEap) return 'WPA2-EAP';
+  if (hasWpa2 && hasPsk) return 'WPA2-PSK';
+  if (hasWpa2) return 'WPA2';
+  if (hasWpa && hasEap) return 'WPA-EAP';
+  if (hasWpa && hasPsk) return 'WPA-PSK';
+  if (hasWpa) return 'WPA';
+  if (hasWep) return 'WEP';
+  return 'Open';
+};
+
 const loadScript = (src: string) =>
   new Promise<void>((resolve, reject) => {
     const existing = document.querySelector(`script[src="${src}"]`);
@@ -185,7 +214,7 @@ const KeplerPage: React.FC = () => {
           threat_level: object.threat_level,
           threat_score: object.threat_score,
           signal: object.signal || object.bestlevel,
-          security: object.capabilities || object.encryption,
+          security: formatSecurity(object.capabilities || object.encryption),
           frequency: object.frequency,
           channel: object.channel,
           lat: object.position ? object.position[1] : null,

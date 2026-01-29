@@ -53,6 +53,35 @@ const macColor = (mac: string): string => {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
+// Format security capabilities string into readable label
+const formatSecurity = (capabilities: string | null | undefined): string => {
+  const value = String(capabilities || '').toUpperCase();
+  if (!value || value === 'UNKNOWN' || value === 'OPEN/UNKNOWN' || value === 'NONE') {
+    return 'Open';
+  }
+  const hasWpa3 = value.includes('WPA3');
+  const hasWpa2 = value.includes('WPA2');
+  const hasWpa = value.includes('WPA');
+  const hasWep = value.includes('WEP');
+  const hasPsk = value.includes('PSK');
+  const hasEap = value.includes('EAP');
+  const hasSae = value.includes('SAE');
+  const hasOwe = value.includes('OWE');
+
+  if (hasOwe) return 'OWE';
+  if (hasWpa3 && hasSae) return 'WPA3-SAE';
+  if (hasWpa3 && hasEap) return 'WPA3-EAP';
+  if (hasWpa3) return 'WPA3';
+  if (hasWpa2 && hasEap) return 'WPA2-EAP';
+  if (hasWpa2 && hasPsk) return 'WPA2-PSK';
+  if (hasWpa2) return 'WPA2';
+  if (hasWpa && hasEap) return 'WPA-EAP';
+  if (hasWpa && hasPsk) return 'WPA-PSK';
+  if (hasWpa) return 'WPA';
+  if (hasWep) return 'WEP';
+  return 'Open';
+};
+
 const parseHsl = (value: string): { h: number; s: number; l: number } | null => {
   const match = value.match(/hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)/i);
   if (!match) return null;
@@ -258,7 +287,7 @@ const WiglePage: React.FC = () => {
           bssid: props.bssid,
           type: props.type,
           encryption: props.encryption,
-          security: props.encryption,
+          security: formatSecurity(props.encryption),
           time: props.lasttime,
           lat: e.lngLat.lat,
           lon: e.lngLat.lng,

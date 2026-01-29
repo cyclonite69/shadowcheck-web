@@ -432,9 +432,7 @@ router.get('/kepler/networks', async (req, res) => {
             // Temporal data
             timespan_days:
               row.first_seen && row.last_seen
-                ? Math.ceil(
-                    (new Date(row.last_seen) - new Date(row.first_seen)) / (1000 * 60 * 60 * 24)
-                  )
+                ? Math.ceil((new Date(row.last_seen) - new Date(row.first_seen)) / 86400000)
                 : null,
             unique_days: row.unique_days || null,
           },
