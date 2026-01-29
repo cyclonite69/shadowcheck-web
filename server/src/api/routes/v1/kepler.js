@@ -12,6 +12,31 @@ const {
   validateFilterPayload,
 } = require('../../../services/filterQueryBuilder');
 
+/**
+ * Calculate WiFi channel from frequency in MHz
+ */
+function frequencyToChannel(freqMhz) {
+  if (!freqMhz) {
+    return null;
+  }
+  // 2.4 GHz band (channels 1-14)
+  if (freqMhz >= 2412 && freqMhz <= 2484) {
+    if (freqMhz === 2484) {
+      return 14; // Japan only
+    }
+    return Math.round((freqMhz - 2407) / 5);
+  }
+  // 5 GHz band
+  if (freqMhz >= 5170 && freqMhz <= 5825) {
+    return Math.round((freqMhz - 5000) / 5);
+  }
+  // 6 GHz band (WiFi 6E)
+  if (freqMhz >= 5935 && freqMhz <= 7115) {
+    return Math.round((freqMhz - 5950) / 5) + 1;
+  }
+  return null;
+}
+
 const parseJsonParam = (value, fallback, name) => {
   if (!value) {
     return fallback;
@@ -228,13 +253,19 @@ router.get('/kepler/data', async (req, res) => {
             manufacturer: row.manufacturer || 'Unknown',
             device_type: 'Unknown',
             type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
-            channel: row.frequency ? Math.floor((row.frequency - 2407) / 5) : null,
+            channel: frequencyToChannel(row.frequency),
             frequency: row.frequency || null,
             capabilities: row.capabilities || '',
             encryption: row.capabilities || 'Open/Unknown',
             altitude: row.last_altitude_m ?? null,
             accuracy: row.accuracy_meters ?? null,
             obs_count: row.observations || 0,
+            // Threat data
+            threat_level: row.threat?.level || null,
+            threat_score: row.threat?.score || null,
+            // Distance/spatial data
+            distance_from_home: row.distance_from_home_km || null,
+            max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
           },
         })),
     };
@@ -297,7 +328,7 @@ router.get('/kepler/observations', async (req, res) => {
             first_seen: row.time,
             last_seen: row.time,
             timestamp: row.time,
-            manufacturer: 'Unknown',
+            manufacturer: row.manufacturer || 'Unknown',
             device_type: 'Unknown',
             type: inferRadioType(
               row.radio_type,
@@ -305,7 +336,7 @@ router.get('/kepler/observations', async (req, res) => {
               row.radio_frequency,
               row.radio_capabilities
             ),
-            channel: row.radio_frequency ? Math.floor((row.radio_frequency - 2407) / 5) : null,
+            channel: frequencyToChannel(row.radio_frequency),
             frequency: row.radio_frequency || null,
             capabilities: row.radio_capabilities || '',
             encryption: row.radio_capabilities || 'Open/Unknown',
@@ -313,6 +344,10 @@ router.get('/kepler/observations', async (req, res) => {
             source_tag: row.source_tag,
             altitude: row.altitude,
             accuracy: row.accuracy,
+            // Threat data (from network lookup if available)
+            threat_level: row.threat_level || null,
+            threat_score: row.threat_score || null,
+            distance_from_home: row.distance_from_home_km || null,
           },
         })),
     };
@@ -373,13 +408,13 @@ router.get('/kepler/networks', async (req, res) => {
             bestlevel: row.signal || 0,
             signal: row.signal || 0,
             level: row.signal || 0,
-            first_seen: row.first_seen,
-            last_seen: row.last_seen,
-            timestamp: row.last_seen,
+            first_seen: row.first_seen || row.first_observed_at,
+            last_seen: row.last_seen || row.last_observed_at,
+            timestamp: row.last_seen || row.last_observed_at,
             manufacturer: row.manufacturer || 'Unknown',
             device_type: 'Unknown',
             type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
-            channel: row.frequency ? Math.floor((row.frequency - 2407) / 5) : null,
+            channel: frequencyToChannel(row.frequency),
             frequency: row.frequency || null,
             capabilities: row.capabilities || '',
             encryption: row.capabilities || 'Open/Unknown',
@@ -388,6 +423,20 @@ router.get('/kepler/networks', async (req, res) => {
             obs_count: row.observations || 0,
             observation_count: row.observations || 0,
             observations: row.observations || 0,
+            // Threat data
+            threat_level: row.threat?.level || null,
+            threat_score: row.threat?.score || null,
+            // Distance/spatial data
+            distance_from_home: row.distance_from_home_km || null,
+            max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
+            // Temporal data
+            timespan_days:
+              row.first_seen && row.last_seen
+                ? Math.ceil(
+                    (new Date(row.last_seen) - new Date(row.first_seen)) / (1000 * 60 * 60 * 24)
+                  )
+                : null,
+            unique_days: row.unique_days || null,
           },
         })),
     };

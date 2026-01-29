@@ -187,15 +187,19 @@ const KeplerPage: React.FC = () => {
           signal: object.signal || object.bestlevel,
           security: object.capabilities || object.encryption,
           frequency: object.frequency,
+          channel: object.channel,
           lat: object.position ? object.position[1] : null,
           lon: object.position ? object.position[0] : null,
           altitude: object.altitude,
           manufacturer: object.manufacturer,
           observation_count: object.obs_count || object.observation_count || object.observations,
+          timespan_days: object.timespan_days,
           time: object.timestamp || object.time,
           first_seen: object.first_seen || object.timestamp,
           last_seen: object.last_seen,
           distance_from_home_km: object.distance_from_home,
+          max_distance_km: object.max_distance_km,
+          unique_days: object.unique_days,
           accuracy: object.accuracy,
         });
 
@@ -375,6 +379,9 @@ const KeplerPage: React.FC = () => {
           threat_score: f.properties.threat_score,
           is_suspicious: f.properties.is_suspicious,
           distance_from_home: f.properties.distance_from_home,
+          max_distance_km: f.properties.max_distance_km,
+          timespan_days: f.properties.timespan_days,
+          unique_days: f.properties.unique_days,
         }));
 
       // Update counts first
