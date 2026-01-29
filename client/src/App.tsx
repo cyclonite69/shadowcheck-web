@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import LazyMapComponent from './components/LazyMapComponent';
@@ -36,7 +36,7 @@ function RouteLoadingFallback() {
 }
 
 function AppContent() {
-  const { user, loading, login, isAuthenticated } = useAuth();
+  const { loading, login, isAuthenticated } = useAuth();
   const [error, setError] = useState('');
 
   if (loading) {
@@ -88,12 +88,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
+      <Router>
         <AppContent />
       </Router>
     </AuthProvider>

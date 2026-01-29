@@ -7,12 +7,13 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 
 // SVG Icons - Industry Standard
-const AlertTriangle = ({ size = 24, className = '' }) => (
+const AlertTriangle = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -29,6 +30,7 @@ const Wifi = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -43,6 +45,7 @@ const Network = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -60,6 +63,7 @@ const Bluetooth = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -74,6 +78,7 @@ const Radio = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -89,6 +94,7 @@ const BarChart3 = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -106,6 +112,7 @@ const Smartphone = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -121,6 +128,7 @@ const Tower = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     className={className}
+    style={style}
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -354,7 +362,7 @@ export default function DashboardPage() {
         if (!dashboardRes.ok) throw new Error('Failed to fetch dashboard metrics');
 
         const data = await dashboardRes.json();
-        let threatCounts = { counts: { critical: 0, high: 0, medium: 0, low: 0 } };
+        let threatCounts: any = { counts: { critical: {}, high: {}, medium: {}, low: {} } };
 
         if (threatsRes.ok) {
           threatCounts = await threatsRes.json();
@@ -460,7 +468,7 @@ export default function DashboardPage() {
     };
   }, [filterKey]); // Re-fetch when filters change
 
-  const handleMouseDown = (e, cardId, mode = 'move') => {
+  const handleMouseDown = (e: React.MouseEvent, cardId: number, mode = 'move') => {
     e.preventDefault();
     if (mode === 'move') {
       const card = cards.find((c) => c.id === cardId);

@@ -7,6 +7,7 @@ export interface WigleDetailData {
   encryption: string;
   type: string;
   channel: number;
+  frequency: number;
   firstSeen: string;
   lastSeen: string;
   lastUpdate: string;
@@ -24,6 +25,7 @@ export interface WigleDetailData {
     centroidLatitude: number;
     centroidLongitude: number;
     score: number;
+    accuracy?: number;
     locations?: Array<{
       latitude: number;
       longitude: number;

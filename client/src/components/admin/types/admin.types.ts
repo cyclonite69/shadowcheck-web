@@ -16,6 +16,7 @@ export interface WigleApiStatus {
 export interface WigleSearchResults {
   ok: boolean;
   resultCount: number;
+  results?: any[];
   imported?: number;
   error?: string;
 }
