@@ -167,13 +167,20 @@ const WiglePage: React.FC = () => {
   };
   const wigleHandlersAttachedRef = useRef(false);
 
+  // Full Mapbox styles matching Geospatial Explorer (Google Maps styles omitted - require additional integration)
   const mapStyles = [
-    { label: 'Dark', value: 'mapbox://styles/mapbox/dark-v11' },
-    { label: 'Light', value: 'mapbox://styles/mapbox/light-v11' },
+    { label: 'Standard (Day)', value: 'mapbox://styles/mapbox/standard' },
+    { label: 'Standard (Dawn)', value: 'mapbox://styles/mapbox/standard-dawn' },
+    { label: 'Standard (Dusk)', value: 'mapbox://styles/mapbox/standard-dusk' },
+    { label: 'Standard (Night)', value: 'mapbox://styles/mapbox/standard-night' },
     { label: 'Streets', value: 'mapbox://styles/mapbox/streets-v12' },
     { label: 'Outdoors', value: 'mapbox://styles/mapbox/outdoors-v12' },
+    { label: 'Light', value: 'mapbox://styles/mapbox/light-v11' },
+    { label: 'Dark', value: 'mapbox://styles/mapbox/dark-v11' },
     { label: 'Satellite', value: 'mapbox://styles/mapbox/satellite-v9' },
     { label: 'Satellite Streets', value: 'mapbox://styles/mapbox/satellite-streets-v12' },
+    { label: 'Navigation Day', value: 'mapbox://styles/mapbox/navigation-day-v1' },
+    { label: 'Navigation Night', value: 'mapbox://styles/mapbox/navigation-night-v1' },
   ];
 
   // Universal filter system
@@ -361,9 +368,15 @@ const WiglePage: React.FC = () => {
         mapboxgl.accessToken = String(tokenBody.token).trim();
 
         if (!mounted || !mapContainerRef.current) return;
+
+        // Standard style variants all use the same base URL
+        const initialStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
+          ? 'mapbox://styles/mapbox/standard'
+          : mapStyle;
+
         const map = new mapboxgl.Map({
           container: mapContainerRef.current,
-          style: mapStyle,
+          style: initialStyleUrl,
           center: [-98.5795, 39.8283],
           zoom: 3,
         });
@@ -383,6 +396,22 @@ const WiglePage: React.FC = () => {
         updateSize();
 
         map.on('load', () => {
+          // Apply lightPreset for Standard style variants
+          const lightPresetMap: Record<string, string> = {
+            'mapbox://styles/mapbox/standard': 'day',
+            'mapbox://styles/mapbox/standard-dawn': 'dawn',
+            'mapbox://styles/mapbox/standard-dusk': 'dusk',
+            'mapbox://styles/mapbox/standard-night': 'night',
+          };
+          const lightPreset = lightPresetMap[mapStyle];
+          if (lightPreset && typeof map.setConfigProperty === 'function') {
+            try {
+              map.setConfigProperty('basemap', 'lightPreset', lightPreset);
+            } catch (e) {
+              // setConfigProperty may not be available on all versions
+            }
+          }
+
           ensureWigleLayers();
           const source = map.getSource('wigle-points') as mapboxglType.GeoJSONSource | undefined;
           if (source) {
@@ -558,8 +587,32 @@ const WiglePage: React.FC = () => {
       updateClusterColors();
     };
 
-    map.setStyle(mapStyle);
-    map.once('style.load', recreateLayers);
+    // Standard style variants all use the same base URL
+    const actualStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
+      ? 'mapbox://styles/mapbox/standard'
+      : mapStyle;
+
+    // Determine lightPreset for Standard style variants
+    const lightPresetMap: Record<string, string> = {
+      'mapbox://styles/mapbox/standard': 'day',
+      'mapbox://styles/mapbox/standard-dawn': 'dawn',
+      'mapbox://styles/mapbox/standard-dusk': 'dusk',
+      'mapbox://styles/mapbox/standard-night': 'night',
+    };
+    const lightPreset = lightPresetMap[mapStyle];
+
+    map.setStyle(actualStyleUrl);
+    map.once('style.load', () => {
+      // Apply lightPreset for Standard style variants
+      if (lightPreset && typeof map.setConfigProperty === 'function') {
+        try {
+          map.setConfigProperty('basemap', 'lightPreset', lightPreset);
+        } catch (e) {
+          // setConfigProperty may not be available on all versions
+        }
+      }
+      recreateLayers();
+    });
   }, [mapStyle, mapReady, ensureWigleLayers]); // Removed featureCollection - was causing style resets on data load
 
   // Handle 3D buildings
