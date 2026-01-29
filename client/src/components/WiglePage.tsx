@@ -10,6 +10,7 @@ import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug } from '../logging/clientLogger';
+import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 
 type WigleRow = {
   bssid: string;
@@ -19,6 +20,7 @@ type WigleRow = {
   type: string;
   encryption: string | null;
   lasttime: string;
+  accuracy?: number | null;
 };
 
 const DEFAULT_LIMIT = 20000;
@@ -250,17 +252,22 @@ const WiglePage: React.FC = () => {
         const feature = e.features && e.features[0];
         const props = feature?.properties;
         if (!props || !e.lngLat) return;
-        new mapboxgl.Popup({ offset: 12 })
+
+        const tooltipHTML = renderNetworkTooltip({
+          ssid: props.ssid,
+          bssid: props.bssid,
+          type: props.type,
+          encryption: props.encryption,
+          security: props.encryption,
+          time: props.lasttime,
+          lat: e.lngLat.lat,
+          lon: e.lngLat.lng,
+          accuracy: props.accuracy,
+        });
+
+        new mapboxgl.Popup({ offset: 12, className: 'sc-popup', maxWidth: '340px' })
           .setLngLat(e.lngLat)
-          .setHTML(
-            `<div style="font-size:12px;color:#e2e8f0;">
-              <div style="font-weight:700;margin-bottom:4px;">${props.ssid}</div>
-              <div>BSSID: ${props.bssid}</div>
-              <div>Type: ${props.type}</div>
-              <div>Encryption: ${props.encryption}</div>
-              <div>Last: ${props.lasttime}</div>
-            </div>`
-          )
+          .setHTML(tooltipHTML)
           .addTo(map);
       });
 
@@ -472,7 +479,12 @@ const WiglePage: React.FC = () => {
       }
       const payload = await res.json();
       logDebug(`[WiGLE] Received ${payload.data?.length || 0} rows`);
-      setRows(payload.data || []); // REPLACE, not append
+      setRows(
+        payload.data?.map((row: any) => ({
+          ...row,
+          accuracy: row.accuracy || row.acc || null,
+        })) || []
+      ); // REPLACE, not append
       setTotal(typeof payload.total === 'number' ? payload.total : null);
     } catch (err: any) {
       setError(err.message || 'Failed to load points');

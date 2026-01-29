@@ -196,4 +196,43 @@ body {
     resize: both;
     overflow: auto;
   }
+
+  /* Mapbox Custom Popup Styling */
+  .sc-popup .mapboxgl-popup-content {
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 9px;
+  }
+
+  .sc-popup .mapboxgl-popup-tip {
+    border-top-color: rgba(15, 23, 42, 0.95) !important;
+    border-bottom-color: rgba(15, 23, 42, 0.95) !important;
+  }
+
+  /* Remove default close button styling to let our custom header shine */
+  .sc-popup .mapboxgl-popup-close-button {
+    color: #94a3b8;
+    font-size: 16px;
+    padding: 4px 8px;
+    right: 5px;
+    top: 5px;
+    border-radius: 0 9px 0 0;
+  }
+
+  .sc-popup .mapboxgl-popup-close-button:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  /* Deck.gl Tooltip Styling (Kepler/WiGLE pages) */
+  .deck-tooltip {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+    pointer-events: none;
+  }
 }
