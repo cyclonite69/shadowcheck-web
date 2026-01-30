@@ -258,8 +258,8 @@ const KeplerPage: React.FC = () => {
         if (mapboxMap) {
           // Dynamically load orientation controls to reduce initial bundle size
           import('../utils/mapOrientationControls')
-            .then(({ attachMapOrientationControls }) => {
-              attachMapOrientationControls(mapboxMap, {
+            .then(async ({ attachMapOrientationControls }) => {
+              await attachMapOrientationControls(mapboxMap, {
                 scalePosition: 'bottom-right',
                 scaleUnit: 'metric',
                 ensureNavigation: true,

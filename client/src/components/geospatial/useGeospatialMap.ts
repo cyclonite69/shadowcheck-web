@@ -96,13 +96,15 @@ export const useGeospatialMap = ({
         // Add navigation control (compass + zoom) and scale bar
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
         // Dynamically load orientation controls to reduce initial bundle size
-        import('../../utils/mapOrientationControls').then(({ attachMapOrientationControls }) => {
-          attachMapOrientationControls(map, {
-            scalePosition: 'bottom-right',
-            scaleUnit: 'metric',
-            ensureNavigation: false, // Already added above
-          });
-        });
+        import('../../utils/mapOrientationControls').then(
+          async ({ attachMapOrientationControls }) => {
+            await attachMapOrientationControls(map, {
+              scalePosition: 'bottom-right',
+              scaleUnit: 'metric',
+              ensureNavigation: false, // Already added above
+            });
+          }
+        );
 
         map.on('load', () => {
           // Apply light preset for Standard style variants

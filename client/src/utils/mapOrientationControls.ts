@@ -1,4 +1,4 @@
-import mapboxgl from 'mapbox-gl';
+import type mapboxgl from 'mapbox-gl';
 import { useEffect } from 'react';
 
 /**
@@ -45,10 +45,10 @@ export interface MapOrientationOptions {
 
 const CONTROL_MARKER = '__mapOrientationControlsAttached';
 
-export function attachMapOrientationControls(
+export async function attachMapOrientationControls(
   map: mapboxgl.Map,
   options: MapOrientationOptions = {}
-): () => void {
+): Promise<() => void> {
   const {
     scalePosition = 'bottom-right',
     scaleUnit = 'metric',
@@ -61,6 +61,9 @@ export function attachMapOrientationControls(
   if ((map as any)[CONTROL_MARKER]) {
     return () => {}; // Already attached, return no-op cleanup
   }
+
+  // Dynamic import of mapbox-gl
+  const mapboxgl = (await import('mapbox-gl')).default;
 
   const controls: mapboxgl.IControl[] = [];
 
@@ -122,7 +125,14 @@ export function useMapOrientationControls(
     const map = mapRef.current;
     if (!map) return;
 
-    const cleanup = attachMapOrientationControls(map, options);
-    return cleanup;
+    let cleanup: (() => void) | undefined;
+
+    attachMapOrientationControls(map, options).then((cleanupFn) => {
+      cleanup = cleanupFn;
+    });
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [mapRef, options]);
 }
