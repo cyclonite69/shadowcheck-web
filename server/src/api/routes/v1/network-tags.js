@@ -439,7 +439,7 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
         n.bestlon as longitude,
         COUNT(*) OVER() as total_count
       FROM app.network_tags nt
-      LEFT JOIN public.networks n ON nt.bssid = n.bssid
+      LEFT JOIN app.networks n ON nt.bssid = n.bssid
       ${whereClause}
       ORDER BY nt.updated_at DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}`,
@@ -488,8 +488,8 @@ router.get('/export/ml', requireAdmin, async (req, res) => {
           ST_MakePoint(MAX(o.lon), MAX(o.lat))::geography
         ) / 1000.0 as distance_range_km
       FROM app.network_tags nt
-      LEFT JOIN public.networks n ON nt.bssid = n.bssid
-      LEFT JOIN public.observations o ON nt.bssid = o.bssid
+      LEFT JOIN app.networks n ON nt.bssid = n.bssid
+      LEFT JOIN app.observations o ON nt.bssid = o.bssid
       WHERE nt.threat_tag IS NOT NULL
       GROUP BY nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored,
                nt.tag_history, n.ssid, n.type, n.frequency, n.capabilities, n.bestlevel, nt.updated_at

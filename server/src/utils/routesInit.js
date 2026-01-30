@@ -61,6 +61,7 @@ function initializeRoutes(app, options) {
     keplerRoutes: routes.keplerRoutes,
     backupRoutes: routes.backupRoutes,
     exportRoutes: routes.exportRoutes,
+    analyticsPublicRoutes: routes.analyticsPublicRoutes,
     settingsRoutes: routes.settingsRoutes,
     networkTagsRoutes: routes.networkTagsRoutes,
     authRoutes: routes.authRoutes,

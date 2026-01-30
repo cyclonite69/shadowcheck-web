@@ -91,8 +91,8 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
         (mv.distance_from_home_km < 0.1) as seen_at_home,
         (mv.distance_from_home_km > 0.5) as seen_away_from_home,
         calculate_threat_score_v3(ap.bssid) as live_rule_result
-      FROM public.access_points ap
-      LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+      FROM app.access_points ap
+      LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
       WHERE ap.bssid IS NOT NULL
         AND mv.observations > 0
       ORDER BY ap.bssid
@@ -383,7 +383,7 @@ router.post('/ml/train', async (req, res, next) => {
         (mv.distance_from_home_km < 0.1) as seen_at_home,
         (mv.distance_from_home_km > 0.5) as seen_away_from_home
       FROM app.network_tags nt
-      JOIN public.api_network_explorer_mv mv ON nt.bssid = mv.bssid
+      JOIN app.api_network_explorer_mv mv ON nt.bssid = mv.bssid
       WHERE nt.threat_tag IN ('THREAT', 'FALSE_POSITIVE')
         AND mv.observations > 0
     `);

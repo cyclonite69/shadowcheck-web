@@ -75,8 +75,8 @@ class BackgroundJobsService {
           COUNT(DISTINCT obs.id) as observation_count,
           COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
           COALESCE(MAX(ABS(obs.lon - (-79.3832)) + ABS(obs.lat - 43.6532)) * 111, 0) as max_distance_km
-        FROM public.access_points ap
-        LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
+        FROM app.access_points ap
+        LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
         WHERE ap.bssid IS NOT NULL
           AND obs.id IS NOT NULL
           AND LENGTH(ap.bssid) <= ${MAX_BSSID_LENGTH}

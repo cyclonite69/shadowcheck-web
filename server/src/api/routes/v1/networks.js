@@ -793,7 +793,7 @@ router.get('/networks', async (req, res, next) => {
         ne.max_distance_meters,
         ne.last_altitude_m,
         ne.is_sentinel
-      FROM public.api_network_explorer_mv ne
+      FROM app.api_network_explorer_mv ne
       LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
       LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
       ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
@@ -850,7 +850,7 @@ router.get('/networks', async (req, res, next) => {
           o.bssid,
           AVG(o.lat)::double precision AS lat,
           AVG(o.lon)::double precision AS lon
-        FROM public.observations o
+        FROM app.observations o
         JOIN base b ON b.bssid = o.bssid
         WHERE o.lat IS NOT NULL AND o.lon IS NOT NULL
         GROUP BY o.bssid
@@ -860,7 +860,7 @@ router.get('/networks', async (req, res, next) => {
           o.bssid,
           (SUM(o.lat * (GREATEST(o.level, -100) + 100)) / NULLIF(SUM(GREATEST(o.level, -100) + 100), 0))::double precision AS lat,
           (SUM(o.lon * (GREATEST(o.level, -100) + 100)) / NULLIF(SUM(GREATEST(o.level, -100) + 100), 0))::double precision AS lon
-        FROM public.observations o
+        FROM app.observations o
         JOIN base b ON b.bssid = o.bssid
         WHERE o.lat IS NOT NULL AND o.lon IS NOT NULL
         GROUP BY o.bssid
@@ -917,7 +917,7 @@ router.get('/networks', async (req, res, next) => {
         const planRows = await client.query(`EXPLAIN (ANALYZE, BUFFERS) ${sql}`, params);
         const planText = planRows.rows.map((row) => row['QUERY PLAN']).join('\n');
         const regression =
-          planText.includes('Seq Scan on public.observations') ||
+          planText.includes('Seq Scan on app.observations') ||
           planText.includes('Hash Join') ||
           planText.includes('HashAggregate') ||
           planText.includes('Sort');
@@ -929,7 +929,7 @@ router.get('/networks', async (req, res, next) => {
       const { rows } = await client.query(sql, params);
       const countSql = `
         SELECT COUNT(*)::bigint AS total
-        FROM public.api_network_explorer_mv ne
+        FROM app.api_network_explorer_mv ne
         LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
         LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
         ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
@@ -986,7 +986,7 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
         n.lasttime,
         COUNT(DISTINCT l.unified_id) as observation_count
       FROM app.networks n
-      LEFT JOIN public.observations l ON n.bssid = l.bssid
+      LEFT JOIN app.observations l ON n.bssid = l.bssid
       WHERE n.ssid ILIKE $1
       GROUP BY n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel, n.lasttime
       ORDER BY observation_count DESC
@@ -1021,7 +1021,7 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
         SELECT
           ST_X(location::geometry) as lon,
           ST_Y(location::geometry) as lat
-        FROM public.location_markers
+        FROM app.location_markers
         WHERE marker_type = 'home'
         LIMIT 1
       `);
@@ -1052,7 +1052,7 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
             ) / 1000.0
           ELSE NULL
         END as distance_from_home_km
-      FROM public.observations o
+      FROM app.observations o
       WHERE o.bssid = $3
         AND o.lat IS NOT NULL
         AND o.lon IS NOT NULL
@@ -1468,7 +1468,7 @@ router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
           bssid, lat, lon, time, level,
           time::date as obs_date,
           ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography as geog
-        FROM public.observations
+        FROM app.observations
         WHERE UPPER(bssid) = $1
           AND lat IS NOT NULL AND lon IS NOT NULL
       ),
@@ -1495,7 +1495,7 @@ router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
             )
             AND w.observed_at::date = o.obs_date
           ) as is_matched
-        FROM public.wigle_v3_observations w
+        FROM app.wigle_v3_observations w
         WHERE UPPER(w.netid) = $1
           AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
       ),
@@ -1536,7 +1536,7 @@ router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
 
     // Get our observation count for comparison
     const ourCount = await query(
-      'SELECT COUNT(*) as count FROM public.observations WHERE UPPER(bssid) = $1',
+      'SELECT COUNT(*) as count FROM app.observations WHERE UPPER(bssid) = $1',
       [cleanBssid]
     );
 
@@ -1634,7 +1634,7 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
           bssid, lat, lon, time, level,
           time::date as obs_date,
           ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography as geog
-        FROM public.observations
+        FROM app.observations
         WHERE UPPER(bssid) = ANY($1)
           AND lat IS NOT NULL AND lon IS NOT NULL
       ),
@@ -1662,7 +1662,7 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
             )
             AND w.observed_at::date = o.obs_date
           ) as is_matched
-        FROM public.wigle_v3_observations w
+        FROM app.wigle_v3_observations w
         WHERE UPPER(w.netid) = ANY($1)
           AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
       ),

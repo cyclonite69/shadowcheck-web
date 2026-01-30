@@ -63,7 +63,7 @@ router.get(
         COALESCE(nts.final_threat_score, 0) as threat_score,
         COALESCE(nts.final_threat_level, 'NONE') as threat_level,
         COUNT(*) OVER() as total_count
-      FROM public.api_network_explorer_mv ne
+      FROM app.api_network_explorer_mv ne
       LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
       WHERE ne.last_seen >= to_timestamp($1 / 1000.0)
         AND ne.observations >= $4
@@ -154,7 +154,7 @@ router.get('/threats/detect', async (req, res, next) => {
         nts.final_threat_score,
         nts.final_threat_level,
         nts.rule_based_flags
-      FROM public.api_network_explorer_mv ne
+      FROM app.api_network_explorer_mv ne
       LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
       WHERE COALESCE(nts.final_threat_score, 0) >= 30
         AND (

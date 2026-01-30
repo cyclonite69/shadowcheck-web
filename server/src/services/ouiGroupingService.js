@@ -20,9 +20,9 @@ class OUIGroupingService {
           mv.unique_days,
           mv.max_distance_meters / 1000.0 as max_distance_km,
           mv.distance_from_home_km
-        FROM public.access_points ap
+        FROM app.access_points ap
         LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-        LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+        LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
         WHERE ap.bssid IS NOT NULL
         ORDER BY SUBSTRING(ap.bssid, 1, 8), nts.final_threat_score DESC
       `);
@@ -126,8 +126,8 @@ class OUIGroupingService {
           AVG(obs.lon) as avg_lon,
           MIN(obs.observed_at) as first_seen,
           MAX(obs.observed_at) as last_seen
-        FROM public.access_points ap
-        LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
+        FROM app.access_points ap
+        LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
         WHERE obs.id IS NOT NULL
           AND obs.lat IS NOT NULL 
           AND obs.lon IS NOT NULL

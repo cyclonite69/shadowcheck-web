@@ -7,7 +7,11 @@ const path = require('path');
  */
 function createSpaFallback(distDir) {
   return (req, res) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/demo')) {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/demo') ||
+      req.path.startsWith('/analytics-public')
+    ) {
       return res.status(404).json({ error: 'Not found' });
     }
     return res.sendFile(path.join(distDir, 'index.html'));

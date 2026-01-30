@@ -176,16 +176,12 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
           bssid,
           ssid,
           encryption,
-          country,
-          region,
-          city,
           trilat,
-          trilon,
-          first_seen,
-          last_seen
-        FROM app.wigle_networks_enriched
+          trilong,
+          lasttime
+        FROM app.wigle_v2_networks_search
         WHERE bssid ILIKE $1
-        ORDER BY last_seen DESC
+        ORDER BY lasttime DESC
         LIMIT $2
       `;
       params = [`%${bssid}%`, searchLimit];
@@ -195,16 +191,12 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
           bssid,
           ssid,
           encryption,
-          country,
-          region,
-          city,
           trilat,
-          trilon,
-          first_seen,
-          last_seen
-        FROM app.wigle_networks_enriched
+          trilong,
+          lasttime
+        FROM app.wigle_v2_networks_search
         WHERE ssid ILIKE $1
-        ORDER BY last_seen DESC
+        ORDER BY lasttime DESC
         LIMIT $2
       `;
       params = [`%${ssid}%`, searchLimit];
@@ -281,7 +273,7 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
         type,
         encryption,
         lasttime
-      FROM public.wigle_v2_networks_search
+      FROM app.wigle_v2_networks_search
       ${whereSql}
       ORDER BY lasttime DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}
@@ -293,7 +285,7 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
       const countParams = typeRaw && String(typeRaw).trim() !== '' ? [String(typeRaw).trim()] : [];
       const countSql = `
         SELECT COUNT(*)::bigint AS total
-        FROM public.wigle_v2_networks_search
+        FROM app.wigle_v2_networks_search
         ${whereSql}
       `;
       const countResult = await query(countSql, countParams);
@@ -335,7 +327,7 @@ router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, ne
           'wifi' as type,
           encryption,
           observed_at as lasttime
-        FROM public.wigle_v3_observations
+        FROM app.wigle_v3_observations
       ),
       summary AS (
         SELECT
@@ -346,8 +338,8 @@ router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, ne
           type,
           encryption,
           last_seen as lasttime
-        FROM public.wigle_v3_network_details
-        WHERE NOT EXISTS (SELECT 1 FROM public.wigle_v3_observations WHERE netid = public.wigle_v3_network_details.netid)
+        FROM app.wigle_v3_network_details
+        WHERE NOT EXISTS (SELECT 1 FROM app.wigle_v3_observations WHERE netid = app.wigle_v3_network_details.netid)
       )
       SELECT * FROM obs
       UNION ALL
@@ -362,8 +354,8 @@ router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, ne
     if (includeTotalValidation.valid && includeTotalValidation.value) {
       const countSql = `
         SELECT (
-          (SELECT COUNT(*) FROM public.wigle_v3_observations) + 
-          (SELECT COUNT(*) FROM public.wigle_v3_network_details WHERE NOT EXISTS (SELECT 1 FROM public.wigle_v3_observations WHERE netid = public.wigle_v3_network_details.netid))
+          (SELECT COUNT(*) FROM app.wigle_v3_observations) + 
+          (SELECT COUNT(*) FROM app.wigle_v3_network_details WHERE NOT EXISTS (SELECT 1 FROM app.wigle_v3_observations WHERE netid = app.wigle_v3_network_details.netid))
         )::bigint AS total
       `;
       const countResult = await query(countSql);
@@ -502,7 +494,7 @@ router.post('/wigle/search-api', requireAdmin, async (req, res, next) => {
         try {
           await adminQuery(
             `
-            INSERT INTO public.wigle_v2_networks_search (
+            INSERT INTO app.wigle_v2_networks_search (
               bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
               type, encryption, channel, frequency, qos, wep, bcninterval, freenet,
               dhcp, paynet, transid, rcois, name, comment, userfound, source,
@@ -617,7 +609,7 @@ async function importWigleV3Observations(netid, locationClusters) {
 
         await adminQuery(
           `
-          INSERT INTO public.wigle_v3_observations (
+          INSERT INTO app.wigle_v3_observations (
             netid, latitude, longitude, altitude, accuracy,
             signal, observed_at, last_update, ssid,
             frequency, channel, encryption, noise, snr, month,
@@ -711,7 +703,7 @@ router.post('/wigle/detail/:netid', requireAdmin, async (req, res, next) => {
 
       await adminQuery(
         `
-        INSERT INTO public.wigle_v3_network_details (
+        INSERT INTO app.wigle_v3_network_details (
           netid, name, type, comment, ssid,
           trilat, trilon, encryption, channel, 
           bcninterval, freenet, dhcp, paynet,
@@ -814,7 +806,7 @@ router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
 
     await adminQuery(
       `
-      INSERT INTO public.wigle_v3_network_details (
+      INSERT INTO app.wigle_v3_network_details (
         netid, name, type, comment, ssid,
         trilat, trilon, encryption, channel, 
         bcninterval, freenet, dhcp, paynet,
@@ -902,7 +894,7 @@ router.get('/wigle/observations/:netid', async (req, res, next) => {
         id, netid, latitude, longitude, altitude, accuracy,
         signal, observed_at, last_update, ssid,
         frequency, channel, encryption, noise, snr, month
-      FROM public.wigle_v3_observations
+      FROM app.wigle_v3_observations
       WHERE netid = $1
       ORDER BY observed_at DESC
     `,

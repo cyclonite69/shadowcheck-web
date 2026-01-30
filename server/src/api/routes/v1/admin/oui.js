@@ -71,9 +71,9 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
         nts.final_threat_level,
         ap.ssid,
         COUNT(obs.id) as observation_count
-      FROM public.access_points ap
+      FROM app.access_points ap
       LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-      LEFT JOIN public.observations obs ON ap.bssid = obs.bssid
+      LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
       WHERE SUBSTRING(ap.bssid, 1, 8) = $1
       GROUP BY ap.bssid, nts.final_threat_score, nts.final_threat_level, ap.ssid
       ORDER BY nts.final_threat_score DESC

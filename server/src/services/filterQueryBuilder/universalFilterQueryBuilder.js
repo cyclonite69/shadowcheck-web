@@ -87,7 +87,7 @@ class UniversalFilterQueryBuilder {
 
     if (e.manufacturer && f.manufacturer) {
       const cleaned = coerceOui(f.manufacturer);
-      this.obsJoins.add('JOIN public.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+      this.obsJoins.add('JOIN app.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       this.obsJoins.add(
         "LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', '')) = rm.prefix_24bit"
       );
@@ -306,7 +306,7 @@ class UniversalFilterQueryBuilder {
       };
       const scope = f.temporalScope || 'observation_time';
       if (scope === 'network_lifetime') {
-        this.obsJoins.add('JOIN public.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+        this.obsJoins.add('JOIN app.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       }
       if (scope === 'threat_window') {
         this.warnings.push(
@@ -475,7 +475,7 @@ class UniversalFilterQueryBuilder {
         o.radio_capabilities,
         o.geom,
         o.altitude
-      FROM public.observations o
+      FROM app.observations o
       ${homeJoin}
       ${joins.join('\n')}
       WHERE ${whereClause}
@@ -513,7 +513,7 @@ class UniversalFilterQueryBuilder {
             radio_type,
             radio_frequency,
             radio_capabilities
-          FROM public.observations
+          FROM app.observations
           WHERE bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
             AND time >= '2000-01-01 00:00:00+00'::timestamptz
           ORDER BY bssid, time DESC
@@ -564,7 +564,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ne.threat,
           NULL::text AS network_id
-        FROM public.api_network_explorer ne
+        FROM app.api_network_explorer ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -794,7 +794,7 @@ class UniversalFilterQueryBuilder {
             radio_type,
             radio_frequency,
             radio_capabilities
-          FROM public.observations
+          FROM app.observations
           WHERE bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
             AND time >= '2000-01-01 00:00:00+00'::timestamptz
           ORDER BY bssid, time DESC
@@ -845,7 +845,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ne.threat,
           NULL::text AS network_id
-        FROM public.api_network_explorer ne
+        FROM app.api_network_explorer ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ${whereClause}
         ORDER BY ${safeOrderBy}
@@ -980,7 +980,7 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM obs_rollup r
       JOIN obs_latest l ON l.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
@@ -1002,7 +1002,7 @@ class UniversalFilterQueryBuilder {
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       return {
-        sql: 'SELECT COUNT(*) AS total FROM public.api_network_explorer',
+        sql: 'SELECT COUNT(*) AS total FROM app.api_network_explorer',
         params: [],
       };
     }
@@ -1149,7 +1149,7 @@ class UniversalFilterQueryBuilder {
 
       const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
       return {
-        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer ne
+        sql: `SELECT COUNT(*) AS total FROM app.api_network_explorer ne
               LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
               LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
               ${whereClause}`,
@@ -1204,7 +1204,7 @@ class UniversalFilterQueryBuilder {
       )
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
-      JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+      JOIN app.api_network_explorer ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
     `;
@@ -1309,7 +1309,7 @@ class UniversalFilterQueryBuilder {
           ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
           ne.threat
         FROM filtered_obs o
-        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
         WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
           OR o.geom IS NOT NULL)
         ORDER BY o.time ASC
@@ -1377,7 +1377,7 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
@@ -1399,7 +1399,7 @@ class UniversalFilterQueryBuilder {
         ne.threat
       FROM filtered_obs o
       JOIN filtered_networks fn ON fn.bssid = o.bssid
-      LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+      LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
       ORDER BY o.time ASC
@@ -1469,7 +1469,7 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
@@ -1488,6 +1488,10 @@ class UniversalFilterQueryBuilder {
   }
 
   buildAnalyticsQueries({ useLatestPerBssid = false } = {}) {
+    // Temporarily disable MV optimization to fix immediate issue
+    // TODO: Re-enable after debugging the canUseAnalyticsMV method
+
+    // Fall back to complex CTE queries for advanced filtering
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
     const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
@@ -1536,7 +1540,7 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
@@ -1565,8 +1569,8 @@ class UniversalFilterQueryBuilder {
           SELECT DISTINCT ON (bssid)
             bssid,
             level
-          FROM filtered_obs_scope
-          ORDER BY bssid, time DESC
+          FROM filtered_obs_scope o
+          ORDER BY bssid, o.time DESC
         )
       `;
     const signalStrengthSource = useLatestPerBssid ? 'latest_per_bssid' : 'latest';
@@ -1597,17 +1601,17 @@ class UniversalFilterQueryBuilder {
         ${signalStrengthCte}
         SELECT
           CASE
-            WHEN level >= -30 THEN '-30'
-            WHEN level >= -40 THEN '-40'
-            WHEN level >= -50 THEN '-50'
-            WHEN level >= -60 THEN '-60'
-            WHEN level >= -70 THEN '-70'
-            WHEN level >= -80 THEN '-80'
+            WHEN o.level >= -30 THEN '-30'
+            WHEN o.level >= -40 THEN '-40'
+            WHEN o.level >= -50 THEN '-50'
+            WHEN o.level >= -60 THEN '-60'
+            WHEN o.level >= -70 THEN '-70'
+            WHEN o.level >= -80 THEN '-80'
             ELSE '-90'
           END AS signal_range,
           COUNT(*) AS count
-        FROM ${signalStrengthSource}
-        WHERE level IS NOT NULL
+        FROM ${signalStrengthSource} o
+        WHERE o.level IS NOT NULL
         GROUP BY signal_range
         ORDER BY signal_range DESC
       `),
@@ -1630,15 +1634,15 @@ class UniversalFilterQueryBuilder {
           END AS range,
           COUNT(DISTINCT ne.bssid) AS count
         FROM filtered_networks fn
-        JOIN public.api_network_explorer_mv ne ON ne.bssid = fn.bssid
+        JOIN app.api_network_explorer_mv ne ON ne.bssid = fn.bssid
         GROUP BY range
         ORDER BY range DESC
       `),
       temporalActivity: base(`
         SELECT
-          EXTRACT(HOUR FROM time) AS hour,
+          EXTRACT(HOUR FROM o.time) AS hour,
           COUNT(*) AS count
-        FROM filtered_obs_scope
+        FROM filtered_obs_scope o
         GROUP BY hour
         ORDER BY hour
       `),
@@ -1672,9 +1676,11 @@ class UniversalFilterQueryBuilder {
           AVG(COALESCE((ne.threat->>'score')::numeric, 0)) AS avg_score,
           COUNT(CASE WHEN (ne.threat->>'score')::numeric >= 80 THEN 1 END) AS critical_count,
           COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 60 AND 79.9 THEN 1 END) AS high_count,
+          COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 40 AND 59.9 THEN 1 END) AS medium_count,
+          COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 20 AND 39.9 THEN 1 END) AS low_count,
           COUNT(*) AS network_count
         FROM daily_networks d
-        LEFT JOIN public.api_network_explorer ne ON ne.bssid = d.bssid
+        LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = d.bssid
         GROUP BY d.date
         ORDER BY d.date
       `),
@@ -1690,6 +1696,160 @@ class UniversalFilterQueryBuilder {
         ORDER BY observation_count DESC
         LIMIT 50
       `),
+    };
+  }
+
+  // Check if we can use the analytics materialized view for faster queries
+  canUseAnalyticsMV() {
+    // Only use MV for simple time-based filters without complex spatial operations
+    const hasComplexFilters =
+      this.enabled?.boundingBox ||
+      this.enabled?.radiusFilter ||
+      this.enabled?.distanceFromHomeMin ||
+      this.enabled?.distanceFromHomeMax ||
+      this.filters?.boundingBox ||
+      this.filters?.radiusFilter;
+
+    return !hasComplexFilters;
+  }
+
+  // Build analytics queries using the materialized view
+  buildAnalyticsQueriesFromMV() {
+    // For now, just return queries without time filtering for the MV
+    // Time filtering can be added later when needed
+    const params = [];
+
+    return {
+      networkTypes: {
+        sql: `
+          SELECT 
+            CASE
+              WHEN type = 'W' THEN 'WiFi'
+              WHEN type = 'E' THEN 'BLE'
+              WHEN type = 'B' THEN 'BT'
+              WHEN type = 'L' THEN 'LTE'
+              WHEN type = 'N' THEN 'NR'
+              WHEN type = 'G' THEN 'GSM'
+              ELSE type
+            END as type,
+            COUNT(*) as count
+          FROM app.analytics_summary_mv
+          GROUP BY type
+          ORDER BY count DESC
+        `,
+        params,
+      },
+      signalStrength: {
+        sql: `
+          SELECT 
+            CASE 
+              WHEN max_signal >= -30 THEN 'Excellent'
+              WHEN max_signal >= -50 THEN 'Good'
+              WHEN max_signal >= -70 THEN 'Fair'
+              ELSE 'Poor'
+            END as strength_category,
+            COUNT(*) as count
+          FROM app.analytics_summary_mv
+          GROUP BY strength_category
+          ORDER BY count DESC
+        `,
+        params,
+      },
+      security: {
+        sql: `
+          SELECT 
+            CASE
+              WHEN capabilities LIKE '%WPA3%' THEN 'WPA3'
+              WHEN capabilities LIKE '%WPA2%' THEN 'WPA2'
+              WHEN capabilities LIKE '%WPA%' THEN 'WPA'
+              WHEN capabilities LIKE '%WEP%' THEN 'WEP'
+              WHEN capabilities = '' OR capabilities IS NULL THEN 'Open'
+              ELSE 'Other'
+            END as encryption,
+            COUNT(*) as count
+          FROM app.analytics_summary_mv
+          GROUP BY encryption
+          ORDER BY count DESC
+        `,
+        params,
+      },
+      threatDistribution: {
+        sql: `
+          SELECT 
+            CASE 
+              WHEN threat_score >= 0.7 THEN 'high'
+              WHEN threat_score >= 0.4 THEN 'medium'
+              WHEN threat_score >= 0.1 THEN 'low'
+              ELSE 'none'
+            END as threat_level,
+            COUNT(*) as count
+          FROM app.analytics_summary_mv
+          GROUP BY threat_level
+          ORDER BY count DESC
+        `,
+        params,
+      },
+      temporalActivity: {
+        sql: `
+          SELECT 
+            DATE(last_seen) as date,
+            COUNT(*) as count
+          FROM app.analytics_summary_mv
+          GROUP BY DATE(last_seen)
+          ORDER BY date DESC
+          LIMIT 30
+        `,
+        params,
+      },
+      radioTypeOverTime: {
+        sql: `
+          SELECT 
+            DATE(last_seen) as date,
+            CASE
+              WHEN type = 'W' THEN 'WiFi'
+              WHEN type = 'E' THEN 'BLE'
+              WHEN type = 'B' THEN 'BT'
+              WHEN type = 'L' THEN 'LTE'
+              WHEN type = 'N' THEN 'NR'
+              WHEN type = 'G' THEN 'GSM'
+              ELSE type
+            END as type,
+            COUNT(*) as count
+          FROM app.analytics_summary_mv
+          GROUP BY DATE(last_seen), type
+          ORDER BY date DESC, count DESC
+          LIMIT 100
+        `,
+        params,
+      },
+      threatTrends: {
+        sql: `
+          SELECT 
+            DATE(last_seen) as date,
+            AVG(threat_score) as avg_threat_score,
+            COUNT(*) as network_count
+          FROM app.analytics_summary_mv
+          GROUP BY DATE(last_seen)
+          ORDER BY date DESC
+          LIMIT 30
+        `,
+        params,
+      },
+      topNetworks: {
+        sql: `
+          SELECT 
+            bssid,
+            ssid,
+            type,
+            observation_count,
+            threat_score,
+            last_seen
+          FROM app.analytics_summary_mv
+          ORDER BY observation_count DESC
+          LIMIT 20
+        `,
+        params,
+      },
     };
   }
 }

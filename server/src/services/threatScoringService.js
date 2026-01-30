@@ -27,7 +27,7 @@ class ThreatScoringService {
       const insertQuery = `
         WITH targets AS (
           SELECT ap.bssid
-          FROM public.access_points ap
+          FROM app.access_points ap
           WHERE ap.bssid IS NOT NULL
           ORDER BY ap.bssid
           LIMIT $1

@@ -90,7 +90,7 @@ class NetworkRepository {
           ne.threat->>'level' as threatLevel,
           ne.threat->>'summary' as threatSummary,
           ne.manufacturer
-        FROM public.api_network_explorer ne
+        FROM app.api_network_explorer ne
         WHERE (ne.threat->>'score')::numeric >= 25
           AND ne.threat->>'level' != 'NONE'
         ORDER BY (ne.threat->>'score')::numeric DESC
@@ -124,7 +124,7 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE type = 'N') as nr_count,
             COUNT(*) FILTER (WHERE type = 'G') as gsm_count,
             COUNT(*) FILTER (WHERE bestlat != 0 AND bestlon != 0) as enriched_count
-          FROM public.networks
+          FROM app.networks
         `);
 
         const obsResult = await query(`
@@ -136,7 +136,7 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE radio_type = 'L') as lte_observations,
             COUNT(*) FILTER (WHERE radio_type = 'N') as nr_observations,
             COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_observations
-          FROM public.observations
+          FROM app.observations
         `);
 
         // Use dynamic THREAT_LEVEL_EXPR for consistent threat counts (same logic as filtered queries)
@@ -247,7 +247,7 @@ class NetworkRepository {
               COUNT(*) FILTER (WHERE n.type = 'N') AS nr_count,
               COUNT(*) FILTER (WHERE n.type = 'G') AS gsm_count,
               COUNT(*) FILTER (WHERE n.bestlat != 0 AND n.bestlon != 0) AS enriched_count
-            FROM public.networks n
+            FROM app.networks n
             JOIN filtered_bssids fb ON fb.bssid = n.bssid
           ),
           obs_counts AS (
@@ -259,7 +259,7 @@ class NetworkRepository {
               COUNT(*) FILTER (WHERE o.radio_type = 'L') AS lte_observations,
               COUNT(*) FILTER (WHERE o.radio_type = 'N') AS nr_observations,
               COUNT(*) FILTER (WHERE o.radio_type = 'G') AS gsm_observations
-            FROM public.observations o
+            FROM app.observations o
             JOIN filtered_bssids fb ON fb.bssid = o.bssid
           ),
           threat_counts AS (
@@ -383,7 +383,7 @@ class NetworkRepository {
           FROM obs_latest l
           JOIN obs_rollup r ON r.bssid = l.bssid
           LEFT JOIN obs_spatial s ON s.bssid = l.bssid
-          LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+          LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
           LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
           LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
           ${networkWhereClause}

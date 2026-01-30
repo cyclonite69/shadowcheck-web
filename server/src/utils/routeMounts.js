@@ -56,6 +56,7 @@ function mountApiRoutes(app, deps) {
     keplerRoutes,
     backupRoutes,
     exportRoutes,
+    analyticsPublicRoutes,
     settingsRoutes,
     networkTagsRoutes,
     authRoutes,
@@ -67,6 +68,12 @@ function mountApiRoutes(app, deps) {
 
   // Geospatial routes (includes root redirect)
   app.use('/', geospatialRoutes);
+
+  // Export routes (no auth required) - mount first
+  app.use('/api', exportRoutes);
+
+  // Public analytics routes (no auth required) - mount outside /api
+  app.use('/analytics-public', analyticsPublicRoutes);
 
   // API routes
   app.use('/api', authRoutes);
@@ -84,7 +91,6 @@ function mountApiRoutes(app, deps) {
   app.use('/api', homeLocationRoutes);
   app.use('/api', keplerRoutes);
   app.use('/api', backupRoutes);
-  app.use('/api', exportRoutes);
   app.use('/api', settingsRoutes);
   app.use('/api/network-tags', networkTagsRoutes);
 

@@ -13,10 +13,18 @@ const BATCH_SIZE = 2000;
 
 // Helper to determine threat level
 const determineThreatLevel = (score) => {
-  if (score >= 80) {return 'CRITICAL';}
-  if (score >= 60) {return 'HIGH';}
-  if (score >= 40) {return 'MED';}
-  if (score >= 20) {return 'LOW';}
+  if (score >= 80) {
+    return 'CRITICAL';
+  }
+  if (score >= 60) {
+    return 'HIGH';
+  }
+  if (score >= 40) {
+    return 'MED';
+  }
+  if (score >= 20) {
+    return 'LOW';
+  }
   return 'NONE';
 };
 
@@ -39,8 +47,8 @@ async function scoreAll() {
 
     const model = modelResult.rows[0];
     const coefficients = Array.isArray(model.coefficients)
-      ? model.coefficients.map(c => parseFloat(c))
-      : JSON.parse(JSON.stringify(model.coefficients)).map(c => parseFloat(c));
+      ? model.coefficients.map((c) => parseFloat(c))
+      : JSON.parse(JSON.stringify(model.coefficients)).map((c) => parseFloat(c));
     const intercept = parseFloat(model.intercept) || 0;
     const featureNames = Array.isArray(model.feature_names)
       ? model.feature_names
@@ -66,8 +74,8 @@ async function scoreAll() {
           (mv.distance_from_home_km < 0.1) as seen_at_home,
           (mv.distance_from_home_km > 0.5) as seen_away_from_home,
           COALESCE(nts.rule_based_score, (mv.threat->>'score')::numeric * 100, 0) AS rule_based_score
-        FROM public.access_points ap
-        LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+        FROM app.access_points ap
+        LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
         LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
         WHERE ap.bssid > $1
           AND ap.bssid IS NOT NULL
@@ -99,7 +107,9 @@ async function scoreAll() {
         };
 
         const normalize = (value, min, max) => {
-          if (max === min) {return 0;}
+          if (max === min) {
+            return 0;
+          }
           return (value - min) / (max - min);
         };
 
@@ -128,9 +138,17 @@ async function scoreAll() {
         }
 
         let probability;
-        if (z > 500) {probability = 1.0;} else if (z < -500) {probability = 0.0;} else {probability = 1 / (1 + Math.exp(-z));}
+        if (z > 500) {
+          probability = 1.0;
+        } else if (z < -500) {
+          probability = 0.0;
+        } else {
+          probability = 1 / (1 + Math.exp(-z));
+        }
 
-        if (isNaN(probability) || !isFinite(probability)) {probability = 0.5;}
+        if (isNaN(probability) || !isFinite(probability)) {
+          probability = 0.5;
+        }
 
         const threatScore = probability * 100;
         const ruleScore = parseFloat(net.rule_based_score || 0);

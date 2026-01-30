@@ -22,7 +22,7 @@ router.get('/csv', requireAuth, async (req, res) => {
         radio_frequency as frequency,
         radio_capabilities as capabilities,
         accuracy
-      FROM public.observations
+      FROM app.observations
       ORDER BY time DESC
     `);
 
@@ -67,11 +67,11 @@ router.get('/json', requireAuth, async (req, res) => {
   try {
     const [observations, networks] = await Promise.all([
       query(`
-        SELECT * FROM public.observations
+        SELECT * FROM app.observations
         ORDER BY time DESC
       `),
       query(`
-        SELECT * FROM public.networks
+        SELECT * FROM app.networks
         ORDER BY lasttime DESC
       `),
     ]);
@@ -110,7 +110,7 @@ router.get('/geojson', requireAuth, async (req, res) => {
         radio_frequency as frequency,
         radio_capabilities as capabilities,
         accuracy
-      FROM public.observations
+      FROM app.observations
       WHERE lat IS NOT NULL AND lon IS NOT NULL
       ORDER BY time DESC
     `);

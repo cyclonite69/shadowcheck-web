@@ -27,7 +27,7 @@ async function getNetworkTypes() {
           ELSE type
         END as network_type,
         COUNT(*) as count
-      FROM public.networks
+      FROM app.networks
       WHERE type IS NOT NULL
       GROUP BY network_type
       ORDER BY count DESC
@@ -60,7 +60,7 @@ async function getSignalStrengthDistribution() {
           ELSE '-90'
         END as signal_range,
         COUNT(*) as count
-      FROM public.networks
+      FROM app.networks
       WHERE bestlevel IS NOT NULL
       GROUP BY signal_range
       ORDER BY signal_range DESC
@@ -87,7 +87,7 @@ async function getTemporalActivity(minTimestamp) {
       SELECT
         EXTRACT(HOUR FROM last_seen) as hour,
         COUNT(*) as count
-      FROM public.networks
+      FROM app.networks
       WHERE last_seen IS NOT NULL
         AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1
       GROUP BY hour
@@ -136,7 +136,7 @@ async function getRadioTypeOverTime(range, minTimestamp) {
             ELSE 'Other'
           END as network_type,
           COUNT(*) as count
-        FROM public.networks
+        FROM app.networks
         WHERE last_seen IS NOT NULL
           AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $2
           AND CASE $1
@@ -199,7 +199,7 @@ async function getSecurityDistribution() {
           ELSE 'OPEN'
         END as security_type,
         COUNT(*) as count
-      FROM public.networks
+      FROM app.networks
       WHERE type = 'W'
       GROUP BY security_type
       ORDER BY count DESC
@@ -227,13 +227,10 @@ async function getTopNetworks(limit = 100) {
         bssid,
         ssid,
         type,
-        bestlevel,
-        COUNT(DISTINCT bssid) as observation_count,
-        MIN(first_time) as first_seen,
-        MAX(last_time) as last_seen
-      FROM public.networks
-      GROUP BY bssid, ssid, type, bestlevel
-      ORDER BY observation_count DESC
+        bestlevel as signal,
+        lasttime_ms as last_seen
+      FROM app.networks
+      ORDER BY lasttime_ms DESC
       LIMIT $1
     `,
       [limit]
@@ -243,10 +240,10 @@ async function getTopNetworks(limit = 100) {
       bssid: row.bssid,
       ssid: row.ssid || '<Hidden>',
       type: row.type,
-      signal: row.bestlevel,
-      observations: parseInt(row.observation_count),
-      firstSeen: row.first_seen,
-      lastSeen: row.last_seen,
+      signal: row.signal,
+      observations: 1, // Summary table has 1 row per network
+      firstSeen: null,
+      lastSeen: new Date(parseInt(row.last_seen)).toISOString(),
     }));
   } catch (error) {
     throw new DatabaseError(error, 'Failed to retrieve top networks');
@@ -260,7 +257,7 @@ async function getTopNetworks(limit = 100) {
 async function getDashboardStats() {
   try {
     const [totalNetworks, radioTypes] = await Promise.all([
-      query('SELECT COUNT(*) as count FROM public.networks'),
+      query('SELECT COUNT(*) as count FROM app.networks'),
       query(`
         SELECT
           CASE
@@ -273,7 +270,7 @@ async function getDashboardStats() {
             ELSE 'Other'
           END as radio_type,
           COUNT(*) as count
-        FROM public.networks
+        FROM app.networks
         WHERE type IS NOT NULL
         GROUP BY radio_type
       `),
@@ -345,7 +342,7 @@ async function getThreatDistribution() {
         END as range,
         COUNT(*) as count
       FROM app.network_threat_scores nts
-      LEFT JOIN public.api_network_explorer_mv ne ON ne.bssid = nts.bssid
+      LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = nts.bssid
       WHERE ne.last_seen >= NOW() - INTERVAL '90 days'
       GROUP BY range
       ORDER BY range DESC
@@ -381,7 +378,7 @@ async function getThreatTrends(range, minTimestamp) {
           END as time_period,
           o.bssid,
           COALESCE(nts.final_threat_score, 0) as threat_score
-        FROM public.observations o
+        FROM app.observations o
         LEFT JOIN app.network_threat_scores nts ON nts.bssid = o.bssid
         WHERE o.observed_at IS NOT NULL
           AND EXTRACT(EPOCH FROM o.observed_at) * 1000 >= $2
@@ -393,7 +390,7 @@ async function getThreatTrends(range, minTimestamp) {
                 WHEN '90d' THEN o.observed_at >= NOW() - INTERVAL '90 days'
                 ELSE FALSE
               END
-        GROUP BY time_period, o.bssid
+        GROUP BY time_period, o.bssid, nts.final_threat_score
         HAVING COUNT(DISTINCT o.id) >= 3
       )
       SELECT

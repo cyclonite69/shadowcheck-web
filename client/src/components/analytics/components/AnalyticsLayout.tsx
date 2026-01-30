@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { FilterButton } from '../../FilterButton';
-import { FilterPanelWrapper } from '../../FilterPanelWrapper';
+import { FilterPanelContainer } from '../../FilterPanelContainer';
 import { GripHorizontal } from '../utils/chartConstants';
 import { Card } from '../hooks/useCardLayout';
 import { AnalyticsData } from '../hooks/useAnalyticsData';
@@ -52,7 +52,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
     >
       {/* Filter Button and Panel - Same as Dashboard */}
       <FilterButton isOpen={showFilters} onClick={() => setShowFilters(!showFilters)} />
-      <FilterPanelWrapper isOpen={showFilters} adaptedFilters={adaptedFilters} />
+      <FilterPanelContainer isOpen={showFilters} adaptedFilters={adaptedFilters} />
 
       <div className="relative flex-1 overflow-y-auto h-screen">
         {/* Cards */}

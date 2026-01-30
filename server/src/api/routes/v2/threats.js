@@ -31,7 +31,7 @@ router.get('/threats/severity-counts', async (req, res) => {
         END as severity,
         COUNT(DISTINCT ne.bssid) as unique_networks,
         SUM(ne.observations)::bigint as total_observations
-      FROM public.api_network_explorer_mv ne
+      FROM app.api_network_explorer_mv ne
       LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
       LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
       GROUP BY 1

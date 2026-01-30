@@ -42,6 +42,7 @@ function loadRouteModules() {
     keplerRoutes: require('../api/routes/v1/kepler'),
     backupRoutes: require('../api/routes/v1/backup'),
     exportRoutes: require('../api/routes/v1/export'),
+    analyticsPublicRoutes: require('../api/routes/v1/analytics-public'),
     settingsRoutes: require('../api/routes/v1/settings'),
     networkTagsRoutes: require('../api/routes/v1/network-tags'),
     authRoutes: require('../api/routes/v1/auth'),

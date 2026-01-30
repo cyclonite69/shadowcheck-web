@@ -424,7 +424,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
           radio_type,
           radio_frequency,
           radio_capabilities
-        FROM public.observations
+        FROM app.observations
         WHERE 1=1 ${qualityWhere}
         ORDER BY bssid, time DESC
       )
@@ -454,7 +454,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
           ELSE NULL
         END AS distance_from_home_km,
         COUNT(*) OVER() AS total
-      FROM public.access_points ap
+      FROM app.access_points ap
       LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
       ${whereClause}
       ${orderClause}
@@ -633,7 +633,7 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
         -- Threat intelligence (v3)
         threat,
         COUNT(*) OVER() AS total
-      FROM public.api_network_explorer_mv
+      FROM app.api_network_explorer_mv
       ${whereClause}
       ${orderClause}
       ${limit !== null ? `LIMIT $${params.length + 1} OFFSET $${params.length + 2}` : ''};
@@ -775,7 +775,7 @@ router.get('/explorer/timeline/:bssid', async (req, res, next) => {
           SELECT r.bssid
           FROM obs_rollup r
           LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-          LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+          LEFT JOIN app.api_network_explorer ne ON ne.bssid = r.bssid
           ${networkWhereClause}
         )
         SELECT
@@ -867,7 +867,7 @@ router.get('/explorer/heatmap', async (req, res, next) => {
           SELECT r.bssid
           FROM obs_rollup r
           LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-          LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+          LEFT JOIN app.api_network_explorer ne ON ne.bssid = r.bssid
           ${networkWhereClause}
         ),
         tiles AS (
@@ -974,7 +974,7 @@ router.get('/explorer/routes', async (req, res, next) => {
           SELECT r.bssid
           FROM obs_rollup r
           LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-          LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+          LEFT JOIN app.api_network_explorer ne ON ne.bssid = r.bssid
           ${networkWhereClause}
         ),
         route_points AS (

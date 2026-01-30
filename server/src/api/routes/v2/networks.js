@@ -47,7 +47,7 @@ router.get('/v2/networks', async (req, res, next) => {
           time as latest_time,
           radio_frequency as frequency,
           radio_capabilities as capabilities
-        FROM public.observations
+        FROM app.observations
         ORDER BY bssid, time DESC
       ),
       obs_agg AS (
@@ -56,7 +56,7 @@ router.get('/v2/networks', async (req, res, next) => {
           COUNT(*) as obs_count,
           MAX(o.time) as last_seen,
           MIN(o.time) as first_seen
-        FROM public.observations o
+        FROM app.observations o
         GROUP BY o.bssid
       )
       SELECT
@@ -112,7 +112,7 @@ router.get('/v2/networks', async (req, res, next) => {
 
 router.get('/v2/networks/:bssid', async (req, res, next) => {
   try {
-    const bssid = String(req.params.bssid || '').toLowerCase();
+    const bssid = String(req.params.bssid || '').toUpperCase();
 
     const [latest, timeline, threatData] = await Promise.all([
       query(
@@ -128,7 +128,7 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
           radio_frequency as frequency,
           radio_capabilities as capabilities,
           altitude
-        FROM public.observations
+        FROM app.observations
         WHERE bssid = $1
         ORDER BY bssid, time DESC
         LIMIT 1
@@ -143,7 +143,7 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
           AVG(level) as avg_signal,
           MIN(level) as min_signal,
           MAX(level) as max_signal
-        FROM public.observations
+        FROM app.observations
         WHERE bssid = $1
         GROUP BY DATE_TRUNC('hour', time)
         ORDER BY bucket DESC
@@ -169,14 +169,14 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
     ]);
 
     const obsCount = await query(
-      'SELECT COUNT(*) as count FROM public.observations WHERE bssid = $1',
+      'SELECT COUNT(*) as count FROM app.observations WHERE bssid = $1',
       [bssid]
     );
 
     const firstLast = await query(
       `
       SELECT MIN(time) as first_seen, MAX(time) as last_seen
-      FROM public.observations
+      FROM app.observations
       WHERE bssid = $1
       `,
       [bssid]
@@ -212,8 +212,8 @@ router.get('/v2/dashboard/metrics', async (_req, res, next) => {
     const counts = await query(
       `
       SELECT
-        (SELECT COUNT(DISTINCT bssid) FROM public.observations) as total_networks,
-        (SELECT COUNT(*) FROM public.observations) as observations
+        (SELECT COUNT(DISTINCT bssid) FROM app.observations) as total_networks,
+        (SELECT COUNT(*) FROM app.observations) as observations
       `
     );
 
@@ -253,26 +253,20 @@ router.get('/v2/threats/map', async (req, res, next) => {
 
     const threatsSql = `
       SELECT
-        nts.bssid,
-        COALESCE(ol.ssid, '(hidden)') AS ssid,
-        LOWER(nts.final_threat_level) AS severity,
-        nts.final_threat_score AS threat_score,
-        nts.created_at AS first_seen,
-        nts.updated_at AS last_seen,
-        ol.lat,
-        ol.lon,
-        (SELECT COUNT(*) FROM public.observations WHERE bssid = nts.bssid) AS observation_count
-      FROM app.network_threat_scores nts
-      LEFT JOIN LATERAL (
-        SELECT DISTINCT ON (bssid) bssid, ssid, lat, lon
-        FROM public.observations
-        WHERE bssid = nts.bssid
-        ORDER BY bssid, time DESC
-        LIMIT 1
-      ) ol ON true
-      WHERE nts.final_threat_level IS NOT NULL
-        ${severityFilter}
-      ORDER BY COALESCE(nts.final_threat_score, 0) DESC
+        ne.bssid,
+        ne.ssid,
+        LOWER(ne.threat->>'level') AS severity,
+        (ne.threat->>'score')::numeric AS threat_score,
+        ne.first_seen,
+        ne.last_seen,
+        ne.lat,
+        ne.lon,
+        ne.observations AS observation_count
+      FROM app.api_network_explorer_mv ne
+      WHERE ne.threat->>'level' IS NOT NULL
+        AND ne.threat->>'level' != 'NONE'
+        ${severityFilter ? "AND ne.threat->>'level' = $1" : ''}
+      ORDER BY (ne.threat->>'score')::numeric DESC
       LIMIT 5000
     `;
 
@@ -283,13 +277,14 @@ router.get('/v2/threats/map', async (req, res, next) => {
         o.lon,
         o.time as observed_at,
         o.level AS rssi,
-        LOWER(nts.final_threat_level) AS severity
-      FROM public.observations o
-      JOIN app.network_threat_scores nts ON nts.bssid = o.bssid
-      WHERE nts.final_threat_level IS NOT NULL
+        LOWER(ne.threat->>'level') AS severity
+      FROM app.observations o
+      JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
+      WHERE ne.threat->>'level' IS NOT NULL
+        AND ne.threat->>'level' != 'NONE'
         AND o.time >= NOW() - ($${params.length} || ' days')::interval
-        ${severityFilter ? 'AND nts.final_threat_level = $1' : ''}
-      LIMIT 500000
+        ${severityFilter ? "AND ne.threat->>'level' = $1" : ''}
+      LIMIT 100000
     `;
 
     const [threats, observations] = await Promise.all([

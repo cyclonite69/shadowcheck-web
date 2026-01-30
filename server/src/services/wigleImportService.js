@@ -25,7 +25,7 @@ async function importWigleV2Json(jsonFilePath) {
       try {
         await client.query(
           `
-          INSERT INTO public.wigle_v2_networks_search (
+          INSERT INTO app.wigle_v2_networks_search (
             bssid, ssid, qos, transid, firsttime, lasttime, lastupdt,
             housenumber, road, city, region, country, postalcode,
             trilat, trilong, location, dhcp, paynet, userfound, channel,

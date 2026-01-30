@@ -44,8 +44,8 @@ class MLScoringService {
           FALSE AS seen_away_from_home,
           COALESCE(nts.rule_based_score, 0) AS rule_based_score,
           COALESCE(nts.rule_based_flags, '{}'::jsonb) AS rule_based_flags
-        FROM public.access_points ap
-        LEFT JOIN public.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+        FROM app.access_points ap
+        LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
         LEFT JOIN observations obs ON ap.bssid = obs.bssid
         LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
         WHERE ap.bssid IS NOT NULL
