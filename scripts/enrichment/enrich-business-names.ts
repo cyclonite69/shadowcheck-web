@@ -1,6 +1,19 @@
-const https = require('https');
-const { Pool } = require('pg');
-require('dotenv').config();
+import * as https from 'https';
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface NetworkRow {
+  bssid: string;
+  trilat_lat: number;
+  trilat_lon: number;
+}
+
+interface POIResult {
+  name: string | null;
+  category: string | null;
+}
 
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 const pool = new Pool({
@@ -8,10 +21,10 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function lookupPOI(lat, lon) {
+async function lookupPOI(lat: number, lon: number): Promise<POIResult> {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?types=poi&limit=1&access_token=${MAPBOX_TOKEN}`;
 
   return new Promise((resolve, reject) => {
@@ -40,11 +53,11 @@ async function lookupPOI(lat, lon) {
   });
 }
 
-async function main() {
+async function main(): Promise<void> {
   const limit = parseInt(process.argv[2]) || 1000;
 
   // Get networks with addresses but no venue names
-  const result = await pool.query(
+  const result: QueryResult<NetworkRow> = await pool.query(
     `
     SELECT bssid, trilat_lat, trilat_lon 
     FROM app.networks_legacy 
@@ -86,7 +99,7 @@ async function main() {
       // Rate limit: ~600/min
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (err) {
-      console.error(`Error for ${row.bssid}:`, err.message);
+      console.error(`Error for ${row.bssid}:`, (err as Error).message);
     }
   }
 

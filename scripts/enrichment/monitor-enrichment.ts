@@ -1,16 +1,44 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface StatsRow {
+  total_networks: string;
+  with_address: string;
+  with_venue: string;
+  with_category: string;
+  missing_venue: string;
+  enrichment_pct: string;
+}
+
+interface CategoryRow {
+  venue_category: string;
+  count: string;
+}
+
+interface RecentRow {
+  venue_name: string;
+  venue_category: string;
+  trilat_address: string;
+}
+
+interface MonitorData {
+  stats: StatsRow;
+  categories: CategoryRow[];
+  recent: RecentRow[];
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function getStats() {
-  const result = await pool.query(`
+async function getStats(): Promise<MonitorData> {
+  const result: QueryResult<StatsRow> = await pool.query(`
     SELECT 
       COUNT(*) as total_networks,
       COUNT(trilat_address) as with_address,
@@ -22,7 +50,7 @@ async function getStats() {
     WHERE is_mobile_network = FALSE;
   `);
 
-  const categories = await pool.query(`
+  const categories: QueryResult<CategoryRow> = await pool.query(`
     SELECT venue_category, COUNT(*) as count
     FROM app.networks_legacy
     WHERE venue_category IS NOT NULL
@@ -31,7 +59,7 @@ async function getStats() {
     LIMIT 10;
   `);
 
-  const recent = await pool.query(`
+  const recent: QueryResult<RecentRow> = await pool.query(`
     SELECT venue_name, venue_category, trilat_address
     FROM app.networks_legacy
     WHERE venue_name IS NOT NULL
@@ -42,7 +70,7 @@ async function getStats() {
   return { stats: result.rows[0], categories: categories.rows, recent: recent.rows };
 }
 
-async function monitor() {
+async function monitor(): Promise<void> {
   console.clear();
   console.log('═══════════════════════════════════════════════════════════');
   console.log('  🏢 ShadowCheck Address Enrichment Monitor');
@@ -52,12 +80,14 @@ async function monitor() {
   const s = data.stats;
 
   console.log('📊 Overall Progress:');
-  console.log(`  Total Networks:      ${s.total_networks.toLocaleString()}`);
-  console.log(`  With Address:        ${s.with_address.toLocaleString()}`);
-  console.log(`  With Venue Name:     ${s.with_venue.toLocaleString()} (${s.enrichment_pct}%)`);
-  console.log(`  Missing Venue:       ${s.missing_venue.toLocaleString()}`);
+  console.log(`  Total Networks:      ${parseInt(s.total_networks).toLocaleString()}`);
+  console.log(`  With Address:        ${parseInt(s.with_address).toLocaleString()}`);
+  console.log(
+    `  With Venue Name:     ${parseInt(s.with_venue).toLocaleString()} (${s.enrichment_pct}%)`
+  );
+  console.log(`  Missing Venue:       ${parseInt(s.missing_venue).toLocaleString()}`);
 
-  const progress = Math.floor(s.enrichment_pct / 2);
+  const progress = Math.floor(parseFloat(s.enrichment_pct) / 2);
   const bar = '█'.repeat(progress) + '░'.repeat(50 - progress);
   console.log(`\n  Progress: [${bar}] ${s.enrichment_pct}%\n`);
 
@@ -79,7 +109,7 @@ async function monitor() {
   console.log('═══════════════════════════════════════════════════════════');
 }
 
-async function main() {
+async function main(): Promise<void> {
   const interval = parseInt(process.argv[2]) || 5000; // Default 5 seconds
 
   await monitor();

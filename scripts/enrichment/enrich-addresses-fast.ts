@@ -1,20 +1,44 @@
-const https = require('https');
-const { Pool } = require('pg');
-require('dotenv').config();
+import * as https from 'https';
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface NetworkRow {
+  bssid: string;
+  trilat_address: string;
+  trilat_lat: number;
+  trilat_lon: number;
+}
+
+interface EnrichmentResult {
+  name?: string;
+  category?: string;
+  brand?: string;
+  source: string;
+}
+
+interface ProcessResult {
+  success: boolean;
+  name?: string;
+  category?: string;
+  source?: string;
+  error?: string;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
 const CONCURRENT = 5; // Process 5 addresses at once
 
 // All free APIs
 const APIs = {
-  overpass: async (lat, lon) => {
+  overpass: async (lat: number, lon: number): Promise<EnrichmentResult | null> => {
     const query = `[out:json];(node(around:50,${lat},${lon})[name];way(around:50,${lat},${lon})[name];);out body 1;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
@@ -46,7 +70,7 @@ const APIs = {
     });
   },
 
-  nominatim: async (lat, lon) => {
+  nominatim: async (lat: number, lon: number): Promise<EnrichmentResult | null> => {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
     return new Promise((resolve) => {
       https
@@ -74,7 +98,7 @@ const APIs = {
     });
   },
 
-  locationiq: async (lat, lon) => {
+  locationiq: async (lat: number, lon: number): Promise<EnrichmentResult | null> => {
     const key = process.env.LOCATIONIQ_API_KEY;
     if (!key) {
       return null;
@@ -103,7 +127,7 @@ const APIs = {
     });
   },
 
-  opencage: async (lat, lon) => {
+  opencage: async (lat: number, lon: number): Promise<EnrichmentResult | null> => {
     const key = process.env.OPENCAGE_API_KEY;
     if (!key) {
       return null;
@@ -141,7 +165,7 @@ const APIs = {
   },
 };
 
-async function enrichAddress(lat, lon) {
+async function enrichAddress(lat: number, lon: number): Promise<EnrichmentResult | null> {
   // Try all APIs in parallel, return first success
   const results = await Promise.all([
     APIs.overpass(lat, lon),
@@ -154,10 +178,10 @@ async function enrichAddress(lat, lon) {
   return results.find((r) => r && r.name) || null;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const limit = parseInt(process.argv[2]) || 1000;
 
-  const result = await pool.query(
+  const result: QueryResult<NetworkRow> = await pool.query(
     `
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
@@ -178,7 +202,7 @@ async function main() {
   for (let i = 0; i < result.rows.length; i += CONCURRENT) {
     const batch = result.rows.slice(i, Math.min(i + CONCURRENT, result.rows.length));
 
-    const promises = batch.map(async (row) => {
+    const promises = batch.map(async (row): Promise<ProcessResult> => {
       try {
         const poi = await enrichAddress(row.trilat_lat, row.trilat_lon);
 
@@ -205,7 +229,7 @@ async function main() {
         }
         return { success: false };
       } catch (err) {
-        return { success: false, error: err.message };
+        return { success: false, error: (err as Error).message };
       }
     });
 
