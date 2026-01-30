@@ -1,9 +1,9 @@
+import type { RequestHandler } from 'express';
+
 /**
  * Security headers middleware.
- * @param {boolean} forceHttps - Whether HTTPS is enforced
- * @returns {import('express').RequestHandler} Express middleware
  */
-function createSecurityHeaders(forceHttps) {
+function createSecurityHeaders(forceHttps: boolean): RequestHandler {
   return (req, res, next) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -25,4 +25,4 @@ function createSecurityHeaders(forceHttps) {
   };
 }
 
-module.exports = { createSecurityHeaders };
+export { createSecurityHeaders };

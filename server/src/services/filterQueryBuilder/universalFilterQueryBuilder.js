@@ -5,7 +5,7 @@
 
 const logger = require('../../logging/logger');
 
-const { NOISE_FLOOR_DBM, RELATIVE_WINDOWS, NETWORK_ONLY_FILTERS } = require('./constants');
+const { NOISE_FLOOR_DBM, RELATIVE_WINDOWS, NETWORK_ONLY_FILTERS } = require('./constants.ts');
 const {
   OBS_TYPE_EXPR,
   SECURITY_EXPR,

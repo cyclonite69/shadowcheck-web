@@ -16,11 +16,11 @@ function initializeMiddleware(app, options) {
 
   // HTTPS redirect (if enabled)
   if (forceHttps) {
-    const { createHttpsRedirect } = require('../middleware/httpsRedirect');
+    const { createHttpsRedirect } = require('../middleware/httpsRedirect.ts');
     app.use(createHttpsRedirect());
   }
 
-  const { createSecurityHeaders } = require('../middleware/securityHeaders');
+  const { createSecurityHeaders } = require('../middleware/securityHeaders.ts');
   app.use(createSecurityHeaders(forceHttps));
 
   const { mountCommonMiddleware } = require('../middleware/commonMiddleware');

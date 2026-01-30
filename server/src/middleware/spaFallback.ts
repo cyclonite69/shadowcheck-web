@@ -1,11 +1,10 @@
-const path = require('path');
+import { join } from 'path';
+import type { RequestHandler } from 'express';
 
 /**
  * Creates an SPA fallback handler for React Router apps.
- * @param {string} distDir - Absolute path to the built dist directory
- * @returns {import('express').RequestHandler} Express handler
  */
-function createSpaFallback(distDir) {
+function createSpaFallback(distDir: string): RequestHandler {
   return (req, res) => {
     if (
       req.path.startsWith('/api') ||
@@ -14,8 +13,8 @@ function createSpaFallback(distDir) {
     ) {
       return res.status(404).json({ error: 'Not found' });
     }
-    return res.sendFile(path.join(distDir, 'index.html'));
+    return res.sendFile(join(distDir, 'index.html'));
   };
 }
 
-module.exports = { createSpaFallback };
+export { createSpaFallback };

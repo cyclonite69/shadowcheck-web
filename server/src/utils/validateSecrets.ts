@@ -4,18 +4,18 @@ const logger = require('../logging/logger');
 /**
  * Loads and validates required secrets for application startup.
  * Exits the process if required secrets are missing.
- * @returns {Promise<boolean>} Resolves true when secrets are valid
  */
-async function validateSecrets() {
+async function validateSecrets(): Promise<boolean> {
   try {
     await secretsManager.load();
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error; // TODO: Better error type handling when secretsManager is typed
     logger.error('SECRETS VALIDATION FAILED');
-    logger.error(error.message);
+    logger.error(err.message);
     logger.error('Server cannot start without required secrets.');
     process.exit(1);
   }
 }
 
-module.exports = { validateSecrets };
+export { validateSecrets };

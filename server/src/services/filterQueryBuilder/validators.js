@@ -3,7 +3,7 @@
  * Validation logic for filter payloads.
  */
 
-const { NOISE_FLOOR_DBM, MAX_GPS_ACCURACY_METERS } = require('./constants');
+const { NOISE_FLOOR_DBM, MAX_GPS_ACCURACY_METERS } = require('./constants.ts');
 const { normalizeEnabled, normalizeFilters } = require('./normalizers');
 
 const validateFilterPayload = (filters, enabled) => {

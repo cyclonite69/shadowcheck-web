@@ -3,10 +3,10 @@
  * Centralized filter keys, defaults, and configuration values.
  */
 
-const NOISE_FLOOR_DBM = -95;
-const MAX_GPS_ACCURACY_METERS = 1000;
+export const NOISE_FLOOR_DBM = -95;
+export const MAX_GPS_ACCURACY_METERS = 1000;
 
-const FILTER_KEYS = [
+export const FILTER_KEYS = [
   'ssid',
   'bssid',
   'manufacturer',
@@ -37,14 +37,19 @@ const FILTER_KEYS = [
   'threatCategories',
   'stationaryConfidenceMin',
   'stationaryConfidenceMax',
-];
+] as const;
 
-const DEFAULT_ENABLED = FILTER_KEYS.reduce((acc, key) => {
-  acc[key] = false;
-  return acc;
-}, {});
+export type FilterKey = (typeof FILTER_KEYS)[number];
 
-const RELATIVE_WINDOWS = {
+export const DEFAULT_ENABLED: Record<FilterKey, boolean> = FILTER_KEYS.reduce(
+  (acc, key) => {
+    acc[key] = false;
+    return acc;
+  },
+  {} as Record<FilterKey, boolean>
+);
+
+export const RELATIVE_WINDOWS: Record<string, string | null> = {
   '24h': '24 hours',
   '7d': '7 days',
   '30d': '30 days',
@@ -52,7 +57,7 @@ const RELATIVE_WINDOWS = {
   all: null,
 };
 
-const NETWORK_ONLY_FILTERS = new Set([
+export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'ssid',
   'bssid',
   'manufacturer',
@@ -74,12 +79,3 @@ const NETWORK_ONLY_FILTERS = new Set([
   'threatScoreMax',
   'threatCategories',
 ]);
-
-module.exports = {
-  NOISE_FLOOR_DBM,
-  MAX_GPS_ACCURACY_METERS,
-  FILTER_KEYS,
-  DEFAULT_ENABLED,
-  RELATIVE_WINDOWS,
-  NETWORK_ONLY_FILTERS,
-};

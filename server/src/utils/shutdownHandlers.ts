@@ -1,8 +1,16 @@
+import type { Pool } from 'pg';
+
+interface ShutdownDependencies {
+  logger: {
+    info: (message: string) => void;
+  };
+  pool: Pool;
+}
+
 /**
  * Register process shutdown handlers.
- * @param {{ logger: any, pool: import('pg').Pool }} deps - Dependencies
  */
-function registerShutdownHandlers({ logger, pool }) {
+function registerShutdownHandlers({ logger, pool }: ShutdownDependencies): void {
   process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, closing server gracefully...');
     const BackgroundJobsService = require('../services/backgroundJobsService');
@@ -18,4 +26,4 @@ function registerShutdownHandlers({ logger, pool }) {
   });
 }
 
-module.exports = { registerShutdownHandlers };
+export { registerShutdownHandlers };

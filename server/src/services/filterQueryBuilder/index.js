@@ -5,7 +5,7 @@
 
 const { UniversalFilterQueryBuilder } = require('./universalFilterQueryBuilder');
 const { validateFilterPayload } = require('./validators');
-const { DEFAULT_ENABLED } = require('./constants');
+const { DEFAULT_ENABLED } = require('./constants.ts');
 
 module.exports = {
   UniversalFilterQueryBuilder,

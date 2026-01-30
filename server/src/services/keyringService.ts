@@ -78,11 +78,11 @@ class FileKeyringService {
       let decrypted = decipher.update(ciphertext);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
-      this.cache = JSON.parse(decrypted.toString('utf8'));
+      this.cache = JSON.parse(decrypted.toString('utf8')) as KeyringData;
       return this.cache;
     } catch (err: any) {
       if (err.code === 'ENOENT') {
-        this.cache = {} as KeyringData;
+        this.cache = {};
         return this.cache;
       }
       throw err;
