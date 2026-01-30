@@ -9,18 +9,46 @@
  * - Signal strength ranges (-120 to 0 dBm)
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface CountRow {
+  count: string;
+}
+
+interface ValidationCheck {
+  name: string;
+  query: string;
+  threshold: number;
+  severity: 'error' | 'warning';
+}
+
+interface ValidationResult {
+  check: string;
+  count: number;
+  threshold: number;
+  passed: boolean;
+  severity: 'error' | 'warning';
+}
+
+interface ValidationSummary {
+  totalCount: number;
+  qualityScore: number;
+  results: ValidationResult[];
+  hasErrors: boolean;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-const CHECKS = [
+const CHECKS: ValidationCheck[] = [
   {
     name: 'Null coordinates',
     query: 'SELECT COUNT(*) as count FROM app.observations WHERE lat IS NULL OR lon IS NULL',
@@ -72,21 +100,23 @@ const CHECKS = [
   },
 ];
 
-async function validateData() {
+export async function validateData(): Promise<ValidationSummary> {
   console.log('🔍 Validating data quality...\n');
   const startTime = Date.now();
-  const results = [];
+  const results: ValidationResult[] = [];
   let hasErrors = false;
 
   try {
     // Get total count
-    const totalResult = await pool.query('SELECT COUNT(*) as count FROM app.observations');
+    const totalResult: QueryResult<CountRow> = await pool.query(
+      'SELECT COUNT(*) as count FROM app.observations'
+    );
     const totalCount = parseInt(totalResult.rows[0].count);
     console.log(`  Total observations: ${totalCount.toLocaleString()}\n`);
 
     // Run each check
     for (const check of CHECKS) {
-      const result = await pool.query(check.query);
+      const result: QueryResult<CountRow> = await pool.query(check.query);
       const count = parseInt(result.rows[0].count);
       const passed = count <= check.threshold;
 
@@ -134,7 +164,7 @@ async function validateData() {
       hasErrors,
     };
   } catch (error) {
-    console.error('❌ Validation failed:', error.message);
+    console.error('❌ Validation failed:', (error as Error).message);
     throw error;
   } finally {
     await pool.end();
@@ -147,5 +177,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { validateData };

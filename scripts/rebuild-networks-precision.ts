@@ -1,9 +1,21 @@
 #!/usr/bin/env node
 
-const { Pool } = require('pg');
-const secretsManager = require('../server/src/services/secretsManager');
+import { Pool, QueryResult } from 'pg';
+import * as secretsManager from '../server/src/services/secretsManager';
 
-(async () => {
+interface NetworkRow {
+  bssid: string;
+}
+
+interface ObservationRow {
+  latitude: number;
+  longitude: number;
+  altitude_meters: number;
+  signal_dbm: number;
+  observed_at: string;
+}
+
+(async (): Promise<void> => {
   try {
     console.log('[Rebuild] Loading secrets...');
     await secretsManager.load();
@@ -17,7 +29,9 @@ const secretsManager = require('../server/src/services/secretsManager');
     });
 
     console.log('[Rebuild] Fetching all networks...');
-    const networks = await pool.query('SELECT DISTINCT bssid FROM app.networks');
+    const networks: QueryResult<NetworkRow> = await pool.query(
+      'SELECT DISTINCT bssid FROM app.networks'
+    );
     const totalNetworks = networks.rows.length;
 
     console.log(`[Rebuild] Processing ${totalNetworks} networks...`);
@@ -25,7 +39,7 @@ const secretsManager = require('../server/src/services/secretsManager');
     for (let i = 0; i < totalNetworks; i++) {
       const { bssid } = networks.rows[i];
 
-      const obs = await pool.query(
+      const obs: QueryResult<ObservationRow> = await pool.query(
         `SELECT latitude, longitude, altitude_meters, signal_dbm, observed_at
          FROM app.observations WHERE bssid = $1 ORDER BY observed_at ASC`,
         [bssid]
@@ -98,7 +112,7 @@ const secretsManager = require('../server/src/services/secretsManager');
     console.log(`[Rebuild] ✓ All ${totalNetworks} networks rebuilt with full precision`);
     await pool.end();
   } catch (err) {
-    console.error('✗ Failed:', err.message);
+    console.error('✗ Failed:', (err as Error).message);
     process.exit(1);
   }
 })();

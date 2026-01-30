@@ -28,13 +28,13 @@ interface StageConfig {
 const STAGES: StageConfig = {
   load: [{ script: 'load/sqlite-import.js', requiresArg: true }],
   transform: [
-    { script: 'transform/normalize-observations.js' },
-    { script: 'transform/deduplicate.js' },
+    { script: 'transform/normalize-observations.ts' },
+    { script: 'transform/deduplicate.ts' },
   ],
   promote: [
-    { script: 'promote/validate-data.js' },
-    { script: 'promote/refresh-mviews.js' },
-    { script: 'promote/run-scoring.js' },
+    { script: 'promote/validate-data.ts' },
+    { script: 'promote/refresh-mviews.ts' },
+    { script: 'promote/run-scoring.ts' },
   ],
 };
 
@@ -46,7 +46,9 @@ function runScript(scriptPath: string, args: string[] = []): Promise<void> {
     const fullPath = path.join(__dirname, scriptPath);
     console.log(`🚀 Running: ${scriptPath}${args.length ? ` ${args.join(' ')}` : ''}`);
 
-    const child: ChildProcess = spawn('node', [fullPath, ...args], {
+    // Use tsx for TypeScript files, node for JavaScript files
+    const runner = scriptPath.endsWith('.ts') ? 'tsx' : 'node';
+    const child: ChildProcess = spawn(runner, [fullPath, ...args], {
       stdio: 'inherit',
       cwd: process.cwd(),
     });

@@ -1,15 +1,24 @@
-const { Pool } = require('pg');
-const secretsManager = require('../server/src/services/secretsManager');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as secretsManager from '../server/src/services/secretsManager';
+import * as dotenv from 'dotenv';
 
-async function updateHome() {
+dotenv.config();
+
+interface HomeLocationRow {
+  device_id: string;
+  device_type: string;
+  latitude: number;
+  longitude: number;
+}
+
+async function updateHome(): Promise<void> {
   await secretsManager.load();
   const pool = new Pool({
     user: process.env.DB_USER || 'shadowcheck',
     password: secretsManager.getOrThrow('db_password'),
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'shadowcheck',
-    port: process.env.DB_PORT || 5432,
+    port: parseInt(process.env.DB_PORT || '5432', 10),
   });
 
   // Update laptop record to S22 Ultra with accurate coordinates
@@ -29,7 +38,7 @@ async function updateHome() {
   );
 
   // Verify
-  const result = await pool.query(
+  const result: QueryResult<HomeLocationRow> = await pool.query(
     "SELECT device_id, device_type, latitude, longitude FROM app.location_markers WHERE marker_type='home'"
   );
   console.log('Home location:', result.rows);

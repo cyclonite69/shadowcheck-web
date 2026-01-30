@@ -4,9 +4,11 @@
  * Usage: node set-home.js <latitude> <longitude>
  */
 
-require('dotenv').config();
-const { Pool } = require('pg');
-const secretsManager = require('../server/src/services/secretsManager');
+import * as dotenv from 'dotenv';
+import { Pool } from 'pg';
+import * as secretsManager from '../server/src/services/secretsManager';
+
+dotenv.config();
 
 const lat = parseFloat(process.argv[2]);
 const lng = parseFloat(process.argv[3]);
@@ -17,7 +19,7 @@ if (isNaN(lat) || isNaN(lng)) {
   process.exit(1);
 }
 
-(async () => {
+(async (): Promise<void> => {
   await secretsManager.load();
 
   const pool = new Pool({
@@ -42,7 +44,7 @@ if (isNaN(lat) || isNaN(lng)) {
     console.log(`  Latitude: ${lat}`);
     console.log(`  Longitude: ${lng}`);
   } catch (error) {
-    console.error('✗ Failed to set home location:', error.message);
+    console.error('✗ Failed to set home location:', (error as Error).message);
   }
 
   await pool.end();

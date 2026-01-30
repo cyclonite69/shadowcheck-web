@@ -8,24 +8,38 @@
  * - Updates deduplication stats
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface CountRow {
+  count: string;
+}
+
+interface DeduplicationResult {
+  before: number;
+  after: number;
+  removed: number;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function deduplicateObservations() {
+export async function deduplicateObservations(): Promise<DeduplicationResult> {
   console.log('🔄 Deduplicating observations...\n');
   const startTime = Date.now();
 
   try {
     // Get initial count
-    const beforeCount = await pool.query('SELECT COUNT(*) as count FROM app.observations');
+    const beforeCount: QueryResult<CountRow> = await pool.query(
+      'SELECT COUNT(*) as count FROM app.observations'
+    );
     console.log(`  Initial count: ${parseInt(beforeCount.rows[0].count).toLocaleString()}`);
 
     // Find and remove duplicates, keeping the one with highest signal (level)
@@ -47,7 +61,9 @@ async function deduplicateObservations() {
       )
     `);
 
-    const afterCount = await pool.query('SELECT COUNT(*) as count FROM app.observations');
+    const afterCount: QueryResult<CountRow> = await pool.query(
+      'SELECT COUNT(*) as count FROM app.observations'
+    );
 
     const removed = parseInt(beforeCount.rows[0].count) - parseInt(afterCount.rows[0].count);
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -62,7 +78,7 @@ async function deduplicateObservations() {
       removed,
     };
   } catch (error) {
-    console.error('❌ Deduplication failed:', error.message);
+    console.error('❌ Deduplication failed:', (error as Error).message);
     throw error;
   } finally {
     await pool.end();
@@ -75,5 +91,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { deduplicateObservations };

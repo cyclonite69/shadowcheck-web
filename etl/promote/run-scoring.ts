@@ -5,24 +5,38 @@
  * Triggers ML threat scoring for networks.
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface ModelCheckRow {
+  has_recent_model: boolean;
+}
+
+interface CountRow {
+  count: string;
+}
+
+interface ScoringResult {
+  scored?: number;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function runScoring() {
+export async function runScoring(): Promise<void> {
   console.log('🤖 Running ML threat scoring...\n');
   const startTime = Date.now();
 
   try {
     // Check if ML model is trained
-    const modelCheck = await pool.query(`
+    const modelCheck: QueryResult<ModelCheckRow> = await pool.query(`
       SELECT EXISTS (
         SELECT 1 FROM app.ml_model_info
         WHERE updated_at > NOW() - INTERVAL '30 days'
@@ -36,7 +50,7 @@ async function runScoring() {
     }
 
     // Get count of networks needing scoring
-    const needsScoring = await pool.query(`
+    const needsScoring: QueryResult<CountRow> = await pool.query(`
       SELECT COUNT(*) as count
       FROM app.networks n
       WHERE NOT EXISTS (
@@ -60,7 +74,7 @@ async function runScoring() {
     });
 
     if (response.ok) {
-      const result = await response.json();
+      const result: ScoringResult = await response.json();
       console.log(`  ✅ Scored ${result.scored || 0} networks`);
     } else {
       console.log(`  ⚠️  Scoring API returned ${response.status}`);
@@ -70,10 +84,11 @@ async function runScoring() {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ Scoring complete in ${duration}s`);
   } catch (error) {
-    if (error.code === 'ECONNREFUSED') {
+    const err = error as { code?: string; message: string };
+    if (err.code === 'ECONNREFUSED') {
       console.log('⚠️  API server not running. Start the server and try again.');
     } else {
-      console.error('❌ Scoring failed:', error.message);
+      console.error('❌ Scoring failed:', err.message);
     }
   } finally {
     await pool.end();
@@ -86,5 +101,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { runScoring };

@@ -3,12 +3,13 @@
  * Run SQL migration using secretsManager for password
  */
 
-const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+import { Pool } from 'pg';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+import * as secretsManager from '../server/src/services/secretsManager';
 
-const secretsManager = require('../server/src/services/secretsManager');
+dotenv.config();
 
 const migrationFile = process.argv[2];
 
@@ -26,7 +27,7 @@ if (!fs.existsSync(migrationPath)) {
 
 const sql = fs.readFileSync(migrationPath, 'utf8');
 
-async function runMigration() {
+async function runMigration(): Promise<void> {
   try {
     // Load secrets first
     await secretsManager.load();
@@ -36,7 +37,7 @@ async function runMigration() {
       password: secretsManager.getOrThrow('db_password'),
       host: process.env.DB_HOST || '127.0.0.1',
       database: process.env.DB_NAME || 'shadowcheck',
-      port: process.env.DB_PORT || 5432,
+      port: parseInt(process.env.DB_PORT || '5432', 10),
     });
 
     console.log(`Running migration: ${path.basename(migrationPath)}`);
@@ -45,7 +46,7 @@ async function runMigration() {
     await pool.end();
     process.exit(0);
   } catch (error) {
-    console.error('✗ Migration failed:', error.message);
+    console.error('✗ Migration failed:', (error as Error).message);
     process.exit(1);
   }
 }

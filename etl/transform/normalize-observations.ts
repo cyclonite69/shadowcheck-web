@@ -8,25 +8,36 @@
  * - Reports radio type distribution
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface RadioTypeRow {
+  radio_type: string;
+  count: string;
+}
+
+interface CountRow {
+  count: string;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function normalizeObservations() {
+export async function normalizeObservations(): Promise<void> {
   console.log('🔄 Normalizing observations...\n');
   const startTime = Date.now();
 
   try {
     // 1. Uppercase all BSSIDs
     console.log('  [1/4] Standardizing BSSID format...');
-    const bssidResult = await pool.query(`
+    const bssidResult: QueryResult = await pool.query(`
       UPDATE app.observations
       SET bssid = UPPER(bssid)
       WHERE bssid != UPPER(bssid)
@@ -35,7 +46,7 @@ async function normalizeObservations() {
 
     // 2. Validate coordinates
     console.log('  [2/3] Validating coordinates...');
-    const invalidCoords = await pool.query(`
+    const invalidCoords: QueryResult<CountRow> = await pool.query(`
       SELECT COUNT(*) as count FROM app.observations
       WHERE lat IS NULL
          OR lon IS NULL
@@ -46,7 +57,7 @@ async function normalizeObservations() {
 
     // 3. Validate radio types
     console.log('  [3/3] Validating radio types...');
-    const radioTypes = await pool.query(`
+    const radioTypes: QueryResult<RadioTypeRow> = await pool.query(`
       SELECT radio_type, COUNT(*) as count
       FROM app.observations
       GROUP BY radio_type
@@ -60,7 +71,7 @@ async function normalizeObservations() {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ Normalization complete in ${duration}s`);
   } catch (error) {
-    console.error('❌ Normalization failed:', error.message);
+    console.error('❌ Normalization failed:', (error as Error).message);
     throw error;
   } finally {
     await pool.end();
@@ -73,5 +84,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { normalizeObservations };

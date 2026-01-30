@@ -3,7 +3,7 @@
  * Tests LIKE pattern escaping to prevent wildcard injection
  */
 
-const { escapeLikePattern } = require('../../server/src/utils/escapeSQL');
+import { escapeLikePattern } from '../../server/src/utils/escapeSQL';
 
 describe('escapeLikePattern()', () => {
   describe('Normal input (no special characters)', () => {
@@ -92,9 +92,9 @@ describe('escapeLikePattern()', () => {
     });
 
     test('should return empty string for non-string input', () => {
-      expect(escapeLikePattern(123)).toBe('');
-      expect(escapeLikePattern({})).toBe('');
-      expect(escapeLikePattern([])).toBe('');
+      expect(escapeLikePattern(123 as unknown as string)).toBe('');
+      expect(escapeLikePattern({} as unknown as string)).toBe('');
+      expect(escapeLikePattern([] as unknown as string)).toBe('');
     });
   });
 
