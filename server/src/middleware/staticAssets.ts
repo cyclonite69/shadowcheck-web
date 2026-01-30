@@ -1,12 +1,14 @@
-const express = require('express');
-const path = require('path');
+/**
+ * Static asset middleware.
+ */
+import type { Express, Response } from 'express';
+import express from 'express';
+import path from 'path';
 
 /**
  * Mount static asset handlers for the built frontend.
- * @param {import('express').Express} app - Express app instance
- * @param {string} distDir - Absolute path to the dist directory
  */
-function mountStaticAssets(app, distDir) {
+function mountStaticAssets(app: Express, distDir: string): void {
   // Serve hashed assets with long cache (1 year, immutable)
   // Vite generates unique hashes in filenames, so aggressive caching is safe
   app.use(
@@ -23,7 +25,7 @@ function mountStaticAssets(app, distDir) {
     express.static(distDir, {
       maxAge: 0, // No cache for index.html (allows instant updates)
       etag: true,
-      setHeaders: (res, filePath) => {
+      setHeaders: (res: Response, filePath: string) => {
         // Ensure index.html is never cached
         if (filePath.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -33,4 +35,4 @@ function mountStaticAssets(app, distDir) {
   );
 }
 
-module.exports = { mountStaticAssets };
+export { mountStaticAssets };

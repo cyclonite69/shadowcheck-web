@@ -1,8 +1,16 @@
 /**
- * Initialize dashboard routes with required dependencies.
- * @param {{ initDashboardRoutes: Function }} dashboardRoutes - Dashboard routes module
+ * Dashboard routes initialization.
  */
-function initializeDashboardRoutes(dashboardRoutes) {
+
+interface DashboardRoutesModule {
+  initDashboardRoutes: (deps: { dashboardService: unknown }) => void;
+  router: unknown;
+}
+
+/**
+ * Initialize dashboard routes with required dependencies.
+ */
+function initializeDashboardRoutes(dashboardRoutes: DashboardRoutesModule): void {
   const NetworkRepository = require('../repositories/networkRepository');
   const DashboardService = require('../services/dashboardService');
   const networkRepository = new NetworkRepository();
@@ -10,4 +18,4 @@ function initializeDashboardRoutes(dashboardRoutes) {
   dashboardRoutes.initDashboardRoutes({ dashboardService });
 }
 
-module.exports = { initializeDashboardRoutes };
+export { initializeDashboardRoutes, DashboardRoutesModule };

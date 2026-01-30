@@ -1,42 +1,53 @@
 /**
  * Route mounting helpers for the main server bootstrap.
  */
+import type { Express, Router } from 'express';
+import type { QueryResult } from 'pg';
+
+type QueryFunction = (text: string, params?: unknown[]) => Promise<QueryResult>;
+
+interface DashboardRoutesModule {
+  router: Router;
+  initDashboardRoutes: (deps: { dashboardService: unknown }) => void;
+}
+
+interface ApiRouteDependencies {
+  healthRoutes: Router;
+  geospatialRoutes: Router;
+  networksRoutes: Router;
+  threatsRoutes: Router;
+  wigleRoutes: Router;
+  adminRoutes: Router;
+  explorerRoutes: Router;
+  mlRoutes: Router;
+  analyticsRoutes: Router;
+  dashboardRoutes: DashboardRoutesModule;
+  networksV2Routes: Router;
+  threatsV2Routes: Router;
+  filteredRoutes: Router;
+  locationMarkersRoutes: (query: QueryFunction) => Router;
+  homeLocationRoutes: Router;
+  keplerRoutes: Router;
+  backupRoutes: Router;
+  exportRoutes: Router;
+  analyticsPublicRoutes: Router;
+  settingsRoutes: Router;
+  networkTagsRoutes: Router;
+  authRoutes: Router;
+  query: QueryFunction;
+}
 
 /**
  * Mount demo routes (must run before static asset middleware).
- * @param {import('express').Express} app - Express app instance
- * @param {import('express').Router} miscRoutes - Misc/demo routes
  */
-function mountDemoRoutes(app, miscRoutes) {
+function mountDemoRoutes(app: Express, miscRoutes: Router): void {
   app.use('/', miscRoutes);
 }
 
 /**
  * Mount API and page routes (must run after static assets).
- * @param {import('express').Express} app - Express app instance
- * @param {object} deps - Route dependencies
- * @param {import('express').Router} deps.healthRoutes - Health routes
- * @param {import('express').Router} deps.geospatialRoutes - Geospatial routes
- * @param {import('express').Router} deps.networksRoutes - Networks routes
- * @param {import('express').Router} deps.threatsRoutes - Threats routes
- * @param {import('express').Router} deps.wigleRoutes - WiGLE routes
- * @param {import('express').Router} deps.adminRoutes - Admin routes
- * @param {import('express').Router} deps.explorerRoutes - Explorer routes
- * @param {import('express').Router} deps.mlRoutes - ML routes
- * @param {import('express').Router} deps.analyticsRoutes - Analytics routes
- * @param {object} deps.dashboardRoutes - Dashboard routes module
- * @param {import('express').Router} deps.networksV2Routes - V2 networks routes
- * @param {import('express').Router} deps.filteredRoutes - V2 filtered routes
- * @param {Function} deps.locationMarkersRoutes - Location markers route factory
- * @param {import('express').Router} deps.homeLocationRoutes - Home location routes
- * @param {import('express').Router} deps.keplerRoutes - Kepler routes
- * @param {import('express').Router} deps.backupRoutes - Backup routes
- * @param {import('express').Router} deps.exportRoutes - Export routes
- * @param {import('express').Router} deps.settingsRoutes - Settings routes
- * @param {import('express').Router} deps.networkTagsRoutes - Network tags routes
- * @param {Function} deps.query - Database query function
  */
-function mountApiRoutes(app, deps) {
+function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   const {
     healthRoutes,
     geospatialRoutes,
@@ -98,7 +109,4 @@ function mountApiRoutes(app, deps) {
   app.use('/api', adminRoutes);
 }
 
-module.exports = {
-  mountDemoRoutes,
-  mountApiRoutes,
-};
+export { mountDemoRoutes, mountApiRoutes, ApiRouteDependencies, DashboardRoutesModule };

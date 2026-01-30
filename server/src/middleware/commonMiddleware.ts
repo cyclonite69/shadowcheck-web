@@ -1,14 +1,21 @@
+/**
+ * Common middleware setup.
+ */
+import type { Express } from 'express';
+
 const compression = require('compression');
 const cors = require('cors');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 
+interface CommonMiddlewareOptions {
+  allowedOrigins: string[];
+}
+
 /**
  * Mount common app middleware (compression, CORS, rate limiting, body parsing).
- * @param {import('express').Express} app - Express app instance
- * @param {{ allowedOrigins: string[] }} options - Middleware options
  */
-function mountCommonMiddleware(app, options) {
+function mountCommonMiddleware(app: Express, options: CommonMiddlewareOptions): void {
   const allowedOrigins = Array.isArray(options.allowedOrigins) ? options.allowedOrigins : [];
 
   // Compression
@@ -17,7 +24,10 @@ function mountCommonMiddleware(app, options) {
   // CORS
   app.use(
     cors({
-      origin: function (origin, callback) {
+      origin: function (
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean) => void
+      ) {
         if (!origin) {
           return callback(null, true);
         }
@@ -44,4 +54,4 @@ function mountCommonMiddleware(app, options) {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 }
 
-module.exports = { mountCommonMiddleware };
+export { mountCommonMiddleware, CommonMiddlewareOptions };

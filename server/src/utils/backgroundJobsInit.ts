@@ -1,8 +1,11 @@
 /**
- * Initialize background jobs.
- * @returns {Promise<void>} Resolves after initialization
+ * Background jobs initialization.
  */
-async function initializeBackgroundJobs() {
+
+/**
+ * Initialize background jobs.
+ */
+async function initializeBackgroundJobs(): Promise<void> {
   if (process.env.ENABLE_BACKGROUND_JOBS !== 'true') {
     console.log('[Background Jobs] Skipped (manual-only mode)');
     return;
@@ -12,4 +15,4 @@ async function initializeBackgroundJobs() {
   await BackgroundJobsService.initialize();
 }
 
-module.exports = { initializeBackgroundJobs };
+export { initializeBackgroundJobs };

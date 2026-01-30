@@ -1,12 +1,53 @@
 /**
  * Server dependency loader helpers.
  */
+import type { Express } from 'express';
+import type { Router } from 'express';
+import * as pathModule from 'path';
+
+interface Logger {
+  info: (message: string, meta?: unknown) => void;
+  warn: (message: string, meta?: unknown) => void;
+  error: (message: string, meta?: unknown) => void;
+  debug: (message: string, meta?: unknown) => void;
+}
+
+interface CoreDependencies {
+  express: () => Express;
+  path: typeof pathModule;
+  logger: Logger;
+}
+
+interface RouteModules {
+  healthRoutes: Router;
+  networksRoutes: Router;
+  explorerRoutes: Router;
+  threatsRoutes: Router;
+  wigleRoutes: Router;
+  adminRoutes: Router;
+  mlRoutes: Router;
+  geospatialRoutes: Router;
+  analyticsRoutes: Router;
+  networksV2Routes: Router;
+  threatsV2Routes: Router;
+  filteredRoutes: Router;
+  dashboardRoutes: Router;
+  locationMarkersRoutes: Router;
+  homeLocationRoutes: Router;
+  keplerRoutes: Router;
+  backupRoutes: Router;
+  exportRoutes: Router;
+  analyticsPublicRoutes: Router;
+  settingsRoutes: Router;
+  networkTagsRoutes: Router;
+  authRoutes: Router;
+  miscRoutes: Router;
+}
 
 /**
  * Load core server dependencies.
- * @returns {{ express: Function, path: import('path'), logger: object }}
  */
-function loadCoreDependencies() {
+function loadCoreDependencies(): CoreDependencies {
   const { clearPostgresEnv } = require('./envSanitizer');
   clearPostgresEnv();
 
@@ -20,9 +61,8 @@ function loadCoreDependencies() {
 
 /**
  * Load route modules and return route registry.
- * @returns {object} Route modules
  */
-function loadRouteModules() {
+function loadRouteModules(): RouteModules {
   return {
     healthRoutes: require('../api/routes/v1/health'),
     networksRoutes: require('../api/routes/v1/networks'),
@@ -50,7 +90,4 @@ function loadRouteModules() {
   };
 }
 
-module.exports = {
-  loadCoreDependencies,
-  loadRouteModules,
-};
+export { loadCoreDependencies, loadRouteModules, CoreDependencies, RouteModules, Logger };

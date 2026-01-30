@@ -1,13 +1,17 @@
 /**
  * Middleware initialization helpers.
  */
+import type { Express } from 'express';
+
+interface MiddlewareOptions {
+  forceHttps: boolean;
+  allowedOrigins: string[];
+}
 
 /**
  * Register core middleware in the correct order.
- * @param {import('express').Express} app - Express app instance
- * @param {{ forceHttps: boolean, allowedOrigins: string[] }} options - Middleware options
  */
-function initializeMiddleware(app, options) {
+function initializeMiddleware(app: Express, options: MiddlewareOptions): void {
   const { forceHttps, allowedOrigins } = options;
 
   // Request ID middleware (first, so all requests have IDs)
@@ -31,6 +35,4 @@ function initializeMiddleware(app, options) {
   app.use(cookieParser());
 }
 
-module.exports = {
-  initializeMiddleware,
-};
+export { initializeMiddleware, MiddlewareOptions };

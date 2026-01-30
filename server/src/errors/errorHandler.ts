@@ -3,22 +3,49 @@
  * Centralized error handling that safely converts errors to HTTP responses
  * Logs errors appropriately based on environment and error type
  */
+import type { Request, Response, NextFunction, ErrorRequestHandler, RequestHandler } from 'express';
+import { isAppError, toAppError, AppError, NotFoundError } from './AppError';
 
-const { isAppError, toAppError } = require('./AppError');
+interface Logger {
+  info: (data: unknown) => void;
+  warn: (data: unknown) => void;
+  error: (data: unknown) => void;
+  debug: (data: unknown) => void;
+}
+
+interface ErrorLogData {
+  timestamp: string;
+  code: string;
+  statusCode: number;
+  message: string;
+  path: string;
+  method: string;
+  ip: string | undefined;
+  userId: string;
+  requestId: string | undefined;
+  stack?: string;
+  query?: string | null;
+  details?: unknown;
+}
+
+interface ErrorWithExtras extends AppError {
+  query?: string | null;
+  details?: unknown;
+  originalError?: { code?: string; message: string };
+  retryAfter?: number;
+}
 
 /**
  * Main error handler middleware
  * Should be registered after all other middleware and routes
- * @param {object} logger - Logger instance (winston/pino)
- * @returns {function} Express error handling middleware
  */
-function createErrorHandler(logger) {
-  return (err, req, res, _next) => {
+function createErrorHandler(logger: Logger): ErrorRequestHandler {
+  return (err: unknown, req: Request, res: Response, _next: NextFunction): void => {
     // Convert unknown errors to AppError
     const appError = isAppError(err) ? err : toAppError(err);
 
     // Log error appropriately
-    logError(appError, req, logger);
+    logError(appError as ErrorWithExtras, req, logger);
 
     // Determine if we should include stack trace (development only)
     const includeStack = process.env.NODE_ENV === 'development';
@@ -33,12 +60,9 @@ function createErrorHandler(logger) {
 
 /**
  * Logs errors appropriately based on severity and environment
- * @param {AppError} error - The app error to log
- * @param {object} req - Express request object
- * @param {object} logger - Logger instance
  */
-function logError(error, req, logger) {
-  const logData = {
+function logError(error: ErrorWithExtras, req: Request, logger: Logger): void {
+  const logData: ErrorLogData = {
     timestamp: new Date().toISOString(),
     code: error.code,
     statusCode: error.statusCode,
@@ -47,7 +71,7 @@ function logError(error, req, logger) {
     method: req.method,
     ip: req.ip,
     userId: req.user?.id || 'anonymous',
-    requestId: req.id || req.headers['x-request-id'] || 'no-id',
+    requestId: req.requestId || (req.headers['x-request-id'] as string | undefined),
   };
 
   // Log based on severity
@@ -74,11 +98,11 @@ function logError(error, req, logger) {
 /**
  * Async route wrapper to catch errors
  * Wraps route handlers to automatically catch and forward errors
- * @param {function} handler - Express route handler
- * @returns {function} Wrapped handler that catches errors
  */
-function asyncHandler(handler) {
-  return (req, res, next) => {
+function asyncHandler(
+  handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
+): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction): void => {
     Promise.resolve(handler(req, res, next)).catch(next);
   };
 }
@@ -86,31 +110,29 @@ function asyncHandler(handler) {
 /**
  * 404 Not Found handler
  * Should be registered after all other routes
- * @param {object} req - Express request
- * @param {object} res - Express response
- * @param {function} next - Express next
  */
-function notFoundHandler(req, res, next) {
-  const { NotFoundError } = require('./AppError');
+const notFoundHandler: RequestHandler = (req, _res, next) => {
   const error = new NotFoundError(`Route ${req.method} ${req.path}`);
   next(error);
-}
+};
 
 /**
  * Error response formatter for specific error types
  * Allows customizing error responses for specific scenarios
  */
 class ErrorResponseBuilder {
-  constructor(error) {
+  private error: AppError;
+  private customMessage: string | null = null;
+  private additionalData: Record<string, unknown> = {};
+
+  constructor(error: AppError) {
     this.error = error;
-    this.customMessage = null;
-    this.additionalData = {};
   }
 
   /**
    * Set custom user message
    */
-  withMessage(message) {
+  withMessage(message: string): this {
     this.customMessage = message;
     return this;
   }
@@ -118,7 +140,7 @@ class ErrorResponseBuilder {
   /**
    * Add additional data to response
    */
-  withData(data) {
+  withData(data: Record<string, unknown>): this {
     this.additionalData = data;
     return this;
   }
@@ -126,8 +148,12 @@ class ErrorResponseBuilder {
   /**
    * Build final response
    */
-  build(includeStack = false) {
-    const response = this.error.toJSON(includeStack);
+  build(
+    includeStack = false
+  ): ReturnType<AppError['toJSON']> & { error: { data?: Record<string, unknown> } } {
+    const response = this.error.toJSON(includeStack) as ReturnType<AppError['toJSON']> & {
+      error: { data?: Record<string, unknown> };
+    };
 
     if (this.customMessage) {
       response.error.message = this.customMessage;
@@ -145,7 +171,7 @@ class ErrorResponseBuilder {
  * Validation error formatter
  * Specific handler for validation errors
  */
-function handleValidationError(error, req, res) {
+function handleValidationError(error: ErrorWithExtras, _req: Request, res: Response): Response {
   return res.status(error.statusCode).json({
     ok: false,
     error: {
@@ -160,10 +186,17 @@ function handleValidationError(error, req, res) {
  * Database error formatter
  * Specific handler for database errors
  */
-function handleDatabaseError(error, req, res) {
+function handleDatabaseError(error: ErrorWithExtras, _req: Request, res: Response): Response {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
-  const response = {
+  const response: {
+    ok: false;
+    error: {
+      message: string;
+      code: string;
+      database?: { code: string | undefined; message: string };
+    };
+  } = {
     ok: false,
     error: {
       message: error.getUserMessage(),
@@ -186,8 +219,8 @@ function handleDatabaseError(error, req, res) {
  * Rate limit error formatter
  * Specific handler for rate limit errors
  */
-function handleRateLimitError(error, req, res) {
-  res.set('Retry-After', error.retryAfter.toString());
+function handleRateLimitError(error: ErrorWithExtras, _req: Request, res: Response): Response {
+  res.set('Retry-After', String(error.retryAfter || 60));
   return res.status(error.statusCode).json({
     ok: false,
     error: {
@@ -198,7 +231,7 @@ function handleRateLimitError(error, req, res) {
   });
 }
 
-module.exports = {
+export {
   createErrorHandler,
   logError,
   asyncHandler,

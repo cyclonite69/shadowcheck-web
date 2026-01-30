@@ -2,11 +2,17 @@
  * Server configuration helpers.
  */
 
+interface ServerConfig {
+  port: number;
+  host: string;
+  forceHttps: boolean;
+  allowedOrigins: string[];
+}
+
 /**
  * Build server configuration from environment variables.
- * @returns {{ port: number, host: string, forceHttps: boolean, allowedOrigins: string[] }}
  */
-function getServerConfig() {
+function getServerConfig(): ServerConfig {
   const port = Number(process.env.PORT) || 3001;
   const host = process.env.HOST || '0.0.0.0';
   const forceHttps = process.env.FORCE_HTTPS === 'true';
@@ -23,6 +29,4 @@ function getServerConfig() {
   };
 }
 
-module.exports = {
-  getServerConfig,
-};
+export { getServerConfig, ServerConfig };
