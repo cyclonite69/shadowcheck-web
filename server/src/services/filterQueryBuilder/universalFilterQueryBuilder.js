@@ -195,9 +195,11 @@ class UniversalFilterQueryBuilder {
       }
     }
 
+    // Handle security-related filters (encryption types and auth methods)
+    const securityClauses = [];
+
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
       // Use computed security expression that matches materialized view logic
-      const securityClauses = [];
       f.encryptionTypes.forEach((type) => {
         switch (type) {
           case 'OPEN':
@@ -219,38 +221,36 @@ class UniversalFilterQueryBuilder {
             break;
         }
       });
-      if (securityClauses.length > 0) {
-        where.push(`(${securityClauses.join(' OR ')})`);
-        this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
-      }
+      this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
     }
 
     if (e.authMethods && Array.isArray(f.authMethods) && f.authMethods.length > 0) {
       // Map auth methods to security expression patterns
-      const authClauses = [];
       f.authMethods.forEach((method) => {
         switch (method) {
           case 'PSK':
-            authClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
             break;
           case 'Enterprise':
-            authClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
             break;
           case 'SAE':
-            authClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-SAE')`);
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-SAE')`);
             break;
           case 'OWE':
-            authClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-OWE'`);
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-OWE'`);
             break;
           case 'None':
-            authClauses.push(`${SECURITY_EXPR('o')} = 'OPEN'`);
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'OPEN'`);
             break;
         }
       });
-      if (authClauses.length > 0) {
-        where.push(`(${authClauses.join(' OR ')})`);
-        this.addApplied('security', 'authMethods', f.authMethods);
-      }
+      this.addApplied('security', 'authMethods', f.authMethods);
+    }
+
+    // Combine all security clauses with OR logic
+    if (securityClauses.length > 0) {
+      where.push(`(${securityClauses.join(' OR ')})`);
     }
 
     if (e.insecureFlags && Array.isArray(f.insecureFlags) && f.insecureFlags.length > 0) {
