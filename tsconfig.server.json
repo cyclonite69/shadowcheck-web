@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/server",
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["server/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "client",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.js",
+    "scripts/enrichment/enrichment-system.ts"
+  ]
+}

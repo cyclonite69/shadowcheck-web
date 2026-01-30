@@ -18,7 +18,7 @@ function mountStaticAssets(app, distPath) {
  * @param {string} distPath - Path to built frontend assets
  */
 function registerSpaFallback(app, distPath) {
-  const { createSpaFallback } = require('../middleware/spaFallback.ts');
+  const { createSpaFallback } = require('../middleware/spaFallback');
   app.get('*', createSpaFallback(distPath));
 }
 

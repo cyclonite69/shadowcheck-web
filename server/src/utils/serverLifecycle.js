@@ -13,7 +13,7 @@ async function initializeLifecycle(options) {
   const { initializeBackgroundJobs } = require('./backgroundJobsInit');
   await initializeBackgroundJobs();
 
-  const { registerShutdownHandlers } = require('./shutdownHandlers.ts');
+  const { registerShutdownHandlers } = require('./shutdownHandlers');
   registerShutdownHandlers({ logger, pool });
 }
 

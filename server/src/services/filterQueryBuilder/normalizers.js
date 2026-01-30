@@ -3,7 +3,7 @@
  * Input normalization and coercion utilities for filter values.
  */
 
-const { FILTER_KEYS, DEFAULT_ENABLED } = require('./constants.ts');
+const { FILTER_KEYS, DEFAULT_ENABLED } = require('./constants');
 
 const normalizeEnabled = (enabled) => {
   if (!enabled || typeof enabled !== 'object') {

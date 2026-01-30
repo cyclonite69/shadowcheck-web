@@ -7,7 +7,7 @@
  * @returns {Promise<object>} Credentials manager instance
  */
 async function initializeCredentials() {
-  const { validateSecrets } = require('./validateSecrets.ts');
+  const { validateSecrets } = require('./validateSecrets');
   const secretsManager = require('../services/secretsManager');
 
   await validateSecrets();

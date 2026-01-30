@@ -42,7 +42,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
 
-# Copy application code
+# Copy application code and built frontend
 COPY --chown=nodejs:nodejs server ./server/
 COPY --chown=nodejs:nodejs scripts ./scripts/
 COPY --chown=nodejs:nodejs sql ./sql/
@@ -67,5 +67,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start application
-CMD ["node", "server/server.js"]
+# Start application with compiled server
+CMD ["node", "dist/server/server/server.js"]
