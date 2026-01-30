@@ -7,11 +7,149 @@
 const { query } = require('../config/database');
 const { DatabaseError } = require('../errors/AppError');
 
+// Type definitions for analytics data
+
+interface NetworkTypeCount {
+  type: string;
+  count: number;
+}
+
+interface SignalRangeCount {
+  range: string;
+  count: number;
+}
+
+interface HourlyActivity {
+  hour: number;
+  count: number;
+}
+
+interface RadioTypeOverTimeEntry {
+  date: Date | string;
+  type: string;
+  count: number;
+}
+
+interface SecurityTypeCount {
+  type: string;
+  count: number;
+}
+
+interface TopNetwork {
+  bssid: string;
+  ssid: string;
+  type: string;
+  signal: number | null;
+  observations: number;
+  firstSeen: Date | string | null;
+  lastSeen: Date | string | null;
+}
+
+interface DashboardStats {
+  totalNetworks: number;
+  threatsCount: number;
+  surveillanceCount: number;
+  enrichedCount: number;
+  wifiCount: number;
+  btCount: number;
+  bleCount: number;
+  lteCount: number;
+  gsmCount: number;
+  nrCount: number;
+}
+
+interface BulkAnalytics {
+  dashboard: DashboardStats;
+  networkTypes: NetworkTypeCount[];
+  signalStrength: SignalRangeCount[];
+  security: SecurityTypeCount[];
+  topNetworks: TopNetwork[];
+  generatedAt: string;
+}
+
+interface ThreatRangeCount {
+  range: string;
+  count: number;
+}
+
+interface ThreatTrendEntry {
+  date: Date | string;
+  avgScore: number | null;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  networkCount: number;
+}
+
+type TimeRange = '24h' | '7d' | '30d' | '90d' | 'all';
+
+// Database row types
+interface NetworkTypeRow {
+  network_type: string;
+  count: string;
+}
+
+interface SignalRangeRow {
+  signal_range: string;
+  count: string;
+}
+
+interface HourlyActivityRow {
+  hour: string;
+  count: string;
+}
+
+interface RadioTypeOverTimeRow {
+  date: Date;
+  network_type: string;
+  count: string;
+}
+
+interface SecurityTypeRow {
+  security_type: string;
+  count: string;
+}
+
+interface TopNetworkRow {
+  bssid: string;
+  ssid: string | null;
+  type: string;
+  signal: number | null;
+  observations: string;
+  first_seen: Date | null;
+  last_seen: Date | null;
+}
+
+interface CountRow {
+  count: string;
+}
+
+interface RadioTypeCountRow {
+  radio_type: string;
+  count: string;
+}
+
+interface ThreatRangeRow {
+  range: string;
+  count: string;
+}
+
+interface ThreatTrendRow {
+  date: Date;
+  avg_score: number | null;
+  critical_count: string;
+  high_count: string;
+  medium_count: string;
+  low_count: string;
+  network_count: string;
+}
+
 /**
  * Get network type distribution
- * @returns {Promise<Array>} Array of network types with counts
+ * @returns Array of network types with counts
  */
-async function getNetworkTypes() {
+async function getNetworkTypes(): Promise<NetworkTypeCount[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -33,7 +171,7 @@ async function getNetworkTypes() {
       ORDER BY count DESC
     `);
 
-    return rows.map((row) => ({
+    return (rows as NetworkTypeRow[]).map((row) => ({
       type: row.network_type,
       count: parseInt(row.count),
     }));
@@ -44,9 +182,9 @@ async function getNetworkTypes() {
 
 /**
  * Get signal strength distribution
- * @returns {Promise<Array>} Array of signal ranges with counts
+ * @returns Array of signal ranges with counts
  */
-async function getSignalStrengthDistribution() {
+async function getSignalStrengthDistribution(): Promise<SignalRangeCount[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -66,7 +204,7 @@ async function getSignalStrengthDistribution() {
       ORDER BY signal_range DESC
     `);
 
-    return rows.map((row) => ({
+    return (rows as SignalRangeRow[]).map((row) => ({
       range: row.signal_range,
       count: parseInt(row.count),
     }));
@@ -77,10 +215,10 @@ async function getSignalStrengthDistribution() {
 
 /**
  * Get temporal activity (hourly distribution)
- * @param {number} minTimestamp - Minimum timestamp filter
- * @returns {Promise<Array>} Array of hours with activity counts
+ * @param minTimestamp - Minimum timestamp filter
+ * @returns Array of hours with activity counts
  */
-async function getTemporalActivity(minTimestamp) {
+async function getTemporalActivity(minTimestamp: number): Promise<HourlyActivity[]> {
   try {
     const { rows } = await query(
       `
@@ -96,7 +234,7 @@ async function getTemporalActivity(minTimestamp) {
       [minTimestamp]
     );
 
-    return rows.map((row) => ({
+    return (rows as HourlyActivityRow[]).map((row) => ({
       hour: parseInt(row.hour),
       count: parseInt(row.count),
     }));
@@ -107,11 +245,14 @@ async function getTemporalActivity(minTimestamp) {
 
 /**
  * Get radio type distribution over time
- * @param {string} range - Time range (24h, 7d, 30d, 90d, all)
- * @param {number} minTimestamp - Minimum timestamp
- * @returns {Promise<Array>} Array of time periods with type distribution
+ * @param range - Time range (24h, 7d, 30d, 90d, all)
+ * @param minTimestamp - Minimum timestamp
+ * @returns Array of time periods with type distribution
  */
-async function getRadioTypeOverTime(range, minTimestamp) {
+async function getRadioTypeOverTime(
+  range: TimeRange,
+  minTimestamp: number
+): Promise<RadioTypeOverTimeEntry[]> {
   try {
     const { rows } = await query(
       `
@@ -153,7 +294,7 @@ async function getRadioTypeOverTime(range, minTimestamp) {
       [range, minTimestamp]
     );
 
-    return rows.map((row) => ({
+    return (rows as RadioTypeOverTimeRow[]).map((row) => ({
       date: row.date,
       type: row.network_type,
       count: parseInt(row.count),
@@ -165,9 +306,9 @@ async function getRadioTypeOverTime(range, minTimestamp) {
 
 /**
  * Get security type distribution
- * @returns {Promise<Array>} Array of security types with counts
+ * @returns Array of security types with counts
  */
-async function getSecurityDistribution() {
+async function getSecurityDistribution(): Promise<SecurityTypeCount[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -203,7 +344,7 @@ async function getSecurityDistribution() {
       ORDER BY count DESC
     `);
 
-    return rows.map((row) => ({
+    return (rows as SecurityTypeRow[]).map((row) => ({
       type: row.security_type,
       count: parseInt(row.count),
     }));
@@ -214,10 +355,10 @@ async function getSecurityDistribution() {
 
 /**
  * Get top networks by observation count
- * @param {number} limit - Number of results to return
- * @returns {Promise<Array>} Array of top networks
+ * @param limit - Number of results to return
+ * @returns Array of top networks
  */
-async function getTopNetworks(limit = 100) {
+async function getTopNetworks(limit: number = 100): Promise<TopNetwork[]> {
   try {
     const { rows } = await query(
       `
@@ -237,7 +378,7 @@ async function getTopNetworks(limit = 100) {
       [limit]
     );
 
-    return rows.map((row) => ({
+    return (rows as TopNetworkRow[]).map((row) => ({
       bssid: row.bssid,
       ssid: row.ssid || '<Hidden>',
       type: row.type,
@@ -253,9 +394,9 @@ async function getTopNetworks(limit = 100) {
 
 /**
  * Get network statistics dashboard
- * @returns {Promise<Object>} Dashboard statistics
+ * @returns Dashboard statistics
  */
-async function getDashboardStats() {
+async function getDashboardStats(): Promise<DashboardStats> {
   try {
     const [totalNetworks, radioTypes] = await Promise.all([
       query('SELECT COUNT(*) as count FROM app.networks'),
@@ -277,13 +418,13 @@ async function getDashboardStats() {
       `),
     ]);
 
-    const radioCounts = {};
-    radioTypes.rows.forEach((row) => {
+    const radioCounts: Record<string, number> = {};
+    (radioTypes.rows as RadioTypeCountRow[]).forEach((row) => {
       radioCounts[row.radio_type] = parseInt(row.count);
     });
 
     return {
-      totalNetworks: parseInt(totalNetworks.rows[0]?.count || 0),
+      totalNetworks: parseInt((totalNetworks.rows as CountRow[])[0]?.count || '0'),
       threatsCount: 0, // Placeholder - would need proper threat detection query
       surveillanceCount: 0, // Placeholder
       enrichedCount: 0, // Placeholder - manufacturer column doesn't exist
@@ -303,7 +444,7 @@ async function getDashboardStats() {
  * Bulk retrieve analytics data
  * Optimized for dashboard loading
  */
-async function getBulkAnalytics() {
+async function getBulkAnalytics(): Promise<BulkAnalytics> {
   try {
     const [networkTypes, signalStrength, security, topNetworks, dashStats] = await Promise.all([
       getNetworkTypes(),
@@ -328,9 +469,9 @@ async function getBulkAnalytics() {
 
 /**
  * Get threat score distribution
- * @returns {Promise<Array>} Array of threat score ranges with counts
+ * @returns Array of threat score ranges with counts
  */
-async function getThreatDistribution() {
+async function getThreatDistribution(): Promise<ThreatRangeCount[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -349,7 +490,7 @@ async function getThreatDistribution() {
       ORDER BY range DESC
     `);
 
-    return rows.map((row) => ({
+    return (rows as ThreatRangeRow[]).map((row) => ({
       range: row.range,
       count: parseInt(row.count),
     }));
@@ -360,11 +501,14 @@ async function getThreatDistribution() {
 
 /**
  * Get threat trends over time
- * @param {string} range - Time range (24h, 7d, 30d, 90d, all)
- * @param {number} minTimestamp - Minimum timestamp
- * @returns {Promise<Array>} Array of time periods with threat metrics
+ * @param range - Time range (24h, 7d, 30d, 90d, all)
+ * @param minTimestamp - Minimum timestamp
+ * @returns Array of time periods with threat metrics
  */
-async function getThreatTrends(range, minTimestamp) {
+async function getThreatTrends(
+  range: TimeRange,
+  minTimestamp: number
+): Promise<ThreatTrendEntry[]> {
   try {
     const { rows } = await query(
       `
@@ -394,7 +538,7 @@ async function getThreatTrends(range, minTimestamp) {
       )
       SELECT
         time_period as date,
-        CASE 
+        CASE
           WHEN COUNT(*) > 0 THEN ROUND(AVG(threat_score::numeric), 1)
           ELSE NULL
         END as avg_score,
@@ -410,7 +554,7 @@ async function getThreatTrends(range, minTimestamp) {
       [range, minTimestamp]
     );
 
-    return rows.map((row) => ({
+    return (rows as ThreatTrendRow[]).map((row) => ({
       date: row.date,
       avgScore: row.avg_score, // Keep as null if null
       criticalCount: parseInt(row.critical_count) || 0,
@@ -435,4 +579,19 @@ module.exports = {
   getBulkAnalytics,
   getThreatDistribution,
   getThreatTrends,
+};
+
+// Export types for consumers
+export type {
+  NetworkTypeCount,
+  SignalRangeCount,
+  HourlyActivity,
+  RadioTypeOverTimeEntry,
+  SecurityTypeCount,
+  TopNetwork,
+  DashboardStats,
+  BulkAnalytics,
+  ThreatRangeCount,
+  ThreatTrendEntry,
+  TimeRange,
 };
