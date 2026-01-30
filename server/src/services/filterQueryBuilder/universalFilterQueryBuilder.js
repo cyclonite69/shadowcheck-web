@@ -87,7 +87,7 @@ class UniversalFilterQueryBuilder {
 
     if (e.manufacturer && f.manufacturer) {
       const cleaned = coerceOui(f.manufacturer);
-      this.obsJoins.add('JOIN app.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+      this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       this.obsJoins.add(
         "LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', '')) = rm.prefix_24bit"
       );
@@ -306,7 +306,7 @@ class UniversalFilterQueryBuilder {
       };
       const scope = f.temporalScope || 'observation_time';
       if (scope === 'network_lifetime') {
-        this.obsJoins.add('JOIN app.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+        this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       }
       if (scope === 'threat_window') {
         this.warnings.push(
@@ -314,8 +314,8 @@ class UniversalFilterQueryBuilder {
         );
       }
       if (f.timeframe.type === 'absolute') {
-        const startTarget = scope === 'network_lifetime' ? 'ap.first_seen' : 'o.time';
-        const endTarget = scope === 'network_lifetime' ? 'ap.last_seen' : 'o.time';
+        const startTarget = scope === 'network_lifetime' ? 'ap.first_seen_at' : 'o.time';
+        const endTarget = scope === 'network_lifetime' ? 'ap.last_seen_at' : 'o.time';
         const startValue = normalizeTimestamp(f.timeframe.startTimestamp);
         const endValue = normalizeTimestamp(f.timeframe.endTimestamp);
         const startParam = this.addParam(startValue);
@@ -325,7 +325,7 @@ class UniversalFilterQueryBuilder {
         where.push(`(${endParam}::timestamptz IS NULL OR ${endTarget} <= ${endParam})`);
       } else {
         const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
-        const target = scope === 'network_lifetime' ? 'ap.last_seen' : 'o.time';
+        const target = scope === 'network_lifetime' ? 'ap.last_seen_at' : 'o.time';
         const windowParam = this.addParam(window || null);
         where.push(
           `(${windowParam}::interval IS NULL OR ${target} >= NOW() - ${windowParam}::interval)`
