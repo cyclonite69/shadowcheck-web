@@ -275,7 +275,8 @@ class MLScoringService {
   static async clearScores(olderThanDays: number = 30): Promise<number> {
     const result: QueryResult = await query(
       `DELETE FROM app.network_threat_scores
-       WHERE scored_at < NOW() - INTERVAL '${olderThanDays} days'`
+       WHERE scored_at < NOW() - ($1::text)::interval`,
+      [`${olderThanDays} days`]
     );
     return result.rowCount || 0;
   }
