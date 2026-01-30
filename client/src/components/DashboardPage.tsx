@@ -649,7 +649,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Secondary Metric */}
-                        {card.observations !== undefined && (
+                        {card.observations !== undefined && card.type !== 'analytics-link' && (
                           <div className="pt-1 border-t border-slate-700/30">
                             <p className="text-sm font-semibold text-slate-200 tabular-nums leading-tight">
                               {card.observations.toLocaleString()}
