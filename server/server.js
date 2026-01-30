@@ -1,5 +1,7 @@
-// Register TypeScript support
-require('ts-node/register');
+// Register TypeScript support only in development
+if (process.env.NODE_ENV !== 'production') {
+  require('ts-node/register');
+}
 
 (async () => {
   try {

@@ -28,4 +28,4 @@ function requestIdMiddleware(req: Request, res: Response, next: NextFunction): v
   next();
 }
 
-export = requestIdMiddleware;
+export default requestIdMiddleware;

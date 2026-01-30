@@ -54,6 +54,9 @@ RUN mkdir -p data/logs data/csv && \
 # Switch to non-root user
 USER nodejs
 
+# Set production environment
+ENV NODE_ENV=production
+
 # Expose port
 EXPOSE 3001
 

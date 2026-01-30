@@ -11,7 +11,7 @@ function initializeMiddleware(app, options) {
   const { forceHttps, allowedOrigins } = options;
 
   // Request ID middleware (first, so all requests have IDs)
-  const requestIdMiddleware = require('../middleware/requestId');
+  const requestIdMiddleware = require('../middleware/requestId').default;
   app.use(requestIdMiddleware);
 
   // HTTPS redirect (if enabled)

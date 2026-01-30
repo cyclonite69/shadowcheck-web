@@ -82,7 +82,7 @@ class FileKeyringService {
       return this.cache;
     } catch (err: any) {
       if (err.code === 'ENOENT') {
-        this.cache = {};
+        this.cache = {} as KeyringData;
         return this.cache;
       }
       throw err;
@@ -224,4 +224,4 @@ class FileKeyringService {
   }
 }
 
-export = new FileKeyringService();
+export default new FileKeyringService();
