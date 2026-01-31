@@ -8,9 +8,10 @@
  * - Request/response logging
  */
 
-const winston = require('winston');
-const path = require('path');
-const fs = require('fs');
+import winston from 'winston';
+import path from 'path';
+import fs from 'fs';
+import type { Request } from 'express';
 
 // Ensure logs directory exists
 const logsDir = path.join(__dirname, '../../data/logs');
@@ -98,13 +99,27 @@ const logger = winston.createLogger({
   levels,
   format,
   transports: [consoleTransport, errorFileTransport, combinedFileTransport, debugFileTransport],
-});
+}) as winston.Logger & {
+  stream: { write: (message: string) => void };
+  logRequest: (req: Request) => void;
+  logResponse: (req: Request, statusCode: number, duration: number) => void;
+  logQuery: (query: string, params?: unknown[], duration?: number) => void;
+  logSecurityEvent: (event: string, details: Record<string, unknown>) => void;
+  logPerformance: (metric: string, value: number, unit?: string) => void;
+  createRequestLogger: (requestId: string) => {
+    debug: (msg: string, meta?: Record<string, unknown>) => void;
+    info: (msg: string, meta?: Record<string, unknown>) => void;
+    warn: (msg: string, meta?: Record<string, unknown>) => void;
+    error: (msg: string, meta?: Record<string, unknown>) => void;
+    http: (msg: string, meta?: Record<string, unknown>) => void;
+  };
+};
 
 /**
  * Stream interface for Morgan HTTP logging
  */
 logger.stream = {
-  write: (message) => {
+  write: (message: string) => {
     logger.http(message.trim());
   },
 };
@@ -112,7 +127,7 @@ logger.stream = {
 /**
  * Helper: Log API request
  */
-logger.logRequest = function (req) {
+logger.logRequest = function (req: Request) {
   this.http({
     message: `${req.method} ${req.path}`,
     method: req.method,
@@ -125,7 +140,7 @@ logger.logRequest = function (req) {
 /**
  * Helper: Log API response
  */
-logger.logResponse = function (req, statusCode, duration) {
+logger.logResponse = function (req: Request, statusCode: number, duration: number) {
   const level = statusCode >= 400 ? 'warn' : 'info';
   this[level]({
     message: `${req.method} ${req.path} ${statusCode}`,
@@ -140,7 +155,7 @@ logger.logResponse = function (req, statusCode, duration) {
 /**
  * Helper: Log database query
  */
-logger.logQuery = function (query, params, duration) {
+logger.logQuery = function (query: string, params?: unknown[], duration?: number) {
   this.debug({
     message: 'Database query',
     query: query.substring(0, 200), // Truncate for logs
@@ -152,7 +167,7 @@ logger.logQuery = function (query, params, duration) {
 /**
  * Helper: Log security event
  */
-logger.logSecurityEvent = function (event, details) {
+logger.logSecurityEvent = function (event: string, details: Record<string, unknown>) {
   this.warn({
     message: `Security: ${event}`,
     event,
@@ -163,7 +178,7 @@ logger.logSecurityEvent = function (event, details) {
 /**
  * Helper: Log performance metric
  */
-logger.logPerformance = function (metric, value, unit = 'ms') {
+logger.logPerformance = function (metric: string, value: number, unit = 'ms') {
   this.info({
     message: `Performance: ${metric}`,
     metric,
@@ -176,14 +191,14 @@ logger.logPerformance = function (metric, value, unit = 'ms') {
  * Helper: Create request-scoped logger
  * Automatically includes request ID in all logs from this logger
  */
-logger.createRequestLogger = function (requestId) {
+logger.createRequestLogger = function (requestId: string) {
   return {
-    debug: (msg, meta) => this.debug(msg, { ...meta, requestId }),
-    info: (msg, meta) => this.info(msg, { ...meta, requestId }),
-    warn: (msg, meta) => this.warn(msg, { ...meta, requestId }),
-    error: (msg, meta) => this.error(msg, { ...meta, requestId }),
-    http: (msg, meta) => this.http(msg, { ...meta, requestId }),
+    debug: (msg: string, meta?: Record<string, unknown>) => this.debug(msg, { ...meta, requestId }),
+    info: (msg: string, meta?: Record<string, unknown>) => this.info(msg, { ...meta, requestId }),
+    warn: (msg: string, meta?: Record<string, unknown>) => this.warn(msg, { ...meta, requestId }),
+    error: (msg: string, meta?: Record<string, unknown>) => this.error(msg, { ...meta, requestId }),
+    http: (msg: string, meta?: Record<string, unknown>) => this.http(msg, { ...meta, requestId }),
   };
 };
 
-module.exports = logger;
+export = logger;
