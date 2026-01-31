@@ -36,7 +36,7 @@ module.exports = {
   coverageDirectory: 'coverage',
 
   // Setup files
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
 
   // Module paths
   modulePaths: ['<rootDir>'],

@@ -1,8 +1,8 @@
-const { runIntegration } = require('../helpers/integrationEnv');
+import { runIntegration } from '../helpers/integrationEnv';
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
-const request = require('supertest');
-const express = require('express');
+import request from 'supertest';
+import express from 'express';
 
 // Mock dependencies
 jest.mock('../../server/src/config/database', () => ({
@@ -24,11 +24,11 @@ describeIfIntegration('Health Check Endpoint', () => {
     test.skip('requires RUN_INTEGRATION_TESTS', () => {});
     return;
   }
-  let app;
-  let healthRoutes;
-  let pool;
-  let secretsManager;
-  let keyringService;
+  let app: express.Application;
+  let healthRoutes: any;
+  let pool: any;
+  let secretsManager: any;
+  let keyringService: any;
 
   beforeEach(() => {
     jest.resetModules();
