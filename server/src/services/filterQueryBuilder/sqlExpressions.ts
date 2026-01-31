@@ -19,6 +19,7 @@ const OBS_TYPE_EXPR = (alias = 'o'): string => `
 const SECURITY_EXPR = (alias = 'o'): string => `
   CASE
     WHEN COALESCE(${alias}.radio_capabilities, '') = '' THEN 'OPEN'
+    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WEP%' THEN 'WEP'
     WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
     WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
     WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
@@ -29,7 +30,6 @@ const SECURITY_EXPR = (alias = 'o'): string => `
     WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' THEN 'WPA2'
     WHEN UPPER(${alias}.radio_capabilities) ~ 'WPA-' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
     WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA3%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPA'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WEP%' THEN 'WEP'
     WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPS%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPS'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
     ELSE 'Unknown'
