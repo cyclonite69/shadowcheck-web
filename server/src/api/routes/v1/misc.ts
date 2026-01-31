@@ -1,3 +1,4 @@
+export {};
 /**
  * Miscellaneous Routes (v1)
  * Small utility endpoints that don't warrant their own module.

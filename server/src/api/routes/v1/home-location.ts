@@ -1,3 +1,4 @@
+export {};
 /**
  * Home Location Routes
  * Handles home location management for admin page

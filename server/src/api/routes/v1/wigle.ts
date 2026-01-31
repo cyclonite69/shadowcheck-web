@@ -1,3 +1,4 @@
+export {};
 /**
  * WiGLE Integration Routes
  * Handles WiGLE database queries and live API lookups

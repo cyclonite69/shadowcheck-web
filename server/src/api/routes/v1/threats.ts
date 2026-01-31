@@ -1,3 +1,4 @@
+export {};
 /**
  * Threats Routes (v1)
  * Handles threat detection endpoints

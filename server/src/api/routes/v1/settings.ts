@@ -1,3 +1,4 @@
+export {};
 const express = require('express');
 const router = express.Router();
 const keyringService = require('../../../services/keyringService');
