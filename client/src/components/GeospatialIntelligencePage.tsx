@@ -91,9 +91,9 @@ export default function GeospatialIntelligencePage() {
   const [error, setError] = useState('');
   const [selectedBssid, setSelectedBssid] = useState<string | null>(null);
   const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(null);
-  const [sortField, setSortField] = useState<'observed_at' | 'signal' | 'observations'>(
-    'observed_at'
-  );
+  const [sortField, setSortField] = useState<
+    'observed_at' | 'signal' | 'observations' | 'manufacturer'
+  >('observed_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [explorerFilters, setExplorerFilters] = useState<{
     filters: NetworkFilters;

@@ -14,6 +14,8 @@ type NetworkRow = {
   network_id?: string | null;
 };
 
+type SortField = 'observed_at' | 'signal' | 'observations' | 'manufacturer';
+
 type Props = {
   networks: NetworkRow[];
   loading?: boolean;
@@ -22,9 +24,9 @@ type Props = {
   selectedBssid?: string | null;
   title?: string;
   compact?: boolean;
-  sortField?: 'observed_at' | 'signal' | 'observations';
+  sortField?: SortField;
   sortDirection?: 'asc' | 'desc';
-  onSortChange?: (field: 'observed_at' | 'signal' | 'observations', dir: 'asc' | 'desc') => void;
+  onSortChange?: (field: SortField, dir: 'asc' | 'desc') => void;
 };
 
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleString() : '—');
@@ -59,7 +61,7 @@ export default function NetworksExplorer({
               value={`${sortField}:${sortDirection}`}
               onChange={(e) => {
                 const [field, dir] = e.target.value.split(':');
-                onSortChange?.(field as any, dir as any);
+                onSortChange?.(field as SortField, dir as 'asc' | 'desc');
               }}
               aria-label="Sort networks"
               className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-blue-500"
@@ -70,6 +72,8 @@ export default function NetworksExplorer({
               <option value="signal:asc">Signal: Weak</option>
               <option value="observations:desc">Obs: High → Low</option>
               <option value="observations:asc">Obs: Low → High</option>
+              <option value="manufacturer:asc">Manufacturer: A → Z</option>
+              <option value="manufacturer:desc">Manufacturer: Z → A</option>
             </select>
           </div>
         )}
