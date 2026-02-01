@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
-import { useWigleDetail } from '../hooks/useWigleDetail';
+import { useWigleDetail, type WigleDetailType } from '../hooks/useWigleDetail';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
@@ -38,6 +38,7 @@ const DetailIcon = ({ size = 24, className = '' }) => (
 
 export const WigleDetailTab: React.FC = () => {
   const [netid, setNetid] = useState('');
+  const [detailType, setDetailType] = useState<WigleDetailType>('wifi');
   const { loading, error, data, observations, imported, fetchDetail } = useWigleDetail();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -45,7 +46,7 @@ export const WigleDetailTab: React.FC = () => {
   const handleSearch = (shouldImport: boolean) => {
     setUploadError(null);
     setUploadSuccess(null);
-    fetchDetail(netid, shouldImport);
+    fetchDetail(netid, shouldImport, detailType);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,7 +73,7 @@ export const WigleDetailTab: React.FC = () => {
       setUploadSuccess(`Imported: ${json.data.ssid || json.data.networkId}`);
       // Auto-load the data we just imported
       setNetid(json.data.networkId);
-      fetchDetail(json.data.networkId, false);
+      fetchDetail(json.data.networkId, false, detailType);
     } catch (err: any) {
       setUploadError(err.message);
     }
@@ -94,12 +95,32 @@ export const WigleDetailTab: React.FC = () => {
             Fetch deep forensic details for a single network from WiGLE API v3 or upload a JSON
             file.
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <div className="flex rounded border border-slate-600/60 overflow-hidden">
+              {(['wifi', 'bt'] as WigleDetailType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setDetailType(type)}
+                  className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                    detailType === type
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {type === 'wifi' ? 'Wi-Fi' : 'BT/BLE'}
+                </button>
+              ))}
+            </div>
             <input
               type="text"
               value={netid}
               onChange={(e) => setNetid(e.target.value)}
-              placeholder="Enter BSSID (e.g., 00:11:22:33:44:55)"
+              placeholder={
+                detailType === 'wifi'
+                  ? 'Enter Wi-Fi BSSID (e.g., 00:11:22:33:44:55)'
+                  : 'Enter BT Network ID (e.g., EC:81:93:76:BD:CE)'
+              }
               className="flex-1 px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 font-mono"
             />
             <button
@@ -183,7 +204,7 @@ export const WigleDetailTab: React.FC = () => {
               <div className="text-right space-y-1">
                 <div className="text-xs text-slate-400">Encryption</div>
                 <div className="text-sm font-medium text-white px-2 py-0.5 bg-slate-700 rounded inline-block">
-                  {data.encryption}
+                  {data.encryption || 'N/A'}
                 </div>
               </div>
             </div>
@@ -208,13 +229,17 @@ export const WigleDetailTab: React.FC = () => {
                       first_seen: data.firstSeen,
                       last_seen: data.lastSeen,
                       type:
-                        data.type === 'wifi'
+                        data.type?.toLowerCase() === 'wifi'
                           ? 'W'
-                          : data.type === 'gsm'
+                          : data.type?.toLowerCase() === 'gsm'
                             ? 'G'
-                            : data.type === 'lte'
+                            : data.type?.toLowerCase() === 'lte'
                               ? 'L'
-                              : 'W',
+                              : data.type?.toLowerCase() === 'ble'
+                                ? 'E'
+                                : data.type?.toLowerCase() === 'bt'
+                                  ? 'B'
+                                  : 'W',
                       observation_count: observations?.length || 0,
                       accuracy: data.locationClusters?.[0]?.accuracy || null,
                     }),
@@ -286,7 +311,7 @@ export const WigleDetailTab: React.FC = () => {
               </div>
               <div className="bg-slate-800/30 p-3 rounded">
                 <div className="text-xs text-slate-500 mb-1">Channel</div>
-                <div className="text-sm text-white">{data.channel}</div>
+                <div className="text-sm text-white">{data.channel ?? 'N/A'}</div>
               </div>
             </div>
 

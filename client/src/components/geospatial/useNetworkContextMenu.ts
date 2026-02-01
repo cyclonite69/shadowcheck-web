@@ -264,8 +264,14 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
       });
 
       if (withLookup) {
+        const isBluetooth =
+          wigleLookupDialog.network?.type === 'B' || wigleLookupDialog.network?.type === 'E';
+        const endpoint = isBluetooth
+          ? `/api/wigle/detail/bt/${encodeURIComponent(bssid)}`
+          : `/api/wigle/detail/${encodeURIComponent(bssid)}`;
+
         // Call WiGLE v3 detail endpoint with import flag
-        const response = await fetch(`/api/wigle/detail/${encodeURIComponent(bssid)}`, {
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ import: true }),

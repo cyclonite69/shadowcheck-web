@@ -4,10 +4,10 @@ export interface WigleDetailData {
   networkId: string;
   name: string | null;
   ssid?: string;
-  encryption: string;
-  type: string;
-  channel: number;
-  frequency: number;
+  encryption?: string | null;
+  type?: string | null;
+  channel?: number | null;
+  frequency?: number | null;
   firstSeen: string;
   lastSeen: string;
   lastUpdate: string;
@@ -35,6 +35,8 @@ export interface WigleDetailData {
   }>;
 }
 
+export type WigleDetailType = 'wifi' | 'bt';
+
 export const useWigleDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,11 @@ export const useWigleDetail = () => {
     }
   };
 
-  const fetchDetail = async (netid: string, shouldImport: boolean) => {
+  const fetchDetail = async (
+    netid: string,
+    shouldImport: boolean,
+    detailType: WigleDetailType = 'wifi'
+  ) => {
     if (!netid) {
       setError('Network ID (BSSID) is required');
       return;
@@ -67,7 +73,11 @@ export const useWigleDetail = () => {
     setObservations([]);
 
     try {
-      const response = await fetch(`/api/wigle/detail/${encodeURIComponent(netid)}`, {
+      const endpoint =
+        detailType === 'bt'
+          ? `/api/wigle/detail/bt/${encodeURIComponent(netid)}`
+          : `/api/wigle/detail/${encodeURIComponent(netid)}`;
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

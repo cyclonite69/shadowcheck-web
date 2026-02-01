@@ -657,49 +657,71 @@ async function importWigleV3Observations(netid, locationClusters) {
  * POST /api/wigle/detail/:netid - Fetch WiGLE v3 detail and optionally import
  * Body: { import: boolean }
  */
-router.post('/wigle/detail/:netid', requireAdmin, async (req, res, next) => {
+const WIGLE_DETAIL_ENDPOINTS = {
+  wifi: 'wifi',
+  bt: 'bt',
+};
+
+async function fetchWigleDetail(netid, endpoint) {
+  const wigleApiName = secretsManager.get('wigle_api_name');
+  const wigleApiToken = secretsManager.get('wigle_api_token');
+
+  if (!wigleApiName || !wigleApiToken) {
+    return {
+      ok: false,
+      status: 503,
+      error: 'WiGLE API credentials not configured',
+    };
+  }
+
+  const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+  const apiUrl = `https://api.wigle.net/api/v3/detail/${endpoint}/${encodeURIComponent(netid)}`;
+
+  logger.info(`[WiGLE] Fetching ${endpoint} detail for: ${netid}`);
+
+  const response = await withRetry(
+    () =>
+      fetch(apiUrl, {
+        headers: {
+          Authorization: `Basic ${encodedAuth}`,
+          Accept: 'application/json',
+        },
+      }),
+    { serviceName: 'WiGLE Detail API', timeoutMs: 15000, maxRetries: 2 }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    logger.error(`[WiGLE] Detail API error ${response.status}: ${errorText}`);
+    return {
+      ok: false,
+      status: response.status,
+      error: 'WiGLE Detail API request failed',
+      details: errorText,
+    };
+  }
+
+  const data = await response.json();
+  return { ok: true, data };
+}
+
+async function handleWigleDetailRequest(req, res, next, endpoint) {
   try {
     const { netid } = req.params;
     const shouldImport = req.body?.import === true;
 
-    const wigleApiName = secretsManager.get('wigle_api_name');
-    const wigleApiToken = secretsManager.get('wigle_api_token');
+    const detailResponse = await fetchWigleDetail(netid, endpoint);
 
-    if (!wigleApiName || !wigleApiToken) {
-      return res.status(503).json({
+    if (!detailResponse.ok) {
+      return res.status(detailResponse.status).json({
         ok: false,
-        error: 'WiGLE API credentials not configured',
+        error: detailResponse.error,
+        status: detailResponse.status,
+        details: detailResponse.details,
       });
     }
 
-    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-    const apiUrl = `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(netid)}`;
-
-    logger.info(`[WiGLE] Fetching detail for: ${netid}`);
-
-    const response = await withRetry(
-      () =>
-        fetch(apiUrl, {
-          headers: {
-            Authorization: `Basic ${encodedAuth}`,
-            Accept: 'application/json',
-          },
-        }),
-      { serviceName: 'WiGLE Detail API', timeoutMs: 15000, maxRetries: 2 }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error(`[WiGLE] Detail API error ${response.status}: ${errorText}`);
-      return res.status(response.status).json({
-        ok: false,
-        error: 'WiGLE Detail API request failed',
-        status: response.status,
-        details: errorText,
-      });
-    }
-
-    const data = await response.json();
+    const data = detailResponse.data;
     let importedObservations = 0;
 
     if (shouldImport && data.networkId) {
@@ -746,7 +768,7 @@ router.post('/wigle/detail/:netid', requireAdmin, async (req, res, next) => {
           data.name,
           data.type,
           data.comment,
-          data.locationClusters?.[0]?.clusterSsid || data.name, // Use cluster SSID as primary SSID if available
+          data.locationClusters?.[0]?.clusterSsid || data.name,
           data.trilateratedLatitude,
           data.trilateratedLongitude,
           data.encryption,
@@ -779,6 +801,18 @@ router.post('/wigle/detail/:netid', requireAdmin, async (req, res, next) => {
     logger.error(`[WiGLE] Detail error: ${err.message}`, { error: err });
     next(err);
   }
+}
+
+router.post('/wigle/detail/:netid', requireAdmin, async (req, res, next) => {
+  await handleWigleDetailRequest(req, res, next, WIGLE_DETAIL_ENDPOINTS.wifi);
+});
+
+/**
+ * POST /api/wigle/detail/bt/:netid - Fetch WiGLE v3 Bluetooth detail and optionally import
+ * Body: { import: boolean }
+ */
+router.post('/wigle/detail/bt/:netid', requireAdmin, async (req, res, next) => {
+  await handleWigleDetailRequest(req, res, next, WIGLE_DETAIL_ENDPOINTS.bt);
 });
 
 /**

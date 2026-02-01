@@ -144,6 +144,22 @@ const API_PRESETS: ApiPreset[] = [
     ],
     defaultBody: '{\n  "import": false\n}',
   },
+  {
+    label: 'WiGLE BT Detail & Import',
+    path: '/api/wigle/detail/bt/:netid',
+    method: 'POST',
+    inputs: [
+      { name: 'netid', label: 'BT Network ID', placeholder: 'EC:81:93:76:BD:CE' },
+      {
+        name: 'import',
+        label: 'Import?',
+        defaultValue: 'false',
+        type: 'select',
+        options: ['true', 'false'],
+      },
+    ],
+    defaultBody: '{\n  "import": false\n}',
+  },
 
   // --- Machine Learning ---
   { label: 'ML Status', path: '/api/ml/status', method: 'GET' },
