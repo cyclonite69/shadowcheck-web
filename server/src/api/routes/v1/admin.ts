@@ -21,6 +21,7 @@ const adminNotesRoutes = require('./admin/notes');
 const adminMediaRoutes = require('./admin/media');
 const adminOuiRoutes = require('./admin/oui');
 const adminBackupRoutes = require('./admin/backup');
+const adminPgAdminRoutes = require('./admin/pgadmin');
 const adminSettingsRoutes = require('./admin/settings');
 
 // Protect all admin routes
@@ -49,6 +50,7 @@ router.use(adminNotesRoutes);
 router.use(adminMediaRoutes);
 router.use(adminOuiRoutes);
 router.use(adminBackupRoutes);
+router.use(adminPgAdminRoutes);
 router.use('/admin/settings', adminSettingsRoutes);
 
 // POST /api/admin/import-sqlite - Import SQLite database

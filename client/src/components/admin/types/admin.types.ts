@@ -67,3 +67,24 @@ export interface BackupResult {
   filePath: string;
   bytes: number;
 }
+
+export interface PgAdminStatus {
+  enabled: boolean;
+  dockerAvailable: boolean;
+  composeFile: string;
+  composeFileExists: boolean;
+  serviceName: string;
+  containerName: string;
+  volumeName: string;
+  port: number;
+  url: string;
+  container: {
+    exists: boolean;
+    running: boolean;
+    status: string;
+    ports: string;
+    id: string;
+    name: string;
+  };
+  error?: string;
+}

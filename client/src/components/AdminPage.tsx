@@ -8,6 +8,7 @@ import { ConfigurationTab } from './admin/tabs/ConfigurationTab';
 import { ApiTestingTab } from './admin/tabs/ApiTestingTab';
 import { DataImportTab } from './admin/tabs/DataImportTab';
 import { DataExportTab } from './admin/tabs/DataExportTab';
+import { PgAdminTab } from './admin/tabs/PgAdminTab';
 
 // SVG Icons
 const SettingsIcon = ({ size = 24, className = '' }) => (
@@ -180,6 +181,7 @@ const AdminPage: React.FC = () => {
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
+    { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
   ];
 
   return (
@@ -223,6 +225,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'imports' && <DataImportTab />}
           {activeTab === 'backups' && <BackupsTab />}
           {activeTab === 'exports' && <DataExportTab />}
+          {activeTab === 'pgadmin' && <PgAdminTab />}
         </div>
       </div>
     </div>

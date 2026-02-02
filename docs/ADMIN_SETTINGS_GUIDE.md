@@ -54,6 +54,21 @@ Your WiGLE API credentials were exposed. **Revoke them immediately:**
 
 **Note:** Exports are currently unauthenticated and return full datasets. Use only in trusted environments.
 
+## PgAdmin Controls
+
+The Admin UI includes a PgAdmin tab for starting the shared PgAdmin container.
+
+**Enable controls:**
+
+- Set `ADMIN_ALLOW_DOCKER=true` in `.env`
+- Restart the API server
+
+**Notes:**
+
+- Uses `docker/infrastructure/docker-compose.postgres.yml`
+- "Reset & Start Fresh" removes the `shadowcheck_pgadmin_data` volume
+- PgAdmin is exposed on port `5050` by default (override with `PGADMIN_PORT`)
+
 ## Troubleshooting
 
 ### "Unauthorized" Error (Settings Routes)

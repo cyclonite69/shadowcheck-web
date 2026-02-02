@@ -122,13 +122,13 @@ class UniversalFilterQueryBuilder {
       const cleaned = coerceOui(f.manufacturer);
       this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       this.obsJoins.add(
-        "LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', '')) = rm.prefix AND rm.bit_length = 24"
+        "LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', ''))"
       );
       if (isOui(cleaned)) {
-        where.push(`rm.prefix = ${this.addParam(cleaned)}`);
+        where.push(`rm.prefix_24bit = ${this.addParam(cleaned)}`);
         this.addApplied('identity', 'manufacturerOui', cleaned);
       } else {
-        where.push(`rm.manufacturer ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
+        where.push(`rm.organization_name ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
         this.addApplied('identity', 'manufacturer', f.manufacturer);
       }
     }
@@ -600,7 +600,7 @@ class UniversalFilterQueryBuilder {
           (COALESCE(ne.ssid, '') = '') AS is_hidden,
           ne.first_seen,
           ne.last_seen,
-          rm.manufacturer AS manufacturer,
+          rm.organization_name AS manufacturer,
           rm.address AS manufacturer_address,
           NULL::numeric AS min_altitude_m,
           NULL::numeric AS max_altitude_m,
@@ -634,7 +634,7 @@ class UniversalFilterQueryBuilder {
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-        LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = rm.prefix AND rm.bit_length = 24
+        LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
         ${this.requiresHome ? "CROSS JOIN (SELECT ST_SetSRID(location::geometry, 4326)::geography AS home_point FROM app.location_markers WHERE marker_type = 'home' LIMIT 1) home" : ''}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -751,8 +751,8 @@ class UniversalFilterQueryBuilder {
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
         ne.first_seen,
         ne.last_seen,
-        rm.manufacturer AS manufacturer,
-        rm.address AS manufacturer_address,
+        rm.organization_name AS manufacturer,
+        rm.organization_address AS manufacturer_address,
         NULL::numeric AS min_altitude_m,
         NULL::numeric AS max_altitude_m,
         NULL::numeric AS altitude_span_m,
@@ -788,7 +788,7 @@ class UniversalFilterQueryBuilder {
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
-        LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', '')) = rm.prefix AND rm.bit_length = 24
+        LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', ''))
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
       ${whereClause}
@@ -1085,8 +1085,8 @@ class UniversalFilterQueryBuilder {
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
         ne.first_seen,
         ne.last_seen,
-        rm.manufacturer AS manufacturer,
-        rm.address AS manufacturer_address,
+        rm.organization_name AS manufacturer,
+        rm.organization_address AS manufacturer_address,
         NULL::numeric AS min_altitude_m,
         NULL::numeric AS max_altitude_m,
         NULL::numeric AS altitude_span_m,
@@ -1112,7 +1112,7 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
       LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-      LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = rm.prefix AND rm.bit_length = 24
+      LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
       ${whereClause}
       ORDER BY ${safeOrderBy}
       LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}

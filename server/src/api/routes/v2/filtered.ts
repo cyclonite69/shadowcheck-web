@@ -191,7 +191,7 @@ const buildOrderBy = (sort: string | undefined, order: string | undefined): stri
     stationary_confidence: 's.stationary_confidence',
     frequency: 'ne.frequency',
     channel: 'ne.frequency',
-    manufacturer: 'rm.manufacturer',
+    manufacturer: 'rm.organization_name',
     max_distance_meters: 'ne.max_distance_meters',
   };
 
