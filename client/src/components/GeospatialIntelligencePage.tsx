@@ -178,6 +178,7 @@ export default function GeospatialIntelligencePage() {
 
   const handleFilters = useCallback(
     (payload: { filters: NetworkFilters; enabled: Record<keyof NetworkFilters, boolean> }) => {
+      console.log('🔄 Geospatial filters updated:', payload);
       setExplorerFilters(payload);
       loadNetworks(payload);
       loadExplorerOverlays(payload);

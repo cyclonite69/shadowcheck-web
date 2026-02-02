@@ -324,7 +324,19 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                       const updated = e.target.checked
                         ? [...current, type]
                         : current.filter((t) => t !== type);
+                      console.log(
+                        `🔧 Encryption filter changed: ${type}, checked: ${e.target.checked}, updated:`,
+                        updated
+                      );
                       setFilter('encryptionTypes', updated);
+                      // Force enable the filter if we're adding a value
+                      if (e.target.checked && updated.length > 0) {
+                        enableFilter('encryptionTypes', true);
+                      }
+                      // Disable if no values selected
+                      if (!e.target.checked && updated.length === 0) {
+                        enableFilter('encryptionTypes', false);
+                      }
                     }}
                     className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
                   />

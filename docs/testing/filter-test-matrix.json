@@ -1,0 +1,945 @@
+{
+  "geospatial": {
+    "ssid": {
+      "supported": true,
+      "testValue": "TestNetwork",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "bssid": {
+      "supported": true,
+      "testValue": "00:11:22:33:44:55",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "manufacturer": {
+      "supported": true,
+      "testValue": "Apple",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "networkId": {
+      "supported": true,
+      "testValue": "test-network-123",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radioTypes": {
+      "supported": true,
+      "testValue": ["W"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "frequencyBands": {
+      "supported": true,
+      "testValue": ["2.4GHz"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMin": {
+      "supported": true,
+      "testValue": 1,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMax": {
+      "supported": true,
+      "testValue": 11,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMin": {
+      "supported": true,
+      "testValue": -80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMax": {
+      "supported": true,
+      "testValue": -30,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "encryptionTypes": {
+      "supported": true,
+      "testValue": ["WPA2"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "authMethods": {
+      "supported": true,
+      "testValue": ["PSK"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "insecureFlags": {
+      "supported": true,
+      "testValue": ["open"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "securityFlags": {
+      "supported": true,
+      "testValue": ["personal"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "timeframe": {
+      "supported": true,
+      "testValue": {
+        "type": "relative",
+        "relativeWindow": "7d"
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "temporalScope": {
+      "supported": true,
+      "testValue": "observation_time",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMin": {
+      "supported": true,
+      "testValue": 5,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMax": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "gpsAccuracyMax": {
+      "supported": true,
+      "testValue": 50,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "excludeInvalidCoords": {
+      "supported": true,
+      "testValue": true,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "qualityFilter": {
+      "supported": true,
+      "testValue": "temporal",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMin": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMax": {
+      "supported": true,
+      "testValue": 1000,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "boundingBox": {
+      "supported": true,
+      "testValue": {
+        "north": 40.7831,
+        "south": 40.7489,
+        "east": -73.9441,
+        "west": -73.9927
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radiusFilter": {
+      "supported": true,
+      "testValue": {
+        "latitude": 40.7589,
+        "longitude": -73.9851,
+        "radiusMeters": 500
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMin": {
+      "supported": true,
+      "testValue": 20,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMax": {
+      "supported": true,
+      "testValue": 80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatCategories": {
+      "supported": true,
+      "testValue": ["medium"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMin": {
+      "supported": true,
+      "testValue": 0.3,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMax": {
+      "supported": true,
+      "testValue": 0.8,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    }
+  },
+  "analytics": {
+    "ssid": {
+      "supported": true,
+      "testValue": "TestNetwork",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "bssid": {
+      "supported": true,
+      "testValue": "00:11:22:33:44:55",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "manufacturer": {
+      "supported": true,
+      "testValue": "Apple",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "networkId": {
+      "supported": true,
+      "testValue": "test-network-123",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radioTypes": {
+      "supported": true,
+      "testValue": ["W"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "frequencyBands": {
+      "supported": true,
+      "testValue": ["2.4GHz"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMin": {
+      "supported": true,
+      "testValue": 1,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMax": {
+      "supported": true,
+      "testValue": 11,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMin": {
+      "supported": true,
+      "testValue": -80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMax": {
+      "supported": true,
+      "testValue": -30,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "encryptionTypes": {
+      "supported": true,
+      "testValue": ["WPA2"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "authMethods": {
+      "supported": true,
+      "testValue": ["PSK"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "insecureFlags": {
+      "supported": true,
+      "testValue": ["open"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "securityFlags": {
+      "supported": true,
+      "testValue": ["personal"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "timeframe": {
+      "supported": true,
+      "testValue": {
+        "type": "relative",
+        "relativeWindow": "7d"
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "temporalScope": {
+      "supported": true,
+      "testValue": "observation_time",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMin": {
+      "supported": true,
+      "testValue": 5,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMax": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "gpsAccuracyMax": {
+      "supported": true,
+      "testValue": 50,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "excludeInvalidCoords": {
+      "supported": true,
+      "testValue": true,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "qualityFilter": {
+      "supported": true,
+      "testValue": "temporal",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMin": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMax": {
+      "supported": true,
+      "testValue": 1000,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "boundingBox": {
+      "supported": true,
+      "testValue": {
+        "north": 40.7831,
+        "south": 40.7489,
+        "east": -73.9441,
+        "west": -73.9927
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radiusFilter": {
+      "supported": true,
+      "testValue": {
+        "latitude": 40.7589,
+        "longitude": -73.9851,
+        "radiusMeters": 500
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMin": {
+      "supported": true,
+      "testValue": 20,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMax": {
+      "supported": true,
+      "testValue": 80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatCategories": {
+      "supported": true,
+      "testValue": ["medium"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMin": {
+      "supported": true,
+      "testValue": 0.3,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMax": {
+      "supported": true,
+      "testValue": 0.8,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    }
+  },
+  "dashboard": {
+    "ssid": {
+      "supported": true,
+      "testValue": "TestNetwork",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "bssid": {
+      "supported": true,
+      "testValue": "00:11:22:33:44:55",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "manufacturer": {
+      "supported": true,
+      "testValue": "Apple",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "networkId": {
+      "supported": true,
+      "testValue": "test-network-123",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radioTypes": {
+      "supported": true,
+      "testValue": ["W"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "frequencyBands": {
+      "supported": true,
+      "testValue": ["2.4GHz"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMin": {
+      "supported": true,
+      "testValue": 1,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMax": {
+      "supported": true,
+      "testValue": 11,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMin": {
+      "supported": true,
+      "testValue": -80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMax": {
+      "supported": true,
+      "testValue": -30,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "encryptionTypes": {
+      "supported": true,
+      "testValue": ["WPA2"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "authMethods": {
+      "supported": true,
+      "testValue": ["PSK"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "insecureFlags": {
+      "supported": true,
+      "testValue": ["open"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "securityFlags": {
+      "supported": true,
+      "testValue": ["personal"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "timeframe": {
+      "supported": true,
+      "testValue": {
+        "type": "relative",
+        "relativeWindow": "7d"
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "temporalScope": {
+      "supported": true,
+      "testValue": "observation_time",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMin": {
+      "supported": true,
+      "testValue": 5,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMax": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "gpsAccuracyMax": {
+      "supported": true,
+      "testValue": 50,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "excludeInvalidCoords": {
+      "supported": true,
+      "testValue": true,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "qualityFilter": {
+      "supported": true,
+      "testValue": "temporal",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMin": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMax": {
+      "supported": true,
+      "testValue": 1000,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "boundingBox": {
+      "supported": true,
+      "testValue": {
+        "north": 40.7831,
+        "south": 40.7489,
+        "east": -73.9441,
+        "west": -73.9927
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radiusFilter": {
+      "supported": true,
+      "testValue": {
+        "latitude": 40.7589,
+        "longitude": -73.9851,
+        "radiusMeters": 500
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMin": {
+      "supported": true,
+      "testValue": 20,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMax": {
+      "supported": true,
+      "testValue": 80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatCategories": {
+      "supported": true,
+      "testValue": ["medium"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMin": {
+      "supported": true,
+      "testValue": 0.3,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMax": {
+      "supported": true,
+      "testValue": 0.8,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    }
+  },
+  "kepler": {
+    "ssid": {
+      "supported": true,
+      "testValue": "TestNetwork",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "bssid": {
+      "supported": true,
+      "testValue": "00:11:22:33:44:55",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "manufacturer": {
+      "supported": true,
+      "testValue": "Apple",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "networkId": {
+      "supported": true,
+      "testValue": "test-network-123",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radioTypes": {
+      "supported": true,
+      "testValue": ["W"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "frequencyBands": {
+      "supported": true,
+      "testValue": ["2.4GHz"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMin": {
+      "supported": true,
+      "testValue": 1,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "channelMax": {
+      "supported": true,
+      "testValue": 11,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMin": {
+      "supported": true,
+      "testValue": -80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMax": {
+      "supported": true,
+      "testValue": -30,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "encryptionTypes": {
+      "supported": true,
+      "testValue": ["WPA2"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "authMethods": {
+      "supported": true,
+      "testValue": ["PSK"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "insecureFlags": {
+      "supported": true,
+      "testValue": ["open"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "securityFlags": {
+      "supported": true,
+      "testValue": ["personal"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "timeframe": {
+      "supported": true,
+      "testValue": {
+        "type": "relative",
+        "relativeWindow": "7d"
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "temporalScope": {
+      "supported": true,
+      "testValue": "observation_time",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMin": {
+      "supported": true,
+      "testValue": 5,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "observationCountMax": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "gpsAccuracyMax": {
+      "supported": true,
+      "testValue": 50,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "excludeInvalidCoords": {
+      "supported": true,
+      "testValue": true,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "qualityFilter": {
+      "supported": true,
+      "testValue": "temporal",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMin": {
+      "supported": true,
+      "testValue": 100,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "distanceFromHomeMax": {
+      "supported": true,
+      "testValue": 1000,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "boundingBox": {
+      "supported": true,
+      "testValue": {
+        "north": 40.7831,
+        "south": 40.7489,
+        "east": -73.9441,
+        "west": -73.9927
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radiusFilter": {
+      "supported": true,
+      "testValue": {
+        "latitude": 40.7589,
+        "longitude": -73.9851,
+        "radiusMeters": 500
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMin": {
+      "supported": true,
+      "testValue": 20,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatScoreMax": {
+      "supported": true,
+      "testValue": 80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "threatCategories": {
+      "supported": true,
+      "testValue": ["medium"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMin": {
+      "supported": true,
+      "testValue": 0.3,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "stationaryConfidenceMax": {
+      "supported": true,
+      "testValue": 0.8,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    }
+  },
+  "wigle": {
+    "ssid": {
+      "supported": true,
+      "testValue": "TestNetwork",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "bssid": {
+      "supported": true,
+      "testValue": "00:11:22:33:44:55",
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "radioTypes": {
+      "supported": true,
+      "testValue": ["W"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "rssiMin": {
+      "supported": true,
+      "testValue": -80,
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "timeframe": {
+      "supported": true,
+      "testValue": {
+        "type": "relative",
+        "relativeWindow": "7d"
+      },
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    },
+    "encryptionTypes": {
+      "supported": true,
+      "testValue": ["WPA2"],
+      "status": "pending",
+      "notes": "",
+      "verificationMethod": "manual"
+    }
+  }
+}

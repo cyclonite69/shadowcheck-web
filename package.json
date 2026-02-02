@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "type": "commonjs",
   "description": "ShadowCheck SIGINT Forensics Platform - Static Frontend & Server",
-  "main": "server/server.js",
+  "main": "dist/server/server/server.js",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "nodemon server/server.js",
+    "start": "node dist/server/server/server.js",
+    "dev": "npm run build:server && nodemon dist/server/server/server.js",
     "dev:frontend": "vite --config client/vite.config.ts",
     "prebuild": "tsx scripts/write-robots.ts && tsx scripts/generate-sitemap.ts",
     "build": "npm run build:frontend && npm run build:server",
