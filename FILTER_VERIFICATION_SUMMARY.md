@@ -4,6 +4,8 @@
 
 **Status**: All supported filters across all pages have been verified and are working correctly.
 
+**Note**: The previous detailed verification report has been consolidated into this summary to keep a single source of truth.
+
 ## Results Overview
 
 - **Total Filters Tested**: 125 (25 filters × 5 pages)

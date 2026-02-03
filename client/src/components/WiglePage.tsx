@@ -26,7 +26,7 @@ type WigleRow = {
   accuracy?: number | null;
 };
 
-const DEFAULT_LIMIT = 20000;
+const DEFAULT_LIMIT: number | null = null;
 const CLUSTER_SAMPLE_LIMIT = 50;
 
 // BSSID-based color generation (from ShadowCheckLite)
@@ -130,7 +130,7 @@ const WiglePage: React.FC = () => {
   const mapboxRef = useRef<mapboxglType | null>(null);
   const clusterColorCache = useRef<Record<number, string>>({});
   const featureCollectionRef = useRef<any>(null); // Ref for latest featureCollection
-  const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [limit, setLimit] = useState<number | null>(DEFAULT_LIMIT);
   const [offset, setOffset] = useState(0);
   const [typeFilter, setTypeFilter] = useState('');
   const [loading, setLoading] = useState(false);
@@ -549,10 +549,14 @@ const WiglePage: React.FC = () => {
     setError(null);
     try {
       const params = new URLSearchParams({
-        limit: String(limit),
-        offset: String(offset),
         include_total: '1',
       });
+      if (limit !== null) {
+        params.set('limit', String(limit));
+      }
+      if (offset > 0) {
+        params.set('offset', String(offset));
+      }
       if (typeFilter.trim()) {
         params.set('type', typeFilter.trim());
       }

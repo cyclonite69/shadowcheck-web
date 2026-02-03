@@ -88,3 +88,9 @@ The project is containerized using Docker.
 
 - `Dockerfile`: Multi-stage build for the Node.js app.
 - `docker-compose.yml`: Orchestrates the API and Redis services (depends on external Postgres).
+
+## Kepler.gl Data Rules (Do Not Violate)
+
+- No default limits for Kepler endpoints unless a user provides `limit`.
+- Kepler is designed for large datasets; avoid artificial caps.
+- Endpoints: `/api/kepler/data`, `/api/kepler/observations`, `/api/kepler/networks`.

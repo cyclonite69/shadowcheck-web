@@ -9,6 +9,7 @@ Quick reference guide for the major fixes applied to ShadowCheck in January 2026
 | GeoSpatial table bogus defaults   | ✅ Fixed | High   | Use latest observation data              |
 | Analytics widgets "No data"       | ✅ Fixed | High   | Add missing API calls + fix data sources |
 | Max distance ~238m incorrect      | ✅ Fixed | Medium | Use PostGIS ST_Distance                  |
+| Encryption filters not applying   | ✅ Fixed | Medium | Explicitly enable filter on toggle       |
 | Threat score columns not sortable | ✅ Fixed | Medium | Add to API_SORT_MAP                      |
 | WiGLE observations not rendering  | ✅ Fixed | Medium | Fix schema namespace (public→app)        |
 | Manufacturer fields empty         | ✅ Fixed | Low    | Add radio_manufacturers JOIN             |
@@ -39,6 +40,12 @@ curl -s "http://localhost:3001/api/networks?limit=3" | jq '.networks[] | {bssid,
 
 ```bash
 curl -s "http://localhost:3001/api/networks?sort=rule_score&order=DESC&limit=3" | jq '.networks[] | {bssid, rule_score}'
+```
+
+### Test Encryption Filters
+
+```bash
+curl -s "http://localhost:3001/api/v2/networks/filtered?filters=%7B%22encryptionTypes%22%3A%5B%22WPA3%22%5D%7D&enabled=%7B%22encryptionTypes%22%3Atrue%7D&limit=5"
 ```
 
 ### Test WiGLE Observations

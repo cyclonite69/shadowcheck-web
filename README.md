@@ -49,6 +49,11 @@
 
 See `docs/FEATURES.md` for the full feature catalog.
 
+## Kepler.gl Data Policy
+
+- **No default limits** on Kepler endpoints unless explicitly requested via query params.
+- Prefer filters over caps; Kepler.gl is designed for large datasets.
+
 ## Recent Improvements (January 2026)
 
 ✅ **TypeScript Migration & Build Pipeline**

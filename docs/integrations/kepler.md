@@ -10,7 +10,7 @@ Added Kepler.gl visualization support to ShadowCheck for advanced geospatial ana
 
 **Parameters:**
 
-- `limit` (optional): Max number of networks to return (default: 10,000)
+- `limit` (optional): Max number of networks to return (**no default limit**)
 - `bbox` (optional): Bounding box filter as `minLng,minLat,maxLng,maxLat`
 
 **Response:** GeoJSON FeatureCollection with network properties:
@@ -26,9 +26,14 @@ Added Kepler.gl visualization support to ShadowCheck for advanced geospatial ana
 
 ## Performance Notes
 
-- **Current approach:** Loads full dataset client-side (good for <100K points)
-- **For larger datasets:** Use bbox parameter for spatial filtering
+- **Default behavior:** No artificial limits; Kepler.gl can handle large datasets.
+- **For larger datasets:** Use bbox or other filters instead of caps.
 - **Kepler.gl advantages:** GPU acceleration, smooth interaction, advanced filtering UI
+
+## Kepler Data Rules (Strict)
+
+- Never add default limits to Kepler endpoints unless explicitly requested by the user.
+- Endpoints: `/api/kepler/data`, `/api/kepler/observations`, `/api/kepler/networks`.
 
 ## Example API Calls
 

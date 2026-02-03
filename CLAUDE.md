@@ -124,6 +124,13 @@ const apiKey = secretsManager.get('api_key'); // Optional (returns null if missi
 const dbPassword = secretsManager.getOrThrow('db_password'); // Required (throws if missing)
 ```
 
+## Kepler.gl Data Rules (Do Not Violate)
+
+- **No artificial limits** on Kepler endpoints unless explicitly requested via query params.
+- Default behavior is **no limit**; let the DB and Kepler.gl handle large datasets.
+- Applies to: `/api/kepler/data`, `/api/kepler/observations`, `/api/kepler/networks`.
+- Use timeouts (e.g., 120s) for large queries and prefer filtering over caps.
+
 ## Tailwind CSS (v4)
 
 **CRITICAL**: Uses `@tailwindcss/postcss` plugin (NOT `tailwindcss`). Dark-only theme (slate-950 primary).

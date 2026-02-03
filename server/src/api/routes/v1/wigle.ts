@@ -43,7 +43,7 @@ function parseIncludeTotalFlag(value) {
 const validateWigleSearchQuery = validateQuery({
   ssid: optional((value) => validateString(String(value), 1, 64, 'ssid')),
   bssid: optional((value) => validateString(String(value), 1, 64, 'bssid')),
-  limit: optional((value) => validateIntegerRange(value, 1, 500, 'limit')),
+  limit: optional((value) => validateIntegerRange(value, 1, Number.MAX_SAFE_INTEGER, 'limit')),
 });
 
 /**
@@ -51,7 +51,7 @@ const validateWigleSearchQuery = validateQuery({
  * @type {function}
  */
 const validateWigleNetworksQuery = validateQuery({
-  limit: optional((value) => validateIntegerRange(value, 1, 50000, 'limit')),
+  limit: optional((value) => validateIntegerRange(value, 1, Number.MAX_SAFE_INTEGER, 'limit')),
   offset: optional((value) => validateIntegerRange(value, 0, 10000000, 'offset')),
   type: optional((value) => validateString(String(value), 1, 16, 'type')),
 });
@@ -160,7 +160,7 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
   try {
     const ssid = req.validated?.ssid ? String(req.validated.ssid).trim() : '';
     const bssid = req.validated?.bssid ? String(req.validated.bssid).trim() : '';
-    const limit = req.validated?.limit ?? 50;
+    const limit = req.validated?.limit ?? null;
 
     if (!ssid && !bssid) {
       return res.status(400).json({ error: 'Either ssid or bssid parameter is required' });
@@ -169,7 +169,8 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
     const searchLimit = limit;
 
     let searchQuery;
-    let params;
+    const params = [];
+    const paginationClauses = [];
 
     if (bssid) {
       searchQuery = `
@@ -183,9 +184,8 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
         FROM app.wigle_v2_networks_search
         WHERE bssid ILIKE $1
         ORDER BY lasttime DESC
-        LIMIT $2
       `;
-      params = [`%${bssid}%`, searchLimit];
+      params.push(`%${bssid}%`);
     } else {
       searchQuery = `
         SELECT
@@ -198,12 +198,16 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
         FROM app.wigle_v2_networks_search
         WHERE ssid ILIKE $1
         ORDER BY lasttime DESC
-        LIMIT $2
       `;
-      params = [`%${ssid}%`, searchLimit];
+      params.push(`%${ssid}%`);
     }
 
-    const { rows } = await query(searchQuery, params);
+    if (searchLimit !== null) {
+      params.push(searchLimit);
+      paginationClauses.push(`LIMIT $${params.length}`);
+    }
+
+    const { rows } = await query(`${searchQuery} ${paginationClauses.join(' ')}`.trim(), params);
 
     res.json({
       ok: true,
@@ -220,8 +224,8 @@ router.get('/wigle/search', validateWigleSearchQuery, async (req, res, next) => 
 router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, next) => {
   try {
     const { filters, enabled } = req.query;
-    const limitRaw = req.validated?.limit;
-    const offsetRaw = req.validated?.offset;
+    const limitRaw = req.validated?.limit ?? null;
+    const offsetRaw = req.validated?.offset ?? null;
     const typeRaw = req.validated?.type;
     const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
     if (!includeTotalValidation.valid) {
@@ -229,14 +233,14 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
     }
     const includeTotal = includeTotalValidation.value;
 
-    const limit = limitRaw ?? 20000;
-    const offset = offsetRaw ?? 0;
-    const params = [limit, offset];
+    const limit = limitRaw;
+    const offset = offsetRaw;
+    const params = [];
     const whereClauses = ['trilat IS NOT NULL', 'trilong IS NOT NULL'];
 
     if (typeRaw && String(typeRaw).trim() !== '') {
-      params.unshift(String(typeRaw).trim());
-      whereClauses.push('type = $1');
+      params.push(String(typeRaw).trim());
+      whereClauses.push(`type = $${params.length}`);
     }
 
     // Apply filters if provided
@@ -265,6 +269,15 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const paginationClauses = [];
+    if (limit !== null) {
+      params.push(limit);
+      paginationClauses.push(`LIMIT $${params.length}`);
+    }
+    if (offset !== null) {
+      params.push(offset);
+      paginationClauses.push(`OFFSET $${params.length}`);
+    }
     const sql = `
       SELECT
         bssid,
@@ -280,7 +293,7 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
       FROM app.wigle_v2_networks_search
       ${whereSql}
       ORDER BY lasttime DESC
-      LIMIT $${params.length - 1} OFFSET $${params.length}
+      ${paginationClauses.join(' ')}
     `;
 
     const { rows } = await query(sql, params);
@@ -312,12 +325,12 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
 // GET /api/wigle/networks-v3 - Fetch WiGLE v3 networks for map testing
 router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, next) => {
   try {
-    const limitRaw = req.validated?.limit;
-    const offsetRaw = req.validated?.offset;
+    const limitRaw = req.validated?.limit ?? null;
+    const offsetRaw = req.validated?.offset ?? null;
     const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
 
-    const limit = limitRaw ?? 20000;
-    const offset = offsetRaw ?? 0;
+    const limit = limitRaw;
+    const offset = offsetRaw;
 
     // Use a CTE to get all individual observations if they exist,
     // otherwise fall back to the trilaterated point in the summary table.
@@ -349,10 +362,20 @@ router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, ne
       UNION ALL
       SELECT * FROM summary
       ORDER BY lasttime DESC
-      LIMIT $1 OFFSET $2
     `;
 
-    const { rows } = await query(sql, [limit, offset]);
+    const params = [];
+    const paginationClauses = [];
+    if (limit !== null) {
+      params.push(limit);
+      paginationClauses.push(`LIMIT $${params.length}`);
+    }
+    if (offset !== null) {
+      params.push(offset);
+      paginationClauses.push(`OFFSET $${params.length}`);
+    }
+
+    const { rows } = await query(`${sql} ${paginationClauses.join(' ')}`.trim(), params);
 
     let total = null;
     if (includeTotalValidation.valid && includeTotalValidation.value) {

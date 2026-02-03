@@ -98,6 +98,27 @@ curl -s "http://localhost:3001/api/networks?limit=3" | jq '.networks[] | {bssid,
 curl -s "http://localhost:3001/api/networks?sort=rule_score&order=DESC&limit=3" | jq '.networks[] | {bssid, rule_score}'
 ```
 
+## Encryption Filter Issues
+
+### Problem: Encryption Filters Not Applying
+
+**Symptoms:**
+
+- Selecting OPEN/WPA2/WPA3 does not change results
+- Filter badge appears but results remain unfiltered
+
+**Root Cause:** Filter values updated but enable flags were not reliably set.
+
+**Solution Applied:**
+
+- Explicitly enable/disable the `encryptionTypes` filter on checkbox changes.
+
+**Verification:**
+
+```bash
+curl -s "http://localhost:3001/api/v2/networks/filtered?filters=%7B%22encryptionTypes%22%3A%5B%22WPA3%22%5D%7D&enabled=%7B%22encryptionTypes%22%3Atrue%7D&limit=5"
+```
+
 ## WiGLE Observations Not Rendering
 
 ### Problem: WiGLE Points Missing from Map
