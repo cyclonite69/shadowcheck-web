@@ -36,6 +36,39 @@ function parseIncludeTotalFlag(value) {
   return { valid: false, error: 'include_total must be 1, 0, true, or false' };
 }
 
+const stripNullBytes = (value) => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const cleaned = String(value).replace(/\u0000/g, '');
+  return cleaned === '' ? null : cleaned;
+};
+
+const stripNullBytesKeepEmpty = (value) => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  return String(value).replace(/\u0000/g, '');
+};
+
+const stripNullBytesDeep = (value) => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return stripNullBytesKeepEmpty(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => stripNullBytesDeep(item));
+  }
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [key, stripNullBytesDeep(val)])
+    );
+  }
+  return value;
+};
+
 /**
  * Validates WiGLE search query parameters.
  * @type {function}
@@ -633,6 +666,7 @@ async function importWigleV3Observations(netid, locationClusters) {
           loc.ssid && loc.ssid !== '?' && loc.ssid !== ''
             ? loc.ssid
             : cluster.clusterSsid || loc.ssid;
+        const sanitizedSsid = stripNullBytes(ssidToUse);
 
         await adminQuery(
           `
@@ -658,10 +692,10 @@ async function importWigleV3Observations(netid, locationClusters) {
             parseInt(loc.signal) || null,
             loc.time,
             loc.lastupdt,
-            ssidToUse,
+            sanitizedSsid,
             parseInt(loc.frequency) || null,
             parseInt(loc.channel) || null,
-            loc.encryptionValue,
+            stripNullBytes(loc.encryptionValue),
             parseInt(loc.noise) || null,
             parseInt(loc.snr) || null,
             loc.month,
@@ -745,9 +779,18 @@ async function handleWigleDetailRequest(req, res, next, endpoint) {
     }
 
     const data = detailResponse.data;
+    const normalizedData = stripNullBytesDeep(data);
     let importedObservations = 0;
 
     if (shouldImport && data.networkId) {
+      const sanitizedName = stripNullBytes(data.name);
+      const sanitizedComment = stripNullBytes(data.comment);
+      const sanitizedSsid = stripNullBytes(data.locationClusters?.[0]?.clusterSsid || data.name);
+      const sanitizedEncryption = stripNullBytes(data.encryption);
+      const sanitizedFreenet = stripNullBytes(data.freenet);
+      const sanitizedDhcp = stripNullBytes(data.dhcp);
+      const sanitizedPaynet = stripNullBytes(data.paynet);
+
       logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
 
       await adminQuery(
@@ -788,18 +831,18 @@ async function handleWigleDetailRequest(req, res, next, endpoint) {
       `,
         [
           data.networkId,
-          data.name,
+          sanitizedName,
           data.type,
-          data.comment,
-          data.locationClusters?.[0]?.clusterSsid || data.name,
+          sanitizedComment,
+          sanitizedSsid,
           data.trilateratedLatitude,
           data.trilateratedLongitude,
-          data.encryption,
+          sanitizedEncryption,
           data.channel,
           data.bcninterval,
-          data.freenet,
-          data.dhcp,
-          data.paynet,
+          sanitizedFreenet,
+          sanitizedDhcp,
+          sanitizedPaynet,
           data.bestClusterWiGLEQoS,
           data.firstSeen,
           data.lastSeen,
@@ -816,7 +859,7 @@ async function handleWigleDetailRequest(req, res, next, endpoint) {
 
     res.json({
       ok: true,
-      data,
+      data: normalizedData,
       imported: shouldImport,
       importedObservations,
     });
@@ -863,6 +906,14 @@ router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
       return res.status(400).json({ ok: false, error: 'JSON missing networkId field' });
     }
 
+    const sanitizedName = stripNullBytes(data.name);
+    const sanitizedComment = stripNullBytes(data.comment);
+    const sanitizedSsid = stripNullBytes(data.locationClusters?.[0]?.clusterSsid || data.name);
+    const sanitizedEncryption = stripNullBytes(data.encryption);
+    const sanitizedFreenet = stripNullBytes(data.freenet);
+    const sanitizedDhcp = stripNullBytes(data.dhcp);
+    const sanitizedPaynet = stripNullBytes(data.paynet);
+
     logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
 
     await adminQuery(
@@ -903,18 +954,18 @@ router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
     `,
       [
         data.networkId,
-        data.name,
+        sanitizedName,
         data.type,
-        data.comment,
-        data.locationClusters?.[0]?.clusterSsid || data.name,
+        sanitizedComment,
+        sanitizedSsid,
         data.trilateratedLatitude,
         data.trilateratedLongitude,
-        data.encryption,
+        sanitizedEncryption,
         data.channel,
         data.bcninterval,
-        data.freenet,
-        data.dhcp,
-        data.paynet,
+        sanitizedFreenet,
+        sanitizedDhcp,
+        sanitizedPaynet,
         data.bestClusterWiGLEQoS,
         data.firstSeen,
         data.lastSeen,
@@ -933,7 +984,7 @@ router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
 
     res.json({
       ok: true,
-      data,
+      data: stripNullBytesDeep(data),
       importedObservations,
     });
   } catch (err) {
