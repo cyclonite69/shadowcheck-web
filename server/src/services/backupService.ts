@@ -7,7 +7,7 @@ const secretsManager = require('./secretsManager');
 
 export {};
 
-const repoRoot = path.resolve(__dirname, '../../..');
+const repoRoot = '/app';
 
 const getBackupDir = () => {
   const configured = process.env.BACKUP_DIR;
@@ -201,4 +201,95 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   return result;
 };
 
-module.exports = { runPostgresBackup };
+const listS3Backups = async () => {
+  const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
+
+  logger.info(`[Backup] Listing S3 backups from s3://${bucketName}/backups/`);
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('aws', [
+      's3api',
+      'list-objects-v2',
+      '--bucket',
+      bucketName,
+      '--prefix',
+      'backups/',
+      '--query',
+      'Contents[?Size>`0`].{Key:Key,Size:Size,LastModified:LastModified}',
+      '--output',
+      'json',
+    ]);
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const backups = JSON.parse(stdout || '[]');
+          resolve(
+            backups.map((backup: any) => ({
+              key: backup.Key,
+              fileName: backup.Key.replace('backups/', ''),
+              size: backup.Size,
+              lastModified: backup.LastModified,
+              url: `s3://${bucketName}/${backup.Key}`,
+            }))
+          );
+        } catch (parseError) {
+          reject(new Error(`Failed to parse S3 response: ${parseError}`));
+        }
+      } else {
+        reject(new Error(stderr || `AWS S3 list failed with code ${code}`));
+      }
+    });
+  });
+};
+
+const deleteS3Backup = async (key: string) => {
+  const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
+
+  logger.info(`[Backup] Deleting S3 backup: s3://${bucketName}/${key}`);
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('aws', ['s3api', 'delete-object', '--bucket', bucketName, '--key', key]);
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        logger.info(`[Backup] S3 backup deleted: ${key}`);
+        resolve({ deleted: true, key });
+      } else {
+        reject(new Error(stderr || `AWS S3 delete failed with code ${code}`));
+      }
+    });
+  });
+};
+
+module.exports = { runPostgresBackup, listS3Backups, deleteS3Backup };

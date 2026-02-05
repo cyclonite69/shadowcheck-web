@@ -51,6 +51,18 @@ tsx etl/load/fbi-offices.ts --refresh
 tsx etl/load/fbi-offices.ts --limit=5
 ```
 
+### fbi-resident-agencies-gov.ts
+
+Enriches FBI resident agencies with addresses from curated official .gov sources.
+
+```bash
+# Use default CSV at data/csv/fbi_resident_agencies_gov.csv
+tsx etl/load/fbi-resident-agencies-gov.ts
+
+# Provide a custom CSV
+tsx etl/load/fbi-resident-agencies-gov.ts --csv=/path/to/file.csv
+```
+
 ## Configuration
 
 | Variable            | Default          | Description                       |

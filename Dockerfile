@@ -32,8 +32,8 @@ RUN npm prune --omit=dev
 ###########################################
 FROM node:20-alpine
 
-# Install dumb-init for proper signal handling and pg_dump for backups
-RUN apk add --no-cache dumb-init postgresql-client
+# Install dumb-init for proper signal handling, pg_dump for backups, and AWS CLI for S3
+RUN apk add --no-cache dumb-init postgresql-client aws-cli
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \

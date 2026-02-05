@@ -46,10 +46,36 @@ const formatBytes = (bytes: number) => {
 };
 
 export const BackupsTab: React.FC = () => {
-  const { backupLoading, backupResult, backupError, runBackup } = useBackups();
+  const {
+    backupLoading,
+    backupResult,
+    backupError,
+    runBackup,
+    s3Backups,
+    s3Loading,
+    loadS3Backups,
+    deleteS3Backup,
+  } = useBackups();
+
+  // Load S3 backups on component mount
+  React.useEffect(() => {
+    loadS3Backups();
+  }, []);
+
+  const handleDeleteS3Backup = async (key: string, fileName: string) => {
+    if (!window.confirm(`Delete backup "${fileName}" from S3? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteS3Backup(key);
+    } catch (err: any) {
+      alert(`Failed to delete backup: ${err.message}`);
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
       {/* Backup Actions */}
       <AdminCard
         icon={DatabaseIcon}
@@ -140,6 +166,62 @@ export const BackupsTab: React.FC = () => {
             <p>• S3 backups use STANDARD_IA storage class</p>
             <p>• S3 bucket: dbcoopers-briefcase-161020170158</p>
             <p>• Retention: 14 days (default)</p>
+          </div>
+        </div>
+      </AdminCard>
+
+      {/* S3 Backup Management */}
+      <AdminCard icon={ShieldIcon} title="S3 Backup Management" color="from-blue-500 to-blue-600">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-slate-400">Manage backups in your S3 briefcase</p>
+            <button
+              onClick={loadS3Backups}
+              disabled={s3Loading}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-500 disabled:opacity-50"
+            >
+              {s3Loading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto space-y-2">
+            {s3Backups.length > 0 ? (
+              s3Backups.map((backup) => (
+                <div
+                  key={backup.key}
+                  className="p-2 bg-slate-800/50 rounded border border-slate-700/50"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-mono text-slate-200 truncate">
+                        {backup.fileName}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        {formatBytes(backup.size)} •{' '}
+                        {new Date(backup.lastModified).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteS3Backup(backup.key, backup.fileName)}
+                      className="ml-2 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-500"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-slate-400">
+                <p className="text-sm">No S3 backups found</p>
+                <p className="text-xs mt-1">Upload a backup to see it here</p>
+              </div>
+            )}
+          </div>
+
+          <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-700/50">
+            <p>• Bucket: dbcoopers-briefcase-161020170158</p>
+            <p>• Storage class: STANDARD_IA</p>
+            <p>• Deletions are permanent</p>
           </div>
         </div>
       </AdminCard>

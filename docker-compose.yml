@@ -24,6 +24,11 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       # Google Maps API Key
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      # AWS Credentials for S3 backups
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-dbcoopers-briefcase-161020170158}
     secrets:
       - db_password
       - db_admin_password
