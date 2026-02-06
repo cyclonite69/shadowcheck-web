@@ -39,6 +39,17 @@
    - Restored with pg_restore: `--verbose --no-owner --no-acl`
    - Verified: 179,844 networks, 570,609 observations, 172,575 access points
 
+7. **Built and Deployed Application Containers**
+   - Built backend (Node.js + TypeScript): 397MB
+   - Built frontend (React + Vite + Nginx): 72MB
+   - Fixed husky install issues with `--ignore-scripts`
+   - Fixed file paths (client/ subdirectory structure)
+   - Fixed server.js path: `dist/server/server/server.js`
+   - Created logs directory with proper permissions for nodejs user
+   - Configured environment variables (DB connection, Mapbox token)
+   - Used host networking for backend to access localhost PostgreSQL
+   - Configured nginx to proxy API requests to localhost:3001
+
 ### Commands That Worked
 
 ```bash
@@ -60,6 +71,31 @@ usermod -aG docker ssm-user
 
 # Create psql alias
 echo 'alias pgcli="docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db"' >> ~/.bashrc
+
+# Build backend container
+docker build -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
+
+# Build frontend container
+docker build -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
+
+# Run backend (host network for localhost DB access)
+docker run -d --name shadowcheck_backend \
+  --network host \
+  -e NODE_ENV=production \
+  -e PORT=3001 \
+  -e DB_HOST=127.0.0.1 \
+  -e DB_USER=shadowcheck_user \
+  -e DB_PASSWORD=$DB_PASSWORD \
+  -e DB_NAME=shadowcheck_db \
+  -e MAPBOX_TOKEN=$MAPBOX_TOKEN \
+  --restart unless-stopped \
+  shadowcheck/backend:latest
+
+# Run frontend (host network for localhost API access)
+docker run -d --name shadowcheck_frontend \
+  --network host \
+  --restart unless-stopped \
+  shadowcheck/frontend:latest
 ```
 
 ### Key Discoveries
@@ -603,3 +639,74 @@ For each deployment:
 ---
 
 **This document captures the complete journey from bare metal to cloud-agnostic deployment, ready for iteration across all services and cloud providers.**
+
+### Issue 9: Husky install failing in Docker production build
+
+**Problem:** `npm ci --only=production` tries to run husky install script  
+**Solution:** Use `--ignore-scripts` flag
+
+```dockerfile
+RUN npm ci --only=production --ignore-scripts
+```
+
+### Issue 10: Frontend build can't find vite.config.ts
+
+**Problem:** Vite config and index.html in `client/` subdirectory  
+**Solution:** Use the npm script that knows the correct paths
+
+```dockerfile
+# Copy client source
+COPY client ./client
+
+# Use build:frontend script (knows about client/vite.config.ts)
+RUN npm run build:frontend
+```
+
+### Issue 11: Backend server.js not found at /app/dist/server.js
+
+**Problem:** TypeScript compiles to nested path `dist/server/server/server.js`  
+**Solution:** Use correct path in CMD
+
+```dockerfile
+CMD ["node", "dist/server/server/server.js"]
+```
+
+### Issue 12: Permission denied creating logs directory
+
+**Problem:** nodejs user can't write to /app/dist/server/server/data/logs  
+**Solution:** Create directory and chown before switching users
+
+```dockerfile
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    mkdir -p /app/dist/server/server/data/logs && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+```
+
+### Issue 13: Backend requires mapbox_token secret
+
+**Problem:** Server won't start without required MAPBOX_TOKEN environment variable  
+**Solution:** Pass as environment variable in docker run
+
+```bash
+docker run -d --name shadowcheck_backend \
+  -e MAPBOX_TOKEN=$MAPBOX_TOKEN \
+  ...
+```
+
+### Issue 14: Nginx can't resolve shadowcheck_backend hostname
+
+**Problem:** Frontend container can't reach backend via container name  
+**Solution:** Use host network and proxy to localhost:3001
+
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:3001;
+}
+```
+
+```bash
+docker run -d --name shadowcheck_frontend --network host ...
+```
