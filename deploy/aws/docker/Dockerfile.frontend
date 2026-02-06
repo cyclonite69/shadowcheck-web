@@ -8,16 +8,16 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --ignore-scripts
 
-# Copy source
+# Copy client source and config
 COPY client ./client
 
-# Build frontend
-RUN npm run build
+# Build frontend (outputs to dist/)
+RUN npm run build:frontend
 
 # Production stage - nginx
 FROM nginx:alpine
 
-# Copy built files
+# Copy built files from dist/
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx config
