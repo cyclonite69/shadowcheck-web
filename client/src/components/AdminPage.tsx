@@ -10,6 +10,7 @@ import { DataImportTab } from './admin/tabs/DataImportTab';
 import { DataExportTab } from './admin/tabs/DataExportTab';
 import { PgAdminTab } from './admin/tabs/PgAdminTab';
 import { GeocodingTab } from './admin/tabs/GeocodingTab';
+import { AwsTab } from './admin/tabs/AwsTab';
 
 // SVG Icons
 const SettingsIcon = ({ size = 24, className = '' }) => (
@@ -102,6 +103,20 @@ const MapIcon = ({ size = 24, className = '' }) => (
     <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
     <path d="M9 4v14" />
     <path d="M15 6v14" />
+  </svg>
+);
+
+const CloudIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.7 1.5A4 4 0 0 0 6 19h11.5z" />
   </svg>
 );
 
@@ -199,6 +214,7 @@ const AdminPage: React.FC = () => {
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
     { id: 'geocoding', label: 'Geocoding', icon: MapIcon },
+    { id: 'aws', label: 'AWS', icon: CloudIcon },
     { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
   ];
 
@@ -244,6 +260,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'backups' && <BackupsTab />}
           {activeTab === 'exports' && <DataExportTab />}
           {activeTab === 'geocoding' && <GeocodingTab />}
+          {activeTab === 'aws' && <AwsTab />}
           {activeTab === 'pgadmin' && <PgAdminTab />}
         </div>
       </div>

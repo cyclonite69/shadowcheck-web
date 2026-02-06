@@ -1,0 +1,86 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database (isolated)
+  postgres:
+    image: postgis/postgis:18-3.6
+    container_name: shadowcheck_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shadowcheck_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: shadowcheck_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "127.0.0.1:5432:5432" # Only localhost access
+    volumes:
+      - /var/lib/postgresql:/var/lib/postgresql
+      - /var/lib/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf
+      - /var/lib/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+    shm_size: 512mb
+    networks:
+      - shadowcheck_internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+  # Backend API (isolated)
+  api:
+    image: ${DOCKER_IMAGE:-shadowcheck/api:latest}
+    container_name: shadowcheck_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: shadowcheck_user
+      DB_NAME: shadowcheck_db
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      # Security
+      FORCE_HTTPS: "true"
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - shadowcheck_internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  shadowcheck_internal:
+    driver: bridge
+    internal: false # Allow external access for API

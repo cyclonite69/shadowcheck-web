@@ -68,6 +68,33 @@ function validateGoogleMapsKey(value) {
 }
 
 /**
+ * Validates a generic API key string.
+ * @param {any} value - Raw key input
+ * @param {string} field - Field name for error messages
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateGenericKey(value, field) {
+  const validation = validateString(String(value || ''), 1, 256, field);
+  if (!validation.valid) {
+    return validation;
+  }
+  return { valid: true, value: String(value).trim() };
+}
+
+/**
+ * Validates an AWS region string.
+ * @param {any} value - Raw region input
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateAwsRegion(value) {
+  const validation = validateString(String(value || ''), 1, 64, 'aws_region');
+  if (!validation.valid) {
+    return validation;
+  }
+  return { valid: true, value: String(value).trim() };
+}
+
+/**
  * Requires API key authentication for settings routes.
  * @param {object} req - Express request
  * @param {object} res - Express response
@@ -233,6 +260,186 @@ router.post('/settings/google-maps', async (req, res) => {
     }
 
     await keyringService.setCredential('google_maps_api_key', keyValidation.value);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get OpenCage API key (masked)
+router.get('/settings/opencage', async (req, res) => {
+  try {
+    const apiKey =
+      (await keyringService.getCredential('opencage_api_key')) ||
+      secretsManager.get('opencage_api_key');
+    if (!apiKey) {
+      return res.json({ configured: false });
+    }
+    res.json({
+      configured: true,
+      apiKey: `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set OpenCage API key
+router.post('/settings/opencage', async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    const keyValidation = validateGenericKey(apiKey, 'opencage_api_key');
+    if (!keyValidation.valid) {
+      return res.status(400).json({ error: keyValidation.error });
+    }
+
+    await keyringService.setCredential('opencage_api_key', keyValidation.value);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get LocationIQ API key (masked)
+router.get('/settings/locationiq', async (req, res) => {
+  try {
+    const apiKey =
+      (await keyringService.getCredential('locationiq_api_key')) ||
+      secretsManager.get('locationiq_api_key');
+    if (!apiKey) {
+      return res.json({ configured: false });
+    }
+    res.json({
+      configured: true,
+      apiKey: `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set LocationIQ API key
+router.post('/settings/locationiq', async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    const keyValidation = validateGenericKey(apiKey, 'locationiq_api_key');
+    if (!keyValidation.valid) {
+      return res.status(400).json({ error: keyValidation.error });
+    }
+
+    await keyringService.setCredential('locationiq_api_key', keyValidation.value);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get AWS credentials (masked)
+router.get('/settings/aws', async (req, res) => {
+  try {
+    const accessKeyId =
+      (await keyringService.getCredential('aws_access_key_id')) ||
+      secretsManager.get('aws_access_key_id');
+    const secretAccessKey =
+      (await keyringService.getCredential('aws_secret_access_key')) ||
+      secretsManager.get('aws_secret_access_key');
+    const sessionToken =
+      (await keyringService.getCredential('aws_session_token')) ||
+      secretsManager.get('aws_session_token');
+    const region =
+      (await keyringService.getCredential('aws_region')) || secretsManager.get('aws_region');
+
+    if (!accessKeyId || !secretAccessKey || !region) {
+      return res.json({ configured: false, region: region || null });
+    }
+
+    res.json({
+      configured: true,
+      accessKeyId: `${accessKeyId.substring(0, 6)}...${accessKeyId.slice(-4)}`,
+      secretAccessKey: `****${secretAccessKey.slice(-4)}`,
+      sessionToken: sessionToken ? `****${sessionToken.slice(-4)}` : null,
+      region,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set AWS credentials
+router.post('/settings/aws', async (req, res) => {
+  try {
+    const { accessKeyId, secretAccessKey, sessionToken, region } = req.body;
+    const idValidation = validateGenericKey(accessKeyId, 'aws_access_key_id');
+    if (!idValidation.valid) {
+      return res.status(400).json({ error: idValidation.error });
+    }
+    const secretValidation = validateGenericKey(secretAccessKey, 'aws_secret_access_key');
+    if (!secretValidation.valid) {
+      return res.status(400).json({ error: secretValidation.error });
+    }
+    const regionValidation = validateAwsRegion(region);
+    if (!regionValidation.valid) {
+      return res.status(400).json({ error: regionValidation.error });
+    }
+
+    await keyringService.setCredential('aws_access_key_id', idValidation.value);
+    await keyringService.setCredential('aws_secret_access_key', secretValidation.value);
+    await keyringService.setCredential('aws_region', regionValidation.value);
+
+    if (sessionToken) {
+      const tokenValidation = validateGenericKey(sessionToken, 'aws_session_token');
+      if (!tokenValidation.valid) {
+        return res.status(400).json({ error: tokenValidation.error });
+      }
+      await keyringService.setCredential('aws_session_token', tokenValidation.value);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Smarty credentials (masked)
+router.get('/settings/smarty', async (req, res) => {
+  try {
+    const authId =
+      (await keyringService.getCredential('smarty_auth_id')) ||
+      secretsManager.get('smarty_auth_id');
+    const authToken =
+      (await keyringService.getCredential('smarty_auth_token')) ||
+      secretsManager.get('smarty_auth_token');
+    if (!authId || !authToken) {
+      return res.json({ configured: false });
+    }
+    res.json({
+      configured: true,
+      authId: `${authId.substring(0, 6)}...${authId.slice(-4)}`,
+      authToken: `****${authToken.slice(-4)}`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set Smarty credentials
+router.post('/settings/smarty', async (req, res) => {
+  try {
+    const { authId, authToken } = req.body;
+    const idValidation = validateGenericKey(authId, 'smarty_auth_id');
+    if (!idValidation.valid) {
+      return res.status(400).json({ error: idValidation.error });
+    }
+    const tokenValidation = validateGenericKey(authToken, 'smarty_auth_token');
+    if (!tokenValidation.valid) {
+      return res.status(400).json({ error: tokenValidation.error });
+    }
+
+    await keyringService.setCredential('smarty_auth_id', idValidation.value);
+    await keyringService.setCredential('smarty_auth_token', tokenValidation.value);
 
     res.json({ success: true });
   } catch (error) {

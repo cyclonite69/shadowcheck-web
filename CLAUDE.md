@@ -18,15 +18,15 @@ docker ps | grep shadowcheck_postgres
 
 # Development
 docker-compose up -d --build api   # Run API in Docker (recommended)
-npm run build                       # Build React frontend
+npm run build                       # Build React frontend + TypeScript server
 npm run dev                         # Local backend with auto-reload (port 3001)
 npm run dev:frontend                # Vite dev server (port 5173)
 
 # Testing
-npm test                            # All tests
+npm test                            # All tests (uses tests/setup.ts)
 npm run test:watch                  # Watch mode
 npm run test:cov                    # With coverage (70% threshold)
-npm run test:integration            # Integration tests only
+npm run test:integration            # Integration tests (RUN_INTEGRATION_TESTS=true)
 npx jest tests/unit/file.test.js   # Single test file
 npx jest --testNamePattern="pattern" # Tests matching pattern
 
@@ -38,6 +38,7 @@ npm run lint:boundaries             # Check client/server import boundaries
 
 # Database access
 docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
+docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db  # Admin access
 ```
 
 ## Architecture
@@ -139,6 +140,7 @@ const dbPassword = secretsManager.getOrThrow('db_password'); // Required (throws
 - Extract complex gradients to `client/src/index.css` under `@layer components`
 - Use semantic z-index tokens: `z-modal` (1000), `z-dropdown` (100)
 - Reference `client/tailwind.config.js` for color palette and safelist
+- See `.cursor/rules/tailwind-css-refactoring.md` for detailed refactoring guidelines
 
 ```tsx
 // Good: Tailwind utilities
@@ -147,6 +149,8 @@ const dbPassword = secretsManager.getOrThrow('db_password'); // Required (throws
 // Bad: Inline styles for colors
 <div style={{ backgroundColor: '#0f172a', border: '1px solid rgba(71, 85, 105, 0.6)' }}>
 ```
+
+**Color Mapping**: `#0f172a` → `bg-slate-950`, `#1e293b` → `bg-slate-800`, `rgba(X, 0.9)` → `/90` opacity
 
 ## Threat Detection
 

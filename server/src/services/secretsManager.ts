@@ -20,6 +20,14 @@ const OPTIONAL_SECRETS = [
   'wigle_api_token',
   'wigle_api_encoded',
   'google_maps_api_key',
+  'aws_access_key_id',
+  'aws_secret_access_key',
+  'aws_session_token',
+  'aws_region',
+  'opencage_api_key',
+  'locationiq_api_key',
+  'smarty_auth_id',
+  'smarty_auth_token',
   'db_admin_password',
 ];
 
@@ -32,6 +40,14 @@ const ENV_KEY_ALIASES: Record<string, string[]> = {
   wigle_api_token: ['WIGLE_API_TOKEN'],
   wigle_api_encoded: ['WIGLE_API_ENCODED'],
   google_maps_api_key: ['GOOGLE_MAPS_API_KEY'],
+  aws_access_key_id: ['AWS_ACCESS_KEY_ID'],
+  aws_secret_access_key: ['AWS_SECRET_ACCESS_KEY'],
+  aws_session_token: ['AWS_SESSION_TOKEN'],
+  aws_region: ['AWS_REGION', 'AWS_DEFAULT_REGION'],
+  opencage_api_key: ['OPENCAGE_API_KEY'],
+  locationiq_api_key: ['LOCATIONIQ_API_KEY'],
+  smarty_auth_id: ['SMARTY_AUTH_ID'],
+  smarty_auth_token: ['SMARTY_AUTH_TOKEN'],
 };
 
 const DOCKER_SECRETS_DIR = '/run/secrets';
@@ -92,15 +108,15 @@ class SecretsManager {
     let usedEnvInProduction = false;
 
     for (const secret of allSecrets) {
-      const dockerValue = await this.loadFromDocker(secret);
-      if (dockerValue) {
-        this.register(secret, dockerValue, 'docker');
-        continue;
-      }
-
       const keyringValue = await this.loadFromKeyring(secret);
       if (keyringValue) {
         this.register(secret, keyringValue, 'keyring');
+        continue;
+      }
+
+      const dockerValue = await this.loadFromDocker(secret);
+      if (dockerValue) {
+        this.register(secret, dockerValue, 'docker');
         continue;
       }
 

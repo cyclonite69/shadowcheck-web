@@ -1,0 +1,205 @@
+version: "3.8"
+
+# AWS Deployment: Separated concerns with security hardening
+# PostgreSQL + Redis always running, API/PgAdmin on-demand
+
+services:
+  # ============================================================================
+  # POSTGRESQL - Always Running (Core Database)
+  # ============================================================================
+  postgres:
+    image: postgis/postgis:18-3.6
+    container_name: shadowcheck_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shadowcheck_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: shadowcheck_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "127.0.0.1:5432:5432" # Localhost only
+    volumes:
+      # Persistent XFS-formatted EBS volume (survives instance termination)
+      - /var/lib/postgresql:/var/lib/postgresql
+      - /var/lib/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - /var/lib/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+    shm_size: 512mb
+    networks:
+      - shadowcheck_internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shadowcheck_user -d shadowcheck_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    secrets:
+      - db_password
+
+  # ============================================================================
+  # REDIS - Always Running (Caching Layer)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: shadowcheck_redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379" # Localhost only
+    volumes:
+      - redis_data:/data
+    networks:
+      - shadowcheck_internal
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================================================
+  # API - On-Demand (Backend Application)
+  # ============================================================================
+  api:
+    image: ${DOCKER_IMAGE:-shadowcheck/api:latest}
+    container_name: shadowcheck_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: shadowcheck_user
+      DB_NAME: shadowcheck_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FORCE_HTTPS: "true"
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+    ports:
+      - "3001:3001" # Public (restricted by security group)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shadowcheck_internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    secrets:
+      - db_password
+      - mapbox_token
+    profiles:
+      - api # Only start with: docker-compose --profile api up
+
+  # ============================================================================
+  # PGADMIN - On-Demand (Database Management)
+  # ============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: shadowcheck_pgadmin
+    restart: "no" # Manual start only
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@shadowcheck.local}
+      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pgadmin_password
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "5050:80" # Public (restricted by security group)
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shadowcheck_internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    secrets:
+      - pgadmin_password
+    profiles:
+      - pgadmin # Only start with: docker-compose --profile pgadmin up
+
+# ============================================================================
+# SECRETS
+# ============================================================================
+secrets:
+  db_password:
+    file: /home/ssm-user/secrets/db_password.txt
+  mapbox_token:
+    file: /home/ssm-user/secrets/mapbox_token.txt
+  pgadmin_password:
+    file: /home/ssm-user/secrets/pgadmin_password.txt
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  redis_data:
+    driver: local
+  # Note: PostgreSQL data is on persistent EBS volume at /var/lib/postgresql
+  # - Volume ID: vol-0f38f7789ac264d59 (30GB GP3)
+  # - Filesystem: XFS (optimized for PostgreSQL)
+  # - Mount: /var/lib/postgresql
+  # - Survives: Instance termination, stop/start
+  # - DeleteOnTermination: false
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  shadowcheck_internal:
+    driver: bridge
+    internal: false # Allow external access for API

@@ -117,3 +117,30 @@ export interface GeocodingRunResult {
   rateLimited: number;
   durationMs: number;
 }
+
+export interface AwsInstanceSummary {
+  instanceId: string | null;
+  name: string | null;
+  state: string | null;
+  instanceType: string | null;
+  availabilityZone: string | null;
+  publicIp: string | null;
+  privateIp: string | null;
+  launchTime: string | null;
+}
+
+export interface AwsOverview {
+  configured: boolean;
+  region: string | null;
+  identity: {
+    account: string | null;
+    arn: string | null;
+    userId: string | null;
+  } | null;
+  counts: {
+    total: number;
+    states: Record<string, number>;
+  };
+  instances: AwsInstanceSummary[];
+  error?: string;
+}

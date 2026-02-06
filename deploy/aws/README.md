@@ -42,13 +42,33 @@ sudo /home/ssm-user/scripts/rotate-db-password.sh
 
 - **Instance Type**: t4g.large (ARM64, 2 vCPU, 8GB RAM)
 - **Pricing**: ~$22/month Spot + $4.80/month storage
-- **Database**: PostgreSQL 18 + PostGIS 3.6
+- **Database**: PostgreSQL 18 + PostGIS 3.6 (localhost-only)
+- **API**: Node.js backend (port 3001, IP-restricted)
 - **Storage**: 30GB GP3 EBS (persistent, optimized XFS)
-- **Security**: SCRAM-SHA-256, SSL/TLS required, IP-restricted
+- **Security**: Network isolation, container hardening, SCRAM-SHA-256, SSL/TLS
+
+## Security Architecture
+
+### Network Isolation
+
+- **PostgreSQL**: Bound to `127.0.0.1:5432` (localhost only, no external access)
+- **API**: Exposed on port `3001` (IP-restricted via security group)
+- **Internal Network**: Docker bridge for container-to-container communication
+- **No Direct DB Access**: Database only accessible from API container
+
+### Container Security
+
+- **Capability Restrictions**: `cap_drop: ALL`, minimal `cap_add`
+- **No Privilege Escalation**: `security_opt: no-new-privileges`
+- **Read-Only Filesystem**: API runs with read-only root filesystem
+- **Temporary Storage**: `tmpfs` for logs and temp files (memory-only)
+
+See [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md) for complete security details.
 
 ## Documentation
 
 - **[AWS_INFRASTRUCTURE.md](docs/AWS_INFRASTRUCTURE.md)** - Complete infrastructure guide
+- **[SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md)** - Network isolation and container security
 - **[POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md)** - Performance optimization
 - **[PASSWORD_ROTATION.md](docs/PASSWORD_ROTATION.md)** - Security procedures
 

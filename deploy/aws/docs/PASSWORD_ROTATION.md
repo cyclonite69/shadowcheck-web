@@ -131,10 +131,12 @@ docker-compose restart postgres
    - Track who performed rotation
    - Document reason for rotation
 
-5. **Logging security:**
-   - PostgreSQL configured with `log_statement = 'none'` to prevent password exposure
-   - Docker logs limited to 10MB × 3 files (30MB max per container)
-   - See `docker/infrastructure/postgresql-security.conf` for logging configuration
+### 5. Logging Security**
+- PostgreSQL configured with `log_statement = 'none'` to prevent password exposure
+- Docker logs limited to 10MB × 3 files (30MB max per container)
+- Bash history configured to exclude password commands
+- Space-prefixed commands not logged (`HISTCONTROL=ignorespace`)
+- See `docker/infrastructure/postgresql-security.conf` for logging configuration
 
 ## Troubleshooting
 

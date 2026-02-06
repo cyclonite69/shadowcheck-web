@@ -1,5 +1,6 @@
-# This docker-compose connects to SHARED PostgreSQL and PgAdmin containers
-# The postgres and pgadmin services are managed externally and shared across all ShadowCheck projects
+# LOCAL DEVELOPMENT docker-compose
+# Connects to SHARED PostgreSQL and PgAdmin containers on external shadowcheck_net network
+# For AWS deployment, use: deploy/aws/configs/docker-compose-separated.yml
 
 services:
   api:
@@ -10,7 +11,7 @@ services:
     container_name: shadowcheck_static_api
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: ${PORT:-3001}
       # Connect to SHARED external PostgreSQL container
       DB_HOST: shadowcheck_postgres
@@ -19,12 +20,10 @@ services:
       DB_NAME: ${DB_NAME:-shadowcheck_db}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
-      # Connect to SHARED Redis (if available)
-      REDIS_HOST: ${REDIS_HOST:-shadowcheck_redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      # Google Maps API Key
-      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
-      # AWS Credentials for S3 backups
+      # Connect to local Redis
+      REDIS_HOST: shadowcheck_static_redis
+      REDIS_PORT: 6379
+      # AWS credentials for viewing/managing AWS resources
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
@@ -66,7 +65,7 @@ services:
     container_name: shadowcheck_static_redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:

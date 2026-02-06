@@ -1,5 +1,6 @@
 const logger = require('../logging/logger');
 const secretsManager = require('./secretsManager');
+const keyringService = require('./keyringService').default;
 const { query } = require('../config/database');
 
 export {};
@@ -15,7 +16,7 @@ const shouldSkipPoi = (address?: string | null): boolean => {
 };
 
 type GeocodeMode = 'address-only' | 'poi-only' | 'both';
-type GeocodeProvider = 'mapbox' | 'nominatim';
+type GeocodeProvider = 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
 
 type GeocodeRunOptions = {
   precision: number;
@@ -76,7 +77,10 @@ const mapboxReverse = async (
   mode: GeocodeMode,
   permanent: boolean
 ): Promise<GeocodeResult> => {
-  const token = await secretsManager.getSecret('mapbox_token');
+  let token = await secretsManager.getSecret('mapbox_token');
+  if (!token) {
+    token = await keyringService.getMapboxToken();
+  }
   if (!token) {
     throw new Error('Mapbox token not configured');
   }
@@ -162,14 +166,132 @@ const nominatimReverse = async (lat: number, lon: number): Promise<GeocodeResult
   };
 };
 
+const overpassPoi = async (lat: number, lon: number): Promise<GeocodeResult> => {
+  const query = `[out:json];(node(around:75,${lat},${lon})[name];way(around:75,${lat},${lon})[name];);out body 1;`;
+  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+  const response = await fetch(url);
+  if (response.status === 429) {
+    throw new Error('rate_limit');
+  }
+  if (!response.ok) {
+    return { ok: false };
+  }
+  const json = (await response.json()) as {
+    elements?: Array<{
+      tags?: Record<string, string>;
+    }>;
+  };
+  const element = json.elements?.[0];
+  const tags = element?.tags || {};
+  if (!tags.name) {
+    return { ok: false, raw: json };
+  }
+
+  return {
+    ok: true,
+    poiName: tags.name || null,
+    poiCategory:
+      tags.amenity ||
+      tags.shop ||
+      tags.leisure ||
+      tags.tourism ||
+      tags.office ||
+      tags.building ||
+      null,
+    featureType: tags.amenity || tags.shop || tags.leisure || tags.tourism || tags.office || null,
+    raw: json,
+  };
+};
+
+const opencageReverse = async (lat: number, lon: number): Promise<GeocodeResult> => {
+  const key = await secretsManager.getSecret('opencage_api_key');
+  if (!key) {
+    throw new Error('missing_key');
+  }
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=${key}&limit=1`;
+  const response = await fetch(url);
+  if (response.status === 429) {
+    throw new Error('rate_limit');
+  }
+  if (!response.ok) {
+    return { ok: false };
+  }
+  const json = (await response.json()) as {
+    results?: Array<{
+      formatted?: string;
+      components?: Record<string, string>;
+      confidence?: number;
+    }>;
+  };
+  const result = json.results?.[0];
+  if (!result?.formatted) {
+    return { ok: false, raw: json };
+  }
+  const components = result.components || {};
+  return {
+    ok: true,
+    address: result.formatted,
+    city:
+      components.city ||
+      components.town ||
+      components.village ||
+      components.hamlet ||
+      components.county ||
+      null,
+    state: components.state || null,
+    postal: components.postcode || null,
+    country: components.country || null,
+    confidence: result.confidence ? result.confidence / 100 : null,
+    raw: json,
+  };
+};
+
+const locationIqReverse = async (lat: number, lon: number): Promise<GeocodeResult> => {
+  const key = await secretsManager.getSecret('locationiq_api_key');
+  if (!key) {
+    throw new Error('missing_key');
+  }
+  const url = `https://us1.locationiq.com/v1/reverse.php?key=${key}&lat=${lat}&lon=${lon}&format=json`;
+  const response = await fetch(url);
+  if (response.status === 429) {
+    throw new Error('rate_limit');
+  }
+  if (!response.ok) {
+    return { ok: false };
+  }
+  const json = (await response.json()) as {
+    display_name?: string;
+    address?: Record<string, string>;
+  };
+  if (!json.display_name) {
+    return { ok: false, raw: json };
+  }
+  const address = json.address || {};
+  return {
+    ok: true,
+    address: json.display_name,
+    city:
+      address.city || address.town || address.village || address.hamlet || address.county || null,
+    state: address.state || null,
+    postal: address.postcode || null,
+    country: address.country || null,
+    raw: json,
+  };
+};
+
 const upsertGeocodeCache = async (
   row: GeocodeRow,
   precision: number,
-  provider: string,
-  result: GeocodeResult
+  provider: string | null,
+  result: GeocodeResult,
+  mode: GeocodeMode
 ) => {
-  if (!result.ok) return;
   const poiSkip = shouldSkipPoi(result.address);
+  const now = new Date().toISOString();
+  const poiAttemptedAt = mode === 'poi-only' ? now : null;
+  const addressAttemptedAt = mode === 'address-only' ? now : null;
+  const poiAttempts = mode === 'poi-only' ? 1 : 0;
+  const addressAttempts = mode === 'address-only' ? 1 : 0;
 
   await query(
     `
@@ -184,6 +306,10 @@ const upsertGeocodeCache = async (
       poi_category,
       feature_type,
       poi_skip,
+      poi_attempted_at,
+      poi_attempts,
+      address_attempted_at,
+      address_attempts,
       city,
       state,
       postal_code,
@@ -192,13 +318,20 @@ const upsertGeocodeCache = async (
       confidence,
       raw_response
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
     ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
       address = COALESCE(app.geocoding_cache.address, EXCLUDED.address),
       poi_name = COALESCE(app.geocoding_cache.poi_name, EXCLUDED.poi_name),
       poi_category = COALESCE(app.geocoding_cache.poi_category, EXCLUDED.poi_category),
       feature_type = COALESCE(app.geocoding_cache.feature_type, EXCLUDED.feature_type),
       poi_skip = app.geocoding_cache.poi_skip OR EXCLUDED.poi_skip,
+      poi_attempted_at = COALESCE(EXCLUDED.poi_attempted_at, app.geocoding_cache.poi_attempted_at),
+      poi_attempts = app.geocoding_cache.poi_attempts + EXCLUDED.poi_attempts,
+      address_attempted_at = COALESCE(
+        EXCLUDED.address_attempted_at,
+        app.geocoding_cache.address_attempted_at
+      ),
+      address_attempts = app.geocoding_cache.address_attempts + EXCLUDED.address_attempts,
       city = COALESCE(app.geocoding_cache.city, EXCLUDED.city),
       state = COALESCE(app.geocoding_cache.state, EXCLUDED.state),
       postal_code = COALESCE(app.geocoding_cache.postal_code, EXCLUDED.postal_code),
@@ -216,16 +349,20 @@ const upsertGeocodeCache = async (
       row.lon_round,
       row.lat_round,
       row.lon_round,
-      result.address || null,
-      result.poiName || null,
-      result.poiCategory || null,
-      result.featureType || null,
+      result.ok ? result.address || null : null,
+      result.ok ? result.poiName || null : null,
+      result.ok ? result.poiCategory || null : null,
+      result.ok ? result.featureType || null : null,
       poiSkip,
+      poiAttemptedAt,
+      poiAttempts,
+      addressAttemptedAt,
+      addressAttempts,
       result.city || null,
       result.state || null,
       result.postal || null,
       result.country || null,
-      provider,
+      result.ok ? provider : null,
       result.confidence ?? null,
       result.raw ? JSON.stringify(result.raw) : null,
     ]
@@ -235,7 +372,8 @@ const upsertGeocodeCache = async (
 const fetchRows = async (
   precision: number,
   limit: number,
-  mode: GeocodeMode
+  mode: GeocodeMode,
+  provider: GeocodeProvider
 ): Promise<GeocodeRow[]> => {
   if (mode === 'poi-only') {
     const result = await query(
@@ -249,10 +387,37 @@ const fetchRows = async (
         AND c.poi_name IS NULL
         AND c.address IS NOT NULL
         AND c.poi_skip IS FALSE
+        AND c.poi_attempts = 0
       ORDER BY c.geocoded_at DESC
       LIMIT $1;
     `,
       [limit, precision]
+    );
+    return result.rows as GeocodeRow[];
+  }
+
+  if (provider !== 'mapbox') {
+    let attemptGate = 1;
+    if (provider === 'opencage') {
+      attemptGate = 2;
+    } else if (provider === 'locationiq') {
+      attemptGate = 3;
+    }
+
+    const result = await query(
+      `
+      SELECT
+        c.lat_round::double precision AS lat_round,
+        c.lon_round::double precision AS lon_round,
+        c.address
+      FROM app.geocoding_cache c
+      WHERE c.precision = $2
+        AND c.address IS NULL
+        AND c.address_attempts = $3
+      ORDER BY c.geocoded_at DESC
+      LIMIT $1;
+    `,
+      [limit, precision, attemptGate]
     );
     return result.rows as GeocodeRow[];
   }
@@ -285,10 +450,9 @@ const fetchRows = async (
   return result.rows as GeocodeRow[];
 };
 
-const getProviderLabel = (provider: GeocodeProvider, mode: GeocodeMode, permanent: boolean) => {
+const getProviderLabel = (provider: GeocodeProvider, permanent: boolean) => {
   if (provider === 'mapbox') {
-    const base = mode === 'address-only' ? 'mapbox_v5' : 'mapbox_v5';
-    return permanent ? `${base}_permanent` : base;
+    return permanent ? 'mapbox_v5_permanent' : 'mapbox_v5';
   }
   return provider;
 };
@@ -298,12 +462,8 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
   const limit = Math.max(1, options.limit ?? 1000);
   const perMinute = Math.max(1, options.perMinute ?? 200);
   const delayMs = Math.max(1, Math.floor(60000 / perMinute));
-  const rows = await fetchRows(precision, limit, options.mode);
-  const providerLabel = getProviderLabel(
-    options.provider,
-    options.mode,
-    Boolean(options.permanent)
-  );
+  const rows = await fetchRows(precision, limit, options.mode, options.provider);
+  const providerLabel = getProviderLabel(options.provider, Boolean(options.permanent));
 
   const startedAt = Date.now();
   let processed = 0;
@@ -323,6 +483,12 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
         );
       } else if (options.provider === 'nominatim') {
         result = await nominatimReverse(row.lat_round, row.lon_round);
+      } else if (options.provider === 'overpass') {
+        result = await overpassPoi(row.lat_round, row.lon_round);
+      } else if (options.provider === 'opencage') {
+        result = await opencageReverse(row.lat_round, row.lon_round);
+      } else if (options.provider === 'locationiq') {
+        result = await locationIqReverse(row.lat_round, row.lon_round);
       }
 
       if (result.ok) {
@@ -330,14 +496,17 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
         if (result.poiName) {
           poiHits++;
         }
-        await upsertGeocodeCache(row, precision, providerLabel, result);
       }
+      await upsertGeocodeCache(row, precision, providerLabel, result, options.mode);
     } catch (err) {
       const error = err as Error;
       if (error.message === 'rate_limit') {
         rateLimited++;
         logger.warn('[Geocoding] Rate limited, backing off for 60s');
         await sleep(60000);
+      } else if (error.message === 'missing_key') {
+        logger.warn('[Geocoding] Missing API key for provider');
+        break;
       } else {
         logger.warn('[Geocoding] Provider error', { error: error.message });
       }
