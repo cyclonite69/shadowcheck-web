@@ -17,7 +17,7 @@ type RunCommandResult = {
 
 export {};
 
-const repoRoot = path.resolve(__dirname, '../../..');
+const repoRoot = process.cwd();
 const composeFile =
   process.env.PGADMIN_COMPOSE_FILE ||
   path.join(repoRoot, 'docker', 'infrastructure', 'docker-compose.postgres.yml');

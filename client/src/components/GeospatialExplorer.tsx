@@ -112,7 +112,7 @@ export default function GeospatialExplorer() {
   } = useMapPreferences();
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [resizing, setResizing] = useState(false);
-  const { visibleColumns, toggleColumn } = useColumnVisibility({
+  const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
   const { filtersOpen, showColumnSelector, toggleFilters, toggleColumnSelector } =
@@ -369,6 +369,7 @@ export default function GeospatialExplorer() {
             someSelected={someSelected}
             onToggleSelectAll={toggleSelectAll}
             onColumnSort={handleColumnSort}
+            onReorderColumns={reorderColumns}
             tableContainerRef={tableContainerRef}
             loadingNetworks={loadingNetworks}
             filteredNetworks={filteredNetworks}

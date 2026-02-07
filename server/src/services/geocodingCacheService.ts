@@ -77,7 +77,13 @@ const mapboxReverse = async (
   mode: GeocodeMode,
   permanent: boolean
 ): Promise<GeocodeResult> => {
-  let token = await secretsManager.getSecret('mapbox_token');
+  let token = await secretsManager.getSecret('mapbox_unlimited_api_key');
+  if (!token) {
+    token = await keyringService.getCredential('mapbox_unlimited_api_key');
+  }
+  if (!token) {
+    token = await secretsManager.getSecret('mapbox_token');
+  }
   if (!token) {
     token = await keyringService.getMapboxToken();
   }

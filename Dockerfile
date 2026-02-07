@@ -32,8 +32,8 @@ RUN npm prune --omit=dev
 ###########################################
 FROM node:20-alpine
 
-# Install dumb-init for proper signal handling, pg_dump for backups, and AWS CLI for S3
-RUN apk add --no-cache dumb-init postgresql-client aws-cli
+# Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, and Docker CLI for PgAdmin management
+RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -51,13 +51,16 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
 COPY --chown=nodejs:nodejs server ./server/
 COPY --chown=nodejs:nodejs scripts ./scripts/
 COPY --chown=nodejs:nodejs sql ./sql/
+COPY --chown=nodejs:nodejs docker/infrastructure ./docker/infrastructure/
+COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
 
 # Create directories for data and logs with proper ownership
 RUN mkdir -p data/logs data/csv && \
-    chown -R nodejs:nodejs /app
+    chown -R nodejs:nodejs /app && \
+    chmod +x /entrypoint.sh
 
-# Switch to non-root user
-USER nodejs
+# Don't switch to nodejs user yet - entrypoint needs to run as root
+# USER nodejs will be handled by entrypoint via su-exec
 
 # Set production environment
 ENV NODE_ENV=production
@@ -69,8 +72,8 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+# Use entrypoint to handle Docker socket permissions, then dumb-init for signals
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Start application with compiled server
 CMD ["node", "dist/server/server/server.js"]

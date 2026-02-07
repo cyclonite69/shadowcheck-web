@@ -131,19 +131,34 @@ See [deploy/homelab/README.md](deploy/homelab/README.md) for hardware requiremen
 
 ### AWS Production
 
-```bash
-# First time setup - see deploy/aws/WORKFLOW.md
-cd /home/ssm-user/shadowcheck
-cp deploy/aws/.env.example deploy/aws/.env.aws
-# Edit .env.aws with your values
-./deploy/aws/scripts/deploy-from-github.sh
+**🚀 Quick Start (5 minutes):** See [deploy/aws/QUICKSTART.md](deploy/aws/QUICKSTART.md)
 
-# Subsequent deployments
+```bash
+# 1. Launch instance (from local machine)
+./deploy/aws/scripts/launch-shadowcheck-spot.sh
+
+# 2. Connect via SSM
+aws ssm start-session --target INSTANCE_ID --region us-east-1
+
+# 3. Run automated setup
+bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+cd /home/ssm-user
+git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+cd shadowcheck
+./deploy/aws/scripts/deploy-complete.sh
+
+# 4. Update deployments
 git pull origin master
 ./deploy/aws/scripts/deploy-from-github.sh
 ```
 
-See [deploy/aws/README.md](deploy/aws/README.md) for AWS infrastructure details and [deploy/aws/WORKFLOW.md](deploy/aws/WORKFLOW.md) for the complete deployment workflow.
+**Documentation:**
+
+- [QUICKSTART.md](deploy/aws/QUICKSTART.md) - Complete deployment guide
+- [WORKFLOW.md](deploy/aws/WORKFLOW.md) - Development workflow
+- [README.md](deploy/aws/README.md) - AWS infrastructure details
+- [DEPLOYMENT_CHECKLIST.md](deploy/aws/DEPLOYMENT_CHECKLIST.md) - Verification checklist
 
 ---
 

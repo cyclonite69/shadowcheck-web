@@ -37,6 +37,8 @@ export const ConfigurationTab: React.FC = () => {
     isLoading,
     mapboxToken,
     setMapboxToken,
+    mapboxUnlimitedApiKey,
+    setMapboxUnlimitedApiKey,
     googleMapsApiKey,
     setGoogleMapsApiKey,
     awsAccessKeyId,
@@ -56,6 +58,7 @@ export const ConfigurationTab: React.FC = () => {
     smartyAuthToken,
     setSmartyAuthToken,
     mapboxConfigured,
+    mapboxUnlimitedConfigured,
     googleMapsConfigured,
     wigleConfigured,
     awsConfigured,
@@ -69,6 +72,7 @@ export const ConfigurationTab: React.FC = () => {
     wigleApiToken,
     setWigleApiToken,
     saveMapboxToken,
+    saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,
     saveAwsCredentials,
     saveOpencageApiKey,
@@ -104,6 +108,34 @@ export const ConfigurationTab: React.FC = () => {
             className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all disabled:opacity-50 text-sm"
           >
             {isLoading ? 'Saving...' : 'Save Token'}
+          </button>
+        </div>
+      </AdminCard>
+
+      {/* Mapbox Geocoding (Unlimited) */}
+      <AdminCard icon={DatabaseIcon} title="Mapbox Geocoding Key" color="from-sky-500 to-sky-600">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
+              API Key
+            </label>
+            <input
+              type="password"
+              value={mapboxUnlimitedApiKey}
+              onChange={(e) => setMapboxUnlimitedApiKey(e.target.value)}
+              placeholder="sk."
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
+            />
+            <div className="mt-2 text-xs text-slate-400">
+              Status: {mapboxUnlimitedConfigured ? 'Configured' : 'Not configured'}
+            </div>
+          </div>
+          <button
+            onClick={saveMapboxUnlimitedApiKey}
+            disabled={isLoading}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-sky-600 to-sky-700 text-white rounded-lg font-medium hover:from-sky-500 hover:to-sky-600 transition-all disabled:opacity-50 text-sm"
+          >
+            {isLoading ? 'Saving...' : 'Save Geocoding Key'}
           </button>
         </div>
       </AdminCard>

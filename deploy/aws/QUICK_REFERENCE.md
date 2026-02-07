@@ -1,0 +1,311 @@
+# ShadowCheck AWS Quick Reference Card
+
+## 🚀 Initial Deployment
+
+```bash
+# 1. Launch (local machine)
+./deploy/aws/scripts/launch-shadowcheck-spot.sh
+
+# 2. Connect (local machine)
+aws ssm start-session --target i-XXXXX --region us-east-1
+
+# 3. Setup (EC2 instance)
+bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+
+# 4. Clone (EC2 instance)
+cd /home/ssm-user
+git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+cd shadowcheck
+
+# 5. Dry-run (optional, recommended)
+./deploy/aws/scripts/dry-run.sh
+
+# 6. Deploy (EC2 instance)
+./deploy/aws/scripts/deploy-complete.sh
+```
+
+## 🔍 Dry Run (Validate Before Deploying)
+
+```bash
+# Check what would happen without making changes
+./deploy/aws/scripts/dry-run.sh
+
+# Shows:
+# • What's installed vs. what's missing
+# • What will be installed/configured
+# • Disk space, network connectivity
+# • Configuration status
+# • Pass/Warn/Fail summary
+```
+
+## 🔄 Update Deployment
+
+```bash
+# Local machine
+git add .
+git commit -m "Your changes"
+git push origin master
+
+# EC2 instance
+cd /home/ssm-user/shadowcheck
+./deploy/aws/scripts/deploy-from-github.sh
+# OR use alias: scdeploy
+```
+
+## 🛠️ Useful Aliases
+
+```bash
+sc        # cd /home/ssm-user/shadowcheck
+sclogs    # docker logs -f shadowcheck_backend
+scps      # docker ps (formatted)
+scdb      # pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db
+scdeploy  # Deploy latest from GitHub
+scstatus  # Show containers and disk usage
+```
+
+## 🔍 Troubleshooting Commands
+
+```bash
+# Check containers
+docker ps
+docker logs shadowcheck_backend
+docker logs shadowcheck_frontend
+docker logs shadowcheck_postgres
+
+# Check database
+pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db
+# In pgcli:
+\dt              # List tables
+\du              # List users
+SELECT version(); # PostgreSQL version
+SELECT PostGIS_Version(); # PostGIS version
+
+# Check disk space
+df -h /var/lib/postgresql
+ncdu /var/lib/postgresql
+
+# Check system resources
+htop             # Press 'q' to exit
+docker stats --no-stream
+
+# Check network
+curl http://localhost:3001/api/health
+curl http://169.254.169.254/latest/meta-data/public-ipv4
+
+# Check logs for errors
+docker logs shadowcheck_backend 2>&1 | grep -i error
+docker logs shadowcheck_frontend 2>&1 | grep -i error
+
+# Restart services
+docker-compose restart
+docker restart shadowcheck_backend
+docker restart shadowcheck_frontend
+```
+
+## 📊 System Utilities
+
+```bash
+# Monitoring
+htop             # Interactive process viewer
+docker stats     # Container resource usage
+df -h            # Disk usage
+ncdu /path       # Interactive disk usage
+
+# Network
+dig example.com  # DNS lookup
+traceroute IP    # Network path
+tcpdump -i any   # Packet capture
+ss -tulpn        # Open ports
+
+# Text/Files
+rg "pattern"     # Fast text search (ripgrep)
+jq '.' file.json # JSON processor
+tree -L 2        # Directory tree
+lsof -i :3001    # What's using port 3001
+
+# System
+tmux             # Terminal multiplexer
+strace -p PID    # System call tracer
+lsof -p PID      # Open files by process
+```
+
+## 🔐 Security
+
+```bash
+# Database password
+cat /home/ssm-user/secrets/db_password.txt
+
+# Add your IP to security group
+./deploy/aws/scripts/add-ip-access.sh YOUR_IP
+
+# List authorized IPs
+./deploy/aws/scripts/list-authorized-ips.sh
+
+# Generate session secret
+openssl rand -base64 32
+
+# Check SSL certificate
+openssl x509 -in /var/lib/postgresql/certs/server.crt -text -noout
+```
+
+## 📁 Important Paths
+
+```bash
+# Project
+/home/ssm-user/shadowcheck/
+
+# Secrets
+/home/ssm-user/secrets/db_password.txt
+
+# Database data
+/var/lib/postgresql/
+
+# Environment config
+/home/ssm-user/shadowcheck/deploy/aws/.env.aws
+
+# Docker compose
+/home/ssm-user/docker-compose.yml
+
+# Logs
+docker logs shadowcheck_backend
+docker logs shadowcheck_frontend
+docker logs shadowcheck_postgres
+```
+
+## 🌐 Access URLs
+
+```bash
+# Get public IP
+curl http://169.254.169.254/latest/meta-data/public-ipv4
+
+# Frontend
+http://PUBLIC_IP:3000
+
+# Backend API
+http://PUBLIC_IP:3001
+
+# Health check
+http://PUBLIC_IP:3001/api/health
+```
+
+## 🔑 Default Credentials
+
+```
+Database:
+  User: shadowcheck_user
+  Password: (see /home/ssm-user/secrets/db_password.txt)
+  Database: shadowcheck_db
+  Port: 5432 (localhost only)
+
+Admin User:
+  Username: admin
+  Password: admin123
+  ⚠️ CHANGE IMMEDIATELY!
+```
+
+## 📚 Documentation
+
+```bash
+# Quick start
+cat deploy/aws/QUICKSTART.md
+
+# Workflow
+cat deploy/aws/WORKFLOW.md
+
+# Checklist
+cat deploy/aws/DEPLOYMENT_CHECKLIST.md
+
+# Visual flow
+cat deploy/aws/DEPLOYMENT_FLOW.md
+
+# Implementation details
+cat deploy/aws/IMPLEMENTATION_SUMMARY.md
+```
+
+## 🐛 Common Issues
+
+### Containers not starting
+
+```bash
+docker ps -a
+docker logs CONTAINER_NAME
+docker-compose down && docker-compose up -d
+```
+
+### Database connection failed
+
+```bash
+docker exec shadowcheck_postgres pg_isready
+cat /home/ssm-user/secrets/db_password.txt
+cat deploy/aws/.env.aws | grep DB_
+```
+
+### Out of disk space
+
+```bash
+df -h /var/lib/postgresql
+docker system prune -a
+ncdu /var/lib/postgresql
+```
+
+### Can't access from browser
+
+```bash
+# Check security group
+./deploy/aws/scripts/list-authorized-ips.sh
+./deploy/aws/scripts/add-ip-access.sh YOUR_IP
+
+# Check containers
+docker ps
+curl http://localhost:3000
+curl http://localhost:3001/api/health
+```
+
+### Environment variables not working
+
+```bash
+cat deploy/aws/.env.aws
+source deploy/aws/.env.aws
+echo $MAPBOX_TOKEN
+./deploy/aws/scripts/deploy-from-github.sh
+```
+
+## 💾 Backup & Restore
+
+```bash
+# Backup database
+docker exec shadowcheck_postgres pg_dump -U shadowcheck_user shadowcheck_db > backup.sql
+
+# Restore database
+cat backup.sql | docker exec -i shadowcheck_postgres psql -U shadowcheck_user shadowcheck_db
+
+# Backup secrets
+cp /home/ssm-user/secrets/db_password.txt ~/db_password.backup
+
+# Backup environment
+cp deploy/aws/.env.aws ~/env.backup
+```
+
+## 🔄 Instance Management
+
+```bash
+# Stop instance (local machine)
+aws ec2 stop-instances --instance-ids i-XXXXX --region us-east-1
+
+# Start instance (local machine)
+aws ec2 start-instances --instance-ids i-XXXXX --region us-east-1
+
+# Get instance status (local machine)
+aws ec2 describe-instances --instance-ids i-XXXXX --region us-east-1 --query 'Reservations[0].Instances[0].State.Name'
+
+# Get public IP after restart (local machine)
+aws ec2 describe-instances --instance-ids i-XXXXX --region us-east-1 --query 'Reservations[0].Instances[0].PublicIpAddress'
+```
+
+## 📞 Support
+
+- Issues: https://github.com/cyclonite69/shadowcheck-static/issues
+- Docs: deploy/aws/README.md
+- Workflow: deploy/aws/WORKFLOW.md
+- Quick Start: deploy/aws/QUICKSTART.md

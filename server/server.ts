@@ -92,7 +92,15 @@ require('ts-node').register({
     registerErrorHandlers(app, logger);
 
     // ============================================================================
-    // 12. SERVER STARTUP
+    // 12. REDIS CACHE (OPTIONAL)
+    // ============================================================================
+    const { cacheService } = require('./src/services/cacheService');
+    cacheService.connect().catch((err: Error) => {
+      logger.warn('Redis connection failed, caching disabled', { error: err.message });
+    });
+
+    // ============================================================================
+    // 13. SERVER STARTUP
     // ============================================================================
     startServer(app, {
       port,

@@ -10,6 +10,7 @@ const { pool, query } = require('../../../config/database');
 const { escapeLikePattern } = require('../../../utils/escapeSQL');
 const { safeJsonParse } = require('../../../utils/safeJsonParse');
 const logger = require('../../../logging/logger');
+const { cacheMiddleware } = require('../../../middleware/cacheMiddleware');
 const {
   validateBSSID,
   validateBSSIDList,
@@ -33,7 +34,7 @@ const { NETWORK_CHANNEL_EXPR } = require('../../../services/filterQueryBuilder/s
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
 // GET /api/networks - List all networks with pagination and filtering
-router.get('/networks', async (req, res, next) => {
+router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
   try {
     const limitRaw = req.query.limit;
     const offsetRaw = req.query.offset;

@@ -22,6 +22,25 @@ services:
     shm_size: 512m
     restart: unless-stopped
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: shadowcheck_redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - shadowcheck_net
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # Backend API
   backend:
     image: shadowcheck/backend:latest
@@ -34,13 +53,41 @@ services:
       DB_USER: shadowcheck_user
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: shadowcheck_db
+      REDIS_HOST: shadowcheck_redis
+      REDIS_PORT: 6379
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}
+      DOCKER_API_VERSION: "1.41"
     ports:
       - "3001:3001"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - shadowcheck_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     profiles:
       - backend
 
@@ -58,14 +105,6 @@ services:
     profiles:
       - frontend
 
-  # Redis (optional)
-  redis:
-    image: redis:7-alpine
-    container_name: shadowcheck_redis
-    ports:
-      - "127.0.0.1:6379:6379"
-    networks:
-      - shadowcheck_net
-    restart: unless-stopped
-    profiles:
-      - cache
+volumes:
+  redis_data:
+    driver: local

@@ -71,6 +71,7 @@
     "react-is": "19.2.4",
     "react-router-dom": "^7.13.0",
     "recharts": "^3.5.1",
+    "redis": "^4.7.0",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "winston": "^3.19.0",

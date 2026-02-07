@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useRef } from 'react';
 import type { NetworkRow, SortState } from '../../types/network';
 import { API_SORT_MAP, NETWORK_COLUMNS } from '../../constants/network';
 
@@ -9,6 +9,7 @@ interface NetworkTableHeaderProps {
   someSelected: boolean;
   onToggleSelectAll: () => void;
   onColumnSort: (column: keyof NetworkRow, shiftKey: boolean) => void;
+  onReorderColumns?: (from: keyof NetworkRow | 'select', to: keyof NetworkRow | 'select') => void;
 }
 
 export const NetworkTableHeader = ({
@@ -18,7 +19,11 @@ export const NetworkTableHeader = ({
   someSelected,
   onToggleSelectAll,
   onColumnSort,
+  onReorderColumns,
 }: NetworkTableHeaderProps) => {
+  const [dragCol, setDragCol] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const dragImageRef = useRef<HTMLDivElement | null>(null);
   return (
     <div style={{ paddingRight: '8px' }}>
       <table
@@ -43,10 +48,55 @@ export const NetworkTableHeader = ({
                 Boolean(API_SORT_MAP[col as keyof NetworkRow]) &&
                 column.sortable;
 
+              const isDraggable = col !== 'select' && !!onReorderColumns;
+              const isDropTarget = dropTarget === col && dragCol !== col;
+
               return (
                 <th
                   key={col}
                   scope="col"
+                  draggable={isDraggable}
+                  onDragStart={(e) => {
+                    if (!isDraggable) return;
+                    setDragCol(col);
+                    e.dataTransfer.effectAllowed = 'move';
+                    // Use a transparent drag image to avoid default ghost
+                    if (!dragImageRef.current) {
+                      const el = document.createElement('div');
+                      el.style.position = 'absolute';
+                      el.style.top = '-9999px';
+                      document.body.appendChild(el);
+                      dragImageRef.current = el;
+                    }
+                    dragImageRef.current.textContent = column.label;
+                    dragImageRef.current.style.cssText =
+                      'position:absolute;top:-9999px;padding:4px 8px;background:#1e293b;color:#e2e8f0;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;';
+                    e.dataTransfer.setDragImage(dragImageRef.current, 0, 0);
+                  }}
+                  onDragOver={(e) => {
+                    if (!isDraggable || !dragCol || dragCol === col) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    setDropTarget(col);
+                  }}
+                  onDragLeave={() => {
+                    if (dropTarget === col) setDropTarget(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragCol && dragCol !== col && onReorderColumns) {
+                      onReorderColumns(
+                        dragCol as keyof NetworkRow | 'select',
+                        col as keyof NetworkRow | 'select'
+                      );
+                    }
+                    setDragCol(null);
+                    setDropTarget(null);
+                  }}
+                  onDragEnd={() => {
+                    setDragCol(null);
+                    setDropTarget(null);
+                  }}
                   onClick={(e) => isSortable && onColumnSort(col as keyof NetworkRow, e.shiftKey)}
                   style={{
                     width: column.width,
@@ -63,17 +113,19 @@ export const NetworkTableHeader = ({
                     fontSize: '11px',
                     borderRight: '1px solid rgba(71, 85, 105, 0.2)',
                     borderBottom: '1px solid rgba(71, 85, 105, 0.4)',
-                    cursor: isSortable ? 'pointer' : 'default',
+                    cursor: isDraggable ? 'grab' : isSortable ? 'pointer' : 'default',
                     userSelect: 'none',
                     position: 'relative',
                     boxSizing: 'border-box',
+                    opacity: dragCol === col ? 0.5 : 1,
+                    borderLeft: isDropTarget ? '2px solid #3b82f6' : undefined,
                   }}
                   title={
                     isSortable
-                      ? 'Click to sort (Shift+click for multi-sort)'
+                      ? 'Click to sort, drag to reorder (Shift+click for multi-sort)'
                       : col === 'select'
                         ? undefined
-                        : 'Sorting unavailable (API does not support this column)'
+                        : 'Drag to reorder'
                   }
                 >
                   {col === 'select' ? (

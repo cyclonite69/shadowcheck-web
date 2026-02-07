@@ -10,10 +10,22 @@ http://localhost:3001/api
 
 ## Authentication
 
-Protected endpoints require API key:
+Protected endpoints require authentication via session cookie or API key:
+
+### Session-Based (Browser)
+
+Sessions are managed via HTTP-only cookies. Client uses `credentials: 'include'`.
+
+### API Key
 
 ```http
 x-api-key: your-api-key-here
+```
+
+### Bearer Token
+
+```http
+Authorization: Bearer <token>
 ```
 
 Set via: `API_KEY=your-secret-key` in `.env`
@@ -41,6 +53,10 @@ Platform statistics.
   "enrichedCount": 45123
 }
 ```
+
+### GET /api/v2/dashboard/metrics
+
+Dashboard statistics (v2).
 
 ---
 
@@ -86,6 +102,14 @@ Fast paginated threat detection.
 ### GET /api/threats/detect
 
 Advanced threat detection with speed calculations.
+
+### GET /api/v2/threats/map
+
+Threat data optimized for map display.
+
+### GET /api/v2/threats/severity-counts
+
+Threat counts by severity level.
 
 ---
 
@@ -142,9 +166,13 @@ Get all observations for a network.
 
 Search by SSID.
 
+### GET /api/networks/tagged
+
+List tagged networks.
+
 ### POST /api/network-tags/:bssid 🔒
 
-Tag a network (requires API key).
+Tag a network (requires authentication).
 
 **Request:**
 
@@ -167,9 +195,136 @@ Tag a network (requires API key).
 
 Remove tag.
 
-### GET /api/networks/tagged
+### GET /api/manufacturer/:bssid
 
-List tagged networks.
+Lookup manufacturer from MAC OUI.
+
+### POST /api/networks/tag-threats 🔒
+
+Tag multiple networks as threats.
+
+---
+
+## v2 Networks API
+
+### GET /api/v2/networks
+
+List networks with pagination.
+
+### GET /api/v2/networks/:bssid
+
+Get specific network details.
+
+### GET /api/v2/networks/filtered
+
+Filtered network list with universal filter support.
+
+**Parameters:**
+
+- `page` (int, default: 1)
+- `limit` (int, default: 100, max: 5000)
+- Universal filter parameters (see [Universal Filter System](universal-filter-system.md))
+
+**Response:**
+
+```json
+{
+  "data": [...],
+  "pagination": { "page": 1, "total": 173326 },
+  "filters": { ... }
+}
+```
+
+### GET /api/v2/networks/filtered/geospatial
+
+Filtered networks optimized for geospatial display.
+
+**Parameters:**
+
+- Same as `/api/v2/networks/filtered`
+- `bbox` (optional) - Bounding box filter [minLon, minLat, maxLon, maxLat]
+
+### GET /api/v2/networks/filtered/observations
+
+Filtered observations with network context.
+
+### GET /api/v2/networks/filtered/analytics
+
+Aggregated analytics for filtered networks.
+
+---
+
+## Network Tags API
+
+### GET /api/network-tags/:bssid
+
+Get tags for a network.
+
+### POST /api/network-tags/:bssid 🔒
+
+Add tag to network.
+
+**Request:**
+
+```json
+{
+  "threat_tag": "THREAT",
+  "threat_confidence": 0.9,
+  "notes": "Suspicious activity"
+}
+```
+
+### PATCH /api/network-tags/:bssid/ignore 🔒
+
+Mark as false positive.
+
+### PATCH /api/network-tags/:bssid/threat 🔒
+
+Mark as confirmed threat.
+
+### PATCH /api/network-tags/:bssid/notes 🔒
+
+Update notes.
+
+### PATCH /api/network-tags/:bssid/investigate 🔒
+
+Mark for investigation.
+
+### DELETE /api/network-tags/:bssid 🔒
+
+Remove tag.
+
+### GET /api/network-tags
+
+List all tagged networks.
+
+### GET /api/network-tags/export/ml 🔒
+
+Export tags for ML training.
+
+---
+
+## Explorer API
+
+### GET /api/explorer/networks
+
+List explorer networks.
+
+### GET /api/explorer/networks-v2
+
+Enhanced explorer with additional fields.
+
+### GET /api/explorer/timeline/:bssid
+
+Get observation timeline for network.
+
+### GET /api/explorer/heatmap
+
+Get heatmap data.
+
+### GET /api/explorer/routes
+
+Get route data.
 
 ---
 
@@ -271,7 +426,35 @@ Top networks by observation count.
 }
 ```
 
+### GET /api/analytics/security
+
+Security analysis metrics.
+
+### GET /api/analytics/dashboard
+
+Dashboard analytics.
+
+### GET /api/analytics/bulk
+
+Bulk analytics data.
+
+### GET /api/analytics/threat-distribution
+
+Threat distribution analysis.
+
 **Note:** All analytics endpoints now properly handle null values and use appropriate data sources (materialized views for aggregated data, observations table for temporal data).
+
+### GET /api/analytics-public/filtered
+
+Filtered analytics (public endpoint).
+
+---
+
+## Public Analytics
+
+### GET /api/analytics-public/filtered
+
+Filtered analytics (public endpoint).
 
 ---
 
@@ -285,6 +468,18 @@ Train threat detection model.
 
 Model training status.
 
+### POST /api/ml/score-all 🔒
+
+Score all networks.
+
+### GET /api/ml/scores/:bssid
+
+Get ML scores for a network.
+
+### GET /api/ml/scores/level/:level
+
+Get networks by score level.
+
 ---
 
 ## Location Markers
@@ -293,6 +488,10 @@ Model training status.
 
 Get all markers.
 
+### GET /api/location-markers/home
+
+Get home location.
+
 ### POST /api/location-markers/home
 
 Set home location.
@@ -300,6 +499,14 @@ Set home location.
 ### DELETE /api/location-markers/home
 
 Remove home marker.
+
+### GET /api/home-location
+
+Get current home location.
+
+### POST /api/admin/home-location
+
+Set home location and radius.
 
 ---
 
@@ -369,7 +576,87 @@ Check WiGLE API connectivity and status.
 }
 ```
 
+### GET /api/wigle/live/:bssid
+
+Live WiGLE data for a BSSID.
+
+### GET /api/wigle/network/:bssid
+
+Local WiGLE database lookup.
+
+### GET /api/wigle/search
+
+Search WiGLE database.
+
+### GET /api/wigle/networks-v2
+
+Fetch WiGLE v2 networks for map testing.
+
+### GET /api/wigle/networks-v3
+
+Fetch WiGLE v3 networks for map testing.
+
+### POST /api/wigle/search-api 🔒
+
+Search WiGLE API directly.
+
+### POST /api/wigle/detail/:netid 🔒
+
+Get WiGLE detail for network.
+
+### POST /api/wigle/detail/bt/:netid 🔒
+
+Get Bluetooth detail.
+
+### POST /api/wigle/import/v3 🔒
+
+Import WiGLE v3 data.
+
+### GET /api/wigle/observations/:netid
+
+Get WiGLE observations for network.
+
 **Note:** WiGLE observations now use the correct 'app' schema namespace instead of 'public'.
+
+---
+
+## Kepler.gl Integration
+
+### GET /api/kepler/data
+
+Get data for Kepler.gl visualization.
+
+### GET /api/kepler/observations
+
+Get observations layer data.
+
+### GET /api/kepler/networks
+
+Get networks layer data.
+
+---
+
+## Geospatial Endpoints
+
+### GET /api/geospatial/api/mapbox-token
+
+Get Mapbox token.
+
+### GET /api/geospatial/api/mapbox-style
+
+Get Mapbox style configuration.
+
+### GET /api/geospatial/api/mapbox-proxy
+
+Proxy requests to Mapbox API.
+
+### GET /api/geospatial/api/google-maps-token
+
+Get Google Maps API token.
+
+### GET /api/geospatial/api/google-maps-tile/:type/:z/:x/:y
+
+Get Google Maps tiles.
 
 ---
 
@@ -387,6 +674,42 @@ Lookup manufacturer from MAC OUI.
 
 Check for duplicate observations.
 
+### GET /api/demo/oui-grouping
+
+OUI grouping demo page.
+
+### POST /api/geocode
+
+Geocode an address.
+
+### POST /api/import/wigle
+
+Import WiGLE data.
+
+### GET /api/data-quality
+
+Data quality metrics.
+
+---
+
+## Health Check
+
+### GET /api/health
+
+System health check.
+
+**Response:**
+
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "database": "ok",
+    "memory": "ok"
+  }
+}
+```
+
 ---
 
 ## Admin
@@ -398,6 +721,242 @@ Remove duplicate observations.
 ### POST /api/admin/refresh-colocation 🔒
 
 Refresh colocation data.
+
+### POST /api/admin/import-sqlite 🔒
+
+Import SQLite database.
+
+### GET /api/admin/network-summary/:bssid 🔒
+
+Get complete network summary.
+
+### GET /api/admin/test
+
+Test admin routes.
+
+### GET /api/admin/simple-test
+
+Simple test route.
+
+---
+
+## Threat Scoring Admin
+
+### POST /api/admin/threat-scoring/compute 🔒
+
+Manual threat score computation.
+
+### POST /api/admin/threat-scoring/recompute-all 🔒
+
+Mark all for recomputation.
+
+### GET /api/admin/threat-scoring/stats 🔒
+
+Threat scoring statistics.
+
+---
+
+## OUI Management Admin
+
+### GET /api/admin/oui/groups 🔒
+
+List OUI groups.
+
+### GET /api/admin/oui/:oui/details 🔒
+
+OUI details.
+
+### GET /api/admin/oui/randomization/suspects 🔒
+
+Suspect randomization.
+
+### POST /api/admin/oui/analyze 🔒
+
+Analyze OUI data.
+
+---
+
+## Network Tags Admin
+
+### GET /api/admin/network-tags/:bssid 🔒
+
+Get tags for network.
+
+### GET /api/admin/network-tags/search 🔒
+
+Search by tags.
+
+### POST /api/admin/network-tags/toggle 🔒
+
+Toggle tag.
+
+### DELETE /api/admin/network-tags/remove 🔒
+
+Remove tag.
+
+---
+
+## Network Notes Admin
+
+### POST /api/admin/network-notes/add 🔒
+
+Add note to network.
+
+### GET /api/admin/network-notes/:bssid 🔒
+
+Get all notes for a network.
+
+### DELETE /api/admin/network-notes/:noteId 🔒
+
+Delete note.
+
+### POST /api/admin/network-notes/:noteId/media 🔒
+
+Upload media to note.
+
+---
+
+## Network Media Admin
+
+### POST /api/admin/network-media/upload 🔒
+
+Upload media (image/video) to network.
+
+### GET /api/admin/network-media/:bssid 🔒
+
+Get media list for network.
+
+### GET /api/admin/network-media/download/:id 🔒
+
+Download media file.
+
+---
+
+## Network Notations Admin
+
+### POST /api/admin/network-notations/add 🔒
+
+Add notation to network.
+
+### GET /api/admin/network-notations/:bssid 🔒
+
+Get all notations for network.
+
+---
+
+## Settings Admin
+
+### GET /api/admin/settings 🔒
+
+List all settings.
+
+### GET /api/admin/settings/:key 🔒
+
+Get setting.
+
+### PUT /api/admin/settings/:key 🔒
+
+Update setting.
+
+### POST /api/admin/settings/ml-blending/toggle 🔒
+
+Toggle ML blending.
+
+---
+
+## Geocoding Admin
+
+### GET /api/admin/geocoding/stats 🔒
+
+Geocoding statistics.
+
+### POST /api/admin/geocoding/run 🔒
+
+Run geocoding.
+
+---
+
+## pgAdmin Control
+
+### GET /api/admin/pgadmin/status 🔒
+
+pgAdmin status.
+
+### POST /api/admin/pgadmin/start 🔒
+
+Start pgAdmin.
+
+### POST /api/admin/pgadmin/stop 🔒
+
+Stop pgAdmin.
+
+---
+
+## AWS Admin
+
+### GET /api/admin/aws/overview 🔒
+
+AWS resources overview.
+
+---
+
+## Backup Admin
+
+### POST /api/admin/backup 🔒
+
+Run full database backup.
+
+### GET /api/admin/backup/s3 🔒
+
+List S3 backups.
+
+### DELETE /api/admin/backup/s3/:key 🔒
+
+Delete S3 backup.
+
+---
+
+## Authentication
+
+### POST /api/auth/login
+
+User login.
+
+**Request:**
+
+```json
+{
+  "username": "admin",
+  "password": "securepassword"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "token": "abc123...",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@example.com",
+    "role": "admin"
+  }
+}
+```
+
+### POST /api/auth/logout 🔒
+
+User logout.
+
+### GET /api/auth/me
+
+Get current user.
+
+### POST /api/auth/create-user 🔒
+
+Create new user (admin only).
 
 ---
 
@@ -452,12 +1011,15 @@ Default threshold: **40**
 
 ## Error Codes
 
-- `400`: Bad Request
-- `401`: Unauthorized
-- `404`: Not Found
-- `429`: Rate Limited
-- `500`: Server Error
+| Code | Description  |
+| ---- | ------------ |
+| 400  | Bad Request  |
+| 401  | Unauthorized |
+| 403  | Forbidden    |
+| 404  | Not Found    |
+| 429  | Rate Limited |
+| 500  | Server Error |
 
 ---
 
-🔒 = Requires API key
+🔒 = Requires authentication (session or API key)

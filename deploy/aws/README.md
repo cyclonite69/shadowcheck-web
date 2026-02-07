@@ -2,22 +2,42 @@
 
 This directory contains AWS-specific deployment configurations, scripts, and documentation.
 
+## 🚀 Quick Start
+
+**New to AWS deployment? Start here:** [QUICKSTART.md](QUICKSTART.md)
+
+Complete deployment in 5 minutes with automated scripts.
+
 ## Directory Structure
 
 ```
 deploy/aws/
 ├── scripts/          # AWS deployment scripts
-│   └── launch-shadowcheck-spot.sh
+│   ├── setup-instance.sh           # System utilities and Docker setup
+│   ├── deploy-complete.sh          # Complete deployment orchestrator
+│   ├── deploy-postgres.sh          # PostgreSQL deployment
+│   ├── deploy-from-github.sh       # Application deployment
+│   ├── launch-shadowcheck-spot.sh  # EC2 instance launcher
+│   └── ...
 ├── configs/          # PostgreSQL and infrastructure configs
 │   ├── postgresql-optimized.conf
 │   └── postgresql-security.conf
-└── docs/             # AWS-specific documentation
-    ├── AWS_INFRASTRUCTURE.md
-    ├── POSTGRESQL_TUNING.md
-    └── PASSWORD_ROTATION.md
+├── docs/             # AWS-specific documentation
+│   ├── AWS_INFRASTRUCTURE.md
+│   ├── POSTGRESQL_TUNING.md
+│   └── PASSWORD_ROTATION.md
+├── QUICKSTART.md     # 5-minute deployment guide
+├── WORKFLOW.md       # Development workflow
+└── README.md         # This file
 ```
 
-## Quick Start
+## Documentation
+
+- **[QUICKSTART.md](QUICKSTART.md)** - Complete deployment from scratch (recommended)
+- **[WORKFLOW.md](WORKFLOW.md)** - Development and update workflow
+- **[DEPLOYMENT_COMPLETE.md](DEPLOYMENT_COMPLETE.md)** - Detailed deployment notes
+
+## Quick Commands
 
 ### Launch Spot Instance
 
@@ -31,11 +51,24 @@ deploy/aws/
 aws ssm start-session --target i-INSTANCE_ID --region us-east-1
 ```
 
-### Rotate Database Password
+### Complete Setup (on EC2)
 
 ```bash
-# On AWS instance via SSM
-sudo /home/ssm-user/scripts/rotate-db-password.sh
+# One-time system setup
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+
+# Clone and deploy
+cd /home/ssm-user
+git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+cd shadowcheck
+./deploy/aws/scripts/deploy-complete.sh
+```
+
+### Update Application (on EC2)
+
+```bash
+cd /home/ssm-user/shadowcheck
+./deploy/aws/scripts/deploy-from-github.sh
 ```
 
 ## Infrastructure

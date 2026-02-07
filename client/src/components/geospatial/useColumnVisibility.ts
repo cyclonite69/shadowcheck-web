@@ -36,9 +36,25 @@ export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
     setVisibleColumns((v) => (v.includes(col) ? v.filter((c) => c !== col) : [...v, col]));
   };
 
+  const reorderColumns = (
+    fromCol: keyof NetworkRow | 'select',
+    toCol: keyof NetworkRow | 'select'
+  ) => {
+    setVisibleColumns((prev) => {
+      const fromIndex = prev.indexOf(fromCol);
+      const toIndex = prev.indexOf(toCol);
+      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
+      const next = [...prev];
+      next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, fromCol);
+      return next;
+    });
+  };
+
   return {
     visibleColumns,
     setVisibleColumns,
     toggleColumn,
+    reorderColumns,
   };
 };

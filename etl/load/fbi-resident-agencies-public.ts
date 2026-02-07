@@ -106,17 +106,46 @@ function loadCsv(filePath: string): PublicResidentAgencyRecord[] {
 async function upsertPublicResidentAgency(
   client: { query: (sql: string, params?: unknown[]) => Promise<{ rowCount: number }> },
   record: PublicResidentAgencyRecord
-): Promise<'updated' | 'inserted'> {
+): Promise<'updated' | 'inserted' | 'skipped'> {
+  // Only fill missing contact fields. Do not overwrite existing values.
+  // Note: We intentionally do not require city to match; (name,state) is unique in the dataset,
+  // and some offices have a physical address in a different city than the one used in the listing.
   const updateSql = `
     UPDATE app.agency_offices
     SET
-      address_line1 = $4::text,
-      address_line2 = $5::text,
-      city = COALESCE($2::text, city),
-      state = COALESCE($3::text, state),
-      postal_code = $6::text,
-      phone = $7::text,
-      parent_office = COALESCE($8::text, parent_office),
+      address_line1 = CASE
+        WHEN NULLIF(BTRIM(address_line1), '') IS NULL THEN NULLIF($4::text, '')
+        ELSE address_line1
+      END,
+      address_line2 = CASE
+        WHEN NULLIF(BTRIM(address_line2), '') IS NULL THEN NULLIF($5::text, '')
+        ELSE address_line2
+      END,
+      city = CASE
+        WHEN NULLIF(BTRIM(city), '') IS NULL THEN NULLIF($2::text, '')
+        ELSE city
+      END,
+      state = CASE
+        WHEN NULLIF(BTRIM(state), '') IS NULL THEN NULLIF($3::text, '')
+        ELSE state
+      END,
+      postal_code = CASE
+        WHEN NULLIF(BTRIM(postal_code), '') IS NULL THEN NULLIF($6::text, '')
+        ELSE postal_code
+      END,
+      phone = CASE
+        WHEN NULLIF(BTRIM(phone), '') IS NULL THEN NULLIF($7::text, '')
+        ELSE phone
+      END,
+      parent_office = CASE
+        WHEN NULLIF(BTRIM(parent_office), '') IS NULL THEN NULLIF($8::text, '')
+        ELSE parent_office
+      END,
+      -- Preserve the existing official link (usually from fbi-offices.ts) before overwriting provenance.
+      website = CASE
+        WHEN NULLIF(BTRIM(website), '') IS NULL THEN source_url
+        ELSE website
+      END,
       source_url = $9::text,
       source_retrieved_at = $10::timestamp,
       source_status = 'unverified',
@@ -124,9 +153,14 @@ async function upsertPublicResidentAgency(
     WHERE agency = 'FBI'
       AND office_type = 'resident_agency'
       AND name = $1::text
-      AND ($2::text IS NULL OR city = $2::text OR city IS NULL)
       AND ($3::text IS NULL OR state = $3::text OR state IS NULL)
       AND ($8::text IS NULL OR parent_office = $8::text)
+      AND (
+        (NULLIF(BTRIM(address_line1), '') IS NULL AND NULLIF($4::text, '') IS NOT NULL)
+        OR (NULLIF(BTRIM(address_line2), '') IS NULL AND NULLIF($5::text, '') IS NOT NULL)
+        OR (NULLIF(BTRIM(postal_code), '') IS NULL AND NULLIF($6::text, '') IS NOT NULL)
+        OR (NULLIF(BTRIM(phone), '') IS NULL AND NULLIF($7::text, '') IS NOT NULL)
+      )
   `;
 
   const updateResult = await client.query(updateSql, [
@@ -144,6 +178,32 @@ async function upsertPublicResidentAgency(
 
   if (updateResult.rowCount > 0) {
     return 'updated';
+  }
+
+  // If the office already exists but didn't need enrichment, treat as a no-op.
+  const existsSql = `
+    SELECT 1
+    FROM app.agency_offices
+    WHERE agency = 'FBI'
+      AND office_type = 'resident_agency'
+      AND name = $1::text
+      AND ($3::text IS NULL OR state = $3::text OR state IS NULL)
+      AND ($8::text IS NULL OR parent_office = $8::text)
+    LIMIT 1
+  `;
+  const existsResult = await client.query(existsSql, [
+    record.name,
+    record.city,
+    record.state,
+    record.addressLine1,
+    record.addressLine2,
+    record.postalCode,
+    record.phone,
+    record.parentOffice,
+  ]);
+
+  if (existsResult.rowCount > 0) {
+    return 'skipped';
   }
 
   const insertSql = `
@@ -206,6 +266,7 @@ async function main(): Promise<void> {
 
   let updated = 0;
   let inserted = 0;
+  let skipped = 0;
 
   try {
     await client.query('BEGIN');
@@ -214,8 +275,10 @@ async function main(): Promise<void> {
       const result = await upsertPublicResidentAgency(client, record);
       if (result === 'updated') {
         updated += 1;
-      } else {
+      } else if (result === 'inserted') {
         inserted += 1;
+      } else {
+        skipped += 1;
       }
     }
 
@@ -231,6 +294,7 @@ async function main(): Promise<void> {
   console.log(`Public listing resident agency enrichment complete.`);
   console.log(`Updated: ${updated}`);
   console.log(`Inserted: ${inserted}`);
+  console.log(`Skipped: ${skipped}`);
 }
 
 if (require.main === module) {

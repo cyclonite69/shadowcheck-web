@@ -41,9 +41,55 @@ cd /home/ssm-user/shadowcheck
 
 ## Initial Setup on EC2
 
-### First Time Only
+### Automated Setup (Recommended)
 
-1. **Clone repository:**
+**One command to set up everything:**
+
+```bash
+# 1. Connect to instance
+aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
+
+# 2. Switch to bash
+bash
+
+# 3. Download and run setup script
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+
+# 4. Clone repository
+cd /home/ssm-user
+git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+cd shadowcheck
+
+# 5. Run complete deployment
+./deploy/aws/scripts/deploy-complete.sh
+```
+
+The `deploy-complete.sh` script will:
+
+- ✅ Verify system setup
+- ✅ Clone/update repository
+- ✅ Deploy PostgreSQL with optimized settings
+- ✅ Create and configure .env.aws
+- ✅ Deploy application containers
+- ✅ Optionally initialize admin user
+
+### Manual Setup (If Needed)
+
+1. **System setup:**
+
+```bash
+sudo ./deploy/aws/scripts/setup-instance.sh
+```
+
+This installs:
+
+- System utilities (htop, jq, ripgrep, ncdu, tmux, etc.)
+- Docker and Docker Compose
+- Node.js 20+
+- PostgreSQL client tools (pgcli)
+- Helpful shell aliases
+
+2. **Clone repository:**
 
 ```bash
 cd /home/ssm-user
@@ -51,36 +97,39 @@ git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
 cd shadowcheck
 ```
 
-2. **Create environment config:**
+3. **Deploy PostgreSQL:**
+
+```bash
+sudo ./deploy/aws/scripts/deploy-postgres.sh
+```
+
+4. **Create environment config:**
 
 ```bash
 cp deploy/aws/.env.example deploy/aws/.env.aws
 vim deploy/aws/.env.aws  # Fill in your values
 ```
 
-3. **Get required values:**
+5. **Get required values:**
 
 ```bash
 # Database password
-docker exec shadowcheck_postgres printenv POSTGRES_PASSWORD
+cat /home/ssm-user/secrets/db_password.txt
 
 # Public IP
 curl http://169.254.169.254/latest/meta-data/public-ipv4
 ```
 
-4. **Deploy:**
+6. **Deploy application:**
 
 ```bash
 ./deploy/aws/scripts/deploy-from-github.sh
 ```
 
-5. **Initialize admin user:**
+7. **Initialize admin user:**
 
 ```bash
-# Copy seed file to container
 docker cp sql/seeds/01_create_admin_user.sql shadowcheck_postgres:/tmp/
-
-# Run initialization
 ./deploy/aws/scripts/init-admin-user.sh
 ```
 

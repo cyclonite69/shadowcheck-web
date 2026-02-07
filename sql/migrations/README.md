@@ -26,6 +26,8 @@ This repo has accumulated overlapping SQL files. Use the order below to avoid sc
 - `20260205_add_agency_office_source_status.sql`
 - `20260205_create_geocoding_cache.sql`
 - `20260206_expand_agency_office_types.sql`
+- `20260206_add_agency_offices_address_normalization.sql`
+- `20260206_add_agency_offices_phone_normalization.sql`
 - `populate_ap_locations.sql`
 - `classify_device_types.sql`, `classify_government_networks.sql`
 - `detect_colocation.sql`, `detect_suspicious_duplicates.sql`, `contextual_classification.sql`, `contextual_queries.sql`

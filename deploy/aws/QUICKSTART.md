@@ -1,0 +1,227 @@
+# ShadowCheck AWS Deployment Quick Start
+
+## From Zero to Running in 5 Minutes
+
+### Prerequisites
+
+- AWS account with EC2 access
+- AWS CLI configured locally
+- GitHub repository access
+
+### Step 1: Launch EC2 Instance
+
+```bash
+# From your local machine
+cd /path/to/shadowcheck-static
+./deploy/aws/scripts/launch-shadowcheck-spot.sh
+```
+
+This creates:
+
+- t4g.large ARM spot instance (Amazon Linux 2023)
+- 100GB XFS data volume for PostgreSQL
+- Security groups with SSM access
+- IAM role for Systems Manager
+
+**Note the instance ID from output** (e.g., `i-035565c52ac4fa6dd`)
+
+### Step 2: Connect via SSM
+
+```bash
+# Wait 2-3 minutes for instance to initialize
+aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
+```
+
+### Step 3: Run Automated Setup
+
+```bash
+# Switch to bash shell
+bash
+
+# Download and run system setup
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+
+# Clone repository
+cd /home/ssm-user
+git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+cd shadowcheck
+
+# Optional: Run dry-run to validate before deploying
+./deploy/aws/scripts/dry-run.sh
+
+# Run complete deployment
+./deploy/aws/scripts/deploy-complete.sh
+```
+
+The script will:
+
+1. ✅ Install system utilities (ripgrep, ncdu, htop, jq, etc.)
+2. ✅ Install Docker, Docker Compose, Node.js 20
+3. ✅ Deploy PostgreSQL with PostGIS
+4. ✅ Create .env.aws with auto-populated values
+5. ✅ Build and start application containers
+6. ✅ Optionally initialize admin user
+
+### Step 4: Configure API Keys
+
+Edit the environment file:
+
+```bash
+vim deploy/aws/.env.aws
+```
+
+Required values:
+
+- `MAPBOX_TOKEN` - Get from https://account.mapbox.com/
+- `SESSION_SECRET` - Generate with: `openssl rand -base64 32`
+
+Optional:
+
+- `WIGLE_API_KEY` - Get from https://wigle.net/
+
+Then redeploy:
+
+```bash
+./deploy/aws/scripts/deploy-from-github.sh
+```
+
+### Step 5: Access Application
+
+Get your public IP:
+
+```bash
+curl http://169.254.169.254/latest/meta-data/public-ipv4
+```
+
+Open in browser:
+
+- Frontend: `http://YOUR_IP:3000`
+- Backend API: `http://YOUR_IP:3001`
+
+Default admin credentials:
+
+- Username: `admin`
+- Password: `admin123`
+
+**⚠️ Change immediately after first login!**
+
+## Useful Commands
+
+After setup, these aliases are available:
+
+```bash
+sc        # cd to shadowcheck directory
+sclogs    # tail backend logs
+scps      # show running containers
+scdb      # connect to database with pgcli
+scdeploy  # deploy latest from GitHub
+scstatus  # show container and disk status
+```
+
+## System Utilities Installed
+
+The setup script installs:
+
+**Monitoring & Debugging:**
+
+- `htop` - Interactive process viewer
+- `lsof` - List open files
+- `strace` - System call tracer
+- `tcpdump` - Network packet analyzer
+- `sysstat` - Performance monitoring tools
+
+**Network Tools:**
+
+- `bind-utils` - DNS utilities (dig, nslookup)
+- `traceroute` - Network path tracer
+- `nmap-ncat` - Network connection tool
+
+**Development Tools:**
+
+- `jq` - JSON processor
+- `ripgrep` (rg) - Fast text search
+- `tree` - Directory tree viewer
+- `ncdu` - Disk usage analyzer
+- `tmux` - Terminal multiplexer
+- `git` - Version control
+
+**Database Tools:**
+
+- `pgcli` - PostgreSQL CLI with autocomplete
+
+## Updating the Application
+
+```bash
+# On your local machine
+git add .
+git commit -m "Your changes"
+git push origin master
+
+# On EC2 instance
+cd /home/ssm-user/shadowcheck
+./deploy/aws/scripts/deploy-from-github.sh
+```
+
+## Troubleshooting
+
+### Check container status
+
+```bash
+docker ps
+docker logs shadowcheck_backend
+docker logs shadowcheck_frontend
+docker logs shadowcheck_postgres
+```
+
+### Check database
+
+```bash
+pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db
+```
+
+### Check disk space
+
+```bash
+df -h /var/lib/postgresql
+ncdu /var/lib/postgresql
+```
+
+### Check system resources
+
+```bash
+htop
+```
+
+### Check network connectivity
+
+```bash
+curl http://localhost:3001/api/health
+```
+
+## Security Notes
+
+1. **Database password** is auto-generated and stored in `/home/ssm-user/secrets/db_password.txt`
+2. **SSL/TLS** is enforced for PostgreSQL connections
+3. **Security groups** restrict access - use `add-ip-access.sh` to allow your IP
+4. **Secrets** are never committed to git (.env.aws is gitignored)
+5. **Change default admin password** immediately after first login
+
+## Cost Optimization
+
+- Spot instance saves ~70% vs on-demand
+- Instance stops automatically when spot price exceeds bid
+- Data persists on EBS volume
+- Use `aws ec2 stop-instances` when not in use
+
+## Next Steps
+
+1. Import your data (see `etl/README.md`)
+2. Configure backups (see `deploy/aws/docs/BACKUP_STRATEGY.md`)
+3. Set up monitoring (see `deploy/aws/docs/MONITORING.md`)
+4. Review security settings (see `SECURITY.md`)
+
+## Support
+
+- Documentation: `deploy/aws/README.md`
+- Workflow guide: `deploy/aws/WORKFLOW.md`
+- Issues: https://github.com/cyclonite69/shadowcheck-static/issues

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 export const useConfiguration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mapboxToken, setMapboxToken] = useState('');
+  const [mapboxUnlimitedApiKey, setMapboxUnlimitedApiKey] = useState('');
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
   const [awsAccessKeyId, setAwsAccessKeyId] = useState('');
   const [awsSecretAccessKey, setAwsSecretAccessKey] = useState('');
@@ -13,6 +14,7 @@ export const useConfiguration = () => {
   const [smartyAuthId, setSmartyAuthId] = useState('');
   const [smartyAuthToken, setSmartyAuthToken] = useState('');
   const [mapboxConfigured, setMapboxConfigured] = useState(false);
+  const [mapboxUnlimitedConfigured, setMapboxUnlimitedConfigured] = useState(false);
   const [googleMapsConfigured, setGoogleMapsConfigured] = useState(false);
   const [wigleConfigured, setWigleConfigured] = useState(false);
   const [awsConfigured, setAwsConfigured] = useState(false);
@@ -38,9 +40,34 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setMapboxConfigured(true);
       alert('Mapbox token saved!');
     } catch (error) {
       alert(`Error saving token: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveMapboxUnlimitedApiKey = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/settings/mapbox-unlimited', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ value: mapboxUnlimitedApiKey }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      setMapboxUnlimitedConfigured(true);
+      alert('Mapbox geocoding key saved!');
+    } catch (error) {
+      alert(`Error saving Mapbox geocoding key: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +88,7 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setWigleConfigured(true);
       alert('WiGLE credentials saved!');
     } catch (error) {
       alert(`Error saving credentials: ${error.message}`);
@@ -84,6 +112,7 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setGoogleMapsConfigured(true);
       alert('Google Maps API key saved!');
     } catch (error) {
       alert(`Error saving API key: ${error.message}`);
@@ -112,6 +141,7 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setAwsConfigured(true);
       alert('AWS credentials saved!');
     } catch (error) {
       alert(`Error saving AWS credentials: ${error.message}`);
@@ -135,6 +165,7 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setOpencageConfigured(true);
       alert('OpenCage API key saved!');
     } catch (error) {
       alert(`Error saving OpenCage key: ${error.message}`);
@@ -158,6 +189,7 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setLocationIqConfigured(true);
       alert('LocationIQ API key saved!');
     } catch (error) {
       alert(`Error saving LocationIQ key: ${error.message}`);
@@ -181,6 +213,7 @@ export const useConfiguration = () => {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      setSmartyConfigured(true);
       alert('Smarty credentials saved!');
     } catch (error) {
       alert(`Error saving Smarty credentials: ${error.message}`);
@@ -212,21 +245,38 @@ export const useConfiguration = () => {
   useEffect(() => {
     const loadMaskedConfig = async () => {
       try {
-        const [mapboxRes, googleRes, wigleRes, awsRes, opencageRes, locationIqRes, smartyRes] =
-          await Promise.all([
-            fetch('/api/settings/mapbox', { credentials: 'same-origin' }),
-            fetch('/api/settings/google-maps', { credentials: 'same-origin' }),
-            fetch('/api/settings/wigle', { credentials: 'same-origin' }),
-            fetch('/api/settings/aws', { credentials: 'same-origin' }),
-            fetch('/api/settings/opencage', { credentials: 'same-origin' }),
-            fetch('/api/settings/locationiq', { credentials: 'same-origin' }),
-            fetch('/api/settings/smarty', { credentials: 'same-origin' }),
-          ]);
+        const [
+          mapboxRes,
+          mapboxUnlimitedRes,
+          googleRes,
+          wigleRes,
+          awsRes,
+          opencageRes,
+          locationIqRes,
+          smartyRes,
+        ] = await Promise.all([
+          fetch('/api/settings/mapbox', { credentials: 'same-origin' }),
+          fetch('/api/settings/mapbox-unlimited', { credentials: 'same-origin' }),
+          fetch('/api/settings/google-maps', { credentials: 'same-origin' }),
+          fetch('/api/settings/wigle', { credentials: 'same-origin' }),
+          fetch('/api/settings/aws', { credentials: 'same-origin' }),
+          fetch('/api/settings/opencage', { credentials: 'same-origin' }),
+          fetch('/api/settings/locationiq', { credentials: 'same-origin' }),
+          fetch('/api/settings/smarty', { credentials: 'same-origin' }),
+        ]);
 
         if (mapboxRes.ok) {
           const data = await mapboxRes.json();
-          const tokens = Array.isArray(data.tokens) ? data.tokens : [];
-          setMapboxConfigured(tokens.length > 0);
+          if (typeof data.configured === 'boolean') {
+            setMapboxConfigured(data.configured);
+          } else {
+            const tokens = Array.isArray(data.tokens) ? data.tokens : [];
+            setMapboxConfigured(tokens.length > 0);
+          }
+        }
+        if (mapboxUnlimitedRes.ok) {
+          const data = await mapboxUnlimitedRes.json();
+          setMapboxUnlimitedConfigured(Boolean(data.configured));
         }
         if (googleRes.ok) {
           const data = await googleRes.json();
@@ -257,6 +307,7 @@ export const useConfiguration = () => {
         }
       } catch {
         setMapboxConfigured(false);
+        setMapboxUnlimitedConfigured(false);
         setGoogleMapsConfigured(false);
         setWigleConfigured(false);
         setAwsConfigured(false);
@@ -273,6 +324,8 @@ export const useConfiguration = () => {
     isLoading,
     mapboxToken,
     setMapboxToken,
+    mapboxUnlimitedApiKey,
+    setMapboxUnlimitedApiKey,
     googleMapsApiKey,
     setGoogleMapsApiKey,
     awsAccessKeyId,
@@ -292,6 +345,7 @@ export const useConfiguration = () => {
     smartyAuthToken,
     setSmartyAuthToken,
     mapboxConfigured,
+    mapboxUnlimitedConfigured,
     googleMapsConfigured,
     wigleConfigured,
     awsConfigured,
@@ -305,6 +359,7 @@ export const useConfiguration = () => {
     homeLocation,
     setHomeLocation,
     saveMapboxToken,
+    saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,
     saveAwsCredentials,
     saveOpencageApiKey,

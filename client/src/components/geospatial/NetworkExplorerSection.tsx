@@ -29,6 +29,7 @@ interface NetworkExplorerSectionProps {
   someSelected: boolean;
   onToggleSelectAll: () => void;
   onColumnSort: (column: keyof NetworkRow, shiftKey: boolean) => void;
+  onReorderColumns?: (from: keyof NetworkRow | 'select', to: keyof NetworkRow | 'select') => void;
   tableContainerRef: React.RefObject<HTMLDivElement>;
   loadingNetworks: boolean;
   filteredNetworks: NetworkRow[];
@@ -71,6 +72,7 @@ export const NetworkExplorerSection = ({
   someSelected,
   onToggleSelectAll,
   onColumnSort,
+  onReorderColumns,
   tableContainerRef,
   loadingNetworks,
   filteredNetworks,
@@ -118,6 +120,7 @@ export const NetworkExplorerSection = ({
         someSelected={someSelected}
         onToggleSelectAll={onToggleSelectAll}
         onColumnSort={onColumnSort}
+        onReorderColumns={onReorderColumns}
       />
 
       <NetworkTableBody

@@ -28,6 +28,22 @@ Adds reverse geocoding data to observations.
 - Rate-limited API calls
 - Caches results in `app.geocoding_cache`
 
+### enrich-agency-offices-zip4-smarty.ts
+
+Adds ZIP+4 to `app.agency_offices.postal_code` using Smarty US Street API.
+
+- Reads Smarty credentials from keyring/env (`smarty_auth_id` / `smarty_auth_token`)
+- Only fills `postal_code` when it is blank or 5-digit
+- Optional: can also fill missing `latitude`/`longitude`/`location` if Smarty returns coordinates (`--with-coordinates`)
+
+### normalize-agency-offices-phone.ts
+
+Normalizes `app.agency_offices.phone` into structured phone fields (does not overwrite `phone`):
+
+- `phone_digits` (digits only)
+- `normalized_phone` (US national 10-digit, US-only when parseable)
+- `normalized_phone_display` ((XXX) XXX-XXXX, US-only when parseable)
+
 ## Data Flow
 
 ```

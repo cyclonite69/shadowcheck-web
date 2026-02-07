@@ -30,6 +30,10 @@ services:
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-dbcoopers-briefcase-161020170158}
       # Machine ID for keyring decryption inside Docker (must match host)
       KEYRING_MACHINE_ID: ${KEYRING_MACHINE_ID:-}
+      # Admin Docker controls (for PgAdmin management)
+      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}
+      # Docker API version compatibility
+      DOCKER_API_VERSION: "1.41"
     ports:
       - "${PORT:-3001}:3001"
     volumes:
@@ -37,6 +41,7 @@ services:
       - ./logs:/app/logs
       - ./backups:/app/backups
       - ${XDG_DATA_HOME:-~/.local/share}/shadowcheck:/home/nodejs/.local/share/shadowcheck:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - shadowcheck_net
     healthcheck:
