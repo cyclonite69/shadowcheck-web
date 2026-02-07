@@ -99,7 +99,13 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {mapboxConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  mapboxConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {mapboxConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -127,7 +133,15 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {mapboxUnlimitedConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  mapboxUnlimitedConfigured
+                    ? 'bg-green-900/40 text-green-300'
+                    : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {mapboxUnlimitedConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -159,7 +173,15 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {googleMapsConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  googleMapsConfigured
+                    ? 'bg-green-900/40 text-green-300'
+                    : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {googleMapsConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -223,7 +245,13 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {awsConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  awsConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {awsConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -255,7 +283,15 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {opencageConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  opencageConfigured
+                    ? 'bg-green-900/40 text-green-300'
+                    : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {opencageConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -287,7 +323,15 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {locationIqConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  locationIqConfigured
+                    ? 'bg-green-900/40 text-green-300'
+                    : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {locationIqConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -327,7 +371,13 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {smartyConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  smartyConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {smartyConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
@@ -371,7 +421,13 @@ export const ConfigurationTab: React.FC = () => {
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
-              Status: {wigleConfigured ? 'Configured' : 'Not configured'}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  wigleConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
+                }`}
+              >
+                {wigleConfigured ? '✓ Configured' : '✗ Not Configured'}
+              </span>
             </div>
           </div>
           <button
