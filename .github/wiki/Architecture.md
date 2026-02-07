@@ -133,20 +133,18 @@ graph LR
 
 ---
 
-## Data Flow Architecture
+## Database Architecture
 
-```mermaid
-│  │  Multi-User Security Model                            │   │
-│  │  • shadowcheck_user (Read-Only)                      │   │
-│  │  • shadowcheck_admin (Full Access)                 │   │
-│  │                                                      │   │
-│  │  Materialized Views:                                  │   │
-│  │  • api_network_explorer_mv (fast queries)           │   │
-│  │  • threat_analysis_mv (threat metrics)              │   │
-│  │  • analytics_summary_mv (dashboard metrics)         │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
+**Multi-User Security Model:**
+
+- `shadowcheck_user` (Read-Only)
+- `shadowcheck_admin` (Full Access)
+
+**Materialized Views:**
+
+- `api_network_explorer_mv` (fast queries)
+- `threat_analysis_mv` (threat metrics)
+- `analytics_summary_mv` (dashboard metrics)
 
 ---
 
