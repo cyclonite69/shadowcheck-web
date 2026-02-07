@@ -16,9 +16,9 @@
 
 - **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/endpoint-test`)
 - **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
+- **Integrated Asset Serving**: The main Express server natively serves compiled frontend assets from `dist/` with optimized security headers.
 - **Universal filter system** with 20+ filter types supporting complex queries across all pages
 - **DevContainer support** for consistent development environments with VS Code integration
-- **Static server** with security headers for production deployment and Lighthouse audits
 - **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence
 - **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
 - **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
@@ -112,7 +112,7 @@ See `docs/FEATURES.md` for the full feature catalog.
 **Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
 **Cache:** Redis v4+ for sessions, rate limiting, and analytics
 **Development:** DevContainer support with VS Code integration
-**Deployment:** Static server with security headers for production
+**Deployment:** Production builds are served via the integrated asset handler in `server/server.ts`.
 
 ## Prerequisites
 
@@ -378,7 +378,8 @@ shadowcheck-static/
 │   │   ├── services/      # 🔧 Business logic (TypeScript)
 │   │   ├── middleware/    # 🔧 Express middleware (TypeScript)
 │   │   └── utils/         # 🔧 Server utilities (TypeScript)
-│   └── server.ts          # 🔧 Main server entry point
+│   ├── server.ts          # 🔧 Main server entry point
+│   └── static-server.ts   # 🛠️ Benchmark static server
 ├── deploy/                # 🚀 Deployment configs (AWS, etc.)
 │   └── aws/               # AWS-specific deployment
 ├── etl/                   # 📊 ETL pipeline (TypeScript)
@@ -428,7 +429,7 @@ Key environment variables (see `.env.example`):
 
 ### Security Headers & Lighthouse Audits
 
-For accurate Lighthouse Best Practices audits, use the static server with security headers:
+For accurate Lighthouse Best Practices audits, use the benchmark static server:
 
 ```bash
 npm run build
@@ -436,14 +437,7 @@ npm run serve:dist
 # Then run Lighthouse against http://localhost:4000
 ```
 
-The static server (`server/static-server.js`) applies these headers:
-
-- `Content-Security-Policy` (allows Mapbox CDN)
-- `X-Frame-Options: DENY`
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy: geolocation=(), microphone=(), camera=()`
-- `Cross-Origin-Opener-Policy: same-origin-allow-popups`
+The integrated server (`server/server.ts`) also applies high-security headers by default.
 
 ### Third-Party Cookies Notice
 
