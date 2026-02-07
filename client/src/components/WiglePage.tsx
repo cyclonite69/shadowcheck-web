@@ -11,6 +11,7 @@ import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug } from '../logging/clientLogger';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
+import { useAgencyOffices } from './hooks/useAgencyOffices';
 
 type WigleRow = {
   bssid: string;
@@ -142,6 +143,9 @@ const WiglePage: React.FC = () => {
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [tilesReady, setTilesReady] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Agency offices layer
+  useAgencyOffices(mapRef, mapReady);
   const [showMenu, setShowMenu] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [mapStyle, setMapStyleState] = useState(() => {
