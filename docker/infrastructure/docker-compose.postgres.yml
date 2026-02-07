@@ -99,13 +99,13 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
+    external: true
     name: shadowcheck_postgres_data
   pgadmin_data:
-    driver: local
+    external: true
     name: shadowcheck_pgadmin_data
   redis_data:
-    driver: local
+    external: true
     name: shadowcheck_redis_data
 
 networks:

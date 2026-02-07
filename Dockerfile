@@ -21,7 +21,7 @@ RUN npm ci --include=dev
 # Copy application files
 COPY . .
 
-# Build frontend
+# Build frontend and server
 RUN npm run build
 
 # Remove development dependencies
@@ -59,8 +59,8 @@ RUN mkdir -p data/logs data/csv && \
     chown -R nodejs:nodejs /app && \
     chmod +x /entrypoint.sh
 
-# Don't switch to nodejs user yet - entrypoint needs to run as root
-# USER nodejs will be handled by entrypoint via su-exec
+# Don't switch to nodejs user yet - entrypoint needs to run as root first
+# USER nodejs will be handled by entrypoint via su-exec after setting up Docker socket permissions
 
 # Set production environment
 ENV NODE_ENV=production

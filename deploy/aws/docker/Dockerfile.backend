@@ -18,13 +18,13 @@ COPY tsconfig*.json ./
 # Install dependencies (including devDependencies for build)
 RUN npm ci --include=dev
 
-# Copy source
+# Copy source files
 COPY server ./server
 COPY client ./client
 COPY etl ./etl
 COPY scripts ./scripts
 
-# Build TypeScript (server and client)
+# Build frontend and server
 RUN npm run build
 
 # Remove development dependencies
@@ -62,8 +62,8 @@ RUN mkdir -p data/logs data/csv && \
     chown -R nodejs:nodejs /app && \
     chmod +x /entrypoint.sh
 
-# Switch to non-root user (entrypoint will run as root, then exec as nodejs)
-USER nodejs
+# Don't switch to nodejs user yet - entrypoint needs to run as root first
+# USER nodejs will be handled by entrypoint via su-exec after setting up Docker socket permissions
 
 # Set production environment
 ENV NODE_ENV=production

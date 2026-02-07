@@ -185,6 +185,27 @@ const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
     }
   }
 
+  // Check if container exists but is stopped
+  try {
+    const inspectResult = await runCommand(
+      'docker',
+      ['inspect', '--format', '{{.State.Running}}', 'shadowcheck_pgadmin'],
+      { allowFail: true }
+    );
+    if (inspectResult.stdout.trim() === 'false') {
+      logger.info('[PgAdmin] Container exists but stopped, starting it');
+      const startResult = await runCommand('docker', ['start', 'shadowcheck_pgadmin']);
+      return {
+        output: startResult.stdout,
+        warnings: startResult.stderr,
+        composeFile,
+        serviceName,
+      };
+    }
+  } catch (err) {
+    // Container doesn't exist, proceed with compose up
+  }
+
   logger.info('[PgAdmin] Starting PgAdmin via docker-compose');
   const result = await runCompose(['up', '-d', serviceName]);
 

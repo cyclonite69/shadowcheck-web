@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build:prod",
+      "group": "build",
+      "problemMatcher": [],
+      "label": "npm: build:prod",
+      "detail": "NODE_ENV=production ALLOW_INDEXING=true npm run build"
+    }
+  ]
+}

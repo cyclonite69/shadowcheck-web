@@ -2,6 +2,7 @@
  * App initialization helpers.
  */
 import type { Express } from 'express';
+import helmet from 'helmet';
 
 interface ServerConfig {
   port: number;
@@ -19,6 +20,7 @@ interface AppInitResult extends ServerConfig {
  */
 function initializeApp(express: () => Express): AppInitResult {
   const app = express();
+  app.use(helmet());
   const { getServerConfig } = require('./serverConfig');
   const config: ServerConfig = getServerConfig();
 

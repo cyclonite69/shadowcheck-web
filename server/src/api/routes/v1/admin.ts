@@ -57,7 +57,7 @@ router.use(adminPgAdminRoutes);
 router.use('/admin/settings', adminSettingsRoutes);
 router.use(adminGeocodingRoutes);
 router.use(adminAwsRoutes);
-router.use('/admin/aws', adminAwsInstancesRoutes);
+// router.use('/admin/aws', adminAwsInstancesRoutes); // TODO: Fix module export issue
 
 // POST /api/admin/import-sqlite - Import SQLite database
 router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, next) => {

@@ -95,7 +95,7 @@ router.get('/admin/aws/overview', async (req, res) => {
       instances,
     });
   } catch (error: any) {
-    logger.error('[AWS] Failed to load overview', { error: error.message });
+    logger.error('[AWS] Failed to load overview', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message || 'Failed to load AWS overview' });
   }
 });
