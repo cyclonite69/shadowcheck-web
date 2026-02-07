@@ -91,6 +91,10 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   // Weather proxy (no auth required)
   // app.use('/', weatherRoutes); // TODO: Fix module export issue
 
+  // Agency offices (public data - mounted outside /api to avoid admin middleware)
+  const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;
+  app.use('/agency-offices', agencyOfficesRoutes);
+
   // API routes
   app.use('/api', authRoutes);
   app.use('/api', networksRoutes);
