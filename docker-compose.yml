@@ -27,7 +27,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
-      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-your-s3-bucket-name}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-dbcoopers-briefcase-161020170158}
       # Machine ID for keyring decryption inside Docker (must match host)
       KEYRING_MACHINE_ID: ${KEYRING_MACHINE_ID:-}
       # Admin Docker controls (for PgAdmin management)

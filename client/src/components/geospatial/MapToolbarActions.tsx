@@ -43,6 +43,10 @@ interface MapToolbarActionsProps {
   wigleActive?: boolean;
   selectedCount?: number;
   onWigle?: () => void;
+  // Directions mode
+  searchMode?: 'address' | 'directions';
+  onSearchModeToggle?: () => void;
+  directionsLoading?: boolean;
 }
 
 export const MapToolbarActions = ({
@@ -78,6 +82,9 @@ export const MapToolbarActions = ({
   wigleActive,
   selectedCount,
   onWigle,
+  searchMode,
+  onSearchModeToggle,
+  directionsLoading,
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -146,6 +153,9 @@ export const MapToolbarActions = ({
       wigleActive={wigleActive}
       selectedCount={selectedCount}
       onWigle={onWigle}
+      searchMode={searchMode}
+      onSearchModeToggle={onSearchModeToggle}
+      directionsLoading={directionsLoading}
     />
   );
 };

@@ -102,12 +102,18 @@ require('ts-node').register({
     // ============================================================================
     // 13. SERVER STARTUP
     // ============================================================================
-    startServer(app, {
+    const server = startServer(app, {
       port,
       host,
       forceHttps,
       logger,
     });
+
+    // ============================================================================
+    // 14. SSM WEBSOCKET TERMINAL
+    // ============================================================================
+    const { initializeSsmWebSocket } = require('./src/websocket/ssmTerminal');
+    initializeSsmWebSocket(server, logger);
   } catch (err) {
     console.error(err); // PRINT STACK TRACE
     const logger = require('./src/logging/logger');

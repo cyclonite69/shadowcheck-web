@@ -5,6 +5,8 @@ interface MapStyleOption {
   label: string;
 }
 
+type SearchMode = 'address' | 'directions';
+
 interface MapToolbarProps {
   searchContainerRef?: React.RefObject<HTMLDivElement>;
   locationSearch: string;
@@ -37,6 +39,10 @@ interface MapToolbarProps {
   wigleActive?: boolean;
   selectedCount?: number;
   onWigle?: () => void;
+  // Directions mode
+  searchMode?: SearchMode;
+  onSearchModeToggle?: () => void;
+  directionsLoading?: boolean;
 }
 
 export const MapToolbar = ({
@@ -69,6 +75,9 @@ export const MapToolbar = ({
   wigleActive,
   selectedCount,
   onWigle,
+  searchMode,
+  onSearchModeToggle,
+  directionsLoading,
 }: MapToolbarProps) => {
   return (
     <div
@@ -81,23 +90,50 @@ export const MapToolbar = ({
         ref={searchContainerRef}
         style={{ position: 'relative', minWidth: '300px', flex: '1 1 300px' }}
       >
-        <input
-          type="text"
-          placeholder={searchPlaceholder}
-          value={locationSearch}
-          onChange={(e) => onLocationSearchChange(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '6px 10px',
-            fontSize: '11px',
-            background: 'rgba(30, 41, 59, 0.9)',
-            border: '1px solid rgba(148, 163, 184, 0.2)',
-            borderRadius: '4px',
-            color: '#f1f5f9',
-            outline: 'none',
-          }}
-          onFocus={onLocationSearchFocus}
-        />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder={
+              searchMode === 'directions' ? '🛣️ Search destination for route...' : searchPlaceholder
+            }
+            value={locationSearch}
+            onChange={(e) => onLocationSearchChange(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              fontSize: '11px',
+              background: 'rgba(30, 41, 59, 0.9)',
+              border: '1px solid rgba(148, 163, 184, 0.2)',
+              borderRadius: onSearchModeToggle ? '4px 0 0 4px' : '4px',
+              color: '#f1f5f9',
+              outline: 'none',
+            }}
+            onFocus={onLocationSearchFocus}
+          />
+          {onSearchModeToggle && (
+            <button
+              onClick={onSearchModeToggle}
+              title={
+                searchMode === 'address' ? 'Switch to Directions mode' : 'Switch to Address mode'
+              }
+              style={{
+                padding: '6px 8px',
+                fontSize: '11px',
+                background:
+                  searchMode === 'directions' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(30, 41, 59, 0.9)',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                borderLeft: 'none',
+                borderRadius: '0 4px 4px 0',
+                color: searchMode === 'directions' ? '#60a5fa' : '#cbd5e1',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                lineHeight: 1,
+              }}
+            >
+              {directionsLoading ? '⏳' : searchMode === 'address' ? '📍' : '🛣️'}
+            </button>
+          )}
+        </div>
         {searchingLocation && (
           <div
             style={{

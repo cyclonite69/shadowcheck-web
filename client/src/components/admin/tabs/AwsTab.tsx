@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
+import { SsmTerminal } from '../components/SsmTerminal';
 import { useAwsOverview } from '../hooks/useAwsOverview';
 
 const CloudIcon = ({ size = 24, className = '' }) => (
@@ -16,37 +17,17 @@ const CloudIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const ExpandIcon = ({ size = 16, className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-  </svg>
-);
-
 export const AwsTab: React.FC = () => {
   const { overview, loading, error, refresh } = useAwsOverview();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmTerminate, setConfirmTerminate] = useState<string | null>(null);
+  const [ssmInstanceId, setSsmInstanceId] = useState<string | null>(null);
 
   const instances = overview?.instances || [];
   const counts = overview?.counts || { total: 0, states: {} };
   const stateBadges = Object.entries(counts.states || {});
   const displayError = error || overview?.error || actionError;
-
-  const openSsmConsole = (instanceId: string) => {
-    const region = overview?.region || 'us-east-1';
-    // Open SSM console in new window - AWS blocks iframe embedding
-    const url = `https://${region}.console.aws.amazon.com/systems-manager/session-manager/${instanceId}?region=${region}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
 
   const handleInstanceAction = async (instanceId: string, action: string) => {
     setActionLoading(instanceId);
@@ -195,9 +176,17 @@ export const AwsTab: React.FC = () => {
                         <td className="py-2 pr-4">
                           <div className="flex gap-2 flex-wrap">
                             <button
-                              onClick={() => openSsmConsole(instance.instanceId)}
-                              className="px-2 py-1 bg-purple-900/40 text-purple-300 rounded text-xs hover:bg-purple-800/60"
-                              title="Open SSM Console"
+                              onClick={() =>
+                                setSsmInstanceId(
+                                  ssmInstanceId === instance.instanceId ? null : instance.instanceId
+                                )
+                              }
+                              className={`px-2 py-1 rounded text-xs ${
+                                ssmInstanceId === instance.instanceId
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-purple-900/40 text-purple-300 hover:bg-purple-800/60'
+                              }`}
+                              title="Open SSM Terminal"
                             >
                               SSM
                             </button>
@@ -273,6 +262,9 @@ export const AwsTab: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          )}
+          {ssmInstanceId && (
+            <SsmTerminal instanceId={ssmInstanceId} onClose={() => setSsmInstanceId(null)} />
           )}
         </div>
       </AdminCard>

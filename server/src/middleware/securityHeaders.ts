@@ -20,7 +20,7 @@ function createSecurityHeaders(forceHttps: boolean): RequestHandler {
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data: https:; " +
         "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://d1a3f4spazzrp4.cloudfront.net; " +
-        "frame-src 'self' https://*.console.aws.amazon.com;"
+        "frame-src 'self';"
     );
     next();
   };

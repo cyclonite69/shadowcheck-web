@@ -35,6 +35,21 @@ FROM node:20-alpine
 # Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, and Docker CLI for PgAdmin management
 RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec
 
+# Install AWS SSM Session Manager Plugin for in-app terminal
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+      SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb"; \
+    else \
+      SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_arm64/session-manager-plugin.deb"; \
+    fi && \
+    apk add --no-cache --virtual .ssm-deps dpkg && \
+    wget -q "$SSM_URL" -O /tmp/ssm.deb && \
+    dpkg -x /tmp/ssm.deb /tmp/ssm && \
+    mv /tmp/ssm/usr/local/sessionmanagerplugin/bin/session-manager-plugin /usr/local/bin/ && \
+    chmod +x /usr/local/bin/session-manager-plugin && \
+    rm -rf /tmp/ssm /tmp/ssm.deb && \
+    apk del .ssm-deps
+
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001

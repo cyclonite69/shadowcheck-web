@@ -32,6 +32,7 @@ import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFi
 import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
 import { useMapPreferences } from './geospatial/useMapPreferences';
 import { useWeatherFx } from '../weather/useWeatherFx';
+import { useDirectionsMode } from '../directions/useDirectionsMode';
 import { useObservationSummary } from './geospatial/useObservationSummary';
 import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
 import { useExplorerPanels } from './geospatial/useExplorerPanels';
@@ -238,6 +239,14 @@ export default function GeospatialExplorer() {
 
   const { weatherFxMode, setWeatherFxMode } = useWeatherFx(mapRef, mapContainerRef, mapReady);
 
+  const {
+    mode: searchMode,
+    setMode: setSearchMode,
+    loading: directionsLoading,
+    fetchRoute,
+    clearRoute,
+  } = useDirectionsMode(mapRef);
+
   useNetworkInfiniteScroll({
     containerRef: tableContainerRef,
     hasMore: pagination.hasMore,
@@ -314,7 +323,27 @@ export default function GeospatialExplorer() {
                 showSearchResults={showSearchResults}
                 setShowSearchResults={setShowSearchResults}
                 searchResults={searchResults}
-                onSelectSearchResult={flyToLocation}
+                onSelectSearchResult={(result) => {
+                  if (searchMode === 'directions') {
+                    const dest: [number, number] = [result.center[0], result.center[1]];
+                    fetchRoute(homeLocation.center, dest);
+                    // Fly to show the route area
+                    if (mapRef.current) {
+                      mapRef.current.flyTo({ center: dest, zoom: 12, duration: 2000 });
+                    }
+                    setShowSearchResults(false);
+                    setLocationSearch('');
+                  } else {
+                    flyToLocation(result);
+                  }
+                }}
+                searchMode={searchMode}
+                onSearchModeToggle={() => {
+                  const next = searchMode === 'address' ? 'directions' : 'address';
+                  setSearchMode(next);
+                  if (next === 'address') clearRoute();
+                }}
+                directionsLoading={directionsLoading}
                 mapStyle={mapStyle}
                 onMapStyleChange={changeMapStyle}
                 mapStyles={MAP_STYLES}

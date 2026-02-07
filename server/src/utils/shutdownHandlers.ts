@@ -15,12 +15,16 @@ function registerShutdownHandlers({ logger, pool }: ShutdownDependencies): void 
     logger.info('SIGTERM received, closing server gracefully...');
     const BackgroundJobsService = require('../services/backgroundJobsService');
     BackgroundJobsService.shutdown();
+    const { shutdownSsmWebSocket } = require('../websocket/ssmTerminal');
+    await shutdownSsmWebSocket();
     await pool.end();
     process.exit(0);
   });
 
   process.on('SIGINT', async () => {
     logger.info('SIGINT received, closing server gracefully...');
+    const { shutdownSsmWebSocket } = require('../websocket/ssmTerminal');
+    await shutdownSsmWebSocket();
     await pool.end();
     process.exit(0);
   });
