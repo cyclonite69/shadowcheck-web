@@ -89,7 +89,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/analytics-public', analyticsPublicRoutes);
 
   // Weather proxy (no auth required)
-  // app.use('/', weatherRoutes); // TODO: Fix Docker module loading
+  app.use('/', weatherRoutes);
 
   // API routes
   app.use('/api', authRoutes);

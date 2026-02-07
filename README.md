@@ -251,18 +251,47 @@ Server runs on `http://localhost:3001`
 
 ## API Endpoints
 
-- `GET /api/networks` - Paginated network list with filtering
-- `GET /api/networks/observations/:bssid` - Get all observation records for a network
-- `GET /api/threats/quick` - High-performance threat detection overview
-- `GET /api/threats/detect` - Detailed movement-based threat analysis
-- `GET /api/analytics/*` - Statistical data distribution endpoints
-- `GET /api/weather` - Current weather proxy for map overlays
-- `POST /api/network-tags/:bssid` - Manually classify a network (admin)
-- `GET /api/network-tags/:bssid` - Get tags for a specific network
-- `GET /api/mapbox-token` - Retrieve Mapbox API token
-- `GET /api/wigle/api-status` - Check WiGLE API connectivity
+### Networks & Observations
 
-See `server/server.js` for full endpoint documentation.
+- `GET /api/networks` - Paginated network list with universal filtering
+- `GET /api/v2/networks` - Version 2 paginated networks API
+- `GET /api/networks/observations/:bssid` - All observation records for a specific network
+- `GET /api/networks/search/:ssid` - Search networks by SSID
+- `GET /api/networks/tagged` - List user-tagged networks
+- `GET /api/location-markers` - Retrieve saved map markers
+- `GET /api/home-location` - Get current home/base coordinates
+
+### Threat Analysis & ML
+
+- `GET /api/threats/quick` - High-performance threat detection overview
+- `GET /api/threats/detect` - Detailed movement-based forensic analysis
+- `GET /api/ml/status` - Check ML model training status and stats
+- `POST /api/ml/train` - Trigger ML model retraining on tagged data
+
+### Analytics & Intelligence
+
+- `GET /api/analytics/dashboard-metrics` - Key metrics for dashboard cards
+- `GET /api/analytics/*` - Various statistical distribution endpoints (temporal, signal, etc.)
+- `GET /api/weather` - Current weather proxy for map overlays (Open-Meteo)
+- `GET /api/wigle/api-status` - Check WiGLE API connectivity
+- `GET /api/mapbox-token` - Securely retrieve Mapbox API token
+
+### Data Management & Admin
+
+- `POST /api/network-tags/:bssid` - Manually classify a network (admin)
+- `POST /api/admin/import-sqlite` - Turbo SQLite database import (admin)
+- `POST /api/admin/cleanup-duplicates` - Remove redundant observation data (admin)
+- `GET /api/export/networks` - Export filtered networks to CSV/JSON
+- `POST /api/admin/aws/instances/:id/start` - Start EC2 instance (admin)
+- `POST /api/admin/aws/instances/:id/stop` - Stop EC2 instance (admin)
+
+### Authentication
+
+- `POST /api/auth/login` - Session-based authentication
+- `POST /api/auth/logout` - Invalidate current session
+- `GET /api/auth/status` - Check current authentication state
+
+See `server/server.ts` and `server/src/utils/routeMounts.ts` for implementation details.
 
 ## Machine Learning
 
