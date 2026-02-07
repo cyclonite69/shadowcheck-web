@@ -231,6 +231,9 @@ router.get('/media/:filename', (req, res) => {
       return res.status(403).json({ ok: false, error: 'Access denied' });
     }
 
+    if (filename.includes('..')) {
+      return res.status(403).json({ ok: false, error: 'Access denied' });
+    }
     res.sendFile(filepath);
   } catch (error) {
     logger.error('Media serve failed:', error);
