@@ -349,7 +349,7 @@ shadowcheck-static/
 │   │   ├── services/      # 🔧 Business logic (TypeScript)
 │   │   ├── middleware/    # 🔧 Express middleware (TypeScript)
 │   │   └── utils/         # 🔧 Server utilities (TypeScript)
-│   └── server.js          # 🔧 Main server entry point
+│   └── server.ts          # 🔧 Main server entry point
 ├── deploy/                # 🚀 Deployment configs (AWS, etc.)
 │   └── aws/               # AWS-specific deployment
 ├── etl/                   # 📊 ETL pipeline (TypeScript)
