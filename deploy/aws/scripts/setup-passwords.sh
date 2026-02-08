@@ -1,16 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# AWS EC2 Initial Setup - Generate passwords and store in keyring
+# AWS EC2 Initial Setup - Generate passwords
 # Run this ONCE before first deployment
 
 echo "==> ShadowCheck AWS Initial Setup"
 echo ""
-
-# Check if running on EC2
-if [ ! -f /home/ssm-user/.ssh/authorized_keys ]; then
-  echo "Warning: This script is designed for EC2 instances"
-fi
 
 REPO_DIR="/home/ssm-user/shadowcheck"
 cd "$REPO_DIR"
@@ -24,20 +19,10 @@ echo "==> Generating secure passwords..."
 DB_USER_PASSWORD=$(generate_password)
 DB_ADMIN_PASSWORD=$(generate_password)
 
-echo "==> Storing passwords in system keyring..."
-
-# Try to store in keyring (optional - may not work in container environment)
-if command -v npx &> /dev/null; then
-  npx tsx scripts/set-secret.ts db_password "$DB_USER_PASSWORD" 2>/dev/null || echo "  (Keyring storage skipped - not available)"
-  npx tsx scripts/set-secret.ts db_admin_password "$DB_ADMIN_PASSWORD" 2>/dev/null || echo "  (Keyring storage skipped - not available)"
-else
-  echo "  (Keyring storage skipped - Node.js not in PATH)"
-fi
-
 echo ""
 echo "==> Creating .env file for Docker Compose..."
 cat > .env << EOF
-# Database passwords (also stored in keyring)
+# Database passwords
 DB_PASSWORD=${DB_USER_PASSWORD}
 
 # AWS credentials (optional - set if needed)
@@ -48,31 +33,13 @@ S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
 EOF
 
 echo ""
-echo "==> Passwords generated and stored:"
-echo "    - db_password (shadowcheck_user): stored in .env + secrets/"
-echo "    - db_admin_password (shadowcheck_admin): stored in secrets/"
-if command -v npx &> /dev/null; then
-  echo "    - Both passwords also stored in system keyring"
-fi
-echo ""
-echo "==> Creating PostgreSQL password files for Docker secrets..."
-mkdir -p /home/ssm-user/secrets
-echo "$DB_USER_PASSWORD" > /home/ssm-user/secrets/db_password.txt
-echo "$DB_ADMIN_PASSWORD" > /home/ssm-user/secrets/db_admin_password.txt
-chmod 600 /home/ssm-user/secrets/*.txt
-
-echo ""
-echo "==> Setup complete! Passwords stored in:"
-echo "    1. .env file (for Docker Compose)"
-echo "    2. /home/ssm-user/secrets/ (for Docker secrets)"
-if command -v npx &> /dev/null; then
-  echo "    3. System keyring (persistent)"
-fi
-echo ""
-echo "==> Next steps:"
-echo "    1. Update PostgreSQL to use these passwords (if needed)"
-echo "    2. Run: ./deploy/aws/scripts/deploy-separated.sh"
+echo "==> Setup complete!"
 echo ""
 echo "==> IMPORTANT: Save these passwords securely:"
-echo "    DB User Password: ${DB_USER_PASSWORD}"
-echo "    DB Admin Password: ${DB_ADMIN_PASSWORD}"
+echo "    DB User Password (shadowcheck_user): ${DB_USER_PASSWORD}"
+echo "    DB Admin Password (shadowcheck_admin): ${DB_ADMIN_PASSWORD}"
+echo ""
+echo "==> Next steps:"
+echo "    1. Update PostgreSQL to use DB_PASSWORD: ${DB_USER_PASSWORD}"
+echo "    2. Run: ./deploy/aws/scripts/deploy-separated.sh"
+echo ""
