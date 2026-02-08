@@ -47,14 +47,15 @@ services:
       DB_PORT: 5432
       DB_USER: shadowcheck_user
       DB_NAME: shadowcheck_db
-      DB_SSL: "true"
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_SSL: "false"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       FORCE_HTTPS: "false"
       CORS_ORIGINS: "*"
+      SESSION_SECRET: ${SESSION_SECRET}
       # Keyring: mount the host keyring and set machine ID so the container
       # can decrypt it with the same key the host used to create it.
-      # Set KEYRING_MACHINE_ID in .env to $(hostname)$(whoami) on the host.
       KEYRING_MACHINE_ID: ${KEYRING_MACHINE_ID}
       XDG_DATA_HOME: /data
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}

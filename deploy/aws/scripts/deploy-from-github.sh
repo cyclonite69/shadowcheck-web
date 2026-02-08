@@ -8,16 +8,15 @@ echo "🚀 ShadowCheck Deployment from GitHub"
 echo "======================================"
 echo ""
 
-# Check if .env.aws exists
-if [ ! -f .env.aws ]; then
-  echo "❌ Error: .env.aws not found"
-  echo "Copy .env.example to .env.aws and fill in your values:"
-  echo "  cp deploy/aws/.env.example deploy/aws/.env.aws"
-  exit 1
+# Bootstrap secrets if needed
+if [ ! -f "$HOME/.shadowcheck-machine-id" ]; then
+  echo "🔐 Bootstrapping secrets..."
+  npx tsx scripts/bootstrap-secrets.ts
 fi
 
-# Load environment variables
-source deploy/aws/.env.aws
+# Load secrets from keyring
+echo "🔑 Loading secrets from keyring..."
+source scripts/load-secrets.sh
 
 echo "📥 Pulling latest code from GitHub..."
 git pull origin master

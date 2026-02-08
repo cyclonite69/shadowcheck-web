@@ -26,6 +26,7 @@ const adminSettingsRoutes = require('./admin/settings');
 const adminGeocodingRoutes = require('./admin/geocoding');
 const adminAwsRoutes = require('./admin/aws');
 const adminAwsInstancesRoutes = require('./admin/awsInstances');
+const adminSecretsRoutes = require('./admin/secrets');
 
 // Protect all admin routes
 router.use(requireAdmin);
@@ -56,6 +57,7 @@ router.use(adminBackupRoutes);
 router.use(adminPgAdminRoutes);
 router.use('/admin/settings', adminSettingsRoutes);
 router.use(adminGeocodingRoutes);
+router.use(adminSecretsRoutes);
 router.use(adminAwsRoutes);
 // router.use('/admin/aws', adminAwsInstancesRoutes); // TODO: Fix module export issue
 

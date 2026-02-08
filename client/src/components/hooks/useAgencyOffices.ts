@@ -28,22 +28,32 @@ interface AgencyOfficesGeoJSON {
   features: AgencyOffice[];
 }
 
-const LAYER_IDS = ['agency-clusters', 'agency-cluster-count', 'agency-unclustered'] as const;
+export interface AgencyVisibility {
+  fieldOffices: boolean;
+  residentAgencies: boolean;
+}
+
+const LAYER_IDS = [
+  'agency-clusters',
+  'agency-cluster-count',
+  'agency-field-unclustered',
+  'agency-resident-unclustered',
+] as const;
 
 export const useAgencyOffices = (
   mapRef: React.MutableRefObject<mapboxgl.Map | null>,
   mapReady: boolean,
-  visible: boolean = true
+  visibility: AgencyVisibility = { fieldOffices: true, residentAgencies: true }
 ) => {
   const [data, setData] = useState<AgencyOfficesGeoJSON | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dataRef = useRef<AgencyOfficesGeoJSON | null>(null);
-  const visibleRef = useRef(visible);
+  const visibilityRef = useRef(visibility);
 
   // Keep refs in sync so the style.load handler always uses current values
   dataRef.current = data;
-  visibleRef.current = visible;
+  visibilityRef.current = visibility;
 
   // Fetch agency offices data
   useEffect(() => {
@@ -120,23 +130,19 @@ export const useAgencyOffices = (
         });
       }
 
-      // Unclustered points
-      if (!map.getLayer('agency-unclustered')) {
+      // Field office unclustered points (red)
+      if (!map.getLayer('agency-field-unclustered')) {
         map.addLayer({
-          id: 'agency-unclustered',
+          id: 'agency-field-unclustered',
           type: 'circle',
           source: 'agency-offices',
-          filter: ['!', ['has', 'point_count']],
+          filter: [
+            'all',
+            ['!', ['has', 'point_count']],
+            ['==', ['get', 'office_type'], 'field_office'],
+          ],
           paint: {
-            'circle-color': [
-              'match',
-              ['get', 'office_type'],
-              'field_office',
-              '#dc2626',
-              'resident_agency',
-              '#f97316',
-              '#fbbf24',
-            ],
+            'circle-color': '#dc2626',
             'circle-opacity': 0.8,
             'circle-radius': 6,
             'circle-stroke-width': 1.5,
@@ -145,44 +151,30 @@ export const useAgencyOffices = (
         });
       }
 
-      // Click handler — unclustered points (layer-bound handlers are removed on style change)
-      map.on('click', 'agency-unclustered', (e) => {
-        const feature = e.features?.[0];
-        if (!feature || !e.lngLat) return;
+      // Resident agency unclustered points (orange)
+      if (!map.getLayer('agency-resident-unclustered')) {
+        map.addLayer({
+          id: 'agency-resident-unclustered',
+          type: 'circle',
+          source: 'agency-offices',
+          filter: [
+            'all',
+            ['!', ['has', 'point_count']],
+            ['==', ['get', 'office_type'], 'resident_agency'],
+          ],
+          paint: {
+            'circle-color': '#f97316',
+            'circle-opacity': 0.8,
+            'circle-radius': 6,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': '#fff',
+          },
+        });
+      }
 
-        const props = feature.properties as AgencyOffice['properties'];
-        const address = [
-          props.address_line1,
-          props.address_line2,
-          props.city,
-          props.state,
-          props.postal_code,
-        ]
-          .filter(Boolean)
-          .join(', ');
-
-        const html = `
-          <div style="font-family: system-ui; font-size: 13px; max-width: 280px;">
-            <div style="font-weight: 600; color: #dc2626; margin-bottom: 6px;">
-              ${props.name}
-            </div>
-            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">
-              ${props.office_type.replace('_', ' ')}
-            </div>
-            <div style="color: #334155; font-size: 12px; line-height: 1.5;">
-              ${address}
-            </div>
-            ${props.phone ? `<div style="color: #334155; font-size: 12px; margin-top: 4px;">📞 ${props.phone}</div>` : ''}
-            ${props.website ? `<div style="margin-top: 6px;"><a href="${props.website}" target="_blank" style="color: #2563eb; text-decoration: none; font-size: 11px;">Visit Website →</a></div>` : ''}
-            ${props.parent_office ? `<div style="color: #64748b; font-size: 11px; margin-top: 6px;">Parent: ${props.parent_office}</div>` : ''}
-          </div>
-        `;
-
-        new (window as any).mapboxgl.Popup({ offset: 15 })
-          .setLngLat(e.lngLat)
-          .setHTML(html)
-          .addTo(map);
-      });
+      // Click handler — field office unclustered points
+      map.on('click', 'agency-field-unclustered', handleUnclusteredClick);
+      map.on('click', 'agency-resident-unclustered', handleUnclusteredClick);
 
       // Cluster click to zoom
       map.on('click', 'agency-clusters', (e) => {
@@ -203,10 +195,16 @@ export const useAgencyOffices = (
       });
 
       // Cursor pointer
-      map.on('mouseenter', 'agency-unclustered', () => {
+      map.on('mouseenter', 'agency-field-unclustered', () => {
         map.getCanvas().style.cursor = 'pointer';
       });
-      map.on('mouseleave', 'agency-unclustered', () => {
+      map.on('mouseleave', 'agency-field-unclustered', () => {
+        map.getCanvas().style.cursor = '';
+      });
+      map.on('mouseenter', 'agency-resident-unclustered', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'agency-resident-unclustered', () => {
         map.getCanvas().style.cursor = '';
       });
       map.on('mouseenter', 'agency-clusters', () => {
@@ -217,12 +215,47 @@ export const useAgencyOffices = (
       });
 
       // Apply current visibility
-      const vis = visibleRef.current ? 'visible' : 'none';
-      LAYER_IDS.forEach((id) => {
-        if (map.getLayer(id)) {
-          map.setLayoutProperty(id, 'visibility', vis);
-        }
-      });
+      applyVisibility(map, visibilityRef.current);
+    };
+
+    const handleUnclusteredClick = (
+      e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }
+    ) => {
+      const feature = e.features?.[0];
+      if (!feature || !e.lngLat) return;
+
+      const props = feature.properties as AgencyOffice['properties'];
+      const address = [
+        props.address_line1,
+        props.address_line2,
+        props.city,
+        props.state,
+        props.postal_code,
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      const html = `
+        <div style="font-family: system-ui; font-size: 13px; max-width: 280px;">
+          <div style="font-weight: 600; color: #dc2626; margin-bottom: 6px;">
+            ${props.name}
+          </div>
+          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">
+            ${String(props.office_type).replace('_', ' ')}
+          </div>
+          <div style="color: #334155; font-size: 12px; line-height: 1.5;">
+            ${address}
+          </div>
+          ${props.phone ? `<div style="color: #334155; font-size: 12px; margin-top: 4px;">📞 ${props.phone}</div>` : ''}
+          ${props.website ? `<div style="margin-top: 6px;"><a href="${props.website}" target="_blank" style="color: #2563eb; text-decoration: none; font-size: 11px;">Visit Website →</a></div>` : ''}
+          ${props.parent_office ? `<div style="color: #64748b; font-size: 11px; margin-top: 6px;">Parent: ${props.parent_office}</div>` : ''}
+        </div>
+      `;
+
+      new (window as any).mapboxgl.Popup({ offset: 15 })
+        .setLngLat(e.lngLat)
+        .setHTML(html)
+        .addTo(map);
     };
 
     // Add layers now
@@ -241,13 +274,37 @@ export const useAgencyOffices = (
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    const visibility = visible ? 'visible' : 'none';
-    LAYER_IDS.forEach((layerId) => {
-      if (map.getLayer(layerId)) {
-        map.setLayoutProperty(layerId, 'visibility', visibility);
-      }
-    });
-  }, [visible, mapRef, mapReady]);
+    applyVisibility(map, visibility);
+  }, [visibility, mapRef, mapReady]);
 
   return { data, loading, error };
 };
+
+function applyVisibility(map: mapboxgl.Map, visibility: AgencyVisibility) {
+  const anyVisible = visibility.fieldOffices || visibility.residentAgencies;
+
+  // Clusters show when at least one type is visible
+  const clusterVis = anyVisible ? 'visible' : 'none';
+  if (map.getLayer('agency-clusters')) {
+    map.setLayoutProperty('agency-clusters', 'visibility', clusterVis);
+  }
+  if (map.getLayer('agency-cluster-count')) {
+    map.setLayoutProperty('agency-cluster-count', 'visibility', clusterVis);
+  }
+
+  // Per-type unclustered layers
+  if (map.getLayer('agency-field-unclustered')) {
+    map.setLayoutProperty(
+      'agency-field-unclustered',
+      'visibility',
+      visibility.fieldOffices ? 'visible' : 'none'
+    );
+  }
+  if (map.getLayer('agency-resident-unclustered')) {
+    map.setLayoutProperty(
+      'agency-resident-unclustered',
+      'visibility',
+      visibility.residentAgencies ? 'visible' : 'none'
+    );
+  }
+}

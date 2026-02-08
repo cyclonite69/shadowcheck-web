@@ -34,20 +34,33 @@ router.post('/admin/geocoding/run', async (req, res) => {
       permanent = true,
     } = req.body || {};
 
-    const result = await runGeocodeCacheUpdate({
+    const options = {
       provider,
       mode,
       limit: Number.parseInt(limit, 10) || 1000,
       precision: Number.parseInt(precision, 10) || 5,
       perMinute: Number.parseInt(perMinute, 10) || 200,
       permanent: Boolean(permanent),
-    });
+    };
 
+    // Return immediately and run in background
     res.json({
       ok: true,
-      message: `Processed ${result.processed} blocks (${result.successful} successful)`,
-      result,
+      message: 'Geocoding job started in background',
+      options,
     });
+
+    // Run async without blocking response
+    runGeocodeCacheUpdate(options)
+      .then((result) => {
+        logger.info('[Geocoding] Background job completed', {
+          processed: result.processed,
+          successful: result.successful,
+        });
+      })
+      .catch((err) => {
+        logger.error('[Geocoding] Background job failed', { error: err?.message });
+      });
   } catch (err) {
     logger.error('[Geocoding] Run failed', { error: err?.message });
     res.status(500).json({
