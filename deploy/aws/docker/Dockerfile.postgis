@@ -1,18 +1,18 @@
-FROM postgres:18
+FROM postgis/postgis:18-3.6
 
-# Install PostGIS 3.6
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-18-postgis-3 \
-        postgresql-18-postgis-3-scripts \
+# Install additional PostgreSQL extensions
+RUN apt-get update && apt-get install -y \
+    postgresql-18-cron \
+    postgresql-18-partman \
     && rm -rf /var/lib/apt/lists/*
 
-# Create PostGIS extension on database initialization
-RUN mkdir -p /docker-entrypoint-initdb.d
-COPY init-postgis.sh /docker-entrypoint-initdb.d/
+# Copy custom PostgreSQL configuration
+COPY deploy/aws/configs/postgresql.conf /etc/postgresql/postgresql.conf
+COPY deploy/aws/configs/pg_hba.conf /etc/postgresql/pg_hba.conf
 
-# Expose PostgreSQL port
+# Set proper permissions
+RUN chown postgres:postgres /etc/postgresql/*.conf
+
 EXPOSE 5432
 
-# Use official postgres entrypoint
-CMD ["postgres"]
+CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]

@@ -1,0 +1,145 @@
+version: "3.8"
+
+# AWS Production Deployment - Separated Frontend/Backend
+# Uses existing PostgreSQL container (shadowcheck_postgres)
+
+services:
+  # ============================================================================
+  # REDIS - Always Running (Caching Layer)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: shadowcheck_redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - shadowcheck_net
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================================================
+  # BACKEND - Node.js API Server
+  # ============================================================================
+  backend:
+    build:
+      context: ../../
+      dockerfile: deploy/aws/docker/Dockerfile.backend
+    image: shadowcheck/backend:latest
+    container_name: shadowcheck_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: shadowcheck_postgres
+      DB_PORT: 5432
+      DB_USER: shadowcheck_user
+      DB_NAME: shadowcheck_db
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FORCE_HTTPS: "false"
+      CORS_ORIGINS: "*"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-dbcoopers-briefcase-161020170158}
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - shadowcheck_net
+    volumes:
+      - /home/ssm-user/shadowcheck/backups:/app/backups
+      - /home/ssm-user/shadowcheck/logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # FRONTEND - Nginx serving React build
+  # ============================================================================
+  frontend:
+    build:
+      context: ../../
+      dockerfile: deploy/aws/docker/Dockerfile.frontend
+    image: shadowcheck/frontend:latest
+    container_name: shadowcheck_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - shadowcheck_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  redis_data:
+    driver: local
+
+# ============================================================================
+# NETWORKS - Use existing shadowcheck_net
+# ============================================================================
+networks:
+  shadowcheck_net:
+    external: true
+    name: shadowcheck_net
