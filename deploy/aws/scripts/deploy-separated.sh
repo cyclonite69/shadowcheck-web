@@ -15,6 +15,16 @@ echo "==> Repository: $REPO_ROOT"
 echo "==> Stopping existing containers..."
 docker stop shadowcheck_static_api 2>/dev/null || true
 docker stop shadowcheck_static_redis 2>/dev/null || true
+docker stop shadowcheck_backend 2>/dev/null || true
+docker stop shadowcheck_frontend 2>/dev/null || true
+docker stop shadowcheck_redis 2>/dev/null || true
+
+# Remove old containers to avoid name conflicts
+docker rm shadowcheck_static_api 2>/dev/null || true
+docker rm shadowcheck_static_redis 2>/dev/null || true
+docker rm shadowcheck_backend 2>/dev/null || true
+docker rm shadowcheck_frontend 2>/dev/null || true
+docker rm shadowcheck_redis 2>/dev/null || true
 
 # Pull latest code
 echo "==> Pulling latest code from GitHub..."
