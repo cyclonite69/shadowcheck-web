@@ -73,35 +73,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/server/server/server.js"]
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
-
-# Copy application code
-COPY --chown=nodejs:nodejs server ./server/
-COPY --chown=nodejs:nodejs scripts ./scripts/
-COPY --chown=nodejs:nodejs sql ./sql/
-COPY --chown=nodejs:nodejs docker/infrastructure ./docker/infrastructure/
-COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
-
-# Create directories for data and logs with proper ownership
-RUN mkdir -p data/logs data/csv && \
-    chown -R nodejs:nodejs /app && \
-    chmod +x /entrypoint.sh
-
-# Don't switch to nodejs user yet - entrypoint needs to run as root first
-# USER nodejs will be handled by entrypoint via su-exec after setting up Docker socket permissions
-
-# Set production environment
-ENV NODE_ENV=production
-
-# Expose port
-EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
-
-# Use entrypoint to handle Docker socket permissions, then dumb-init for signals
-ENTRYPOINT ["/entrypoint.sh"]
-
-# Start application with compiled server
-CMD ["node", "dist/server/server/server.js"]
