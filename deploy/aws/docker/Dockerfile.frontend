@@ -10,7 +10,6 @@ COPY package*.json tsconfig*.json ./
 RUN npm ci --include=dev
 
 COPY client ./client
-COPY server/src/types ./server/src/types
 
 RUN npm run build
 
