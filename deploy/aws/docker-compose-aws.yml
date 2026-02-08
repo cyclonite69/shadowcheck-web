@@ -123,6 +123,9 @@ services:
       - ALL
     cap_add:
       - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
       interval: 30s
