@@ -51,11 +51,17 @@ async function bootstrap() {
   // Load keyring service - use dynamic import for ESM compatibility
   let keyringService;
   try {
-    const module = await import('../server/src/services/keyringService.js');
+    // Try compiled version first (production)
+    const module = await import('../dist/server/server/src/services/keyringService.js');
     keyringService = module.default || module;
   } catch (err) {
-    // Fallback to require for CommonJS
-    keyringService = require('../server/src/services/keyringService');
+    try {
+      // Fallback to source (development)
+      keyringService = require('../server/src/services/keyringService');
+    } catch (err2) {
+      console.error(`Failed to load keyring service: ${err2.message}`);
+      process.exit(1);
+    }
   }
 
   let generated = 0;
