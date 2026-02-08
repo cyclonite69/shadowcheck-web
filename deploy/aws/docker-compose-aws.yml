@@ -47,6 +47,7 @@ services:
       DB_PORT: 5432
       DB_USER: shadowcheck_user
       DB_NAME: shadowcheck_db
+      DB_SSL: "true"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       FORCE_HTTPS: "false"
