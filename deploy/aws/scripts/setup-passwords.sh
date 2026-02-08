@@ -26,9 +26,13 @@ DB_ADMIN_PASSWORD=$(generate_password)
 
 echo "==> Storing passwords in system keyring..."
 
-# Store in keyring using the set-secret script
-npx tsx scripts/set-secret.ts db_password "$DB_USER_PASSWORD"
-npx tsx scripts/set-secret.ts db_admin_password "$DB_ADMIN_PASSWORD"
+# Try to store in keyring (optional - may not work in container environment)
+if command -v npx &> /dev/null; then
+  npx tsx scripts/set-secret.ts db_password "$DB_USER_PASSWORD" 2>/dev/null || echo "  (Keyring storage skipped - not available)"
+  npx tsx scripts/set-secret.ts db_admin_password "$DB_ADMIN_PASSWORD" 2>/dev/null || echo "  (Keyring storage skipped - not available)"
+else
+  echo "  (Keyring storage skipped - Node.js not in PATH)"
+fi
 
 echo ""
 echo "==> Creating .env file for Docker Compose..."
@@ -45,8 +49,11 @@ EOF
 
 echo ""
 echo "==> Passwords generated and stored:"
-echo "    - db_password (shadowcheck_user): stored in keyring + .env"
-echo "    - db_admin_password (shadowcheck_admin): stored in keyring"
+echo "    - db_password (shadowcheck_user): stored in .env + secrets/"
+echo "    - db_admin_password (shadowcheck_admin): stored in secrets/"
+if command -v npx &> /dev/null; then
+  echo "    - Both passwords also stored in system keyring"
+fi
 echo ""
 echo "==> Creating PostgreSQL password files for Docker secrets..."
 mkdir -p /home/ssm-user/secrets
@@ -56,9 +63,11 @@ chmod 600 /home/ssm-user/secrets/*.txt
 
 echo ""
 echo "==> Setup complete! Passwords stored in:"
-echo "    1. System keyring (persistent)"
-echo "    2. .env file (for Docker Compose)"
-echo "    3. /home/ssm-user/secrets/ (for Docker secrets)"
+echo "    1. .env file (for Docker Compose)"
+echo "    2. /home/ssm-user/secrets/ (for Docker secrets)"
+if command -v npx &> /dev/null; then
+  echo "    3. System keyring (persistent)"
+fi
 echo ""
 echo "==> Next steps:"
 echo "    1. Update PostgreSQL to use these passwords (if needed)"
