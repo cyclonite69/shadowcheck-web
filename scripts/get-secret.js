@@ -22,8 +22,19 @@ async function getSecret(secretName) {
     process.env.KEYRING_MACHINE_ID = machineId;
   }
 
-  // Load keyring service
-  const keyringService = require('../server/src/services/keyringService');
+  // Load keyring service - try both ESM and CommonJS
+  let keyringService;
+  try {
+    const module = await import('../server/src/services/keyringService.js');
+    keyringService = module.default || module;
+  } catch (err) {
+    try {
+      keyringService = require('../server/src/services/keyringService');
+    } catch (err2) {
+      console.error(`Failed to load keyring service: ${err2.message}`);
+      process.exit(1);
+    }
+  }
 
   try {
     const value = await keyringService.getCredential(secretName);
