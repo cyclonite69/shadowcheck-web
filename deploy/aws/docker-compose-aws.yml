@@ -68,7 +68,7 @@ services:
     networks:
       - shadowcheck_net
     volumes:
-      - /home/ssm-user/.local/share/shadowcheck:/data/shadowcheck:ro
+      - /home/ssm-user/.local/share/shadowcheck:/data/shadowcheck
       - /home/ssm-user/shadowcheck/backups:/app/backups
       - /home/ssm-user/shadowcheck/logs:/app/logs
     logging:
