@@ -48,19 +48,33 @@ async function bootstrap() {
   const machineId = getMachineId();
   process.env.KEYRING_MACHINE_ID = machineId;
 
-  // Load keyring service
-  const keyringService: KeyringService = require('../server/src/services/keyringService');
+  // Load keyring service - use dynamic import for ESM compatibility
+  let keyringService;
+  try {
+    const module = await import('../server/src/services/keyringService.js');
+    keyringService = module.default || module;
+  } catch (err) {
+    // Fallback to require for CommonJS
+    keyringService = require('../server/src/services/keyringService');
+  }
 
   let generated = 0;
   let existing = 0;
 
   for (const secret of REQUIRED_SECRETS) {
-    const value = await keyringService.getCredential(secret);
-    
-    if (value) {
-      console.log(`✓ ${secret}: already exists`);
-      existing++;
-    } else {
+    try {
+      const value = await keyringService.getCredential(secret);
+
+      if (value) {
+        console.log(`✓ ${secret}: already exists`);
+        existing++;
+      } else {
+        const newValue = generateSecret();
+        await keyringService.setCredential(secret, newValue);
+        console.log(`✅ ${secret}: generated and stored`);
+        generated++;
+      }
+    } catch (err) {
       const newValue = generateSecret();
       await keyringService.setCredential(secret, newValue);
       console.log(`✅ ${secret}: generated and stored`);
