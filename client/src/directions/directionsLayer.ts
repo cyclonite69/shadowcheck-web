@@ -16,8 +16,9 @@ interface RouteDisplayData {
 }
 
 function formatDistance(meters: number): string {
+  const miles = meters / 1609.344;
   if (meters >= 1000) {
-    return `${(meters / 1000).toFixed(1)} km`;
+    return `${(meters / 1000).toFixed(1)} km (${miles.toFixed(1)} mi)`;
   }
   return `${Math.round(meters)} m`;
 }

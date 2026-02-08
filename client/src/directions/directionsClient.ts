@@ -14,7 +14,7 @@ export interface DirectionsData {
 const cache = new Map<string, DirectionsData>();
 let lastFetchMs = 0;
 const CACHE_BUCKET_MS = 300_000; // 5 minutes
-const RATE_LIMIT_MS = 60_000; // 60 seconds between unique route calls
+const RATE_LIMIT_MS = 2_000; // 2 seconds between unique route calls
 
 function makeCacheKey(
   origin: [number, number],

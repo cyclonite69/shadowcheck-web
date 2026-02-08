@@ -18,6 +18,9 @@ export const useWigleSearch = () => {
     latrange2: '',
     longrange1: '',
     longrange2: '',
+    country: 'US',
+    region: '',
+    city: '',
   });
   // Pagination state
   const [allResults, setAllResults] = useState<WigleNetworkResult[]>([]);
@@ -56,6 +59,9 @@ export const useWigleSearch = () => {
       if (searchParams.latrange2) params.append('latrange2', searchParams.latrange2);
       if (searchParams.longrange1) params.append('longrange1', searchParams.longrange1);
       if (searchParams.longrange2) params.append('longrange2', searchParams.longrange2);
+      if (searchParams.country) params.append('country', searchParams.country);
+      if (searchParams.region) params.append('region', searchParams.region);
+      if (searchParams.city) params.append('city', searchParams.city);
 
       // Add searchAfter for pagination
       if (loadMore && searchAfter) {

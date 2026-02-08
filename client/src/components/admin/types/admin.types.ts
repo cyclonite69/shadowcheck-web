@@ -5,6 +5,9 @@ export interface WigleSearchParams {
   latrange2: string;
   longrange1: string;
   longrange2: string;
+  country: string;
+  region: string;
+  city: string;
 }
 
 export interface WigleApiStatus {

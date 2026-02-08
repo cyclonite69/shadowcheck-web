@@ -29,8 +29,19 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
 
       setSearchingLocation(true);
       try {
+        // Bias results toward POIs and the current map viewport center
+        const params = new URLSearchParams({
+          access_token: mapboxgl.accessToken,
+          limit: '5',
+          types: 'poi,address,place,locality,neighborhood',
+        });
+        const map = mapRef.current;
+        if (map) {
+          const center = map.getCenter();
+          params.set('proximity', `${center.lng.toFixed(5)},${center.lat.toFixed(5)}`);
+        }
         const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&limit=5`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`
         );
         const data = await response.json();
         setSearchResults(data.features || []);

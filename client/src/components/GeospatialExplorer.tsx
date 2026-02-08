@@ -326,11 +326,18 @@ export default function GeospatialExplorer() {
                 onSelectSearchResult={(result) => {
                   if (searchMode === 'directions') {
                     const dest: [number, number] = [result.center[0], result.center[1]];
-                    fetchRoute(homeLocation.center, dest);
-                    // Fly to show the route area
-                    if (mapRef.current) {
-                      mapRef.current.flyTo({ center: dest, zoom: 12, duration: 2000 });
-                    }
+                    const origin = homeLocation.center;
+                    fetchRoute(origin, dest).then((data) => {
+                      // Fit map to show the full route from origin to destination
+                      if (data && mapRef.current && mapboxRef.current) {
+                        const bounds = new mapboxRef.current.LngLatBounds(origin, origin);
+                        bounds.extend(dest);
+                        for (const coord of data.coordinates) {
+                          bounds.extend(coord);
+                        }
+                        mapRef.current.fitBounds(bounds, { padding: 60, duration: 2000 });
+                      }
+                    });
                     setShowSearchResults(false);
                     setLocationSearch('');
                   } else {

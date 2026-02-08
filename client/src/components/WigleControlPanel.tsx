@@ -1,5 +1,6 @@
 import React from 'react';
-import { WigleLayerState } from './WiglePage';
+import { LayerToggle } from './ui/LayerToggle';
+import type { WigleLayerState } from './WiglePage';
 
 interface WigleControlPanelProps {
   isOpen: boolean;
@@ -57,26 +58,34 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
         </button>
       </div>
 
-      {/* Data Source Toggle */}
+      {/* Layer Toggles */}
       <div>
-        <label className="block mb-1 text-xs text-slate-300">WiGLE Data</label>
-        <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
-          <button
-            onClick={() => onToggleLayer('v2')}
-            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
-              layers.v2 ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {layers.v2 ? '✓ ' : ''}v2
-          </button>
-          <button
-            onClick={() => onToggleLayer('v3')}
-            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
-              layers.v3 ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {layers.v3 ? '✓ ' : ''}v3
-          </button>
+        <label className="block mb-1.5 text-xs text-slate-300 font-medium">Layers</label>
+        <div className="space-y-0.5">
+          <LayerToggle
+            label="v2 Points"
+            enabled={layers.v2}
+            onChange={() => onToggleLayer('v2')}
+            color="#3b82f6"
+          />
+          <LayerToggle
+            label="v3 Points"
+            enabled={layers.v3}
+            onChange={() => onToggleLayer('v3')}
+            color="#8b5cf6"
+          />
+          <LayerToggle
+            label="Field Offices"
+            enabled={layers.fieldOffices}
+            onChange={() => onToggleLayer('fieldOffices')}
+            color="#dc2626"
+          />
+          <LayerToggle
+            label="Resident Agencies"
+            enabled={layers.residentAgencies}
+            onChange={() => onToggleLayer('residentAgencies')}
+            color="#f97316"
+          />
         </div>
       </div>
 
@@ -121,33 +130,6 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
         >
           {showTerrain ? '✓ ' : ''}Terrain
         </button>
-      </div>
-
-      {/* Layer Visibility */}
-      <div>
-        <label className="block mb-1 text-xs text-slate-300">Agency Offices</label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onToggleLayer('fieldOffices')}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-              layers.fieldOffices
-                ? 'bg-red-600 text-white shadow-lg'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {layers.fieldOffices ? '✓ ' : ''}Field
-          </button>
-          <button
-            onClick={() => onToggleLayer('residentAgencies')}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-              layers.residentAgencies
-                ? 'bg-orange-600 text-white shadow-lg'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {layers.residentAgencies ? '✓ ' : ''}Resident
-          </button>
-        </div>
       </div>
 
       {/* Load Points button */}

@@ -5,7 +5,6 @@ import { HamburgerButton } from './HamburgerButton';
 import { WigleControlPanel } from './WigleControlPanel';
 import { FilterPanelContainer } from './FilterPanelContainer';
 import { WigleMap } from './WigleMap';
-import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
