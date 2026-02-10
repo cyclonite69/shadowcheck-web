@@ -53,7 +53,7 @@ async function setSecret(secretName, secretValue) {
   try {
     // Try compiled version first (production)
     keyringService = require('../dist/server/server/src/services/keyringService.js');
-  } catch (err) {
+  } catch {
     try {
       // Fallback to source (development)
       keyringService = require('../server/src/services/keyringService');
