@@ -1,5 +1,5 @@
-const secretsManager = require('../services/secretsManager');
-const logger = require('../logging/logger');
+import secretsManager from '../services/secretsManager';
+import logger from '../logging/logger';
 
 /**
  * Loads and validates required secrets for application startup.
@@ -10,7 +10,7 @@ async function validateSecrets(): Promise<boolean> {
     await secretsManager.load();
     return true;
   } catch (error: unknown) {
-    const err = error as Error; // TODO: Better error type handling when secretsManager is typed
+    const err = error as Error;
     logger.error('SECRETS VALIDATION FAILED');
     logger.error(err.message);
     logger.error('Server cannot start without required secrets.');
