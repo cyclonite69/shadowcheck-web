@@ -479,7 +479,7 @@ function combineValidations(...results) {
   return { valid: true };
 }
 
-module.exports = {
+export {
   validateBSSID,
   validateMACAddress,
   validateNetworkIdentifier,
