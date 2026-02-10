@@ -1,9 +1,8 @@
-export {};
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { pool } = require('../../../config/database');
-const secretsManager = require('../../../services/secretsManager');
-const keyringService = require('../../../services/keyringService').default;
+import { pool } from '../../../config/database';
+import secretsManager from '../../../services/secretsManager';
+import keyringService from '../../../services/keyringService';
 
 const startTime = Date.now();
 
@@ -97,4 +96,4 @@ router.get('/health', async (req, res) => {
   res.status(statusCode).json(response);
 });
 
-module.exports = router;
+export default router;
