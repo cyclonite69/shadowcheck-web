@@ -48,6 +48,11 @@ const WiglePage: React.FC = () => {
   const [tilesReady, setTilesReady] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Universal filter system (must be before useWigleData)
+  const capabilities = useMemo(() => getPageCapabilities('wigle'), []);
+  const adaptedFilters = useAdaptedFilters(capabilities);
+  useFilterURLSync();
+
   // Layer visibility state (persisted)
   const { layers, toggleLayer, setLayers } = useWigleLayers();
   const layersRef = useRef(layers);
@@ -101,11 +106,6 @@ const WiglePage: React.FC = () => {
     setShowTerrainState(enabled);
   };
   const wigleHandlersAttachedRef = useRef(false);
-
-  // Universal filter system
-  const capabilities = useMemo(() => getPageCapabilities('wigle'), []);
-  const adaptedFilters = useAdaptedFilters(capabilities);
-  useFilterURLSync();
 
   const updateClusterColors = (sourceId: string, cacheKey: 'v2' | 'v3') => {
     const map = mapRef.current;
