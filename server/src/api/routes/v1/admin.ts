@@ -25,7 +25,7 @@ const adminPgAdminRoutes = require('./admin/pgadmin');
 const adminSettingsRoutes = require('./admin/settings');
 const adminGeocodingRoutes = require('./admin/geocoding');
 const adminAwsRoutes = require('./admin/aws');
-const adminAwsInstancesRoutes = require('./admin/awsInstances');
+const adminAwsInstancesRoutes = require('./admin/awsInstances').default;
 const adminSecretsRoutes = require('./admin/secrets');
 
 // Protect all admin routes
@@ -59,7 +59,7 @@ router.use('/admin/settings', adminSettingsRoutes);
 router.use(adminGeocodingRoutes);
 router.use(adminSecretsRoutes);
 router.use(adminAwsRoutes);
-// router.use('/admin/aws', adminAwsInstancesRoutes); // TODO: Fix module export issue
+router.use('/admin/aws', adminAwsInstancesRoutes);
 
 // POST /api/admin/import-sqlite - Import SQLite database
 router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, next) => {

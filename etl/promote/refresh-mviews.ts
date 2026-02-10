@@ -16,7 +16,7 @@ interface ExistsRow {
 
 interface RefreshRow {
   view_name: string;
-  refresh_duration: unknown; // TODO: Define proper duration type
+  refresh_duration: string; // PostgreSQL interval type returned as string
 }
 
 const pool = new Pool({

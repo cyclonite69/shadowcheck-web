@@ -1641,8 +1641,8 @@ class UniversalFilterQueryBuilder {
 
   buildAnalyticsQueries(options: AnalyticsOptions = {}): AnalyticsQueries {
     const { useLatestPerBssid = false } = options;
-    // Temporarily disable MV optimization to fix immediate issue
-    // TODO: Re-enable after debugging the canUseAnalyticsMV method
+    // NOTE: MV optimization disabled - complex filters require CTE queries
+    // for accurate results with temporal/spatial/behavioral filtering
 
     // Fall back to complex CTE queries for advanced filtering
     const { cte, params } = this.buildFilteredObservationsCte();

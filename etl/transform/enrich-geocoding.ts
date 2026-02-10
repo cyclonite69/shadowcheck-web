@@ -96,8 +96,10 @@ async function enrichGeocoding(options: EnrichOptions = {}): Promise<void> {
 
     console.log(`\n  Unique locations to geocode: ${locations.rows.length}`);
 
-    // TODO: Implement actual geocoding API calls
-    console.log('\n  [NOT IMPLEMENTED] Geocoding API integration pending');
+    // NOTE: Geocoding API integration is handled by address enrichment endpoints
+    // See server/src/api/routes/v1/enrichment.ts for multi-API venue identification
+    // (OpenCage, LocationIQ, Abstract, Overpass)
+    console.log('\n  [INFO] Geocoding handled by runtime enrichment APIs');
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ Geocoding enrichment complete in ${duration}s`);

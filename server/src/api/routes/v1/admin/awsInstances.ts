@@ -87,4 +87,4 @@ router.post('/instances/:instanceId/terminate', async (req, res) => {
   }
 });
 
-export = router;
+export default router;

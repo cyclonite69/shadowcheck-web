@@ -35,4 +35,4 @@ router.get('/api/weather', async (req, res) => {
   }
 });
 
-export = router;
+export default router;
