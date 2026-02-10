@@ -5,10 +5,8 @@
 
 import { Pool, QueryResult } from 'pg';
 import 'dotenv/config';
-
-// Import with require for now to avoid circular dependency issues during migration
-const secretsManager = require('../services/secretsManager');
-const logger = require('../logging/logger');
+import secretsManager from '../services/secretsManager';
+import logger from '../logging/logger';
 
 // Normalized connection settings with safe defaults for shared Docker postgres
 const DB_USER = process.env.DB_USER || 'shadowcheck_user';
