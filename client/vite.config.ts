@@ -37,12 +37,42 @@ export default defineConfig({
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          mapbox: ['mapbox-gl'],
+        manualChunks(id) {
+          // Core vendor chunks - order matters to avoid circular deps
+          if (id.includes('node_modules')) {
+            // React must be separate to avoid circular deps
+            if (id.includes('react-dom')) {
+              return 'vendor-react-dom';
+            }
+            if (id.includes('react')) {
+              return 'vendor-react';
+            }
+            // Mapbox is large, keep separate
+            if (id.includes('mapbox-gl')) {
+              return 'vendor-mapbox';
+            }
+            // Charts are large and only used in analytics
+            if (id.includes('chart.js') || id.includes('react-chartjs')) {
+              return 'vendor-charts';
+            }
+            // Everything else
+            return 'vendor-libs';
+          }
+
+          // Split large page components
+          if (id.includes('/components/GeospatialExplorer')) {
+            return 'page-geospatial';
+          }
+          if (id.includes('/components/Analytics')) {
+            return 'page-analytics';
+          }
+          if (id.includes('/components/Admin')) {
+            return 'page-admin';
+          }
         },
       },
     },
+    chunkSizeWarningLimit: 1000,
   },
   define: {
     // Ensure environment variables are available
