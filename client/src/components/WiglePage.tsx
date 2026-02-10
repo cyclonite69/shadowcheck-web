@@ -13,6 +13,7 @@ import { useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
+import { useWigleMapInit } from './wigle/useWigleMapInit';
 import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
@@ -139,138 +140,23 @@ const WiglePage: React.FC = () => {
     attachClickHandlers(map, mapboxgl, wigleHandlersAttachedRef);
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    const updateSize = () => {
-      if (!mapContainerRef.current) return;
-      const rect = mapContainerRef.current.getBoundingClientRect();
-      setMapSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
-      mapRef.current?.resize();
-    };
-    const initMap = async () => {
-      try {
-        const mapboxgl = mapboxRef.current ?? (await import('mapbox-gl')).default;
-        mapboxRef.current = mapboxgl;
-        await import('mapbox-gl/dist/mapbox-gl.css');
-
-        if (!mapboxgl.supported()) {
-          throw new Error('Mapbox GL not supported (WebGL unavailable)');
-        }
-        const tokenRes = await fetch('/api/mapbox-token');
-        const tokenBody = await tokenRes.json();
-        if (!tokenRes.ok || !tokenBody?.token) {
-          throw new Error(tokenBody?.error || 'Mapbox token not available');
-        }
-        setTokenStatus('ok');
-        mapboxgl.accessToken = String(tokenBody.token).trim();
-
-        if (!mounted || !mapContainerRef.current) return;
-
-        // Standard style variants all use the same base URL
-        const initialStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
-          ? 'mapbox://styles/mapbox/standard'
-          : mapStyle;
-
-        const map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: initialStyleUrl,
-          center: [-98.5795, 39.8283],
-          zoom: 3,
-        });
-        mapRef.current = map;
-
-        // Add navigation control (compass + zoom) and scale bar
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        // Dynamically load orientation controls to reduce initial bundle size
-        import('../utils/mapOrientationControls').then(async ({ attachMapOrientationControls }) => {
-          await attachMapOrientationControls(map, {
-            scalePosition: 'bottom-right',
-            scaleUnit: 'metric',
-            ensureNavigation: false, // Already added above
-          });
-        });
-
-        updateSize();
-
-        map.on('load', () => {
-          // Apply lightPreset for Standard style variants
-          const lightPresetMap: Record<string, string> = {
-            'mapbox://styles/mapbox/standard': 'day',
-            'mapbox://styles/mapbox/standard-dawn': 'dawn',
-            'mapbox://styles/mapbox/standard-dusk': 'dusk',
-            'mapbox://styles/mapbox/standard-night': 'night',
-          };
-          const lightPreset = lightPresetMap[mapStyle];
-          if (lightPreset && typeof map.setConfigProperty === 'function') {
-            try {
-              map.setConfigProperty('basemap', 'lightPreset', lightPreset);
-            } catch (e) {
-              // setConfigProperty may not be available on all versions
-            }
-          }
-
-          ensureAllLayers();
-          attachClickHandlersCallback();
-
-          // Set initial data on sources
-          const v2Src = map.getSource('wigle-v2-points') as mapboxglType.GeoJSONSource | undefined;
-          if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-          const v3Src = map.getSource('wigle-v3-points') as mapboxglType.GeoJSONSource | undefined;
-          if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-
-          setMapReady(true);
-          setTimeout(() => map.resize(), 0);
-          updateAllClusterColorsCallback();
-        });
-
-        map.on('idle', () => {
-          if (!mounted) return;
-          setTilesReady(map.areTilesLoaded());
-        });
-
-        map.on('error', (event) => {
-          if (!mounted) return;
-          const errorMsg = event?.error?.message || '';
-
-          // Ignore layer/source not found errors - they're expected for some styles
-          if (
-            errorMsg.includes('source') ||
-            errorMsg.includes('layer') ||
-            errorMsg.includes('composite') ||
-            errorMsg.includes('building')
-          ) {
-            logDebug('[Wigle] Map style incompatibility (ignored):', errorMsg);
-            return;
-          }
-
-          // Only show actual errors to user
-          setError(errorMsg || 'Mapbox error');
-        });
-        map.on('moveend', updateAllClusterColorsCallback);
-        map.on('zoomend', updateAllClusterColorsCallback);
-        map.on('sourcedata', (event) => {
-          if (
-            (event.sourceId === 'wigle-v2-points' || event.sourceId === 'wigle-v3-points') &&
-            event.isSourceLoaded
-          ) {
-            updateAllClusterColorsCallback();
-          }
-        });
-      } catch (err: any) {
-        if (mounted) {
-          setError(err.message || 'Failed to initialize map');
-          setTokenStatus('error');
-        }
-      }
-    };
-
-    initMap();
-    return () => {
-      mounted = false;
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, []);
+  // Initialize map
+  useWigleMapInit({
+    mapContainerRef,
+    mapRef,
+    mapboxRef,
+    v2FCRef,
+    v3FCRef,
+    mapStyle,
+    setMapSize,
+    setTokenStatus,
+    setError,
+    setMapReady,
+    setTilesReady,
+    ensureAllLayers,
+    attachClickHandlersCallback,
+    updateAllClusterColorsCallback,
+  });
 
   // Sync v2 data to map
   useEffect(() => {
