@@ -225,4 +225,5 @@ class SecretsManager {
   }
 }
 
-module.exports = new SecretsManager();
+const secretsManager = new SecretsManager();
+export default secretsManager;

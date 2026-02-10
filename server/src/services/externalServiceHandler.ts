@@ -55,7 +55,4 @@ async function withRetry(serviceFn: any, options: Record<string, unknown> = {}) 
   throw new Error(`${serviceName} failed after ${maxRetries + 1} attempts: ${lastError.message}`);
 }
 
-module.exports = {
-  delay,
-  withRetry,
-};
+export { delay, withRetry };

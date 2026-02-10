@@ -370,7 +370,7 @@ function sanitizeMiddleware(req, res, next: any) {
   next();
 }
 
-module.exports = {
+export {
   validateQuery,
   validateBody,
   validateParams,

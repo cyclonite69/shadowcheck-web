@@ -1,7 +1,21 @@
 /**
- * WiGLE Routes - Main Entry Point
- * Re-exports the consolidated wigle routes
- * TODO: Split routes.ts into separate files (live.ts, database.ts, search.ts, etc.)
+ * WiGLE Routes - Main Router
+ * Modular organization of WiGLE integration endpoints
  */
 
-module.exports = require('./routes');
+import express from 'express';
+const router = express.Router();
+
+// Import modular route handlers
+import liveRoutes from './live';
+import statusRoutes from './status';
+
+// Mount routes
+router.use('/wigle', liveRoutes);
+router.use('/wigle', statusRoutes);
+
+// Fallback to monolithic routes for endpoints not yet extracted
+const legacyRoutes = require('./routes');
+router.use('/', legacyRoutes);
+
+export default router;

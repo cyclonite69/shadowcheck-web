@@ -94,61 +94,6 @@ const validateWigleNetworksQuery = validateQuery({
  * @param {import('express').Response} res - Express response
  * @param {import('express').NextFunction} next - Express next
  */
-router.get('/wigle/live/:bssid', macParamMiddleware, async (req, res, next) => {
-  try {
-    const { bssid } = req.params;
-    const wigleApiName = secretsManager.get('wigle_api_name');
-    const wigleApiToken = secretsManager.get('wigle_api_token');
-
-    if (!wigleApiName || !wigleApiToken) {
-      return res.status(503).json({ error: 'WiGLE API credentials not configured' });
-    }
-
-    // Encode credentials as base64(apiname:apitoken) for Basic auth
-    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-
-    logger.info(`[WiGLE] Querying for BSSID: ${bssid}`);
-
-    const response = await withRetry(
-      () =>
-        fetch(`https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssid)}`, {
-          headers: {
-            Authorization: `Basic ${encodedAuth}`,
-            Accept: 'application/json',
-          },
-        }),
-      {
-        serviceName: 'WiGLE API',
-        timeoutMs: 10000,
-        maxRetries: 2,
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error(`[WiGLE] API error ${response.status}: ${errorText}`);
-      return res.status(response.status).json({
-        error: 'WiGLE API request failed',
-        status: response.status,
-        details: errorText,
-      });
-    }
-
-    const data = await response.json();
-    logger.info(`[WiGLE] Found ${data.resultCount || 0} results for ${bssid}`);
-
-    res.json({
-      success: true,
-      network: data.results && data.results.length > 0 ? data.results[0] : null,
-      totalResults: data.resultCount || 0,
-      results: data.results || [],
-    });
-  } catch (err) {
-    logger.error(`[WiGLE] Error: ${err.message}`, { error: err });
-    next(err);
-  }
-});
-
 // GET /api/wigle/network/:bssid - Get WiGLE data for a specific network (local DB)
 router.get('/wigle/network/:bssid', macParamMiddleware, async (req, res, next) => {
   try {
@@ -1033,39 +978,4 @@ router.get('/wigle/observations/:netid', async (req, res, next) => {
 /**
  * GET /api/wigle/api-status - Check WiGLE API credentials and status
  */
-router.get('/wigle/api-status', async (req, res) => {
-  const wigleApiName = secretsManager.get('wigle_api_name');
-  const wigleApiToken = secretsManager.get('wigle_api_token');
-
-  if (!wigleApiName || !wigleApiToken) {
-    return res.json({
-      ok: false,
-      configured: false,
-      error: 'WiGLE API credentials not set',
-    });
-  }
-
-  try {
-    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-    const response = await fetch('https://api.wigle.net/api/v2/profile/user', {
-      headers: { Authorization: `Basic ${encodedAuth}`, Accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return res.json({ ok: false, configured: true, error: `API returned ${response.status}` });
-    }
-
-    const data = await response.json();
-    res.json({
-      ok: true,
-      configured: true,
-      user: (data as any).user || wigleApiName,
-      monthlyResultLimit: (data as any).statistics?.monthlyResultLimit,
-      monthlyResultCount: (data as any).statistics?.monthlyResultCount,
-    });
-  } catch (err) {
-    res.json({ ok: false, configured: true, error: err.message });
-  }
-});
-
 module.exports = router;
