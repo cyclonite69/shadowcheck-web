@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
@@ -77,6 +77,8 @@ export const useObservationLayers = ({
   wigleObservations,
   clearWigleObservations,
 }: ObservationLayerProps) => {
+  const prevObservationCountRef = useRef(0);
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
 
@@ -214,14 +216,18 @@ export const useObservationLayers = ({
       });
     }
 
-    // Auto-zoom to fit bounds of all observations
-    if (features.length > 0) {
+    // Auto-zoom to fit bounds of all observations (only on first load or significant change)
+    const totalObservations = features.length;
+    const shouldZoom = totalObservations > 0 && prevObservationCountRef.current === 0;
+    prevObservationCountRef.current = totalObservations;
+
+    if (shouldZoom) {
       const coords = features.map((f: any) => f.geometry.coordinates as [number, number]);
       const bounds = coords.reduce(
         (bounds, coord) => bounds.extend(coord),
         new mapboxgl.LngLatBounds(coords[0], coords[0])
       );
-      map.fitBounds(bounds, { padding: 50, duration: 1000 });
+      map.fitBounds(bounds, { padding: 50, duration: 800, maxZoom: 15 });
     }
   }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup]);
 
