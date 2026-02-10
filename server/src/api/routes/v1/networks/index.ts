@@ -20,8 +20,4 @@ router.use('/', searchRoutes);
 router.use('/', tagsRoutes);
 router.use('/', observationsRoutes);
 
-// Fallback to monolithic routes for endpoints not yet extracted
-const legacyRoutes = require('../networks');
-router.use('/', legacyRoutes);
-
 export default router;
