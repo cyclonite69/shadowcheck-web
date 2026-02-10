@@ -82,6 +82,8 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/mapbox-gl": "^3.4.1",
     "@types/node": "^25.2.2",

@@ -38,7 +38,7 @@ class CacheService {
     if (!this.enabled || !this.client) return null;
     try {
       const data = await this.client.get(key);
-      return data ? JSON.parse(data) : null;
+      return data ? JSON.parse(String(data)) : null;
     } catch {
       return null;
     }
