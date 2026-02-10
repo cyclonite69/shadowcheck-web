@@ -13,11 +13,17 @@ import searchRoutes from './search';
 import tagsRoutes from './tags';
 import observationsRoutes from './observations';
 
-// Mount routes
+// Import main networks listing endpoint
+const networksListRoutes = require('../networks');
+
+// Mount modular routes
 router.use('/', manufacturerRoutes);
 router.use('/', homeLocationRoutes);
 router.use('/', searchRoutes);
 router.use('/', tagsRoutes);
 router.use('/', observationsRoutes);
+
+// Mount main networks listing endpoint
+router.use('/', networksListRoutes);
 
 export default router;
