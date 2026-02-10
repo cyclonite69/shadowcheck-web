@@ -67,7 +67,7 @@ function loadRouteModules(): RouteModules {
   return {
     healthRoutes: require('../api/routes/v1/health').default,
     networksRoutes: require('../api/routes/v1/networks/index').default,
-    explorerRoutes: require('../api/routes/v1/explorer'),
+    explorerRoutes: require('../api/routes/v1/explorer/index').default,
     threatsRoutes: require('../api/routes/v1/threats'),
     wigleRoutes: require('../api/routes/v1/wigle').default,
     adminRoutes: require('../api/routes/v1/admin'),

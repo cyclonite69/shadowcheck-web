@@ -6,7 +6,7 @@
 import express from 'express';
 const router = express.Router();
 
-// Temporarily load from parent explorer.ts
+// Load from parent explorer.ts for now
 const explorerRoutes = require('../explorer');
 router.use('/', explorerRoutes);
 
