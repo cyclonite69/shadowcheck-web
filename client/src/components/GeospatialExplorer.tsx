@@ -90,7 +90,25 @@ export default function GeospatialExplorer() {
     toggleSelectAll,
     allSelected,
     someSelected,
-  } = useNetworkSelection({ networks: filteredNetworks });
+  } = useNetworkSelection({
+    networks: filteredNetworks,
+    onSelectionChange: (newSelection) => {
+      // Auto-close panels when selection changes to a different network
+      const newBssid = newSelection.size > 0 ? Array.from(newSelection)[0] : null;
+      const prevBssid = selectedNetworks.size > 0 ? Array.from(selectedNetworks)[0] : null;
+
+      if (newBssid !== prevBssid) {
+        // Close panels when selecting a different network
+        if (wigleObservations.observations.length > 0) {
+          clearWigleObservations();
+        }
+        // Note: agencies panel will auto-refresh for new network
+        if (timeFreqModal) {
+          closeTimeFrequency();
+        }
+      }
+    },
+  });
   const [useObservationFilters, setUseObservationFilters] = useState(true);
 
   // Observations hook - handles fetching observations for selected networks
