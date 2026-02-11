@@ -41,7 +41,10 @@ interface NetworkExplorerSectionProps {
   error: string | null;
   selectedNetworks: Set<string>;
   onSelectExclusive: (bssid: string) => void;
-  onOpenContextMenu: (event: React.MouseEvent<HTMLTableRowElement>, net: NetworkRow) => void;
+  onOpenContextMenu: (
+    event: React.MouseEvent<HTMLDivElement | HTMLTableRowElement>,
+    net: NetworkRow
+  ) => void;
   onToggleSelectNetwork: (bssid: string) => void;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -127,6 +130,7 @@ export const NetworkExplorerSection = ({
             someSelected={someSelected}
             onToggleSelectAll={onToggleSelectAll}
             onColumnSort={onColumnSort}
+            onReorderColumns={onReorderColumns}
           />
           <NetworkTableBodyGrid
             tableContainerRef={tableContainerRef}
