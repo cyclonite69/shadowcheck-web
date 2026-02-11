@@ -132,6 +132,7 @@ export const NetworkTableHeaderGrid = ({
               borderLeft: isDropTarget ? '2px solid #3b82f6' : undefined,
               opacity: dragCol === col ? 0.5 : 1,
             }}
+            onClick={(e) => isSortable && onColumnSort(col as keyof NetworkRow, e.shiftKey)}
             title={
               isSortable
                 ? 'Click to sort, drag to reorder (Shift+click for multi-sort)'

@@ -37,30 +37,6 @@
 ✅ **Maintainability** - Utility logic separated from component logic  
 ✅ **Discoverability** - Clear location for WiGLE-specific utilities
 
-### Import Changes
-
-**Before:**
-
-```tsx
-// Functions defined inline in WiglePage.tsx
-const macColor = (mac: string) => { ... }
-const formatSecurity = (caps: string) => { ... }
-```
-
-**After:**
-
-```tsx
-import {
-  macColor,
-  dominantClusterColor,
-  formatSecurity,
-  LAYER_STORAGE_KEY,
-  DEFAULT_LAYERS,
-  CLUSTER_SAMPLE_LIMIT,
-  DEFAULT_LIMIT,
-} from '../utils/wigle';
-```
-
 ## Next Steps
 
 ### Remaining WiglePage Refactoring
@@ -75,24 +51,6 @@ import {
 - [ ] FilterPanel.tsx (952 lines) - Extract individual filter components
 - [ ] DashboardPage.tsx (694 lines) - Extract metric cards
 - [ ] KeplerPage.tsx (709 lines) - Extract Kepler config
-
-## Testing
-
-To verify the changes work:
-
-```bash
-npm run build
-# Check for TypeScript errors
-# Test WiglePage functionality in browser
-```
-
-## Files Modified
-
-- `client/src/components/WiglePage.tsx` - Removed utility functions, added imports
-- `client/src/utils/wigle/colors.ts` - NEW
-- `client/src/utils/wigle/security.ts` - NEW
-- `client/src/utils/wigle/constants.ts` - NEW
-- `client/src/utils/wigle/index.ts` - NEW
 
 ## Metrics
 

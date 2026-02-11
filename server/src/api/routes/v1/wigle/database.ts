@@ -25,15 +25,33 @@ function parseIncludeTotalFlag(value: any): { valid: boolean; value?: boolean; e
 }
 
 const validateWigleSearchQuery = validateQuery({
-  ssid: optional((value: any) => validateString(String(value), 1, 64, 'ssid')),
-  bssid: optional((value: any) => validateString(String(value), 1, 64, 'bssid')),
-  limit: optional((value: any) => validateIntegerRange(value, 1, Number.MAX_SAFE_INTEGER, 'limit')),
+  ssid: optional((value: any) => {
+    const v = validateString(String(value), 'SSID');
+    if (!v.valid || (v.value && v.value.length > 64)) {
+      return { valid: false, error: 'SSID must be 1-64 characters' };
+    }
+    return { valid: true, value: v.value };
+  }),
+  bssid: optional((value: any) => {
+    const v = validateString(String(value), 'BSSID');
+    if (!v.valid || (v.value && v.value.length > 64)) {
+      return { valid: false, error: 'BSSID must be 1-64 characters' };
+    }
+    return { valid: true, value: v.value };
+  }),
+  limit: optional((value: any) => validateIntegerRange(value, 1, 10000, 'limit')),
 });
 
 const validateWigleNetworksQuery = validateQuery({
-  limit: optional((value: any) => validateIntegerRange(value, 1, Number.MAX_SAFE_INTEGER, 'limit')),
+  limit: optional((value: any) => validateIntegerRange(value, 1, 10000, 'limit')),
   offset: optional((value: any) => validateIntegerRange(value, 0, 10000000, 'offset')),
-  type: optional((value: any) => validateString(String(value), 1, 16, 'type')),
+  type: optional((value: any) => {
+    const v = validateString(String(value), 'Type');
+    if (!v.valid || (v.value && v.value.length > 16)) {
+      return { valid: false, error: 'Type must be 1-16 characters' };
+    }
+    return { valid: true, value: v.value };
+  }),
 });
 
 /**

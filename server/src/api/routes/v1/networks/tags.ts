@@ -169,14 +169,26 @@ router.post('/networks/tag-threats', async (req, res, next) => {
   try {
     const { bssids, reason } = req.body;
 
-    const bssidListValidation = validateBSSIDList(bssids, 10000);
+    const bssidListValidation = validateBSSIDList(bssids);
     if (!bssidListValidation.valid) {
       return res.status(400).json({ error: bssidListValidation.error });
     }
+
+    if (bssidListValidation.value && bssidListValidation.value.length > 10000) {
+      return res.status(400).json({ error: 'Maximum 10000 BSSIDs allowed' });
+    }
+
     const reasonValidation =
       reason === undefined
         ? { valid: true, value: undefined }
-        : validateString(String(reason), 0, 512, 'reason');
+        : (() => {
+            const v = validateString(String(reason), 'Reason');
+            if (!v.valid) return v;
+            if (v.value && v.value.length > 512) {
+              return { valid: false, error: 'Reason cannot exceed 512 characters' };
+            }
+            return { valid: true, value: v.value };
+          })();
     if (!reasonValidation.valid) {
       return res.status(400).json({ error: (reasonValidation as any).error });
     }

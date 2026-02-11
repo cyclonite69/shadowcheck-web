@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../types/network';
 import { NETWORK_COLUMNS } from '../../constants/network';
@@ -30,21 +30,22 @@ export const NetworkTableBodyGrid = ({
   onSelectExclusive,
   onOpenContextMenu,
   onToggleSelectNetwork,
+  isLoadingMore,
+  hasMore,
+  onLoadMore,
 }: NetworkTableBodyGridProps) => {
-  const parentRef = useRef<HTMLDivElement>(null);
-
   const virtualizer = useVirtualizer({
     count: filteredNetworks.length,
-    getScrollElement: () => parentRef.current,
+    getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 32,
     overscan: 10,
   });
 
   // Infinite scroll: load more when scrolled near bottom
   const handleScroll = () => {
-    if (!parentRef.current || isLoadingMore || !hasMore) return;
+    if (!tableContainerRef.current || isLoadingMore || !hasMore) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
     // Load more when 80% scrolled
@@ -95,7 +96,7 @@ export const NetworkTableBodyGrid = ({
 
   return (
     <div
-      ref={parentRef}
+      ref={tableContainerRef}
       className="flex-1 overflow-auto min-h-0"
       style={{ fontSize: '11px' }}
       onScroll={handleScroll}

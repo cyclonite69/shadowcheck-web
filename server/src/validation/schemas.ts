@@ -1,77 +1,26 @@
-export {};
 /**
  * Input Validation Schemas
- * Defines strict validation rules for all API inputs using JSON schema patterns
- * All queries must pass validation before reaching business logic
+ * Barrel export for backward compatibility.
+ *
+ * Validation functions are organized by domain:
+ * - network-schemas.ts: network/BSSID/SSID validation
+ * - geospatial-schemas.ts: coordinate/location validation
+ * - temporal-schemas.ts: timestamp/date range validation
+ * - common-schemas.ts: generic validators
+ * - complex-validators.ts: advanced validators
  */
 
-/**
- * Validates a strict MAC address (AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF).
- * @param {string} bssid - The MAC address to validate
- * @returns {object} { valid: boolean, error?: string, cleaned?: string }
- */
-function validateMACAddress(bssid) {
-  if (!bssid || typeof bssid !== 'string') {
-    return { valid: false, error: 'BSSID must be a non-empty string' };
-  }
-
-  const cleaned = bssid.trim().toUpperCase();
-
-  if (!/^([0-9A-F]{2}[:-]){5}[0-9A-F]{2}$/.test(cleaned)) {
-    return { valid: false, error: 'BSSID must be a valid MAC address (AA:BB:CC:DD:EE:FF)' };
-  }
-
-  return { valid: true, cleaned: cleaned.replace(/-/g, ':') };
-}
-
-/**
- * Validates a network identifier (MAC address or cellular/tower identifier).
- * @param {string} value - The identifier to validate
- * @returns {object} { valid: boolean, error?: string, cleaned?: string }
- */
-function validateNetworkIdentifier(value) {
-  if (!value || typeof value !== 'string') {
-    return { valid: false, error: 'BSSID must be a non-empty string' };
-  }
-
-  const cleaned = value.trim().toUpperCase();
-
-  if (cleaned.length > 64) {
-    return { valid: false, error: 'BSSID exceeds maximum length (64 chars)' };
-  }
-
-  const macValidation = validateMACAddress(cleaned);
-  if (macValidation.valid) {
-    return macValidation;
-  }
-
-  if (/^[A-Z0-9:_-]+$/.test(cleaned)) {
-    return { valid: true, cleaned };
-  }
-
-  return {
-    valid: false,
-    error: 'BSSID must be a MAC address or alphanumeric identifier',
-  };
-}
-
-/**
- * Validates BSSID (MAC address or tower identifier).
- * @param {string} bssid - The BSSID to validate
- * @returns {object} { valid: boolean, error?: string, cleaned?: string }
- */
-function validateBSSID(bssid) {
-  return validateNetworkIdentifier(bssid);
-}
+// Re-export all validators from sub-modules for backward compatibility
+export * from './schemas/networkSchemas';
+export * from './schemas/geospatialSchemas';
+export * from './schemas/temporalSchemas';
+export * from './schemas/commonSchemas';
+export * from './schemas/complexValidators';
 
 /**
  * Validates pagination parameters
- * @param {any} page - Page number
- * @param {any} limit - Results per page
- * @param {number} maxLimit - Maximum allowed limit (default 5000)
- * @returns {object} { valid: boolean, error?: string, page?: number, limit?: number }
  */
-function validatePagination(page, limit, maxLimit = 5000) {
+export function validatePagination(page: string, limit: string, maxLimit = 5000) {
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
 
@@ -91,32 +40,9 @@ function validatePagination(page, limit, maxLimit = 5000) {
 }
 
 /**
- * Validates geographic coordinates
- * @param {any} latitude - Latitude value
- * @param {any} longitude - Longitude value
- * @returns {object} { valid: boolean, error?: string, lat?: number, lon?: number }
- */
-function validateCoordinates(latitude, longitude) {
-  const lat = parseFloat(latitude);
-  const lon = parseFloat(longitude);
-
-  if (isNaN(lat) || lat < -90 || lat > 90) {
-    return { valid: false, error: 'Latitude must be a number between -90 and 90' };
-  }
-
-  if (isNaN(lon) || lon < -180 || lon > 180) {
-    return { valid: false, error: 'Longitude must be a number between -180 and 180' };
-  }
-
-  return { valid: true, lat, lon };
-}
-
-/**
  * Validates tag type
- * @param {string} tagType - Tag type value
- * @returns {object} { valid: boolean, error?: string, normalized?: string }
  */
-function validateTagType(tagType) {
+export function validateTagType(tagType: string) {
   const validTags = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
   if (!tagType || typeof tagType !== 'string') {
@@ -134,11 +60,9 @@ function validateTagType(tagType) {
 
 /**
  * Validates confidence score
- * @param {any} confidence - Confidence value (0-100)
- * @returns {object} { valid: boolean, error?: string, value?: number }
  */
-function validateConfidence(confidence) {
-  const value = parseFloat(confidence);
+export function validateConfidence(confidence: unknown) {
+  const value = parseFloat(String(confidence));
 
   if (isNaN(value) || value < 0 || value > 100) {
     return { valid: false, error: 'Confidence must be a number between 0 and 100' };
@@ -148,35 +72,9 @@ function validateConfidence(confidence) {
 }
 
 /**
- * Validates string field with length limits
- * @param {string} value - String to validate
- * @param {number} minLength - Minimum allowed length
- * @param {number} maxLength - Maximum allowed length
- * @param {string} fieldName - Name of field for error messages
- * @returns {object} { valid: boolean, error?: string }
- */
-function validateString(value, minLength = 0, maxLength = 1000, fieldName = 'Field') {
-  if (typeof value !== 'string') {
-    return { valid: false, error: `${fieldName} must be a string` };
-  }
-
-  if (value.length < minLength) {
-    return { valid: false, error: `${fieldName} must be at least ${minLength} characters` };
-  }
-
-  if (value.length > maxLength) {
-    return { valid: false, error: `${fieldName} cannot exceed ${maxLength} characters` };
-  }
-
-  return { valid: true };
-}
-
-/**
  * Validates range parameter for analytics
- * @param {string} range - Range value (24h, 7d, 30d, 90d, all)
- * @returns {object} { valid: boolean, error?: string, value?: string }
  */
-function validateTimeRange(range) {
+export function validateTimeRange(range: string) {
   const validRanges = ['24h', '7d', '30d', '90d', 'all'];
 
   if (!range || typeof range !== 'string') {
@@ -194,11 +92,8 @@ function validateTimeRange(range) {
 
 /**
  * Validates sort parameter
- * @param {string} sort - Sort column name
- * @param {object} allowedColumns - Map of allowed column names
- * @returns {object} { valid: boolean, error?: string, column?: string }
  */
-function validateSort(sort, allowedColumns) {
+export function validateSort(sort: string, allowedColumns: Record<string, unknown>) {
   if (!sort || typeof sort !== 'string') {
     return { valid: false, error: 'Sort must be a string' };
   }
@@ -217,10 +112,8 @@ function validateSort(sort, allowedColumns) {
 
 /**
  * Validates sort order direction
- * @param {string} order - Sort order (ASC or DESC)
- * @returns {object} { valid: boolean, error?: string, value?: string }
  */
-function validateSortOrder(order) {
+export function validateSortOrder(order: string) {
   const normalized = (order || 'DESC').toUpperCase();
 
   if (!['ASC', 'DESC'].includes(normalized)) {
@@ -231,27 +124,10 @@ function validateSortOrder(order) {
 }
 
 /**
- * Validates signal strength in dBm
- * @param {any} signal - Signal value
- * @returns {object} { valid: boolean, error?: string, value?: number }
- */
-function validateSignalStrength(signal) {
-  const value = parseInt(signal);
-
-  if (isNaN(value) || value < -100 || value > 0) {
-    return { valid: false, error: 'Signal strength must be between -100 and 0 dBm' };
-  }
-
-  return { valid: true, value };
-}
-
-/**
  * Validates severity score
- * @param {any} severity - Severity value
- * @returns {object} { valid: boolean, error?: string, value?: number }
  */
-function validateSeverity(severity) {
-  const value = parseInt(severity);
+export function validateSeverity(severity: unknown) {
+  const value = parseInt(String(severity), 10);
 
   if (isNaN(value) || value < 0 || value > 100) {
     return { valid: false, error: 'Severity must be between 0 and 100' };
@@ -261,90 +137,15 @@ function validateSeverity(severity) {
 }
 
 /**
- * Validates boolean query parameter
- * @param {string} value - String representation of boolean
- * @returns {object} { valid: boolean, error?: string, value?: boolean }
- */
-function validateBoolean(value) {
-  if (value === undefined || value === null) {
-    return { valid: true, value: false };
-  }
-
-  if (typeof value === 'boolean') {
-    return { valid: true, value };
-  }
-
-  if (typeof value === 'string') {
-    if (value.toLowerCase() === 'true') {
-      return { valid: true, value: true };
-    }
-    if (value.toLowerCase() === 'false') {
-      return { valid: true, value: false };
-    }
-  }
-
-  return { valid: false, error: 'Boolean parameter must be "true" or "false"' };
-}
-
-/**
- * Validates a set of enum values
- * @param {string} value - Value to check
- * @param {array} allowed - Array of allowed values
- * @param {string} fieldName - Field name for error messages
- * @returns {object} { valid: boolean, error?: string, value?: string }
- */
-function validateEnum(value, allowed, fieldName = 'Field') {
-  if (!value || typeof value !== 'string') {
-    return { valid: false, error: `${fieldName} must be a string` };
-  }
-
-  const normalized = value.toUpperCase();
-
-  if (!allowed.map((v) => v.toUpperCase()).includes(normalized)) {
-    return { valid: false, error: `${fieldName} must be one of: ${allowed.join(', ')}` };
-  }
-
-  return { valid: true, value: normalized };
-}
-
-/**
- * Validates a timestamp in milliseconds.
- * @param {any} value - Timestamp value (ms since epoch)
- * @param {object} options - Validation options
- * @param {number} options.min - Minimum allowed timestamp (ms)
- * @param {number} options.max - Maximum allowed timestamp (ms)
- * @returns {object} { valid: boolean, error?: string, value?: number }
- */
-function validateTimestampMs(
-  value,
-  { min = 946684800000, max = Date.now() + 365 * 24 * 60 * 60 * 1000 } = {}
-) {
-  const parsed = parseInt(value, 10);
-
-  if (Number.isNaN(parsed)) {
-    return { valid: false, error: 'timestamp must be a number (ms since epoch)' };
-  }
-
-  if (parsed < min || parsed > max) {
-    return {
-      valid: false,
-      error: `timestamp must be between ${min} and ${max}`,
-    };
-  }
-
-  return { valid: true, value: parsed };
-}
-
-/**
  * Validates integer within an inclusive range
- * @param {any} value - Value to validate
- * @param {number} min - Minimum allowed value
- * @param {number} max - Maximum allowed value
- * @param {string} fieldName - Field name for error messages
- * @returns {object} { valid: boolean, error?: string, value?: number }
  */
-function validateIntegerRange(value, min = 0, max = Number.MAX_SAFE_INTEGER, fieldName = 'Value') {
-  const parsed = parseInt(value, 10);
+export function validateIntegerRange(
+  value: unknown,
+  min = 0,
+  max = Number.MAX_SAFE_INTEGER,
+  fieldName = 'Value'
+) {
+  const parsed = parseInt(String(value), 10);
 
   if (Number.isNaN(parsed)) {
     return { valid: false, error: `${fieldName} must be an integer` };
@@ -359,14 +160,14 @@ function validateIntegerRange(value, min = 0, max = Number.MAX_SAFE_INTEGER, fie
 
 /**
  * Validates numeric value within an inclusive range
- * @param {any} value - Value to validate
- * @param {number} min - Minimum allowed value
- * @param {number} max - Maximum allowed value
- * @param {string} fieldName - Field name for error messages
- * @returns {object} { valid: boolean, error?: string, value?: number }
  */
-function validateNumberRange(value, min = 0, max = Number.MAX_SAFE_INTEGER, fieldName = 'Value') {
-  const parsed = parseFloat(value);
+export function validateNumberRange(
+  value: unknown,
+  min = 0,
+  max = Number.MAX_SAFE_INTEGER,
+  fieldName = 'Value'
+) {
+  const parsed = parseFloat(String(value));
 
   if (Number.isNaN(parsed)) {
     return { valid: false, error: `${fieldName} must be a number` };
@@ -380,96 +181,9 @@ function validateNumberRange(value, min = 0, max = Number.MAX_SAFE_INTEGER, fiel
 }
 
 /**
- * Validates list of BSSIDs from a comma-separated string or array
- * @param {string|string[]} value - List of BSSIDs
- * @param {number} maxItems - Maximum allowed items
- * @returns {object} { valid: boolean, error?: string, value?: string[] }
- */
-function validateBSSIDList(value, maxItems = 1000) {
-  if (!value) {
-    return { valid: false, error: 'BSSID list must be provided' };
-  }
-
-  let items = [];
-  if (Array.isArray(value)) {
-    items = value;
-  } else {
-    items = String(value)
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
-  if (items.length === 0) {
-    return { valid: false, error: 'BSSID list cannot be empty' };
-  }
-
-  if (items.length > maxItems) {
-    return { valid: false, error: `BSSID list cannot exceed ${maxItems} items` };
-  }
-
-  const cleaned = [];
-  for (const item of items) {
-    const validation = validateNetworkIdentifier(item);
-    if (!validation.valid) {
-      return { valid: false, error: `Invalid BSSID: ${item}. ${validation.error}` };
-    }
-    cleaned.push(validation.cleaned);
-  }
-
-  return { valid: true, value: cleaned };
-}
-
-/**
- * Validates a bounding box string in format: minLng,minLat,maxLng,maxLat
- * @param {string} value - Bounding box string
- * @returns {object} { valid: boolean, error?: string, value?: object }
- */
-function validateBoundingBoxString(value) {
-  if (!value || typeof value !== 'string') {
-    return { valid: false, error: 'bbox must be a comma-separated string' };
-  }
-
-  const parts = value.split(',').map((entry) => parseFloat(entry.trim()));
-  if (parts.length !== 4 || parts.some((entry) => Number.isNaN(entry))) {
-    return { valid: false, error: 'bbox must include four numeric values' };
-  }
-
-  const [minLng, minLat, maxLng, maxLat] = parts;
-
-  if (minLat < -90 || minLat > 90 || maxLat < -90 || maxLat > 90) {
-    return { valid: false, error: 'bbox latitude values must be between -90 and 90' };
-  }
-
-  if (minLng < -180 || minLng > 180 || maxLng < -180 || maxLng > 180) {
-    return { valid: false, error: 'bbox longitude values must be between -180 and 180' };
-  }
-
-  if (minLat >= maxLat) {
-    return { valid: false, error: 'bbox minLat must be less than maxLat' };
-  }
-
-  if (minLng >= maxLng) {
-    return { valid: false, error: 'bbox minLng must be less than maxLng' };
-  }
-
-  return {
-    valid: true,
-    value: {
-      minLng,
-      minLat,
-      maxLng,
-      maxLat,
-    },
-  };
-}
-
-/**
  * Combines multiple validation results
- * @param {array} results - Array of validation result objects
- * @returns {object} { valid: boolean, errors?: array }
  */
-function combineValidations(...results) {
+export function combineValidations(...results: { valid: boolean; error?: string }[]) {
   const errors = results.filter((r) => !r.valid).map((r) => r.error);
 
   if (errors.length > 0) {
@@ -478,27 +192,3 @@ function combineValidations(...results) {
 
   return { valid: true };
 }
-
-export {
-  validateBSSID,
-  validateMACAddress,
-  validateNetworkIdentifier,
-  validatePagination,
-  validateCoordinates,
-  validateTagType,
-  validateConfidence,
-  validateString,
-  validateTimeRange,
-  validateSort,
-  validateSortOrder,
-  validateSignalStrength,
-  validateSeverity,
-  validateBoolean,
-  validateEnum,
-  validateTimestampMs,
-  validateIntegerRange,
-  validateNumberRange,
-  validateBSSIDList,
-  validateBoundingBoxString,
-  combineValidations,
-};

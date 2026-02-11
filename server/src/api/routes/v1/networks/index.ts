@@ -3,18 +3,18 @@
  * Modular organization of network endpoints
  */
 
-import express from 'express';
+export {};
+
+const express = require('express');
 const router = express.Router();
 
-// Import modular route handlers
-import manufacturerRoutes from './manufacturer';
-import homeLocationRoutes from './home-location';
-import searchRoutes from './search';
-import tagsRoutes from './tags';
-import observationsRoutes from './observations';
-
-// Import main networks listing endpoint
-const networksListRoutes = require('../networks');
+// Import modular route handlers (using require for CommonJS modules)
+const manufacturerRoutes = require('./manufacturer');
+const homeLocationRoutes = require('./home-location');
+const searchRoutes = require('./search');
+const tagsRoutes = require('./tags');
+const observationsRoutes = require('./observations');
+const listRoutes = require('./list');
 
 // Mount modular routes
 router.use('/', manufacturerRoutes);
@@ -22,8 +22,6 @@ router.use('/', homeLocationRoutes);
 router.use('/', searchRoutes);
 router.use('/', tagsRoutes);
 router.use('/', observationsRoutes);
+router.use('/', listRoutes);
 
-// Mount main networks listing endpoint
-router.use('/', networksListRoutes);
-
-export default router;
+module.exports = router;

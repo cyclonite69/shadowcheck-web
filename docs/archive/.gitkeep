@@ -1,0 +1,13 @@
+# Archive Directory
+
+This directory contains historical and completed documentation that is no longer actively maintained but kept for reference.
+
+## Subdirectories
+
+- `sessions/` - Development session notes and progress tracking
+- `modularity/` - Modularity refactoring documentation
+- `observability/` - Completed observability implementation
+- `production/` - Production hardening work
+- `security/` - Historical security fixes
+
+Files in this directory are not actively maintained - refer to the main docs/ directory for current documentation.

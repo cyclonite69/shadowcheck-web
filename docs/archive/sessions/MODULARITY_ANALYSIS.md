@@ -101,13 +101,6 @@ components/wigle/
     └── wigleConstants.ts
 ```
 
-**Extraction Targets:**
-
-- Lines 60-90: `macColor()` → `utils/wigleColors.ts`
-- Lines 92-110: `formatSecurity()` → `utils/wigleSecurity.ts`
-- Lines 40-58: Layer state management → `hooks/useWigleLayers.ts`
-- Lines 200-400: Data fetching logic → `hooks/useWigleData.ts`
-
 ---
 
 ### 2. FilterPanel.tsx (952 lines) 🔴 CRITICAL
@@ -121,33 +114,6 @@ components/wigle/
 - No component extraction for individual filter types
 - Difficult to test individual filters
 
-**Recommended Structure:**
-
-```
-components/filter/
-├── FilterPanel.tsx (< 200 lines - orchestrator)
-├── FilterSection.tsx (exists)
-├── FilterInput.tsx (exists)
-├── types.ts (exists)
-├── filters/
-│   ├── TextFilter.tsx
-│   ├── RangeFilter.tsx
-│   ├── DateRangeFilter.tsx
-│   ├── MultiSelectFilter.tsx
-│   ├── ThreatScoreFilter.tsx
-│   ├── DistanceFilter.tsx
-│   └── index.ts
-└── hooks/
-    ├── useFilterValidation.ts
-    └── useFilterState.ts
-```
-
-**Extraction Targets:**
-
-- Each filter type (text, range, date, etc.) → separate component
-- Validation logic → `useFilterValidation.ts`
-- Filter state management → already in `stores/filterStore.ts` ✅
-
 ---
 
 ### 3. DashboardPage.tsx (694 lines) 🟡 MODERATE
@@ -160,23 +126,6 @@ components/filter/
 - Chart configuration mixed with component
 - No dedicated hooks for dashboard data
 
-**Recommended Structure:**
-
-```
-components/dashboard/
-├── DashboardPage.tsx (< 300 lines)
-├── components/
-│   ├── MetricCard.tsx
-│   ├── ThreatOverview.tsx
-│   ├── NetworkStats.tsx
-│   └── RecentActivity.tsx
-├── hooks/
-│   ├── useDashboardMetrics.ts
-│   └── useDashboardCharts.ts
-└── utils/
-    └── dashboardHelpers.ts
-```
-
 ---
 
 ### 4. KeplerPage.tsx (709 lines) 🟡 MODERATE
@@ -188,23 +137,6 @@ components/dashboard/
 - Kepler.gl configuration embedded in component
 - Export logic mixed with rendering
 - No hooks for data management
-
-**Recommended Structure:**
-
-```
-components/kepler/
-├── KeplerPage.tsx (< 300 lines)
-├── components/
-│   ├── KeplerMap.tsx
-│   ├── KeplerControls.tsx
-│   └── KeplerExport.tsx
-├── hooks/
-│   ├── useKeplerData.ts
-│   └── useKeplerConfig.ts
-└── utils/
-    ├── keplerConfig.ts
-    └── keplerExport.ts
-```
 
 ---
 
@@ -258,7 +190,7 @@ components/kepler/
 server/src/
 ├── api/routes/v1/          # Modular route handlers
 ├── services/               # Business logic layer
-├── repositories/           # Data access layer
+├── repositories/            # Data access layer
 ├── middleware/             # Reusable middleware
 └── utils/                  # Shared utilities
 ```
@@ -327,15 +259,6 @@ After refactoring, target metrics:
 - **Utils extraction:** 100%
 - **Test coverage:** 80%+
 - **Subdirectory organization:** All pages with >500 lines
-
----
-
-## 🔗 Related Documentation
-
-- [Project Structure](PROJECT_STRUCTURE.md)
-- [Component Guidelines](architecture/COMPONENT_GUIDELINES.md) (create)
-- [Testing Strategy](TESTING.md)
-- [Code Review Checklist](CONTRIBUTING.md)
 
 ---
 

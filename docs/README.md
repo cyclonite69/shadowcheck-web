@@ -2,263 +2,184 @@
 
 Welcome to the ShadowCheck documentation! This guide will help you navigate all available documentation.
 
-## 📚 Documentation Structure
-
-```
-docs/
-├── getting-started/     # New user guides
-├── architecture/        # System design & architecture
-├── development/         # Development guides & workflows
-├── deployment/          # Production deployment guides
-├── security/            # Security policies & guides
-├── features/            # Feature-specific documentation
-├── guides/              # Implementation guides
-├── enrichment/          # Network enrichment system
-└── archive/             # Historical documentation
-```
-
-## 🚀 Getting Started
-
-**New to ShadowCheck?** Start here:
-
-1. **[Installation](getting-started/MAPBOX_SETUP.md)** - Initial setup & configuration
-2. **[Quick Start Guide](guides/QUICK_START.md)** - Get up and running in 5 minutes
-3. **[CLAUDE.md](../CLAUDE.md)** - Essential guide for AI-assisted development
-
-## 📖 Core Documentation
-
-### Architecture & Design
-
-- **[System Architecture](ARCHITECTURE.md)** - High-level system design
-- **[Project Structure](architecture/PROJECT_STRUCTURE.md)** - Repository layout and conventions
-- **[Database Schema](DATABASE_V2_SUMMARY.md)** - Database structure & entities
-- **[API Design](API.md)** - API architecture & patterns
-- **[Modular Architecture](architecture/)** - Detailed architecture docs
-
-### Development
-
-- **[Development Setup](DEVELOPMENT.md)** - Local development environment
-- **[Development Notes](development/agents.md)** - Agent guidance
-- **[Common Patterns](../CLAUDE.md#development-patterns)** - Code patterns & best practices
-
-### Deployment
-
-- **[Production Deployment](DEPLOYMENT.md)** - Deploy to production
-- **[Docker Guide](deployment/)** - Containerized deployment
-- **[Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST.md)** - Pre-deploy verification
-
-### Security
-
-- **[Security Policy](../SECURITY.md)** - Vulnerability reporting
-- **[Secrets Management](security/SECRETS_MANAGEMENT.md)** - Managing credentials
-- **[SQL Injection Prevention](security/SQL_INJECTION_PREVENTION.md)** - Database security
-- **[Keyring Architecture](security/KEYRING_ARCHITECTURE.md)** - Keyring implementation
-
-## 🔍 Reference Documentation
-
-### API Reference
-
-- **[API Documentation](API.md)** - Complete API reference
-- **[API Reference](API_REFERENCE.md)** - Endpoint details
-
-### Database
-
-- **[Database Schema V2](DATABASE_V2_SUMMARY.md)** - Current schema
-- **[Legacy Schema](LEGACY_SCHEMA.md)** - Historical schema
-- **[Database Triggers](DATABASE_TRIGGERS.md)** - Automated database operations
-
-**Configuration**
-
-- [Environment Variables](../CLAUDE.md#key-configuration) - Configuration options
-- [Admin Settings](ADMIN_SETTINGS_GUIDE.md) - Admin panel and role gating
-
-## ⚡ Features
-
-**Start here:** [Feature Catalog](FEATURES.md) - Comprehensive list of shipped capabilities
-
-### Core Features
-
-- **[Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)** - Surveillance device detection
-- **[ML System](ML_ITERATION_GUIDE.md)** - Machine learning implementation
-- **[Surveillance Detection](SURVEILLANCE_DETECTION.md)** - Advanced threat analysis
-
-### Enrichment System
-
-- **[Production Enrichment](enrichment/PRODUCTION_ENRICHMENT.md)** - Multi-API enrichment
-- **[API Keys Guide](enrichment/GET_FREE_API_KEYS.md)** - Obtaining API keys
-- **[Free Address APIs](enrichment/FREE_ADDRESS_APIS.md)** - API comparison
-
-### UI/UX Features
-
-- **[Map Controls Implementation](features/IMPLEMENTATION_SUMMARY_MAP_CONTROLS.md)** - Map orientation controls summary
-- **Unified Tooltips** - Shared rich HTML tooltip renderer across maps
-
-## 📋 Implementation Guides
-
-- **[Error Handling Guide](guides/ERROR_HANDLING_GUIDE.md)** - Error handling patterns
-- **[Validation Guide](guides/VALIDATION_IMPLEMENTATION_GUIDE.md)** - Input validation
-- **[Logging Guide](guides/LOGGING_IMPLEMENTATION_GUIDE.md)** - Structured logging
-
-## 🗂️ Topic Index
-
-### By Topic
-
-**Authentication & Security**
-
-- [Secrets Management](security/SECRETS_MANAGEMENT.md)
-- [SQL Injection Prevention](security/SQL_INJECTION_PREVENTION.md)
-- [Security Audit](SECURITY_AUDIT.md)
-- [Security Policy](../SECURITY.md)
-
-**Database**
-
-- [Database Schema V2](DATABASE_V2_SUMMARY.md)
-- [Database Triggers](DATABASE_TRIGGERS.md)
-- [Legacy Schema](LEGACY_SCHEMA.md)
-- [Migration Guide](DATABASE_V2_FINAL_PLAN.md)
-
-**Deployment**
-
-- [Production Deployment](DEPLOYMENT.md)
-- [Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST.md)
-- [Docker Setup](../docker-compose.yml)
-
-**Development**
-
-- [Development Setup](DEVELOPMENT.md)
-- [Testing](DEVELOPMENT.md#testing)
-- [Code Style](../CLAUDE.md#code-style)
-- [Common Patterns](../CLAUDE.md#development-patterns)
-
-**Features**
-
-- [Feature Catalog](FEATURES.md)
-- [Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)
-- [Network Enrichment](enrichment/PRODUCTION_ENRICHMENT.md)
-- [ML System](ML_ITERATION_GUIDE.md)
-- [Surveillance Detection](SURVEILLANCE_DETECTION.md)
-
-## 🔧 Troubleshooting
-
-**Common Issues:**
-
-- Database connection errors → [CLAUDE.md Troubleshooting](../CLAUDE.md#troubleshooting)
-- Secrets not loading → [Secrets Management](security/SECRETS_MANAGEMENT.md#troubleshooting)
-- Docker issues → [Deployment Guide](DEPLOYMENT.md)
-- Test failures → [Development Guide](DEVELOPMENT.md)
-
-**Recent Fixes:**
-
-- [Recent Fixes Quick Reference](RECENT_FIXES_QUICK_REF.md) - Quick verification commands and summary
-- [Recent Fixes Troubleshooting Guide](TROUBLESHOOTING_RECENT_FIXES.md) - Solutions for recently resolved issues
-- GeoSpatial data integrity issues → [Recent Fixes Guide](TROUBLESHOOTING_RECENT_FIXES.md#geospatial-table-issues)
-- Analytics widgets failures → [Recent Fixes Guide](TROUBLESHOOTING_RECENT_FIXES.md#analytics-widgets-failures)
-- Distance calculation problems → [Recent Fixes Guide](TROUBLESHOOTING_RECENT_FIXES.md#distance-calculation-issues)
-
-**Historical Issues:**
-
-- [Archived Troubleshooting](archive/TROUBLESHOOTING_2025-12-06.md)
-- [Legacy Fixes](archive/)
-
-## 📦 Archive
-
-Historical documentation and completed initiatives:
-
-- **[Refactoring](archive/refactoring/)** - Architecture refactoring docs
-- **[Observability](archive/observability/)** - Logging & monitoring implementation
-- **[Production Hardening](archive/production/)** - Production readiness work
-- **[Security Fixes](archive/sql-injection/)** - Historical security improvements
-- **[Session Notes](archive/sessions/)** - Development session summaries
-- **[Legacy HTML/UI](archive/legacy-html/)** - Superseded legacy frontend docs
-
-## 🤝 Contributing
-
-- **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute
-- **[Code of Conduct](../CODE_OF_CONDUCT.md)** - Community standards
-- **[Changelog](../CHANGELOG.md)** - Version history
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-org/shadowcheck/issues)
-- **Security**: See [SECURITY.md](../SECURITY.md)
-- **Questions**: Check docs first, then open an issue
-
-## 🎯 Quick Links
-
-| I want to...                | Go to...                                                        |
-| --------------------------- | --------------------------------------------------------------- |
-| Get started quickly         | [Quick Start](guides/QUICK_START.md)                            |
-| Set up development env      | [Development Setup](DEVELOPMENT.md)                             |
-| Understand architecture     | [Architecture](ARCHITECTURE.md)                                 |
-| Deploy to production        | [Deployment](DEPLOYMENT.md)                                     |
-| Add a new feature           | [CLAUDE.md](../CLAUDE.md#common-tasks)                          |
-| Fix a security issue        | [Security Policy](../SECURITY.md)                               |
-| Report a bug                | [GitHub Issues](https://github.com/your-org/shadowcheck/issues) |
-| Configure secrets           | [Secrets Management](security/SECRETS_MANAGEMENT.md)            |
-| Understand threat detection | [Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)       |
-| Use the API                 | [API Reference](API_REFERENCE.md)                               |
-| Troubleshoot recent issues  | [Recent Fixes Quick Ref](RECENT_FIXES_QUICK_REF.md)             |
-| Verify recent fixes         | [Recent Fixes Troubleshooting](TROUBLESHOOTING_RECENT_FIXES.md) |
-
-## 📚 Full Index
-
-### Root Documentation
-
-- [README.md](../README.md) - Project overview
-- [FEATURES.md](FEATURES.md) - Comprehensive feature catalog
-- [CHANGELOG.md](../CHANGELOG.md) - Version history
-- [CLAUDE.md](../CLAUDE.md) - AI assistant guidance
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
-- [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) - Community standards
-- [SECURITY.md](../SECURITY.md) - Security policy
-
-### Architecture & Design
-
-- [architecture/](architecture/) - System architecture documentation
-  - DATABASE_CONSOLIDATION_GUIDE.md
-  - MODULAR_ARCHITECTURE_GUIDE.md
-  - UNIFIED_TABLE_DESIGN.md
-
-### Features
-
-- [features/](features/) - Feature-specific documentation
-  - SURVEILLANCE_DETECTION_V2.md
-  - IMPLEMENTATION_SUMMARY_MAP_CONTROLS.md
-
-### Guides
-
-- [guides/](guides/) - Implementation guides
-  - ERROR_HANDLING_GUIDE.md
-  - LOGGING_IMPLEMENTATION_GUIDE.md
-  - VALIDATION_IMPLEMENTATION_GUIDE.md
-  - QUICK_START.md
-
-### Security
-
-- [security/](security/) - Security documentation
-  - SECURITY_AUDIT_SQL_INJECTION.md
-  - SECURITY_IMPROVEMENTS_SUMMARY.md
-
-### Archive
-
-- [archive/](archive/) - Historical documentation
-  - [archive/sessions/](archive/sessions/) - Development session notes
-    - COMPLETE_SESSION_SUMMARY.md
-    - CURRENT_ISSUES.md
-    - CURRENT_STATE.md
-    - GITHUB_PUSH_SUMMARY.md
-    - PROGRESS.md
-    - PROGRESS_DEC5.md
-    - PROJECT_STATUS.md
-    - WARP.md
-  - HEADER_FIX_PLAN.md
-  - IMPLEMENTATION_PLAN.md
-  - REFACTOR_PLAN.md
-  - SYSTEMATIC_PLAN.md
-  - REFACTOR_COMPLETE.md
+## Quick Links
+
+| I want to...              | Go to...                                 |
+| ------------------------- | ---------------------------------------- |
+| Get started quickly       | [README.md](../README.md)                |
+| Understand architecture   | [ARCHITECTURE.md](ARCHITECTURE.md)       |
+| Set up development env    | [DEVELOPMENT.md](DEVELOPMENT.md)         |
+| Deploy to production      | [DEPLOYMENT.md](DEPLOYMENT.md)           |
+| Configure the application | [CONFIG.md](CONFIG.md)                   |
+| Understand the API        | [API_REFERENCE.md](API_REFERENCE.md)     |
+| Learn about features      | [FEATURES.md](FEATURES.md)               |
+| Run tests                 | [TESTING.md](TESTING.md)                 |
+| Configure authentication  | [AUTH.md](AUTH.md)                       |
+| Set up secrets            | [SECRETS.md](SECRETS.md)                 |
+| View security policy      | [SECURITY_POLICY.md](SECURITY_POLICY.md) |
 
 ---
 
-**Last Updated**: 2026-01-31
-**Maintained By**: ShadowCheck Team
-**License**: MIT
+## Documentation Structure
+
+```
+docs/
+├── README.md                    # This file
+├── ARCHITECTURE.md             # System architecture overview
+├── API_REFERENCE.md            # Complete API documentation
+├── AUTH.md                    # Authentication & authorization
+├── CLIENT.md                  # Frontend documentation
+├── CONFIG.md                  # Configuration reference
+├── DATABASE_RADIO_ARCHITECTURE.md  # Database schema
+├── DEPLOYMENT.md              # Production deployment guide
+├── DEVELOPMENT.md             # Development setup guide
+├── FEATURES.md                # Feature catalog
+├── REDIS.md                  # Redis caching documentation
+├── SCRIPTS.md                # Utility scripts reference
+├── SECURITY_POLICY.md        # Security policy
+├── SECRETS.md               # Secrets management guide
+├── TESTING.md               # Testing guide
+│
+├── architecture/              # Detailed architecture docs
+│   ├── PROJECT_STRUCTURE.md
+│   └── ... (specialized architecture docs)
+│
+├── archive/                  # Historical documentation
+│   ├── sessions/            # Development session notes
+│   └── ... (archived content)
+│
+├── bugfixes/                # Bug fix documentation
+│
+├── deployment/               # Deployment guides
+│
+├── development/             # Development guides
+│
+├── getting-started/         # Getting started guides
+│
+├── guides/                  # Implementation guides
+│
+├── integrations/            # Integration documentation
+│
+├── security/                # Security documentation
+│
+├── setup/                   # Setup guides
+│
+└── testing/                 # Testing documentation
+```
+
+---
+
+## Core Documentation
+
+### Getting Started
+
+1. **[README.md](../README.md)** - Project overview and quick start
+2. **[DEVELOPMENT.md](DEVELOPMENT.md)** - Set up your development environment
+3. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Understand the system design
+
+### Configuration & Setup
+
+- **[CONFIG.md](CONFIG.md)** - Environment variables and configuration
+- **[SECRETS.md](SECRETS.md)** - Secrets management with keyring
+- **[AUTH.md](AUTH.md)** - Authentication configuration
+
+### Development
+
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Local development workflow
+- **[TESTING.md](TESTING.md)** - Testing guidelines
+- **[SCRIPTS.md](SCRIPTS.md)** - Available utility scripts
+
+### Deployment
+
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment
+- **[REDIS.md](REDIS.md)** - Redis caching setup
+- See `deploy/` directory for environment-specific guides
+
+---
+
+## Reference Documentation
+
+### API
+
+- **[API_REFERENCE.md](API_REFERENCE.md)** - Complete REST API reference
+- **[openapi.yaml](../openapi.yaml)** - OpenAPI specification
+
+### Database
+
+- **[DATABASE_RADIO_ARCHITECTURE.md](DATABASE_RADIO_ARCHITECTURE.md)** - Database schema
+- **[REDIS.md](REDIS.md)** - Redis caching
+
+### Features
+
+- **[FEATURES.md](FEATURES.md)** - Comprehensive feature catalog
+- **architecture/** - Detailed architecture documentation
+
+### Security
+
+- **[SECURITY_POLICY.md](SECURITY_POLICY.md)** - Security policy
+- **[SECRETS.md](SECRETS.md)** - Secrets management
+- **security/** - Additional security documentation
+
+---
+
+## Topic Index
+
+### Authentication & Security
+
+- [AUTH.md](AUTH.md) - Authentication setup
+- [SECURITY_POLICY.md](SECURITY_POLICY.md) - Security policy
+- [SECRETS.md](SECRETS.md) - Secrets management
+
+### Development
+
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Dev setup
+- [TESTING.md](TESTING.md) - Testing
+- [SCRIPTS.md](SCRIPTS.md) - Scripts reference
+
+### Deployment
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Main deployment guide
+- [REDIS.md](REDIS.md) - Redis
+- `deploy/` - Environment-specific guides
+
+### Architecture
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System overview
+- [DATABASE_RADIO_ARCHITECTURE.md](DATABASE_RADIO_ARCHITECTURE.md) - Database
+- `architecture/` - Detailed docs
+
+### Features & UI
+
+- [FEATURES.md](FEATURES.md) - Feature catalog
+- [CLIENT.md](CLIENT.md) - Frontend docs
+- `guides/` - Implementation guides
+
+---
+
+## Troubleshooting
+
+- **[DEVELOPMENT.md](DEVELOPMENT.md#troubleshooting)** - Common development issues
+- **[DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)** - Deployment issues
+
+---
+
+## Archive
+
+Historical documentation is stored in `docs/archive/`:
+
+- **sessions/** - Development session notes from 2025
+- **bugfixes/** - Historical bug fix documentation
+
+These files are kept for reference but are not actively maintained.
+
+---
+
+## Contributing
+
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Contribution guidelines
+- **[CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)** - Community standards
+- **[CHANGELOG.md](../CHANGELOG.md)** - Version history
+
+---
+
+**Last Updated:** 2026-02-11

@@ -16,9 +16,13 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
   try {
     const { ssid } = req.params;
 
-    const ssidValidation = validateString(String(ssid || ''), 1, 128, 'ssid');
+    const ssidValidation = validateString(String(ssid || ''), 'SSID');
     if (!ssidValidation.valid) {
       return res.status(400).json({ error: 'SSID parameter is required and cannot be empty.' });
+    }
+
+    if (ssidValidation.value && ssidValidation.value.length > 128) {
+      return res.status(400).json({ error: 'SSID cannot exceed 128 characters.' });
     }
 
     const escapedSSID = escapeLikePattern(String(ssid).trim());

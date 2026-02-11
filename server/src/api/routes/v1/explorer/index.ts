@@ -3,11 +3,15 @@
  * Modular organization of explorer endpoints
  */
 
-import express from 'express';
+export {};
+
+const express = require('express');
 const router = express.Router();
 
-// Load from parent explorer.ts for now
-const explorerRoutes = require('../explorer');
-router.use('/', explorerRoutes);
+// Import modular route handlers
+const networksRoutes = require('./networks');
 
-export default router;
+// Mount modular routes
+router.use('/', networksRoutes);
+
+module.exports = router;
