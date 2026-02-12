@@ -2,7 +2,56 @@
 
 Welcome to the ShadowCheck documentation! This guide will help you navigate all available documentation.
 
-## Quick Links
+## 📋 Documentation Overview
+
+### Getting Started
+
+- [Development Setup](DEVELOPMENT.md) - Local environment setup
+- [Deployment](DEPLOYMENT.md) - Production deployment
+- [Configuration](CONFIG.md) - Configuration reference
+
+### Architecture & Design
+
+- [Architecture Overview](ARCHITECTURE.md) - System architecture & module organization
+- [Modularity Framework](MODULARITY.md) - How we structure code (NEW)
+- [Database Schema](DATABASE_RADIO_ARCHITECTURE.md) - Database design
+- [Security Policy](SECURITY_POLICY.md) - Security considerations
+
+### Development
+
+- [Frontend Guide](CLIENT.md) - React components & hooks
+- [Backend Guide](BACKEND.md) or [API Reference](API_REFERENCE.md) - Server & API
+- [Testing](TESTING.md) - Testing strategy
+- [Scripts](SCRIPTS.md) - Utility scripts
+
+### Reference
+
+- [Configuration](CONFIG.md) - All configuration options
+- [Secrets Management](SECRETS.md) - Managing secrets
+- [Authentication](AUTH.md) - Auth & authorization
+- [Redis Caching](REDIS.md) - Redis setup & usage
+
+### Archived Sessions
+
+See `docs/archive/sessions/` for historical development notes and modularity session records.
+
+## 🚀 Quick Links
+
+### Key Files
+
+- **Module Organization:** See [ARCHITECTURE.md](ARCHITECTURE.md#server-module-organization)
+- **Modularity Framework:** [MODULARITY.md](MODULARITY.md) - How to identify what should be split
+- **API Endpoints:** [API_REFERENCE.md](API_REFERENCE.md)
+- **Environment Setup:** [CONFIG.md](CONFIG.md)
+
+### Current Status
+
+- **Modularity:** Fast Phase complete (3 files modularized)
+- **Audit:** 6 files audited, 4 scheduled for refactoring
+- **Build:** ✅ Passing
+- **Tests:** Running
+
+---
 
 | I want to...              | Go to...                                 |
 | ------------------------- | ---------------------------------------- |
@@ -25,46 +74,48 @@ Welcome to the ShadowCheck documentation! This guide will help you navigate all 
 ```
 docs/
 ├── README.md                    # This file
-├── ARCHITECTURE.md             # System architecture overview
-├── API_REFERENCE.md            # Complete API documentation
-├── AUTH.md                    # Authentication & authorization
-├── CLIENT.md                  # Frontend documentation
-├── CONFIG.md                  # Configuration reference
+├── ARCHITECTURE.md              # System architecture overview
+├── API_REFERENCE.md             # Complete API documentation
+├── AUTH.md                     # Authentication & authorization
+├── BACKEND.md                  # Backend development guide
+├── CLIENT.md                   # Frontend documentation
+├── CONFIG.md                   # Configuration reference
 ├── DATABASE_RADIO_ARCHITECTURE.md  # Database schema
-├── DEPLOYMENT.md              # Production deployment guide
-├── DEVELOPMENT.md             # Development setup guide
+├── DEPLOYMENT.md               # Production deployment guide
+├── DEVELOPMENT.md              # Development setup guide
 ├── FEATURES.md                # Feature catalog
-├── REDIS.md                  # Redis caching documentation
+├── MODULARITY.md              # Modularity framework (NEW)
+├── REDIS.md                   # Redis caching documentation
 ├── SCRIPTS.md                # Utility scripts reference
-├── SECURITY_POLICY.md        # Security policy
-├── SECRETS.md               # Secrets management guide
-├── TESTING.md               # Testing guide
+├── SECURITY_POLICY.md         # Security policy
+├── SECRETS.md                 # Secrets management guide
+├── TESTING.md                 # Testing guide
 │
-├── architecture/              # Detailed architecture docs
+├── architecture/               # Detailed architecture docs
 │   ├── PROJECT_STRUCTURE.md
 │   └── ... (specialized architecture docs)
 │
-├── archive/                  # Historical documentation
-│   ├── sessions/            # Development session notes
+├── archive/                   # Historical documentation
+│   ├── sessions/              # Development session notes
 │   └── ... (archived content)
 │
-├── bugfixes/                # Bug fix documentation
+├── bugfixes/                  # Bug fix documentation
 │
-├── deployment/               # Deployment guides
+├── deployment/                # Deployment guides
 │
-├── development/             # Development guides
+├── development/               # Development guides
 │
-├── getting-started/         # Getting started guides
+├── getting-started/            # Getting started guides
 │
-├── guides/                  # Implementation guides
+├── guides/                    # Implementation guides
 │
-├── integrations/            # Integration documentation
+├── integrations/              # Integration documentation
 │
-├── security/                # Security documentation
+├── security/                  # Security documentation
 │
-├── setup/                   # Setup guides
+├── setup/                     # Setup guides
 │
-└── testing/                 # Testing documentation
+└── testing/                   # Testing documentation
 ```
 
 ---

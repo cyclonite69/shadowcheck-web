@@ -1,6 +1,36 @@
 /**
  * Universal Filter Query Builder
- * Forensically correct, parameterized SQL with explicit enable flags.
+ *
+ * Modular query builder with clearly delineated responsibilities:
+ *
+ * ## Module Sections
+ *
+ * 1. **Observation Filters** (lines ~82-527)
+ *    - buildObservationFilters(): Observation WHERE clauses
+ *    - buildFilteredObservationsCte(): CTE for filtered observations
+ *
+ * 2. **Network Queries** (lines ~529-1435)
+ *    - buildNetworkListQuery(): Full network list with rollup
+ *    - buildNetworkOnlyQuery(): Network-only fast path
+ *    - buildNetworkCountQuery(): Network count queries
+ *    - buildNetworkWhere(): Network-level WHERE clauses
+ *
+ * 3. **Geospatial Queries** (lines ~1437-1640)
+ *    - buildGeospatialQuery(): Geospatial visualization queries
+ *    - buildGeospatialCountQuery(): Count for geospatial
+ *
+ * 4. **Analytics Queries** (lines ~1642-2006)
+ *    - buildAnalyticsQueries(): CTE-based analytics
+ *    - buildAnalyticsQueriesFromMV(): Materialized view fast path
+ *
+ * ## Extracted Modules
+ *
+ * For cleaner separation, see the extracted utilities in:
+ * - ./modules/GeospatialQueryBuilder.ts
+ * - ./modules/AnalyticsQueryBuilder.ts
+ * - ./modules/NetworkQueryBuilder.ts
+ *
+ * @see ./index.ts for barrel exports
  */
 
 const logger = require('../../logging/logger');
@@ -78,6 +108,11 @@ class UniversalFilterQueryBuilder {
   private addIgnored(type: string, field: string, reason: string): void {
     this.ignoredFilters.push({ type, field, reason });
   }
+
+  // ============================================================================
+  // MODULE 1: OBSERVATION FILTERS
+  // Constructs WHERE clauses for filtering observations
+  // ============================================================================
 
   buildObservationFilters(): ObservationFiltersResult {
     const where: string[] = [];
@@ -525,6 +560,11 @@ class UniversalFilterQueryBuilder {
 
     return { cte, params: this.params };
   }
+
+  // ============================================================================
+  // MODULE 2: NETWORK QUERIES
+  // Constructs complete queries for network data retrieval
+  // ============================================================================
 
   buildNetworkListQuery(options: NetworkListOptions = {}): FilteredQueryResult {
     // Default to no limit for visualization endpoints (Kepler, Geospatial)
@@ -1434,6 +1474,11 @@ class UniversalFilterQueryBuilder {
     return networkWhere;
   }
 
+  // ============================================================================
+  // MODULE 3: GEOSPATIAL QUERIES
+  // Constructs geospatial filter predicates using PostGIS
+  // ============================================================================
+
   buildGeospatialQuery(options: GeospatialOptions = {}): FilteredQueryResult {
     // Default to no limit for full dataset visualization (Kepler can handle 500K+ points)
     const { limit = null, offset = 0, selectedBssids = [] } = options;
@@ -1638,6 +1683,11 @@ class UniversalFilterQueryBuilder {
       params: [...params],
     };
   }
+
+  // ============================================================================
+  // MODULE 4: ANALYTICS QUERIES
+  // Constructs analytics and aggregation queries
+  // ============================================================================
 
   buildAnalyticsQueries(options: AnalyticsOptions = {}): AnalyticsQueries {
     const { useLatestPerBssid = false } = options;

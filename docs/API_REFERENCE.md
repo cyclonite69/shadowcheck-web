@@ -1009,6 +1009,50 @@ Export observations as GeoJSON (full dataset).
 
 Default threshold: **40**
 
+## Services & Query Builders
+
+### Analytics Service (`server/src/services/analytics/`)
+
+**Purpose:** Build analytics queries for different data domains
+
+**Modules:**
+
+- `coreAnalytics.ts` - Temporal, signal, radio type queries (~140 lines)
+- `threatAnalytics.ts` - Security & threat analysis queries (~120 lines)
+- `networkAnalytics.ts` - Network-specific queries (~100 lines)
+- `helpers.ts` - Normalization & formatting utilities (~85 lines)
+- `index.ts` - Service coordinator (re-exports)
+
+**Why modularized:** Each analytics domain is independent. New query types are added to their domain file.
+
+**Usage:**
+
+```javascript
+import { buildTemporalAnalytics } from '../services/analytics';
+const query = buildTemporalAnalytics({ startDate, endDate });
+```
+
+### Validation Schemas (`server/src/validation/schemas/`)
+
+**Purpose:** Validate data by type and domain
+
+**Modules:**
+
+- `networkSchemas.ts` - BSSID, SSID, channels (~404 lines)
+- `geospatialSchemas.ts` - Coordinates, radius, altitude (~342 lines)
+- `temporalSchemas.ts` - Timestamps, date ranges (~283 lines)
+- `commonSchemas.ts` - String, number, email, URL (~458 lines)
+- `complexValidators.ts` - Complex validation logic (~447 lines)
+- `schemas.ts` - Index that re-exports all (coordinator)
+
+**Why modularized:** Each validation domain is independent. Validators are grouped logically for maintainability.
+
+**Usage:**
+
+```javascript
+import { validateBSSID, validateCoordinates } from '../validation/schemas';
+```
+
 ## Error Codes
 
 | Code | Description  |

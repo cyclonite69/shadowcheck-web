@@ -250,6 +250,49 @@ client/
 | ------------------------------------------------ | ----------------------------- | ------------------- |
 | [`clientLogger.ts`](src/logging/clientLogger.ts) | `src/logging/clientLogger.ts` | Client-side logging |
 
+## Components Scheduled for Refactoring
+
+The following components have been identified as having multiple responsibilities and are scheduled for modularization:
+
+### GeospatialExplorer.tsx (622 lines) → 4 modules
+
+- **Currently:** Map rendering + controls + layout handling mixed
+- **Refactoring into:**
+  - `MapContainer.tsx` - Pure map viewport & rendering
+  - `LocationControls.tsx` - Map interaction controls
+  - `ResizeHandler.tsx` - Container sizing logic
+  - `GeospatialExplorer.tsx` - Feature container (~200 lines)
+
+### KeplerPage.tsx (626 lines) → 4 modules
+
+- **Currently:** Kepler.gl init + controls + filtering mixed
+- **Refactoring into:**
+  - `KeplerVisualization.tsx` - Visualization rendering
+  - `KeplerControls.tsx` - User interaction controls
+  - `KeplerFilters.tsx` - Data filtering interface
+  - `KeplerPage.tsx` - Feature container (~150 lines)
+
+### ConfigurationTab.tsx (501 lines) → 7 modules
+
+- **Currently:** Six configuration domains mixed in one file
+- **Refactoring into:**
+  - `MapboxConfig.tsx` - Mapbox API config
+  - `GoogleMapsConfig.tsx` - Google Maps config
+  - `AWSConfig.tsx` - AWS settings
+  - `GeocodingConfig.tsx` - Geocoding provider config
+  - `SmartyConfig.tsx` - Smarty Streets config
+  - `WiGLEConfig.tsx` - WiGLE API config
+  - `ConfigurationTab.tsx` - Container (~100 lines)
+
+**Refactoring Timeline:** To be completed based on priority and team capacity.
+
+**Refactoring Benefits:**
+
+- Each module has a single, clear responsibility
+- Easier to test configuration independently
+- Simpler to add new configuration types
+- Better code organization for new developers
+
 ## Theme & Styling
 
 The application uses a dark dashboard theme with Tailwind CSS. Key color tokens include:

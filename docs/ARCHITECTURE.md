@@ -5,9 +5,12 @@ This document describes the high-level architecture of the ShadowCheck-Static pl
 ## Table of Contents
 
 - [Overview](#overview)
+- [Modularity Philosophy](#modularity-philosophy)
 - [System Constraints](#system-constraints)
-- [System Architecture](#system-architecture)
+- [Agency Offices Constraints](#agency-offices-constraints)
 - [Frontend Architecture](#frontend-architecture)
+- [Client Module Organization](#client-module-organization)
+- [Server Module Organization](#server-module-organization)
 - [Backend Architecture](#backend-architecture)
 - [Data Flow](#data-flow)
 - [Database Schema](#database-schema)
@@ -84,6 +87,21 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │ • Threat Scores              │     │ • Threat Score Cache        │
 └──────────────────────────────┘     └─────────────────────────────┘
 ```
+
+## Modularity Philosophy
+
+ShadowCheck follows **responsibility-based modularity**: each file/module has ONE primary responsibility.
+
+**This is NOT about arbitrary line limits.** A coherent 800-line module is better than an arbitrary 400-line split.
+
+We use 4 tests to identify modularity:
+
+1. **PRIMARY RESPONSIBILITY** - Can you describe it in one sentence?
+2. **DISTINCT JOBS** - How many separate concerns?
+3. **COHESION** - Do all lines serve the primary responsibility?
+4. **INDEPENDENCE** - Can it be understood in isolation?
+
+See [`docs/MODULARITY.md`](MODULARITY.md) for the complete audit framework.
 
 ## System Constraints
 
@@ -190,6 +208,49 @@ client/src/
 └── main.tsx              # Application entry point
 ```
 
+### Server Module Organization
+
+#### Validation Schemas (`server/src/validation/schemas/`)
+
+Split by validation domain for clarity and maintainability:
+
+- `networkSchemas.ts` - Network-specific validators (BSSID, SSID, channels)
+- `geospatialSchemas.ts` - Location validators (coordinates, radius, altitude)
+- `temporalSchemas.ts` - Time-based validators (timestamps, date ranges)
+- `commonSchemas.ts` - Generic type validators (string, number, email, URL)
+- `complexValidators.ts` - Complex validation logic (address parsing, etc.)
+- `schemas.ts` - Index that re-exports all validators
+
+**Why this structure:** Each validation domain is independent. New validators are added to their appropriate domain file.
+
+#### API Routes (`server/src/api/routes/v1/`)
+
+Routes organized by resource with sub-modules for operation types:
+
+- `network-tags/` - Tag management routes
+  - `listTags.ts` - GET endpoints
+  - `manageTags.ts` - POST/PUT/DELETE endpoints
+  - `index.ts` - Router coordinator
+- `networks/` - Network endpoints
+  - `list.ts` - Main /networks endpoint (835 lines, coherent single purpose)
+- `explorer/` - Explorer API routes
+  - `networks.ts` - /explorer endpoints
+
+**Why this structure:** Routes grouped by resource, sub-divided by operation type (read vs write).
+
+#### Services (`server/src/services/`)
+
+Domain-specific services with modular internals:
+
+- `analytics/` - Analytics query building
+  - `coreAnalytics.ts` - Temporal, signal, radio type queries
+  - `threatAnalytics.ts` - Security & threat analytics
+  - `networkAnalytics.ts` - Manufacturer, channel, observation counts
+  - `helpers.ts` - Normalization & utility functions
+  - `index.ts` - Service coordinator
+
+**Why this structure:** Query builders grouped by analytics domain for easier maintenance and testing.
+
 ### Backend Architecture
 
 ```
@@ -222,6 +283,40 @@ server/src/
     ├── logger.js               # Winston logger
     └── middleware.js           # Request logging
 ```
+
+### Client Module Organization
+
+#### Components (`client/src/components/`)
+
+Organized by feature with sub-components for distinct concerns:
+
+**Geospatial Ecosystem:**
+
+- `geospatial/GeospatialExplorer.tsx` (622 lines)
+  - **Scheduled for refactoring:**
+    - `MapContainer.tsx` - Map viewport & rendering
+    - `LocationControls.tsx` - Map controls
+    - `ResizeHandler.tsx` - Container sizing
+- `geospatial/useGeospatialMap.ts` (506 lines)
+  - Custom hook for map initialization & state
+
+**Visualization:**
+
+- `KeplerPage.tsx` (626 lines)
+  - **Scheduled for refactoring:**
+    - `KeplerVisualization.tsx` - Visualization rendering
+    - `KeplerControls.tsx` - User controls
+    - `KeplerFilters.tsx` - Data filtering
+- `AnalyticsCharts.tsx` (501 lines) - Multiple chart types, single orchestration purpose
+
+**Configuration:**
+
+- `ConfigurationTab.tsx` (501 lines)
+  - **Scheduled for refactoring:** Extract by config domain (Mapbox, Google Maps, AWS, etc.)
+
+**Admin:**
+
+- `admin/` - Admin interface with feature-specific sub-components
 
 ## Data Flow
 
