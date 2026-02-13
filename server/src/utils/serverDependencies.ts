@@ -66,7 +66,7 @@ function loadCoreDependencies(): CoreDependencies {
 function loadRouteModules(): RouteModules {
   return {
     healthRoutes: require('../api/routes/v1/health').default,
-    networksRoutes: require('../api/routes/v1/networks/index').default,
+    networksRoutes: require('../api/routes/v1/networks/index'),
     explorerRoutes: require('../api/routes/v1/explorer'),
     threatsRoutes: require('../api/routes/v1/threats'),
     wigleRoutes: require('../api/routes/v1/wigle').default,
