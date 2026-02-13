@@ -43,6 +43,7 @@
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.986.0",
+    "@aws-sdk/client-secrets-manager": "^3.989.0",
     "@aws-sdk/client-sts": "^3.985.0",
     "@deck.gl/core": "^9.2.6",
     "@deck.gl/layers": "^9.2.6",

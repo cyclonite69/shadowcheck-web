@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../../../logging/logger');
 const { query } = require('../../../config/database');
+const { adminQuery } = require('../../../services/adminDbService');
 
 let dashboardService = null;
 
@@ -200,16 +201,15 @@ router.get('/home-location', async (req, res) => {
 // POST /api/admin/home-location
 router.post('/admin/home-location', async (req, res) => {
   try {
-    const { query } = require('../../../config/database');
     const { latitude, longitude, radius = 100 } = req.body;
 
     if (!latitude || !longitude) {
       return res.status(400).json({ error: 'Latitude and longitude are required' });
     }
 
-    await query("DELETE FROM app.location_markers WHERE marker_type = 'home'");
+    await adminQuery("DELETE FROM app.location_markers WHERE marker_type = 'home'");
 
-    await query(
+    await adminQuery(
       `
       INSERT INTO app.location_markers (marker_type, latitude, longitude, radius, location, created_at)
       VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($3, $2), 4326), NOW())

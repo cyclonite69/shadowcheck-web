@@ -1,6 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
+const { adminQuery } = require('../../../services/adminDbService');
 
 module.exports = (query) => {
   // Get all location markers
@@ -91,12 +92,12 @@ module.exports = (query) => {
       }
 
       // Delete existing home marker for THIS device only
-      await query("DELETE FROM app.location_markers WHERE name = 'home' AND device_id = $1", [
+      await adminQuery("DELETE FROM app.location_markers WHERE name = 'home' AND device_id = $1", [
         devId,
       ]);
 
       // Insert new home marker
-      const result = await query(
+      const result = await adminQuery(
         `
         INSERT INTO app.location_markers (name, marker_type, latitude, longitude, altitude_gps, altitude_baro, device_id, device_type, location)
         VALUES ('home', 'home', $1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($2, $1), 4326))
@@ -126,7 +127,7 @@ module.exports = (query) => {
   // Delete home location
   router.delete('/location-markers/home', async (req, res, next) => {
     try {
-      await query("DELETE FROM app.location_markers WHERE name = 'home'");
+      await adminQuery("DELETE FROM app.location_markers WHERE name = 'home'");
       res.json({ ok: true });
     } catch (err) {
       next(err);
@@ -190,10 +191,10 @@ module.exports = (query) => {
       }
 
       // Delete existing home location
-      await query("DELETE FROM app.location_markers WHERE marker_type = 'home'");
+      await adminQuery("DELETE FROM app.location_markers WHERE marker_type = 'home'");
 
       // Insert new home location with radius
-      await query(
+      await adminQuery(
         `
         INSERT INTO app.location_markers (marker_type, latitude, longitude, radius, location, created_at)
         VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($3, $2), 4326), NOW())

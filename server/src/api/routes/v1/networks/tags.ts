@@ -6,6 +6,7 @@
 import express from 'express';
 const router = express.Router();
 import { query } from '../../../../config/database';
+const { adminQuery } = require('../../../../services/adminDbService');
 import logger from '../../../../logging/logger';
 import {
   validateBSSID,
@@ -116,9 +117,9 @@ router.post('/tag-network', async (req, res, next) => {
       return res.status(404).json({ error: 'Network not found for tagging' });
     }
 
-    await query(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssidValidation.cleaned]);
+    await adminQuery(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssidValidation.cleaned]);
 
-    const result = await query(
+    const result = await adminQuery(
       `INSERT INTO app.network_tags (bssid, tag_type, confidence, notes)
        VALUES ($1, $2, $3, $4)
        RETURNING bssid, tag_type, confidence, threat_score, ml_confidence`,
@@ -148,9 +149,10 @@ router.delete('/tag-network/:bssid', async (req, res, next) => {
       return res.status(400).json({ error: bssidValidation.error });
     }
 
-    const result = await query(`DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid`, [
-      bssidValidation.cleaned,
-    ]);
+    const result = await adminQuery(
+      `DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid`,
+      [bssidValidation.cleaned]
+    );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Tag not found for this BSSID' });
@@ -199,7 +201,7 @@ router.post('/networks/tag-threats', async (req, res, next) => {
 
     for (const bssid of bssidListValidation.value) {
       try {
-        const result = await query(
+        const result = await adminQuery(
           `INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes)
            VALUES ($1, 'THREAT', 0.9, 0.8, $2)
            ON CONFLICT (bssid) DO UPDATE SET

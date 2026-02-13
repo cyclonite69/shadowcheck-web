@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { query, CONFIG } = require('../../../../config/database');
+const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 export {};
@@ -22,7 +23,7 @@ router.post('/admin/cleanup-duplicates', async (req, res, next) => {
       WHERE latitude IS NOT NULL AND longitude IS NOT NULL
     `);
 
-    const result = await query(`
+    const result = await adminQuery(`
       DELETE FROM app.observations
       WHERE unified_id IN (
         SELECT unified_id
@@ -64,9 +65,9 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
   try {
     logger.info('Creating/refreshing co-location materialized view...');
 
-    await query('DROP MATERIALIZED VIEW IF EXISTS app.network_colocation_scores CASCADE');
+    await adminQuery('DROP MATERIALIZED VIEW IF EXISTS app.network_colocation_scores CASCADE');
 
-    await query(`
+    await adminQuery(`
       CREATE MATERIALIZED VIEW app.network_colocation_scores AS
       WITH network_locations AS (
         SELECT
@@ -129,7 +130,7 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
       ORDER BY bssid, companion_count DESC
     `);
 
-    await query(
+    await adminQuery(
       'CREATE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)'
     );
 

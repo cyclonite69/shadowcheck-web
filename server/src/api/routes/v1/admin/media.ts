@@ -8,6 +8,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../../config/database');
+const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 // POST /api/admin/network-media/upload - Upload media (image/video) to network
@@ -32,7 +33,7 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
     const fileSize = mediaBuffer.length;
 
     // Insert media
-    const result = await query(
+    const result = await adminQuery(
       `
       INSERT INTO app.network_media
         (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by)

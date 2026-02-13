@@ -7,6 +7,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../../config/database');
+const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 const { validateString, validateIntegerRange } = require('../../../../validation/schemas');
 
@@ -38,7 +39,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
 
     if (existingResult.rows.length === 0) {
       // Network doesn't exist, create with tag
-      await query(
+      await adminQuery(
         `
         INSERT INTO app.network_tags (bssid, tags, notes, created_by)
         VALUES ($1, $2::jsonb, $3, 'admin')
@@ -54,7 +55,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
 
       if (hasTag) {
         // Remove tag
-        await query(
+        await adminQuery(
           `
           UPDATE app.network_tags
           SET tags = app.network_remove_tag(tags, $2),
@@ -67,7 +68,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
         _newTags = currentTags.filter((t) => t !== tag);
       } else {
         // Add tag
-        await query(
+        await adminQuery(
           `
           UPDATE app.network_tags
           SET tags = app.network_add_tag(tags, $2),
@@ -111,7 +112,7 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
     }
 
     // Remove tag
-    await query(
+    await adminQuery(
       `
       UPDATE app.network_tags
       SET tags = app.network_remove_tag(tags, $2),

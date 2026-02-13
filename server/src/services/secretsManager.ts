@@ -1,11 +1,15 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
 const keyringService = require('./keyringService').default;
 
 export {};
 
-type SecretSource = 'keyring' | 'local' | 'env';
+const AWS_SECRET_NAME = process.env.SHADOWCHECK_AWS_SECRET || 'shadowcheck/config';
+const AWS_REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
+
+type SecretSource = 'aws' | 'keyring' | 'local' | 'env';
 
 type AccessLogEntry = {
   secret: string;
@@ -56,6 +60,35 @@ class SecretsManager {
   secrets = new Map<string, string>();
   sources = new Map<string, SecretSource>();
   accessLog: AccessLogEntry[] = [];
+  private awsCache: Record<string, string> | null = null;
+  private awsLoaded = false;
+
+  private async loadAwsSecretBlob(): Promise<Record<string, string>> {
+    if (this.awsLoaded) return this.awsCache || {};
+    this.awsLoaded = true;
+    try {
+      const client = new SecretsManagerClient({ region: AWS_REGION });
+      const response = await client.send(new GetSecretValueCommand({ SecretId: AWS_SECRET_NAME }));
+      if (response.SecretString) {
+        this.awsCache = JSON.parse(response.SecretString);
+        console.log(
+          `[SecretsManager] Loaded secrets from AWS Secrets Manager (${AWS_SECRET_NAME})`
+        );
+        return this.awsCache!;
+      }
+    } catch (err: any) {
+      // Not an error - AWS SM is optional. Fall through to other sources.
+      if (err.name !== 'ResourceNotFoundException') {
+        console.log(`[SecretsManager] AWS Secrets Manager unavailable: ${err.name || err.message}`);
+      }
+    }
+    return {};
+  }
+
+  private async loadFromAws(secret: string): Promise<string | null> {
+    const blob = await this.loadAwsSecretBlob();
+    return blob[secret] || null;
+  }
 
   private logAccess(secret: string, found: boolean, source?: SecretSource): void {
     this.accessLog.push({
@@ -100,6 +133,11 @@ class SecretsManager {
   private async resolveSecret(
     secret: string
   ): Promise<{ value: string | null; source?: SecretSource }> {
+    const awsValue = await this.loadFromAws(secret);
+    if (awsValue) {
+      return { value: awsValue, source: 'aws' };
+    }
+
     const keyringValue = await this.loadFromKeyring(secret);
     if (keyringValue) {
       return { value: keyringValue, source: 'keyring' };
@@ -167,8 +205,8 @@ class SecretsManager {
       const missing = missingRequired[0];
       const message = [
         `Required secret '${missing}' not found`,
-        'Tried Keyring, local secrets (./secrets), Environment',
-        'Hint: use npx tsx scripts/set-secret.ts <secret_name> to store secrets in the keyring',
+        'Tried AWS Secrets Manager, Keyring, local secrets (./secrets), Environment',
+        'Hint: store in AWS Secrets Manager (shadowcheck/config) or use npx tsx scripts/set-secret.ts <secret_name>',
       ].join('. ');
       throw new Error(message);
     }

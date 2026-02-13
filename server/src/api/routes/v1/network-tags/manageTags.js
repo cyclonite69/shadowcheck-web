@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../../config/database');
+const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
 const { bssidParamMiddleware } = require('../../../../validation/middleware');
@@ -66,7 +67,7 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
       }
     }
 
-    const result = await query(
+    const result = await adminQuery(
       `INSERT INTO app.network_tags (
         bssid, is_ignored, ignore_reason, threat_tag, threat_confidence, notes
       ) VALUES ($1, $2, $3, $4, $5, $6)
@@ -119,7 +120,7 @@ router.patch('/:bssid/ignore', requireAdmin, async (req, res) => {
     let result;
     if (existing.rows.length === 0) {
       // Create new with is_ignored = true
-      result = await query(
+      result = await adminQuery(
         `INSERT INTO app.network_tags (bssid, is_ignored, ignore_reason)
          VALUES ($1, true, $2)
          RETURNING *`,
@@ -127,7 +128,7 @@ router.patch('/:bssid/ignore', requireAdmin, async (req, res) => {
       );
     } else {
       // Toggle existing (COALESCE handles NULL as false)
-      result = await query(
+      result = await adminQuery(
         `UPDATE app.network_tags
          SET is_ignored = NOT COALESCE(is_ignored, false),
              ignore_reason = CASE WHEN NOT COALESCE(is_ignored, false) THEN $2 ELSE NULL END,
@@ -174,14 +175,14 @@ router.patch('/:bssid/threat', requireAdmin, async (req, res) => {
 
     let result;
     if (existing.rows.length === 0) {
-      result = await query(
+      result = await adminQuery(
         `INSERT INTO app.network_tags (bssid, threat_tag, threat_confidence)
          VALUES ($1, $2, $3)
          RETURNING *`,
         [normalizedBssid, threat_tag, threat_confidence ?? null]
       );
     } else {
-      result = await query(
+      result = await adminQuery(
         `UPDATE app.network_tags
          SET threat_tag = $2,
              threat_confidence = $3,
@@ -222,14 +223,14 @@ router.patch('/:bssid/notes', requireAdmin, async (req, res) => {
 
     let result;
     if (existing.rows.length === 0) {
-      result = await query(
+      result = await adminQuery(
         `INSERT INTO app.network_tags (bssid, notes)
          VALUES ($1, $2)
          RETURNING *`,
         [normalizedBssid, notes]
       );
     } else {
-      result = await query(
+      result = await adminQuery(
         `UPDATE app.network_tags
          SET notes = $2,
              updated_at = NOW()
@@ -262,14 +263,14 @@ router.patch('/:bssid/investigate', requireAdmin, async (req, res) => {
 
     let result;
     if (existing.rows.length === 0) {
-      result = await query(
+      result = await adminQuery(
         `INSERT INTO app.network_tags (bssid, threat_tag, wigle_lookup_requested)
          VALUES ($1, 'INVESTIGATE', true)
          RETURNING *`,
         [normalizedBssid]
       );
     } else {
-      result = await query(
+      result = await adminQuery(
         `UPDATE app.network_tags
          SET threat_tag = 'INVESTIGATE',
              wigle_lookup_requested = true,
@@ -301,9 +302,10 @@ router.delete('/:bssid', requireAdmin, async (req, res) => {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    const result = await query('DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid', [
-      normalizedBssid,
-    ]);
+    const result = await adminQuery(
+      'DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid',
+      [normalizedBssid]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'No tags found for this network' });

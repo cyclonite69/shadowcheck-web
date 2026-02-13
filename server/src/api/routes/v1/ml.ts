@@ -7,6 +7,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
+const { adminQuery } = require('../../../services/adminDbService');
 const logger = require('../../../logging/logger');
 const mlTrainingLock = require('../../../services/mlTrainingLock');
 const {
@@ -147,7 +148,7 @@ router.post('/ml/train', async (req, res, next) => {
 
     const trainingResult = await mlModel.train(rows);
 
-    await query(
+    await adminQuery(
       `INSERT INTO app.ml_model_config (model_type, coefficients, intercept, feature_names, created_at)
        VALUES ('threat_logistic_regression', $1, $2, $3, NOW())
        ON CONFLICT (model_type) DO UPDATE

@@ -2,6 +2,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../../config/database');
+const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 /**
@@ -62,7 +63,7 @@ router.put('/:key', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Value is required' });
     }
 
-    const result = await query(
+    const result = await adminQuery(
       'UPDATE app.settings SET value = $1, updated_at = NOW() WHERE key = $2 RETURNING *',
       [JSON.stringify(value), key]
     );
@@ -85,7 +86,7 @@ router.put('/:key', async (req, res) => {
  */
 router.post('/ml-blending/toggle', async (req, res) => {
   try {
-    const result = await query(`
+    const result = await adminQuery(`
       UPDATE app.settings
       SET value = CASE WHEN value::text = 'true' THEN 'false' ELSE 'true' END,
           updated_at = NOW()

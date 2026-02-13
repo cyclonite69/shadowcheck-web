@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { query } = require('../../../../config/database');
+const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 // Configure multer for media uploads (notes attachments)
@@ -61,7 +62,7 @@ router.post('/admin/network-notations/add', async (req, res, next) => {
     }
 
     // Add notation
-    const result = await query('SELECT app.network_add_notation($1, $2, $3) as notation', [
+    const result = await adminQuery('SELECT app.network_add_notation($1, $2, $3) as notation', [
       bssid,
       text,
       type,
@@ -112,7 +113,7 @@ router.post('/admin/network-notes/add', async (req, res) => {
       });
     }
 
-    const result = await query('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
+    const result = await adminQuery('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
       bssid,
       content,
       note_type,
@@ -170,7 +171,7 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
 router.delete('/admin/network-notes/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
-    const result = await query('DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid', [
+    const result = await adminQuery('DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid', [
       noteId,
     ]);
     if (result.rows.length === 0) {
@@ -191,7 +192,7 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'No file provided' });
     }
-    const result = await query(
+    const result = await adminQuery(
       `
       INSERT INTO app.note_media (note_id, bssid, file_path, file_name, file_size, media_type)
       VALUES ($1, $2, $3, $4, $5, $6)
