@@ -119,13 +119,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
               )}
             </button>
           </div>
-
-          <div className="text-center">
-            <p className="text-xs text-slate-500">
-              Default admin: username <code className="bg-slate-800 px-1 rounded">admin</code>,
-              password <code className="bg-slate-800 px-1 rounded">admin123</code>
-            </p>
-          </div>
         </form>
       </div>
     </div>
