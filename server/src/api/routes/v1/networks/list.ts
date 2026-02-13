@@ -6,11 +6,11 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { pool, query } = require('../../../config/database');
-const { escapeLikePattern } = require('../../../utils/escapeSQL');
-const { safeJsonParse } = require('../../../utils/safeJsonParse');
-const logger = require('../../../logging/logger');
-const { cacheMiddleware } = require('../../../middleware/cacheMiddleware');
+const { pool, query } = require('../../../../config/database');
+const { escapeLikePattern } = require('../../../../utils/escapeSQL');
+const { safeJsonParse } = require('../../../../utils/safeJsonParse');
+const logger = require('../../../../logging/logger');
+const { cacheMiddleware } = require('../../../../middleware/cacheMiddleware');
 const {
   validateBSSID,
   validateBSSIDList,
@@ -20,7 +20,7 @@ const {
   validateNetworkIdentifier,
   validateNumberRange,
   validateString,
-} = require('../../../validation/schemas');
+} = require('../../../../validation/schemas');
 const {
   parseRequiredInteger,
   parseOptionalNumber,
@@ -28,8 +28,8 @@ const {
   parseCommaList,
   parseBoundingBoxParams,
   parseRadiusParams,
-} = require('../../../validation/parameterParsers');
-const { NETWORK_CHANNEL_EXPR } = require('../../../services/filterQueryBuilder/sqlExpressions');
+} = require('../../../../validation/parameterParsers');
+const { NETWORK_CHANNEL_EXPR } = require('../../../../services/filterQueryBuilder/sqlExpressions');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
