@@ -7,7 +7,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
     container_name: shadowcheck_static_api
     hostname: parrot
     restart: unless-stopped
@@ -38,7 +37,7 @@ services:
       # Docker API version compatibility
       DOCKER_API_VERSION: "1.41"
     ports:
-      - "${PORT:-3001}:3001"
+      - "127.0.0.1:${PORT:-3001}:3001"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -68,7 +67,7 @@ services:
     container_name: shadowcheck_static_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
