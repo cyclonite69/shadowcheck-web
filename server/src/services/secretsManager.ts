@@ -1,6 +1,10 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+  PutSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
 
 const keyringService = require('./keyringService').default;
 
@@ -242,6 +246,68 @@ class SecretsManager {
 
   getAccessLog(): AccessLogEntry[] {
     return [...this.accessLog];
+  }
+
+  async putSecret(key: string, value: string): Promise<void> {
+    const normalized = key.toLowerCase();
+    this.secrets.set(normalized, value);
+    this.sources.set(normalized, 'aws');
+
+    try {
+      const client = new SecretsManagerClient({ region: AWS_REGION });
+      const current = await client.send(new GetSecretValueCommand({ SecretId: AWS_SECRET_NAME }));
+      const blob: Record<string, string> = current.SecretString
+        ? JSON.parse(current.SecretString)
+        : {};
+      blob[normalized] = value;
+      await client.send(
+        new PutSecretValueCommand({
+          SecretId: AWS_SECRET_NAME,
+          SecretString: JSON.stringify(blob),
+        })
+      );
+      // Update local cache
+      this.awsCache = blob;
+      console.log(`[SecretsManager] Persisted '${normalized}' to AWS Secrets Manager`);
+    } catch (err: any) {
+      console.warn(
+        `[SecretsManager] Failed to write '${normalized}' to AWS SM: ${err.message}. Local keyring write may still succeed.`
+      );
+    }
+  }
+
+  async putSecrets(updates: Record<string, string>): Promise<void> {
+    // Update in-memory cache
+    for (const [key, value] of Object.entries(updates)) {
+      const normalized = key.toLowerCase();
+      this.secrets.set(normalized, value);
+      this.sources.set(normalized, 'aws');
+    }
+
+    try {
+      const client = new SecretsManagerClient({ region: AWS_REGION });
+      const current = await client.send(new GetSecretValueCommand({ SecretId: AWS_SECRET_NAME }));
+      const blob: Record<string, string> = current.SecretString
+        ? JSON.parse(current.SecretString)
+        : {};
+      for (const [key, value] of Object.entries(updates)) {
+        blob[key.toLowerCase()] = value;
+      }
+      await client.send(
+        new PutSecretValueCommand({
+          SecretId: AWS_SECRET_NAME,
+          SecretString: JSON.stringify(blob),
+        })
+      );
+      this.awsCache = blob;
+      console.log(
+        `[SecretsManager] Persisted ${Object.keys(updates).length} secret(s) to AWS Secrets Manager`
+      );
+    } catch (err: any) {
+      console.warn(
+        `[SecretsManager] Failed to write secrets to AWS SM: ${err.message}. Local keyring write may still succeed.`
+      );
+    }
   }
 
   async getSecret(name: string): Promise<string | null> {

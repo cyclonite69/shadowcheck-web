@@ -3,6 +3,7 @@ import { requireAdmin } from '../../../../middleware/authMiddleware';
 
 const router = express.Router();
 const keyringService = require('../../../../services/keyringService');
+const secretsManager = require('../../../../services/secretsManager').default;
 const logger = require('../../../../logging/logger');
 
 /**
@@ -54,6 +55,7 @@ router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
     }
 
     await keyringService.setCredential(key, value);
+    await secretsManager.putSecret(key, value);
     logger.info('[Admin] Secret stored', { key });
 
     res.json({ ok: true, message: `Secret '${key}' stored successfully` });

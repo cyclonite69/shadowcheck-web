@@ -105,6 +105,10 @@ router.post('/settings/wigle', async (req, res) => {
     }
 
     await keyringService.setWigleCredentials(String(apiName).trim(), String(apiToken).trim());
+    await secretsManager.putSecrets({
+      wigle_api_name: String(apiName).trim(),
+      wigle_api_token: String(apiToken).trim(),
+    });
     // Test credentials
     const testResult = await keyringService.testWigleCredentials();
 
@@ -162,6 +166,7 @@ router.post('/settings/mapbox', async (req, res) => {
     }
 
     await keyringService.setMapboxToken(tokenValidation.value, labelValidation.value);
+    await secretsManager.putSecret('mapbox_token', tokenValidation.value);
     res.json({ success: true, label: labelValidation.value });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -189,6 +194,7 @@ router.post('/settings/mapbox-unlimited', async (req, res) => {
     }
 
     await keyringService.setCredential('mapbox_unlimited_api_key', keyValidation.value);
+    await secretsManager.putSecret('mapbox_unlimited_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -231,6 +237,7 @@ router.post('/settings/google-maps', async (req, res) => {
     }
 
     await keyringService.setCredential('google_maps_api_key', keyValidation.value);
+    await secretsManager.putSecret('google_maps_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -258,6 +265,7 @@ router.post('/settings/opencage', async (req, res) => {
     }
 
     await keyringService.setCredential('opencage_api_key', keyValidation.value);
+    await secretsManager.putSecret('opencage_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -285,6 +293,7 @@ router.post('/settings/locationiq', async (req, res) => {
     }
 
     await keyringService.setCredential('locationiq_api_key', keyValidation.value);
+    await secretsManager.putSecret('locationiq_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -326,13 +335,20 @@ router.post('/settings/aws', async (req, res) => {
     await keyringService.setCredential('aws_access_key_id', idValidation.value);
     await keyringService.setCredential('aws_secret_access_key', secretValidation.value);
     await keyringService.setCredential('aws_region', regionValidation.value);
+    const awsUpdates: Record<string, string> = {
+      aws_access_key_id: idValidation.value,
+      aws_secret_access_key: secretValidation.value,
+      aws_region: regionValidation.value,
+    };
     if (sessionToken) {
       const tokenValidation = validateGenericKey(sessionToken, 'aws_session_token');
       if (!tokenValidation.valid) {
         return res.status(400).json({ error: tokenValidation.error });
       }
       await keyringService.setCredential('aws_session_token', tokenValidation.value);
+      awsUpdates.aws_session_token = tokenValidation.value;
     }
+    await secretsManager.putSecrets(awsUpdates);
 
     res.json({ success: true });
   } catch (error) {
@@ -366,6 +382,10 @@ router.post('/settings/smarty', async (req, res) => {
 
     await keyringService.setCredential('smarty_auth_id', idValidation.value);
     await keyringService.setCredential('smarty_auth_token', tokenValidation.value);
+    await secretsManager.putSecrets({
+      smarty_auth_id: idValidation.value,
+      smarty_auth_token: tokenValidation.value,
+    });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

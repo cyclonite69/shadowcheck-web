@@ -86,7 +86,13 @@ class FileKeyringService {
         this.cache = {};
         return this.cache;
       }
-      throw err;
+      // Decryption failure (wrong machine key / corrupt keyring) — treat as empty
+      // so callers fall through to secretsManager / env vars
+      console.warn(
+        `[KeyringService] Failed to decrypt keyring: ${err.message}. Treating as empty.`
+      );
+      this.cache = {};
+      return this.cache;
     }
   }
 
