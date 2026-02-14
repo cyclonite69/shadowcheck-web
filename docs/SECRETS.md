@@ -66,7 +66,7 @@ npm start
 ### AWS Deployment
 ```bash
 # Secrets are auto-bootstrapped on first deploy
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 The deployment script:
@@ -146,5 +146,5 @@ node scripts/set-secret.js mapbox_token $(grep MAPBOX_TOKEN .env | cut -d= -f2)
 sed -i '/MAPBOX_TOKEN/d' .env
 
 # 4. Redeploy
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```

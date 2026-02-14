@@ -262,7 +262,7 @@ See [`deploy/aws/scripts/`](deploy/aws/scripts/)
 | ------------------------------------------------------------------------------------------------ | ----------------------- |
 | [`deploy/aws/scripts/add-ip-access.sh`](deploy/aws/scripts/add-ip-access.sh)                     | Add IP to access list   |
 | [`deploy/aws/scripts/build-containers.sh`](deploy/aws/scripts/build-containers.sh)               | Build Docker containers |
-| [`deploy/aws/scripts/deploy-from-github.sh`](deploy/aws/scripts/deploy-from-github.sh)           | Deploy from GitHub      |
+| [`deploy/aws/scripts/scs_rebuild.sh`](deploy/aws/scripts/scs_rebuild.sh)                         | Deploy from GitHub      |
 | [`deploy/aws/scripts/deploy-full-stack.sh`](deploy/aws/scripts/deploy-full-stack.sh)             | Full stack deployment   |
 | [`deploy/aws/scripts/deploy-postgres.sh`](deploy/aws/scripts/deploy-postgres.sh)                 | PostgreSQL deployment   |
 | [`deploy/aws/scripts/init-admin-user.sh`](deploy/aws/scripts/init-admin-user.sh)                 | Initialize admin user   |

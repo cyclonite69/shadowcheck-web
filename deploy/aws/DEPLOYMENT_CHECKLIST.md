@@ -53,7 +53,7 @@ Use this checklist to ensure all steps are completed correctly.
 
 ## Application Deployment
 
-- [ ] Run deployment: `./deploy/aws/scripts/deploy-from-github.sh`
+- [ ] Run deployment: `./deploy/aws/scripts/scs_rebuild.sh`
 - [ ] Verify containers running: `docker ps`
   - [ ] `shadowcheck_postgres`
   - [ ] `shadowcheck_backend`

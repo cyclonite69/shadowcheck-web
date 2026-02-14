@@ -36,7 +36,7 @@ aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
 cd /home/ssm-user/shadowcheck
 
 # Deploy from GitHub
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ## Initial Setup on EC2
@@ -123,7 +123,7 @@ curl http://169.254.169.254/latest/meta-data/public-ipv4
 6. **Deploy application:**
 
 ```bash
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 7. **Initialize admin user:**
@@ -145,7 +145,7 @@ git push origin master
 
 # On EC2 instance
 cd /home/ssm-user/shadowcheck
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 That's it! The script will:
@@ -182,7 +182,7 @@ docker run -d -e NEW_VAR=value ...
 To change:
 
 1. Edit `deploy/aws/.env.aws` on EC2
-2. Run `./deploy/aws/scripts/deploy-from-github.sh`
+2. Run `./deploy/aws/scripts/scs_rebuild.sh`
 
 ### Code Changes
 
@@ -283,7 +283,7 @@ git push
 
 # EC2 deployment
 cd /home/ssm-user/shadowcheck
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 
 # Check status
 docker ps
@@ -292,7 +292,7 @@ docker logs shadowcheck_frontend
 
 # Rollback (if needed)
 git checkout <previous-commit>
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ## Quick Iteration Workflow (Active Development)
@@ -322,7 +322,7 @@ cd /home/ssm-user/shadowcheck
 vim server/src/api/routes/v1/auth.ts
 
 # 3. Test immediately
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 
 # 4. If it works, commit from EC2
 git add .

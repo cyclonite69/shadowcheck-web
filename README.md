@@ -172,7 +172,7 @@ cd shadowcheck
 
 # 4. Update deployments
 git pull origin master
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 **Documentation:**

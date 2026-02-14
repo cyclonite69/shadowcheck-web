@@ -84,7 +84,7 @@
 │                            │                                      │
 │                            ▼                                      │
 │     ┌─────────────────────────────────────────────────────────┐ │
-│     │ 5d. Deploy Application (deploy-from-github.sh)         │ │
+│     │ 5d. Deploy Application (scs_rebuild.sh)         │ │
 │     │     • Pull latest code                                  │ │
 │     │     • Build TypeScript (server + client)                │ │
 │     │     • Build Docker containers                           │ │
@@ -168,7 +168,7 @@
 │                                                                   │
 │  5. Deploy Update                                                │
 │     cd /home/ssm-user/shadowcheck                                │
-│     ./deploy/aws/scripts/deploy-from-github.sh                   │
+│     ./deploy/aws/scripts/scs_rebuild.sh                   │
 │                                                                   │
 │     Or use alias:                                                │
 │     scdeploy                                                     │
@@ -238,7 +238,7 @@ deploy/aws/
 │   ├── setup-instance.sh          ← NEW: System setup
 │   ├── deploy-complete.sh         ← NEW: Orchestrator
 │   ├── deploy-postgres.sh         ← Existing
-│   ├── deploy-from-github.sh      ← Existing
+│   ├── scs_rebuild.sh      ← Existing
 │   └── launch-shadowcheck-spot.sh ← Existing
 │
 ├── QUICKSTART.md                  ← NEW: 5-min guide

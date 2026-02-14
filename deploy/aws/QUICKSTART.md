@@ -82,7 +82,7 @@ Optional:
 Then redeploy:
 
 ```bash
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ### Step 5: Access Application
@@ -159,7 +159,7 @@ git push origin master
 
 # On EC2 instance
 cd /home/ssm-user/shadowcheck
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ## Troubleshooting

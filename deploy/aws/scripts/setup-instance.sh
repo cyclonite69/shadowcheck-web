@@ -146,7 +146,7 @@ alias sc='cd /home/ssm-user/shadowcheck'
 alias sclogs='docker logs -f shadowcheck_backend'
 alias scps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
 alias scdb='pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db'
-alias scdeploy='cd /home/ssm-user/shadowcheck && ./deploy/aws/scripts/deploy-from-github.sh'
+alias scdeploy='cd /home/ssm-user/shadowcheck && ./deploy/aws/scripts/scs_rebuild.sh'
 alias scstatus='docker ps && echo "" && df -h /var/lib/postgresql'
 ALIASES
   chown ssm-user:ssm-user /home/ssm-user/.bashrc
@@ -194,7 +194,7 @@ echo "   cp deploy/aws/.env.example deploy/aws/.env.aws"
 echo "   vim deploy/aws/.env.aws"
 echo ""
 echo "4. Deploy application:"
-echo "   ./deploy/aws/scripts/deploy-from-github.sh"
+echo "   ./deploy/aws/scripts/scs_rebuild.sh"
 echo ""
 echo "5. Initialize admin user:"
 echo "   ./deploy/aws/scripts/init-admin-user.sh"

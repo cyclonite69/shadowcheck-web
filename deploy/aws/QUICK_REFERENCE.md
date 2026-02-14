@@ -49,7 +49,7 @@ git push origin master
 
 # EC2 instance
 cd /home/ssm-user/shadowcheck
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 # OR use alias: scdeploy
 ```
 
@@ -268,7 +268,7 @@ curl http://localhost:3001/api/health
 cat deploy/aws/.env.aws
 source deploy/aws/.env.aws
 echo $MAPBOX_TOKEN
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ## 💾 Backup & Restore

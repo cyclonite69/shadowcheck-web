@@ -102,7 +102,7 @@ sc        # cd /home/ssm-user/shadowcheck
 sclogs    # docker logs -f shadowcheck_backend
 scps      # docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 scdb      # pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db
-scdeploy  # cd /home/ssm-user/shadowcheck && ./deploy/aws/scripts/deploy-from-github.sh
+scdeploy  # cd /home/ssm-user/shadowcheck && ./deploy/aws/scripts/scs_rebuild.sh
 scstatus  # docker ps && echo "" && df -h /var/lib/postgresql
 ```
 
@@ -212,7 +212,7 @@ deploy/aws/
     ├── setup-instance.sh      # System setup
     ├── deploy-complete.sh     # Complete orchestration
     ├── deploy-postgres.sh     # PostgreSQL deployment
-    └── deploy-from-github.sh  # Application deployment
+    └── scs_rebuild.sh  # Application deployment
 ```
 
 ## Next Steps

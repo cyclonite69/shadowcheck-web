@@ -16,7 +16,7 @@ deploy/aws/
 │   ├── setup-instance.sh           # System utilities and Docker setup
 │   ├── deploy-complete.sh          # Complete deployment orchestrator
 │   ├── deploy-postgres.sh          # PostgreSQL deployment
-│   ├── deploy-from-github.sh       # Application deployment
+│   ├── scs_rebuild.sh       # Application deployment
 │   ├── launch-shadowcheck-spot.sh  # EC2 instance launcher
 │   └── ...
 ├── configs/          # PostgreSQL and infrastructure configs
@@ -68,7 +68,7 @@ cd shadowcheck
 
 ```bash
 cd /home/ssm-user/shadowcheck
-./deploy/aws/scripts/deploy-from-github.sh
+./deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ## Infrastructure

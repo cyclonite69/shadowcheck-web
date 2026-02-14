@@ -98,7 +98,7 @@ echo ""
 echo "Step 5/5: Application Deployment"
 echo "================================"
 echo "Deploying ShadowCheck application..."
-"$PROJECT_ROOT/deploy/aws/scripts/deploy-from-github.sh"
+"$PROJECT_ROOT/deploy/aws/scripts/scs_rebuild.sh"
 echo ""
 
 # Step 6: Initialize admin user (optional)
