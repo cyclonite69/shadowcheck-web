@@ -1,6 +1,6 @@
 #!/bin/bash
 # scs_rebuild - Pull, rebuild, and redeploy ShadowCheck on EC2
-# Install: echo 'alias scs_rebuild="bash ~/shadowcheck/deploy/aws/scripts/scs_rebuild.sh"' >> ~/.bashrc
+# Install: sudo ln -sf /home/ssm-user/shadowcheck/deploy/aws/scripts/scs_rebuild.sh /usr/local/bin/scs_rebuild
 #
 # Secrets are loaded from AWS Secrets Manager at startup.
 set -e

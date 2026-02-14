@@ -136,7 +136,13 @@ else
 fi
 echo ""
 
-# 11. Create helpful aliases
+# 11. Symlink scs_rebuild into PATH (works in non-interactive SSM sessions too)
+echo "🔗 Installing scs_rebuild to PATH..."
+ln -sf /home/ssm-user/shadowcheck/deploy/aws/scripts/scs_rebuild.sh /usr/local/bin/scs_rebuild
+echo "✅ scs_rebuild available system-wide"
+echo ""
+
+# 12. Create helpful aliases
 echo "⚡ Creating helpful aliases..."
 if ! grep -q "shadowcheck aliases" /home/ssm-user/.bashrc; then
   cat >> /home/ssm-user/.bashrc << 'ALIASES'
@@ -146,7 +152,7 @@ alias sc='cd /home/ssm-user/shadowcheck'
 alias sclogs='docker logs -f shadowcheck_backend'
 alias scps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
 alias scdb='pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db'
-alias scdeploy='cd /home/ssm-user/shadowcheck && ./deploy/aws/scripts/scs_rebuild.sh'
+alias scdeploy='scs_rebuild'
 alias scstatus='docker ps && echo "" && df -h /var/lib/postgresql'
 ALIASES
   chown ssm-user:ssm-user /home/ssm-user/.bashrc
@@ -156,7 +162,7 @@ else
 fi
 echo ""
 
-# 12. Display system information
+# 13. Display system information
 echo "📊 System Information:"
 echo "===================="
 echo "OS: $(cat /etc/system-release)"
