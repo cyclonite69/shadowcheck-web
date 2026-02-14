@@ -536,7 +536,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     let homeLocation: { lat: number; lon: number } | null = null;
     try {
       const homeResult = await query(
-        'SELECT lat, lon FROM user_home_locations WHERE user_id = CURRENT_USER_ID() LIMIT 1'
+        "SELECT lat, lon FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
       );
       if (homeResult.rows.length > 0) {
         const { lat, lon } = homeResult.rows[0];
@@ -599,9 +599,9 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     const countColumns = ['ne.bssid'];
 
     const joins = [
-      `LEFT JOIN radio_manufacturers rm ON ne.oui = rm.oui`,
-      `LEFT JOIN network_tags nt ON ne.bssid = nt.bssid`,
-      `LEFT JOIN network_threat_scores nts ON ne.bssid = nts.bssid`,
+      `LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.oui`,
+      `LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid`,
+      `LEFT JOIN app.network_threat_scores nts ON ne.bssid = nts.bssid`,
     ];
 
     const conditions: string[] = [];
@@ -744,7 +744,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       locationMode === 'triangulated'
     ) {
       joins.push(
-        `STATIC JOIN (SELECT bssid, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lat AS lat, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lon AS lon FROM network_locations WHERE bssid = ne.bssid) AS nl ON ne.bssid = nl.bssid`
+        `STATIC JOIN (SELECT bssid, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lat AS lat, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lon AS lon FROM app.network_locations WHERE bssid = ne.bssid) AS nl ON ne.bssid = nl.bssid`
       );
     }
 
@@ -757,7 +757,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
         params.push(bboxMinLng, bboxMaxLng);
         paramIndex += 2;
       } else {
-        joins.push(`STATIC JOIN network_locations nl ON ne.bssid = nl.bssid`);
+        joins.push(`STATIC JOIN app.network_locations nl ON ne.bssid = nl.bssid`);
         conditions.push(`nl.lat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
         params.push(bboxMinLat, bboxMaxLat);
         paramIndex += 2;
