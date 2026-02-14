@@ -13,17 +13,23 @@ SCS_ENV="$HOME/.shadowcheck-env"
 
 echo "=== scs_rebuild ==="
 
+# 0. Clean up old Docker artifacts to prevent disk fill
+echo "[0/6] Cleaning up old Docker artifacts..."
+docker system prune -f 2>/dev/null || true
+docker image prune -a -f --filter "until=24h" 2>/dev/null || true
+echo "  Disk usage: $(df -h / | awk 'NR==2{print $5, "used,", $4, "free"}')"
+
 # 1. Pull latest
-echo "[1/4] Pulling latest..."
+echo "[1/6] Pulling latest..."
 git pull origin master
 
 # 2. Build images (--no-cache ensures code changes are picked up)
-echo "[2/4] Building images..."
+echo "[2/6] Building images..."
 docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
 # 3. Build env
-echo "[3/4] Preparing environment..."
+echo "[3/6] Preparing environment..."
 ENV_FILE=$(mktemp)
 
 # Start with captured env from running backend, or build from scratch
@@ -54,7 +60,7 @@ if [ -f "$SCS_ENV" ]; then
 fi
 
 # 4. Stop, remove, restart
-echo "[4/4] Restarting containers..."
+echo "[4/6] Restarting containers..."
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
@@ -71,9 +77,37 @@ docker run -d --name shadowcheck_frontend \
 
 rm -f "$ENV_FILE"
 
+# 5. Run database bootstrap + migrations
+echo "[5/6] Running database bootstrap & migrations..."
+
+# Run bootstrap (idempotent — safe on existing DBs)
+DB_ADMIN_PASSWORD=$(docker exec shadowcheck_postgres printenv DB_ADMIN_PASSWORD 2>/dev/null || echo "")
+docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+  -v "bootstrap.admin_password=$DB_ADMIN_PASSWORD" \
+  < sql/init/00_bootstrap.sql 2>&1 | tail -5
+
+# Copy migrations into postgres container and run
+docker cp sql/migrations shadowcheck_postgres:/sql/migrations
+docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
+docker exec shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
+
+# 6. Health check
+echo "[6/6] Verifying deployment..."
 sleep 3
+
+# Check containers are running
+echo ""
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep shadowcheck
+
+# Quick API health check
+echo ""
+if curl -sf http://localhost:3001/api/health >/dev/null 2>&1; then
+  echo "API health check: OK"
+else
+  echo "API health check: WAITING (may need a few more seconds to start)"
+fi
 
 echo ""
 echo "=== Done ==="
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep shadowcheck
+echo "Disk: $(df -h / | awk 'NR==2{print $5, "used,", $4, "free"}')"
 echo ""

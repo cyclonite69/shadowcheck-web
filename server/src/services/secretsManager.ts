@@ -64,6 +64,7 @@ class SecretsManager {
   accessLog: AccessLogEntry[] = [];
   private awsCache: Record<string, string> | null = null;
   private awsLoaded = false;
+  private deferredRetryScheduled = false;
 
   private async loadAwsSecretBlob(): Promise<Record<string, string>> {
     if (this.awsLoaded) return this.awsCache || {};
@@ -79,7 +80,8 @@ class SecretsManager {
         return this.awsCache!;
       }
     } catch (err: any) {
-      // Not an error - AWS SM is optional. Fall through to other sources.
+      // Reset flag so next call retries (handles cold-start where IMDS isn't ready yet)
+      this.awsLoaded = false;
       if (err.name !== 'ResourceNotFoundException') {
         console.log(`[SecretsManager] AWS Secrets Manager unavailable: ${err.name || err.message}`);
       }
@@ -190,6 +192,33 @@ class SecretsManager {
     const mapboxToken = this.secrets.get('mapbox_token');
     if (mapboxToken && !mapboxToken.startsWith('pk.')) {
       console.warn('[SecretsManager] MAPBOX_TOKEN should start with "pk."');
+    }
+
+    // If AWS SM wasn't reachable (cold-start), schedule a deferred retry to refresh secrets
+    if (!this.awsLoaded && !this.deferredRetryScheduled) {
+      this.deferredRetryScheduled = true;
+      setTimeout(() => this.retryAwsLoad(), 10_000);
+    }
+  }
+
+  private async retryAwsLoad(): Promise<void> {
+    try {
+      const blob = await this.loadAwsSecretBlob();
+      if (!blob || Object.keys(blob).length === 0) return;
+
+      let updated = 0;
+      for (const [key, value] of Object.entries(blob)) {
+        const current = this.secrets.get(key);
+        if (current !== value) {
+          this.register(key, value, 'aws');
+          updated++;
+        }
+      }
+      if (updated > 0) {
+        console.log(`[SecretsManager] Deferred AWS retry: refreshed ${updated} secret(s)`);
+      }
+    } catch (err: any) {
+      console.log(`[SecretsManager] Deferred AWS retry failed: ${err.message}`);
     }
   }
 

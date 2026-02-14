@@ -10,8 +10,17 @@ RUN apt-get update && apt-get install -y \
 COPY deploy/aws/configs/postgresql.conf /etc/postgresql/postgresql.conf
 COPY deploy/aws/configs/pg_hba.conf /etc/postgresql/pg_hba.conf
 
+# Copy DB bootstrap scripts (run on first init when PGDATA is empty)
+COPY sql/init/ /docker-entrypoint-initdb.d/
+
+# Copy migration files for run-migrations.sh
+COPY sql/migrations/ /sql/migrations/
+COPY sql/run-migrations.sh /sql/run-migrations.sh
+
 # Set proper permissions
-RUN chown postgres:postgres /etc/postgresql/*.conf
+RUN chown postgres:postgres /etc/postgresql/*.conf \
+    && chown -R postgres:postgres /docker-entrypoint-initdb.d/ \
+    && chown -R postgres:postgres /sql/
 
 EXPOSE 5432
 

@@ -19,7 +19,9 @@ services:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./sql:/docker-entrypoint-initdb.d:ro
+      - ./sql/init:/docker-entrypoint-initdb.d:ro
+      - ./sql/migrations:/sql/migrations:ro
+      - ./sql/run-migrations.sh:/sql/run-migrations.sh:ro
       - ./backups:/backups
     networks:
       - shadowcheck_net
