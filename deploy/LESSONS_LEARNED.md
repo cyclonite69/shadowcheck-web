@@ -780,14 +780,16 @@ aws ec2 authorize-security-group-ingress \
 
 ### Issue 19: Admin user password not set correctly
 
-**Problem:** Default admin/admin123 credentials don't work  
-**Solution:** Reset password with bcrypt hash
+**Problem:** Admin user not initialized or password unknown  
+**Solution:** Run init script to create admin user with random password
 
 ```bash
-# Generate hash locally
-node -e "const bcrypt = require('bcrypt'); bcrypt.hash('admin123', 10, (err, hash) => console.log(hash));"
+# Run initialization script
+./deploy/aws/scripts/init-admin-user.sh
 
-# Update in database
-docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
-  -c "UPDATE app.users SET password_hash = '\$2b\$10\$...' WHERE username = 'admin';"
+# Script will:
+# - Generate random password
+# - Create admin user with force_password_change flag
+# - Display password (save it securely)
+# - Require password change on first login
 ```
