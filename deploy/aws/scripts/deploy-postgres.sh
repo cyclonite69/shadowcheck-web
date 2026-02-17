@@ -198,13 +198,13 @@ echo "🐳 Creating docker-compose.yml..."
 cat > /home/ssm-user/docker-compose.yml << COMPOSE
 services:
   postgres:
-    image: kartoza/postgis:18-3.6
+    image: shadowcheck/postgres:18-postgis-3.6
     container_name: shadowcheck_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: shadowcheck_user
-      POSTGRES_PASS: ${DB_PASSWORD}
-      POSTGRES_DBNAME: shadowcheck_db
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: shadowcheck_db
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -228,15 +228,16 @@ echo "✅ docker-compose.yml created"
 
 # 7. Pull PostgreSQL image
 echo ""
-echo "📥 Pulling PostgreSQL image..."
-docker pull kartoza/postgis:18-3.6
-echo "✅ Image pulled"
+echo "🔨 Building custom PostgreSQL image..."
+cd /home/ssm-user/shadowcheck
+docker build -f deploy/aws/docker/Dockerfile.postgis -t shadowcheck/postgres:18-postgis-3.6 .
+echo "✅ Image built"
 
 # 8. Start PostgreSQL
 echo ""
 echo "🚀 Starting PostgreSQL..."
 cd /home/ssm-user
-sudo -u ssm-user docker-compose up -d
+sudo -u ssm-user docker compose up -d
 
 echo ""
 echo "⏳ Waiting for PostgreSQL to be ready..."
