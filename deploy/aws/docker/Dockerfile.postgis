@@ -1,4 +1,4 @@
-FROM postgis/postgis:18-3.6
+FROM kartoza/postgis:18-3.6
 
 # Install additional PostgreSQL extensions
 RUN apt-get update && apt-get install -y \

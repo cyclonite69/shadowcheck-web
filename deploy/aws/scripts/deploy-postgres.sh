@@ -203,8 +203,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: shadowcheck_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: shadowcheck_db
+      POSTGRES_PASS: ${DB_PASSWORD}
+      POSTGRES_DBNAME: shadowcheck_db
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
