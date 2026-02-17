@@ -120,7 +120,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/analytics-public', analyticsPublicRoutes);
 
   // Weather proxy (no auth required)
-  // app.use('/', weatherRoutes); // Temporarily disabled - import issue
+  app.use('/', weatherRoutes);
 
   // Agency offices (public data - mount outside /api to avoid admin auth middleware)
   const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;
