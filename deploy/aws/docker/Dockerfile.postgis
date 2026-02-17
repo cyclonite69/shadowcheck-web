@@ -1,9 +1,9 @@
-FROM kartoza/postgis:18-3.6
+FROM postgres:18-bookworm
 
-# Install additional PostgreSQL extensions
+# Install PostGIS extension
 RUN apt-get update && apt-get install -y \
-    postgresql-18-cron \
-    postgresql-18-partman \
+    postgresql-18-postgis-3 \
+    postgresql-18-postgis-3-scripts \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy custom PostgreSQL configuration
