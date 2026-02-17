@@ -3,13 +3,8 @@ import type { NetworkRow, SortState } from '../../types/network';
 import { MapStatusBar } from './MapStatusBar';
 import { NetworkExplorerCard } from './NetworkExplorerCard';
 import { NetworkExplorerHeader } from './NetworkExplorerHeader';
-import { NetworkTableBody } from './NetworkTableBody';
 import { NetworkTableBodyGrid } from './NetworkTableBodyGrid';
-import { NetworkTableHeader } from './NetworkTableHeader';
 import { NetworkTableHeaderGrid } from './NetworkTableHeaderGrid';
-
-// Feature flag for virtualization - using CSS Grid layout
-const USE_VIRTUALIZATION = true;
 
 interface ColumnDefinition {
   label: string;
@@ -121,59 +116,29 @@ export const NetworkExplorerSection = ({
         onToggleColumn={onToggleColumn}
       />
 
-      {USE_VIRTUALIZATION && filteredNetworks.length > 100 ? (
-        <>
-          <NetworkTableHeaderGrid
-            visibleColumns={visibleColumns}
-            sort={sort}
-            allSelected={allSelected}
-            someSelected={someSelected}
-            onToggleSelectAll={onToggleSelectAll}
-            onColumnSort={onColumnSort}
-            onReorderColumns={onReorderColumns}
-          />
-          <NetworkTableBodyGrid
-            tableContainerRef={tableContainerRef}
-            visibleColumns={visibleColumns}
-            loadingNetworks={loadingNetworks}
-            filteredNetworks={filteredNetworks}
-            error={error}
-            selectedNetworks={selectedNetworks}
-            onSelectExclusive={onSelectExclusive}
-            onOpenContextMenu={onOpenContextMenu}
-            onToggleSelectNetwork={onToggleSelectNetwork}
-            isLoadingMore={isLoadingMore}
-            hasMore={hasMore}
-            onLoadMore={onLoadMore}
-          />
-        </>
-      ) : (
-        <>
-          <NetworkTableHeader
-            visibleColumns={visibleColumns}
-            sort={sort}
-            allSelected={allSelected}
-            someSelected={someSelected}
-            onToggleSelectAll={onToggleSelectAll}
-            onColumnSort={onColumnSort}
-            onReorderColumns={onReorderColumns}
-          />
-          <NetworkTableBody
-            tableContainerRef={tableContainerRef}
-            visibleColumns={visibleColumns}
-            loadingNetworks={loadingNetworks}
-            filteredNetworks={filteredNetworks}
-            error={error}
-            selectedNetworks={selectedNetworks}
-            onSelectExclusive={onSelectExclusive}
-            onOpenContextMenu={onOpenContextMenu}
-            onToggleSelectNetwork={onToggleSelectNetwork}
-            isLoadingMore={isLoadingMore}
-            hasMore={hasMore}
-            onLoadMore={onLoadMore}
-          />
-        </>
-      )}
+      <NetworkTableHeaderGrid
+        visibleColumns={visibleColumns}
+        sort={sort}
+        allSelected={allSelected}
+        someSelected={someSelected}
+        onToggleSelectAll={onToggleSelectAll}
+        onColumnSort={onColumnSort}
+        onReorderColumns={onReorderColumns}
+      />
+      <NetworkTableBodyGrid
+        tableContainerRef={tableContainerRef}
+        visibleColumns={visibleColumns}
+        loadingNetworks={loadingNetworks}
+        filteredNetworks={filteredNetworks}
+        error={error}
+        selectedNetworks={selectedNetworks}
+        onSelectExclusive={onSelectExclusive}
+        onOpenContextMenu={onOpenContextMenu}
+        onToggleSelectNetwork={onToggleSelectNetwork}
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        onLoadMore={onLoadMore}
+      />
 
       <MapStatusBar
         visibleCount={visibleCount}
