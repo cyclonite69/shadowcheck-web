@@ -201,8 +201,6 @@ chown -R ssm-user:ssm-user /home/ssm-user/secrets
 echo ""
 echo "🐳 Creating docker-compose.yml..."
 cat > /home/ssm-user/docker-compose.yml << 'COMPOSE'
-version: '3.8'
-
 services:
   postgres:
     image: kartoza/postgis:18-3.6
@@ -210,31 +208,18 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: shadowcheck_user
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-      POSTGRES_DB: shadowcheck_db
-      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASS_FILE: /run/secrets/db_password
+      POSTGRES_DBNAME: shadowcheck_db
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - /var/lib/postgresql:/var/lib/postgresql
-      - /var/lib/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - /var/lib/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
     shm_size: 512mb
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-      - DAC_OVERRIDE
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U shadowcheck_user -d shadowcheck_db"]
       interval: 10s
