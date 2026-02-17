@@ -80,8 +80,14 @@ echo ""
 echo "🐳 Checking Docker Compose installation..."
 if ! command -v docker-compose &>/dev/null; then
   echo "Installing Docker Compose..."
-  curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  ARCH=$(uname -m)
+  if [ "$ARCH" = "aarch64" ]; then
+    curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-aarch64" -o /usr/local/bin/docker-compose
+  else
+    curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+  fi
   chmod +x /usr/local/bin/docker-compose
+  ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
   echo "✅ Docker Compose installed"
 else
   echo "✅ Docker Compose already installed"
