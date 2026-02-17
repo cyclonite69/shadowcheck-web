@@ -2,8 +2,8 @@
 -- Seed schema_migrations tracking table
 -- ============================================================================
 -- Run this ONCE on an existing database to mark all migrations as applied.
--- This fixes the "57 failures" issue where the runner re-applies migrations
--- that already exist in the database but aren't tracked.
+-- Marks both the 77 archived migrations AND the 10 consolidated baselines
+-- so the migration runner skips them all on existing deployments.
 --
 -- Usage:
 --   docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS app.schema_migrations (
 -- Insert all known migrations as "already applied"
 -- ON CONFLICT skips any that are already tracked
 INSERT INTO app.schema_migrations (filename) VALUES
+  -- === 77 archived (original incremental) migrations ===
   ('004_add_authentication.sql'),
   ('00_create_legacy_tables.sql'),
   ('00_enforce_uppercase_ssid.sql'),
@@ -50,6 +51,9 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('20260214_add_radio_manufacturers_compat_columns.sql'),
   ('20260214_create_network_entries_view.sql'),
   ('20260214_drop_uppercase_ssid_triggers.sql'),
+  ('20260215_cleanup_public_duplicates.sql'),
+  ('20260215_improve_network_entries_view.sql'),
+  ('20260215_postgres18_postgis_optimizations.sql'),
   ('99_enforce_uppercase_ssid.sql'),
   ('add_analytics_performance_indexes.sql'),
   ('add_business_names.sql'),
@@ -91,7 +95,18 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('update_mv_threat_v4_mobile.sql'),
   ('update_mv_threat_v5_distance_based.sql'),
   ('update_mv_threat_v6_precomputed.sql'),
-  ('update_mv_threat_v7_improved_security.sql')
+  ('update_mv_threat_v7_improved_security.sql'),
+  -- === 10 consolidated baseline migrations ===
+  ('20260216_consolidated_001_extensions_and_schemas.sql'),
+  ('20260216_consolidated_002_core_tables.sql'),
+  ('20260216_consolidated_003_auth_and_users.sql'),
+  ('20260216_consolidated_004_network_analysis.sql'),
+  ('20260216_consolidated_005_ml_and_scoring.sql'),
+  ('20260216_consolidated_006_wigle_integration.sql'),
+  ('20260216_consolidated_007_agency_offices.sql'),
+  ('20260216_consolidated_008_views_and_materialized_views.sql'),
+  ('20260216_consolidated_009_functions_and_triggers.sql'),
+  ('20260216_consolidated_010_performance_indexes.sql')
 ON CONFLICT (filename) DO NOTHING;
 
 SELECT COUNT(*) AS tracked_migrations FROM app.schema_migrations;

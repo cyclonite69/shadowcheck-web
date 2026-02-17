@@ -20,6 +20,10 @@ interface AppInitResult extends ServerConfig {
  */
 function initializeApp(express: () => Express): AppInitResult {
   const app = express();
+
+  // Trust proxy for X-Forwarded-* headers (nginx, ALB, CloudFront)
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   const { getServerConfig } = require('./serverConfig');
   const config: ServerConfig = getServerConfig();
