@@ -217,6 +217,7 @@ services:
       POSTGRES_USER: shadowcheck_user
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: shadowcheck_db
+      PGDATA: /var/lib/postgresql/data
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
