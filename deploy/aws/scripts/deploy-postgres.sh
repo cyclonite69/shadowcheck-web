@@ -192,15 +192,10 @@ else
   echo "✅ Loaded db_password from AWS Secrets Manager"
 fi
 
-# Write to Docker secrets file (required by POSTGRES_PASSWORD_FILE)
-echo -n "$DB_PASSWORD" > /home/ssm-user/secrets/db_password.txt
-chmod 600 /home/ssm-user/secrets/db_password.txt
-chown -R ssm-user:ssm-user /home/ssm-user/secrets
-
 # 6. Create docker-compose.yml
 echo ""
 echo "🐳 Creating docker-compose.yml..."
-cat > /home/ssm-user/docker-compose.yml << 'COMPOSE'
+cat > /home/ssm-user/docker-compose.yml << COMPOSE
 services:
   postgres:
     image: kartoza/postgis:18-3.6
@@ -208,7 +203,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: shadowcheck_user
-      POSTGRES_PASS_FILE: /run/secrets/db_password
+      POSTGRES_PASS: ${DB_PASSWORD}
       POSTGRES_DBNAME: shadowcheck_db
     ports:
       - "127.0.0.1:5432:5432"
@@ -226,12 +221,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    secrets:
-      - db_password
-
-secrets:
-  db_password:
-    file: /home/ssm-user/secrets/db_password.txt
 COMPOSE
 
 chown ssm-user:ssm-user /home/ssm-user/docker-compose.yml
@@ -264,7 +253,7 @@ if docker exec shadowcheck_postgres pg_isready -U shadowcheck_user &>/dev/null; 
   echo "💾 Data volume:"
   df -h /var/lib/postgresql
   echo ""
-  echo "🔑 Database password: /home/ssm-user/secrets/db_password.txt"
+  echo "🔑 Database password stored in AWS Secrets Manager"
   echo ""
   echo "🔗 Connection string:"
   echo "   postgresql://shadowcheck_user:PASSWORD@localhost:5432/shadowcheck_db?sslmode=require"

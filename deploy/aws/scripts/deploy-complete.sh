@@ -75,7 +75,7 @@ if [ ! -f "$PROJECT_ROOT/deploy/aws/.env.aws" ]; then
   cp "$PROJECT_ROOT/deploy/aws/.env.example" "$PROJECT_ROOT/deploy/aws/.env.aws"
   
   # Auto-populate what we can
-  DB_PASSWORD=$(cat /home/ssm-user/secrets/db_password.txt)
+  DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text 2>/dev/null | jq -r '.db_password // empty')
   PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
   
   sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" "$PROJECT_ROOT/deploy/aws/.env.aws"
@@ -132,7 +132,7 @@ echo "   Frontend: http://$PUBLIC_IP:3000"
 echo "   Backend:  http://$PUBLIC_IP:3001"
 echo ""
 echo "🔑 Credentials:"
-echo "   Database password: /home/ssm-user/secrets/db_password.txt"
+echo "   Database password: stored in AWS Secrets Manager (shadowcheck/config)"
 echo "   Admin user: run init-admin-user.sh to create (generates random password)"
 echo ""
 echo "📝 Useful Commands:"

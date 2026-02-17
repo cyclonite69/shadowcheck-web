@@ -145,8 +145,9 @@ else
   check_warn "PostgreSQL not running (will be deployed)"
 fi
 
-if [ -f "/home/ssm-user/secrets/db_password.txt" ]; then
-  check_pass "Database password exists"
+# Check AWS Secrets Manager for password
+if aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text 2>/dev/null | jq -e '.db_password' >/dev/null 2>&1; then
+  check_pass "Database password exists in AWS Secrets Manager"
 else
   check_warn "Database password not found (will be generated)"
 fi
