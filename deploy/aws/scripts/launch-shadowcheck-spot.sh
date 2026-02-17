@@ -12,7 +12,7 @@ echo "🚀 Launching ShadowCheck Spot Instance..."
 # Launch instance from template
 INSTANCE_ID=$(aws ec2 run-instances \
   --launch-template LaunchTemplateName=$TEMPLATE_NAME \
-  --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.10,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}' \
+  --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.067,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}' \
   --region $REGION \
   --query 'Instances[0].InstanceId' \
   --output text)
