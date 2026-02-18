@@ -375,7 +375,7 @@ export default function GeospatialExplorer() {
       type: 'circle',
       source: sourceId,
       paint: {
-        'circle-radius': 12,
+        'circle-radius': 6,
         'circle-color': ['case', ['get', 'hasWigleObs'], '#ef4444', '#10b981'],
         'circle-stroke-width': 3,
         'circle-stroke-color': '#ffffff',

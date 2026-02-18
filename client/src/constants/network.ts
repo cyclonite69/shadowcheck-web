@@ -34,7 +34,7 @@ export const NETWORK_COLUMNS: Partial<
   stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
   firstSeen: { label: 'First Seen', width: 160, sortable: true, default: false },
   lastSeen: { label: 'Last Seen', width: 160, sortable: true, default: true },
-  timespanDays: { label: 'Timespan (days)', width: 120, sortable: true, default: false },
+  timespanDays: { label: 'Timespan', width: 120, sortable: true, default: false },
   // Enrichment columns (networks-v2 API) - hidden by default
   manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
   min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
