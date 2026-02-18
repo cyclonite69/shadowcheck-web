@@ -7,7 +7,6 @@ export {};
 const express = require('express');
 const router = express.Router();
 const homeLocationService = require('../../../services/homeLocationService');
-const { adminQuery } = require('../../../services/adminDbService');
 
 // GET /api/home-location - Get current home location
 router.get('/home-location', async (req, res, next) => {
@@ -48,17 +47,7 @@ router.post('/admin/home-location', async (req, res, next) => {
       return res.status(400).json({ error: 'Radius must be between 10 and 5000 meters' });
     }
 
-    // Delete existing home location
-    await adminQuery("DELETE FROM app.location_markers WHERE marker_type = 'home'");
-
-    // Insert new home location with radius
-    await adminQuery(
-      `
-      INSERT INTO app.location_markers (marker_type, latitude, longitude, radius, location, created_at)
-      VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($3, $2), 4326), NOW())
-    `,
-      ['home', latitude, longitude, radius]
-    );
+    await homeLocationService.setHomeLocation(latitude, longitude, radius);
 
     res.json({
       ok: true,

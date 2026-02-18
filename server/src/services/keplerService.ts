@@ -19,6 +19,13 @@ export async function checkHomeLocationExists(): Promise<boolean> {
   }
 }
 
+export async function executeKeplerQuery(sql: string, params: any[]): Promise<any> {
+  await query("SET LOCAL statement_timeout = '120000ms'");
+  const result = await query(sql, params);
+  return result;
+}
+
 module.exports = {
   checkHomeLocationExists,
+  executeKeplerQuery,
 };

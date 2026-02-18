@@ -4,7 +4,6 @@ const router = express.Router();
 const logger = require('../../../logging/logger');
 const keplerService = require('../../../services/keplerService');
 const homeLocationService = require('../../../services/homeLocationService');
-const { adminQuery } = require('../../../services/adminDbService');
 
 let dashboardService = null;
 
@@ -195,15 +194,7 @@ router.post('/admin/home-location', async (req, res) => {
       return res.status(400).json({ error: 'Latitude and longitude are required' });
     }
 
-    await adminQuery("DELETE FROM app.location_markers WHERE marker_type = 'home'");
-
-    await adminQuery(
-      `
-      INSERT INTO app.location_markers (marker_type, latitude, longitude, radius, location, created_at)
-      VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($3, $2), 4326), NOW())
-    `,
-      ['home', latitude, longitude, radius]
-    );
+    await homeLocationService.setHomeLocation(latitude, longitude, radius);
 
     res.json({
       ok: true,

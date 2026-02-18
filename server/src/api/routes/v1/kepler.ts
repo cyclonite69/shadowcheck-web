@@ -6,7 +6,6 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
 const keplerService = require('../../../services/keplerService');
 const logger = require('../../../logging/logger');
 const {
@@ -224,9 +223,7 @@ router.get('/kepler/data', async (req, res) => {
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { sql, params } = builder.buildNetworkListQuery({ limit, offset });
 
-    // Increase timeout for potentially massive datasets
-    await query("SET LOCAL statement_timeout = '120000ms'");
-    const result = await query(sql, params);
+    const result = await keplerService.executeKeplerQuery(sql, params);
 
     const geojson = {
       type: 'FeatureCollection',
@@ -303,9 +300,7 @@ router.get('/kepler/observations', async (req, res) => {
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { sql, params } = builder.buildGeospatialQuery({ limit });
 
-    // Increase timeout for large observation queries to 2 minutes
-    await query("SET LOCAL statement_timeout = '120000ms'");
-    const result = await query(sql, params);
+    const result = await keplerService.executeKeplerQuery(sql, params);
 
     const geojson = {
       type: 'FeatureCollection',
@@ -386,8 +381,7 @@ router.get('/kepler/networks', async (req, res) => {
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { sql, params } = builder.buildNetworkListQuery({ limit, offset });
 
-    await query("SET LOCAL statement_timeout = '120000ms'");
-    const result = await query(sql, params);
+    const result = await keplerService.executeKeplerQuery(sql, params);
 
     const geojson = {
       type: 'FeatureCollection',
