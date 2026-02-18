@@ -25,7 +25,7 @@ const {
   UniversalFilterQueryBuilder,
   validateFilterPayload,
 } = require('../../../services/filterQueryBuilder');
-const { query } = require('../../../config/database');
+const v2Service = require('../../../services/v2Service');
 const logger = require('../../../logging/logger');
 
 // GET /api/v2/networks/filtered
@@ -61,7 +61,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         orderBy,
       });
 
-    const result: QueryResult<NetworkRow> = await query(sql, params);
+    const result: QueryResult<NetworkRow> = await v2Service.executeV2Query(sql, params);
     const rows = result.rows || [];
 
     const enriched = rows.map((row) => {
@@ -76,7 +76,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const countBuilder = new UniversalFilterQueryBuilder(filters, enabled);
     const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
-    const countResult: QueryResult<{ total: string }> = await query(
+    const countResult: QueryResult<{ total: string }> = await v2Service.executeV2Query(
       countQuery.sql,
       countQuery.params
     );
@@ -155,7 +155,7 @@ router.get('/geospatial', async (req: Request, res: Response, next: NextFunction
       });
 
     const start = Date.now();
-    const result: QueryResult<GeospatialRow> = await query(sql, params);
+    const result: QueryResult<GeospatialRow> = await v2Service.executeV2Query(sql, params);
     const durationMs = Date.now() - start;
 
     if (DEBUG_GEOSPATIAL || durationMs > 2000) {
@@ -249,7 +249,7 @@ router.get('/observations', async (req: Request, res: Response, next: NextFuncti
       selectedBssids,
     });
     const start = Date.now();
-    const result: QueryResult = await query(sql, params);
+    const result: QueryResult = await v2Service.executeV2Query(sql, params);
     const durationMs = Date.now() - start;
 
     if (DEBUG_GEOSPATIAL || durationMs > 2000) {

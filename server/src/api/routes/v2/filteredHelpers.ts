@@ -3,7 +3,7 @@
  */
 
 import type { Response } from 'express';
-const { query } = require('../../../config/database');
+const v2Service = require('../../../services/v2Service');
 
 // Type definitions
 
@@ -193,7 +193,7 @@ export const assertHomeExistsIfNeeded = async (
     return true;
   }
   try {
-    const home: QueryResult<HomeCheckRow> = await query(
+    const home: QueryResult<HomeCheckRow> = await v2Service.executeV2Query(
       "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
     );
     if (home.rowCount === 0) {

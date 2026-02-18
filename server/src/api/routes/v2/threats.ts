@@ -7,7 +7,7 @@ import type { Request, Response } from 'express';
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
+const v2Service = require('../../../services/v2Service');
 const logger = require('../../../logging/logger');
 
 // Type definitions
@@ -114,7 +114,7 @@ router.get('/threats/severity-counts', async (req: Request, res: Response) => {
       }
     }
 
-    const result: QueryResult<SeverityCountRow> = await query(
+    const result: QueryResult<SeverityCountRow> = await v2Service.executeV2Query(
       `
       SELECT
         CASE

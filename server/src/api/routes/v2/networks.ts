@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
+const v2Service = require('../../../services/v2Service');
 
 // Type definitions
 
@@ -198,7 +198,7 @@ router.get('/v2/networks', async (req: Request, res: Response, next: NextFunctio
       LIMIT $${params.length - 1} OFFSET $${params.length};
     `;
 
-    const result: QueryResult<NetworkListRow> = await query(sql, params);
+    const result: QueryResult<NetworkListRow> = await v2Service.executeV2Query(sql, params);
     res.json({
       total: result.rows[0]?.total || 0,
       rows: result.rows.map((row) => ({
@@ -229,7 +229,7 @@ router.get('/v2/networks/:bssid', async (req: Request, res: Response, next: Next
     const bssid = String(req.params.bssid || '').toUpperCase();
 
     const [latest, timeline, threatData] = await Promise.all([
-      query(
+      v2Service.executeV2Query(
         `
         SELECT DISTINCT ON (bssid)
           bssid,
@@ -249,7 +249,7 @@ router.get('/v2/networks/:bssid', async (req: Request, res: Response, next: Next
         `,
         [bssid]
       ) as Promise<QueryResult<NetworkDetailRow>>,
-      query(
+      v2Service.executeV2Query(
         `
         SELECT
           DATE_TRUNC('hour', time) as bucket,
@@ -265,7 +265,7 @@ router.get('/v2/networks/:bssid', async (req: Request, res: Response, next: Next
         `,
         [bssid]
       ) as Promise<QueryResult<TimelineRow>>,
-      query(
+      v2Service.executeV2Query(
         `
         SELECT
           bssid,
@@ -282,12 +282,12 @@ router.get('/v2/networks/:bssid', async (req: Request, res: Response, next: Next
       ) as Promise<QueryResult<ThreatDataRow>>,
     ]);
 
-    const obsCount: QueryResult<CountRow> = await query(
+    const obsCount: QueryResult<CountRow> = await v2Service.executeV2Query(
       'SELECT COUNT(*) as count FROM app.observations WHERE bssid = $1',
       [bssid]
     );
 
-    const firstLast: QueryResult<FirstLastRow> = await query(
+    const firstLast: QueryResult<FirstLastRow> = await v2Service.executeV2Query(
       `
       SELECT MIN(time) as first_seen, MAX(time) as last_seen
       FROM app.observations
@@ -311,7 +311,7 @@ router.get('/v2/networks/:bssid', async (req: Request, res: Response, next: Next
 
 router.get('/v2/dashboard/metrics', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const threatCounts: QueryResult<ThreatCountRow> = await query(
+    const threatCounts: QueryResult<ThreatCountRow> = await v2Service.executeV2Query(
       `
       SELECT
         SUM(CASE WHEN nts.final_threat_level = 'CRITICAL' THEN 1 ELSE 0 END) AS critical,
@@ -323,7 +323,7 @@ router.get('/v2/dashboard/metrics', async (_req: Request, res: Response, next: N
       `
     );
 
-    const counts: QueryResult<DashboardCountRow> = await query(
+    const counts: QueryResult<DashboardCountRow> = await v2Service.executeV2Query(
       `
       SELECT
         (SELECT COUNT(DISTINCT bssid) FROM app.observations) as total_networks,
@@ -402,8 +402,8 @@ router.get('/v2/threats/map', async (req: Request, res: Response, next: NextFunc
     `;
 
     const [threats, observations] = await Promise.all([
-      query(threatsSql, params) as Promise<QueryResult<ThreatMapRow>>,
-      query(observationsSql, params) as Promise<QueryResult<ObservationMapRow>>,
+      v2Service.executeV2Query(threatsSql, params) as Promise<QueryResult<ThreatMapRow>>,
+      v2Service.executeV2Query(observationsSql, params) as Promise<QueryResult<ObservationMapRow>>,
     ]);
 
     res.json({
