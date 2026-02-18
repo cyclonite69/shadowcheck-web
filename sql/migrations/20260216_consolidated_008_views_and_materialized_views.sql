@@ -160,7 +160,10 @@ DO $$ BEGIN
             COALESCE((public.st_distance((public.st_setsrid(public.st_makepoint(n.bestlon, n.bestlat), 4326))::public.geography,
                 (SELECT (public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326))::public.geography
                  FROM app.location_markers lm WHERE (lm.marker_type = 'home'::text) LIMIT 1)) / (1000.0)::double precision), (0)::double precision) AS distance_from_home_km,
-            (max(o.level) - min(o.level)) AS max_distance_meters
+            MAX(public.st_distance(
+                public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+                public.st_setsrid(public.st_makepoint(n.bestlon, n.bestlat), 4326)::public.geography
+            )) AS max_distance_meters
         FROM (((app.networks n
             LEFT JOIN app.network_tags t ON ((n.bssid = (t.bssid)::text)))
             LEFT JOIN app.observations o ON ((n.bssid = o.bssid)))
