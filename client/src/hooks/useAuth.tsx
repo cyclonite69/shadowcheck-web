@@ -1,88 +1,34 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
-}
+const useAuth = () => {
+    const history = useHistory();
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (user: User) => void;
-  logout: () => void;
-  isAdmin: boolean;
-  isAuthenticated: boolean;
-}
+    useEffect(() => {
+        const handleWindowFocus = () => {
+            // Session re-validation logic here
+            console.log('Window focused, re-validating session...');
+            // Call your session validation function
+        };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+        window.addEventListener('focus', handleWindowFocus);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+        return () => {
+            window.removeEventListener('focus', handleWindowFocus);
+        };
+    }, []);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        const unlisten = history.listen((location) => {
+            // Session re-validation logic on route change
+            console.log('Route changed to:', location.pathname);
+            // Call your session validation function
+        });
 
-  // Check if user is already logged in on app start
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include', // Include cookies
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.authenticated) {
-          setUser(data.user);
-        }
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = (userData: User) => {
-    setUser(userData);
-  };
-
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setUser(null);
-    }
-  };
-
-  const value: AuthContextType = {
-    user,
-    loading,
-    login,
-    logout,
-    isAdmin: user?.role === 'admin',
-    isAuthenticated: !!user,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+        return () => {
+            unlisten();
+        };
+    }, [history]);
 };
 
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export default useAuth;
