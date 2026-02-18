@@ -24,11 +24,15 @@ export const ThreatBadge = ({ threat, reasons, evidence }: ThreatBadgeProps) => 
 
   return (
     <span
-      className="px-1.5 py-0.5 rounded text-xs font-medium inline-block"
       style={{
-        backgroundColor: levelConfig.bg,
+        background: levelConfig.bg,
         color: levelConfig.color,
+        padding: '2px 6px',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontWeight: '500',
         border: `1px solid ${levelConfig.color}40`,
+        display: 'inline-block',
         cursor: 'help',
       }}
       title={`${threat.summary}\nScore: ${(threat.score * 100).toFixed(0)}%\nReasons: ${reasonsList}\n${evidenceLines}`}

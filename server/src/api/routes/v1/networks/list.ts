@@ -536,12 +536,12 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     let homeLocation: { lat: number; lon: number } | null = null;
     try {
       const homeResult = await query(
-        "SELECT lat, lon FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
+        "SELECT latitude, longitude FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
       );
       if (homeResult.rows.length > 0) {
-        const { lat, lon } = homeResult.rows[0];
-        if (lat !== null && lon !== null) {
-          homeLocation = { lat: parseFloat(lat), lon: parseFloat(lon) };
+        const { latitude, longitude } = homeResult.rows[0];
+        if (latitude !== null && longitude !== null) {
+          homeLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
         }
       }
     } catch (err) {
