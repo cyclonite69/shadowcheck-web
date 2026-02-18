@@ -161,10 +161,54 @@ ln -sf /home/ssm-user/shadowcheck/deploy/aws/scripts/scs_rebuild.sh /usr/local/b
 echo "✅ scs_rebuild available system-wide"
 echo ""
 
-# 12. Create helpful aliases
-echo "⚡ Creating helpful aliases..."
+# 12. Configure bash environment for ssm-user
+echo "⚡ Configuring bash environment..."
+
+# Set bash as default shell
+usermod -s /bin/bash ssm-user
+echo "✅ Default shell set to bash"
+
+# Deploy complete .bashrc with all aliases
 if ! grep -q "shadowcheck aliases" /home/ssm-user/.bashrc; then
-  cat >> /home/ssm-user/.bashrc << 'ALIASES'
+  cat > /home/ssm-user/.bashrc << 'BASHRC'
+# Auto-navigate to home on SSM login
+if [ "$PWD" = "/usr/bin" ]; then
+    cd
+fi
+
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# User specific environment
+if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
+then
+    PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+fi
+export PATH
+
+# User specific aliases and functions
+if [ -d ~/.bashrc.d ]; then
+	for rc in ~/.bashrc.d/*; do
+		if [ -f "$rc" ]; then
+			. "$rc"
+		fi
+	done
+fi
+unset rc
+
+# Navigation aliases
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# Common aliases
+alias ll='ls -lh'
+alias la='ls -lha'
+alias l='ls -CF'
 
 # ShadowCheck aliases
 alias sc='cd /home/ssm-user/shadowcheck'
@@ -173,11 +217,11 @@ alias scps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
 alias scdb='pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db'
 alias scdeploy='scs_rebuild'
 alias scstatus='docker ps && echo "" && df -h /var/lib/postgresql'
-ALIASES
+BASHRC
   chown ssm-user:ssm-user /home/ssm-user/.bashrc
-  echo "✅ Aliases added to .bashrc"
+  echo "✅ Complete .bashrc deployed"
 else
-  echo "✅ Aliases already configured"
+  echo "✅ .bashrc already configured"
 fi
 echo ""
 
