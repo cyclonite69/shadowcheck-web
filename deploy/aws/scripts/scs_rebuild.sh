@@ -73,6 +73,7 @@ docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker run -d --name shadowcheck_backend \
   --network host \
   --env-file "$ENV_FILE" \
+  -e DB_HOST=localhost \
   --restart unless-stopped \
   shadowcheck/backend:latest
 
