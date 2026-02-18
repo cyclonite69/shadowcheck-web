@@ -260,35 +260,43 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
 
     const sql = `
       SELECT
-        bssid,
-        ssid,
-        observed_at,
-        signal,
-        lat,
-        lon,
-        observations,
-        first_seen,
-        last_seen,
-        is_5ghz,
-        is_6ghz,
-        is_hidden,
-        type,
-        frequency,
-        capabilities,
-        security,
-        distance_from_home_km,
-        accuracy_meters,
-        manufacturer,
-        manufacturer_address,
-        min_altitude_m,
-        max_altitude_m,
-        altitude_span_m,
-        max_distance_meters,
-        last_altitude_m,
-        is_sentinel,
-        threat,
+        mv.bssid,
+        mv.ssid,
+        mv.observed_at,
+        mv.signal,
+        mv.lat,
+        mv.lon,
+        mv.observations,
+        mv.first_seen,
+        mv.last_seen,
+        mv.is_5ghz,
+        mv.is_6ghz,
+        mv.is_hidden,
+        mv.type,
+        mv.frequency,
+        mv.capabilities,
+        mv.security,
+        mv.distance_from_home_km,
+        mv.accuracy_meters,
+        mv.manufacturer,
+        mv.manufacturer_address,
+        mv.min_altitude_m,
+        mv.max_altitude_m,
+        mv.altitude_span_m,
+        mv.max_distance_meters,
+        mv.last_altitude_m,
+        mv.is_sentinel,
+        COALESCE(
+          jsonb_build_object(
+            'score', live_ts.final_threat_score,
+            'level', live_ts.final_threat_level,
+            'model_version', live_ts.model_version
+          ),
+          mv.threat
+        ) AS threat,
         COUNT(*) OVER() AS total
-      FROM app.api_network_explorer_mv
+      FROM app.api_network_explorer_mv mv
+      LEFT JOIN app.network_threat_scores live_ts ON mv.bssid = live_ts.bssid::text
       ${whereClause}
       ${orderClause}
       ${limit !== null ? `LIMIT $${params.length + 1} OFFSET $${params.length + 2}` : ''};
