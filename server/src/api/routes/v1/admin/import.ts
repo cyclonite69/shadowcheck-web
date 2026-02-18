@@ -8,7 +8,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const { query } = require('../../../../config/database');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 export {};
@@ -72,13 +72,7 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
       if (code === 0) {
         // Get final counts
         try {
-          const counts = await query(`
-            SELECT 
-              (SELECT COUNT(*) FROM app.observations) as observations,
-              (SELECT COUNT(*) FROM app.networks) as networks
-          `);
-
-          const result = counts.rows[0] || { observations: 0, networks: 0 };
+          const result = await adminDbService.getImportCounts();
 
           logger.info(
             `Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`

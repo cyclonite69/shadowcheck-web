@@ -347,6 +347,64 @@ async function exportMLTrainingData(): Promise<any[]> {
   return result.rows;
 }
 
+/**
+ * Get import counts after SQLite import
+ */
+async function getImportCounts(): Promise<{ observations: number; networks: number }> {
+  const result = await query(`
+    SELECT 
+      (SELECT COUNT(*) FROM app.observations) as observations,
+      (SELECT COUNT(*) FROM app.networks) as networks
+  `);
+  return result.rows[0] || { observations: 0, networks: 0 };
+}
+
+/**
+ * Get all settings
+ */
+async function getAllSettings(): Promise<any[]> {
+  const result = await query(
+    'SELECT key, value, description, updated_at FROM app.settings ORDER BY key'
+  );
+  return result.rows;
+}
+
+/**
+ * Get setting by key
+ */
+async function getSettingByKey(key: string): Promise<any | null> {
+  const result = await query(
+    'SELECT value, description, updated_at FROM app.settings WHERE key = $1',
+    [key]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+/**
+ * Update setting
+ */
+async function updateSetting(key: string, value: any): Promise<any> {
+  const result = await adminQuery(
+    'UPDATE app.settings SET value = $1, updated_at = NOW() WHERE key = $2 RETURNING *',
+    [JSON.stringify(value), key]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Toggle ML blending setting
+ */
+async function toggleMLBlending(): Promise<boolean> {
+  const result = await adminQuery(`
+    UPDATE app.settings
+    SET value = CASE WHEN value::text = 'true' THEN 'false' ELSE 'true' END,
+        updated_at = NOW()
+    WHERE key = 'ml_blending_enabled'
+    RETURNING value
+  `);
+  return result.rows[0]?.value;
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;

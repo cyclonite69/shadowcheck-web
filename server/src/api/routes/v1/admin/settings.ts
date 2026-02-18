@@ -1,8 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
-const { adminQuery } = require('../../../../services/adminDbService');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 /**
@@ -11,11 +10,9 @@ const logger = require('../../../../logging/logger');
  */
 router.get('/', async (req, res) => {
   try {
-    const result = await query(
-      'SELECT key, value, description, updated_at FROM app.settings ORDER BY key'
-    );
+    const rows = await adminDbService.getAllSettings();
     const settings = {};
-    result.rows.forEach((row) => {
+    rows.forEach((row) => {
       settings[row.key] = {
         value: row.value,
         description: row.description,
@@ -36,14 +33,11 @@ router.get('/', async (req, res) => {
 router.get('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    const result = await query(
-      'SELECT value, description, updated_at FROM app.settings WHERE key = $1',
-      [key]
-    );
-    if (result.rows.length === 0) {
+    const setting = await adminDbService.getSettingByKey(key);
+    if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });
     }
-    res.json({ success: true, key, ...result.rows[0] });
+    res.json({ success: true, key, ...setting });
   } catch (error) {
     logger.error('Failed to get setting', { error: error.message, key: req.params.key });
     res.status(500).json({ success: false, error: error.message });
@@ -63,17 +57,14 @@ router.put('/:key', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Value is required' });
     }
 
-    const result = await adminQuery(
-      'UPDATE app.settings SET value = $1, updated_at = NOW() WHERE key = $2 RETURNING *',
-      [JSON.stringify(value), key]
-    );
+    const setting = await adminDbService.updateSetting(key, value);
 
-    if (result.rows.length === 0) {
+    if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });
     }
 
     logger.info('Setting updated', { key, value });
-    res.json({ success: true, setting: result.rows[0] });
+    res.json({ success: true, setting });
   } catch (error) {
     logger.error('Failed to update setting', { error: error.message, key: req.params.key });
     res.status(500).json({ success: false, error: error.message });
@@ -86,15 +77,7 @@ router.put('/:key', async (req, res) => {
  */
 router.post('/ml-blending/toggle', async (req, res) => {
   try {
-    const result = await adminQuery(`
-      UPDATE app.settings
-      SET value = CASE WHEN value::text = 'true' THEN 'false' ELSE 'true' END,
-          updated_at = NOW()
-      WHERE key = 'ml_blending_enabled'
-      RETURNING value
-    `);
-
-    const newValue = result.rows[0]?.value;
+    const newValue = await adminDbService.toggleMLBlending();
     logger.info('ML blending toggled', { enabled: newValue });
     res.json({ success: true, ml_blending_enabled: newValue });
   } catch (error) {
