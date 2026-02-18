@@ -168,7 +168,8 @@ DO $$ BEGIN
             LEFT JOIN app.network_tags t ON ((n.bssid = (t.bssid)::text)))
             LEFT JOIN app.observations o ON ((n.bssid = o.bssid)))
             LEFT JOIN app.network_threat_scores ts ON ((n.bssid = (ts.bssid)::text)))
-        WHERE ((n.bestlat IS NOT NULL) AND (n.bestlon IS NOT NULL))
+        WHERE ((n.bestlat IS NOT NULL) AND (n.bestlon IS NOT NULL) 
+               AND (n.bestlat != 0 OR n.bestlon != 0))
         GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel, n.bestlat, n.bestlon,
                  n.lasttime_ms, n.capabilities, t.threat_tag, ts.final_threat_score, ts.final_threat_level, ts.model_version
         WITH NO DATA;
