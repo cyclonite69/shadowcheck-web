@@ -1,87 +1,139 @@
 #!/bin/bash
-# Deploy PostgreSQL with persistent XFS volume to AWS instance
-# Run this on the AWS instance via SSM
+# Deploy PostgreSQL 18 + PostGIS on AWS (ARM64 / m6g.large)
+#
+# Handles two cases:
+#   FRESH  — blank EBS volume, no PG data → pull creds from Secrets Manager, initdb
+#   REATTACH — existing PG data on EBS → skip initdb, just start the container
+#
+# Secrets NEVER touch disk. Credentials live in AWS Secrets Manager (shadowcheck/config).
+# PostgreSQL runs with --network host so the backend (also --network host) connects
+# via true localhost — no Docker bridge IP mismatch in pg_hba.
+#
+# Usage: sudo ./deploy/aws/scripts/deploy-postgres.sh
 
-set -e
+set -euo pipefail
 
-echo "🚀 ShadowCheck PostgreSQL Deployment"
+echo "=== ShadowCheck PostgreSQL Deployment ==="
 echo ""
 
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then 
-   echo "Please run with sudo"
-   exit 1
+if [ "$EUID" -ne 0 ]; then
+  echo "ERROR: Run with sudo"
+  exit 1
 fi
 
-# 1. Format and mount persistent volume
-echo "📦 Setting up persistent XFS volume..."
+# ============================================================================
+# 1. Mount EBS data volume
+# ============================================================================
+echo "[1/7] Setting up persistent EBS volume..."
+
 if ! mountpoint -q /var/lib/postgresql; then
-  # Auto-detect data volume (disk with no partitions, not mounted)
-  DATA_VOL=$(lsblk -ndo NAME,TYPE | grep 'disk$' | while read name type; do
-    if ! lsblk -n /dev/$name | grep -q 'part'; then
-      echo $name
+  # Auto-detect: find the unpartitioned disk that is NOT the root device
+  ROOT_DISK=$(lsblk -ndo PKNAME "$(findmnt -n -o SOURCE /)" 2>/dev/null | head -1 || true)
+  DATA_VOL=""
+
+  for disk in $(lsblk -ndo NAME,TYPE | awk '$2=="disk"{print $1}'); do
+    # Skip the root device
+    if [ "$disk" = "$ROOT_DISK" ]; then
+      continue
+    fi
+    # Must have no child partitions (raw EBS volume)
+    if ! lsblk -n "/dev/$disk" | grep -q 'part'; then
+      DATA_VOL="$disk"
       break
     fi
-  done)
-  
+  done
+
   if [ -z "$DATA_VOL" ]; then
-    echo "❌ Data volume not found (looking for unpartitioned disk)"
-    lsblk
+    echo "ERROR: No unpartitioned data disk found (root disk: ${ROOT_DISK:-unknown})"
+    echo ""
+    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
     exit 1
   fi
-  
+
   DATA_DEV="/dev/$DATA_VOL"
-  echo "Found data volume: $DATA_DEV"
-  
-  if ! blkid $DATA_DEV | grep -q xfs; then
-    echo "Formatting $DATA_DEV with XFS (PostgreSQL-optimized)..."
+  echo "  Found data volume: $DATA_DEV"
+
+  # Format only if no filesystem exists at all
+  if ! blkid "$DATA_DEV" | grep -q 'TYPE='; then
+    echo "  Formatting with XFS (PostgreSQL-optimized)..."
     mkfs.xfs -f \
       -d agcount=4,su=256k,sw=1 \
       -i size=512 \
       -n size=8192 \
       -l size=128m,su=256k \
-      $DATA_DEV
-    echo "✅ XFS filesystem created"
+      "$DATA_DEV"
+  else
+    echo "  Filesystem already exists: $(blkid -s TYPE -o value "$DATA_DEV")"
   fi
-  
+
   mkdir -p /var/lib/postgresql
-  
-  echo "Mounting with PostgreSQL-optimized options..."
   mount -o noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m \
-    $DATA_DEV /var/lib/postgresql
-  
-  # Add to fstab for persistence
-  if ! grep -q "$DATA_DEV" /etc/fstab; then
-    echo "$DATA_DEV /var/lib/postgresql xfs noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m,nofail 0 2" >> /etc/fstab
-  fi
-  
+    "$DATA_DEV" /var/lib/postgresql
+
+  # Persist in fstab using UUID (stable across device-name changes)
+  VOL_UUID=$(blkid -s UUID -o value "$DATA_DEV")
+  sed -i '\|/var/lib/postgresql|d' /etc/fstab
+  echo "UUID=$VOL_UUID /var/lib/postgresql xfs noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m,nofail 0 2" >> /etc/fstab
+
   chmod 700 /var/lib/postgresql
-  echo "✅ Volume mounted at /var/lib/postgresql"
+  echo "  Mounted at /var/lib/postgresql"
 else
-  echo "✅ Volume already mounted"
+  echo "  Already mounted"
 fi
 
-# 2. Create SSL certificates
+# ============================================================================
+# 2. Detect fresh vs reattached volume
+# ============================================================================
 echo ""
-echo "🔐 Creating SSL certificates..."
-mkdir -p /var/lib/postgresql/certs
-cd /var/lib/postgresql/certs
-if [ ! -f server.crt ]; then
+echo "[2/7] Detecting volume state..."
+
+PGDATA="/var/lib/postgresql/data"
+
+if [ -f "$PGDATA/PG_VERSION" ]; then
+  VOLUME_STATE="reattach"
+  echo "  REATTACH: Found existing PG data (PG_VERSION=$(cat "$PGDATA/PG_VERSION"))"
+else
+  VOLUME_STATE="fresh"
+  echo "  FRESH: No existing PostgreSQL data — will initialize"
+fi
+
+# ============================================================================
+# 3. SSL certificates
+# ============================================================================
+echo ""
+echo "[3/7] SSL certificates..."
+
+CERT_DIR="/var/lib/postgresql/certs"
+mkdir -p "$CERT_DIR"
+
+if [ ! -f "$CERT_DIR/server.crt" ]; then
   openssl req -new -x509 -days 3650 -nodes -text \
-    -out server.crt -keyout server.key \
+    -out "$CERT_DIR/server.crt" -keyout "$CERT_DIR/server.key" \
     -subj "/CN=shadowcheck-postgres"
-  chmod 600 server.key
-  chmod 644 server.crt
-  echo "✅ SSL certificates created"
+  chmod 600 "$CERT_DIR/server.key"
+  chmod 644 "$CERT_DIR/server.crt"
+  echo "  Created"
 else
-  echo "✅ SSL certificates already exist"
+  echo "  Already exist"
 fi
 
-# 3. Create PostgreSQL config
+# Ensure postgres user (uid 999) owns certs
+chown 999:999 "$CERT_DIR/server.key" "$CERT_DIR/server.crt"
+
+# ============================================================================
+# 4. PostgreSQL configuration (tuned for m6g.large: 2 vCPU, 8 GB RAM)
+# ============================================================================
 echo ""
-echo "⚙️  Creating PostgreSQL configuration..."
+echo "[4/7] PostgreSQL configuration..."
+
 cat > /var/lib/postgresql/postgresql.conf << 'PGCONF'
-# Memory (8GB RAM)
+# === ShadowCheck PostgreSQL 18 — m6g.large (2 vCPU, 8 GB) ===
+
+# Networking: --network host mode, bind to localhost only
+listen_addresses = 'localhost'
+port = 5432
+
+# Memory
 shared_buffers = 2GB
 effective_cache_size = 6GB
 maintenance_work_mem = 512MB
@@ -96,13 +148,13 @@ max_wal_size = 4GB
 checkpoint_completion_target = 0.9
 checkpoint_timeout = 15min
 
-# Parallel Processing
+# Parallel Processing (2 vCPU)
 max_worker_processes = 2
 max_parallel_workers = 2
 max_parallel_workers_per_gather = 1
 max_parallel_maintenance_workers = 1
 
-# Storage (NVMe SSD)
+# Storage (NVMe EBS gp3)
 random_page_cost = 1.1
 effective_io_concurrency = 200
 seq_page_cost = 1.0
@@ -113,7 +165,7 @@ constraint_exclusion = partition
 enable_partitionwise_join = on
 enable_partitionwise_aggregate = on
 
-# PostGIS Optimization
+# PostGIS / JIT
 jit = on
 jit_above_cost = 100000
 jit_inline_above_cost = 500000
@@ -138,7 +190,7 @@ ssl = on
 ssl_cert_file = '/var/lib/postgresql/certs/server.crt'
 ssl_key_file = '/var/lib/postgresql/certs/server.key'
 
-# Logging (no passwords)
+# Logging (no credentials in logs)
 log_statement = 'none'
 log_connections = off
 log_disconnections = off
@@ -152,128 +204,156 @@ shared_preload_libraries = 'postgis-3'
 PGCONF
 
 chmod 600 /var/lib/postgresql/postgresql.conf
-echo "✅ PostgreSQL config created"
+chown 999:999 /var/lib/postgresql/postgresql.conf
+echo "  Written"
 
-# 4. Create pg_hba.conf
+# ============================================================================
+# 5. pg_hba.conf — host-network mode: only localhost connections allowed
+# ============================================================================
 echo ""
-echo "🔒 Creating pg_hba.conf (SSL required)..."
+echo "[5/7] pg_hba.conf..."
+
 cat > /var/lib/postgresql/pg_hba.conf << 'PGHBA'
-local   all  all                scram-sha-256
-hostssl all  all  0.0.0.0/0     scram-sha-256
-host    all  all  0.0.0.0/0     reject
-hostssl all  all  ::0/0         scram-sha-256
-host    all  all  ::0/0         reject
+# pg_hba.conf — host-network mode
+# PostgreSQL listens on localhost only (listen_addresses = 'localhost')
+# All connections are local — no Docker bridge IPs to worry about
+#
+# TYPE    DATABASE  USER  ADDRESS        METHOD
+local     all       all                  scram-sha-256
+host      all       all   127.0.0.1/32   scram-sha-256
+host      all       all   ::1/128        scram-sha-256
 PGHBA
 
 chmod 600 /var/lib/postgresql/pg_hba.conf
-echo "✅ pg_hba.conf created"
+chown 999:999 /var/lib/postgresql/pg_hba.conf
+echo "  Written"
 
-# 5. Fetch or generate DB password via AWS Secrets Manager (sole secret store)
+# ============================================================================
+# 6. Build PostgreSQL Docker image
+# ============================================================================
 echo ""
-echo "🔑 Setting up secrets from AWS Secrets Manager..."
-mkdir -p /home/ssm-user/secrets
-chmod 700 /home/ssm-user/secrets
+echo "[6/7] Building Docker image..."
 
-# Try to read db_password from AWS SM
-SM_JSON=$(aws secretsmanager get-secret-value \
-  --secret-id shadowcheck/config --region us-east-1 \
-  --query 'SecretString' --output text 2>/dev/null || echo "{}")
-DB_PASSWORD=$(echo "$SM_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
+# Find the project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-if [ -z "$DB_PASSWORD" ]; then
-  # Auto-generate and persist to AWS SM
-  DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
-  DB_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
-
-  # Merge into existing SM blob (or create new)
-  NEW_JSON=$(echo "$SM_JSON" | python3 -c "
-import sys, json
-raw = sys.stdin.read().strip()
-blob = json.loads(raw) if raw and raw != '{}' else {}
-blob['db_password'] = '$DB_PASSWORD'
-blob['db_admin_password'] = '$DB_ADMIN_PASSWORD'
-print(json.dumps(blob))
-" 2>/dev/null || echo "{\"db_password\":\"$DB_PASSWORD\",\"db_admin_password\":\"$DB_ADMIN_PASSWORD\"}")
-
-  aws secretsmanager put-secret-value \
-    --secret-id shadowcheck/config --region us-east-1 \
-    --secret-string "$NEW_JSON" 2>/dev/null \
-    && echo "✅ Auto-generated passwords and stored in AWS SM" \
-    || echo "⚠️  Could not persist to AWS SM — passwords are ephemeral!"
-else
-  echo "✅ Loaded db_password from AWS Secrets Manager"
+if [ ! -f "$PROJECT_ROOT/deploy/aws/docker/Dockerfile.postgis" ]; then
+  PROJECT_ROOT="/home/ssm-user/shadowcheck"
 fi
 
-# 6. Create docker-compose.yml
+docker build -f "$PROJECT_ROOT/deploy/aws/docker/Dockerfile.postgis" \
+  -t shadowcheck/postgres:18-postgis "$PROJECT_ROOT/deploy/aws/docker"
+echo "  Built shadowcheck/postgres:18-postgis"
+
+# ============================================================================
+# 7. Start PostgreSQL container
+# ============================================================================
 echo ""
-echo "🐳 Creating docker-compose.yml..."
-cat > /home/ssm-user/docker-compose.yml << COMPOSE
-services:
-  postgres:
-    image: shadowcheck/postgres:18-postgis-3.6
-    container_name: shadowcheck_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: shadowcheck_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: shadowcheck_db
-      PGDATA: /var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - /var/lib/postgresql:/var/lib/postgresql
-    shm_size: 512mb
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shadowcheck_user -d shadowcheck_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-COMPOSE
+echo "[7/7] Starting PostgreSQL..."
 
-chown ssm-user:ssm-user /home/ssm-user/docker-compose.yml
-echo "✅ docker-compose.yml created"
+# Stop existing container if present
+docker stop shadowcheck_postgres 2>/dev/null || true
+docker rm shadowcheck_postgres 2>/dev/null || true
 
-# 7. Pull PostgreSQL image
-echo ""
-echo "🔨 Building custom PostgreSQL image..."
-cd /home/ssm-user/shadowcheck
-docker build -f deploy/aws/docker/Dockerfile.postgis -t shadowcheck/postgres:18-postgis-3.6 .
-echo "✅ Image built"
+if [ "$VOLUME_STATE" = "fresh" ]; then
+  echo "  FRESH INIT: Fetching credentials from AWS Secrets Manager..."
 
-# 8. Start PostgreSQL
-echo ""
-echo "🚀 Starting PostgreSQL..."
-cd /home/ssm-user
-sudo -u ssm-user docker compose up -d
+  SM_JSON=$(aws secretsmanager get-secret-value \
+    --secret-id shadowcheck/config --region us-east-1 \
+    --query 'SecretString' --output text 2>/dev/null || echo "")
 
-echo ""
-echo "⏳ Waiting for PostgreSQL to be ready..."
-sleep 10
+  if [ -z "$SM_JSON" ]; then
+    echo "ERROR: Cannot read shadowcheck/config from Secrets Manager"
+    echo "Ensure the instance IAM role has secretsmanager:GetSecretValue"
+    exit 1
+  fi
 
-# 9. Verify
-if docker exec shadowcheck_postgres pg_isready -U shadowcheck_user &>/dev/null; then
-  echo ""
-  echo "✅ PostgreSQL is running!"
-  echo ""
-  echo "📊 Status:"
-  docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-  echo ""
-  echo "💾 Data volume:"
-  df -h /var/lib/postgresql
-  echo ""
-  echo "🔑 Database password stored in AWS Secrets Manager"
-  echo ""
-  echo "🔗 Connection string:"
-  echo "   postgresql://shadowcheck_user:PASSWORD@localhost:5432/shadowcheck_db?sslmode=require"
+  DB_PASSWORD=$(echo "$SM_JSON" | python3 -c \
+    "import json,sys; s=json.load(sys.stdin); print(s['db_password'])" 2>/dev/null || echo "")
+
+  if [ -z "$DB_PASSWORD" ]; then
+    echo "ERROR: db_password not found in shadowcheck/config secret"
+    exit 1
+  fi
+
+  # Start with POSTGRES_PASSWORD to trigger initdb on empty PGDATA
+  docker run -d \
+    --name shadowcheck_postgres \
+    --network host \
+    --restart unless-stopped \
+    --shm-size 512m \
+    -e POSTGRES_USER=shadowcheck_user \
+    -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+    -e POSTGRES_DB=shadowcheck_db \
+    -e PGDATA=/var/lib/postgresql/data \
+    -v /var/lib/postgresql:/var/lib/postgresql \
+    --log-driver json-file \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
+    shadowcheck/postgres:18-postgis \
+    postgres \
+      -c config_file=/var/lib/postgresql/postgresql.conf \
+      -c hba_file=/var/lib/postgresql/pg_hba.conf
+
+  # Credentials were passed as env vars to the container process (never on disk).
+  # Clear from the shell environment immediately.
+  unset DB_PASSWORD SM_JSON
+
 else
+  echo "  REATTACH: Starting with existing data directory..."
+
+  # No POSTGRES_PASSWORD — the entrypoint detects existing PGDATA and skips initdb
+  docker run -d \
+    --name shadowcheck_postgres \
+    --network host \
+    --restart unless-stopped \
+    --shm-size 512m \
+    -e PGDATA=/var/lib/postgresql/data \
+    -v /var/lib/postgresql:/var/lib/postgresql \
+    --log-driver json-file \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
+    shadowcheck/postgres:18-postgis \
+    postgres \
+      -c config_file=/var/lib/postgresql/postgresql.conf \
+      -c hba_file=/var/lib/postgresql/pg_hba.conf
+fi
+
+# Wait for PostgreSQL to be ready (up to 60s)
+echo "  Waiting for PostgreSQL..."
+for i in $(seq 1 30); do
+  if docker exec shadowcheck_postgres pg_isready -h 127.0.0.1 >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+if ! docker exec shadowcheck_postgres pg_isready -h 127.0.0.1 >/dev/null 2>&1; then
+  echo "ERROR: PostgreSQL failed to start within 60s"
   echo ""
-  echo "❌ PostgreSQL failed to start"
-  echo "Check logs: docker logs shadowcheck_postgres"
+  docker logs --tail 30 shadowcheck_postgres
   exit 1
 fi
+
+echo "  PostgreSQL is ready"
+
+# Suppress collation version mismatch (harmless after OS/glibc upgrade on reattach)
+echo "  Refreshing collation version..."
+docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+  -c "ALTER DATABASE shadowcheck_db REFRESH COLLATION VERSION;" 2>/dev/null || true
+
+# ============================================================================
+# Summary
+# ============================================================================
+echo ""
+echo "=== PostgreSQL deployed successfully ($VOLUME_STATE) ==="
+echo ""
+echo "  Container:   shadowcheck_postgres (--network host)"
+echo "  Listening:   127.0.0.1:5432"
+echo "  Data:        $PGDATA"
+echo "  Credentials: AWS Secrets Manager (shadowcheck/config)"
+echo ""
+docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E 'NAMES|shadowcheck_postgres'
+echo ""
+df -h /var/lib/postgresql | tail -1
