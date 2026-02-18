@@ -27,42 +27,28 @@ router.get('/:bssid/nearest-agencies', async (req, res, next) => {
           AND latitude IS NOT NULL 
           AND longitude IS NOT NULL
       ),
-      nearest_per_observation AS (
-        SELECT DISTINCT ON (o.lat, o.lon)
+      agency_distances AS (
+        SELECT
           a.id,
-          a.name as office_name, 
-          a.office_type, 
-          a.city, 
+          a.name as office_name,
+          a.office_type,
+          a.city,
           a.state,
           a.postal_code,
           ST_Y(a.location::geometry) as latitude,
           ST_X(a.location::geometry) as longitude,
-          ST_Distance(
+          MIN(ST_Distance(
             ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
             a.location::geography
-          ) / 1000.0 as distance_km,
-          o.source = 'wigle' as has_wigle_obs
+          ) / 1000.0) as distance_km,
+          BOOL_OR(o.source = 'wigle') as has_wigle_obs
         FROM all_observations o
         CROSS JOIN app.agency_offices a
-        ORDER BY o.lat, o.lon, ST_Distance(
-          ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
-          a.location::geography
-        ) ASC
+        GROUP BY a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
       )
-      SELECT DISTINCT
-        office_name,
-        office_type,
-        city,
-        state,
-        postal_code,
-        latitude,
-        longitude,
-        MIN(distance_km) as distance_km,
-        BOOL_OR(has_wigle_obs) as has_wigle_obs
-      FROM nearest_per_observation
+      SELECT * FROM agency_distances
       WHERE distance_km <= $2
-      GROUP BY office_name, office_type, city, state, postal_code, latitude, longitude
-      ORDER BY MIN(distance_km) ASC
+      ORDER BY distance_km ASC
     `;
 
     const result = await query(sql, [bssid, radius]);
@@ -112,42 +98,28 @@ router.post('/nearest-agencies/batch', async (req, res, next) => {
           AND latitude IS NOT NULL 
           AND longitude IS NOT NULL
       ),
-      nearest_per_observation AS (
-        SELECT DISTINCT ON (o.lat, o.lon)
+      agency_distances AS (
+        SELECT
           a.id,
-          a.name as office_name, 
-          a.office_type, 
-          a.city, 
+          a.name as office_name,
+          a.office_type,
+          a.city,
           a.state,
           a.postal_code,
           ST_Y(a.location::geometry) as latitude,
           ST_X(a.location::geometry) as longitude,
-          ST_Distance(
+          MIN(ST_Distance(
             ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
             a.location::geography
-          ) / 1000.0 as distance_km,
-          o.source = 'wigle' as has_wigle_obs
+          ) / 1000.0) as distance_km,
+          BOOL_OR(o.source = 'wigle') as has_wigle_obs
         FROM all_observations o
         CROSS JOIN app.agency_offices a
-        ORDER BY o.lat, o.lon, ST_Distance(
-          ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
-          a.location::geography
-        ) ASC
+        GROUP BY a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
       )
-      SELECT DISTINCT
-        office_name,
-        office_type,
-        city,
-        state,
-        postal_code,
-        latitude,
-        longitude,
-        MIN(distance_km) as distance_km,
-        BOOL_OR(has_wigle_obs) as has_wigle_obs
-      FROM nearest_per_observation
+      SELECT * FROM agency_distances
       WHERE distance_km <= $2
-      GROUP BY office_name, office_type, city, state, postal_code, latitude, longitude
-      ORDER BY MIN(distance_km) ASC
+      ORDER BY distance_km ASC
     `;
 
     const result = await query(sql, [upperBssids, radius]);
