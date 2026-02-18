@@ -46,7 +46,7 @@
     "@aws-sdk/client-secrets-manager": "^3.989.0",
     "@aws-sdk/client-sts": "^3.985.0",
     "@deck.gl/core": "^9.2.6",
-    "@deck.gl/layers": "^9.2.6",
+    "@deck.gl/layers": "^9.2.7",
     "@deck.gl/react": "^9.2.6",
     "@deck.gl/widgets": "9.2.6",
     "@tanstack/react-virtual": "^3.13.18",
