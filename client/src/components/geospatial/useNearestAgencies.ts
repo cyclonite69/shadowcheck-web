@@ -36,6 +36,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
 
           if (Array.isArray(bssid)) {
             // Batch mode: multiple BSSIDs
+            console.log('[useNearestAgencies] Fetching batch for', bssid.length, 'BSSIDs');
             res = await fetch('/api/networks/nearest-agencies/batch?radius=250', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -44,6 +45,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
             });
           } else {
             // Single mode: one BSSID
+            console.log('[useNearestAgencies] Fetching single for', bssid);
             res = await fetch(
               `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?radius=250`,
               { signal: controller.signal }
@@ -54,6 +56,11 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
           if (!data.ok) {
             throw new Error(data.error || 'Failed to load agencies');
           }
+          console.log('[useNearestAgencies] Loaded', data.agencies.length, 'agencies');
+          console.log(
+            '[useNearestAgencies] States:',
+            [...new Set(data.agencies.map((a: Agency) => a.state))].sort()
+          );
           setAgencies(data.agencies || []);
         } catch (err: any) {
           if (err.name !== 'AbortError') {

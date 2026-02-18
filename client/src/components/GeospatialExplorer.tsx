@@ -347,6 +347,9 @@ export default function GeospatialExplorer() {
 
     if (agencies.length === 0 || !showAgenciesPanel) return;
 
+    console.log('[Agency Layer] Rendering', agencies.length, 'agencies');
+    console.log('[Agency Layer] States:', [...new Set(agencies.map((a) => a.state))].sort());
+
     // Create features for all agencies
     const features = agencies.map((agency) => ({
       type: 'Feature' as const,
