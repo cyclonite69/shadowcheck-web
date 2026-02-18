@@ -6,7 +6,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { pool, query } = require('../../../../config/database');
+const networkService = require('../../../../services/networkService');
 const { escapeLikePattern } = require('../../../../utils/escapeSQL');
 const { safeJsonParse } = require('../../../../utils/safeJsonParse');
 const logger = require('../../../../logging/logger');
@@ -535,15 +535,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
 
     let homeLocation: { lat: number; lon: number } | null = null;
     try {
-      const homeResult = await query(
-        "SELECT latitude, longitude FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
-      );
-      if (homeResult.rows.length > 0) {
-        const { latitude, longitude } = homeResult.rows[0];
-        if (latitude !== null && longitude !== null) {
-          homeLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
-        }
-      }
+      homeLocation = await networkService.getHomeLocation();
     } catch (err) {
       console.log('[WARN] Could not fetch home location:', err.message);
     }
@@ -787,17 +779,31 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       paramIndex += 3;
     }
 
-    const totalCountQuery = `
-      SELECT COUNT(DISTINCT ne.bssid) AS total
-      FROM app.network_entries ne
-      ${joins.join('\n')}
-      ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
-    `;
+    const total = await networkService.getNetworkCount(conditions, params, joins);
 
-    const totalResult = await query(totalCountQuery, params);
-    const total = parseInt(totalResult.rows[0]?.total || '0', 10);
+    const rows = await networkService.listNetworks(
+      columnsWithDistance,
+      joins,
+      conditions,
+      params,
+      sortClauses,
+      limit,
+      offset,
+      paramIndex
+    );
 
-    const dataQuery = `
+    if (planCheck) {
+      const plan = await networkService.explainQuery(
+        columnsWithDistance,
+        joins,
+        conditions,
+        params,
+        sortClauses,
+        limit,
+        offset,
+        paramIndex
+      );
+      const dataQuery = `
       SELECT
         ${columnsWithDistance.join(',\n')}
       FROM app.network_entries ne
@@ -806,23 +812,11 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       ORDER BY ${sortClauses}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-
-    const dataParams = [...params, limit, offset];
-    const dataResult = await query(dataQuery, dataParams);
-    const rows = dataResult.rows.map((row) => {
-      const typedRow = { ...row };
-      if (row.type === '?') {
-        typedRow.type = null;
-      }
-      return typedRow;
-    });
-
-    if (planCheck) {
-      const explained = await query(`EXPLAIN (FORMAT JSON) ${dataQuery}`, dataParams);
+      const dataParams = [...params, limit, offset];
       return res.json({
         query: dataQuery,
         params: dataParams,
-        plan: explained.rows,
+        plan,
         total,
         count: rows.length,
         applied_filters: sortEntries,

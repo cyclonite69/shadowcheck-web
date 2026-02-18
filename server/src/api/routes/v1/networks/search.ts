@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-import { query } from '../../../../config/database';
+const networkService = require('../../../../services/networkService');
 import { escapeLikePattern } from '../../../../utils/escapeSQL';
 import { validateString } from '../../../../validation/schemas';
 
@@ -28,16 +28,7 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
     const escapedSSID = escapeLikePattern(String(ssid).trim());
     const searchPattern = `%${escapedSSID}%`;
 
-    const { rows } = await query(
-      `SELECT n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel as signal, n.lasttime,
-              COUNT(DISTINCT l.unified_id) as observation_count
-       FROM app.networks n
-       LEFT JOIN app.observations l ON n.bssid = l.bssid
-       WHERE n.ssid ILIKE $1
-       GROUP BY n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel, n.lasttime
-       ORDER BY observation_count DESC LIMIT 50`,
-      [searchPattern]
-    );
+    const rows = await networkService.searchNetworksBySSID(searchPattern);
 
     res.json({ ok: true, query: ssid, count: rows.length, networks: rows });
   } catch (err) {

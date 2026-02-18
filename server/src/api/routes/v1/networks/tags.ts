@@ -5,7 +5,8 @@
 
 import express from 'express';
 const router = express.Router();
-import { query } from '../../../../config/database';
+const networkService = require('../../../../services/networkService');
+const { query } = require('../../../../config/database');
 const { adminQuery } = require('../../../../services/adminDbService');
 import logger from '../../../../logging/logger';
 import {
@@ -47,17 +48,11 @@ router.get('/networks/tagged', async (req, res, next) => {
     const limit = limitResult.value ?? 50;
     const offset = (page - 1) * limit;
 
-    const { rows } = await query(
-      `SELECT t.bssid, n.ssid, t.tag_type, t.confidence, t.notes, t.tagged_at, t.updated_at,
-              COUNT(*) OVER() as total_count
-       FROM app.network_tags t
-       LEFT JOIN app.networks n ON t.bssid = n.bssid
-       WHERE t.tag_type = $1
-       ORDER BY t.updated_at DESC LIMIT $2 OFFSET $3`,
-      [tagValidation.value, limit, offset]
+    const { rows, totalCount } = await networkService.getTaggedNetworks(
+      tagValidation.value,
+      limit,
+      offset
     );
-
-    const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
     res.json({
       ok: true,
@@ -109,11 +104,9 @@ router.post('/tag-network', async (req, res, next) => {
       return res.status(400).json({ error: 'Notes must be a string' });
     }
 
-    const networkResult = await query(`SELECT ssid FROM app.networks WHERE bssid = $1 LIMIT 1`, [
-      bssidValidation.cleaned,
-    ]);
+    const networkExists = await networkService.checkNetworkExists(bssidValidation.cleaned);
 
-    if (networkResult.rowCount === 0) {
+    if (!networkExists) {
       return res.status(404).json({ error: 'Network not found for tagging' });
     }
 
