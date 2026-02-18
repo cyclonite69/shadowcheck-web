@@ -8,7 +8,8 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
+const explorerService = require('../../../../services/explorerService');
+const homeLocationService = require('../../../../services/homeLocationService');
 const logger = require('../../../../logging/logger');
 
 // Import shared utilities
@@ -54,16 +55,14 @@ router.get('/explorer/networks', async (req, res, _next) => {
     };
     const sortColumn = sortMap[sort] || 'last_seen';
 
-    // Fetch home location from database
+    // Fetch home location from service
     let homeLon = null;
     let homeLat = null;
     try {
-      const homeResult = await query(
-        "SELECT longitude, latitude FROM app.location_markers WHERE marker_type = 'home' ORDER BY created_at DESC LIMIT 1"
-      );
-      if (homeResult.rows.length > 0) {
-        homeLon = homeResult.rows[0].longitude;
-        homeLat = homeResult.rows[0].latitude;
+      const homeLocation = await homeLocationService.getCurrentHomeLocation();
+      if (homeLocation) {
+        homeLon = homeLocation.longitude;
+        homeLat = homeLocation.latitude;
       }
     } catch (err) {
       logger.warn('Could not fetch home location for distance calculation');
@@ -150,7 +149,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       ${limitClause}
     `;
 
-    const result = await query(sql, params);
+    const result = await explorerService.executeExplorerQuery(sql, params);
     res.json({
       total: result.rows[0]?.total || 0,
       rows: result.rows.map((row) => ({
@@ -318,7 +317,7 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       params.push(limit, offset);
     }
 
-    const result = await query(sql, params);
+    const result = await explorerService.executeExplorerQuery(sql, params);
 
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',

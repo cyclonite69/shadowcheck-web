@@ -3,7 +3,7 @@
  * Common functions used across explorer routes
  */
 
-const { query } = require('../../../../config/database');
+const explorerService = require('../../../../services/explorerService');
 const logger = require('../../../../logging/logger');
 const { validateIntegerRange } = require('../../../../validation/schemas');
 
@@ -19,14 +19,9 @@ const parseJsonParam = (value, fallback, name) => {
 };
 
 const assertHomeExistsIfNeeded = async (enabled, res) => {
-  if (!enabled?.distanceFromHomeMin && !enabled?.distanceFromHomeMax) {
-    return true;
-  }
   try {
-    const home = await query(
-      "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
-    );
-    if (home.rowCount === 0) {
+    const exists = await explorerService.checkHomeLocationForFilters(enabled);
+    if (!exists) {
       res.status(400).json({
         ok: false,
         error: 'Home location is required for distance filters.',
@@ -35,14 +30,11 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
     }
     return true;
   } catch (err) {
-    if (err && err.code === '42P01') {
-      res.status(400).json({
-        ok: false,
-        error: 'Home location markers table is missing (app.location_markers).',
-      });
-      return false;
-    }
-    throw err;
+    res.status(400).json({
+      ok: false,
+      error: err.message || 'Home location check failed.',
+    });
+    return false;
   }
 };
 
