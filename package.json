@@ -116,7 +116,8 @@
     "node": ">=20.0.0"
   },
   "overrides": {
-    "tar": "^7.5.7"
+    "tar": "^7.5.7",
+    "fast-xml-parser": ">=5.3.6"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
