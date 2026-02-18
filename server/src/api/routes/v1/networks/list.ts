@@ -578,10 +578,8 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       `rm.address`,
       `nts.final_threat_score`,
       `nts.final_threat_level`,
-      `nts.rule_score`,
-      `nts.ml_score`,
-      `nts.evidence_weight`,
-      `nts.ml_boost`,
+      `nts.rule_based_score`,
+      `nts.ml_threat_score`,
       `nts.model_version`,
     ];
 

@@ -160,10 +160,8 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     level: threatLevel as 'NONE' | 'LOW' | 'MED' | 'HIGH' | 'CRITICAL',
     summary: `Threat level: ${threatLevel}`,
     debug: {
-      rule_score: row.rule_score ?? null,
-      ml_score: row.ml_score ?? null,
-      evidence_weight: row.evidence_weight ?? null,
-      ml_boost: row.ml_boost ?? null,
+      rule_score: row.rule_based_score ?? null,
+      ml_score: row.ml_threat_score ?? null,
       model_version: row.model_version ?? null,
     },
   };
@@ -191,10 +189,10 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     threat: threatInfo,
     threat_score: threatScore,
     threat_level: threatLevel,
-    threat_rule_score: row.rule_score ?? null,
-    threat_ml_score: row.ml_score ?? null,
-    threat_ml_weight: row.evidence_weight ?? null,
-    threat_ml_boost: row.ml_boost ?? null,
+    threat_rule_score: row.rule_based_score ?? null,
+    threat_ml_score: row.ml_threat_score ?? null,
+    threat_ml_weight: null,
+    threat_ml_boost: null,
     threatReasons: [],
     threatEvidence: [],
     stationaryConfidence:
