@@ -589,9 +589,11 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
         CASE
           WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL THEN
             6371 * ACOS(
-              COS(RADIANS(${homeLocation.lat})) * COS(RADIANS(ne.lat)) *
-              COS(RADIANS(ne.lon) - RADIANS(${homeLocation.lon})) +
-              SIN(RADIANS(${homeLocation.lat})) * SIN(RADIANS(ne.lat))
+              LEAST(1.0, GREATEST(-1.0,
+                COS(RADIANS(${homeLocation.lat})) * COS(RADIANS(ne.lat)) *
+                COS(RADIANS(ne.lon) - RADIANS(${homeLocation.lon})) +
+                SIN(RADIANS(${homeLocation.lat})) * SIN(RADIANS(ne.lat))
+              ))
             )
           ELSE NULL
         END`
