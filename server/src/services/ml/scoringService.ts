@@ -266,3 +266,88 @@ export const scoreAllNetworks = async ({
     scored: scores.length,
   };
 };
+
+// Additional ML service methods
+
+/**
+ * Get ML model status and statistics
+ */
+export async function getMLModelStatus(): Promise<any> {
+  const modelRows = await query(
+    `SELECT model_type, feature_names, created_at, updated_at
+     FROM app.ml_model_config
+     WHERE model_type = 'threat_logistic_regression'`
+  );
+
+  const tagRows = await query(
+    `SELECT threat_tag as tag_type, COUNT(*) as count
+     FROM app.network_tags
+     WHERE threat_tag IN ('THREAT', 'FALSE_POSITIVE')
+     GROUP BY threat_tag`
+  );
+
+  const scoreRows = await query('SELECT COUNT(*) as count FROM app.network_threat_scores');
+
+  return {
+    modelTrained: modelRows.rows.length > 0,
+    modelInfo: modelRows.rows[0] || null,
+    taggedNetworks: tagRows.rows,
+    mlScoresCount: parseInt(scoreRows.rows[0]?.count || 0),
+  };
+}
+
+/**
+ * Get training data for ML model
+ */
+export async function getMLTrainingData(): Promise<any[]> {
+  const { rows } = await query(`
+    SELECT
+      nt.bssid,
+      nt.threat_tag as tag_type,
+      mv.type,
+      mv.security,
+      mv.observations as observation_count,
+      mv.unique_days,
+      mv.unique_locations,
+      mv.signal as max_signal,
+      mv.max_distance_meters / 1000.0 as distance_range_km,
+      (mv.distance_from_home_km < 0.1) as seen_at_home,
+      (mv.distance_from_home_km > 0.5) as seen_away_from_home
+    FROM app.network_tags nt
+    JOIN app.api_network_explorer_mv mv ON nt.bssid = mv.bssid
+    WHERE nt.threat_tag IN ('THREAT', 'FALSE_POSITIVE')
+      AND mv.observations > 0
+  `);
+  return rows;
+}
+
+/**
+ * Get ML score for a specific network
+ */
+export async function getMLScoreForNetwork(bssid: string): Promise<any | null> {
+  const result = await query('SELECT * FROM app.network_threat_scores WHERE bssid = $1', [bssid]);
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+/**
+ * Get networks by threat level
+ */
+export async function getNetworksByThreatLevel(level: string, limit: number): Promise<any[]> {
+  const result = await query(
+    `
+    SELECT bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
+           final_threat_score, final_threat_level, scored_at
+    FROM app.network_threat_scores
+    WHERE final_threat_level = $1
+    ORDER BY final_threat_score DESC
+    LIMIT $2
+  `,
+    [level, limit]
+  );
+  return result.rows;
+}
+
+module.exports.getMLModelStatus = getMLModelStatus;
+module.exports.getMLTrainingData = getMLTrainingData;
+module.exports.getMLScoreForNetwork = getMLScoreForNetwork;
+module.exports.getNetworksByThreatLevel = getNetworksByThreatLevel;

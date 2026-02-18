@@ -6,8 +6,8 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
 const { adminQuery } = require('../../../services/adminDbService');
+const mlScoringService = require('../../../services/ml/scoringService');
 const logger = require('../../../logging/logger');
 const mlTrainingLock = require('../../../services/mlTrainingLock');
 const {
@@ -62,27 +62,10 @@ try {
 // ============================================
 router.get('/ml/status', async (req, res, next) => {
   try {
-    const modelRows = await query(
-      `SELECT model_type, feature_names, created_at, updated_at
-       FROM app.ml_model_config
-       WHERE model_type = 'threat_logistic_regression'`
-    );
-
-    const tagRows = await query(
-      `SELECT threat_tag as tag_type, COUNT(*) as count
-       FROM app.network_tags
-       WHERE threat_tag IN ('THREAT', 'FALSE_POSITIVE')
-       GROUP BY threat_tag`
-    );
-
-    const scoreRows = await query('SELECT COUNT(*) as count FROM app.network_threat_scores');
-
+    const status = await mlScoringService.getMLModelStatus();
     res.json({
       ok: true,
-      modelTrained: modelRows.rows.length > 0,
-      modelInfo: modelRows.rows[0] || null,
-      taggedNetworks: tagRows.rows,
-      mlScoresCount: parseInt(scoreRows.rows[0]?.count || 0),
+      ...status,
     });
   } catch (err) {
     next(err);
@@ -119,24 +102,7 @@ router.post('/ml/train', async (req, res, next) => {
     }
     lockAcquired = true;
 
-    const { rows } = await query(`
-      SELECT
-        nt.bssid,
-        nt.threat_tag as tag_type,
-        mv.type,
-        mv.security,
-        mv.observations as observation_count,
-        mv.unique_days,
-        mv.unique_locations,
-        mv.signal as max_signal,
-        mv.max_distance_meters / 1000.0 as distance_range_km,
-        (mv.distance_from_home_km < 0.1) as seen_at_home,
-        (mv.distance_from_home_km > 0.5) as seen_away_from_home
-      FROM app.network_tags nt
-      JOIN app.api_network_explorer_mv mv ON nt.bssid = mv.bssid
-      WHERE nt.threat_tag IN ('THREAT', 'FALSE_POSITIVE')
-        AND mv.observations > 0
-    `);
+    const rows = await mlScoringService.getMLTrainingData();
 
     if (rows.length < 10) {
       return res.status(400).json({
@@ -230,9 +196,9 @@ router.get('/ml/scores/:bssid', async (req, res, next) => {
     }
     const bssid = bssidValidation.cleaned;
 
-    const result = await query('SELECT * FROM app.network_threat_scores WHERE bssid = $1', [bssid]);
+    const score = await mlScoringService.getMLScoreForNetwork(bssid);
 
-    if (!result.rows.length) {
+    if (!score) {
       return res.status(404).json({
         ok: false,
         error: { message: `No score found for ${bssid}. Run POST /api/ml/score-all first.` },
@@ -241,7 +207,7 @@ router.get('/ml/scores/:bssid', async (req, res, next) => {
 
     res.json({
       ok: true,
-      score: result.rows[0],
+      score,
     });
   } catch (err) {
     next(err);
@@ -273,23 +239,16 @@ router.get('/ml/scores/level/:level', async (req, res, next) => {
       });
     }
 
-    const result = await query(
-      `
-      SELECT bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
-             final_threat_score, final_threat_level, scored_at
-      FROM app.network_threat_scores
-      WHERE final_threat_level = $1
-      ORDER BY final_threat_score DESC
-      LIMIT $2
-    `,
-      [levelValidation.value, limitValidation.value]
+    const networks = await mlScoringService.getNetworksByThreatLevel(
+      levelValidation.value,
+      limitValidation.value
     );
 
     res.json({
       ok: true,
       threatLevel: levelValidation.value,
-      networks: result.rows,
-      count: result.rows.length,
+      networks,
+      count: networks.length,
     });
   } catch (err) {
     next(err);

@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
+const adminDbService = require('../../../services/adminDbService');
 const { adminQuery } = require('../../../services/adminDbService');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
 
@@ -12,25 +12,21 @@ router.get('/backup', requireAdmin, async (req, res) => {
     const filename = `shadowcheck_backup_${timestamp}.json`;
 
     // Export all data
-    const [observations, networks, tags] = await Promise.all([
-      query('SELECT * FROM app.observations ORDER BY observed_at DESC'),
-      query('SELECT * FROM app.networks'),
-      query('SELECT * FROM app.network_tags'),
-    ]);
+    const { observations, networks, tags } = await adminDbService.getBackupData();
 
     const backup = {
       exported_at: new Date().toISOString(),
       version: '1.0',
       database: process.env.DB_NAME,
       tables: {
-        observations: observations.rows,
-        networks: networks.rows,
-        network_tags: tags.rows,
+        observations,
+        networks,
+        network_tags: tags,
       },
       counts: {
-        observations: observations.rows.length,
-        networks: networks.rows.length,
-        network_tags: tags.rows.length,
+        observations: observations.length,
+        networks: networks.length,
+        network_tags: tags.length,
       },
     };
 

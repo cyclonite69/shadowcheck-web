@@ -177,3 +177,103 @@ export type {
   MarkForRecomputeResult,
   FullStats,
 };
+
+// Additional threat service methods
+
+const { CONFIG } = require('../config/database');
+
+/**
+ * Get quick threat detection results
+ */
+export async function getQuickThreats(params: {
+  limit: number;
+  offset: number;
+  minObservations: number;
+  minUniqueDays: number;
+  minUniqueLocations: number;
+  minRangeKm: number;
+  minThreatScore: number;
+  minTimestamp: number;
+}): Promise<{ rows: any[]; totalCount: number }> {
+  const result = await query(
+    `
+    SELECT
+      ne.bssid,
+      ne.ssid,
+      ne.type as radio_type,
+      ne.frequency as channel,
+      ne.signal as signal_dbm,
+      ne.security as encryption,
+      ne.lat as latitude,
+      ne.lon as longitude,
+      ne.observations,
+      ne.unique_days,
+      ne.unique_locations,
+      ne.first_seen,
+      ne.last_seen,
+      (ne.max_distance_meters / 1000.0) as distance_range_km,
+      COALESCE(nts.final_threat_score, 0) as threat_score,
+      COALESCE(nts.final_threat_level, 'NONE') as threat_level,
+      COUNT(*) OVER() as total_count
+    FROM app.api_network_explorer_mv ne
+    LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
+    WHERE ne.last_seen >= to_timestamp($1 / 1000.0)
+      AND ne.observations >= $4
+      AND ne.unique_days >= $5
+      AND ne.unique_locations >= $6
+      AND (ne.max_distance_meters / 1000.0) >= $7
+      AND COALESCE(nts.final_threat_score, 0) >= $8
+      AND (ne.type NOT IN ('L', 'N', 'G') OR ne.max_distance_meters > 50000)
+    ORDER BY COALESCE(nts.final_threat_score, 0) DESC
+    LIMIT $2 OFFSET $3
+  `,
+    [
+      params.minTimestamp,
+      params.limit,
+      params.offset,
+      params.minObservations,
+      params.minUniqueDays,
+      params.minUniqueLocations,
+      params.minRangeKm,
+      params.minThreatScore,
+    ]
+  );
+
+  const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+  return { rows: result.rows, totalCount };
+}
+
+/**
+ * Get detailed threat analysis
+ */
+export async function getDetailedThreats(): Promise<any[]> {
+  const { rows } = await query(
+    `
+    SELECT
+      ne.bssid,
+      ne.ssid,
+      ne.type,
+      ne.security as encryption,
+      ne.frequency,
+      ne.signal as signal_dbm,
+      ne.lat as network_latitude,
+      ne.lon as network_longitude,
+      ne.observations as total_observations,
+      nts.final_threat_score,
+      nts.final_threat_level,
+      nts.rule_based_flags
+    FROM app.api_network_explorer_mv ne
+    LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
+    WHERE COALESCE(nts.final_threat_score, 0) >= 30
+      AND (
+        ne.type NOT IN ('G', 'L', 'N')
+        OR ne.max_distance_meters > 5000
+      )
+    ORDER BY COALESCE(nts.final_threat_score, 0) DESC, ne.observations DESC
+  `
+  );
+  return rows;
+}
+
+module.exports.getQuickThreats = getQuickThreats;
+module.exports.getDetailedThreats = getDetailedThreats;

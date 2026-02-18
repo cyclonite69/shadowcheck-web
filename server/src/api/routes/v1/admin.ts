@@ -9,7 +9,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const { query, CONFIG } = require('../../../config/database');
+const { CONFIG } = require('../../../config/database');
+const adminDbService = require('../../../services/adminDbService');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
@@ -85,37 +86,15 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
       return res.status(400).json({ error: timeValidation.error });
     }
 
-    const { rows } = await query(
-      `
-      WITH target_obs AS (
-        SELECT time, lat, lon, accuracy
-        FROM app.observations
-        WHERE bssid = $1 AND time = $2
-        LIMIT 1
-      )
-      SELECT 
-        COUNT(*) as total_observations,
-        COUNT(DISTINCT l.bssid) as unique_networks,
-        ARRAY_AGG(DISTINCT l.bssid ORDER BY l.bssid) as bssids,
-        t.lat,
-        t.lon,
-        t.accuracy,
-        to_timestamp(t.time / 1000.0) as timestamp
-      FROM app.observations l
-      JOIN target_obs t ON 
-        l.time = t.time 
-        AND l.lat = t.lat 
-        AND l.lon = t.lon
-        AND l.accuracy = t.accuracy
-      GROUP BY t.lat, t.lon, t.accuracy, t.time
-    `,
-      [bssidValidation.cleaned, timeValidation.value]
+    const data = await adminDbService.checkDuplicateObservations(
+      bssidValidation.cleaned,
+      timeValidation.value
     );
 
     res.json({
       ok: true,
-      data: rows[0] || null,
-      isSuspicious: rows[0] && rows[0].total_observations >= 10,
+      data,
+      isSuspicious: data && data.total_observations >= 10,
     });
   } catch (err) {
     next(err);
@@ -141,11 +120,8 @@ router.get('/admin/notes-test', (req, res) => {
 router.post('/admin/add-note', async (req, res) => {
   try {
     const { bssid, content } = req.body;
-    const result = await query(
-      "SELECT app.network_add_note($1, $2, 'general', 'user') as note_id",
-      [bssid, content]
-    );
-    res.json({ ok: true, note_id: result.rows[0].note_id });
+    const note_id = await adminDbService.addNetworkNote(bssid, content);
+    res.json({ ok: true, note_id });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
   }
@@ -157,18 +133,9 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(
-      `
-      SELECT bssid, tags, tag_array, is_threat, is_investigate, is_false_positive, is_suspect,
-             notes, detailed_notes, notation_count, image_count, video_count, total_media_count,
-             created_at, updated_at
-      FROM app.network_tags_full 
-      WHERE bssid = $1
-    `,
-      [bssid]
-    );
+    const network = await adminDbService.getNetworkSummary(bssid);
 
-    if (!result.rows.length) {
+    if (!network) {
       return res.status(404).json({
         error: { message: `No data found for network ${bssid}` },
       });
@@ -176,7 +143,7 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
 
     res.json({
       ok: true,
-      network: result.rows[0],
+      network,
     });
   } catch (error) {
     next(error);

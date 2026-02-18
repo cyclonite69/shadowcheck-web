@@ -6,7 +6,7 @@ export {};
 
 const express = require('express');
 const path = require('path');
-const { pool } = require('../../../config/database');
+const miscService = require('../../../services/miscService');
 const logger = require('../../../logging/logger');
 const secretsManager = require('../../../services/secretsManager').default;
 const { importWigleDirectory } = require('../../../services/wigleImportService');
@@ -98,19 +98,10 @@ router.get('/data-quality', async (req, res) => {
       whereClause = DATA_QUALITY_FILTERS.all();
     }
 
-    const qualityQuery = `
-      SELECT COUNT(*) as total_observations,
-             COUNT(DISTINCT bssid) as unique_networks,
-             MIN(time) as earliest_time,
-             MAX(time) as latest_time
-      FROM observations 
-      WHERE 1=1 ${whereClause}
-    `;
-
-    const result = await pool.query(qualityQuery);
+    const metrics = await miscService.getDataQualityMetrics(whereClause);
     res.json({
       filter_applied: filter,
-      ...result.rows[0],
+      ...metrics,
     });
   } catch (error) {
     logger.error(`Data quality error: ${error.message}`, { error });

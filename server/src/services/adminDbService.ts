@@ -87,3 +87,94 @@ module.exports = {
   getAdminPool,
   closeAdminPool,
 };
+
+// Additional admin service methods
+
+const { query } = require('../config/database');
+
+/**
+ * Check for duplicate observations at same time/location
+ */
+async function checkDuplicateObservations(bssid: string, time: number): Promise<any> {
+  const { rows } = await query(
+    `
+    WITH target_obs AS (
+      SELECT time, lat, lon, accuracy
+      FROM app.observations
+      WHERE bssid = $1 AND time = $2
+      LIMIT 1
+    )
+    SELECT 
+      COUNT(*) as total_observations,
+      COUNT(DISTINCT l.bssid) as unique_networks,
+      ARRAY_AGG(DISTINCT l.bssid ORDER BY l.bssid) as bssids,
+      t.lat,
+      t.lon,
+      t.accuracy,
+      to_timestamp(t.time / 1000.0) as timestamp
+    FROM app.observations l
+    JOIN target_obs t ON 
+      l.time = t.time 
+      AND l.lat = t.lat 
+      AND l.lon = t.lon
+      AND l.accuracy = t.accuracy
+    GROUP BY t.lat, t.lon, t.accuracy, t.time
+  `,
+    [bssid, time]
+  );
+  return rows[0] || null;
+}
+
+/**
+ * Add a note to a network
+ */
+async function addNetworkNote(bssid: string, content: string): Promise<number> {
+  const result = await query("SELECT app.network_add_note($1, $2, 'general', 'user') as note_id", [
+    bssid,
+    content,
+  ]);
+  return result.rows[0].note_id;
+}
+
+/**
+ * Get complete network summary
+ */
+async function getNetworkSummary(bssid: string): Promise<any | null> {
+  const result = await query(
+    `
+    SELECT bssid, tags, tag_array, is_threat, is_investigate, is_false_positive, is_suspect,
+           notes, detailed_notes, notation_count, image_count, video_count, total_media_count,
+           created_at, updated_at
+    FROM app.network_tags_full 
+    WHERE bssid = $1
+  `,
+    [bssid]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+/**
+ * Get backup data for export
+ */
+async function getBackupData(): Promise<{
+  observations: any[];
+  networks: any[];
+  tags: any[];
+}> {
+  const [observations, networks, tags] = await Promise.all([
+    query('SELECT * FROM app.observations ORDER BY observed_at DESC'),
+    query('SELECT * FROM app.networks'),
+    query('SELECT * FROM app.network_tags'),
+  ]);
+
+  return {
+    observations: observations.rows,
+    networks: networks.rows,
+    tags: tags.rows,
+  };
+}
+
+module.exports.checkDuplicateObservations = checkDuplicateObservations;
+module.exports.addNetworkNote = addNetworkNote;
+module.exports.getNetworkSummary = getNetworkSummary;
+module.exports.getBackupData = getBackupData;
