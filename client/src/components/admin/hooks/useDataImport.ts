@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { adminApi } from '../../../api/adminApi';
 
 export const useDataImport = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,7 +13,7 @@ export const useDataImport = () => {
     try {
       setIsLoading(true);
       setImportStatus('Uploading...');
-      const response = await fetch('/api/admin/import-sqlite', { method: 'POST', body: formData });
+      const response = await adminApi.importSQLite(formData);
       const result = await response.json();
       const errorMsg =
         typeof result.error === 'string' ? result.error : result.error?.message || 'Unknown error';

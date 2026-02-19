@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
 import { createCirclePolygon } from '../../utils/mapHelpers';
 
 type HomeLocation = {
@@ -10,7 +10,7 @@ type HomeLocation = {
 
 type HomeLocationLayerProps = {
   mapReady: boolean;
-  mapRef: MutableRefObject<mapboxglType.Map | null>;
+  mapRef: MutableRefObject<Map | null>;
   homeLocation: HomeLocation;
 };
 
@@ -24,7 +24,7 @@ export const useHomeLocationLayer = ({
     const map = mapRef.current;
 
     // Update point source
-    const pointSource = map.getSource('home-location-point') as mapboxglType.GeoJSONSource;
+    const pointSource = map.getSource('home-location-point') as GeoJSONSource;
     if (pointSource) {
       pointSource.setData({
         type: 'FeatureCollection',
@@ -42,7 +42,7 @@ export const useHomeLocationLayer = ({
     }
 
     // Update circle source
-    const circleSource = map.getSource('home-location-circle') as mapboxglType.GeoJSONSource;
+    const circleSource = map.getSource('home-location-circle') as GeoJSONSource;
     if (circleSource) {
       circleSource.setData({
         type: 'FeatureCollection',

@@ -1,10 +1,8 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { FilterPanel } from './FilterPanel';
-import { ActiveFiltersSummary } from './ActiveFiltersSummary';
-import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { useKepler } from '../hooks/useKepler';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug, logError, logWarn } from '../logging/clientLogger';
 import { HamburgerButton } from './HamburgerButton';
@@ -30,16 +28,10 @@ const KeplerPage: React.FC = () => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
   const scriptsLoadedRef = useRef<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
-  const [networkData, setNetworkData] = useState<NetworkData[]>([]);
   const [selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
-  const [actualCounts, setActualCounts] = useState<{
-    observations: number;
-    networks: number;
-  } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [scriptError, setScriptError] = useState<string | null>(null);
 
   // Universal filter system - memoize capabilities to prevent re-renders
   const capabilities = useMemo(() => getPageCapabilities('kepler'), []);
@@ -54,6 +46,12 @@ const KeplerPage: React.FC = () => {
   const [height3d, setHeight3d] = useState<number>(1);
   const [drawMode, setDrawMode] = useState<DrawMode>('none');
   const [datasetType, setDatasetType] = useState<'observations' | 'networks'>('observations');
+
+  // Load data using hook
+  const { loading, error, networkData, mapboxToken, actualCounts } = useKepler(
+    adaptedFilters,
+    datasetType
+  );
 
   const initDeck = (token: string, data: NetworkData[]) => {
     if (!window.deck || !mapRef.current) return;
@@ -256,121 +254,7 @@ const KeplerPage: React.FC = () => {
     setSelectedPoints([]);
   };
 
-  const loadData = async (type: 'observations' | 'networks') => {
-    try {
-      logDebug(`[Kepler] loadData called, type: ${type}`);
-      setLoading(true);
-      setError('');
-
-      const endpoint =
-        type === 'observations' ? '/api/kepler/observations' : '/api/kepler/networks';
-
-      // Add adapted filters to request
-      const { filtersForPage, enabledForPage } = adaptedFilters;
-      const params = new URLSearchParams();
-      params.set('filters', JSON.stringify(filtersForPage));
-      params.set('enabled', JSON.stringify(enabledForPage));
-
-      const endpointWithFilters = `${endpoint}?${params}`;
-      logDebug(`[Kepler] Fetching from: ${endpointWithFilters}`);
-
-      const [tokenRes, dataRes] = await Promise.all([
-        fetch('/api/mapbox-token'),
-        fetch(endpointWithFilters),
-      ]);
-
-      logDebug('[Kepler] Fetch complete, parsing...');
-      const tokenData = await tokenRes.json();
-      const geojson = await dataRes.json();
-
-      logDebug(`[Kepler] Data received, features: ${geojson.features?.length || 0}`);
-
-      if (!tokenData?.token) {
-        throw new Error('Mapbox token missing. Set it in Admin.');
-      }
-      if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
-      if (!geojson.features || !Array.isArray(geojson.features))
-        throw new Error(`Invalid data format`);
-      if (geojson.features.length === 0) throw new Error('No network data found');
-
-      const processedData: NetworkData[] = geojson.features
-        .filter(
-          (f: any) => f.geometry && f.geometry.coordinates && f.geometry.coordinates.length >= 2
-        )
-        .map((f: any) => ({
-          position: f.geometry.coordinates,
-          bssid: f.properties.bssid || 'Unknown',
-          ssid: f.properties.ssid || 'Hidden Network',
-          signal: f.properties.bestlevel || f.properties.signal || f.properties.level || -90,
-          level: f.properties.bestlevel || f.properties.signal || f.properties.level || -90,
-          encryption: f.properties.encryption || 'Unknown',
-          channel: f.properties.channel || 0,
-          frequency: f.properties.frequency || 0,
-          manufacturer: f.properties.manufacturer || 'Unknown',
-          device_type: f.properties.device_type || 'Unknown',
-          type: f.properties.type || 'W',
-          capabilities: f.properties.capabilities || '',
-          timestamp: f.properties.first_seen || f.properties.timestamp,
-          last_seen: f.properties.last_seen || f.properties.timestamp,
-          device_id: f.properties.device_id,
-          source_tag: f.properties.source_tag,
-          accuracy: f.properties.accuracy,
-          altitude: f.properties.altitude,
-          obs_count:
-            f.properties.obs_count ||
-            f.properties.observation_count ||
-            f.properties.observations ||
-            0,
-          threat_level: f.properties.threat_level,
-          threat_score: f.properties.threat_score,
-          is_suspicious: f.properties.is_suspicious,
-          distance_from_home: f.properties.distance_from_home,
-          max_distance_km: f.properties.max_distance_km,
-          timespan_days: f.properties.timespan_days,
-          unique_days: f.properties.unique_days,
-        }));
-
-      // Update counts first
-      if (type === 'observations') {
-        setActualCounts((prev) => ({
-          observations: processedData.length,
-          networks: prev?.networks || 0,
-        }));
-      } else {
-        setActualCounts((prev) => ({
-          observations: prev?.observations || 0,
-          networks: processedData.length,
-        }));
-      }
-
-      // Reinitialize deck if needed
-      if (!deckRef.current || !window.deck) {
-        await Promise.all([
-          loadCss('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'),
-          loadScript('https://cdn.jsdelivr.net/npm/deck.gl@8.9.0/dist.min.js'),
-          loadScript('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'),
-        ]);
-        try {
-          initDeck(tokenData.token, processedData);
-        } catch (initError) {
-          throw new Error('Kepler failed to initialize. Check console.');
-        }
-      }
-
-      // Set network data - useEffect will handle visualization update
-      setNetworkData(processedData);
-      setLoading(false);
-    } catch (err: any) {
-      logError('Error loading data', err);
-      setError(err?.message || 'Failed to load network data');
-      setLoading(false);
-    }
-  };
-
-  // Stable filter key
-  const filterKey = useMemo(() => JSON.stringify(adaptedFilters), [adaptedFilters]);
-
-  // Load scripts once
+  // Load scripts once and initialize deck when data is ready
   useEffect(() => {
     if (scriptsLoadedRef.current) return;
 
@@ -384,28 +268,26 @@ const KeplerPage: React.FC = () => {
         ]);
         scriptsLoadedRef.current = true;
         logDebug('[Kepler] Scripts loaded');
-        // Trigger data load after scripts are ready
-        if (window.deck && window.mapboxgl) {
-          loadData(datasetType);
-        }
       } catch (err: any) {
         logError('Error loading scripts', err);
-        setError('Failed to load required libraries');
+        setScriptError('Failed to load required libraries');
       }
     };
 
     setup();
   }, []); // Only once
 
-  // Load data when filters/dataset change (but only if scripts are ready)
+  // Initialize deck when data is ready
   useEffect(() => {
     if (!scriptsLoadedRef.current || !window.deck || !window.mapboxgl) {
       return;
     }
 
-    logDebug(`[Kepler] Loading data, filterKey: ${filterKey.substring(0, 100)}`);
-    loadData(datasetType);
-  }, [datasetType, filterKey]); // Stable dependencies
+    if (networkData.length > 0 && mapboxToken && !deckRef.current) {
+      logDebug(`[Kepler] Initializing deck with ${networkData.length} points`);
+      initDeck(mapboxToken, networkData);
+    }
+  }, [networkData, mapboxToken]);
 
   // Update visualization when data or settings change
   useEffect(() => {
@@ -611,9 +493,9 @@ const KeplerPage: React.FC = () => {
           </div>
         )}
 
-        {error && (
+        {(error || scriptError) && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-900 text-red-100 px-4 py-2 rounded-lg border border-red-700 z-50">
-            {error}
+            {error || scriptError}
           </div>
         )}
 

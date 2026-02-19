@@ -4,14 +4,15 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
+import { NetworkFilters } from '../../../types/filters';
 
 interface QualityFiltersProps {
-  filters: any;
-  enabled: any;
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   controlClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onToggleFilter: (key: string) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onToggleFilter: (key: keyof NetworkFilters) => void;
 }
 
 export const QualityFilters: React.FC<QualityFiltersProps> = ({
@@ -26,14 +27,14 @@ export const QualityFilters: React.FC<QualityFiltersProps> = ({
     <FilterSection title="Data Quality" compact={isCompact}>
       <FilterInput
         label="Min Observations"
-        enabled={enabled.minObservations || false}
-        onToggle={() => onToggleFilter('minObservations')}
+        enabled={enabled.observationCountMin || false}
+        onToggle={() => onToggleFilter('observationCountMin')}
         compact={isCompact}
       >
         <input
           type="number"
-          value={filters.minObservations ?? ''}
-          onChange={(e) => onSetFilter('minObservations', parseInt(e.target.value, 10))}
+          value={filters.observationCountMin ?? ''}
+          onChange={(e) => onSetFilter('observationCountMin', parseInt(e.target.value, 10))}
           placeholder="1"
           min="1"
           className={controlClass}
@@ -42,47 +43,15 @@ export const QualityFilters: React.FC<QualityFiltersProps> = ({
 
       <FilterInput
         label="Max Observations"
-        enabled={enabled.maxObservations || false}
-        onToggle={() => onToggleFilter('maxObservations')}
+        enabled={enabled.observationCountMax || false}
+        onToggle={() => onToggleFilter('observationCountMax')}
         compact={isCompact}
       >
         <input
           type="number"
-          value={filters.maxObservations ?? ''}
-          onChange={(e) => onSetFilter('maxObservations', parseInt(e.target.value, 10))}
+          value={filters.observationCountMax ?? ''}
+          onChange={(e) => onSetFilter('observationCountMax', parseInt(e.target.value, 10))}
           placeholder="1000"
-          min="1"
-          className={controlClass}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Min Unique Days"
-        enabled={enabled.minUniqueDays || false}
-        onToggle={() => onToggleFilter('minUniqueDays')}
-        compact={isCompact}
-      >
-        <input
-          type="number"
-          value={filters.minUniqueDays ?? ''}
-          onChange={(e) => onSetFilter('minUniqueDays', parseInt(e.target.value, 10))}
-          placeholder="1"
-          min="1"
-          className={controlClass}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Max Unique Days"
-        enabled={enabled.maxUniqueDays || false}
-        onToggle={() => onToggleFilter('maxUniqueDays')}
-        compact={isCompact}
-      >
-        <input
-          type="number"
-          value={filters.maxUniqueDays ?? ''}
-          onChange={(e) => onSetFilter('maxUniqueDays', parseInt(e.target.value, 10))}
-          placeholder="365"
           min="1"
           className={controlClass}
         />
@@ -130,7 +99,7 @@ export const QualityFilters: React.FC<QualityFiltersProps> = ({
       >
         <select
           value={filters.qualityFilter || 'none'}
-          onChange={(e) => onSetFilter('qualityFilter', e.target.value)}
+          onChange={(e) => onSetFilter('qualityFilter', e.target.value as any)}
           className={controlClass}
         >
           <option value="none">None</option>

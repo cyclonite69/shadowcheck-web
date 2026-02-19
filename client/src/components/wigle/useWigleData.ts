@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { wigleApi } from '../../api/wigleApi';
 import { logDebug } from '../../logging/clientLogger';
 import type { WigleRow } from '../../utils/wigle';
 
@@ -43,9 +44,7 @@ export const useWigleData = ({
     params.set('enabled', JSON.stringify(enabledForPage));
 
     const doFetch = async (endpoint: string) => {
-      const res = await fetch(`${endpoint}?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const payload = await res.json();
+      const payload = await wigleApi.searchLocalWigle(endpoint, params);
       const rows =
         payload.data?.map((row: any) => ({
           ...row,

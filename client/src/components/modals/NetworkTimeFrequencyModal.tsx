@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNetworkObservations } from '../../hooks/useNetworkObservations';
 import { createPortal } from 'react-dom';
 
 interface NetworkTimeFrequencyModalProps {
   bssid: string;
   ssid: string;
   onClose: () => void;
-}
-
-interface Observation {
-  time: number; // epoch ms
-  signal: number;
-  lat: number;
-  lon: number;
 }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -22,9 +16,7 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
   ssid,
   onClose,
 }) => {
-  const [observations, setObservations] = useState<Observation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { observations, loading, error } = useNetworkObservations(bssid);
   const [hoveredCell, setHoveredCell] = useState<{
     day: number;
     hour: number;
@@ -55,57 +47,6 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
       }
     };
   }, []);
-
-  // Fetch observations for the BSSID
-  useEffect(() => {
-    const fetchObservations = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch(`/api/networks/observations/${encodeURIComponent(bssid)}`);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch observations: ${res.statusText}`);
-        }
-        const data = await res.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        // Normalize data: API returns strings for some fields, frontend expects numbers
-        const rawObs = data.observations || [];
-        const normalized: Observation[] = rawObs
-          .map((o: any) => {
-            let parsedTime = 0;
-            if (typeof o.time === 'string') {
-              parsedTime = parseInt(o.time, 10);
-            } else if (typeof o.time === 'number') {
-              parsedTime = o.time;
-            }
-
-            // Handle seconds vs milliseconds (API uses ms but extra safety)
-            if (parsedTime > 0 && parsedTime < 1e12) {
-              parsedTime *= 1000;
-            }
-
-            return {
-              time: parsedTime,
-              signal: typeof o.signal === 'string' ? parseInt(o.signal, 10) : (o.signal ?? -80),
-              lat: typeof o.lat === 'string' ? parseFloat(o.lat) : (o.lat ?? 0),
-              lon: typeof o.lon === 'string' ? parseFloat(o.lon) : (o.lon ?? 0),
-            };
-          })
-          .filter((o) => o.time > 0 && !isNaN(o.time));
-
-        setObservations(normalized);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load observations');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchObservations();
-  }, [bssid]);
 
   // Build heatmap grid (day-of-week × hour-of-day)
   const { grid, maxCount, totalObs, dateRange, confidence } = useMemo(() => {

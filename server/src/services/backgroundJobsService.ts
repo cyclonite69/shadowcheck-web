@@ -4,9 +4,10 @@
  */
 
 const schedule = require('node-schedule');
-const { query } = require('../config/database');
 const logger = require('../logging/logger');
 const { runPostgresBackup } = require('./backupService');
+const mlScoringService = require('./mlScoringService');
+const networkService = require('./networkService');
 
 export {};
 
@@ -115,25 +116,12 @@ class BackgroundJobsService {
 
     try {
       // Simple behavioral query - avoid complex PostGIS calculations
-      const networkResult = await query(`
-        SELECT 
-          ap.bssid,
-          COUNT(DISTINCT obs.id) as observation_count,
-          COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
-          COALESCE(MAX(ABS(obs.lon - (-79.3832)) + ABS(obs.lat - 43.6532)) * 111, 0) as max_distance_km
-        FROM app.access_points ap
-        LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
-        WHERE ap.bssid IS NOT NULL
-          AND obs.id IS NOT NULL
-          AND LENGTH(ap.bssid) <= ${MAX_BSSID_LENGTH}
-          AND obs.lon IS NOT NULL
-          AND obs.lat IS NOT NULL
-        GROUP BY ap.bssid
-        HAVING COUNT(DISTINCT obs.id) > ${MIN_OBSERVATIONS}
-        LIMIT ${ML_SCORING_LIMIT}
-      `);
+      const networks = await mlScoringService.getNetworksForBehavioralScoring(
+        ML_SCORING_LIMIT,
+        MIN_OBSERVATIONS,
+        MAX_BSSID_LENGTH
+      );
 
-      const networks = networkResult.rows;
       const scores = [];
 
       logger.info(
@@ -141,15 +129,11 @@ class BackgroundJobsService {
       );
 
       // Step 1: Query all manual tags for feedback-aware scoring
-      const tagResult = await query(`
-        SELECT bssid, threat_tag, threat_confidence, notes
-        FROM app.network_tags 
-        WHERE threat_tag IS NOT NULL
-      `);
+      const tagRows = await networkService.getManualThreatTags();
 
       // Step 2: Create tag lookup map
       const tagMap = new Map();
-      for (const tag of tagResult.rows) {
+      for (const tag of tagRows) {
         tagMap.set(tag.bssid, {
           tag: tag.threat_tag,
           confidence: tag.threat_confidence || 1.0,
@@ -233,35 +217,7 @@ class BackgroundJobsService {
       }
 
       // Bulk insert scores
-      let inserted = 0;
-      for (const score of scores) {
-        await query(
-          `
-          INSERT INTO app.network_threat_scores 
-            (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
-             rule_based_score, final_threat_score, final_threat_level, model_version)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          ON CONFLICT (bssid) DO UPDATE SET
-            ml_threat_score = EXCLUDED.ml_threat_score,
-            ml_threat_probability = EXCLUDED.ml_threat_probability,
-            final_threat_score = EXCLUDED.final_threat_score,
-            final_threat_level = EXCLUDED.final_threat_level,
-            model_version = EXCLUDED.model_version,
-            updated_at = NOW()
-        `,
-          [
-            score.bssid,
-            score.ml_threat_score,
-            score.ml_threat_probability,
-            score.ml_primary_class,
-            score.rule_based_score,
-            score.final_threat_score,
-            score.final_threat_level,
-            score.model_version,
-          ]
-        );
-        inserted++;
-      }
+      const inserted = await mlScoringService.bulkUpsertThreatScores(scores);
 
       const duration = Date.now() - startTime;
       logger.info(

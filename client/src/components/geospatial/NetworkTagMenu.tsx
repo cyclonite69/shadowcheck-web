@@ -11,7 +11,10 @@ interface NetworkTagMenuProps {
   y: number;
   tagLoading: boolean;
   contextMenuRef: React.RefObject<HTMLDivElement>;
-  onTagAction: (action: string) => void;
+  onTagAction: (
+    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear',
+    notes?: string
+  ) => void;
   onTimeFrequency: () => void;
   onAddNote: () => void;
   onMapWigleObservations?: () => void;

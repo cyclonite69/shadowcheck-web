@@ -12,7 +12,7 @@ interface ActiveFiltersSummaryProps {
   compact?: boolean;
 }
 
-const formatFilterValue = (key: string, value: any): string => {
+const formatFilterValue = (_key: string, value: any): string => {
   if (value === null || value === undefined) return '';
 
   if (Array.isArray(value)) {

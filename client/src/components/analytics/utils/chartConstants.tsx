@@ -139,7 +139,7 @@ export const AlertTriangle = ({ size = 24, className = '' }: IconProps) => (
 );
 
 // Color mapping for network types
-export const NETWORK_TYPE_COLORS = {
+export const NETWORK_TYPE_COLORS: Record<string, string> = {
   WiFi: '#3b82f6',
   BLE: '#8b5cf6',
   BT: '#06b6d4',
@@ -148,7 +148,7 @@ export const NETWORK_TYPE_COLORS = {
   NR: '#10b981',
 };
 
-export const SECURITY_TYPE_COLORS = {
+export const SECURITY_TYPE_COLORS: Record<string, string> = {
   WPA3: '#10b981',
   'WPA3-E': '#059669',
   'WPA3-P': '#34d399',

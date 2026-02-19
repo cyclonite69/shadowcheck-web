@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { DEFAULT_ZOOM, MAP_STYLES } from '../../constants/network';
+import { mapboxApi } from '../../api/mapboxApi';
 import {
   createCirclePolygon,
   calculateSignalRange,
@@ -18,8 +20,8 @@ type HomeLocation = {
 type GeospatialMapProps = {
   mapStyle: string;
   homeLocation: HomeLocation;
-  mapRef: MutableRefObject<mapboxglType.Map | null>;
-  mapboxRef: MutableRefObject<mapboxglType | null>;
+  mapRef: MutableRefObject<Map | null>;
+  mapboxRef: MutableRefObject<typeof mapboxglType | null>;
   mapContainerRef: MutableRefObject<HTMLDivElement | null>;
   mapInitRef: MutableRefObject<boolean>;
   setMapReady: Dispatch<SetStateAction<boolean>>;
@@ -47,23 +49,15 @@ export const useGeospatialMap = ({
         setMapReady(false);
         setMapError(null);
 
-        const tokenRes = await fetch('/api/mapbox-token');
-        if (!tokenRes.ok) {
-          const text = await tokenRes.text();
-          throw new Error(
-            `Mapbox token fetch failed (${tokenRes.status}): ${text || 'invalid response'}`
-          );
-        }
-
-        const tokenBody = await tokenRes.json();
+        const tokenBody = await mapboxApi.getMapboxToken();
         if (!tokenBody?.token) {
           throw new Error(tokenBody?.error || `Mapbox token not available`);
         }
 
         const mapboxgl = mapboxRef.current ?? (await import('mapbox-gl')).default;
-        mapboxRef.current = mapboxgl;
-        await import('mapbox-gl/dist/mapbox-gl.css');
-        mapboxgl.accessToken = String(tokenBody.token).trim();
+        mapboxRef.current = mapboxgl as any;
+        await import('mapbox-gl/dist/mapbox-gl.css' as any);
+        (mapboxgl as any).accessToken = String(tokenBody.token).trim();
 
         if (mapContainerRef.current) {
           mapContainerRef.current.innerHTML = '';
@@ -108,8 +102,12 @@ export const useGeospatialMap = ({
 
         map.on('load', () => {
           // Apply light preset for Standard style variants
-          if (styleConfig?.config?.lightPreset) {
-            map.setConfigProperty('basemap', 'lightPreset', styleConfig.config.lightPreset);
+          if (styleConfig && 'config' in styleConfig && (styleConfig.config as any)?.lightPreset) {
+            map.setConfigProperty(
+              'basemap',
+              'lightPreset',
+              (styleConfig.config as any).lightPreset
+            );
           }
 
           // Add observation sources and layers
@@ -173,17 +171,14 @@ export const useGeospatialMap = ({
           });
 
           // Add click handlers for observation points with signal circle tooltips
-          map.on('click', 'observation-points', (e) => {
+          map.on('click', 'observation-points', (e: MapLayerMouseEvent) => {
             if (!e.features || e.features.length === 0) return;
 
             const feature = e.features[0];
             const props = feature.properties;
             if (!props) return;
 
-            const currentZoom = map.getZoom();
-            const latitude = feature.geometry.coordinates[1];
-            const signalRadius = calculateSignalRange(props.signal, null, currentZoom, latitude);
-            const bssidColor = macColor(props.bssid);
+            const latitude = (feature.geometry as any).coordinates[1];
 
             const popupHTML = renderNetworkTooltip({
               ssid: props.ssid,
@@ -196,7 +191,7 @@ export const useGeospatialMap = ({
               frequency: props.frequency,
               channel: props.channel,
               lat: latitude,
-              lon: feature.geometry.coordinates[0],
+              lon: (feature.geometry as any).coordinates[0],
               altitude: props.altitude,
               manufacturer: props.manufacturer,
               observation_count: props.observation_count,
@@ -299,7 +294,7 @@ export const useGeospatialMap = ({
           );
 
           // Show signal circle on hover (tooltip removed - click for details)
-          map.on('mouseenter', 'observation-points', (e) => {
+          map.on('mouseenter', 'observation-points', (e: MapLayerMouseEvent) => {
             map.getCanvas().style.cursor = 'pointer';
 
             if (!e.features || e.features.length === 0) return;
@@ -318,7 +313,7 @@ export const useGeospatialMap = ({
             const bssidColor = macColor(props.bssid);
 
             // Add signal range circle to map
-            const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;
+            const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
             if (hoverCircleSource) {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
@@ -344,7 +339,7 @@ export const useGeospatialMap = ({
             map.getCanvas().style.cursor = '';
 
             // Clear hover circle from map
-            const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;
+            const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
             if (hoverCircleSource) {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
@@ -353,7 +348,7 @@ export const useGeospatialMap = ({
             }
           });
 
-          map.on('mousemove', 'observation-points', (e) => {
+          map.on('mousemove', 'observation-points', (e: MapLayerMouseEvent) => {
             if (!e.features || e.features.length === 0 || !e.lngLat) return;
             const feature = e.features[0];
             const props = feature.properties;
@@ -368,7 +363,7 @@ export const useGeospatialMap = ({
             );
             const bssidColor = macColor(props.bssid);
 
-            const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;
+            const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
             if (hoverCircleSource) {
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
@@ -474,7 +469,7 @@ export const useGeospatialMap = ({
           setMapReady(true);
         });
 
-        map.on('error', (e) => {
+        map.on('error', (e: any) => {
           // Suppress Google Maps tile errors (they spam the console)
           if (e?.error?.message === 'sn' || e?.sourceId === 'google-tiles') {
             // Google Maps tile loading error - likely API key issue

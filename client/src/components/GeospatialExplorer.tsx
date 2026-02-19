@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Map } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
@@ -43,7 +44,6 @@ import { useNearestAgencies } from './geospatial/useNearestAgencies';
 import { useWeatherFx } from '../weather/useWeatherFx';
 
 // Types
-import type { NetworkRow } from '../types/network';
 
 // Constants
 import {
@@ -57,7 +57,6 @@ import {
 export default function GeospatialExplorer() {
   // Set current page for filter scoping
   usePageFilters('geospatial');
-  const DEBUG_TIMEGRID = false;
 
   // Location mode and plan check state (needed by useNetworkData)
   const [locationMode, setLocationMode] = useState('latest_observation');
@@ -109,7 +108,6 @@ export default function GeospatialExplorer() {
       }
     },
   });
-  const [useObservationFilters, setUseObservationFilters] = useState(true);
 
   // Observations hook - handles fetching observations for selected networks
   const {
@@ -119,7 +117,7 @@ export default function GeospatialExplorer() {
     truncated: observationsTruncated,
     renderBudgetExceeded,
     renderBudget,
-  } = useObservations(selectedNetworks, { useFilters: useObservationFilters });
+  } = useObservations(selectedNetworks, { useFilters: true });
 
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -133,7 +131,6 @@ export default function GeospatialExplorer() {
     setShowTerrain,
   } = useMapPreferences();
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
-  const [resizing, setResizing] = useState(false);
   const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
@@ -215,11 +212,11 @@ export default function GeospatialExplorer() {
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxglType.Map | null>(null);
-  const mapboxRef = useRef<mapboxglType | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const mapboxRef = useRef<typeof mapboxglType | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInitRef = useRef(false);
-  const columnDropdownRef = useRef<HTMLDivElement | null>(null);
+  const columnDropdownRef = useRef<HTMLDivElement>(null);
   const {
     locationSearch,
     setLocationSearch,
@@ -263,7 +260,7 @@ export default function GeospatialExplorer() {
     containerHeight,
     mapRef,
     setMapHeight,
-    setResizing,
+    setResizing: () => {},
     logDebug,
   });
 
@@ -291,7 +288,7 @@ export default function GeospatialExplorer() {
   } = useDirectionsMode(mapRef);
 
   useNetworkInfiniteScroll({
-    containerRef: tableContainerRef,
+    containerRef: tableContainerRef as React.RefObject<HTMLDivElement | null>,
     hasMore: pagination.hasMore,
     isLoadingMore,
     onLoadMore: loadMore,
@@ -311,7 +308,6 @@ export default function GeospatialExplorer() {
     activeObservationSets,
     networkLookup,
     wigleObservations,
-    clearWigleObservations,
   });
 
   const { toggle3DBuildings, toggleTerrain } = useMapLayersToggle({
@@ -347,9 +343,6 @@ export default function GeospatialExplorer() {
 
     if (agencies.length === 0 || !showAgenciesPanel) return;
 
-    console.log('[Agency Layer] Rendering', agencies.length, 'agencies');
-    console.log('[Agency Layer] States:', [...new Set(agencies.map((a) => a.state))].sort());
-
     // Create features for all agencies
     const features = agencies.map((agency) => ({
       type: 'Feature' as const,
@@ -358,9 +351,9 @@ export default function GeospatialExplorer() {
         coordinates: [agency.longitude, agency.latitude],
       },
       properties: {
-        name: agency.office_name,
+        name: agency.name,
         type: agency.office_type,
-        distance: agency.distance_km,
+        distance: (agency.distance_meters || 0) / 1000,
         hasWigleObs: agency.has_wigle_obs,
       },
     }));
@@ -465,7 +458,7 @@ export default function GeospatialExplorer() {
                     fetchRoute(origin, dest).then((data) => {
                       // Fit map to show the full route from origin to destination
                       if (data && mapRef.current && mapboxRef.current) {
-                        const bounds = new mapboxRef.current.LngLatBounds(origin, origin);
+                        const bounds = new (mapboxRef.current as any).LngLatBounds(origin, origin);
                         bounds.extend(dest);
                         for (const coord of data.coordinates) {
                           bounds.extend(coord);
@@ -533,11 +526,11 @@ export default function GeospatialExplorer() {
             planCheck={planCheck}
             onPlanCheckChange={setPlanCheck}
             locationMode={locationMode}
-            onLocationModeChange={setLocationMode}
+            onLocationModeChange={(mode) => setLocationMode(mode)}
             filtersOpen={filtersOpen}
             onToggleFilters={toggleFilters}
             showColumnSelector={showColumnSelector}
-            columnDropdownRef={columnDropdownRef}
+            columnDropdownRef={columnDropdownRef as React.RefObject<HTMLDivElement | null>}
             visibleColumns={visibleColumns}
             columns={NETWORK_COLUMNS}
             onToggleColumnSelector={toggleColumnSelector}
@@ -548,7 +541,7 @@ export default function GeospatialExplorer() {
             onToggleSelectAll={toggleSelectAll}
             onColumnSort={handleColumnSort}
             onReorderColumns={reorderColumns}
-            tableContainerRef={tableContainerRef}
+            tableContainerRef={tableContainerRef as React.RefObject<HTMLDivElement | null>}
             loadingNetworks={loadingNetworks}
             filteredNetworks={filteredNetworks}
             error={error}
@@ -577,7 +570,7 @@ export default function GeospatialExplorer() {
           <GeospatialOverlays
             contextMenu={contextMenu}
             tagLoading={tagLoading}
-            contextMenuRef={contextMenuRef}
+            contextMenuRef={contextMenuRef as React.RefObject<HTMLDivElement>}
             onTagAction={handleTagAction}
             onCloseContextMenu={closeContextMenu}
             onOpenTimeFrequency={() => {
@@ -606,7 +599,7 @@ export default function GeospatialExplorer() {
             noteType={noteType}
             noteContent={noteContent}
             noteAttachments={noteAttachments}
-            fileInputRef={fileInputRef}
+            fileInputRef={fileInputRef as React.RefObject<HTMLInputElement>}
             onNoteTypeChange={setNoteType}
             onNoteContentChange={setNoteContent}
             onAddAttachment={handleAddAttachment}

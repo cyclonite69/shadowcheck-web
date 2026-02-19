@@ -4,14 +4,15 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
+import { NetworkFilters } from '../../../types/filters';
 
 interface SpatialFiltersProps {
-  filters: any;
-  enabled: any;
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   controlClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onToggleFilter: (key: string) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onToggleFilter: (key: keyof NetworkFilters) => void;
 }
 
 export const SpatialFilters: React.FC<SpatialFiltersProps> = ({
@@ -52,23 +53,6 @@ export const SpatialFilters: React.FC<SpatialFiltersProps> = ({
           value={filters.distanceFromHomeMax ?? ''}
           onChange={(e) => onSetFilter('distanceFromHomeMax', parseFloat(e.target.value))}
           placeholder="100"
-          step="0.1"
-          min="0"
-          className={controlClass}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Max Distance Traveled (km)"
-        enabled={enabled.maxDistanceTraveled || false}
-        onToggle={() => onToggleFilter('maxDistanceTraveled')}
-        compact={isCompact}
-      >
-        <input
-          type="number"
-          value={filters.maxDistanceTraveled ?? ''}
-          onChange={(e) => onSetFilter('maxDistanceTraveled', parseFloat(e.target.value))}
-          placeholder="50"
           step="0.1"
           min="0"
           className={controlClass}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { WeatherFxMode } from '../../weather/useWeatherFx';
 
 interface MapStyleOption {
   value: string;
@@ -8,7 +9,7 @@ interface MapStyleOption {
 type SearchMode = 'address' | 'directions';
 
 interface MapToolbarProps {
-  searchContainerRef?: React.RefObject<HTMLDivElement>;
+  searchContainerRef?: React.RefObject<HTMLDivElement | null>;
   locationSearch: string;
   onLocationSearchChange: (value: string) => void;
   onLocationSearchFocus: () => void;
@@ -31,8 +32,8 @@ interface MapToolbarProps {
   onHome: () => void;
   onGps: () => void;
   // Weather FX
-  weatherFxMode?: string;
-  onWeatherFxModeChange?: (mode: string) => void;
+  weatherFxMode?: WeatherFxMode;
+  onWeatherFxModeChange?: (mode: WeatherFxMode) => void;
   // WiGLE observations
   canWigle?: boolean;
   wigleLoading?: boolean;
@@ -269,7 +270,7 @@ export const MapToolbar = ({
           <select
             id="weather-fx"
             value={weatherFxMode ?? 'off'}
-            onChange={(e) => onWeatherFxModeChange(e.target.value)}
+            onChange={(e) => onWeatherFxModeChange(e.target.value as WeatherFxMode)}
             style={{
               padding: '6px 10px',
               fontSize: '11px',

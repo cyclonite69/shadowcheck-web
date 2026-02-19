@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
+import { agencyApi } from '../../api/agencyApi';
 
 export interface Agency {
-  office_name: string;
-  office_type: string;
+  name: string;
+  office_type?: string;
   city: string;
   state: string;
   postal_code: string;
   latitude: number;
   longitude: number;
-  distance_km: number;
-  has_wigle_obs: boolean;
+  distance_meters?: number;
+  has_wigle_obs?: boolean;
 }
 
 export const useNearestAgencies = (bssid: string | string[] | null) => {
@@ -32,35 +33,22 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
         setLoading(true);
         setError('');
         try {
-          let res;
+          let data;
 
           if (Array.isArray(bssid)) {
             // Batch mode: multiple BSSIDs
-            console.log('[useNearestAgencies] Fetching batch for', bssid.length, 'BSSIDs');
-            res = await fetch('/api/networks/nearest-agencies/batch?radius=250', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ bssids: bssid }),
-              signal: controller.signal,
-            });
+            const result = await agencyApi.getNearestAgenciesBatch(bssid, 250);
+            // Convert batch result to flat array
+            data = { ok: true, agencies: Object.values(result).flat() };
           } else {
             // Single mode: one BSSID
-            console.log('[useNearestAgencies] Fetching single for', bssid);
-            res = await fetch(
-              `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?radius=250`,
-              { signal: controller.signal }
-            );
+            const result = await agencyApi.getNearestAgencies(bssid, 250);
+            data = { ok: true, agencies: result.agencies || [] };
           }
 
-          const data = await res.json();
           if (!data.ok) {
-            throw new Error(data.error || 'Failed to load agencies');
+            throw new Error('Failed to load agencies');
           }
-          console.log('[useNearestAgencies] Loaded', data.agencies.length, 'agencies');
-          console.log(
-            '[useNearestAgencies] States:',
-            [...new Set(data.agencies.map((a: Agency) => a.state))].sort()
-          );
           setAgencies(data.agencies || []);
         } catch (err: any) {
           if (err.name !== 'AbortError') {

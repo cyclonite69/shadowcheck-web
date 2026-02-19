@@ -9,13 +9,15 @@ interface GeospatialOverlaysProps {
     visible: boolean;
     network: NetworkRow | null;
     tag: NetworkTag | null;
-    position?: string;
+    position?: 'below' | 'above';
     x: number;
     y: number;
   };
   tagLoading: boolean;
   contextMenuRef: React.RefObject<HTMLDivElement>;
-  onTagAction: (tag: NetworkTag) => void;
+  onTagAction: (
+    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
+  ) => Promise<void>;
   onCloseContextMenu: () => void;
   onOpenTimeFrequency: () => void;
   onOpenNote: () => void;
@@ -29,7 +31,7 @@ interface GeospatialOverlaysProps {
   fileInputRef: React.RefObject<HTMLInputElement>;
   onNoteTypeChange: (value: string) => void;
   onNoteContentChange: (value: string) => void;
-  onAddAttachment: () => void;
+  onAddAttachment: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAttachment: (index: number) => void;
   onCloseNoteOverlay: () => void;
   onCloseNote: () => void;
@@ -44,7 +46,6 @@ export const GeospatialOverlays = ({
   tagLoading,
   contextMenuRef,
   onTagAction,
-  onCloseContextMenu,
   onOpenTimeFrequency,
   onOpenNote,
   onMapWigleObservations,
@@ -72,7 +73,7 @@ export const GeospatialOverlays = ({
         visible={contextMenu.visible}
         network={contextMenu.network}
         tag={contextMenu.tag}
-        position={contextMenu.position}
+        position={contextMenu.position || 'below'}
         x={contextMenu.x}
         y={contextMenu.y}
         tagLoading={tagLoading}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { LayerToggle } from './ui/LayerToggle';
-import type { WigleLayerState } from './WiglePage';
+import type { WigleLayerState } from './wigle/useWigleLayers';
 
 interface WigleControlPanelProps {
   isOpen: boolean;

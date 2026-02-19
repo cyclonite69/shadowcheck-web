@@ -37,7 +37,7 @@ export const NetworkTableBodyVirtualized = ({
   onLoadMore,
 }: NetworkTableBodyProps) => {
   const Row = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
+    ({ index, style }: { index: number; style: React.CSSProperties }): React.ReactElement => {
       const net = filteredNetworks[index];
       return (
         <div style={{ ...style, display: 'table-row' }}>
@@ -96,14 +96,13 @@ export const NetworkTableBodyVirtualized = ({
     <div ref={tableContainerRef} className="flex-1 overflow-hidden min-h-0">
       <div style={{ display: 'table', width: '100%', tableLayout: 'fixed' }}>
         <List
-          height={containerHeight - 40}
-          itemCount={filteredNetworks.length}
-          itemSize={ROW_HEIGHT}
-          width="100%"
+          defaultHeight={containerHeight - 40}
+          rowCount={filteredNetworks.length}
+          rowHeight={ROW_HEIGHT}
+          rowComponent={Row as any}
+          rowProps={{}}
           overscanCount={5}
-        >
-          {Row}
-        </List>
+        />
       </div>
       <NetworkTableFooter isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={onLoadMore} />
     </div>

@@ -280,6 +280,71 @@ class MLScoringService {
     );
     return result.rowCount || 0;
   }
+
+  /**
+   * Get networks for behavioral scoring (simple model)
+   */
+  static async getNetworksForBehavioralScoring(
+    limit: number,
+    minObservations: number,
+    maxBssidLength: number
+  ): Promise<any[]> {
+    const result: QueryResult = await query(
+      `
+      SELECT 
+        ap.bssid,
+        COUNT(DISTINCT obs.id) as observation_count,
+        COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
+        COALESCE(MAX(ABS(obs.lon - (-79.3832)) + ABS(obs.lat - 43.6532)) * 111, 0) as max_distance_km
+      FROM app.access_points ap
+      LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
+      WHERE ap.bssid IS NOT NULL
+        AND obs.id IS NOT NULL
+        AND LENGTH(ap.bssid) <= $1
+        AND obs.lon IS NOT NULL
+        AND obs.lat IS NOT NULL
+      GROUP BY ap.bssid
+      HAVING COUNT(DISTINCT obs.id) > $2
+      LIMIT $3
+    `,
+      [maxBssidLength, minObservations, limit]
+    );
+    return result.rows;
+  }
+
+  /**
+   * Bulk upsert threat scores
+   */
+  static async bulkUpsertThreatScores(scores: any[]): Promise<number> {
+    let inserted = 0;
+    for (const score of scores) {
+      await query(
+        `INSERT INTO app.network_threat_scores 
+          (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
+           rule_based_score, final_threat_score, final_threat_level, model_version)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (bssid) DO UPDATE SET
+          ml_threat_score = EXCLUDED.ml_threat_score,
+          ml_threat_probability = EXCLUDED.ml_threat_probability,
+          final_threat_score = EXCLUDED.final_threat_score,
+          final_threat_level = EXCLUDED.final_threat_level,
+          model_version = EXCLUDED.model_version,
+          updated_at = NOW()`,
+        [
+          score.bssid,
+          score.ml_threat_score,
+          score.ml_threat_probability,
+          score.ml_primary_class,
+          score.rule_based_score,
+          score.final_threat_score,
+          score.final_threat_level,
+          score.model_version,
+        ]
+      );
+      inserted++;
+    }
+    return inserted;
+  }
 }
 
 module.exports = MLScoringService;

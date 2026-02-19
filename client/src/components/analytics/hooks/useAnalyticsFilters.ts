@@ -4,10 +4,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useDebouncedFilters, useFilterStore } from '../../../stores/filterStore';
+import { TimeframeFilter } from '../../../types/filters';
+
+export type AnalyticsTimeFrame = NonNullable<TimeframeFilter['relativeWindow']>;
 
 export interface UseAnalyticsFiltersReturn {
-  timeFrame: string;
-  setTimeFrame: (timeFrame: string) => void;
+  timeFrame: AnalyticsTimeFrame;
+  setTimeFrame: (timeFrame: AnalyticsTimeFrame) => void;
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
   activeFilterCount: number;
@@ -15,8 +18,8 @@ export interface UseAnalyticsFiltersReturn {
 }
 
 export const useAnalyticsFilters = (): UseAnalyticsFiltersReturn => {
-  const [timeFrame, setTimeFrameState] = useState(() => {
-    return localStorage.getItem('analytics_timeframe') || '30d';
+  const [timeFrame, setTimeFrameState] = useState<AnalyticsTimeFrame>(() => {
+    return (localStorage.getItem('analytics_timeframe') as AnalyticsTimeFrame) || '30d';
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -31,7 +34,7 @@ export const useAnalyticsFilters = (): UseAnalyticsFiltersReturn => {
 
   const hasTimeframeSelectionRef = useRef(false);
 
-  const setTimeFrame = (newTimeFrame: string) => {
+  const setTimeFrame = (newTimeFrame: AnalyticsTimeFrame) => {
     setTimeFrameState(newTimeFrame);
   };
 

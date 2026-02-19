@@ -215,6 +215,15 @@ export async function listNetworkTags(
   return { rows: result.rows, totalCount };
 }
 
+export async function getManualThreatTags(): Promise<any[]> {
+  const result = await query(
+    `SELECT bssid, threat_tag, threat_confidence, notes
+     FROM app.network_tags 
+     WHERE threat_tag IS NOT NULL`
+  );
+  return result.rows;
+}
+
 module.exports = {
   getHomeLocation,
   getNetworkCount,
@@ -230,4 +239,5 @@ module.exports = {
   upsertThreatTag,
   getNetworkTagByBssid,
   listNetworkTags,
+  getManualThreatTags,
 };

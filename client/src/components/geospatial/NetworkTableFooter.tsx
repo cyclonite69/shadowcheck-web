@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface NetworkTableFooterProps {
   isLoadingMore: boolean;
   hasMore: boolean;

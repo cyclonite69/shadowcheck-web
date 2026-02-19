@@ -19,7 +19,7 @@ export const GeospatialLayout = ({
   return (
     <GeospatialShell>
       <FiltersSidebar open={filtersOpen}>{filterPanel}</FiltersSidebar>
-      <GeospatialContent filtersOpen={filtersOpen}>{content}</GeospatialContent>
+      <GeospatialContent>{content}</GeospatialContent>
       {overlays}
     </GeospatialShell>
   );

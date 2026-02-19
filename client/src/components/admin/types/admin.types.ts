@@ -69,6 +69,11 @@ export interface BackupResult {
   fileName: string;
   filePath: string;
   bytes: number;
+  source?: {
+    environment: string;
+    hostname?: string;
+    instanceId?: string;
+  };
   s3?: {
     bucket: string;
     key: string;

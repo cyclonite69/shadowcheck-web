@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type mapboxglType from 'mapbox-gl';
 
 type MapResizeHandleProps = {
   mapHeight: number;
   containerHeight: number;
-  mapRef: MutableRefObject<mapboxglType.Map | null>;
+  mapRef: MutableRefObject<any>;
   setMapHeight: Dispatch<SetStateAction<number>>;
   setResizing: Dispatch<SetStateAction<boolean>>;
   logDebug: (message: string) => void;

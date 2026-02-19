@@ -41,7 +41,6 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
   const {
     endpoint,
     limit = 1000,
-    offset = 0,
     orderBy,
     sort,
     order,

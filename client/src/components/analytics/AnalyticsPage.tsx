@@ -2,7 +2,6 @@
 // PURPOSE: Main orchestrator component for analytics page
 // REFACTORED: Original 1,106 line component reduced to ~150 lines
 
-import React from 'react';
 import { usePageFilters } from '../../hooks/usePageFilters';
 import { useFilterURLSync } from '../../hooks/useFilteredData';
 import { useAdaptedFilters } from '../../hooks/useAdaptedFilters';
@@ -24,14 +23,7 @@ export default function Analytics() {
   const adaptedFilters = useAdaptedFilters(capabilities);
 
   // Get filter state and controls
-  const {
-    timeFrame,
-    setTimeFrame,
-    showFilters,
-    setShowFilters,
-    activeFilterCount,
-    debouncedFilterState,
-  } = useAnalyticsFilters();
+  const { showFilters, setShowFilters, debouncedFilterState } = useAnalyticsFilters();
 
   // Get analytics data
   const { data, loading, error } = useAnalyticsData(debouncedFilterState);
@@ -40,15 +32,15 @@ export default function Analytics() {
   const { cards, dragging, resizing, handleMouseDown } = useCardLayout();
 
   // Handle mouse events for drag/drop
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = () => {
     // Mouse move is handled internally by useCardLayout hook
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
+  const handleMouseUp = () => {
     // Mouse up is handled internally by useCardLayout hook
   };
 
-  const handleMouseLeave = (e: React.MouseEvent) => {
+  const handleMouseLeave = () => {
     // Mouse leave is handled internally by useCardLayout hook
   };
 

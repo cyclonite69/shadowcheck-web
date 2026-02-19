@@ -2,8 +2,6 @@
 // PURPOSE: Utility functions for chart rendering and data formatting
 // EXTRACTS: Helper functions used across multiple charts
 
-import React from 'react';
-
 // Calculate percentage for pie chart tooltips
 export const calculatePercentage = (value: number, total: number): string => {
   return ((value / total) * 100).toFixed(1);

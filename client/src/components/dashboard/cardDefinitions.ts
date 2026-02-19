@@ -2,19 +2,21 @@
  * Dashboard Card Definitions
  */
 
+import React from 'react';
 import type { CardData } from './MetricCard';
-import type { LucideIcon } from 'lucide-react';
+
+type DashboardIcon = React.FC<{ size?: number; className?: string; style?: React.CSSProperties }>;
 
 // Icons will be provided by the parent component
 export const createInitialCards = (icons: {
-  Network: LucideIcon;
-  Wifi: LucideIcon;
-  Smartphone: LucideIcon;
-  Bluetooth: LucideIcon;
-  Tower: LucideIcon;
-  Radio: LucideIcon;
-  BarChart3: LucideIcon;
-  AlertTriangle: LucideIcon;
+  Network: DashboardIcon;
+  Wifi: DashboardIcon;
+  Smartphone: DashboardIcon;
+  Bluetooth: DashboardIcon;
+  Tower: DashboardIcon;
+  Radio: DashboardIcon;
+  BarChart3: DashboardIcon;
+  AlertTriangle: DashboardIcon;
 }): CardData[] => [
   {
     id: 1,

@@ -1,8 +1,7 @@
 import React from 'react';
-import type mapboxglType from 'mapbox-gl';
 
 interface MapLayersToggleProps {
-  mapRef: React.MutableRefObject<mapboxglType.Map | null>;
+  mapRef: React.MutableRefObject<any>;
   setShow3DBuildings: (enabled: boolean) => void;
   setShowTerrain: (enabled: boolean) => void;
 }

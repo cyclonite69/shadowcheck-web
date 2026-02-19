@@ -2,14 +2,18 @@
 
 import type { NetworkRow } from '../types/network';
 
+export type NetworkColumnConfig = {
+  label: string;
+  width: number;
+  sortable: boolean;
+  default: boolean;
+};
+
 // Column configuration for network tables
 // Uses Partial because not all NetworkRow fields have column definitions
-export const NETWORK_COLUMNS: Partial<
-  Record<
-    keyof NetworkRow | 'select',
-    { label: string; width: number; sortable: boolean; default: boolean }
-  >
-> & { select: { label: string; width: number; sortable: boolean; default: boolean } } = {
+export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>> & {
+  select: NetworkColumnConfig;
+} = {
   select: { label: '✓', width: 40, sortable: false, default: true },
   type: { label: 'Type', width: 60, sortable: true, default: true },
   ssid: { label: 'SSID', width: 150, sortable: true, default: true },
@@ -122,8 +126,15 @@ export const THREAT_LEVEL_CONFIG = {
   NONE: { label: '', color: '#6b7280', bg: '#6b728020' },
 };
 
+export type MapStyleOption = {
+  value: string;
+  label: string;
+  config?: { lightPreset?: string };
+  isGoogle?: boolean;
+};
+
 // Available map styles
-export const MAP_STYLES = [
+export const MAP_STYLES: MapStyleOption[] = [
   {
     value: 'mapbox://styles/mapbox/standard',
     label: 'Standard (Day)',

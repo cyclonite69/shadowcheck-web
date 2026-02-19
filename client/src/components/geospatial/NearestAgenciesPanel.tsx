@@ -1,16 +1,5 @@
 import React from 'react';
-
-interface Agency {
-  office_name: string;
-  office_type: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  latitude: number;
-  longitude: number;
-  distance_km: number;
-  has_wigle_obs: boolean;
-}
+import type { Agency } from './useNearestAgencies';
 
 interface NearestAgenciesPanelProps {
   agencies: Agency[];
@@ -73,7 +62,7 @@ export const NearestAgenciesPanel: React.FC<NearestAgenciesPanelProps> = ({
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="font-semibold text-sm text-slate-200">{agency.office_name}</div>
+                <div className="font-semibold text-sm text-slate-200">{agency.name}</div>
                 <div className="text-xs text-slate-400 mt-1">
                   {agency.office_type === 'field_office' ? '🏢 Field Office' : '📍 Resident Agency'}
                 </div>
@@ -83,7 +72,7 @@ export const NearestAgenciesPanel: React.FC<NearestAgenciesPanelProps> = ({
               </div>
               <div className="text-right ml-3">
                 <div className="text-sm font-semibold text-blue-400">
-                  {agency.distance_km.toFixed(1)} km
+                  {((agency.distance_meters || 0) / 1000).toFixed(1)} km
                 </div>
                 {agency.has_wigle_obs && (
                   <div className="text-xs text-red-400 mt-1">WiGLE data</div>

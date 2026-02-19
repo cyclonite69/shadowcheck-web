@@ -26,11 +26,9 @@ import {
   GRID_CONFIG,
   MARGINS,
   LEGEND_CONFIG,
-  PIE_CONFIG,
   BAR_CONFIG,
   LINE_CONFIG,
   CHART_COLORS,
-  getResponsiveContainerKey,
 } from '../utils/chartConfig';
 import {
   formatPieTooltip,
@@ -55,7 +53,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
   loading,
   error,
   debouncedFilterState,
-  onMouseDown,
+  onMouseDown: _onMouseDown,
 }) => {
   const height = card.h - 50; // for content div height
 
@@ -170,7 +168,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 </Pie>
                 <Tooltip
                   {...TOOLTIP_CONFIG}
-                  formatter={(value, name, props) => {
+                  formatter={(value, name) => {
                     const total = validNetworkData.reduce((sum, item) => sum + item.value, 0);
                     return formatPieTooltip(value as number, name as string, total);
                   }}
@@ -257,7 +255,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 </Pie>
                 <Tooltip
                   {...TOOLTIP_CONFIG}
-                  formatter={(value, name, props) => {
+                  formatter={(value, name) => {
                     const total = validSecurityData.reduce((sum, item) => sum + item.value, 0);
                     return formatPieTooltip(value as number, name as string, total);
                   }}
@@ -470,13 +468,17 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                   {data.severityCounts.map((entry, idx) => (
                     <Cell
                       key={`cell-${idx}-${entry.name}`}
-                      fill={CHART_COLORS.severity[entry.severity] || '#94a3b8'}
+                      fill={
+                        CHART_COLORS.severity[
+                          entry.severity as keyof typeof CHART_COLORS.severity
+                        ] || '#94a3b8'
+                      }
                     />
                   ))}
                 </Pie>
                 <Tooltip
                   {...TOOLTIP_CONFIG}
-                  formatter={(value, name, props) => {
+                  formatter={(value, name) => {
                     const total = data.severityCounts.reduce((sum, item) => sum + item.value, 0);
                     return formatPieTooltip(value as number, name as string, total);
                   }}
@@ -488,7 +490,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
             data.severityCounts.map((item) => ({
               name: item.name,
               value: item.value,
-              color: CHART_COLORS.severity[item.severity] || '#94a3b8',
+              color:
+                CHART_COLORS.severity[item.severity as keyof typeof CHART_COLORS.severity] ||
+                '#94a3b8',
             }))
           )}
         </div>

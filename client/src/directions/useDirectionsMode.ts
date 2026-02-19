@@ -4,7 +4,8 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import type mapboxgl from 'mapbox-gl';
+import type { MutableRefObject } from 'react';
+import type { Map } from 'mapbox-gl';
 import { fetchDirections, type DirectionsData, type DirectionsMode } from './directionsClient';
 import { applyDirectionsRoute, clearDirectionsRoute } from './directionsLayer';
 
@@ -39,7 +40,7 @@ export interface UseDirectionsModeReturn {
 }
 
 export function useDirectionsMode(
-  mapRef: React.MutableRefObject<mapboxgl.Map | null>,
+  mapRef: MutableRefObject<Map | null>,
   initialMode?: SearchMode
 ): UseDirectionsModeReturn {
   const [mode, setModeState] = useState<SearchMode>(initialMode ?? readPersistedMode());

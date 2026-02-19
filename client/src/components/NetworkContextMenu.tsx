@@ -1,21 +1,80 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, MouseEvent } from 'react';
-import { MessageSquare, Paperclip, Trash2, X } from 'lucide-react';
+import { useNetworkNotes } from '../hooks/useNetworkNotes';
+
+const MessageSquare = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const Paperclip = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+  </svg>
+);
+
+const Trash2 = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" />
+    <line x1="14" y1="11" x2="14" y2="17" />
+  </svg>
+);
+
+const X = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
 
 type Network = {
   bssid: string;
   ssid?: string | null;
   threat_level?: string | null;
 };
-
-type Note = {
-  id: number | string;
-  note_type: string;
-  created_at: string;
-  content: string;
-};
-
-type NotesByBssid = Record<string, Note[]>;
 
 type ContextMenuState = {
   x: number;
@@ -32,9 +91,9 @@ export default function NetworkContextMenu({ networks = [] }: NetworkContextMenu
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState('general');
-  const [notes, setNotes] = useState<NotesByBssid>({});
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { notes, addNote, deleteNote } = useNetworkNotes();
 
   // Handle right-click
   const handleRightClick = (e: MouseEvent<HTMLTableRowElement>, bssid: string) => {
@@ -55,37 +114,15 @@ export default function NetworkContextMenu({ networks = [] }: NetworkContextMenu
     if (!noteText.trim() || !selectedBSSID) return;
 
     try {
-      const response = await fetch('/api/admin/network-notes/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bssid: selectedBSSID,
-          content: noteText,
-          note_type: noteType,
-          user_id: 'default_user',
-        }),
-      });
+      const success = await addNote(
+        selectedBSSID,
+        noteText,
+        noteType,
+        'default_user',
+        attachedFiles
+      );
 
-      if (response.ok) {
-        const data = await response.json();
-
-        // Upload media if attached
-        for (const file of attachedFiles) {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('bssid', selectedBSSID);
-
-          await fetch(`/api/admin/network-notes/${data.note_id}/media`, {
-            method: 'POST',
-            body: formData,
-          });
-        }
-
-        // Refresh notes
-        const notesResponse = await fetch(`/api/admin/network-notes/${selectedBSSID}`);
-        const notesData = (await notesResponse.json()) as { notes: Note[] };
-        setNotes((prev) => ({ ...prev, [selectedBSSID]: notesData.notes }));
-
+      if (success) {
         setNoteText('');
         setNoteType('general');
         setAttachedFiles([]);
@@ -110,14 +147,7 @@ export default function NetworkContextMenu({ networks = [] }: NetworkContextMenu
   // Delete note
   const handleDeleteNote = async (bssid: string, noteId: number | string) => {
     try {
-      await fetch(`/api/admin/network-notes/${noteId}`, { method: 'DELETE' });
-      setNotes((prev) => {
-        const current = prev[bssid] ?? [];
-        return {
-          ...prev,
-          [bssid]: current.filter((n) => n.id !== noteId),
-        };
-      });
+      await deleteNote(bssid, noteId as number);
     } catch (err) {
       console.error('Error deleting note:', err);
     }

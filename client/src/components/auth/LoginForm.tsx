@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useLogin } from '../../hooks/useLogin';
 
 interface LoginFormProps {
   onLogin: (user: any) => void;
@@ -7,42 +8,11 @@ interface LoginFormProps {
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError, onChangePassword }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { username, setUsername, password, setPassword, loading, login } = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!username || !password) {
-      onError('Please enter both username and password');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
-      onLogin(data.user);
-    } catch (error: any) {
-      onError(error.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
+    await login(onLogin, onError);
   };
 
   return (

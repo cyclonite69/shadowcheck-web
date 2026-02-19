@@ -1,8 +1,7 @@
 import React from 'react';
-import type mapboxgl from 'mapbox-gl';
+import type { Map } from 'mapbox-gl';
 import { MapHeader } from './MapHeader';
 import { MapViewport } from './MapViewport';
-import { MapToolbar } from './MapToolbar';
 
 interface MapPanelProps {
   mapHeight: number;
@@ -10,9 +9,9 @@ interface MapPanelProps {
   toolbar: React.ReactNode;
   mapReady: boolean;
   mapError: string | null;
-  embeddedView: boolean;
-  mapRef: React.MutableRefObject<mapboxgl.Map | null>;
-  mapContainerRef: React.RefObject<HTMLDivElement>;
+  embeddedView: 'street-view' | 'earth' | null;
+  mapRef: React.MutableRefObject<Map | null>;
+  mapContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const MapPanel = ({

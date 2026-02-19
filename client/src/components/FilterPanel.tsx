@@ -5,17 +5,7 @@
 
 import React, { useState } from 'react';
 import { useFilterStore } from '../stores/filterStore';
-import {
-  AuthMethod,
-  EncryptionType,
-  FrequencyBand,
-  InsecureFlag,
-  RadioType,
-  SecurityFlag,
-  TemporalScope,
-  ThreatCategory,
-} from '../types/filters';
-import { FilterSection, FilterInput } from './filter';
+import { FilterSection } from './filter';
 import { FilterPanelHeader } from './filters/FilterPanelHeader';
 import {
   IdentityFilters,
@@ -60,8 +50,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
     'filter-panel__control w-full bg-slate-800 border border-slate-600 rounded text-slate-200 min-w-0';
   const controlSize = isCompact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm';
   const controlClass = `${controlBase} ${controlSize}`;
-
-  const panelWidthClass = isCompact ? 'w-full sm:w-72' : 'w-full sm:w-80';
 
   return (
     <div

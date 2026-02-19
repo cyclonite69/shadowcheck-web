@@ -1,15 +1,12 @@
 import React from 'react';
 import type { NetworkRow } from '../../types/network';
-
-interface ColumnDefinition {
-  label: string;
-}
+import type { NetworkColumnConfig } from '../../constants/network';
 
 interface ColumnSelectorProps {
   visible: boolean;
-  anchorRef: React.RefObject<HTMLDivElement>;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
-  columns: Record<string, ColumnDefinition>;
+  columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
   onToggle: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
 }

@@ -1,9 +1,10 @@
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { formatSecurity } from '../../utils/wigle';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 
 export const attachClickHandlers = (
-  map: mapboxglType.Map,
+  map: Map,
   mapboxgl: typeof mapboxglType,
   wigleHandlersAttachedRef: React.MutableRefObject<boolean>
 ) => {
@@ -40,7 +41,7 @@ export const attachClickHandlers = (
   const handleClusterClick = (sourceId: string, clusterLayerId: string) => (e: any) => {
     const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
     const clusterId = features[0]?.properties?.cluster_id;
-    const source = map.getSource(sourceId) as mapboxglType.GeoJSONSource;
+    const source = map.getSource(sourceId) as GeoJSONSource;
     if (!source || clusterId == null) return;
     source.getClusterExpansionZoom(clusterId, (err, zoom) => {
       if (err || zoom == null) return;

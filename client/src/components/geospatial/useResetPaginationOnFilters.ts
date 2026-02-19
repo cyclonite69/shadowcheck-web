@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { NetworkRow, SortState } from '../../types/network';
+import type { SortState } from '../../types/network';
 
 type ResetPaginationProps = {
   debouncedFilterState: Record<string, unknown>;

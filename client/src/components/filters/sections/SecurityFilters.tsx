@@ -4,17 +4,23 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import { EncryptionType, AuthMethod, InsecureFlag, SecurityFlag } from '../../../types/filters';
+import {
+  EncryptionType,
+  AuthMethod,
+  InsecureFlag,
+  SecurityFlag,
+  NetworkFilters,
+} from '../../../types/filters';
 
 interface SecurityFiltersProps {
-  filters: any;
-  enabled: any;
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   listLayoutClass: string;
   listItemTextClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onToggleFilter: (key: string) => void;
-  onEnableFilter: (key: string, value: boolean) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onToggleFilter: (key: keyof NetworkFilters) => void;
+  onEnableFilter: (key: keyof NetworkFilters, enabled: boolean) => void;
 }
 
 export const SecurityFilters: React.FC<SecurityFiltersProps> = ({

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import type mapboxgl from 'mapbox-gl';
+import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
+import { agencyApi } from '../../api/agencyApi';
 
 interface AgencyOffice {
   type: 'Feature';
@@ -33,15 +34,8 @@ export interface AgencyVisibility {
   residentAgencies: boolean;
 }
 
-const LAYER_IDS = [
-  'agency-clusters',
-  'agency-cluster-count',
-  'agency-field-unclustered',
-  'agency-resident-unclustered',
-] as const;
-
 export const useAgencyOffices = (
-  mapRef: React.MutableRefObject<mapboxgl.Map | null>,
+  mapRef: React.MutableRefObject<Map | null>,
   mapReady: boolean,
   visibility: AgencyVisibility = { fieldOffices: true, residentAgencies: true }
 ) => {
@@ -61,9 +55,7 @@ export const useAgencyOffices = (
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('/agency-offices');
-        if (!response.ok) throw new Error('Failed to fetch agency offices');
-        const geojson = await response.json();
+        const geojson = await agencyApi.getAgencyOffices();
         setData(geojson);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -184,7 +176,7 @@ export const useAgencyOffices = (
         const clusterId = features[0]?.properties?.cluster_id;
         if (!clusterId) return;
 
-        const source = map.getSource('agency-offices') as mapboxgl.GeoJSONSource;
+        const source = map.getSource('agency-offices') as GeoJSONSource;
         source.getClusterExpansionZoom(clusterId, (err, zoom) => {
           if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') return;
           map.easeTo({
@@ -218,9 +210,7 @@ export const useAgencyOffices = (
       applyVisibility(map, visibilityRef.current);
     };
 
-    const handleUnclusteredClick = (
-      e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }
-    ) => {
+    const handleUnclusteredClick = (e: MapMouseEvent & { features?: MapboxGeoJSONFeature[] }) => {
       const feature = e.features?.[0];
       if (!feature || !e.lngLat) return;
 
@@ -280,7 +270,7 @@ export const useAgencyOffices = (
   return { data, loading, error };
 };
 
-function applyVisibility(map: mapboxgl.Map, visibility: AgencyVisibility) {
+function applyVisibility(map: Map, visibility: AgencyVisibility) {
   const anyVisible = visibility.fieldOffices || visibility.residentAgencies;
 
   // Clusters show when at least one type is visible

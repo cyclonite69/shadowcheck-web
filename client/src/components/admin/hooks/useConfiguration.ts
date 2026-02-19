@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { adminApi } from '../../../api/adminApi';
 
 export const useConfiguration = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,22 +29,11 @@ export const useConfiguration = () => {
   const saveMapboxToken = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/mapbox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ token: mapboxToken }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveMapboxToken(mapboxToken);
       setMapboxConfigured(true);
       alert('Mapbox token saved!');
     } catch (error) {
-      alert(`Error saving token: ${error.message}`);
+      alert(`Error saving token: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -52,22 +42,11 @@ export const useConfiguration = () => {
   const saveMapboxUnlimitedApiKey = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/mapbox-unlimited', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ value: mapboxUnlimitedApiKey }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveMapboxUnlimited(mapboxUnlimitedApiKey);
       setMapboxUnlimitedConfigured(true);
       alert('Mapbox geocoding key saved!');
     } catch (error) {
-      alert(`Error saving Mapbox geocoding key: ${error.message}`);
+      alert(`Error saving Mapbox geocoding key: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -76,22 +55,11 @@ export const useConfiguration = () => {
   const saveWigleCredentials = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/wigle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ apiName: wigleApiName, apiToken: wigleApiToken }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveWigleToken(wigleApiToken);
       setWigleConfigured(true);
       alert('WiGLE credentials saved!');
     } catch (error) {
-      alert(`Error saving credentials: ${error.message}`);
+      alert(`Error saving credentials: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -100,22 +68,11 @@ export const useConfiguration = () => {
   const saveGoogleMapsApiKey = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/google-maps', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ apiKey: googleMapsApiKey }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveGoogleMapsKey(googleMapsApiKey);
       setGoogleMapsConfigured(true);
       alert('Google Maps API key saved!');
     } catch (error) {
-      alert(`Error saving API key: ${error.message}`);
+      alert(`Error saving API key: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -124,27 +81,11 @@ export const useConfiguration = () => {
   const saveAwsCredentials = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/aws', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          accessKeyId: awsAccessKeyId,
-          secretAccessKey: awsSecretAccessKey,
-          sessionToken: awsSessionToken || undefined,
-          region: awsRegion,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveAwsCredentials(awsAccessKeyId, awsSecretAccessKey, awsRegion);
       setAwsConfigured(true);
       alert('AWS credentials saved!');
     } catch (error) {
-      alert(`Error saving AWS credentials: ${error.message}`);
+      alert(`Error saving AWS credentials: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -153,22 +94,11 @@ export const useConfiguration = () => {
   const saveOpencageApiKey = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/opencage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ apiKey: opencageApiKey }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveOpenCageKey(opencageApiKey);
       setOpencageConfigured(true);
       alert('OpenCage API key saved!');
     } catch (error) {
-      alert(`Error saving OpenCage key: ${error.message}`);
+      alert(`Error saving OpenCage key: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -177,22 +107,11 @@ export const useConfiguration = () => {
   const saveLocationIqApiKey = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/locationiq', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ apiKey: locationIqApiKey }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveLocationIQKey(locationIqApiKey);
       setLocationIqConfigured(true);
       alert('LocationIQ API key saved!');
     } catch (error) {
-      alert(`Error saving LocationIQ key: ${error.message}`);
+      alert(`Error saving LocationIQ key: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -201,22 +120,11 @@ export const useConfiguration = () => {
   const saveSmartyCredentials = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/settings/smarty', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ authId: smartyAuthId, authToken: smartyAuthToken }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
+      await adminApi.saveSmartyKey(smartyAuthId, smartyAuthToken);
       setSmartyConfigured(true);
       alert('Smarty credentials saved!');
     } catch (error) {
-      alert(`Error saving Smarty credentials: ${error.message}`);
+      alert(`Error saving Smarty credentials: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -225,16 +133,12 @@ export const useConfiguration = () => {
   const saveHomeLocation = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/home-location', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          latitude: parseFloat(homeLocation.lat),
-          longitude: parseFloat(homeLocation.lng),
-          radius: parseInt(homeLocation.radius),
-        }),
-      });
-      alert(response.ok ? 'Home location saved!' : 'Failed to save location');
+      await adminApi.saveHomeLocation(
+        parseFloat(homeLocation.lat),
+        parseFloat(homeLocation.lng),
+        parseInt(homeLocation.radius)
+      );
+      alert(true ? 'Home location saved!' : 'Failed to save location');
     } catch {
       alert('Error saving location');
     } finally {
@@ -255,55 +159,47 @@ export const useConfiguration = () => {
           locationIqRes,
           smartyRes,
         ] = await Promise.all([
-          fetch('/api/settings/mapbox', { credentials: 'same-origin' }),
-          fetch('/api/settings/mapbox-unlimited', { credentials: 'same-origin' }),
-          fetch('/api/settings/google-maps', { credentials: 'same-origin' }),
-          fetch('/api/settings/wigle', { credentials: 'same-origin' }),
-          fetch('/api/settings/aws', { credentials: 'same-origin' }),
-          fetch('/api/settings/opencage', { credentials: 'same-origin' }),
-          fetch('/api/settings/locationiq', { credentials: 'same-origin' }),
-          fetch('/api/settings/smarty', { credentials: 'same-origin' }),
+          adminApi.getMapboxToken(),
+          adminApi.getMapboxUnlimited(),
+          adminApi.getGoogleMapsKey(),
+          adminApi.getWigleToken(),
+          adminApi.getAwsCredentials(),
+          adminApi.getOpenCageKey(),
+          adminApi.getLocationIQKey(),
+          adminApi.getSmartyKey(),
         ]);
 
-        if (mapboxRes.ok) {
-          const data = await mapboxRes.json();
-          if (typeof data.configured === 'boolean') {
-            setMapboxConfigured(data.configured);
+        if (mapboxRes) {
+          if (typeof mapboxRes.configured === 'boolean') {
+            setMapboxConfigured(mapboxRes.configured);
           } else {
-            const tokens = Array.isArray(data.tokens) ? data.tokens : [];
+            const tokens = Array.isArray(mapboxRes.tokens) ? mapboxRes.tokens : [];
             setMapboxConfigured(tokens.length > 0);
           }
         }
-        if (mapboxUnlimitedRes.ok) {
-          const data = await mapboxUnlimitedRes.json();
-          setMapboxUnlimitedConfigured(Boolean(data.configured));
+        if (mapboxUnlimitedRes) {
+          setMapboxUnlimitedConfigured(Boolean(mapboxUnlimitedRes.configured));
         }
-        if (googleRes.ok) {
-          const data = await googleRes.json();
-          setGoogleMapsConfigured(Boolean(data.configured));
+        if (googleRes) {
+          setGoogleMapsConfigured(Boolean(googleRes.configured));
         }
-        if (wigleRes.ok) {
-          const data = await wigleRes.json();
-          setWigleConfigured(Boolean(data.configured));
+        if (wigleRes) {
+          setWigleConfigured(Boolean(wigleRes.configured));
         }
-        if (awsRes.ok) {
-          const data = await awsRes.json();
-          setAwsConfigured(Boolean(data.configured));
-          if (data.region && !awsRegion) {
-            setAwsRegion(data.region);
+        if (awsRes) {
+          setAwsConfigured(Boolean(awsRes.configured));
+          if (awsRes.region && !awsRegion) {
+            setAwsRegion(awsRes.region);
           }
         }
-        if (opencageRes.ok) {
-          const data = await opencageRes.json();
-          setOpencageConfigured(Boolean(data.configured));
+        if (opencageRes) {
+          setOpencageConfigured(Boolean(opencageRes.configured));
         }
-        if (locationIqRes.ok) {
-          const data = await locationIqRes.json();
-          setLocationIqConfigured(Boolean(data.configured));
+        if (locationIqRes) {
+          setLocationIqConfigured(Boolean(locationIqRes.configured));
         }
-        if (smartyRes.ok) {
-          const data = await smartyRes.json();
-          setSmartyConfigured(Boolean(data.configured));
+        if (smartyRes) {
+          setSmartyConfigured(Boolean(smartyRes.configured));
         }
       } catch {
         setMapboxConfigured(false);

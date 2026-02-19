@@ -3,7 +3,7 @@
  * Imports: mapbox-gl types only — zero React dependencies.
  */
 
-import type mapboxgl from 'mapbox-gl';
+import type { Map } from 'mapbox-gl';
 
 const SOURCE_ID = 'directions-route';
 const LINE_LAYER_ID = 'directions-route-line';
@@ -35,7 +35,7 @@ function formatDuration(seconds: number): string {
 /**
  * Draw a route line on the map with distance/duration info at the midpoint.
  */
-export function applyDirectionsRoute(map: mapboxgl.Map, data: RouteDisplayData): void {
+export function applyDirectionsRoute(map: Map, data: RouteDisplayData): void {
   // Clear any existing route first
   clearDirectionsRoute(map);
 
@@ -110,7 +110,7 @@ export function applyDirectionsRoute(map: mapboxgl.Map, data: RouteDisplayData):
 /**
  * Remove the route line and info label from the map.
  */
-export function clearDirectionsRoute(map: mapboxgl.Map): void {
+export function clearDirectionsRoute(map: Map): void {
   if (map.getLayer(INFO_LAYER_ID)) map.removeLayer(INFO_LAYER_ID);
   if (map.getSource(INFO_LAYER_ID)) map.removeSource(INFO_LAYER_ID);
   if (map.getLayer(LINE_LAYER_ID)) map.removeLayer(LINE_LAYER_ID);

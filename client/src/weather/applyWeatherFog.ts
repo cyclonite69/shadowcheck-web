@@ -1,4 +1,4 @@
-import type mapboxgl from 'mapbox-gl';
+import type { Map, FogSpecification } from 'mapbox-gl';
 import type { WeatherClassification } from './weatherFxPolicy';
 
 interface FogPreset {
@@ -53,7 +53,7 @@ const FOG_PRESETS: Record<string, FogPreset> = {
   },
 };
 
-export function applyFog(map: mapboxgl.Map, classification: WeatherClassification): void {
+export function applyFog(map: Map, classification: WeatherClassification): void {
   const preset = FOG_PRESETS[classification.mode] || FOG_PRESETS.clear;
   const intensityFactor = Math.max(0.3, classification.intensity);
 
@@ -64,9 +64,9 @@ export function applyFog(map: mapboxgl.Map, classification: WeatherClassificatio
   map.setFog({
     ...preset,
     range: [rangeMin, rangeMax],
-  } as mapboxgl.FogSpecification);
+  } as FogSpecification);
 }
 
-export function clearFog(map: mapboxgl.Map): void {
-  map.setFog(null as unknown as mapboxgl.FogSpecification);
+export function clearFog(map: Map): void {
+  map.setFog(null as unknown as FogSpecification);
 }

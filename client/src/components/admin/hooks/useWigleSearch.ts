@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { wigleApi } from '../../../api/wigleApi';
 import {
   WigleSearchParams,
   WigleApiStatus,
@@ -30,8 +31,7 @@ export const useWigleSearch = () => {
 
   const loadApiStatus = async () => {
     try {
-      const res = await fetch('/api/wigle/api-status');
-      const data = await res.json();
+      const data = await wigleApi.getApiStatus();
       setApiStatus(data);
     } catch {
       setApiStatus({ configured: false, error: 'Failed to check status' });
@@ -68,15 +68,12 @@ export const useWigleSearch = () => {
         params.append('searchAfter', searchAfter);
       }
 
-      const res = await fetch(`/api/wigle/search-api?${params.toString()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ import: importResults }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
+      // Add import flag if requested
+      if (importResults) {
+        params.append('import', 'true');
       }
+
+      const data = await wigleApi.searchWigle(params);
 
       // Update pagination state
       const newResults = data.results || [];

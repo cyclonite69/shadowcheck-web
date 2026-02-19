@@ -1,7 +1,7 @@
-import type mapboxglType from 'mapbox-gl';
+import type { Map } from 'mapbox-gl';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 
-export const ensureV2Layers = (map: mapboxglType.Map, v2FCRef: any) => {
+export const ensureV2Layers = (map: Map, v2FCRef: any) => {
   if (!map.getSource('wigle-v2-points')) {
     map.addSource('wigle-v2-points', {
       type: 'geojson',
@@ -62,7 +62,7 @@ export const ensureV2Layers = (map: mapboxglType.Map, v2FCRef: any) => {
   }
 };
 
-export const ensureV3Layers = (map: mapboxglType.Map, v3FCRef: any) => {
+export const ensureV3Layers = (map: Map, v3FCRef: any) => {
   if (!map.getSource('wigle-v3-points')) {
     map.addSource('wigle-v3-points', {
       type: 'geojson',
@@ -123,10 +123,7 @@ export const ensureV3Layers = (map: mapboxglType.Map, v3FCRef: any) => {
   }
 };
 
-export const applyLayerVisibility = (
-  map: mapboxglType.Map,
-  layers: { v2: boolean; v3: boolean }
-) => {
+export const applyLayerVisibility = (map: Map, layers: { v2: boolean; v3: boolean }) => {
   const setVis = (layerId: string, visible: boolean) => {
     if (map.getLayer(layerId)) {
       map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');

@@ -1,10 +1,7 @@
 import React from 'react';
 import type { NetworkRow } from '../../types/network';
+import type { NetworkColumnConfig } from '../../constants/network';
 import { ColumnSelector } from './ColumnSelector';
-
-interface ColumnDefinition {
-  label: string;
-}
 
 interface NetworkExplorerHeaderProps {
   expensiveSort: boolean;
@@ -15,9 +12,9 @@ interface NetworkExplorerHeaderProps {
   filtersOpen: boolean;
   onToggleFilters: () => void;
   showColumnSelector: boolean;
-  columnDropdownRef: React.RefObject<HTMLDivElement>;
+  columnDropdownRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
-  columns: Record<string, ColumnDefinition>;
+  columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
 }

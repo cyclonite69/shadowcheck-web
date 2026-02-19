@@ -111,39 +111,6 @@ const calculateTimespan = (first: string | null, last: string | null): number | 
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
 };
 
-// Parse threat info from API response
-const parseThreatInfo = (threat: any, bssid: string): ThreatInfo => {
-  if (threat === true) {
-    return {
-      score: 1,
-      level: 'HIGH',
-      summary: 'Signal above threat threshold',
-    };
-  } else if (threat && typeof threat === 'object') {
-    const t = threat as {
-      score?: number | string;
-      level?: string;
-      summary?: string;
-      debug?: any;
-    };
-    const apiScore =
-      typeof t.score === 'string' ? parseFloat(t.score) : typeof t.score === 'number' ? t.score : 0;
-
-    return {
-      score: apiScore / 100,
-      level: (t.level || 'NONE') as 'NONE' | 'LOW' | 'MED' | 'HIGH',
-      summary: t.summary || `Threat level: ${t.level || 'NONE'}`,
-      debug: t.debug || undefined,
-    };
-  }
-
-  return {
-    score: 0,
-    level: 'NONE',
-    summary: 'No threat analysis available',
-  };
-};
-
 // Map API row to NetworkRow
 const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const securityValue = formatSecurity(row.capabilities, row.security);
@@ -160,12 +127,17 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const threatLevel = row.final_threat_level || 'NONE';
   const threatInfo: ThreatInfo = {
     score: threatScore / 100,
-    level: threatLevel as 'NONE' | 'LOW' | 'MED' | 'HIGH' | 'CRITICAL',
+    level:
+      (threatLevel as any) === 'CRITICAL'
+        ? 'HIGH'
+        : (threatLevel as 'NONE' | 'LOW' | 'MED' | 'HIGH'),
     summary: `Threat level: ${threatLevel}`,
     debug: {
-      rule_score: row.rule_based_score ?? null,
-      ml_score: row.ml_threat_score ?? null,
-      model_version: row.model_version ?? null,
+      rule_score: row.rule_based_score ?? 0,
+      ml_score: row.ml_threat_score ?? 0,
+      evidence_weight: row.evidence_weight ?? 0,
+      ml_boost: row.ml_boost ?? 0,
+      features: row.features ?? {},
     },
   };
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { adminApi } from '../../../api/adminApi';
 import type { PgAdminStatus } from '../types/admin.types';
 
 export const usePgAdmin = () => {
@@ -12,38 +13,28 @@ export const usePgAdmin = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/pgadmin/status');
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
+      const data = await adminApi.getPgAdminStatus();
       setStatus(data);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load PgAdmin status');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load PgAdmin status';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const startPgAdmin = useCallback(
-    async (reset = false) => {
+    async (_reset = false) => {
       setActionLoading(true);
       setActionMessage('');
       setError('');
       try {
-        const response = await fetch('/api/admin/pgadmin/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reset }),
-        });
-        const data = await response.json();
-        if (!response.ok || !data.ok) {
-          throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
+        const data = await adminApi.startPgAdmin();
         setActionMessage(data.message || 'PgAdmin action completed');
         await refreshStatus();
-      } catch (err: any) {
-        setError(err?.message || 'PgAdmin action failed');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'PgAdmin action failed';
+        setError(errorMessage);
       } finally {
         setActionLoading(false);
       }
@@ -56,15 +47,12 @@ export const usePgAdmin = () => {
     setActionMessage('');
     setError('');
     try {
-      const response = await fetch('/api/admin/pgadmin/stop', { method: 'POST' });
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
+      const data = await adminApi.stopPgAdmin();
       setActionMessage(data.message || 'PgAdmin stopped');
       await refreshStatus();
-    } catch (err: any) {
-      setError(err?.message || 'PgAdmin stop failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'PgAdmin stop failed';
+      setError(errorMessage);
     } finally {
       setActionLoading(false);
     }

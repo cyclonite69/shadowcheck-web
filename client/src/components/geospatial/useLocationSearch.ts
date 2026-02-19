@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map, Marker } from 'mapbox-gl';
+import { mapboxApi } from '../../api/mapboxApi';
 
 export interface LocationSearchResult {
   text: string;
@@ -9,8 +10,8 @@ export interface LocationSearchResult {
 }
 
 interface UseLocationSearchParams {
-  mapRef: React.MutableRefObject<mapboxglType.Map | null>;
-  mapboxRef: React.MutableRefObject<mapboxglType | null>;
+  mapRef: React.MutableRefObject<Map | null>;
+  mapboxRef: React.MutableRefObject<any>;
   logError: (message: string, error: unknown) => void;
 }
 
@@ -20,7 +21,7 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchingLocation, setSearchingLocation] = useState(false);
   const locationSearchRef = useRef<HTMLDivElement | null>(null);
-  const searchMarkerRef = useRef<mapboxglType.Marker | null>(null);
+  const searchMarkerRef = useRef<Marker | null>(null);
 
   const searchLocation = useCallback(
     async (query: string) => {
@@ -30,20 +31,16 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
       setSearchingLocation(true);
       try {
         // Bias results toward POIs and the current map viewport center
-        const params = new URLSearchParams({
-          access_token: mapboxgl.accessToken,
+        const params: Record<string, string> = {
           limit: '5',
           types: 'poi,address,place,locality,neighborhood',
-        });
+        };
         const map = mapRef.current;
         if (map) {
           const center = map.getCenter();
-          params.set('proximity', `${center.lng.toFixed(5)},${center.lat.toFixed(5)}`);
+          params.proximity = `${center.lng.toFixed(5)},${center.lat.toFixed(5)}`;
         }
-        const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`
-        );
-        const data = await response.json();
+        const data = await mapboxApi.geocodeSearch(query, mapboxgl.accessToken, params);
         setSearchResults(data.features || []);
         setShowSearchResults(true);
       } catch (error) {
@@ -91,10 +88,10 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
         searchMarkerRef.current.remove();
       }
 
-      searchMarkerRef.current = new mapboxgl.Marker({ color: '#3b82f6' })
+      searchMarkerRef.current = new (mapboxgl as any).Marker({ color: '#3b82f6' })
         .setLngLat([lng, lat])
         .setPopup(
-          new mapboxgl.Popup({ offset: 25 }).setHTML(
+          new (mapboxgl as any).Popup({ offset: 25 }).setHTML(
             `<div style="color: #000; font-weight: 600;">${result.place_name}</div>`
           )
         )

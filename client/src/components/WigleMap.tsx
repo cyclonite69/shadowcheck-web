@@ -1,18 +1,12 @@
 import React from 'react';
 
 interface WigleMapProps {
-  mapContainerRef: React.RefObject<HTMLDivElement>;
-  loading: boolean;
+  mapContainerRef: React.RefObject<HTMLDivElement | null>;
   error: string | null;
   mapReady: boolean;
 }
 
-export const WigleMap: React.FC<WigleMapProps> = ({
-  mapContainerRef,
-  loading,
-  error,
-  mapReady,
-}) => {
+export const WigleMap: React.FC<WigleMapProps> = ({ mapContainerRef, error, mapReady }) => {
   return (
     <div
       className="flex-1"

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { NetworkRow } from '../../types/network';
 
 interface WigleLookupDialogProps {

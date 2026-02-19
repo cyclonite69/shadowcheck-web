@@ -12,7 +12,7 @@ export const transformNetworkTypesData = (rawData: any[]) => {
     .map((item) => ({
       name: item.type || item.network_type,
       value: Number(item.count),
-      color: NETWORK_TYPE_COLORS[item.type || item.network_type] || '#64748b',
+      color: NETWORK_TYPE_COLORS[(item.type || item.network_type) as string] || '#64748b',
     }))
     .filter((item) => !isNaN(item.value) && item.value > 0);
 };
@@ -35,7 +35,7 @@ export const transformSecurityData = (rawData: any[]) => {
     .map((item) => ({
       name: item.type || item.security_type,
       value: Number(item.count),
-      color: SECURITY_TYPE_COLORS[item.type || item.security_type] || '#64748b',
+      color: SECURITY_TYPE_COLORS[(item.type || item.security_type) as string] || '#64748b',
     }))
     .filter((item) => !isNaN(item.value) && item.value > 0);
 };

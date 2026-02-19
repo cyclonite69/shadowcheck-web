@@ -8,12 +8,11 @@
 
 declare global {
   interface Window {
-    mapboxgl?: typeof import('mapbox-gl');
+    mapboxgl?: any;
   }
 }
 
 const MAPBOX_LOAD_TIMEOUT_MS = 5000;
-const POLL_INTERVAL_MS = 50;
 
 export type MapboxLoadResult =
   | { ready: true; mapboxgl: typeof import('mapbox-gl') }

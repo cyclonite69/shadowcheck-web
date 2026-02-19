@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { SsmTerminal } from '../components/SsmTerminal';
 import { useAwsOverview } from '../hooks/useAwsOverview';
+import { useAwsInstanceAction } from '../../../hooks/useAwsInstanceAction';
 
 const CloudIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -19,8 +20,7 @@ const CloudIcon = ({ size = 24, className = '' }) => (
 
 export const AwsTab: React.FC = () => {
   const { overview, loading, error, refresh } = useAwsOverview();
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { actionLoading, actionError, performAction } = useAwsInstanceAction();
   const [confirmTerminate, setConfirmTerminate] = useState<string | null>(null);
   const [ssmInstanceId, setSsmInstanceId] = useState<string | null>(null);
 
@@ -29,32 +29,13 @@ export const AwsTab: React.FC = () => {
   const stateBadges = Object.entries(counts.states || {});
   const displayError = error || overview?.error || actionError;
 
-  const handleInstanceAction = async (instanceId: string, action: string) => {
-    setActionLoading(instanceId);
-    setActionError(null);
-
-    try {
-      const body = action === 'terminate' ? JSON.stringify({ confirm: instanceId }) : undefined;
-      const response = await fetch(`/api/admin/aws/instances/${instanceId}/${action}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || `Failed to ${action} instance`);
-      }
-
+  const handleInstanceAction = async (instanceId: string | null, action: string) => {
+    if (!instanceId) return;
+    const success = await performAction(instanceId, action as 'start' | 'stop');
+    if (success) {
       // Refresh overview after action
       setTimeout(refresh, 2000);
       setConfirmTerminate(null);
-    } catch (err) {
-      setActionError((err as Error).message);
-    } finally {
-      setActionLoading(null);
     }
   };
 
@@ -143,17 +124,16 @@ export const AwsTab: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {instances.map((instance, index) => {
+                  {instances.map((instance, _index) => {
                     const isLoading = actionLoading === instance.instanceId;
                     const isRunning = instance.state === 'running';
                     const isStopped = instance.state === 'stopped';
                     const showTerminate = confirmTerminate === instance.instanceId;
 
+                    if (!instance.instanceId) return null;
+
                     return (
-                      <tr
-                        key={instance.instanceId || `instance-${index}`}
-                        className="border-b border-slate-800/60"
-                      >
+                      <tr key={instance.instanceId} className="border-b border-slate-800/60">
                         <td className="py-2 pr-4 text-white">{instance.name || '—'}</td>
                         <td className="py-2 pr-4 font-mono text-xs">
                           {instance.instanceId || '—'}

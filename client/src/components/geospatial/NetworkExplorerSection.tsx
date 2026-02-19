@@ -1,14 +1,11 @@
 import React from 'react';
 import type { NetworkRow, SortState } from '../../types/network';
+import type { NetworkColumnConfig } from '../../constants/network';
 import { MapStatusBar } from './MapStatusBar';
 import { NetworkExplorerCard } from './NetworkExplorerCard';
 import { NetworkExplorerHeader } from './NetworkExplorerHeader';
 import { NetworkTableBodyGrid } from './NetworkTableBodyGrid';
 import { NetworkTableHeaderGrid } from './NetworkTableHeaderGrid';
-
-interface ColumnDefinition {
-  label: string;
-}
 
 interface NetworkExplorerSectionProps {
   expensiveSort: boolean;
@@ -19,9 +16,9 @@ interface NetworkExplorerSectionProps {
   filtersOpen: boolean;
   onToggleFilters: () => void;
   showColumnSelector: boolean;
-  columnDropdownRef: React.RefObject<HTMLDivElement>;
+  columnDropdownRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
-  columns: Record<string, ColumnDefinition>;
+  columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
   sort: SortState[];
@@ -30,7 +27,7 @@ interface NetworkExplorerSectionProps {
   onToggleSelectAll: () => void;
   onColumnSort: (column: keyof NetworkRow, shiftKey: boolean) => void;
   onReorderColumns?: (from: keyof NetworkRow | 'select', to: keyof NetworkRow | 'select') => void;
-  tableContainerRef: React.RefObject<HTMLDivElement>;
+  tableContainerRef: React.RefObject<HTMLDivElement | null>;
   loadingNetworks: boolean;
   filteredNetworks: NetworkRow[];
   error: string | null;
@@ -46,13 +43,13 @@ interface NetworkExplorerSectionProps {
   onLoadMore: () => void;
   visibleCount: number;
   networkTruncated: boolean;
-  networkTotal: number;
+  networkTotal: number | null;
   selectedCount: number;
   observationCount: number;
   observationsTruncated: boolean;
-  observationsTotal: number;
+  observationsTotal: number | null;
   renderBudgetExceeded: boolean;
-  renderBudget: number;
+  renderBudget: number | null;
   loadingObservations: boolean;
 }
 

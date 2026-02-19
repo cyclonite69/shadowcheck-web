@@ -53,7 +53,7 @@ export function adaptFiltersToPage(
     if (isEnabled && filters[filterKey] !== undefined) {
       if (isSupported) {
         // Include in page filters
-        filtersForPage[filterKey] = filters[filterKey];
+        (filtersForPage as any)[filterKey] = filters[filterKey];
         enabledForPage[filterKey] = true;
       } else {
         // Track as ignored

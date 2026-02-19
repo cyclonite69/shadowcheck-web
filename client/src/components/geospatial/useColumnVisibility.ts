@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { NetworkRow } from '../../types/network';
-import type { NetworkColumnConfig } from '../../constants/network';
+import { NetworkColumnConfig } from '../../constants/network';
 
 type ColumnVisibilityProps = {
-  columns: Record<keyof NetworkRow, NetworkColumnConfig>;
+  columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
 };
 
 export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
@@ -22,10 +22,9 @@ export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
         // Fall through to default
       }
     }
-    return Object.keys(columns).filter((k) => columns[k as keyof typeof columns].default) as (
-      | keyof NetworkRow
-      | 'select'
-    )[];
+    return (Object.keys(columns) as (keyof NetworkRow | 'select')[]).filter(
+      (k) => columns[k]?.default
+    );
   });
 
   useEffect(() => {

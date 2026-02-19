@@ -107,7 +107,7 @@ export const MLTrainingTab: React.FC = () => {
       {/* Training Data */}
       <AdminCard icon={BarChartIcon} title="Training Data" color="from-purple-500 to-purple-600">
         <div className="space-y-3">
-          {mlStatus?.taggedNetworks?.length > 0 ? (
+          {mlStatus && mlStatus.taggedNetworks && mlStatus.taggedNetworks.length > 0 ? (
             <>
               {mlStatus.taggedNetworks.map((tag: any, idx: number) => (
                 <div
@@ -153,7 +153,7 @@ export const MLTrainingTab: React.FC = () => {
             </span>
           </div>
 
-          {mlStatus?.modelInfo?.updated_at && (
+          {mlStatus && mlStatus.modelInfo && mlStatus.modelInfo.updated_at && (
             <div className="flex justify-between items-center py-2">
               <span className="text-sm text-slate-400">Updated:</span>
               <span className="text-sm text-slate-300">

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MLStatus } from '../types/admin.types';
+import { adminApi } from '../../../api/adminApi';
 
 export const useMLTraining = () => {
   const [mlStatus, setMlStatus] = useState<MLStatus | null>(null);
@@ -10,8 +11,7 @@ export const useMLTraining = () => {
 
   const loadMLStatus = async () => {
     try {
-      const res = await fetch('/api/ml/status');
-      const data = await res.json();
+      const data = await adminApi.getMLStatus();
       setMlStatus(data);
     } catch {
       setMlStatus({ modelTrained: false, taggedNetworks: [] });
@@ -22,8 +22,7 @@ export const useMLTraining = () => {
     setMlLoading(true);
     setMlResult(null);
     try {
-      const res = await fetch('/api/ml/train', { method: 'POST' });
-      const data = await res.json();
+      const data = await adminApi.trainML();
       if (data.ok) {
         setMlResult({
           type: 'success',
@@ -33,7 +32,7 @@ export const useMLTraining = () => {
       } else {
         setMlResult({
           type: 'error',
-          message: data.error || `HTTP ${res.status}: ${res.statusText}`,
+          message: data.error || 'Training failed',
         });
       }
     } catch (err: any) {
@@ -47,8 +46,7 @@ export const useMLTraining = () => {
     setMlLoading(true);
     setMlResult(null);
     try {
-      const res = await fetch(`/api/ml/score-all?limit=${limit}`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminApi.scoreAll(limit);
       if (data.ok) {
         setMlResult({
           type: 'success',
@@ -58,7 +56,7 @@ export const useMLTraining = () => {
       } else {
         setMlResult({
           type: 'error',
-          message: data.error || `HTTP ${res.status}: ${res.statusText}`,
+          message: data.error || 'Scoring failed',
         });
       }
     } catch (err: any) {

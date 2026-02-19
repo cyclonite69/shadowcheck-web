@@ -4,17 +4,17 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import { RadioType, FrequencyBand } from '../../../types/filters';
+import { RadioType, FrequencyBand, NetworkFilters } from '../../../types/filters';
 
 interface RadioFiltersProps {
-  filters: any;
-  enabled: any;
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   controlClass: string;
   listLayoutClass: string;
   listItemTextClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onToggleFilter: (key: string) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onToggleFilter: (key: keyof NetworkFilters) => void;
 }
 
 export const RadioFilters: React.FC<RadioFiltersProps> = ({

@@ -1,58 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useChangePassword } from '../../hooks/useChangePassword';
 
 interface ChangePasswordFormProps {
   onBack: () => void;
 }
 
 export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onBack }) => {
-  const [username, setUsername] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const {
+    username,
+    setUsername,
+    currentPassword,
+    setCurrentPassword,
+    newPassword,
+    setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
+    loading,
+    error,
+    success,
+    changePassword,
+  } = useChangePassword();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!username || !currentPassword || !newPassword || !confirmPassword) {
-      setError('All fields are required');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, currentPassword, newPassword }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to change password');
-      }
-
-      setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to change password');
-    } finally {
-      setLoading(false);
-    }
+    await changePassword();
   };
 
   if (success) {

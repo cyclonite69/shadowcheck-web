@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import type mapboxgl from 'mapbox-gl';
 import { logDebug, logWarn } from '../logging/clientLogger';
 import { fetchCurrentWeather } from './openMeteoClient';
 import { classifyFx } from './weatherFxPolicy';
@@ -12,7 +11,7 @@ const STORAGE_KEY = 'shadowcheck_weather_fx';
 
 export function useWeatherFx(
   mapRef: React.MutableRefObject<mapboxgl.Map | null>,
-  mapContainerRef: React.MutableRefObject<HTMLDivElement | null>,
+  mapContainerRef: React.RefObject<HTMLDivElement | null>,
   mapReady: boolean
 ): {
   weatherFxMode: WeatherFxMode;
@@ -113,20 +112,18 @@ export function useWeatherFx(
 
     // Re-apply fog after style loads
     const styleLoadHandler = () => {
-      if (weatherFxMode !== 'off') {
-        if (weatherFxMode === 'auto') {
-          const center = map.getCenter();
-          (async () => {
-            const weather = await fetchCurrentWeather(center.lat, center.lng);
-            if (weather) {
-              const classification = classifyFx(weather);
-              applyFog(map, classification);
-            }
-          })();
-        } else {
-          const intensity = weatherFxMode === 'rain' || weatherFxMode === 'snow' ? 0.6 : 1.0;
-          applyFog(map, { mode: weatherFxMode, intensity });
-        }
+      if (weatherFxMode === 'auto') {
+        const center = map.getCenter();
+        (async () => {
+          const weather = await fetchCurrentWeather(center.lat, center.lng);
+          if (weather) {
+            const classification = classifyFx(weather);
+            applyFog(map, classification);
+          }
+        })();
+      } else {
+        const intensity = weatherFxMode === 'rain' || weatherFxMode === 'snow' ? 0.6 : 1.0;
+        applyFog(map, { mode: weatherFxMode as any, intensity });
       }
     };
     map.on('style.load', styleLoadHandler);

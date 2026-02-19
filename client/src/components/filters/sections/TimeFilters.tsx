@@ -4,15 +4,15 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import { TemporalScope } from '../../../types/filters';
+import { NetworkFilters, TemporalScope } from '../../../types/filters';
 
 interface TimeFiltersProps {
-  filters: any;
-  enabled: any;
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   controlClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onEnableFilter: (key: string, value: boolean) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onEnableFilter: (key: keyof NetworkFilters, enabled: boolean) => void;
 }
 
 export const TimeFilters: React.FC<TimeFiltersProps> = ({

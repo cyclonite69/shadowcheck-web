@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map } from 'mapbox-gl';
+import { NetworkFilters } from '../../types/filters';
 
 interface UseBoundingBoxFilterParams {
   mapReady: boolean;
-  mapRef: React.MutableRefObject<mapboxglType.Map | null>;
-  enabled: boolean;
-  setFilter: (key: string, value: unknown) => void;
+  mapRef: React.MutableRefObject<Map | null>;
+  enabled?: boolean;
+  setFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
 }
 
 export const useBoundingBoxFilter = ({
@@ -20,6 +21,7 @@ export const useBoundingBoxFilter = ({
     const map = mapRef.current;
     const updateBounds = () => {
       const bounds = map.getBounds();
+      if (!bounds) return;
       setFilter('boundingBox', {
         north: bounds.getNorth(),
         south: bounds.getSouth(),

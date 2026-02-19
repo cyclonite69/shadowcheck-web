@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleDetail, type WigleDetailType } from '../hooks/useWigleDetail';
+import { useWigleFileUpload } from '../../../hooks/useWigleFileUpload';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
@@ -40,12 +41,10 @@ export const WigleDetailTab: React.FC = () => {
   const [netid, setNetid] = useState('');
   const [detailType, setDetailType] = useState<WigleDetailType>('wifi');
   const { loading, error, data, observations, imported, fetchDetail } = useWigleDetail();
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const { uploadError, uploadSuccess, uploadFile, reset } = useWigleFileUpload();
 
   const handleSearch = (shouldImport: boolean) => {
-    setUploadError(null);
-    setUploadSuccess(null);
+    reset();
     fetchDetail(netid, shouldImport, detailType);
   };
 
@@ -53,29 +52,10 @@ export const WigleDetailTab: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadError(null);
-    setUploadSuccess(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await fetch('/api/wigle/import/v3', {
-        method: 'POST',
-        body: formData,
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error || 'Upload failed');
-      }
-
-      setUploadSuccess(`Imported: ${json.data.ssid || json.data.networkId}`);
-      // Auto-load the data we just imported
-      setNetid(json.data.networkId);
-      fetchDetail(json.data.networkId, false, detailType);
-    } catch (err: any) {
-      setUploadError(err.message);
+    const networkId = await uploadFile(file);
+    if (networkId) {
+      setNetid(networkId);
+      fetchDetail(networkId, false, detailType);
     }
 
     // Reset input

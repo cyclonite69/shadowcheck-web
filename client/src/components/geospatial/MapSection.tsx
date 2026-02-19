@@ -1,5 +1,5 @@
 import React from 'react';
-import type mapboxgl from 'mapbox-gl';
+import type { Map } from 'mapbox-gl';
 import { MapPanel } from './MapPanel';
 import { ResizeHandle } from './ResizeHandle';
 
@@ -9,9 +9,9 @@ interface MapSectionProps {
   toolbar: React.ReactNode;
   mapReady: boolean;
   mapError: string | null;
-  embeddedView: boolean;
-  mapRef: React.MutableRefObject<mapboxgl.Map | null>;
-  mapContainerRef: React.RefObject<HTMLDivElement>;
+  embeddedView: 'street-view' | 'earth' | null;
+  mapRef: React.MutableRefObject<Map | null>;
+  mapContainerRef: React.RefObject<HTMLDivElement | null>;
   onResizeMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 

@@ -1,6 +1,7 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { HamburgerButton } from './HamburgerButton';
 import { WigleControlPanel } from './WigleControlPanel';
 import { FilterPanelContainer } from './FilterPanelContainer';
@@ -24,20 +25,20 @@ const WiglePage: React.FC = () => {
   usePageFilters('wigle');
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxglType.Map | null>(null);
-  const mapboxRef = useRef<mapboxglType | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const mapboxRef = useRef<typeof mapboxglType | null>(null);
   const clusterColorCache = useRef<Record<string, Record<number, string>>>({ v2: {}, v3: {} });
   const v2FCRef = useRef<any>(null);
   const v3FCRef = useRef<any>(null);
   const autoFetchedRef = useRef<{ v2: boolean; v3: boolean }>({ v2: false, v3: false });
   const styleEffectInitRef = useRef(false);
-  const [limit, setLimit] = useState<number | null>(DEFAULT_LIMIT);
-  const [offset, setOffset] = useState(0);
-  const [typeFilter, setTypeFilter] = useState('');
+  const [limit] = useState<number | null>(DEFAULT_LIMIT);
+  const [offset] = useState(0);
+  const [typeFilter] = useState('');
   const [mapReady, setMapReady] = useState(false);
-  const [tokenStatus, setTokenStatus] = useState<'idle' | 'ok' | 'error'>('idle');
-  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
-  const [tilesReady, setTilesReady] = useState(false);
+  const [, setTokenStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [, setMapSize] = useState({ width: 0, height: 0 });
+  const [, setTilesReady] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   // Universal filter system (must be before useWigleData)
@@ -46,7 +47,7 @@ const WiglePage: React.FC = () => {
   useFilterURLSync();
 
   // Layer visibility state (persisted)
-  const { layers, toggleLayer, setLayers } = useWigleLayers();
+  const { layers, toggleLayer } = useWigleLayers();
   const layersRef = useRef(layers);
   layersRef.current = layers;
 
@@ -84,7 +85,6 @@ const WiglePage: React.FC = () => {
   // Agency offices layer
   useAgencyOffices(mapRef, mapReady, agencyVisibility);
   const [showMenu, setShowMenu] = useState(false);
-  const [showControls, setShowControls] = useState(false);
   const [mapStyle, setMapStyleState] = useState(() => {
     return localStorage.getItem('wigle_map_style') || 'mapbox://styles/mapbox/dark-v11';
   });
@@ -180,7 +180,7 @@ const WiglePage: React.FC = () => {
       } else {
         map.once('style.load', () => {
           ensureV2LayersCallback();
-          const source = map.getSource('wigle-v2-points') as mapboxglType.GeoJSONSource | undefined;
+          const source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
           if (source) {
             source.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
             updateClusterColors(map, 'wigle-v2-points', 'v2', clusterColorCache);
@@ -190,7 +190,7 @@ const WiglePage: React.FC = () => {
       }
     }
     logDebug(`[WiGLE] Updating v2 map with ${v2Rows.length} points`);
-    const source = map.getSource('wigle-v2-points') as mapboxglType.GeoJSONSource | undefined;
+    const source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
     if (!source) return;
     clusterColorCache.current.v2 = {};
     map.removeFeatureState({ source: 'wigle-v2-points' });
@@ -209,7 +209,7 @@ const WiglePage: React.FC = () => {
       } else {
         map.once('style.load', () => {
           ensureV3LayersCallback();
-          const source = map.getSource('wigle-v3-points') as mapboxglType.GeoJSONSource | undefined;
+          const source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
           if (source) {
             source.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
             updateClusterColors(map, 'wigle-v3-points', 'v3', clusterColorCache);
@@ -219,7 +219,7 @@ const WiglePage: React.FC = () => {
       }
     }
     logDebug(`[WiGLE] Updating v3 map with ${v3Rows.length} points`);
-    const source = map.getSource('wigle-v3-points') as mapboxglType.GeoJSONSource | undefined;
+    const source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
     if (!source) return;
     clusterColorCache.current.v3 = {};
     map.removeFeatureState({ source: 'wigle-v3-points' });
@@ -296,9 +296,9 @@ const WiglePage: React.FC = () => {
     const recreateLayers = () => {
       ensureAllLayers();
       attachClickHandlersCallback();
-      const v2Src = map.getSource('wigle-v2-points') as mapboxglType.GeoJSONSource | undefined;
+      const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
       if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-      const v3Src = map.getSource('wigle-v3-points') as mapboxglType.GeoJSONSource | undefined;
+      const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
       if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
       applyLayerVisibilityCallback();
       updateAllClusterColorsCallback();
@@ -350,9 +350,9 @@ const WiglePage: React.FC = () => {
       try {
         if (show3dBuildings) {
           if (!map.getLayer('3d-buildings')) {
-            const layers = map.getStyle().layers;
-            const labelLayerId = layers?.find(
-              (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
+            const styleLayers = map.getStyle().layers;
+            const labelLayerId = styleLayers?.find(
+              (layer: any) => layer.type === 'symbol' && layer.layout?.['text-field']
             )?.id;
 
             map.addLayer(
@@ -443,12 +443,6 @@ const WiglePage: React.FC = () => {
     }
   }, [showTerrain, mapReady, mapStyle]);
 
-  // Stable filter key for change detection
-  const filterKey = useMemo(
-    () => JSON.stringify({ limit, offset, typeFilter, filters: adaptedFilters }),
-    [limit, offset, typeFilter, adaptedFilters]
-  );
-
   const loading = v2Loading || v3Loading;
   const totalLoaded = v2Rows.length + v3Rows.length;
 
@@ -483,7 +477,6 @@ const WiglePage: React.FC = () => {
 
       <WigleMap
         mapContainerRef={mapContainerRef}
-        loading={loading}
         error={mapError || dataError}
         mapReady={mapReady}
       />

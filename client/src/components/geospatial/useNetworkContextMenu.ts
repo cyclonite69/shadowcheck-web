@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { NetworkRow, NetworkTag } from '../../types/network';
+import { networkApi } from '../../api/networkApi';
+import { wigleApi } from '../../api/wigleApi';
 
 type ContextMenuState = {
   visible: boolean;
@@ -132,8 +134,7 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
 
     // Fetch current tag state for this network
     try {
-      const response = await fetch(`/api/network-tags/${encodeURIComponent(network.bssid)}`);
-      const tag = await response.json();
+      const tag = await networkApi.getNetworkTags(network.bssid);
       setContextMenu({
         visible: true,
         x: posX,
@@ -167,43 +168,26 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
   };
 
   const handleTagAction = async (
-    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear',
-    notes?: string
+    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
   ) => {
     if (!contextMenu.network) return;
     setTagLoading(true);
     try {
-      const bssid = encodeURIComponent(contextMenu.network.bssid);
-      let response;
+      const bssid = contextMenu.network.bssid;
+      let result;
 
       switch (action) {
         case 'ignore':
-          response = await fetch(`/api/network-tags/${bssid}/ignore`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ignore_reason: 'known_friend' }),
-          });
+          result = await networkApi.ignoreNetwork(bssid);
           break;
         case 'threat':
-          response = await fetch(`/api/network-tags/${bssid}/threat`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ threat_tag: 'THREAT', threat_confidence: 1.0 }),
-          });
+          result = await networkApi.tagNetworkAsThreat(bssid, 1.0);
           break;
         case 'suspect':
-          response = await fetch(`/api/network-tags/${bssid}/threat`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ threat_tag: 'SUSPECT', threat_confidence: 0.7 }),
-          });
+          result = await networkApi.tagNetworkAsThreat(bssid, 0.7);
           break;
         case 'false_positive':
-          response = await fetch(`/api/network-tags/${bssid}/threat`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ threat_tag: 'FALSE_POSITIVE', threat_confidence: 1.0 }),
-          });
+          result = await networkApi.falsePositiveNetwork(bssid);
           break;
         case 'investigate':
           // Show WiGLE lookup dialog instead of immediately tagging
@@ -217,12 +201,12 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
           closeContextMenu();
           return; // Exit early - dialog will handle the rest
         case 'clear':
-          response = await fetch(`/api/network-tags/${bssid}`, { method: 'DELETE' });
+          result = await networkApi.deleteNetworkTag(bssid);
           break;
       }
 
-      if (response?.ok) {
-        const result = await response.json();
+      if (result) {
+        setContextMenu((prev) => ({ ...prev, tag: result.tag || { ...prev.tag, exists: false } }));
         setContextMenu((prev) => ({ ...prev, tag: result.tag || { ...prev.tag, exists: false } }));
       }
     } catch (err) {
@@ -259,26 +243,16 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
 
     try {
       // Always tag as INVESTIGATE first
-      await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/investigate`, {
-        method: 'PATCH',
-      });
+      await networkApi.investigateNetwork(bssid);
 
       if (withLookup) {
         const isBluetooth =
           wigleLookupDialog.network?.type === 'B' || wigleLookupDialog.network?.type === 'E';
-        const endpoint = isBluetooth
-          ? `/api/wigle/detail/bt/${encodeURIComponent(bssid)}`
-          : `/api/wigle/detail/${encodeURIComponent(bssid)}`;
 
         // Call WiGLE v3 detail endpoint with import flag
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ import: true }),
-        });
-        const result = await response.json();
+        const result = await wigleApi.getWigleDetail(bssid, isBluetooth, true);
 
-        if (response.ok && result.ok) {
+        if (result.ok) {
           const obsCount = result.importedObservations || result.data?.observations?.length || 0;
           setWigleLookupDialog((prev) => ({
             ...prev,
@@ -342,12 +316,9 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     });
 
     try {
-      const response = await fetch(
-        `/api/networks/${encodeURIComponent(network.bssid)}/wigle-observations`
-      );
-      const data = await response.json();
+      const data = await wigleApi.getNetworkWigleObservations(network.bssid);
 
-      if (response.ok && data.ok) {
+      if (data.ok) {
         setWigleObservations({
           bssid: network.bssid,
           bssids: [network.bssid],
@@ -393,14 +364,9 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     });
 
     try {
-      const response = await fetch('/api/networks/wigle-observations/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bssids }),
-      });
-      const data = await response.json();
+      const data = await networkApi.getWigleObservationsBatch(bssids);
 
-      if (response.ok && data.ok) {
+      if (data.ok) {
         // Flatten all observations from all networks, adding bssid to each
         const allObservations: WigleObservation[] = [];
         for (const network of data.networks || []) {

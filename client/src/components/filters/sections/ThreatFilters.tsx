@@ -4,17 +4,17 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import { ThreatCategory } from '../../../types/filters';
+import { NetworkFilters, ThreatCategory } from '../../../types/filters';
 
 interface ThreatFiltersProps {
-  filters: any;
-  enabled: any;
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   controlClass: string;
   listLayoutClass: string;
   listItemTextClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onToggleFilter: (key: string) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onToggleFilter: (key: keyof NetworkFilters) => void;
 }
 
 export const ThreatFilters: React.FC<ThreatFiltersProps> = ({

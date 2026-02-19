@@ -6,7 +6,7 @@ import { macColor } from '../../utils/mapHelpers';
 import { TypeBadge, ThreatBadge } from '../badges';
 
 interface NetworkTableBodyGridProps {
-  tableContainerRef: React.RefObject<HTMLDivElement>;
+  tableContainerRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
   loadingNetworks: boolean;
   filteredNetworks: NetworkRow[];
@@ -171,7 +171,7 @@ export const NetworkTableBodyGrid = ({
                 if (col === 'type') {
                   return (
                     <div key={col} style={{ padding: '0 4px' }}>
-                      <TypeBadge type={(value as string) || '?'} />
+                      <TypeBadge type={(value as any) || '?'} />
                     </div>
                   );
                 }
@@ -181,9 +181,9 @@ export const NetworkTableBodyGrid = ({
                   return (
                     <div key={col} style={{ padding: '0 4px' }}>
                       <ThreatBadge
-                        threat={net.threat}
-                        reasons={net.threatReasons}
-                        evidence={net.threatEvidence}
+                        threat={net.threat || undefined}
+                        reasons={net.threatReasons as any}
+                        evidence={net.threatEvidence as any}
                       />
                     </div>
                   );
@@ -297,7 +297,7 @@ export const NetworkTableBodyGrid = ({
                         color: macColor(net.bssid),
                       }}
                     >
-                      {value}
+                      {value as any}
                     </div>
                   );
                 }
@@ -317,7 +317,7 @@ export const NetworkTableBodyGrid = ({
                       }}
                       title={value as string}
                     >
-                      {value || '(hidden)'}
+                      {(value as any) || '(hidden)'}
                     </div>
                   );
                 }
@@ -333,9 +333,19 @@ export const NetworkTableBodyGrid = ({
                       whiteSpace: 'nowrap',
                       color: '#f1f5f9',
                     }}
-                    title={String(value)}
+                    title={
+                      typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+                    }
                   >
-                    {value ?? 'N/A'}
+                    {
+                      (typeof value === 'string' ||
+                      typeof value === 'number' ||
+                      typeof value === 'boolean'
+                        ? (value as any)
+                        : value == null
+                          ? 'N/A'
+                          : '—') as any
+                    }
                   </div>
                 );
               })}

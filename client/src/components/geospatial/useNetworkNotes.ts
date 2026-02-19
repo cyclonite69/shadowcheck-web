@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { networkApi } from '../../api/networkApi';
 
 type NetworkNotesProps = {
   logError: (message: string, error?: unknown) => void;
@@ -17,20 +18,13 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
 
     try {
       // Step 1: Create the note
-      const response = await fetch('/api/admin/network-notes/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bssid: selectedBssid,
-          content: noteContent,
-          note_type: noteType,
-          user_id: 'geospatial_user',
-        }),
+      const data = await networkApi.addNetworkNote({
+        bssid: selectedBssid,
+        content: noteContent,
+        note_type: noteType,
+        user_id: 'geospatial_user',
       });
 
-      if (!response.ok) throw new Error('Failed to create note');
-
-      const data = await response.json();
       const noteId = data.note_id;
 
       // Step 2: Upload attachments if any
@@ -40,12 +34,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
           formData.append('file', file);
           formData.append('bssid', selectedBssid);
 
-          const mediaResponse = await fetch(`/api/admin/network-notes/${noteId}/media`, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!mediaResponse.ok) {
+          try {
+            await networkApi.addNoteMedia(noteId, formData);
+          } catch {
             console.warn(`Failed to upload media: ${file.name}`);
           }
         }

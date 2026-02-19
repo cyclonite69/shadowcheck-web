@@ -3,6 +3,7 @@
 // EXTRACTS: Data fetching logic from lines 314-516 in original AnalyticsPage.tsx
 
 import { useState, useEffect } from 'react';
+import { analyticsApi } from '../../../api/analyticsApi';
 import {
   transformNetworkTypesData,
   transformSignalStrengthData,
@@ -78,54 +79,30 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
       }
       // Use working analytics endpoints with real data
       const [
-        networkTypes,
-        signalStrength,
-        security,
-        topNetworks,
-        threatDist,
-        severityCounts,
-        temporal,
-        radioTime,
-        threatTrends,
+        networkPayload,
+        signalPayload,
+        securityPayload,
+        topNetworksPayload,
+        threatPayload,
+        severityPayload,
+        temporalPayload,
+        radioTimePayload,
+        threatTrendsPayload,
       ] = await Promise.all([
-        fetch('/api/analytics/network-types'),
-        fetch('/api/analytics/signal-strength'),
-        fetch('/api/analytics/security'),
-        fetch('/api/analytics/top-networks?limit=10'),
-        fetch('/api/analytics/threat-distribution'),
-        fetch('/api/v2/threats/severity-counts'),
-        fetch('/api/analytics/temporal-activity'),
-        fetch('/api/analytics/radio-type-over-time?range=all'),
-        fetch('/api/analytics/threat-trends?range=all'),
+        analyticsApi.getNetworkTypes(),
+        analyticsApi.getSignalStrength(),
+        analyticsApi.getSecurity(),
+        analyticsApi.getTopNetworks(10),
+        analyticsApi.getThreatDistribution(),
+        analyticsApi.getThreatSeverityCounts(),
+        analyticsApi.getTemporalActivity(),
+        analyticsApi.getRadioTypeOverTime('all'),
+        analyticsApi.getThreatTrends('all'),
       ]);
 
-      let networkPayload = null;
-      let signalPayload = null;
-      let securityPayload = null;
-      let topNetworksPayload = null;
-      let threatPayload = null;
-      let severityPayload = null;
-      let temporalPayload = null;
-      let radioTimePayload = null;
-      let threatTrendsPayload = null;
-
-      try {
-        networkPayload = await networkTypes.json();
-        signalPayload = await signalStrength.json();
-        securityPayload = await security.json();
-        topNetworksPayload = await topNetworks.json();
-        threatPayload = await threatDist.json();
-        severityPayload = await severityCounts.json();
-        temporalPayload = await temporal.json();
-        radioTimePayload = await radioTime.json();
-        threatTrendsPayload = await threatTrends.json();
-      } catch (parseError) {
-        networkPayload = null;
-      }
-
-      if (!networkTypes.ok || networkPayload?.ok === false) {
+      if (networkPayload?.ok === false) {
         const message =
-          networkPayload?.message || networkPayload?.error || `HTTP ${networkTypes.status}`;
+          networkPayload?.message || networkPayload?.error || 'Analytics fetch failed';
         throw new Error(message);
       }
 
@@ -168,7 +145,6 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
       if (err.name !== 'AbortError') {
         setError(err.message);
         if (DEBUG_ANALYTICS) {
-          console.warn('[analytics] fetch error', err);
         }
       }
     } finally {

@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, Dispatch, SetStateAction } from 'react';
 
 type MapPreferences = {
   mapStyle: string;
-  setMapStyle: (value: string) => void;
+  setMapStyle: Dispatch<SetStateAction<string>>;
   show3DBuildings: boolean;
-  setShow3DBuildings: (value: boolean) => void;
+  setShow3DBuildings: Dispatch<SetStateAction<boolean>>;
   showTerrain: boolean;
-  setShowTerrain: (value: boolean) => void;
+  setShowTerrain: Dispatch<SetStateAction<boolean>>;
 };
 
 export const useMapPreferences = (): MapPreferences => {

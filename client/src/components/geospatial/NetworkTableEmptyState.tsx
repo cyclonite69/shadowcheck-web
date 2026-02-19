@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface NetworkTableEmptyStateProps {
   loading: boolean;
   empty: boolean;

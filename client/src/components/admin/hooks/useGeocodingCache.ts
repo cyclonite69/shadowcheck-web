@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { adminApi } from '../../../api/adminApi';
 import type { GeocodingRunResult, GeocodingStats } from '../types/admin.types';
 
 type GeocodingRunOptions = {
-  provider: 'mapbox' | 'nominatim';
+  provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
   mode: 'address-only' | 'poi-only' | 'both';
   limit: number;
   precision: number;
@@ -22,14 +23,11 @@ export const useGeocodingCache = (precision = 5) => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(`/api/admin/geocoding/stats?precision=${precision}`);
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
+      const data = await adminApi.getGeocodingStats(String(precision));
       setStats(data.stats);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load geocoding stats');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load geocoding stats';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -41,20 +39,13 @@ export const useGeocodingCache = (precision = 5) => {
       setActionMessage('');
       setError('');
       try {
-        const response = await fetch('/api/admin/geocoding/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(options),
-        });
-        const data = await response.json();
-        if (!response.ok || !data.ok) {
-          throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
+        const data = await adminApi.runGeocoding(String(precision), options.limit);
         setActionMessage(data.message || 'Geocoding run completed');
         setLastResult(data.result || null);
         await refreshStats();
-      } catch (err: any) {
-        setError(err?.message || 'Geocoding run failed');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Geocoding run failed';
+        setError(errorMessage);
       } finally {
         setActionLoading(false);
       }

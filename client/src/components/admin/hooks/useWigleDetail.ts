@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { wigleApi } from '../../../api/wigleApi';
 
 export interface WigleDetailData {
   networkId: string;
@@ -46,8 +47,7 @@ export const useWigleDetail = () => {
 
   const fetchObservations = async (netid: string) => {
     try {
-      const res = await fetch(`/api/wigle/observations/${encodeURIComponent(netid)}`);
-      const json = await res.json();
+      const json = await wigleApi.getWigleObservations(netid);
       if (json.ok) {
         setObservations(json.observations || []);
       }
@@ -73,21 +73,10 @@ export const useWigleDetail = () => {
     setObservations([]);
 
     try {
-      const endpoint =
-        detailType === 'bt'
-          ? `/api/wigle/detail/bt/${encodeURIComponent(netid)}`
-          : `/api/wigle/detail/${encodeURIComponent(netid)}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ import: shouldImport }),
-      });
+      const isBluetooth = detailType === 'bt';
+      const json = await wigleApi.getWigleDetail(netid, isBluetooth, shouldImport);
 
-      const json = await response.json();
-
-      if (!response.ok) {
+      if (!json.ok) {
         throw new Error(json.details || json.error || 'Failed to fetch WiGLE detail');
       }
 

@@ -423,7 +423,7 @@ export const useDebouncedFilters = (
   // Subscribe to the entire filter state to get stable references
   const currentPage = useFilterStore((state) => state.currentPage);
   const pageStates = useFilterStore((state) => state.pageStates);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout>(undefined);
 
   useEffect(() => {
     if (timeoutRef.current) {

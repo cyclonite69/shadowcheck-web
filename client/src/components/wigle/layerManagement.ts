@@ -3,12 +3,12 @@
  * Handles layer visibility and updates
  */
 
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
 import { rowsToGeoJSON, EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import type { WigleRow } from '../../utils/wigle';
 
 export function updateMapLayers(
-  map: mapboxglType.Map | null,
+  map: Map | null,
   v2Rows: WigleRow[],
   v3Rows: WigleRow[],
   v2Enabled: boolean,
@@ -19,7 +19,7 @@ export function updateMapLayers(
   if (!map) return;
 
   // Update v2 data
-  const v2Source = map.getSource('wigle-v2-points') as mapboxglType.GeoJSONSource;
+  const v2Source = map.getSource('wigle-v2-points') as GeoJSONSource;
   if (v2Source) {
     const v2FC = v2Enabled && v2Rows.length > 0 ? rowsToGeoJSON(v2Rows) : EMPTY_FEATURE_COLLECTION;
     v2FCRef.current = v2FC;
@@ -27,7 +27,7 @@ export function updateMapLayers(
   }
 
   // Update v3 data
-  const v3Source = map.getSource('wigle-v3-points') as mapboxglType.GeoJSONSource;
+  const v3Source = map.getSource('wigle-v3-points') as GeoJSONSource;
   if (v3Source) {
     const v3FC = v3Enabled && v3Rows.length > 0 ? rowsToGeoJSON(v3Rows) : EMPTY_FEATURE_COLLECTION;
     v3FCRef.current = v3FC;
@@ -35,17 +35,13 @@ export function updateMapLayers(
   }
 }
 
-export function setLayerVisibility(
-  map: mapboxglType.Map | null,
-  layerId: string,
-  visible: boolean
-) {
+export function setLayerVisibility(map: Map | null, layerId: string, visible: boolean) {
   if (!map || !map.getLayer(layerId)) return;
   map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
 }
 
 export function updateLayerVisibilities(
-  map: mapboxglType.Map | null,
+  map: Map | null,
   layers: {
     v2: boolean;
     v3: boolean;

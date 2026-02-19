@@ -3,7 +3,8 @@
  * Click handlers for clusters and unclustered points
  */
 
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { formatSecurity } from '../../utils/wigle';
 
@@ -37,15 +38,11 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
   };
 }
 
-export function createClusterClickHandler(
-  map: mapboxglType.Map,
-  sourceId: string,
-  clusterLayerId: string
-) {
+export function createClusterClickHandler(map: Map, sourceId: string, clusterLayerId: string) {
   return (e: any) => {
     const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
     const clusterId = features[0]?.properties?.cluster_id;
-    const source = map.getSource(sourceId) as mapboxglType.GeoJSONSource;
+    const source = map.getSource(sourceId) as GeoJSONSource;
     if (!source || clusterId == null) return;
 
     source.getClusterExpansionZoom(clusterId, (err, zoom) => {
@@ -55,7 +52,7 @@ export function createClusterClickHandler(
   };
 }
 
-export function attachWigleClickHandlers(map: mapboxglType.Map, mapboxgl: typeof mapboxglType) {
+export function attachWigleClickHandlers(map: Map, mapboxgl: typeof mapboxglType) {
   const handleUnclustered = createUnclusteredClickHandler(mapboxgl);
 
   map.on('click', 'wigle-v2-unclustered', handleUnclustered);

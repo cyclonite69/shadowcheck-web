@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { adminApi } from '../../../api/adminApi';
 import { BackupResult } from '../types/admin.types';
 
 export const useBackups = () => {
@@ -13,14 +14,9 @@ export const useBackups = () => {
     setBackupResult(null);
     setBackupLoading(true);
     try {
-      const res = await fetch('/api/admin/backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploadToS3 }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
+      const data = await adminApi.createBackup(uploadToS3);
+      if (!data.ok) {
+        throw new Error(data.error || 'Backup failed');
       }
       setBackupResult({
         backupDir: data.backupDir,
@@ -45,9 +41,8 @@ export const useBackups = () => {
   const loadS3Backups = async () => {
     setS3Loading(true);
     try {
-      const res = await fetch('/api/admin/backup/s3');
-      const data = await res.json();
-      if (res.ok && data.ok) {
+      const data = await adminApi.listS3Backups();
+      if (data.ok) {
         setS3Backups(data.backups || []);
       }
     } catch (err) {
@@ -59,11 +54,8 @@ export const useBackups = () => {
 
   const deleteS3Backup = async (key: string) => {
     try {
-      const res = await fetch(`/api/admin/backup/s3/${encodeURIComponent(key)}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (res.ok && data.ok) {
+      const data = await adminApi.deleteS3Backup(key);
+      if (data.ok) {
         // Refresh the list after deletion
         loadS3Backups();
         return true;

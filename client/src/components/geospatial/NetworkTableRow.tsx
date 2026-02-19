@@ -17,7 +17,7 @@ interface NetworkTableRowProps {
 
 export const NetworkTableRow = ({
   net,
-  index,
+  index: _index,
   visibleColumns,
   isSelected,
   onSelectExclusive,
@@ -49,7 +49,12 @@ export const NetworkTableRow = ({
         // CRASH-PROOF: Skip unknown columns (stale localStorage keys)
         if (!column) return null;
         const value = net[col as keyof NetworkRow];
-        let content: React.ReactNode = value ?? 'N/A';
+        let content: React.ReactNode =
+          typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+            ? (value as any)
+            : value == null
+              ? 'N/A'
+              : '—';
 
         if (col === 'select') {
           const ssidOrHidden = net.ssid || '(hidden)';
@@ -81,7 +86,7 @@ export const NetworkTableRow = ({
         } else if (col === 'threat') {
           content = (
             <ThreatBadge
-              threat={net.threat}
+              threat={net.threat || undefined}
               reasons={net.threatReasons}
               evidence={net.threatEvidence}
             />
@@ -172,7 +177,7 @@ export const NetworkTableRow = ({
             'last_altitude_m',
           ].includes(col as string)
         ) {
-          content = value == null ? 'Not computed' : value;
+          content = (value == null ? 'Not computed' : value) as React.ReactNode;
         } else if (col === 'channel') {
           // Only show channel for WiFi networks
           const channelValue = value as number | null;

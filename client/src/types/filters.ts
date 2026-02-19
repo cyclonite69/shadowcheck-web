@@ -55,7 +55,19 @@ export type EncryptionType = 'OPEN' | 'WEP' | 'WPA' | 'WPA2' | 'WPA3' | 'Mixed';
 export type AuthMethod = 'PSK' | 'Enterprise' | 'SAE' | 'OWE' | 'None';
 export type SecurityFlag = 'insecure' | 'deprecated' | 'enterprise' | 'personal' | 'unknown';
 export type InsecureFlag = 'open' | 'wep' | 'wps' | 'deprecated';
-export type ThreatCategory = 'critical' | 'high' | 'medium' | 'low';
+export type ThreatCategory =
+  | 'critical'
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'none'
+  | 'surveillance'
+  | 'tracking'
+  | 'rogue_ap'
+  | 'evil_twin'
+  | 'deauth'
+  | 'spoofing'
+  | 'unknown';
 
 export enum TemporalScope {
   OBSERVATION_TIME = 'observation_time', // Default - when observations occurred

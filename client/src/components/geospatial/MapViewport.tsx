@@ -1,12 +1,11 @@
 import React from 'react';
-import type mapboxglType from 'mapbox-gl';
 
 interface MapViewportProps {
   mapReady: boolean;
   mapError: string | null;
   embeddedView: 'street-view' | 'earth' | null;
-  mapRef: React.MutableRefObject<mapboxglType.Map | null>;
-  mapContainerRef: React.MutableRefObject<HTMLDivElement | null>;
+  mapRef: React.MutableRefObject<any>;
+  mapContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const MapViewport = ({
@@ -38,7 +37,7 @@ export const MapViewport = ({
       {/* Embedded Google Street View */}
       {embeddedView === 'street-view' && mapRef.current && (
         <iframe
-          src={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mapRef.current.getCenter().lat},${mapRef.current.getCenter().lng}`}
+          src={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${(mapRef.current as any).getCenter().lat},${(mapRef.current as any).getCenter().lng}`}
           className="w-full h-full"
           style={{ border: 0 }}
           allowFullScreen

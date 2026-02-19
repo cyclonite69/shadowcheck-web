@@ -1,8 +1,9 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map as MapboxMap, GeoJSONSource } from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
 import { MAP_STYLES } from '../../constants/network';
 import { createCirclePolygon, createGoogleStyle, macColor } from '../../utils/mapHelpers';
+import { mapboxApi } from '../../api/mapboxApi';
 
 type HomeLocation = {
   center: [number, number];
@@ -15,7 +16,7 @@ type ObservationSet = {
 };
 
 type MapStyleControlsProps = {
-  mapRef: MutableRefObject<mapboxglType.Map | null>;
+  mapRef: MutableRefObject<MapboxMap | null>;
   setMapStyle: Dispatch<SetStateAction<string>>;
   setEmbeddedView: Dispatch<SetStateAction<'street-view' | 'earth' | null>>;
   setMapError: Dispatch<SetStateAction<string | null>>;
@@ -58,14 +59,8 @@ export const useMapStyleControls = ({
     try {
       // Export only the selected networks
       const bssids = activeObservationSets.map((set) => set.bssid).join(',');
-      const url = `/api/kml?bssids=${encodeURIComponent(bssids)}`;
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to export KML');
-      }
-
-      const kmlData = await response.text();
+      const kmlData = await mapboxApi.exportKML(bssids);
 
       // Create a blob and download link
       const blob = new Blob([kmlData], { type: 'application/vnd.google-earth.kml+xml' });
@@ -161,8 +156,12 @@ export const useMapStyleControls = ({
       mapRef.current.setZoom(currentZoom);
 
       // Apply light preset for Standard style variants
-      if (styleConfig?.config?.lightPreset) {
-        mapRef.current.setConfigProperty('basemap', 'lightPreset', styleConfig.config.lightPreset);
+      if (styleConfig && 'config' in styleConfig && (styleConfig.config as any)?.lightPreset) {
+        mapRef.current.setConfigProperty(
+          'basemap',
+          'lightPreset',
+          (styleConfig.config as any).lightPreset
+        );
       }
 
       // Re-add observation sources and layers
@@ -376,7 +375,7 @@ export const useMapStyleControls = ({
         );
 
         if (mapRef.current.getSource('observations')) {
-          (mapRef.current.getSource('observations') as mapboxglType.GeoJSONSource).setData({
+          (mapRef.current.getSource('observations') as GeoJSONSource).setData({
             type: 'FeatureCollection',
             features: features as any,
           });

@@ -1,15 +1,13 @@
 import React from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { MapToolbar } from './MapToolbar';
-
-interface LocationSearchResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-}
+import { LocationSearchResult } from './useLocationSearch';
+import { MapStyleOption } from '../../constants/network';
+import { WeatherFxMode } from '../../weather/useWeatherFx';
 
 interface MapToolbarActionsProps {
-  locationSearchRef: React.RefObject<HTMLDivElement>;
+  locationSearchRef: React.RefObject<HTMLDivElement | null>;
   locationSearch: string;
   setLocationSearch: (value: string) => void;
   searchingLocation: boolean;
@@ -19,7 +17,7 @@ interface MapToolbarActionsProps {
   onSelectSearchResult: (result: LocationSearchResult) => void;
   mapStyle: string;
   onMapStyleChange: (style: string) => void;
-  mapStyles: Record<string, string>;
+  mapStyles: MapStyleOption[];
   show3DBuildings: boolean;
   toggle3DBuildings: (enabled: boolean) => void;
   showTerrain: boolean;
@@ -27,7 +25,7 @@ interface MapToolbarActionsProps {
   fitButtonActive: boolean;
   canFit: boolean;
   mapboxRef: React.MutableRefObject<typeof mapboxglType | null>;
-  mapRef: React.MutableRefObject<mapboxglType.Map | null>;
+  mapRef: React.MutableRefObject<Map | null>;
   activeObservationSets: Array<{ observations: Array<{ lon: number; lat: number }> }>;
   setFitButtonActive: (value: boolean) => void;
   homeButtonActive: boolean;
@@ -35,8 +33,8 @@ interface MapToolbarActionsProps {
   homeLocation: { center: [number, number]; zoom?: number };
   logError: (message: string, error: unknown) => void;
   // Weather FX
-  weatherFxMode?: string;
-  onWeatherFxModeChange?: (mode: string) => void;
+  weatherFxMode?: WeatherFxMode;
+  onWeatherFxModeChange?: (mode: WeatherFxMode) => void;
   // WiGLE observations
   canWigle?: boolean;
   wigleLoading?: boolean;
@@ -124,7 +122,7 @@ export const MapToolbarActions = ({
         if (allCoords.length === 0) return;
         const bounds = allCoords.reduce(
           (bounds, coord) => bounds.extend(coord),
-          new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+          new (mapboxgl as any).LngLatBounds(allCoords[0], allCoords[0])
         );
         mapRef.current.fitBounds(bounds, { padding: 50 });
         setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
@@ -152,7 +150,7 @@ export const MapToolbarActions = ({
         );
       }}
       weatherFxMode={weatherFxMode}
-      onWeatherFxModeChange={onWeatherFxModeChange}
+      onWeatherFxModeChange={(mode: any) => onWeatherFxModeChange?.(mode)}
       canWigle={canWigle}
       wigleLoading={wigleLoading}
       wigleActive={wigleActive}

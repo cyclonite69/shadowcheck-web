@@ -3,8 +3,8 @@ import type { NetworkRow, SortState } from '../../types/network';
 type NetworkSortProps = {
   setSort: React.Dispatch<React.SetStateAction<SortState[]>>;
   setError: (error: string | null) => void;
-  sortMap: Record<keyof NetworkRow, string | undefined>;
-  columnConfig: Record<keyof NetworkRow, { sortable?: boolean }>;
+  sortMap: Partial<Record<keyof NetworkRow, string>>;
+  columnConfig: Partial<Record<keyof NetworkRow, { sortable?: boolean }>>;
 };
 
 export const useNetworkSort = ({ setSort, setError, sortMap, columnConfig }: NetworkSortProps) => {

@@ -1,5 +1,5 @@
-import type mapboxgl from 'mapbox-gl';
-import { useEffect } from 'react';
+import type { Map } from 'mapbox-gl';
+import { useEffect, type MutableRefObject } from 'react';
 
 /**
  * Map Orientation Controls Utility
@@ -46,7 +46,7 @@ export interface MapOrientationOptions {
 const CONTROL_MARKER = '__mapOrientationControlsAttached';
 
 export async function attachMapOrientationControls(
-  map: mapboxgl.Map,
+  map: Map,
   options: MapOrientationOptions = {}
 ): Promise<() => void> {
   const {
@@ -118,7 +118,7 @@ export async function attachMapOrientationControls(
  * @param options - Configuration options
  */
 export function useMapOrientationControls(
-  mapRef: React.MutableRefObject<mapboxgl.Map | null>,
+  mapRef: MutableRefObject<Map | null>,
   options: MapOrientationOptions = {}
 ) {
   useEffect(() => {

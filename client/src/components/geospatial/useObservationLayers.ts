@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
 import { macColor } from '../../utils/mapHelpers';
 import type { WigleObservation } from './useNetworkContextMenu';
@@ -60,12 +61,11 @@ type WigleObservationsState = {
 
 type ObservationLayerProps = {
   mapReady: boolean;
-  mapRef: MutableRefObject<mapboxglType.Map | null>;
-  mapboxRef: MutableRefObject<mapboxglType | null>;
+  mapRef: MutableRefObject<MapboxMap | null>;
+  mapboxRef: MutableRefObject<typeof mapboxglType | null>;
   activeObservationSets: ObservationSet[];
   networkLookup: Map<string, NetworkRow>;
   wigleObservations?: WigleObservationsState;
-  clearWigleObservations?: () => void;
 };
 
 export const useObservationLayers = ({
@@ -75,10 +75,7 @@ export const useObservationLayers = ({
   activeObservationSets,
   networkLookup,
   wigleObservations,
-  clearWigleObservations,
 }: ObservationLayerProps) => {
-  const prevObservationCountRef = useRef(0);
-
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
 
@@ -213,14 +210,14 @@ export const useObservationLayers = ({
       }));
 
     if (map.getSource('observations')) {
-      (map.getSource('observations') as mapboxglType.GeoJSONSource).setData({
+      (map.getSource('observations') as GeoJSONSource).setData({
         type: 'FeatureCollection',
         features: features as any,
       });
     }
 
     if (map.getSource('observation-lines')) {
-      (map.getSource('observation-lines') as mapboxglType.GeoJSONSource).setData({
+      (map.getSource('observation-lines') as GeoJSONSource).setData({
         type: 'FeatureCollection',
         features: lineFeatures as any,
       });
@@ -286,19 +283,19 @@ export const useObservationLayers = ({
       });
 
       // Add click handler for WiGLE observations
-      map.on('click', 'wigle-unique-points', (e) => {
+      map.on('click', 'wigle-unique-points', (e: MapLayerMouseEvent) => {
         if (!e.features || e.features.length === 0) return;
         const feature = e.features[0];
         const props = feature.properties;
         if (!props) return;
 
-        const coords = feature.geometry.coordinates;
+        const coords = (feature.geometry as any).coordinates;
         const time = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
         const distance = props.distance_from_our_center_m
           ? `${(props.distance_from_our_center_m / 1000).toFixed(1)}km from your sightings`
           : '';
 
-        const popup = new mapboxgl.Popup({ maxWidth: '300px' })
+        new (mapboxgl as any).Popup({ maxWidth: '300px' })
           .setLngLat(coords)
           .setHTML(
             `
@@ -326,16 +323,16 @@ export const useObservationLayers = ({
           .addTo(map);
       });
 
-      map.on('click', 'wigle-matched-points', (e) => {
+      map.on('click', 'wigle-matched-points', (e: MapLayerMouseEvent) => {
         if (!e.features || e.features.length === 0) return;
         const feature = e.features[0];
         const props = feature.properties;
         if (!props) return;
 
-        const coords = feature.geometry.coordinates;
+        const coords = (feature.geometry as any).coordinates;
         const time = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
 
-        const popup = new mapboxgl.Popup({ maxWidth: '280px' })
+        new (mapboxgl as any).Popup({ maxWidth: '280px' })
           .setLngLat(coords)
           .setHTML(
             `
@@ -377,7 +374,7 @@ export const useObservationLayers = ({
     }
 
     // Update WiGLE observations data
-    const wigleSource = map.getSource('wigle-observations') as mapboxglType.GeoJSONSource;
+    const wigleSource = map.getSource('wigle-observations') as GeoJSONSource;
     if (wigleSource) {
       if (wigleObservations.observations.length > 0) {
         const features = wigleObservations.observations.map((obs, index) => ({

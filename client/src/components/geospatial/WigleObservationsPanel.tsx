@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface WigleObservationsStats {
   wigle_total: number;
   matched: number;

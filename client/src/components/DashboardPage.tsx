@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { logError } from '../logging/clientLogger';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { FilterButton } from './FilterButton';
 import { FilterPanelContainer } from './FilterPanelContainer';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { usePageFilters } from '../hooks/usePageFilters';
+import { useDashboard } from '../hooks/useDashboard';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 
 // SVG Icons - Industry Standard
@@ -18,38 +18,35 @@ import {
   Tower,
   GripHorizontal,
 } from './dashboard/icons';
-import { MetricCard } from './dashboard/MetricCard';
-import type { CardData } from './dashboard/MetricCard';
 import { createInitialCards } from './dashboard/cardDefinitions';
 
 export default function DashboardPage() {
   // Set current page for filter scoping
   usePageFilters('dashboard');
 
-  const [cards, setCards] = useState(() =>
-    createInitialCards({
-      Network,
-      Wifi,
-      Smartphone,
-      Bluetooth,
-      Tower,
-      Radio,
-      BarChart3,
-      AlertTriangle,
-    })
+  const initialCards = useMemo(
+    () =>
+      createInitialCards({
+        Network,
+        Wifi,
+        Smartphone,
+        Bluetooth,
+        Tower,
+        Radio,
+        BarChart3,
+        AlertTriangle,
+      }),
+    []
   );
 
-  const [dragging, setDragging] = useState(null);
-  const [resizing, setResizing] = useState(null);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [resizing, setResizing] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   // Universal filter system
   const capabilities = getPageCapabilities('dashboard');
   const adaptedFilters = useAdaptedFilters(capabilities);
-  const [filtersApplied, setFiltersApplied] = useState(0);
   const resizeStartRef = useRef({
     startX: 0,
     startY: 0,
@@ -64,131 +61,8 @@ export default function DashboardPage() {
     enabled: adaptedFilters.enabledForPage,
   });
 
-  // Fetch dashboard data - on mount and when filters change (debounced)
-  useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(async () => {
-      try {
-        setLoading(true);
-        const params = new URLSearchParams({
-          filters: JSON.stringify(adaptedFilters.filtersForPage),
-          enabled: JSON.stringify(adaptedFilters.enabledForPage),
-        });
-
-        // Parallel fetch for dashboard metrics and threat severity counts
-        const [dashboardRes, threatsRes] = await Promise.all([
-          fetch(`/api/dashboard-metrics?${params}`, { signal: controller.signal }),
-          fetch(`/api/v2/threats/severity-counts?${params}`, { signal: controller.signal }),
-        ]);
-
-        if (!dashboardRes.ok) throw new Error('Failed to fetch dashboard metrics');
-
-        const data = await dashboardRes.json();
-        let threatCounts: any = { counts: { critical: {}, high: {}, medium: {}, low: {} } };
-
-        if (threatsRes.ok) {
-          threatCounts = await threatsRes.json();
-        }
-
-        // Debug: Log API response to verify observations data
-        console.log('[Dashboard] API response:', {
-          networks: data.networks,
-          observations: data.observations,
-          threatCounts,
-          hasObservations: !!data.observations,
-        });
-
-        setCards((prev) =>
-          prev.map((card) => {
-            switch (card.type) {
-              case 'total-networks':
-                return {
-                  ...card,
-                  value: data.networks?.total || 0,
-                  observations: data.observations?.total || 0,
-                };
-              case 'wifi-count':
-                return {
-                  ...card,
-                  value: data.networks?.wifi || 0,
-                  observations: data.observations?.wifi || 0,
-                };
-              case 'radio-ble':
-                return {
-                  ...card,
-                  value: data.networks?.ble || 0,
-                  observations: data.observations?.ble || 0,
-                };
-              case 'radio-bt':
-                return {
-                  ...card,
-                  value: data.networks?.bluetooth || 0,
-                  observations: data.observations?.bluetooth || 0,
-                };
-              case 'radio-lte':
-                return {
-                  ...card,
-                  value: data.networks?.lte || 0,
-                  observations: data.observations?.lte || 0,
-                };
-              case 'radio-gsm':
-                return {
-                  ...card,
-                  value: data.networks?.gsm || 0,
-                  observations: data.observations?.gsm || 0,
-                };
-              case 'radio-nr':
-                return {
-                  ...card,
-                  value: data.networks?.nr || 0,
-                  observations: data.observations?.nr || 0,
-                };
-              case 'threat-critical':
-                return {
-                  ...card,
-                  value: threatCounts.counts?.critical?.unique_networks || 0,
-                  observations: threatCounts.counts?.critical?.total_observations || 0,
-                };
-              case 'threat-high':
-                return {
-                  ...card,
-                  value: threatCounts.counts?.high?.unique_networks || 0,
-                  observations: threatCounts.counts?.high?.total_observations || 0,
-                };
-              case 'threat-medium':
-                return {
-                  ...card,
-                  value: threatCounts.counts?.medium?.unique_networks || 0,
-                  observations: threatCounts.counts?.medium?.total_observations || 0,
-                };
-              case 'threat-low':
-                return {
-                  ...card,
-                  value: threatCounts.counts?.low?.unique_networks || 0,
-                  observations: threatCounts.counts?.low?.total_observations || 0,
-                };
-              default:
-                return card;
-            }
-          })
-        );
-        setFiltersApplied(data.filtersApplied || 0);
-        setError(null);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          logError('Dashboard fetch error', err);
-          setError('Failed to load metrics');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }, 300); // 300ms debounce
-
-    return () => {
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [filterKey]); // Re-fetch when filters change
+  // Fetch dashboard data using hook
+  const { cards, setCards, loading, error, filtersApplied } = useDashboard(initialCards, filterKey);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: number, mode = 'move') => {
     e.preventDefault();
@@ -215,7 +89,7 @@ export default function DashboardPage() {
   };
 
   const handleMouseMove = useCallback(
-    (e) => {
+    (e: any) => {
       if (dragging) {
         setCards((prev) =>
           prev.map((card) => {
@@ -244,7 +118,7 @@ export default function DashboardPage() {
         );
       }
     },
-    [dragOffset.x, dragOffset.y, dragging, resizing]
+    [dragOffset.x, dragOffset.y, dragging, resizing, setCards]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -269,7 +143,7 @@ export default function DashboardPage() {
   return (
     <div
       className="relative w-full h-screen overflow-hidden flex"
-      onMouseMove={handleMouseMove}
+      onMouseMove={(e) => handleMouseMove(e as any)}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >

@@ -5,24 +5,15 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
+import { NetworkFilters } from '../../../types/filters';
 
 interface IdentityFiltersProps {
-  filters: {
-    ssid?: string;
-    bssid?: string;
-    manufacturer?: string;
-    networkId?: string;
-  };
-  enabled: {
-    ssid?: boolean;
-    bssid?: boolean;
-    manufacturer?: boolean;
-    networkId?: boolean;
-  };
+  filters: NetworkFilters;
+  enabled: Record<keyof NetworkFilters, boolean>;
   isCompact: boolean;
   controlClass: string;
-  onSetFilter: (key: string, value: any) => void;
-  onToggleFilter: (key: string) => void;
+  onSetFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
+  onToggleFilter: (key: keyof NetworkFilters) => void;
 }
 
 export const IdentityFilters: React.FC<IdentityFiltersProps> = ({

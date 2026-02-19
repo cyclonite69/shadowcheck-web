@@ -1,16 +1,15 @@
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
 import { dominantClusterColor, CLUSTER_SAMPLE_LIMIT } from '../../utils/wigle';
 
 export const updateClusterColors = (
-  map: mapboxglType.Map,
+  map: Map,
   sourceId: string,
   cacheKey: 'v2' | 'v3',
   clusterColorCache: React.MutableRefObject<Record<string, Record<number, string>>>
 ) => {
-  const source = map.getSource(sourceId) as mapboxglType.GeoJSONSource | undefined;
+  const source = map.getSource(sourceId) as GeoJSONSource | undefined;
   if (!source) return;
 
-  const clusterLayerId = sourceId === 'wigle-v2-points' ? 'wigle-v2-clusters' : 'wigle-v3-clusters';
   const clusters = map.querySourceFeatures(sourceId, { filter: ['has', 'point_count'] });
 
   clusters.forEach((feature) => {
@@ -36,7 +35,7 @@ export const updateClusterColors = (
 };
 
 export const updateAllClusterColors = (
-  map: mapboxglType.Map,
+  map: Map,
   clusterColorCache: React.MutableRefObject<Record<string, Record<number, string>>>
 ) => {
   updateClusterColors(map, 'wigle-v2-points', 'v2', clusterColorCache);

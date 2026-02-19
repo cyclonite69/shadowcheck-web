@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { adminApi } from '../../../api/adminApi';
 import { AwsOverview } from '../types/admin.types';
 
 export const useAwsOverview = () => {
@@ -10,11 +11,7 @@ export const useAwsOverview = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/admin/aws/overview', { credentials: 'same-origin' });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
-      }
+      const data = await adminApi.getAwsOverview();
       setOverview(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load AWS overview');

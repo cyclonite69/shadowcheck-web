@@ -4,13 +4,15 @@
  */
 
 import { useEffect, type MutableRefObject } from 'react';
-import type mapboxglType from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
+import { wigleApi } from '../../api/wigleApi';
 import { logDebug } from '../../logging/clientLogger';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 
 interface UseWigleMapInitProps {
   mapContainerRef: MutableRefObject<HTMLDivElement | null>;
-  mapRef: MutableRefObject<mapboxglType.Map | null>;
+  mapRef: MutableRefObject<Map | null>;
   mapboxRef: MutableRefObject<typeof mapboxglType | null>;
   v2FCRef: MutableRefObject<any>;
   v3FCRef: MutableRefObject<any>;
@@ -54,20 +56,19 @@ export const useWigleMapInit = ({
     const initMap = async () => {
       try {
         const mapboxgl = mapboxRef.current ?? (await import('mapbox-gl')).default;
-        mapboxRef.current = mapboxgl;
-        await import('mapbox-gl/dist/mapbox-gl.css');
+        mapboxRef.current = mapboxgl as any;
+        await import('mapbox-gl/dist/mapbox-gl.css' as any);
 
-        if (!mapboxgl.supported()) {
+        if (!(mapboxgl as any).supported()) {
           throw new Error('Mapbox GL not supported (WebGL unavailable)');
         }
 
-        const tokenRes = await fetch('/api/mapbox-token');
-        const tokenBody = await tokenRes.json();
-        if (!tokenRes.ok || !tokenBody?.token) {
-          throw new Error(tokenBody?.error || 'Mapbox token not available');
+        const tokenData = await wigleApi.getMapboxToken();
+        if (!tokenData?.token) {
+          throw new Error(tokenData?.error || 'Mapbox token not available');
         }
         setTokenStatus('ok');
-        mapboxgl.accessToken = String(tokenBody.token).trim();
+        (mapboxgl as any).accessToken = String(tokenData.token).trim();
 
         if (!mounted || !mapContainerRef.current) return;
 
@@ -75,7 +76,7 @@ export const useWigleMapInit = ({
           ? 'mapbox://styles/mapbox/standard'
           : mapStyle;
 
-        const map = new mapboxgl.Map({
+        const map = new (mapboxgl as any).Map({
           container: mapContainerRef.current,
           style: initialStyleUrl,
           center: [-98.5795, 39.8283],
@@ -83,7 +84,7 @@ export const useWigleMapInit = ({
         });
         mapRef.current = map;
 
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.addControl(new (mapboxgl as any).NavigationControl(), 'top-right');
         import('../../utils/mapOrientationControls').then(
           async ({ attachMapOrientationControls }) => {
             await attachMapOrientationControls(map, {
@@ -115,9 +116,9 @@ export const useWigleMapInit = ({
           ensureAllLayers();
           attachClickHandlersCallback();
 
-          const v2Src = map.getSource('wigle-v2-points') as mapboxglType.GeoJSONSource | undefined;
+          const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
           if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-          const v3Src = map.getSource('wigle-v3-points') as mapboxglType.GeoJSONSource | undefined;
+          const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
           if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
 
           setMapReady(true);
@@ -130,7 +131,7 @@ export const useWigleMapInit = ({
           setTilesReady(map.areTilesLoaded());
         });
 
-        map.on('error', (event) => {
+        map.on('error', (event: any) => {
           if (!mounted) return;
           const errorMsg = event?.error?.message || '';
 
@@ -149,7 +150,7 @@ export const useWigleMapInit = ({
 
         map.on('moveend', updateAllClusterColorsCallback);
         map.on('zoomend', updateAllClusterColorsCallback);
-        map.on('sourcedata', (event) => {
+        map.on('sourcedata', (event: any) => {
           if (
             (event.sourceId === 'wigle-v2-points' || event.sourceId === 'wigle-v3-points') &&
             event.isSourceLoaded
