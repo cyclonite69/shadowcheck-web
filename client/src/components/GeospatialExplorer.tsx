@@ -183,7 +183,7 @@ export default function GeospatialExplorer() {
     loadWigleObservations,
     loadBatchWigleObservations,
     clearWigleObservations,
-  } = useNetworkContextMenu({ logError });
+  } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
 
   const {
     showNoteModal,

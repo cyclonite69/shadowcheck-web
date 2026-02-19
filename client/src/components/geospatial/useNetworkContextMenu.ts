@@ -59,9 +59,10 @@ type WigleObservationsState = {
 
 type NetworkContextMenuProps = {
   logError: (message: string, error?: unknown) => void;
+  onTagUpdated?: () => void;
 };
 
-export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => {
+export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContextMenuProps) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
@@ -181,10 +182,10 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
           result = await networkApi.ignoreNetwork(bssid);
           break;
         case 'threat':
-          result = await networkApi.tagNetworkAsThreat(bssid, 1.0);
+          result = await networkApi.tagNetworkAsThreat(bssid, 'THREAT', 1.0);
           break;
         case 'suspect':
-          result = await networkApi.tagNetworkAsThreat(bssid, 0.7);
+          result = await networkApi.tagNetworkAsThreat(bssid, 'SUSPECT', 0.7);
           break;
         case 'false_positive':
           result = await networkApi.falsePositiveNetwork(bssid);
@@ -205,12 +206,34 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
           break;
       }
 
-      if (result) {
-        setContextMenu((prev) => ({ ...prev, tag: result.tag || { ...prev.tag, exists: false } }));
-        setContextMenu((prev) => ({ ...prev, tag: result.tag || { ...prev.tag, exists: false } }));
+      if (result && result.ok) {
+        // Success: the API call succeeded and returned the updated tag
+        if (result.tag) {
+          setContextMenu((prev) => ({ ...prev, tag: { ...result.tag, exists: true } }));
+        } else if (result.deleted) {
+          setContextMenu((prev) => ({
+            ...prev,
+            tag: {
+              bssid: result.deleted,
+              is_ignored: false,
+              ignore_reason: null,
+              threat_tag: null,
+              notes: null,
+              exists: false,
+            },
+          }));
+        }
+
+        // Trigger refresh if callback provided
+        if (onTagUpdated) {
+          onTagUpdated();
+        }
+      } else if (result && result.error) {
+        throw new Error(result.error);
       }
-    } catch (err) {
+    } catch (err: any) {
       logError('Failed to update network tag', err);
+      alert(`Tagging failed: ${err.message}`);
     } finally {
       setTagLoading(false);
       closeContextMenu();

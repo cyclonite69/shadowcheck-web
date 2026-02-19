@@ -18,23 +18,42 @@ interface AddNoteResponse {
 export const networkApi = {
   async getNetworkTags(bssid: string): Promise<NetworkTag> {
     const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to fetch tags: ${response.status}`);
+    }
     return response.json();
   },
 
   async ignoreNetwork(bssid: string): Promise<any> {
     const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/ignore`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
     });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to ignore network: ${response.status}`);
+    }
     return response.json();
   },
 
-  async tagNetworkAsThreat(bssid: string, confidence: number = 1.0): Promise<any> {
+  async tagNetworkAsThreat(
+    bssid: string,
+    threatTag: string,
+    confidence: number = 1.0
+  ): Promise<any> {
     const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/threat`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confidence }),
+      body: JSON.stringify({
+        threat_tag: threatTag,
+        threat_confidence: confidence,
+      }),
     });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to tag network: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -42,31 +61,31 @@ export const networkApi = {
     const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}`, {
       method: 'DELETE',
     });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to delete tags: ${response.status}`);
+    }
     return response.json();
   },
 
   async investigateNetwork(bssid: string): Promise<any> {
     const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/investigate`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
     });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to set investigate tag: ${response.status}`);
+    }
     return response.json();
   },
 
   async suspectNetwork(bssid: string): Promise<any> {
-    const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/suspect`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.json();
+    return this.tagNetworkAsThreat(bssid, 'SUSPECT', 0.7);
   },
 
   async falsePositiveNetwork(bssid: string): Promise<any> {
-    const response = await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/false-positive`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.json();
+    return this.tagNetworkAsThreat(bssid, 'FALSE_POSITIVE', 1.0);
   },
 
   async getWigleObservationsBatch(bssids: string[]): Promise<any> {
