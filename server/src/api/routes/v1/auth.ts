@@ -31,7 +31,7 @@ router.post('/auth/login', async (req, res) => {
     // Set HTTP-only cookie (most secure)
     res.cookie('session_token', result.token, {
       httpOnly: true,
-      secure: process.env.COOKIE_SECURE !== 'false', // Allow override for HTTP deployments
+      secure: process.env.COOKIE_SECURE === 'true', // Require explicit opt-in for HTTPS
       sameSite: 'lax', // Allow cookie on top-level navigation (fixes SPA page-to-page auth)
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
@@ -63,7 +63,7 @@ router.post('/auth/logout', async (req, res) => {
     // Clear cookie (must match original cookie options)
     res.clearCookie('session_token', {
       httpOnly: true,
-      secure: process.env.COOKIE_SECURE !== 'false',
+      secure: process.env.COOKIE_SECURE === 'true',
       sameSite: 'lax',
     });
 
