@@ -45,10 +45,14 @@ export const useWigleData = ({
 
     const doFetch = async (endpoint: string) => {
       const payload = await wigleApi.searchLocalWigle(endpoint, params);
+      const rawRows = payload.data || payload.networks || [];
       const rows =
-        payload.data?.map((row: any) => ({
+        rawRows.map((row: any) => ({
           ...row,
+          bssid: row.bssid || row.netid,
+          lasttime: row.lasttime || row.lastupdt,
           accuracy: row.accuracy || row.acc || null,
+          type: row.type || 'wifi', // V3 data often missing type
         })) || [];
       return { rows, total: typeof payload.total === 'number' ? payload.total : null };
     };

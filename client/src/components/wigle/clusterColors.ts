@@ -1,3 +1,4 @@
+import type { MutableRefObject } from 'react';
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import { dominantClusterColor, CLUSTER_SAMPLE_LIMIT } from '../../utils/wigle';
 
@@ -5,7 +6,7 @@ export const updateClusterColors = (
   map: Map,
   sourceId: string,
   cacheKey: 'v2' | 'v3',
-  clusterColorCache: React.MutableRefObject<Record<string, Record<number, string>>>
+  clusterColorCache: MutableRefObject<Record<string, Record<number, string>>>
 ) => {
   const source = map.getSource(sourceId) as GeoJSONSource | undefined;
   if (!source) return;
@@ -25,7 +26,9 @@ export const updateClusterColors = (
 
     source.getClusterLeaves(clusterId, CLUSTER_SAMPLE_LIMIT, 0, (err, leaves) => {
       if (err || !leaves || leaves.length === 0) return;
-      const bssids = leaves.map((leaf) => String(leaf.properties?.bssid || '')).filter(Boolean);
+      const bssids = leaves
+        .map((leaf) => String(leaf.properties?.bssid || leaf.properties?.netid || ''))
+        .filter(Boolean);
       const color = dominantClusterColor(bssids);
       if (!clusterColorCache.current[cacheKey]) clusterColorCache.current[cacheKey] = {};
       clusterColorCache.current[cacheKey][clusterId] = color;
