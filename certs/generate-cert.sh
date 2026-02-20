@@ -43,7 +43,7 @@ CN = $PUBLIC_IP
 
 [v3_req]
 subjectAltName = IP:$PUBLIC_IP,IP:127.0.0.1
-keyUsage = keyEncipherment, dataEncipherment
+keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 EOF
 
