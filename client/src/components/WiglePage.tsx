@@ -235,7 +235,11 @@ const WiglePage: React.FC = () => {
     const allRows = [...v2Rows, ...v3Rows];
     if (allRows.length === 0) return;
     const coords = allRows.map(
-      (row) => [Number(row.trilong), Number(row.trilat)] as [number, number]
+      (row) =>
+        [Number((row as any).trilong ?? (row as any).trilon), Number(row.trilat)] as [
+          number,
+          number,
+        ]
     );
     const bounds = coords.reduce(
       (acc, coord) => acc.extend(coord),
