@@ -170,10 +170,13 @@ class IncrementalImporter {
       // 6. Upsert access_points FIRST (FK constraint)
       await this.upsertAccessPoints();
 
-      // 7. Import new observations
+      // 7. Upsert networks (rich metadata for MV/UI)
+      await this.upsertNetworks();
+
+      // 8. Import new observations
       await this.importNewObservations();
 
-      // 7. Refresh materialized views
+      // 9. Refresh materialized views
       await this.refreshMaterializedViews();
 
       // 8. Print summary
