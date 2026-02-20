@@ -3,27 +3,8 @@ import type { MutableRefObject } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
-import { macColor } from '../../utils/mapHelpers';
+import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
 import type { WigleObservation } from './useNetworkContextMenu';
-
-// Calculate WiFi channel from frequency in MHz
-const frequencyToChannel = (freqMhz: number | null | undefined): number | null => {
-  if (!freqMhz) return null;
-  // 2.4 GHz band (channels 1-14)
-  if (freqMhz >= 2412 && freqMhz <= 2484) {
-    if (freqMhz === 2484) return 14; // Japan only
-    return Math.round((freqMhz - 2407) / 5);
-  }
-  // 5 GHz band
-  if (freqMhz >= 5170 && freqMhz <= 5825) {
-    return Math.round((freqMhz - 5000) / 5);
-  }
-  // 6 GHz band (WiFi 6E)
-  if (freqMhz >= 5935 && freqMhz <= 7115) {
-    return Math.round((freqMhz - 5950) / 5) + 1;
-  }
-  return null;
-};
 
 // Format time difference as human-readable string
 const formatTimeSince = (ms: number): string => {
