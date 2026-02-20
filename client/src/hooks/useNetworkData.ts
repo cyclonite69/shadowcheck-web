@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { logDebug } from '../logging/clientLogger';
+import { apiClient } from '../api/client';
 import type { NetworkRow, ThreatInfo, SortState } from '../types/network';
 import { API_SORT_MAP, NETWORK_PAGE_LIMIT } from '../constants/network';
 
@@ -445,13 +446,10 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           }
         }
 
-        const res = await fetch(`/api/networks?${params.toString()}`, {
+        const data = await apiClient.get<any>(`/networks?${params.toString()}`, {
           signal: controller.signal,
         });
-        logDebug(`Networks response status: ${res.status}`);
-        if (!res.ok) throw new Error(`networks ${res.status}`);
-
-        const data = await res.json();
+        logDebug(`Networks response received`);
         const rows = data.networks || [];
         setExpensiveSort(Boolean(data.expensive_sort));
         setNetworkTotal(typeof data.total === 'number' ? data.total : null);

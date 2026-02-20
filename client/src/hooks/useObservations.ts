@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import type { Observation } from '../types/network';
+import { apiClient } from '../api/client';
 
 interface UseObservationsOptions {
   useFilters?: boolean;
@@ -95,14 +96,10 @@ export function useObservations(
             params.set('include_total', '1');
           }
 
-          const res = await fetch(`/api/v2/networks/filtered/observations?${params.toString()}`, {
-            signal: controller.signal,
-            credentials: 'include',
-          });
-
-          if (!res.ok) throw new Error(`observations ${res.status}`);
-
-          const data = await res.json();
+          const data = await apiClient.get<any>(
+            `/v2/networks/filtered/observations?${params.toString()}`,
+            { signal: controller.signal }
+          );
           const rows = data.data || [];
           allRows = allRows.concat(rows);
 

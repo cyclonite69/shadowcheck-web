@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiClient } from '../api/client';
 
 interface User {
   id: number;
@@ -33,18 +34,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include', // Include cookies
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.authenticated) {
-          setUser(data.user);
-        }
+      const data = await apiClient.get<any>('/auth/me');
+      if (data.authenticated) {
+        setUser(data.user);
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
+    } catch {
+      // Not authenticated or server error — user stays null
     } finally {
       setLoading(false);
     }
@@ -56,12 +51,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.error('Logout failed:', error);
+      await apiClient.post('/auth/logout');
+    } catch {
+      // Logout errors are non-critical — user is cleared regardless
     } finally {
       setUser(null);
     }

@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { NetworkFilters } from '../types/filters';
 import { logError } from '../logging/clientLogger';
+import { apiClient } from '../api/client';
 
 interface UseFilteredDataOptions {
   endpoint: 'networks' | 'geospatial' | 'analytics' | 'observations';
@@ -71,15 +72,7 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
         if (orderBy) params.set('orderBy', orderBy);
 
         const endpointPath = endpoint === 'networks' ? '' : `/${endpoint}`;
-        const response = await fetch(`/api/v2/networks/filtered${endpointPath}?${params}`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
+        const result = await apiClient.get<any>(`/v2/networks/filtered${endpointPath}?${params}`);
 
         if (!result.ok) {
           const errorMsg =
