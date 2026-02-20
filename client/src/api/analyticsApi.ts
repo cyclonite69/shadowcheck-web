@@ -2,49 +2,42 @@
  * Analytics API
  */
 
+import { apiClient } from './client';
+
 export const analyticsApi = {
   async getNetworkTypes(): Promise<any> {
-    const response = await fetch('/api/analytics/network-types');
-    return response.json();
+    return apiClient.get('/analytics/network-types');
   },
 
   async getSignalStrength(): Promise<any> {
-    const response = await fetch('/api/analytics/signal-strength');
-    return response.json();
+    return apiClient.get('/analytics/signal-strength');
   },
 
   async getSecurity(): Promise<any> {
-    const response = await fetch('/api/analytics/security');
-    return response.json();
+    return apiClient.get('/analytics/security');
   },
 
   async getTopNetworks(limit: number = 10): Promise<any> {
-    const response = await fetch(`/api/analytics/top-networks?limit=${limit}`);
-    return response.json();
+    return apiClient.get(`/analytics/top-networks?limit=${limit}`);
   },
 
   async getThreatDistribution(): Promise<any> {
-    const response = await fetch('/api/analytics/threat-distribution');
-    return response.json();
+    return apiClient.get('/analytics/threat-distribution');
   },
 
   async getThreatSeverityCounts(): Promise<any> {
-    const response = await fetch('/api/v2/threats/severity-counts');
-    return response.json();
+    return apiClient.get('/v2/threats/severity-counts');
   },
 
   async getTemporalActivity(): Promise<any> {
-    const response = await fetch('/api/analytics/temporal-activity');
-    return response.json();
+    return apiClient.get('/analytics/temporal-activity');
   },
 
   async getRadioTypeOverTime(range: string = 'all'): Promise<any> {
-    const response = await fetch(`/api/analytics/radio-type-over-time?range=${range}`);
-    return response.json();
+    return apiClient.get(`/analytics/radio-type-over-time?range=${range}`);
   },
 
   async getThreatTrends(range: string = 'all'): Promise<any> {
-    const response = await fetch(`/api/analytics/threat-trends?range=${range}`);
-    return response.json();
+    return apiClient.get(`/analytics/threat-trends?range=${range}`);
   },
 };

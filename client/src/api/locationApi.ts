@@ -2,6 +2,8 @@
  * Location API
  */
 
+import { apiClient } from './client';
+
 interface HomeLocationResponse {
   latitude: number;
   longitude: number;
@@ -10,8 +12,10 @@ interface HomeLocationResponse {
 
 export const locationApi = {
   async getHomeLocation(): Promise<HomeLocationResponse | null> {
-    const response = await fetch('/api/home-location');
-    if (!response.ok) return null;
-    return response.json();
+    try {
+      return await apiClient.get<HomeLocationResponse>('/home-location');
+    } catch {
+      return null;
+    }
   },
 };
