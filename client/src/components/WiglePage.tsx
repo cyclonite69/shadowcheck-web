@@ -449,7 +449,7 @@ const WiglePage: React.FC = () => {
   }, [showTerrain, mapReady, mapStyle]);
 
   const loading = v2Loading || v3Loading;
-  const totalLoaded = v2Rows.length + v3Rows.length;
+  const totalLoaded = (layers.v2 ? v2Rows.length : 0) + (layers.v3 ? v3Rows.length : 0);
 
   return (
     <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
@@ -469,7 +469,11 @@ const WiglePage: React.FC = () => {
         onLoadPoints={fetchPoints}
         loading={loading}
         rowsLoaded={totalLoaded}
-        totalRows={v2Total !== null || v3Total !== null ? (v2Total ?? 0) + (v3Total ?? 0) : null}
+        totalRows={
+          (layers.v2 && v2Total !== null) || (layers.v3 && v3Total !== null)
+            ? (layers.v2 ? (v2Total ?? 0) : 0) + (layers.v3 ? (v3Total ?? 0) : 0)
+            : null
+        }
         layers={layers}
         onToggleLayer={toggleLayer}
       />
