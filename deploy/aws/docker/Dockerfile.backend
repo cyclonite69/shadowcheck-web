@@ -8,7 +8,7 @@ ENV HUSKY=0 \
     NPM_CONFIG_PRODUCTION=false
 
 COPY package*.json tsconfig*.json ./
-RUN npm ci --include=dev
+RUN apk add --no-cache python3 make g++ libsecret-dev && npm ci --include=dev
 
 COPY server ./server
 COPY client ./client
