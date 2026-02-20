@@ -234,13 +234,14 @@ const WiglePage: React.FC = () => {
     if (!map || !mapboxgl) return;
     const allRows = [...v2Rows, ...v3Rows];
     if (allRows.length === 0) return;
-    const coords = allRows.map(
-      (row) =>
-        [Number((row as any).trilong ?? (row as any).trilon), Number(row.trilat)] as [
-          number,
-          number,
-        ]
-    );
+    const coords = allRows
+      .map((row) => {
+        const lon = Number((row as any).trilong ?? (row as any).trilon ?? (row as any).longitude);
+        const lat = Number((row as any).trilat ?? (row as any).latitude);
+        return [lon, lat] as [number, number];
+      })
+      .filter(([lon, lat]) => !isNaN(lon) && !isNaN(lat));
+    if (coords.length === 0) return;
     const bounds = coords.reduce(
       (acc, coord) => acc.extend(coord),
       new mapboxgl.LngLatBounds(coords[0], coords[0])
