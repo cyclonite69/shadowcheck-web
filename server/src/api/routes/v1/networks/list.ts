@@ -61,8 +61,6 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
 
-    console.log('[SORT DEBUG] Received sort params:', { sortRaw, orderRaw });
-
     const planCheck = req.query.planCheck === '1';
     const _qualityFilter = req.query.quality_filter;
 
@@ -537,7 +535,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     try {
       homeLocation = await networkService.getHomeLocation();
     } catch (err) {
-      console.log('[WARN] Could not fetch home location:', err.message);
+      logger.warn('Could not fetch home location', { error: err.message });
     }
 
     const selectColumns = [

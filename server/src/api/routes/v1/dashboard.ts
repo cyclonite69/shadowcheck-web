@@ -75,9 +75,8 @@ const sendDashboardMetrics = async (req, res) => {
     const filters = filtersResult.value;
     const enabled = enabledResult.value;
 
-    // Debug logging
-    console.log('[Dashboard] Received filters:', JSON.stringify(filters, null, 2));
-    console.log('[Dashboard] Received enabled:', JSON.stringify(enabled, null, 2));
+    logger.debug('[Dashboard] Received filters', { filters });
+    logger.debug('[Dashboard] Received enabled', { enabled });
 
     if (!(await assertHomeExistsIfNeeded(enabled, res))) {
       return;
