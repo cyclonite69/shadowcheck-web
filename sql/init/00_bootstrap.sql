@@ -72,7 +72,13 @@ BEGIN
         EXECUTE format('CREATE USER shadowcheck_admin WITH PASSWORD %L', admin_pass);
         RAISE NOTICE 'Created shadowcheck_admin role';
     ELSE
-        RAISE NOTICE 'shadowcheck_admin role already exists — skipping';
+        -- Role exists — update password if one was provided so scs_rebuild always stays in sync
+        IF admin_pass IS NOT NULL AND admin_pass != '' THEN
+            EXECUTE format('ALTER USER shadowcheck_admin PASSWORD %L', admin_pass);
+            RAISE NOTICE 'Updated shadowcheck_admin password';
+        ELSE
+            RAISE NOTICE 'shadowcheck_admin role already exists, no password provided — skipping';
+        END IF;
     END IF;
 END
 $$;

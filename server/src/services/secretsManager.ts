@@ -34,8 +34,11 @@ const OPTIONAL_SECRETS = [
   'db_admin_password',
 ];
 
-// Secrets that should be auto-generated if missing from AWS SM
-const AUTO_GEN_SECRETS = ['db_password', 'db_admin_password'];
+// Secrets that should be auto-generated if missing from AWS SM.
+// DO NOT add db_admin_password here — it must always match the PostgreSQL
+// shadowcheck_admin user's actual password (set during bootstrap). Auto-generating
+// it would overwrite AWS SM with a password PostgreSQL doesn't know about.
+const AUTO_GEN_SECRETS = ['db_password'];
 
 class SecretsManager {
   secrets = new Map<string, string>();
