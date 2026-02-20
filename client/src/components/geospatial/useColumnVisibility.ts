@@ -8,6 +8,9 @@ type ColumnVisibilityProps = {
 
 export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
   const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
+    const defaultCols = (Object.keys(columns) as (keyof NetworkRow | 'select')[]).filter(
+      (k) => columns[k]?.default
+    );
     const saved = localStorage.getItem('shadowcheck_visible_columns');
     if (saved) {
       try {
@@ -16,15 +19,17 @@ export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
           const valid = parsed.filter(
             (key): key is keyof NetworkRow | 'select' => typeof key === 'string' && key in columns
           );
-          if (valid.length) return valid;
+          if (valid.length) {
+            // Append any new default columns added since the last save
+            const newDefaults = defaultCols.filter((k) => !valid.includes(k));
+            return [...valid, ...newDefaults];
+          }
         }
       } catch {
         // Fall through to default
       }
     }
-    return (Object.keys(columns) as (keyof NetworkRow | 'select')[]).filter(
-      (k) => columns[k]?.default
-    );
+    return defaultCols;
   });
 
   useEffect(() => {
