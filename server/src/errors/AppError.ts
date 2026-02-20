@@ -373,10 +373,13 @@ function toAppError(error: unknown): AppError {
   }
 
   // Generic fallback
+  const message = err.message || 'An unexpected error occurred';
+  if (process.env.NODE_ENV !== 'development') {
+    console.error('[Production Error]:', err);
+  }
+
   return new AppError(
-    process.env.NODE_ENV === 'development'
-      ? err.message || 'Unknown error'
-      : 'An unexpected error occurred',
+    process.env.NODE_ENV === 'development' ? message : 'An unexpected error occurred',
     500,
     'INTERNAL_ERROR'
   );

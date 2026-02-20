@@ -221,13 +221,14 @@ DB_HOST=shadowcheck_postgres
 DB_NAME=shadowcheck_db
 DB_PASSWORD=your_password
 DB_PORT=5432
-REDIS_HOST=localhost
+REDIS_HOST=shadowcheck_static_redis
 REDIS_PORT=6379
 PORT=3001
 ```
 
 See `.env.example` for all options.
-If running PostgreSQL locally, set `DB_HOST=localhost` and use your local database name.
+
+> **Bare-metal only**: Replace `DB_HOST` and `REDIS_HOST` with `localhost` if running without Docker.
 
 ### 4. Run Migrations
 

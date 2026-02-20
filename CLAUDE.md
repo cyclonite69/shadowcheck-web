@@ -47,31 +47,37 @@ docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db
 
 ```
 server/
-├── server.js              # Express entry point (orchestration)
+├── server.ts              # Express entry point (orchestration)
 └── src/
-    ├── api/routes/v1/     # HTTP endpoints
+    ├── api/routes/v1/     # HTTP endpoints (20+ route modules)
+    ├── api/routes/v2/     # Newer endpoints (filtered networks/threats)
     ├── services/          # Business logic
     ├── repositories/      # Data access layer
     ├── config/            # Database pool, DI container
     ├── middleware/        # Auth, rate limiting, error handling
+    ├── errors/            # AppError class
+    ├── logging/           # Structured logging
     ├── validation/        # Request schemas
+    ├── websocket/         # WebSocket handlers
     └── utils/             # SQL escaping, secrets
 
 client/
 ├── src/
 │   ├── App.tsx            # React router
 │   ├── components/        # Page components (.tsx)
+│   ├── constants/         # MAP_STYLES, NETWORK_TYPE_CONFIG, column defs
 │   ├── hooks/             # Custom hooks (useNetworkData, useObservations)
 │   ├── stores/            # Zustand state (filterStore)
 │   ├── types/             # TypeScript types
+│   ├── utils/             # Helper functions (mapHelpers, renderNetworkTooltip)
 │   └── index.css          # Tailwind + custom CSS
-├── vite.config.js
+├── vite.config.ts
 └── tailwind.config.js
 ```
 
 **Design Patterns**:
 
-- **Backend**: CommonJS, Dependency Injection (`server/src/config/container.js`), Repository pattern
+- **Backend**: CommonJS, Dependency Injection (`server/src/config/container.ts`), Repository pattern. Note: only a small number of services are registered in the container; most are imported directly in route handlers.
 - **Frontend**: ES modules, TypeScript, Functional components, Zustand for state
 - **Universal Filter System**: `filterStore.ts` + `useAdaptedFilters` hook powers filtering across all pages (Dashboard, Geospatial, Kepler, WiGLE). Filters are URL-synced and page-scoped via `getPageCapabilities()`.
 
@@ -172,10 +178,10 @@ Networks scored on: seen at home AND away (+40 pts), distance range >200m (+25 p
 1. Create route handler in `server/src/api/routes/v1/`
 2. Add business logic to service in `server/src/services/`
 3. Add data access to repository in `server/src/repositories/`
-4. Register services in `server/src/config/container.js` (if needed)
+4. Register services in `server/src/config/container.ts` (if needed)
 5. Import and mount route in `server/server.js`
 
-**Existing route modules**: `admin`, `analytics`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `kepler`, `location-markers`, `ml`, `networks`, `network-tags`, `settings`, `threats`, `wigle`
+**Existing route modules (v1)**: `admin`, `admin-threat-scoring`, `analytics`, `analytics-public`, `agencyOffices`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `home-location`, `kepler`, `location-markers`, `misc`, `ml`, `networks`, `network-agencies`, `network-tags`, `settings`, `threats`, `weather`, `wigle`
 
 ## ETL Pipeline
 
