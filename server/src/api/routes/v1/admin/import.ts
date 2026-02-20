@@ -126,10 +126,13 @@ router.post(
         await runPostgresBackup({ uploadToS3: true });
         backupTaken = true;
         logger.info('Pre-import backup complete');
-        if (historyId) await updateHistory(historyId, { backup_taken: true });
+        if (historyId)
+          await adminDbService.query(
+            `UPDATE app.import_history SET backup_taken = TRUE WHERE id = $1`,
+            [historyId]
+          );
       } catch (e: any) {
         logger.warn(`Pre-import backup failed (continuing): ${e.message}`);
-        if (historyId) await updateHistory(historyId, { backup_taken: false });
       }
     }
 
