@@ -380,6 +380,28 @@ export const useMapStyleControls = ({
             features: features as any,
           });
         }
+
+        // Re-populate wire connectors between observation points
+        const lineFeatures = activeObservationSets
+          .filter((set) => set.observations.length > 1)
+          .map((set) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: set.observations.map((obs) => [obs.lon, obs.lat]),
+            },
+            properties: {
+              bssid: set.bssid,
+              color: macColor(set.bssid),
+            },
+          }));
+
+        if (mapRef.current.getSource('observation-lines')) {
+          (mapRef.current.getSource('observation-lines') as GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: lineFeatures as any,
+          });
+        }
       }
     });
   };
