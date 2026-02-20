@@ -228,11 +228,20 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
       env: pgEnv,
     });
     let stderr = '';
-    child.stderr.on('data', (data) => (stderr += data.toString()));
-    child.on('error', reject);
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+      logger.debug(`[Backup] pg_dumpall stderr: ${data.toString().trim()}`);
+    });
+    child.on('error', (err) => {
+      logger.error(`[Backup] pg_dumpall process error: ${err.message}`);
+      reject(err);
+    });
     child.on('close', (code) => {
       if (code === 0) resolve(undefined);
-      else reject(new Error(`pg_dumpall globals failed: ${stderr}`));
+      else {
+        logger.error(`[Backup] pg_dumpall failed with code ${code}. Stderr: ${stderr}`);
+        reject(new Error(`pg_dumpall globals failed (code ${code}): ${stderr}`));
+      }
     });
   });
 
@@ -245,11 +254,20 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
       { env: pgEnv }
     );
     let stderr = '';
-    child.stderr.on('data', (data) => (stderr += data.toString()));
-    child.on('error', reject);
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+      logger.debug(`[Backup] pg_dump stderr: ${data.toString().trim()}`);
+    });
+    child.on('error', (err) => {
+      logger.error(`[Backup] pg_dump process error: ${err.message}`);
+      reject(err);
+    });
     child.on('close', (code) => {
       if (code === 0) resolve(undefined);
-      else reject(new Error(`pg_dump failed: ${stderr}`));
+      else {
+        logger.error(`[Backup] pg_dump failed with code ${code}. Stderr: ${stderr}`);
+        reject(new Error(`pg_dump failed (code ${code}): ${stderr}`));
+      }
     });
   });
 
