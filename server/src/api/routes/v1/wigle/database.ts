@@ -176,7 +176,7 @@ router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) =>
 
     const rows = await wigleService.getWigleV3Networks({ limit, offset });
 
-    res.json({ ok: true, count: rows.length, data: rows });
+    res.json({ ok: true, count: rows.length, networks: rows });
   } catch (err) {
     next(err);
   }

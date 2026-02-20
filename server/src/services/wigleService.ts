@@ -106,8 +106,8 @@ export async function getWigleV3Networks(params: {
   }
 
   const paginationSql = paginationClauses.join(' ');
-  const dataQuery = `SELECT netid, ssid, encryption, trilat, trilon, last_update
-                     FROM app.wigle_v3_network_details ORDER BY last_update DESC ${paginationSql}`;
+  const dataQuery = `SELECT netid, ssid, encryption, latitude, longitude, observed_at
+                    FROM app.wigle_v3_observations ORDER BY observed_at DESC ${paginationSql}`;
   const { rows } = await query(dataQuery, queryParams);
   return rows;
 }
