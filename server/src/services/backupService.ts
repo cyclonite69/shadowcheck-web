@@ -295,10 +295,10 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   if (shouldUploadToS3) {
     try {
       result.s3 = [];
-      const dbUpload = await uploadToS3(dbFilePath, dbFileName, source);
+      const dbUpload = (await uploadToS3(dbFilePath, dbFileName, source)) as any;
       result.s3.push({ ...dbUpload, type: 'database' });
 
-      const globalsUpload = await uploadToS3(globalsFilePath, globalsFileName, source);
+      const globalsUpload = (await uploadToS3(globalsFilePath, globalsFileName, source)) as any;
       result.s3.push({ ...globalsUpload, type: 'globals' });
     } catch (error: any) {
       logger.error(`[Backup] S3 upload failed: ${error.message}`);
