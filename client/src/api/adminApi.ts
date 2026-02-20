@@ -2,58 +2,37 @@
  * Admin API
  */
 
+import { apiClient } from './client';
+
 export const adminApi = {
   // ML Training
   async getMLStatus(): Promise<any> {
-    const res = await fetch('/api/ml/status');
-    return res.json();
+    return apiClient.get('/ml/status');
   },
 
   async trainML(): Promise<any> {
-    const res = await fetch('/api/ml/train', { method: 'POST' });
-    return res.json();
+    return apiClient.post('/ml/train');
   },
 
   async scoreAll(limit: number): Promise<any> {
-    const res = await fetch(`/api/ml/score-all?limit=${limit}`, { method: 'POST' });
-    return res.json();
+    return apiClient.post(`/ml/score-all?limit=${limit}`);
   },
 
   // Settings/Configuration
   async saveMapboxToken(token: string): Promise<any> {
-    const response = await fetch('/api/settings/mapbox', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-    return response.json();
+    return apiClient.post('/settings/mapbox', { token });
   },
 
   async saveMapboxUnlimited(token: string): Promise<any> {
-    const response = await fetch('/api/settings/mapbox-unlimited', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-    return response.json();
+    return apiClient.post('/settings/mapbox-unlimited', { token });
   },
 
   async saveWigleToken(token: string): Promise<any> {
-    const response = await fetch('/api/settings/wigle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-    return response.json();
+    return apiClient.post('/settings/wigle', { token });
   },
 
   async saveGoogleMapsKey(key: string): Promise<any> {
-    const response = await fetch('/api/settings/google-maps', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
-    });
-    return response.json();
+    return apiClient.post('/settings/google-maps', { key });
   },
 
   async saveAwsCredentials(
@@ -61,171 +40,117 @@ export const adminApi = {
     secretAccessKey: string,
     region: string
   ): Promise<any> {
-    const response = await fetch('/api/settings/aws', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessKeyId, secretAccessKey, region }),
-    });
-    return response.json();
+    return apiClient.post('/settings/aws', { accessKeyId, secretAccessKey, region });
   },
 
   async saveOpenCageKey(key: string): Promise<any> {
-    const response = await fetch('/api/settings/opencage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
-    });
-    return response.json();
+    return apiClient.post('/settings/opencage', { key });
   },
 
   async saveLocationIQKey(key: string): Promise<any> {
-    const response = await fetch('/api/settings/locationiq', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
-    });
-    return response.json();
+    return apiClient.post('/settings/locationiq', { key });
   },
 
   async saveSmartyKey(authId: string, authToken: string): Promise<any> {
-    const response = await fetch('/api/settings/smarty', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authId, authToken }),
-    });
-    return response.json();
+    return apiClient.post('/settings/smarty', { authId, authToken });
   },
 
   async saveHomeLocation(latitude: number, longitude: number, radius: number): Promise<any> {
-    const response = await fetch('/api/admin/home-location', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ latitude, longitude, radius }),
-    });
-    return response.json();
+    return apiClient.post('/admin/home-location', { latitude, longitude, radius });
   },
 
   async getMapboxToken(): Promise<any> {
-    const response = await fetch('/api/settings/mapbox', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/mapbox');
   },
 
   async getMapboxUnlimited(): Promise<any> {
-    const response = await fetch('/api/settings/mapbox-unlimited', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/mapbox-unlimited');
   },
 
   async getGoogleMapsKey(): Promise<any> {
-    const response = await fetch('/api/settings/google-maps', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/google-maps');
   },
 
   async getWigleToken(): Promise<any> {
-    const response = await fetch('/api/settings/wigle', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/wigle');
   },
 
   async getAwsCredentials(): Promise<any> {
-    const response = await fetch('/api/settings/aws', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/aws');
   },
 
   async getOpenCageKey(): Promise<any> {
-    const response = await fetch('/api/settings/opencage', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/opencage');
   },
 
   async getLocationIQKey(): Promise<any> {
-    const response = await fetch('/api/settings/locationiq', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/locationiq');
   },
 
   async getSmartyKey(): Promise<any> {
-    const response = await fetch('/api/settings/smarty', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/settings/smarty');
   },
 
-  // Data Import
+  // Data Import — FormData: raw fetch (apiClient forces application/json header)
   async importSQLite(formData: FormData): Promise<any> {
-    const response = await fetch('/api/admin/import-sqlite', { method: 'POST', body: formData });
+    const response = await fetch('/api/admin/import-sqlite', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
     return response.json();
   },
 
   // PgAdmin
   async getPgAdminStatus(): Promise<any> {
-    const response = await fetch('/api/admin/pgadmin/status');
-    return response.json();
+    return apiClient.get('/admin/pgadmin/status');
   },
 
   async startPgAdmin(): Promise<any> {
-    const response = await fetch('/api/admin/pgadmin/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.json();
+    return apiClient.post('/admin/pgadmin/start');
   },
 
   async stopPgAdmin(): Promise<any> {
-    const response = await fetch('/api/admin/pgadmin/stop', { method: 'POST' });
-    return response.json();
+    return apiClient.post('/admin/pgadmin/stop');
   },
 
   // Backups
   async createBackup(uploadToS3: boolean = false): Promise<any> {
-    const res = await fetch('/api/admin/backup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uploadToS3 }),
-    });
-    return res.json();
+    return apiClient.post('/admin/backup', { uploadToS3 });
   },
 
   async listS3Backups(): Promise<any> {
-    const res = await fetch('/api/admin/backup/s3');
-    return res.json();
+    return apiClient.get('/admin/backup/s3');
   },
 
+  // Blob download — raw fetch (apiClient always calls .json())
   async downloadS3Backup(key: string): Promise<Blob> {
     const res = await fetch(`/api/admin/backup/s3/${encodeURIComponent(key)}`, {
-      method: 'GET',
+      credentials: 'include',
     });
     return res.blob();
   },
 
   async deleteS3Backup(key: string): Promise<any> {
-    const res = await fetch(`/api/admin/backup/s3/${encodeURIComponent(key)}`, {
-      method: 'DELETE',
-    });
-    return res.json();
+    return apiClient.delete(`/admin/backup/s3/${encodeURIComponent(key)}`);
   },
 
   // Geocoding Cache
   async getGeocodingStats(precision: string): Promise<any> {
-    const response = await fetch(`/api/admin/geocoding/stats?precision=${precision}`);
-    return response.json();
+    return apiClient.get(`/admin/geocoding/stats?precision=${precision}`);
   },
 
   async runGeocoding(precision: string, limit: number): Promise<any> {
-    const response = await fetch('/api/admin/geocoding/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ precision, limit }),
-    });
-    return response.json();
+    return apiClient.post('/admin/geocoding/run', { precision, limit });
   },
 
   // AWS
   async getAwsOverview(): Promise<any> {
-    const response = await fetch('/api/admin/aws/overview', { credentials: 'same-origin' });
-    return response.json();
+    return apiClient.get('/admin/aws/overview');
   },
 
   async controlAwsInstance(instanceId: string, action: 'start' | 'stop'): Promise<any> {
-    const response = await fetch(`/api/admin/aws/instances/${instanceId}/${action}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.json();
+    return apiClient.post(`/admin/aws/instances/${instanceId}/${action}`);
   },
 
   // Network Notes
@@ -235,40 +160,40 @@ export const adminApi = {
     noteType: string,
     userId: string
   ): Promise<any> {
-    const response = await fetch('/api/admin/network-notes/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bssid, content, note_type: noteType, user_id: userId }),
+    return apiClient.post('/admin/network-notes/add', {
+      bssid,
+      content,
+      note_type: noteType,
+      user_id: userId,
     });
-    return response.json();
   },
 
+  // Media upload — FormData: raw fetch (apiClient forces application/json header)
   async addNetworkNoteMedia(noteId: number, formData: FormData): Promise<any> {
     const response = await fetch(`/api/admin/network-notes/${noteId}/media`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     });
     return response.json();
   },
 
   async getNetworkNotes(bssid: string): Promise<any> {
-    const response = await fetch(`/api/admin/network-notes/${encodeURIComponent(bssid)}`);
-    return response.json();
+    return apiClient.get(`/admin/network-notes/${encodeURIComponent(bssid)}`);
   },
 
   async deleteNetworkNote(noteId: number): Promise<any> {
-    const response = await fetch(`/api/admin/network-notes/${noteId}`, { method: 'DELETE' });
-    return response.json();
+    return apiClient.delete(`/admin/network-notes/${noteId}`);
   },
 
-  // API Testing
+  // API Testing — raw fetch: hits /health (not /api) and arbitrary URLs
   async testHealth(): Promise<any> {
-    const res = await fetch('/health');
+    const res = await fetch('/health', { credentials: 'include' });
     return res.json();
   },
 
   async testEndpoint(url: string, options: RequestInit): Promise<any> {
-    const res = await fetch(url, options);
+    const res = await fetch(url, { ...options, credentials: 'include' });
     return res.json();
   },
 };
