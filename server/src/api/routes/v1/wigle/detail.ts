@@ -73,7 +73,10 @@ async function fetchWigleDetail(netid: string, endpoint: string) {
   }
 
   const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-  const apiUrl = `https://api.wigle.net/api/v3/detail/${endpoint}/${encodeURIComponent(netid)}`;
+  // MAC addresses (XX:XX:XX:XX:XX:XX) only contain hex digits and colons, both
+  // URL-safe in path segments. encodeURIComponent turns ':' into '%3A' which
+  // causes WiGLE's btNetworkId regex validation to fail.
+  const apiUrl = `https://api.wigle.net/api/v3/detail/${endpoint}/${netid}`;
 
   logger.info(`[WiGLE] Fetching ${endpoint} detail for: ${netid}`);
 
