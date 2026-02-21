@@ -577,7 +577,8 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       homeLocation !== null
         ? `
         CASE
-          WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL THEN
+          WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL
+            AND NOT (ne.lat = 0 AND ne.lon = 0) THEN
             ST_Distance(
               ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
               ST_MakePoint(ne.lon, ne.lat)::geography

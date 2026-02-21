@@ -134,7 +134,8 @@ router.get('/explorer/networks', async (req, res, _next) => {
         obs.accuracy_meters,
         obs.radio_type AS type,
         CASE
-          WHEN obs.lat IS NOT NULL AND obs.lon IS NOT NULL THEN
+          WHEN obs.lat IS NOT NULL AND obs.lon IS NOT NULL
+            AND NOT (obs.lat = 0 AND obs.lon = 0) THEN
             ST_Distance(
               ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
               ST_SetSRID(ST_MakePoint(obs.lon, obs.lat), 4326)::geography
