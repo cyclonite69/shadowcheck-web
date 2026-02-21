@@ -578,10 +578,16 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
         ? `
         CASE
           WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL
-            AND NOT (ne.lat = 0 AND ne.lon = 0) THEN
+            AND ne.lat != 0 AND ne.lon != 0 THEN
             ST_Distance(
               ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
               ST_MakePoint(ne.lon, ne.lat)::geography
+            ) / 1000
+          WHEN ne.lastlat IS NOT NULL AND ne.lastlon IS NOT NULL
+            AND ne.lastlat != 0 AND ne.lastlon != 0 THEN
+            ST_Distance(
+              ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
+              ST_MakePoint(ne.lastlon, ne.lastlat)::geography
             ) / 1000
           ELSE NULL
         END`

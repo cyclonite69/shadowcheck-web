@@ -113,7 +113,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
           radio_frequency,
           radio_capabilities
         FROM app.observations
-        WHERE 1=1 ${qualityWhere}
+        WHERE lat IS NOT NULL AND lon IS NOT NULL AND lat != 0 AND lon != 0 ${qualityWhere}
         ORDER BY bssid, time DESC
       )
       SELECT
@@ -134,8 +134,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
         obs.accuracy_meters,
         obs.radio_type AS type,
         CASE
-          WHEN obs.lat IS NOT NULL AND obs.lon IS NOT NULL
-            AND NOT (obs.lat = 0 AND obs.lon = 0) THEN
+          WHEN obs.lat IS NOT NULL AND obs.lon IS NOT NULL THEN
             ST_Distance(
               ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
               ST_SetSRID(ST_MakePoint(obs.lon, obs.lat), 4326)::geography

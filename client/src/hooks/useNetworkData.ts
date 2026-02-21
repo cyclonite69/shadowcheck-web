@@ -138,9 +138,10 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     observations: parseInt(String(row.obs_count || 0), 10),
     latitude: typeof row.lat === 'number' ? row.lat : null,
     longitude: typeof row.lon === 'number' ? row.lon : null,
-    distanceFromHome: parseNumeric(row.distance_from_home_km)
-      ? parseNumeric(row.distance_from_home_km)! * 1000
-      : null,
+    distanceFromHome: (() => {
+      const distKm = parseNumeric(row.distance_from_home_km);
+      return distKm !== null ? distKm * 1000 : null;
+    })(),
     accuracy: parseNumeric(row.accuracy_meters),
     firstSeen: row.first_observed_at || null,
     lastSeen: row.last_observed_at || row.observed_at || null,
