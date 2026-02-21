@@ -40,7 +40,16 @@ const DetailIcon = ({ size = 24, className = '' }) => (
 export const WigleDetailTab: React.FC = () => {
   const [netid, setNetid] = useState('');
   const [detailType, setDetailType] = useState<WigleDetailType>('wifi');
-  const { loading, error, data, observations, imported, fetchDetail } = useWigleDetail();
+  const {
+    loading,
+    error,
+    data,
+    observations,
+    imported,
+    newObservations,
+    totalObservations,
+    fetchDetail,
+  } = useWigleDetail();
   const { uploadError, uploadSuccess, uploadFile, reset } = useWigleFileUpload();
 
   const handleSearch = (shouldImport: boolean) => {
@@ -357,8 +366,13 @@ export const WigleDetailTab: React.FC = () => {
             {/* Import Status */}
             {imported && (
               <div className="bg-green-900/20 border border-green-800/50 p-3 rounded text-center text-sm text-green-400">
-                Successfully imported to database ✓
-                {observations.length > 0 && ` (${observations.length} observations)`}
+                {newObservations > 0
+                  ? totalObservations > newObservations
+                    ? `Imported ${newObservations} new records (had ${totalObservations - newObservations}, now ${totalObservations} total) ✓`
+                    : `Imported ${newObservations} records ✓`
+                  : totalObservations > 0
+                    ? `No new records — all ${totalObservations} already in database ✓`
+                    : 'Imported to database ✓'}
               </div>
             )}
           </div>

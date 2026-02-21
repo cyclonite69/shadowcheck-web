@@ -24,7 +24,7 @@ export const adminApi = {
   },
 
   async saveMapboxUnlimited(token: string): Promise<any> {
-    return apiClient.post('/settings/mapbox-unlimited', { token });
+    return apiClient.post('/settings/mapbox-unlimited', { apiKey: token });
   },
 
   async saveWigleToken(token: string): Promise<any> {

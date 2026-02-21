@@ -20,15 +20,23 @@ export const wigleApi = {
     return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);
   },
 
+  // raw fetch — server returns { ok: false } on WiGLE errors (4xx) and apiClient would throw
+  // instead of returning the structured response that handleWigleLookup checks
   async getWigleDetail(
     bssid: string,
     isBluetooth: boolean,
     importData: boolean = true
   ): Promise<any> {
-    const endpoint = isBluetooth
-      ? `/wigle/detail/bt/${encodeURIComponent(bssid)}`
-      : `/wigle/detail/${encodeURIComponent(bssid)}`;
-    return apiClient.post(endpoint, { import: importData });
+    const path = isBluetooth
+      ? `/api/wigle/detail/bt/${encodeURIComponent(bssid)}`
+      : `/api/wigle/detail/${encodeURIComponent(bssid)}`;
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ import: importData }),
+    });
+    return res.json();
   },
 
   // FormData — raw fetch (apiClient forces application/json header)

@@ -276,17 +276,24 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
         const result = await wigleApi.getWigleDetail(bssid, isBluetooth, true);
 
         if (result.ok) {
-          const obsCount = result.importedObservations || result.data?.observations?.length || 0;
+          const newCount: number = result.importedObservations ?? 0;
+          const totalCount: number = result.totalObservations ?? newCount;
+          const alreadyHad = totalCount - newCount;
+          const message =
+            newCount > 0
+              ? alreadyHad > 0
+                ? `Imported ${newCount} new records (had ${alreadyHad}, now ${totalCount} total)`
+                : `Imported ${newCount} records from WiGLE`
+              : totalCount > 0
+                ? `No new records — all ${totalCount} already imported`
+                : 'Network found in WiGLE but contains no observation records';
           setWigleLookupDialog((prev) => ({
             ...prev,
             loading: false,
             result: {
               success: true,
-              message:
-                obsCount > 0
-                  ? `Imported ${obsCount} observations from WiGLE`
-                  : 'Network found but no new observations to import',
-              observationsImported: obsCount,
+              message,
+              observationsImported: newCount,
             },
           }));
         } else {

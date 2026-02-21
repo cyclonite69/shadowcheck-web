@@ -6,7 +6,7 @@ const agencyService = require('../../../services/agencyService');
  * GET /api/networks/:bssid/nearest-agencies
  * Get nearest agencies to all observation points for a network (local + WiGLE v3)
  */
-router.get('/:bssid/nearest-agencies', async (req, res, next) => {
+router.get('/nearest-agencies/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
     const radius = parseFloat(req.query.radius) || 250; // Default 250km

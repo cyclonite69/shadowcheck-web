@@ -38,8 +38,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
           if (Array.isArray(bssid)) {
             // Batch mode: multiple BSSIDs
             const result = await agencyApi.getNearestAgenciesBatch(bssid, 250);
-            // Convert batch result to flat array
-            data = { ok: true, agencies: Object.values(result).flat() };
+            data = { ok: true, agencies: result.agencies || [] };
           } else {
             // Single mode: one BSSID
             const result = await agencyApi.getNearestAgencies(bssid, 250);

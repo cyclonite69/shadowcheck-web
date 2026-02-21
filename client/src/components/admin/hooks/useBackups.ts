@@ -18,12 +18,18 @@ export const useBackups = () => {
       if (!data.ok) {
         throw new Error(data.error || 'Backup failed');
       }
+      const primaryFile = Array.isArray(data.files)
+        ? (data.files.find((f: any) => f.type === 'database') ?? data.files[0])
+        : null;
       setBackupResult({
         backupDir: data.backupDir,
-        fileName: data.fileName,
-        filePath: data.filePath,
-        bytes: data.bytes,
-        s3: data.s3,
+        fileName: primaryFile?.name ?? data.fileName,
+        filePath: primaryFile?.path ?? data.filePath,
+        bytes: primaryFile?.bytes ?? data.bytes,
+        source: data.source,
+        s3: Array.isArray(data.s3)
+          ? (data.s3.find((e: any) => e.type === 'database') ?? data.s3[0])
+          : data.s3,
         s3Error: data.s3Error,
       });
 

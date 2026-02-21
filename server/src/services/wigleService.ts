@@ -172,8 +172,8 @@ export async function importWigleV3Observation(
   netid: string,
   loc: any,
   ssid: string | null
-): Promise<void> {
-  await query(
+): Promise<number> {
+  const result = await query(
     `INSERT INTO app.wigle_v3_observations (
       netid, latitude, longitude, altitude, accuracy,
       signal, observed_at, last_update, ssid,
@@ -200,6 +200,7 @@ export async function importWigleV3Observation(
       loc.month,
     ]
   );
+  return result.rowCount || 0;
 }
 
 export async function getWigleV3Observations(netid: string): Promise<any[]> {

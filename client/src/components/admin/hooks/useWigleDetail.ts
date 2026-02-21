@@ -38,12 +38,20 @@ export interface WigleDetailData {
 
 export type WigleDetailType = 'wifi' | 'bt';
 
+const MAC_RE = /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$/;
+
+function normalizeMac(value: string): string {
+  return value.trim().replace(/-/g, ':').toUpperCase();
+}
+
 export const useWigleDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<WigleDetailData | null>(null);
   const [observations, setObservations] = useState<any[]>([]);
   const [imported, setImported] = useState(false);
+  const [newObservations, setNewObservations] = useState<number>(0);
+  const [totalObservations, setTotalObservations] = useState<number>(0);
 
   const fetchObservations = async (netid: string) => {
     try {
@@ -66,15 +74,25 @@ export const useWigleDetail = () => {
       return;
     }
 
+    const normalized = normalizeMac(netid);
+    if (!MAC_RE.test(normalized)) {
+      setError(
+        `Invalid MAC address format "${netid}" — expected XX:XX:XX:XX:XX:XX (e.g. EC:81:93:76:BD:CE)`
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setImported(false);
+    setNewObservations(0);
+    setTotalObservations(0);
     setData(null);
     setObservations([]);
 
     try {
       const isBluetooth = detailType === 'bt';
-      const json = await wigleApi.getWigleDetail(netid, isBluetooth, shouldImport);
+      const json = await wigleApi.getWigleDetail(normalized, isBluetooth, shouldImport);
 
       if (!json.ok) {
         throw new Error(json.details || json.error || 'Failed to fetch WiGLE detail');
@@ -82,10 +100,11 @@ export const useWigleDetail = () => {
 
       setData(json.data);
       setImported(json.imported);
+      setNewObservations(json.importedObservations ?? 0);
+      setTotalObservations(json.totalObservations ?? json.importedObservations ?? 0);
 
-      // If we imported or it already existed, try to fetch individual observations
       if (json.imported || json.data) {
-        await fetchObservations(netid);
+        await fetchObservations(normalized);
       }
     } catch (err: any) {
       setError(err.message);
@@ -100,6 +119,8 @@ export const useWigleDetail = () => {
     data,
     observations,
     imported,
+    newObservations,
+    totalObservations,
     fetchDetail,
     fetchObservations,
   };

@@ -18,16 +18,27 @@ interface AgencyOffice {
 }
 
 interface NearestAgenciesResponse {
+  ok: boolean;
   bssid: string;
   agencies: AgencyOffice[];
+  count: number;
+  radius_km: number;
+}
+
+interface NearestAgenciesBatchResponse {
+  ok: boolean;
+  bssids: string[];
+  agencies: AgencyOffice[];
+  count: number;
+  radius_km: number;
 }
 
 export const agencyApi = {
   async getNearestAgenciesBatch(
     bssids: string[],
     radius: number = 250
-  ): Promise<Record<string, AgencyOffice[]>> {
-    return apiClient.post<Record<string, AgencyOffice[]>>(
+  ): Promise<NearestAgenciesBatchResponse> {
+    return apiClient.post<NearestAgenciesBatchResponse>(
       `/networks/nearest-agencies/batch?radius=${radius}`,
       { bssids }
     );
