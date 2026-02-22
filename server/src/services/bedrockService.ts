@@ -13,7 +13,7 @@ const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
 
 const DEFAULT_REGION = 'us-east-1';
-const MODEL_ID = 'us.anthropic.claude-3-5-haiku-20241022-v1:0';
+const MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const MAX_TOKENS = 2048;
 
 function getRegion(): string {
