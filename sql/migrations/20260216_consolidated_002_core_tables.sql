@@ -1,8 +1,10 @@
 -- ============================================================================
 -- Consolidated Migration 002: Core Tables
 -- ============================================================================
--- Networks, observations, access points, routes, staging, device sources.
+-- Networks, observations, access points, routes, staging, device sources,
+-- import history, AI insights.
 -- Source: pg_dump --schema-only of live database (2026-02-16)
+-- Updated: 2026-02-20 (import_history), 2026-02-22 (ai_insights)
 -- ============================================================================
 
 -- --------------------------------------------------------------------------
@@ -402,3 +404,47 @@ CREATE INDEX IF NOT EXISTS idx_networks_threat_level ON app.networks USING btree
 CREATE INDEX IF NOT EXISTS idx_networks_threat_score_v2 ON app.networks USING btree (threat_score_v2 DESC);
 CREATE INDEX IF NOT EXISTS idx_networks_threat_updated_at ON app.networks USING btree (threat_updated_at);
 CREATE INDEX IF NOT EXISTS idx_networks_ml_threat_score ON app.networks USING btree (ml_threat_score) WHERE (ml_threat_score > 0);
+
+-- --------------------------------------------------------------------------
+-- import_history (added 2026-02-20)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app.import_history (
+  id           SERIAL PRIMARY KEY,
+  started_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  finished_at  TIMESTAMPTZ,
+  source_tag   TEXT NOT NULL,
+  filename     TEXT,
+  imported     INTEGER,
+  failed       INTEGER,
+  duration_s   NUMERIC(10, 2),
+  status       TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'success', 'failed')),
+  error_detail TEXT,
+  metrics_before JSONB,
+  metrics_after  JSONB,
+  backup_taken   BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_import_history_source_tag ON app.import_history (source_tag);
+CREATE INDEX IF NOT EXISTS idx_import_history_started_at ON app.import_history (started_at DESC);
+
+-- --------------------------------------------------------------------------
+-- ai_insights (added 2026-02-22)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app.ai_insights (
+  id                SERIAL PRIMARY KEY,
+  user_id           UUID,
+  question          TEXT,
+  filtered_networks JSONB,
+  claude_response   TEXT,
+  suggestions       TEXT[],
+  tags              TEXT[],
+  useful            BOOLEAN,
+  created_at        TIMESTAMP DEFAULT NOW(),
+  updated_at        TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_insights_user_created ON app.ai_insights (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_created ON app.ai_insights (created_at DESC);
+
+COMMENT ON TABLE app.ai_insights IS
+  'Persisted Claude/Bedrock analyses of network observations, with optional user feedback.';
