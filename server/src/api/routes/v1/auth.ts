@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const authService = require('../../../services/authService');
+const { authService } = require('../../../config/container');
 const { requireAdmin, extractToken } = require('../../../middleware/authMiddleware');
 const logger = require('../../../logging/logger');
 

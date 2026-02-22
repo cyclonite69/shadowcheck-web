@@ -6,12 +6,9 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const keplerService = require('../../../services/keplerService');
+const { keplerService, filterQueryBuilder } = require('../../../config/container');
+const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilder;
 const logger = require('../../../logging/logger');
-const {
-  UniversalFilterQueryBuilder,
-  validateFilterPayload,
-} = require('../../../services/filterQueryBuilder');
 const { frequencyToChannel } = require('../../../utils/frequencyUtils');
 
 const parseJsonParam = (value, fallback, name) => {

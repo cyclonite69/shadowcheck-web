@@ -6,7 +6,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const networkService = require('../../../../services/networkService');
+const { networkService, filterQueryBuilder } = require('../../../../config/container');
 const { escapeLikePattern } = require('../../../../utils/escapeSQL');
 const { safeJsonParse } = require('../../../../utils/safeJsonParse');
 const logger = require('../../../../logging/logger');
@@ -29,7 +29,7 @@ const {
   parseBoundingBoxParams,
   parseRadiusParams,
 } = require('../../../../validation/parameterParsers');
-const { NETWORK_CHANNEL_EXPR } = require('../../../../services/filterQueryBuilder/sqlExpressions');
+const { NETWORK_CHANNEL_EXPR } = filterQueryBuilder;
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-const agencyService = require('../../../services/agencyService');
+const { agencyService } = require('../../../config/container');
 
 const router = Router();
 

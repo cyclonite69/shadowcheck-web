@@ -1,9 +1,7 @@
 const express = require('express');
 const logger = require('../../../../logging/logger');
-const {
-  runGeocodeCacheUpdate,
-  getGeocodingCacheStats,
-} = require('../../../../services/geocodingCacheService');
+const { geocodingCacheService } = require('../../../../config/container');
+const { runGeocodeCacheUpdate, getGeocodingCacheStats } = geocodingCacheService;
 
 export {};
 

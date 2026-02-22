@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-const networkService = require('../../../../services/networkService');
+const { networkService } = require('../../../../config/container');
 import { validateBSSID } from '../../../../validation/schemas';
 
 /**

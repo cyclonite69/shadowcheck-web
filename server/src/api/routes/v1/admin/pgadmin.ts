@@ -1,12 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../../logging/logger');
-const {
-  isDockerControlEnabled,
-  getPgAdminStatus,
-  startPgAdmin,
-  stopPgAdmin,
-} = require('../../../../services/pgadminService');
+const { pgadminService } = require('../../../../config/container');
+const { isDockerControlEnabled, getPgAdminStatus, startPgAdmin, stopPgAdmin } = pgadminService;
 
 export {};
 

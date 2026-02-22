@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-const wigleService = require('../../../../services/wigleService');
+const { wigleService } = require('../../../../config/container');
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';

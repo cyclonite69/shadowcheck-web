@@ -13,9 +13,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const secretsManager = require('../../../../services/secretsManager').default;
-const adminDbService = require('../../../../services/adminDbService');
-const { runPostgresBackup } = require('../../../../services/backupService');
+const { secretsManager, adminDbService, backupService } = require('../../../../config/container');
+const { runPostgresBackup } = backupService;
 const logger = require('../../../../logging/logger');
 
 export {};

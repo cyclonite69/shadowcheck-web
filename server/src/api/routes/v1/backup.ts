@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const adminDbService = require('../../../services/adminDbService');
+const { adminDbService } = require('../../../config/container');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
 
 // Backup database as JSON (simpler than pg_dump version issues)

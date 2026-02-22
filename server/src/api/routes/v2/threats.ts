@@ -7,7 +7,7 @@ import type { Request, Response } from 'express';
 
 const express = require('express');
 const router = express.Router();
-const v2Service = require('../../../services/v2Service');
+const { v2Service } = require('../../../config/container');
 const logger = require('../../../logging/logger');
 const { CONFIG } = require('../../../config/database');
 

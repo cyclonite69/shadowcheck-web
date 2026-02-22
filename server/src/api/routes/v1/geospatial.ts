@@ -1,11 +1,11 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const secretsManager = require('../../../services/secretsManager').default;
+const { secretsManager, externalServiceHandler } = require('../../../config/container');
 const { Readable } = require('stream');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
-const { withRetry } = require('../../../services/externalServiceHandler');
+const { withRetry } = externalServiceHandler;
 const { validateQuery, optional } = require('../../../validation/middleware');
 const { validateString } = require('../../../validation/schemas');
 

@@ -1,11 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../../logging/logger');
-const {
-  runPostgresBackup,
-  listS3Backups,
-  deleteS3Backup,
-} = require('../../../../services/backupService');
+const { backupService } = require('../../../../config/container');
+const { runPostgresBackup, listS3Backups, deleteS3Backup } = backupService;
 
 export {};
 

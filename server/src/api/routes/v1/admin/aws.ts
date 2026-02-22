@@ -2,7 +2,8 @@ export {};
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../../logging/logger');
-const { getAwsConfig } = require('../../../../services/awsService');
+const { awsService } = require('../../../../config/container');
+const { getAwsConfig } = awsService;
 
 const { EC2Client, DescribeInstancesCommand } = require('@aws-sdk/client-ec2');
 const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');

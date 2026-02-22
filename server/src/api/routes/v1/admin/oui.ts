@@ -7,7 +7,10 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const adminDbService = require('../../../../services/adminDbService');
+const {
+  adminDbService,
+  ouiGroupingService: OUIGroupingService,
+} = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 /**
@@ -76,8 +79,6 @@ router.get('/admin/oui/randomization/suspects', async (req, res) => {
  */
 router.post('/admin/oui/analyze', async (req, res) => {
   try {
-    const OUIGroupingService = require('../../../../services/ouiGroupingService');
-
     logger.info('[Admin] Starting OUI analysis...');
     await OUIGroupingService.generateOUIGroups();
     await OUIGroupingService.detectMACRandomization();

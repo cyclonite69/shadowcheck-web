@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 const express = require('express');
 const router = express.Router();
-const v2Service = require('../../../services/v2Service');
+const { v2Service } = require('../../../config/container');
 const { CONFIG } = require('../../../config/database');
 
 // Type definitions

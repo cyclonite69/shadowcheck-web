@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const secretsManager = require('../../../services/secretsManager').default;
+const { secretsManager } = require('../../../config/container');
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const { validateString } = require('../../../validation/schemas');
 

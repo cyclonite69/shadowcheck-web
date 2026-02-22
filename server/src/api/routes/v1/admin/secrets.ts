@@ -2,7 +2,7 @@ import express from 'express';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 
 const router = express.Router();
-const secretsManager = require('../../../../services/secretsManager').default;
+const { secretsManager } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 /**

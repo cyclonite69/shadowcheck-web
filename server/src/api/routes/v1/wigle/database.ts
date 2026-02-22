@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-const wigleService = require('../../../../services/wigleService');
+const { wigleService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { macParamMiddleware, validateQuery, optional } from '../../../../validation/middleware';
 import { validateIntegerRange, validateString } from '../../../../validation/schemas';

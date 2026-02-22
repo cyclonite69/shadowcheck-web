@@ -7,8 +7,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const networkService = require('../../../../services/networkService');
-const adminDbService = require('../../../../services/adminDbService');
+const { networkService, adminDbService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
 const { bssidParamMiddleware } = require('../../../../validation/middleware');

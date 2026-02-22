@@ -3,7 +3,7 @@
  */
 
 import type { Response } from 'express';
-const v2Service = require('../../../services/v2Service');
+const { v2Service } = require('../../../config/container');
 
 // Type definitions
 

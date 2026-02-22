@@ -2,7 +2,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../logging/logger');
-const keplerService = require('../../../services/keplerService');
+const { keplerService } = require('../../../config/container');
 
 let dashboardService = null;
 

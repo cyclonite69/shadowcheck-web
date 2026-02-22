@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { CONFIG } = require('../../../../config/database');
-const adminDbService = require('../../../../services/adminDbService');
+const { adminDbService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 export {};

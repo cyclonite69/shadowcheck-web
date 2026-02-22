@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const exportService = require('../../../services/exportService');
+const { exportService } = require('../../../config/container');
 
 // No authentication required for exports
 const requireAuth = (req, res, next) => {

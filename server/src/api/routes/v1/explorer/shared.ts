@@ -5,7 +5,7 @@
 
 export {};
 
-const explorerService = require('../../../../services/explorerService');
+const { explorerService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { validateIntegerRange } = require('../../../../validation/schemas');
 

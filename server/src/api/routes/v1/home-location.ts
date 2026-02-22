@@ -6,7 +6,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const homeLocationService = require('../../../services/homeLocationService');
+const { homeLocationService } = require('../../../config/container');
 
 // GET /api/home-location - Get current home location
 router.get('/home-location', async (req, res, next) => {

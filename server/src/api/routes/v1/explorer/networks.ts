@@ -8,8 +8,12 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const explorerService = require('../../../../services/explorerService');
-const homeLocationService = require('../../../../services/homeLocationService');
+const {
+  explorerService,
+  homeLocationService,
+  dataQualityFilters,
+} = require('../../../../config/container');
+const { DATA_QUALITY_FILTERS } = dataQualityFilters;
 const logger = require('../../../../logging/logger');
 
 // Import shared utilities
@@ -68,7 +72,6 @@ router.get('/explorer/networks', async (req, res, _next) => {
       logger.warn('Could not fetch home location for distance calculation');
     }
 
-    const { DATA_QUALITY_FILTERS } = require('../../../../services/dataQualityFilters');
     let qualityWhere = '';
     if (qualityFilter === 'temporal') {
       qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;

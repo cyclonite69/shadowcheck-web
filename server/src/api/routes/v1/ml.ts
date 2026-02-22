@@ -6,16 +6,14 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const adminDbService = require('../../../services/adminDbService');
-const mlScoringService = require('../../../services/ml/scoringService');
+const { adminDbService, mlScoringService, mlTrainingLock } = require('../../../config/container');
 const logger = require('../../../logging/logger');
-const mlTrainingLock = require('../../../services/mlTrainingLock');
 const {
   validateBSSID,
   validateEnum,
   validateIntegerRange,
 } = require('../../../validation/schemas');
-const { scoreAllNetworks } = require('../../../services/ml/scoringService');
+const { scoreAllNetworks } = mlScoringService;
 
 const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT, 10) || 100;
 const DEFAULT_AUTO_SCORE_LIMIT = parseInt(process.env.ML_AUTO_SCORE_LIMIT, 10) || 1000;

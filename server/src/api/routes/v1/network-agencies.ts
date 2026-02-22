@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const agencyService = require('../../../services/agencyService');
+const { agencyService } = require('../../../config/container');
 
 /**
  * GET /api/networks/:bssid/nearest-agencies

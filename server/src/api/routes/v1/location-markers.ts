@@ -1,8 +1,8 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const homeLocationService = require('../../../services/homeLocationService');
-const { adminQuery } = require('../../../services/adminDbService');
+const { homeLocationService, adminDbService } = require('../../../config/container');
+const { adminQuery } = adminDbService;
 
 module.exports = (query) => {
   // Get all location markers

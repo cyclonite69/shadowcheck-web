@@ -10,7 +10,7 @@ const router = express.Router();
 const { asyncHandler } = require('../../../errors/errorHandler');
 const { validateTimeRange } = require('../../../validation/schemas');
 const { ValidationError } = require('../../../errors/AppError');
-const analyticsService = require('../../../services/analyticsService');
+const { analyticsService } = require('../../../config/container');
 const { CONFIG } = require('../../../config/database');
 
 /**

@@ -21,11 +21,8 @@ import {
 
 const express = require('express');
 const router = express.Router();
-const {
-  UniversalFilterQueryBuilder,
-  validateFilterPayload,
-} = require('../../../services/filterQueryBuilder');
-const v2Service = require('../../../services/v2Service');
+const { filterQueryBuilder, v2Service } = require('../../../config/container');
+const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilder;
 const logger = require('../../../logging/logger');
 const { CONFIG } = require('../../../config/database');
 

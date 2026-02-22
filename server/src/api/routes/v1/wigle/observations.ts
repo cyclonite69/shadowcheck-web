@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-const wigleService = require('../../../../services/wigleService');
+const { wigleService } = require('../../../../config/container');
 
 /**
  * GET /observations/:netid - Fetch stored individual observations

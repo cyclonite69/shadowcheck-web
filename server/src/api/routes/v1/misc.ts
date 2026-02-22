@@ -6,10 +6,15 @@ export {};
 
 const express = require('express');
 const path = require('path');
-const miscService = require('../../../services/miscService');
+const {
+  miscService,
+  secretsManager,
+  wigleImportService,
+  dataQualityFilters,
+} = require('../../../config/container');
+const { importWigleDirectory } = wigleImportService;
+const { DATA_QUALITY_FILTERS } = dataQualityFilters;
 const logger = require('../../../logging/logger');
-const secretsManager = require('../../../services/secretsManager').default;
-const { importWigleDirectory } = require('../../../services/wigleImportService');
 
 const router = express.Router();
 
@@ -85,7 +90,6 @@ router.post('/import/wigle', async (req, res) => {
 router.get('/data-quality', async (req, res) => {
   try {
     const filter = req.query.filter || 'none'; // none, temporal, extreme, duplicate, all
-    const { DATA_QUALITY_FILTERS } = require('../../../services/dataQualityFilters');
 
     let whereClause = '';
     if (filter === 'temporal') {

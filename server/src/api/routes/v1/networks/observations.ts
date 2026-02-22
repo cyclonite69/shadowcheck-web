@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-const observationService = require('../../../../services/observationService');
+const { observationService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { validateBSSID } from '../../../../validation/schemas';
 
