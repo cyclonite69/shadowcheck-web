@@ -29,6 +29,7 @@ const keplerService = require('../services/keplerService');
 const miscService = require('../services/miscService');
 const mlScoringService = require('../services/ml/scoringService');
 const mlTrainingLock = require('../services/mlTrainingLock');
+const networkListService = require('../services/networkListService');
 const networkService = require('../services/networkService');
 const observationService = require('../services/observationService');
 const ouiGroupingService = require('../services/ouiGroupingService');
@@ -61,6 +62,7 @@ const container = {
   miscService,
   mlScoringService,
   mlTrainingLock,
+  networkListService,
   networkService,
   observationService,
   ouiGroupingService,
