@@ -12,7 +12,7 @@ const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-be
 const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
 
-const DEFAULT_REGION = 'us-west-2';
+const DEFAULT_REGION = 'us-east-1';
 // Use cross-region inference profile (us. prefix required for Claude 4+ models)
 const MODEL_ID = 'us.anthropic.claude-sonnet-4-20250514-v1:0';
 const MAX_TOKENS = 2048;
