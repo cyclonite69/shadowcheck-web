@@ -96,6 +96,7 @@ A comprehensive dataset of FBI field offices and resident agencies for geospatia
 - **Settings management**: AWS Secrets Manager-backed Mapbox tokens, WiGLE credentials, and Google Maps keys.
 - **Security headers**: CSP and hardened response headers for production.
 - **Secrets handling**: AWS Secrets Manager with runtime loading (no secrets on disk).
+- **Security policy note**: AWS Secrets Manager is the canonical store; see `docs/SECURITY_POLICY.md` and `docs/SECRETS.md` for the operational workflow and no-disk rule.
 
 ## Platform & Operations
 

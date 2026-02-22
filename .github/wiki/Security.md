@@ -14,7 +14,7 @@
 2. **Application Security**: CORS, CSP headers, input validation
 3. **Data Security**: SQL injection prevention, parameterized queries
 4. **Access Control**: RBAC, session-based auth, API keys
-5. **Secrets Management**: Keyring/Docker secrets, never in code
+5. **Secrets Management**: AWS Secrets Manager/Docker secrets, never in code
 
 ---
 
@@ -35,9 +35,9 @@ Strict-Transport-Security: max-age=31536000
 
 ### Priority Order (highest to lowest):
 
-1. Docker Secrets (`/run/secrets/*`)
-2. System Keyring (via `keytar`)
-3. Environment Variables (`.env`)
+1. AWS Secrets Manager
+2. Docker Secrets (`/run/secrets/*`)
+3. Environment Variables (`.env`, local overrides only)
 
 ### Required Secrets
 
@@ -45,34 +45,13 @@ Strict-Transport-Security: max-age=31536000
 - `db_admin_password` - PostgreSQL admin password
 - `mapbox_token` - Mapbox GL JS token
 
-### Setting Secrets
+### Secrets Lookup
 
-```bash
-# Keyring (development)
-node scripts/set-secret.js db_password "your-password"
-
-# Docker secrets (production)
-echo "your-password" > secrets/db_password.txt
-chmod 600 secrets/db_password.txt
-```
+Secrets are resolved at runtime through AWS Secrets Manager; environment variables may be used only for explicit local overrides. Full procedures live in [docs/SECRETS.md](../../docs/SECRETS.md).
 
 ### Password Rotation
 
-Rotate database passwords every 60-90 days:
-
-```bash
-# Automated rotation (local or AWS)
-./scripts/rotate-db-password.sh
-```
-
-See `deploy/aws/docs/PASSWORD_ROTATION.md` for detailed procedures.
-
-# Docker Secrets (production)
-
-echo "your-password" > secrets/db_password.txt
-chmod 600 secrets/\*
-
-````
+Rotate database passwords every 60-90 days using the workflows in `deploy/aws/docs/PASSWORD_ROTATION.md`.
 
 ---
 
@@ -187,21 +166,17 @@ Error: Required secret 'db_password' not found
 1. Set via AWS Secrets Manager (e.g., update `db_password`)
 2. Create Docker secret file: `echo "password" > secrets/db_password.txt`
 
-### Keyring Access Denied
+### Secrets Access Errors
 
 ```
 Error: Access to AWS Secrets Manager denied
 ```
 
-**Linux**: Install libsecret
+**Solution**:
 
-```bash
-sudo apt-get install libsecret-1-dev
-```
-
-**macOS**: Keyring uses macOS Keychain automatically
-
-**Windows**: Keyring uses Windows Credential Manager automatically
+1. Verify the IAM role/user has permissions for the secret
+2. Confirm the AWS region and credential env vars are set
+3. Use Docker secrets only in production and rely on AWS SM elsewhere
 
 ---
 

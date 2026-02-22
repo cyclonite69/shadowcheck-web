@@ -83,3 +83,22 @@ This project follows strict security guidelines:
   - Removed hardcoded credentials
   - Added CORS restrictions
   - Added request size limiting
+
+## Operational Practices
+
+### Secrets Workflow
+
+- AWS Secrets Manager is the single source of truth for credentials; always reference `docs/SECRETS.md` when onboarding new services or writing scripts that require secrets.
+- Local environment variables may only be used as explicit, non-persistent overrides during local debugging (`export DB_PASSWORD=...`), and they must never be committed.
+- Avoid touching disk-based secret files entirely—do not write `.env` copies or helper files that store secrets for reuse.
+
+### Secrets Validation & Rotation
+
+- Validation runs at startup via `server/src/utils/validateSecrets.js`; ensure any new secret names are listed there so deployments fail fast if something is missing.
+- Rotate database and service passwords every 60-90 days following `deploy/aws/docs/PASSWORD_ROTATION.md`; after rotation, verify IAM permissions still allow the service role to read the updated secret.
+- If AWS Secrets Manager access errors appear, confirm IAM permissions, region configuration, and credential environment variables before considering fallback options.
+
+### Cleanup & Follow-Up
+
+- `docs/SESSION_STATE.md` tracks the docs refactor (wiki updates, removed keyring references); keep it updated while cleanup work is ongoing and archive it once `dist/` has been rebuilt without the old keyring binary.
+- Rebuild `dist/` (`npm run build`) or delete its contents once the platform repository is otherwise clean so the production server never serves stale keyring code.

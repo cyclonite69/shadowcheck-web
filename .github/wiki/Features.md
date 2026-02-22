@@ -448,9 +448,9 @@ graph TB
         G[CSRF Protection]
     end
 
-    subgraph "Secrets"
-        H[Keyring Storage]
-        I[Environment Variables]
+        subgraph "Secrets"
+        H[AWS Secrets Manager]
+        I[Environment Variable Overrides]
         J[Encrypted Credentials]
     end
 
@@ -475,7 +475,7 @@ graph TB
 - **Role-Based Access**: Admin/User roles with permission checks
 - **Rate Limiting**: IP-based throttling (1000 req/15min)
 - **SQL Injection Prevention**: Parameterized queries throughout
-- **Secrets Management**: Keyring + .env for sensitive data
+- **Secrets Management**: AWS Secrets Manager (env overrides only)
 - **Security Headers**: CSP, HSTS, X-Frame-Options, etc.
 - **Password Rotation**: 60-90 day rotation policy
 - **Audit Logging**: Track admin actions
@@ -617,7 +617,7 @@ _Last Updated: 2026-02-07_
 | ----------------------- | --------------------------------------- |
 | **Authentication**      | Session-based login/logout              |
 | **Role-Based Gating**   | Admin-only routes for sensitive actions |
-| **Settings Management** | Keyring-backed credentials              |
+| **Settings Management** | AWS Secrets Manager-backed credentials  |
 | **Security Headers**    | CSP and hardened response headers       |
 | **Secrets Handling**    | AWS Secrets Manager (no secrets on disk) |
 

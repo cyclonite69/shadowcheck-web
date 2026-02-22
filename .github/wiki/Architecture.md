@@ -608,7 +608,7 @@ graph TB
         D[Session Management<br/>Redis Store]
         E[Role-Based Access<br/>Admin/User]
         F[SQL Injection Prevention<br/>Parameterized Queries]
-        G[Secrets Management<br/>Keyring + .env]
+        G[Secrets Management<br/>AWS Secrets Manager]
     end
 
     H[Client Request] --> A
