@@ -32,6 +32,11 @@ const {
 const { NETWORK_CHANNEL_EXPR } = filterQueryBuilder;
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 const { CONFIG } = require('../../../../config/database');
+const {
+  buildEncryptionTypeCondition,
+  buildThreatScoreExpr,
+  buildThreatLevelExpr,
+} = require('../../../../utils/networkSqlExpressions');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
@@ -348,38 +353,9 @@ router.get(
 
     // When SIMPLE_RULE_SCORING_ENABLED, skip confidence blending and use
     // the deterministic rule_based_score only (max_distance_meters-dominant).
-    const threatScoreExpr = CONFIG.SIMPLE_RULE_SCORING_ENABLED
-      ? `COALESCE(
-      CASE
-        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-        WHEN nt.threat_tag = 'INVESTIGATE'    THEN COALESCE(nts.rule_based_score, 0)::numeric
-        ELSE                                       COALESCE(nts.rule_based_score, 0)::numeric
-      END,
-      0
-    )`
-      : `COALESCE(
-      CASE
-        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
-        WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-        ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-      END,
-      0
-    )`;
-
-    const threatLevelExpr = `CASE
-      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-      WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-      ELSE (
-        CASE
-          WHEN ${threatScoreExpr} >= 80 THEN 'CRITICAL'
-          WHEN ${threatScoreExpr} >= 60 THEN 'HIGH'
-          WHEN ${threatScoreExpr} >= 40 THEN 'MED'
-          WHEN ${threatScoreExpr} >= 20 THEN 'LOW'
-          ELSE 'NONE'
-        END
-      )
-    END`;
+    // Expression builders live in utils/networkSqlExpressions.ts.
+    const threatScoreExpr = buildThreatScoreExpr(CONFIG.SIMPLE_RULE_SCORING_ENABLED);
+    const threatLevelExpr = buildThreatLevelExpr(threatScoreExpr);
 
     const threatOrderExpr = `CASE ${threatLevelExpr}
       WHEN 'CRITICAL' THEN 4
@@ -699,34 +675,9 @@ router.get(
     }
 
     if (encryptionTypes !== null && encryptionTypes.length > 0) {
-      // Open-network predicate: null/empty OR no encryption keywords.
-      // ESS/IBSS are infrastructure-mode flags, NOT encryption markers,
-      // so they are intentionally excluded from the disqualification list.
-      const OPEN_PREDICATE = `(ne.security IS NULL OR ne.security = '' OR ne.security !~* '(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)')`;
-      const encConditions = encryptionTypes.map((enc) => {
-        if (enc === 'OPEN' || enc === 'NONE') {
-          // NONE is a legacy alias for OPEN
-          return OPEN_PREDICATE;
-        } else if (enc === 'WEP') {
-          return `ne.security ILIKE '%WEP%'`;
-        } else if (enc === 'WPA') {
-          // WPA v1 only — explicitly exclude WPA2 and WPA3 rows
-          return `(ne.security ILIKE '%WPA%' AND ne.security NOT ILIKE '%WPA2%' AND ne.security NOT ILIKE '%WPA3%' AND ne.security !~* '(RSN|SAE)')`;
-        } else if (enc === 'WPA2') {
-          // WPA2 or RSN-tagged (but not WPA3)
-          return `((ne.security ILIKE '%WPA2%' OR ne.security ~* 'RSN') AND ne.security NOT ILIKE '%WPA3%')`;
-        } else if (enc === 'WPA3') {
-          // WPA3 or SAE (WPA3-Personal)
-          return `(ne.security ILIKE '%WPA3%' OR ne.security ~* 'SAE')`;
-        } else if (enc === 'OWE') {
-          return `ne.security ~* 'OWE'`;
-        } else if (enc === 'SAE') {
-          return `ne.security ~* 'SAE'`;
-        } else {
-          return `ne.security ILIKE '%${enc.replace(/'/g, "''")}%'`;
-        }
-      });
-      conditions.push(`(${encConditions.join(' OR ')})`);
+      // Predicate logic lives in utils/networkSqlExpressions.ts (canonical SSoT).
+      const encCondition = buildEncryptionTypeCondition(encryptionTypes);
+      if (encCondition) conditions.push(encCondition);
     }
 
     if (authMethods !== null && authMethods.length > 0) {
