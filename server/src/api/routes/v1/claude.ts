@@ -12,6 +12,7 @@ const express = require('express');
 const router = express.Router();
 const { bedrockService, aiInsightsService } = require('../../../config/container');
 const logger = require('../../../logging/logger');
+const { validators } = require('../../../utils/validators');
 
 // ============================================
 // POST /api/claude/analyze-networks
@@ -90,7 +91,7 @@ router.post('/claude/analyze-networks', async (req: any, res: any, next: any) =>
 router.get('/claude/insights', async (req: any, res: any, next: any) => {
   try {
     const userId: string | null = req.user?.id ?? null;
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
+    const limit = validators.limit(req.query.limit as string, 1, 100, 20);
 
     const history = await aiInsightsService.getInsightHistory(userId, limit);
 

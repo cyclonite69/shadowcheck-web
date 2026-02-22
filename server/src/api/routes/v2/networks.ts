@@ -5,15 +5,18 @@ const router = express.Router();
 const { v2Service } = require('../../../config/container');
 const { CONFIG } = require('../../../config/database');
 const { asyncHandler } = require('../../../utils/asyncHandler');
+const { validators } = require('../../../utils/validators');
+
+const NETWORK_SORT_COLS = ['observed_at', 'bssid', 'ssid', 'threat_score_v2', 'bestlevel'];
 
 router.get(
   '/v2/networks',
   asyncHandler(async (req: Request, res: Response) => {
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, CONFIG.MAX_PAGE_SIZE);
-    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
-    const search = req.query.search ? String(req.query.search).trim() : '';
-    const sort = ((req.query.sort as string) || 'observed_at').toLowerCase();
-    const order = ((req.query.order as string) || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const limit = validators.limit(req.query.limit as string, 1, CONFIG.MAX_PAGE_SIZE, 500);
+    const offset = validators.offset(req.query.offset as string);
+    const search = validators.search(req.query.search as string);
+    const sort = validators.sort(req.query.sort as string, NETWORK_SORT_COLS);
+    const order = validators.order(req.query.order as string);
 
     const result = await v2Service.listNetworks({ limit, offset, search, sort, order });
     res.json(result);
@@ -40,8 +43,8 @@ router.get(
 router.get(
   '/v2/threats/map',
   asyncHandler(async (req: Request, res: Response) => {
-    const severity = ((req.query.severity as string) || '').toLowerCase();
-    const days = Math.min(Math.max(parseInt(req.query.days as string, 10) || 30, 1), 180);
+    const severity = validators.search(req.query.severity as string).toLowerCase();
+    const days = validators.limit(req.query.days as string, 1, 180, 30);
     const result = await v2Service.getThreatMapData({ severity, days });
     res.json(result);
   })

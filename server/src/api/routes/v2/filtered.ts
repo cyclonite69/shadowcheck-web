@@ -26,6 +26,7 @@ const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilde
 const logger = require('../../../logging/logger');
 const { CONFIG } = require('../../../config/database');
 const { asyncHandler } = require('../../../utils/asyncHandler');
+const { validators } = require('../../../utils/validators');
 
 // GET /api/v2/networks/filtered
 router.get(
@@ -49,8 +50,8 @@ router.get(
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, CONFIG.MAX_PAGE_SIZE);
-    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
+    const limit = validators.limit(req.query.limit as string, 1, CONFIG.MAX_PAGE_SIZE, 500);
+    const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);

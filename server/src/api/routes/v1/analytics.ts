@@ -8,6 +8,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { asyncHandler } = require('../../../errors/errorHandler');
+const { validators } = require('../../../utils/validators');
 const { validateTimeRange } = require('../../../validation/schemas');
 const { ValidationError } = require('../../../errors/AppError');
 const { analyticsService } = require('../../../config/container');
@@ -151,13 +152,7 @@ router.get(
 router.get(
   '/top-networks',
   asyncHandler(async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
-
-    if (isNaN(limit) || limit < 1) {
-      throw new ValidationError('Invalid limit parameter', [
-        { parameter: 'limit', error: 'Must be a positive integer' },
-      ]);
-    }
+    const limit = validators.limit(req.query.limit as string, 1, 500, 100);
 
     req.logger?.info('Retrieving top networks', { limit });
 
