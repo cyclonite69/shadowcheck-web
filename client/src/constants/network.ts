@@ -47,6 +47,10 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: true },
   last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
   is_sentinel: { label: 'Sentinel', width: 80, sortable: true, default: false },
+  // Tag columns (from network_tags JOIN)
+  threat_tag: { label: 'Tag', width: 100, sortable: true, default: false },
+  is_ignored: { label: 'Ignored', width: 80, sortable: true, default: false },
+  notes_count: { label: 'Notes', width: 70, sortable: false, default: false },
 };
 
 // Maps frontend column names to API sort field names

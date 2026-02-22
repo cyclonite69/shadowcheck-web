@@ -70,6 +70,10 @@ export type NetworkRow = {
   max_distance_meters?: number | null;
   last_altitude_m?: number | null;
   is_sentinel?: boolean | null;
+  // Tag fields (from app.network_tags JOIN in list query)
+  threat_tag?: 'THREAT' | 'SUSPECT' | 'FALSE_POSITIVE' | 'INVESTIGATE' | null;
+  is_ignored?: boolean | null;
+  notes_count?: number | null;
 };
 
 export type Observation = {
