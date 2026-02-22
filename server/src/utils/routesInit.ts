@@ -49,6 +49,7 @@ interface RouteModules {
   authRoutes: Router;
   miscRoutes: Router;
   claudeRoutes: Router;
+  weatherRoutes?: Router;
 }
 
 interface InitializeRoutesOptions {
