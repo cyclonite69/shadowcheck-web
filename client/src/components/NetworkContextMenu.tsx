@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, MouseEvent } from 'react';
 import { useNetworkNotes } from '../hooks/useNetworkNotes';
+import { networkApi } from '../api/networkApi';
 
 const MessageSquare = ({ size = 24, className = '' }) => (
   <svg
@@ -144,6 +145,20 @@ export default function NetworkContextMenu({ networks = [] }: NetworkContextMenu
     setAttachedFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  // Apply a threat tag classification
+  const handleTagNetwork = async (tag: 'threat' | 'investigate' | 'false_positive' | 'ignore') => {
+    if (!selectedBSSID) return;
+    try {
+      if (tag === 'threat') await networkApi.tagNetworkAsThreat(selectedBSSID, 'THREAT', 1.0);
+      else if (tag === 'investigate') await networkApi.investigateNetwork(selectedBSSID);
+      else if (tag === 'false_positive') await networkApi.falsePositiveNetwork(selectedBSSID);
+      else if (tag === 'ignore') await networkApi.ignoreNetwork(selectedBSSID);
+    } catch (err) {
+      console.error('Error tagging network:', err);
+    }
+    setContextMenu(null);
+  };
+
   // Delete note
   const handleDeleteNote = async (bssid: string, noteId: number | string) => {
     try {
@@ -212,6 +227,30 @@ export default function NetworkContextMenu({ networks = [] }: NetworkContextMenu
           className="fixed bg-white rounded-lg shadow-lg z-50 border border-gray-200"
           style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
         >
+          <button
+            onClick={() => handleTagNetwork('threat')}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2 border-b"
+          >
+            ⚠️ Mark as Threat
+          </button>
+          <button
+            onClick={() => handleTagNetwork('investigate')}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 text-blue-600 flex items-center gap-2 border-b"
+          >
+            🔍 Mark as Investigate
+          </button>
+          <button
+            onClick={() => handleTagNetwork('false_positive')}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 text-green-600 flex items-center gap-2 border-b"
+          >
+            ✓ Mark as False Positive
+          </button>
+          <button
+            onClick={() => handleTagNetwork('ignore')}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 text-gray-600 flex items-center gap-2 border-b"
+          >
+            👁️‍🗨️ Ignore (Known/Friendly)
+          </button>
           <button
             onClick={() => {
               setShowNoteModal(true);

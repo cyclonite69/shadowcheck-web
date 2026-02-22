@@ -546,6 +546,9 @@ router.get(
       `nts.rule_based_score`,
       `nts.ml_threat_score`,
       `nts.model_version`,
+      `nt.threat_tag`,
+      `nt.is_ignored`,
+      `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid) AS notes_count`,
     ];
 
     const distanceExpr =

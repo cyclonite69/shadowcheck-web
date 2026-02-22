@@ -141,6 +141,9 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     max_distance_meters: parseNumericField(row.max_distance_meters),
     last_altitude_m: parseNumericField(row.last_altitude_m),
     is_sentinel: typeof row.is_sentinel === 'boolean' ? row.is_sentinel : null,
+    threat_tag: row.threat_tag ?? null,
+    is_ignored: typeof row.is_ignored === 'boolean' ? row.is_ignored : null,
+    notes_count: row.notes_count !== undefined ? parseInt(String(row.notes_count), 10) : null,
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,
     rawLongitude:
