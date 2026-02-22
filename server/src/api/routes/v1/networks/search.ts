@@ -1,20 +1,27 @@
 /**
  * Network Search Routes
- * Search networks by SSID
+ * Search networks by SSID with pagination
  */
 
 import express from 'express';
 const router = express.Router();
-const { networkService } = require('../../../../config/container');
+const { networkListService } = require('../../../../config/container');
 import { escapeLikePattern } from '../../../../utils/escapeSQL';
-import { validateString } from '../../../../validation/schemas';
+import { validateString, validateIntegerRange } from '../../../../validation/schemas';
+import { validateQuery, optional } from '../../../../validation/middleware';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
+const validateSearchQuery = validateQuery({
+  limit: optional((value: any) => validateIntegerRange(value, 1, 5000, 'limit')),
+  offset: optional((value: any) => validateIntegerRange(value, 0, 10000000, 'offset')),
+});
+
 /**
- * GET /networks/search/:ssid - Search networks by SSID
+ * GET /networks/search/:ssid - Search networks by SSID (paginated)
  */
 router.get(
   '/networks/search/:ssid',
+  validateSearchQuery,
   asyncHandler(async (req, res) => {
     const { ssid } = req.params;
 
@@ -29,10 +36,12 @@ router.get(
 
     const escapedSSID = escapeLikePattern(String(ssid).trim());
     const searchPattern = `%${escapedSSID}%`;
+    const limit = (req as any).validated?.limit ?? null;
+    const offset = (req as any).validated?.offset ?? null;
 
-    const rows = await networkService.searchNetworksBySSID(searchPattern);
+    const { rows, total } = await networkListService.searchNetworks(searchPattern, limit, offset);
 
-    res.json({ ok: true, query: ssid, count: rows.length, networks: rows });
+    res.json({ ok: true, query: ssid, count: rows.length, total, networks: rows });
   })
 );
 
