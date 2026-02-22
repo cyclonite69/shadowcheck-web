@@ -699,21 +699,29 @@ router.get(
     }
 
     if (encryptionTypes !== null && encryptionTypes.length > 0) {
+      // Open-network predicate: null/empty OR no encryption keywords.
+      // ESS/IBSS are infrastructure-mode flags, NOT encryption markers,
+      // so they are intentionally excluded from the disqualification list.
+      const OPEN_PREDICATE = `(ne.security IS NULL OR ne.security = '' OR ne.security !~* '(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)')`;
       const encConditions = encryptionTypes.map((enc) => {
-        if (enc === 'WEP') {
+        if (enc === 'OPEN' || enc === 'NONE') {
+          // NONE is a legacy alias for OPEN
+          return OPEN_PREDICATE;
+        } else if (enc === 'WEP') {
           return `ne.security ILIKE '%WEP%'`;
         } else if (enc === 'WPA') {
-          return `(ne.security ILIKE '%WPA%' OR ne.security ILIKE '%WPA2%' OR ne.security ILIKE '%WPA3%' OR ne.security ILIKE '%WPA%')`;
+          // WPA v1 only — explicitly exclude WPA2 and WPA3 rows
+          return `(ne.security ILIKE '%WPA%' AND ne.security NOT ILIKE '%WPA2%' AND ne.security NOT ILIKE '%WPA3%' AND ne.security !~* '(RSN|SAE)')`;
         } else if (enc === 'WPA2') {
-          return `ne.security ILIKE '%WPA2%'`;
+          // WPA2 or RSN-tagged (but not WPA3)
+          return `((ne.security ILIKE '%WPA2%' OR ne.security ~* 'RSN') AND ne.security NOT ILIKE '%WPA3%')`;
         } else if (enc === 'WPA3') {
-          return `ne.security ILIKE '%WPA3%'`;
+          // WPA3 or SAE (WPA3-Personal)
+          return `(ne.security ILIKE '%WPA3%' OR ne.security ~* 'SAE')`;
         } else if (enc === 'OWE') {
-          return `ne.security ILIKE '%OWE%'`;
+          return `ne.security ~* 'OWE'`;
         } else if (enc === 'SAE') {
-          return `ne.security ILIKE '%SAE%'`;
-        } else if (enc === 'NONE') {
-          return `(ne.security IS NULL OR ne.security = '' OR ne.security ILIKE '%NONE%' OR ne.security !~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)')`;
+          return `ne.security ~* 'SAE'`;
         } else {
           return `ne.security ILIKE '%${enc.replace(/'/g, "''")}%'`;
         }

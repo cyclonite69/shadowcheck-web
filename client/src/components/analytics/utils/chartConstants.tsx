@@ -138,28 +138,9 @@ export const AlertTriangle = ({ size = 24, className = '' }: IconProps) => (
   </svg>
 );
 
-// Color mapping for network types
-export const NETWORK_TYPE_COLORS: Record<string, string> = {
-  WiFi: '#3b82f6',
-  BLE: '#8b5cf6',
-  BT: '#06b6d4',
-  LTE: '#ec4899',
-  GSM: '#f59e0b',
-  NR: '#10b981',
-};
-
-export const SECURITY_TYPE_COLORS: Record<string, string> = {
-  WPA3: '#10b981',
-  'WPA3-E': '#059669',
-  'WPA3-P': '#34d399',
-  WPA2: '#3b82f6',
-  'WPA2-E': '#2563eb',
-  'WPA2-P': '#60a5fa',
-  WPA: '#06b6d4',
-  OPEN: '#f59e0b',
-  WEP: '#ef4444',
-  WPS: '#f97316',
-};
+// Color palettes — defined in chartColors.ts (no JSX) and re-exported here
+// so existing consumers keep the same import path.
+export { NETWORK_TYPE_COLORS, SECURITY_TYPE_COLORS } from './chartColors';
 
 export const DEBUG_ANALYTICS = false;
 

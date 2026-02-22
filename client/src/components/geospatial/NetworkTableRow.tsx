@@ -2,7 +2,7 @@ import React from 'react';
 import type { NetworkRow } from '../../types/network';
 import { NETWORK_COLUMNS } from '../../constants/network';
 import { macColor } from '../../utils/mapHelpers';
-import { TypeBadge, ThreatBadge } from '../badges';
+import { TypeBadge, ThreatBadge, SecurityBadge } from '../badges';
 
 interface NetworkTableRowProps {
   net: NetworkRow;
@@ -91,6 +91,8 @@ export const NetworkTableRow = ({
               evidence={net.threatEvidence}
             />
           );
+        } else if (col === 'security') {
+          content = <SecurityBadge security={value as string | null} />;
         } else if (col === 'signal') {
           const signalValue = value as number | null;
           let color = '#6b7280';
