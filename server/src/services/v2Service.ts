@@ -438,6 +438,7 @@ export async function getThreatSeverityCounts(
     high: 'HIGH',
     medium: 'MED',
     low: 'LOW',
+    none: 'NONE',
   };
 
   let whereClause = '';
@@ -449,7 +450,7 @@ export async function getThreatSeverityCounts(
     filters.threatCategories.length > 0
   ) {
     const dbThreatLevels = filters.threatCategories
-      .map((cat) => ThreatLevelMap[cat])
+      .map((cat) => ThreatLevelMap[cat] || cat.toUpperCase())
       .filter(Boolean);
     if (dbThreatLevels.length > 0) {
       whereClause = `WHERE (

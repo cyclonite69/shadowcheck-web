@@ -1062,14 +1062,17 @@ class UniversalFilterQueryBuilder {
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-      // Map frontend threat categories to database values
+      // Map frontend severity categories to database values
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
         high: 'HIGH',
         medium: 'MED',
         low: 'LOW',
+        none: 'NONE',
       };
-      const dbThreatLevels = f.threatCategories.map((cat) => threatLevelMap[cat]).filter(Boolean);
+      const dbThreatLevels = f.threatCategories
+        .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
+        .filter(Boolean);
       if (dbThreatLevels.length > 0) {
         where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
         this.addApplied('threat', 'threatCategories', f.threatCategories);
@@ -1379,12 +1382,13 @@ class UniversalFilterQueryBuilder {
       where.push(`(${THREAT_SCORE_EXPR('nts', 'nt')} <= ${this.addParam(f.threatScoreMax)})`);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-      // Map frontend lowercase categories to database uppercase values
+      // Map frontend severity categories to database uppercase values
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
         high: 'HIGH',
         medium: 'MED',
         low: 'LOW',
+        none: 'NONE',
       };
       const dbThreatLevels = f.threatCategories
         .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
@@ -1420,12 +1424,13 @@ class UniversalFilterQueryBuilder {
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-      // Map frontend lowercase categories to database uppercase values
+      // Map frontend severity categories to database uppercase values
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
         high: 'HIGH',
         medium: 'MED',
         low: 'LOW',
+        none: 'NONE',
       };
       const dbThreatLevels = f.threatCategories
         .map((cat) => threatLevelMap[cat] || cat.toUpperCase())

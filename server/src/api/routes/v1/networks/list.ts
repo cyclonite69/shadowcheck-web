@@ -30,12 +30,15 @@ const {
   parseRadiusParams,
 } = require('../../../../validation/parameterParsers');
 const { NETWORK_CHANNEL_EXPR } = filterQueryBuilder;
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
 // GET /api/networks - List all networks with pagination and filtering
-router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
-  try {
+router.get(
+  '/networks',
+  cacheMiddleware(60),
+  asyncHandler(async (req, res) => {
     const limitRaw = req.query.limit;
     const offsetRaw = req.query.offset;
     const threatLevelRaw = req.query.threat_level;
@@ -135,13 +138,16 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
           ? threatCategoriesRaw
           : safeJsonParse(threatCategoriesRaw);
         if (Array.isArray(categories) && categories.length > 0) {
-          const threatLevelMap = {
+          const threatLevelMap: Record<string, string> = {
             critical: 'CRITICAL',
             high: 'HIGH',
             medium: 'MED',
             low: 'LOW',
+            none: 'NONE',
           };
-          threatCategories = categories.map((cat) => threatLevelMap[cat]).filter(Boolean);
+          threatCategories = categories
+            .map((cat: string) => threatLevelMap[cat] || cat.toUpperCase())
+            .filter(Boolean);
         }
       } catch {
         return res
@@ -628,7 +634,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     }
 
     if (threatCategories !== null && threatCategories.length > 0) {
-      addCondition(`nt.threat_category = ANY($${paramIndex}::text[])`, threatCategories);
+      addCondition(`(${threatLevelExpr}) = ANY($${paramIndex}::text[])`, threatCategories);
     }
 
     if (threatScoreMin !== null) {
@@ -833,9 +839,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       appliedFilters: sortEntries,
       ignoredSorts,
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 module.exports = router;

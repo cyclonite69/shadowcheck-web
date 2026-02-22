@@ -55,19 +55,10 @@ export type EncryptionType = 'OPEN' | 'WEP' | 'WPA' | 'WPA2' | 'WPA3' | 'Mixed';
 export type AuthMethod = 'PSK' | 'Enterprise' | 'SAE' | 'OWE' | 'None';
 export type SecurityFlag = 'insecure' | 'deprecated' | 'enterprise' | 'personal' | 'unknown';
 export type InsecureFlag = 'open' | 'wep' | 'wps' | 'deprecated';
-export type ThreatCategory =
-  | 'critical'
-  | 'high'
-  | 'medium'
-  | 'low'
-  | 'none'
-  | 'surveillance'
-  | 'tracking'
-  | 'rogue_ap'
-  | 'evil_twin'
-  | 'deauth'
-  | 'spoofing'
-  | 'unknown';
+// TODO: future split — add a separate ThreatTag type for semantic categories
+// (surveillance, tracking, rogue_ap, evil_twin, deauth, spoofing, unknown)
+// and keep ThreatCategory for severity-level filtering only.
+export type ThreatCategory = 'critical' | 'high' | 'medium' | 'low' | 'none';
 
 export enum TemporalScope {
   OBSERVATION_TIME = 'observation_time', // Default - when observations occurred

@@ -193,12 +193,13 @@ class NetworkRepository {
         enabledKeys.length > 0 && enabledKeys.every((key) => threatOnlyFilters.includes(key));
 
       if (isThreatOnlyFilter) {
-        // Map frontend lowercase categories to database uppercase values
+        // Map frontend severity categories to database uppercase values
         const threatLevelMap = {
           critical: 'CRITICAL',
           high: 'HIGH',
           medium: 'MED',
           low: 'LOW',
+          none: 'NONE',
         };
 
         const params = [];

@@ -39,10 +39,10 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
           type="number"
           value={filters.threatScoreMin ?? ''}
           onChange={(e) => onSetFilter('threatScoreMin', parseFloat(e.target.value))}
-          placeholder="0.0"
-          step="0.1"
+          placeholder="0"
+          step="1"
           min="0"
-          max="1"
+          max="100"
           className={controlClass}
         />
       </FilterInput>
@@ -57,10 +57,10 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
           type="number"
           value={filters.threatScoreMax ?? ''}
           onChange={(e) => onSetFilter('threatScoreMax', parseFloat(e.target.value))}
-          placeholder="1.0"
-          step="0.1"
+          placeholder="100"
+          step="1"
           min="0"
-          max="1"
+          max="100"
           className={controlClass}
         />
       </FilterInput>
@@ -72,17 +72,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
         compact={isCompact}
       >
         <div className={listLayoutClass}>
-          {(
-            [
-              'surveillance',
-              'tracking',
-              'rogue_ap',
-              'evil_twin',
-              'deauth',
-              'spoofing',
-              'unknown',
-            ] as ThreatCategory[]
-          ).map((cat) => (
+          {(['critical', 'high', 'medium', 'low', 'none'] as ThreatCategory[]).map((cat) => (
             <label key={cat} className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -96,9 +86,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
                 }}
                 className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
               />
-              <span className={`${listItemTextClass} text-slate-300 capitalize`}>
-                {cat.replace('_', ' ')}
-              </span>
+              <span className={`${listItemTextClass} text-slate-300 capitalize`}>{cat}</span>
             </label>
           ))}
         </div>
