@@ -75,7 +75,7 @@ router.post('/claude/analyze-networks', async (req: any, res: any, next: any) =>
       history,
       meta: {
         networksAnalyzed: networks.length,
-        model: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+        model: 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
       },
     });
   } catch (err: any) {
