@@ -36,6 +36,8 @@ const {
   buildEncryptionTypeCondition,
   buildThreatScoreExpr,
   buildThreatLevelExpr,
+  buildTypeExpr,
+  buildDistanceExpr,
 } = require('../../../../utils/networkSqlExpressions');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
@@ -327,28 +329,7 @@ router.get(
       }
     }
 
-    const typeExpr = `
-      CASE
-        WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN
-          CASE
-            WHEN UPPER(ne.type) IN ('W', 'WIFI', 'WI-FI') THEN 'W'
-            WHEN UPPER(ne.type) IN ('E', 'BLE', 'BTLE', 'BLUETOOTHLE', 'BLUETOOTH_LOW_ENERGY') THEN 'E'
-            WHEN UPPER(ne.type) IN ('B', 'BT', 'BLUETOOTH') THEN 'B'
-            WHEN UPPER(ne.type) IN ('L', 'LTE', '4G') THEN 'L'
-            WHEN UPPER(ne.type) IN ('N', 'NR', '5G') THEN 'N'
-            WHEN UPPER(ne.type) IN ('G', 'GSM', '2G') THEN 'G'
-            WHEN UPPER(ne.type) IN ('C', 'CDMA') THEN 'C'
-            WHEN UPPER(ne.type) IN ('D', '3G', 'UMTS') THEN 'D'
-            WHEN UPPER(ne.type) IN ('F', 'NFC') THEN 'F'
-            ELSE UPPER(ne.type)
-          END
-        WHEN ne.frequency BETWEEN 2412 AND 7125 THEN 'W'
-        WHEN COALESCE(ne.security, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
-        WHEN COALESCE(ne.security, '') ~* '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
-        WHEN COALESCE(ne.security, '') ~* '(BLUETOOTH)' THEN 'B'
-        ELSE '?'
-      END
-    `;
+    const typeExpr = buildTypeExpr('ne');
     const channelExpr = NETWORK_CHANNEL_EXPR('ne');
 
     // When SIMPLE_RULE_SCORING_ENABLED, skip confidence blending and use
@@ -568,19 +549,7 @@ router.get(
     ];
 
     const distanceExpr =
-      homeLocation !== null
-        ? `
-        (
-          SELECT MAX(ST_Distance(
-            ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
-            ST_MakePoint(o.lon, o.lat)::geography
-          )) / 1000
-          FROM app.observations o
-          WHERE o.bssid = ne.bssid
-            AND o.lat IS NOT NULL AND o.lon IS NOT NULL
-            AND o.lat != 0 AND o.lon != 0
-        )`
-        : 'NULL';
+      homeLocation !== null ? buildDistanceExpr(homeLocation.lat, homeLocation.lon) : 'NULL';
 
     const columnsWithDistance =
       homeLocation !== null
