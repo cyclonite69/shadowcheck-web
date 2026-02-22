@@ -43,6 +43,7 @@ interface RouteModules {
   authRoutes: Router;
   weatherRoutes: Router;
   miscRoutes: Router;
+  claudeRoutes: Router;
 }
 
 /**
@@ -89,6 +90,7 @@ function loadRouteModules(): RouteModules {
     authRoutes: require('../api/routes/v1/auth'),
     weatherRoutes: require('../api/routes/v1/weather'),
     miscRoutes: require('../api/routes/v1/misc'),
+    claudeRoutes: require('../api/routes/v1/claude'),
   };
 }
 

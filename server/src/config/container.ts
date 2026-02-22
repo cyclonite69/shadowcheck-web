@@ -10,6 +10,8 @@
 // ── Services ───────────────────────────────────────────────────────────────
 const adminDbService = require('../services/adminDbService');
 const agencyService = require('../services/agencyService');
+const aiInsightsService = require('../services/aiInsightsService');
+const bedrockService = require('../services/bedrockService');
 const analyticsService = require('../services/analyticsService');
 const authService = require('../services/authService');
 const awsService = require('../services/awsService');
@@ -40,6 +42,8 @@ const wigleService = require('../services/wigleService');
 const container = {
   adminDbService,
   agencyService,
+  aiInsightsService,
+  bedrockService,
   analyticsService,
   authService,
   awsService,
