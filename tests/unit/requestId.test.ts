@@ -1,3 +1,5 @@
+export {};
+
 import requestIdMiddleware from '../../server/src/middleware/requestId';
 import { Request, Response, NextFunction } from 'express';
 

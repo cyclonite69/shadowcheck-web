@@ -52,7 +52,7 @@ export async function fetchDirections(
   try {
     const tokenRes = await fetch('/api/mapbox-token');
     if (!tokenRes.ok) throw new Error(`Token HTTP ${tokenRes.status}`);
-    const tokenBody = await tokenRes.json();
+    const tokenBody = (await tokenRes.json()) as { token?: string };
     token = String(tokenBody.token).trim();
     if (!token) throw new Error('Empty token');
   } catch {
@@ -68,7 +68,13 @@ export async function fetchDirections(
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      routes?: Array<{
+        geometry: { coordinates: [number, number][] };
+        distance: number;
+        duration: number;
+      }>;
+    };
     if (!data.routes || data.routes.length === 0) {
       return null;
     }

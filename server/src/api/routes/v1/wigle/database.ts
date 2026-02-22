@@ -9,6 +9,7 @@ const { wigleService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { macParamMiddleware, validateQuery, optional } from '../../../../validation/middleware';
 import { validateIntegerRange, validateString } from '../../../../validation/schemas';
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 function parseIncludeTotalFlag(value: any): { valid: boolean; value?: boolean; error?: string } {
   if (value === undefined || value === null || value === '') {
@@ -57,24 +58,26 @@ const validateWigleNetworksQuery = validateQuery({
 /**
  * GET /network/:bssid - Get WiGLE data for specific network (local DB)
  */
-router.get('/network/:bssid', macParamMiddleware, async (req, res, next) => {
-  try {
+router.get(
+  '/network/:bssid',
+  macParamMiddleware,
+  asyncHandler(async (req, res) => {
     const { bssid } = req.params;
     const network = await wigleService.getWigleNetworkByBSSID(bssid);
     if (!network) {
       return res.status(404).json({ error: 'Network not found in WiGLE database' });
     }
     res.json({ success: true, results: [network] });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * GET /search - Search WiGLE database
  */
-router.get('/search', validateWigleSearchQuery, async (req, res, next) => {
-  try {
+router.get(
+  '/search',
+  validateWigleSearchQuery,
+  asyncHandler(async (req, res) => {
     const ssid = (req as any).validated?.ssid ? String((req as any).validated.ssid).trim() : '';
     const bssid = (req as any).validated?.bssid ? String((req as any).validated.bssid).trim() : '';
     const limit = (req as any).validated?.limit ?? null;
@@ -85,16 +88,16 @@ router.get('/search', validateWigleSearchQuery, async (req, res, next) => {
 
     const rows = await wigleService.searchWigleDatabase({ ssid, bssid, limit });
     res.json({ ok: true, query: ssid || bssid, count: rows.length, networks: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * GET /networks-v2 - Fetch WiGLE v2 networks for map testing
  */
-router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) => {
-  try {
+router.get(
+  '/networks-v2',
+  validateWigleNetworksQuery,
+  asyncHandler(async (req, res) => {
     const { filters, enabled } = req.query;
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
@@ -149,16 +152,16 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
     }
 
     res.json({ ok: true, count: rows.length, total, data: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * GET /networks-v3 - Fetch WiGLE v3 networks
  */
-router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) => {
-  try {
+router.get(
+  '/networks-v3',
+  validateWigleNetworksQuery,
+  asyncHandler(async (req, res) => {
     const tableExists = await wigleService.checkWigleV3TableExists();
     if (!tableExists) {
       return res.json({
@@ -217,9 +220,7 @@ router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) =>
     }
 
     res.json({ ok: true, count: rows.length, total, networks: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

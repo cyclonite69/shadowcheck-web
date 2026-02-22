@@ -7,12 +7,14 @@ import express from 'express';
 const router = express.Router();
 const { networkService } = require('../../../../config/container');
 import { validateBSSID } from '../../../../validation/schemas';
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 /**
  * GET /manufacturer/:bssid - Lookup manufacturer by BSSID
  */
-router.get('/manufacturer/:bssid', async (req, res, next) => {
-  try {
+router.get(
+  '/manufacturer/:bssid',
+  asyncHandler(async (req, res) => {
     const { bssid } = req.params;
 
     const bssidValidation = validateBSSID(bssid);
@@ -40,9 +42,7 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
       address: manufacturer.address,
       prefix: manufacturer.prefix,
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

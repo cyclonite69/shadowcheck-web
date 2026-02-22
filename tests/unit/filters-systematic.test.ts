@@ -21,7 +21,7 @@ describe('Systematic Filter Testing', () => {
       const result = builder.buildObservationFilters();
 
       expect(result.where).toContain('o.bssid = $1');
-      expect(builder.params).toContain('AA:BB:CC:DD:EE:FF');
+      expect((builder as any).params).toContain('AA:BB:CC:DD:EE:FF');
     });
 
     test('partial MAC (prefix)', () => {
@@ -50,7 +50,7 @@ describe('Systematic Filter Testing', () => {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       builder.buildObservationFilters();
 
-      expect(builder.appliedFilters[0].field).toBe('manufacturerOui');
+      expect((builder as any).appliedFilters[0].field).toBe('manufacturerOui');
     });
   });
 
@@ -66,7 +66,7 @@ describe('Systematic Filter Testing', () => {
       const result = builder.buildObservationFilters();
 
       expect(result.where.some((w: string) => w.includes('= ANY'))).toBe(true);
-      expect(builder.params).toContainEqual(['W']);
+      expect((builder as any).params).toContainEqual(['W']);
     });
   });
 
@@ -89,7 +89,7 @@ describe('Systematic Filter Testing', () => {
       const result = builder.buildObservationFilters();
 
       expect(result.where.some((w: string) => w.includes('>= $'))).toBe(true);
-      expect(builder.params).toContain(1);
+      expect((builder as any).params).toContain(1);
     });
 
     test('channelMax', () => {
@@ -99,7 +99,7 @@ describe('Systematic Filter Testing', () => {
       const result = builder.buildObservationFilters();
 
       expect(result.where.some((w: string) => w.includes('<= $'))).toBe(true);
-      expect(builder.params).toContain(11);
+      expect((builder as any).params).toContain(11);
     });
   });
 
@@ -136,7 +136,7 @@ describe('Systematic Filter Testing', () => {
 
       // authMethods uses SECURITY_EXPR with IN clause, not = ANY
       expect(result.where.some((w: string) => w.includes('IN ('))).toBe(true);
-      expect(builder.appliedFilters).toContainEqual({
+      expect((builder as any).appliedFilters).toContainEqual({
         type: 'security',
         field: 'authMethods',
         value: ['PSK'],
@@ -192,7 +192,7 @@ describe('Systematic Filter Testing', () => {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const result = builder.buildObservationFilters();
 
-      expect(result.joins.some((j: string) => j.includes('access_points'))).toBe(true);
+      expect(result.joins.some((j: string) => j.includes('networks'))).toBe(true);
     });
   });
 
@@ -221,7 +221,7 @@ describe('Systematic Filter Testing', () => {
       const query = builder.buildNetworkListQuery();
 
       expect(query.sql).toContain('ne.observations >=');
-      expect(builder.params).toContain(5);
+      expect((builder as any).params).toContain(5);
     });
   });
 
@@ -281,7 +281,7 @@ describe('Systematic Filter Testing', () => {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const result = builder.buildObservationFilters();
 
-      expect(builder.requiresHome).toBe(true);
+      expect((builder as any).requiresHome).toBe(true);
       expect(result.where.some((w: string) => w.includes('ST_Distance'))).toBe(true);
     });
 
@@ -291,7 +291,7 @@ describe('Systematic Filter Testing', () => {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const result = builder.buildObservationFilters();
 
-      expect(builder.requiresHome).toBe(true);
+      expect((builder as any).requiresHome).toBe(true);
     });
   });
 
@@ -321,9 +321,9 @@ describe('Systematic Filter Testing', () => {
       const result = builder.buildObservationFilters();
 
       expect(result.where.some((w: string) => w.includes('ST_DWithin'))).toBe(true);
-      expect(builder.params).toContain(40.7589);
-      expect(builder.params).toContain(-73.9851);
-      expect(builder.params).toContain(1000);
+      expect((builder as any).params).toContain(40.7589);
+      expect((builder as any).params).toContain(-73.9851);
+      expect((builder as any).params).toContain(1000);
     });
   });
 

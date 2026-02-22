@@ -8,12 +8,14 @@ const router = express.Router();
 const { observationService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { validateBSSID } from '../../../../validation/schemas';
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 /**
  * GET /networks/observations/:bssid - Get all observations for a network
  */
-router.get('/networks/observations/:bssid', async (req, res, next) => {
-  try {
+router.get(
+  '/networks/observations/:bssid',
+  asyncHandler(async (req, res) => {
     const { bssid } = req.params;
     const bssidValidation = validateBSSID(bssid);
     if (!bssidValidation.valid) {
@@ -40,16 +42,15 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
       home: home,
       count: rows.length,
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * GET /networks/:bssid/wigle-observations - Get WiGLE crowdsourced observations
  */
-router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
-  try {
+router.get(
+  '/networks/:bssid/wigle-observations',
+  asyncHandler(async (req, res) => {
     const { bssid } = req.params;
     const bssidValidation = validateBSSID(bssid);
     if (!bssidValidation.valid) {
@@ -110,17 +111,15 @@ router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
         max_distance_from_our_sightings_m: maxDistance,
       },
     });
-  } catch (err: any) {
-    logger.error('Error fetching WiGLE observations', { error: err.message });
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * POST /networks/wigle-observations/batch - Get WiGLE observations for multiple networks
  */
-router.post('/networks/wigle-observations/batch', async (req, res, next) => {
-  try {
+router.post(
+  '/networks/wigle-observations/batch',
+  asyncHandler(async (req, res) => {
     const { bssids } = req.body;
 
     if (!Array.isArray(bssids) || bssids.length === 0) {
@@ -203,10 +202,7 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
         network_count: networkMap.size,
       },
     });
-  } catch (err: any) {
-    logger.error('Error fetching batch WiGLE observations', { error: err.message });
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

@@ -10,6 +10,10 @@
  * Database: Mocked to isolate validation logic
  */
 
+export {};
+
+export {};
+
 const { runIntegration } = require('../helpers/integrationEnv');
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 

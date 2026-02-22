@@ -6,12 +6,14 @@
 import express from 'express';
 const router = express.Router();
 const { wigleService } = require('../../../../config/container');
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 /**
  * GET /observations/:netid - Fetch stored individual observations
  */
-router.get('/observations/:netid', async (req, res, next) => {
-  try {
+router.get(
+  '/observations/:netid',
+  asyncHandler(async (req, res) => {
     const { netid } = req.params;
 
     const rows = await wigleService.getWigleV3Observations(netid);
@@ -21,9 +23,7 @@ router.get('/observations/:netid', async (req, res, next) => {
       count: rows.length,
       observations: rows,
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

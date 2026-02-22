@@ -2,7 +2,11 @@
  * Dashboard API tests
  */
 
+export {};
+
 // Mock secretsManager
+export {};
+
 jest.mock('../../server/src/services/secretsManager', () => ({
   get: jest.fn((key) => {
     if (key === 'db_password') {

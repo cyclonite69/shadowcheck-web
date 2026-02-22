@@ -1,13 +1,16 @@
+export {};
 const express = require('express');
 const router = express.Router();
 const { agencyService } = require('../../../config/container');
+const { asyncHandler } = require('../../../utils/asyncHandler');
 
 /**
  * GET /api/networks/:bssid/nearest-agencies
  * Get nearest agencies to all observation points for a network (local + WiGLE v3)
  */
-router.get('/nearest-agencies/:bssid', async (req, res, next) => {
-  try {
+router.get(
+  '/nearest-agencies/:bssid',
+  asyncHandler(async (req, res) => {
     const { bssid } = req.params;
     const radius = parseFloat(req.query.radius) || 250; // Default 250km
 
@@ -20,17 +23,16 @@ router.get('/nearest-agencies/:bssid', async (req, res, next) => {
       count: agencies.length,
       radius_km: radius,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  })
+);
 
 /**
  * POST /api/networks/nearest-agencies/batch
  * Get nearest agencies to all observation points for multiple networks (local + WiGLE v3)
  */
-router.post('/nearest-agencies/batch', async (req, res, next) => {
-  try {
+router.post(
+  '/nearest-agencies/batch',
+  asyncHandler(async (req, res) => {
     const { bssids } = req.body;
 
     if (!Array.isArray(bssids) || bssids.length === 0) {
@@ -51,9 +53,7 @@ router.post('/nearest-agencies/batch', async (req, res, next) => {
       count: agencies.length,
       radius_km: radius,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  })
+);
 
 module.exports = router;

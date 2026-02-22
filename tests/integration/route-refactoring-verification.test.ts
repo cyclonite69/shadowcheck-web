@@ -12,6 +12,8 @@
  * 5. Verify response format matches original
  */
 
+export {};
+
 const { runIntegration } = require('../helpers/integrationEnv');
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 

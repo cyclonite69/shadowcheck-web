@@ -8,12 +8,14 @@ const router = express.Router();
 const { networkService } = require('../../../../config/container');
 import { escapeLikePattern } from '../../../../utils/escapeSQL';
 import { validateString } from '../../../../validation/schemas';
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 /**
  * GET /networks/search/:ssid - Search networks by SSID
  */
-router.get('/networks/search/:ssid', async (req, res, next) => {
-  try {
+router.get(
+  '/networks/search/:ssid',
+  asyncHandler(async (req, res) => {
     const { ssid } = req.params;
 
     const ssidValidation = validateString(String(ssid || ''), 'SSID');
@@ -31,9 +33,7 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
     const rows = await networkService.searchNetworksBySSID(searchPattern);
 
     res.json({ ok: true, query: ssid, count: rows.length, networks: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

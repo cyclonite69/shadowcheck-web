@@ -1,3 +1,5 @@
+export {};
+
 import { runIntegration } from '../helpers/integrationEnv';
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 

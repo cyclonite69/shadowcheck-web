@@ -3,6 +3,10 @@
  * Validates that ORDER BY and config value vulnerabilities are fixed
  */
 
+export {};
+
+export {};
+
 jest.mock('../server/src/config/database', () => ({
   query: jest.fn(),
   pool: {

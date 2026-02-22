@@ -6,7 +6,11 @@
  * 2. server.js /api/networks/search/:ssid endpoint
  */
 
+export {};
+
 // Mock database module BEFORE importing repositories
+export {};
+
 jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
   pool: {

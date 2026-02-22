@@ -25,10 +25,12 @@ const { filterQueryBuilder, v2Service } = require('../../../config/container');
 const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilder;
 const logger = require('../../../logging/logger');
 const { CONFIG } = require('../../../config/database');
+const { asyncHandler } = require('../../../utils/asyncHandler');
 
 // GET /api/v2/networks/filtered
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
     let filters: Filters;
     let enabled: EnabledFlags;
     try {
@@ -112,14 +114,13 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         explicitFiltersOnly: true,
       },
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // GET /api/v2/networks/filtered/geospatial
-router.get('/geospatial', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get(
+  '/geospatial',
+  asyncHandler(async (req: Request, res: Response) => {
     let filters: Filters;
     let enabled: EnabledFlags;
     try {
@@ -208,14 +209,13 @@ router.get('/geospatial', async (req: Request, res: Response, next: NextFunction
         resultCount: features.length,
       },
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // GET /api/v2/networks/filtered/observations
-router.get('/observations', async (req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get(
+  '/observations',
+  asyncHandler(async (req: Request, res: Response) => {
     let filters: Filters;
     let enabled: EnabledFlags;
     try {
@@ -270,14 +270,13 @@ router.get('/observations', async (req: Request, res: Response, next: NextFuncti
         resultCount: result.rowCount || 0,
       },
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // GET /api/v2/networks/filtered/analytics
-router.get('/analytics', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
+router.get(
+  '/analytics',
+  asyncHandler(async (_req: Request, res: Response) => {
     // Simple working response with correct threat thresholds
     res.json({
       ok: true,
@@ -324,10 +323,8 @@ router.get('/analytics', async (_req: Request, res: Response, next: NextFunction
         },
       },
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // Debug route
 router.get('/debug', (_req: Request, res: Response) => {

@@ -16,14 +16,16 @@ import {
   validateString,
 } from '../../../../validation/schemas';
 import { parseOptionalInteger } from '../../../../validation/parameterParsers';
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
 /**
  * GET /networks/tagged - List tagged networks
  */
-router.get('/networks/tagged', async (req, res, next) => {
-  try {
+router.get(
+  '/networks/tagged',
+  asyncHandler(async (req, res) => {
     const { tag_type } = req.query;
     const tagValidation = validateEnum(tag_type, VALID_TAG_TYPES, 'tag_type');
     if (!tagValidation.valid) {
@@ -69,16 +71,15 @@ router.get('/networks/tagged', async (req, res, next) => {
       limit,
       totalPages: Math.ceil(totalCount / limit),
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * POST /tag-network - Tag a network
  */
-router.post('/tag-network', async (req, res, next) => {
-  try {
+router.post(
+  '/tag-network',
+  asyncHandler(async (req, res) => {
     const { bssid, tag_type, confidence, notes } = req.body;
 
     const bssidValidation = validateBSSID(bssid);
@@ -118,16 +119,15 @@ router.post('/tag-network', async (req, res, next) => {
     );
 
     res.json({ ok: true, tag });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * DELETE /tag-network/:bssid - Remove tag from network
  */
-router.delete('/tag-network/:bssid', async (req, res, next) => {
-  try {
+router.delete(
+  '/tag-network/:bssid',
+  asyncHandler(async (req, res) => {
     const { bssid } = req.params;
 
     const bssidValidation = validateMACAddress(bssid);
@@ -142,16 +142,15 @@ router.delete('/tag-network/:bssid', async (req, res, next) => {
     }
 
     res.json({ ok: true, message: 'Tag removed successfully', bssid: bssidValidation.cleaned });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 /**
  * POST /networks/tag-threats - Bulk tag networks as threats
  */
-router.post('/networks/tag-threats', async (req, res, next) => {
-  try {
+router.post(
+  '/networks/tag-threats',
+  asyncHandler(async (req, res) => {
     const { bssids, reason } = req.body;
 
     const bssidListValidation = validateBSSIDList(bssids);
@@ -205,9 +204,7 @@ router.post('/networks/tag-threats', async (req, res, next) => {
       errorCount,
       results,
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

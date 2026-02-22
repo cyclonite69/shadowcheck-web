@@ -3,6 +3,10 @@
  * Tests LIKE pattern escaping to prevent wildcard injection
  */
 
+export {};
+
+export {};
+
 import { escapeLikePattern } from '../../server/src/utils/escapeSQL';
 
 describe('escapeLikePattern()', () => {

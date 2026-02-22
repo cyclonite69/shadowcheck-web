@@ -3,6 +3,8 @@
  * Runs before each test suite
  */
 
+export {};
+
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.DB_USER = process.env.DB_USER || 'shadowcheck_user';

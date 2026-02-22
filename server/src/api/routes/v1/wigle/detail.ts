@@ -10,6 +10,7 @@ import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { withRetry } from '../../../../services/externalServiceHandler';
+const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const stripNullBytes = (value: any): string | null => {
   if (value === undefined || value === null) return null;
@@ -184,22 +185,32 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
 /**
  * POST /detail/:netid - Fetch WiGLE v3 WiFi detail and optionally import
  */
-router.post('/detail/:netid', requireAdmin, async (req, res, next) => {
-  await handleWigleDetailRequest(req, res, next, 'wifi');
-});
+router.post(
+  '/detail/:netid',
+  requireAdmin,
+  asyncHandler(async (req, res, next) => {
+    await handleWigleDetailRequest(req, res, next, 'wifi');
+  })
+);
 
 /**
  * POST /detail/bt/:netid - Fetch WiGLE v3 Bluetooth detail and optionally import
  */
-router.post('/detail/bt/:netid', requireAdmin, async (req, res, next) => {
-  await handleWigleDetailRequest(req, res, next, 'bt');
-});
+router.post(
+  '/detail/bt/:netid',
+  requireAdmin,
+  asyncHandler(async (req, res, next) => {
+    await handleWigleDetailRequest(req, res, next, 'bt');
+  })
+);
 
 /**
  * POST /import/v3 - Import WiGLE v3 detail JSON file
  */
-router.post('/import/v3', requireAdmin, async (req, res, next) => {
-  try {
+router.post(
+  '/import/v3',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     if (!req.files || !(req.files as any).file) {
       return res.status(400).json({ ok: false, error: 'No file uploaded' });
     }
@@ -261,10 +272,7 @@ router.post('/import/v3', requireAdmin, async (req, res, next) => {
       importedObservations: counts.newCount,
       totalObservations: counts.totalCount,
     });
-  } catch (err: any) {
-    logger.error(`[WiGLE] Import error: ${err.message}`, { error: err });
-    next(err);
-  }
-});
+  })
+);
 
 export default router;

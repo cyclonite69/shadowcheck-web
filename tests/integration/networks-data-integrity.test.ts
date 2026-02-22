@@ -3,8 +3,20 @@
  * Ensures null values are preserved and not converted to 0
  */
 
-import request from 'supertest';
-import app from '../../server/server';
+export {};
+
+const { runIntegration } = require('../helpers/integrationEnv');
+
+const describeIfIntegration = runIntegration ? describe : describe.skip;
+
+// Only import supertest and server when integration tests are enabled
+let request: any;
+let app: any;
+
+if (runIntegration) {
+  request = require('supertest');
+  app = require('../../server/server');
+}
 
 interface NetworkResponse {
   networks: Array<{
@@ -17,7 +29,7 @@ interface NetworkResponse {
   [key: string]: unknown;
 }
 
-describe('Networks API Data Integrity', () => {
+describeIfIntegration('Networks API Data Integrity', () => {
   test('should preserve null values and not return fake zeros', async () => {
     const response = await request(app)
       .get('/api/networks?limit=5&offset=0&location_mode=latest_observation')

@@ -3,6 +3,10 @@
  * Tests health check endpoint and request ID middleware working together
  */
 
+export {};
+
+export {};
+
 const { runIntegration } = require('../helpers/integrationEnv');
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 

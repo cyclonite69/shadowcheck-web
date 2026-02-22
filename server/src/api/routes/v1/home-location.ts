@@ -7,10 +7,12 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { homeLocationService } = require('../../../config/container');
+const { asyncHandler } = require('../../../utils/asyncHandler');
 
 // GET /api/home-location - Get current home location
-router.get('/home-location', async (req, res, next) => {
-  try {
+router.get(
+  '/home-location',
+  asyncHandler(async (req, res) => {
     const location = await homeLocationService.getCurrentHomeLocation();
 
     if (!location) {
@@ -21,14 +23,13 @@ router.get('/home-location', async (req, res, next) => {
     }
 
     res.json(location);
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // POST /api/admin/home-location - Set home location and radius
-router.post('/admin/home-location', async (req, res, next) => {
-  try {
+router.post(
+  '/admin/home-location',
+  asyncHandler(async (req, res) => {
     const { latitude, longitude, radius = 100 } = req.body;
 
     if (!latitude || !longitude) {
@@ -56,9 +57,7 @@ router.post('/admin/home-location', async (req, res, next) => {
       longitude,
       radius,
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 module.exports = router;

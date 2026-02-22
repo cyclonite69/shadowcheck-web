@@ -2,10 +2,21 @@
  * Test WiGLE import admin protection
  */
 
-const request = require('supertest');
-const app = require('../../server/server');
+export {};
 
-describe('WiGLE Import Admin Protection', () => {
+const { runIntegration } = require('./helpers/integrationEnv');
+
+const describeIfIntegration = runIntegration ? describe : describe.skip;
+
+let request;
+let app;
+
+if (runIntegration) {
+  request = require('supertest');
+  app = require('../server/server');
+}
+
+describeIfIntegration('WiGLE Import Admin Protection', () => {
   test('should require admin access for WiGLE import', async () => {
     const response = await request(app).post('/api/import/wigle').expect(401);
 

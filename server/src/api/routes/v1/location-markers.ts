@@ -2,30 +2,30 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { homeLocationService } = require('../../../config/container');
+const { asyncHandler } = require('../../../utils/asyncHandler');
 
 // Get all location markers
-router.get('/location-markers', async (req, res, next) => {
-  try {
+router.get(
+  '/location-markers',
+  asyncHandler(async (req, res) => {
     const markers = await homeLocationService.getAllLocationMarkers();
     res.json({ ok: true, markers });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // Get home location
-router.get('/location-markers/home', async (req, res, next) => {
-  try {
+router.get(
+  '/location-markers/home',
+  asyncHandler(async (req, res) => {
     const marker = await homeLocationService.getHomeLocationMarker();
     res.json({ ok: true, marker: marker || null });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // Set home location (replaces existing for this device)
-router.post('/location-markers/home', async (req, res, next) => {
-  try {
+router.post(
+  '/location-markers/home',
+  asyncHandler(async (req, res) => {
     const { latitude, longitude, altitude_gps, altitude_baro, device_id, device_type } = req.body;
 
     if (!latitude || !longitude) {
@@ -57,20 +57,17 @@ router.post('/location-markers/home', async (req, res, next) => {
     });
 
     res.json({ ok: true, marker });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // Delete home location
-router.delete('/location-markers/home', async (req, res, next) => {
-  try {
+router.delete(
+  '/location-markers/home',
+  asyncHandler(async (req, res) => {
     await homeLocationService.deleteHomeLocation();
     res.json({ ok: true });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 // TEST endpoint
 router.get('/test-location', async (req, res) => {

@@ -48,7 +48,7 @@ describe('SecretsManager (AWS SM only)', () => {
     jest.clearAllMocks();
     awsSdk = require('@aws-sdk/client-secrets-manager');
     awsSdk.__setSecretStore({});
-    secretsManager = require('../../server/src/services/secretsManager');
+    secretsManager = require('../../server/src/services/secretsManager').default;
     secretsManager.secrets.clear();
     secretsManager.accessLog = [];
   });
