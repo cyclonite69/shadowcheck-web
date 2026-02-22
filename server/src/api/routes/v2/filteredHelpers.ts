@@ -84,10 +84,6 @@ export interface GeospatialRow {
   threat?: ThreatObject;
 }
 
-export interface HomeCheckRow {
-  exists: number;
-}
-
 export const DEBUG_GEOSPATIAL = process.env.DEBUG_GEOSPATIAL === 'true';
 
 export const parseJsonParam = <T>(value: string | undefined, fallback: T, name: string): T => {
@@ -193,10 +189,8 @@ export const assertHomeExistsIfNeeded = async (
     return true;
   }
   try {
-    const home: QueryResult<HomeCheckRow> = await v2Service.executeV2Query(
-      "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
-    );
-    if (home.rowCount === 0) {
+    const exists = await v2Service.checkHomeExists();
+    if (!exists) {
       res.status(400).json({
         ok: false,
         error: 'Home location is required for distance filters.',
