@@ -93,3 +93,8 @@ DO $$ BEGIN
         ALTER TABLE ONLY app.schema_migrations ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (filename);
     END IF;
 END $$;
+
+-- --------------------------------------------------------------------------
+-- users: force_password_change (added 2026-02-16)
+-- --------------------------------------------------------------------------
+ALTER TABLE app.users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT false;

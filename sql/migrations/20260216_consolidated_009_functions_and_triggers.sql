@@ -317,3 +317,16 @@ CREATE OR REPLACE TRIGGER network_threat_scores_update
 CREATE OR REPLACE TRIGGER trigger_mark_threat_recompute
     AFTER INSERT ON app.observations
     FOR EACH ROW EXECUTE FUNCTION public.mark_network_for_threat_recompute();
+
+-- Fix: ensure trigger function references app.threat_scores_cache (not public) (2026-02-20)
+CREATE OR REPLACE FUNCTION public.mark_network_for_threat_recompute()
+RETURNS trigger LANGUAGE plpgsql AS $function$
+BEGIN
+    INSERT INTO app.threat_scores_cache (bssid, needs_recompute)
+    VALUES (NEW.bssid, TRUE)
+    ON CONFLICT (bssid) DO UPDATE SET needs_recompute = TRUE;
+    RETURN NEW;
+END;
+$function$;
+
+DROP TABLE IF EXISTS public.threat_scores_cache;
