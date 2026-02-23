@@ -41,9 +41,16 @@ import { UniversalFilterQueryBuilder } from './universalFilterQueryBuilder';
 import { validateFilterPayload } from './validators';
 import { DEFAULT_ENABLED } from './constants';
 import { FilterPredicateBuilder } from './FilterPredicateBuilder';
+import { SqlFragmentLibrary } from './SqlFragmentLibrary';
 
 // Main class export
-export { UniversalFilterQueryBuilder, FilterPredicateBuilder, validateFilterPayload, DEFAULT_ENABLED };
+export {
+  UniversalFilterQueryBuilder,
+  FilterPredicateBuilder,
+  SqlFragmentLibrary,
+  validateFilterPayload,
+  DEFAULT_ENABLED,
+};
 
 // Re-export types for consumers
 export type {
