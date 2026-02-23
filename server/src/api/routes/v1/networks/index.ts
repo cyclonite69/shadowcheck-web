@@ -16,6 +16,7 @@ const searchRoutes = resolveDefault(require('./search'));
 const tagsRoutes = resolveDefault(require('./tags'));
 const observationsRoutes = resolveDefault(require('./observations'));
 const listRoutes = resolveDefault(require('./list'));
+const notesRoutes = resolveDefault(require('./notes'));
 
 // Mount modular routes
 router.use('/', manufacturerRoutes);
@@ -23,5 +24,6 @@ router.use('/', searchRoutes);
 router.use('/', tagsRoutes);
 router.use('/', observationsRoutes);
 router.use('/', listRoutes);
+router.use('/', notesRoutes);
 
 module.exports = router;
