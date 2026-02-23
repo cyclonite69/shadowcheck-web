@@ -28,6 +28,23 @@ interface UseNetworkDataReturn {
   resetPagination: () => void;
 }
 
+const isCountTimeoutError = (err: unknown): boolean => {
+  const e = err as { status?: number; message?: string; data?: unknown };
+  const message = String(e?.message || '').toLowerCase();
+  const dataText = JSON.stringify(e?.data || '').toLowerCase();
+  const status = e?.status;
+
+  return (
+    (status === 500 || status === 503 || status === 504) &&
+    (message.includes('timeout') ||
+      message.includes('statement_timeout') ||
+      message.includes('timed out') ||
+      dataText.includes('timeout') ||
+      dataText.includes('statement_timeout') ||
+      dataText.includes('timed out'))
+  );
+};
+
 export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkDataReturn {
   const { locationMode = 'latest_observation', planCheck = false } = options;
 
@@ -39,6 +56,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   const [expensiveSort, setExpensiveSort] = useState(false);
   const [pagination, setPagination] = useState({ offset: 0, hasMore: true });
   const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
+  const [includeTotal, setIncludeTotal] = useState(true);
 
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
@@ -57,6 +75,12 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   const resetPagination = useCallback(() => {
     setPagination({ offset: 0, hasMore: true });
   }, []);
+
+  useEffect(() => {
+    if (pagination.offset === 0) {
+      setIncludeTotal(true);
+    }
+  }, [pagination.offset, JSON.stringify(debouncedFilterState), JSON.stringify(sort), planCheck]);
 
   // Derived state: loading more if pagination offset > 0 and loading
   const isLoadingMore = loading && pagination.offset > 0;
@@ -88,6 +112,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
           filters: JSON.stringify(debouncedFilterState.filters),
           enabled: JSON.stringify(debouncedFilterState.enabled),
+          includeTotal: includeTotal ? '1' : '0',
         });
         if (debouncedFilterState.enabled.wigle_v3_observation_count_min) {
           params.set('pageType', 'wigle');
@@ -123,7 +148,12 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          setError(err.message);
+          if (includeTotal && isCountTimeoutError(err)) {
+            setIncludeTotal(false);
+            setError(null);
+          } else {
+            setError(err.message);
+          }
         }
       } finally {
         setLoading(false);
@@ -138,6 +168,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     JSON.stringify(sort),
     planCheck,
     locationMode,
+    includeTotal,
   ]);
 
   return {

@@ -437,6 +437,11 @@ export const useDebouncedFilters = (
   const currentPage = useFilterStore((state) => state.currentPage);
   const pageStates = useFilterStore((state) => state.pageStates);
   const timeoutRef = useRef<NodeJS.Timeout>(undefined);
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   useEffect(() => {
     if (timeoutRef.current) {
@@ -445,7 +450,7 @@ export const useDebouncedFilters = (
 
     timeoutRef.current = setTimeout(() => {
       const pageState = pageStates[currentPage] || { filters: {}, enabled: {} };
-      callback({
+      callbackRef.current({
         filters: pageState.filters || {},
         enabled: pageState.enabled || {},
       });
@@ -456,5 +461,5 @@ export const useDebouncedFilters = (
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [pageStates, currentPage, callback, delay]);
+  }, [pageStates, currentPage, delay]);
 };

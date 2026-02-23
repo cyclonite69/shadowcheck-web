@@ -57,6 +57,8 @@ router.get(
     const limit = validators.limit(req.query.limit as string, 1, CONFIG.MAX_PAGE_SIZE, 500);
     const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
+    const includeTotal =
+      req.query.includeTotal !== '0' && req.query.includeTotal !== 'false';
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled, {
       pageType: resolvePageType(req),
@@ -81,15 +83,18 @@ router.get(
       };
     });
 
-    const countBuilder = new UniversalFilterQueryBuilder(filters, enabled, {
-      pageType: resolvePageType(req),
-    });
-    const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
-    const countResult: QueryResult<{ total: string }> = await v2Service.executeV2Query(
-      countQuery.sql,
-      countQuery.params
-    );
-    const total = parseInt(countResult.rows[0]?.total || '0', 10);
+    let total: number | null = null;
+    if (includeTotal) {
+      const countBuilder = new UniversalFilterQueryBuilder(filters, enabled, {
+        pageType: resolvePageType(req),
+      });
+      const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
+      const countResult: QueryResult<{ total: string }> = await v2Service.executeV2Query(
+        countQuery.sql,
+        countQuery.params
+      );
+      total = parseInt(countResult.rows[0]?.total || '0', 10);
+    }
 
     const enabledCount = Object.values(enabled).filter(Boolean).length;
     const threatIssues = enriched.filter((r) => r.threatTransparencyError).length;
@@ -101,7 +106,7 @@ router.get(
         total,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: includeTotal ? offset + limit < (total ?? 0) : rows.length === limit,
       },
       filterTransparency: {
         appliedFilters,
