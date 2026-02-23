@@ -165,10 +165,10 @@ class UniversalFilterQueryBuilder {
       const cleaned = coerceOui(f.manufacturer);
       this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       this.obsJoins.add(
-        "LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', ''))"
+        "LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', ''))"
       );
       if (isOui(cleaned)) {
-        where.push(`rm.prefix_24bit = ${this.addParam(cleaned)}`);
+        where.push(`rm.oui = ${this.addParam(cleaned)}`);
         this.addApplied('identity', 'manufacturerOui', cleaned);
       } else {
         where.push(`rm.organization_name ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
@@ -682,7 +682,7 @@ class UniversalFilterQueryBuilder {
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-        LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
+        LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
         ${this.requiresHome ? "CROSS JOIN (SELECT ST_SetSRID(location::geometry, 4326)::geography AS home_point FROM app.location_markers WHERE marker_type = 'home' LIMIT 1) home" : ''}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -836,7 +836,7 @@ class UniversalFilterQueryBuilder {
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
-        LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', ''))
+        LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', ''))
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
       ${whereClause}
@@ -1207,7 +1207,7 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
       LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-      LEFT JOIN app.radio_manufacturers rm ON rm.prefix_24bit = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
+      LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
       ${whereClause}
       ORDER BY ${safeOrderBy}
       LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
