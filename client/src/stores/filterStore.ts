@@ -170,6 +170,9 @@ export const useFilterStore = create<HardenedFilterStore>()(
         ) {
           nextFilters = { ...pageState.filters, gpsAccuracyMax: 100 };
         }
+        if (key === 'has_notes' && nextEnabled && pageState.filters.has_notes === undefined) {
+          nextFilters = { ...pageState.filters, has_notes: true };
+        }
         set({
           pageStates: {
             ...pageStates,

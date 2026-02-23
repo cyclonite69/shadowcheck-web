@@ -580,10 +580,7 @@ export default function GeospatialExplorer() {
             }}
             onMapWigleObservations={() => {
               const n = contextMenu.network;
-              const selected = Array.from(selectedNetworks);
-              if (selected.length > 1) {
-                loadBatchWigleObservations(selected);
-              } else if (n) {
+              if (n) {
                 loadWigleObservations(n);
               }
               closeContextMenu();
