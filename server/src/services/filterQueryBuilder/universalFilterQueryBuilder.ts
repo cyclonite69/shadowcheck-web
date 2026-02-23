@@ -41,6 +41,7 @@ import {
   type FilterKey,
 } from './constants';
 import { FilterPredicateBuilder } from './FilterPredicateBuilder';
+import { QueryState } from './QueryState';
 import { SqlFragmentLibrary } from './SqlFragmentLibrary';
 import {
   OBS_TYPE_EXPR,
@@ -55,8 +56,6 @@ import { validateFilterPayload } from './validators';
 import type {
   Filters,
   EnabledFlags,
-  AppliedFilter,
-  IgnoredFilter,
   QueryResult,
   FilteredQueryResult,
   CteResult,
@@ -84,9 +83,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private enabled: EnabledFlags;
   private params: unknown[];
   private paramIndex: number;
-  private appliedFilters: AppliedFilter[];
-  private ignoredFilters: IgnoredFilter[];
-  private warnings: string[];
+  private state: QueryState;
   private obsJoins: Set<string>;
   private requiresHome: boolean;
   private context: { pageType?: 'geospatial' | 'wigle' };
@@ -104,9 +101,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     this.enabled = flags;
     this.params = [];
     this.paramIndex = 1;
-    this.appliedFilters = [];
-    this.ignoredFilters = [];
-    this.warnings = [];
+    this.state = new QueryState();
     this.obsJoins = new Set();
     this.requiresHome = false;
     this.context = context || {};
@@ -120,11 +115,15 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   }
 
   private addApplied(type: string, field: string, value: unknown): void {
-    this.appliedFilters.push({ type, field, value });
+    this.state = this.state.withAppliedFilter(type, field, value);
   }
 
   private addIgnored(type: string, field: string, reason: string): void {
-    this.ignoredFilters.push({ type, field, reason });
+    this.state = this.state.withIgnoredFilter(type, field, reason);
+  }
+
+  private addWarning(message: string): void {
+    this.state = this.state.withWarning(message);
   }
 
   // ============================================================================
@@ -188,7 +187,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
 
     if (e.networkId && f.networkId) {
       this.addIgnored('identity', 'networkId', 'unsupported_backend');
-      this.warnings.push('networkId filter ignored (app.networks not available).');
+      this.addWarning('networkId filter ignored (app.networks not available).');
     }
 
     if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
@@ -411,7 +410,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       }
       if (scope === 'threat_window') {
-        this.warnings.push(
+        this.addWarning(
           'Threat window scope mapped to observation_time (no threat timestamps).'
         );
       }
@@ -668,9 +667,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       return {
         sql,
         params: [limit, offset],
-        appliedFilters: this.appliedFilters,
-        ignoredFilters: this.ignoredFilters,
-        warnings: this.warnings,
+        appliedFilters: this.state.appliedFilters(),
+        ignoredFilters: this.state.ignoredFilters(),
+        warnings: this.state.warnings(),
       };
     }
 
@@ -827,9 +826,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     return {
       sql,
       params: [...params],
-      appliedFilters: this.appliedFilters,
-      ignoredFilters: this.ignoredFilters,
-      warnings: this.warnings,
+      appliedFilters: this.state.appliedFilters(),
+      ignoredFilters: this.state.ignoredFilters(),
+      warnings: this.state.warnings(),
     };
   }
 
@@ -1234,9 +1233,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     return {
       sql,
       params: [...this.params],
-      appliedFilters: this.appliedFilters,
-      ignoredFilters: this.ignoredFilters,
-      warnings: this.warnings,
+      appliedFilters: this.state.appliedFilters(),
+      ignoredFilters: this.state.ignoredFilters(),
+      warnings: this.state.warnings(),
     };
   }
 
@@ -1720,9 +1719,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       return {
         sql,
         params: finalParams,
-        appliedFilters: this.appliedFilters,
-        ignoredFilters: this.ignoredFilters,
-        warnings: this.warnings,
+        appliedFilters: this.state.appliedFilters(),
+        ignoredFilters: this.state.ignoredFilters(),
+        warnings: this.state.warnings(),
       };
     }
 
@@ -1809,9 +1808,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     return {
       sql,
       params: finalParams,
-      appliedFilters: this.appliedFilters,
-      ignoredFilters: this.ignoredFilters,
-      warnings: this.warnings,
+      appliedFilters: this.state.appliedFilters(),
+      ignoredFilters: this.state.ignoredFilters(),
+      warnings: this.state.warnings(),
     };
   }
 
