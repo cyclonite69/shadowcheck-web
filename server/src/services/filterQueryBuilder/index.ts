@@ -43,6 +43,9 @@ import { DEFAULT_ENABLED } from './constants';
 import { FilterPredicateBuilder } from './FilterPredicateBuilder';
 import { QueryState } from './QueryState';
 import { SqlFragmentLibrary } from './SqlFragmentLibrary';
+import { NetworkListQueryBuilder } from './builders/NetworkListQueryBuilder';
+import { NetworkOnlyQueryBuilder } from './builders/NetworkOnlyQueryBuilder';
+import { GeospatialQueryBuilder } from './builders/GeospatialQueryBuilder';
 
 // Main class export
 export {
@@ -50,6 +53,9 @@ export {
   FilterPredicateBuilder,
   QueryState,
   SqlFragmentLibrary,
+  NetworkListQueryBuilder,
+  NetworkOnlyQueryBuilder,
+  GeospatialQueryBuilder,
   validateFilterPayload,
   DEFAULT_ENABLED,
 };

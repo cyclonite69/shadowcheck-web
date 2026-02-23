@@ -40,9 +40,12 @@ import {
   NETWORK_ONLY_FILTERS,
   type FilterKey,
 } from './constants';
-import { FilterPredicateBuilder } from './FilterPredicateBuilder';
+import { FilterPredicateBuilder, type QueryContext } from './FilterPredicateBuilder';
 import { QueryState } from './QueryState';
 import { SqlFragmentLibrary } from './SqlFragmentLibrary';
+import { NetworkListQueryBuilder } from './builders/NetworkListQueryBuilder';
+import { NetworkOnlyQueryBuilder } from './builders/NetworkOnlyQueryBuilder';
+import { GeospatialQueryBuilder } from './builders/GeospatialQueryBuilder';
 import {
   OBS_TYPE_EXPR,
   SECURITY_EXPR,
@@ -86,13 +89,15 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private state: QueryState;
   private obsJoins: Set<string>;
   private requiresHome: boolean;
-  private context: { pageType?: 'geospatial' | 'wigle' };
+  private context: (Partial<QueryContext> & { pageType?: 'geospatial' | 'wigle' }) | undefined;
 
   constructor(
     filters: unknown,
     enabled: unknown,
     context?: {
       pageType?: 'geospatial' | 'wigle';
+      mode?: QueryContext['mode'];
+      alias?: string;
     }
   ) {
     super();
@@ -596,6 +601,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   // ============================================================================
 
   buildNetworkListQuery(options: NetworkListOptions = {}): FilteredQueryResult {
+    const builder = new NetworkListQueryBuilder(
+      this.context as QueryContext | undefined,
+      () => this.buildNetworkListQueryImpl(options)
+    );
+    return builder.build();
+  }
+
+  private buildNetworkListQueryImpl(options: NetworkListOptions = {}): FilteredQueryResult {
     // Default to no limit for visualization endpoints (Kepler, Geospatial)
     const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
 
@@ -680,7 +693,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       enabledKeys.length > 0 &&
       enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key as FilterKey));
     if (networkOnly) {
-      return this.buildNetworkOnlyQuery({ limit, offset, orderBy });
+      if (this.context?.mode === 'network-only') {
+        return this.buildNetworkOnlyQuery({ limit, offset, orderBy });
+      }
+      return this.buildNetworkOnlyQueryImpl({ limit, offset, orderBy });
     }
 
     const { cte, params } = this.buildFilteredObservationsCte();
@@ -833,6 +849,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   }
 
   private buildNetworkOnlyQuery(options: NetworkListOptions): FilteredQueryResult {
+    const builder = new NetworkOnlyQueryBuilder(
+      this.context as QueryContext | undefined,
+      () => this.buildNetworkOnlyQueryImpl(options)
+    );
+    return builder.build();
+  }
+
+  private buildNetworkOnlyQueryImpl(options: NetworkListOptions): FilteredQueryResult {
     const { limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = options;
     const f = this.filters;
     const e = this.enabled;
@@ -1679,6 +1703,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   // ============================================================================
 
   buildGeospatialQuery(options: GeospatialOptions = {}): FilteredQueryResult {
+    const builder = new GeospatialQueryBuilder(
+      this.context as QueryContext | undefined,
+      () => this.buildGeospatialQueryImpl(options)
+    );
+    return builder.build();
+  }
+
+  private buildGeospatialQueryImpl(options: GeospatialOptions = {}): FilteredQueryResult {
     // Default to no limit for full dataset visualization (Kepler can handle 500K+ points)
     const { limit = null, offset = 0, selectedBssids = [] } = options;
     const { cte } = this.buildFilteredObservationsCte({ selectedBssids });
