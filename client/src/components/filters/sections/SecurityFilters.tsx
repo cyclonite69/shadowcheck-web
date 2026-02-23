@@ -4,13 +4,7 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import {
-  EncryptionType,
-  AuthMethod,
-  InsecureFlag,
-  SecurityFlag,
-  NetworkFilters,
-} from '../../../types/filters';
+import { EncryptionType, SecurityFlag, NetworkFilters } from '../../../types/filters';
 
 interface SecurityFiltersProps {
   filters: NetworkFilters;
@@ -61,60 +55,6 @@ export const SecurityFilters: React.FC<SecurityFiltersProps> = ({
                 className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
               />
               <span className={`${listItemTextClass} text-slate-300`}>{type}</span>
-            </label>
-          ))}
-        </div>
-      </FilterInput>
-
-      <FilterInput
-        label="Auth Methods"
-        enabled={enabled.authMethods || false}
-        onToggle={() => onToggleFilter('authMethods')}
-        compact={isCompact}
-      >
-        <div className={listLayoutClass}>
-          {(['PSK', 'Enterprise', 'SAE', 'OWE', 'None'] as AuthMethod[]).map((method) => (
-            <label key={method} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={filters.authMethods?.includes(method) || false}
-                onChange={(e) => {
-                  const current = filters.authMethods || [];
-                  const updated = e.target.checked
-                    ? [...current, method]
-                    : current.filter((m: string) => m !== method);
-                  onSetFilter('authMethods', updated);
-                }}
-                className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
-              />
-              <span className={`${listItemTextClass} text-slate-300`}>{method}</span>
-            </label>
-          ))}
-        </div>
-      </FilterInput>
-
-      <FilterInput
-        label="Insecure Flags"
-        enabled={enabled.insecureFlags || false}
-        onToggle={() => onToggleFilter('insecureFlags')}
-        compact={isCompact}
-      >
-        <div className={listLayoutClass}>
-          {(['open', 'wep', 'wps', 'deprecated'] as InsecureFlag[]).map((flag) => (
-            <label key={flag} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={filters.insecureFlags?.includes(flag) || false}
-                onChange={(e) => {
-                  const current = filters.insecureFlags || [];
-                  const updated = e.target.checked
-                    ? [...current, flag]
-                    : current.filter((f: string) => f !== flag);
-                  onSetFilter('insecureFlags', updated);
-                }}
-                className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
-              />
-              <span className={`${listItemTextClass} text-slate-300 capitalize`}>{flag}</span>
             </label>
           ))}
         </div>

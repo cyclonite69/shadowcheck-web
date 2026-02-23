@@ -35,6 +35,7 @@ export function useObservations(
     useFilterStore.getState().getAPIFilters()
   );
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
+  const currentPage = useFilterStore((state) => state.currentPage);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,9 +62,7 @@ export function useObservations(
         let renderBudgetLimit: number | null = null;
         let allRows: any[] = [];
 
-        const observationFilters = useFilters
-          ? debouncedFilterState
-          : { filters: {}, enabled: {} };
+        const observationFilters = useFilters ? debouncedFilterState : { filters: {}, enabled: {} };
 
         while (true) {
           const params = new URLSearchParams({
@@ -73,7 +72,10 @@ export function useObservations(
             limit: String(limit),
             offset: String(offset),
           });
-          if (observationFilters.enabled.wigle_v3_observation_count_min) {
+          if (
+            currentPage === 'wigle' &&
+            observationFilters.enabled.wigle_v3_observation_count_min
+          ) {
             params.set('pageType', 'wigle');
           }
 
@@ -156,7 +158,7 @@ export function useObservations(
 
     fetchObservations();
     return () => controller.abort();
-  }, [selectedNetworks, JSON.stringify(debouncedFilterState), useFilters]);
+  }, [selectedNetworks, JSON.stringify(debouncedFilterState), useFilters, currentPage]);
 
   return {
     observationsByBssid,

@@ -8,7 +8,6 @@ export interface NetworkFilters {
   ssid?: string;
   bssid?: string; // Exact (full) or prefix
   manufacturer?: string; // Name or OUI prefix
-  networkId?: string;
 
   // B. Radio / Physical Layer
   radioTypes?: RadioType[];
@@ -20,8 +19,6 @@ export interface NetworkFilters {
 
   // C. Security Filters
   encryptionTypes?: EncryptionType[];
-  authMethods?: AuthMethod[];
-  insecureFlags?: InsecureFlag[];
   securityFlags?: SecurityFlag[]; // Inference flags from computed security
 
   // D. Temporal Filters (CRITICAL)
@@ -55,9 +52,7 @@ export interface NetworkFilters {
 export type RadioType = 'W' | 'E' | 'B' | 'L' | 'G' | 'N' | '?';
 export type FrequencyBand = '2.4GHz' | '5GHz' | '6GHz' | 'BLE' | 'Cellular';
 export type EncryptionType = 'OPEN' | 'WEP' | 'WPA' | 'WPA2' | 'WPA3' | 'Mixed';
-export type AuthMethod = 'PSK' | 'Enterprise' | 'SAE' | 'OWE' | 'None';
 export type SecurityFlag = 'insecure' | 'deprecated' | 'enterprise' | 'personal' | 'unknown';
-export type InsecureFlag = 'open' | 'wep' | 'wps' | 'deprecated';
 export type TagType = 'threat' | 'investigate' | 'false_positive' | 'ignore';
 // TODO: future split — add a separate ThreatTag type for semantic categories
 // (surveillance, tracking, rogue_ap, evil_twin, deauth, spoofing, unknown)
@@ -70,11 +65,14 @@ export enum TemporalScope {
   THREAT_WINDOW = 'threat_window', // When threat was detected
 }
 
+export const RELATIVE_TIME_WINDOWS = ['24h', '7d', '30d', '90d', 'all'] as const;
+export type RelativeTimeWindow = (typeof RELATIVE_TIME_WINDOWS)[number];
+
 export interface TimeframeFilter {
   type: 'absolute' | 'relative';
   startTimestamp?: string; // ISO string
   endTimestamp?: string; // ISO string
-  relativeWindow?: '24h' | '7d' | '30d' | '90d' | '6mo' | '9mo' | '1y' | '18mo' | '2y' | 'all';
+  relativeWindow?: RelativeTimeWindow;
 }
 
 export interface BoundingBox {

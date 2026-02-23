@@ -35,11 +35,7 @@
 
 const logger = require('../../logging/logger');
 
-import {
-  RELATIVE_WINDOWS,
-  NETWORK_ONLY_FILTERS,
-  type FilterKey,
-} from './constants';
+import { RELATIVE_WINDOWS, NETWORK_ONLY_FILTERS, type FilterKey } from './constants';
 import { FilterPredicateBuilder, type QueryContext } from './FilterPredicateBuilder';
 import { QueryState } from './QueryState';
 import { SqlFragmentLibrary } from './SqlFragmentLibrary';
@@ -244,11 +240,6 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       }
     }
 
-    if (e.networkId && f.networkId) {
-      this.addIgnored('identity', 'networkId', 'unsupported_backend');
-      this.addWarning('networkId filter ignored (app.networks not available).');
-    }
-
     where.push(
       ...this.applyRadioFilters({
         typeExpr: OBS_TYPE_EXPR('o'),
@@ -295,7 +286,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       }
     }
 
-    // Handle security-related filters (encryption types and auth methods)
+    // Handle security-related filters (encryption types)
     const securityClauses: string[] = [];
 
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
@@ -333,53 +324,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
     }
 
-    if (e.authMethods && Array.isArray(f.authMethods) && f.authMethods.length > 0) {
-      // Map auth methods to security expression patterns
-      f.authMethods.forEach((method) => {
-        switch (method) {
-          case 'PSK':
-            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-P')`);
-            break;
-          case 'Enterprise':
-            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
-            break;
-          case 'SAE':
-            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-P')`);
-            break;
-          case 'OWE':
-            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-OWE'`);
-            break;
-          case 'None':
-            securityClauses.push(`${SECURITY_EXPR('o')} = 'OPEN'`);
-            break;
-        }
-      });
-      this.addApplied('security', 'authMethods', f.authMethods);
-    }
-
     // Combine all security clauses with OR logic
     if (securityClauses.length > 0) {
       where.push(`(${securityClauses.join(' OR ')})`);
-    }
-
-    if (e.insecureFlags && Array.isArray(f.insecureFlags) && f.insecureFlags.length > 0) {
-      const insecureClauses: string[] = [];
-      if (f.insecureFlags.includes('open')) {
-        insecureClauses.push(`${SECURITY_EXPR('o')} = 'OPEN'`);
-      }
-      if (f.insecureFlags.includes('wep')) {
-        insecureClauses.push(`${SECURITY_EXPR('o')} = 'WEP'`);
-      }
-      if (f.insecureFlags.includes('wps')) {
-        insecureClauses.push(`${SECURITY_EXPR('o')} = 'WPS'`);
-      }
-      if (f.insecureFlags.includes('deprecated')) {
-        insecureClauses.push(`${SECURITY_EXPR('o')} IN ('WEP', 'WPS')`);
-      }
-      if (insecureClauses.length > 0) {
-        where.push(`(${insecureClauses.join(' OR ')})`);
-        this.addApplied('security', 'insecureFlags', f.insecureFlags);
-      }
     }
 
     if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
@@ -418,9 +365,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       }
       if (scope === 'threat_window') {
-        this.addWarning(
-          'Threat window scope mapped to observation_time (no threat timestamps).'
-        );
+        this.addWarning('Threat window scope mapped to observation_time (no threat timestamps).');
       }
       if (f.timeframe.type === 'absolute') {
         const startTarget = scope === 'network_lifetime' ? 'ap.first_seen_at' : 'o.time';
@@ -490,9 +435,6 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     if (e.manufacturer && !f.manufacturer) {
       this.addIgnored('identity', 'manufacturer', 'enabled_without_value');
     }
-    if (e.networkId && !f.networkId) {
-      this.addIgnored('identity', 'networkId', 'enabled_without_value');
-    }
     if (e.radioTypes && (!Array.isArray(f.radioTypes) || f.radioTypes.length === 0)) {
       this.addIgnored('radio', 'radioTypes', 'enabled_without_value');
     }
@@ -516,12 +458,6 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       (!Array.isArray(f.encryptionTypes) || f.encryptionTypes.length === 0)
     ) {
       this.addIgnored('security', 'encryptionTypes', 'enabled_without_value');
-    }
-    if (e.authMethods && (!Array.isArray(f.authMethods) || f.authMethods.length === 0)) {
-      this.addIgnored('security', 'authMethods', 'enabled_without_value');
-    }
-    if (e.insecureFlags && (!Array.isArray(f.insecureFlags) || f.insecureFlags.length === 0)) {
-      this.addIgnored('security', 'insecureFlags', 'enabled_without_value');
     }
     if (e.securityFlags && (!Array.isArray(f.securityFlags) || f.securityFlags.length === 0)) {
       this.addIgnored('security', 'securityFlags', 'enabled_without_value');
@@ -604,9 +540,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   // ============================================================================
 
   buildNetworkListQuery(options: NetworkListOptions = {}): FilteredQueryResult {
-    const builder = new NetworkListQueryBuilder(
-      this.context as QueryContext | undefined,
-      () => this.buildNetworkListQueryImpl(options)
+    const builder = new NetworkListQueryBuilder(this.context as QueryContext | undefined, () =>
+      this.buildNetworkListQueryImpl(options)
     );
     return builder.build();
   }
@@ -852,9 +787,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   }
 
   private buildNetworkOnlyQuery(options: NetworkListOptions): FilteredQueryResult {
-    const builder = new NetworkOnlyQueryBuilder(
-      this.context as QueryContext | undefined,
-      () => this.buildNetworkOnlyQueryImpl(options)
+    const builder = new NetworkOnlyQueryBuilder(this.context as QueryContext | undefined, () =>
+      this.buildNetworkOnlyQueryImpl(options)
     );
     return builder.build();
   }
@@ -1028,7 +962,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       this.addApplied('quality', 'gpsAccuracyMax', f.gpsAccuracyMax);
     }
     if (e.excludeInvalidCoords && f.excludeInvalidCoords) {
-      where.push('ne.lat IS NOT NULL AND ne.lon IS NOT NULL');
+      where.push(
+        'ne.lat IS NOT NULL',
+        'ne.lon IS NOT NULL',
+        'ne.lat BETWEEN -90 AND 90',
+        'ne.lon BETWEEN -180 AND 180'
+      );
       this.addApplied('quality', 'excludeInvalidCoords', f.excludeInvalidCoords);
     }
     if (e.distanceFromHomeMin && f.distanceFromHomeMin !== undefined) {
@@ -1073,6 +1012,82 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
         this.addApplied('threat', 'threatCategories', f.threatCategories);
       }
+    }
+
+    if (e.ssid && !f.ssid) {
+      this.addIgnored('identity', 'ssid', 'enabled_without_value');
+    }
+    if (e.bssid && !f.bssid) {
+      this.addIgnored('identity', 'bssid', 'enabled_without_value');
+    }
+    if (e.manufacturer && !f.manufacturer) {
+      this.addIgnored('identity', 'manufacturer', 'enabled_without_value');
+    }
+    if (e.radioTypes && (!Array.isArray(f.radioTypes) || f.radioTypes.length === 0)) {
+      this.addIgnored('radio', 'radioTypes', 'enabled_without_value');
+    }
+    if (e.frequencyBands && (!Array.isArray(f.frequencyBands) || f.frequencyBands.length === 0)) {
+      this.addIgnored('radio', 'frequencyBands', 'enabled_without_value');
+    }
+    if (e.channelMin && f.channelMin === undefined) {
+      this.addIgnored('radio', 'channelMin', 'enabled_without_value');
+    }
+    if (e.channelMax && f.channelMax === undefined) {
+      this.addIgnored('radio', 'channelMax', 'enabled_without_value');
+    }
+    if (e.rssiMin && f.rssiMin === undefined) {
+      this.addIgnored('radio', 'rssiMin', 'enabled_without_value');
+    }
+    if (e.rssiMax && f.rssiMax === undefined) {
+      this.addIgnored('radio', 'rssiMax', 'enabled_without_value');
+    }
+    if (
+      e.encryptionTypes &&
+      (!Array.isArray(f.encryptionTypes) || f.encryptionTypes.length === 0)
+    ) {
+      this.addIgnored('security', 'encryptionTypes', 'enabled_without_value');
+    }
+    if (e.securityFlags && (!Array.isArray(f.securityFlags) || f.securityFlags.length === 0)) {
+      this.addIgnored('security', 'securityFlags', 'enabled_without_value');
+    }
+    if (e.observationCountMin && f.observationCountMin === undefined) {
+      this.addIgnored('quality', 'observationCountMin', 'enabled_without_value');
+    }
+    if (e.observationCountMax && f.observationCountMax === undefined) {
+      this.addIgnored('quality', 'observationCountMax', 'enabled_without_value');
+    }
+    if (e.has_notes && f.has_notes === undefined) {
+      this.addIgnored('engagement', 'has_notes', 'enabled_without_value');
+    }
+    if (e.tag_type && (!Array.isArray(f.tag_type) || f.tag_type.length === 0)) {
+      this.addIgnored('engagement', 'tag_type', 'enabled_without_value');
+    }
+    if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min === undefined) {
+      this.addIgnored('quality', 'wigle_v3_observation_count_min', 'enabled_without_value');
+    }
+    if (e.gpsAccuracyMax && f.gpsAccuracyMax === undefined) {
+      this.addIgnored('quality', 'gpsAccuracyMax', 'enabled_without_value');
+    }
+    if (e.excludeInvalidCoords && f.excludeInvalidCoords === undefined) {
+      this.addIgnored('quality', 'excludeInvalidCoords', 'enabled_without_value');
+    }
+    if (e.distanceFromHomeMin && f.distanceFromHomeMin === undefined) {
+      this.addIgnored('spatial', 'distanceFromHomeMin', 'enabled_without_value');
+    }
+    if (e.distanceFromHomeMax && f.distanceFromHomeMax === undefined) {
+      this.addIgnored('spatial', 'distanceFromHomeMax', 'enabled_without_value');
+    }
+    if (e.threatScoreMin && f.threatScoreMin === undefined) {
+      this.addIgnored('threat', 'threatScoreMin', 'enabled_without_value');
+    }
+    if (e.threatScoreMax && f.threatScoreMax === undefined) {
+      this.addIgnored('threat', 'threatScoreMax', 'enabled_without_value');
+    }
+    if (
+      e.threatCategories &&
+      (!Array.isArray(f.threatCategories) || f.threatCategories.length === 0)
+    ) {
+      this.addIgnored('threat', 'threatCategories', 'enabled_without_value');
     }
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
@@ -1371,7 +1386,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       );
     }
     if (e.excludeInvalidCoords && f.excludeInvalidCoords) {
-      where.push('ne.lat IS NOT NULL AND ne.lon IS NOT NULL');
+      where.push(
+        'ne.lat IS NOT NULL',
+        'ne.lon IS NOT NULL',
+        'ne.lat BETWEEN -90 AND 90',
+        'ne.lon BETWEEN -180 AND 180'
+      );
     }
     if (e.distanceFromHomeMin && f.distanceFromHomeMin !== undefined) {
       where.push(`ne.distance_from_home_km >= ${this.addParam(f.distanceFromHomeMin)}`);
@@ -1545,9 +1565,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   // ============================================================================
 
   buildGeospatialQuery(options: GeospatialOptions = {}): FilteredQueryResult {
-    const builder = new GeospatialQueryBuilder(
-      this.context as QueryContext | undefined,
-      () => this.buildGeospatialQueryImpl(options)
+    const builder = new GeospatialQueryBuilder(this.context as QueryContext | undefined, () =>
+      this.buildGeospatialQueryImpl(options)
     );
     return builder.build();
   }

@@ -2,7 +2,7 @@
  * Notes, Tags, and WiGLE Filters Section
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FilterSection, FilterInput } from '../../filter';
 import { useFilterStore } from '../../../stores/filterStore';
 import { NetworkFilters, TagType } from '../../../types/filters';
@@ -26,6 +26,12 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
 }) => {
   const currentPage = useFilterStore((state) => state.currentPage);
   const isWiglePage = currentPage === 'wigle';
+
+  useEffect(() => {
+    if (!isWiglePage && enabled.wigle_v3_observation_count_min) {
+      onToggleFilter('wigle_v3_observation_count_min');
+    }
+  }, [isWiglePage, enabled.wigle_v3_observation_count_min, onToggleFilter]);
 
   return (
     <FilterSection title="Notes & WiGLE" compact={isCompact}>
@@ -70,13 +76,13 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
         </select>
       </FilterInput>
 
-      <FilterInput
-        label="Min WiGLE Observations"
-        enabled={enabled.wigle_v3_observation_count_min || false}
-        onToggle={() => onToggleFilter('wigle_v3_observation_count_min')}
-        compact={isCompact}
-      >
-        {isWiglePage ? (
+      {isWiglePage && (
+        <FilterInput
+          label="Min WiGLE Observations"
+          enabled={enabled.wigle_v3_observation_count_min || false}
+          onToggle={() => onToggleFilter('wigle_v3_observation_count_min')}
+          compact={isCompact}
+        >
           <input
             type="number"
             min="0"
@@ -90,10 +96,8 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
             placeholder="e.g., 10"
             className={controlClass}
           />
-        ) : (
-          <div className="text-xs text-slate-500">WiGLE-only filter</div>
-        )}
-      </FilterInput>
+        </FilterInput>
+      )}
     </FilterSection>
   );
 };

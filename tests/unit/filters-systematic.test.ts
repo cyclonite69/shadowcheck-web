@@ -47,10 +47,11 @@ describe('Systematic Filter Testing', () => {
     test('by OUI', () => {
       const filters = { manufacturer: 'AABBCC' };
       const enabled = { manufacturer: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      builder.buildObservationFilters();
+      const result = new UniversalFilterQueryBuilder(filters, enabled).buildNetworkListQuery();
 
-      expect((builder as any).appliedFilters[0].field).toBe('manufacturerOui');
+      expect(
+        result.appliedFilters.some((entry: { field: string }) => entry.field === 'manufacturerOui')
+      ).toBe(true);
     });
   });
 
@@ -126,34 +127,6 @@ describe('Systematic Filter Testing', () => {
   // ============================================================================
   // PHASE 3: SECURITY FILTERS
   // ============================================================================
-
-  describe('authMethods filter', () => {
-    test('PSK authentication', () => {
-      const filters = { authMethods: ['PSK'] };
-      const enabled = { authMethods: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      // authMethods uses SECURITY_EXPR with IN clause, not = ANY
-      expect(result.where.some((w: string) => w.includes('IN ('))).toBe(true);
-      expect((builder as any).appliedFilters).toContainEqual({
-        type: 'security',
-        field: 'authMethods',
-        value: ['PSK'],
-      });
-    });
-  });
-
-  describe('insecureFlags filter', () => {
-    test('open networks', () => {
-      const filters = { insecureFlags: ['open'] };
-      const enabled = { insecureFlags: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('OPEN'))).toBe(true);
-    });
-  });
 
   describe('securityFlags filter', () => {
     test('enterprise networks', () => {

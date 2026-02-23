@@ -4,7 +4,20 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import { NetworkFilters, TemporalScope } from '../../../types/filters';
+import {
+  NetworkFilters,
+  TemporalScope,
+  RELATIVE_TIME_WINDOWS,
+  type RelativeTimeWindow,
+} from '../../../types/filters';
+
+const RELATIVE_WINDOW_LABELS: Record<RelativeTimeWindow, string> = {
+  '24h': 'Last 24 hours',
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+  all: 'All time',
+};
 
 interface TimeFiltersProps {
   filters: NetworkFilters;
@@ -88,16 +101,11 @@ export const TimeFilters: React.FC<TimeFiltersProps> = ({
                 }
                 className={`${controlClass} mt-1`}
               >
-                <option value="24h">Last 24 hours</option>
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-                <option value="6mo">Last 6 months</option>
-                <option value="9mo">Last 9 months</option>
-                <option value="1y">Last 1 year</option>
-                <option value="18mo">Last 18 months</option>
-                <option value="2y">Last 2 years</option>
-                <option value="all">All time</option>
+                {RELATIVE_TIME_WINDOWS.map((window) => (
+                  <option key={window} value={window}>
+                    {RELATIVE_WINDOW_LABELS[window]}
+                  </option>
+                ))}
               </select>
             </div>
           ) : (

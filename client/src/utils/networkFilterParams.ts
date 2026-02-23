@@ -50,16 +50,6 @@ export function appendNetworkFilterParams(
   ) {
     params.set('encryptionTypes', filters.encryptionTypes.join(','));
   }
-  if (enabled.authMethods && Array.isArray(filters.authMethods) && filters.authMethods.length > 0) {
-    params.set('authMethods', filters.authMethods.join(','));
-  }
-  if (
-    enabled.insecureFlags &&
-    Array.isArray(filters.insecureFlags) &&
-    filters.insecureFlags.length > 0
-  ) {
-    params.set('insecureFlags', filters.insecureFlags.join(','));
-  }
   if (
     enabled.securityFlags &&
     Array.isArray(filters.securityFlags) &&

@@ -29,7 +29,6 @@ export interface Filters {
   ssid?: string;
   bssid?: string;
   manufacturer?: string;
-  networkId?: string;
   radioTypes?: string[];
   frequencyBands?: string[];
   channelMin?: number;
@@ -37,8 +36,6 @@ export interface Filters {
   rssiMin?: number;
   rssiMax?: number;
   encryptionTypes?: string[];
-  authMethods?: string[];
-  insecureFlags?: string[];
   securityFlags?: string[];
   timeframe?: Timeframe;
   temporalScope?: 'observation_time' | 'network_lifetime' | 'threat_window';

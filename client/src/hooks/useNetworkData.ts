@@ -62,6 +62,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     useFilterStore.getState().getAPIFilters()
   );
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
+  const currentPage = useFilterStore((state) => state.currentPage);
 
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
@@ -114,7 +115,10 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           enabled: JSON.stringify(debouncedFilterState.enabled),
           includeTotal: includeTotal ? '1' : '0',
         });
-        if (debouncedFilterState.enabled.wigle_v3_observation_count_min) {
+        if (
+          currentPage === 'wigle' &&
+          debouncedFilterState.enabled.wigle_v3_observation_count_min
+        ) {
           params.set('pageType', 'wigle');
         }
 
@@ -169,6 +173,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     planCheck,
     locationMode,
     includeTotal,
+    currentPage,
   ]);
 
   return {

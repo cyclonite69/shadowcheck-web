@@ -169,7 +169,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
   test('multi-column sort preserves requested order', () => {
     const orderBy = buildOrderBy('threat_score,last_seen', 'desc,asc');
     const clauses = orderBy.split(',').map((v) => v.trim());
-    expect(clauses[0]).toContain("::numeric DESC");
+    expect(clauses[0]).toContain('::numeric DESC');
     expect(clauses[1]).toContain('ne.last_seen ASC');
   });
 
@@ -189,5 +189,22 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     const result = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
     expect(result.sql).toContain('COALESCE(ne.capabilities, ne.security)');
     expect(result.sql).toContain('AS security');
+  });
+
+  test('network list SQL always selects wigle_v3_observation_count', () => {
+    const noFilter = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
+    expect(noFilter.sql).toContain('wigle_v3_observation_count');
+
+    const networkOnly = new UniversalFilterQueryBuilder(
+      { ssid: 'TestNet' },
+      { ssid: true }
+    ).buildNetworkListQuery();
+    expect(networkOnly.sql).toContain('wigle_v3_observation_count');
+
+    const obsPath = new UniversalFilterQueryBuilder(
+      { boundingBox: { north: 40, south: 39, east: -73, west: -74 } },
+      { boundingBox: true }
+    ).buildNetworkListQuery();
+    expect(obsPath.sql).toContain('wigle_v3_observation_count');
   });
 });

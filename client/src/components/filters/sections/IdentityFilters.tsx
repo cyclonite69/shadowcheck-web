@@ -1,6 +1,6 @@
 /**
  * Identity Filters Section
- * SSID, BSSID, Manufacturer, Network ID filters
+ * SSID, BSSID, Manufacturer filters
  */
 
 import React from 'react';
@@ -70,21 +70,6 @@ export const IdentityFilters: React.FC<IdentityFiltersProps> = ({
           value={filters.manufacturer || ''}
           onChange={(e) => onSetFilter('manufacturer', e.target.value)}
           placeholder="Apple, Samsung, 001A2B..."
-          className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Internal Network ID"
-        enabled={enabled.networkId || false}
-        onToggle={() => onToggleFilter('networkId')}
-        compact={isCompact}
-      >
-        <input
-          type="text"
-          value={filters.networkId || ''}
-          onChange={(e) => onSetFilter('networkId', e.target.value)}
-          placeholder="unified_id..."
           className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
         />
       </FilterInput>
