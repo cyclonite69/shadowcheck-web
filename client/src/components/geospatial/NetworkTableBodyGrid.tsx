@@ -96,6 +96,9 @@ export const NetworkTableBodyGrid = ({
         channel: '80px',
         timespanDays: '100px',
         manufacturer: '120px',
+        all_tags: '120px',
+        wigle_v3_observation_count: '90px',
+        wigle_v3_last_import_at: '140px',
       };
       return widths[col] || '100px';
     })
@@ -350,6 +353,14 @@ export const NetworkTableBodyGrid = ({
                       title={value as string}
                     >
                       {(value as any) || '(hidden)'}
+                    </div>
+                  );
+                }
+
+                if (column.render) {
+                  return (
+                    <div key={col} style={{ padding: '0 4px' }}>
+                      {column.render(value, net)}
                     </div>
                   );
                 }

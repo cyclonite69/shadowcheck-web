@@ -1,5 +1,6 @@
 // Network-related constants for ShadowCheck
 
+import React, { type ReactNode } from 'react';
 import type { NetworkRow } from '../types/network';
 
 export type NetworkColumnConfig = {
@@ -7,6 +8,7 @@ export type NetworkColumnConfig = {
   width: number;
   sortable: boolean;
   default: boolean;
+  render?: (value: unknown, row: NetworkRow) => ReactNode;
 };
 
 // Column configuration for network tables
@@ -51,6 +53,58 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   threat_tag: { label: 'Tag', width: 100, sortable: true, default: false },
   is_ignored: { label: 'Ignored', width: 80, sortable: true, default: false },
   notes_count: { label: 'Notes', width: 70, sortable: false, default: false },
+  all_tags: {
+    label: 'All Tags',
+    width: 120,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (!value) return '—';
+      const tags = String(value).split(',');
+      return React.createElement(
+        'span',
+        { className: 'text-xs font-mono' },
+        tags.map((tag) =>
+          React.createElement(
+            'span',
+            {
+              key: tag,
+              className: 'inline-block mr-1 px-2 py-1 bg-blue-100 text-blue-700 rounded',
+            },
+            tag
+          )
+        )
+      );
+    },
+  },
+  wigle_v3_observation_count: {
+    label: 'WiGLE Obs',
+    width: 90,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (!value || value === 0) return '—';
+      return React.createElement(
+        'span',
+        { className: 'text-sm font-semibold text-blue-600' },
+        `${value} obs`
+      );
+    },
+  },
+  wigle_v3_last_import_at: {
+    label: 'WiGLE Last Import',
+    width: 140,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (!value) return '—';
+      const date = new Date(String(value));
+      const now = new Date();
+      const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      const label = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
+      return React.createElement('span', { className: 'text-xs text-gray-600' }, label);
+    },
+  },
 };
 
 // Maps frontend column names to API sort field names
@@ -83,6 +137,9 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   last_altitude_m: 'last_altitude_m',
   is_sentinel: 'is_sentinel',
   timespanDays: 'timespan_days',
+  all_tags: 'threat_tag',
+  wigle_v3_observation_count: 'wigle_v3_observation_count',
+  wigle_v3_last_import_at: 'wigle_v3_last_import_at',
 };
 
 // Pagination limit for network queries

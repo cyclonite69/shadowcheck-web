@@ -62,6 +62,13 @@ const validateFilterPayload = (filters: unknown, enabled: unknown): ValidationRe
   ) {
     errors.push('Stationary confidence maximum out of range (0.0-1.0).');
   }
+  if (
+    flags.wigle_v3_observation_count_min &&
+    normalized.wigle_v3_observation_count_min !== undefined &&
+    normalized.wigle_v3_observation_count_min < 0
+  ) {
+    errors.push('WiGLE v3 observation count minimum cannot be negative.');
+  }
   return { errors, filters: normalized, enabled: flags };
 };
 

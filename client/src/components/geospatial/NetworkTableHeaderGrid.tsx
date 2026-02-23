@@ -43,6 +43,9 @@ export const NetworkTableHeaderGrid = ({
         frequency: '90px',
         channel: '80px',
         manufacturer: '120px',
+        all_tags: '120px',
+        wigle_v3_observation_count: '90px',
+        wigle_v3_last_import_at: '140px',
       };
       return widths[col] || '100px';
     })

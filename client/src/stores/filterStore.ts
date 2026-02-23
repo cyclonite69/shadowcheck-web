@@ -63,6 +63,9 @@ const defaultFilters: NetworkFilters = {
     type: 'relative',
     relativeWindow: '30d',
   },
+  has_notes: undefined,
+  tag_type: [],
+  wigle_v3_observation_count_min: undefined,
 };
 
 // EXPLICIT enable/disable - most filters DISABLED by default
@@ -85,6 +88,9 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   temporalScope: false,
   observationCountMin: false,
   observationCountMax: false,
+  has_notes: false,
+  tag_type: false,
+  wigle_v3_observation_count_min: false,
   gpsAccuracyMax: false,
   excludeInvalidCoords: false,
   qualityFilter: false,
@@ -394,6 +400,13 @@ export const useFilterStore = create<HardenedFilterStore>()(
           (currentFilters.stationaryConfidenceMax < 0 || currentFilters.stationaryConfidenceMax > 1)
         ) {
           errors.push('Stationary confidence maximum out of range (0.0-1.0)');
+        }
+        if (
+          currentEnabled.wigle_v3_observation_count_min &&
+          currentFilters.wigle_v3_observation_count_min !== undefined &&
+          currentFilters.wigle_v3_observation_count_min < 0
+        ) {
+          errors.push('WiGLE observation count minimum cannot be negative');
         }
 
         return errors;

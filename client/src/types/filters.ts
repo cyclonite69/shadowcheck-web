@@ -31,6 +31,9 @@ export interface NetworkFilters {
   // E. Observation Quality (Credibility Heuristics)
   observationCountMin?: number; // DISABLED by default
   observationCountMax?: number;
+  has_notes?: boolean;
+  tag_type?: TagType[];
+  wigle_v3_observation_count_min?: number;
   gpsAccuracyMax?: number; // meters
   excludeInvalidCoords?: boolean;
   qualityFilter?: 'none' | 'temporal' | 'extreme' | 'duplicate' | 'all';
@@ -55,6 +58,7 @@ export type EncryptionType = 'OPEN' | 'WEP' | 'WPA' | 'WPA2' | 'WPA3' | 'Mixed';
 export type AuthMethod = 'PSK' | 'Enterprise' | 'SAE' | 'OWE' | 'None';
 export type SecurityFlag = 'insecure' | 'deprecated' | 'enterprise' | 'personal' | 'unknown';
 export type InsecureFlag = 'open' | 'wep' | 'wps' | 'deprecated';
+export type TagType = 'threat' | 'investigate' | 'false_positive' | 'ignore';
 // TODO: future split — add a separate ThreatTag type for semantic categories
 // (surveillance, tracking, rogue_ap, evil_twin, deauth, spoofing, unknown)
 // and keep ThreatCategory for severity-level filtering only.

@@ -44,6 +44,9 @@ export interface Filters {
   temporalScope?: 'observation_time' | 'network_lifetime' | 'threat_window';
   observationCountMin?: number;
   observationCountMax?: number;
+  has_notes?: boolean;
+  tag_type?: string[];
+  wigle_v3_observation_count_min?: number;
   gpsAccuracyMax?: number;
   excludeInvalidCoords?: boolean;
   qualityFilter?: 'none' | 'temporal' | 'extreme' | 'duplicate' | 'all';

@@ -525,6 +525,8 @@ router.get(
       `ne.first_seen AS first_observed_at`,
       `ne.observed_at`,
       `ne.observations AS obs_count`,
+      `ne.wigle_v3_observation_count`,
+      `ne.wigle_v3_last_import_at`,
       `ne.accuracy_meters`,
       `ne.security`,
       `ne.channel`,

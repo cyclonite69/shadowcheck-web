@@ -87,7 +87,9 @@ export const NetworkTableRow = ({
             </td>
           );
         }
-        if (col === 'type') {
+        if (column.render) {
+          content = column.render(value, net);
+        } else if (col === 'type') {
           content = <TypeBadge type={(value as NetworkRow['type']) || '?'} />;
         } else if (col === 'threat') {
           content = (

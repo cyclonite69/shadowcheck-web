@@ -144,6 +144,15 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     threat_tag: row.threat_tag ?? null,
     is_ignored: typeof row.is_ignored === 'boolean' ? row.is_ignored : null,
     notes_count: row.notes_count !== undefined ? parseInt(String(row.notes_count), 10) : null,
+    all_tags: (() => {
+      const tags: string[] = [];
+      if (row.threat_tag) tags.push(row.threat_tag);
+      if (row.is_ignored) tags.push('ignored');
+      return tags.length > 0 ? tags.join(',') : null;
+    })(),
+    wigle_v3_observation_count:
+      typeof row.wigle_v3_observation_count === 'number' ? row.wigle_v3_observation_count : null,
+    wigle_v3_last_import_at: row.wigle_v3_last_import_at || null,
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,
     rawLongitude:

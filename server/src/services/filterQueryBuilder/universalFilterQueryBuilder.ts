@@ -1033,6 +1033,46 @@ class UniversalFilterQueryBuilder {
       where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
       this.addApplied('quality', 'observationCountMax', f.observationCountMax);
     }
+    if (e.has_notes && f.has_notes !== undefined) {
+      if (f.has_notes) {
+        where.push(
+          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) > 0`
+        );
+      } else {
+        where.push(
+          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) = 0`
+        );
+      }
+      this.addApplied('engagement', 'has_notes', f.has_notes);
+    }
+    if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
+      const wantsIgnore = f.tag_type.includes('ignore');
+      const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
+      let tagClause = '';
+      if (tagValues.length > 0 && wantsIgnore) {
+        tagClause = `(LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)}) OR nt.is_ignored IS TRUE)`;
+      } else if (tagValues.length > 0) {
+        tagClause = `LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)})`;
+      } else if (wantsIgnore) {
+        tagClause = 'nt.is_ignored IS TRUE';
+      }
+      if (tagClause) {
+        where.push(
+          `EXISTS (SELECT 1 FROM app.network_tags nt WHERE UPPER(nt.bssid) = UPPER(ne.bssid) AND ${tagClause})`
+        );
+        this.addApplied('engagement', 'tag_type', f.tag_type);
+      }
+    }
+    if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
+      where.push(
+        `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
+      );
+      this.addApplied(
+        'quality',
+        'wigle_v3_observation_count_min',
+        f.wigle_v3_observation_count_min
+      );
+    }
     if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
       where.push(
         `ne.accuracy_meters IS NOT NULL AND ne.accuracy_meters > 0 AND ne.accuracy_meters <= ${this.addParam(
@@ -1359,6 +1399,39 @@ class UniversalFilterQueryBuilder {
     if (e.observationCountMax && f.observationCountMax !== undefined) {
       where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
     }
+    if (e.has_notes && f.has_notes !== undefined) {
+      if (f.has_notes) {
+        where.push(
+          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) > 0`
+        );
+      } else {
+        where.push(
+          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) = 0`
+        );
+      }
+    }
+    if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
+      const wantsIgnore = f.tag_type.includes('ignore');
+      const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
+      let tagClause = '';
+      if (tagValues.length > 0 && wantsIgnore) {
+        tagClause = `(LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)}) OR nt.is_ignored IS TRUE)`;
+      } else if (tagValues.length > 0) {
+        tagClause = `LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)})`;
+      } else if (wantsIgnore) {
+        tagClause = 'nt.is_ignored IS TRUE';
+      }
+      if (tagClause) {
+        where.push(
+          `EXISTS (SELECT 1 FROM app.network_tags nt WHERE UPPER(nt.bssid) = UPPER(ne.bssid) AND ${tagClause})`
+        );
+      }
+    }
+    if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
+      where.push(
+        `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
+      );
+    }
     if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
       where.push(
         `ne.accuracy_meters IS NOT NULL AND ne.accuracy_meters > 0 AND ne.accuracy_meters <= ${this.addParam(
@@ -1448,6 +1521,42 @@ class UniversalFilterQueryBuilder {
       networkWhere.push(`r.observation_count <= ${this.addParam(f.observationCountMax)}`);
       this.addApplied('quality', 'observationCountMax', f.observationCountMax);
     }
+    if (e.has_notes && f.has_notes !== undefined) {
+      if (f.has_notes) {
+        networkWhere.push(
+          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) > 0`
+        );
+      } else {
+        networkWhere.push(
+          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) = 0`
+        );
+      }
+      this.addApplied('engagement', 'has_notes', f.has_notes);
+    }
+    if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
+      const wantsIgnore = f.tag_type.includes('ignore');
+      const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
+      if (tagValues.length > 0 && wantsIgnore) {
+        networkWhere.push(
+          `(LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)}) OR nt.is_ignored IS TRUE)`
+        );
+      } else if (tagValues.length > 0) {
+        networkWhere.push(`LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)})`);
+      } else if (wantsIgnore) {
+        networkWhere.push('nt.is_ignored IS TRUE');
+      }
+      this.addApplied('engagement', 'tag_type', f.tag_type);
+    }
+    if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
+      networkWhere.push(
+        `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
+      );
+      this.addApplied(
+        'quality',
+        'wigle_v3_observation_count_min',
+        f.wigle_v3_observation_count_min
+      );
+    }
     if (e.stationaryConfidenceMin && f.stationaryConfidenceMin !== undefined) {
       networkWhere.push(`s.stationary_confidence >= ${this.addParam(f.stationaryConfidenceMin)}`);
       this.addApplied('threat', 'stationaryConfidenceMin', f.stationaryConfidenceMin);
@@ -1474,6 +1583,15 @@ class UniversalFilterQueryBuilder {
     }
     if (e.stationaryConfidenceMax && f.stationaryConfidenceMax === undefined) {
       this.addIgnored('threat', 'stationaryConfidenceMax', 'enabled_without_value');
+    }
+    if (e.has_notes && f.has_notes === undefined) {
+      this.addIgnored('engagement', 'has_notes', 'enabled_without_value');
+    }
+    if (e.tag_type && (!Array.isArray(f.tag_type) || f.tag_type.length === 0)) {
+      this.addIgnored('engagement', 'tag_type', 'enabled_without_value');
+    }
+    if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min === undefined) {
+      this.addIgnored('quality', 'wigle_v3_observation_count_min', 'enabled_without_value');
     }
 
     return networkWhere;

@@ -74,6 +74,9 @@ export type NetworkRow = {
   threat_tag?: 'THREAT' | 'SUSPECT' | 'FALSE_POSITIVE' | 'INVESTIGATE' | null;
   is_ignored?: boolean | null;
   notes_count?: number | null;
+  all_tags?: string | null;
+  wigle_v3_observation_count?: number | null;
+  wigle_v3_last_import_at?: string | null;
 };
 
 export type Observation = {

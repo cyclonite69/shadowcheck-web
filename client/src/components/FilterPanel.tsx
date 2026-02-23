@@ -13,6 +13,7 @@ import {
   SecurityFilters,
   TimeFilters,
   ThreatFilters,
+  EngagementFilters,
   QualityFilters,
   SpatialFilters,
 } from './filters/sections';
@@ -117,6 +118,16 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
           controlClass={controlClass}
           listLayoutClass={listLayoutClass}
           listItemTextClass={listItemTextClass}
+          onSetFilter={setFilter}
+          onToggleFilter={toggleFilter}
+        />
+
+        {/* Notes, Tags, and WiGLE */}
+        <EngagementFilters
+          filters={filters}
+          enabled={enabled}
+          isCompact={isCompact}
+          controlClass={controlClass}
           onSetFilter={setFilter}
           onToggleFilter={toggleFilter}
         />
