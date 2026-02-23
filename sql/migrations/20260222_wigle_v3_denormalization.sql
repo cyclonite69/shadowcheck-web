@@ -24,6 +24,3 @@ DROP TRIGGER IF EXISTS trg_wigle_v3_count_update ON app.wigle_v3_observations;
 CREATE TRIGGER trg_wigle_v3_count_update
 AFTER INSERT OR DELETE ON app.wigle_v3_observations
 FOR EACH ROW EXECUTE FUNCTION update_networks_wigle_counts();
-
-ALTER TABLE app.network_notes
-  ALTER COLUMN created_at TYPE timestamptz USING created_at AT TIME ZONE 'UTC';

@@ -80,8 +80,15 @@ class UniversalFilterQueryBuilder {
   private warnings: string[];
   private obsJoins: Set<string>;
   private requiresHome: boolean;
+  private context: { pageType?: 'geospatial' | 'wigle' };
 
-  constructor(filters: unknown, enabled: unknown) {
+  constructor(
+    filters: unknown,
+    enabled: unknown,
+    context?: {
+      pageType?: 'geospatial' | 'wigle';
+    }
+  ) {
     const { filters: normalized, enabled: flags } = validateFilterPayload(filters, enabled);
     this.filters = normalized;
     this.enabled = flags;
@@ -92,6 +99,7 @@ class UniversalFilterQueryBuilder {
     this.warnings = [];
     this.obsJoins = new Set();
     this.requiresHome = false;
+    this.context = context || {};
   }
 
   private addParam(value: unknown): string {
@@ -1064,14 +1072,18 @@ class UniversalFilterQueryBuilder {
       }
     }
     if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
-      where.push(
-        `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
-      );
-      this.addApplied(
-        'quality',
-        'wigle_v3_observation_count_min',
-        f.wigle_v3_observation_count_min
-      );
+      if (this.context?.pageType === 'wigle') {
+        where.push(
+          `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
+        );
+        this.addApplied(
+          'quality',
+          'wigle_v3_observation_count_min',
+          f.wigle_v3_observation_count_min
+        );
+      } else {
+        this.addIgnored('quality', 'wigle_v3_observation_count_min', 'unsupported_page');
+      }
     }
     if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
       where.push(
@@ -1428,9 +1440,11 @@ class UniversalFilterQueryBuilder {
       }
     }
     if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
-      where.push(
-        `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
-      );
+      if (this.context?.pageType === 'wigle') {
+        where.push(
+          `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
+        );
+      }
     }
     if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
       where.push(
@@ -1548,14 +1562,18 @@ class UniversalFilterQueryBuilder {
       this.addApplied('engagement', 'tag_type', f.tag_type);
     }
     if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
-      networkWhere.push(
-        `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
-      );
-      this.addApplied(
-        'quality',
-        'wigle_v3_observation_count_min',
-        f.wigle_v3_observation_count_min
-      );
+      if (this.context?.pageType === 'wigle') {
+        networkWhere.push(
+          `ne.wigle_v3_observation_count >= ${this.addParam(f.wigle_v3_observation_count_min)}`
+        );
+        this.addApplied(
+          'quality',
+          'wigle_v3_observation_count_min',
+          f.wigle_v3_observation_count_min
+        );
+      } else {
+        this.addIgnored('quality', 'wigle_v3_observation_count_min', 'unsupported_page');
+      }
     }
     if (e.stationaryConfidenceMin && f.stationaryConfidenceMin !== undefined) {
       networkWhere.push(`s.stationary_confidence >= ${this.addParam(f.stationaryConfidenceMin)}`);
@@ -1616,6 +1634,7 @@ class UniversalFilterQueryBuilder {
         SELECT
           o.bssid,
           o.ssid,
+          ne.capabilities,
           COALESCE(o.lat, ST_Y(o.geom::geometry)) AS lat,
           COALESCE(o.lon, ST_X(o.geom::geometry)) AS lon,
           o.level,
@@ -1704,6 +1723,7 @@ class UniversalFilterQueryBuilder {
       SELECT
         o.bssid,
         o.ssid,
+        ne.capabilities,
         COALESCE(o.lat, ST_Y(o.geom::geometry)) AS lat,
         COALESCE(o.lon, ST_X(o.geom::geometry)) AS lon,
         o.level,

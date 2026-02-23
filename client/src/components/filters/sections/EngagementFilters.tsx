@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
+import { useFilterStore } from '../../../stores/filterStore';
 import { NetworkFilters, TagType } from '../../../types/filters';
 
 interface EngagementFiltersProps {
@@ -23,6 +24,9 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
   onSetFilter,
   onToggleFilter,
 }) => {
+  const currentPage = useFilterStore((state) => state.currentPage);
+  const isWiglePage = currentPage === 'wigle';
+
   return (
     <FilterSection title="Notes & WiGLE" compact={isCompact}>
       <FilterInput
@@ -72,19 +76,23 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
         onToggle={() => onToggleFilter('wigle_v3_observation_count_min')}
         compact={isCompact}
       >
-        <input
-          type="number"
-          min="0"
-          value={filters.wigle_v3_observation_count_min ?? ''}
-          onChange={(e) =>
-            onSetFilter(
-              'wigle_v3_observation_count_min',
-              e.target.value ? parseInt(e.target.value, 10) : undefined
-            )
-          }
-          placeholder="e.g., 10"
-          className={controlClass}
-        />
+        {isWiglePage ? (
+          <input
+            type="number"
+            min="0"
+            value={filters.wigle_v3_observation_count_min ?? ''}
+            onChange={(e) =>
+              onSetFilter(
+                'wigle_v3_observation_count_min',
+                e.target.value ? parseInt(e.target.value, 10) : undefined
+              )
+            }
+            placeholder="e.g., 10"
+            className={controlClass}
+          />
+        ) : (
+          <div className="text-xs text-slate-500">WiGLE-only filter</div>
+        )}
       </FilterInput>
     </FilterSection>
   );

@@ -528,6 +528,7 @@ router.get(
       `ne.wigle_v3_observation_count`,
       `ne.wigle_v3_last_import_at`,
       `ne.accuracy_meters`,
+      `ne.capabilities`,
       `ne.security`,
       `ne.channel`,
       `ne.wps`,

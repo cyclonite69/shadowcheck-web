@@ -28,6 +28,10 @@ const { CONFIG } = require('../../../config/database');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 const { validators } = require('../../../utils/validators');
 
+const resolvePageType = (req: Request): 'geospatial' | 'wigle' => {
+  return req.query.pageType === 'wigle' ? 'wigle' : 'geospatial';
+};
+
 // GET /api/v2/networks/filtered
 router.get(
   '/',
@@ -54,7 +58,9 @@ router.get(
     const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
 
-    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const builder = new UniversalFilterQueryBuilder(filters, enabled, {
+      pageType: resolvePageType(req),
+    });
     const { sql, params, appliedFilters, ignoredFilters, warnings }: FilterQueryResult =
       builder.buildNetworkListQuery({
         limit,
@@ -75,7 +81,9 @@ router.get(
       };
     });
 
-    const countBuilder = new UniversalFilterQueryBuilder(filters, enabled);
+    const countBuilder = new UniversalFilterQueryBuilder(filters, enabled, {
+      pageType: resolvePageType(req),
+    });
     const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
     const countResult: QueryResult<{ total: string }> = await v2Service.executeV2Query(
       countQuery.sql,
@@ -147,7 +155,9 @@ router.get(
       'bssids'
     );
 
-    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const builder = new UniversalFilterQueryBuilder(filters, enabled, {
+      pageType: resolvePageType(req),
+    });
     const { sql, params, appliedFilters, ignoredFilters, warnings }: FilterQueryResult =
       builder.buildGeospatialQuery({
         limit,
@@ -242,7 +252,9 @@ router.get(
       'bssids'
     );
 
-    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const builder = new UniversalFilterQueryBuilder(filters, enabled, {
+      pageType: resolvePageType(req),
+    });
     const { sql, params, appliedFilters }: FilterQueryResult = builder.buildGeospatialQuery({
       limit,
       selectedBssids,
