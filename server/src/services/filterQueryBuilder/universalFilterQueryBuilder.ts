@@ -41,6 +41,7 @@ import {
   type FilterKey,
 } from './constants';
 import { FilterPredicateBuilder } from './FilterPredicateBuilder';
+import { SqlFragmentLibrary } from './SqlFragmentLibrary';
 import {
   OBS_TYPE_EXPR,
   SECURITY_EXPR,
@@ -72,11 +73,11 @@ interface ThreatLevelMap {
 
 const RM_MANUFACTURER_EXPR =
   "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')";
-const RM_MANUFACTURER_ADDRESS_EXPR =
-  "COALESCE(to_jsonb(rm)->>'organization_address', to_jsonb(rm)->>'address')";
 const NT_TAG_EXPR = "COALESCE(to_jsonb(nt)->>'threat_tag', to_jsonb(nt)->>'tag_type')";
 const NT_TAG_LOWER_EXPR = `LOWER(${NT_TAG_EXPR})`;
 const NT_IS_IGNORED_EXPR = "COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)";
+const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
+const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
 
 class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private filters: Filters;
@@ -629,8 +630,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           (COALESCE(ne.ssid, '') = '') AS is_hidden,
           ne.first_seen,
           ne.last_seen,
-          ${RM_MANUFACTURER_EXPR} AS manufacturer,
-          ${RM_MANUFACTURER_ADDRESS_EXPR} AS manufacturer_address,
+          ${RM_SELECT_FIELDS},
           NULL::numeric AS min_altitude_m,
           NULL::numeric AS max_altitude_m,
           NULL::numeric AS altitude_span_m,
@@ -654,19 +654,13 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           ne.lon,
           ne.accuracy_meters AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
-          ${NT_TAG_EXPR} AS threat_tag,
-          ${NT_IS_IGNORED_EXPR} AS is_ignored,
+          ${NT_SELECT_FIELDS},
           NULL::integer AS notes_count,
           JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
-        LEFT JOIN LATERAL (
-          SELECT *
-          FROM app.network_tags nt_source
-          WHERE UPPER(nt_source.bssid) = UPPER(ne.bssid)
-          LIMIT 1
-        ) nt ON TRUE
-        LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
+        ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
+        ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
       `;
@@ -782,8 +776,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
         ne.first_seen,
         ne.last_seen,
-        ${RM_MANUFACTURER_EXPR} AS manufacturer,
-        ${RM_MANUFACTURER_ADDRESS_EXPR} AS manufacturer_address,
+        ${RM_SELECT_FIELDS},
         NULL::numeric AS min_altitude_m,
         NULL::numeric AS max_altitude_m,
         NULL::numeric AS altitude_span_m,
@@ -814,8 +807,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         l.lon,
         l.accuracy AS accuracy_meters,
         s.stationary_confidence,
-        ${NT_TAG_EXPR} AS threat_tag,
-        ${NT_IS_IGNORED_EXPR} AS is_ignored,
+        ${NT_SELECT_FIELDS},
         NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
@@ -823,13 +815,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       JOIN obs_latest l ON l.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
-        LEFT JOIN LATERAL (
-          SELECT *
-          FROM app.network_tags nt_source
-          WHERE UPPER(nt_source.bssid) = UPPER(l.bssid)
-          LIMIT 1
-        ) nt ON TRUE
-        LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', ''))
+        ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
+        ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
       ${whereClause}
@@ -1207,8 +1194,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
         ne.first_seen,
         ne.last_seen,
-        ${RM_MANUFACTURER_EXPR} AS manufacturer,
-        ${RM_MANUFACTURER_ADDRESS_EXPR} AS manufacturer_address,
+        ${RM_SELECT_FIELDS},
         NULL::numeric AS min_altitude_m,
         NULL::numeric AS max_altitude_m,
         NULL::numeric AS altitude_span_m,
@@ -1232,20 +1218,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         ne.lon,
         COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
         NULL::numeric AS stationary_confidence,
-        ${NT_TAG_EXPR} AS threat_tag,
-        ${NT_IS_IGNORED_EXPR} AS is_ignored,
+        ${NT_SELECT_FIELDS},
         NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
       LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-      LEFT JOIN LATERAL (
-        SELECT *
-        FROM app.network_tags nt_source
-        WHERE UPPER(nt_source.bssid) = UPPER(ne.bssid)
-        LIMIT 1
-      ) nt ON TRUE
-      LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
+      ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
+      ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
       ${whereClause}
       ORDER BY ${safeOrderBy}
       LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -1714,8 +1694,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           o.bssid,
           o.ssid,
           ne.capabilities,
-          COALESCE(o.lat, ST_Y(o.geom::geometry)) AS lat,
-          COALESCE(o.lon, ST_X(o.geom::geometry)) AS lon,
+          ${SqlFragmentLibrary.selectObservationCoordinateFields('o')},
           o.level,
           o.accuracy,
           o.time,
@@ -1796,20 +1775,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
-        LEFT JOIN LATERAL (
-          SELECT *
-          FROM app.network_tags nt_source
-          WHERE UPPER(nt_source.bssid) = UPPER(r.bssid)
-          LIMIT 1
-        ) nt ON TRUE
+        ${SqlFragmentLibrary.joinNetworkTagsLateral('r', 'nt')}
         ${networkWhereClause}
       )
       SELECT
         o.bssid,
         o.ssid,
         ne.capabilities,
-        COALESCE(o.lat, ST_Y(o.geom::geometry)) AS lat,
-        COALESCE(o.lon, ST_X(o.geom::geometry)) AS lon,
+        ${SqlFragmentLibrary.selectObservationCoordinateFields('o')},
         o.level,
         o.accuracy,
         o.time,
@@ -1895,12 +1868,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
-        LEFT JOIN LATERAL (
-          SELECT *
-          FROM app.network_tags nt_source
-          WHERE UPPER(nt_source.bssid) = UPPER(r.bssid)
-          LIMIT 1
-        ) nt ON TRUE
+        ${SqlFragmentLibrary.joinNetworkTagsLateral('r', 'nt')}
         ${networkWhereClause}
       )
       SELECT COUNT(*)::bigint AS total
@@ -1977,12 +1945,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
-        LEFT JOIN LATERAL (
-          SELECT *
-          FROM app.network_tags nt_source
-          WHERE UPPER(nt_source.bssid) = UPPER(r.bssid)
-          LIMIT 1
-        ) nt ON TRUE
+        ${SqlFragmentLibrary.joinNetworkTagsLateral('r', 'nt')}
         ${networkWhereClause}
       ),
       filtered_obs_scope AS (
