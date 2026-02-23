@@ -152,18 +152,20 @@ router.post(
     const result = await observationService.getWigleObservationsBatch(cleanBssids);
 
     const networkMap = new Map();
+    // Ensure selected networks are represented even when they have zero WiGLE rows.
+    for (const bssid of cleanBssids) {
+      const normalized = bssid.toUpperCase();
+      networkMap.set(normalized, {
+        bssid: normalized,
+        observations: [],
+        stats: { wigle_total: 0, matched: 0, unique: 0, max_distance_m: 0 },
+      });
+    }
     let totalMatched = 0;
     let totalUnique = 0;
 
     for (const row of result) {
       const bssid = row.bssid.toUpperCase();
-      if (!networkMap.has(bssid)) {
-        networkMap.set(bssid, {
-          bssid,
-          observations: [],
-          stats: { wigle_total: 0, matched: 0, unique: 0, max_distance_m: 0 },
-        });
-      }
       const network = networkMap.get(bssid);
       network.observations.push({
         lat: row.lat,
@@ -199,7 +201,7 @@ router.post(
         total_wigle: result.length,
         total_matched: totalMatched,
         total_unique: totalUnique,
-        network_count: networkMap.size,
+        network_count: cleanBssids.length,
       },
     });
   })

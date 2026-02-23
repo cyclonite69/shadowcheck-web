@@ -33,8 +33,151 @@ const normalizeEnabled = (enabled: unknown): EnabledFlags => {
   return normalized;
 };
 
-const normalizeFilters = (filters: unknown): Filters =>
-  filters && typeof filters === 'object' ? (filters as Filters) : {};
+const toFiniteNumber = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : undefined;
+};
+
+const toBooleanOrUndefined = (value: unknown): boolean | undefined => {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  if (value === true || value === 'true' || value === 1 || value === '1') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === 0 || value === '0') {
+    return false;
+  }
+  return undefined;
+};
+
+const toStringArray = (value: unknown): string[] | undefined => {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : undefined;
+  }
+  if (typeof value === 'string') {
+    const normalized = value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : undefined;
+  }
+  return undefined;
+};
+
+const normalizeRadioType = (value: string): string | null => {
+  const upper = value.trim().toUpperCase();
+  const map: Record<string, string> = {
+    W: 'W',
+    WIFI: 'W',
+    'WI-FI': 'W',
+    E: 'E',
+    BLE: 'E',
+    B: 'B',
+    BLUETOOTH: 'B',
+    BT: 'B',
+    L: 'L',
+    LTE: 'L',
+    G: 'G',
+    GSM: 'G',
+    N: 'N',
+    NR: 'N',
+    '5G': 'N',
+    '?': '?',
+    UNKNOWN: '?',
+  };
+  return map[upper] || null;
+};
+
+const normalizeFrequencyBand = (value: string): string | null => {
+  const compact = value.trim().toLowerCase();
+  if (compact === '2.4ghz' || compact === '2.4') return '2.4GHz';
+  if (compact === '5ghz' || compact === '5') return '5GHz';
+  if (compact === '6ghz' || compact === '6') return '6GHz';
+  if (compact === 'ble') return 'BLE';
+  if (compact === 'cellular') return 'Cellular';
+  return null;
+};
+
+const normalizeEncryptionType = (value: string): string | null => {
+  const upper = value.trim().toUpperCase();
+  const map: Record<string, string> = {
+    OPEN: 'OPEN',
+    WEP: 'WEP',
+    WPA: 'WPA',
+    WPA2: 'WPA2',
+    WPA3: 'WPA3',
+    MIXED: 'Mixed',
+  };
+  return map[upper] || null;
+};
+
+const normalizeTagType = (value: string): string | null => {
+  const lower = value.trim().toLowerCase();
+  const map: Record<string, string> = {
+    threat: 'threat',
+    suspect: 'suspect',
+    investigate: 'investigate',
+    false_positive: 'false_positive',
+    ignore: 'ignore',
+  };
+  return map[lower] || null;
+};
+
+const normalizeFilters = (filters: unknown): Filters => {
+  if (!filters || typeof filters !== 'object') {
+    return {};
+  }
+
+  const source = filters as Record<string, unknown>;
+  const normalized: Filters = { ...source } as Filters;
+
+  const radioTypesRaw = toStringArray(source.radioTypes);
+  normalized.radioTypes = radioTypesRaw
+    ?.map(normalizeRadioType)
+    .filter((v): v is string => Boolean(v));
+
+  const bandsRaw = toStringArray(source.frequencyBands);
+  normalized.frequencyBands = bandsRaw
+    ?.map(normalizeFrequencyBand)
+    .filter((v): v is string => Boolean(v));
+
+  const encryptionRaw = toStringArray(source.encryptionTypes);
+  normalized.encryptionTypes = encryptionRaw
+    ?.map(normalizeEncryptionType)
+    .filter((v): v is string => Boolean(v));
+
+  const tagTypeRaw = toStringArray(source.tag_type);
+  normalized.tag_type = tagTypeRaw
+    ?.map(normalizeTagType)
+    .filter((v): v is string => Boolean(v));
+
+  normalized.channelMin = toFiniteNumber(source.channelMin);
+  normalized.channelMax = toFiniteNumber(source.channelMax);
+  normalized.rssiMin = toFiniteNumber(source.rssiMin);
+  normalized.rssiMax = toFiniteNumber(source.rssiMax);
+  normalized.observationCountMin = toFiniteNumber(source.observationCountMin);
+  normalized.observationCountMax = toFiniteNumber(source.observationCountMax);
+  normalized.wigle_v3_observation_count_min = toFiniteNumber(source.wigle_v3_observation_count_min);
+  normalized.gpsAccuracyMax = toFiniteNumber(source.gpsAccuracyMax);
+  normalized.distanceFromHomeMin = toFiniteNumber(source.distanceFromHomeMin);
+  normalized.distanceFromHomeMax = toFiniteNumber(source.distanceFromHomeMax);
+  normalized.threatScoreMin = toFiniteNumber(source.threatScoreMin);
+  normalized.threatScoreMax = toFiniteNumber(source.threatScoreMax);
+  normalized.stationaryConfidenceMin = toFiniteNumber(source.stationaryConfidenceMin);
+  normalized.stationaryConfidenceMax = toFiniteNumber(source.stationaryConfidenceMax);
+
+  normalized.has_notes = toBooleanOrUndefined(source.has_notes);
+  normalized.excludeInvalidCoords = toBooleanOrUndefined(source.excludeInvalidCoords);
+
+  return normalized;
+};
 
 const isOui = (value: string | null | undefined): boolean => /^[0-9A-F]{6}$/.test(value || '');
 

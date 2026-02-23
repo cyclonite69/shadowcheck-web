@@ -32,11 +32,11 @@ export const buildEngagementPredicates = ({
   if (enabled.has_notes && filters.has_notes !== undefined) {
     if (filters.has_notes) {
       where.push(
-        `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ${bssidExpr} AND is_deleted IS NOT TRUE) > 0`
+        `(SELECT COUNT(*) FROM app.network_notes WHERE UPPER(bssid) = UPPER(${bssidExpr}) AND is_deleted IS NOT TRUE) > 0`
       );
     } else {
       where.push(
-        `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ${bssidExpr} AND is_deleted IS NOT TRUE) = 0`
+        `(SELECT COUNT(*) FROM app.network_notes WHERE UPPER(bssid) = UPPER(${bssidExpr}) AND is_deleted IS NOT TRUE) = 0`
       );
     }
     applied.push({ field: 'has_notes', value: filters.has_notes });
