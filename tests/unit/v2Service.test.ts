@@ -285,14 +285,17 @@ describe('getDashboardMetrics', () => {
 // ── getThreatSeverityCounts ───────────────────────────────────────────────────
 
 describe('getThreatSeverityCounts', () => {
-  it('issues a single query without WHERE when threatCategories is disabled', async () => {
+  it('always includes is_ignored filter; no category param when threatCategories is disabled', async () => {
     const mockQuery = getQueryMock();
     mockQuery.mockResolvedValueOnce({ rows: [] });
 
     const counts = await getThreatSeverityCounts({}, { threatCategories: false });
 
     const sql: string = mockQuery.mock.calls[0][0];
-    expect(sql).not.toMatch(/WHERE/i);
+    // is_ignored suppression is unconditional
+    expect(sql).toMatch(/is_ignored IS NOT TRUE/i);
+    // No category array filter when threatCategories is disabled
+    expect(sql).not.toMatch(/= ANY\(\$1\)/i);
     // All buckets default to zero
     expect(counts.critical.unique_networks).toBe(0);
     expect(counts.medium.total_observations).toBe(0);

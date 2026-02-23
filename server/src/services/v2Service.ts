@@ -329,7 +329,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         SUM(CASE WHEN nts.final_threat_level = 'MED' THEN 1 ELSE 0 END) AS medium,
         SUM(CASE WHEN nts.final_threat_level IN ('LOW', 'NONE') THEN 1 ELSE 0 END) AS low
       FROM app.network_threat_scores nts
+      LEFT JOIN app.network_tags nt ON nt.bssid = nts.bssid
       WHERE nts.final_threat_level IS NOT NULL
+        AND nt.is_ignored IS NOT TRUE
     `),
     query(`
       SELECT
@@ -384,8 +386,10 @@ export async function getThreatMapData(opts: {
       ne.lon,
       ne.observations AS observation_count
     FROM app.api_network_explorer_mv ne
+    LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
     WHERE ne.threat->>'level' IS NOT NULL
       AND ne.threat->>'level' != 'NONE'
+      AND nt.is_ignored IS NOT TRUE
       ${hasSeverityFilter ? "AND ne.threat->>'level' = $1" : ''}
     ORDER BY (ne.threat->>'score')::numeric DESC
     LIMIT ${CONFIG.MAX_PAGE_SIZE}
@@ -401,8 +405,10 @@ export async function getThreatMapData(opts: {
       LOWER(ne.threat->>'level') AS severity
     FROM app.observations o
     JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
+    LEFT JOIN app.network_tags nt ON nt.bssid = o.bssid
     WHERE ne.threat->>'level' IS NOT NULL
       AND ne.threat->>'level' != 'NONE'
+      AND nt.is_ignored IS NOT TRUE
       AND o.time >= NOW() - ($${params.length} || ' days')::interval
       ${hasSeverityFilter ? "AND ne.threat->>'level' = $1" : ''}
     LIMIT 100000
@@ -441,7 +447,8 @@ export async function getThreatSeverityCounts(
     none: 'NONE',
   };
 
-  let whereClause = '';
+  // Always exclude networks explicitly marked as known/friendly (ignored).
+  const conditions: string[] = ['nt.is_ignored IS NOT TRUE'];
   const params: unknown[] = [];
 
   if (
@@ -453,7 +460,7 @@ export async function getThreatSeverityCounts(
       .map((cat) => ThreatLevelMap[cat] || cat.toUpperCase())
       .filter(Boolean);
     if (dbThreatLevels.length > 0) {
-      whereClause = `WHERE (
+      conditions.push(`(
         CASE
           WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
           WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
@@ -467,10 +474,12 @@ export async function getThreatSeverityCounts(
             END
           )
         END
-      ) = ANY($1)`;
+      ) = ANY($1)`);
       params.push(dbThreatLevels);
     }
   }
+
+  const whereClause = `WHERE ${conditions.join('\n      AND ')}`;
 
   const result = await query(
     `
@@ -492,7 +501,7 @@ export async function getThreatSeverityCounts(
       SUM(ne.observations)::bigint as total_observations
     FROM app.api_network_explorer_mv ne
     LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
-    LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
+    LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
     ${whereClause}
     GROUP BY 1
   `,
