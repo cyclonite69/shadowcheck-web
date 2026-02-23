@@ -266,7 +266,15 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
 
     try {
       // Always tag as INVESTIGATE first
-      await networkApi.investigateNetwork(bssid);
+      const investigateResult = await networkApi.investigateNetwork(bssid);
+      if (!investigateResult?.ok) {
+        throw new Error(investigateResult?.error || 'Failed to tag network as INVESTIGATE');
+      }
+
+      // Keep UI/state in sync with the tag update path used elsewhere.
+      if (onTagUpdated) {
+        onTagUpdated();
+      }
 
       if (withLookup) {
         const isBluetooth =
@@ -296,6 +304,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
               observationsImported: newCount,
             },
           }));
+          if (onTagUpdated) {
+            onTagUpdated();
+          }
         } else {
           // Handle both simple {error: "string"} and structured {error: {message, code, statusCode}} formats
           const errorMessage =
