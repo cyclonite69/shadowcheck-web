@@ -72,6 +72,17 @@ export const parseNumericField = (val: unknown): number | null => {
   return null;
 };
 
+const parseIntegerField = (val: unknown): number | null => {
+  if (typeof val === 'number') {
+    return Number.isFinite(val) ? Math.trunc(val) : null;
+  }
+  if (typeof val === 'string') {
+    const parsed = parseInt(val, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+};
+
 // Map API row to NetworkRow
 export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const securityValue = formatSecurity(row.capabilities, row.security);
@@ -114,7 +125,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     security: securityValue,
     frequency: frequency,
     channel: channelValue,
-    observations: parseInt(String(row.observations ?? row.obs_count ?? 0), 10),
+    observations: parseIntegerField(row.observations ?? row.obs_count) ?? 0,
     latitude: typeof row.lat === 'number' ? row.lat : null,
     longitude: typeof row.lon === 'number' ? row.lon : null,
     distanceFromHome: (() => {
@@ -144,7 +155,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     is_sentinel: typeof row.is_sentinel === 'boolean' ? row.is_sentinel : null,
     threat_tag: row.threat_tag ?? null,
     is_ignored: typeof row.is_ignored === 'boolean' ? row.is_ignored : null,
-    notes_count: row.notes_count !== undefined ? parseInt(String(row.notes_count), 10) : null,
+    notes_count: parseIntegerField(row.notes_count),
     all_tags: (() => {
       if (row.all_tags) return String(row.all_tags);
       const tags: string[] = [];
@@ -153,9 +164,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
       return tags.length > 0 ? tags.join(',') : null;
     })(),
     wigle_v3_observation_count:
-      row.wigle_v3_observation_count !== undefined && row.wigle_v3_observation_count !== null
-        ? parseInt(String(row.wigle_v3_observation_count), 10)
-        : null,
+      parseIntegerField(row.wigle_v3_observation_count),
     wigle_v3_last_import_at: row.wigle_v3_last_import_at || null,
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,

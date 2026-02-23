@@ -73,6 +73,9 @@ export function useObservations(
             limit: String(limit),
             offset: String(offset),
           });
+          if (observationFilters.enabled.wigle_v3_observation_count_min) {
+            params.set('pageType', 'wigle');
+          }
 
           if (offset === 0) {
             params.set('include_total', '1');

@@ -34,13 +34,28 @@ class ApiClient {
       },
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || `Request failed: ${response.statusText}`);
+    const text = await response.text();
+    let data: any = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
     }
 
-    return data;
+    if (!response.ok) {
+      const message =
+        (data && (data.error || data.message)) ||
+        text ||
+        `Request failed: ${response.status} ${response.statusText}`;
+      const error = new Error(message) as Error & { status?: number; data?: unknown };
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    return (data ?? (text as any)) as T;
   }
 
   async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
