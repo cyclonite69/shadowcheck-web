@@ -128,6 +128,15 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql.length).toBeGreaterThan(0);
   });
 
+  test('network count encryptionTypes=WPA2 includes enterprise variant', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { encryptionTypes: ['WPA2'] },
+      { encryptionTypes: true }
+    ).buildNetworkCountQuery();
+
+    expect(result.sql).toContain("IN ('WPA2', 'WPA2-E')");
+  });
+
   test('buildGeospatialQuery → returns non-empty SQL with lat/lon references', () => {
     const result = new UniversalFilterQueryBuilder({}, {}).buildGeospatialQuery();
 
@@ -152,6 +161,11 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(orderBy).toContain('ASC');
   });
 
+  test('security sort uses computed security alias', () => {
+    const orderBy = buildOrderBy('security', 'asc');
+    expect(orderBy).toContain('security ASC');
+  });
+
   test('multi-column sort preserves requested order', () => {
     const orderBy = buildOrderBy('threat_score,last_seen', 'desc,asc');
     const clauses = orderBy.split(',').map((v) => v.trim());
@@ -169,5 +183,11 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     const result = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
     expect(result.sql).toContain("to_jsonb(rm)->>'organization_name'");
     expect(result.sql).toContain('AS manufacturer');
+  });
+
+  test('network list SQL computes security from capabilities in no-filter path', () => {
+    const result = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
+    expect(result.sql).toContain('COALESCE(ne.capabilities, ne.security)');
+    expect(result.sql).toContain('AS security');
   });
 });

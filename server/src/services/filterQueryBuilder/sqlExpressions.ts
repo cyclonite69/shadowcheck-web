@@ -16,25 +16,27 @@ const OBS_TYPE_EXPR = (alias = 'o'): string => `
   END)
 `;
 
-const SECURITY_EXPR = (alias = 'o'): string => `
+const SECURITY_FROM_CAPS_EXPR = (capsExpr: string): string => `
   CASE
-    WHEN COALESCE(${alias}.radio_capabilities, '') = '' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WEP%' THEN 'WEP'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-SAE' THEN 'WPA3-P'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA3-E'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' THEN 'WPA3'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA2-E'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' THEN 'WPA2'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'WPA-' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA3%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPA'
-    WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPS%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPS'
-    WHEN UPPER(${alias}.radio_capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
+    WHEN COALESCE(${capsExpr}, '') = '' THEN 'OPEN'
+    WHEN UPPER(${capsExpr}) LIKE '%WEP%' THEN 'WEP'
+    WHEN UPPER(${capsExpr}) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
+    WHEN UPPER(${capsExpr}) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
+    WHEN UPPER(${capsExpr}) ~ 'RSN-OWE' THEN 'WPA3-OWE'
+    WHEN UPPER(${capsExpr}) ~ 'RSN-SAE' THEN 'WPA3-P'
+    WHEN UPPER(${capsExpr}) ~ '(WPA3|SAE)' AND UPPER(${capsExpr}) ~ '(EAP|MGT)' THEN 'WPA3-E'
+    WHEN UPPER(${capsExpr}) ~ '(WPA3|SAE)' THEN 'WPA3'
+    WHEN UPPER(${capsExpr}) ~ '(WPA2|RSN)' AND UPPER(${capsExpr}) ~ '(EAP|MGT)' THEN 'WPA2-E'
+    WHEN UPPER(${capsExpr}) ~ '(WPA2|RSN)' THEN 'WPA2'
+    WHEN UPPER(${capsExpr}) ~ 'WPA-' AND UPPER(${capsExpr}) NOT LIKE '%WPA2%' THEN 'WPA'
+    WHEN UPPER(${capsExpr}) LIKE '%WPA%' AND UPPER(${capsExpr}) NOT LIKE '%WPA2%' AND UPPER(${capsExpr}) NOT LIKE '%WPA3%' AND UPPER(${capsExpr}) NOT LIKE '%RSN%' THEN 'WPA'
+    WHEN UPPER(${capsExpr}) LIKE '%WPS%' AND UPPER(${capsExpr}) NOT LIKE '%WPA%' AND UPPER(${capsExpr}) NOT LIKE '%RSN%' THEN 'WPS'
+    WHEN UPPER(${capsExpr}) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
     ELSE 'UNKNOWN'
   END
 `;
+
+const SECURITY_EXPR = (alias = 'o'): string => SECURITY_FROM_CAPS_EXPR(`${alias}.radio_capabilities`);
 
 const AUTH_EXPR = (alias = 'o'): string => `
   CASE
@@ -103,6 +105,7 @@ const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt'): string => `
 
 export {
   OBS_TYPE_EXPR,
+  SECURITY_FROM_CAPS_EXPR,
   SECURITY_EXPR,
   AUTH_EXPR,
   WIFI_CHANNEL_EXPR,

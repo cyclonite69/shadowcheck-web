@@ -49,6 +49,7 @@ import { NetworkOnlyQueryBuilder } from './builders/NetworkOnlyQueryBuilder';
 import { GeospatialQueryBuilder } from './builders/GeospatialQueryBuilder';
 import {
   OBS_TYPE_EXPR,
+  SECURITY_FROM_CAPS_EXPR,
   SECURITY_EXPR,
   WIFI_CHANNEL_EXPR,
   NETWORK_CHANNEL_EXPR,
@@ -320,6 +321,11 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           case 'WPA3':
             securityClauses.push(
               `${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+            );
+            break;
+          case 'MIXED':
+            securityClauses.push(
+              `${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
             );
             break;
         }
@@ -631,7 +637,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           ne.bssid,
           ne.ssid,
           ne.type,
-          ne.security,
+          ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')} AS security,
           ne.frequency,
           ne.capabilities,
           (ne.frequency BETWEEN 5000 AND 5900) AS is_5ghz,
@@ -778,7 +784,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           ELSE ${OBS_TYPE_EXPR('l')}
         END AS type,
         CASE
-          WHEN COALESCE(l.radio_capabilities, '') = '' THEN ne.security
+          WHEN COALESCE(l.radio_capabilities, '') = '' THEN ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')}
           ELSE ${SECURITY_EXPR('l')}
         END AS security,
         COALESCE(l.radio_frequency, ne.frequency) AS frequency,
@@ -867,28 +873,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         ELSE ${OBS_TYPE_EXPR('ola')}
       END
     `;
-    // ne.security contains raw capabilities string, not computed security type
-    // So we need to compute security from capabilities in both cases
     const networkSecurityExpr = `
       CASE
-        WHEN COALESCE(ola.radio_capabilities, '') = '' THEN
-          CASE
-            WHEN COALESCE(ne.security, '') = '' THEN 'OPEN'
-            WHEN UPPER(ne.security) LIKE '%WEP%' THEN 'WEP'
-            WHEN UPPER(ne.security) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
-            WHEN UPPER(ne.security) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
-            WHEN UPPER(ne.security) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-            WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-P'
-            WHEN UPPER(ne.security) ~ '(WPA3|SAE)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA3-E'
-            WHEN UPPER(ne.security) ~ '(WPA3|SAE)' THEN 'WPA3'
-            WHEN UPPER(ne.security) ~ '(WPA2|RSN)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA2-E'
-            WHEN UPPER(ne.security) ~ '(WPA2|RSN)' THEN 'WPA2'
-            WHEN UPPER(ne.security) ~ 'WPA-' AND UPPER(ne.security) NOT LIKE '%WPA2%' THEN 'WPA'
-            WHEN UPPER(ne.security) LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%WPA2%' AND UPPER(ne.security) NOT LIKE '%WPA3%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPA'
-            WHEN UPPER(ne.security) LIKE '%WPS%' AND UPPER(ne.security) NOT LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPS'
-            WHEN UPPER(ne.security) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-            ELSE 'UNKNOWN'
-          END
+        WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')}
         ELSE ${SECURITY_EXPR('ola')}
       END
     `;
@@ -966,6 +953,11 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           case 'WPA3':
             securityClauses.push(
               `${networkSecurityExpr} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+            );
+            break;
+          case 'MIXED':
+            securityClauses.push(
+              `${networkSecurityExpr} IN ('WPA', 'WPA2', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
             );
             break;
         }
@@ -1122,7 +1114,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           ELSE ${OBS_TYPE_EXPR('ola')}
         END AS type,
         CASE
-          WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ne.security
+          WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')}
           ELSE ${SECURITY_EXPR('ola')}
         END AS security,
         COALESCE(ola.radio_frequency, ne.frequency) AS frequency,
@@ -1291,28 +1283,40 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         },
       }).where
     );
-    // ne.security contains raw capabilities string, compute security type for comparison
-    const computedSecurityExpr = `
-      CASE
-        WHEN COALESCE(ne.security, '') = '' THEN 'OPEN'
-        WHEN UPPER(ne.security) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
-        WHEN UPPER(ne.security) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
-        WHEN UPPER(ne.security) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-        WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-P'
-        WHEN UPPER(ne.security) ~ '(WPA3|SAE)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA3-E'
-        WHEN UPPER(ne.security) ~ '(WPA3|SAE)' THEN 'WPA3'
-        WHEN UPPER(ne.security) ~ '(WPA2|RSN)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA2-E'
-        WHEN UPPER(ne.security) ~ '(WPA2|RSN)' THEN 'WPA2'
-        WHEN UPPER(ne.security) ~ 'WPA-' AND UPPER(ne.security) NOT LIKE '%WPA2%' THEN 'WPA'
-        WHEN UPPER(ne.security) LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%WPA2%' AND UPPER(ne.security) NOT LIKE '%WPA3%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPA'
-        WHEN UPPER(ne.security) LIKE '%WEP%' THEN 'WEP'
-        WHEN UPPER(ne.security) LIKE '%WPS%' AND UPPER(ne.security) NOT LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPS'
-        WHEN UPPER(ne.security) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-        ELSE 'UNKNOWN'
-      END
-    `;
+    const computedSecurityExpr = SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)');
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
-      where.push(`(${computedSecurityExpr}) = ANY(${this.addParam(f.encryptionTypes)})`);
+      const securityClauses: string[] = [];
+      f.encryptionTypes.forEach((type) => {
+        const normalizedType = String(type).trim().toUpperCase();
+        const finalType = normalizedType.includes('WEP') ? 'WEP' : normalizedType;
+        switch (finalType) {
+          case 'OPEN':
+            securityClauses.push(`(${computedSecurityExpr}) = 'OPEN'`);
+            break;
+          case 'WEP':
+            securityClauses.push(`(${computedSecurityExpr}) = 'WEP'`);
+            break;
+          case 'WPA':
+            securityClauses.push(`(${computedSecurityExpr}) = 'WPA'`);
+            break;
+          case 'WPA2':
+            securityClauses.push(`(${computedSecurityExpr}) IN ('WPA2', 'WPA2-E')`);
+            break;
+          case 'WPA3':
+            securityClauses.push(
+              `(${computedSecurityExpr}) IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+            );
+            break;
+          case 'MIXED':
+            securityClauses.push(
+              `(${computedSecurityExpr}) IN ('WPA', 'WPA2', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+            );
+            break;
+        }
+      });
+      if (securityClauses.length > 0) {
+        where.push(`(${securityClauses.join(' OR ')})`);
+      }
     }
     if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
       const flagClauses: string[] = [];

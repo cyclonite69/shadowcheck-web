@@ -107,6 +107,10 @@ const normalizeFrequencyBand = (value: string): string | null => {
 
 const normalizeEncryptionType = (value: string): string | null => {
   const upper = value.trim().toUpperCase();
+  if (upper.includes('WEP')) return 'WEP';
+  if (upper === 'MIXED' || upper === 'WPA/WPA2' || upper === 'WPA2/WPA3') return 'Mixed';
+  if (upper === 'WPA2-E' || upper === 'RSN') return 'WPA2';
+  if (upper === 'WPA3-E' || upper === 'WPA3-P' || upper === 'WPA3-OWE') return 'WPA3';
   const map: Record<string, string> = {
     OPEN: 'OPEN',
     WEP: 'WEP',

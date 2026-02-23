@@ -166,7 +166,7 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     threat_ml_score: "(ne.threat->>'score')::numeric",
     threat_ml_weight: "(ne.threat->>'score')::numeric",
     threat_ml_boost: "(ne.threat->>'score')::numeric",
-    security: 'ne.security',
+    security: 'security',
     type: 'ne.type',
     lat: 'lat',
     lon: 'lon',
