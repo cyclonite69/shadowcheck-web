@@ -690,7 +690,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ${NT_TAG_EXPR} AS threat_tag,
           ${NT_IS_IGNORED_EXPR} AS is_ignored,
-          (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
+          NULL::integer AS notes_count,
           JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
@@ -852,7 +852,7 @@ class UniversalFilterQueryBuilder {
         s.stationary_confidence,
         ${NT_TAG_EXPR} AS threat_tag,
         ${NT_IS_IGNORED_EXPR} AS is_ignored,
-        (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
+        NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM obs_rollup r
@@ -1236,7 +1236,7 @@ class UniversalFilterQueryBuilder {
         NULL::numeric AS stationary_confidence,
         ${NT_TAG_EXPR} AS threat_tag,
         ${NT_IS_IGNORED_EXPR} AS is_ignored,
-        (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
+        NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
