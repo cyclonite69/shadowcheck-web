@@ -36,11 +36,11 @@
 const logger = require('../../logging/logger');
 
 import {
-  NOISE_FLOOR_DBM,
   RELATIVE_WINDOWS,
   NETWORK_ONLY_FILTERS,
   type FilterKey,
 } from './constants';
+import { FilterPredicateBuilder } from './FilterPredicateBuilder';
 import {
   OBS_TYPE_EXPR,
   SECURITY_EXPR,
@@ -78,7 +78,7 @@ const NT_TAG_EXPR = "COALESCE(to_jsonb(nt)->>'threat_tag', to_jsonb(nt)->>'tag_t
 const NT_TAG_LOWER_EXPR = `LOWER(${NT_TAG_EXPR})`;
 const NT_IS_IGNORED_EXPR = "COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)";
 
-class UniversalFilterQueryBuilder {
+class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private filters: Filters;
   private enabled: EnabledFlags;
   private params: unknown[];
@@ -97,6 +97,7 @@ class UniversalFilterQueryBuilder {
       pageType?: 'geospatial' | 'wigle';
     }
   ) {
+    super();
     const { filters: normalized, enabled: flags } = validateFilterPayload(filters, enabled);
     this.filters = normalized;
     this.enabled = flags;
@@ -110,7 +111,7 @@ class UniversalFilterQueryBuilder {
     this.context = context || {};
   }
 
-  private addParam(value: unknown): string {
+  protected addParam(value: unknown): string {
     this.params.push(value);
     const index = this.paramIndex;
     this.paramIndex += 1;
@@ -221,26 +222,38 @@ class UniversalFilterQueryBuilder {
     }
 
     if (e.channelMin && f.channelMin !== undefined) {
-      where.push(`${WIFI_CHANNEL_EXPR('o')} >= ${this.addParam(f.channelMin)}`);
+      where.push(...this.buildRangePredicate({ min: f.channelMin, expr: WIFI_CHANNEL_EXPR('o') }));
       this.addApplied('radio', 'channelMin', f.channelMin);
     }
 
     if (e.channelMax && f.channelMax !== undefined) {
-      where.push(`${WIFI_CHANNEL_EXPR('o')} <= ${this.addParam(f.channelMax)}`);
+      where.push(...this.buildRangePredicate({ max: f.channelMax, expr: WIFI_CHANNEL_EXPR('o') }));
       this.addApplied('radio', 'channelMax', f.channelMax);
     }
 
     if (e.rssiMin && f.rssiMin !== undefined) {
-      where.push('o.level IS NOT NULL');
-      where.push(`o.level >= ${this.addParam(NOISE_FLOOR_DBM)}`);
-      where.push(`o.level >= ${this.addParam(f.rssiMin)}`);
+      where.push(
+        ...this.buildRssiPredicate({
+          value: f.rssiMin,
+          comparator: '>=',
+          signalExpr: 'o.level',
+          requireNotNullExpr: 'o.level IS NOT NULL',
+          includeNoiseFloor: true,
+        })
+      );
       this.addApplied('radio', 'rssiMin', f.rssiMin);
     }
 
     if (e.rssiMax && f.rssiMax !== undefined) {
-      where.push('o.level IS NOT NULL');
-      where.push(`o.level >= ${this.addParam(NOISE_FLOOR_DBM)}`);
-      where.push(`o.level <= ${this.addParam(f.rssiMax)}`);
+      where.push(
+        ...this.buildRssiPredicate({
+          value: f.rssiMax,
+          comparator: '<=',
+          signalExpr: 'o.level',
+          requireNotNullExpr: 'o.level IS NOT NULL',
+          includeNoiseFloor: true,
+        })
+      );
       this.addApplied('radio', 'rssiMax', f.rssiMax);
     }
 
@@ -944,19 +957,43 @@ class UniversalFilterQueryBuilder {
       }
     }
     if (e.channelMin && f.channelMin !== undefined) {
-      where.push(`(${networkChannelExpr} >= ${this.addParam(f.channelMin)})`);
+      where.push(
+        ...this.buildRangePredicate({
+          min: f.channelMin,
+          expr: networkChannelExpr,
+          wrapComparisons: true,
+        })
+      );
       this.addApplied('radio', 'channelMin', f.channelMin);
     }
     if (e.channelMax && f.channelMax !== undefined) {
-      where.push(`(${networkChannelExpr} <= ${this.addParam(f.channelMax)})`);
+      where.push(
+        ...this.buildRangePredicate({
+          max: f.channelMax,
+          expr: networkChannelExpr,
+          wrapComparisons: true,
+        })
+      );
       this.addApplied('radio', 'channelMax', f.channelMax);
     }
     if (e.rssiMin && f.rssiMin !== undefined) {
-      where.push(`${networkSignalExpr} >= ${this.addParam(f.rssiMin)}`);
+      where.push(
+        ...this.buildRssiPredicate({
+          value: f.rssiMin,
+          comparator: '>=',
+          signalExpr: networkSignalExpr,
+        })
+      );
       this.addApplied('radio', 'rssiMin', f.rssiMin);
     }
     if (e.rssiMax && f.rssiMax !== undefined) {
-      where.push(`${networkSignalExpr} <= ${this.addParam(f.rssiMax)}`);
+      where.push(
+        ...this.buildRssiPredicate({
+          value: f.rssiMax,
+          comparator: '<=',
+          signalExpr: networkSignalExpr,
+        })
+      );
       this.addApplied('radio', 'rssiMax', f.rssiMax);
     }
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
@@ -1086,11 +1123,21 @@ class UniversalFilterQueryBuilder {
       this.addApplied('spatial', 'distanceFromHomeMax', f.distanceFromHomeMax);
     }
     if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-      where.push(`ne.threat_score >= ${this.addParam(f.threatScoreMin)}`);
+      where.push(
+        ...this.buildThreatScorePredicate({
+          min: f.threatScoreMin,
+          expr: 'ne.threat_score',
+        })
+      );
       this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
     }
     if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-      where.push(`ne.threat_score <= ${this.addParam(f.threatScoreMax)}`);
+      where.push(
+        ...this.buildThreatScorePredicate({
+          max: f.threatScoreMax,
+          expr: 'ne.threat_score',
+        })
+      );
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
@@ -1341,16 +1388,28 @@ class UniversalFilterQueryBuilder {
       }
     }
     if (e.channelMin && f.channelMin !== undefined) {
-      where.push(`${NETWORK_CHANNEL_EXPR('ne')} >= ${this.addParam(f.channelMin)}`);
+      where.push(...this.buildRangePredicate({ min: f.channelMin, expr: NETWORK_CHANNEL_EXPR('ne') }));
     }
     if (e.channelMax && f.channelMax !== undefined) {
-      where.push(`${NETWORK_CHANNEL_EXPR('ne')} <= ${this.addParam(f.channelMax)}`);
+      where.push(...this.buildRangePredicate({ max: f.channelMax, expr: NETWORK_CHANNEL_EXPR('ne') }));
     }
     if (e.rssiMin && f.rssiMin !== undefined) {
-      where.push(`ne.signal >= ${this.addParam(f.rssiMin)}`);
+      where.push(
+        ...this.buildRssiPredicate({
+          value: f.rssiMin,
+          comparator: '>=',
+          signalExpr: 'ne.signal',
+        })
+      );
     }
     if (e.rssiMax && f.rssiMax !== undefined) {
-      where.push(`ne.signal <= ${this.addParam(f.rssiMax)}`);
+      where.push(
+        ...this.buildRssiPredicate({
+          value: f.rssiMax,
+          comparator: '<=',
+          signalExpr: 'ne.signal',
+        })
+      );
     }
     // ne.security contains raw capabilities string, compute security type for comparison
     const computedSecurityExpr = `
@@ -1454,10 +1513,22 @@ class UniversalFilterQueryBuilder {
       where.push(`ne.distance_from_home_km <= ${this.addParam(f.distanceFromHomeMax)}`);
     }
     if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-      where.push(`(${THREAT_SCORE_EXPR('nts', 'nt')} >= ${this.addParam(f.threatScoreMin)})`);
+      where.push(
+        ...this.buildThreatScorePredicate({
+          min: f.threatScoreMin,
+          expr: THREAT_SCORE_EXPR('nts', 'nt'),
+          wrapExpr: true,
+        })
+      );
     }
     if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-      where.push(`(${THREAT_SCORE_EXPR('nts', 'nt')} <= ${this.addParam(f.threatScoreMax)})`);
+      where.push(
+        ...this.buildThreatScorePredicate({
+          max: f.threatScoreMax,
+          expr: THREAT_SCORE_EXPR('nts', 'nt'),
+          wrapExpr: true,
+        })
+      );
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
       // Map frontend severity categories to database uppercase values
@@ -1496,13 +1567,21 @@ class UniversalFilterQueryBuilder {
 
     if (e.threatScoreMin && f.threatScoreMin !== undefined) {
       networkWhere.push(
-        `(${THREAT_SCORE_EXPR('nts', 'nt')} >= ${this.addParam(f.threatScoreMin)})`
+        ...this.buildThreatScorePredicate({
+          min: f.threatScoreMin,
+          expr: THREAT_SCORE_EXPR('nts', 'nt'),
+          wrapExpr: true,
+        })
       );
       this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
     }
     if (e.threatScoreMax && f.threatScoreMax !== undefined) {
       networkWhere.push(
-        `(${THREAT_SCORE_EXPR('nts', 'nt')} <= ${this.addParam(f.threatScoreMax)})`
+        ...this.buildThreatScorePredicate({
+          max: f.threatScoreMax,
+          expr: THREAT_SCORE_EXPR('nts', 'nt'),
+          wrapExpr: true,
+        })
       );
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }

@@ -40,9 +40,10 @@
 import { UniversalFilterQueryBuilder } from './universalFilterQueryBuilder';
 import { validateFilterPayload } from './validators';
 import { DEFAULT_ENABLED } from './constants';
+import { FilterPredicateBuilder } from './FilterPredicateBuilder';
 
 // Main class export
-export { UniversalFilterQueryBuilder, validateFilterPayload, DEFAULT_ENABLED };
+export { UniversalFilterQueryBuilder, FilterPredicateBuilder, validateFilterPayload, DEFAULT_ENABLED };
 
 // Re-export types for consumers
 export type {
@@ -65,6 +66,7 @@ export type {
 } from './types';
 
 export type { FilterKey } from './constants';
+export type { QueryContext, WhereClause } from './FilterPredicateBuilder';
 
 // Re-export utilities
 export { isOui, coerceOui } from './normalizers';
