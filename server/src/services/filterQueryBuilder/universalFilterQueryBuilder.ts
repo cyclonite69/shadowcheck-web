@@ -70,6 +70,11 @@ interface ThreatLevelMap {
   [key: string]: string;
 }
 
+const RM_MANUFACTURER_EXPR =
+  "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')";
+const RM_MANUFACTURER_ADDRESS_EXPR =
+  "COALESCE(to_jsonb(rm)->>'organization_address', to_jsonb(rm)->>'address')";
+
 class UniversalFilterQueryBuilder {
   private filters: Filters;
   private enabled: EnabledFlags;
@@ -171,7 +176,7 @@ class UniversalFilterQueryBuilder {
         where.push(`rm.oui = ${this.addParam(cleaned)}`);
         this.addApplied('identity', 'manufacturerOui', cleaned);
       } else {
-        where.push(`rm.organization_name ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
+        where.push(`${RM_MANUFACTURER_EXPR} ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
         this.addApplied('identity', 'manufacturer', f.manufacturer);
       }
     }
@@ -648,8 +653,8 @@ class UniversalFilterQueryBuilder {
           (COALESCE(ne.ssid, '') = '') AS is_hidden,
           ne.first_seen,
           ne.last_seen,
-          rm.organization_name AS manufacturer,
-          rm.address AS manufacturer_address,
+          ${RM_MANUFACTURER_EXPR} AS manufacturer,
+          ${RM_MANUFACTURER_ADDRESS_EXPR} AS manufacturer_address,
           NULL::numeric AS min_altitude_m,
           NULL::numeric AS max_altitude_m,
           NULL::numeric AS altitude_span_m,
@@ -799,8 +804,8 @@ class UniversalFilterQueryBuilder {
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
         ne.first_seen,
         ne.last_seen,
-        rm.organization_name AS manufacturer,
-        rm.organization_address AS manufacturer_address,
+        ${RM_MANUFACTURER_EXPR} AS manufacturer,
+        ${RM_MANUFACTURER_ADDRESS_EXPR} AS manufacturer_address,
         NULL::numeric AS min_altitude_m,
         NULL::numeric AS max_altitude_m,
         NULL::numeric AS altitude_span_m,
@@ -1180,8 +1185,8 @@ class UniversalFilterQueryBuilder {
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
         ne.first_seen,
         ne.last_seen,
-        rm.organization_name AS manufacturer,
-        rm.organization_address AS manufacturer_address,
+        ${RM_MANUFACTURER_EXPR} AS manufacturer,
+        ${RM_MANUFACTURER_ADDRESS_EXPR} AS manufacturer_address,
         NULL::numeric AS min_altitude_m,
         NULL::numeric AS max_altitude_m,
         NULL::numeric AS altitude_span_m,

@@ -168,7 +168,8 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     stationary_confidence: 's.stationary_confidence',
     frequency: 'ne.frequency',
     channel: 'ne.frequency',
-    manufacturer: 'rm.organization_name',
+    manufacturer:
+      "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')",
     max_distance_meters: 'ne.max_distance_meters',
   };
 

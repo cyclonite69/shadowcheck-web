@@ -4,6 +4,7 @@ import {
   UniversalFilterQueryBuilder,
   validateFilterPayload,
 } from '../../server/src/services/filterQueryBuilder';
+import { buildOrderBy } from '../../server/src/api/routes/v2/filteredHelpers';
 
 describe('UniversalFilterQueryBuilder', () => {
   test('rejects RSSI below noise floor', () => {
@@ -143,5 +144,17 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     ).buildNetworkListQuery();
 
     expect(result.appliedFilters).toHaveLength(0);
+  });
+
+  test('manufacturer sort uses schema-compatible expression', () => {
+    const orderBy = buildOrderBy('manufacturer', 'asc');
+    expect(orderBy).toContain("to_jsonb(rm)->>'organization_name'");
+    expect(orderBy).toContain('ASC');
+  });
+
+  test('network list SQL uses schema-compatible manufacturer projection', () => {
+    const result = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
+    expect(result.sql).toContain("to_jsonb(rm)->>'organization_name'");
+    expect(result.sql).toContain('AS manufacturer');
   });
 });
