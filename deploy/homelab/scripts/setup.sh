@@ -38,21 +38,14 @@ else
 fi
 
 # Create directories
-mkdir -p secrets backups data logs
+mkdir -p backups data logs
 
-# Check for .env
-if [ ! -f .env ]; then
-    echo "📝 Creating .env from example..."
-    cp .env.example .env
-    echo "⚠️  Edit .env and set your database credentials!"
-fi
-
-# Check for secrets
-if [ ! -f secrets/db_password.txt ]; then
-    echo "🔐 Generating database password..."
-    openssl rand -base64 32 | tr -d "=+/" | cut -c1-32 > secrets/db_password.txt
-    chmod 600 secrets/db_password.txt
-    echo "✅ Password saved to secrets/db_password.txt"
+# Enforce secret handling policy
+if [ -z "${DB_PASSWORD:-}" ]; then
+    echo "❌ DB_PASSWORD is not set."
+    echo "Policy: secrets must be injected at runtime, never written to disk."
+    echo "Export DB_PASSWORD and rerun."
+    exit 1
 fi
 
 # Start infrastructure
@@ -81,5 +74,4 @@ echo "2. Start application: docker compose up -d"
 echo "3. Access at: http://localhost:3001"
 echo ""
 echo "Configuration used: deploy/homelab/configs/$CONFIG"
-echo "Database password: secrets/db_password.txt"
 echo ""

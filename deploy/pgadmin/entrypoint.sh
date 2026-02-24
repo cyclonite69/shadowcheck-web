@@ -50,13 +50,7 @@ if [ -z "$SECRET_NAME" ]; then
 fi
 
 SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --query SecretString --output text)
-DB_PASS=$(echo "$SECRET_JSON" | jq -r '.db_admin_password // .password // .db_password')
 PGADMIN_PASS=$(echo "$SECRET_JSON" | jq -r '.admin_password // "admin"')
-
-if [ -z "$DB_PASS" ] || [ "$DB_PASS" = "null" ]; then
-    echo "Error: Could not extract database password from secret."
-    exit 1
-fi
 
 export PGADMIN_DEFAULT_PASSWORD=$PGADMIN_PASS
 echo "Secrets retrieved."
@@ -68,13 +62,7 @@ if [ ! -f "$SSL_CERT_PATH" ]; then
     curl -s -o "$SSL_CERT_PATH" https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 fi
 
-# 5. Credentials File (.pgpass)
-# Must be owned by 5050 and chmod 600
-PGPASS_PATH="/var/lib/pgadmin/.pgpass"
-echo "${HOST_DNS}:5432:shadowcheck_db:shadowcheck_user:${DB_PASS}" > "$PGPASS_PATH"
-chmod 600 "$PGPASS_PATH"
-
-# 6. Servers JSON
+# 5. Servers JSON
 cat <<EOF > /pgadmin4/servers.json
 {
     "Servers": {
@@ -86,8 +74,7 @@ cat <<EOF > /pgadmin4/servers.json
             "MaintenanceDB": "shadowcheck_db",
             "Username": "shadowcheck_user",
             "SSLMode": "verify-full",
-            "SSLRootCert": "${SSL_CERT_PATH}",
-            "PassFile": "${PGPASS_PATH}"
+            "SSLRootCert": "${SSL_CERT_PATH}"
         }
     }
 }

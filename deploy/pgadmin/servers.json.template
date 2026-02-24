@@ -8,8 +8,7 @@
             "MaintenanceDB": "shadowcheck_db",
             "Username": "shadowcheck_user",
             "SSLMode": "require",
-            "SSLRootCert": "/var/lib/pgadmin/global-bundle.pem",
-            "PassFile": "/var/lib/pgadmin/.pgpass"
+            "SSLRootCert": "/var/lib/pgadmin/global-bundle.pem"
         }
     }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "shadowcheck-static",
+  "name": "shadowcheck-web",
   "version": "1.0.0",
   "type": "commonjs",
   "description": "ShadowCheck SIGINT Forensics Platform - Static Frontend & Server",
@@ -23,6 +23,7 @@
     "test:integration": "RUN_INTEGRATION_TESTS=true npm test",
     "test:bedrock": "curl -s http://localhost:3001/api/claude/test | jq . && echo '---' && curl -s -X POST http://localhost:3001/api/claude/analyze-networks -H 'Content-Type: application/json' -d '{\"networks\":[{\"bssid\":\"AA:BB:CC:DD:EE:FF\",\"ssid\":\"TestNet\",\"type\":\"W\",\"threat_score\":75,\"observation_count\":42,\"unique_days\":7,\"seen_at_home\":true,\"seen_away\":true}],\"question\":\"Is this network a surveillance threat?\"}' | jq .",
     "lint": "eslint .",
+    "policy:secrets": "bash scripts/security/check-no-secret-disk-writes.sh",
     "lint:fix": "eslint . --fix",
     "lint:boundaries": "tsx scripts/check-client-imports.ts",
     "format": "prettier --write \"**/*.{js,json,md,yml}\"",

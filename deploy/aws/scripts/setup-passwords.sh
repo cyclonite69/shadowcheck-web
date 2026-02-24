@@ -18,28 +18,30 @@ generate_password() {
 echo "==> Generating secure passwords..."
 DB_USER_PASSWORD=$(generate_password)
 DB_ADMIN_PASSWORD=$(generate_password)
+AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
+SECRET_NAME="${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}"
 
 echo ""
-echo "==> Creating .env file for Docker Compose..."
-cat > .env << EOF
-# Database passwords
-DB_PASSWORD=${DB_USER_PASSWORD}
+echo "==> Persisting generated values to AWS Secrets Manager (${SECRET_NAME})..."
+SECRET_JSON=$(printf '{"db_password":"%s","db_admin_password":"%s"}' "$DB_USER_PASSWORD" "$DB_ADMIN_PASSWORD")
 
-# AWS credentials (optional - set if needed)
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_DEFAULT_REGION=us-east-1
-S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
-EOF
+if aws secretsmanager describe-secret --secret-id "$SECRET_NAME" --region "$AWS_REGION" >/dev/null 2>&1; then
+  aws secretsmanager put-secret-value \
+    --secret-id "$SECRET_NAME" \
+    --secret-string "$SECRET_JSON" \
+    --region "$AWS_REGION" >/dev/null
+else
+  aws secretsmanager create-secret \
+    --name "$SECRET_NAME" \
+    --description "ShadowCheck runtime secrets" \
+    --secret-string "$SECRET_JSON" \
+    --region "$AWS_REGION" >/dev/null
+fi
 
 echo ""
 echo "==> Setup complete!"
 echo ""
-echo "==> IMPORTANT: Save these passwords securely:"
-echo "    DB User Password (shadowcheck_user): ${DB_USER_PASSWORD}"
-echo "    DB Admin Password (shadowcheck_admin): ${DB_ADMIN_PASSWORD}"
-echo ""
 echo "==> Next steps:"
-echo "    1. Update PostgreSQL to use DB_PASSWORD: ${DB_USER_PASSWORD}"
+echo "    1. Ensure runtime reads DB credentials from AWS Secrets Manager (${SECRET_NAME})"
 echo "    2. Run: ./deploy/aws/scripts/deploy-separated.sh"
 echo ""

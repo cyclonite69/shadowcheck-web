@@ -31,16 +31,10 @@ function print_warning() {
 
 # Check if .env exists
 if [ ! -f .env ]; then
-    print_warning ".env file not found. Creating from .env.example..."
-    if [ -f .env.example ]; then
-        cp .env.example .env
-        print_success "Created .env from .env.example"
-        print_warning "Please update .env with your credentials before starting services"
-        exit 0
-    else
-        print_error ".env.example not found. Please create .env manually"
-        exit 1
-    fi
+    print_error ".env file not found."
+    print_warning "Policy enforcement: this script will not auto-create .env files."
+    print_warning "Inject required secrets via runtime environment / AWS Secrets Manager."
+    exit 1
 fi
 
 # Commands

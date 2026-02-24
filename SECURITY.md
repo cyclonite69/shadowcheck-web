@@ -51,6 +51,8 @@ ShadowCheck implements several security measures:
 - Environment-based configuration
 - Secure session management
 - Data validation on all inputs
+- Immutable policy: secrets are never written to disk at runtime (`.env`, `.pgpass`, `secrets/*.txt`)
+- Enforced by automated guardrail: `npm run policy:secrets` (pre-commit + CI)
 
 ### Infrastructure
 
