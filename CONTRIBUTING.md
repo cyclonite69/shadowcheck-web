@@ -41,7 +41,7 @@
 git clone https://github.com/cyclonite69/shadowcheck-static.git
 cd shadowcheck-static
 npm install
-cp .env.example .env
+# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
 # Edit .env with your database credentials
 npm start
 ```

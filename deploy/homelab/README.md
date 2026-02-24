@@ -57,17 +57,15 @@ cd shadowcheck-static
 ### 3. Configure Environment
 
 ```bash
-cp .env.example .env
-nano .env  # Edit database credentials
+# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
+export DB_PASSWORD="<runtime secret value>"
 ```
 
 ### 4. Set Up Secrets
 
 ```bash
-mkdir -p secrets
-echo "your_secure_password" > secrets/db_password.txt
-echo "your_mapbox_token" > secrets/mapbox_token.txt
-chmod 600 secrets/*.txt
+export DB_PASSWORD="<runtime secret value>"
+export MAPBOX_TOKEN="your_mapbox_token"
 ```
 
 ### 5. Start Infrastructure
@@ -123,7 +121,7 @@ PostgreSQL on dedicated hardware, app on another.
 # Database server
 docker-compose -f docker/infrastructure/docker-compose.postgres.yml up -d
 
-# App server (edit .env to point to DB server)
+# App server (set runtime DB_* environment variables to point to DB server)
 DB_HOST=192.168.1.100
 docker-compose up -d
 ```
@@ -242,7 +240,7 @@ sudo ufw deny 5432/tcp
 
 ```bash
 # Strong passwords
-openssl rand -base64 32 > secrets/db_password.txt
+DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32); export DB_PASSWORD
 
 # Rotate every 90 days
 ./scripts/rotate-db-password.sh
@@ -348,7 +346,7 @@ free -h
 docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db -c "SELECT version();"
 
 # Check secrets
-cat secrets/db_password.txt
+aws secretsmanager get-secret-value --secret-id shadowcheck/config --query SecretString --output text | jq -r '.db_password'
 ```
 
 ### Slow Performance

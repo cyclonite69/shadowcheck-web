@@ -76,11 +76,11 @@ CREATE EXTENSION postgis;
 ### 4. Configure Environment
 
 ```bash
-# Copy example environment file
-cp .env.example .env
-
-# Edit with your settings
-nano .env
+# Configure non-secret runtime vars
+export DB_USER=shadowcheck_user
+export DB_HOST=localhost
+export DB_NAME=shadowcheck_db
+export DB_PORT=5432
 ```
 
 **Essential environment variables:**
@@ -157,8 +157,10 @@ Access the application:
 
 ```bash
 # Configure environment
-cp .env.example .env
-nano .env
+export DB_USER=shadowcheck_user
+export DB_HOST=shadowcheck_postgres
+export DB_NAME=shadowcheck_db
+export DB_PORT=5432
 
 # Start infrastructure
 docker-compose up -d

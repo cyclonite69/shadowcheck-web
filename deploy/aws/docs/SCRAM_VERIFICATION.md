@@ -62,9 +62,9 @@ docker exec*psql*
 **Method 1: Space Prefix (Recommended)**
 
 ```bash
-# Add space before command - won't be logged
+ # Add space before command - won't be logged
  psql -c "ALTER USER shadowcheck_user WITH PASSWORD 'newpass';"
- echo "secret" > secrets/db_password.txt
+ aws secretsmanager put-secret-value --secret-id shadowcheck/config --secret-string '{"db_password":"newpass"}'
 ```
 
 **Method 2: Use Aliases**
@@ -132,7 +132,7 @@ docker exec shadowcheck_postgres psql -U postgres -d shadowcheck_db -c \
   "ALTER USER shadowcheck_user WITH PASSWORD '$NEW_PASSWORD';"
 
 # 3. Update storage
-echo "$NEW_PASSWORD" > secrets/db_password.txt
+aws secretsmanager put-secret-value --secret-id shadowcheck/config --secret-string "{\"db_password\":\"$NEW_PASSWORD\"}"
 
 # 4. Restart services
 docker-compose restart api
@@ -258,8 +258,8 @@ aws ssm start-session --target i-INSTANCE_ID
 
 # Set initial password
 sudo su - ssm-user
-echo "your-secure-password" > .env
-sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=your-secure-password/' .env
+export DB_PASSWORD="your-secure-password"
+aws secretsmanager put-secret-value --secret-id shadowcheck/config --secret-string "{\"db_password\":\"$DB_PASSWORD\"}"
 
 # Update PostgreSQL
 docker exec shadowcheck_postgres psql -U postgres -d shadowcheck_db -c \
@@ -291,7 +291,7 @@ cd /home/ssm-user
 
 ```bash
 # Check when password was last rotated
-stat secrets/db_password.txt
+aws secretsmanager describe-secret --secret-id shadowcheck/config
 
 # Check PostgreSQL password change time
 docker exec shadowcheck_postgres psql -U postgres -c \
@@ -312,7 +312,7 @@ docker exec shadowcheck_postgres psql -U postgres -d shadowcheck_db -c \
   "ALTER USER shadowcheck_user WITH PASSWORD 'your-password';"
 
 # Update storage
-echo "your-password" > secrets/db_password.txt
+aws secretsmanager put-secret-value --secret-id shadowcheck/config --secret-string '{"db_password":"your-password"}'
 ```
 
 ### "FATAL: no pg_hba.conf entry"

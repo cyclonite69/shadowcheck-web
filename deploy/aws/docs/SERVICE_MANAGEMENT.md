@@ -123,17 +123,12 @@ Only API and PgAdmin are accessible from outside:
 ### Secrets Management
 
 ```bash
-# Create secrets directory
-mkdir -p /home/ssm-user/secrets
-chmod 700 /home/ssm-user/secrets
-
-# Set passwords
-echo "your-db-password" > /home/ssm-user/secrets/db_password.txt
-echo "your-mapbox-token" > /home/ssm-user/secrets/mapbox_token.txt
-echo "your-pgadmin-password" > /home/ssm-user/secrets/pgadmin_password.txt
-
-# Secure permissions
-chmod 600 /home/ssm-user/secrets/*.txt
+# Set/update secrets in AWS Secrets Manager (single merged payload)
+aws secretsmanager put-secret-value --secret-id shadowcheck/config --secret-string '{
+  "db_password":"your-db-password",
+  "mapbox_token":"your-mapbox-token",
+  "pgadmin_password":"your-pgadmin-password"
+}'
 ```
 
 ### Logging
@@ -290,7 +285,7 @@ docker-compose ps postgres
 docker exec shadowcheck_postgres pg_isready -U shadowcheck_user
 
 # Check password
-cat /home/ssm-user/secrets/db_password.txt
+aws secretsmanager get-secret-value --secret-id shadowcheck/config --query SecretString --output text | jq -r '.db_password'
 ```
 
 ## Quick Reference

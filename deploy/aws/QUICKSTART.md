@@ -201,7 +201,7 @@ curl http://localhost:3001/api/health
 
 ## Security Notes
 
-1. **Database password** is auto-generated and stored in `/home/ssm-user/secrets/db_password.txt`
+1. **Database password** is auto-generated and stored in `AWS Secrets Manager (shadowcheck/config: db_password)`
 2. **SSL/TLS** is enforced for PostgreSQL connections
 3. **Security groups** restrict access - use `add-ip-access.sh` to allow your IP
 4. **Secrets** are never committed to git (.env.aws is gitignored)

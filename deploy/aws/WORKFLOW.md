@@ -114,7 +114,7 @@ vim deploy/aws/.env.aws  # Fill in your values
 
 ```bash
 # Database password
-cat /home/ssm-user/secrets/db_password.txt
+aws secretsmanager get-secret-value --secret-id shadowcheck/config --query SecretString --output text | jq -r '.db_password'
 
 # Public IP
 curl http://169.254.169.254/latest/meta-data/public-ipv4
@@ -171,7 +171,7 @@ vim /home/ssm-user/shadowcheck/server/src/api/routes/v1/auth.ts
 docker run -d -e NEW_VAR=value ...
 ```
 
-✅ **Instead, update .env.aws or code locally, then deploy**
+✅ **Instead, update runtime environment / AWS Secrets Manager values or code locally, then deploy**
 
 ## Configuration Management
 

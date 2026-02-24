@@ -134,7 +134,7 @@ lsof -p PID      # Open files by process
 
 ```bash
 # Database password
-cat /home/ssm-user/secrets/db_password.txt
+aws secretsmanager get-secret-value --secret-id shadowcheck/config --query SecretString --output text | jq -r '.db_password'
 
 # Add your IP to security group
 ./deploy/aws/scripts/add-ip-access.sh YOUR_IP
@@ -156,7 +156,7 @@ openssl x509 -in /var/lib/postgresql/certs/server.crt -text -noout
 /home/ssm-user/shadowcheck/
 
 # Secrets
-/home/ssm-user/secrets/db_password.txt
+AWS Secrets Manager (shadowcheck/config: db_password)
 
 # Database data
 /var/lib/postgresql/
@@ -194,7 +194,7 @@ http://PUBLIC_IP:3001/api/health
 ```
 Database:
   User: shadowcheck_user
-  Password: (see /home/ssm-user/secrets/db_password.txt)
+  Password: (see AWS Secrets Manager (shadowcheck/config: db_password))
   Database: shadowcheck_db
   Port: 5432 (localhost only)
 
@@ -238,7 +238,7 @@ docker-compose down && docker-compose up -d
 
 ```bash
 docker exec shadowcheck_postgres pg_isready
-cat /home/ssm-user/secrets/db_password.txt
+aws secretsmanager get-secret-value --secret-id shadowcheck/config --query SecretString --output text | jq -r '.db_password'
 cat deploy/aws/.env.aws | grep DB_
 ```
 
@@ -282,7 +282,7 @@ docker exec shadowcheck_postgres pg_dump -U shadowcheck_user shadowcheck_db > ba
 cat backup.sql | docker exec -i shadowcheck_postgres psql -U shadowcheck_user shadowcheck_db
 
 # Backup secrets
-cp /home/ssm-user/secrets/db_password.txt ~/db_password.backup
+aws secretsmanager get-secret-value --secret-id shadowcheck/config --query SecretString --output text > ~/shadowcheck-config-secret-backup.json
 
 # Backup environment
 cp deploy/aws/.env.aws ~/env.backup

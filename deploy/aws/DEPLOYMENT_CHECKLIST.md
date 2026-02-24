@@ -39,7 +39,7 @@ Use this checklist to ensure all steps are completed correctly.
 - [ ] Run PostgreSQL deployment: `sudo ./deploy/aws/scripts/deploy-postgres.sh`
 - [ ] Verify container running: `docker ps | grep shadowcheck_postgres`
 - [ ] Verify database accessible: `docker exec shadowcheck_postgres pg_isready`
-- [ ] Note database password location: `/home/ssm-user/secrets/db_password.txt`
+- [ ] Note database password location: `AWS Secrets Manager (shadowcheck/config: db_password)`
 
 ## Environment Configuration
 
@@ -48,7 +48,7 @@ Use this checklist to ensure all steps are completed correctly.
 - [ ] Set `MAPBOX_TOKEN` (from Mapbox account)
 - [ ] Set `SESSION_SECRET` (generate with: `openssl rand -base64 32`)
 - [ ] Set `WIGLE_API_KEY` (optional)
-- [ ] Verify `DB_PASSWORD` matches `/home/ssm-user/secrets/db_password.txt`
+- [ ] Verify `DB_PASSWORD` matches `AWS Secrets Manager (shadowcheck/config: db_password)`
 - [ ] Verify `PUBLIC_IP` matches: `curl http://169.254.169.254/latest/meta-data/public-ipv4`
 
 ## Application Deployment
@@ -160,7 +160,7 @@ Use this space for deployment-specific notes:
 Instance ID:
 Public IP:
 Deployment Date:
-Database Password Location: /home/ssm-user/secrets/db_password.txt
+Database Password Location: AWS Secrets Manager (shadowcheck/config: db_password)
 Mapbox Token: (stored in .env.aws)
 WiGLE API Key: (stored in .env.aws)
 

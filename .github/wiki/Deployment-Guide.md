@@ -101,7 +101,7 @@ psql -d shadowcheck_db -c "CREATE EXTENSION postgis;"
 psql -d shadowcheck_db -f sql/migrations/*.sql
 
 # Configure environment
-cp .env.example .env
+# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
 # Edit .env with your credentials
 
 # Start development server

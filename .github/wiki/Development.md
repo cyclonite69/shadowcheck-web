@@ -31,7 +31,7 @@ npm install
 ### 3. Configure Environment
 
 ```bash
-cp .env.example .env
+# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
 # Edit .env with your database credentials
 ```
 

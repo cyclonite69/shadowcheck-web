@@ -106,7 +106,7 @@ variables only as explicit overrides (no secrets written to disk).
 
 ```bash
 # Non-secret config can live in .env if desired
-cp .env.example .env
+# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
 
 # Local overrides for secrets
 export DB_PASSWORD=...

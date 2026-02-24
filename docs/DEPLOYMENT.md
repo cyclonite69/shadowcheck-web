@@ -118,14 +118,20 @@ cd ShadowCheckStatic
 ### 3. Configure Environment
 
 ```bash
-# Create production environment file
-cp .env.example .env
-
-# Edit with production values
-nano .env
+# Export runtime configuration (non-secrets can be sourced from your deployment system)
+export NODE_ENV=production
+export PORT=3001
+export DB_USER=shadowcheck_user
+export DB_HOST=postgres
+export DB_NAME=shadowcheck
+export DB_PORT=5432
+# Secrets must come from AWS Secrets Manager / runtime injection
+export DB_PASSWORD="<from-aws-secrets-manager>"
+export API_KEY="<from-aws-secrets-manager>"
+export MAPBOX_TOKEN="<from-aws-secrets-manager>"
 ```
 
-**Production `.env` example:**
+**Production environment variable example:**
 
 ```env
 # Database
@@ -374,9 +380,8 @@ cd app
 # Install dependencies
 sudo -u shadowcheck npm ci --production
 
-# Create environment file
-sudo -u shadowcheck cp .env.example .env
-sudo -u shadowcheck nano .env
+# Configure runtime environment through systemd drop-in or orchestrator-managed env vars
+sudo systemctl edit shadowcheck.service
 ```
 
 ### 4. Create Systemd Service
@@ -397,7 +402,12 @@ Type=simple
 User=shadowcheck
 Group=shadowcheck
 WorkingDirectory=/opt/shadowcheck/app
-EnvironmentFile=/opt/shadowcheck/app/.env
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=DB_USER=shadowcheck_user
+Environment=DB_HOST=postgres
+Environment=DB_NAME=shadowcheck
+# Inject DB_PASSWORD/API_KEY/MAPBOX_TOKEN securely at runtime (no disk-backed secret files)
 ExecStart=/usr/bin/node server/server.js
 Restart=on-failure
 RestartSec=10

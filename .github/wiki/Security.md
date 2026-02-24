@@ -164,7 +164,7 @@ Error: Required secret 'db_password' not found
 **Solution**:
 
 1. Set via AWS Secrets Manager (e.g., update `db_password`)
-2. Create Docker secret file: `echo "password" > secrets/db_password.txt`
+2. Store secrets in AWS Secrets Manager and inject at runtime; do not write local secret files.
 
 ### Secrets Access Errors
 
@@ -176,7 +176,7 @@ Error: Access to AWS Secrets Manager denied
 
 1. Verify the IAM role/user has permissions for the secret
 2. Confirm the AWS region and credential env vars are set
-3. Use Docker secrets only in production and rely on AWS SM elsewhere
+3. Keep secrets in AWS Secrets Manager and inject them at runtime (no file-backed secret stores)
 
 ---
 

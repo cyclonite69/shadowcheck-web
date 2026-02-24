@@ -164,7 +164,7 @@ scstatus  # docker ps && echo "" && df -h /var/lib/postgresql
 
 The `deploy-complete.sh` script automatically populates:
 
-- Database password (from `/home/ssm-user/secrets/db_password.txt`)
+- Database password (from `AWS Secrets Manager (shadowcheck/config: db_password)`)
 - Public IP (from EC2 metadata)
 - Other environment variables from template
 
