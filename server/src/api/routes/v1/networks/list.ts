@@ -574,6 +574,7 @@ router.get(
     const conditions: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
+    const appliedFiltersArray: { column: string; value?: unknown; range?: [number, number] }[] = [];
 
     const addCondition = (condition: string, value: unknown) => {
       conditions.push(condition);
@@ -584,20 +585,24 @@ router.get(
     if (ssidPattern !== null) {
       const escapedPattern = escapeLikePattern(ssidPattern);
       addCondition(`ne.ssid ILIKE $${paramIndex}`, `%${escapedPattern}%`);
+      appliedFiltersArray.push({ column: 'ssid', value: ssidPattern });
     }
 
     if (bssidList !== null && bssidList.length > 0) {
       conditions.push(`ne.bssid = ANY($${paramIndex}::text[])`);
       params.push(bssidList);
       paramIndex++;
+      appliedFiltersArray.push({ column: 'bssid', value: bssidList });
     }
 
     if (threatLevel !== null) {
       addCondition(`(${threatLevelExpr}) = $${paramIndex}`, threatLevel);
+      appliedFiltersArray.push({ column: 'threatLevel', value: threatLevel });
     }
 
     if (threatCategories !== null && threatCategories.length > 0) {
       addCondition(`(${threatLevelExpr}) = ANY($${paramIndex}::text[])`, threatCategories);
+      appliedFiltersArray.push({ column: 'threatCategories', value: threatCategories });
     }
 
     if (threatScoreMin !== null) {
@@ -607,9 +612,16 @@ router.get(
     if (threatScoreMax !== null) {
       addCondition(`${threatScoreExpr} <= $${paramIndex}`, threatScoreMax);
     }
+    if (threatScoreMin !== null || threatScoreMax !== null) {
+      appliedFiltersArray.push({
+        column: 'threatScore',
+        range: [threatScoreMin ?? -100, threatScoreMax ?? 100],
+      });
+    }
 
     if (lastSeen !== null) {
       addCondition(`ne.last_seen >= $${paramIndex}`, lastSeen);
+      appliedFiltersArray.push({ column: 'lastSeen', value: lastSeen });
     }
 
     if (distanceFromHomeKm !== null) {
@@ -623,6 +635,16 @@ router.get(
     if (distanceFromHomeMaxKm !== null) {
       addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeMaxKm);
     }
+    if (
+      distanceFromHomeMinKm !== null ||
+      distanceFromHomeMaxKm !== null ||
+      distanceFromHomeKm !== null
+    ) {
+      appliedFiltersArray.push({
+        column: 'distanceFromHome',
+        range: [distanceFromHomeMinKm ?? 0, distanceFromHomeMaxKm ?? distanceFromHomeKm ?? 10000],
+      });
+    }
 
     if (minSignal !== null) {
       addCondition(`ne.signal >= $${paramIndex}`, minSignal);
@@ -630,6 +652,9 @@ router.get(
 
     if (maxSignal !== null) {
       addCondition(`ne.signal <= $${paramIndex}`, maxSignal);
+    }
+    if (minSignal !== null || maxSignal !== null) {
+      appliedFiltersArray.push({ column: 'rssi', range: [minSignal ?? -100, maxSignal ?? 0] });
     }
 
     if (minObsCount !== null) {
@@ -639,20 +664,25 @@ router.get(
     if (maxObsCount !== null) {
       addCondition(`ne.observations <= $${paramIndex}`, maxObsCount);
     }
+    if (minObsCount !== null || maxObsCount !== null) {
+      appliedFiltersArray.push({
+        column: 'obsCount',
+        range: [minObsCount ?? 0, maxObsCount ?? 1000000],
+      });
+    }
 
     if (radioTypes !== null && radioTypes.length > 0) {
-      if (radioTypes.includes('W')) {
-        conditions.push(`(${typeExpr}) = 'W'`);
-      } else if (radioTypes.length > 0) {
-        const radioConditions = radioTypes.map((rt) => `(${typeExpr}) = '${rt}'`);
-        conditions.push(`(${radioConditions.join(' OR ')})`);
-      }
+      conditions.push(`(${typeExpr}) = ANY($${paramIndex}::text[])`);
+      params.push(radioTypes);
+      paramIndex++;
+      appliedFiltersArray.push({ column: 'radioTypes', value: radioTypes });
     }
 
     if (encryptionTypes !== null && encryptionTypes.length > 0) {
       // Predicate logic lives in utils/networkSqlExpressions.ts (canonical SSoT).
       const encCondition = buildEncryptionTypeCondition(encryptionTypes);
       if (encCondition) conditions.push(encCondition);
+      appliedFiltersArray.push({ column: 'encryptionTypes', value: encryptionTypes });
     }
 
     if (authMethods !== null && authMethods.length > 0) {
@@ -664,18 +694,21 @@ router.get(
         }
       });
       conditions.push(`(${authConditions.join(' OR ')})`);
+      appliedFiltersArray.push({ column: 'authMethods', value: authMethods });
     }
 
     if (insecureFlags !== null && insecureFlags.length > 0) {
       conditions.push(`(ne.insecure_flags && $${paramIndex}::text[])`);
       params.push(insecureFlags);
       paramIndex++;
+      appliedFiltersArray.push({ column: 'insecureFlags', value: insecureFlags });
     }
 
     if (securityFlags !== null && securityFlags.length > 0) {
       conditions.push(`(ne.security_flags && $${paramIndex}::text[])`);
       params.push(securityFlags);
       paramIndex++;
+      appliedFiltersArray.push({ column: 'securityFlags', value: securityFlags });
     }
 
     if (quickSearchPattern !== null) {
@@ -771,7 +804,7 @@ router.get(
         plan,
         total,
         count: rows.length,
-        applied_filters: sortEntries,
+        applied_filters: [...appliedFiltersArray, ...sortEntries],
         ignoredSorts,
       });
     }
@@ -782,7 +815,7 @@ router.get(
       count: rows.length,
       limit,
       offset,
-      appliedFilters: sortEntries,
+      appliedFilters: [...appliedFiltersArray, ...sortEntries],
       ignoredSorts,
     });
   })
