@@ -37,7 +37,7 @@ docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/
 
 # 3. Ensure infrastructure is running
 echo "[3/7] Ensuring infrastructure is running..."
-if ! docker ps | grep -q shadowcheck_postgres_ssl; then
+if ! docker ps | grep -q shadowcheck_postgres; then
   echo "  Starting PostgreSQL and Redis..."
   sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
 else
@@ -58,7 +58,7 @@ fi
 cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
-DB_HOST=shadowcheck_postgres_ssl
+DB_HOST=shadowcheck_postgres
 DB_PORT=5432
 DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db
@@ -102,12 +102,12 @@ rm -f "$ENV_FILE"
 echo "[6/7] Running database bootstrap & migrations..."
 
 # Create /sql/ in postgres container and copy files (clean first to remove stale files)
-docker exec shadowcheck_postgres_ssl rm -rf /sql/migrations
-docker exec shadowcheck_postgres_ssl mkdir -p /sql
-docker cp sql/init/00_bootstrap.sql shadowcheck_postgres_ssl:/sql/00_bootstrap.sql
-docker cp sql/migrations shadowcheck_postgres_ssl:/sql/migrations
-docker cp sql/run-migrations.sh shadowcheck_postgres_ssl:/sql/run-migrations.sh
-docker cp sql/seed-migrations-tracker.sql shadowcheck_postgres_ssl:/sql/seed-migrations-tracker.sql
+docker exec shadowcheck_postgres rm -rf /sql/migrations
+docker exec shadowcheck_postgres mkdir -p /sql
+docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
+docker cp sql/migrations shadowcheck_postgres:/sql/migrations
+docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
+docker cp sql/seed-migrations-tracker.sql shadowcheck_postgres:/sql/seed-migrations-tracker.sql
 
 # Run bootstrap (idempotent — safe on existing DBs)
 # Pull admin password from AWS Secrets Manager (sole secret store)
@@ -115,16 +115,16 @@ DB_ADMIN_PASSWORD=$(aws secretsmanager get-secret-value \
   --secret-id shadowcheck/config --region us-east-1 \
   --query 'SecretString' --output text 2>/dev/null \
   | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
-docker exec shadowcheck_postgres_ssl psql -U shadowcheck_user -d shadowcheck_db \
+docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
   -v admin_password="$DB_ADMIN_PASSWORD" \
   -f /sql/00_bootstrap.sql 2>&1 | tail -5
 
 # Seed migration tracker (marks pre-existing migrations as applied)
-docker exec shadowcheck_postgres_ssl psql -U shadowcheck_user -d shadowcheck_db \
+docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
   -f /sql/seed-migrations-tracker.sql -q 2>&1 | tail -3
 
 # Run migrations (only applies new/untracked ones)
-docker exec shadowcheck_postgres_ssl bash /sql/run-migrations.sh 2>&1 | tail -10
+docker exec shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
 
 # 6. Health check
 echo "[7/7] Verifying deployment..."
