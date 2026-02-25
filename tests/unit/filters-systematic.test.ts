@@ -69,6 +69,16 @@ describe('Systematic Filter Testing', () => {
       expect(result.where.some((w: string) => w.includes('= ANY'))).toBe(true);
       expect((builder as any).params).toContainEqual(['W']);
     });
+
+    test('mixed radio types keep all selected values', () => {
+      const filters = { radioTypes: ['W', 'L'] };
+      const enabled = { radioTypes: true };
+      const builder = new UniversalFilterQueryBuilder(filters, enabled);
+      const result = builder.buildObservationFilters();
+
+      expect(result.where.some((w: string) => w.includes('= ANY'))).toBe(true);
+      expect((builder as any).params).toContainEqual(['W', 'L']);
+    });
   });
 
   describe('frequencyBands filter', () => {
