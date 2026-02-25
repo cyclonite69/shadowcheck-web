@@ -369,7 +369,7 @@ function toAppError(error: unknown): AppError {
   }
 
   if (err.message && err.message.includes('timeout')) {
-    return new TimeoutError('Operation', 5000);
+    return new TimeoutError('Operation', 60000);
   }
 
   // Generic fallback

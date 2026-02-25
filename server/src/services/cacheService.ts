@@ -15,7 +15,7 @@ class CacheService {
         socket: {
           host: redisHost,
           port: redisPort,
-          connectTimeout: 5000,
+          connectTimeout: 30000,
         },
       });
 
