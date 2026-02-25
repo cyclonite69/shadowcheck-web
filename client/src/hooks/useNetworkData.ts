@@ -114,6 +114,12 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           )
         );
 
+        console.log('[useNetworkData] Fetching with filters:', {
+          activeFilters,
+          enabled: debouncedFilterState.enabled,
+          allFilters: debouncedFilterState.filters,
+        });
+
         const params = new URLSearchParams({
           limit: String(NETWORK_PAGE_LIMIT),
           offset: String(pagination.offset),

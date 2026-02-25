@@ -143,6 +143,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
       setFilter: (key, value) => {
         const { currentPage, pageStates } = get();
         const pageState = getPageState(pageStates, currentPage);
+        console.log('[FilterStore] setFilter:', { key, value, currentPage });
         set({
           pageStates: {
             ...pageStates,
