@@ -66,7 +66,6 @@ const defaultFilters: NetworkFilters = {
   has_notes: undefined,
   tag_type: [],
   wigle_v3_observation_count_min: undefined,
-  qualityFilter: 'none', // Disabled by default to prevent timeouts
 };
 
 // EXPLICIT enable/disable - most filters DISABLED by default
