@@ -90,6 +90,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private obsJoins: Set<string>;
   private requiresHome: boolean;
   private context: (Partial<QueryContext> & { pageType?: 'geospatial' | 'wigle' }) | undefined;
+  private perfTracker?: any;
 
   constructor(
     filters: unknown,
@@ -98,6 +99,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       pageType?: 'geospatial' | 'wigle';
       mode?: QueryContext['mode'];
       alias?: string;
+      trackPerformance?: boolean;
     }
   ) {
     super();
@@ -110,6 +112,11 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     this.obsJoins = new Set();
     this.requiresHome = false;
     this.context = context || {};
+
+    if (context?.trackPerformance || process.env.TRACK_QUERY_PERFORMANCE === 'true') {
+      const { QueryPerformanceTracker } = require('../../utils/queryPerformanceTracker');
+      this.perfTracker = new QueryPerformanceTracker('filter-query');
+    }
   }
 
   protected addParam(value: unknown): string {
@@ -121,14 +128,23 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
 
   private addApplied(type: string, field: string, value: unknown): void {
     this.state = this.state.withAppliedFilter(type, field, value);
+    if (this.perfTracker) {
+      this.perfTracker.addAppliedFilter(field, true);
+    }
   }
 
   private addIgnored(type: string, field: string, reason: string): void {
     this.state = this.state.withIgnoredFilter(type, field, reason);
+    if (this.perfTracker) {
+      this.perfTracker.addIgnoredFilter(field);
+    }
   }
 
   private addWarning(message: string): void {
     this.state = this.state.withWarning(message);
+    if (this.perfTracker) {
+      this.perfTracker.addWarning(message);
+    }
   }
 
   private applyRadioFilters(options: {
@@ -639,6 +655,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
 
     if (networkOnly) {
       logger.info('[UniversalFilterQueryBuilder] Using FAST network-only path');
+      if (this.perfTracker) {
+        this.perfTracker.setPath('fast');
+      }
       if (this.context?.mode === 'network-only') {
         return this.buildNetworkOnlyQuery({ limit, offset, orderBy });
       }
@@ -646,6 +665,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     }
 
     logger.info('[UniversalFilterQueryBuilder] Using SLOW observations CTE path');
+    if (this.perfTracker) {
+      this.perfTracker.setPath('slow');
+    }
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
 

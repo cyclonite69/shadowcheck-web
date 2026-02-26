@@ -36,6 +36,7 @@ const resolvePageType = (req: Request): 'geospatial' | 'wigle' => {
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
+    const startTime = Date.now();
     let filters: Filters;
     let enabled: EnabledFlags;
     try {
@@ -57,20 +58,26 @@ router.get(
     const limit = validators.limit(req.query.limit as string, 1, CONFIG.MAX_PAGE_SIZE, 500);
     const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
-    const includeTotal =
-      req.query.includeTotal !== '0' && req.query.includeTotal !== 'false';
+    const includeTotal = req.query.includeTotal !== '0' && req.query.includeTotal !== 'false';
 
+    const trackPerformance = process.env.TRACK_QUERY_PERFORMANCE === 'true';
     const builder = new UniversalFilterQueryBuilder(filters, enabled, {
       pageType: resolvePageType(req),
+      trackPerformance,
     });
+
+    const buildStart = Date.now();
     const { sql, params, appliedFilters, ignoredFilters, warnings }: FilterQueryResult =
       builder.buildNetworkListQuery({
         limit,
         offset,
         orderBy,
       });
+    const buildTime = Date.now() - buildStart;
 
+    const queryStart = Date.now();
     const result: QueryResult<NetworkRow> = await v2Service.executeV2Query(sql, params);
+    const queryTime = Date.now() - queryStart;
     const rows = result.rows || [];
 
     const enriched = rows.map((row) => {
@@ -98,6 +105,20 @@ router.get(
 
     const enabledCount = Object.values(enabled).filter(Boolean).length;
     const threatIssues = enriched.filter((r) => r.threatTransparencyError).length;
+    const totalTime = Date.now() - startTime;
+
+    // Log slow queries
+    if (totalTime > 1000 || queryTime > 500) {
+      logger.warn('[v2/filtered] Slow query detected', {
+        totalTime,
+        buildTime,
+        queryTime,
+        resultCount: rows.length,
+        filterCount: appliedFilters.length,
+        enabledCount,
+        warnings: warnings.length,
+      });
+    }
 
     res.json({
       ok: true,
@@ -121,6 +142,13 @@ router.get(
           ).length,
         },
       },
+      performance: trackPerformance
+        ? {
+            totalTimeMs: totalTime,
+            buildTimeMs: buildTime,
+            queryTimeMs: queryTime,
+          }
+        : undefined,
       forensicIntegrity: {
         queryTime: new Date().toISOString(),
         resultCount: enriched.length,
