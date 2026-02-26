@@ -8,7 +8,7 @@ echo "=== Applying Quality Filters ==="
 
 PGPASS=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text | jq -r .DB_PASSWORD)
 
-docker exec -e PGPASSWORD="$PGPASS" shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db <<'SQL'
+docker exec shadowcheck_postgres bash -c "PGPASSWORD='$PGPASS' psql -U shadowcheck_user -d shadowcheck_db" <<'SQL'
 -- Mark temporal clusters (batch imports)
 UPDATE observations o
 SET 
@@ -55,7 +55,7 @@ SQL
 
 echo ""
 echo "=== Refreshing Materialized View ==="
-docker exec -e PGPASSWORD="$PGPASS" shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db -c "REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;"
+docker exec shadowcheck_postgres bash -c "PGPASSWORD='$PGPASS' psql -U shadowcheck_user -d shadowcheck_db -c 'REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;'"
 
 echo ""
 echo "✅ Quality filters applied and MV refreshed"
