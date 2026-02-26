@@ -169,7 +169,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
   test('multi-column sort preserves requested order', () => {
     const orderBy = buildOrderBy('threat_score,last_seen', 'desc,asc');
     const clauses = orderBy.split(',').map((v) => v.trim());
-    expect(clauses[0]).toContain('::numeric DESC');
+    expect(clauses[0]).toContain('ne.threat_score DESC');
     expect(clauses[1]).toContain('ne.last_seen ASC');
   });
 
