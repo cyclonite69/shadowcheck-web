@@ -630,13 +630,22 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const networkOnly =
       enabledKeys.length > 0 &&
       enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key as FilterKey));
+
+    logger.info('[UniversalFilterQueryBuilder] Path decision', {
+      enabledKeys,
+      networkOnly,
+      networkOnlyFilters: Array.from(NETWORK_ONLY_FILTERS),
+    });
+
     if (networkOnly) {
+      logger.info('[UniversalFilterQueryBuilder] Using FAST network-only path');
       if (this.context?.mode === 'network-only') {
         return this.buildNetworkOnlyQuery({ limit, offset, orderBy });
       }
       return this.buildNetworkOnlyQueryImpl({ limit, offset, orderBy });
     }
 
+    logger.info('[UniversalFilterQueryBuilder] Using SLOW observations CTE path');
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
 
