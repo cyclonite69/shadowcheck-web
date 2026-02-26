@@ -6,7 +6,8 @@ set -e
 
 echo "=== Applying Quality Filters ==="
 
-PGPASS=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text | jq -r .DB_PASSWORD)
+SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text)
+PGPASS=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))")
 
 docker exec shadowcheck_postgres bash -c "PGPASSWORD='$PGPASS' psql -U shadowcheck_user -d shadowcheck_db" <<'SQL'
 -- Mark temporal clusters (batch imports)
