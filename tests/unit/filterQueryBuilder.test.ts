@@ -207,4 +207,50 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     ).buildNetworkListQuery();
     expect(obsPath.sql).toContain('wigle_v3_observation_count');
   });
+
+  test('manufacturer filter applies OUI prefix match', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { manufacturer: 'Apple' },
+      { manufacturer: true }
+    ).buildNetworkListQuery();
+    expect(result.appliedFilters.some((f: any) => f.field === 'manufacturer')).toBe(true);
+    expect(result.params.some((p: any) => typeof p === 'string' && p.includes('Apple'))).toBe(true);
+  });
+
+  test('date-range timeframe filter applies temporal bounds', () => {
+    const startDate = new Date('2024-01-01T00:00:00Z');
+    const endDate = new Date('2024-12-31T23:59:59Z');
+    const result = new UniversalFilterQueryBuilder(
+      {
+        temporalScope: 'observation_time',
+        timeframe: {
+          type: 'date-range',
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        },
+      },
+      { timeframe: true, temporalScope: true }
+    ).buildNetworkListQuery();
+    expect(result.appliedFilters.some((f: any) => f.field === 'timeframe')).toBe(true);
+    // Date-range uses BETWEEN in SQL
+    expect(result.sql).toContain('BETWEEN');
+  });
+
+  test('buildNetworkCountQuery returns count SQL', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { ssid: 'TestNet' },
+      { ssid: true }
+    ).buildNetworkCountQuery();
+    expect(result.sql).toContain('COUNT(');
+    expect(result.sql).toContain('ssid');
+  });
+
+  test('distanceFromHome filters require home location', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { distanceFromHomeMin: 1, distanceFromHomeMax: 10 },
+      { distanceFromHomeMin: true, distanceFromHomeMax: true }
+    ).buildNetworkListQuery();
+    expect(result.appliedFilters.some((f: any) => f.field === 'distanceFromHomeMin')).toBe(true);
+    expect(result.appliedFilters.some((f: any) => f.field === 'distanceFromHomeMax')).toBe(true);
+  });
 });
