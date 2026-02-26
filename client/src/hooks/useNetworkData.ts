@@ -106,18 +106,10 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           return;
         }
 
-        // Only include filters that are explicitly enabled
-        const activeFilters = Object.fromEntries(
-          Object.entries(debouncedFilterState.filters).filter(
-            ([key]) =>
-              debouncedFilterState.enabled[key as keyof typeof debouncedFilterState.enabled]
-          )
-        );
-
+        // Send all filters and enabled flags - backend will handle which to apply
         console.log('[useNetworkData] Fetching with filters:', {
-          activeFilters,
+          filters: debouncedFilterState.filters,
           enabled: debouncedFilterState.enabled,
-          allFilters: debouncedFilterState.filters,
         });
 
         const params = new URLSearchParams({
@@ -125,7 +117,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           offset: String(pagination.offset),
           sort: sortKeys.join(','),
           order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
-          filters: JSON.stringify(activeFilters),
+          filters: JSON.stringify(debouncedFilterState.filters),
           enabled: JSON.stringify(debouncedFilterState.enabled),
           includeTotal: includeTotal ? '1' : '0',
         });

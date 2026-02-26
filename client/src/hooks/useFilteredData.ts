@@ -61,6 +61,9 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
 
         const actualOffset = resetOffset ? 0 : currentOffset;
         const { filters, enabled } = payload;
+
+        console.log('[useFilteredData] Fetching with payload:', { filters, enabled });
+
         const params = new URLSearchParams({
           filters: JSON.stringify(filters),
           enabled: JSON.stringify(enabled),
@@ -72,7 +75,10 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
         if (orderBy) params.set('orderBy', orderBy);
 
         const endpointPath = endpoint === 'networks' ? '' : `/${endpoint}`;
-        const result = await apiClient.get<any>(`/v2/networks/filtered${endpointPath}?${params}`);
+        const fullUrl = `/v2/networks/filtered${endpointPath}?${params}`;
+        console.log('[useFilteredData] Request URL:', fullUrl);
+
+        const result = await apiClient.get<any>(fullUrl);
 
         if (!result.ok) {
           const errorMsg =
@@ -106,7 +112,10 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
   );
 
   // Debounced filter changes
-  useDebouncedFilters(fetchData, 500);
+  useDebouncedFilters((payload) => {
+    console.log('[useFilteredData] Debounced filter change detected:', payload);
+    fetchData(payload, true);
+  }, 500);
 
   const refresh = useCallback(() => {
     const filters = useFilterStore.getState().getAPIFilters();

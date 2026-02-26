@@ -451,6 +451,11 @@ export const useDebouncedFilters = (
 
     timeoutRef.current = setTimeout(() => {
       const pageState = pageStates[currentPage] || { filters: {}, enabled: {} };
+      console.log('[useDebouncedFilters] Triggering callback with:', {
+        currentPage,
+        filters: pageState.filters,
+        enabled: pageState.enabled,
+      });
       callbackRef.current({
         filters: pageState.filters || {},
         enabled: pageState.enabled || {},
