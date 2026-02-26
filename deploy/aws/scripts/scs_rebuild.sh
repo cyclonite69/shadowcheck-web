@@ -118,17 +118,16 @@ DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(jso
 DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
 
 # Run bootstrap (idempotent — safe on existing DBs)
-docker exec -e PGPASSWORD="$DB_USER_PASSWORD" shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
-  -v admin_password="$DB_ADMIN_PASSWORD" \
-  -f /sql/00_bootstrap.sql 2>&1 | tail -5
+docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -v admin_password='$DB_ADMIN_PASSWORD' -f /sql/00_bootstrap.sql" 2>&1 | tail -5
 
 # Seed migration tracker (marks pre-existing migrations as applied)
-docker exec -e PGPASSWORD="$DB_USER_PASSWORD" shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
-  -f /sql/seed-migrations-tracker.sql -q 2>&1 | tail -3
+docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -f /sql/seed-migrations-tracker.sql -q" 2>&1 | tail -3
 
 # Run migrations (only applies new/untracked ones)
-docker exec -e PGPASSWORD="$DB_USER_PASSWORD" -e DB_USER=shadowcheck_user -e DB_NAME=shadowcheck_db \
-  shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
+docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_USER_PASSWORD' DB_USER=shadowcheck_user DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
+
+# Clear passwords from shell
+unset DB_ADMIN_PASSWORD DB_USER_PASSWORD SECRET_JSON
 
 # 6. Health check
 echo "[7/7] Verifying deployment..."
