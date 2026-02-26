@@ -109,22 +109,26 @@ docker cp sql/migrations shadowcheck_postgres:/sql/migrations
 docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
 docker cp sql/seed-migrations-tracker.sql shadowcheck_postgres:/sql/seed-migrations-tracker.sql
 
-# Run bootstrap (idempotent — safe on existing DBs)
-# Pull admin password from AWS Secrets Manager (sole secret store)
-DB_ADMIN_PASSWORD=$(aws secretsmanager get-secret-value \
+# Pull passwords from AWS Secrets Manager (sole secret store)
+SECRET_JSON=$(aws secretsmanager get-secret-value \
   --secret-id shadowcheck/config --region us-east-1 \
-  --query 'SecretString' --output text 2>/dev/null \
-  | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
-docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+  --query 'SecretString' --output text 2>/dev/null || echo "{}")
+
+DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
+DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
+
+# Run bootstrap (idempotent — safe on existing DBs)
+docker exec -e PGPASSWORD="$DB_USER_PASSWORD" shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
   -v admin_password="$DB_ADMIN_PASSWORD" \
   -f /sql/00_bootstrap.sql 2>&1 | tail -5
 
 # Seed migration tracker (marks pre-existing migrations as applied)
-docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+docker exec -e PGPASSWORD="$DB_USER_PASSWORD" shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
   -f /sql/seed-migrations-tracker.sql -q 2>&1 | tail -3
 
 # Run migrations (only applies new/untracked ones)
-docker exec shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
+docker exec -e PGPASSWORD="$DB_USER_PASSWORD" -e DB_USER=shadowcheck_user -e DB_NAME=shadowcheck_db \
+  shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
 
 # 6. Health check
 echo "[7/7] Verifying deployment..."
