@@ -9,6 +9,10 @@
 
 // ── Services ───────────────────────────────────────────────────────────────
 const adminDbService = require('../services/adminDbService');
+const networkTagsAdminService = require('../services/admin/networkTagsAdminService');
+const settingsAdminService = require('../services/admin/settingsAdminService');
+const importExportAdminService = require('../services/admin/importExportAdminService');
+const networkNotesAdminService = require('../services/admin/networkNotesAdminService');
 const agencyService = require('../services/agencyService');
 const aiInsightsService = require('../services/aiInsightsService');
 const bedrockService = require('../services/bedrockService');
@@ -42,6 +46,10 @@ const wigleService = require('../services/wigleService');
 
 const container = {
   adminDbService,
+  networkTagsAdminService,
+  settingsAdminService,
+  importExportAdminService,
+  networkNotesAdminService,
   agencyService,
   aiInsightsService,
   bedrockService,
