@@ -65,6 +65,7 @@ data/
 !data/.gitkeep
 backups/
 !backups/.gitkeep
+imports/
 *.db
 *.sqlite
 *.sqlite3
