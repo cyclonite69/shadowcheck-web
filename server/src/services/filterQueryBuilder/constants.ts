@@ -60,7 +60,7 @@ export const RELATIVE_WINDOWS: Record<string, string | null> = {
 export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'ssid',
   'bssid',
-  'manufacturer',
+  // 'manufacturer', // Removed: MV doesn't have this column, needs radio_manufacturers join
   'radioTypes',
   'frequencyBands',
   'channelMin',
