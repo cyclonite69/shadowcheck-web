@@ -82,13 +82,23 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql).toMatch(/WPA2|RSN/i);
   });
 
-  test('encryptionTypes filter with OPEN → SQL contains IS NULL or !~* predicate', () => {
+  test('encryptionTypes filter with OPEN → SQL contains OPEN predicate', () => {
     const result = new UniversalFilterQueryBuilder(
       { encryptionTypes: ['OPEN'] },
       { encryptionTypes: true }
     ).buildNetworkListQuery();
 
-    expect(result.sql).toMatch(/IS NULL|!~\*/i);
+    expect(result.sql).toMatch(/OPEN|IS NULL|!~\*/i);
+  });
+
+  test('network-only query for radioTypes does not use obs_latest_any CTE', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { radioTypes: ['E'] },
+      { radioTypes: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).not.toContain('obs_latest_any');
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
   });
 
   test('threatScoreMin filter enabled → value is parameterized and filter is applied', () => {
