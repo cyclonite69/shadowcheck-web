@@ -158,12 +158,8 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          if (includeTotal && isCountTimeoutError(err)) {
-            setIncludeTotal(false);
-            setError(null);
-          } else {
-            setError(err.message);
-          }
+          setError(err.message);
+          setLoading(false);
         }
       } finally {
         setLoading(false);
