@@ -79,6 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type ON app.api_network_e
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_observed_at ON app.api_network_explorer_mv USING btree (observed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv USING btree (threat_score DESC);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_manufacturer ON app.api_network_explorer_mv USING btree (manufacturer);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_geom ON app.api_network_explorer_mv USING GIST (ST_SetSRID(ST_MakePoint(lon, lat), 4326));
 
 REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
 
