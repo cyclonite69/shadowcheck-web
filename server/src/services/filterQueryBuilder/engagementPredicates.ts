@@ -30,15 +30,8 @@ export const buildEngagementPredicates = ({
   const applied: Array<{ field: EngagementAppliedFilterField; value: unknown }> = [];
 
   if (enabled.has_notes && filters.has_notes !== undefined) {
-    if (filters.has_notes) {
-      where.push(
-        `(SELECT COUNT(*) FROM app.network_notes WHERE UPPER(bssid) = UPPER(${bssidExpr}) AND is_deleted IS NOT TRUE) > 0`
-      );
-    } else {
-      where.push(
-        `(SELECT COUNT(*) FROM app.network_notes WHERE UPPER(bssid) = UPPER(${bssidExpr}) AND is_deleted IS NOT TRUE) = 0`
-      );
-    }
+    const existsClause = `EXISTS (SELECT 1 FROM app.network_notes nn WHERE nn.bssid = ${bssidExpr} AND nn.is_deleted IS NOT TRUE)`;
+    where.push(filters.has_notes ? existsClause : `NOT ${existsClause}`);
     applied.push({ field: 'has_notes', value: filters.has_notes });
   }
 

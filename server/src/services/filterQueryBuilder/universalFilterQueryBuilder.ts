@@ -798,23 +798,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const f = this.filters;
     const e = this.enabled;
     const where: string[] = [];
-    const networkTypeExpr = `
-      CASE
-        WHEN ola.radio_type IS NULL
-          AND ola.radio_frequency IS NULL
-          AND COALESCE(ola.radio_capabilities, '') = ''
-        THEN ne.type
-        ELSE ${OBS_TYPE_EXPR('ola')}
-      END
-    `;
-    const networkSecurityExpr = `
-      CASE
-        WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')}
-        ELSE ${SECURITY_EXPR('ola')}
-      END
-    `;
-    const networkFrequencyExpr = 'COALESCE(ola.radio_frequency, ne.frequency)';
-    const networkSignalExpr = 'COALESCE(ola.level, ne.signal)';
+    const networkTypeExpr = 'ne.type';
+    const networkSecurityExpr = 'ne.security';
+    const networkFrequencyExpr = 'ne.frequency';
+    const networkSignalExpr = 'ne.signal';
     const networkChannelExpr = `
       CASE
         WHEN ${networkFrequencyExpr} BETWEEN 2412 AND 2484 THEN
@@ -1092,48 +1079,24 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     const safeOrderBy = orderBy
-      .replace(/\bl\.observed_at\b/g, 'COALESCE(ola.time, ne.observed_at)')
-      .replace(/\bl\.level\b/g, 'COALESCE(ola.level, ne.signal)')
+      .replace(/\bl\.observed_at\b/g, 'ne.observed_at')
+      .replace(/\bl\.level\b/g, 'ne.signal')
       .replace(/\bl\.lat\b/g, 'ne.lat')
       .replace(/\bl\.lon\b/g, 'ne.lon')
-      .replace(/\bl\.accuracy\b/g, 'COALESCE(ola.accuracy, ne.accuracy_meters)')
+      .replace(/\bl\.accuracy\b/g, 'ne.accuracy_meters')
       .replace(/\br\.observation_count\b/g, 'ne.observations')
       .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
       .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
       .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
 
     const sql = `
-      WITH obs_latest_any AS (
-        SELECT DISTINCT ON (bssid)
-          bssid,
-          ssid,
-          level,
-          accuracy,
-          time,
-          radio_type,
-          radio_frequency,
-          radio_capabilities
-        FROM app.observations
-        WHERE bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
-          AND time >= '2000-01-01 00:00:00+00'::timestamptz
-        ORDER BY bssid, time DESC
-      )
       SELECT
         ne.bssid,
-        COALESCE(ola.ssid, ne.ssid) AS ssid,
-        CASE
-          WHEN ola.radio_type IS NULL
-            AND ola.radio_frequency IS NULL
-            AND COALESCE(ola.radio_capabilities, '') = ''
-          THEN ne.type
-          ELSE ${OBS_TYPE_EXPR('ola')}
-        END AS type,
-        CASE
-          WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')}
-          ELSE ${SECURITY_EXPR('ola')}
-        END AS security,
-        COALESCE(ola.radio_frequency, ne.frequency) AS frequency,
-        COALESCE(ola.radio_capabilities, ne.security) AS capabilities,
+        ne.ssid,
+        ne.type,
+        ne.security,
+        ne.frequency,
+        ne.capabilities,
         (ne.frequency BETWEEN 5000 AND 5900) AS is_5ghz,
         (ne.frequency BETWEEN 5925 AND 7125) AS is_6ghz,
         (COALESCE(ne.ssid, '') = '') AS is_hidden,
@@ -1157,18 +1120,17 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         NULL::numeric AS avg_signal,
         NULL::numeric AS min_signal,
         NULL::numeric AS max_signal,
-        COALESCE(ola.time, ne.observed_at) AS observed_at,
-        COALESCE(ola.level, ne.signal) AS signal,
+        ne.observed_at,
+        ne.signal,
         ne.lat,
         ne.lon,
-        COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
+        ne.accuracy_meters,
         NULL::numeric AS stationary_confidence,
         ${NT_SELECT_FIELDS},
         NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
-      LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
       ${whereClause}
