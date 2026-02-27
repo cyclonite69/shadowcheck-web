@@ -798,23 +798,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const f = this.filters;
     const e = this.enabled;
     const where: string[] = [];
-    const networkTypeExpr = `
-      CASE
-        WHEN ola.radio_type IS NULL
-          AND ola.radio_frequency IS NULL
-          AND COALESCE(ola.radio_capabilities, '') = ''
-        THEN ne.type
-        ELSE ${OBS_TYPE_EXPR('ola')}
-      END
-    `;
-    const networkSecurityExpr = `
-      CASE
-        WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')}
-        ELSE ${SECURITY_EXPR('ola')}
-      END
-    `;
-    const networkFrequencyExpr = 'COALESCE(ola.radio_frequency, ne.frequency)';
-    const networkSignalExpr = 'COALESCE(ola.level, ne.signal)';
+    const networkTypeExpr = 'ne.type';
+    const networkSecurityExpr = 'ne.security';
+    const networkFrequencyExpr = 'ne.frequency';
+    const networkSignalExpr = 'ne.signal';
     const networkChannelExpr = `
       CASE
         WHEN ${networkFrequencyExpr} BETWEEN 2412 AND 2484 THEN
