@@ -86,6 +86,14 @@ export const ApiTestingTab: React.FC = () => {
     API_PRESETS,
   } = useApiTesting();
 
+  const healthStatus = apiHealth?.status || 'Checking...';
+  const healthColorClass =
+    healthStatus === 'OFFLINE'
+      ? 'text-red-400'
+      : healthStatus === 'DEGRADED' || healthStatus === 'UNHEALTHY'
+        ? 'text-amber-400'
+        : 'text-green-400';
+
   useEffect(() => {
     loadApiHealth();
   }, []);
@@ -98,13 +106,7 @@ export const ApiTestingTab: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Status:</span>
-              <span
-                className={`font-semibold ${
-                  apiHealth?.status === 'Online' ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {apiHealth?.status || 'Checking...'}
-              </span>
+              <span className={`font-semibold ${healthColorClass}`}>{healthStatus}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Version:</span>

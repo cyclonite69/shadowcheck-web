@@ -191,7 +191,7 @@ const API_PRESETS: ApiPreset[] = [
 ];
 
 export const useApiTesting = () => {
-  const [endpoint, setEndpoint] = useState('/api/health');
+  const [endpoint, setEndpoint] = useState('/health');
   const [method, setMethod] = useState<HttpMethod>('GET');
   const [body, setBody] = useState('');
   const [activePreset, setActivePreset] = useState<ApiPreset | null>(null);
@@ -203,13 +203,31 @@ export const useApiTesting = () => {
   const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
 
   const loadApiHealth = async () => {
-    try {
-      const res = await fetch('/health');
-      const data = await res.json();
-      setApiHealth({ status: 'Online', version: data.version || '1.0.0' });
-    } catch {
-      setApiHealth({ status: 'Offline', version: 'N/A' });
+    const candidates = ['/health', '/api/health'];
+
+    for (const path of candidates) {
+      try {
+        const res = await fetch(path);
+        const text = await res.text();
+        let parsed: any = null;
+        try {
+          parsed = text ? JSON.parse(text) : null;
+        } catch {
+          parsed = null;
+        }
+
+        // Reachable API, even if health status is degraded/unhealthy.
+        const reportedStatus =
+          typeof parsed?.status === 'string' ? String(parsed.status).toUpperCase() : 'ONLINE';
+        const version = parsed?.version || 'N/A';
+        setApiHealth({ status: reportedStatus, version });
+        return;
+      } catch {
+        // Try next candidate path
+      }
     }
+
+    setApiHealth({ status: 'OFFLINE', version: 'N/A' });
   };
 
   const selectPreset = (preset: ApiPreset) => {
