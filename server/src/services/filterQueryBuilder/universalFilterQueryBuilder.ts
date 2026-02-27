@@ -1403,8 +1403,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       where.push(
         ...this.buildThreatScorePredicate({
           min: f.threatScoreMin,
-          expr: THREAT_SCORE_EXPR('nts', 'nt'),
-          wrapExpr: true,
+          expr: 'ne.threat_score',
+          wrapExpr: false,
         })
       );
     }
@@ -1412,8 +1412,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       where.push(
         ...this.buildThreatScorePredicate({
           max: f.threatScoreMax,
-          expr: THREAT_SCORE_EXPR('nts', 'nt'),
-          wrapExpr: true,
+          expr: 'ne.threat_score',
+          wrapExpr: false,
         })
       );
     }
@@ -1429,19 +1429,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       const dbThreatLevels = f.threatCategories
         .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
         .filter(Boolean);
-      where.push(`${THREAT_LEVEL_EXPR('nts', 'nt')} = ANY(${this.addParam(dbThreatLevels)})`);
+      where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
     }
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     return {
       sql: `SELECT COUNT(*) AS total FROM app.api_network_explorer_mv ne
-            LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
-            LEFT JOIN LATERAL (
-              SELECT *
-              FROM app.network_tags nt_source
-              WHERE UPPER(nt_source.bssid) = UPPER(ne.bssid)
-              LIMIT 1
-            ) nt ON TRUE
             ${whereClause}`,
       params: [...this.params],
     };
