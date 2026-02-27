@@ -144,7 +144,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
       { encryptionTypes: true }
     ).buildNetworkCountQuery();
 
-    expect(result.sql).toContain("IN ('WPA2', 'WPA2-E')");
+    expect(result.sql).toContain("IN ('WPA2', 'WPA2-P', 'WPA2-E')");
   });
 
   test('buildGeospatialQuery → returns non-empty SQL with lat/lon references', () => {
