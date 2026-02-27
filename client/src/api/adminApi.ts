@@ -135,8 +135,8 @@ export const adminApi = {
     return apiClient.get('/admin/pgadmin/status');
   },
 
-  async startPgAdmin(): Promise<any> {
-    return apiClient.post('/admin/pgadmin/start');
+  async startPgAdmin(reset: boolean = false): Promise<any> {
+    return apiClient.post('/admin/pgadmin/start', { reset });
   },
 
   async stopPgAdmin(): Promise<any> {

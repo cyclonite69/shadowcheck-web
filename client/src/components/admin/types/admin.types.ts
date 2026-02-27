@@ -85,6 +85,7 @@ export interface BackupResult {
 export interface PgAdminStatus {
   enabled: boolean;
   dockerAvailable: boolean;
+  dockerHost?: string;
   composeFile: string;
   composeFileExists: boolean;
   serviceName: string;
@@ -150,5 +151,6 @@ export interface AwsOverview {
     states: Record<string, number>;
   };
   instances: AwsInstanceSummary[];
+  warning?: string;
   error?: string;
 }

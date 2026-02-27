@@ -28,6 +28,7 @@ export const AwsTab: React.FC = () => {
   const counts = overview?.counts || { total: 0, states: {} };
   const stateBadges = Object.entries(counts.states || {});
   const displayError = error || overview?.error || actionError;
+  const displayWarning = overview?.warning;
 
   const handleInstanceAction = async (instanceId: string | null, action: string) => {
     if (!instanceId) return;
@@ -57,6 +58,9 @@ export const AwsTab: React.FC = () => {
           </div>
 
           {displayError && <div className="text-sm text-red-400">{displayError}</div>}
+          {!displayError && displayWarning && (
+            <div className="text-sm text-amber-300">{displayWarning}</div>
+          )}
 
           {!displayError && overview && !overview.region && (
             <div className="text-sm text-amber-300">

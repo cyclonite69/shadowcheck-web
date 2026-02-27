@@ -24,12 +24,12 @@ export const usePgAdmin = () => {
   }, []);
 
   const startPgAdmin = useCallback(
-    async (_reset = false) => {
+    async (reset = false) => {
       setActionLoading(true);
       setActionMessage('');
       setError('');
       try {
-        const data = await adminApi.startPgAdmin();
+        const data = await adminApi.startPgAdmin(reset);
         setActionMessage(data.message || 'PgAdmin action completed');
         await refreshStatus();
       } catch (err: unknown) {

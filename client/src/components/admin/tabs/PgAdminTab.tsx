@@ -87,6 +87,12 @@ export const PgAdminTab: React.FC = () => {
 
           <div className="text-xs text-slate-500 space-y-2">
             <div className="flex justify-between gap-3">
+              <span>Docker host</span>
+              <span className="text-slate-200 font-mono text-[11px]">
+                {status?.dockerHost || 'unknown'}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
               <span>Container name</span>
               <span className="text-slate-200 font-mono text-[11px]">
                 {status?.containerName || 'shadowcheck_pgadmin'}
@@ -199,8 +205,10 @@ export const PgAdminTab: React.FC = () => {
           )}
 
           <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50 space-y-1">
+            <p>• Controls Docker on: {status?.dockerHost || 'this API host'}</p>
             <p>• Uses docker-compose in docker/infrastructure</p>
             <p>• Reset removes pgadmin data volume</p>
+            <p>• Restart policy is enforced as unless-stopped</p>
             <p>• PgAdmin listens on port {status?.port || 5050}</p>
             <p>• Stop frees resources without deleting data</p>
           </div>

@@ -58,6 +58,15 @@ const buildStateCounts = (instances: any[]) => {
   };
 };
 
+const isAccessDeniedError = (error: any) => {
+  const text = `${error?.name || ''} ${error?.message || ''}`.toLowerCase();
+  return (
+    text.includes('accessdenied') ||
+    text.includes('unauthorizedoperation') ||
+    text.includes('not authorized')
+  );
+};
+
 router.get('/admin/aws/overview', async (req, res) => {
   try {
     const { region } = await getAwsConfig();
@@ -81,8 +90,22 @@ router.get('/admin/aws/overview', async (req, res) => {
       logger.warn('[AWS] Failed to resolve caller identity', { error: error.message });
     }
 
-    const instances = await listInstances(ec2Client);
-    const counts = buildStateCounts(instances);
+    let instances: any[] = [];
+    let counts = { total: 0, states: {} as Record<string, number> };
+    let warning: string | undefined;
+
+    try {
+      instances = await listInstances(ec2Client);
+      counts = buildStateCounts(instances);
+    } catch (error: any) {
+      if (isAccessDeniedError(error)) {
+        warning =
+          'Missing permission ec2:DescribeInstances for current role; showing identity and region only.';
+        logger.warn('[AWS] Missing DescribeInstances permission', { error: error.message });
+      } else {
+        throw error;
+      }
+    }
 
     res.json({
       configured: Boolean(identity),
@@ -90,6 +113,7 @@ router.get('/admin/aws/overview', async (req, res) => {
       identity,
       counts,
       instances,
+      warning,
     });
   } catch (error: any) {
     logger.error('[AWS] Failed to load overview', { error: error.message, stack: error.stack });

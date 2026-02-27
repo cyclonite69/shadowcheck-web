@@ -4,16 +4,27 @@
 
 import { Router } from 'express';
 const logger = require('../../../../logging/logger');
+const { awsService } = require('../../../../config/container');
+const { getAwsConfig } = awsService;
 
 const router = Router();
+
+const getEc2Client = async () => {
+  const { EC2Client } = require('@aws-sdk/client-ec2');
+  const { region } = await getAwsConfig();
+  if (!region) {
+    throw new Error('AWS region not configured');
+  }
+  return new EC2Client({ region });
+};
 
 // POST /api/admin/aws/instances/:instanceId/start
 router.post('/instances/:instanceId/start', async (req, res) => {
   try {
-    const { EC2Client, StartInstancesCommand } = require('@aws-sdk/client-ec2');
+    const { StartInstancesCommand } = require('@aws-sdk/client-ec2');
     const { instanceId } = req.params;
 
-    const client = new EC2Client({ region: process.env.AWS_DEFAULT_REGION || 'us-east-1' });
+    const client = await getEc2Client();
     const command = new StartInstancesCommand({ InstanceIds: [instanceId] });
     await client.send(command);
 
@@ -28,10 +39,10 @@ router.post('/instances/:instanceId/start', async (req, res) => {
 // POST /api/admin/aws/instances/:instanceId/stop
 router.post('/instances/:instanceId/stop', async (req, res) => {
   try {
-    const { EC2Client, StopInstancesCommand } = require('@aws-sdk/client-ec2');
+    const { StopInstancesCommand } = require('@aws-sdk/client-ec2');
     const { instanceId } = req.params;
 
-    const client = new EC2Client({ region: process.env.AWS_DEFAULT_REGION || 'us-east-1' });
+    const client = await getEc2Client();
     const command = new StopInstancesCommand({ InstanceIds: [instanceId] });
     await client.send(command);
 
@@ -46,10 +57,10 @@ router.post('/instances/:instanceId/stop', async (req, res) => {
 // POST /api/admin/aws/instances/:instanceId/reboot
 router.post('/instances/:instanceId/reboot', async (req, res) => {
   try {
-    const { EC2Client, RebootInstancesCommand } = require('@aws-sdk/client-ec2');
+    const { RebootInstancesCommand } = require('@aws-sdk/client-ec2');
     const { instanceId } = req.params;
 
-    const client = new EC2Client({ region: process.env.AWS_DEFAULT_REGION || 'us-east-1' });
+    const client = await getEc2Client();
     const command = new RebootInstancesCommand({ InstanceIds: [instanceId] });
     await client.send(command);
 
@@ -64,7 +75,7 @@ router.post('/instances/:instanceId/reboot', async (req, res) => {
 // POST /api/admin/aws/instances/:instanceId/terminate
 router.post('/instances/:instanceId/terminate', async (req, res) => {
   try {
-    const { EC2Client, TerminateInstancesCommand } = require('@aws-sdk/client-ec2');
+    const { TerminateInstancesCommand } = require('@aws-sdk/client-ec2');
     const { instanceId } = req.params;
     const { confirm } = req.body;
 
@@ -75,7 +86,7 @@ router.post('/instances/:instanceId/terminate', async (req, res) => {
       });
     }
 
-    const client = new EC2Client({ region: process.env.AWS_DEFAULT_REGION || 'us-east-1' });
+    const client = await getEc2Client();
     const command = new TerminateInstancesCommand({ InstanceIds: [instanceId] });
     await client.send(command);
 

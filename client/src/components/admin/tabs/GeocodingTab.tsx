@@ -32,6 +32,19 @@ const SparkIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const MetricLabel: React.FC<{ label: string; tooltip: string }> = ({ label, tooltip }) => (
+  <div className="text-xs text-slate-400 flex items-center gap-1">
+    <span>{label}</span>
+    <span
+      className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-600 text-slate-300 cursor-help"
+      title={tooltip}
+      aria-label={`${label} info`}
+    >
+      ?
+    </span>
+  </div>
+);
+
 export const GeocodingTab: React.FC = () => {
   const {
     stats,
@@ -110,37 +123,55 @@ export const GeocodingTab: React.FC = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
-              <div className="text-xs text-slate-400">Observations</div>
+              <MetricLabel
+                label="Observations"
+                tooltip="Total rows in app.observations (raw datapoints, not deduplicated)."
+              />
               <div className="text-lg font-semibold text-white">
                 {stats?.observation_count?.toLocaleString() || '—'}
               </div>
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
-              <div className="text-xs text-slate-400">Unique Blocks</div>
+              <MetricLabel
+                label="Unique Blocks"
+                tooltip="Unique rounded latitude/longitude cells at this precision."
+              />
               <div className="text-lg font-semibold text-white">
                 {stats?.unique_blocks?.toLocaleString() || '—'}
               </div>
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
-              <div className="text-xs text-slate-400">Cached Blocks</div>
+              <MetricLabel
+                label="Cached Blocks"
+                tooltip="How many rounded cells already have a geocoding cache row."
+              />
               <div className="text-lg font-semibold text-white">
                 {stats?.cached_blocks?.toLocaleString() || '—'}
               </div>
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
-              <div className="text-xs text-slate-400">Missing Blocks</div>
+              <MetricLabel
+                label="Missing Blocks"
+                tooltip="Rounded cells seen in observations that still have no cache row."
+              />
               <div className="text-lg font-semibold text-white">
                 {stats?.missing_blocks?.toLocaleString() || '—'}
               </div>
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
-              <div className="text-xs text-slate-400">Addresses</div>
+              <MetricLabel
+                label="Addresses"
+                tooltip="Distinct non-null address strings currently stored in cache."
+              />
               <div className="text-lg font-semibold text-white">
                 {stats?.distinct_addresses?.toLocaleString() || '—'}
               </div>
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
-              <div className="text-xs text-slate-400">POI Hits</div>
+              <MetricLabel
+                label="POI Hits"
+                tooltip="Cache rows where a POI name was found (poi_name is not null)."
+              />
               <div className="text-lg font-semibold text-white">
                 {stats?.cached_with_poi?.toLocaleString() || '—'}
               </div>

@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('../logging/logger');
@@ -27,6 +28,7 @@ const containerName = process.env.PGADMIN_CONTAINER_NAME || 'shadowcheck_pgadmin
 const volumeName = process.env.PGADMIN_VOLUME_NAME || 'shadowcheck_pgadmin_data';
 const port = Number.parseInt(process.env.PGADMIN_PORT, 10) || 5050;
 const url = process.env.PGADMIN_URL || `http://localhost:${port}`;
+const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
 
 const isDockerControlEnabled = () =>
   String(process.env.ADMIN_ALLOW_DOCKER || '').toLowerCase() === 'true';
@@ -137,6 +139,7 @@ const parseDockerStatus = (stdout: string) => {
 
 const getPgAdminStatus = async () => {
   const status = {
+    dockerHost,
     composeFile,
     composeFileExists: await composeFileExists(),
     serviceName,
@@ -175,6 +178,12 @@ const getPgAdminStatus = async () => {
   return status;
 };
 
+const enforceRestartPolicy = async () => {
+  await runCommand('docker', ['update', '--restart', 'unless-stopped', containerName], {
+    allowFail: true,
+  });
+};
+
 const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
   if (reset) {
     logger.warn('[PgAdmin] Reset requested. Removing container and volume.');
@@ -189,12 +198,13 @@ const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
   try {
     const inspectResult = await runCommand(
       'docker',
-      ['inspect', '--format', '{{.State.Running}}', 'shadowcheck_pgadmin'],
+      ['inspect', '--format', '{{.State.Running}}', containerName],
       { allowFail: true }
     );
     if (inspectResult.stdout.trim() === 'false') {
       logger.info('[PgAdmin] Container exists but stopped, starting it');
-      const startResult = await runCommand('docker', ['start', 'shadowcheck_pgadmin']);
+      const startResult = await runCommand('docker', ['start', containerName]);
+      await enforceRestartPolicy();
       return {
         output: startResult.stdout,
         warnings: startResult.stderr,
@@ -207,7 +217,8 @@ const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
   }
 
   logger.info('[PgAdmin] Starting PgAdmin via docker-compose');
-  const result = await runCompose(['up', '-d', serviceName]);
+  const result = await runCompose(['up', '-d', '--no-deps', serviceName]);
+  await enforceRestartPolicy();
 
   return {
     output: result.stdout,
