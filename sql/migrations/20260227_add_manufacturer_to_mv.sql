@@ -46,8 +46,8 @@ SELECT n.bssid,
     WHEN UPPER(n.capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
     ELSE 'UNKNOWN'
   END AS security,
-  n.wigle_v3_observation_count,
-  n.wigle_v3_last_import_at,
+  COALESCE(w3.wigle_v3_observation_count, n.wigle_v3_observation_count, 0) AS wigle_v3_observation_count,
+  COALESCE(w3.wigle_v3_last_import_at, n.wigle_v3_last_import_at) AS wigle_v3_last_import_at,
   COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
   count(o.id) AS observations,
   count(DISTINCT date(o."time")) AS unique_days,
@@ -83,10 +83,19 @@ FROM app.networks n
   LEFT JOIN app.network_tags t ON (n.bssid = t.bssid::text)
   LEFT JOIN app.observations o ON (n.bssid = o.bssid)
   LEFT JOIN app.network_threat_scores ts ON (n.bssid = ts.bssid::text)
+  LEFT JOIN (
+    SELECT
+      netid,
+      COUNT(*)::integer AS wigle_v3_observation_count,
+      MAX(COALESCE(last_update, observed_at, imported_at)) AS wigle_v3_last_import_at
+    FROM app.wigle_v3_observations
+    GROUP BY netid
+  ) w3 ON (UPPER(n.bssid) = UPPER(w3.netid))
   LEFT JOIN app.radio_manufacturers rm ON (UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.prefix)
 WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
 GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
   n.lasttime_ms, n.capabilities, n.wigle_v3_observation_count, n.wigle_v3_last_import_at,
+  w3.wigle_v3_observation_count, w3.wigle_v3_last_import_at,
   t.threat_tag, ts.final_threat_score, ts.final_threat_level, ts.model_version, rm.manufacturer
 WITH NO DATA;
 

@@ -5,6 +5,18 @@
 import { apiClient } from './client';
 
 export const adminApi = {
+  // Geocoding job request payload
+  async runGeocoding(options: {
+    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+    mode: 'address-only' | 'poi-only' | 'both';
+    limit: number;
+    precision: number;
+    perMinute: number;
+    permanent?: boolean;
+  }): Promise<any> {
+    return apiClient.post('/admin/geocoding/run', options);
+  },
+
   // ML Training
   async getMLStatus(): Promise<any> {
     return apiClient.get('/ml/status');
@@ -155,10 +167,6 @@ export const adminApi = {
   // Geocoding Cache
   async getGeocodingStats(precision: string): Promise<any> {
     return apiClient.get(`/admin/geocoding/stats?precision=${precision}`);
-  },
-
-  async runGeocoding(precision: string, limit: number): Promise<any> {
-    return apiClient.post('/admin/geocoding/run', { precision, limit });
   },
 
   // AWS

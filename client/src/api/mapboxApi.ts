@@ -62,6 +62,13 @@ export const mapboxApi = {
     const response = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${searchParams.toString()}`
     );
-    return response.json();
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorMessage =
+        (payload && (payload.message || payload.error)) ||
+        `Mapbox geocoding failed (${response.status})`;
+      throw new Error(String(errorMessage));
+    }
+    return payload as GeocodingResponse;
   },
 };

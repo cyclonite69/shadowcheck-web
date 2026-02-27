@@ -39,7 +39,7 @@ export const useGeocodingCache = (precision = 5) => {
       setActionMessage('');
       setError('');
       try {
-        const data = await adminApi.runGeocoding(String(precision), options.limit);
+        const data = await adminApi.runGeocoding(options);
         setActionMessage(data.message || 'Geocoding run completed');
         setLastResult(data.result || null);
         await refreshStats();
