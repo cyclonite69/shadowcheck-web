@@ -160,7 +160,7 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     bssid: 'ne.bssid',
     signal: 'l.level',
     observations: 'r.observation_count',
-    threat: 'ne.threat_score',
+    threat: 'ne.threat_level',
     threat_score: 'ne.threat_score',
     threat_rule_score: 'ne.rule_score',
     threat_ml_score: 'ne.ml_score',
@@ -174,7 +174,13 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     distance_from_home_km: 'ne.distance_from_home_km',
     stationary_confidence: 's.stationary_confidence',
     frequency: 'ne.frequency',
-    channel: 'ne.frequency',
+    channel: `CASE
+      WHEN ne.frequency BETWEEN 2412 AND 2484 THEN
+        CASE WHEN ne.frequency = 2484 THEN 14 ELSE FLOOR((ne.frequency - 2412) / 5) + 1 END
+      WHEN ne.frequency BETWEEN 5000 AND 5900 THEN FLOOR((ne.frequency - 5000) / 5)
+      WHEN ne.frequency BETWEEN 5925 AND 7125 THEN FLOOR((ne.frequency - 5925) / 5)
+      ELSE NULL
+    END`,
     manufacturer:
       "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')",
     threat_tag: "COALESCE(to_jsonb(nt)->>'threat_tag', to_jsonb(nt)->>'tag_type')",
@@ -187,7 +193,7 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     altitude_span_m: 'altitude_span_m',
     last_altitude_m: 'last_altitude_m',
     is_sentinel: 'is_sentinel',
-    timespan_days: 'r.last_observed_at',
+    timespan_days: 'EXTRACT(EPOCH FROM (r.last_observed_at - r.first_observed_at)) / 86400',
     wigle_v3_observation_count: 'ne.wigle_v3_observation_count',
     wigle_v3_last_import_at: 'ne.wigle_v3_last_import_at',
     max_distance_meters: 'ne.max_distance_meters',
