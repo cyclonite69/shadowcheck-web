@@ -16,7 +16,7 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { params, ...fetchOptions } = options;
+    const { params, signal, ...fetchOptions } = options;
 
     let url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}${endpoint}`;
 
@@ -25,37 +25,52 @@ class ApiClient {
       url = `${url}?${searchParams}`;
     }
 
-    const response = await fetch(url, {
-      ...fetchOptions,
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchOptions.headers,
-      },
-    });
+    // Create abort controller with 120s timeout (double the backend timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
 
-    const text = await response.text();
-    let data: any = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = null;
+    // Use provided signal or our timeout signal
+    const finalSignal = signal || controller.signal;
+
+    try {
+      const response = await fetch(url, {
+        ...fetchOptions,
+        signal: finalSignal,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...fetchOptions.headers,
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      const text = await response.text();
+      let data: any = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
       }
-    }
 
-    if (!response.ok) {
-      const message =
-        (data && (data.error || data.message)) ||
-        text ||
-        `Request failed: ${response.status} ${response.statusText}`;
-      const error = new Error(message) as Error & { status?: number; data?: unknown };
-      error.status = response.status;
-      error.data = data;
-      throw error;
-    }
+      if (!response.ok) {
+        const message =
+          (data && (data.error || data.message)) ||
+          text ||
+          `Request failed: ${response.status} ${response.statusText}`;
+        const error = new Error(message) as Error & { status?: number; data?: unknown };
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
 
-    return (data ?? (text as any)) as T;
+      return (data ?? (text as any)) as T;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
   }
 
   async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
