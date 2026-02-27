@@ -161,16 +161,34 @@ export const useFilterStore = create<HardenedFilterStore>()(
         const nextEnabled = !pageState.enabled[key];
         let nextFilters = pageState.filters;
 
-        if (
-          key === 'gpsAccuracyMax' &&
-          nextEnabled &&
-          pageState.filters.gpsAccuracyMax === undefined
-        ) {
-          nextFilters = { ...pageState.filters, gpsAccuracyMax: 100 };
+        // Initialize array-based filters to empty arrays when toggled ON
+        if (nextEnabled) {
+          if (key === 'radioTypes' && pageState.filters.radioTypes === undefined) {
+            nextFilters = { ...pageState.filters, radioTypes: [] };
+          }
+          if (key === 'frequencyBands' && pageState.filters.frequencyBands === undefined) {
+            nextFilters = { ...pageState.filters, frequencyBands: [] };
+          }
+          if (key === 'encryptionTypes' && pageState.filters.encryptionTypes === undefined) {
+            nextFilters = { ...pageState.filters, encryptionTypes: [] };
+          }
+          if (key === 'securityFlags' && pageState.filters.securityFlags === undefined) {
+            nextFilters = { ...pageState.filters, securityFlags: [] };
+          }
+          if (key === 'threatCategories' && pageState.filters.threatCategories === undefined) {
+            nextFilters = { ...pageState.filters, threatCategories: [] };
+          }
+          if (key === 'tag_type' && pageState.filters.tag_type === undefined) {
+            nextFilters = { ...pageState.filters, tag_type: [] };
+          }
+          if (key === 'gpsAccuracyMax' && pageState.filters.gpsAccuracyMax === undefined) {
+            nextFilters = { ...pageState.filters, gpsAccuracyMax: 100 };
+          }
+          if (key === 'has_notes' && pageState.filters.has_notes === undefined) {
+            nextFilters = { ...pageState.filters, has_notes: true };
+          }
         }
-        if (key === 'has_notes' && nextEnabled && pageState.filters.has_notes === undefined) {
-          nextFilters = { ...pageState.filters, has_notes: true };
-        }
+
         set({
           pageStates: {
             ...pageStates,
