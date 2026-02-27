@@ -47,14 +47,19 @@ test_filter "Manufacturer (OUI)" '{"manufacturer":"00:50:F2"}' '{"manufacturer":
 
 echo ""
 echo "=== B. RADIO FILTERS ==="
-test_filter "RadioTypes [W]" '{"radioTypes":["W"]}' '{"radioTypes":true}'
-test_filter "RadioTypes [E]" '{"radioTypes":["E"]}' '{"radioTypes":true}'
-test_filter "RadioTypes [B]" '{"radioTypes":["B"]}' '{"radioTypes":true}'
-test_filter "RadioTypes [W,E]" '{"radioTypes":["W","E"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [W] WiFi" '{"radioTypes":["W"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [E] BLE" '{"radioTypes":["E"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [B] Bluetooth" '{"radioTypes":["B"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [L] LTE" '{"radioTypes":["L"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [G] GSM" '{"radioTypes":["G"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [N] 5G NR" '{"radioTypes":["N"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [U] Unknown" '{"radioTypes":["U"]}' '{"radioTypes":true}'
+test_filter "RadioTypes [W,E] Multi" '{"radioTypes":["W","E"]}' '{"radioTypes":true}'
 test_filter "FrequencyBands [2.4GHz]" '{"frequencyBands":["2.4GHz"]}' '{"frequencyBands":true}'
 test_filter "FrequencyBands [5GHz]" '{"frequencyBands":["5GHz"]}' '{"frequencyBands":true}'
 test_filter "FrequencyBands [6GHz]" '{"frequencyBands":["6GHz"]}' '{"frequencyBands":true}'
 test_filter "FrequencyBands [BLE]" '{"frequencyBands":["BLE"]}' '{"frequencyBands":true}'
+test_filter "FrequencyBands [Cellular]" '{"frequencyBands":["Cellular"]}' '{"frequencyBands":true}'
 test_filter "ChannelMin=6" '{"channelMin":6}' '{"channelMin":true}'
 test_filter "ChannelMax=11" '{"channelMax":11}' '{"channelMax":true}'
 test_filter "Channel range 6-11" '{"channelMin":6,"channelMax":11}' '{"channelMin":true,"channelMax":true}'
@@ -65,10 +70,15 @@ test_filter "RSSI range -70 to -30" '{"rssiMin":-70,"rssiMax":-30}' '{"rssiMin":
 echo ""
 echo "=== C. SECURITY FILTERS ==="
 test_filter "EncryptionTypes [OPEN]" '{"encryptionTypes":["OPEN"]}' '{"encryptionTypes":true}'
+test_filter "EncryptionTypes [WEP]" '{"encryptionTypes":["WEP"]}' '{"encryptionTypes":true}'
+test_filter "EncryptionTypes [WPA]" '{"encryptionTypes":["WPA"]}' '{"encryptionTypes":true}'
 test_filter "EncryptionTypes [WPA2]" '{"encryptionTypes":["WPA2"]}' '{"encryptionTypes":true}'
 test_filter "EncryptionTypes [WPA3]" '{"encryptionTypes":["WPA3"]}' '{"encryptionTypes":true}'
 test_filter "SecurityFlags [insecure]" '{"securityFlags":["insecure"]}' '{"securityFlags":true}'
+test_filter "SecurityFlags [deprecated]" '{"securityFlags":["deprecated"]}' '{"securityFlags":true}'
 test_filter "SecurityFlags [enterprise]" '{"securityFlags":["enterprise"]}' '{"securityFlags":true}'
+test_filter "SecurityFlags [personal]" '{"securityFlags":["personal"]}' '{"securityFlags":true}'
+test_filter "SecurityFlags [unknown]" '{"securityFlags":["unknown"]}' '{"securityFlags":true}'
 
 echo ""
 echo "=== D. QUALITY FILTERS ==="
