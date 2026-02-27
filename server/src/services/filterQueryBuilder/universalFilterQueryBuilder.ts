@@ -1298,7 +1298,6 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         },
       }).where
     );
-    const computedSecurityExpr = SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)');
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
       const securityClauses: string[] = [];
       f.encryptionTypes.forEach((type) => {
@@ -1306,25 +1305,23 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         const finalType = normalizedType.includes('WEP') ? 'WEP' : normalizedType;
         switch (finalType) {
           case 'OPEN':
-            securityClauses.push(`(${computedSecurityExpr}) = 'OPEN'`);
+            securityClauses.push(`ne.security = 'OPEN'`);
             break;
           case 'WEP':
-            securityClauses.push(`(${computedSecurityExpr}) = 'WEP'`);
+            securityClauses.push(`ne.security = 'WEP'`);
             break;
           case 'WPA':
-            securityClauses.push(`(${computedSecurityExpr}) = 'WPA'`);
+            securityClauses.push(`ne.security = 'WPA'`);
             break;
           case 'WPA2':
-            securityClauses.push(`(${computedSecurityExpr}) IN ('WPA2', 'WPA2-E')`);
+            securityClauses.push(`ne.security IN ('WPA2', 'WPA2-E')`);
             break;
           case 'WPA3':
-            securityClauses.push(
-              `(${computedSecurityExpr}) IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
-            );
+            securityClauses.push(`ne.security IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`);
             break;
           case 'MIXED':
             securityClauses.push(
-              `(${computedSecurityExpr}) IN ('WPA', 'WPA2', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+              `ne.security IN ('WPA', 'WPA2', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
             );
             break;
         }
@@ -1336,19 +1333,19 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
       const flagClauses: string[] = [];
       if (f.securityFlags.includes('insecure')) {
-        flagClauses.push(`(${computedSecurityExpr}) IN ('OPEN', 'WEP', 'WPS')`);
+        flagClauses.push(`ne.security IN ('OPEN', 'WEP', 'WPS')`);
       }
       if (f.securityFlags.includes('deprecated')) {
-        flagClauses.push(`(${computedSecurityExpr}) = 'WEP'`);
+        flagClauses.push(`ne.security = 'WEP'`);
       }
       if (f.securityFlags.includes('enterprise')) {
-        flagClauses.push(`(${computedSecurityExpr}) IN ('WPA2-E', 'WPA3-E')`);
+        flagClauses.push(`ne.security IN ('WPA2-E', 'WPA3-E')`);
       }
       if (f.securityFlags.includes('personal')) {
-        flagClauses.push(`(${computedSecurityExpr}) IN ('WPA', 'WPA2-P', 'WPA3-P')`);
+        flagClauses.push(`ne.security IN ('WPA', 'WPA2-P', 'WPA3-P')`);
       }
       if (f.securityFlags.includes('unknown')) {
-        flagClauses.push(`(${computedSecurityExpr}) = 'UNKNOWN'`);
+        flagClauses.push(`ne.security = 'UNKNOWN'`);
       }
       if (flagClauses.length > 0) {
         where.push(`(${flagClauses.join(' OR ')})`);
