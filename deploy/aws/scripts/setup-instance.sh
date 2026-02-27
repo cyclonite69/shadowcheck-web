@@ -214,20 +214,19 @@ alias l='ls -CF'
 alias sc='cd /home/ssm-user/shadowcheck'
 alias sclogs='docker logs -f shadowcheck_backend'
 alias scps='docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
-alias scdb='docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db'
-alias scdb-admin='docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db'
 alias scdeploy='scs_rebuild'
 alias scstatus='docker ps && echo "" && df -h /var/lib/postgresql'
 
-# Get DB password from Secrets Manager and export for psql
-_sc_get_db_pass() {
-    aws secretsmanager get-secret-value \
-        --secret-id shadowcheck/db/password \
-        --region us-east-1 \
-        --query SecretString \
-        --output text 2>/dev/null
+# PostgreSQL access functions (passwordless via Secrets Manager)
+scdb() {
+    local PASS=$(aws secretsmanager get-secret-value --secret-id shadowcheck/db/password --region us-east-1 --query SecretString --output text 2>/dev/null)
+    PGPASSWORD="$PASS" docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 }
-export PGPASSWORD=$(_sc_get_db_pass)
+
+scdb-admin() {
+    local PASS=$(aws secretsmanager get-secret-value --secret-id shadowcheck/db/password --region us-east-1 --query SecretString --output text 2>/dev/null)
+    PGPASSWORD="$PASS" docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db
+}
 BASHRC
   chown ssm-user:ssm-user /home/ssm-user/.bashrc
   echo "✅ Complete .bashrc deployed"
