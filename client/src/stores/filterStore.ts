@@ -144,11 +144,21 @@ export const useFilterStore = create<HardenedFilterStore>()(
         const { currentPage, pageStates } = get();
         const pageState = getPageState(pageStates, currentPage);
         console.log('[FilterStore] setFilter:', { key, value, currentPage });
+
+        // Clean up disabled filter values to prevent query bloat
+        const cleanedFilters = { ...pageState.filters };
+        Object.keys(cleanedFilters).forEach((k) => {
+          const filterKey = k as keyof NetworkFilters;
+          if (!pageState.enabled[filterKey] && filterKey !== key) {
+            delete cleanedFilters[filterKey];
+          }
+        });
+
         set({
           pageStates: {
             ...pageStates,
             [currentPage]: {
-              filters: { ...pageState.filters, [key]: value },
+              filters: { ...cleanedFilters, [key]: value },
               enabled: { ...pageState.enabled, [key]: true },
             },
           },
@@ -217,6 +227,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
 
       clearFilters: () => {
         const { currentPage, pageStates } = get();
+        console.log('[FilterStore] clearFilters called for page:', currentPage);
         set({
           pageStates: {
             ...pageStates,
