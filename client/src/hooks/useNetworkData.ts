@@ -174,8 +174,6 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     JSON.stringify(sort),
     planCheck,
     locationMode,
-    includeTotal,
-    currentPage,
   ]);
 
   return {
