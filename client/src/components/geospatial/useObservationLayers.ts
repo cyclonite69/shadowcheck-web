@@ -5,6 +5,7 @@ import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
 import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
 import type { WigleObservation } from './useNetworkContextMenu';
+import { renderWigleObservationPopupCard } from '../../utils/geospatial/renderMapPopupCards';
 
 // Format time difference as human-readable string
 const formatTimeSince = (ms: number): string => {
@@ -271,35 +272,18 @@ export const useObservationLayers = ({
         if (!props) return;
 
         const coords = (feature.geometry as any).coordinates;
-        const time = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
-        const distance = props.distance_from_our_center_m
-          ? `${(props.distance_from_our_center_m / 1000).toFixed(1)}km from your sightings`
-          : '';
 
-        new (mapboxgl as any).Popup({ maxWidth: '300px' })
+        new (mapboxgl as any).Popup({ maxWidth: '360px', className: 'sc-popup', offset: 14 })
           .setLngLat(coords)
           .setHTML(
-            `
-            <div style="font-family: system-ui; font-size: 12px; color: #e2e8f0;">
-              <div style="font-weight: 600; color: #f59e0b; margin-bottom: 4px;">
-                🌐 WiGLE Crowdsourced Sighting
-              </div>
-              <div style="margin-bottom: 2px;">
-                <strong>SSID:</strong> ${props.ssid || '(hidden)'}
-              </div>
-              <div style="margin-bottom: 2px;">
-                <strong>Time:</strong> ${time}
-              </div>
-              <div style="margin-bottom: 2px;">
-                <strong>Signal:</strong> ${props.level} dBm
-              </div>
-              ${props.channel ? `<div style="margin-bottom: 2px;"><strong>Channel:</strong> ${props.channel}</div>` : ''}
-              ${distance ? `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #475569; color: #f59e0b; font-weight: 500;">${distance}</div>` : ''}
-              <div style="margin-top: 4px; font-size: 10px; color: #94a3b8;">
-                Not seen in your observations
-              </div>
-            </div>
-          `
+            renderWigleObservationPopupCard({
+              ssid: props.ssid,
+              time: props.time,
+              signal: props.level,
+              channel: props.channel,
+              distanceFromCenterMeters: props.distance_from_our_center_m,
+              matched: false,
+            })
           )
           .addTo(map);
       });
@@ -311,30 +295,17 @@ export const useObservationLayers = ({
         if (!props) return;
 
         const coords = (feature.geometry as any).coordinates;
-        const time = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
 
-        new (mapboxgl as any).Popup({ maxWidth: '280px' })
+        new (mapboxgl as any).Popup({ maxWidth: '360px', className: 'sc-popup', offset: 14 })
           .setLngLat(coords)
           .setHTML(
-            `
-            <div style="font-family: system-ui; font-size: 12px; color: #e2e8f0;">
-              <div style="font-weight: 600; color: #22c55e; margin-bottom: 4px;">
-                ✓ WiGLE + Your Data Match
-              </div>
-              <div style="margin-bottom: 2px;">
-                <strong>SSID:</strong> ${props.ssid || '(hidden)'}
-              </div>
-              <div style="margin-bottom: 2px;">
-                <strong>Time:</strong> ${time}
-              </div>
-              <div style="margin-bottom: 2px;">
-                <strong>Signal:</strong> ${props.level} dBm
-              </div>
-              <div style="margin-top: 4px; font-size: 10px; color: #94a3b8;">
-                Matches one of your observations
-              </div>
-            </div>
-          `
+            renderWigleObservationPopupCard({
+              ssid: props.ssid,
+              time: props.time,
+              signal: props.level,
+              channel: props.channel,
+              matched: true,
+            })
           )
           .addTo(map);
       });

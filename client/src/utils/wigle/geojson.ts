@@ -25,7 +25,7 @@ export const EMPTY_FEATURE_COLLECTION = {
 export function rowsToGeoJSON(rows: WigleRow[]) {
   const validRows = rows.filter((row) => {
     const lat = row.trilat || (row as any).lat || (row as any).latitude;
-    const lon = row.trilong || row.trilon || (row as any).lon || (row as any).longitude;
+    const lon = row.trilong || (row as any).trilon || (row as any).lon || (row as any).longitude;
     return lat != null && lon != null;
   });
 
@@ -33,7 +33,7 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
     type: 'FeatureCollection' as const,
     features: validRows.map((row) => {
       const lat = row.trilat || (row as any).lat || (row as any).latitude;
-      const lon = row.trilong || row.trilon || (row as any).lon || (row as any).longitude;
+      const lon = row.trilong || (row as any).trilon || (row as any).lon || (row as any).longitude;
 
       return {
         type: 'Feature' as const,

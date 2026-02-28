@@ -9,8 +9,7 @@ import { HamburgerButton } from './HamburgerButton';
 import { ControlPanel } from './ControlPanel';
 import { FilterPanelContainer } from './FilterPanelContainer';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
-
-import { formatSecurity } from '../utils/wigle';
+import { normalizeTooltipData } from '../utils/geospatial/tooltipDataNormalizer';
 import { NetworkData, LayerType, DrawMode } from './kepler/types';
 import { loadScript, loadCss } from './kepler/utils';
 
@@ -119,49 +118,29 @@ const KeplerPage: React.FC = () => {
       },
       controller: drawMode === 'none',
       useDevicePixels: false,
-      getTooltip: ({ object }: { object: any }) => {
-        if (!object) return null;
+      getTooltip: () => null,
+      onClick: ({ object, coordinate }: { object: any; coordinate: [number, number] }) => {
+        if (!object) return;
 
-        const tooltipHTML = renderNetworkTooltip({
-          ssid: object.ssid,
-          bssid: object.bssid,
-          type: object.type,
-          threat_level: object.threat_level,
-          threat_score: object.threat_score,
-          signal: object.signal || object.bestlevel,
-          security: formatSecurity(object.capabilities || object.encryption),
-          frequency: object.frequency,
-          channel: object.channel,
-          lat: object.position ? object.position[1] : null,
-          lon: object.position ? object.position[0] : null,
-          altitude: object.altitude,
-          manufacturer: object.manufacturer,
-          observation_count: object.obs_count || object.observation_count || object.observations,
-          timespan_days: object.timespan_days,
-          time: object.timestamp || object.time,
-          first_seen: object.first_seen || object.timestamp,
-          last_seen: object.last_seen,
-          distance_from_home_km: object.distance_from_home,
-          max_distance_km: object.max_distance_km,
-          unique_days: object.unique_days,
-          accuracy: object.accuracy,
-        });
-
-        return {
-          html: tooltipHTML,
-          style: {
-            backgroundColor: 'transparent',
-            border: 'none',
-            boxShadow: 'none',
-            padding: '0',
-            fontSize: '12px',
-          },
-        };
-      },
-      onClick: ({ object }: { object: any }) => {
-        if (object && !selectedPoints.find((p) => p.bssid === object.bssid)) {
+        if (!selectedPoints.find((p) => p.bssid === object.bssid)) {
           setSelectedPoints((prev) => [...prev, object]);
         }
+
+        const mapboxMap = deckRef.current?.deck?.getMapboxMap?.();
+        if (!mapboxMap || !window.mapboxgl || !coordinate) return;
+
+        const tooltipHTML = renderNetworkTooltip(normalizeTooltipData(object, coordinate));
+
+        new window.mapboxgl.Popup({
+          offset: 14,
+          className: 'sc-popup',
+          maxWidth: '340px',
+          closeOnClick: true,
+          closeButton: true,
+        })
+          .setLngLat(coordinate)
+          .setHTML(tooltipHTML)
+          .addTo(mapboxMap);
       },
     });
 

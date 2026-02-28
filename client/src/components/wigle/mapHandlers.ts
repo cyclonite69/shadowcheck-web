@@ -1,7 +1,7 @@
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
-import { formatSecurity } from '../../utils/wigle';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
+import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
 
 export const attachClickHandlers = (
   map: Map,
@@ -15,22 +15,16 @@ export const attachClickHandlers = (
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const tooltipHTML = renderNetworkTooltip({
-      ssid: props.ssid,
-      bssid: props.bssid,
-      type: props.type,
-      security: formatSecurity(props.encryption),
-      frequency: props.frequency,
-      channel: props.channel,
-      time: props.lasttime,
-      first_seen: props.firsttime,
-      last_seen: props.lasttime,
-      lat: e.lngLat.lat,
-      lon: e.lngLat.lng,
-      accuracy: props.accuracy,
-      threat_level: 'NONE',
-      threat_score: 0,
-    });
+    const tooltipHTML = renderNetworkTooltip(
+      normalizeTooltipData(
+        {
+          ...props,
+          threat_level: 'NONE',
+          threat_score: 0,
+        },
+        [e.lngLat.lng, e.lngLat.lat]
+      )
+    );
 
     new mapboxgl.Popup({ offset: 12, className: 'sc-popup', maxWidth: '340px' })
       .setLngLat(e.lngLat)

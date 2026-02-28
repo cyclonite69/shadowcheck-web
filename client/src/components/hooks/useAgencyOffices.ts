@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { renderAgencyPopupCard } from '../../utils/geospatial/renderMapPopupCards';
 
 interface AgencyOffice {
   type: 'Feature';
@@ -212,24 +213,16 @@ export const useAgencyOffices = (
         .filter(Boolean)
         .join(', ');
 
-      const html = `
-        <div style="font-family: system-ui; font-size: 13px; max-width: 280px;">
-          <div style="font-weight: 600; color: #dc2626; margin-bottom: 6px;">
-            ${props.name}
-          </div>
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">
-            ${String(props.office_type).replace('_', ' ')}
-          </div>
-          <div style="color: #334155; font-size: 12px; line-height: 1.5;">
-            ${address}
-          </div>
-          ${props.phone ? `<div style="color: #334155; font-size: 12px; margin-top: 4px;">📞 ${props.phone}</div>` : ''}
-          ${props.website ? `<div style="margin-top: 6px;"><a href="${props.website}" target="_blank" style="color: #2563eb; text-decoration: none; font-size: 11px;">Visit Website →</a></div>` : ''}
-          ${props.parent_office ? `<div style="color: #64748b; font-size: 11px; margin-top: 6px;">Parent: ${props.parent_office}</div>` : ''}
-        </div>
-      `;
+      const html = renderAgencyPopupCard({
+        name: props.name,
+        officeType: props.office_type,
+        address,
+        phone: props.phone,
+        website: props.website,
+        parentOffice: props.parent_office,
+      });
 
-      new (window as any).mapboxgl.Popup({ offset: 15 })
+      new (window as any).mapboxgl.Popup({ offset: 15, className: 'sc-popup', maxWidth: '360px' })
         .setLngLat(e.lngLat)
         .setHTML(html)
         .addTo(map);

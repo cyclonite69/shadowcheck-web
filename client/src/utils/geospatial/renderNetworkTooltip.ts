@@ -89,7 +89,7 @@ export const renderNetworkTooltip = (props: any): string => {
   })();
 
   return `
-    <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 30, 0.95) 100%); color: #f8fafc; padding: 12px 14px; border-radius: 9px; max-width: 320px; font-size: 12px; border: 1px solid rgba(59, 130, 246, 0.4); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.4;">
+    <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 30, 0.95) 100%); color: #f8fafc; padding: 12px 14px; border-radius: 9px; width: min(320px, 78vw); max-height: min(62vh, 520px); overflow-y: auto; font-size: 12px; border: 1px solid rgba(59, 130, 246, 0.4); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.4;">
       <!-- HEADER WITH ICON -->
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(59, 130, 246, 0.25);">
         <div style="width: 18px; height: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">

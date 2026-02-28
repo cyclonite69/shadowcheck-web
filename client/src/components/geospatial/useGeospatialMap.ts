@@ -3,6 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { Map, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
+import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
 import { DEFAULT_ZOOM, MAP_STYLES } from '../../constants/network';
 import { mapboxApi } from '../../api/mapboxApi';
 import {
@@ -180,33 +181,16 @@ export const useGeospatialMap = ({
 
             const latitude = (feature.geometry as any).coordinates[1];
 
-            const popupHTML = renderNetworkTooltip({
-              ssid: props.ssid,
-              bssid: props.bssid,
-              type: props.type,
-              threat_level: props.threat_level,
-              threat_score: props.threat_score,
-              signal: props.signal,
-              security: props.security,
-              frequency: props.frequency,
-              channel: props.channel,
-              lat: latitude,
-              lon: (feature.geometry as any).coordinates[0],
-              altitude: props.altitude,
-              manufacturer: props.manufacturer,
-              observation_count: props.observation_count,
-              timespan_days: props.timespan_days,
-              distance_from_home_km: props.distance_from_home_km,
-              max_distance_km: props.max_distance_km,
-              distance_from_last_point_m: props.distance_from_last_point_m,
-              time_since_prior: props.time_since_prior,
-              time: props.time,
-              first_seen: props.first_seen,
-              last_seen: props.last_seen,
-              number: props.number,
-              accuracy: props.accuracy,
-              unique_days: props.unique_days,
-            });
+            const popupHTML = renderNetworkTooltip(
+              normalizeTooltipData(
+                {
+                  ...props,
+                  lat: latitude,
+                  lon: (feature.geometry as any).coordinates[0],
+                },
+                [(feature.geometry as any).coordinates[0], latitude]
+              )
+            );
 
             // Smart positioning - keep popup within map bounds
             const popupWidth = 340;

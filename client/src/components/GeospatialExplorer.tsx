@@ -41,6 +41,7 @@ import { WigleObservationsPanel } from './geospatial/WigleObservationsPanel';
 import { NearestAgenciesPanel } from './geospatial/NearestAgenciesPanel';
 import { useNearestAgencies } from './geospatial/useNearestAgencies';
 import { useWeatherFx } from '../weather/useWeatherFx';
+import { renderAgencyPopupCard } from '../utils/geospatial/renderMapPopupCards';
 
 // Types
 
@@ -376,14 +377,15 @@ export default function GeospatialExplorer() {
       const feature = e.features[0];
       const props = feature.properties;
 
-      new mapboxgl.Popup()
+      new mapboxgl.Popup({ className: 'sc-popup', maxWidth: '360px', offset: 14 })
         .setLngLat(e.lngLat)
         .setHTML(
-          `<div style="padding: 8px;">
-            <strong>${props.name}</strong><br/>
-            <span style="font-size: 12px;">${props.type === 'field_office' ? '🏢 Field Office' : '📍 Resident Agency'}</span><br/>
-            <span style="font-size: 12px; color: #64748b;">${props.distance.toFixed(1)} km away</span>
-          </div>`
+          renderAgencyPopupCard({
+            name: props.name,
+            officeType: props.type,
+            distanceKm: Number(props.distance),
+            hasWigleObs: Boolean(props.hasWigleObs),
+          })
         )
         .addTo(map);
     };
