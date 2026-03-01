@@ -336,7 +336,7 @@ describe('getThreatSeverityCounts', () => {
     const sql: string = mockQuery.mock.calls[0][0];
     const params: unknown[] = mockQuery.mock.calls[0][1];
     expect(sql).toMatch(
-      /COALESCE\(ne\.radio_type,\s*CASE\s+WHEN ne\.radio_frequency BETWEEN 2412 AND 2484 THEN 'W'/i
+      /UPPER\(COALESCE\(ne\.radio_type, ''\)\) IN \('W', 'WIFI', 'WI-FI'\) THEN 'W'/i
     );
     expect(params).toContainEqual(['W']);
   });

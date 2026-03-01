@@ -54,7 +54,17 @@ const isAllRadioTypesSelection = (radioTypes: string[]): boolean =>
   SUPPORTED_RADIO_TYPES.every((type) => radioTypes.includes(type));
 
 const OBS_TYPE_EXPR = (alias = 'o'): string => `
-  COALESCE(${alias}.radio_type, CASE
+  CASE
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('W', 'WIFI', 'WI-FI') THEN 'W'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('E', 'BLE') THEN 'E'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('B', 'BLUETOOTH', 'BT') THEN 'B'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('L', 'LTE') THEN 'L'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('G', 'GSM') THEN 'G'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('N', 'NR', '5G') THEN 'N'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('C', 'CDMA') THEN 'C'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('D', 'DECT') THEN 'D'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('F', 'FM') THEN 'F'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('?', 'UNKNOWN') THEN '?'
     WHEN ${alias}.radio_frequency BETWEEN 2412 AND 2484 THEN 'W'
     WHEN ${alias}.radio_frequency BETWEEN 5000 AND 5900 THEN 'W'
     WHEN ${alias}.radio_frequency BETWEEN 5925 AND 7125 THEN 'W'
@@ -63,7 +73,7 @@ const OBS_TYPE_EXPR = (alias = 'o'): string => `
     WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(BLUETOOTH)' THEN 'B'
     WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(LTE|4G|EARFCN|5G|NR|3GPP)' THEN 'L'
     ELSE '?'
-  END)
+  END
 `;
 
 const SECURITY_FROM_CAPS_EXPR = (capsExpr: string): string => `
