@@ -6,6 +6,7 @@
 const { query } = require('../config/database');
 const { CONFIG } = require('../config/database');
 const logger = require('../logging/logger');
+const { OBS_TYPE_EXPR } = require('./filterQueryBuilder/sqlExpressions');
 const SLOW_QUERY_THRESHOLD_MS = Math.max(0, Number(process.env.SLOW_QUERY_THRESHOLD_MS ?? 2000));
 
 // ── Shared types ───────────────────────────────────────────────────────────────
@@ -452,8 +453,8 @@ export async function getThreatMapData(opts: {
  * Threat severity counts, optionally filtered by active threat categories.
  */
 export async function getThreatSeverityCounts(
-  filters: { threatCategories?: string[] },
-  enabled: { threatCategories?: boolean }
+  filters: { threatCategories?: string[]; radioTypes?: string[] },
+  enabled: { threatCategories?: boolean; radioTypes?: boolean }
 ): Promise<SeverityCounts> {
   const ThreatLevelMap: Record<string, string> = {
     critical: 'CRITICAL',
@@ -476,6 +477,7 @@ export async function getThreatSeverityCounts(
       .map((cat) => ThreatLevelMap[cat] || cat.toUpperCase())
       .filter(Boolean);
     if (dbThreatLevels.length > 0) {
+      const threatLevelsParamIndex = params.length + 1;
       conditions.push(`(
         CASE
           WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
@@ -490,8 +492,18 @@ export async function getThreatSeverityCounts(
             END
           )
         END
-      ) = ANY($1)`);
+      ) = ANY($${threatLevelsParamIndex})`);
       params.push(dbThreatLevels);
+    }
+  }
+
+  // Keep severity counts scoped by the same active radio filter used by dashboard/list endpoints.
+  if (enabled.radioTypes && Array.isArray(filters.radioTypes) && filters.radioTypes.length > 0) {
+    const radioTypes = filters.radioTypes.map((t) => String(t).toUpperCase()).filter(Boolean);
+    if (radioTypes.length > 0) {
+      const radioTypesParamIndex = params.length + 1;
+      conditions.push(`${OBS_TYPE_EXPR('ne')} = ANY($${radioTypesParamIndex})`);
+      params.push(radioTypes);
     }
   }
 

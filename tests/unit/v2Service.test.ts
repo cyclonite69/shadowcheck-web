@@ -326,6 +326,38 @@ describe('getThreatSeverityCounts', () => {
     // 'medium' → 'MED', 'critical' → 'CRITICAL'
     expect(params[0]).toEqual(expect.arrayContaining(['CRITICAL', 'MED']));
   });
+
+  it('applies radioTypes scope when enabled', async () => {
+    const mockQuery = getQueryMock();
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getThreatSeverityCounts({ radioTypes: ['w'] }, { radioTypes: true });
+
+    const sql: string = mockQuery.mock.calls[0][0];
+    const params: unknown[] = mockQuery.mock.calls[0][1];
+    expect(sql).toMatch(
+      /COALESCE\(ne\.radio_type,\s*CASE\s+WHEN ne\.radio_frequency BETWEEN 2412 AND 2484 THEN 'W'/i
+    );
+    expect(params).toContainEqual(['W']);
+  });
+
+  it('uses dynamic parameter indexes when combining threatCategories and radioTypes', async () => {
+    const mockQuery = getQueryMock();
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getThreatSeverityCounts(
+      { threatCategories: ['high'], radioTypes: ['W'] },
+      { threatCategories: true, radioTypes: true }
+    );
+
+    const sql: string = mockQuery.mock.calls[0][0];
+    const params: unknown[] = mockQuery.mock.calls[0][1];
+
+    expect(sql).toContain(') = ANY($1)');
+    expect(sql).toContain('= ANY($2)');
+    expect(params[0]).toEqual(['HIGH']);
+    expect(params[1]).toEqual(['W']);
+  });
 });
 
 // ── checkHomeExists ───────────────────────────────────────────────────────────
