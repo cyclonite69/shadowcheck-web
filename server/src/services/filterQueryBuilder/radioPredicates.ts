@@ -1,4 +1,5 @@
 import { NOISE_FLOOR_DBM } from './constants';
+import { isAllRadioTypesSelection, normalizeRadioTypes } from './sqlExpressions';
 import type { EnabledFlags, Filters } from './types';
 
 export type RadioAppliedFilterField =
@@ -116,8 +117,11 @@ export const buildRadioPredicates = ({
   const applied: Array<{ field: RadioAppliedFilterField; value: unknown }> = [];
 
   if (enabled.radioTypes && Array.isArray(filters.radioTypes) && filters.radioTypes.length > 0) {
-    where.push(`${expressions.typeExpr} = ANY(${addParam(filters.radioTypes)})`);
-    applied.push({ field: 'radioTypes', value: filters.radioTypes });
+    const normalizedRadioTypes = normalizeRadioTypes(filters.radioTypes);
+    if (normalizedRadioTypes.length > 0 && !isAllRadioTypesSelection(normalizedRadioTypes)) {
+      where.push(`${expressions.typeExpr} = ANY(${addParam(normalizedRadioTypes)})`);
+      applied.push({ field: 'radioTypes', value: normalizedRadioTypes });
+    }
   }
 
   if (

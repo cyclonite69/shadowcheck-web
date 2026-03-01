@@ -358,6 +358,22 @@ describe('getThreatSeverityCounts', () => {
     expect(params[0]).toEqual(['HIGH']);
     expect(params[1]).toEqual(['W']);
   });
+
+  it('treats full supported radioTypes selection as neutral (no radio predicate)', async () => {
+    const mockQuery = getQueryMock();
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getThreatSeverityCounts(
+      { radioTypes: ['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'] },
+      { radioTypes: true }
+    );
+
+    const sql: string = mockQuery.mock.calls[0][0];
+    const params: unknown[] = mockQuery.mock.calls[0][1];
+
+    expect(sql).not.toContain('= ANY($1)');
+    expect(params).toEqual([]);
+  });
 });
 
 // ── checkHomeExists ───────────────────────────────────────────────────────────

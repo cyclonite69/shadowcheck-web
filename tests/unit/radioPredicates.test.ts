@@ -63,6 +63,24 @@ describe('buildRadioPredicates', () => {
     expect(result.where[1]).toContain('(freq_expr BETWEEN 5925 AND 7125)');
   });
 
+  test('treats full supported radioTypes selection as neutral', () => {
+    const { params, addParam } = makeAddParam();
+    const result = buildRadioPredicates({
+      enabled: { ...DEFAULT_ENABLED, radioTypes: true },
+      filters: { radioTypes: ['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'] },
+      addParam,
+      expressions: {
+        typeExpr: 'network_type_expr',
+        frequencyExpr: 'freq_expr',
+        channelExpr: 'channel_expr',
+        signalExpr: 'signal_expr',
+      },
+    });
+
+    expect(result.where).toEqual([]);
+    expect(result.applied).toEqual([]);
+    expect(params).toEqual([]);
+  });
   test('wraps channel comparisons when requested', () => {
     const { addParam } = makeAddParam();
     const result = buildRadioPredicates({
