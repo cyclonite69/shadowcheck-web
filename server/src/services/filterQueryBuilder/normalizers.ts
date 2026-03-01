@@ -56,9 +56,7 @@ const toBooleanOrUndefined = (value: unknown): boolean | undefined => {
 
 const toStringArray = (value: unknown): string[] | undefined => {
   if (Array.isArray(value)) {
-    const normalized = value
-      .map((item) => String(item || '').trim())
-      .filter(Boolean);
+    const normalized = value.map((item) => String(item || '').trim()).filter(Boolean);
     return normalized.length > 0 ? normalized : undefined;
   }
   if (typeof value === 'string') {
@@ -89,6 +87,12 @@ const normalizeRadioType = (value: string): string | null => {
     N: 'N',
     NR: 'N',
     '5G': 'N',
+    C: 'C',
+    CDMA: 'C',
+    D: 'D',
+    DECT: 'D',
+    F: 'F',
+    FM: 'F',
     '?': '?',
     UNKNOWN: '?',
   };
@@ -158,9 +162,7 @@ const normalizeFilters = (filters: unknown): Filters => {
     .filter((v): v is string => Boolean(v));
 
   const tagTypeRaw = toStringArray(source.tag_type);
-  normalized.tag_type = tagTypeRaw
-    ?.map(normalizeTagType)
-    .filter((v): v is string => Boolean(v));
+  normalized.tag_type = tagTypeRaw?.map(normalizeTagType).filter((v): v is string => Boolean(v));
 
   normalized.channelMin = toFiniteNumber(source.channelMin);
   normalized.channelMax = toFiniteNumber(source.channelMax);

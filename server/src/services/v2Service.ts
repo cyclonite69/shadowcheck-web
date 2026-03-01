@@ -6,7 +6,11 @@
 const { query } = require('../config/database');
 const { CONFIG } = require('../config/database');
 const logger = require('../logging/logger');
-const { OBS_TYPE_EXPR } = require('./filterQueryBuilder/sqlExpressions');
+const {
+  OBS_TYPE_EXPR,
+  normalizeRadioTypes,
+  isAllRadioTypesSelection,
+} = require('./filterQueryBuilder/sqlExpressions');
 const SLOW_QUERY_THRESHOLD_MS = Math.max(0, Number(process.env.SLOW_QUERY_THRESHOLD_MS ?? 2000));
 
 // ── Shared types ───────────────────────────────────────────────────────────────
@@ -499,8 +503,8 @@ export async function getThreatSeverityCounts(
 
   // Keep severity counts scoped by the same active radio filter used by dashboard/list endpoints.
   if (enabled.radioTypes && Array.isArray(filters.radioTypes) && filters.radioTypes.length > 0) {
-    const radioTypes = filters.radioTypes.map((t) => String(t).toUpperCase()).filter(Boolean);
-    if (radioTypes.length > 0) {
+    const radioTypes = normalizeRadioTypes(filters.radioTypes);
+    if (radioTypes.length > 0 && !isAllRadioTypesSelection(radioTypes)) {
       const radioTypesParamIndex = params.length + 1;
       conditions.push(`${OBS_TYPE_EXPR('ne')} = ANY($${radioTypesParamIndex})`);
       params.push(radioTypes);
