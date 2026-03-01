@@ -233,6 +233,20 @@ describeIfIntegration('Dashboard/Threat parity for identical filter payloads', (
       );
     }
 
+    if (
+      JSON.stringify(allSelectedBundle.dashboard?.networks || {}) !==
+      JSON.stringify(baselineBundle.dashboard?.networks || {})
+    ) {
+      failWithContext('All-radio dashboard network cards diverged from baseline', context);
+    }
+
+    if (
+      JSON.stringify(allSelectedBundle.severity?.counts || {}) !==
+      JSON.stringify(baselineBundle.severity?.counts || {})
+    ) {
+      failWithContext('All-radio severity breakdown diverged from baseline', context);
+    }
+
     if (allSelectedBundle.severitySummary.unique !== baselineBundle.severitySummary.unique) {
       failWithContext('All-radio severity unique totals diverged from baseline', context);
     }
