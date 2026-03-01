@@ -163,6 +163,26 @@ describe('SQL Injection Prevention', () => {
       expect(sql).not.toContain('${CONFIG');
     });
 
+    test('treats full supported radioTypes selection as neutral in dashboard metrics path', async () => {
+      query
+        .mockResolvedValueOnce({ rows: [{ total_networks: '10', wifi_count: '3' }] })
+        .mockResolvedValueOnce({ rows: [{ total_observations: '20', wifi_observations: '6' }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { threats_critical: '0', threats_high: '0', threats_medium: '0', threats_low: '0' },
+          ],
+        });
+
+      await repo.getDashboardMetrics(
+        { radioTypes: ['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'] },
+        { radioTypes: true }
+      );
+
+      expect(query).toHaveBeenCalledTimes(3);
+      const firstSql = String(query.mock.calls[0]?.[0] || '');
+      expect(firstSql).toContain('FROM app.networks');
+      expect(firstSql).not.toContain('filtered_obs');
+    });
     test('should not contain string interpolation in SQL', async () => {
       query
         .mockResolvedValueOnce({ rows: [{ count: 100 }] })
