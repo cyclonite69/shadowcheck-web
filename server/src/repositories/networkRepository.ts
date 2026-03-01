@@ -5,6 +5,8 @@ const {
   OBS_TYPE_EXPR,
   THREAT_LEVEL_EXPR,
   THREAT_SCORE_EXPR,
+  normalizeRadioTypes,
+  isAllRadioTypesSelection,
 } = require('../services/filterQueryBuilder/sqlExpressions');
 
 export {};
@@ -113,7 +115,15 @@ class NetworkRepository {
       console.log('[NetworkRepo] filters:', JSON.stringify(filters, null, 2));
       console.log('[NetworkRepo] enabled:', JSON.stringify(enabled, null, 2));
 
-      const noFiltersEnabled = Object.values(enabled).every((value) => !value);
+      const effectiveEnabled: any = { ...(enabled || {}) };
+      if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
+        const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
+        if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
+          effectiveEnabled.radioTypes = false;
+        }
+      }
+
+      const noFiltersEnabled = Object.values(effectiveEnabled).every((value) => !value);
 
       if (noFiltersEnabled) {
         const networkResult = await query(`
@@ -186,7 +196,7 @@ class NetworkRepository {
       // Check if only threat-level filters are enabled (network-only filters)
       // These can be handled with a fast direct query instead of heavy CTEs
       const threatOnlyFilters = ['threatCategories', 'threatScoreMin', 'threatScoreMax'];
-      const enabledKeys = Object.entries(enabled)
+      const enabledKeys = Object.entries(effectiveEnabled)
         .filter(([, value]) => value)
         .map(([key]) => key);
       const isThreatOnlyFilter =
@@ -211,7 +221,7 @@ class NetworkRepository {
         const dynamicThreatScore = THREAT_SCORE_EXPR('nts', 'nt');
 
         if (
-          (enabled as any).threatCategories &&
+          (effectiveEnabled as any).threatCategories &&
           Array.isArray((filters as any).threatCategories) &&
           (filters as any).threatCategories.length > 0
         ) {
@@ -221,11 +231,17 @@ class NetworkRepository {
           params.push(dbThreatLevels);
           whereClauses.push(`(${dynamicThreatLevel}) = ANY($${params.length})`);
         }
-        if ((enabled as any).threatScoreMin && (filters as any).threatScoreMin !== undefined) {
+        if (
+          (effectiveEnabled as any).threatScoreMin &&
+          (filters as any).threatScoreMin !== undefined
+        ) {
           params.push((filters as any).threatScoreMin);
           whereClauses.push(`(${dynamicThreatScore}) >= $${params.length}`);
         }
-        if ((enabled as any).threatScoreMax && (filters as any).threatScoreMax !== undefined) {
+        if (
+          (effectiveEnabled as any).threatScoreMax &&
+          (filters as any).threatScoreMax !== undefined
+        ) {
           params.push((filters as any).threatScoreMax);
           whereClauses.push(`(${dynamicThreatScore}) <= $${params.length}`);
         }
@@ -310,7 +326,7 @@ class NetworkRepository {
         };
       }
 
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
+      const builder = new UniversalFilterQueryBuilder(filters, effectiveEnabled);
       const { cte } = builder.buildFilteredObservationsCte();
       const networkWhere = builder.buildNetworkWhere();
       const networkWhereClause =
