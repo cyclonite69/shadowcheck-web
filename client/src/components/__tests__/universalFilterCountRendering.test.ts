@@ -43,6 +43,26 @@ function WifiCounterProbe({ filterKey }: { filterKey: string }) {
   );
 }
 
+function ThreatHighProbe({ filterKey }: { filterKey: string }) {
+  const { cards } = useDashboard(initialCards, filterKey);
+  const highThreatCard = cards.find((card) => card.type === 'threat-high');
+  const value =
+    typeof highThreatCard?.value === 'number'
+      ? highThreatCard.value.toLocaleString()
+      : String(highThreatCard?.value ?? '');
+
+  return React.createElement(
+    'div',
+    {},
+    React.createElement(
+      'div',
+      { 'data-testid': 'threat-high-card-present' },
+      highThreatCard ? 'yes' : 'no'
+    ),
+    React.createElement('div', { 'data-testid': 'threat-high-value' }, value)
+  );
+}
+
 describe('Universal Filter UI Contract - Wi-Fi Count Rendering', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -128,6 +148,34 @@ describe('Universal Filter UI Contract - Wi-Fi Count Rendering', () => {
     await waitFor(() => {
       expect(screen.getByTestId('wifi-card-present').textContent).toBe('yes');
       expect(screen.getByTestId('wifi-value').textContent).toBe('0');
+    });
+  });
+
+  test('falls back to dashboard threat metrics when severity endpoint fails', async () => {
+    mockedDashboardApi.getMetrics.mockResolvedValue({
+      threats: { critical: 3, high: 11, medium: 7, low: 2 },
+      networks: { wifi: 1 },
+      observations: { wifi: 1 },
+      filtersApplied: 1,
+    } as any);
+    mockedDashboardApi.getThreatSeverityCounts.mockRejectedValueOnce(
+      new Error('severity endpoint failed')
+    );
+
+    const filterKey = JSON.stringify({
+      filters: { radioTypes: ['W'] },
+      enabled: { radioTypes: true },
+    });
+
+    render(React.createElement(ThreatHighProbe, { filterKey }));
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('threat-high-card-present').textContent).toBe('yes');
+      expect(screen.getByTestId('threat-high-value').textContent).toBe('11');
     });
   });
 });

@@ -35,7 +35,7 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
     `),
     query(`
       SELECT * FROM app.networks
-      ORDER BY lasttime DESC
+      ORDER BY lasttime_ms DESC
     `),
   ]);
 
