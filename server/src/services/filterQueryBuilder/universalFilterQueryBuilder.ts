@@ -354,8 +354,42 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       }
     }
 
-    // Timeframe is now handled at network level (NETWORK_ONLY_FILTERS)
-    // Observation-level timeframe logic removed for performance
+    if (e.timeframe && f.timeframe) {
+      const normalizeTimestamp = (value: string | undefined): string | null => {
+        if (!value || value === 'null' || value === 'undefined') {
+          return null;
+        }
+        const parsed = Date.parse(value);
+        return Number.isNaN(parsed) ? null : value;
+      };
+      const scope = f.temporalScope || 'observation_time';
+      if (scope === 'network_lifetime') {
+        this.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+      }
+      if (scope === 'threat_window') {
+        this.addWarning('Threat window scope mapped to observation_time (no threat timestamps).');
+      }
+      if (f.timeframe.type === 'absolute') {
+        const startTarget = scope === 'network_lifetime' ? 'ap.first_seen_at' : 'o.time';
+        const endTarget = scope === 'network_lifetime' ? 'ap.last_seen_at' : 'o.time';
+        const startValue = normalizeTimestamp(f.timeframe.startTimestamp);
+        const endValue = normalizeTimestamp(f.timeframe.endTimestamp);
+        const startParam = this.addParam(startValue);
+        const endParam = this.addParam(endValue);
+
+        where.push(`(${startParam}::timestamptz IS NULL OR ${startTarget} >= ${startParam})`);
+        where.push(`(${endParam}::timestamptz IS NULL OR ${endTarget} <= ${endParam})`);
+      } else {
+        const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
+        const target = scope === 'network_lifetime' ? 'ap.last_seen_at' : 'o.time';
+        const windowParam = this.addParam(window || null);
+        where.push(
+          `(${windowParam}::interval IS NULL OR ${target} >= NOW() - ${windowParam}::interval)`
+        );
+      }
+      this.addApplied('temporal', 'timeframe', f.timeframe);
+      this.addApplied('temporal', 'temporalScope', f.temporalScope || 'observation_time');
+    }
 
     if (e.boundingBox && f.boundingBox) {
       where.push(`o.lat <= ${this.addParam(f.boundingBox.north)}`);
