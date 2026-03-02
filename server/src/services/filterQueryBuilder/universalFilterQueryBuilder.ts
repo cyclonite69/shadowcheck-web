@@ -984,6 +984,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         this.addApplied('threat', 'threatCategories', f.threatCategories);
       }
     }
+    if (e.stationaryConfidenceMin && f.stationaryConfidenceMin !== undefined) {
+      where.push(`ne.stationary_confidence >= ${this.addParam(f.stationaryConfidenceMin)}`);
+      this.addApplied('threat', 'stationaryConfidenceMin', f.stationaryConfidenceMin);
+    }
+    if (e.stationaryConfidenceMax && f.stationaryConfidenceMax !== undefined) {
+      where.push(`ne.stationary_confidence <= ${this.addParam(f.stationaryConfidenceMax)}`);
+      this.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
+    }
 
     if (e.ssid && !f.ssid) {
       this.addIgnored('identity', 'ssid', 'enabled_without_value');
@@ -1109,7 +1117,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         ne.lat,
         ne.lon,
         ne.accuracy_meters AS accuracy_meters,
-        NULL::numeric AS stationary_confidence,
+        ne.stationary_confidence AS stationary_confidence,
         ${NT_SELECT_FIELDS},
         NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
