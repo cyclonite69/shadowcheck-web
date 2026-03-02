@@ -32,6 +32,18 @@ export async function refreshMaterializedViews(): Promise<void> {
   const startTime = Date.now();
 
   try {
+    // Step 1: Refresh computed columns in networks table
+    console.log('  Refreshing network computed columns...\n');
+    const computedStart = Date.now();
+    const computedResult = await pool.query<{
+      networks_updated: string;
+      execution_time_ms: string;
+    }>('SELECT * FROM app.refresh_network_computed_columns()');
+    const computedRow = computedResult.rows[0];
+    const computedDuration = (parseInt(computedRow.execution_time_ms) / 1000).toFixed(2);
+    console.log(`  ✅ Updated ${computedRow.networks_updated} networks in ${computedDuration}s\n`);
+
+    // Step 2: Refresh materialized views
     // Check if the refresh function exists
     const funcCheck: QueryResult<ExistsRow> = await pool.query(`
       SELECT EXISTS (
