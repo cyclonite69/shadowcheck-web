@@ -83,4 +83,6 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'threatScoreMax',
   'threatCategories',
   'timeframe', // Use ne.last_seen from MV instead of scanning observations
+  'stationaryConfidenceMin', // Use ne.stationary_confidence from MV
+  'stationaryConfidenceMax', // Use ne.stationary_confidence from MV
 ]);
