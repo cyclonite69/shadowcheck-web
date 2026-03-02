@@ -32,21 +32,21 @@ const CARD_DATA_MAP: Record<
     observations: d.observations?.gsm || 0,
   }),
   'radio-nr': (d, _tc) => ({ value: d.networks?.nr || 0, observations: d.observations?.nr || 0 }),
-  'threat-critical': (_d, tc) => ({
-    value: tc.counts?.critical?.unique_networks || 0,
-    observations: tc.counts?.critical?.total_observations || 0,
+  'threat-critical': (d, tc) => ({
+    value: tc?.counts?.critical?.unique_networks ?? d.threats?.critical ?? 0,
+    observations: tc?.counts?.critical?.total_observations ?? d.threats?.critical ?? 0,
   }),
-  'threat-high': (_d, tc) => ({
-    value: tc.counts?.high?.unique_networks || 0,
-    observations: tc.counts?.high?.total_observations || 0,
+  'threat-high': (d, tc) => ({
+    value: tc?.counts?.high?.unique_networks ?? d.threats?.high ?? 0,
+    observations: tc?.counts?.high?.total_observations ?? d.threats?.high ?? 0,
   }),
-  'threat-medium': (_d, tc) => ({
-    value: tc.counts?.medium?.unique_networks || 0,
-    observations: tc.counts?.medium?.total_observations || 0,
+  'threat-medium': (d, tc) => ({
+    value: tc?.counts?.medium?.unique_networks ?? d.threats?.medium ?? 0,
+    observations: tc?.counts?.medium?.total_observations ?? d.threats?.medium ?? 0,
   }),
-  'threat-low': (_d, tc) => ({
-    value: tc.counts?.low?.unique_networks || 0,
-    observations: tc.counts?.low?.total_observations || 0,
+  'threat-low': (d, tc) => ({
+    value: tc?.counts?.low?.unique_networks ?? d.threats?.low ?? 0,
+    observations: tc?.counts?.low?.total_observations ?? d.threats?.low ?? 0,
   }),
 };
 
@@ -67,14 +67,7 @@ export const useDashboard = (cards: CardData[], filterKey: string) => {
         // Parallel fetch for dashboard metrics and threat severity counts
         const [data, threatCounts] = await Promise.all([
           dashboardApi.getMetrics(filters, controller.signal),
-          dashboardApi.getThreatSeverityCounts(filters, controller.signal).catch(() => ({
-            counts: {
-              critical: { unique_networks: 0, total_observations: 0 },
-              high: { unique_networks: 0, total_observations: 0 },
-              medium: { unique_networks: 0, total_observations: 0 },
-              low: { unique_networks: 0, total_observations: 0 },
-            },
-          })),
+          dashboardApi.getThreatSeverityCounts(filters, controller.signal).catch(() => null),
         ]);
 
         setUpdatedCards((prev) =>
