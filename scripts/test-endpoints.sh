@@ -6,6 +6,9 @@ BASE="http://localhost:3001"
 BSSID="6D:70:9A:A5:7F:4D"
 EXPORT_DIR="/tmp/shadowcheck_exports"
 mkdir -p "$EXPORT_DIR"
+PASS_COUNT=0
+WARN_COUNT=0
+FAIL_COUNT=0
 
 echo "--------------------------------------------------"
 echo "ShadowCheck API Deployment Test"
@@ -43,18 +46,24 @@ test_endpoint() {
             summary=$(jq -r 'if type=="array" then "Array(len=\(length))" else "Object(keys=\(keys | length))" end' "$response_file" 2>/dev/null)
             if [ $? -eq 0 ]; then
                 echo -e "\e[32mPASS\e[0m ($status_code) - $summary"
+                PASS_COUNT=$((PASS_COUNT + 1))
             else
                 echo -e "\e[32mPASS\e[0m ($status_code) - Non-JSON body"
+                PASS_COUNT=$((PASS_COUNT + 1))
             fi
         else
             echo -e "\e[32mPASS\e[0m ($status_code)"
+            PASS_COUNT=$((PASS_COUNT + 1))
         fi
     elif [ "$status_code" -eq 401 ]; then
         echo -e "\e[33mAUTH REQUIRED\e[0m ($status_code)"
+        WARN_COUNT=$((WARN_COUNT + 1))
     elif [ "$status_code" -eq 404 ]; then
         echo -e "\e[31mNOT FOUND\e[0m ($status_code)"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
     else
         echo -e "\e[31mFAIL\e[0m ($status_code)"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
         if [ -f "$response_file" ]; then
             head -c 100 "$response_file"
             echo "..."
@@ -79,8 +88,10 @@ test_export() {
         local line_count=$(wc -l < "$output_file")
         local size=$(du -h "$output_file" | cut -f1)
         echo -e "\e[32mPASS\e[0m ($status_code) - $line_count lines, $size"
+        PASS_COUNT=$((PASS_COUNT + 1))
     else
         echo -e "\e[31mFAIL\e[0m ($status_code)"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
 }
 
@@ -123,3 +134,7 @@ test_export "GeoJSON" "/api/geojson" "geojson"
 
 echo "--------------------------------------------------"
 echo "Test Completed."
+echo "Summary: PASS=$PASS_COUNT WARN=$WARN_COUNT FAIL=$FAIL_COUNT"
+if [ "$FAIL_COUNT" -gt 0 ]; then
+    exit 1
+fi

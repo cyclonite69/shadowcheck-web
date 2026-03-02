@@ -148,11 +148,16 @@ describeIfIntegration('Dashboard/Threat parity for identical filter payloads', (
     }
   });
 
-  test('radioTypes=[W] stays consistent across dashboard, severity, and filtered totals', async () => {
+  const assertDbAvailable = () => {
     if (dbUnavailableReason) {
-      console.warn(`[integration-skip] dashboard threat parity skipped: ${dbUnavailableReason}`);
-      return;
+      throw new Error(
+        `[integration-fail] dashboard-threat-parity requires DB connectivity: ${dbUnavailableReason}`
+      );
     }
+  };
+
+  test('radioTypes=[W] stays consistent across dashboard, severity, and filtered totals', async () => {
+    assertDbAvailable();
 
     const wifiPayload = {
       filters: { radioTypes: ['W'] },
@@ -188,10 +193,7 @@ describeIfIntegration('Dashboard/Threat parity for identical filter payloads', (
   }, 60000);
 
   test('all radio types selected is neutral vs unscoped baseline', async () => {
-    if (dbUnavailableReason) {
-      console.warn(`[integration-skip] dashboard threat parity skipped: ${dbUnavailableReason}`);
-      return;
-    }
+    assertDbAvailable();
 
     const baselinePayload = { filters: {}, enabled: {} };
     const allSelectedPayload = {

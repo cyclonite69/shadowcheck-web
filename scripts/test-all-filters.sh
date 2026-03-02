@@ -4,6 +4,11 @@
 
 IP="${1:-34.204.161.164:3001}"
 LIMIT=5
+WARN_SLOW_MS="${WARN_SLOW_MS:-10000}"
+FAIL_SLOW_MS="${FAIL_SLOW_MS:-30000}"
+PASS_COUNT=0
+WARN_COUNT=0
+FAIL_COUNT=0
 
 echo "=== SHADOWCHECK FILTER TEST SUITE ==="
 echo "Target: $IP"
@@ -28,13 +33,31 @@ test_filter() {
         local query_ms=$(echo "$body" | jq -r '.queryTimeMs // "N/A"')
         local applied=$(echo "$body" | jq -c '.appliedFilters // []')
         local ignored=$(echo "$body" | jq -c '.ignoredFilters // []')
+        local enabled_count=$(echo "$enabled" | jq -r 'to_entries | map(select(.value == true)) | length')
         echo "✅ $name | Count: $count | Query: ${query_ms}ms | Total: ${duration}ms"
+        PASS_COUNT=$((PASS_COUNT + 1))
+
+        if [ "$enabled_count" -gt 0 ] && [ "$applied" = "[]" ] && [ "$ignored" = "[]" ]; then
+            echo "   ❌ Applied/ignored filters both empty despite enabled flags"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+        fi
+
+        if [ "$duration" -ge "$FAIL_SLOW_MS" ]; then
+            echo "   ❌ Slow request exceeded hard threshold (${FAIL_SLOW_MS}ms)"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+        elif [ "$duration" -ge "$WARN_SLOW_MS" ]; then
+            echo "   ⚠️  Slow request exceeded warning threshold (${WARN_SLOW_MS}ms)"
+            WARN_COUNT=$((WARN_COUNT + 1))
+        fi
+
         if [ "$ignored" != "[]" ]; then
             echo "   ⚠️  Ignored: $ignored"
+            WARN_COUNT=$((WARN_COUNT + 1))
         fi
     else
         echo "❌ $name | HTTP $http_code | ${duration}ms"
         echo "$body" | jq -r '.error // .message // "Unknown error"' | head -1
+        FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
 }
 
@@ -134,3 +157,7 @@ test_filter "5GHz + WPA2 + High threat" '{"frequencyBands":["5GHz"],"encryptionT
 
 echo ""
 echo "=== TEST COMPLETE ==="
+echo "Summary: PASS=$PASS_COUNT WARN=$WARN_COUNT FAIL=$FAIL_COUNT"
+if [ "$FAIL_COUNT" -gt 0 ]; then
+    exit 1
+fi

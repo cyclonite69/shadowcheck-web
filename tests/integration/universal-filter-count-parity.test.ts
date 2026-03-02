@@ -60,11 +60,16 @@ describeIfIntegration('Universal Filter Count Parity - Phase 1', () => {
     }
   });
 
-  test('radioTypes=[W] parity: list/geospatial/dashboard totals agree', async () => {
+  const assertDbAvailable = () => {
     if (dbUnavailableReason) {
-      console.warn(`[integration-skip] universal parity test skipped: ${dbUnavailableReason}`);
-      return;
+      throw new Error(
+        `[integration-fail] universal-filter-count-parity requires DB connectivity: ${dbUnavailableReason}`
+      );
     }
+  };
+
+  test('radioTypes=[W] parity: list/geospatial/dashboard totals agree', async () => {
+    assertDbAvailable();
 
     const payload = {
       filters: { radioTypes: ['W'] },
@@ -128,10 +133,7 @@ describeIfIntegration('Universal Filter Count Parity - Phase 1', () => {
   }, 60000);
 
   test('all radio types selected is neutral vs baseline for dashboard cards and severity counts', async () => {
-    if (dbUnavailableReason) {
-      console.warn(`[integration-skip] universal parity test skipped: ${dbUnavailableReason}`);
-      return;
-    }
+    assertDbAvailable();
 
     const baselinePayload = { filters: {}, enabled: {} };
     const allTypesPayload = {
