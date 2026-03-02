@@ -1439,6 +1439,28 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       this.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
     }
 
+    // Timeframe filter using MV's last_seen column (network-level, fast)
+    if (e.timeframe && f.timeframe) {
+      if (f.timeframe.type === 'absolute') {
+        if (f.timeframe.startTimestamp) {
+          networkWhere.push(
+            `ne.last_seen >= ${this.addParam(f.timeframe.startTimestamp)}::timestamptz`
+          );
+        }
+        if (f.timeframe.endTimestamp) {
+          networkWhere.push(
+            `ne.last_seen <= ${this.addParam(f.timeframe.endTimestamp)}::timestamptz`
+          );
+        }
+      } else {
+        const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
+        if (window) {
+          networkWhere.push(`ne.last_seen >= NOW() - ${this.addParam(window)}::interval`);
+        }
+      }
+      this.addApplied('temporal', 'timeframe', f.timeframe);
+    }
+
     if (e.threatScoreMin && f.threatScoreMin === undefined) {
       this.addIgnored('threat', 'threatScoreMin', 'enabled_without_value');
     }

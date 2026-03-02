@@ -82,4 +82,5 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'threatScoreMin',
   'threatScoreMax',
   'threatCategories',
+  'timeframe', // Use ne.last_seen from MV instead of scanning observations
 ]);
