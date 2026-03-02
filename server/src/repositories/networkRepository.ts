@@ -16,13 +16,8 @@ class NetworkRepository {
     const effectiveEnabled: any = { ...(enabled || {}) };
     if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
       const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
-      const rawRadioTypes = (filters as any).radioTypes;
-      if (rawRadioTypes.length > 0 && normalizedRadioTypes.length === 0) {
-        throw new Error('Invalid radioTypes filter selection');
-      }
-      if (isAllRadioTypesSelection(normalizedRadioTypes)) {
+      if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
         effectiveEnabled.radioTypes = false;
-      }
       }
     }
     return effectiveEnabled;
