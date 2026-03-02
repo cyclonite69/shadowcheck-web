@@ -74,9 +74,13 @@ export const scoreAllNetworks = async ({
         mv.distance_from_home_km,
         (mv.distance_from_home_km < 0.1) as seen_at_home,
         (mv.distance_from_home_km > 0.5) as seen_away_from_home,
-        calculate_threat_score_v3(ap.bssid) as live_rule_result
+        jsonb_build_object(
+          'score', COALESCE(nts.rule_based_score, 0),
+          'flags', COALESCE(nts.rule_based_flags, '{}'::jsonb)
+        ) as live_rule_result
       FROM app.access_points ap
       LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
+      LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ap.bssid)
       WHERE ap.bssid IS NOT NULL
         AND mv.observations > 0
       ORDER BY ap.bssid

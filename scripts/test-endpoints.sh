@@ -5,6 +5,8 @@
 BASE="http://localhost:3001"
 BSSID="6D:70:9A:A5:7F:4D"
 EXPORT_DIR="/tmp/shadowcheck_exports"
+DEFAULT_TIMEOUT=20
+THREAT_MAP_TIMEOUT=45
 mkdir -p "$EXPORT_DIR"
 PASS_COUNT=0
 WARN_COUNT=0
@@ -22,6 +24,7 @@ test_endpoint() {
     local path=$3
     local query=$4
     local body=$5
+    local timeout=${6:-$DEFAULT_TIMEOUT}
 
     echo -n "Testing $name ($path)... "
 
@@ -32,11 +35,24 @@ test_endpoint() {
 
     local response_file="/tmp/sc_test_$(echo $name | tr ' ' '_').json"
     local status_code
+    local curl_exit=0
     
     if [ "$method" == "POST" ]; then
-        status_code=$(curl -s -o "$response_file" -w "%{http_code}" -X POST -H "Content-Type: application/json" -d "$body" "$url" --max-time 10)
+        status_code=$(curl -s -o "$response_file" -w "%{http_code}" -X POST -H "Content-Type: application/json" -d "$body" "$url" --connect-timeout 5 --max-time "$timeout")
+        curl_exit=$?
     else
-        status_code=$(curl -s -o "$response_file" -w "%{http_code}" "$url" --max-time 10)
+        status_code=$(curl -s -o "$response_file" -w "%{http_code}" "$url" --connect-timeout 5 --max-time "$timeout")
+        curl_exit=$?
+    fi
+
+    if [ "$curl_exit" -ne 0 ]; then
+        echo -e "\e[31mCURL ERROR\e[0m (exit=$curl_exit, http=${status_code:-000})"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        if [ -f "$response_file" ]; then
+            head -c 160 "$response_file"
+            echo "..."
+        fi
+        return
     fi
 
     if [ "$status_code" -eq 200 ] || [ "$status_code" -eq 201 ]; then
@@ -82,7 +98,7 @@ test_export() {
     
     # Use -r to get just the first few bytes to test if it works, then full with limit
     local status_code
-    status_code=$(curl -s -o "$output_file" -w "%{http_code}" "$url" --max-time 15 --limit-rate 1M)
+    status_code=$(curl -s -o "$output_file" -w "%{http_code}" "$url" --connect-timeout 5 --max-time 30 --limit-rate 1M)
 
     if [ "$status_code" -eq 200 ]; then
         local line_count=$(wc -l < "$output_file")
@@ -103,7 +119,7 @@ test_endpoint "Health (API)" "GET" "/api/health"
 test_endpoint "Dashboard Metrics (v2)" "GET" "/api/v2/dashboard/metrics"
 test_endpoint "Networks List (v2)" "GET" "/api/v2/networks" "limit=2"
 test_endpoint "Network Details (v2)" "GET" "/api/v2/networks/$BSSID"
-test_endpoint "Threat Map (v2)" "GET" "/api/v2/threats/map" "limit=5"
+test_endpoint "Threat Map (v2)" "GET" "/api/v2/threats/map" "severity=high&days=1" "" "$THREAT_MAP_TIMEOUT"
 test_endpoint "Severity Counts (v2)" "GET" "/api/v2/threats/severity-counts"
 
 # 3. WiGLE

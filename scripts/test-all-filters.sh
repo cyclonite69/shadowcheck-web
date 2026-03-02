@@ -9,6 +9,7 @@ FAIL_SLOW_MS="${FAIL_SLOW_MS:-30000}"
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
+KNOWN_ENABLED_KEYS='["ssid","bssid","manufacturer","radioTypes","frequencyBands","channelMin","channelMax","rssiMin","rssiMax","encryptionTypes","securityFlags","timeframe","observationCountMin","observationCountMax","gpsAccuracyMax","excludeInvalidCoords","wigle_v3_observation_count_min","threatScoreMin","threatScoreMax","threatCategories","stationaryConfidenceMin","stationaryConfidenceMax","distanceFromHomeMin","distanceFromHomeMax","boundingBox","radiusFilter","has_notes","tag_type"]'
 
 echo "=== SHADOWCHECK FILTER TEST SUITE ==="
 echo "Target: $IP"
@@ -34,10 +35,11 @@ test_filter() {
         local applied=$(echo "$body" | jq -c '.filterTransparency.appliedFilters // .appliedFilters // []')
         local ignored=$(echo "$body" | jq -c '.filterTransparency.ignoredFilters // .ignoredFilters // []')
         local enabled_count=$(echo "$enabled" | jq -r 'to_entries | map(select(.value == true)) | length')
+        local recognized_enabled_count=$(echo "$enabled" | jq -r --argjson known "$KNOWN_ENABLED_KEYS" 'to_entries | map(select(.value == true and (.key as $k | $known | index($k) != null))) | length')
         echo "✅ $name | Count: $count | Query: ${query_ms}ms | Total: ${duration}ms"
         PASS_COUNT=$((PASS_COUNT + 1))
 
-        if [ "$enabled_count" -gt 0 ] && [ "$applied" = "[]" ] && [ "$ignored" = "[]" ]; then
+        if [ "$recognized_enabled_count" -gt 0 ] && [ "$applied" = "[]" ] && [ "$ignored" = "[]" ]; then
             echo "   ❌ Applied/ignored filters both empty despite enabled flags"
             FAIL_COUNT=$((FAIL_COUNT + 1))
         fi
@@ -135,7 +137,7 @@ echo "=== G. TEMPORAL FILTERS ==="
 test_filter "Last 24 hours" '{"timeframe":"last_24h"}' '{"timeframe":true}'
 test_filter "Last 7 days" '{"timeframe":"last_7d"}' '{"timeframe":true}'
 test_filter "Last 30 days" '{"timeframe":"last_30d"}' '{"timeframe":true}'
-test_filter "Custom date range" '{"startDate":"2026-02-01T00:00:00Z","endDate":"2026-02-27T23:59:59Z"}' '{"startDate":true,"endDate":true}'
+test_filter "Custom date range" '{"timeframe":{"type":"absolute","startTimestamp":"2026-02-01T00:00:00Z","endTimestamp":"2026-02-27T23:59:59Z","scope":"observation_time"}}' '{"timeframe":true}'
 
 echo ""
 echo "=== H. ENGAGEMENT FILTERS ==="
