@@ -282,6 +282,42 @@ describe('getDashboardMetrics', () => {
   });
 });
 
+// ── getThreatMapData ───────────────────────────────────────────────────────────
+
+describe('getThreatMapData', () => {
+  it('uses separate parameter arrays when no severity filter is provided', async () => {
+    const mockQuery = getQueryMock();
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    await getThreatMapData({ severity: '', days: 30 });
+
+    expect(mockQuery).toHaveBeenCalledTimes(2);
+    const threatParams: unknown[] = mockQuery.mock.calls[0][1];
+    const obsParams: unknown[] = mockQuery.mock.calls[1][1];
+    expect(threatParams).toEqual([]);
+    expect(obsParams).toEqual([30]);
+  });
+
+  it('binds severity and days correctly when severity filter is provided', async () => {
+    const mockQuery = getQueryMock();
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    await getThreatMapData({ severity: 'high', days: 14 });
+
+    const threatSql: string = mockQuery.mock.calls[0][0];
+    const obsSql: string = mockQuery.mock.calls[1][0];
+    const threatParams: unknown[] = mockQuery.mock.calls[0][1];
+    const obsParams: unknown[] = mockQuery.mock.calls[1][1];
+
+    expect(threatSql).toContain('= $1');
+    expect(obsSql).toContain("($2 || ' days')::interval");
+    expect(threatParams).toEqual(['HIGH']);
+    expect(obsParams).toEqual(['HIGH', 14]);
+  });
+});
+
 // ── getThreatSeverityCounts ───────────────────────────────────────────────────
 
 describe('getThreatSeverityCounts', () => {
