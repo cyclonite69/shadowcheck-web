@@ -9,6 +9,7 @@ const logger = require('../logging/logger');
 const {
   OBS_TYPE_EXPR,
   THREAT_LEVEL_EXPR,
+  THREAT_SCORE_EXPR,
   normalizeRadioTypes,
   isAllRadioTypesSelection,
 } = require('./filterQueryBuilder/sqlExpressions');
@@ -395,25 +396,28 @@ export async function getThreatMapData(opts: {
   const hasSeverityFilter = severity && allowedSeverities.includes(severity);
   const params: (string | number)[] = hasSeverityFilter ? [severity.toUpperCase()] : [];
   params.push(days);
+  const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
+  const dynamicThreatScore = THREAT_SCORE_EXPR('nts', 'nt');
 
   const threatsSql = `
     SELECT
       ne.bssid,
       ne.ssid,
-      LOWER(ne.threat->>'level') AS severity,
-      (ne.threat->>'score')::numeric AS threat_score,
+      LOWER(${dynamicThreatLevel}) AS severity,
+      (${dynamicThreatScore})::numeric AS threat_score,
       ne.first_seen,
       ne.last_seen,
       ne.lat,
       ne.lon,
       ne.observations AS observation_count
     FROM app.api_network_explorer_mv ne
-    LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
-    WHERE ne.threat->>'level' IS NOT NULL
-      AND ne.threat->>'level' != 'NONE'
+    LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)
+    LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
+    WHERE (${dynamicThreatLevel}) IS NOT NULL
+      AND (${dynamicThreatLevel}) != 'NONE'
       AND nt.is_ignored IS NOT TRUE
-      ${hasSeverityFilter ? "AND ne.threat->>'level' = $1" : ''}
-    ORDER BY (ne.threat->>'score')::numeric DESC
+      ${hasSeverityFilter ? `AND (${dynamicThreatLevel}) = $1` : ''}
+    ORDER BY (${dynamicThreatScore})::numeric DESC
     LIMIT ${CONFIG.MAX_PAGE_SIZE}
   `;
 
@@ -424,15 +428,15 @@ export async function getThreatMapData(opts: {
       o.lon,
       o.time as observed_at,
       o.level AS rssi,
-      LOWER(ne.threat->>'level') AS severity
+      LOWER(${dynamicThreatLevel}) AS severity
     FROM app.observations o
-    JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
-    LEFT JOIN app.network_tags nt ON nt.bssid = o.bssid
-    WHERE ne.threat->>'level' IS NOT NULL
-      AND ne.threat->>'level' != 'NONE'
+    LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(o.bssid)
+    LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(o.bssid)
+    WHERE (${dynamicThreatLevel}) IS NOT NULL
+      AND (${dynamicThreatLevel}) != 'NONE'
       AND nt.is_ignored IS NOT TRUE
       AND o.time >= NOW() - ($${params.length} || ' days')::interval
-      ${hasSeverityFilter ? "AND ne.threat->>'level' = $1" : ''}
+      ${hasSeverityFilter ? `AND (${dynamicThreatLevel}) = $1` : ''}
     LIMIT 100000
   `;
 

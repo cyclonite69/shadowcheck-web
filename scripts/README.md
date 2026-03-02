@@ -144,6 +144,18 @@ Manages Docker Compose services.
 
 Validates API endpoint responses.
 
+### Test Dashboard Filters
+
+```bash
+bash scripts/test-dashboard-filters.sh http://localhost:3001
+```
+
+Validates dashboard filter behavior against `/api/dashboard-metrics`:
+
+- Baseline vs filtered parity checks
+- `filtersApplied` behavior
+- Neutral all-radio selection behavior
+
 ## Utilities
 
 ### Set Home Location

@@ -30,9 +30,9 @@ test_filter() {
     
     if [ "$http_code" = "200" ]; then
         local count=$(echo "$body" | jq -r '.data | length')
-        local query_ms=$(echo "$body" | jq -r '.queryTimeMs // "N/A"')
-        local applied=$(echo "$body" | jq -c '.appliedFilters // []')
-        local ignored=$(echo "$body" | jq -c '.ignoredFilters // []')
+        local query_ms=$(echo "$body" | jq -r '.performance.queryTimeMs // .queryTimeMs // "N/A"')
+        local applied=$(echo "$body" | jq -c '.filterTransparency.appliedFilters // .appliedFilters // []')
+        local ignored=$(echo "$body" | jq -c '.filterTransparency.ignoredFilters // .ignoredFilters // []')
         local enabled_count=$(echo "$enabled" | jq -r 'to_entries | map(select(.value == true)) | length')
         echo "✅ $name | Count: $count | Query: ${query_ms}ms | Total: ${duration}ms"
         PASS_COUNT=$((PASS_COUNT + 1))
