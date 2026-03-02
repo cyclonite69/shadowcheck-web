@@ -15,7 +15,7 @@ WITH obs_spatial AS (
           (
             (1 - LEAST(MAX(ST_Distance(
               ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
-              ST_Centroid(ST_Collect(ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geometry))::geography
+              ST_Centroid(ST_Collect(ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)))::geography
             )) / 500.0, 1)) * 0.5 +
             (1 - LEAST(EXTRACT(EPOCH FROM (MAX(o.time) - MIN(o.time))) / 3600 / 168, 1)) * 0.3 +
             LEAST(COUNT(*) / 50.0, 1) * 0.2
