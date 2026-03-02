@@ -127,6 +127,15 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.params).toContain(80);
   });
 
+  test('network-only query does not scan observations CTE for radio type filters', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { radioTypes: ['E'] },
+      { radioTypes: true }
+    ).buildNetworkListQuery({ orderBy: buildOrderBy('last_seen', 'desc') });
+
+    expect(result.sql).not.toContain('obs_latest_any');
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
+  });
   test('network-only-compatible filters → buildNetworkListQuery returns valid SQL', () => {
     // All keys used here are in NETWORK_ONLY_FILTERS, exercising the fast path
     const result = new UniversalFilterQueryBuilder(
