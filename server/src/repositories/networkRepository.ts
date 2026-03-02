@@ -12,6 +12,17 @@ const {
 export {};
 
 class NetworkRepository {
+  private getEffectiveEnabledFilters(filters: any, enabled: any): any {
+    const effectiveEnabled: any = { ...(enabled || {}) };
+    if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
+      const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
+      if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
+        effectiveEnabled.radioTypes = false;
+      }
+    }
+    return effectiveEnabled;
+  }
+
   async getAllNetworks() {
     try {
       const result = await query(`
@@ -110,13 +121,7 @@ class NetworkRepository {
 
   async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
-      const effectiveEnabled: any = { ...(enabled || {}) };
-      if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
-        const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
-        if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
-          effectiveEnabled.radioTypes = false;
-        }
-      }
+      const effectiveEnabled = this.getEffectiveEnabledFilters(filters, enabled);
 
       const noFiltersEnabled = Object.values(effectiveEnabled).every((value) => !value);
 
