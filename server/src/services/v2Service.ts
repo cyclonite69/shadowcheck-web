@@ -394,8 +394,10 @@ export async function getThreatMapData(opts: {
   const { severity, days } = opts;
   const allowedSeverities = ['critical', 'high', 'med', 'low', 'none'];
   const hasSeverityFilter = severity && allowedSeverities.includes(severity);
-  const params: (string | number)[] = hasSeverityFilter ? [severity.toUpperCase()] : [];
-  params.push(days);
+  const threatParams: (string | number)[] = hasSeverityFilter ? [severity.toUpperCase()] : [];
+  const observationParams: (string | number)[] = hasSeverityFilter
+    ? [severity.toUpperCase(), days]
+    : [days];
   const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
   const dynamicThreatScore = THREAT_SCORE_EXPR('nts', 'nt');
 
@@ -435,14 +437,14 @@ export async function getThreatMapData(opts: {
     WHERE (${dynamicThreatLevel}) IS NOT NULL
       AND (${dynamicThreatLevel}) != 'NONE'
       AND nt.is_ignored IS NOT TRUE
-      AND o.time >= NOW() - ($${params.length} || ' days')::interval
+      AND o.time >= NOW() - ($${hasSeverityFilter ? 2 : 1} || ' days')::interval
       ${hasSeverityFilter ? `AND (${dynamicThreatLevel}) = $1` : ''}
     LIMIT 100000
   `;
 
   const [threats, observations] = await Promise.all([
-    query(threatsSql, params),
-    query(observationsSql, params),
+    query(threatsSql, threatParams),
+    query(observationsSql, observationParams),
   ]);
 
   return {
