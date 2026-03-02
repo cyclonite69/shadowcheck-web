@@ -32,7 +32,22 @@ export async function refreshMaterializedViews(): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // Step 1: Refresh computed columns in networks table
+    // Step 1: Mark quality-filtered observations
+    console.log('  Marking quality-filtered observations...\n');
+    const qualityResult = await pool.query<{
+      temporal_clusters: string;
+      extreme_signals: string;
+      duplicate_coords: string;
+      total_marked: string;
+      execution_time_ms: string;
+    }>('SELECT * FROM app.mark_quality_filtered_observations()');
+    const qualityRow = qualityResult.rows[0];
+    const qualityDuration = (parseInt(qualityRow.execution_time_ms) / 1000).toFixed(2);
+    console.log(
+      `  ✅ Marked ${qualityRow.total_marked} observations (temporal: ${qualityRow.temporal_clusters}, extreme: ${qualityRow.extreme_signals}, duplicate: ${qualityRow.duplicate_coords}) in ${qualityDuration}s\n`
+    );
+
+    // Step 2: Refresh computed columns in networks table
     console.log('  Refreshing network computed columns...\n');
     const computedStart = Date.now();
     const computedResult = await pool.query<{
@@ -43,7 +58,7 @@ export async function refreshMaterializedViews(): Promise<void> {
     const computedDuration = (parseInt(computedRow.execution_time_ms) / 1000).toFixed(2);
     console.log(`  ✅ Updated ${computedRow.networks_updated} networks in ${computedDuration}s\n`);
 
-    // Step 2: Refresh materialized views
+    // Step 3: Refresh materialized views
     // Check if the refresh function exists
     const funcCheck: QueryResult<ExistsRow> = await pool.query(`
       SELECT EXISTS (
