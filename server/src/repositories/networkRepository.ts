@@ -5,11 +5,24 @@ const {
   OBS_TYPE_EXPR,
   THREAT_LEVEL_EXPR,
   THREAT_SCORE_EXPR,
+  normalizeRadioTypes,
+  isAllRadioTypesSelection,
 } = require('../services/filterQueryBuilder/sqlExpressions');
 
 export {};
 
 class NetworkRepository {
+  private getEffectiveEnabledFilters(filters: any, enabled: any): any {
+    const effectiveEnabled: any = { ...(enabled || {}) };
+    if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
+      const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
+      if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
+        effectiveEnabled.radioTypes = false;
+      }
+    }
+    return effectiveEnabled;
+  }
+
   async getAllNetworks() {
     try {
       const result = await query(`
@@ -108,12 +121,9 @@ class NetworkRepository {
 
   async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
-      // Debug logging
-      console.log('[NetworkRepo] getDashboardMetrics called with:');
-      console.log('[NetworkRepo] filters:', JSON.stringify(filters, null, 2));
-      console.log('[NetworkRepo] enabled:', JSON.stringify(enabled, null, 2));
+      const effectiveEnabled = this.getEffectiveEnabledFilters(filters, enabled);
 
-      const noFiltersEnabled = Object.values(enabled).every((value) => !value);
+      const noFiltersEnabled = Object.values(effectiveEnabled).every((value) => !value);
 
       if (noFiltersEnabled) {
         const networkResult = await query(`
@@ -186,7 +196,7 @@ class NetworkRepository {
       // Check if only threat-level filters are enabled (network-only filters)
       // These can be handled with a fast direct query instead of heavy CTEs
       const threatOnlyFilters = ['threatCategories', 'threatScoreMin', 'threatScoreMax'];
-      const enabledKeys = Object.entries(enabled)
+      const enabledKeys = Object.entries(effectiveEnabled)
         .filter(([, value]) => value)
         .map(([key]) => key);
       const isThreatOnlyFilter =
@@ -211,7 +221,7 @@ class NetworkRepository {
         const dynamicThreatScore = THREAT_SCORE_EXPR('nts', 'nt');
 
         if (
-          (enabled as any).threatCategories &&
+          (effectiveEnabled as any).threatCategories &&
           Array.isArray((filters as any).threatCategories) &&
           (filters as any).threatCategories.length > 0
         ) {
@@ -221,11 +231,17 @@ class NetworkRepository {
           params.push(dbThreatLevels);
           whereClauses.push(`(${dynamicThreatLevel}) = ANY($${params.length})`);
         }
-        if ((enabled as any).threatScoreMin && (filters as any).threatScoreMin !== undefined) {
+        if (
+          (effectiveEnabled as any).threatScoreMin &&
+          (filters as any).threatScoreMin !== undefined
+        ) {
           params.push((filters as any).threatScoreMin);
           whereClauses.push(`(${dynamicThreatScore}) >= $${params.length}`);
         }
-        if ((enabled as any).threatScoreMax && (filters as any).threatScoreMax !== undefined) {
+        if (
+          (effectiveEnabled as any).threatScoreMax &&
+          (filters as any).threatScoreMax !== undefined
+        ) {
           params.push((filters as any).threatScoreMax);
           whereClauses.push(`(${dynamicThreatScore}) <= $${params.length}`);
         }
@@ -310,7 +326,7 @@ class NetworkRepository {
         };
       }
 
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
+      const builder = new UniversalFilterQueryBuilder(filters, effectiveEnabled);
       const { cte } = builder.buildFilteredObservationsCte();
       const networkWhere = builder.buildNetworkWhere();
       const networkWhereClause =
@@ -422,8 +438,8 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'MED') as threats_medium,
             COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'LOW') as threats_low
           FROM network_set n
-          LEFT JOIN app.network_threat_scores nts ON nts.bssid = n.bssid
-          LEFT JOIN app.network_tags nt ON nt.bssid = n.bssid
+          LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)
+          LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(n.bssid)
           WHERE (${THREAT_SCORE_EXPR('nts', 'nt')}) >= 20
             AND (${THREAT_LEVEL_EXPR('nts', 'nt')}) != 'NONE'
         )
@@ -434,7 +450,7 @@ class NetworkRepository {
         FROM network_counts, obs_counts, threat_counts
       `;
 
-      const result = await query(sql, builder.params);
+      const result = await query(sql, builder.getParams());
       const row = result.rows[0] || {};
 
       return {
@@ -458,7 +474,7 @@ class NetworkRepository {
         threatsLow: parseInt(row.threats_low) || 0,
         activeSurveillance: parseInt(row.threats_high) || 0,
         enrichedCount: parseInt(row.enriched_count) || 0,
-        filtersApplied: builder.appliedFilters.length,
+        filtersApplied: builder.getAppliedFilters().length,
       };
     } catch (error) {
       logger.error(`Error fetching dashboard metrics: ${error.message}`, { error });

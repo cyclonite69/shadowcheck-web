@@ -126,4 +126,60 @@ describeIfIntegration('Universal Filter Count Parity - Phase 1', () => {
     const nonWifiRows = listRows.filter((row: any) => row.type !== 'W');
     expect(nonWifiRows.length).toBe(0);
   }, 60000);
+
+  test('all radio types selected is neutral vs baseline for dashboard cards and severity counts', async () => {
+    if (dbUnavailableReason) {
+      console.warn(`[integration-skip] universal parity test skipped: ${dbUnavailableReason}`);
+      return;
+    }
+
+    const baselinePayload = { filters: {}, enabled: {} };
+    const allTypesPayload = {
+      filters: { radioTypes: ['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'] },
+      enabled: { radioTypes: true },
+    };
+
+    const runBundle = async (payload: {
+      filters: Record<string, unknown>;
+      enabled: Record<string, boolean>;
+    }) => {
+      const listCountBuilder = new UniversalFilterQueryBuilder(payload.filters, payload.enabled);
+      const listCountQuery = listCountBuilder.buildNetworkCountQuery();
+      const listCountResult = await v2Service.executeV2Query(
+        listCountQuery.sql,
+        listCountQuery.params
+      );
+      const listTotal = Number(listCountResult.rows?.[0]?.total ?? 0);
+
+      const networkRepository = new NetworkRepository();
+      const dashboardService = new DashboardService(networkRepository);
+      const dashboardMetrics = await dashboardService.getMetrics(payload.filters, payload.enabled);
+
+      const severityCounts = await v2Service.getThreatSeverityCounts(
+        payload.filters,
+        payload.enabled
+      );
+      const severityTotal = Object.values(severityCounts || {}).reduce(
+        (acc: number, level: any) => acc + Number(level?.unique_networks || 0),
+        0
+      );
+
+      return {
+        listTotal,
+        dashboardNetworks: dashboardMetrics?.networks,
+        severityCounts,
+        severityTotal,
+      };
+    };
+
+    const [baseline, allTypes] = await Promise.all([
+      runBundle(baselinePayload),
+      runBundle(allTypesPayload),
+    ]);
+
+    expect(allTypes.listTotal).toBe(baseline.listTotal);
+    expect(allTypes.dashboardNetworks).toEqual(baseline.dashboardNetworks);
+    expect(allTypes.severityCounts).toEqual(baseline.severityCounts);
+    expect(allTypes.severityTotal).toBe(baseline.severityTotal);
+  }, 60000);
 });

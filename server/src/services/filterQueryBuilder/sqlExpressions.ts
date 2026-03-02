@@ -3,8 +3,68 @@
  * Reusable SQL CASE expressions for radio type, security, and channel inference.
  */
 
+const SUPPORTED_RADIO_TYPES = ['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'] as const;
+
+const RADIO_TYPE_ALIASES: Record<string, (typeof SUPPORTED_RADIO_TYPES)[number]> = {
+  W: 'W',
+  WIFI: 'W',
+  'WI-FI': 'W',
+  E: 'E',
+  BLE: 'E',
+  B: 'B',
+  BLUETOOTH: 'B',
+  BT: 'B',
+  L: 'L',
+  LTE: 'L',
+  G: 'G',
+  GSM: 'G',
+  N: 'N',
+  NR: 'N',
+  '5G': 'N',
+  C: 'C',
+  CDMA: 'C',
+  D: 'D',
+  DECT: 'D',
+  F: 'F',
+  FM: 'F',
+  '?': '?',
+  UNKNOWN: '?',
+};
+
+const normalizeRadioTypes = (rawTypes: unknown): string[] => {
+  if (!Array.isArray(rawTypes)) {
+    return [];
+  }
+
+  const deduped = new Set<string>();
+  rawTypes.forEach((value) => {
+    const key = String(value || '')
+      .trim()
+      .toUpperCase();
+    const normalized = RADIO_TYPE_ALIASES[key];
+    if (normalized) {
+      deduped.add(normalized);
+    }
+  });
+
+  return Array.from(deduped);
+};
+
+const isAllRadioTypesSelection = (radioTypes: string[]): boolean =>
+  SUPPORTED_RADIO_TYPES.every((type) => radioTypes.includes(type));
+
 const OBS_TYPE_EXPR = (alias = 'o'): string => `
-  COALESCE(${alias}.radio_type, CASE
+  CASE
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('W', 'WIFI', 'WI-FI') THEN 'W'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('E', 'BLE') THEN 'E'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('B', 'BLUETOOTH', 'BT') THEN 'B'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('L', 'LTE') THEN 'L'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('G', 'GSM') THEN 'G'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('N', 'NR', '5G') THEN 'N'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('C', 'CDMA') THEN 'C'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('D', 'DECT') THEN 'D'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('F', 'FM') THEN 'F'
+    WHEN UPPER(COALESCE(${alias}.radio_type, '')) IN ('?', 'UNKNOWN') THEN '?'
     WHEN ${alias}.radio_frequency BETWEEN 2412 AND 2484 THEN 'W'
     WHEN ${alias}.radio_frequency BETWEEN 5000 AND 5900 THEN 'W'
     WHEN ${alias}.radio_frequency BETWEEN 5925 AND 7125 THEN 'W'
@@ -13,7 +73,7 @@ const OBS_TYPE_EXPR = (alias = 'o'): string => `
     WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(BLUETOOTH)' THEN 'B'
     WHEN UPPER(COALESCE(${alias}.radio_capabilities, '')) ~ '(LTE|4G|EARFCN|5G|NR|3GPP)' THEN 'L'
     ELSE '?'
-  END)
+  END
 `;
 
 const SECURITY_FROM_CAPS_EXPR = (capsExpr: string): string => `
@@ -36,7 +96,8 @@ const SECURITY_FROM_CAPS_EXPR = (capsExpr: string): string => `
   END
 `;
 
-const SECURITY_EXPR = (alias = 'o'): string => SECURITY_FROM_CAPS_EXPR(`${alias}.radio_capabilities`);
+const SECURITY_EXPR = (alias = 'o'): string =>
+  SECURITY_FROM_CAPS_EXPR(`${alias}.radio_capabilities`);
 
 const AUTH_EXPR = (alias = 'o'): string => `
   CASE
@@ -104,6 +165,9 @@ const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt'): string => `
 `;
 
 export {
+  SUPPORTED_RADIO_TYPES,
+  normalizeRadioTypes,
+  isAllRadioTypesSelection,
   OBS_TYPE_EXPR,
   SECURITY_FROM_CAPS_EXPR,
   SECURITY_EXPR,
