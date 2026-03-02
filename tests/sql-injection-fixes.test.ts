@@ -183,6 +183,46 @@ describe('SQL Injection Prevention', () => {
       expect(firstSql).toContain('FROM app.networks');
       expect(firstSql).not.toContain('filtered_obs');
     });
+
+    test('uses case-insensitive BSSID joins in filtered dashboard threat counts', async () => {
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            total_networks: '1',
+            wifi_count: '1',
+            ble_count: '0',
+            bluetooth_count: '0',
+            lte_count: '0',
+            nr_count: '0',
+            gsm_count: '0',
+            total_observations: '1',
+            wifi_observations: '1',
+            ble_observations: '0',
+            bluetooth_observations: '0',
+            lte_observations: '0',
+            nr_observations: '0',
+            gsm_observations: '0',
+            threats_critical: '0',
+            threats_high: '0',
+            threats_medium: '0',
+            threats_low: '0',
+            enriched_count: '0',
+          },
+        ],
+      });
+
+      const metrics = await repo.getDashboardMetrics({ radioTypes: ['W'] }, { radioTypes: true });
+
+      expect(metrics.totalNetworks).toBe(1);
+      expect(metrics.filtersApplied).toBeGreaterThan(0);
+      expect(query).toHaveBeenCalledTimes(1);
+      const sql = String(query.mock.calls[0]?.[0] || '');
+      expect(sql).toContain(
+        'LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)'
+      );
+      expect(sql).toContain('LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(n.bssid)');
+    });
+
     test('should not contain string interpolation in SQL', async () => {
       query
         .mockResolvedValueOnce({ rows: [{ count: 100 }] })

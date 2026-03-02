@@ -67,6 +67,7 @@ import type {
   GeospatialOptions,
   AnalyticsOptions,
   AnalyticsQueries,
+  AppliedFilter,
 } from './types';
 
 interface ThreatLevelMap {
@@ -131,6 +132,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     if (this.perfTracker) {
       this.perfTracker.addAppliedFilter(field, true);
     }
+  }
+
+  getParams(): unknown[] {
+    return [...this.params];
+  }
+
+  getAppliedFilters(): AppliedFilter[] {
+    return this.state.appliedFilters();
   }
 
   private addIgnored(type: string, field: string, reason: string): void {
