@@ -397,12 +397,11 @@ class NetworkRepository {
             l.radio_frequency,
             l.radio_capabilities,
             r.observation_count,
-            s.stationary_confidence,
-            ne.threat
+            s.stationary_confidence
           FROM obs_latest l
           JOIN obs_rollup r ON r.bssid = l.bssid
           LEFT JOIN obs_spatial s ON s.bssid = l.bssid
-          LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+          LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
           LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
           LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
           ${networkWhereClause}

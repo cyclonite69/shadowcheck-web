@@ -217,6 +217,9 @@ describe('SQL Injection Prevention', () => {
       expect(metrics.filtersApplied).toBeGreaterThan(0);
       expect(query).toHaveBeenCalledTimes(1);
       const sql = String(query.mock.calls[0]?.[0] || '');
+      expect(sql).toContain('LEFT JOIN app.api_network_explorer_mv ne');
+      expect(sql).not.toContain('LEFT JOIN app.api_network_explorer ne');
+      expect(sql).not.toContain('ne.threat');
       expect(sql).toContain(
         'LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)'
       );
