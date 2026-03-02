@@ -30,12 +30,37 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
 }> {
   const [observations, networks] = await Promise.all([
     query(`
-      SELECT * FROM app.observations
+      SELECT
+        bssid,
+        ssid,
+        lat,
+        lon,
+        level,
+        time,
+        radio_type,
+        radio_frequency,
+        radio_capabilities,
+        accuracy,
+        altitude
+      FROM app.observations
       ORDER BY time DESC
+      LIMIT 50000
     `),
     query(`
-      SELECT * FROM app.networks
+      SELECT
+        bssid,
+        ssid,
+        type,
+        firsttime_ms,
+        lasttime_ms,
+        bestlat,
+        bestlon,
+        frequency,
+        capabilities,
+        security
+      FROM app.networks
       ORDER BY lasttime_ms DESC
+      LIMIT 10000
     `),
   ]);
 

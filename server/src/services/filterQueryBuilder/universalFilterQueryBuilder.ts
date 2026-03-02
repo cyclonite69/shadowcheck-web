@@ -156,6 +156,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     }
   }
 
+  private shouldComputeStationaryConfidence(): boolean {
+    return (
+      (this.enabled.stationaryConfidenceMin &&
+        this.filters.stationaryConfidenceMin !== undefined) ||
+      (this.enabled.stationaryConfidenceMax && this.filters.stationaryConfidenceMax !== undefined)
+    );
+  }
+
   private applyRadioFilters(options: {
     typeExpr: string;
     frequencyExpr: string;
@@ -648,6 +656,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     }
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
+    const includeStationaryConfidence = this.shouldComputeStationaryConfidence();
 
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
 
@@ -683,7 +692,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           altitude
         FROM filtered_obs
         ORDER BY bssid, time DESC
-      ),
+      )
+      ${
+        includeStationaryConfidence
+          ? `,
       obs_centroids AS (
         SELECT
           bssid,
@@ -716,7 +728,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         JOIN obs_centroids c ON c.bssid = o.bssid
         WHERE o.geom IS NOT NULL
         GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
-      )
+      )`
+          : ''
+      }
       SELECT
         ne.bssid,
         COALESCE(l.ssid, ne.ssid) AS ssid,
@@ -768,7 +782,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         l.lat,
         l.lon,
         l.accuracy AS accuracy_meters,
-        s.stationary_confidence,
+        ${
+          includeStationaryConfidence ? 's.stationary_confidence' : 'NULL::numeric'
+        } AS stationary_confidence,
         ${NT_SELECT_FIELDS},
         NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
@@ -779,7 +795,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
         ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
         ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
-      LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+      ${includeStationaryConfidence ? 'LEFT JOIN obs_spatial s ON s.bssid = r.bssid' : ''}
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
       ${whereClause}
       ORDER BY ${orderBy}
@@ -1177,6 +1193,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
 
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
+    const includeStationaryConfidence = this.shouldComputeStationaryConfidence();
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
 
     const sql = `
@@ -1187,7 +1204,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           COUNT(*) AS observation_count
         FROM filtered_obs
         GROUP BY bssid
-      ),
+      )
+      ${
+        includeStationaryConfidence
+          ? `,
       obs_centroids AS (
         SELECT
           bssid,
@@ -1219,11 +1239,13 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         JOIN obs_centroids c ON c.bssid = o.bssid
         WHERE o.geom IS NOT NULL
         GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
-      )
+      )`
+          : ''
+      }
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
       JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
-      LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+      ${includeStationaryConfidence ? 'LEFT JOIN obs_spatial s ON s.bssid = r.bssid' : ''}
       ${whereClause}
     `;
 
@@ -1544,6 +1566,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const { limit = null, offset = 0, selectedBssids = [] } = options;
     const { cte } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
+    const includeStationaryConfidence = this.shouldComputeStationaryConfidence();
 
     // Optimization: If no network-level filters are active, skip the expensive rollup/spatial CTEs
     // filtering logic. We still join api_network_explorer to provide threat data if needed.
@@ -1596,7 +1619,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           COUNT(*) AS observation_count
         FROM filtered_obs
         GROUP BY bssid
-      ),
+      )
+      ${
+        includeStationaryConfidence
+          ? `,
       obs_centroids AS (
         SELECT
           bssid,
@@ -1628,11 +1654,13 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         JOIN obs_centroids c ON c.bssid = o.bssid
         WHERE o.geom IS NOT NULL
         GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
-      ),
+      ),`
+          : ','
+      }
       filtered_networks AS (
         SELECT r.bssid
         FROM obs_rollup r
-        LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+        ${includeStationaryConfidence ? 'LEFT JOIN obs_spatial s ON s.bssid = r.bssid' : ''}
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         ${SqlFragmentLibrary.joinNetworkTagsLateral('r', 'nt')}
@@ -1679,6 +1707,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const { selectedBssids = [] } = options;
     const { cte, params } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
+    const includeStationaryConfidence = this.shouldComputeStationaryConfidence();
     const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
 
     const sql = `
@@ -1689,7 +1718,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           COUNT(*) AS observation_count
         FROM filtered_obs
         GROUP BY bssid
-      ),
+      )
+      ${
+        includeStationaryConfidence
+          ? `,
       obs_centroids AS (
         SELECT
           bssid,
@@ -1721,11 +1753,13 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         JOIN obs_centroids c ON c.bssid = o.bssid
         WHERE o.geom IS NOT NULL
         GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
-      ),
+      ),`
+          : ','
+      }
       filtered_networks AS (
         SELECT r.bssid
         FROM obs_rollup r
-        LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+        ${includeStationaryConfidence ? 'LEFT JOIN obs_spatial s ON s.bssid = r.bssid' : ''}
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         ${SqlFragmentLibrary.joinNetworkTagsLateral('r', 'nt')}
