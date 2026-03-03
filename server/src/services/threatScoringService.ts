@@ -76,7 +76,7 @@ class ThreatScoringService {
         scored AS (
           SELECT
             t.bssid,
-            calculate_threat_score_v3(t.bssid) AS details
+            calculate_threat_score_v4(t.bssid) AS details
           FROM targets t
         )
         INSERT INTO app.network_threat_scores
@@ -84,17 +84,11 @@ class ThreatScoringService {
            final_threat_level, model_version, scored_at)
         SELECT
           bssid,
-          (details->>'score')::numeric,
-          details,
-          (details->>'score')::numeric,
-          CASE
-            WHEN (details->>'score')::numeric >= 80 THEN 'CRITICAL'
-            WHEN (details->>'score')::numeric >= 60 THEN 'HIGH'
-            WHEN (details->>'score')::numeric >= 40 THEN 'MED'
-            WHEN (details->>'score')::numeric >= 20 THEN 'LOW'
-            ELSE 'NONE'
-          END,
-          'rule-v3.1',
+          (details->>'total_score')::numeric,
+          details->'components',
+          (details->>'total_score')::numeric,
+          details->>'threat_level',
+          details->>'model_version',
           NOW()
         FROM scored
         ON CONFLICT (bssid) DO UPDATE SET
