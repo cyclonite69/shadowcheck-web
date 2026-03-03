@@ -11,6 +11,18 @@ export const ThreatBadge = ({ threat, reasons, evidence }: ThreatBadgeProps) => 
   if (!threat || threat.level === 'NONE') return null;
 
   const levelConfig = THREAT_LEVEL_CONFIG[threat.level];
+
+  // Defensive: if level not found in config, log and return null
+  if (!levelConfig) {
+    console.error(
+      '[ThreatBadge] Unknown threat level:',
+      threat.level,
+      'Available:',
+      Object.keys(THREAT_LEVEL_CONFIG)
+    );
+    return null;
+  }
+
   const reasonsList = (reasons || []).join(', ') || 'None';
   const evidenceLines =
     evidence && evidence.length > 0
