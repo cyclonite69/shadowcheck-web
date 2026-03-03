@@ -72,7 +72,7 @@ SELECT '5. Top 20 Highest Scoring Networks' AS section;
 SELECT
     nts.bssid,
     COALESCE(n.ssid, 'N/A') AS ssid,
-    rm.organization_name AS manufacturer,
+    rm.manufacturer AS manufacturer,
     ROUND(nts.final_threat_score, 1) AS score,
     nts.final_threat_level AS level,
     ROUND((nts.rule_based_flags->>'following_pattern')::numeric, 1) AS following,
