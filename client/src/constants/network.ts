@@ -185,6 +185,7 @@ export const NETWORK_TYPE_CONFIG: Record<string, { label: string; color: string 
 export const THREAT_LEVEL_CONFIG = {
   CRITICAL: { label: 'CRITICAL', color: '#dc2626', bg: '#dc262620' },
   HIGH: { label: 'HIGH', color: '#ef4444', bg: '#ef444420' },
+  MEDIUM: { label: 'MEDIUM', color: '#f97316', bg: '#f9731620' },
   MED: { label: 'MED', color: '#f97316', bg: '#f9731620' },
   LOW: { label: 'LOW', color: '#eab308', bg: '#eab30820' },
   NONE: { label: '', color: '#6b7280', bg: '#6b728020' },
