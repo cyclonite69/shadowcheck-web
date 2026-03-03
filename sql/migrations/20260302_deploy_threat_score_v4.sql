@@ -211,7 +211,7 @@ BEGIN
     -- Task 5: Equipment Profile Score (10%)
     manufacturer_lookup AS (
         SELECT
-            rm.organization_name AS manufacturer
+            rm.manufacturer AS manufacturer
         FROM network_metadata nm
         LEFT JOIN app.radio_manufacturers rm 
             ON rm.prefix = UPPER(REPLACE(SUBSTRING(nm.bssid, 1, 8), ':', ''))
@@ -266,7 +266,7 @@ BEGIN
         FROM app.networks n
         JOIN app.radio_manufacturers rm1 ON rm1.prefix = UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', ''))
         CROSS JOIN manufacturer_lookup ml
-        WHERE rm1.organization_name = ml.manufacturer
+        WHERE rm1.manufacturer = ml.manufacturer
           AND n.bssid != p_bssid
           AND EXISTS (
               SELECT 1 FROM app.network_threat_scores nts
