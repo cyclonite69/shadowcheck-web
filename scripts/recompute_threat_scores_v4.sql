@@ -15,6 +15,7 @@ WITH targets AS (
     SELECT bssid
     FROM app.networks
     WHERE bssid IS NOT NULL
+    AND LENGTH(bssid) <= 17  -- Exclude cell tower IDs
 ),
 scored AS (
     SELECT
