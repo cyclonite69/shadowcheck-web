@@ -52,15 +52,16 @@ fleet_bonuses AS (
     SELECT
         nm.bssid,
         (
-            -- Manufacturer bonus
+            -- Manufacturer bonus (0-15 points - increased for massive fleets)
             CASE
-                WHEN COALESCE(fmc.fleet_count, 0) >= 20 THEN 10
+                WHEN COALESCE(fmc.fleet_count, 0) >= 50 THEN 15
+                WHEN COALESCE(fmc.fleet_count, 0) >= 20 THEN 12
                 WHEN COALESCE(fmc.fleet_count, 0) >= 10 THEN 8
                 WHEN COALESCE(fmc.fleet_count, 0) >= 5 THEN 5
                 ELSE 0
             END +
-            -- SSID pattern bonus
-            CASE WHEN COALESCE(fsc.pattern_count, 0) >= 3 THEN 3 ELSE 0 END +
+            -- SSID pattern bonus (0-5 points - increased weight)
+            CASE WHEN COALESCE(fsc.pattern_count, 0) >= 3 THEN 5 ELSE 0 END +
             -- Geographic overlap bonus (check if 2+ high-threat networks within 10km)
             CASE 
                 WHEN (

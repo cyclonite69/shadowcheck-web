@@ -237,4 +237,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION calculate_threat_score_v4_individual IS 
-'Threat scoring v4.0 - individual behavior only. Fleet correlation calculated separately in batch.';
+'Threat scoring v4.0 - individual behavior only. Fleet correlation (max 25 points) calculated separately in batch.';
