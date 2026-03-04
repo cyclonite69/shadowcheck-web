@@ -100,10 +100,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const threatLevel = String(rawThreatLevel || 'NONE').toUpperCase();
   const threatInfo: ThreatInfo = {
     score: threatScore / 100,
-    level:
-      (threatLevel as any) === 'CRITICAL'
-        ? 'HIGH'
-        : (threatLevel as 'NONE' | 'LOW' | 'MED' | 'HIGH'),
+    level: threatLevel as ThreatInfo['level'],
     summary: `Threat level: ${threatLevel}`,
     debug: {
       rule_score: row.rule_based_score ?? 0,
@@ -163,8 +160,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
       if (row.is_ignored) tags.push('ignored');
       return tags.length > 0 ? tags.join(',') : null;
     })(),
-    wigle_v3_observation_count:
-      parseIntegerField(row.wigle_v3_observation_count),
+    wigle_v3_observation_count: parseIntegerField(row.wigle_v3_observation_count),
     wigle_v3_last_import_at: row.wigle_v3_last_import_at || null,
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,

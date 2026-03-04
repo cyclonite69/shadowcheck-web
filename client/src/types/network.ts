@@ -2,7 +2,7 @@
 
 export type ThreatInfo = {
   score: number;
-  level: 'NONE' | 'LOW' | 'MED' | 'HIGH';
+  level: 'NONE' | 'LOW' | 'MED' | 'HIGH' | 'CRITICAL';
   summary: string;
   flags?: string[];
   debug?: {

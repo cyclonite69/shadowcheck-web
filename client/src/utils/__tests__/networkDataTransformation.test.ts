@@ -171,9 +171,9 @@ describe('mapApiRowToNetwork', () => {
     );
   });
 
-  it('maps CRITICAL threat level to HIGH in threat object', () => {
+  it('preserves CRITICAL threat level in threat object', () => {
     const net = mapApiRowToNetwork({ ...baseRow, final_threat_level: 'CRITICAL' }, 0);
-    expect(net.threat?.level).toBe('HIGH');
+    expect(net.threat?.level).toBe('CRITICAL');
   });
 
   it('converts distanceFromHome from km to metres', () => {
