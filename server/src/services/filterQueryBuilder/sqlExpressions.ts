@@ -153,13 +153,16 @@ const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt'): string => `
     WHEN ${ntAlias}.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
     WHEN ${ntAlias}.threat_tag = 'INVESTIGATE' THEN COALESCE(${ntsAlias}.final_threat_level, 'NONE')
     ELSE (
-      CASE
-        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 80 THEN 'CRITICAL'
-        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 60 THEN 'HIGH'
-        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 40 THEN 'MED'
-        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 20 THEN 'LOW'
-        ELSE 'NONE'
-      END
+      COALESCE(
+        ${ntsAlias}.final_threat_level,
+        CASE
+          WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 80 THEN 'CRITICAL'
+          WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 60 THEN 'HIGH'
+          WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 40 THEN 'MED'
+          WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 20 THEN 'LOW'
+          ELSE 'NONE'
+        END
+      )
     )
   END
 `;

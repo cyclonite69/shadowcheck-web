@@ -1,5 +1,5 @@
 /**
- * Threat Analysis Filters Section
+ * Computed threat severity filters (score/level based).
  */
 
 import React from 'react';
@@ -28,7 +28,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
   onToggleFilter,
 }) => {
   return (
-    <FilterSection title="Threat Analysis" compact={isCompact}>
+    <FilterSection title="Threat Level" compact={isCompact}>
       <FilterInput
         label="Threat Score Min"
         enabled={enabled.threatScoreMin || false}
@@ -66,29 +66,34 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
-        label="Threat Categories"
+        label="Threat Level (Computed)"
         enabled={enabled.threatCategories || false}
         onToggle={() => onToggleFilter('threatCategories')}
         compact={isCompact}
       >
-        <div className={listLayoutClass}>
-          {(['critical', 'high', 'medium', 'low', 'none'] as ThreatCategory[]).map((cat) => (
-            <label key={cat} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={filters.threatCategories?.includes(cat) || false}
-                onChange={(e) => {
-                  const current = filters.threatCategories || [];
-                  const updated = e.target.checked
-                    ? [...current, cat]
-                    : current.filter((c: string) => c !== cat);
-                  onSetFilter('threatCategories', updated);
-                }}
-                className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
-              />
-              <span className={`${listItemTextClass} text-slate-300 capitalize`}>{cat}</span>
-            </label>
-          ))}
+        <div className="space-y-2">
+          <p className="text-[11px] text-slate-400">
+            Uses computed final threat level (CRITICAL/HIGH/MED/LOW/NONE), not manual tags.
+          </p>
+          <div className={listLayoutClass}>
+            {(['critical', 'high', 'medium', 'low', 'none'] as ThreatCategory[]).map((cat) => (
+              <label key={cat} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={filters.threatCategories?.includes(cat) || false}
+                  onChange={(e) => {
+                    const current = filters.threatCategories || [];
+                    const updated = e.target.checked
+                      ? [...current, cat]
+                      : current.filter((c: string) => c !== cat);
+                    onSetFilter('threatCategories', updated);
+                  }}
+                  className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                />
+                <span className={`${listItemTextClass} text-slate-300 capitalize`}>{cat}</span>
+              </label>
+            ))}
+          </div>
         </div>
       </FilterInput>
 

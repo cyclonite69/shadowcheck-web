@@ -1,5 +1,5 @@
 /**
- * Notes, Tags, and WiGLE Filters Section
+ * Notes, manual tagging, and WiGLE filters.
  */
 
 import React, { useEffect } from 'react';
@@ -34,7 +34,7 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
   }, [isWiglePage, enabled.wigle_v3_observation_count_min, onToggleFilter]);
 
   return (
-    <FilterSection title="Notes & WiGLE" compact={isCompact}>
+    <FilterSection title="Notes, Manual Tags & WiGLE" compact={isCompact}>
       <FilterInput
         label="Has Notes"
         enabled={enabled.has_notes || false}
@@ -53,27 +53,32 @@ export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
-        label="Tag Type"
+        label="Manual Tag"
         enabled={enabled.tag_type || false}
         onToggle={() => onToggleFilter('tag_type')}
         compact={isCompact}
       >
-        <select
-          multiple
-          value={filters.tag_type ?? []}
-          onChange={(e) =>
-            onSetFilter(
-              'tag_type',
-              Array.from(e.target.selectedOptions).map((opt) => opt.value) as TagType[]
-            )
-          }
-          className={controlClass}
-        >
-          <option value="threat">Threat</option>
-          <option value="investigate">Investigate</option>
-          <option value="false_positive">False Positive</option>
-          <option value="ignore">Ignore (Known/Friendly)</option>
-        </select>
+        <div className="space-y-1">
+          <p className="text-[11px] text-slate-400">
+            Analyst-assigned manual tag from context menu/actions.
+          </p>
+          <select
+            multiple
+            value={filters.tag_type ?? []}
+            onChange={(e) =>
+              onSetFilter(
+                'tag_type',
+                Array.from(e.target.selectedOptions).map((opt) => opt.value) as TagType[]
+              )
+            }
+            className={controlClass}
+          >
+            <option value="threat">Threat (Manual)</option>
+            <option value="investigate">Investigate (Manual)</option>
+            <option value="false_positive">False Positive (Manual)</option>
+            <option value="ignore">Ignore (Known/Friendly)</option>
+          </select>
+        </div>
       </FilterInput>
 
       {isWiglePage && (

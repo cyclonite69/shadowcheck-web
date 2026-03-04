@@ -110,7 +110,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
           onEnableFilter={enableFilter}
         />
 
-        {/* Threat Analysis */}
+        {/* Computed Threat Level */}
         <ThreatFilters
           filters={filters}
           enabled={enabled}
