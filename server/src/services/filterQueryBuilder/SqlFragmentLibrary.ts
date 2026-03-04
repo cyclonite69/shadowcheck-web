@@ -35,6 +35,7 @@ export class SqlFragmentLibrary {
       LEFT JOIN LATERAL (
         SELECT
           MAX(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')) AS threat_tag,
+          MAX(COALESCE((to_jsonb(nt_source)->>'threat_confidence')::numeric, 0)) AS threat_confidence,
           COALESCE(BOOL_OR(COALESCE((to_jsonb(nt_source)->>'is_ignored')::boolean, FALSE)), FALSE) AS is_ignored,
           STRING_AGG(
             DISTINCT LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')),
