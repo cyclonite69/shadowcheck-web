@@ -79,6 +79,13 @@ const NT_TAG_LOWER_EXPR = FIELD_EXPRESSIONS.threatTagLowercase('nt');
 const NT_IS_IGNORED_EXPR = NULL_SAFE_COMPARISONS.isIgnored('nt');
 const NT_FILTER_TAG_LOWER_EXPR = FIELD_EXPRESSIONS.threatTagLowercase('nt_filter');
 const NT_FILTER_IS_IGNORED_EXPR = NULL_SAFE_COMPARISONS.isIgnored('nt_filter');
+const NT_NOT_IGNORED_CLAUSE = 'COALESCE(nt.is_ignored, FALSE) = FALSE';
+const NE_NOT_IGNORED_EXISTS_CLAUSE = `NOT EXISTS (
+  SELECT 1
+  FROM app.network_tags nt_ignored
+  WHERE UPPER(nt_ignored.bssid) = UPPER(ne.bssid)
+    AND COALESCE((to_jsonb(nt_ignored)->>'is_ignored')::boolean, FALSE) = TRUE
+)`;
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
 
@@ -614,6 +621,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         FROM app.api_network_explorer_mv ne
         ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
         ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
+        WHERE ${NT_NOT_IGNORED_CLAUSE}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
       `;
@@ -660,6 +668,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const includeStationaryConfidence = this.shouldComputeStationaryConfidence();
 
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+    const effectiveWhereClause =
+      whereClause.length > 0
+        ? `${whereClause} AND ${NT_NOT_IGNORED_CLAUSE}`
+        : `WHERE ${NT_NOT_IGNORED_CLAUSE}`;
 
     const sql = `
       ${cte}
@@ -757,7 +769,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
         ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
-      ${whereClause}
+      ${effectiveWhereClause}
       ORDER BY ${orderBy}
       LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
     `;
@@ -782,7 +794,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const { limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = options;
     const f = this.filters;
     const e = this.enabled;
-    const where: string[] = [];
+    const where: string[] = [NT_NOT_IGNORED_CLAUSE];
     const networkTypeExpr = 'ne.type';
     const networkSecurityExpr = SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)');
     const networkFrequencyExpr = 'ne.frequency';
@@ -1144,7 +1156,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       return {
-        sql: 'SELECT COUNT(*) AS total FROM app.api_network_explorer_mv',
+        sql: `SELECT COUNT(*) AS total
+              FROM app.api_network_explorer_mv ne
+              WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`,
         params: [],
       };
     }
@@ -1163,6 +1177,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const networkWhere = this.buildNetworkWhere();
     const includeStationaryConfidence = this.shouldComputeStationaryConfidence();
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+    const effectiveWhereClause =
+      whereClause.length > 0
+        ? `${whereClause} AND ${NE_NOT_IGNORED_EXISTS_CLAUSE}`
+        : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`;
 
     const sql = `
       ${cte}
@@ -1176,7 +1194,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
       JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
-      ${whereClause}
+      ${effectiveWhereClause}
     `;
 
     return { sql, params: [...params] };
@@ -1185,7 +1203,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private buildNetworkOnlyCountQuery(): QueryResult {
     const f = this.filters;
     const e = this.enabled;
-    const where: string[] = [];
+    const where: string[] = [NE_NOT_IGNORED_EXISTS_CLAUSE];
 
     if (e.ssid && f.ssid) {
       where.push(`ne.ssid ILIKE ${this.addParam(`%${f.ssid}%`)}`);
