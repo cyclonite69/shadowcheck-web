@@ -137,8 +137,20 @@ async function getThreatReportData(bssid: string) {
     .sort((a: any, b: any) => (b.distanceKm || 0) - (a.distanceKm || 0))
     .slice(0, 25);
 
+  const homeLikeCount = bucket.home + bucket.near;
+  const homeLikePct =
+    observations.length > 0 ? Number(((homeLikeCount / observations.length) * 100).toFixed(1)) : 0;
+  const followEventCount = observations.filter((o: any) => {
+    const d = toNumber(o.distance_from_home_km);
+    return d !== null && d >= 0.5;
+  }).length;
+  const followEventPct =
+    observations.length > 0
+      ? Number(((followEventCount / observations.length) * 100).toFixed(1))
+      : 0;
+
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: formatTimestamp(Date.now()),
     network: {
       bssid: network.bssid,
       ssid: network.ssid || '(hidden)',
@@ -167,6 +179,12 @@ async function getThreatReportData(bssid: string) {
       spanDays,
       distanceBuckets: bucket,
       awayLocations,
+      behavioralContext: {
+        homeLikeCount,
+        homeLikePct,
+        followEventCount,
+        followEventPct,
+      },
     },
   };
 }
@@ -216,6 +234,11 @@ function renderMarkdown(report: any): string {
     `- Span Days: ${o.spanDays}`,
     `- First Seen: ${o.firstSeen}`,
     `- Last Seen: ${o.lastSeen}`,
+    '',
+    '## Behavioral Context',
+    `- Persistent near-home presence: ${o.behavioralContext.homeLikeCount}/${o.count} observations (${o.behavioralContext.homeLikePct}%)`,
+    `- Persistence span: ${o.firstSeen} through ${o.lastSeen} (${o.spanDays} days)`,
+    `- Follow-type events (>=0.5 km from home): ${o.behavioralContext.followEventCount}/${o.count} (${o.behavioralContext.followEventPct}%)`,
     '',
     '## Distance Buckets (from home marker)',
     `- Home (<100m): ${o.distanceBuckets.home}`,
@@ -308,6 +331,16 @@ function renderHtml(report: any): string {
     </tbody>
   </table>
 
+  <h2>Behavioral Context</h2>
+  <table>
+    <thead><tr><th>Indicator</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Persistent near-home presence</td><td>${o.behavioralContext.homeLikeCount}/${o.count} (${o.behavioralContext.homeLikePct}%)</td></tr>
+      <tr><td>Persistence span</td><td>${escapeHtml(o.firstSeen)} through ${escapeHtml(o.lastSeen)} (${o.spanDays} days)</td></tr>
+      <tr><td>Follow-type events (>=0.5 km)</td><td>${o.behavioralContext.followEventCount}/${o.count} (${o.behavioralContext.followEventPct}%)</td></tr>
+    </tbody>
+  </table>
+
   <h2>Top Away Locations</h2>
   <table>
     <thead><tr><th>Distance (km)</th><th>Time</th><th>Lat/Lon</th><th>Signal dBm</th><th>Links</th></tr></thead>
@@ -373,6 +406,17 @@ async function renderPdfBuffer(report: any): Promise<Buffer> {
     doc.text(`Last Seen: ${o.lastSeen}`);
     doc.text(
       `Buckets: home=${o.distanceBuckets.home}, near=${o.distanceBuckets.near}, neighborhood=${o.distanceBuckets.neighborhood}, away=${o.distanceBuckets.away}, unknown=${o.distanceBuckets.unknown}`
+    );
+
+    doc.moveDown(1);
+    doc.fontSize(14).text('Behavioral Context');
+    doc.fontSize(11);
+    doc.text(
+      `Persistent near-home presence: ${o.behavioralContext.homeLikeCount}/${o.count} (${o.behavioralContext.homeLikePct}%)`
+    );
+    doc.text(`Persistence span: ${o.firstSeen} through ${o.lastSeen} (${o.spanDays} days)`);
+    doc.text(
+      `Follow-type events (>=0.5 km): ${o.behavioralContext.followEventCount}/${o.count} (${o.behavioralContext.followEventPct}%)`
     );
 
     doc.moveDown(1);
