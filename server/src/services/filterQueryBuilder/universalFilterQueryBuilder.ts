@@ -527,6 +527,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       ${homeJoin}
       ${joins.join('\n')}
       WHERE ${whereClause}
+        AND COALESCE(o.is_quality_filtered, false) = false
         AND o.bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
         AND o.bssid IS NOT NULL
         ${selectionClause}
