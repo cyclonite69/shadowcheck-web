@@ -33,6 +33,16 @@ function formatTimestamp(ms: number | null): string {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss} UTC`;
 }
 
+function buildGoogleMapsUrl(lat: number | null, lon: number | null): string | null {
+  if (lat === null || lon === null) return null;
+  return `https://www.google.com/maps?q=${lat},${lon}`;
+}
+
+function buildStreetViewUrl(lat: number | null, lon: number | null): string | null {
+  if (lat === null || lon === null) return null;
+  return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+}
+
 async function getThreatReportData(bssid: string) {
   const normalizedBssid = String(bssid || '')
     .trim()
@@ -168,10 +178,17 @@ function renderMarkdown(report: any): string {
 
   const awayRows = o.awayLocations.length
     ? o.awayLocations
-        .map(
-          (row: any) =>
-            `- ${row.distanceKm?.toFixed(2)} km | ${formatTimestamp(row.time)} | (${row.lat?.toFixed(6)}, ${row.lon?.toFixed(6)}) | ${row.signal ?? 'N/A'} dBm`
-        )
+        .map((row: any) => {
+          const mapsUrl = buildGoogleMapsUrl(row.lat, row.lon);
+          const streetUrl = buildStreetViewUrl(row.lat, row.lon);
+          const links = [
+            mapsUrl ? `[Map](${mapsUrl})` : null,
+            streetUrl ? `[Street View](${streetUrl})` : null,
+          ]
+            .filter(Boolean)
+            .join(' | ');
+          return `- ${row.distanceKm?.toFixed(2)} km | ${formatTimestamp(row.time)} | (${row.lat?.toFixed(6)}, ${row.lon?.toFixed(6)}) | ${row.signal ?? 'N/A'} dBm${links ? ` | ${links}` : ''}`;
+        })
         .join('\n')
     : '- None';
 
@@ -219,15 +236,26 @@ function renderHtml(report: any): string {
   const o = report.observations;
 
   const awayRows = o.awayLocations
-    .map(
-      (row: any) => `
+    .map((row: any) => {
+      const mapsUrl = buildGoogleMapsUrl(row.lat, row.lon);
+      const streetUrl = buildStreetViewUrl(row.lat, row.lon);
+      const links = [
+        mapsUrl ? `<a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noreferrer">Map</a>` : '',
+        streetUrl
+          ? `<a href="${escapeHtml(streetUrl)}" target="_blank" rel="noreferrer">Street View</a>`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' | ');
+      return `
       <tr>
         <td>${row.distanceKm?.toFixed(2)}</td>
         <td>${escapeHtml(formatTimestamp(row.time))}</td>
         <td>${row.lat?.toFixed(6)}, ${row.lon?.toFixed(6)}</td>
         <td>${row.signal ?? 'N/A'}</td>
-      </tr>`
-    )
+        <td>${links || 'N/A'}</td>
+      </tr>`;
+    })
     .join('');
 
   return `<!doctype html>
@@ -237,7 +265,6 @@ function renderHtml(report: any): string {
   <title>Threat Report ${escapeHtml(n.bssid)}</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
-    h1, h2 { margin-bottom: 8px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
     .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
     table { border-collapse: collapse; width: 100%; margin-top: 8px; }
@@ -283,9 +310,9 @@ function renderHtml(report: any): string {
 
   <h2>Top Away Locations</h2>
   <table>
-    <thead><tr><th>Distance (km)</th><th>Time</th><th>Lat/Lon</th><th>Signal dBm</th></tr></thead>
+    <thead><tr><th>Distance (km)</th><th>Time</th><th>Lat/Lon</th><th>Signal dBm</th><th>Links</th></tr></thead>
     <tbody>
-      ${awayRows || '<tr><td colspan="4">None</td></tr>'}
+      ${awayRows || '<tr><td colspan="5">None</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -355,9 +382,14 @@ async function renderPdfBuffer(report: any): Promise<Buffer> {
       doc.text('None');
     } else {
       for (const row of o.awayLocations) {
+        const mapsUrl = buildGoogleMapsUrl(row.lat, row.lon);
+        const streetUrl = buildStreetViewUrl(row.lat, row.lon);
         doc.text(
           `${row.distanceKm?.toFixed(2)} km | ${formatTimestamp(row.time)} | (${row.lat?.toFixed(6)}, ${row.lon?.toFixed(6)}) | ${row.signal ?? 'N/A'} dBm`
         );
+        if (mapsUrl) doc.text(`Map: ${mapsUrl}`);
+        if (streetUrl) doc.text(`Street View: ${streetUrl}`);
+        doc.moveDown(0.3);
       }
     }
 
