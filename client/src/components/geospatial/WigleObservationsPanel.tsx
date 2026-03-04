@@ -136,13 +136,13 @@ export const WigleObservationsPanel = ({
               }}
             >
               <div style={{ color: '#f59e0b', fontWeight: 500, marginBottom: '2px' }}>
-                📍 Farthest WiGLE Sighting
+                📍 Farthest WiGLE-Only Sighting
               </div>
               <div style={{ color: '#fbbf24', fontSize: '13px', fontWeight: 600 }}>
                 {formatDistance(stats.max_distance_from_our_sightings_m)} away
               </div>
               <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '2px' }}>
-                This network was seen far from your observations
+                Measured from the nearest of your local observations
               </div>
             </div>
           )}
