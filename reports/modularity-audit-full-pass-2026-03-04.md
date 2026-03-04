@@ -134,3 +134,23 @@ In `server/src/services/filterQueryBuilder/SqlFragmentLibrary.ts`:
 - Added: `server/src/services/reports/threatReportRenderers.ts`
 - Modified: `server/src/services/filterQueryBuilder/SqlFragmentLibrary.ts`
 - Added: `reports/modularity-audit-full-pass-2026-03-04.md`
+
+---
+
+## Validation Added After Initial Pass
+
+### New unit tests
+
+- `tests/unit/threatReportUtils.test.ts`
+- `tests/unit/threatReportRenderers.test.ts`
+
+### What they verify
+
+- Utility behavior: numeric parsing, HTML escaping, UTC timestamp formatting, map URL generation.
+- Renderer behavior: markdown and HTML section integrity, escaping, and map/street-view links.
+- PDF renderer behavior: either valid PDF bytes when `pdfkit` is available, or explicit `PDFKIT_NOT_INSTALLED` error path.
+
+### Result
+
+- `npx jest tests/unit/threatReportUtils.test.ts tests/unit/threatReportRenderers.test.ts --runInBand`
+- **2 suites passed, 7 tests passed.**

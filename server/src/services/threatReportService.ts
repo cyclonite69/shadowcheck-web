@@ -2,6 +2,7 @@
  * Threat Report Service
  * Builds structured report data and delegates rendering to report renderers.
  */
+export {};
 
 const { query } = require('../config/database');
 const observationService = require('./observationService');

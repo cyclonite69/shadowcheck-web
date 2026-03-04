@@ -1,6 +1,7 @@
 /**
  * Shared utility helpers for threat report generation and rendering.
  */
+export {};
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null;
