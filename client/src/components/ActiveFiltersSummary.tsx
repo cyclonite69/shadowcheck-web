@@ -29,7 +29,15 @@ const formatFilterValue = (_key: string, value: any): string => {
   return String(value);
 };
 
+const FILTER_LABEL_OVERRIDES: Record<string, string> = {
+  threatCategories: 'Threat Level',
+  tag_type: 'Manual Tag',
+};
+
 const formatFilterLabel = (key: string): string => {
+  if (FILTER_LABEL_OVERRIDES[key]) {
+    return FILTER_LABEL_OVERRIDES[key];
+  }
   return key
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (str) => str.toUpperCase())
