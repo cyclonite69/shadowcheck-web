@@ -41,7 +41,7 @@ async function getThreatReportData(bssid: string) {
        mv.max_distance_meters,
        mv.last_seen,
        mv.first_seen,
-       mv.encryption,
+       COALESCE(NULLIF(mv.security, ''), NULLIF(mv.capabilities, '')) AS encryption,
        mv.frequency,
        nts.rule_based_score,
        nts.final_threat_score,
