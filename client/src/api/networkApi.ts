@@ -85,8 +85,29 @@ export const networkApi = {
     if (!response.ok) {
       let errorMessage = 'Failed to generate threat report PDF';
       try {
-        const data = await response.json();
-        errorMessage = data?.error || errorMessage;
+        const text = await response.text();
+        let data: any = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = null;
+        }
+        const apiError = data?.error;
+        if (typeof apiError === 'string' && apiError.trim().length > 0) {
+          errorMessage = apiError;
+        } else if (
+          apiError &&
+          typeof apiError === 'object' &&
+          typeof apiError.message === 'string'
+        ) {
+          errorMessage = apiError.message;
+        } else if (typeof data?.message === 'string' && data.message.trim().length > 0) {
+          errorMessage = data.message;
+        } else if (typeof text === 'string' && text.trim().length > 0) {
+          errorMessage = text.trim();
+        } else if (apiError && typeof apiError === 'object') {
+          errorMessage = JSON.stringify(apiError);
+        }
       } catch {
         // Ignore JSON parse errors and use fallback message.
       }
