@@ -80,7 +80,8 @@ router.get(
     const ourCount = await observationService.getOurObservationCount(cleanBssid);
 
     const maxDistance = result.reduce((max, r) => {
-      if (r.distance_from_our_center_m && r.distance_from_our_center_m > max) {
+      // "Farthest" should reflect WiGLE-only sightings, not matched points.
+      if (!r.is_matched && r.distance_from_our_center_m && r.distance_from_our_center_m > max) {
         return r.distance_from_our_center_m;
       }
       return max;
