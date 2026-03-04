@@ -21,21 +21,28 @@ CREATE INDEX IF NOT EXISTS idx_cooccurrence_count ON app.network_cooccurrence(co
 COMMENT ON TABLE app.network_cooccurrence IS 
 'Tracks networks that appear together at multiple locations for coordinated surveillance detection';
 
--- Step 2: Populate co-occurrence data
+-- Step 2: Populate co-occurrence data (mobile networks only)
 INSERT INTO app.network_cooccurrence (bssid1, bssid2, cooccurrence_count, locations_count, first_seen, last_seen)
-WITH network_pairs AS (
+WITH mobile_networks AS (
+    SELECT bssid
+    FROM app.api_network_explorer_mv
+    WHERE max_distance_meters > 150
+    AND observations >= 2
+    AND LENGTH(bssid) <= 17
+),
+network_pairs AS (
     SELECT 
         LEAST(o1.bssid, o2.bssid) AS bssid1,
         GREATEST(o1.bssid, o2.bssid) AS bssid2,
         ST_SnapToGrid(o1.geom, 0.0001) AS grid_point,  -- ~10m grid
         LEAST(o1.time, o2.time) AS seen_at
     FROM app.observations o1
+    JOIN mobile_networks m1 ON m1.bssid = o1.bssid
     JOIN app.observations o2 
         ON ST_DWithin(o1.geom::geography, o2.geom::geography, 50)  -- Within 50m
         AND ABS(EXTRACT(EPOCH FROM (o1.time - o2.time))) <= 300  -- Within 5 minutes
+    JOIN mobile_networks m2 ON m2.bssid = o2.bssid
     WHERE o1.bssid < o2.bssid
-    AND LENGTH(o1.bssid) <= 17
-    AND LENGTH(o2.bssid) <= 17
     GROUP BY LEAST(o1.bssid, o2.bssid), GREATEST(o1.bssid, o2.bssid), ST_SnapToGrid(o1.geom, 0.0001), LEAST(o1.time, o2.time)
 )
 SELECT 
