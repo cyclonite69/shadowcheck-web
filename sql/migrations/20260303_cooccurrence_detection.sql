@@ -27,26 +27,27 @@ WITH network_pairs AS (
     SELECT 
         LEAST(o1.bssid, o2.bssid) AS bssid1,
         GREATEST(o1.bssid, o2.bssid) AS bssid2,
-        o1.location_id,
-        LEAST(o1.seen_at, o2.seen_at) AS seen_at
+        ST_SnapToGrid(o1.geom, 0.0001) AS grid_point,  -- ~10m grid
+        LEAST(o1.time, o2.time) AS seen_at
     FROM app.observations o1
-    JOIN app.observations o2 ON o1.location_id = o2.location_id
+    JOIN app.observations o2 
+        ON ST_DWithin(o1.geom::geography, o2.geom::geography, 50)  -- Within 50m
+        AND ABS(EXTRACT(EPOCH FROM (o1.time - o2.time))) <= 300  -- Within 5 minutes
     WHERE o1.bssid < o2.bssid
     AND LENGTH(o1.bssid) <= 17
     AND LENGTH(o2.bssid) <= 17
-    AND ABS(EXTRACT(EPOCH FROM (o1.seen_at - o2.seen_at))) <= 300  -- Within 5 minutes
-    GROUP BY LEAST(o1.bssid, o2.bssid), GREATEST(o1.bssid, o2.bssid), o1.location_id, LEAST(o1.seen_at, o2.seen_at)
+    GROUP BY LEAST(o1.bssid, o2.bssid), GREATEST(o1.bssid, o2.bssid), ST_SnapToGrid(o1.geom, 0.0001), LEAST(o1.time, o2.time)
 )
 SELECT 
     bssid1,
     bssid2,
     COUNT(*) AS cooccurrence_count,
-    COUNT(DISTINCT location_id) AS locations_count,
+    COUNT(DISTINCT grid_point) AS locations_count,
     MIN(seen_at) AS first_seen,
     MAX(seen_at) AS last_seen
 FROM network_pairs
 GROUP BY bssid1, bssid2
-HAVING COUNT(DISTINCT location_id) >= 3  -- At least 3 shared locations
+HAVING COUNT(DISTINCT grid_point) >= 3  -- At least 3 shared locations
 ON CONFLICT (bssid1, bssid2) DO UPDATE SET
     cooccurrence_count = EXCLUDED.cooccurrence_count,
     locations_count = EXCLUDED.locations_count,
