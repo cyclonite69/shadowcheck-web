@@ -92,22 +92,30 @@ export const QualityFilters: React.FC<QualityFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
-        label="Quality Preset"
+        label="Quality Preset *"
         enabled={enabled.qualityFilter || false}
         onToggle={() => onToggleFilter('qualityFilter')}
         compact={isCompact}
       >
-        <select
-          value={filters.qualityFilter || 'none'}
-          onChange={(e) => onSetFilter('qualityFilter', e.target.value as any)}
-          className={controlClass}
-        >
-          <option value="none">None</option>
-          <option value="temporal">Temporal (single-day)</option>
-          <option value="extreme">Extreme (outliers)</option>
-          <option value="duplicate">Duplicates</option>
-          <option value="all">All Quality Checks</option>
-        </select>
+        <div className="space-y-1">
+          <select
+            value={filters.qualityFilter || 'none'}
+            onChange={(e) => onSetFilter('qualityFilter', e.target.value as any)}
+            className={controlClass}
+          >
+            <option value="none">None</option>
+            <option value="temporal">Temporal (single-day)</option>
+            <option value="extreme">Extreme (outliers)</option>
+            <option value="duplicate">Duplicates</option>
+            <option value="all">All Quality Checks</option>
+          </select>
+          <p
+            className="text-[11px] text-amber-300/90"
+            title="This setting affects data quality flags when the network materialized views are refreshed."
+          >
+            * Computed on next MV refresh
+          </p>
+        </div>
       </FilterInput>
     </FilterSection>
   );
