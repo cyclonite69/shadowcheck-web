@@ -150,6 +150,16 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     .split(',')
     .map((v) => v.trim().toLowerCase());
 
+  const threatSeverityOrderExpr = `CASE UPPER(COALESCE(ne.threat_level, 'NONE'))
+    WHEN 'CRITICAL' THEN 5
+    WHEN 'HIGH' THEN 4
+    WHEN 'MEDIUM' THEN 3
+    WHEN 'MED' THEN 3
+    WHEN 'LOW' THEN 2
+    WHEN 'NONE' THEN 1
+    ELSE 0
+  END`;
+
   const map: Record<string, string> = {
     observed_at: 'l.observed_at',
     last_observed_at: 'r.last_observed_at',
@@ -160,7 +170,8 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     bssid: 'ne.bssid',
     signal: 'l.level',
     observations: 'r.observation_count',
-    threat: 'ne.threat_level',
+    threat: threatSeverityOrderExpr,
+    threat_level: threatSeverityOrderExpr,
     threat_score: 'ne.threat_score',
     threat_rule_score: 'ne.rule_score',
     threat_ml_score: 'ne.ml_score',
