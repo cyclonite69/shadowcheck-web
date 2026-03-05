@@ -985,13 +985,20 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
         high: 'HIGH',
-        medium: 'MED',
+        medium: 'MEDIUM',
         low: 'LOW',
         none: 'NONE',
       };
-      const dbThreatLevels = f.threatCategories
-        .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
-        .filter(Boolean);
+      const dbThreatLevels = Array.from(
+        new Set(
+          f.threatCategories
+            .flatMap((cat) => {
+              if (cat === 'medium') return ['MEDIUM', 'MED'];
+              return [threatLevelMap[cat] || cat.toUpperCase()];
+            })
+            .filter(Boolean)
+        )
+      );
       if (dbThreatLevels.length > 0) {
         where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
         this.addApplied('threat', 'threatCategories', f.threatCategories);
@@ -1367,13 +1374,20 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
         high: 'HIGH',
-        medium: 'MED',
+        medium: 'MEDIUM',
         low: 'LOW',
         none: 'NONE',
       };
-      const dbThreatLevels = f.threatCategories
-        .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
-        .filter(Boolean);
+      const dbThreatLevels = Array.from(
+        new Set(
+          f.threatCategories
+            .flatMap((cat) => {
+              if (cat === 'medium') return ['MEDIUM', 'MED'];
+              return [threatLevelMap[cat] || cat.toUpperCase()];
+            })
+            .filter(Boolean)
+        )
+      );
       where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
     }
 
@@ -1415,13 +1429,20 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
         high: 'HIGH',
-        medium: 'MED',
+        medium: 'MEDIUM',
         low: 'LOW',
         none: 'NONE',
       };
-      const dbThreatLevels = f.threatCategories
-        .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
-        .filter(Boolean);
+      const dbThreatLevels = Array.from(
+        new Set(
+          f.threatCategories
+            .flatMap((cat) => {
+              if (cat === 'medium') return ['MEDIUM', 'MED'];
+              return [threatLevelMap[cat] || cat.toUpperCase()];
+            })
+            .filter(Boolean)
+        )
+      );
       networkWhere.push(
         `${THREAT_LEVEL_EXPR('nts', 'nt')} = ANY(${this.addParam(dbThreatLevels)})`
       );
