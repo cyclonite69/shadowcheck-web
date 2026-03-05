@@ -263,16 +263,32 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
   const sqlFile = req.file.path;
   const originalName = req.file.originalname;
   const backupRequested = req.body?.backup === 'true' || req.body?.backup === true;
+  const rawTag = (req.body?.source_tag || 'sql_upload') as string;
+  const sourceTag = rawTag
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .slice(0, 50);
   const startedAt = Date.now();
 
   try {
-    logger.info(`Starting SQL import: ${originalName} (backup: ${backupRequested})`);
+    logger.info(
+      `Starting SQL import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
+    );
+
+    const metricsBefore = await adminDbService.captureImportMetrics();
+    const historyId = await adminDbService.createImportHistoryEntry(
+      sourceTag,
+      originalName,
+      metricsBefore
+    );
 
     let backupTaken = false;
     if (backupRequested) {
       try {
         await runPostgresBackup({ uploadToS3: true });
         backupTaken = true;
+        if (historyId) await adminDbService.markImportBackupTaken(historyId);
       } catch (e: any) {
         logger.warn(`Pre-SQL-import backup failed (continuing): ${e.message}`);
       }
@@ -294,22 +310,50 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
 
     p.on('close', async (code: number) => {
       await fs.unlink(sqlFile).catch(() => {});
+      const durationS = ((Date.now() - startedAt) / 1000).toFixed(2);
+      const metricsAfter = await adminDbService.captureImportMetrics();
 
       if (code === 0) {
+        if (historyId) {
+          await adminDbService.completeImportSuccess(historyId, 0, 0, durationS, metricsAfter);
+        }
+
+        const metricsDelta = Object.keys(metricsAfter).reduce(
+          (acc: Record<string, number>, key: string) => {
+            acc[key] = (metricsAfter[key] || 0) - (metricsBefore[key] || 0);
+            return acc;
+          },
+          {}
+        );
+
         return res.json({
           ok: true,
           message: `SQL import complete: ${originalName}`,
+          sourceTag,
           backupTaken,
-          durationSec: ((Date.now() - startedAt) / 1000).toFixed(2),
+          historyId,
+          durationSec: durationS,
+          metricsBefore,
+          metricsAfter,
+          metricsDelta,
           output: output.slice(-10000),
         });
+      }
+
+      const errMsg = errorOutput.slice(0, 500) || `exit code ${code}`;
+      if (historyId) {
+        await adminDbService.failImportHistory(historyId, errMsg, durationS);
       }
 
       return res.status(500).json({
         ok: false,
         error: 'SQL import failed',
         code,
-        durationSec: ((Date.now() - startedAt) / 1000).toFixed(2),
+        sourceTag,
+        historyId,
+        durationSec: durationS,
+        metricsBefore,
+        metricsAfter,
         output: output.slice(-10000),
         errorOutput: errorOutput.slice(-10000),
       });
@@ -317,9 +361,16 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
 
     p.on('error', async (error: Error) => {
       await fs.unlink(sqlFile).catch(() => {});
+      const durationS = ((Date.now() - startedAt) / 1000).toFixed(2);
+      if (historyId) {
+        await adminDbService.failImportHistory(historyId, error.message, durationS);
+      }
       return res.status(500).json({
         ok: false,
         error: 'Failed to start SQL import process',
+        sourceTag,
+        historyId,
+        durationSec: durationS,
         details: error.message,
       });
     });

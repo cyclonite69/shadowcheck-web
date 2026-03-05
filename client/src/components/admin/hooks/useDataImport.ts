@@ -51,13 +51,16 @@ export const useDataImport = () => {
     const formData = new FormData();
     formData.append('sql_file', file);
     formData.append('backup', String(backupEnabled));
+    formData.append('source_tag', sourceTag.trim() || 'sql_upload');
 
     try {
       setIsLoading(true);
+      setLastResult(null);
       setSqlImportStatus(
         backupEnabled ? 'Running pre-import backup...' : 'Uploading and executing SQL...'
       );
       const result = await adminApi.importSQL(formData);
+      setLastResult(result);
       setSqlImportStatus(
         result.ok ? result.message || 'SQL import complete' : `Failed: ${result.error}`
       );
