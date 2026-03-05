@@ -12,7 +12,7 @@ const { validators } = require('../../../utils/validators');
 const { validateTimeRange } = require('../../../validation/schemas');
 const { ValidationError } = require('../../../errors/AppError');
 const { analyticsService } = require('../../../config/container');
-const { CONFIG } = require('../../../config/database');
+const { ROUTE_CONFIG } = require('../routeConfig');
 
 /**
  * GET /api/analytics/network-types
@@ -67,7 +67,7 @@ router.get(
   asyncHandler(async (req, res) => {
     req.logger?.info('Retrieving temporal activity distribution');
 
-    const data = await analyticsService.getTemporalActivity(CONFIG.MIN_VALID_TIMESTAMP);
+    const data = await analyticsService.getTemporalActivity(ROUTE_CONFIG.minValidTimestamp);
 
     req.logger?.info('Temporal activity distribution retrieved', {
       hours: data.length,
@@ -104,7 +104,7 @@ router.get(
 
     const data = await analyticsService.getRadioTypeOverTime(
       rangeValidation.value,
-      CONFIG.MIN_VALID_TIMESTAMP
+      ROUTE_CONFIG.minValidTimestamp
     );
 
     req.logger?.info('Radio type over time retrieved', {
@@ -259,7 +259,7 @@ router.get(
 
     const data = await analyticsService.getThreatTrends(
       rangeValidation.value,
-      CONFIG.MIN_VALID_TIMESTAMP
+      ROUTE_CONFIG.minValidTimestamp
     );
 
     req.logger?.info('Threat trends retrieved', {

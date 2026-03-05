@@ -19,13 +19,13 @@ import {
   assertHomeExistsIfNeeded,
 } from './filteredHelpers';
 import { getFilteredAnalytics } from '../../../services/filteredAnalyticsService';
+import { ROUTE_CONFIG } from '../routeConfig';
 
 const express = require('express');
 const router = express.Router();
 const { filterQueryBuilder, v2Service } = require('../../../config/container');
 const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilder;
 const logger = require('../../../logging/logger');
-const { CONFIG } = require('../../../config/database');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 const { validators } = require('../../../utils/validators');
 
@@ -56,7 +56,7 @@ router.get(
       return;
     }
 
-    const limit = validators.limit(req.query.limit as string, 1, CONFIG.MAX_PAGE_SIZE, 500);
+    const limit = validators.limit(req.query.limit as string, 1, ROUTE_CONFIG.maxPageSize, 500);
     const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
     const includeTotal = req.query.includeTotal !== '0' && req.query.includeTotal !== 'false';

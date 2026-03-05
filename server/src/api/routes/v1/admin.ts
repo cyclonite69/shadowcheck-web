@@ -9,7 +9,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const { CONFIG } = require('../../../config/database');
 const { adminDbService } = require('../../../config/container');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');

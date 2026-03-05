@@ -6,7 +6,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { CONFIG } = require('../../../config/database');
+const { ROUTE_CONFIG } = require('../routeConfig');
 const { threatScoringService } = require('../../../config/container');
 const { paginationMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const {
@@ -36,7 +36,7 @@ router.get(
   async (req, res) => {
     try {
       const { page, limit, offset } = req.pagination;
-      const minTimestamp = CONFIG.MIN_VALID_TIMESTAMP;
+      const minTimestamp = ROUTE_CONFIG.minValidTimestamp;
 
       // Configurable thresholds
       const minObservations = req.validated?.minObs ?? 5;

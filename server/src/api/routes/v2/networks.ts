@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
+import { ROUTE_CONFIG } from '../routeConfig';
 
 const express = require('express');
 const router = express.Router();
 const { v2Service } = require('../../../config/container');
-const { CONFIG } = require('../../../config/database');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 const { validators } = require('../../../utils/validators');
 
@@ -12,7 +12,7 @@ const NETWORK_SORT_COLS = ['observed_at', 'bssid', 'ssid', 'threat_score_v2', 'b
 router.get(
   '/v2/networks',
   asyncHandler(async (req: Request, res: Response) => {
-    const limit = validators.limit(req.query.limit as string, 1, CONFIG.MAX_PAGE_SIZE, 500);
+    const limit = validators.limit(req.query.limit as string, 1, ROUTE_CONFIG.maxPageSize, 500);
     const offset = validators.offset(req.query.offset as string);
     const search = validators.search(req.query.search as string);
     const sort = validators.sort(req.query.sort as string, NETWORK_SORT_COLS);
