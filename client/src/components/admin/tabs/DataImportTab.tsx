@@ -212,6 +212,7 @@ export const DataImportTab: React.FC = () => {
     isLoading,
     importStatus,
     sqlImportStatus,
+    lastResult,
     sourceTag,
     setSourceTag,
     backupEnabled,
@@ -222,8 +223,8 @@ export const DataImportTab: React.FC = () => {
   const [historyKey, setHistoryKey] = useState(0);
 
   useEffect(() => {
-    if (!isLoading && importStatus) setHistoryKey((k) => k + 1);
-  }, [isLoading, importStatus]);
+    if (!isLoading && (importStatus || sqlImportStatus)) setHistoryKey((k) => k + 1);
+  }, [isLoading, importStatus, sqlImportStatus]);
 
   const canImport = !isLoading && sourceTag.trim().length > 0;
 
@@ -357,6 +358,29 @@ export const DataImportTab: React.FC = () => {
           </div>
         </AdminCard>
       </div>
+
+      {lastResult?.metricsBefore && lastResult?.metricsAfter && (
+        <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-slate-300 mb-1">Last SQL Import Audit</h3>
+          <p className="text-xs text-slate-500 mb-3">
+            Source:{' '}
+            <span className="font-mono">{lastResult.sourceTag || sourceTag || 'sql_upload'}</span>
+            {lastResult.durationSec ? (
+              <>
+                {' '}
+                · Duration: <span className="font-mono">{lastResult.durationSec}s</span>
+              </>
+            ) : null}
+            {typeof lastResult.backupTaken === 'boolean' ? (
+              <>
+                {' '}
+                · Backup: <span className="font-mono">{lastResult.backupTaken ? 'yes' : 'no'}</span>
+              </>
+            ) : null}
+          </p>
+          <MetricsTable before={lastResult.metricsBefore} after={lastResult.metricsAfter} />
+        </div>
+      )}
 
       {/* Import History */}
       <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
