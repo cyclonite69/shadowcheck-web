@@ -482,8 +482,7 @@ export async function getThreatSeverityCounts(
     none: 'NONE',
   };
 
-  // Always exclude networks explicitly marked as known/friendly (ignored).
-  const conditions: string[] = ['nt.is_ignored IS NOT TRUE'];
+  const conditions: string[] = [];
   const params: unknown[] = [];
   const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
 
@@ -512,7 +511,7 @@ export async function getThreatSeverityCounts(
     }
   }
 
-  const whereClause = `WHERE ${conditions.join('\n      AND ')}`;
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join('\n      AND ')}` : '';
 
   const result = await query(
     `
