@@ -51,7 +51,20 @@ export interface NetworkFilters {
 
 export type RadioType = 'W' | 'E' | 'B' | 'L' | 'G' | 'N' | '?';
 export type FrequencyBand = '2.4GHz' | '5GHz' | '6GHz' | 'BLE' | 'Cellular';
-export type EncryptionType = 'OPEN' | 'WEP' | 'WPA' | 'WPA2' | 'WPA3' | 'Mixed';
+export type EncryptionType =
+  | 'OPEN'
+  | 'WEP'
+  | 'WPA'
+  | 'WPA2-P'
+  | 'WPA2-E'
+  | 'WPA2'
+  | 'WPA3-P'
+  | 'WPA3-E'
+  | 'WPA3'
+  | 'OWE'
+  | 'WPS'
+  | 'UNKNOWN'
+  | 'Mixed';
 export type SecurityFlag = 'insecure' | 'deprecated' | 'enterprise' | 'personal' | 'unknown';
 export type TagType = 'threat' | 'investigate' | 'false_positive' | 'ignore';
 // TODO: future split — add a separate ThreatTag type for semantic categories

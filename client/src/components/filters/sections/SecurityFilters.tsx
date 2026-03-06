@@ -36,7 +36,22 @@ export const SecurityFilters: React.FC<SecurityFiltersProps> = ({
         compact={isCompact}
       >
         <div className={listLayoutClass}>
-          {(['OPEN', 'WEP', 'WPA', 'WPA2', 'WPA3'] as EncryptionType[]).map((type) => (
+          {(
+            [
+              'OPEN',
+              'WEP',
+              'WPA',
+              'WPA2-P',
+              'WPA2-E',
+              'WPA2',
+              'WPA3-P',
+              'WPA3-E',
+              'WPA3',
+              'OWE',
+              'WPS',
+              'UNKNOWN',
+            ] as EncryptionType[]
+          ).map((type) => (
             <label key={type} className="flex items-center space-x-2">
               <input
                 type="checkbox"

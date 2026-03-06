@@ -315,17 +315,36 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           case 'WPA':
             securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA'`);
             break;
+          case 'WPA2-P':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA2-P'`);
+            break;
+          case 'WPA2-E':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA2-E'`);
+            break;
           case 'WPA2':
-            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2', 'WPA2-E')`);
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2', 'WPA2-E', 'WPA2-P')`);
+            break;
+          case 'WPA3-P':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-P'`);
+            break;
+          case 'WPA3-E':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-E'`);
             break;
           case 'WPA3':
-            securityClauses.push(
-              `${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
-            );
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-P', 'WPA3-E', 'OWE')`);
+            break;
+          case 'OWE':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'OWE'`);
+            break;
+          case 'WPS':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'WPS'`);
+            break;
+          case 'UNKNOWN':
+            securityClauses.push(`${SECURITY_EXPR('o')} = 'UNKNOWN'`);
             break;
           case 'MIXED':
             securityClauses.push(
-              `${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+              `${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA2-E', 'WPA2-P', 'WPA3', 'WPA3-P', 'WPA3-E', 'OWE')`
             );
             break;
         }
@@ -865,17 +884,36 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           case 'WPA':
             securityClauses.push(`${networkSecurityExpr} = 'WPA'`);
             break;
+          case 'WPA2-P':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA2-P'`);
+            break;
+          case 'WPA2-E':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA2-E'`);
+            break;
           case 'WPA2':
             securityClauses.push(`${networkSecurityExpr} IN ('WPA2', 'WPA2-P', 'WPA2-E')`);
             break;
+          case 'WPA3-P':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA3-P'`);
+            break;
+          case 'WPA3-E':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA3-E'`);
+            break;
           case 'WPA3':
-            securityClauses.push(
-              `${networkSecurityExpr} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
-            );
+            securityClauses.push(`${networkSecurityExpr} IN ('WPA3', 'WPA3-P', 'WPA3-E', 'OWE')`);
+            break;
+          case 'OWE':
+            securityClauses.push(`${networkSecurityExpr} = 'OWE'`);
+            break;
+          case 'WPS':
+            securityClauses.push(`${networkSecurityExpr} = 'WPS'`);
+            break;
+          case 'UNKNOWN':
+            securityClauses.push(`${networkSecurityExpr} = 'UNKNOWN'`);
             break;
           case 'MIXED':
             securityClauses.push(
-              `${networkSecurityExpr} IN ('WPA', 'WPA2', 'WPA2-P', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+              `${networkSecurityExpr} IN ('WPA', 'WPA2', 'WPA2-P', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-E', 'OWE')`
             );
             break;
         }
@@ -1262,17 +1300,36 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           case 'WPA':
             securityClauses.push(`${networkSecurityExpr} = 'WPA'`);
             break;
+          case 'WPA2-P':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA2-P'`);
+            break;
+          case 'WPA2-E':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA2-E'`);
+            break;
           case 'WPA2':
             securityClauses.push(`${networkSecurityExpr} IN ('WPA2', 'WPA2-P', 'WPA2-E')`);
             break;
+          case 'WPA3-P':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA3-P'`);
+            break;
+          case 'WPA3-E':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA3-E'`);
+            break;
           case 'WPA3':
-            securityClauses.push(
-              `${networkSecurityExpr} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
-            );
+            securityClauses.push(`${networkSecurityExpr} IN ('WPA3', 'WPA3-P', 'WPA3-E', 'OWE')`);
+            break;
+          case 'OWE':
+            securityClauses.push(`${networkSecurityExpr} = 'OWE'`);
+            break;
+          case 'WPS':
+            securityClauses.push(`${networkSecurityExpr} = 'WPS'`);
+            break;
+          case 'UNKNOWN':
+            securityClauses.push(`${networkSecurityExpr} = 'UNKNOWN'`);
             break;
           case 'MIXED':
             securityClauses.push(
-              `${networkSecurityExpr} IN ('WPA', 'WPA2', 'WPA2-P', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
+              `${networkSecurityExpr} IN ('WPA', 'WPA2', 'WPA2-P', 'WPA2-E', 'WPA3', 'WPA3-P', 'WPA3-E', 'OWE')`
             );
             break;
           default:
