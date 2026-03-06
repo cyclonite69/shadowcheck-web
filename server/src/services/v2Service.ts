@@ -482,7 +482,8 @@ export async function getThreatSeverityCounts(
     none: 'NONE',
   };
 
-  const conditions: string[] = [];
+  // Keep ignored-tag suppression consistent with list/map/dashboard threat paths.
+  const conditions: string[] = ['nt.is_ignored IS NOT TRUE'];
   const params: unknown[] = [];
   const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
 
