@@ -34,8 +34,12 @@ const isCountTimeoutError = (err: unknown): boolean => {
   const dataText = JSON.stringify(e?.data || '').toLowerCase();
   const status = e?.status;
 
+  if (status === 504) {
+    return true;
+  }
+
   return (
-    (status === 500 || status === 503 || status === 504) &&
+    (status === 500 || status === 503) &&
     (message.includes('timeout') ||
       message.includes('statement_timeout') ||
       message.includes('timed out') ||
@@ -56,7 +60,6 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   const [expensiveSort, setExpensiveSort] = useState(false);
   const [pagination, setPagination] = useState({ offset: 0, hasMore: true });
   const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
-  const [includeTotal, setIncludeTotal] = useState(true);
 
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
@@ -89,11 +92,6 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
       setError(null);
       setExpensiveSort(false);
 
-      // Reset includeTotal when starting fresh (offset 0)
-      if (pagination.offset === 0) {
-        setIncludeTotal(true);
-      }
-
       try {
         const sortKeys = sort
           .map((entry) => API_SORT_MAP[entry.column])
@@ -111,50 +109,73 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           enabled: debouncedFilterState.enabled,
         });
 
-        const params = new URLSearchParams({
-          limit: String(NETWORK_PAGE_LIMIT),
-          offset: String(pagination.offset),
-          sort: sortKeys.join(','),
-          order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
-          filters: JSON.stringify(debouncedFilterState.filters),
-          enabled: JSON.stringify(debouncedFilterState.enabled),
-          includeTotal: includeTotal ? '1' : '0',
-        });
-        if (
-          currentPage === 'wigle' &&
-          debouncedFilterState.enabled.wigle_v3_observation_count_min
-        ) {
-          params.set('pageType', 'wigle');
+        const applyResponse = (data: any) => {
+          const rows = data.data || [];
+          setExpensiveSort(Boolean(data.expensive_sort));
+          setNetworkTotal(
+            typeof data.pagination?.total === 'number' ? data.pagination.total : null
+          );
+          setNetworkTruncated(Boolean(data.truncated));
+
+          const mapped: NetworkRow[] = rows.map(mapApiRowToNetwork);
+
+          if (pagination.offset === 0) {
+            setNetworks(mapped);
+          } else {
+            setNetworks((prev) => [...prev, ...mapped]);
+          }
+
+          setPagination((prev) => ({
+            ...prev,
+            hasMore:
+              typeof data.pagination?.hasMore === 'boolean'
+                ? data.pagination.hasMore
+                : mapped.length === NETWORK_PAGE_LIMIT,
+          }));
+        };
+
+        const requestNetworks = async (includeTotalFlag: boolean) => {
+          const params = new URLSearchParams({
+            limit: String(NETWORK_PAGE_LIMIT),
+            offset: String(pagination.offset),
+            sort: sortKeys.join(','),
+            order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
+            filters: JSON.stringify(debouncedFilterState.filters),
+            enabled: JSON.stringify(debouncedFilterState.enabled),
+            includeTotal: includeTotalFlag ? '1' : '0',
+          });
+          if (
+            currentPage === 'wigle' &&
+            debouncedFilterState.enabled.wigle_v3_observation_count_min
+          ) {
+            params.set('pageType', 'wigle');
+          }
+          if (planCheck) {
+            params.set('planCheck', '1');
+          }
+          return apiClient.get<any>(`/v2/networks/filtered?${params.toString()}`, {
+            signal: controller.signal,
+          });
+        };
+
+        const shouldIncludeTotal = pagination.offset === 0;
+        let data;
+        try {
+          data = await requestNetworks(shouldIncludeTotal);
+        } catch (primaryErr: any) {
+          if (
+            shouldIncludeTotal &&
+            primaryErr?.name !== 'AbortError' &&
+            isCountTimeoutError(primaryErr)
+          ) {
+            data = await requestNetworks(false);
+          } else {
+            throw primaryErr;
+          }
         }
 
-        if (planCheck) {
-          params.set('planCheck', '1');
-        }
-
-        const data = await apiClient.get<any>(`/v2/networks/filtered?${params.toString()}`, {
-          signal: controller.signal,
-        });
         logDebug(`Networks response received`);
-        const rows = data.data || [];
-        setExpensiveSort(Boolean(data.expensive_sort));
-        setNetworkTotal(typeof data.pagination?.total === 'number' ? data.pagination.total : null);
-        setNetworkTruncated(Boolean(data.truncated));
-
-        const mapped: NetworkRow[] = rows.map(mapApiRowToNetwork);
-
-        if (pagination.offset === 0) {
-          setNetworks(mapped);
-        } else {
-          setNetworks((prev) => [...prev, ...mapped]);
-        }
-
-        setPagination((prev) => ({
-          ...prev,
-          hasMore:
-            typeof data.pagination?.hasMore === 'boolean'
-              ? data.pagination.hasMore
-              : mapped.length === NETWORK_PAGE_LIMIT,
-        }));
+        applyResponse(data);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           setError(err.message);
