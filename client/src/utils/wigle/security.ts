@@ -115,6 +115,10 @@ export const formatSecurity = (
   capabilities: string | null | undefined,
   fallback?: string | null
 ): string => {
+  // Prefer the backend-computed security label when available.
+  const fallbackLabel = normalizeSecurityLabel(fallback);
+  if (fallback && fallbackLabel !== 'UNKNOWN') return fallbackLabel;
+
   const label = normalizeSecurityLabel(capabilities);
   if (label === 'UNKNOWN' && fallback) return fallback;
   return label;
