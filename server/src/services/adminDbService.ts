@@ -974,12 +974,26 @@ async function getDeviceSources(): Promise<any[]> {
 // ── Admin user management (app.users) ────────────────────────────────────────
 
 async function listUsers(): Promise<any[]> {
-  const result = await adminQuery(
-    `SELECT id, username, email, role, is_active, force_password_change, created_at, last_login
-     FROM app.users
-     ORDER BY username ASC`
-  );
-  return result.rows;
+  try {
+    // Read path uses app pool to avoid hard dependency on admin credentials.
+    const result = await query(
+      `SELECT id, username, email, role, is_active, force_password_change, created_at, last_login
+       FROM app.users
+       ORDER BY username ASC`
+    );
+    return result.rows;
+  } catch (error: any) {
+    // Backward compatibility for older schemas that do not yet have force_password_change.
+    if (error?.code === '42703') {
+      const fallback = await query(
+        `SELECT id, username, email, role, is_active, false AS force_password_change, created_at, last_login
+         FROM app.users
+         ORDER BY username ASC`
+      );
+      return fallback.rows;
+    }
+    throw error;
+  }
 }
 
 async function createAppUser(
