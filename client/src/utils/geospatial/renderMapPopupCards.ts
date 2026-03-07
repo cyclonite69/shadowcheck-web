@@ -11,11 +11,41 @@ type AgencyPopupProps = {
 
 type WigleObservationPopupProps = {
   ssid?: string | null;
-  time?: string | null;
+  time?: string | number | null;
   signal?: number | string | null;
   channel?: number | string | null;
   distanceFromCenterMeters?: number | null;
   matched?: boolean;
+};
+
+const formatPopupTime = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '') {
+    return 'Unknown';
+  }
+
+  // Mapbox feature properties often coerce numbers to strings; handle both robustly.
+  const numeric =
+    typeof value === 'number'
+      ? value
+      : /^[0-9]+(\.[0-9]+)?$/.test(String(value))
+        ? Number(value)
+        : NaN;
+
+  if (Number.isFinite(numeric)) {
+    // Accept either milliseconds or seconds epoch.
+    const epochMs = numeric < 1e12 ? numeric * 1000 : numeric;
+    const date = new Date(epochMs);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleString();
+    }
+  }
+
+  const parsed = new Date(String(value));
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toLocaleString();
+  }
+
+  return 'Unknown';
 };
 
 const popupShell = ({
@@ -72,7 +102,7 @@ export const renderAgencyPopupCard = (props: AgencyPopupProps) => {
 };
 
 export const renderWigleObservationPopupCard = (props: WigleObservationPopupProps) => {
-  const timeText = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
+  const timeText = formatPopupTime(props.time);
   const signalText = props.signal != null ? `${props.signal} dBm` : 'Unknown';
   const channelText = props.channel != null ? String(props.channel) : null;
   const distanceText =

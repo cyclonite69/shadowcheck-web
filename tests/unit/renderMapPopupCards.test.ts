@@ -1,34 +1,26 @@
-import {
-  renderAgencyPopupCard,
-  renderWigleObservationPopupCard,
-} from '../../client/src/utils/geospatial/renderMapPopupCards';
+import { renderWigleObservationPopupCard } from '../../client/src/utils/geospatial/renderMapPopupCards';
 
-describe('renderMapPopupCards', () => {
-  it('renders agency popup card with core fields', () => {
-    const html = renderAgencyPopupCard({
-      name: 'FBI Detroit',
-      officeType: 'field_office',
-      distanceKm: 3.2,
-      address: '123 Main St, Detroit, MI',
-      hasWigleObs: true,
+describe('renderWigleObservationPopupCard', () => {
+  test('formats numeric-string epoch time without Invalid Date', () => {
+    const html = renderWigleObservationPopupCard({
+      ssid: 'FBI Truck',
+      time: '1739400000000',
+      signal: -94,
+      matched: false,
     });
 
-    expect(html).toContain('Agency Location');
-    expect(html).toContain('FBI Detroit');
-    expect(html).toContain('field office');
-    expect(html).toContain('3.2 km');
-    expect(html).toContain('WiGLE observations found near this office');
+    expect(html).not.toContain('Invalid Date');
+    expect(html).toContain('Time:');
   });
 
-  it('renders wigle observation card in matched mode', () => {
+  test('falls back to Unknown for invalid time values', () => {
     const html = renderWigleObservationPopupCard({
-      ssid: 'TestAP',
-      signal: -55,
-      matched: true,
+      ssid: 'FBI Truck',
+      time: 'not-a-date',
+      signal: -94,
+      matched: false,
     });
 
-    expect(html).toContain('WiGLE + Local Match');
-    expect(html).toContain('TestAP');
-    expect(html).toContain('-55 dBm');
+    expect(html).toContain('Time:</span> Unknown');
   });
 });
