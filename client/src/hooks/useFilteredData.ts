@@ -9,6 +9,7 @@ import { NetworkFilters } from '../types/filters';
 import { logError } from '../logging/clientLogger';
 import { apiClient } from '../api/client';
 import { buildFilteredRequestParams } from '../utils/filteredRequestParams';
+import { getNextPageOffset, resolveFetchOffset } from '../utils/filteredPagination';
 
 interface UseFilteredDataOptions {
   endpoint: 'networks' | 'geospatial' | 'analytics' | 'observations';
@@ -65,14 +66,15 @@ export function useFilteredData<T = unknown>(
   const fetchData = useCallback(
     async (
       payload: { filters: NetworkFilters; enabled: Record<keyof NetworkFilters, boolean> },
-      resetOffset = true
+      resetOffset = true,
+      offsetOverride?: number
     ) => {
       try {
         setLoading(true);
         setGlobalLoading(true);
         setError(null);
 
-        const actualOffset = resetOffset ? 0 : currentOffset;
+        const actualOffset = resolveFetchOffset(resetOffset, currentOffset, offsetOverride);
         const { filters, enabled } = payload;
 
         const params = buildFilteredRequestParams({
@@ -132,13 +134,12 @@ export function useFilteredData<T = unknown>(
   }, [fetchData]);
 
   const loadMore = useCallback(() => {
-    if (loading || currentOffset + limit >= total) return;
-
-    const newOffset = currentOffset + limit;
+    const newOffset = getNextPageOffset(currentOffset, limit, total, loading);
+    if (newOffset === null) return;
     setCurrentOffset(newOffset);
 
     const filters = useFilterStore.getState().getAPIFilters();
-    fetchData(filters, false);
+    fetchData(filters, false, newOffset);
   }, [loading, currentOffset, limit, total, fetchData]);
 
   // Auto-refresh
