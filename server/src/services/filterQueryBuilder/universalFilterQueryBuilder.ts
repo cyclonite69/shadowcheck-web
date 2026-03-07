@@ -171,6 +171,33 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     );
   }
 
+  private isFastPathEligible(enabledKeys: string[]): boolean {
+    const networkOnly =
+      enabledKeys.length > 0 &&
+      enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key as FilterKey));
+    if (networkOnly) {
+      return true;
+    }
+
+    const temporalFastAllowed = new Set<string>([
+      ...Array.from(NETWORK_ONLY_FILTERS),
+      'timeframe',
+      'temporalScope',
+    ]);
+    const temporalFastEligible =
+      enabledKeys.length > 0 && enabledKeys.every((key) => temporalFastAllowed.has(key));
+    if (!temporalFastEligible) {
+      return false;
+    }
+
+    if (!this.enabled.timeframe || !this.filters.timeframe) {
+      return false;
+    }
+
+    const scope = this.filters.temporalScope || 'observation_time';
+    return scope === 'observation_time' || scope === 'threat_window';
+  }
+
   private applyRadioFilters(options: {
     typeExpr: string;
     frequencyExpr: string;
@@ -657,9 +684,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const enabledKeys = Object.entries(this.enabled)
       .filter(([, value]) => value)
       .map(([key]) => key);
-    const networkOnly =
-      enabledKeys.length > 0 &&
-      enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key as FilterKey));
+    const networkOnly = this.isFastPathEligible(enabledKeys);
 
     logger.info('[UniversalFilterQueryBuilder] Path decision', {
       enabledKeys,
@@ -1051,6 +1076,28 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       this.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
     }
 
+    if (e.timeframe && f.timeframe) {
+      const scope = f.temporalScope || 'observation_time';
+      if (scope === 'threat_window') {
+        this.addWarning('Threat window scope mapped to observation_time on fast path.');
+      }
+      if (f.timeframe.type === 'absolute') {
+        if (f.timeframe.startTimestamp) {
+          where.push(`ne.last_seen >= ${this.addParam(f.timeframe.startTimestamp)}::timestamptz`);
+        }
+        if (f.timeframe.endTimestamp) {
+          where.push(`ne.last_seen <= ${this.addParam(f.timeframe.endTimestamp)}::timestamptz`);
+        }
+      } else {
+        const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
+        if (window) {
+          where.push(`ne.last_seen >= NOW() - ${this.addParam(window)}::interval`);
+        }
+      }
+      this.addApplied('temporal', 'timeframe', f.timeframe);
+      this.addApplied('temporal', 'temporalScope', scope);
+    }
+
     if (e.ssid && !f.ssid) {
       this.addIgnored('identity', 'ssid', 'enabled_without_value');
     }
@@ -1125,6 +1172,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       (!Array.isArray(f.threatCategories) || f.threatCategories.length === 0)
     ) {
       this.addIgnored('threat', 'threatCategories', 'enabled_without_value');
+    }
+    if (e.timeframe && !f.timeframe) {
+      this.addIgnored('temporal', 'timeframe', 'enabled_without_value');
     }
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
@@ -1446,6 +1496,21 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         )
       );
       where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
+    }
+    if (e.timeframe && f.timeframe) {
+      if (f.timeframe.type === 'absolute') {
+        if (f.timeframe.startTimestamp) {
+          where.push(`ne.last_seen >= ${this.addParam(f.timeframe.startTimestamp)}::timestamptz`);
+        }
+        if (f.timeframe.endTimestamp) {
+          where.push(`ne.last_seen <= ${this.addParam(f.timeframe.endTimestamp)}::timestamptz`);
+        }
+      } else {
+        const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
+        if (window) {
+          where.push(`ne.last_seen >= NOW() - ${this.addParam(window)}::interval`);
+        }
+      }
     }
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
