@@ -3,6 +3,7 @@ import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import type { Observation } from '../types/network';
 import { apiClient } from '../api/client';
 import { buildFilteredRequestParams } from '../utils/filteredRequestParams';
+import { groupObservationRowsByBssid } from '../utils/observationDataTransformation';
 
 interface UseObservationsOptions {
   useFilters?: boolean;
@@ -61,6 +62,7 @@ export function useObservations(
         let fetchedTotal: number | null = null;
         let isTruncated = false;
         let renderBudgetLimit: number | null = null;
+        let didExceedRenderBudget = false;
         let allRows: any[] = [];
 
         const observationFilters = useFilters ? debouncedFilterState : { filters: {}, enabled: {} };
@@ -91,6 +93,9 @@ export function useObservations(
           if (offset === 0 && typeof data.render_budget === 'number') {
             renderBudgetLimit = data.render_budget;
           }
+          if (typeof data.render_budget_exceeded === 'boolean') {
+            didExceedRenderBudget = didExceedRenderBudget || data.render_budget_exceeded;
+          }
 
           if (!data.truncated || rows.length === 0) {
             isTruncated = Boolean(data.truncated);
@@ -112,35 +117,12 @@ export function useObservations(
           }
         }
 
-        const grouped = allRows.reduce((acc: Record<string, Observation[]>, row: any) => {
-          const bssid = String(row.bssid || '').toUpperCase();
-          const lat = typeof row.lat === 'number' ? row.lat : parseFloat(row.lat);
-          const lon = typeof row.lon === 'number' ? row.lon : parseFloat(row.lon);
-
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            return acc;
-          }
-
-          if (!acc[bssid]) acc[bssid] = [];
-          acc[bssid].push({
-            id: row.obs_number || `${bssid}-${row.time}`,
-            bssid,
-            lat,
-            lon,
-            signal: typeof row.level === 'number' ? row.level : (row.level ?? null),
-            time: row.time,
-            frequency: typeof row.radio_frequency === 'number' ? row.radio_frequency : null,
-            acc: row.accuracy ?? null,
-            altitude: typeof row.altitude === 'number' ? row.altitude : null,
-          });
-
-          return acc;
-        }, {});
+        const grouped = groupObservationRowsByBssid(allRows);
 
         setObservationsByBssid(grouped);
         setTotal(fetchedTotal);
         setTruncated(isTruncated || (fetchedTotal !== null && allRows.length < fetchedTotal));
-        setRenderBudgetExceeded(Boolean((allRows as any).render_budget_exceeded));
+        setRenderBudgetExceeded(didExceedRenderBudget);
         setRenderBudget(renderBudgetLimit);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
