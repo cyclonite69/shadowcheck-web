@@ -290,6 +290,8 @@ const KeplerPage: React.FC = () => {
   }, [pitch, drawMode]);
 
   const filteredCount = networkData.filter((d) => d.signal >= signalThreshold).length;
+  const showBlockingLoader = loading && networkData.length === 0;
+  const showRefreshingBadge = loading && networkData.length > 0;
 
   return (
     <div className="h-screen w-full text-white flex min-h-0">
@@ -464,11 +466,17 @@ const KeplerPage: React.FC = () => {
 
       {/* Map Area */}
       <section className="flex-1 min-h-0 h-full relative">
-        {loading && (
+        {showBlockingLoader && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 z-50">
             <div className="px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
               Loading network data…
             </div>
+          </div>
+        )}
+
+        {showRefreshingBadge && (
+          <div className="absolute top-4 right-4 bg-slate-800/90 text-slate-100 px-3 py-1.5 rounded-md border border-slate-600 z-30 pointer-events-none text-xs">
+            Refreshing data…
           </div>
         )}
 
