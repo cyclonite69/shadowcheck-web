@@ -9,11 +9,16 @@ const { networkListService } = require('../../../../config/container');
 import { escapeLikePattern } from '../../../../utils/escapeSQL';
 import { validateString, validateIntegerRange } from '../../../../validation/schemas';
 import { validateQuery, optional } from '../../../../validation/middleware';
+import { ROUTE_CONFIG } from '../../../../config/routeConfig';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const validateSearchQuery = validateQuery({
-  limit: optional((value: any) => validateIntegerRange(value, 1, 5000, 'limit')),
-  offset: optional((value: any) => validateIntegerRange(value, 0, 10000000, 'offset')),
+  limit: optional((value: any) =>
+    validateIntegerRange(value, 1, ROUTE_CONFIG.explorer.maxLimit, 'limit')
+  ),
+  offset: optional((value: any) =>
+    validateIntegerRange(value, 0, ROUTE_CONFIG.networks.maxOffset, 'offset')
+  ),
 });
 
 /**

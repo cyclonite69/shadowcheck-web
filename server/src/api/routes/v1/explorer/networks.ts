@@ -13,6 +13,7 @@ const {
   homeLocationService,
   dataQualityFilters,
 } = require('../../../../config/container');
+const { ROUTE_CONFIG } = require('../../../../config/routeConfig');
 const { DATA_QUALITY_FILTERS } = dataQualityFilters;
 const logger = require('../../../../logging/logger');
 
@@ -30,8 +31,13 @@ const {
 // GET /api/explorer/networks
 router.get('/explorer/networks', async (req, res, _next) => {
   try {
-    const limit = parseLimit(req.query.limit, 500, 5000).value;
-    const offset = limit === null ? 0 : parseOffset(req.query.offset, 0, 1000000).value;
+    const limit = parseLimit(
+      req.query.limit,
+      ROUTE_CONFIG.explorer.defaultLimit,
+      ROUTE_CONFIG.explorer.maxLimit
+    ).value;
+    const offset =
+      limit === null ? 0 : parseOffset(req.query.offset, 0, ROUTE_CONFIG.explorer.maxOffset).value;
     const search = parseOptionalString(req.query.search, 200, 'search').value || '';
     const sort = (
       parseOptionalString(req.query.sort || 'last_seen', 64, 'sort').value || 'last_seen'
@@ -112,8 +118,12 @@ router.get('/explorer/networks', async (req, res, _next) => {
 // GET /api/explorer/networks-v2 (FORENSIC GRADE - uses DB view)
 router.get('/explorer/networks-v2', async (req, res, next) => {
   try {
-    const limit = parseLimit(req.query.limit, 500, 5000).value;
-    const page = parsePage(req.query.page, 1, 1000000).value;
+    const limit = parseLimit(
+      req.query.limit,
+      ROUTE_CONFIG.explorer.defaultLimit,
+      ROUTE_CONFIG.explorer.maxLimit
+    ).value;
+    const page = parsePage(req.query.page, 1, ROUTE_CONFIG.explorer.maxPage).value;
     const offset = limit === null ? 0 : (page - 1) * limit;
     const search = parseOptionalString(req.query.search, 200, 'search').value || '';
     const sort =

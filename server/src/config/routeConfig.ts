@@ -22,4 +22,16 @@ export const ROUTE_CONFIG = {
     low: '20-39',
     none: '0-19',
   } as const,
+  explorer: {
+    defaultLimit: 500,
+    maxLimit: 5000,
+    maxOffset: 1000000,
+    maxPage: 1000000,
+  } as const,
+  networks: {
+    maxLimit: 1000,
+    maxOffset: 10000000,
+    maxObservationCount: 100000000,
+    maxBulkBssids: 10000,
+  } as const,
 } as const;

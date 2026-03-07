@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const { networkService } = require('../../../../config/container');
 const { safeJsonParse } = require('../../../../utils/safeJsonParse');
+const { ROUTE_CONFIG } = require('../../../../config/routeConfig');
 const logger = require('../../../../logging/logger');
 const { cacheMiddleware } = require('../../../../middleware/cacheMiddleware');
 const {
@@ -87,10 +88,10 @@ router.get(
     const limitResult = parseRequiredInteger(
       limitRaw,
       1,
-      1000,
+      ROUTE_CONFIG.networks.maxLimit,
       'limit',
       'Missing limit parameter.',
-      'Invalid limit parameter. Must be between 1 and 1000.'
+      `Invalid limit parameter. Must be between 1 and ${ROUTE_CONFIG.networks.maxLimit}.`
     );
     if (!limitResult.ok) {
       return res.status(400).json({ error: limitResult.error });
@@ -99,7 +100,7 @@ router.get(
     const offsetResult = parseRequiredInteger(
       offsetRaw,
       0,
-      10000000,
+      ROUTE_CONFIG.networks.maxOffset,
       'offset',
       'Missing offset parameter.',
       'Invalid offset parameter. Must be >= 0.'
@@ -260,13 +261,23 @@ router.get(
     }
     const maxSignal = maxSignalResult.value;
 
-    const minObsResult = parseOptionalInteger(minObsRaw, 0, 100000000, 'min_obs_count');
+    const minObsResult = parseOptionalInteger(
+      minObsRaw,
+      0,
+      ROUTE_CONFIG.networks.maxObservationCount,
+      'min_obs_count'
+    );
     if (!minObsResult.ok) {
       return res.status(400).json({ error: 'Invalid min_obs_count parameter.' });
     }
     const minObsCount = minObsResult.value !== null ? minObsResult.value : 1;
 
-    const maxObsResult = parseOptionalInteger(maxObsRaw, 0, 100000000, 'max_obs_count');
+    const maxObsResult = parseOptionalInteger(
+      maxObsRaw,
+      0,
+      ROUTE_CONFIG.networks.maxObservationCount,
+      'max_obs_count'
+    );
     if (!maxObsResult.ok) {
       return res.status(400).json({ error: 'Invalid max_obs_count parameter.' });
     }
@@ -330,7 +341,7 @@ router.get(
 
     let bssidList = null;
     if (bssidRaw !== undefined) {
-      const validation = validateBSSIDList(bssidRaw, 1000);
+      const validation = validateBSSIDList(bssidRaw, ROUTE_CONFIG.networks.maxLimit);
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }

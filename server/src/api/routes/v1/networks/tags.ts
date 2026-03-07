@@ -16,6 +16,7 @@ import {
   validateString,
 } from '../../../../validation/schemas';
 import { parseOptionalInteger } from '../../../../validation/parameterParsers';
+import { ROUTE_CONFIG } from '../../../../config/routeConfig';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
@@ -34,15 +35,25 @@ router.get(
         .json({ error: `Valid tag_type is required (one of: ${VALID_TAG_TYPES.join(', ')})` });
     }
 
-    const pageResult = parseOptionalInteger(req.query.page, 1, 1000000, 'page');
+    const pageResult = parseOptionalInteger(
+      req.query.page,
+      1,
+      ROUTE_CONFIG.explorer.maxPage,
+      'page'
+    );
     if (!pageResult.ok) {
       return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
     }
-    const limitResult = parseOptionalInteger(req.query.limit, 1, 1000, 'limit');
+    const limitResult = parseOptionalInteger(
+      req.query.limit,
+      1,
+      ROUTE_CONFIG.networks.maxLimit,
+      'limit'
+    );
     if (!limitResult.ok) {
-      return res
-        .status(400)
-        .json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
+      return res.status(400).json({
+        error: `Invalid limit parameter. Must be between 1 and ${ROUTE_CONFIG.networks.maxLimit}.`,
+      });
     }
     const page = pageResult.value ?? 1;
     const limit = limitResult.value ?? 50;
@@ -158,8 +169,13 @@ router.post(
       return res.status(400).json({ error: bssidListValidation.error });
     }
 
-    if (bssidListValidation.value && bssidListValidation.value.length > 10000) {
-      return res.status(400).json({ error: 'Maximum 10000 BSSIDs allowed' });
+    if (
+      bssidListValidation.value &&
+      bssidListValidation.value.length > ROUTE_CONFIG.networks.maxBulkBssids
+    ) {
+      return res
+        .status(400)
+        .json({ error: `Maximum ${ROUTE_CONFIG.networks.maxBulkBssids} BSSIDs allowed` });
     }
 
     const reasonValidation =
