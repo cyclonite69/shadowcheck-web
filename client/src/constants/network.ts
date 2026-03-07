@@ -62,6 +62,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
         .split(',')
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
+      if (tags.length === 0) return '—';
       const tooltip = tags.join(', ');
       const getTagStyle = (tag: string) => {
         const normalized = tag.toUpperCase();
@@ -82,25 +83,26 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
         }
         return { color: '#93c5fd', background: 'rgba(59, 130, 246, 0.2)' };
       };
+      const primary = tags[0];
+      const style = getTagStyle(primary);
+      const badgeText = tags.length > 1 ? `${primary} +${tags.length - 1}` : primary;
       return React.createElement(
         'span',
-        { className: 'text-xs font-mono', title: tooltip },
-        tags.map((tag) => {
-          const style = getTagStyle(tag);
-          return React.createElement(
-            'span',
-            {
-              key: tag,
-              className: 'inline-block mr-1 px-2 py-1 rounded',
-              style: {
-                color: style.color,
-                background: style.background,
-                border: `1px solid ${style.color}4d`,
-              },
-            },
-            tag
-          );
-        })
+        {
+          className: 'inline-block text-xs font-mono px-2 py-1 rounded',
+          title: tooltip,
+          style: {
+            color: style.color,
+            background: style.background,
+            border: `1px solid ${style.color}4d`,
+            maxWidth: '100%',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            verticalAlign: 'middle',
+          },
+        },
+        badgeText
       );
     },
   },
