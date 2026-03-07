@@ -185,13 +185,23 @@ export const NetworkTableBodyGrid = ({
                 // Select checkbox
                 if (col === 'select') {
                   return (
-                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
+                    <div
+                      key={col}
+                      style={{
+                        ...stickyCellStyle,
+                        padding: '0 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => onToggleSelectNetwork(net.bssid)}
                         onClick={(e) => e.stopPropagation()}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', margin: 0, display: 'block' }}
                       />
                     </div>
                   );
@@ -200,7 +210,17 @@ export const NetworkTableBodyGrid = ({
                 // Type badge
                 if (col === 'type') {
                   return (
-                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
+                    <div
+                      key={col}
+                      style={{
+                        ...stickyCellStyle,
+                        padding: '0 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
                       <TypeBadge type={(value as any) || '?'} />
                     </div>
                   );
