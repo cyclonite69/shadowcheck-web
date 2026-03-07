@@ -5,35 +5,15 @@ import { NETWORK_COLUMNS } from '../../constants/network';
 import { macColor } from '../../utils/mapHelpers';
 import { TypeBadge, ThreatBadge } from '../badges';
 import {
+  NETWORK_TABLE_COLUMN_WIDTHS,
+  NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS,
+} from './networkTableGridConfig';
+import {
   getSignalColor,
   getSignalDisplay,
   getTimespanBadgeStyle,
   getTimespanDisplay,
 } from '../../utils/networkFormatting';
-
-const COLUMN_WIDTHS: Record<string, number> = {
-  select: 40,
-  type: 60,
-  ssid: 150,
-  bssid: 140,
-  threat: 80,
-  signal: 90,
-  security: 100,
-  observations: 110,
-  distance: 100,
-  maxDist: 100,
-  threatScore: 110,
-  frequency: 90,
-  channel: 80,
-  timespanDays: 100,
-  manufacturer: 120,
-  all_tags: 120,
-  wigle_v3_observation_count: 90,
-  wigle_v3_last_import_at: 140,
-};
-
-// Disable horizontal sticky/frozen columns; full grid should scroll together.
-const LOCKED_HORIZONTAL_COLUMNS: string[] = [];
 
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -110,17 +90,17 @@ export const NetworkTableBodyGrid = ({
 
   // Build grid template columns based on visible columns
   const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
-    COLUMN_WIDTHS[String(col)] ?? 100;
+    NETWORK_TABLE_COLUMN_WIDTHS[String(col)] ?? 100;
   const gridTemplateColumns = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
   const totalGridWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
   const lockedVisibleColumns = visibleColumns.filter((col) =>
-    LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
+    NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
   );
   const lastLockedVisibleColumn = lockedVisibleColumns[lockedVisibleColumns.length - 1] ?? null;
   const getLockedLeft = (col: keyof NetworkRow | 'select'): number =>
     visibleColumns
       .slice(0, visibleColumns.indexOf(col))
-      .filter((candidate) => LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
+      .filter((candidate) => NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
       .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0);
   const getLockedZIndex = (col: keyof NetworkRow | 'select'): number => {
     const idx = lockedVisibleColumns.indexOf(col);
@@ -185,7 +165,9 @@ export const NetworkTableBodyGrid = ({
                 if (!column) return null;
 
                 const value = net[col as keyof NetworkRow];
-                const isLockedColumn = LOCKED_HORIZONTAL_COLUMNS.includes(String(col));
+                const isLockedColumn = NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(
+                  String(col)
+                );
                 const stickyCellStyle: React.CSSProperties = isLockedColumn
                   ? {
                       position: 'sticky',
