@@ -213,6 +213,14 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   const pgDumpPath = await resolvePgDumpPath();
   const pgDumpAllPath = pgDumpPath.replace('pg_dump', 'pg_dumpall');
   const pgEnv = buildPgEnv();
+  const includeAllSchemas = String(process.env.BACKUP_INCLUDE_ALL_SCHEMAS || '')
+    .toLowerCase()
+    .trim();
+  const shouldRestrictSchemas = includeAllSchemas !== 'true' && includeAllSchemas !== '1';
+  const backupSchemas = (process.env.BACKUP_SCHEMAS || 'app,public')
+    .split(',')
+    .map((schema) => schema.trim())
+    .filter(Boolean);
 
   // 1. Dump Globals (Roles, Users, etc) - OPTIONAL
   let globalsSuccess = false;
@@ -238,11 +246,23 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   // 2. Dump Main Database - MANDATORY
   logger.info(`[Backup] Starting main database dump to ${dbFilePath}`);
   await new Promise((resolve, reject) => {
-    const child = spawn(
-      pgDumpPath,
-      ['--format=custom', '--no-owner', '--no-privileges', '--blobs', '--file', dbFilePath],
-      { env: pgEnv }
-    );
+    const args = [
+      '--format=custom',
+      '--no-owner',
+      '--no-privileges',
+      '--blobs',
+      '--file',
+      dbFilePath,
+    ];
+    if (shouldRestrictSchemas && backupSchemas.length > 0) {
+      backupSchemas.forEach((schema) => {
+        args.push('--schema', schema);
+      });
+      logger.info(
+        `[Backup] Using schema-restricted dump for admin backups: ${backupSchemas.join(', ')}`
+      );
+    }
+    const child = spawn(pgDumpPath, args, { env: pgEnv });
     let stderr = '';
     child.stderr.on('data', (data) => {
       stderr += data.toString();
