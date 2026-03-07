@@ -132,6 +132,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     return `$${index}`;
   }
 
+  private shouldIncludeIgnoredByExplicitTagFilter(): boolean {
+    return (
+      this.enabled.tag_type === true &&
+      Array.isArray(this.filters.tag_type) &&
+      this.filters.tag_type.some((tag) => String(tag).toLowerCase() === 'ignore')
+    );
+  }
+
   private addApplied(type: string, field: string, value: unknown): void {
     this.state = this.state.withAppliedFilter(type, field, value);
     if (this.perfTracker) {
@@ -603,6 +611,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private buildNetworkListQueryImpl(options: NetworkListOptions = {}): FilteredQueryResult {
     // Default to no limit for visualization endpoints (Kepler, Geospatial)
     const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+    const includeIgnored = this.shouldIncludeIgnoredByExplicitTagFilter();
 
     // Set requiresHome flag if we need to calculate distance from home in SELECT clause
     this.requiresHome = true;
@@ -665,7 +674,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         FROM app.api_network_explorer_mv ne
         ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
         ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
-        WHERE ${NT_NOT_IGNORED_CLAUSE}
+        ${includeIgnored ? '' : `WHERE ${NT_NOT_IGNORED_CLAUSE}`}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
       `;
@@ -712,8 +721,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const effectiveWhereClause =
       whereClause.length > 0
-        ? `${whereClause} AND ${NT_NOT_IGNORED_CLAUSE}`
-        : `WHERE ${NT_NOT_IGNORED_CLAUSE}`;
+        ? includeIgnored
+          ? whereClause
+          : `${whereClause} AND ${NT_NOT_IGNORED_CLAUSE}`
+        : includeIgnored
+          ? ''
+          : `WHERE ${NT_NOT_IGNORED_CLAUSE}`;
 
     const sql = `
       ${cte}
@@ -836,7 +849,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const { limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = options;
     const f = this.filters;
     const e = this.enabled;
-    const where: string[] = [NT_NOT_IGNORED_CLAUSE];
+    const where: string[] = [];
+    if (!this.shouldIncludeIgnoredByExplicitTagFilter()) {
+      where.push(NT_NOT_IGNORED_CLAUSE);
+    }
     const networkTypeExpr = 'ne.type';
     const networkSecurityExpr = SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)');
     const networkFrequencyExpr = 'ne.frequency';
@@ -1246,12 +1262,13 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   }
 
   buildNetworkCountQuery(): QueryResult {
+    const includeIgnored = this.shouldIncludeIgnoredByExplicitTagFilter();
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       return {
         sql: `SELECT COUNT(*) AS total
               FROM app.api_network_explorer_mv ne
-              WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`,
+              ${includeIgnored ? '' : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`}`,
         params: [],
       };
     }
@@ -1270,8 +1287,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const effectiveWhereClause =
       whereClause.length > 0
-        ? `${whereClause} AND ${NE_NOT_IGNORED_EXISTS_CLAUSE}`
-        : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`;
+        ? includeIgnored
+          ? whereClause
+          : `${whereClause} AND ${NE_NOT_IGNORED_EXISTS_CLAUSE}`
+        : includeIgnored
+          ? ''
+          : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`;
 
     const sql = `
       ${cte}
@@ -1294,7 +1315,10 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   private buildNetworkOnlyCountQuery(): QueryResult {
     const f = this.filters;
     const e = this.enabled;
-    const where: string[] = [NE_NOT_IGNORED_EXISTS_CLAUSE];
+    const where: string[] = [];
+    if (!this.shouldIncludeIgnoredByExplicitTagFilter()) {
+      where.push(NE_NOT_IGNORED_EXISTS_CLAUSE);
+    }
 
     if (e.ssid && f.ssid) {
       where.push(`ne.ssid ILIKE ${this.addParam(`%${f.ssid}%`)}`);

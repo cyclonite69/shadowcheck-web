@@ -163,6 +163,27 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.appliedFilters.some((f: any) => f.field === 'threatCategories')).toBe(true);
   });
 
+  test('tag_type=ignore query includes ignored networks in list results', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { tag_type: ['ignore'] },
+      { tag_type: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).not.toContain('COALESCE(nt.is_ignored, FALSE) = FALSE');
+    expect(result.sql).toContain('is_ignored');
+    expect(result.appliedFilters.some((f: any) => f.field === 'tag_type')).toBe(true);
+  });
+
+  test('tag_type=ignore query includes ignored networks in count results', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { tag_type: ['ignore'] },
+      { tag_type: true }
+    ).buildNetworkCountQuery();
+
+    expect(result.sql).not.toContain('NOT EXISTS (');
+    expect(result.sql).toContain('is_ignored');
+  });
+
   test('network count encryptionTypes=WPA2 includes enterprise variant', () => {
     const result = new UniversalFilterQueryBuilder(
       { encryptionTypes: ['WPA2'] },
