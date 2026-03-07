@@ -8,13 +8,18 @@ const router = express.Router();
 const { networkService, networkListService } = require('../../../../config/container');
 import { validateBSSID, validateIntegerRange } from '../../../../validation/schemas';
 import { validateQuery, optional } from '../../../../validation/middleware';
+import { ROUTE_CONFIG } from '../../../../config/routeConfig';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const VALID_SORT_KEYS = new Set(['last_seen', 'ssid', 'obs_count', 'signal', 'bssid']);
 
 const validateManufacturerNetworksQuery = validateQuery({
-  limit: optional((value: any) => validateIntegerRange(value, 1, 5000, 'limit')),
-  offset: optional((value: any) => validateIntegerRange(value, 0, 10000000, 'offset')),
+  limit: optional((value: any) =>
+    validateIntegerRange(value, 1, ROUTE_CONFIG.explorer.maxLimit, 'limit')
+  ),
+  offset: optional((value: any) =>
+    validateIntegerRange(value, 0, ROUTE_CONFIG.networks.maxOffset, 'offset')
+  ),
   sort: optional((value: any) => {
     const s = String(value).trim().toLowerCase();
     if (!VALID_SORT_KEYS.has(s)) {
