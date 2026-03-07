@@ -95,6 +95,8 @@ export const NetworkExplorerSection = ({
   renderBudget,
   loadingObservations,
 }: NetworkExplorerSectionProps) => {
+  const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
+
   return (
     <NetworkExplorerCard>
       <NetworkExplorerHeader
@@ -121,6 +123,7 @@ export const NetworkExplorerSection = ({
         onToggleSelectAll={onToggleSelectAll}
         onColumnSort={onColumnSort}
         onReorderColumns={onReorderColumns}
+        scrollLeft={tableScrollLeft}
       />
       <NetworkTableBodyGrid
         tableContainerRef={tableContainerRef}
@@ -135,6 +138,7 @@ export const NetworkExplorerSection = ({
         isLoadingMore={isLoadingMore}
         hasMore={hasMore}
         onLoadMore={onLoadMore}
+        onHorizontalScroll={setTableScrollLeft}
       />
 
       <MapStatusBar

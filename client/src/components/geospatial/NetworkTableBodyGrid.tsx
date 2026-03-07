@@ -47,6 +47,7 @@ interface NetworkTableBodyGridProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  onHorizontalScroll?: (scrollLeft: number) => void;
 }
 
 export const NetworkTableBodyGrid = ({
@@ -62,6 +63,7 @@ export const NetworkTableBodyGrid = ({
   isLoadingMore,
   hasMore,
   onLoadMore,
+  onHorizontalScroll,
 }: NetworkTableBodyGridProps) => {
   const virtualizer = useVirtualizer({
     count: filteredNetworks.length,
@@ -72,9 +74,11 @@ export const NetworkTableBodyGrid = ({
 
   // Infinite scroll: load more when scrolled near bottom
   const handleScroll = () => {
-    if (!tableContainerRef.current || isLoadingMore || !hasMore) return;
+    if (!tableContainerRef.current) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight, scrollLeft } = tableContainerRef.current;
+    onHorizontalScroll?.(scrollLeft);
+    if (isLoadingMore || !hasMore) return;
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
     // Load more when 80% scrolled
