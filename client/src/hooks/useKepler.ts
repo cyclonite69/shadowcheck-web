@@ -2,6 +2,7 @@ import { useAsyncData } from './useAsyncData';
 import { keplerApi } from '../api/keplerApi';
 import { logDebug, logError } from '../logging/clientLogger';
 import type { NetworkData } from '../components/kepler/types';
+import { mapKeplerGeoJsonToNetworkData } from '../utils/keplerDataTransformation';
 
 interface KeplerResult {
   networkData: NetworkData[];
@@ -35,38 +36,7 @@ export const useKepler = (adaptedFilters: any, datasetType: 'observations' | 'ne
       throw new Error(`Invalid data format`);
     if (geojson.features.length === 0) throw new Error('No network data found');
 
-    const networkData: NetworkData[] = geojson.features
-      .filter(
-        (f: any) => f.geometry && f.geometry.coordinates && f.geometry.coordinates.length >= 2
-      )
-      .map((f: any) => ({
-        position: f.geometry.coordinates,
-        bssid: f.properties.bssid,
-        ssid: f.properties.ssid || 'Hidden',
-        type: f.properties.type || 'unknown',
-        signal: f.properties.signal || f.properties.rssi || -100,
-        level: f.properties.level || f.properties.signal || -100,
-        encryption: f.properties.encryption || f.properties.security || 'Unknown',
-        channel: f.properties.channel,
-        frequency: f.properties.frequency,
-        security: f.properties.security || 'Unknown',
-        manufacturer: f.properties.manufacturer || 'Unknown',
-        device_type: f.properties.device_type || f.properties.type || 'unknown',
-        capabilities: f.properties.capabilities || f.properties.security || 'Unknown',
-        threat_level: f.properties.threat_level || 'none',
-        rule_score: f.properties.rule_score || 0,
-        ml_score: f.properties.ml_score || 0,
-        timestamp: String(f.properties.timestamp || f.properties.time || ''),
-        first_seen: f.properties.first_seen,
-        last_seen: String(f.properties.last_seen || f.properties.time || ''),
-        observation_count: f.properties.obs_count || f.properties.observation_count || 1,
-        timespan_days: f.properties.timespan_days,
-        distance_from_home: f.properties.distance_from_home,
-        max_distance_km: f.properties.max_distance_km,
-        unique_days: f.properties.unique_days,
-        accuracy: f.properties.accuracy,
-        altitude: f.properties.altitude,
-      }));
+    const networkData: NetworkData[] = mapKeplerGeoJsonToNetworkData(geojson);
 
     return {
       networkData,
