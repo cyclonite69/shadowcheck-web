@@ -2,6 +2,28 @@ import { useState, useRef } from 'react';
 import type { NetworkRow, SortState } from '../../types/network';
 import { API_SORT_MAP, NETWORK_COLUMNS } from '../../constants/network';
 
+const COLUMN_WIDTHS: Record<string, number> = {
+  select: 40,
+  type: 60,
+  ssid: 150,
+  bssid: 140,
+  threat: 80,
+  signal: 90,
+  security: 100,
+  observations: 110,
+  distance: 100,
+  maxDist: 100,
+  threatScore: 110,
+  frequency: 90,
+  channel: 80,
+  manufacturer: 120,
+  all_tags: 120,
+  wigle_v3_observation_count: 90,
+  wigle_v3_last_import_at: 140,
+};
+
+const LOCKED_HORIZONTAL_COLUMNS = ['select', 'type', 'ssid', 'bssid'];
+
 interface NetworkTableHeaderGridProps {
   visibleColumns: Array<keyof NetworkRow | 'select'>;
   sort: SortState[];
@@ -26,30 +48,13 @@ export const NetworkTableHeaderGrid = ({
   const dragImageRef = useRef<HTMLDivElement | null>(null);
 
   // Build grid template columns - MUST match NetworkTableBodyGrid exactly
-  const gridTemplateColumns = visibleColumns
-    .map((col) => {
-      if (col === 'select') return '40px';
-      const widths: Record<string, string> = {
-        type: '60px',
-        ssid: '150px',
-        bssid: '140px',
-        threat: '80px',
-        signal: '90px',
-        security: '100px',
-        observations: '110px',
-        distance: '100px',
-        maxDist: '100px',
-        threatScore: '110px',
-        frequency: '90px',
-        channel: '80px',
-        manufacturer: '120px',
-        all_tags: '120px',
-        wigle_v3_observation_count: '90px',
-        wigle_v3_last_import_at: '140px',
-      };
-      return widths[col] || '100px';
-    })
-    .join(' ');
+  const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
+    COLUMN_WIDTHS[String(col)] ?? 100;
+  const gridTemplateColumns = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
+  const lockedVisibleColumns = visibleColumns.filter((col) =>
+    LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
+  );
+  const lastLockedVisibleColumn = lockedVisibleColumns[lockedVisibleColumns.length - 1] ?? null;
 
   return (
     <div
@@ -125,6 +130,20 @@ export const NetworkTableHeaderGrid = ({
               setDropTarget(null);
             }}
             style={{
+              ...(LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
+                ? {
+                    position: 'sticky',
+                    left: `${visibleColumns
+                      .slice(0, visibleColumns.indexOf(col))
+                      .filter((candidate) => LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
+                      .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0)}px`,
+                    zIndex: 12,
+                    boxShadow:
+                      col === lastLockedVisibleColumn
+                        ? '1px 0 0 rgba(71, 85, 105, 0.35)'
+                        : undefined,
+                  }
+                : {}),
               padding: '5px 8px',
               background: sortState ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.98)',
               cursor: isDraggable ? 'grab' : isSortable ? 'pointer' : 'default',
