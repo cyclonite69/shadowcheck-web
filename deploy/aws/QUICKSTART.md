@@ -32,6 +32,18 @@ This creates:
 aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
 ```
 
+### Step 2.5: Enable Embedded SSM Terminal (Admin Page)
+
+Run from your local machine (with IAM admin rights) to grant the EC2 role
+permission to start SSM sessions from inside ShadowCheck Admin UI:
+
+```bash
+aws iam put-role-policy \
+  --role-name EC2-SSM-Role \
+  --policy-name shadowcheck-ssm-embedded-session \
+  --policy-document file://deploy/aws/iam/ssm-embedded-session-policy.json
+```
+
 ### Step 3: Run Automated Setup
 
 ```bash

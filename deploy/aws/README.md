@@ -51,6 +51,20 @@ deploy/aws/
 aws ssm start-session --target i-INSTANCE_ID --region us-east-1
 ```
 
+### Enable Embedded SSM (Admin UI)
+
+Attach the inline IAM policy in
+`deploy/aws/iam/ssm-embedded-session-policy.json`
+to the EC2 role (for example `EC2-SSM-Role`) so the app can call
+`ssm:StartSession` from the Admin page.
+
+```bash
+aws iam put-role-policy \
+  --role-name EC2-SSM-Role \
+  --policy-name shadowcheck-ssm-embedded-session \
+  --policy-document file://deploy/aws/iam/ssm-embedded-session-policy.json
+```
+
 ### Complete Setup (on EC2)
 
 ```bash

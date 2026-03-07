@@ -15,6 +15,8 @@ Use this checklist to ensure all steps are completed correctly.
 - [ ] Note instance ID (e.g., `i-035565c52ac4fa6dd`)
 - [ ] Wait 2-3 minutes for instance initialization
 - [ ] Verify SSM connection: `aws ssm start-session --target INSTANCE_ID --region us-east-1`
+- [ ] Attach embedded SSM IAM policy to EC2 role:
+  - [ ] `aws iam put-role-policy --role-name EC2-SSM-Role --policy-name shadowcheck-ssm-embedded-session --policy-document file://deploy/aws/iam/ssm-embedded-session-policy.json`
 
 ## System Setup
 

@@ -1,0 +1,32 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "StartEmbeddedSession",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:StartSession",
+        "ssm:ResumeSession",
+        "ssm:TerminateSession"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-1:161020170158:instance/*",
+        "arn:aws:ssm:us-east-1:161020170158:document/SSM-SessionManagerRunShell",
+        "arn:aws:ssm:us-east-1::document/AWS-StartInteractiveCommand",
+        "arn:aws:ssm:us-east-1::document/AWS-StartPortForwardingSession",
+        "arn:aws:ssm:us-east-1::document/AWS-StartSSHSession"
+      ]
+    },
+    {
+      "Sid": "DescribeSessionUx",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeSessions",
+        "ssm:GetConnectionStatus",
+        "ssm:DescribeInstanceInformation",
+        "ec2:DescribeInstances"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
