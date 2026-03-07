@@ -116,6 +116,15 @@ export const NetworkTableBodyGrid = ({
     LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
   );
   const lastLockedVisibleColumn = lockedVisibleColumns[lockedVisibleColumns.length - 1] ?? null;
+  const getLockedLeft = (col: keyof NetworkRow | 'select'): number =>
+    visibleColumns
+      .slice(0, visibleColumns.indexOf(col))
+      .filter((candidate) => LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
+      .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0);
+  const getLockedZIndex = (col: keyof NetworkRow | 'select'): number => {
+    const idx = lockedVisibleColumns.indexOf(col);
+    return idx >= 0 ? 12 - idx : 4;
+  };
 
   return (
     <div
@@ -134,22 +143,22 @@ export const NetworkTableBodyGrid = ({
         {items.map((virtualRow) => {
           const net = filteredNetworks[virtualRow.index];
           const isSelected = selectedNetworks.has(net.bssid);
+          const rowBackground = isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)';
 
           return (
             <div
               key={net.bssid}
               style={{
                 position: 'absolute',
-                top: 0,
+                top: `${virtualRow.start}px`,
                 left: 0,
                 width: `${totalGridWidth}px`,
                 height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
                 display: 'grid',
                 gridTemplateColumns,
                 alignItems: 'center',
                 borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
-                background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)',
+                background: rowBackground,
                 cursor: 'pointer',
                 padding: '0',
               }}
@@ -178,14 +187,9 @@ export const NetworkTableBodyGrid = ({
                 const stickyCellStyle: React.CSSProperties = isLockedColumn
                   ? {
                       position: 'sticky',
-                      left: `${visibleColumns
-                        .slice(0, visibleColumns.indexOf(col))
-                        .filter((candidate) =>
-                          LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate))
-                        )
-                        .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0)}px`,
-                      zIndex: 4,
-                      background: 'inherit',
+                      left: `${getLockedLeft(col)}px`,
+                      zIndex: getLockedZIndex(col),
+                      background: rowBackground,
                       boxShadow:
                         col === lastLockedVisibleColumn
                           ? '1px 0 0 rgba(71, 85, 105, 0.25)'

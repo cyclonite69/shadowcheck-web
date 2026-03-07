@@ -59,6 +59,15 @@ export const NetworkTableHeaderGrid = ({
     LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
   );
   const lastLockedVisibleColumn = lockedVisibleColumns[lockedVisibleColumns.length - 1] ?? null;
+  const getLockedLeft = (col: keyof NetworkRow | 'select'): number =>
+    visibleColumns
+      .slice(0, visibleColumns.indexOf(col))
+      .filter((candidate) => LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
+      .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0);
+  const getLockedZIndex = (col: keyof NetworkRow | 'select'): number => {
+    const idx = lockedVisibleColumns.indexOf(col);
+    return idx >= 0 ? 20 - idx : 12;
+  };
 
   useEffect(() => {
     if (!headerScrollRef.current) return;
@@ -152,13 +161,8 @@ export const NetworkTableHeaderGrid = ({
                 ...(LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
                   ? {
                       position: 'sticky',
-                      left: `${visibleColumns
-                        .slice(0, visibleColumns.indexOf(col))
-                        .filter((candidate) =>
-                          LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate))
-                        )
-                        .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0)}px`,
-                      zIndex: 12,
+                      left: `${getLockedLeft(col)}px`,
+                      zIndex: getLockedZIndex(col),
                       boxShadow:
                         col === lastLockedVisibleColumn
                           ? '1px 0 0 rgba(71, 85, 105, 0.35)'
