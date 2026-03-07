@@ -367,13 +367,7 @@ router.get(
         queryTime: Date.now(),
         queryDurationMs: analytics.queryDurationMs,
         fastPath: false,
-        threatThresholds: {
-          critical: '80-100',
-          high: '60-79',
-          medium: '40-59',
-          low: '20-39',
-          none: '0-19',
-        },
+        threatThresholds: ROUTE_CONFIG.threatThresholds,
       },
     });
   })
