@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
 import type { EnabledFlags, Filters, ValidationResult } from '../v2/filteredHelpers';
 import { parseJsonParam, assertHomeExistsIfNeeded } from '../v2/filteredHelpers';
-import { getFilteredAnalytics } from '../../../services/filteredAnalyticsService';
 
 const express = require('express');
 const router = express.Router();
-const { filterQueryBuilder } = require('../../../config/container');
+const { filterQueryBuilder, filteredAnalyticsService } = require('../../../config/container');
 const { validateFilterPayload } = filterQueryBuilder;
+const { getFilteredAnalytics } = filteredAnalyticsService;
 
 // GET /api/analytics-public/filtered
 router.get('/filtered', async (req: Request, res: Response) => {

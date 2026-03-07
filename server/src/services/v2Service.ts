@@ -444,6 +444,7 @@ export async function getThreatMapData(opts: {
     WHERE (${dynamicThreatLevel}) IS NOT NULL
       AND (${dynamicThreatLevel}) != 'NONE'
       AND nt.is_ignored IS NOT TRUE
+      AND COALESCE(o.is_quality_filtered, false) = false
       AND o.time >= NOW() - ($${hasSeverityFilter ? 2 : 1} || ' days')::interval
       ${hasSeverityFilter ? `AND (${dynamicThreatLevel}) = $1` : ''}
     LIMIT 100000

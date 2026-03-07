@@ -28,6 +28,7 @@ const explorerService = require('../services/explorerService');
 const exportService = require('../services/exportService');
 const externalServiceHandler = require('../services/externalServiceHandler');
 const filterQueryBuilder = require('../services/filterQueryBuilder');
+const filteredAnalyticsService = require('../services/filteredAnalyticsService');
 const geocodingCacheService = require('../services/geocodingCacheService');
 const homeLocationService = require('../services/homeLocationService');
 const keplerService = require('../services/keplerService');
@@ -67,6 +68,7 @@ const container = {
   exportService,
   externalServiceHandler,
   filterQueryBuilder,
+  filteredAnalyticsService,
   geocodingCacheService,
   homeLocationService,
   keplerService,
