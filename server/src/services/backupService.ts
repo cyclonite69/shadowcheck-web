@@ -96,6 +96,24 @@ const buildPgEnv = () => {
   return env;
 };
 
+const buildBackupPgEnv = () => {
+  const env = buildPgEnv();
+  const preferredAdminUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
+  const adminPassword = secretsManager.get('db_admin_password') || process.env.DB_ADMIN_PASSWORD;
+
+  if (adminPassword) {
+    env.PGUSER = preferredAdminUser;
+    env.PGPASSWORD = adminPassword;
+    logger.info(`[Backup] Using admin DB role for backup operations: ${preferredAdminUser}`);
+  } else {
+    logger.warn(
+      '[Backup] db_admin_password not found; falling back to application DB credentials for backup'
+    );
+  }
+
+  return env;
+};
+
 const resolvePgDumpPath = async () => {
   const candidates = [
     process.env.PG_DUMP_PATH,
@@ -212,7 +230,7 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
 
   const pgDumpPath = await resolvePgDumpPath();
   const pgDumpAllPath = pgDumpPath.replace('pg_dump', 'pg_dumpall');
-  const pgEnv = buildPgEnv();
+  const pgEnv = buildBackupPgEnv();
   const includeAllSchemas = String(process.env.BACKUP_INCLUDE_ALL_SCHEMAS || '')
     .toLowerCase()
     .trim();
