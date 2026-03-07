@@ -11,6 +11,29 @@ import {
   getTimespanDisplay,
 } from '../../utils/networkFormatting';
 
+const COLUMN_WIDTHS: Record<string, number> = {
+  select: 40,
+  type: 60,
+  ssid: 150,
+  bssid: 140,
+  threat: 80,
+  signal: 90,
+  security: 100,
+  observations: 110,
+  distance: 100,
+  maxDist: 100,
+  threatScore: 110,
+  frequency: 90,
+  channel: 80,
+  timespanDays: 100,
+  manufacturer: 120,
+  all_tags: 120,
+  wigle_v3_observation_count: 90,
+  wigle_v3_last_import_at: 140,
+};
+
+const LOCKED_HORIZONTAL_COLUMNS = ['select', 'type', 'ssid', 'bssid'];
+
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
@@ -81,32 +104,13 @@ export const NetworkTableBodyGrid = ({
   const items = virtualizer.getVirtualItems();
 
   // Build grid template columns based on visible columns
-  const gridTemplateColumns = visibleColumns
-    .map((col) => {
-      if (col === 'select') return '40px';
-      // Adjust column widths as needed
-      const widths: Record<string, string> = {
-        type: '60px',
-        ssid: '150px',
-        bssid: '140px',
-        threat: '80px',
-        signal: '90px',
-        security: '100px',
-        observations: '110px',
-        distance: '100px',
-        maxDist: '100px',
-        threatScore: '110px',
-        frequency: '90px',
-        channel: '80px',
-        timespanDays: '100px',
-        manufacturer: '120px',
-        all_tags: '120px',
-        wigle_v3_observation_count: '90px',
-        wigle_v3_last_import_at: '140px',
-      };
-      return widths[col] || '100px';
-    })
-    .join(' ');
+  const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
+    COLUMN_WIDTHS[String(col)] ?? 100;
+  const gridTemplateColumns = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
+  const lockedVisibleColumns = visibleColumns.filter((col) =>
+    LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
+  );
+  const lastLockedVisibleColumn = lockedVisibleColumns[lockedVisibleColumns.length - 1] ?? null;
 
   return (
     <div
@@ -165,11 +169,29 @@ export const NetworkTableBodyGrid = ({
                 if (!column) return null;
 
                 const value = net[col as keyof NetworkRow];
+                const isLockedColumn = LOCKED_HORIZONTAL_COLUMNS.includes(String(col));
+                const stickyCellStyle: React.CSSProperties = isLockedColumn
+                  ? {
+                      position: 'sticky',
+                      left: `${visibleColumns
+                        .slice(0, visibleColumns.indexOf(col))
+                        .filter((candidate) =>
+                          LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate))
+                        )
+                        .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0)}px`,
+                      zIndex: 2,
+                      background: 'inherit',
+                      boxShadow:
+                        col === lastLockedVisibleColumn
+                          ? '1px 0 0 rgba(71, 85, 105, 0.25)'
+                          : undefined,
+                    }
+                  : {};
 
                 // Select checkbox
                 if (col === 'select') {
                   return (
-                    <div key={col} style={{ padding: '0 4px' }}>
+                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -184,7 +206,7 @@ export const NetworkTableBodyGrid = ({
                 // Type badge
                 if (col === 'type') {
                   return (
-                    <div key={col} style={{ padding: '0 4px' }}>
+                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                       <TypeBadge type={(value as any) || '?'} />
                     </div>
                   );
@@ -197,7 +219,11 @@ export const NetworkTableBodyGrid = ({
                       ? `Manual tags: ${net.all_tags}`
                       : undefined;
                   return (
-                    <div key={col} style={{ padding: '0 4px' }} title={allTagsTooltip}>
+                    <div
+                      key={col}
+                      style={{ ...stickyCellStyle, padding: '0 4px' }}
+                      title={allTagsTooltip}
+                    >
                       <ThreatBadge
                         threat={net.threat || undefined}
                         reasons={net.threatReasons as any}
@@ -211,7 +237,7 @@ export const NetworkTableBodyGrid = ({
                 if (col === 'signal') {
                   const signalValue = value as number | null;
                   return (
-                    <div key={col} style={{ padding: '0 4px' }}>
+                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                       <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
                         {getSignalDisplay(signalValue)}
                       </span>
@@ -222,7 +248,7 @@ export const NetworkTableBodyGrid = ({
                 // Observations count badge
                 if (col === 'observations') {
                   return (
-                    <div key={col} style={{ padding: '0 4px' }}>
+                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                       <span
                         style={{
                           background: 'rgba(59, 130, 246, 0.2)',
@@ -247,7 +273,7 @@ export const NetworkTableBodyGrid = ({
                   const networkType = net.type;
                   if (networkType === 'W' && channelValue !== null && channelValue !== 0) {
                     return (
-                      <div key={col} style={{ padding: '0 4px' }}>
+                      <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                         <span
                           style={{
                             background: 'rgba(16, 185, 129, 0.2)',
@@ -266,7 +292,10 @@ export const NetworkTableBodyGrid = ({
                     );
                   }
                   return (
-                    <div key={col} style={{ padding: '0 4px', color: '#cbd5e1' }}>
+                    <div
+                      key={col}
+                      style={{ ...stickyCellStyle, padding: '0 4px', color: '#cbd5e1' }}
+                    >
                       {networkType === 'W' ? 'N/A' : '—'}
                     </div>
                   );
@@ -278,7 +307,7 @@ export const NetworkTableBodyGrid = ({
                   if (freqValue !== null && freqValue !== 0) {
                     const isWiFi = net.type === 'W';
                     return (
-                      <div key={col} style={{ padding: '0 4px' }}>
+                      <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                         <span
                           style={{
                             color: isWiFi ? '#10b981' : '#94a3b8',
@@ -291,7 +320,10 @@ export const NetworkTableBodyGrid = ({
                     );
                   }
                   return (
-                    <div key={col} style={{ padding: '0 4px', color: '#cbd5e1' }}>
+                    <div
+                      key={col}
+                      style={{ ...stickyCellStyle, padding: '0 4px', color: '#cbd5e1' }}
+                    >
                       N/A
                     </div>
                   );
@@ -303,7 +335,7 @@ export const NetworkTableBodyGrid = ({
                   if (days !== null && days >= 0) {
                     const { bg, color, border } = getTimespanBadgeStyle(days);
                     return (
-                      <div key={col} style={{ padding: '0 4px' }}>
+                      <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                         <span
                           style={{
                             background: bg,
@@ -322,7 +354,10 @@ export const NetworkTableBodyGrid = ({
                     );
                   }
                   return (
-                    <div key={col} style={{ padding: '0 4px', color: '#94a3b8' }}>
+                    <div
+                      key={col}
+                      style={{ ...stickyCellStyle, padding: '0 4px', color: '#94a3b8' }}
+                    >
                       Not computed
                     </div>
                   );
@@ -334,6 +369,7 @@ export const NetworkTableBodyGrid = ({
                     <div
                       key={col}
                       style={{
+                        ...stickyCellStyle,
                         padding: '0 4px',
                         fontFamily: 'monospace',
                         fontSize: '10px',
@@ -351,6 +387,7 @@ export const NetworkTableBodyGrid = ({
                     <div
                       key={col}
                       style={{
+                        ...stickyCellStyle,
                         padding: '0 4px',
                         color: '#f1f5f9',
                         fontWeight: 500,
@@ -367,7 +404,7 @@ export const NetworkTableBodyGrid = ({
 
                 if (column.render) {
                   return (
-                    <div key={col} style={{ padding: '0 4px' }}>
+                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
                       {column.render(value, net)}
                     </div>
                   );
@@ -378,6 +415,7 @@ export const NetworkTableBodyGrid = ({
                   <div
                     key={col}
                     style={{
+                      ...stickyCellStyle,
                       padding: '0 4px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
