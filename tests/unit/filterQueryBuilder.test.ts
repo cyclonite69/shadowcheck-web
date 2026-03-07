@@ -184,6 +184,24 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql).toContain('is_ignored');
   });
 
+  test('ssid identity search includes ignored networks in list results', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { ssid: 'undertaker' },
+      { ssid: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).not.toContain('COALESCE(nt.is_ignored, FALSE) = FALSE');
+  });
+
+  test('ssid identity search includes ignored networks in count results', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { ssid: 'undertaker' },
+      { ssid: true }
+    ).buildNetworkCountQuery();
+
+    expect(result.sql).not.toContain('NOT EXISTS (');
+  });
+
   test('network count encryptionTypes=WPA2 includes enterprise variant', () => {
     const result = new UniversalFilterQueryBuilder(
       { encryptionTypes: ['WPA2'] },

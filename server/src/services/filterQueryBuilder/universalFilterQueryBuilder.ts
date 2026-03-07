@@ -133,6 +133,18 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
   }
 
   private shouldIncludeIgnoredByExplicitTagFilter(): boolean {
+    const hasIdentitySearch =
+      (this.enabled.ssid === true &&
+        typeof this.filters.ssid === 'string' &&
+        this.filters.ssid.trim() !== '') ||
+      (this.enabled.bssid === true &&
+        typeof this.filters.bssid === 'string' &&
+        this.filters.bssid.trim() !== '');
+
+    if (hasIdentitySearch) {
+      return true;
+    }
+
     return (
       this.enabled.tag_type === true &&
       Array.isArray(this.filters.tag_type) &&
