@@ -78,7 +78,9 @@ const OBS_TYPE_EXPR = (alias = 'o'): string => `
 
 const SECURITY_FROM_CAPS_EXPR = (capsExpr: string): string => `
   CASE
-    WHEN COALESCE(${capsExpr}, '') = '' THEN 'OPEN'
+    WHEN BTRIM(COALESCE(${capsExpr}, '')) = '' THEN 'OPEN'
+    WHEN UPPER(BTRIM(COALESCE(${capsExpr}, ''))) IN ('---', '-', 'N/A', 'NA', 'NONE', 'OPEN', 'OPEN/UNKNOWN') THEN 'OPEN'
+    WHEN UPPER(BTRIM(COALESCE(${capsExpr}, ''))) = 'UNKNOWN' THEN 'UNKNOWN'
     WHEN UPPER(${capsExpr}) LIKE '%WPA3-E%' THEN 'WPA3-E'
     WHEN UPPER(${capsExpr}) LIKE '%WPA3-P%' THEN 'WPA3-P'
     WHEN UPPER(${capsExpr}) LIKE '%WPA2-E%' THEN 'WPA2-E'
