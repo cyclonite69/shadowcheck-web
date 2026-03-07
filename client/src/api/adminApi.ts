@@ -3,8 +3,39 @@
  */
 
 import { apiClient } from './client';
+import type { AdminUser } from '../components/admin/types/admin.types';
 
 export const adminApi = {
+  // User management
+  async listUsers(): Promise<{ success: boolean; users: AdminUser[] }> {
+    return apiClient.get('/admin/users');
+  },
+
+  async createUser(input: {
+    username: string;
+    email: string;
+    password: string;
+    role: 'user' | 'admin';
+    forcePasswordChange?: boolean;
+  }): Promise<{ success: boolean; user: AdminUser }> {
+    return apiClient.post('/admin/users', input);
+  },
+
+  async setUserActive(
+    id: number,
+    isActive: boolean
+  ): Promise<{ success: boolean; user: AdminUser }> {
+    return apiClient.put(`/admin/users/${id}/active`, { isActive });
+  },
+
+  async resetUserPassword(
+    id: number,
+    password: string,
+    forcePasswordChange = true
+  ): Promise<{ success: boolean; user: AdminUser }> {
+    return apiClient.put(`/admin/users/${id}/password`, { password, forcePasswordChange });
+  },
+
   // Geocoding job request payload
   async runGeocoding(options: {
     provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';

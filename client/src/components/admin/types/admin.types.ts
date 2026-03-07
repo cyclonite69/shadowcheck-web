@@ -154,3 +154,14 @@ export interface AwsOverview {
   warning?: string;
   error?: string;
 }
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  email: string;
+  role: 'user' | 'admin';
+  is_active: boolean;
+  force_password_change: boolean;
+  created_at: string | null;
+  last_login: string | null;
+}

@@ -4,10 +4,13 @@
  */
 
 const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
 
 export {};
+
+const AUTH_SALT_ROUNDS = 12;
 
 // Admin connection settings
 const DB_ADMIN_USER = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
@@ -968,6 +971,71 @@ async function getDeviceSources(): Promise<any[]> {
   return rows;
 }
 
+// ── Admin user management (app.users) ────────────────────────────────────────
+
+async function listUsers(): Promise<any[]> {
+  const result = await adminQuery(
+    `SELECT id, username, email, role, is_active, force_password_change, created_at, last_login
+     FROM app.users
+     ORDER BY username ASC`
+  );
+  return result.rows;
+}
+
+async function createAppUser(
+  username: string,
+  email: string,
+  password: string,
+  role: 'user' | 'admin' = 'user',
+  forcePasswordChange = false
+): Promise<any> {
+  const passwordHash = await bcrypt.hash(password, AUTH_SALT_ROUNDS);
+  const result = await adminQuery(
+    `INSERT INTO app.users (username, email, password_hash, role, force_password_change)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, username, email, role, is_active, force_password_change, created_at, last_login`,
+    [username, email, passwordHash, role, forcePasswordChange]
+  );
+  return result.rows[0];
+}
+
+async function setAppUserActive(userId: number, isActive: boolean): Promise<any | null> {
+  const result = await adminQuery(
+    `UPDATE app.users
+     SET is_active = $1
+     WHERE id = $2
+     RETURNING id, username, email, role, is_active, force_password_change, created_at, last_login`,
+    [isActive, userId]
+  );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  if (!isActive) {
+    // Invalidate active sessions for disabled accounts.
+    await adminQuery(`DELETE FROM app.user_sessions WHERE user_id = $1`, [userId]);
+  }
+
+  return result.rows[0];
+}
+
+async function resetAppUserPassword(
+  userId: number,
+  password: string,
+  forcePasswordChange = true
+): Promise<any | null> {
+  const passwordHash = await bcrypt.hash(password, AUTH_SALT_ROUNDS);
+  const result = await adminQuery(
+    `UPDATE app.users
+     SET password_hash = $1, force_password_change = $2
+     WHERE id = $3
+     RETURNING id, username, email, role, is_active, force_password_change, created_at, last_login`,
+    [passwordHash, forcePasswordChange, userId]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
@@ -1028,3 +1096,7 @@ module.exports.completeImportSuccess = completeImportSuccess;
 module.exports.failImportHistory = failImportHistory;
 module.exports.getImportHistory = getImportHistory;
 module.exports.getDeviceSources = getDeviceSources;
+module.exports.listUsers = listUsers;
+module.exports.createAppUser = createAppUser;
+module.exports.setAppUserActive = setAppUserActive;
+module.exports.resetAppUserPassword = resetAppUserPassword;
