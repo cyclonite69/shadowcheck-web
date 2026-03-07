@@ -37,6 +37,28 @@ const resolvePageType = (req: Request): 'geospatial' | 'wigle' => {
   return req.query.pageType === 'wigle' ? 'wigle' : 'geospatial';
 };
 
+const isIgnoredRow = (row: { is_ignored?: unknown }): boolean => {
+  const raw = row?.is_ignored;
+  if (typeof raw === 'boolean') return raw;
+  return String(raw).toLowerCase() === 'true';
+};
+
+const applyEffectiveThreat = <T extends { is_ignored?: unknown; threat?: unknown }>(row: T): T => {
+  if (!isIgnoredRow(row)) {
+    return row;
+  }
+
+  return {
+    ...row,
+    threat: {
+      score: '0',
+      level: 'NONE',
+      flags: ['IGNORED'],
+      signals: [],
+    },
+  };
+};
+
 // GET /api/v2/networks/filtered
 router.get(
   '/',
@@ -85,10 +107,18 @@ router.get(
     const queryTime = Date.now() - queryStart;
     const rows = result.rows || [];
 
-    const enriched = rows.map((row) => {
-      const transparency = normalizeThreatTransparency(row.threat);
+    const enriched: Array<
+      NetworkRow & {
+        threat?: { level?: string };
+        threatReasons: string[];
+        threatEvidence: unknown[];
+        threatTransparencyError: boolean;
+      }
+    > = rows.map((row) => {
+      const effectiveRow = applyEffectiveThreat(row);
+      const transparency = normalizeThreatTransparency(effectiveRow.threat);
       return {
-        ...row,
+        ...effectiveRow,
         threatReasons: transparency.threatReasons,
         threatEvidence: transparency.threatEvidence,
         threatTransparencyError: transparency.transparencyError,
@@ -217,25 +247,26 @@ router.get(
       });
     }
     const features = (result.rows || []).map((row) => {
-      const transparency = normalizeThreatTransparency(row.threat);
+      const effectiveRow = applyEffectiveThreat(row);
+      const transparency = normalizeThreatTransparency(effectiveRow.threat);
       return {
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [row.lon, row.lat],
+          coordinates: [effectiveRow.lon as number, effectiveRow.lat as number],
         },
         properties: {
-          bssid: row.bssid,
-          ssid: row.ssid,
-          signal: row.level,
-          accuracy: row.accuracy,
-          altitude: row.altitude,
-          time: row.time,
-          number: row.obs_number,
-          radio_frequency: row.radio_frequency,
-          radio_capabilities: row.radio_capabilities,
-          radio_type: row.radio_type,
-          threat: row.threat,
+          bssid: effectiveRow.bssid,
+          ssid: effectiveRow.ssid,
+          signal: effectiveRow.level,
+          accuracy: effectiveRow.accuracy,
+          altitude: effectiveRow.altitude,
+          time: effectiveRow.time,
+          number: effectiveRow.obs_number,
+          radio_frequency: effectiveRow.radio_frequency,
+          radio_capabilities: effectiveRow.radio_capabilities,
+          radio_type: effectiveRow.radio_type,
+          threat: effectiveRow.threat,
           threatReasons: transparency.threatReasons,
           threatEvidence: transparency.threatEvidence,
           threatTransparencyError: transparency.transparencyError,
