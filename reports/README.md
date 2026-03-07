@@ -4,6 +4,7 @@ This folder contains both active and historical audit snapshots.
 
 ## Current (Use These First)
 
+- `modularity-audit-refresh-2026-03-07.md`
 - `modularity-audit-full-pass-2026-03-04.md`
 - `modularity-audit-addendum-2026-03-04-b.md`
 
