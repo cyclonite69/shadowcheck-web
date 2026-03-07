@@ -113,8 +113,19 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
       if (!value || value === 0) return '—';
       return React.createElement(
         'span',
-        { className: 'text-sm font-semibold text-blue-600' },
-        `${value} obs`
+        {
+          style: {
+            background: 'rgba(245, 158, 11, 0.2)',
+            color: '#fbbf24',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '500',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            display: 'inline-block',
+          },
+        },
+        String(value)
       );
     },
   },
