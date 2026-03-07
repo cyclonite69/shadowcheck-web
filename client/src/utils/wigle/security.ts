@@ -115,7 +115,20 @@ export const formatSecurity = (
   capabilities: string | null | undefined,
   fallback?: string | null
 ): string => {
-  // Prefer the backend-computed security label when available.
+  const capabilityText = String(capabilities || '').trim();
+  const hasCapabilityText = capabilityText.length > 0;
+
+  // Prefer capability-derived label when capability text is present, because it
+  // can preserve more specific variants (WPA2-E/WPA2-P, WPA3-E/WPA3-P).
+  if (hasCapabilityText) {
+    const capabilityLabel = normalizeSecurityLabel(capabilities);
+    if (capabilityLabel !== 'UNKNOWN') {
+      return capabilityLabel;
+    }
+  }
+
+  // Fall back to backend-computed security label when capability text is
+  // missing or not classifiable.
   const fallbackLabel = normalizeSecurityLabel(fallback);
   if (fallback && fallbackLabel !== 'UNKNOWN') return fallbackLabel;
 

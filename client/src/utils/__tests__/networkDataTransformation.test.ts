@@ -196,4 +196,16 @@ describe('mapApiRowToNetwork', () => {
     expect(net.latitude).toBeNull();
     expect(net.longitude).toBeNull();
   });
+
+  it('prefers capability-derived security variant over broad fallback label', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        capabilities: '[WPA2-EAP-CCMP][ESS]',
+        security: 'WPA2',
+      },
+      0
+    );
+    expect(net.security).toBe('WPA2-E');
+  });
 });
