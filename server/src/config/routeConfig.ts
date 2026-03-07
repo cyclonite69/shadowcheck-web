@@ -15,4 +15,11 @@ export const ROUTE_CONFIG = {
   slowFilteredTotalMs: Math.max(0, Number(process.env.SLOW_FILTERED_TOTAL_MS ?? 1000)),
   slowFilteredQueryMs: Math.max(0, Number(process.env.SLOW_FILTERED_QUERY_MS ?? 500)),
   slowGeospatialQueryMs: Math.max(0, Number(process.env.SLOW_GEOSPATIAL_QUERY_MS ?? 2000)),
+  threatThresholds: {
+    critical: '80-100',
+    high: '60-79',
+    medium: '40-59',
+    low: '20-39',
+    none: '0-19',
+  } as const,
 } as const;

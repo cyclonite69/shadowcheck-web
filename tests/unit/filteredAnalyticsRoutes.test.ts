@@ -74,12 +74,15 @@ describe('filtered analytics routes are service-backed', () => {
     }));
 
     const router = require('../../server/src/api/routes/v2/filtered');
+    const { ROUTE_CONFIG } = require('../../server/src/config/routeConfig');
     const res = await invokeGetRoute(router, '/analytics', { filters: '{}', enabled: '{}' });
 
     expect(res.status).toBe(200);
     expect(res.body?.ok).toBe(true);
     expect(getFilteredAnalytics).toHaveBeenCalledWith({}, {}, 'geospatial');
     expect(res.body?.data?.networkTypes).toEqual([{ type: 'W', count: 1 }]);
+    expect(res.body?.meta?.fastPath).toBe(false);
+    expect(res.body?.meta?.threatThresholds).toEqual(ROUTE_CONFIG.threatThresholds);
   });
 
   test('v1 /analytics-public/filtered delegates to getFilteredAnalytics', async () => {
