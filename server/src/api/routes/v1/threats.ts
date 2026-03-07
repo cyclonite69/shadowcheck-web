@@ -6,7 +6,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { ROUTE_CONFIG } = require('../routeConfig');
+const { ROUTE_CONFIG } = require('../../../config/routeConfig');
 const { threatScoringService } = require('../../../config/container');
 const { paginationMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const {

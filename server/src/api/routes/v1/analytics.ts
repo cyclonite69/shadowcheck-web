@@ -12,7 +12,7 @@ const { validators } = require('../../../utils/validators');
 const { validateTimeRange } = require('../../../validation/schemas');
 const { ValidationError } = require('../../../errors/AppError');
 const { analyticsService } = require('../../../config/container');
-const { ROUTE_CONFIG } = require('../routeConfig');
+const { ROUTE_CONFIG } = require('../../../config/routeConfig');
 
 /**
  * GET /api/analytics/network-types

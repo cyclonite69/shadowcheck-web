@@ -18,7 +18,7 @@ import {
   buildOrderBy,
   assertHomeExistsIfNeeded,
 } from './filteredHelpers';
-import { ROUTE_CONFIG } from '../routeConfig';
+import { ROUTE_CONFIG } from '../../../config/routeConfig';
 
 const express = require('express');
 const router = express.Router();

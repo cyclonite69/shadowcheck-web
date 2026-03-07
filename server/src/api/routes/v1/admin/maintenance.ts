@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { CONFIG } = require('../../../../config/database');
+const { ROUTE_CONFIG } = require('../../../../config/routeConfig');
 const { adminDbService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
@@ -38,7 +38,7 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
   try {
     logger.info('Creating/refreshing co-location materialized view...');
 
-    await adminDbService.refreshColocationView(CONFIG.MIN_VALID_TIMESTAMP);
+    await adminDbService.refreshColocationView(ROUTE_CONFIG.minValidTimestamp);
 
     logger.info('Co-location view created successfully');
 
