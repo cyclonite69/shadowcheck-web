@@ -107,6 +107,7 @@ export const NetworkTableBodyGrid = ({
   const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
     COLUMN_WIDTHS[String(col)] ?? 100;
   const gridTemplateColumns = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
+  const totalGridWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
   const lockedVisibleColumns = visibleColumns.filter((col) =>
     LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
   );
@@ -122,7 +123,7 @@ export const NetworkTableBodyGrid = ({
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
+          width: `${totalGridWidth + 16}px`,
           position: 'relative',
         }}
       >
@@ -137,14 +138,14 @@ export const NetworkTableBodyGrid = ({
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                width: '100%',
+                width: `${totalGridWidth + 16}px`,
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
                 display: 'grid',
                 gridTemplateColumns,
                 alignItems: 'center',
                 borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
-                background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)',
                 cursor: 'pointer',
                 padding: '0 8px',
               }}
@@ -161,7 +162,7 @@ export const NetworkTableBodyGrid = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = isSelected
                   ? 'rgba(59, 130, 246, 0.1)'
-                  : 'transparent';
+                  : 'rgba(15, 23, 42, 0.45)';
               }}
             >
               {visibleColumns.map((col) => {
@@ -179,7 +180,7 @@ export const NetworkTableBodyGrid = ({
                           LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate))
                         )
                         .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0)}px`,
-                      zIndex: 2,
+                      zIndex: 4,
                       background: 'inherit',
                       boxShadow:
                         col === lastLockedVisibleColumn

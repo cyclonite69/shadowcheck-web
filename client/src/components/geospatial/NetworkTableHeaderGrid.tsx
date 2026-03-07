@@ -51,6 +51,7 @@ export const NetworkTableHeaderGrid = ({
   const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
     COLUMN_WIDTHS[String(col)] ?? 100;
   const gridTemplateColumns = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
+  const totalGridWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
   const lockedVisibleColumns = visibleColumns.filter((col) =>
     LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
   );
@@ -61,6 +62,7 @@ export const NetworkTableHeaderGrid = ({
       style={{
         display: 'grid',
         gridTemplateColumns,
+        minWidth: `${totalGridWidth + 16}px`,
         alignItems: 'center',
         borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
         padding: '8px',
