@@ -6,8 +6,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { networkService, filterQueryBuilder } = require('../../../../config/container');
-const { escapeLikePattern } = require('../../../../utils/escapeSQL');
+const { networkService } = require('../../../../config/container');
 const { safeJsonParse } = require('../../../../utils/safeJsonParse');
 const logger = require('../../../../logging/logger');
 const { cacheMiddleware } = require('../../../../middleware/cacheMiddleware');
@@ -29,16 +28,7 @@ const {
   parseBoundingBoxParams,
   parseRadiusParams,
 } = require('../../../../validation/parameterParsers');
-const { NETWORK_CHANNEL_EXPR } = filterQueryBuilder;
 const { asyncHandler } = require('../../../../utils/asyncHandler');
-const { CONFIG } = require('../../../../config/database');
-const {
-  buildEncryptionTypeCondition,
-  buildThreatScoreExpr,
-  buildThreatLevelExpr,
-  buildTypeExpr,
-  buildDistanceExpr,
-} = require('../../../../utils/networkSqlExpressions');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
@@ -329,156 +319,6 @@ router.get(
       }
     }
 
-    const typeExpr = buildTypeExpr('ne');
-    const channelExpr = NETWORK_CHANNEL_EXPR('ne');
-
-    // When SIMPLE_RULE_SCORING_ENABLED, skip confidence blending and use
-    // the deterministic rule_based_score only (max_distance_meters-dominant).
-    // Expression builders live in utils/networkSqlExpressions.ts.
-    const threatScoreExpr = buildThreatScoreExpr(CONFIG.SIMPLE_RULE_SCORING_ENABLED);
-    const threatLevelExpr = buildThreatLevelExpr(threatScoreExpr);
-
-    const threatOrderExpr = `CASE ${threatLevelExpr}
-      WHEN 'CRITICAL' THEN 4
-      WHEN 'HIGH' THEN 3
-      WHEN 'MED' THEN 2
-      WHEN 'LOW' THEN 1
-      ELSE 0
-    END`;
-
-    const sortColumnMap = {
-      last_seen: 'ne.last_seen',
-      last_observed_at: 'ne.last_seen',
-      first_observed_at: 'ne.first_seen',
-      observed_at: 'ne.observed_at',
-      ssid: 'lower(ne.ssid)',
-      bssid: 'ne.bssid',
-      type: typeExpr,
-      security: 'ne.security',
-      signal: 'ne.signal',
-      frequency: 'ne.frequency',
-      channel: channelExpr,
-      obs_count: 'ne.observations',
-      observations: 'ne.observations',
-      distance_from_home_km: 'distance_from_home_km',
-      accuracy_meters: 'ne.accuracy_meters',
-      avg_signal: 'ne.signal',
-      min_signal: 'ne.signal',
-      max_signal: 'ne.signal',
-      unique_days: 'ne.unique_days',
-      unique_locations: 'ne.unique_locations',
-      threat: threatOrderExpr,
-      threat_score: `(${threatScoreExpr})::numeric`,
-      threat_rule_score: "COALESCE((nts.ml_feature_values->>'rule_score')::numeric, 0)",
-      threat_ml_score: "COALESCE((nts.ml_feature_values->>'ml_score')::numeric, 0)",
-      threat_ml_weight: "COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, 0)",
-      threat_ml_boost: "COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, 0)",
-      threat_level: threatOrderExpr,
-      lat: 'ne.lat',
-      lon: 'ne.lon',
-      manufacturer: 'lower(rm.manufacturer)',
-      manufacturer_address: 'lower(rm.address)',
-      capabilities: 'ne.security',
-      min_altitude_m: 'ne.min_altitude_m',
-      max_altitude_m: 'ne.max_altitude_m',
-      altitude_span_m: 'ne.altitude_span_m',
-      max_distance_meters: 'COALESCE(mv.max_distance_meters, 0)',
-      last_altitude_m: 'ne.last_altitude_m',
-      is_sentinel: 'ne.is_sentinel',
-      timespan_days: 'EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400.0',
-    };
-
-    const parseSortJson = (value) => {
-      return safeJsonParse(value);
-    };
-    const parseOrderColumns = (value) =>
-      String(value)
-        .split(',')
-        .map((item) => item.trim().toUpperCase())
-        .filter(Boolean);
-
-    const parsedSortJson = parseSortJson(sortRaw);
-    const parsedOrderJson = parseSortJson(orderRaw);
-
-    const sortEntries = [];
-    const ignoredSorts = [];
-
-    if (Array.isArray(parsedSortJson) || (parsedSortJson && typeof parsedSortJson === 'object')) {
-      const entries = Array.isArray(parsedSortJson) ? parsedSortJson : [parsedSortJson];
-      entries.forEach((entry) => {
-        if (!entry || typeof entry !== 'object') {
-          return;
-        }
-        const column = String(entry.column || '')
-          .trim()
-          .toLowerCase();
-        if (!sortColumnMap[column]) {
-          if (column) {
-            ignoredSorts.push(column);
-          }
-          return;
-        }
-        const dir = String(entry.direction || 'ASC')
-          .trim()
-          .toUpperCase();
-        sortEntries.push({ column, direction: ['ASC', 'DESC'].includes(dir) ? dir : 'ASC' });
-      });
-    } else {
-      const sortColumns = String(sortRaw)
-        .split(',')
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean);
-      const orderColumns = Array.isArray(parsedOrderJson)
-        ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
-        : parseOrderColumns(orderRaw);
-
-      const normalizedOrders =
-        orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;
-
-      sortColumns.forEach((col, idx) => {
-        if (!sortColumnMap[col]) {
-          ignoredSorts.push(col);
-          return;
-        }
-        const dir = normalizedOrders[idx] || 'ASC';
-        sortEntries.push({
-          column: col,
-          direction: ['ASC', 'DESC'].includes(dir) ? dir : 'ASC',
-        });
-      });
-    }
-
-    if (sortEntries.length === 0) {
-      sortEntries.push({ column: 'last_seen', direction: 'DESC' });
-    }
-
-    const indexedSorts = new Set([
-      'bssid',
-      'last_seen',
-      'last_seen',
-      'first_observed_at',
-      'observed_at',
-      'ssid',
-      'signal',
-      'obs_count',
-      'distance_from_home_km',
-      'max_distance_meters',
-    ]);
-    const expensiveSort = !(sortEntries.length === 1 && indexedSorts.has(sortEntries[0].column));
-    if (expensiveSort && limit > 2000) {
-      return res.status(400).json({
-        error:
-          'Query plan check would be too expensive. Please reduce limit to <= 2000 for expensive sorts, or use an indexed sort column (bssid, last_seen, first_observed_at, observed_at, ssid, signal, obs_count, distance_from_home_km, max_distance_meters).',
-      });
-    }
-
-    const sortClauses = sortEntries
-      .map((entry) => {
-        const col = sortColumnMap[entry.column];
-        return `${col} ${entry.direction}`;
-      })
-      .join(', ');
-
     let ssidPattern = null;
     if (ssidRaw !== undefined) {
       const validation = validateString(ssidRaw, 100, 'ssid');
@@ -505,319 +345,47 @@ router.get(
       }
       quickSearchPattern = validation.value;
     }
-
-    let homeLocation: { lat: number; lon: number } | null = null;
-    try {
-      homeLocation = await networkService.getHomeLocation();
-    } catch (err) {
-      logger.warn('Could not fetch home location', { error: err.message });
-    }
-
-    const selectColumns = [
-      'ne.bssid',
-      'ne.ssid',
-      `TRIM(ne.type) AS type`,
-      `ne.frequency`,
-      `ne.signal`,
-      `ne.lat`,
-      `ne.lon`,
-      `ne.last_seen AS last_observed_at`,
-      `ne.first_seen AS first_observed_at`,
-      `ne.observed_at`,
-      `ne.observations AS obs_count`,
-      `ne.wigle_v3_observation_count`,
-      `ne.wigle_v3_last_import_at`,
-      `ne.accuracy_meters`,
-      `ne.capabilities`,
-      `ne.security`,
-      `ne.channel`,
-      `ne.wps`,
-      `ne.battery`,
-      `ne.altitude_m`,
-      `ne.min_altitude_m`,
-      `ne.max_altitude_m`,
-      `ne.altitude_accuracy_m`,
-      `COALESCE(mv.max_distance_meters, 0) AS max_distance_meters`,
-      `ne.last_altitude_m`,
-      `ne.unique_days`,
-      `ne.unique_locations`,
-      `ne.is_sentinel`,
-      `rm.manufacturer`,
-      `rm.address`,
-      `(${threatScoreExpr}) AS final_threat_score`,
-      `(${threatLevelExpr}) AS final_threat_level`,
-      `nts.rule_based_score`,
-      `nts.ml_threat_score`,
-      `nts.model_version`,
-      `nt.threat_tag`,
-      `nt.is_ignored`,
-      `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid) AS notes_count`,
-    ];
-
-    const distanceExpr =
-      homeLocation !== null ? buildDistanceExpr(homeLocation.lat, homeLocation.lon) : 'NULL';
-
-    const columnsWithDistance =
-      homeLocation !== null
-        ? [...selectColumns, `(${distanceExpr})::numeric(10,4) AS distance_from_home_km`]
-        : selectColumns;
-
-    const countColumns = ['ne.bssid'];
-
-    const joins = [
-      `LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.oui`,
-      `LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid`,
-      `LEFT JOIN app.network_threat_scores nts ON ne.bssid = nts.bssid`,
-      `LEFT JOIN app.api_network_explorer_mv mv ON ne.bssid = mv.bssid`,
-    ];
-
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-    let paramIndex = 1;
-    const appliedFiltersArray: { column: string; value?: unknown; range?: [number, number] }[] = [];
-
-    const addCondition = (condition: string, value: unknown) => {
-      conditions.push(condition);
-      params.push(value);
-      paramIndex++;
-    };
-
-    if (ssidPattern !== null) {
-      const escapedPattern = escapeLikePattern(ssidPattern);
-      addCondition(`ne.ssid ILIKE $${paramIndex}`, `%${escapedPattern}%`);
-      appliedFiltersArray.push({ column: 'ssid', value: ssidPattern });
-    }
-
-    if (bssidList !== null && bssidList.length > 0) {
-      conditions.push(`ne.bssid = ANY($${paramIndex}::text[])`);
-      params.push(bssidList);
-      paramIndex++;
-      appliedFiltersArray.push({ column: 'bssid', value: bssidList });
-    }
-
-    if (threatLevel !== null) {
-      addCondition(`(${threatLevelExpr}) = $${paramIndex}`, threatLevel);
-      appliedFiltersArray.push({ column: 'threatLevel', value: threatLevel });
-    }
-
-    if (threatCategories !== null && threatCategories.length > 0) {
-      addCondition(`(${threatLevelExpr}) = ANY($${paramIndex}::text[])`, threatCategories);
-      appliedFiltersArray.push({ column: 'threatCategories', value: threatCategories });
-    }
-
-    if (threatScoreMin !== null) {
-      addCondition(`${threatScoreExpr} >= $${paramIndex}`, threatScoreMin);
-    }
-
-    if (threatScoreMax !== null) {
-      addCondition(`${threatScoreExpr} <= $${paramIndex}`, threatScoreMax);
-    }
-    if (threatScoreMin !== null || threatScoreMax !== null) {
-      appliedFiltersArray.push({
-        column: 'threatScore',
-        range: [threatScoreMin ?? -100, threatScoreMax ?? 100],
-      });
-    }
-
-    if (lastSeen !== null) {
-      addCondition(`ne.last_seen >= $${paramIndex}`, lastSeen);
-      appliedFiltersArray.push({ column: 'lastSeen', value: lastSeen });
-    }
-
-    if (distanceFromHomeKm !== null) {
-      addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeKm);
-    }
-
-    if (distanceFromHomeMinKm !== null) {
-      addCondition(`(${distanceExpr}) >= $${paramIndex}`, distanceFromHomeMinKm);
-    }
-
-    if (distanceFromHomeMaxKm !== null) {
-      addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeMaxKm);
-    }
-    if (
-      distanceFromHomeMinKm !== null ||
-      distanceFromHomeMaxKm !== null ||
-      distanceFromHomeKm !== null
-    ) {
-      appliedFiltersArray.push({
-        column: 'distanceFromHome',
-        range: [distanceFromHomeMinKm ?? 0, distanceFromHomeMaxKm ?? distanceFromHomeKm ?? 10000],
-      });
-    }
-
-    if (minSignal !== null) {
-      addCondition(`ne.signal >= $${paramIndex}`, minSignal);
-    }
-
-    if (maxSignal !== null) {
-      addCondition(`ne.signal <= $${paramIndex}`, maxSignal);
-    }
-    if (minSignal !== null || maxSignal !== null) {
-      appliedFiltersArray.push({ column: 'rssi', range: [minSignal ?? -100, maxSignal ?? 0] });
-    }
-
-    if (minObsCount !== null) {
-      addCondition(`ne.observations >= $${paramIndex}`, minObsCount);
-    }
-
-    if (maxObsCount !== null) {
-      addCondition(`ne.observations <= $${paramIndex}`, maxObsCount);
-    }
-    if (minObsCount !== null || maxObsCount !== null) {
-      appliedFiltersArray.push({
-        column: 'obsCount',
-        range: [minObsCount ?? 0, maxObsCount ?? 1000000],
-      });
-    }
-
-    if (radioTypes !== null && radioTypes.length > 0) {
-      conditions.push(`(${typeExpr}) = ANY($${paramIndex}::text[])`);
-      params.push(radioTypes);
-      paramIndex++;
-      appliedFiltersArray.push({ column: 'radioTypes', value: radioTypes });
-    }
-
-    if (encryptionTypes !== null && encryptionTypes.length > 0) {
-      // Predicate logic lives in utils/networkSqlExpressions.ts (canonical SSoT).
-      const encCondition = buildEncryptionTypeCondition(encryptionTypes);
-      if (encCondition) conditions.push(encCondition);
-      appliedFiltersArray.push({ column: 'encryptionTypes', value: encryptionTypes });
-    }
-
-    if (authMethods !== null && authMethods.length > 0) {
-      const authConditions = authMethods.map((auth) => {
-        if (auth === 'NONE') {
-          return `(ne.auth IS NULL OR ne.auth = '' OR ne.auth ILIKE '%NONE%')`;
-        } else {
-          return `ne.auth ILIKE '%${auth.replace(/'/g, "''")}%'`;
-        }
-      });
-      conditions.push(`(${authConditions.join(' OR ')})`);
-      appliedFiltersArray.push({ column: 'authMethods', value: authMethods });
-    }
-
-    if (insecureFlags !== null && insecureFlags.length > 0) {
-      conditions.push(`(ne.insecure_flags && $${paramIndex}::text[])`);
-      params.push(insecureFlags);
-      paramIndex++;
-      appliedFiltersArray.push({ column: 'insecureFlags', value: insecureFlags });
-    }
-
-    if (securityFlags !== null && securityFlags.length > 0) {
-      conditions.push(`(ne.security_flags && $${paramIndex}::text[])`);
-      params.push(securityFlags);
-      paramIndex++;
-      appliedFiltersArray.push({ column: 'securityFlags', value: securityFlags });
-    }
-
-    if (quickSearchPattern !== null) {
-      const escapedQuickSearch = escapeLikePattern(quickSearchPattern);
-      const quickSearchCondition = `
-        (ne.ssid ILIKE $${paramIndex} OR ne.bssid ILIKE $${paramIndex} OR rm.manufacturer ILIKE $${paramIndex})
-      `;
-      conditions.push(quickSearchCondition);
-      params.push(`%${escapedQuickSearch}%`);
-      paramIndex++;
-    }
-
-    if (
-      locationMode === 'centroid' ||
-      locationMode === 'weighted_centroid' ||
-      locationMode === 'triangulated'
-    ) {
-      joins.push(
-        `STATIC JOIN (SELECT bssid, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lat AS lat, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lon AS lon FROM app.network_locations WHERE bssid = ne.bssid) AS nl ON ne.bssid = nl.bssid`
-      );
-    }
-
-    if (bboxMinLat !== null && bboxMaxLat !== null && bboxMinLng !== null && bboxMaxLng !== null) {
-      if (locationMode === 'latest_observation') {
-        conditions.push(`ne.lat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLat, bboxMaxLat);
-        paramIndex += 2;
-        conditions.push(`ne.lon BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLng, bboxMaxLng);
-        paramIndex += 2;
-      } else {
-        joins.push(`STATIC JOIN app.network_locations nl ON ne.bssid = nl.bssid`);
-        conditions.push(`nl.lat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLat, bboxMaxLat);
-        paramIndex += 2;
-        conditions.push(`nl.lon BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLng, bboxMaxLng);
-        paramIndex += 2;
-      }
-    }
-
-    if (radiusCenterLat !== null && radiusCenterLng !== null && radiusMeters !== null) {
-      const radiusExpr = `
-        (
-          ST_Distance(
-            ST_MakePoint($${paramIndex + 1}, $${paramIndex})::geography,
-            ST_MakePoint(ne.lon, ne.lat)::geography
-          ) <= $${paramIndex + 2}
-        )
-      `;
-      conditions.push(radiusExpr);
-      params.push(radiusCenterLat, radiusCenterLng, radiusMeters);
-      paramIndex += 3;
-    }
-
-    const total = await networkService.getNetworkCount(conditions, params, joins);
-
-    const rows = await networkService.listNetworks(
-      columnsWithDistance,
-      joins,
-      conditions,
-      params,
-      sortClauses,
+    const result = await networkService.getFilteredNetworks({
       limit,
       offset,
-      paramIndex
-    );
-
-    if (planCheck) {
-      const plan = await networkService.explainQuery(
-        columnsWithDistance,
-        joins,
-        conditions,
-        params,
-        sortClauses,
-        limit,
-        offset,
-        paramIndex
-      );
-      const dataQuery = `
-      SELECT
-        ${columnsWithDistance.join(',\n')}
-      FROM app.network_entries ne
-      ${joins.join('\n')}
-      ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
-      ORDER BY ${sortClauses}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-      const dataParams = [...params, limit, offset];
-      return res.json({
-        query: dataQuery,
-        params: dataParams,
-        plan,
-        total,
-        count: rows.length,
-        applied_filters: [...appliedFiltersArray, ...sortEntries],
-        ignoredSorts,
-      });
-    }
-
-    res.json({
-      networks: rows,
-      total,
-      count: rows.length,
-      limit,
-      offset,
-      appliedFilters: [...appliedFiltersArray, ...sortEntries],
-      ignoredSorts,
+      planCheck,
+      locationMode,
+      sort: sortRaw,
+      order: orderRaw,
+      threatLevel,
+      threatCategories,
+      threatScoreMin,
+      threatScoreMax,
+      lastSeen,
+      distanceFromHomeKm,
+      distanceFromHomeMinKm,
+      distanceFromHomeMaxKm,
+      minSignal,
+      maxSignal,
+      minObsCount,
+      maxObsCount,
+      ssidPattern,
+      bssidList,
+      radioTypes,
+      encryptionTypes,
+      authMethods,
+      insecureFlags,
+      securityFlags,
+      quickSearchPattern,
+      bboxMinLat,
+      bboxMaxLat,
+      bboxMinLng,
+      bboxMaxLng,
+      radiusCenterLat,
+      radiusCenterLng,
+      radiusMeters,
     });
+
+    if (result?.error) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    res.json(result);
   })
 );
 
