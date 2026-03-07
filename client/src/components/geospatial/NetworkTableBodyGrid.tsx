@@ -127,7 +127,7 @@ export const NetworkTableBodyGrid = ({
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
-          width: `${totalGridWidth + 16}px`,
+          width: `${totalGridWidth}px`,
           position: 'relative',
         }}
       >
@@ -142,7 +142,7 @@ export const NetworkTableBodyGrid = ({
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                width: `${totalGridWidth + 16}px`,
+                width: `${totalGridWidth}px`,
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
                 display: 'grid',
@@ -151,7 +151,7 @@ export const NetworkTableBodyGrid = ({
                 borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
                 background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)',
                 cursor: 'pointer',
-                padding: '0 8px',
+                padding: '0',
               }}
               onClick={() => onSelectExclusive(net.bssid)}
               onContextMenu={(e) => {

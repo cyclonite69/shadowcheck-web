@@ -71,7 +71,7 @@ export const NetworkTableHeaderGrid = ({
     <div
       ref={headerScrollRef}
       style={{
-        overflowX: 'auto',
+        overflowX: 'hidden',
         overflowY: 'hidden',
       }}
     >
@@ -79,10 +79,10 @@ export const NetworkTableHeaderGrid = ({
         style={{
           display: 'grid',
           gridTemplateColumns,
-          minWidth: `${totalGridWidth + 16}px`,
+          minWidth: `${totalGridWidth}px`,
           alignItems: 'center',
           borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
-          padding: '8px',
+          padding: '8px 0',
           fontSize: '11px',
           fontWeight: 600,
           color: '#cbd5e1',
