@@ -19,5 +19,8 @@ export const NETWORK_TABLE_COLUMN_WIDTHS: Record<string, number> = {
   wigle_v3_last_import_at: 140,
 };
 
+// Fine-tune header text alignment against body cells without breaking scroll sync.
+export const NETWORK_TABLE_HEADER_X_OFFSET_PX = 8;
+
 // Keep empty until we intentionally reintroduce sticky/frozen columns.
 export const NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS: string[] = [];

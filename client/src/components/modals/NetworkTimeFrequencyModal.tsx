@@ -154,7 +154,7 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
                 📅
               </span>
               <h2 id="time-freq-modal-title" className="text-xl font-bold">
-                Temporal Activity Pattern
+                Temporal Heatmap
               </h2>
             </div>
             <p className="text-sm text-slate-400">

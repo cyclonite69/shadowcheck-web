@@ -299,7 +299,7 @@ export const NetworkTagMenu = ({
           onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
-          📡 Time-Frequency Grid
+          📡 Temporal Heatmap
         </button>
 
         {onMapWigleObservations && (

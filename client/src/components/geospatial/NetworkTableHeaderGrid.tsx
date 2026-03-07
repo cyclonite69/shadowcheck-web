@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { NetworkRow, SortState } from '../../types/network';
 import { API_SORT_MAP, NETWORK_COLUMNS } from '../../constants/network';
 import {
+  NETWORK_TABLE_HEADER_X_OFFSET_PX,
   NETWORK_TABLE_COLUMN_WIDTHS,
   NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS,
 } from './networkTableGridConfig';
@@ -61,7 +62,7 @@ export const NetworkTableHeaderGrid = ({
           display: 'grid',
           gridTemplateColumns,
           minWidth: `${totalGridWidth}px`,
-          transform: `translateX(${-scrollLeft}px)`,
+          transform: `translateX(${NETWORK_TABLE_HEADER_X_OFFSET_PX - scrollLeft}px)`,
           alignItems: 'center',
           borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
           padding: '8px 0',
