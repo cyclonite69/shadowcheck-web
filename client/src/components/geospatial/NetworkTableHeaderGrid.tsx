@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { NetworkRow, SortState } from '../../types/network';
 import { API_SORT_MAP, NETWORK_COLUMNS } from '../../constants/network';
 import {
@@ -30,7 +30,6 @@ export const NetworkTableHeaderGrid = ({
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const dragImageRef = useRef<HTMLDivElement | null>(null);
-  const headerScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Build grid template columns - MUST match NetworkTableBodyGrid exactly
   const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
@@ -51,19 +50,10 @@ export const NetworkTableHeaderGrid = ({
     return idx >= 0 ? 20 - idx : 12;
   };
 
-  useEffect(() => {
-    if (!headerScrollRef.current) return;
-    if (Math.abs(headerScrollRef.current.scrollLeft - scrollLeft) > 1) {
-      headerScrollRef.current.scrollLeft = scrollLeft;
-    }
-  }, [scrollLeft]);
-
   return (
     <div
-      ref={headerScrollRef}
       style={{
-        overflowX: 'hidden',
-        overflowY: 'hidden',
+        overflow: 'hidden',
       }}
     >
       <div
@@ -71,6 +61,7 @@ export const NetworkTableHeaderGrid = ({
           display: 'grid',
           gridTemplateColumns,
           minWidth: `${totalGridWidth}px`,
+          transform: `translateX(${-scrollLeft}px)`,
           alignItems: 'center',
           borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
           padding: '8px 0',
