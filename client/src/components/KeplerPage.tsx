@@ -1,6 +1,6 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { useFilterURLSync } from '../hooks/useFilteredData';
+import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useDebouncedAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { useKepler } from '../hooks/useKepler';
 import { getPageCapabilities } from '../utils/filterCapabilities';

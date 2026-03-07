@@ -21,6 +21,16 @@ interface UseFilteredDataOptions {
   refreshInterval?: number;
 }
 
+interface FilteredResponse<T> {
+  ok?: boolean;
+  error?: unknown;
+  data?: T[];
+  features?: T[];
+  pagination?: {
+    total?: number;
+  };
+}
+
 interface FilteredDataResult<T> {
   data: T[];
   loading: boolean;
@@ -31,7 +41,9 @@ interface FilteredDataResult<T> {
   loadMore: () => void;
 }
 
-export function useFilteredData<T = any>(options: UseFilteredDataOptions): FilteredDataResult<T> {
+export function useFilteredData<T = unknown>(
+  options: UseFilteredDataOptions
+): FilteredDataResult<T> {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,13 +87,14 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
         const endpointPath = endpoint === 'networks' ? '' : `/${endpoint}`;
         const fullUrl = `/v2/networks/filtered${endpointPath}?${params}`;
 
-        const result = await apiClient.get<any>(fullUrl);
+        const result = await apiClient.get<FilteredResponse<T>>(fullUrl);
 
         if (!result.ok) {
+          const errorObj = result.error as { message?: string } | undefined;
           const errorMsg =
             typeof result.error === 'string'
               ? result.error
-              : result.error?.message || 'API request failed';
+              : errorObj?.message || 'API request failed';
           throw new Error(errorMsg);
         }
 
@@ -162,25 +175,3 @@ export const useFilteredGeospatial = (options: Omit<UseFilteredDataOptions, 'end
 
 export const useFilteredAnalytics = (options: Omit<UseFilteredDataOptions, 'endpoint'> = {}) =>
   useFilteredData({ ...options, endpoint: 'analytics' });
-
-// URL synchronization hook
-export const useFilterURLSync = () => {
-  const { setFromURLParams, getURLParams } = useFilterStore();
-  const filters = useFilterStore((state) => state.getCurrentFilters());
-  const enabled = useFilterStore((state) => state.getCurrentEnabled());
-
-  // Load from URL on mount only
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.toString()) {
-      setFromURLParams(params);
-    }
-  }, []); // Only on mount
-
-  // Update URL when filter state changes
-  useEffect(() => {
-    const params = getURLParams();
-    const newURL = `${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState({}, '', newURL);
-  }, [filters, enabled, getURLParams]);
-};
