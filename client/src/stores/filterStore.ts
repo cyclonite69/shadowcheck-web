@@ -144,7 +144,6 @@ export const useFilterStore = create<HardenedFilterStore>()(
       setFilter: (key, value) => {
         const { currentPage, pageStates } = get();
         const pageState = getPageState(pageStates, currentPage);
-        console.log('[FilterStore] setFilter:', { key, value, currentPage });
         set({
           pageStates: {
             ...pageStates,
@@ -459,11 +458,6 @@ export const useDebouncedFilters = (
 
     timeoutRef.current = setTimeout(() => {
       const pageState = pageStates[currentPage] || { filters: {}, enabled: {} };
-      console.log('[useDebouncedFilters] Triggering callback with:', {
-        currentPage,
-        filters: pageState.filters,
-        enabled: pageState.enabled,
-      });
       callbackRef.current({
         filters: pageState.filters || {},
         enabled: pageState.enabled || {},
