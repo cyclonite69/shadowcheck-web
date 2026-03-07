@@ -81,7 +81,7 @@ BEGIN
             CASE
                 WHEN h.lat IS NULL THEN NULL
                 ELSE ST_Distance(
-                    ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
+                    ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geometry,
                     ST_SetSRID(ST_MakePoint(h.lon, h.lat), 4326)::geography
                 )
             END AS distance_from_home_m
@@ -109,7 +109,7 @@ BEGIN
         SELECT
             COALESCE(MAX(
                 ST_Distance(
-                    ST_SetSRID(ST_MakePoint(w.longitude, w.latitude), 4326)::geography,
+                    ST_SetSRID(ST_MakePoint(w.longitude, w.latitude), 4326)::geometry,
                     ST_SetSRID(ST_MakePoint(h.lon, h.lat), 4326)::geography
                 ) / 1000.0
             ), 0) AS max_distance_km
@@ -139,7 +139,7 @@ BEGIN
             o1.time AS time1,
             o2.time AS time2,
             ST_Distance(
-                ST_SetSRID(ST_MakePoint(o1.lon, o1.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(o1.lon, o1.lat), 4326)::geometry,
                 ST_SetSRID(ST_MakePoint(o2.lon, o2.lat), 4326)::geography
             ) AS distance_m,
             EXTRACT(EPOCH FROM (o2.time - o1.time)) / 60.0 AS time_diff_min
@@ -290,7 +290,7 @@ BEGIN
                 AND o2.lat IS NOT NULL
                 AND o2.lon IS NOT NULL
                 AND ST_Distance(
-                    ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
+                    ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geometry,
                     ST_SetSRID(ST_MakePoint(o2.lon, o2.lat), 4326)::geography
                 ) < 10000
           )
