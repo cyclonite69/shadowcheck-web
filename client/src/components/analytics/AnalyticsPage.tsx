@@ -3,7 +3,7 @@
 // REFACTORED: Original 1,106 line component reduced to ~150 lines
 
 import { usePageFilters } from '../../hooks/usePageFilters';
-import { useFilterURLSync } from '../../hooks/useFilteredData';
+import { useFilterURLSync } from '../../hooks/useFilterURLSync';
 import { useAdaptedFilters } from '../../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../../utils/filterCapabilities';
 import { useAnalyticsData } from './hooks/useAnalyticsData';

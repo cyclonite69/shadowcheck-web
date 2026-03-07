@@ -4,7 +4,7 @@
 
 import { apiClient } from './client';
 
-interface KeplerFilters {
+export interface KeplerFilters {
   filtersForPage: Record<string, unknown>;
   enabledForPage: Record<string, boolean>;
 }
@@ -13,7 +13,7 @@ interface MapboxTokenResponse {
   token: string;
 }
 
-interface KeplerGeoJSON {
+export interface KeplerGeoJSON {
   type: string;
   features: Array<{
     type: string;

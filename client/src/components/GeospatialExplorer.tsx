@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { useFilterStore } from '../stores/filterStore';
-import { useFilterURLSync } from '../hooks/useFilteredData';
+import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';

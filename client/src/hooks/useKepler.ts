@@ -3,6 +3,7 @@ import { keplerApi } from '../api/keplerApi';
 import { logDebug, logError } from '../logging/clientLogger';
 import type { NetworkData } from '../components/kepler/types';
 import { mapKeplerGeoJsonToNetworkData } from '../utils/keplerDataTransformation';
+import type { KeplerFilters } from '../api/keplerApi';
 
 interface KeplerResult {
   networkData: NetworkData[];
@@ -10,7 +11,10 @@ interface KeplerResult {
   actualCounts: { observations: number; networks: number } | null;
 }
 
-export const useKepler = (adaptedFilters: any, datasetType: 'observations' | 'networks') => {
+export const useKepler = (
+  adaptedFilters: KeplerFilters,
+  datasetType: 'observations' | 'networks'
+) => {
   const {
     data,
     loading,
