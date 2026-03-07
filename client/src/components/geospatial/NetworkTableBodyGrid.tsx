@@ -139,6 +139,7 @@ export const NetworkTableBodyGrid = ({
                 gridTemplateColumns,
                 minWidth: 0,
                 alignItems: 'center',
+                overflow: 'hidden',
                 borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
                 background: rowBackground,
                 cursor: 'pointer',
@@ -367,6 +368,9 @@ export const NetworkTableBodyGrid = ({
                         fontFamily: 'monospace',
                         fontSize: '10px',
                         color: macColor(net.bssid),
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
                       }}
                     >
                       {value as any}
@@ -384,6 +388,7 @@ export const NetworkTableBodyGrid = ({
                         padding: '0 4px',
                         color: '#f1f5f9',
                         fontWeight: 500,
+                        minWidth: 0,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
