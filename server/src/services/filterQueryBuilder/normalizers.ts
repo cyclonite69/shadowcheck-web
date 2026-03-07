@@ -113,14 +113,21 @@ const normalizeEncryptionType = (value: string): string | null => {
   const upper = value.trim().toUpperCase();
   if (upper.includes('WEP')) return 'WEP';
   if (upper === 'MIXED' || upper === 'WPA/WPA2' || upper === 'WPA2/WPA3') return 'Mixed';
-  if (upper === 'WPA2-E' || upper === 'RSN') return 'WPA2';
-  if (upper === 'WPA3-E' || upper === 'WPA3-P' || upper === 'WPA3-OWE') return 'WPA3';
+  if (upper === 'RSN') return 'WPA2';
+  if (upper === 'WPA3-OWE') return 'OWE';
   const map: Record<string, string> = {
     OPEN: 'OPEN',
     WEP: 'WEP',
     WPA: 'WPA',
+    'WPA2-P': 'WPA2-P',
+    'WPA2-E': 'WPA2-E',
     WPA2: 'WPA2',
+    'WPA3-P': 'WPA3-P',
+    'WPA3-E': 'WPA3-E',
     WPA3: 'WPA3',
+    OWE: 'OWE',
+    WPS: 'WPS',
+    UNKNOWN: 'UNKNOWN',
     MIXED: 'Mixed',
   };
   return map[upper] || null;

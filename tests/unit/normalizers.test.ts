@@ -29,12 +29,12 @@ describe('filter normalizers', () => {
     expect(normalized.tag_type).toEqual(['threat', 'ignore', 'false_positive']);
   });
 
-  test('normalizes encryption variants to canonical filter buckets', () => {
+  test('preserves granular encryption variants used by filter SQL', () => {
     const normalized = normalizeFilters({
       encryptionTypes: 'wpa2-e,wpa3-owe,wep104,mixed',
     });
 
-    expect(normalized.encryptionTypes).toEqual(['WPA2', 'WPA3', 'WEP', 'Mixed']);
+    expect(normalized.encryptionTypes).toEqual(['WPA2-E', 'OWE', 'WEP', 'Mixed']);
   });
 
   test('drops invalid numeric values that can poison predicates', () => {
