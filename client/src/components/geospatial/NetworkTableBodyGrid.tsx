@@ -157,6 +157,7 @@ export const NetworkTableBodyGrid = ({
                 height: `${virtualRow.size}px`,
                 display: 'grid',
                 gridTemplateColumns,
+                minWidth: 0,
                 alignItems: 'center',
                 borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
                 background: rowBackground,
@@ -196,7 +197,7 @@ export const NetworkTableBodyGrid = ({
                           ? '1px 0 0 rgba(71, 85, 105, 0.25)'
                           : undefined,
                     }
-                  : {};
+                  : { minWidth: 0, overflow: 'hidden' };
 
                 // Select checkbox
                 if (col === 'select') {

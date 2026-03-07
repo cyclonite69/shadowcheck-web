@@ -171,6 +171,8 @@ export const NetworkTableHeaderGrid = ({
                     }
                   : {}),
                 padding: '5px 8px',
+                minWidth: 0,
+                overflow: 'hidden',
                 background: sortState ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.98)',
                 cursor: isDraggable ? 'grab' : isSortable ? 'pointer' : 'default',
                 userSelect: 'none',
