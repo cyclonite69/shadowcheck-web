@@ -1,7 +1,7 @@
 import type { QueryResult } from './filterQueryBuilder/types';
 
-const { filterQueryBuilder, v2Service } = require('../config/container');
-const { UniversalFilterQueryBuilder } = filterQueryBuilder;
+const { UniversalFilterQueryBuilder } = require('./filterQueryBuilder');
+const v2Service = require('./v2Service');
 
 type PageType = 'geospatial' | 'wigle';
 type FiltersInput = Record<string, unknown>;
