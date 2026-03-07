@@ -22,7 +22,8 @@ const COLUMN_WIDTHS: Record<string, number> = {
   wigle_v3_last_import_at: 140,
 };
 
-const LOCKED_HORIZONTAL_COLUMNS = ['select', 'type', 'ssid', 'bssid'];
+// Disable horizontal sticky/frozen columns; full grid should scroll together.
+const LOCKED_HORIZONTAL_COLUMNS: string[] = [];
 
 interface NetworkTableHeaderGridProps {
   visibleColumns: Array<keyof NetworkRow | 'select'>;
