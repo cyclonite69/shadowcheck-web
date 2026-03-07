@@ -18,13 +18,17 @@ import {
   buildOrderBy,
   assertHomeExistsIfNeeded,
 } from './filteredHelpers';
-import { getFilteredAnalytics } from '../../../services/filteredAnalyticsService';
 import { ROUTE_CONFIG } from '../routeConfig';
 
 const express = require('express');
 const router = express.Router();
-const { filterQueryBuilder, v2Service } = require('../../../config/container');
+const {
+  filterQueryBuilder,
+  filteredAnalyticsService,
+  v2Service,
+} = require('../../../config/container');
 const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilder;
+const { getFilteredAnalytics } = filteredAnalyticsService;
 const logger = require('../../../logging/logger');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 const { validators } = require('../../../utils/validators');
