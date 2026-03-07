@@ -3,9 +3,11 @@
  * Automatically adapts canonical filters to page capabilities
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFilterStore } from '../stores/filterStore';
+import { useDebouncedFilters } from '../stores/filterStore';
 import { adaptFiltersToPage, PageFilterCapabilities } from '../utils/filterCapabilities';
+import type { NetworkFilters } from '../types/filters';
 
 /**
  * Use adapted filters for a specific page
@@ -21,6 +23,38 @@ export function useAdaptedFilters(capabilities: PageFilterCapabilities) {
   }, [filters, enabled, capabilities]);
 
   return adapted;
+}
+
+/**
+ * Debounced variant for expensive pages (Kepler, heavy geospatial views).
+ * Prevents a new API fetch on every rapid filter toggle.
+ */
+export function useDebouncedAdaptedFilters(capabilities: PageFilterCapabilities, delay = 700) {
+  const getCurrentFilters = useFilterStore((state) => state.getCurrentFilters);
+  const getCurrentEnabled = useFilterStore((state) => state.getCurrentEnabled);
+
+  const [debouncedState, setDebouncedState] = useState<{
+    filters: NetworkFilters;
+    enabled: Record<keyof NetworkFilters, boolean>;
+  }>(() => ({
+    filters: getCurrentFilters(),
+    enabled: getCurrentEnabled(),
+  }));
+
+  useDebouncedFilters((payload) => setDebouncedState(payload), delay);
+
+  useEffect(() => {
+    // Keep initial render aligned with current page state before debounce fires.
+    setDebouncedState({
+      filters: getCurrentFilters(),
+      enabled: getCurrentEnabled(),
+    });
+  }, [getCurrentEnabled, getCurrentFilters]);
+
+  return useMemo(
+    () => adaptFiltersToPage(debouncedState.filters, debouncedState.enabled, capabilities),
+    [debouncedState.enabled, debouncedState.filters, capabilities]
+  );
 }
 
 /**

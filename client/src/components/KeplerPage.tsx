@@ -1,7 +1,7 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useFilterURLSync } from '../hooks/useFilteredData';
-import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { useDebouncedAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { useKepler } from '../hooks/useKepler';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug, logError, logWarn } from '../logging/clientLogger';
@@ -34,7 +34,7 @@ const KeplerPage: React.FC = () => {
 
   // Universal filter system - memoize capabilities to prevent re-renders
   const capabilities = useMemo(() => getPageCapabilities('kepler'), []);
-  const adaptedFilters = useAdaptedFilters(capabilities);
+  const adaptedFilters = useDebouncedAdaptedFilters(capabilities, 700);
   useFilterURLSync();
 
   // Controls
