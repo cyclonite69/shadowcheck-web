@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
 import { apiClient } from '../api/client';
 
 interface User {
@@ -19,6 +27,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const IDLE_EVENTS: Array<keyof WindowEventMap> = [
+  'mousemove',
+  'mousedown',
+  'keydown',
+  'scroll',
+  'touchstart',
+  'click',
+];
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -26,13 +44,18 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loggingOutRef = useRef(false);
 
-  // Check if user is already logged in on app start
-  useEffect(() => {
-    checkAuthStatus();
+  const clearIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
   }, []);
 
-  const checkAuthStatus = async () => {
+  // Check if user is already logged in on app start
+  const checkAuthStatus = useCallback(async () => {
     try {
       const data = await apiClient.get<any>('/auth/me');
       if (data.authenticated) {
@@ -43,21 +66,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const login = (userData: User) => {
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  const login = useCallback((userData: User) => {
     setUser(userData);
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
     try {
       await apiClient.post('/auth/logout');
     } catch {
       // Logout errors are non-critical — user is cleared regardless
     } finally {
+      clearIdleTimer();
       setUser(null);
+      loggingOutRef.current = false;
     }
-  };
+  }, [clearIdleTimer]);
+
+  const resetIdleTimer = useCallback(() => {
+    if (!user || loading) return;
+
+    clearIdleTimer();
+    idleTimerRef.current = setTimeout(() => {
+      void logout();
+    }, IDLE_TIMEOUT_MS);
+  }, [clearIdleTimer, loading, logout, user]);
+
+  useEffect(() => {
+    if (!user || loading) {
+      clearIdleTimer();
+      return;
+    }
+
+    resetIdleTimer();
+    IDLE_EVENTS.forEach((eventName) =>
+      window.addEventListener(eventName, resetIdleTimer, { passive: true })
+    );
+
+    return () => {
+      IDLE_EVENTS.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimer));
+      clearIdleTimer();
+    };
+  }, [clearIdleTimer, loading, resetIdleTimer, user]);
 
   const value: AuthContextType = {
     user,

@@ -4,8 +4,9 @@ import { useAuth } from '../hooks/useAuth';
 
 const Navigation: React.FC = () => {
   const [navVisible, setNavVisible] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -48,6 +49,17 @@ const Navigation: React.FC = () => {
       e.currentTarget.style.color = '#cbd5e1';
       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
       e.currentTarget.style.transform = 'translateY(0)';
+    }
+  };
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+      setNavVisible(false);
     }
   };
 
@@ -141,6 +153,31 @@ const Navigation: React.FC = () => {
             Admin
           </a>
         )}
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          style={{
+            minWidth: '100px',
+            padding: '10px 20px',
+            color: '#fecaca',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: '600',
+            letterSpacing: '0.3px',
+            borderRadius: '12px',
+            background: 'rgba(127, 29, 29, 0.35)',
+            transition: 'all 0.2s ease',
+            border: '1px solid rgba(220, 38, 38, 0.4)',
+            textAlign: 'center',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+            cursor: loggingOut ? 'not-allowed' : 'pointer',
+            opacity: loggingOut ? 0.7 : 1,
+          }}
+          aria-label="Log out"
+        >
+          {loggingOut ? 'Logging out...' : 'Logout'}
+        </button>
       </div>
 
       {/* Pull-down indicator when nav is hidden */}
