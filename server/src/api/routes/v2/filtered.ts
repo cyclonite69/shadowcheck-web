@@ -5,15 +5,14 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import {
-  type Filters,
-  type EnabledFlags,
-  type ValidationResult,
   type QueryResult,
   type FilterQueryResult,
   type NetworkRow,
   type GeospatialRow,
   DEBUG_GEOSPATIAL,
   parseJsonParam,
+  parseAndValidateFilters,
+  isParseValidatedFiltersError,
   normalizeThreatTransparency,
   buildOrderBy,
   assertHomeExistsIfNeeded,
@@ -64,25 +63,22 @@ router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
     const startTime = Date.now();
-    let filters: Filters;
-    let enabled: EnabledFlags;
-    try {
-      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
-    } catch (err) {
-      const error = err as Error;
-      return res.status(400).json({ ok: false, error: error.message });
+    const parsed = parseAndValidateFilters(req, validateFilterPayload);
+    if (isParseValidatedFiltersError(parsed)) {
+      return res.status(parsed.status).json(parsed.body);
     }
-    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
-    if (errors.length > 0) {
-      return res.status(400).json({ ok: false, errors });
-    }
+    const { filters, enabled } = parsed;
 
     if (!(await assertHomeExistsIfNeeded(enabled, res))) {
       return;
     }
 
-    const limit = validators.limit(req.query.limit as string, 1, ROUTE_CONFIG.maxPageSize, 500);
+    const limit = validators.limit(
+      req.query.limit as string,
+      1,
+      ROUTE_CONFIG.maxPageSize,
+      ROUTE_CONFIG.filteredDefaultLimit
+    );
     const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
     const includeTotal = req.query.includeTotal !== '0' && req.query.includeTotal !== 'false';
@@ -143,7 +139,10 @@ router.get(
     const totalTime = Date.now() - startTime;
 
     // Log slow queries
-    if (totalTime > 1000 || queryTime > 500) {
+    if (
+      totalTime > ROUTE_CONFIG.slowFilteredTotalMs ||
+      queryTime > ROUTE_CONFIG.slowFilteredQueryMs
+    ) {
       logger.warn('[v2/filtered] Slow query detected', {
         totalTime,
         buildTime,
@@ -198,25 +197,20 @@ router.get(
 router.get(
   '/geospatial',
   asyncHandler(async (req: Request, res: Response) => {
-    let filters: Filters;
-    let enabled: EnabledFlags;
-    try {
-      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
-    } catch (err) {
-      const error = err as Error;
-      return res.status(400).json({ ok: false, error: error.message });
+    const parsed = parseAndValidateFilters(req, validateFilterPayload);
+    if (isParseValidatedFiltersError(parsed)) {
+      return res.status(parsed.status).json(parsed.body);
     }
-    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
-    if (errors.length > 0) {
-      return res.status(400).json({ ok: false, errors });
-    }
+    const { filters, enabled } = parsed;
 
     if (!(await assertHomeExistsIfNeeded(enabled, res))) {
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 5000, 500000);
+    const limit = Math.min(
+      parseInt(req.query.limit as string, 10) || ROUTE_CONFIG.geospatialDefaultLimit,
+      ROUTE_CONFIG.geospatialMaxLimit
+    );
     const selectedBssids = parseJsonParam<string[]>(
       req.query.bssids as string | undefined,
       [],
@@ -236,7 +230,7 @@ router.get(
     const result: QueryResult<GeospatialRow> = await v2Service.executeV2Query(sql, params);
     const durationMs = Date.now() - start;
 
-    if (DEBUG_GEOSPATIAL || durationMs > 2000) {
+    if (DEBUG_GEOSPATIAL || durationMs > ROUTE_CONFIG.slowGeospatialQueryMs) {
       logger.info('[geospatial] filtered/geospatial query', {
         durationMs,
         rows: result.rowCount || 0,
@@ -296,25 +290,20 @@ router.get(
 router.get(
   '/observations',
   asyncHandler(async (req: Request, res: Response) => {
-    let filters: Filters;
-    let enabled: EnabledFlags;
-    try {
-      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
-    } catch (err) {
-      const error = err as Error;
-      return res.status(400).json({ ok: false, error: error.message });
+    const parsed = parseAndValidateFilters(req, validateFilterPayload);
+    if (isParseValidatedFiltersError(parsed)) {
+      return res.status(parsed.status).json(parsed.body);
     }
-    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
-    if (errors.length > 0) {
-      return res.status(400).json({ ok: false, errors });
-    }
+    const { filters, enabled } = parsed;
 
     if (!(await assertHomeExistsIfNeeded(enabled, res))) {
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500000, 1000000);
+    const limit = Math.min(
+      parseInt(req.query.limit as string, 10) || ROUTE_CONFIG.observationsDefaultLimit,
+      ROUTE_CONFIG.observationsMaxLimit
+    );
     const selectedBssids = parseJsonParam<string[]>(
       req.query.bssids as string | undefined,
       [],
@@ -332,7 +321,7 @@ router.get(
     const result: QueryResult = await v2Service.executeV2Query(sql, params);
     const durationMs = Date.now() - start;
 
-    if (DEBUG_GEOSPATIAL || durationMs > 2000) {
+    if (DEBUG_GEOSPATIAL || durationMs > ROUTE_CONFIG.slowGeospatialQueryMs) {
       logger.info('[geospatial] filtered/observations query', {
         durationMs,
         rows: result.rowCount || 0,
@@ -359,19 +348,11 @@ router.get(
 router.get(
   '/analytics',
   asyncHandler(async (req: Request, res: Response) => {
-    let filters: Filters;
-    let enabled: EnabledFlags;
-    try {
-      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
-    } catch (err) {
-      const error = err as Error;
-      return res.status(400).json({ ok: false, error: error.message });
+    const parsed = parseAndValidateFilters(req, validateFilterPayload);
+    if (isParseValidatedFiltersError(parsed)) {
+      return res.status(parsed.status).json(parsed.body);
     }
-    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
-    if (errors.length > 0) {
-      return res.status(400).json({ ok: false, errors });
-    }
+    const { filters, enabled } = parsed;
 
     if (!(await assertHomeExistsIfNeeded(enabled, res))) {
       return;

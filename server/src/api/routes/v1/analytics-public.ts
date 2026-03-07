@@ -1,6 +1,9 @@
 import type { Request, Response } from 'express';
-import type { EnabledFlags, Filters, ValidationResult } from '../v2/filteredHelpers';
-import { parseJsonParam, assertHomeExistsIfNeeded } from '../v2/filteredHelpers';
+import {
+  parseAndValidateFilters,
+  isParseValidatedFiltersError,
+  assertHomeExistsIfNeeded,
+} from '../v2/filteredHelpers';
 
 const express = require('express');
 const router = express.Router();
@@ -11,20 +14,11 @@ const { getFilteredAnalytics } = filteredAnalyticsService;
 // GET /api/analytics-public/filtered
 router.get('/filtered', async (req: Request, res: Response) => {
   try {
-    let filters: Filters;
-    let enabled: EnabledFlags;
-    try {
-      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
-    } catch (err) {
-      const error = err as Error;
-      return res.status(400).json({ ok: false, error: error.message });
+    const parsed = parseAndValidateFilters(req, validateFilterPayload);
+    if (isParseValidatedFiltersError(parsed)) {
+      return res.status(parsed.status).json(parsed.body);
     }
-
-    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
-    if (errors.length > 0) {
-      return res.status(400).json({ ok: false, errors });
-    }
+    const { filters, enabled } = parsed;
 
     if (!(await assertHomeExistsIfNeeded(enabled, res))) {
       return;

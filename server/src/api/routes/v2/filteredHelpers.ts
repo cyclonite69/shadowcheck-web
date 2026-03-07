@@ -2,7 +2,7 @@
  * Filtered Networks API Types and Helpers
  */
 
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 const { v2Service } = require('../../../config/container');
 
 // Type definitions
@@ -20,6 +20,24 @@ export interface EnabledFlags {
 export interface ValidationResult {
   errors: string[];
 }
+
+interface ParseValidatedFiltersSuccess {
+  ok: true;
+  filters: Filters;
+  enabled: EnabledFlags;
+}
+
+interface ParseValidatedFiltersError {
+  ok: false;
+  status: number;
+  body: { ok: false; error?: string; errors?: string[] };
+}
+
+export type ParseValidatedFiltersResult = ParseValidatedFiltersSuccess | ParseValidatedFiltersError;
+
+export const isParseValidatedFiltersError = (
+  result: ParseValidatedFiltersResult
+): result is ParseValidatedFiltersError => result.ok === false;
 
 export interface QueryResult<T = unknown> {
   rows: T[];
@@ -95,6 +113,36 @@ export const parseJsonParam = <T>(value: string | undefined, fallback: T, name: 
   } catch {
     throw new Error(`Invalid JSON for ${name}`);
   }
+};
+
+export const parseAndValidateFilters = (
+  req: Request,
+  validateFilterPayload: (filters: Filters, enabled: EnabledFlags) => ValidationResult
+): ParseValidatedFiltersResult => {
+  let filters: Filters;
+  let enabled: EnabledFlags;
+  try {
+    filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
+    enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
+  } catch (err) {
+    const error = err as Error;
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, error: error.message },
+    };
+  }
+
+  const { errors } = validateFilterPayload(filters, enabled);
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, errors },
+    };
+  }
+
+  return { ok: true, filters, enabled };
 };
 
 export const normalizeThreatTransparency = (threat: unknown): ThreatTransparency => {
