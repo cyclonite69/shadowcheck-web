@@ -38,11 +38,14 @@ const stripNullBytesDeep = (value: any): any => {
 async function importWigleV3Observations(
   netid: string,
   locationClusters: any[]
-): Promise<{ newCount: number; totalCount: number }> {
-  if (!locationClusters || !Array.isArray(locationClusters)) return { newCount: 0, totalCount: 0 };
+): Promise<{ newCount: number; totalCount: number; failedCount: number }> {
+  if (!locationClusters || !Array.isArray(locationClusters)) {
+    return { newCount: 0, totalCount: 0, failedCount: 0 };
+  }
 
   let newCount = 0;
   let totalCount = 0;
+  let failedCount = 0;
   for (const cluster of locationClusters) {
     if (!cluster.locations || !Array.isArray(cluster.locations)) continue;
 
@@ -58,11 +61,12 @@ async function importWigleV3Observations(
         const inserted = await wigleService.importWigleV3Observation(netid, loc, sanitizedSsid);
         newCount += inserted;
       } catch (err: any) {
+        failedCount++;
         logger.error(`[WiGLE] Failed to import observation for ${netid}: ${err.message}`);
       }
     }
   }
-  return { newCount, totalCount };
+  return { newCount, totalCount, failedCount };
 }
 
 async function fetchWigleDetail(netid: string, endpoint: string) {
@@ -127,6 +131,8 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
     const normalizedData = stripNullBytesDeep(data);
     let newObservations = 0;
     let totalObservations = 0;
+    let attemptedObservations = 0;
+    let failedObservations = 0;
 
     if (shouldImport && data.networkId) {
       const sanitizedName = stripNullBytes(data.name);
@@ -163,9 +169,12 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
 
       const counts = await importWigleV3Observations(data.networkId, data.locationClusters);
       newObservations = counts.newCount;
-      totalObservations = counts.totalCount;
+      attemptedObservations = counts.totalCount;
+      failedObservations = counts.failedCount;
+      const importedSnapshot = await wigleService.getWigleObservations(data.networkId, 1, 0);
+      totalObservations = importedSnapshot.total;
       logger.info(
-        `[WiGLE] Imported ${newObservations} new observations (${totalObservations} total from WiGLE) for ${netid}`
+        `[WiGLE] Imported ${newObservations} new observations (${totalObservations} total in DB, ${attemptedObservations} attempted, ${failedObservations} failed) for ${netid}`
       );
     }
 
@@ -175,6 +184,8 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
       imported: shouldImport,
       importedObservations: newObservations,
       totalObservations,
+      attemptedObservations,
+      failedObservations,
     });
   } catch (err: any) {
     logger.error(`[WiGLE] Detail error: ${err.message}`, { error: err });
@@ -262,15 +273,18 @@ router.post(
     });
 
     const counts = await importWigleV3Observations(data.networkId, data.locationClusters);
+    const importedSnapshot = await wigleService.getWigleObservations(data.networkId, 1, 0);
     logger.info(
-      `[WiGLE] Imported ${counts.newCount} new observations (${counts.totalCount} total from file) for ${data.networkId}`
+      `[WiGLE] Imported ${counts.newCount} new observations (${importedSnapshot.total} total in DB, ${counts.totalCount} attempted, ${counts.failedCount} failed) for ${data.networkId}`
     );
 
     res.json({
       ok: true,
       data: stripNullBytesDeep(data),
       importedObservations: counts.newCount,
-      totalObservations: counts.totalCount,
+      totalObservations: importedSnapshot.total,
+      attemptedObservations: counts.totalCount,
+      failedObservations: counts.failedCount,
     });
   })
 );

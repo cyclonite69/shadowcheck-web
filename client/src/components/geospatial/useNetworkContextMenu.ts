@@ -298,6 +298,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
         if (result.ok) {
           const newCount: number = result.importedObservations ?? 0;
           const totalCount: number = result.totalObservations ?? newCount;
+          const attemptedCount: number = result.attemptedObservations ?? 0;
+          const failedCount: number = result.failedObservations ?? 0;
           const alreadyHad = totalCount - newCount;
           const message =
             newCount > 0
@@ -306,7 +308,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
                 : `Imported ${newCount} records from WiGLE`
               : totalCount > 0
                 ? `No new records — all ${totalCount} already imported`
-                : 'Network found in WiGLE but contains no observation records';
+                : attemptedCount > 0
+                  ? `WiGLE returned ${attemptedCount} records, but none were importable${failedCount > 0 ? ` (${failedCount} failed inserts)` : ''}`
+                  : 'Network found in WiGLE but contains no observation records';
           setWigleLookupDialog((prev) => ({
             ...prev,
             loading: false,
