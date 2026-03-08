@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-MIGRATION_DB_USER="${MIGRATION_DB_USER:-${DB_USER:-shadowcheck_admin}}"
+MIGRATION_DB_USER="${MIGRATION_DB_USER:-shadowcheck_admin}"
 DB_NAME="${DB_NAME:-shadowcheck_db}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-/sql/migrations}"
 
