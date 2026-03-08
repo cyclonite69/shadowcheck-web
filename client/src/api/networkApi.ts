@@ -70,11 +70,25 @@ export const networkApi = {
   },
 
   async getNetworkNotes(bssid: string): Promise<NetworkNote[]> {
-    const encodedBssid = encodeURIComponent(bssid);
-    const response = await apiClient.get<any>(`/networks/${encodedBssid}/notes`);
-    if (Array.isArray(response)) return response as NetworkNote[];
-    if (Array.isArray(response?.notes)) return response.notes as NetworkNote[];
-    return [];
+    const normalizedBssid = String(bssid || '')
+      .trim()
+      .toUpperCase();
+    const encodedBssid = encodeURIComponent(normalizedBssid);
+
+    const parseNotes = (response: any): NetworkNote[] => {
+      if (Array.isArray(response)) return response as NetworkNote[];
+      if (Array.isArray(response?.notes)) return response.notes as NetworkNote[];
+      return [];
+    };
+
+    try {
+      const response = await apiClient.get<any>(`/networks/${encodedBssid}/notes`);
+      return parseNotes(response);
+    } catch {
+      // Fallback for environments where /networks/:bssid/notes is not reachable.
+      const fallback = await apiClient.get<any>(`/admin/network-notes/${encodedBssid}`);
+      return parseNotes(fallback);
+    }
   },
 
   async updateNetworkNote(bssid: string, noteId: number, content: string): Promise<any> {
