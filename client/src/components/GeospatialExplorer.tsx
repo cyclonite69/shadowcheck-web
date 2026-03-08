@@ -628,7 +628,7 @@ export default function GeospatialExplorer() {
               void openNoteModalForBssid(bssid);
               closeContextMenu();
             }}
-            hasExistingNote={Boolean((contextMenu.network?.notes_count ?? 0) > 0)}
+            hasExistingNote={contextMenu.hasExistingNote}
             onGenerateThreatReport={handleGenerateThreatReportPdf}
             onMapWigleObservations={() => {
               const n = contextMenu.network;

@@ -4,8 +4,8 @@ const DEFAULT_ZOOM_INSET = 0.35;
 const MAX_AUTO_ZOOM = 22;
 
 /**
- * Fit bounds, then nudge zoom in slightly so the viewport doesn't sit right on
- * style transition thresholds (e.g. terrain/building visibility edges).
+ * Fit bounds with a slight zoom-in inset in a single camera animation so we
+ * avoid back-to-back zoom movements (which feel jittery in the UI).
  */
 export const fitBoundsWithZoomInset = (
   map: Map,
@@ -13,16 +13,27 @@ export const fitBoundsWithZoomInset = (
   options?: FitBoundsOptions,
   zoomInset: number = DEFAULT_ZOOM_INSET
 ) => {
-  map.fitBounds(bounds, options);
+  const duration =
+    typeof options?.duration === 'number' && Number.isFinite(options.duration)
+      ? options.duration
+      : 1000;
+  const essential = options?.essential ?? true;
 
-  if (zoomInset <= 0) return;
+  const camera = map.cameraForBounds(bounds, options);
+  if (!camera) {
+    map.fitBounds(bounds, options);
+    return;
+  }
 
-  map.once('moveend', () => {
-    const zoom = map.getZoom();
-    map.easeTo({
-      zoom: Math.min(MAX_AUTO_ZOOM, zoom + zoomInset),
-      duration: 300,
-      essential: true,
-    });
+  const targetZoom =
+    zoomInset > 0
+      ? Math.min(MAX_AUTO_ZOOM, (camera.zoom ?? map.getZoom()) + zoomInset)
+      : camera.zoom;
+
+  map.easeTo({
+    ...camera,
+    zoom: targetZoom,
+    duration,
+    essential,
   });
 };

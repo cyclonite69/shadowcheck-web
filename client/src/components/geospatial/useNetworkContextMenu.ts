@@ -10,6 +10,7 @@ type ContextMenuState = {
   y: number;
   network: NetworkRow | null;
   tag: NetworkTag | null;
+  hasExistingNote: boolean;
   position: 'below' | 'above';
 };
 
@@ -69,6 +70,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     y: 0,
     network: null,
     tag: null,
+    hasExistingNote: false,
     position: 'below',
   });
   const [tagLoading, setTagLoading] = useState(false);
@@ -135,17 +137,28 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
 
     // Fetch current tag state for this network
     try {
-      const tag = await networkApi.getNetworkTags(network.bssid);
+      const [tag, notes] = await Promise.all([
+        networkApi.getNetworkTags(network.bssid),
+        networkApi.getNetworkNotes(network.bssid),
+      ]);
       setContextMenu({
         visible: true,
         x: posX,
         y: posY,
         network,
         tag,
+        hasExistingNote: Array.isArray(notes) && notes.length > 0,
         position,
       });
     } catch (err) {
       logError('Failed to fetch network tag', err);
+      let hasExistingNote = false;
+      try {
+        const notes = await networkApi.getNetworkNotes(network.bssid);
+        hasExistingNote = Array.isArray(notes) && notes.length > 0;
+      } catch {
+        hasExistingNote = Boolean((network as any)?.notes_count > 0);
+      }
       setContextMenu({
         visible: true,
         x: posX,
@@ -159,6 +172,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
           notes: null,
           exists: false,
         },
+        hasExistingNote,
         position,
       });
     }
