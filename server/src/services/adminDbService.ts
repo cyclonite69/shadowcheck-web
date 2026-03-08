@@ -654,7 +654,7 @@ async function addNetworkNoteWithFunction(
   userId: string
 ): Promise<number> {
   const result = await adminQuery('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
-    bssid,
+    String(bssid).toUpperCase(),
     content,
     noteType,
     userId,
@@ -666,7 +666,7 @@ async function getNetworkNotes(bssid: string): Promise<any[]> {
   const result = await query(
     `SELECT id, content, note_type, user_id, created_at, updated_at
      FROM app.network_notes
-     WHERE bssid = $1 AND is_deleted IS NOT TRUE
+     WHERE UPPER(bssid) = UPPER($1) AND is_deleted IS NOT TRUE
      ORDER BY created_at DESC`,
     [bssid]
   );
