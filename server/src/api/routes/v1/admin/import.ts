@@ -47,28 +47,38 @@ const sqlUpload = multer({
   limits: { fileSize: 200 * 1024 * 1024 },
 });
 
-const PROJECT_ROOT = path.resolve(__dirname, '../../../../../../');
+const PROJECT_ROOT = process.cwd();
 
 function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string; args: string[] } {
-  const compiledScript = path.join(
-    PROJECT_ROOT,
-    'dist/server/etl/load/sqlite-import-incremental.js'
-  );
+  const compiledCandidates = [
+    path.join(PROJECT_ROOT, 'dist/server/etl/load/sqlite-import-incremental.js'),
+    path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.js'),
+    path.join('/app/dist/server/etl/load/sqlite-import-incremental.js'),
+  ];
+  const tsxCandidates = [
+    path.join(PROJECT_ROOT, 'node_modules/.bin/tsx'),
+    path.join('/app/node_modules/.bin/tsx'),
+  ];
+  const tsScriptCandidates = [
+    path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.ts'),
+    path.join('/app/etl/load/sqlite-import-incremental.ts'),
+  ];
 
-  if (process.env.NODE_ENV === 'production') {
+  const compiledScript = compiledCandidates.find((p) => fsNative.existsSync(p));
+  const tsxBin = tsxCandidates.find((p) => fsNative.existsSync(p));
+  const tsScript = tsScriptCandidates.find((p) => fsNative.existsSync(p));
+
+  if (tsxBin && tsScript && process.env.NODE_ENV !== 'production') {
+    return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
+  }
+  if (compiledScript) {
     return { cmd: 'node', args: [compiledScript, sqliteFile, sourceTag] };
   }
-
-  const tsxBin = path.join(PROJECT_ROOT, 'node_modules/.bin/tsx');
-  const tsScript = path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.ts');
-
-  // Runtime Docker images prune devDependencies, so tsx may not exist.
-  // Fall back to compiled JS importer to keep admin SQLite import operational.
-  if (!fsNative.existsSync(tsxBin) && fsNative.existsSync(compiledScript)) {
-    return { cmd: 'node', args: [compiledScript, sqliteFile, sourceTag] };
+  if (tsxBin && tsScript) {
+    return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
   }
 
-  return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
+  throw new Error('SQLite importer script not found (checked tsx and compiled paths)');
 }
 
 function getSqlImportCommand(sqlFile: string): { cmd: string; args: string[]; env: any } {
@@ -171,6 +181,7 @@ router.post(
         DB_ADMIN_USER: 'shadowcheck_admin',
       },
     });
+    let responseSent = false;
 
     let output = '';
     let errorOutput = '';
@@ -187,6 +198,7 @@ router.post(
     });
 
     importProcess.on('close', async (code: number) => {
+      if (responseSent) return;
       try {
         await fs.unlink(sqliteFile);
       } catch (e: any) {
@@ -217,6 +229,7 @@ router.post(
           `Import complete: ${imported} imported, ${failed} failed (source: ${sourceTag})`
         );
 
+        responseSent = true;
         res.json({
           ok: true,
           message: `Incremental import complete (source: ${sourceTag})`,
@@ -235,6 +248,7 @@ router.post(
         }
 
         logger.error(`Import script failed with code ${code}`);
+        responseSent = true;
         res.status(500).json({
           ok: false,
           error: 'Import script failed',
@@ -246,6 +260,7 @@ router.post(
     });
 
     importProcess.on('error', async (error: Error) => {
+      if (responseSent) return;
       logger.error(`Failed to start import script: ${error.message}`, { error });
       if (historyId) {
         await adminDbService.failImportHistory(historyId, error.message);
@@ -255,6 +270,7 @@ router.post(
       } catch (e) {
         // ignore
       }
+      responseSent = true;
       res.status(500).json({
         ok: false,
         error: 'Failed to start import process',
