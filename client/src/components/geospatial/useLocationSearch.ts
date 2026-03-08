@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Map, Marker } from 'mapbox-gl';
 import { mapboxApi } from '../../api/mapboxApi';
+import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 
 export interface LocationSearchResult {
   text: string;
@@ -105,7 +106,7 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
       });
 
       if (result.bbox) {
-        mapRef.current.fitBounds(result.bbox, {
+        fitBoundsWithZoomInset(mapRef.current, result.bbox, {
           padding: 50,
           duration: 2000,
         });

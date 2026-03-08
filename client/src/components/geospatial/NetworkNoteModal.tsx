@@ -2,6 +2,7 @@ import React from 'react';
 
 interface NetworkNoteModalProps {
   open: boolean;
+  isEditMode: boolean;
   selectedBssid: string;
   noteType: string;
   noteContent: string;
@@ -19,6 +20,7 @@ interface NetworkNoteModalProps {
 
 export const NetworkNoteModal = ({
   open,
+  isEditMode,
   selectedBssid,
   noteType,
   noteContent,
@@ -74,7 +76,9 @@ export const NetworkNoteModal = ({
             marginBottom: '20px',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Add Note & Media</h3>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            {isEditMode ? 'Edit Note & Media' : 'Add Note & Media'}
+          </h3>
           <button
             type="button"
             aria-label="Close"
@@ -311,7 +315,7 @@ export const NetworkNoteModal = ({
               }
             }}
           >
-            Save Note{' '}
+            {isEditMode ? 'Save Changes' : 'Save Note'}{' '}
             {noteAttachments.length > 0 &&
               `+ ${noteAttachments.length} File${noteAttachments.length !== 1 ? 's' : ''}`}
           </button>

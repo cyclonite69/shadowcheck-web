@@ -17,6 +17,7 @@ interface NetworkTagMenuProps {
   ) => void;
   onTimeFrequency: () => void;
   onAddNote: () => void;
+  hasExistingNote: boolean;
   onGenerateThreatReport: () => void;
   onMapWigleObservations?: () => void;
   wigleObservationsLoading?: boolean;
@@ -34,6 +35,7 @@ export const NetworkTagMenu = ({
   onTagAction,
   onTimeFrequency,
   onAddNote,
+  hasExistingNote,
   onGenerateThreatReport,
   onMapWigleObservations,
   wigleObservationsLoading,
@@ -342,7 +344,7 @@ export const NetworkTagMenu = ({
             onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            📝 Add Note
+            📝 {hasExistingNote ? 'Edit Note' : 'Add Note'}
           </button>
         )}
       </div>

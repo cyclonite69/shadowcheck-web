@@ -16,6 +16,15 @@ interface AddNoteResponse {
   note_id: number;
 }
 
+export interface NetworkNote {
+  id: number;
+  content: string;
+  note_type: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const networkApi = {
   async getNetworkTags(bssid: string): Promise<NetworkTag> {
     return apiClient.get<NetworkTag>(`/network-tags/${encodeURIComponent(bssid)}`);
@@ -58,6 +67,19 @@ export const networkApi = {
 
   async addNetworkNote(data: AddNoteRequest): Promise<AddNoteResponse> {
     return apiClient.post<AddNoteResponse>('/admin/network-notes/add', data);
+  },
+
+  async getNetworkNotes(bssid: string): Promise<NetworkNote[]> {
+    const encodedBssid = encodeURIComponent(bssid);
+    const response = await apiClient.get<any>(`/networks/${encodedBssid}/notes`);
+    if (Array.isArray(response)) return response as NetworkNote[];
+    if (Array.isArray(response?.notes)) return response.notes as NetworkNote[];
+    return [];
+  },
+
+  async updateNetworkNote(bssid: string, noteId: number, content: string): Promise<any> {
+    const encodedBssid = encodeURIComponent(bssid);
+    return apiClient.patch(`/networks/${encodedBssid}/notes/${noteId}`, { content });
   },
 
   // FormData — raw fetch (apiClient forces application/json header)

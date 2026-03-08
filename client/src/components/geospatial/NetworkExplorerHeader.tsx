@@ -86,8 +86,8 @@ export const NetworkExplorerHeader = ({
           type="text"
           value={quickSearch}
           onChange={(e) => onQuickSearchChange(e.target.value)}
-          placeholder="Quick search (SSID/BSSID/OUI) e.g. b:AA:BB or m:apple"
-          title="Quick identity search. Prefix with s:, b:, or m: for SSID, BSSID, or manufacturer."
+          placeholder="Quick search (SSID+Manufacturer by default). Prefix: b:, s:, m:"
+          title="Quick identity search. Unprefixed text searches SSID and manufacturer. Prefix with s:, b:, or m: to target one field."
           style={{
             width: '320px',
             maxWidth: '38vw',

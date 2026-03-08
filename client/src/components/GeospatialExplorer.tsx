@@ -42,6 +42,7 @@ import { NearestAgenciesPanel } from './geospatial/NearestAgenciesPanel';
 import { useNearestAgencies } from './geospatial/useNearestAgencies';
 import { useWeatherFx } from '../weather/useWeatherFx';
 import { renderAgencyPopupCard } from '../utils/geospatial/renderMapPopupCards';
+import { fitBoundsWithZoomInset } from '../utils/geospatial/mapViewUtils';
 
 // Types
 
@@ -190,7 +191,7 @@ export default function GeospatialExplorer() {
     showNoteModal,
     setShowNoteModal,
     selectedBssid,
-    setSelectedBssid,
+    hasExistingNote,
     noteContent,
     setNoteContent,
     noteType,
@@ -198,6 +199,8 @@ export default function GeospatialExplorer() {
     noteAttachments,
     setNoteAttachments,
     fileInputRef,
+    openNoteModalForBssid,
+    resetNoteState,
     handleSaveNote,
     handleAddAttachment,
     removeAttachment,
@@ -499,7 +502,10 @@ export default function GeospatialExplorer() {
                         for (const coord of data.coordinates) {
                           bounds.extend(coord);
                         }
-                        mapRef.current.fitBounds(bounds, { padding: 60, duration: 2000 });
+                        fitBoundsWithZoomInset(mapRef.current, bounds, {
+                          padding: 60,
+                          duration: 2000,
+                        });
                       }
                     });
                     setShowSearchResults(false);
@@ -618,10 +624,11 @@ export default function GeospatialExplorer() {
               closeContextMenu();
             }}
             onOpenNote={() => {
-              setShowNoteModal(true);
-              setSelectedBssid(contextMenu.network?.bssid || '');
+              const bssid = contextMenu.network?.bssid || '';
+              void openNoteModalForBssid(bssid);
               closeContextMenu();
             }}
+            hasExistingNote={Boolean((contextMenu.network?.notes_count ?? 0) > 0)}
             onGenerateThreatReport={handleGenerateThreatReportPdf}
             onMapWigleObservations={() => {
               const n = contextMenu.network;
@@ -632,6 +639,7 @@ export default function GeospatialExplorer() {
             }}
             wigleObservationsLoading={wigleObservations.loading}
             showNoteModal={showNoteModal}
+            isEditNoteMode={hasExistingNote}
             selectedBssid={selectedBssid}
             noteType={noteType}
             noteContent={noteContent}
@@ -642,17 +650,8 @@ export default function GeospatialExplorer() {
             onAddAttachment={handleAddAttachment}
             onRemoveAttachment={removeAttachment}
             onCloseNoteOverlay={() => setShowNoteModal(false)}
-            onCloseNote={() => {
-              setShowNoteModal(false);
-              setNoteContent('');
-              setNoteAttachments([]);
-            }}
-            onCancelNote={() => {
-              setShowNoteModal(false);
-              setNoteContent('');
-              setNoteType('general');
-              setNoteAttachments([]);
-            }}
+            onCloseNote={resetNoteState}
+            onCancelNote={resetNoteState}
             onSaveNote={handleSaveNote}
             timeFreqModal={timeFreqModal}
             onCloseTimeFrequency={closeTimeFrequency}

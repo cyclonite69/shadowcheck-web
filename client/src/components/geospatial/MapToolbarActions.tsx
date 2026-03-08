@@ -5,6 +5,7 @@ import { MapToolbar } from './MapToolbar';
 import { LocationSearchResult } from './useLocationSearch';
 import { MapStyleOption } from '../../constants/network';
 import { WeatherFxMode } from '../../weather/useWeatherFx';
+import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 
 interface MapToolbarActionsProps {
   locationSearchRef: React.RefObject<HTMLDivElement | null>;
@@ -124,7 +125,7 @@ export const MapToolbarActions = ({
           (bounds, coord) => bounds.extend(coord),
           new (mapboxgl as any).LngLatBounds(allCoords[0], allCoords[0])
         );
-        mapRef.current.fitBounds(bounds, { padding: 50 });
+        fitBoundsWithZoomInset(mapRef.current, bounds, { padding: 50 });
         setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
       }}
       homeButtonActive={homeButtonActive}
