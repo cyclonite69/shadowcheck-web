@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-DB_USER="${DB_USER:-shadowcheck_user}"
+MIGRATION_DB_USER="${MIGRATION_DB_USER:-${DB_USER:-shadowcheck_admin}}"
 DB_NAME="${DB_NAME:-shadowcheck_db}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-/sql/migrations}"
 
@@ -25,12 +25,17 @@ YELLOW='\033[0;33m'
 NC='\033[0m'
 
 echo "=== ShadowCheck Migration Runner ==="
-echo "Database: $DB_NAME | User: $DB_USER"
+echo "Database: $DB_NAME | Migration user: $MIGRATION_DB_USER"
 echo "Migrations: $MIGRATIONS_DIR"
 echo ""
 
+if [ "$MIGRATION_DB_USER" = "shadowcheck_user" ]; then
+  echo -e "${YELLOW}Warning:${NC} migrations are running as shadowcheck_user (not recommended)."
+  echo -e "${YELLOW}Set MIGRATION_DB_USER=shadowcheck_admin for least-privilege runtime user separation.${NC}"
+fi
+
 # Ensure tracking table exists
-psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q <<'SQL'
+psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q <<'SQL'
 CREATE TABLE IF NOT EXISTS app.schema_migrations (
     filename TEXT PRIMARY KEY,
     applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -56,7 +61,7 @@ for migration_file in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
     filename=$(basename "$migration_file")
 
     # Check if already applied
-    already_applied=$(psql -U "$DB_USER" -d "$DB_NAME" -tAc \
+    already_applied=$(psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -tAc \
         "SELECT 1 FROM app.schema_migrations WHERE filename = '$filename'" 2>/dev/null || echo "")
 
     if [ "$already_applied" = "1" ]; then
@@ -67,7 +72,7 @@ for migration_file in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
     echo -n "  Applying: $filename ... "
 
     # Run migration in a transaction
-    if psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q \
+    if psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q \
         -c "BEGIN;" \
         -f "$migration_file" \
         -c "INSERT INTO app.schema_migrations (filename) VALUES ('$filename');" \
