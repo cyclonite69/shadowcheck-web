@@ -191,8 +191,39 @@ BEGIN
       d.*,
       lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) AS n1,
       lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g')) AS n2,
+      (
+        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g'))
+        =
+        lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g'))
+      ) AS ssid_same,
+      (
+        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (
+          'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
+          'mtasmartbus','kajeetsmartbus','somguest','somiot'
+        )
+      ) AS ssid_common,
       CASE
         WHEN d.distance_m IS NULL THEN 0
+        WHEN (
+          lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g'))
+          =
+          lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g'))
+        )
+        AND (
+          lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (
+            'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
+            'mtasmartbus','kajeetsmartbus','somguest','somiot'
+          )
+        ) THEN
+          CASE
+            WHEN d.distance_m <= 25 THEN 0
+            WHEN d.distance_m <= 75 THEN 0.05
+            WHEN d.distance_m <= 150 THEN 0.12
+            WHEN d.distance_m <= 300 THEN 0.28
+            WHEN d.distance_m <= 500 THEN 0.45
+            WHEN d.distance_m <= 1000 THEN 0.70
+            ELSE 1.00
+          END
         WHEN d.distance_m <= 100 THEN 0
         WHEN d.distance_m <= 500 THEN 0.03
         WHEN d.distance_m <= 1500 THEN 0.08
@@ -209,8 +240,15 @@ BEGIN
         s.confidence
         - s.distance_penalty
         + CASE
+            WHEN s.n1 <> '' AND s.n2 <> '' AND s.ssid_same AND s.ssid_common THEN
+              CASE WHEN coalesce(s.distance_m, 999999) <= 75 THEN 0.03 ELSE 0 END
             WHEN s.n1 <> '' AND s.n2 <> ''
              AND (s.n1 = s.n2 OR s.n1 LIKE s.n2 || '%' OR s.n2 LIKE s.n1 || '%') THEN 0.07
+            ELSE 0
+          END
+        - CASE
+            WHEN s.rule = 'ssid_exact' AND s.ssid_same AND s.ssid_common AND coalesce(s.distance_m, 999999) > 150
+            THEN 0.35
             ELSE 0
           END
       ) AS final_conf,
