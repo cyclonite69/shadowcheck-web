@@ -64,6 +64,37 @@ type NetworkContextMenuProps = {
 };
 
 export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContextMenuProps) => {
+  const isBluetoothLookupTarget = (network: NetworkRow | null): boolean => {
+    if (!network) return false;
+
+    const normalizedType = String(network.type ?? '')
+      .trim()
+      .toUpperCase();
+    if (
+      normalizedType === 'B' ||
+      normalizedType === 'E' ||
+      normalizedType === 'BT' ||
+      normalizedType === 'BLE' ||
+      normalizedType === 'BTLE' ||
+      normalizedType === 'BLUETOOTH' ||
+      normalizedType === 'BLUETOOTHLE' ||
+      normalizedType === 'BLUETOOTH_LOW_ENERGY'
+    ) {
+      return true;
+    }
+
+    const ssidUpper = String(network.ssid ?? '').toUpperCase();
+    const securityUpper = String(network.security ?? '').toUpperCase();
+    return (
+      ssidUpper.includes('BLE') ||
+      ssidUpper.includes('BTLE') ||
+      ssidUpper.includes('BLUETOOTH') ||
+      securityUpper.includes('BLE') ||
+      securityUpper.includes('BTLE') ||
+      securityUpper.includes('BLUETOOTH')
+    );
+  };
+
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
@@ -320,8 +351,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
       }
 
       if (withLookup) {
-        const isBluetooth =
-          wigleLookupDialog.network?.type === 'B' || wigleLookupDialog.network?.type === 'E';
+        const isBluetooth = isBluetoothLookupTarget(wigleLookupDialog.network);
 
         // Call WiGLE v3 detail endpoint with import flag
         const result = await wigleApi.getWigleDetail(bssid, isBluetooth, true);
