@@ -135,47 +135,45 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
       posX = padding;
     }
 
-    // Fetch current tag state for this network
-    try {
-      const [tag, notes] = await Promise.all([
-        networkApi.getNetworkTags(network.bssid),
-        networkApi.getNetworkNotes(network.bssid),
-      ]);
-      setContextMenu({
-        visible: true,
-        x: posX,
-        y: posY,
-        network,
-        tag,
-        hasExistingNote: Array.isArray(notes) && notes.length > 0,
-        position,
-      });
-    } catch (err) {
-      logError('Failed to fetch network tag', err);
-      let hasExistingNote = false;
-      try {
-        const notes = await networkApi.getNetworkNotes(network.bssid);
-        hasExistingNote = Array.isArray(notes) && notes.length > 0;
-      } catch {
-        hasExistingNote = Boolean((network as any)?.notes_count > 0);
-      }
-      setContextMenu({
-        visible: true,
-        x: posX,
-        y: posY,
-        network,
-        tag: {
-          bssid: network.bssid,
-          is_ignored: false,
-          ignore_reason: null,
-          threat_tag: null,
-          notes: null,
-          exists: false,
-        },
-        hasExistingNote,
-        position,
-      });
+    // Fetch tag and notes independently so one failure doesn't hide note edit mode.
+    const [tagResult, notesResult] = await Promise.allSettled([
+      networkApi.getNetworkTags(network.bssid),
+      networkApi.getNetworkNotes(network.bssid),
+    ]);
+
+    if (tagResult.status === 'rejected') {
+      logError('Failed to fetch network tag', tagResult.reason);
     }
+    if (notesResult.status === 'rejected') {
+      logError('Failed to fetch network notes', notesResult.reason);
+    }
+
+    const tag =
+      tagResult.status === 'fulfilled'
+        ? tagResult.value
+        : {
+            bssid: network.bssid,
+            is_ignored: false,
+            ignore_reason: null,
+            threat_tag: null,
+            notes: null,
+            exists: false,
+          };
+
+    const hasExistingNote =
+      notesResult.status === 'fulfilled'
+        ? Array.isArray(notesResult.value) && notesResult.value.length > 0
+        : Boolean((network as any)?.notes_count > 0);
+
+    setContextMenu({
+      visible: true,
+      x: posX,
+      y: posY,
+      network,
+      tag,
+      hasExistingNote,
+      position,
+    });
   };
 
   const closeContextMenu = () => {
