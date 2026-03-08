@@ -8,27 +8,66 @@ type NetworkNotesProps = {
 export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedBssid, setSelectedBssid] = useState('');
+  const [existingNoteId, setExistingNoteId] = useState<number | null>(null);
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState('general');
   const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const resetNoteState = () => {
+    setShowNoteModal(false);
+    setSelectedBssid('');
+    setExistingNoteId(null);
+    setNoteContent('');
+    setNoteType('general');
+    setNoteAttachments([]);
+  };
+
+  const openNoteModalForBssid = async (bssid: string) => {
+    if (!bssid) return;
+
+    setSelectedBssid(bssid);
+    setExistingNoteId(null);
+    setNoteContent('');
+    setNoteType('general');
+    setNoteAttachments([]);
+    setShowNoteModal(true);
+
+    try {
+      const notes = await networkApi.getNetworkNotes(bssid);
+      const latest = notes[0];
+      if (latest) {
+        setExistingNoteId(Number(latest.id));
+        setNoteContent(latest.content || '');
+        setNoteType(latest.note_type || 'general');
+      }
+    } catch (err) {
+      logError('Failed to load existing notes', err);
+    }
+  };
+
   const handleSaveNote = async () => {
     if (!noteContent.trim() || !selectedBssid) return;
 
     try {
-      // Step 1: Create the note
-      const data = await networkApi.addNetworkNote({
-        bssid: selectedBssid,
-        content: noteContent,
-        note_type: noteType,
-        user_id: 'geospatial_user',
-      });
+      let noteId = existingNoteId;
+      if (existingNoteId) {
+        await networkApi.updateNetworkNote(selectedBssid, existingNoteId, noteContent);
+      } else {
+        const data = await networkApi.addNetworkNote({
+          bssid: selectedBssid,
+          content: noteContent,
+          note_type: noteType,
+          user_id: 'geospatial_user',
+        });
+        noteId = data.note_id;
+      }
 
-      const noteId = data.note_id;
-
-      // Step 2: Upload attachments if any
+      // Upload attachments (new note or edit mode)
       if (noteAttachments.length > 0) {
+        if (!noteId) {
+          throw new Error('Unable to resolve note ID for media upload');
+        }
         for (const file of noteAttachments) {
           const formData = new FormData();
           formData.append('file', file);
@@ -42,12 +81,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
         }
       }
 
-      // Success: Reset form
-      setShowNoteModal(false);
-      setNoteContent('');
-      setNoteType('general');
-      setSelectedBssid('');
-      setNoteAttachments([]);
+      resetNoteState();
     } catch (err) {
       logError('Failed to save note', err);
     }
@@ -70,6 +104,8 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     setShowNoteModal,
     selectedBssid,
     setSelectedBssid,
+    existingNoteId,
+    hasExistingNote: existingNoteId !== null,
     noteContent,
     setNoteContent,
     noteType,
@@ -77,6 +113,8 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     noteAttachments,
     setNoteAttachments,
     fileInputRef,
+    openNoteModalForBssid,
+    resetNoteState,
     handleSaveNote,
     handleAddAttachment,
     removeAttachment,

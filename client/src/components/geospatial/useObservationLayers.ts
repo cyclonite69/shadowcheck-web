@@ -6,6 +6,7 @@ import type { NetworkRow, Observation } from '../../types/network';
 import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
 import type { WigleObservation } from './useNetworkContextMenu';
 import { renderWigleObservationPopupCard } from '../../utils/geospatial/renderMapPopupCards';
+import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 
 // Format time difference as human-readable string
 const formatTimeSince = (ms: number): string => {
@@ -212,7 +213,7 @@ export const useObservationLayers = ({
         (bounds, coord) => bounds.extend(coord),
         new mapboxgl.LngLatBounds(coords[0], coords[0])
       );
-      map.fitBounds(bounds, { padding: 50, duration: 1000, maxZoom: 15 });
+      fitBoundsWithZoomInset(map, bounds, { padding: 50, duration: 1000, maxZoom: 15 });
     }
   }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup]);
 
@@ -360,7 +361,7 @@ export const useObservationLayers = ({
             (bounds, coord) => bounds.extend(coord),
             new mapboxgl.LngLatBounds(coords[0], coords[0])
           );
-          map.fitBounds(bounds, { padding: 80, duration: 1000 });
+          fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000 });
         }
       } else {
         // Clear WiGLE observations
