@@ -166,17 +166,16 @@ async function runSiblingRefreshJob(
       ),
       upserted AS (
         INSERT INTO app.network_sibling_pairs (
-          bssid1, bssid2, rule, confidence, pair_strength,
+          bssid1, bssid2, rule, confidence,
           d_last_octet, d_third_octet, ssid1, ssid2,
           frequency1, frequency2, distance_m,
-          quality_scope, source, computed_at, is_active
+          quality_scope, computed_at
         )
         SELECT
           f.bssid1,
           f.bssid2,
           f.rule,
           f.final_conf,
-          CASE WHEN f.final_conf >= $6 THEN 'strong' ELSE 'candidate' END AS pair_strength,
           f.d_last_octet,
           f.d_third_octet,
           f.ssid1,
@@ -185,16 +184,13 @@ async function runSiblingRefreshJob(
           f.frequency2,
           f.distance_m,
           'default',
-          'heuristic',
-          now(),
-          true
+          now()
         FROM final_pairs f
         WHERE f.final_conf >= $5
         ON CONFLICT (bssid1, bssid2) DO UPDATE
         SET
           rule = EXCLUDED.rule,
           confidence = EXCLUDED.confidence,
-          pair_strength = EXCLUDED.pair_strength,
           d_last_octet = EXCLUDED.d_last_octet,
           d_third_octet = EXCLUDED.d_third_octet,
           ssid1 = EXCLUDED.ssid1,
@@ -203,9 +199,7 @@ async function runSiblingRefreshJob(
           frequency2 = EXCLUDED.frequency2,
           distance_m = EXCLUDED.distance_m,
           quality_scope = EXCLUDED.quality_scope,
-          source = EXCLUDED.source,
-          computed_at = EXCLUDED.computed_at,
-          is_active = true
+          computed_at = EXCLUDED.computed_at
         RETURNING 1
       )
       SELECT
@@ -220,7 +214,6 @@ async function runSiblingRefreshJob(
       normalized.maxOctetDelta,
       normalized.maxDistanceM,
       normalized.minCandidateConf,
-      normalized.minStrongConf,
     ]);
 
     const row = result.rows[0] || {};
@@ -318,9 +311,9 @@ async function getSiblingStats(): Promise<any> {
     `
       SELECT
         COUNT(*)::int AS total_pairs,
-        COUNT(*) FILTER (WHERE is_active)::int AS active_pairs,
-        COUNT(*) FILTER (WHERE pair_strength = 'strong' AND is_active)::int AS strong_pairs,
-        COUNT(*) FILTER (WHERE pair_strength = 'candidate' AND is_active)::int AS candidate_pairs,
+        COUNT(*)::int AS active_pairs,
+        COUNT(*) FILTER (WHERE confidence >= 0.97)::int AS strong_pairs,
+        COUNT(*) FILTER (WHERE confidence < 0.97)::int AS candidate_pairs,
         ROUND(AVG(confidence)::numeric, 3) AS avg_confidence,
         MIN(computed_at) AS oldest_computed_at,
         MAX(computed_at) AS newest_computed_at

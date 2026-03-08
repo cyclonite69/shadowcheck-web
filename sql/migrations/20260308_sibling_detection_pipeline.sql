@@ -111,7 +111,11 @@ heuristic_strong AS (
     p.bssid2,
     p.rule,
     p.confidence,
-    p.pair_strength,
+    CASE
+      WHEN p.confidence >= 0.97 THEN 'strong'
+      WHEN p.confidence >= 0.90 THEN 'candidate'
+      ELSE 'candidate'
+    END AS pair_strength,
     p.d_last_octet,
     p.d_third_octet,
     p.ssid1,
@@ -120,13 +124,12 @@ heuristic_strong AS (
     p.frequency2,
     p.distance_m,
     p.quality_scope,
-    p.source,
+    'heuristic'::text AS source,
     p.computed_at
   FROM app.network_sibling_pairs p
   LEFT JOIN blocked b
     ON b.bssid1 = p.bssid1 AND b.bssid2 = p.bssid2
-  WHERE p.is_active = true
-    AND p.pair_strength IN ('strong', 'verified')
+  WHERE p.confidence >= 0.92
     AND b.bssid1 IS NULL
 )
 SELECT * FROM manual_positive
@@ -221,17 +224,16 @@ BEGIN
     FROM scored s
   )
   INSERT INTO app.network_sibling_pairs (
-    bssid1, bssid2, rule, confidence, pair_strength,
+    bssid1, bssid2, rule, confidence,
     d_last_octet, d_third_octet, ssid1, ssid2,
     frequency1, frequency2, distance_m,
-    quality_scope, source, computed_at, is_active
+    quality_scope, computed_at
   )
   SELECT
     f.bssid1,
     f.bssid2,
     f.rule,
     f.final_conf,
-    CASE WHEN f.final_conf >= p_min_strong_conf THEN 'strong' ELSE 'candidate' END AS pair_strength,
     f.d_last_octet,
     f.d_third_octet,
     f.ssid1,
@@ -240,16 +242,13 @@ BEGIN
     f.frequency2,
     f.distance_m,
     'default',
-    'heuristic',
-    now(),
-    true
+    now()
   FROM final_pairs f
   WHERE f.final_conf >= p_min_candidate_conf
   ON CONFLICT (bssid1, bssid2) DO UPDATE
   SET
     rule = EXCLUDED.rule,
     confidence = EXCLUDED.confidence,
-    pair_strength = EXCLUDED.pair_strength,
     d_last_octet = EXCLUDED.d_last_octet,
     d_third_octet = EXCLUDED.d_third_octet,
     ssid1 = EXCLUDED.ssid1,
@@ -258,9 +257,7 @@ BEGIN
     frequency2 = EXCLUDED.frequency2,
     distance_m = EXCLUDED.distance_m,
     quality_scope = EXCLUDED.quality_scope,
-    source = EXCLUDED.source,
-    computed_at = EXCLUDED.computed_at,
-    is_active = true;
+    computed_at = EXCLUDED.computed_at;
 
   GET DIAGNOSTICS v_rowcount = ROW_COUNT;
   RETURN v_rowcount;
