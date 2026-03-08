@@ -160,10 +160,29 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
             exists: false,
           };
 
-    const hasExistingNote =
-      notesResult.status === 'fulfilled'
-        ? Array.isArray(notesResult.value) && notesResult.value.length > 0
-        : Boolean((network as any)?.notes_count > 0);
+    const hasExistingNote = (() => {
+      if (notesResult.status === 'fulfilled') {
+        const raw = notesResult.value as any;
+        const notesArray = Array.isArray(raw) ? raw : Array.isArray(raw?.notes) ? raw.notes : null;
+        if (notesArray) {
+          return notesArray.length > 0;
+        }
+        const count = Number(raw?.count ?? raw?.note_count ?? 0);
+        if (Number.isFinite(count) && count > 0) {
+          return true;
+        }
+      }
+
+      const tagNotes = (tag as any)?.notes;
+      if (Array.isArray(tagNotes) && tagNotes.length > 0) {
+        return true;
+      }
+      if (typeof tagNotes === 'string' && tagNotes.trim().length > 0) {
+        return true;
+      }
+
+      return Boolean((network as any)?.notes_count > 0);
+    })();
 
     setContextMenu({
       visible: true,
