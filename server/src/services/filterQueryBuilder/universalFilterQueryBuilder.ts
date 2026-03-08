@@ -680,7 +680,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
           ne.accuracy_meters AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
           ${NT_SELECT_FIELDS},
-          NULL::integer AS notes_count,
+          (
+            SELECT COUNT(*)
+            FROM app.network_notes nn
+            WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
+              AND nn.is_deleted IS NOT TRUE
+          )::integer AS notes_count,
           JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
@@ -826,7 +831,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         l.accuracy AS accuracy_meters,
         ne.stationary_confidence,
         ${NT_SELECT_FIELDS},
-        NULL::integer AS notes_count,
+        (
+          SELECT COUNT(*)
+          FROM app.network_notes nn
+          WHERE UPPER(nn.bssid) = UPPER(l.bssid)
+            AND nn.is_deleted IS NOT TRUE
+        )::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM obs_rollup r
@@ -1253,7 +1263,12 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         ne.accuracy_meters AS accuracy_meters,
         ne.stationary_confidence AS stationary_confidence,
         ${NT_SELECT_FIELDS},
-        NULL::integer AS notes_count,
+        (
+          SELECT COUNT(*)
+          FROM app.network_notes nn
+          WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
+            AND nn.is_deleted IS NOT TRUE
+        )::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
