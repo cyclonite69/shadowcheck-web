@@ -13,24 +13,10 @@ const logger = require('../../../../logging/logger');
 
 // Configure multer for media uploads (notes attachments)
 const multer = require('multer');
-const fs = require('fs').promises;
-
-const mediaStorage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../../data/notes-media');
-    await fs.mkdir(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const bssid = req.body.bssid || 'unknown';
-    const timestamp = Date.now();
-    const ext = path.extname(file.originalname);
-    cb(null, `${bssid}-${timestamp}${ext}`);
-  },
-});
+const fs = require('fs');
 
 const mediaUpload = multer({
-  storage: mediaStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /\.(jpg|jpeg|png|gif|pdf|mp4|mov|avi)$/i;
@@ -173,19 +159,27 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'No file provided' });
     }
+    const inferredMediaType = req.file.mimetype?.startsWith('video/')
+      ? 'video'
+      : req.file.mimetype === 'application/pdf'
+        ? 'document'
+        : 'image';
     const media = await adminDbService.addNoteMedia(
       noteId,
       bssid,
-      `/api/media/${req.file.filename}`,
+      null,
       req.file.originalname,
       req.file.size,
-      req.file.mimetype
+      inferredMediaType,
+      req.file.buffer,
+      req.file.mimetype || null,
+      'db'
     );
     res.json({
       ok: true,
       note_id: noteId,
       media_id: media.id,
-      file_path: media.file_path,
+      file_path: `/api/media/${media.id}`,
       message: 'Media uploaded',
     });
   } catch (error) {
@@ -198,21 +192,47 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
 router.get('/media/:filename', (req, res) => {
   try {
     const { filename } = req.params;
-    const filepath = path.join(__dirname, '../../../../data/notes-media', filename);
-    const normalized = path.normalize(filepath);
-    const baseDir = path.normalize(path.join(__dirname, '../../../../data/notes-media'));
-
-    if (!normalized.startsWith(baseDir)) {
-      return res.status(403).json({ ok: false, error: 'Access denied' });
+    const isNumericId = /^\d+$/.test(filename);
+    if (isNumericId) {
+      return adminDbService
+        .getNoteMediaById(filename)
+        .then((media) => {
+          if (!media) {
+            return res.status(404).json({ ok: false, error: 'Media not found' });
+          }
+          if (media.media_data) {
+            res.setHeader('Content-Type', media.mime_type || 'application/octet-stream');
+            res.setHeader(
+              'Content-Disposition',
+              `inline; filename=\"${media.file_name || `media-${media.id}`}\"`
+            );
+            return res.send(media.media_data);
+          }
+          if (media.file_path) {
+            const localName = String(media.file_path).replace('/api/media/', '');
+            const filepath = path.join(__dirname, '../../../../data/notes-media', localName);
+            return res.sendFile(filepath);
+          }
+          return res.status(404).json({ ok: false, error: 'Media payload missing' });
+        })
+        .catch((error) => {
+          logger.error('Media serve failed:', error);
+          return res.status(500).json({ ok: false, error: 'Failed to serve media' });
+        });
     }
 
+    // Legacy filename fallback for older links
     if (filename.includes('..')) {
       return res.status(403).json({ ok: false, error: 'Access denied' });
     }
-    res.sendFile(filepath);
+    const filepath = path.join(__dirname, '../../../../data/notes-media', filename);
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ ok: false, error: 'Media not found' });
+    }
+    return res.sendFile(filepath);
   } catch (error) {
     logger.error('Media serve failed:', error);
-    res.status(500).json({ ok: false, error: 'Failed to serve media' });
+    return res.status(500).json({ ok: false, error: 'Failed to serve media' });
   }
 });
 

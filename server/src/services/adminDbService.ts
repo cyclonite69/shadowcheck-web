@@ -699,17 +699,32 @@ async function updateNetworkNote(noteId: string, content: string): Promise<any |
 async function addNoteMedia(
   noteId: string,
   bssid: string,
-  filePath: string,
+  filePath: string | null,
   fileName: string,
   fileSize: number,
-  mediaType: string
+  mediaType: string,
+  mediaData: Buffer | null = null,
+  mimeType: string | null = null,
+  storageBackend: string = 'db'
 ): Promise<any> {
   const result = await adminQuery(
-    `INSERT INTO app.note_media (note_id, bssid, file_path, file_name, file_size, media_type)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, file_path`,
-    [noteId, bssid, filePath, fileName, fileSize, mediaType]
+    `INSERT INTO app.note_media
+      (note_id, bssid, file_path, file_name, file_size, media_type, media_data, mime_type, storage_backend)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, file_path, storage_backend`,
+    [noteId, bssid, filePath, fileName, fileSize, mediaType, mediaData, mimeType, storageBackend]
   );
   return result.rows[0];
+}
+
+async function getNoteMediaById(mediaId: string): Promise<any | null> {
+  const result = await query(
+    `SELECT id, note_id, bssid, file_path, file_name, file_size, media_type, media_data, mime_type, storage_backend, created_at
+     FROM app.note_media
+     WHERE id = $1`,
+    [mediaId]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
 }
 
 // Admin Tags Methods (legacy)
@@ -1131,6 +1146,7 @@ module.exports.getNetworkNotes = getNetworkNotes;
 module.exports.deleteNetworkNote = deleteNetworkNote;
 module.exports.updateNetworkNote = updateNetworkNote;
 module.exports.addNoteMedia = addNoteMedia;
+module.exports.getNoteMediaById = getNoteMediaById;
 module.exports.getNetworkTagsByBssid = getNetworkTagsByBssid;
 module.exports.addNetworkTagArray = addNetworkTagArray;
 module.exports.addSingleNetworkTag = addSingleNetworkTag;
