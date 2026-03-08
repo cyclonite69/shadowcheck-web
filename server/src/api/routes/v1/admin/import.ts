@@ -11,7 +11,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs').promises;
+const fsNative = require('fs');
+const fs = fsNative.promises;
 const { spawn } = require('child_process');
 const { secretsManager, adminDbService, backupService } = require('../../../../config/container');
 const { runPostgresBackup } = backupService;
@@ -49,15 +50,24 @@ const sqlUpload = multer({
 const PROJECT_ROOT = path.resolve(__dirname, '../../../../../../');
 
 function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string; args: string[] } {
+  const compiledScript = path.join(
+    PROJECT_ROOT,
+    'dist/server/etl/load/sqlite-import-incremental.js'
+  );
+
   if (process.env.NODE_ENV === 'production') {
-    const compiledScript = path.join(
-      PROJECT_ROOT,
-      'dist/server/etl/load/sqlite-import-incremental.js'
-    );
     return { cmd: 'node', args: [compiledScript, sqliteFile, sourceTag] };
   }
+
   const tsxBin = path.join(PROJECT_ROOT, 'node_modules/.bin/tsx');
   const tsScript = path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.ts');
+
+  // Runtime Docker images prune devDependencies, so tsx may not exist.
+  // Fall back to compiled JS importer to keep admin SQLite import operational.
+  if (!fsNative.existsSync(tsxBin) && fsNative.existsSync(compiledScript)) {
+    return { cmd: 'node', args: [compiledScript, sqliteFile, sourceTag] };
+  }
+
   return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
 }
 
