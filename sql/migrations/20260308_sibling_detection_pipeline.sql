@@ -6,8 +6,6 @@
 --   - app.refresh_network_sibling_pairs(...) (batch refresh from find_sibling_radios)
 --   - app.set_network_sibling_override(...) (helper for manual decisions)
 
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS app.network_sibling_pairs (
   bssid1 varchar(17) NOT NULL,
   bssid2 varchar(17) NOT NULL,
@@ -31,17 +29,23 @@ CREATE TABLE IF NOT EXISTS app.network_sibling_pairs (
   CONSTRAINT network_sibling_pairs_conf_chk CHECK (confidence >= 0 AND confidence <= 2)
 );
 
-CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_conf
-  ON app.network_sibling_pairs (confidence DESC);
-
-CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_strength
-  ON app.network_sibling_pairs (pair_strength, confidence DESC);
-
-CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_bssid1
-  ON app.network_sibling_pairs (bssid1);
-
-CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_bssid2
-  ON app.network_sibling_pairs (bssid2);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'app'
+      AND c.relname = 'network_sibling_pairs'
+      AND c.relowner = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+  ) THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_conf ON app.network_sibling_pairs (confidence DESC)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_strength ON app.network_sibling_pairs (pair_strength, confidence DESC)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_bssid1 ON app.network_sibling_pairs (bssid1)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_bssid2 ON app.network_sibling_pairs (bssid2)';
+  END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS app.network_sibling_overrides (
   bssid1 varchar(17) NOT NULL,
@@ -58,8 +62,20 @@ CREATE TABLE IF NOT EXISTS app.network_sibling_overrides (
   CONSTRAINT network_sibling_overrides_conf_chk CHECK (confidence >= 0 AND confidence <= 2)
 );
 
-CREATE INDEX IF NOT EXISTS idx_network_sibling_overrides_relation
-  ON app.network_sibling_overrides (relation, is_active);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'app'
+      AND c.relname = 'network_sibling_overrides'
+      AND c.relowner = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+  ) THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_network_sibling_overrides_relation ON app.network_sibling_overrides (relation, is_active)';
+  END IF;
+END
+$$;
 
 CREATE OR REPLACE VIEW app.network_siblings_effective AS
 WITH blocked AS (
@@ -286,13 +302,57 @@ BEGIN
 END;
 $$;
 
-COMMENT ON TABLE app.network_sibling_pairs IS
-'Heuristic sibling detection output. pair_strength in (candidate,strong,verified).';
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'app'
+      AND c.relname = 'network_sibling_pairs'
+      AND c.relowner = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+  ) THEN
+    EXECUTE $sql$
+      COMMENT ON TABLE app.network_sibling_pairs IS
+      'Heuristic sibling detection output. pair_strength in (candidate,strong,verified).'
+    $sql$;
+  END IF;
+END
+$$;
 
-COMMENT ON TABLE app.network_sibling_overrides IS
-'Analyst truth table for sibling/not_sibling decisions.';
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'app'
+      AND c.relname = 'network_sibling_overrides'
+      AND c.relowner = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+  ) THEN
+    EXECUTE $sql$
+      COMMENT ON TABLE app.network_sibling_overrides IS
+      'Analyst truth table for sibling/not_sibling decisions.'
+    $sql$;
+  END IF;
+END
+$$;
 
-COMMENT ON VIEW app.network_siblings_effective IS
-'Effective sibling graph: manual overrides plus strong heuristic pairs not explicitly blocked.';
-
-COMMIT;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'app'
+      AND c.relname = 'network_siblings_effective'
+      AND c.relkind = 'v'
+      AND c.relowner = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+  ) THEN
+    EXECUTE $sql$
+      COMMENT ON VIEW app.network_siblings_effective IS
+      'Effective sibling graph: manual overrides plus strong heuristic pairs not explicitly blocked.'
+    $sql$;
+  END IF;
+END
+$$;
