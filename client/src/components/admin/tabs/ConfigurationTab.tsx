@@ -61,6 +61,10 @@ export const ConfigurationTab: React.FC = () => {
     smartyConfigured,
     homeLocation,
     setHomeLocation,
+    homeLocationLoading,
+    homeLocationError,
+    homeLocationConfigured,
+    homeLocationLastUpdated,
     wigleApiName,
     setWigleApiName,
     wigleApiToken,
@@ -405,56 +409,76 @@ export const ConfigurationTab: React.FC = () => {
       {/* Home Location */}
       <AdminCard icon={ShieldIcon} title="Home Location" color="from-green-500 to-green-600">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-                Latitude
-              </label>
-              <input
-                type="number"
-                value={homeLocation.lat}
-                onChange={(e) => setHomeLocation({ ...homeLocation, lat: e.target.value })}
-                placeholder="39.1031"
-                className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-                Longitude
-              </label>
-              <input
-                type="number"
-                value={homeLocation.lng}
-                onChange={(e) => setHomeLocation({ ...homeLocation, lng: e.target.value })}
-                placeholder="-84.5120"
-                className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
-              />
-            </div>
+          <div className="text-xs text-slate-400">
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                homeLocationConfigured
+                  ? 'bg-green-900/40 text-green-300'
+                  : 'bg-red-900/40 text-red-300'
+              }`}
+            >
+              {homeLocationConfigured ? '✓ Configured' : '✗ Not Configured'}
+            </span>
+            {homeLocationLastUpdated && (
+              <p className="mt-2 text-slate-400">
+                Last updated: {new Date(homeLocationLastUpdated).toLocaleString()}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Radius: {homeLocation.radius}m
+              Latitude
             </label>
             <input
-              type="range"
-              min="10"
-              max="5000"
-              step="10"
+              type="number"
+              step="any"
+              value={homeLocation.lat}
+              onChange={(e) => setHomeLocation({ ...homeLocation, lat: e.target.value })}
+              placeholder="39.1031"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
+              Longitude
+            </label>
+            <input
+              type="number"
+              step="any"
+              value={homeLocation.lng}
+              onChange={(e) => setHomeLocation({ ...homeLocation, lng: e.target.value })}
+              placeholder="-84.5120"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
+              Radius (meters)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
               value={homeLocation.radius}
               onChange={(e) => setHomeLocation({ ...homeLocation, radius: e.target.value })}
-              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+              placeholder="500"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
             />
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
-              <span>10m</span>
-              <span>5km</span>
-            </div>
           </div>
+          {homeLocationLoading && (
+            <p className="text-xs text-slate-400">Loading current location...</p>
+          )}
+          {!homeLocationLoading && homeLocationError && (
+            <p className="text-xs text-red-300 bg-red-900/20 border border-red-700/30 rounded-md px-2 py-1">
+              {homeLocationError}
+            </p>
+          )}
           <button
             onClick={saveHomeLocation}
-            disabled={isLoading}
+            disabled={isLoading || homeLocationLoading}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all disabled:opacity-50 text-sm"
           >
-            {isLoading ? 'Saving...' : 'Save Location'}
+            {isLoading ? 'Saving...' : 'Update Home Location'}
           </button>
         </div>
       </AdminCard>

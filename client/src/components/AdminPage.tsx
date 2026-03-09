@@ -236,6 +236,18 @@ const AdminPage: React.FC = () => {
     { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
     { id: 'users', label: 'Users', icon: UsersIcon },
   ];
+  const primaryTabIds = new Set([
+    'config',
+    'api',
+    'ml',
+    'wigle',
+    'wigle-detail',
+    'imports',
+    'backups',
+    'exports',
+  ]);
+  const primaryTabs = tabs.filter((tab) => primaryTabIds.has(tab.id));
+  const secondaryTabs = tabs.filter((tab) => !primaryTabIds.has(tab.id));
 
   return (
     <div className="relative w-full h-screen overflow-y-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -259,21 +271,39 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-2 mb-5 bg-slate-900/60 p-3 rounded-xl border border-slate-700/40 backdrop-blur-sm">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
-                  : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
-              }`}
-            >
-              <tab.icon size={16} />
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        <div className="mb-5 bg-slate-900/60 p-3 rounded-xl border border-slate-700/40 backdrop-blur-sm">
+          <div className="flex flex-wrap gap-2">
+            {primaryTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
+                    : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
+                }`}
+              >
+                <tab.icon size={16} />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            {secondaryTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
+                    : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
+                }`}
+              >
+                <tab.icon size={16} />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab Content */}

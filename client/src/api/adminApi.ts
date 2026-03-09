@@ -98,6 +98,10 @@ export const adminApi = {
     return apiClient.post('/admin/home-location', { latitude, longitude, radius });
   },
 
+  async getHomeLocation(): Promise<any> {
+    return apiClient.get('/admin/home-location');
+  },
+
   async getMapboxToken(): Promise<any> {
     return apiClient.get('/settings/mapbox');
   },

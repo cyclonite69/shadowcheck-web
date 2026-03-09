@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
 
+type HomeLocationState = { lat: string; lng: string; radius: string };
+
 export const useConfiguration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mapboxToken, setMapboxToken] = useState('');
@@ -21,7 +23,15 @@ export const useConfiguration = () => {
   const [smartyConfigured, setSmartyConfigured] = useState(false);
   const [wigleApiName, setWigleApiName] = useState('');
   const [wigleApiToken, setWigleApiToken] = useState('');
-  const [homeLocation, setHomeLocation] = useState({ lat: '', lng: '', radius: '1000' });
+  const [homeLocation, setHomeLocation] = useState<HomeLocationState>({
+    lat: '',
+    lng: '',
+    radius: '1000',
+  });
+  const [homeLocationLoading, setHomeLocationLoading] = useState(true);
+  const [homeLocationError, setHomeLocationError] = useState<string | null>(null);
+  const [homeLocationConfigured, setHomeLocationConfigured] = useState(false);
+  const [homeLocationLastUpdated, setHomeLocationLastUpdated] = useState<string | null>(null);
 
   const saveMapboxToken = async () => {
     try {
@@ -128,15 +138,34 @@ export const useConfiguration = () => {
   };
 
   const saveHomeLocation = async () => {
+    const lat = parseFloat(homeLocation.lat);
+    const lng = parseFloat(homeLocation.lng);
+    const radius = parseInt(homeLocation.radius, 10);
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      setHomeLocationError('Latitude must be a number between -90 and 90.');
+      return;
+    }
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      setHomeLocationError('Longitude must be a number between -180 and 180.');
+      return;
+    }
+    if (!Number.isInteger(radius) || radius <= 0) {
+      setHomeLocationError('Radius must be a positive integer.');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      await adminApi.saveHomeLocation(
-        parseFloat(homeLocation.lat),
-        parseFloat(homeLocation.lng),
-        parseInt(homeLocation.radius)
-      );
-      alert(true ? 'Home location saved!' : 'Failed to save location');
-    } catch {
+      setHomeLocationError(null);
+      await adminApi.saveHomeLocation(lat, lng, radius);
+      setHomeLocationConfigured(true);
+      setHomeLocationLastUpdated(new Date().toISOString());
+      alert('Home location saved!');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unable to save home location right now.';
+      setHomeLocationError(message);
       alert('Error saving location');
     } finally {
       setIsLoading(false);
@@ -210,7 +239,39 @@ export const useConfiguration = () => {
       }
     };
 
+    const loadHomeLocation = async () => {
+      setHomeLocationLoading(true);
+      setHomeLocationError(null);
+      try {
+        const location = await adminApi.getHomeLocation();
+        if (
+          location &&
+          typeof location.latitude === 'number' &&
+          typeof location.longitude === 'number'
+        ) {
+          setHomeLocation({
+            lat: String(location.latitude),
+            lng: String(location.longitude),
+            radius: String(location.radius ?? 1000),
+          });
+          setHomeLocationConfigured(true);
+          setHomeLocationLastUpdated(location.lastUpdated ?? null);
+        } else {
+          setHomeLocationConfigured(false);
+        }
+      } catch (error) {
+        setHomeLocationConfigured(false);
+        const message = error instanceof Error ? error.message : '';
+        if (message && !message.includes('404')) {
+          setHomeLocationError('Failed to load current home location.');
+        }
+      } finally {
+        setHomeLocationLoading(false);
+      }
+    };
+
     loadMaskedConfig();
+    loadHomeLocation();
   }, []);
 
   return {
@@ -245,6 +306,10 @@ export const useConfiguration = () => {
     setWigleApiToken,
     homeLocation,
     setHomeLocation,
+    homeLocationLoading,
+    homeLocationError,
+    homeLocationConfigured,
+    homeLocationLastUpdated,
     saveMapboxToken,
     saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,
