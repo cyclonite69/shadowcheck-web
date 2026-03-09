@@ -40,6 +40,7 @@ function AppContent() {
   const { loading, login, isAuthenticated } = useAuth();
   const [error, setError] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
 
   if (loading) {
     return <RouteLoadingFallback />;
@@ -78,7 +79,8 @@ function AppContent() {
       <main id="main-content" className="flex h-screen">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
-            <Route path="/" element={<StartPage />} />
+            <Route path="/" element={demoMode ? <StartPage /> : <DashboardPage />} />
+            <Route path="/start" element={<StartPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
             <Route path="/analytics" element={<AnalyticsPage />} />

@@ -7,6 +7,7 @@ const Navigation: React.FC = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
   const { isAdmin, logout } = useAuth();
+  const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -103,14 +104,16 @@ const Navigation: React.FC = () => {
         }}
         onMouseLeave={() => setNavVisible(false)}
       >
-        <a
-          href="/"
-          style={linkStyle('/')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          Start
-        </a>
+        {demoMode && (
+          <a
+            href="/"
+            style={linkStyle('/')}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            Start
+          </a>
+        )}
         <a
           href="/dashboard"
           style={linkStyle('/dashboard')}
