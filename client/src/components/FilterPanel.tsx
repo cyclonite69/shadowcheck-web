@@ -54,7 +54,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
 
   return (
     <div
-      className={`filter-panel w-[420px] bg-slate-950 border border-slate-600 rounded-xl text-slate-200 flex flex-col h-full flex-shrink-0 overflow-visible ${
+      className={`filter-panel w-full max-w-[420px] bg-slate-950 border border-slate-600 rounded-xl text-slate-200 flex flex-col h-full flex-shrink-0 overflow-visible ${
         isCompact ? 'filter-panel--compact' : ''
       }`}
     >
