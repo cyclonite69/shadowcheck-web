@@ -79,7 +79,11 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     claudeRoutes,
     threatReportRoutes,
   } = deps;
-  const apiGateEnabled = process.env.API_GATE_ENABLED === 'true';
+  // Fail closed: gate is enabled unless explicitly set to "false".
+  const apiGateEnabled =
+    String(process.env.API_GATE_ENABLED ?? 'true')
+      .trim()
+      .toLowerCase() === 'true';
   const userGate: RequestHandler = apiGateEnabled
     ? requireAuth
     : (_req, _res, next) => {

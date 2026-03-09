@@ -2,11 +2,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { exportService } = require('../../../config/container');
-
-// No authentication required for exports
-const requireAuth = (req, res, next) => {
-  return next();
-};
+const { requireAuth } = require('../../../middleware/authMiddleware');
 
 // Export as CSV with all available observation fields
 router.get('/csv', requireAuth, async (req, res) => {
