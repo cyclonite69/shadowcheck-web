@@ -88,6 +88,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      API_GATE_ENABLED: "true"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: shadowcheck_user
