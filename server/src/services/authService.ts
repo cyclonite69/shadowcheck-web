@@ -280,27 +280,41 @@ class AuthService {
   }
 
   async updateUserPassword(userId, passwordHash, plainTextPassword) {
-    try {
-      await query(
-        'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2',
-        [passwordHash, userId]
-      );
-    } catch (error) {
-      if (error?.code === '42703') {
-        await query('UPDATE app.users SET password_hash = $1 WHERE id = $2', [
-          passwordHash,
-          userId,
-        ]);
-        return;
-      }
+    const runUpdate = async (sql) => {
+      try {
+        await query(sql, [passwordHash, userId]);
+        return true;
+      } catch (error) {
+        if (error?.code === '42501' && plainTextPassword) {
+          await adminDbService.resetAppUserPassword(userId, plainTextPassword, false);
+          return true;
+        }
 
-      if (error?.code === '42501' && plainTextPassword) {
-        await adminDbService.resetAppUserPassword(userId, plainTextPassword, false);
-        return;
-      }
+        if (error?.code === '42703') {
+          return false;
+        }
 
-      throw error;
+        throw error;
+      }
+    };
+
+    const updatedWithForceFlag = await runUpdate(
+      'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2'
+    );
+
+    if (updatedWithForceFlag) {
+      return;
     }
+
+    const updatedWithoutForceFlag = await runUpdate(
+      'UPDATE app.users SET password_hash = $1 WHERE id = $2'
+    );
+
+    if (updatedWithoutForceFlag) {
+      return;
+    }
+
+    throw new Error('Password update failed');
   }
 }
 
