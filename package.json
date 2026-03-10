@@ -49,7 +49,7 @@
     "@aws-sdk/client-ec2": "^3.1004.0",
     "@aws-sdk/client-secrets-manager": "^3.1000.0",
     "@aws-sdk/client-sts": "^3.1000.0",
-    "@deck.gl/core": "^9.2.10",
+    "@deck.gl/core": "^9.2.11",
     "@deck.gl/layers": "^9.2.10",
     "@deck.gl/react": "^9.2.10",
     "@deck.gl/widgets": "9.2.9",
