@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { query } = require('../config/database');
+const adminDbService = require('./adminDbService');
 const logger = require('../logging/logger');
 
 export {};
@@ -187,7 +188,7 @@ class AuthService {
 
       // Hash and update new password
       const newHash = await bcrypt.hash(newPassword, this.saltRounds);
-      await this.updateUserPassword(user.id, newHash);
+      await this.updateUserPassword(user.id, newHash, newPassword);
 
       logger.info(`Password changed for user ${username}`, { userId: user.id });
 
@@ -278,17 +279,27 @@ class AuthService {
     }
   }
 
-  async updateUserPassword(userId, passwordHash) {
+  async updateUserPassword(userId, passwordHash, plainTextPassword) {
     try {
       await query(
         'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2',
         [passwordHash, userId]
       );
     } catch (error) {
-      if (error?.code !== '42703') {
-        throw error;
+      if (error?.code === '42703') {
+        await query('UPDATE app.users SET password_hash = $1 WHERE id = $2', [
+          passwordHash,
+          userId,
+        ]);
+        return;
       }
-      await query('UPDATE app.users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
+
+      if (error?.code === '42501' && plainTextPassword) {
+        await adminDbService.resetAppUserPassword(userId, plainTextPassword, false);
+        return;
+      }
+
+      throw error;
     }
   }
 }
