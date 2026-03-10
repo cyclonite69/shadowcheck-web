@@ -20,10 +20,7 @@ class AuthService {
   async login(username, password, userAgent = '', ipAddress = '') {
     try {
       // Find user
-      const userResult = await query(
-        'SELECT id, username, email, password_hash, role, is_active FROM app.users WHERE username = $1',
-        [username]
-      );
+      const userResult = await this.getUserForLogin(username);
 
       if (userResult.rows.length === 0) {
         return { success: false, error: 'Invalid credentials' };
@@ -73,6 +70,7 @@ class AuthService {
           email: user.email,
           role: user.role,
         },
+        forcePasswordChange: Boolean(user.force_password_change),
       };
     } catch (error) {
       logger.error('Login error:', error);
@@ -92,13 +90,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      const result = await query(
-        `SELECT u.id, u.username, u.email, u.role, u.is_active, s.expires_at
-         FROM app.user_sessions s
-         JOIN app.users u ON s.user_id = u.id
-         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
-        [tokenHash]
-      );
+      const result = await this.getSessionUser(tokenHash);
 
       if (result.rows.length === 0) {
         return { valid: false, error: 'Invalid or expired session' };
@@ -118,6 +110,7 @@ class AuthService {
           email: user.email,
           role: user.role,
         },
+        forcePasswordChange: Boolean(user.force_password_change),
       };
     } catch (error) {
       logger.error('Session validation error:', error);
@@ -174,11 +167,7 @@ class AuthService {
    */
   async changePassword(username, currentPassword, newPassword) {
     try {
-      // Find user
-      const userResult = await query(
-        'SELECT id, username, password_hash, is_active FROM app.users WHERE username = $1',
-        [username]
-      );
+      const userResult = await this.getUserForPasswordChange(username);
 
       if (userResult.rows.length === 0) {
         return { success: false, error: 'Invalid credentials' };
@@ -198,7 +187,7 @@ class AuthService {
 
       // Hash and update new password
       const newHash = await bcrypt.hash(newPassword, this.saltRounds);
-      await query('UPDATE app.users SET password_hash = $1 WHERE id = $2', [newHash, user.id]);
+      await this.updateUserPassword(user.id, newHash);
 
       logger.info(`Password changed for user ${username}`, { userId: user.id });
 
@@ -221,6 +210,85 @@ class AuthService {
       }
     } catch (error) {
       logger.error('Session cleanup error:', error);
+    }
+  }
+
+  async getUserForLogin(username) {
+    try {
+      return await query(
+        `SELECT id, username, email, password_hash, role, is_active, force_password_change
+         FROM app.users
+         WHERE username = $1`,
+        [username]
+      );
+    } catch (error) {
+      if (error?.code !== '42703') {
+        throw error;
+      }
+      return query(
+        `SELECT id, username, email, password_hash, role, is_active, false AS force_password_change
+         FROM app.users
+         WHERE username = $1`,
+        [username]
+      );
+    }
+  }
+
+  async getUserForPasswordChange(username) {
+    try {
+      return await query(
+        `SELECT id, username, password_hash, is_active, force_password_change
+         FROM app.users
+         WHERE username = $1`,
+        [username]
+      );
+    } catch (error) {
+      if (error?.code !== '42703') {
+        throw error;
+      }
+      return query(
+        `SELECT id, username, password_hash, is_active, false AS force_password_change
+         FROM app.users
+         WHERE username = $1`,
+        [username]
+      );
+    }
+  }
+
+  async getSessionUser(tokenHash) {
+    try {
+      return await query(
+        `SELECT u.id, u.username, u.email, u.role, u.is_active, u.force_password_change, s.expires_at
+         FROM app.user_sessions s
+         JOIN app.users u ON s.user_id = u.id
+         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
+        [tokenHash]
+      );
+    } catch (error) {
+      if (error?.code !== '42703') {
+        throw error;
+      }
+      return query(
+        `SELECT u.id, u.username, u.email, u.role, u.is_active, false AS force_password_change, s.expires_at
+         FROM app.user_sessions s
+         JOIN app.users u ON s.user_id = u.id
+         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
+        [tokenHash]
+      );
+    }
+  }
+
+  async updateUserPassword(userId, passwordHash) {
+    try {
+      await query(
+        'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2',
+        [passwordHash, userId]
+      );
+    } catch (error) {
+      if (error?.code !== '42703') {
+        throw error;
+      }
+      await query('UPDATE app.users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
     }
   }
 }

@@ -37,13 +37,41 @@ function RouteLoadingFallback() {
 }
 
 function AppContent() {
-  const { loading, login, isAuthenticated } = useAuth();
+  const { loading, login, isAuthenticated, mustChangePassword, pendingUsername, refreshAuth } =
+    useAuth();
   const [error, setError] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [forcedCurrentPassword, setForcedCurrentPassword] = useState('');
   const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
+
+  const handleLogin = (payload: {
+    user: any;
+    forcePasswordChange?: boolean;
+    currentPassword: string;
+  }) => {
+    setForcedCurrentPassword(payload.forcePasswordChange ? payload.currentPassword : '');
+    login({
+      user: payload.user,
+      forcePasswordChange: payload.forcePasswordChange,
+    });
+  };
 
   if (loading) {
     return <RouteLoadingFallback />;
+  }
+
+  if (mustChangePassword) {
+    return (
+      <ChangePasswordForm
+        forceMode
+        initialUsername={pendingUsername}
+        initialCurrentPassword={forcedCurrentPassword}
+        onSuccess={async () => {
+          setForcedCurrentPassword('');
+          await refreshAuth();
+        }}
+      />
+    );
   }
 
   if (!isAuthenticated) {
@@ -59,7 +87,7 @@ function AppContent() {
           </div>
         )}
         <LoginForm
-          onLogin={login}
+          onLogin={handleLogin}
           onError={setError}
           onChangePassword={() => setShowChangePassword(true)}
         />

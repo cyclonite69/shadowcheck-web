@@ -82,7 +82,11 @@ router.get('/settings/wigle', requireAuth, async (req, res) => {
   try {
     const apiName = await secretsManager.getSecret('wigle_api_name');
     const apiToken = await secretsManager.getSecret('wigle_api_token');
-    res.json({ configured: Boolean(apiName && apiToken) });
+    res.json({
+      configured: Boolean(apiName && apiToken),
+      apiName: apiName || '',
+      apiToken: apiToken || '',
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -169,11 +173,12 @@ router.get('/settings/wigle/test', requireAuth, async (req, res) => {
 });
 
 // Get Mapbox token status
-router.get('/settings/mapbox', async (req, res) => {
+router.get('/settings/mapbox', requireAuth, async (req, res) => {
   try {
     const token = await secretsManager.getSecret('mapbox_token');
     res.json({
       configured: Boolean(token),
+      value: token || '',
       tokens: token ? [{ label: 'default', isPrimary: true }] : [],
     });
   } catch (error) {
@@ -205,10 +210,10 @@ router.post('/settings/mapbox', async (req, res) => {
 });
 
 // Get Mapbox unlimited (geocoding) key (masked)
-router.get('/settings/mapbox-unlimited', async (req, res) => {
+router.get('/settings/mapbox-unlimited', requireAuth, async (req, res) => {
   try {
     const apiKey = await secretsManager.getSecret('mapbox_unlimited_api_key');
-    res.json({ configured: Boolean(apiKey) });
+    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -232,10 +237,10 @@ router.post('/settings/mapbox-unlimited', async (req, res) => {
 });
 
 // Get Google Maps API key (masked)
-router.get('/settings/google-maps', async (req, res) => {
+router.get('/settings/google-maps', requireAuth, async (req, res) => {
   try {
     const apiKey = await secretsManager.getSecret('google_maps_api_key');
-    res.json({ configured: Boolean(apiKey) });
+    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -259,10 +264,10 @@ router.post('/settings/google-maps', async (req, res) => {
 });
 
 // Get OpenCage API key (masked)
-router.get('/settings/opencage', async (req, res) => {
+router.get('/settings/opencage', requireAuth, async (req, res) => {
   try {
     const apiKey = await secretsManager.getSecret('opencage_api_key');
-    res.json({ configured: Boolean(apiKey) });
+    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -286,10 +291,10 @@ router.post('/settings/opencage', async (req, res) => {
 });
 
 // Get LocationIQ API key (masked)
-router.get('/settings/locationiq', async (req, res) => {
+router.get('/settings/locationiq', requireAuth, async (req, res) => {
   try {
     const apiKey = await secretsManager.getSecret('locationiq_api_key');
-    res.json({ configured: Boolean(apiKey) });
+    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -313,7 +318,7 @@ router.post('/settings/locationiq', async (req, res) => {
 });
 
 // Get AWS runtime configuration (region only; credentials use provider chain)
-router.get('/settings/aws', async (req, res) => {
+router.get('/settings/aws', requireAuth, async (req, res) => {
   try {
     const region = await secretsManager.getSecret('aws_region');
 
@@ -345,11 +350,15 @@ router.post('/settings/aws', async (req, res) => {
 });
 
 // Get Smarty credentials (masked)
-router.get('/settings/smarty', async (req, res) => {
+router.get('/settings/smarty', requireAuth, async (req, res) => {
   try {
     const authId = await secretsManager.getSecret('smarty_auth_id');
     const authToken = await secretsManager.getSecret('smarty_auth_token');
-    res.json({ configured: Boolean(authId && authToken) });
+    res.json({
+      configured: Boolean(authId && authToken),
+      authId: authId || '',
+      authToken: authToken || '',
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -2,6 +2,39 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
 
 type HomeLocationState = { lat: string; lng: string; radius: string };
+type SavedConfigurationValues = {
+  mapboxToken: string;
+  mapboxUnlimitedApiKey: string;
+  googleMapsApiKey: string;
+  awsRegion: string;
+  opencageApiKey: string;
+  locationIqApiKey: string;
+  smartyAuthId: string;
+  smartyAuthToken: string;
+  wigleApiName: string;
+  wigleApiToken: string;
+  homeLocation: HomeLocationState;
+};
+
+const EMPTY_HOME_LOCATION: HomeLocationState = {
+  lat: '',
+  lng: '',
+  radius: '1000',
+};
+
+const EMPTY_SAVED_VALUES: SavedConfigurationValues = {
+  mapboxToken: '',
+  mapboxUnlimitedApiKey: '',
+  googleMapsApiKey: '',
+  awsRegion: '',
+  opencageApiKey: '',
+  locationIqApiKey: '',
+  smartyAuthId: '',
+  smartyAuthToken: '',
+  wigleApiName: '',
+  wigleApiToken: '',
+  homeLocation: EMPTY_HOME_LOCATION,
+};
 
 export const useConfiguration = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,11 +56,8 @@ export const useConfiguration = () => {
   const [smartyConfigured, setSmartyConfigured] = useState(false);
   const [wigleApiName, setWigleApiName] = useState('');
   const [wigleApiToken, setWigleApiToken] = useState('');
-  const [homeLocation, setHomeLocation] = useState<HomeLocationState>({
-    lat: '',
-    lng: '',
-    radius: '1000',
-  });
+  const [homeLocation, setHomeLocation] = useState<HomeLocationState>(EMPTY_HOME_LOCATION);
+  const [savedValues, setSavedValues] = useState<SavedConfigurationValues>(EMPTY_SAVED_VALUES);
   const [homeLocationLoading, setHomeLocationLoading] = useState(true);
   const [homeLocationError, setHomeLocationError] = useState<string | null>(null);
   const [homeLocationConfigured, setHomeLocationConfigured] = useState(false);
@@ -38,6 +68,7 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveMapboxToken(mapboxToken);
       setMapboxConfigured(true);
+      setSavedValues((current) => ({ ...current, mapboxToken }));
       alert('Mapbox token saved!');
     } catch (error) {
       alert(`Error saving token: ${(error as Error).message}`);
@@ -51,6 +82,7 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveMapboxUnlimited(mapboxUnlimitedApiKey);
       setMapboxUnlimitedConfigured(true);
+      setSavedValues((current) => ({ ...current, mapboxUnlimitedApiKey }));
       alert('Mapbox geocoding key saved!');
     } catch (error) {
       alert(`Error saving Mapbox geocoding key: ${(error as Error).message}`);
@@ -64,6 +96,11 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveWigleToken(wigleApiToken);
       setWigleConfigured(true);
+      setSavedValues((current) => ({
+        ...current,
+        wigleApiName,
+        wigleApiToken,
+      }));
       alert('WiGLE credentials saved!');
     } catch (error) {
       alert(`Error saving credentials: ${(error as Error).message}`);
@@ -77,6 +114,7 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveGoogleMapsKey(googleMapsApiKey);
       setGoogleMapsConfigured(true);
+      setSavedValues((current) => ({ ...current, googleMapsApiKey }));
       alert('Google Maps API key saved!');
     } catch (error) {
       alert(`Error saving API key: ${(error as Error).message}`);
@@ -90,6 +128,7 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveAwsRegion(awsRegion);
       setAwsConfigured(true);
+      setSavedValues((current) => ({ ...current, awsRegion }));
       alert('AWS region saved. Runtime credentials provider chain is active.');
     } catch (error) {
       alert(`Error saving AWS region: ${(error as Error).message}`);
@@ -103,6 +142,7 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveOpenCageKey(opencageApiKey);
       setOpencageConfigured(true);
+      setSavedValues((current) => ({ ...current, opencageApiKey }));
       alert('OpenCage API key saved!');
     } catch (error) {
       alert(`Error saving OpenCage key: ${(error as Error).message}`);
@@ -116,6 +156,7 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveLocationIQKey(locationIqApiKey);
       setLocationIqConfigured(true);
+      setSavedValues((current) => ({ ...current, locationIqApiKey }));
       alert('LocationIQ API key saved!');
     } catch (error) {
       alert(`Error saving LocationIQ key: ${(error as Error).message}`);
@@ -129,6 +170,11 @@ export const useConfiguration = () => {
       setIsLoading(true);
       await adminApi.saveSmartyKey(smartyAuthId, smartyAuthToken);
       setSmartyConfigured(true);
+      setSavedValues((current) => ({
+        ...current,
+        smartyAuthId,
+        smartyAuthToken,
+      }));
       alert('Smarty credentials saved!');
     } catch (error) {
       alert(`Error saving Smarty credentials: ${(error as Error).message}`);
@@ -161,6 +207,14 @@ export const useConfiguration = () => {
       await adminApi.saveHomeLocation(lat, lng, radius);
       setHomeLocationConfigured(true);
       setHomeLocationLastUpdated(new Date().toISOString());
+      setSavedValues((current) => ({
+        ...current,
+        homeLocation: {
+          lat: String(lat),
+          lng: String(lng),
+          radius: String(radius),
+        },
+      }));
       alert('Home location saved!');
     } catch (error) {
       const message =
@@ -202,30 +256,63 @@ export const useConfiguration = () => {
             const tokens = Array.isArray(mapboxRes.tokens) ? mapboxRes.tokens : [];
             setMapboxConfigured(tokens.length > 0);
           }
+          const savedToken = String(mapboxRes.value || '');
+          setMapboxToken(savedToken);
+          setSavedValues((current) => ({ ...current, mapboxToken: savedToken }));
         }
         if (mapboxUnlimitedRes) {
           setMapboxUnlimitedConfigured(Boolean(mapboxUnlimitedRes.configured));
+          const savedApiKey = String(mapboxUnlimitedRes.value || '');
+          setMapboxUnlimitedApiKey(savedApiKey);
+          setSavedValues((current) => ({ ...current, mapboxUnlimitedApiKey: savedApiKey }));
         }
         if (googleRes) {
           setGoogleMapsConfigured(Boolean(googleRes.configured));
+          const savedApiKey = String(googleRes.value || '');
+          setGoogleMapsApiKey(savedApiKey);
+          setSavedValues((current) => ({ ...current, googleMapsApiKey: savedApiKey }));
         }
         if (wigleRes) {
           setWigleConfigured(Boolean(wigleRes.configured));
+          const savedApiName = String(wigleRes.apiName || '');
+          const savedApiToken = String(wigleRes.apiToken || '');
+          setWigleApiName(savedApiName);
+          setWigleApiToken(savedApiToken);
+          setSavedValues((current) => ({
+            ...current,
+            wigleApiName: savedApiName,
+            wigleApiToken: savedApiToken,
+          }));
         }
         if (awsRes) {
           setAwsConfigured(Boolean(awsRes.configured));
-          if (awsRes.region && !awsRegion) {
-            setAwsRegion(awsRes.region);
-          }
+          const savedRegion = String(awsRes.region || '');
+          setAwsRegion(savedRegion);
+          setSavedValues((current) => ({ ...current, awsRegion: savedRegion }));
         }
         if (opencageRes) {
           setOpencageConfigured(Boolean(opencageRes.configured));
+          const savedApiKey = String(opencageRes.value || '');
+          setOpencageApiKey(savedApiKey);
+          setSavedValues((current) => ({ ...current, opencageApiKey: savedApiKey }));
         }
         if (locationIqRes) {
           setLocationIqConfigured(Boolean(locationIqRes.configured));
+          const savedApiKey = String(locationIqRes.value || '');
+          setLocationIqApiKey(savedApiKey);
+          setSavedValues((current) => ({ ...current, locationIqApiKey: savedApiKey }));
         }
         if (smartyRes) {
           setSmartyConfigured(Boolean(smartyRes.configured));
+          const savedAuthId = String(smartyRes.authId || '');
+          const savedAuthToken = String(smartyRes.authToken || '');
+          setSmartyAuthId(savedAuthId);
+          setSmartyAuthToken(savedAuthToken);
+          setSavedValues((current) => ({
+            ...current,
+            smartyAuthId: savedAuthId,
+            smartyAuthToken: savedAuthToken,
+          }));
         }
       } catch {
         setMapboxConfigured(false);
@@ -254,6 +341,14 @@ export const useConfiguration = () => {
             lng: String(location.longitude),
             radius: String(location.radius ?? 1000),
           });
+          setSavedValues((current) => ({
+            ...current,
+            homeLocation: {
+              lat: String(location.latitude),
+              lng: String(location.longitude),
+              radius: String(location.radius ?? 1000),
+            },
+          }));
           setHomeLocationConfigured(true);
           setHomeLocationLastUpdated(location.lastUpdated ?? null);
         } else {
@@ -306,6 +401,7 @@ export const useConfiguration = () => {
     setWigleApiToken,
     homeLocation,
     setHomeLocation,
+    savedValues,
     homeLocationLoading,
     homeLocationError,
     homeLocationConfigured,

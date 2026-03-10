@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
+import { useAuth } from '../../../hooks/useAuth';
 import type { AdminUser } from '../types/admin.types';
 import { AdminCard } from '../components/AdminCard';
 
@@ -21,6 +22,7 @@ const UsersIcon = ({ size = 24, className = '' }) => (
 );
 
 export const UsersTab: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -80,6 +82,11 @@ export const UsersTab: React.FC = () => {
   };
 
   const handleToggleActive = async (user: AdminUser) => {
+    if (currentUser && currentUser.id === user.id && user.is_active) {
+      setError('You cannot disable your own admin account');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setNotice(null);
@@ -209,10 +216,20 @@ export const UsersTab: React.FC = () => {
                     </td>
                     <td className="py-2 pr-4">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {currentUser && currentUser.id === user.id && (
+                          <span className="px-2 py-1 rounded text-xs bg-blue-900/40 text-blue-300">
+                            Current session
+                          </span>
+                        )}
                         <button
-                          disabled={submitting}
+                          disabled={submitting || (currentUser?.id === user.id && user.is_active)}
                           onClick={() => handleToggleActive(user)}
                           className="px-2 py-1 rounded text-xs bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50"
+                          title={
+                            currentUser?.id === user.id && user.is_active
+                              ? 'You cannot disable your own admin account'
+                              : undefined
+                          }
                         >
                           {user.is_active ? 'Disable' : 'Enable'}
                         </button>

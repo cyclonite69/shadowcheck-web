@@ -39,6 +39,7 @@ router.post('/auth/login', async (req, res) => {
     res.json({
       success: true,
       user: result.user,
+      forcePasswordChange: Boolean(result.forcePasswordChange),
       message: 'Login successful',
     });
   } catch (error) {
@@ -104,6 +105,7 @@ router.get('/auth/me', async (req, res) => {
     res.json({
       authenticated: true,
       user: result.user,
+      forcePasswordChange: Boolean(result.forcePasswordChange),
     });
   } catch (error) {
     logger.error('Auth me route error:', error);

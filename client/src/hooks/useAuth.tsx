@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { apiClient } from '../api/client';
+import type { LoginResponse } from '../api/authApi';
 
 interface User {
   id: number;
@@ -19,10 +20,13 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (user: User) => void;
+  login: (result: LoginResponse) => void;
   logout: () => void;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  mustChangePassword: boolean;
+  pendingUsername: string;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +47,8 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [pendingUsername, setPendingUsername] = useState('');
   const [loading, setLoading] = useState(true);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loggingOutRef = useRef(false);
@@ -59,10 +65,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const data = await apiClient.get<any>('/auth/me');
       if (data.authenticated) {
-        setUser(data.user);
+        if (data.forcePasswordChange) {
+          setUser(null);
+          setMustChangePassword(true);
+          setPendingUsername(data.user?.username || '');
+        } else {
+          setUser(data.user);
+          setMustChangePassword(false);
+          setPendingUsername('');
+        }
       }
     } catch {
       // Not authenticated or server error — user stays null
+      setUser(null);
+      setMustChangePassword(false);
+      setPendingUsername('');
     } finally {
       setLoading(false);
     }
@@ -72,8 +89,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus();
   }, [checkAuthStatus]);
 
-  const login = useCallback((userData: User) => {
-    setUser(userData);
+  const login = useCallback((result: LoginResponse) => {
+    if (result.forcePasswordChange) {
+      setUser(null);
+      setMustChangePassword(true);
+      setPendingUsername(result.user?.username || '');
+      return;
+    }
+
+    setUser(result.user as User);
+    setMustChangePassword(false);
+    setPendingUsername('');
   }, []);
 
   const logout = useCallback(async () => {
@@ -86,6 +112,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       clearIdleTimer();
       setUser(null);
+      setMustChangePassword(false);
+      setPendingUsername('');
       loggingOutRef.current = false;
     }
   }, [clearIdleTimer]);
@@ -123,6 +151,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isAdmin: user?.role === 'admin',
     isAuthenticated: !!user,
+    mustChangePassword,
+    pendingUsername,
+    refreshAuth: checkAuthStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

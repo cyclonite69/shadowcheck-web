@@ -2,10 +2,20 @@ import React from 'react';
 import { useChangePassword } from '../../hooks/useChangePassword';
 
 interface ChangePasswordFormProps {
-  onBack: () => void;
+  onBack?: () => void;
+  initialUsername?: string;
+  initialCurrentPassword?: string;
+  forceMode?: boolean;
+  onSuccess?: () => void | Promise<void>;
 }
 
-export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onBack }) => {
+export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
+  onBack,
+  initialUsername,
+  initialCurrentPassword,
+  forceMode = false,
+  onSuccess,
+}) => {
   const {
     username,
     setUsername,
@@ -19,7 +29,11 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onBack }
     error,
     success,
     changePassword,
-  } = useChangePassword();
+  } = useChangePassword({
+    initialUsername,
+    initialCurrentPassword,
+    onSuccess,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +56,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onBack }
             </p>
           </div>
           <button
-            onClick={onBack}
+            onClick={onBack || (() => {})}
             className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Back to Sign In
@@ -66,10 +80,14 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onBack }
               />
             </svg>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-white">Change Password</h2>
-          <p className="mt-2 text-center text-sm text-slate-400">
-            Enter your current password and choose a new one
-          </p>
+            <h2 className="mt-6 text-center text-3xl font-bold text-white">
+              {forceMode ? 'Password Update Required' : 'Change Password'}
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-400">
+              {forceMode
+                ? 'Your password must be changed before continuing.'
+                : 'Enter your current password and choose a new one'}
+            </p>
         </div>
 
         {error && (
@@ -161,13 +179,15 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ onBack }
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={onBack}
-              className="w-full flex justify-center py-2 px-4 text-sm font-medium text-slate-400 hover:text-white transition-colors"
-            >
-              Back to Sign In
-            </button>
+            {onBack && !forceMode && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="w-full flex justify-center py-2 px-4 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              >
+                Back to Sign In
+              </button>
+            )}
           </div>
         </form>
       </div>

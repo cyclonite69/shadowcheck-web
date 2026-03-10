@@ -63,6 +63,11 @@ router.put('/:id/active', async (req, res) => {
     if (typeof isActive !== 'boolean') {
       return res.status(400).json({ success: false, error: 'isActive must be boolean' });
     }
+    if (req.user?.id && Number(req.user.id) === userId && isActive === false) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'You cannot disable your own admin account' });
+    }
 
     const user = await adminDbService.setAppUserActive(userId, isActive);
     if (!user) {

@@ -2,7 +2,7 @@ import React from 'react';
 import { useLogin } from '../../hooks/useLogin';
 
 interface LoginFormProps {
-  onLogin: (user: any) => void;
+  onLogin: (payload: { user: any; forcePasswordChange?: boolean; currentPassword: string }) => void;
   onError: (error: string) => void;
   onChangePassword?: () => void;
 }

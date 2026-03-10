@@ -32,6 +32,58 @@ const ShieldIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+interface SavedValueInputProps {
+  actualValue: string;
+  savedValue: string;
+  onChange: (value: string) => void;
+  sensitive?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  step?: string;
+  min?: string;
+  placeholder?: string;
+  className: string;
+}
+
+const maskSavedValue = (value: string, sensitive: boolean) => {
+  if (!value) return '';
+  if (!sensitive) return value;
+  return `${value.slice(0, 6)}...`;
+};
+
+const SavedValueInput: React.FC<SavedValueInputProps> = ({
+  actualValue,
+  savedValue,
+  onChange,
+  sensitive = false,
+  inputMode,
+  step,
+  min,
+  placeholder,
+  className,
+}) => {
+  const [focused, setFocused] = React.useState(false);
+  const isDirty = actualValue !== savedValue;
+  const isEditing = focused || isDirty;
+  const hasSavedValue = savedValue.length > 0;
+  const displayValue =
+    isEditing || !hasSavedValue ? actualValue : maskSavedValue(savedValue, sensitive);
+
+  return (
+    <input
+      type="text"
+      inputMode={inputMode}
+      step={step}
+      min={min}
+      value={displayValue}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={!hasSavedValue ? placeholder : undefined}
+      className={`${className} ${!isEditing && hasSavedValue ? 'text-slate-400' : 'text-white'}`}
+    />
+  );
+};
+
 export const ConfigurationTab: React.FC = () => {
   const {
     isLoading,
@@ -61,6 +113,7 @@ export const ConfigurationTab: React.FC = () => {
     smartyConfigured,
     homeLocation,
     setHomeLocation,
+    savedValues,
     homeLocationLoading,
     homeLocationError,
     homeLocationConfigured,
@@ -89,12 +142,13 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Token
             </label>
-            <input
-              type="text"
-              value={mapboxToken}
-              onChange={(e) => setMapboxToken(e.target.value)}
+            <SavedValueInput
+              actualValue={mapboxToken}
+              savedValue={savedValues.mapboxToken}
+              onChange={setMapboxToken}
+              sensitive
               placeholder="pk.eyJ1..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -123,12 +177,13 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Key
             </label>
-            <input
-              type="password"
-              value={mapboxUnlimitedApiKey}
-              onChange={(e) => setMapboxUnlimitedApiKey(e.target.value)}
+            <SavedValueInput
+              actualValue={mapboxUnlimitedApiKey}
+              savedValue={savedValues.mapboxUnlimitedApiKey}
+              onChange={setMapboxUnlimitedApiKey}
+              sensitive
               placeholder="sk."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -163,12 +218,13 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Key
             </label>
-            <input
-              type="text"
-              value={googleMapsApiKey}
-              onChange={(e) => setGoogleMapsApiKey(e.target.value)}
+            <SavedValueInput
+              actualValue={googleMapsApiKey}
+              savedValue={savedValues.googleMapsApiKey}
+              onChange={setGoogleMapsApiKey}
+              sensitive
               placeholder="AIzaSy..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -199,12 +255,12 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Region
             </label>
-            <input
-              type="text"
-              value={awsRegion}
-              onChange={(e) => setAwsRegion(e.target.value)}
+            <SavedValueInput
+              actualValue={awsRegion}
+              savedValue={savedValues.awsRegion}
+              onChange={setAwsRegion}
               placeholder="us-east-1"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -241,12 +297,13 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Key
             </label>
-            <input
-              type="password"
-              value={opencageApiKey}
-              onChange={(e) => setOpencageApiKey(e.target.value)}
+            <SavedValueInput
+              actualValue={opencageApiKey}
+              savedValue={savedValues.opencageApiKey}
+              onChange={setOpencageApiKey}
+              sensitive
               placeholder="opencage..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -281,12 +338,13 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Key
             </label>
-            <input
-              type="password"
-              value={locationIqApiKey}
-              onChange={(e) => setLocationIqApiKey(e.target.value)}
+            <SavedValueInput
+              actualValue={locationIqApiKey}
+              savedValue={savedValues.locationIqApiKey}
+              onChange={setLocationIqApiKey}
+              sensitive
               placeholder="locationiq..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -317,24 +375,26 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Auth ID
             </label>
-            <input
-              type="password"
-              value={smartyAuthId}
-              onChange={(e) => setSmartyAuthId(e.target.value)}
+            <SavedValueInput
+              actualValue={smartyAuthId}
+              savedValue={savedValues.smartyAuthId}
+              onChange={setSmartyAuthId}
+              sensitive
               placeholder="auth-id"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Auth Token
             </label>
-            <input
-              type="password"
-              value={smartyAuthToken}
-              onChange={(e) => setSmartyAuthToken(e.target.value)}
+            <SavedValueInput
+              actualValue={smartyAuthToken}
+              savedValue={savedValues.smartyAuthToken}
+              onChange={setSmartyAuthToken}
+              sensitive
               placeholder="auth-token"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -367,24 +427,25 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Name
             </label>
-            <input
-              type="text"
-              value={wigleApiName}
-              onChange={(e) => setWigleApiName(e.target.value)}
+            <SavedValueInput
+              actualValue={wigleApiName}
+              savedValue={savedValues.wigleApiName}
+              onChange={setWigleApiName}
               placeholder="AIDc40fa13..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               API Token
             </label>
-            <input
-              type="password"
-              value={wigleApiToken}
-              onChange={(e) => setWigleApiToken(e.target.value)}
+            <SavedValueInput
+              actualValue={wigleApiToken}
+              savedValue={savedValues.wigleApiToken}
+              onChange={setWigleApiToken}
+              sensitive
               placeholder="32 character hex token"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
             />
             <div className="mt-2 text-xs text-slate-400">
               <span
@@ -429,40 +490,43 @@ export const ConfigurationTab: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Latitude
             </label>
-            <input
-              type="number"
+            <SavedValueInput
+              actualValue={homeLocation.lat}
+              savedValue={savedValues.homeLocation.lat}
+              onChange={(value) => setHomeLocation({ ...homeLocation, lat: value })}
+              inputMode="decimal"
               step="any"
-              value={homeLocation.lat}
-              onChange={(e) => setHomeLocation({ ...homeLocation, lat: e.target.value })}
               placeholder="39.1031"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Longitude
             </label>
-            <input
-              type="number"
+            <SavedValueInput
+              actualValue={homeLocation.lng}
+              savedValue={savedValues.homeLocation.lng}
+              onChange={(value) => setHomeLocation({ ...homeLocation, lng: value })}
+              inputMode="decimal"
               step="any"
-              value={homeLocation.lng}
-              onChange={(e) => setHomeLocation({ ...homeLocation, lng: e.target.value })}
               placeholder="-84.5120"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Radius (meters)
             </label>
-            <input
-              type="number"
+            <SavedValueInput
+              actualValue={homeLocation.radius}
+              savedValue={savedValues.homeLocation.radius}
+              onChange={(value) => setHomeLocation({ ...homeLocation, radius: value })}
+              inputMode="numeric"
               min="1"
               step="1"
-              value={homeLocation.radius}
-              onChange={(e) => setHomeLocation({ ...homeLocation, radius: e.target.value })}
               placeholder="500"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
             />
           </div>
           {homeLocationLoading && (

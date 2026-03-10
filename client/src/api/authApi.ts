@@ -8,12 +8,15 @@ interface LoginCredentials {
   password: string;
 }
 
-interface LoginResponse {
+export interface LoginResponse {
   user: {
     id: string;
     username: string;
+    email?: string;
     role: string;
   };
+  forcePasswordChange?: boolean;
+  authenticated?: boolean;
 }
 
 interface ChangePasswordRequest {

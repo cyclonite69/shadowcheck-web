@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { authApi } from '../api/authApi';
 
-export const useChangePassword = () => {
-  const [username, setUsername] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
+interface UseChangePasswordOptions {
+  initialUsername?: string;
+  initialCurrentPassword?: string;
+  onSuccess?: () => void | Promise<void>;
+}
+
+export const useChangePassword = (options: UseChangePasswordOptions = {}) => {
+  const [username, setUsername] = useState(options.initialUsername || '');
+  const [currentPassword, setCurrentPassword] = useState(options.initialCurrentPassword || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +38,11 @@ export const useChangePassword = () => {
 
     try {
       await authApi.changePassword({ username, currentPassword, newPassword });
-      setSuccess(true);
+      if (options.onSuccess) {
+        await options.onSuccess();
+      } else {
+        setSuccess(true);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to change password');
     } finally {
