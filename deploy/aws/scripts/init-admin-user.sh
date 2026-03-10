@@ -6,7 +6,8 @@
 set -euo pipefail
 
 CONTAINER="${POSTGRES_CONTAINER:-shadowcheck_postgres}"
-DB_USER="${DB_USER:-shadowcheck_user}"
+# Admin user creation requires write access to app.users; default to admin DB role.
+DB_USER="${DB_USER:-shadowcheck_admin}"
 DB_NAME="${DB_NAME:-shadowcheck_db}"
 SECRET_NAME="${SECRET_NAME:-shadowcheck/config}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
