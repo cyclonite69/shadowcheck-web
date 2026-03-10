@@ -57,15 +57,15 @@ fi
 
 echo "Creating admin user..."
 
-docker exec "$CONTAINER" bash -lc "PGPASSWORD='$DB_USER_PASSWORD' psql -U '$DB_USER' -d '$DB_NAME' -v hash='$HASH' -c \"
+docker exec -e PGPASSWORD="$DB_USER_PASSWORD" "$CONTAINER" bash -lc "psql -U '$DB_USER' -d '$DB_NAME' -c \"
 INSERT INTO app.users (username, password_hash, email, role, created_at)
-VALUES ('admin', :'hash', 'admin@shadowcheck.local', 'admin', NOW())
+VALUES ('admin', '$HASH', 'admin@shadowcheck.local', 'admin', NOW())
 ON CONFLICT (username) DO UPDATE
 SET password_hash = EXCLUDED.password_hash;
 \""
 
 # Compatibility updates for newer schemas (run only if columns exist)
-docker exec "$CONTAINER" bash -lc "PGPASSWORD='$DB_USER_PASSWORD' psql -U '$DB_USER' -d '$DB_NAME' -c \"
+docker exec -e PGPASSWORD="$DB_USER_PASSWORD" "$CONTAINER" bash -lc "psql -U '$DB_USER' -d '$DB_NAME' -c \"
 DO \\\$\\\$
 BEGIN
   IF EXISTS (
