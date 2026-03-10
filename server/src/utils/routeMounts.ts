@@ -134,8 +134,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   // Geospatial routes (includes root redirect)
   app.use('/', geospatialRoutes);
 
-  // Export routes (no auth required) - mount first
-  app.use('/api', userGate, exportRoutes);
+  // Export routes define their own per-route auth checks. Do not gate the mount
+  // itself or it will block public auth endpoints like /api/auth/login.
+  app.use('/api', exportRoutes);
 
   // Public analytics routes (no auth required) - mount outside /api
   app.use('/analytics-public', analyticsPublicRoutes);
