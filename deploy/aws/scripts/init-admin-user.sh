@@ -8,6 +8,8 @@ set -euo pipefail
 CONTAINER="${POSTGRES_CONTAINER:-shadowcheck_postgres}"
 DB_USER="${DB_USER:-shadowcheck_user}"
 DB_NAME="${DB_NAME:-shadowcheck_db}"
+SECRET_NAME="${SECRET_NAME:-shadowcheck/config}"
+AWS_REGION="${AWS_REGION:-us-east-1}"
 
 # Generate random password (works on Linux/macOS)
 if command -v openssl &>/dev/null; then
@@ -27,16 +29,63 @@ if [ -z "$HASH" ]; then
     exit 1
 fi
 
+# Resolve DB password (env override first, then AWS Secrets Manager)
+# Mapping:
+#   shadowcheck_user  -> db_password
+#   shadowcheck_admin -> db_admin_password
+if [ "$DB_USER" = "shadowcheck_admin" ]; then
+    SECRET_DB_KEY="db_admin_password"
+else
+    SECRET_DB_KEY="db_password"
+fi
+
+DB_USER_PASSWORD="${DB_PASSWORD:-}"
+if [ -z "$DB_USER_PASSWORD" ]; then
+    SECRET_JSON=$(aws secretsmanager get-secret-value \
+        --secret-id "$SECRET_NAME" \
+        --region "$AWS_REGION" \
+        --query 'SecretString' \
+        --output text 2>/dev/null || echo "{}")
+    DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('$SECRET_DB_KEY',''))" 2>/dev/null || echo "")
+fi
+
+if [ -z "$DB_USER_PASSWORD" ]; then
+    echo "ERROR: Could not resolve DB password."
+    echo "Set DB_PASSWORD env var or ensure $SECRET_NAME has key '$SECRET_DB_KEY'."
+    exit 1
+fi
+
 echo "Creating admin user..."
 
-docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "
-INSERT INTO app.users (username, password_hash, email, role, force_password_change, created_at)
-VALUES ('admin', '$HASH', 'admin@shadowcheck.local', 'admin', true, NOW())
+docker exec "$CONTAINER" bash -lc "PGPASSWORD='$DB_USER_PASSWORD' psql -U '$DB_USER' -d '$DB_NAME' -v hash='$HASH' -c \"
+INSERT INTO app.users (username, password_hash, email, role, created_at)
+VALUES ('admin', :'hash', 'admin@shadowcheck.local', 'admin', NOW())
 ON CONFLICT (username) DO UPDATE
-SET password_hash = EXCLUDED.password_hash,
-    force_password_change = true,
-    updated_at = NOW();
-"
+SET password_hash = EXCLUDED.password_hash;
+\""
+
+# Compatibility updates for newer schemas (run only if columns exist)
+docker exec "$CONTAINER" bash -lc "PGPASSWORD='$DB_USER_PASSWORD' psql -U '$DB_USER' -d '$DB_NAME' -c \"
+DO \\\$\\\$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='app' AND table_name='users' AND column_name='force_password_change'
+  ) THEN
+    EXECUTE 'UPDATE app.users SET force_password_change = true WHERE username = ''admin''';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='app' AND table_name='users' AND column_name='updated_at'
+  ) THEN
+    EXECUTE 'UPDATE app.users SET updated_at = NOW() WHERE username = ''admin''';
+  END IF;
+END
+\\\$\\\$;
+\""
 
 echo ""
 echo "Admin user created successfully"
