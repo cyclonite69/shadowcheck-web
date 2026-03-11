@@ -79,6 +79,10 @@ export const networkApi = {
     });
   },
 
+  async getNetworkSiblingLinks(bssid: string): Promise<any> {
+    return apiClient.get(`/admin/siblings/linked/${encodeURIComponent(bssid)}`);
+  },
+
   async addNetworkNote(data: AddNoteRequest): Promise<AddNoteResponse> {
     return apiClient.post<AddNoteResponse>('/admin/network-notes/add', data);
   },

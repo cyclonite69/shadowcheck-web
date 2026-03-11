@@ -22,6 +22,8 @@ interface NetworkTableBodyGridProps {
   filteredNetworks: NetworkRow[];
   error: string | null;
   selectedNetworks: Set<string>;
+  linkedSiblingBssids?: Set<string>;
+  selectedAnchorBssid?: string | null;
   onSelectExclusive: (bssid: string) => void;
   onOpenContextMenu: (event: React.MouseEvent<HTMLDivElement>, net: NetworkRow) => void;
   onToggleSelectNetwork: (bssid: string) => void;
@@ -38,6 +40,8 @@ export const NetworkTableBodyGrid = ({
   filteredNetworks,
   error,
   selectedNetworks,
+  linkedSiblingBssids = new Set<string>(),
+  selectedAnchorBssid = null,
   onSelectExclusive,
   onOpenContextMenu,
   onToggleSelectNetwork,
@@ -124,6 +128,8 @@ export const NetworkTableBodyGrid = ({
         {items.map((virtualRow) => {
           const net = filteredNetworks[virtualRow.index];
           const isSelected = selectedNetworks.has(net.bssid);
+          const isLinkedSibling = linkedSiblingBssids.has(net.bssid);
+          const isSelectedAnchor = selectedAnchorBssid === net.bssid;
           const rowBackground = isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)';
 
           return (
@@ -391,9 +397,31 @@ export const NetworkTableBodyGrid = ({
                         whiteSpace: 'nowrap',
                         textOverflow: 'ellipsis',
                         overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                     >
-                      {value as any}
+                      {(isSelectedAnchor || isLinkedSibling) && (
+                        <span
+                          title={isSelectedAnchor ? 'Selected sibling anchor' : 'Linked sibling'}
+                          style={{
+                            color: '#38bdf8',
+                            flex: '0 0 auto',
+                          }}
+                        >
+                          🔗
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {value as any}
+                      </span>
                     </div>
                   );
                 }
@@ -412,10 +440,38 @@ export const NetworkTableBodyGrid = ({
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                       title={value as string}
                     >
-                      {(value as any) || '(hidden)'}
+                      <span
+                        style={{
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {(value as any) || '(hidden)'}
+                      </span>
+                      {(isSelectedAnchor || isLinkedSibling) && (
+                        <span
+                          style={{
+                            flex: '0 0 auto',
+                            fontSize: '10px',
+                            color: '#7dd3fc',
+                            background: 'rgba(14, 165, 233, 0.15)',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            borderRadius: '999px',
+                            padding: '1px 5px',
+                          }}
+                          title={isSelectedAnchor ? 'Selected sibling anchor' : 'Linked sibling'}
+                        >
+                          link
+                        </span>
+                      )}
                     </div>
                   );
                 }

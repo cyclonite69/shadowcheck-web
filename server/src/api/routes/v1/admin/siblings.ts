@@ -60,6 +60,34 @@ router.post('/admin/siblings/override', async (req, res) => {
   }
 });
 
+router.get('/admin/siblings/linked/:bssid', async (req, res) => {
+  try {
+    const bssid = String(req.params?.bssid || '')
+      .trim()
+      .toUpperCase();
+
+    if (!bssid) {
+      return res.status(400).json({
+        ok: false,
+        error: 'BSSID is required',
+      });
+    }
+
+    const links = await adminDbService.getNetworkSiblingLinks(bssid);
+    res.json({
+      ok: true,
+      bssid,
+      links,
+    });
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to load linked siblings', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to load linked siblings',
+    });
+  }
+});
+
 router.post('/admin/siblings/refresh', async (req, res) => {
   try {
     const { batchSize, maxOctetDelta, maxDistanceM, minCandidateConf, minStrongConf, maxBatches } =

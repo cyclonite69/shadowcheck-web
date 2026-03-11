@@ -1124,6 +1124,39 @@ async function setNetworkSiblingOverride(
   ]);
 }
 
+async function getNetworkSiblingLinks(bssid: string): Promise<
+  Array<{
+    sibling_bssid: string;
+    source: string | null;
+    rule: string | null;
+    pair_strength: string | null;
+    confidence: number | null;
+  }>
+> {
+  const result = await adminQuery(
+    `
+      SELECT
+        CASE
+          WHEN bssid1 = $1 THEN bssid2
+          ELSE bssid1
+        END AS sibling_bssid,
+        source,
+        rule,
+        pair_strength,
+        confidence
+      FROM app.network_siblings_effective
+      WHERE bssid1 = $1 OR bssid2 = $1
+      ORDER BY
+        CASE WHEN source = 'manual' THEN 0 ELSE 1 END,
+        confidence DESC NULLS LAST,
+        sibling_bssid ASC
+    `,
+    [bssid]
+  );
+
+  return result.rows;
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
@@ -1162,6 +1195,7 @@ module.exports.getNetworkNotations = getNetworkNotations;
 module.exports.addNetworkNoteWithFunction = addNetworkNoteWithFunction;
 module.exports.getNetworkNotes = getNetworkNotes;
 module.exports.setNetworkSiblingOverride = setNetworkSiblingOverride;
+module.exports.getNetworkSiblingLinks = getNetworkSiblingLinks;
 module.exports.deleteNetworkNote = deleteNetworkNote;
 module.exports.updateNetworkNote = updateNetworkNote;
 module.exports.addNoteMedia = addNoteMedia;
