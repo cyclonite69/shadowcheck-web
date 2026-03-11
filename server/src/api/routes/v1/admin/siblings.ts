@@ -1,10 +1,64 @@
 const express = require('express');
 const logger = require('../../../../logging/logger');
-const { siblingDetectionAdminService } = require('../../../../config/container');
+const { siblingDetectionAdminService, adminDbService } = require('../../../../config/container');
 
 export {};
 
 const router = express.Router();
+
+router.post('/admin/siblings/override', async (req, res) => {
+  try {
+    const relation = req.body?.relation === 'not_sibling' ? 'not_sibling' : 'sibling';
+    const bssidA = String(req.body?.bssidA || '')
+      .trim()
+      .toUpperCase();
+    const bssidB = String(req.body?.bssidB || '')
+      .trim()
+      .toUpperCase();
+    const notes =
+      typeof req.body?.notes === 'string' && req.body.notes.trim().length > 0
+        ? req.body.notes.trim()
+        : null;
+
+    if (!bssidA || !bssidB) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Both bssidA and bssidB are required',
+      });
+    }
+
+    if (bssidA === bssidB) {
+      return res.status(400).json({
+        ok: false,
+        error: 'A network cannot be paired with itself',
+      });
+    }
+
+    await adminDbService.setNetworkSiblingOverride(
+      bssidA,
+      bssidB,
+      relation,
+      req.user?.username || 'admin',
+      notes,
+      1.0
+    );
+
+    res.json({
+      ok: true,
+      pair: {
+        bssidA,
+        bssidB,
+        relation,
+      },
+    });
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to save manual override', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to save sibling override',
+    });
+  }
+});
 
 router.post('/admin/siblings/refresh', async (req, res) => {
   try {

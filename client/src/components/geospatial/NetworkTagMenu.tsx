@@ -21,6 +21,12 @@ interface NetworkTagMenuProps {
   onGenerateThreatReport: () => void;
   onMapWigleObservations?: () => void;
   wigleObservationsLoading?: boolean;
+  manualSiblingTarget?: {
+    bssid: string;
+    ssid?: string | null;
+  } | null;
+  onMarkSiblingPair?: () => void;
+  siblingPairLoading?: boolean;
 }
 
 export const NetworkTagMenu = ({
@@ -39,6 +45,9 @@ export const NetworkTagMenu = ({
   onGenerateThreatReport,
   onMapWigleObservations,
   wigleObservationsLoading,
+  manualSiblingTarget,
+  onMarkSiblingPair,
+  siblingPairLoading,
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
   if (!visible || !network) return null;
@@ -235,6 +244,31 @@ export const NetworkTagMenu = ({
             >
               🔍 Investigate (WiGLE Lookup)
             </button>
+
+            {manualSiblingTarget && onMarkSiblingPair && (
+              <button
+                onClick={onMarkSiblingPair}
+                disabled={tagLoading || siblingPairLoading}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#38bdf8',
+                  textAlign: 'left',
+                  cursor: tagLoading || siblingPairLoading ? 'wait' : 'pointer',
+                  fontSize: '12px',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                title={`Pair ${network.bssid} with ${manualSiblingTarget.bssid} as siblings`}
+              >
+                {siblingPairLoading
+                  ? '🔗 Saving sibling pair...'
+                  : `🔗 Mark as sibling with ${manualSiblingTarget.ssid || manualSiblingTarget.bssid}`}
+              </button>
+            )}
 
             {/* Clear Tags */}
             {tag?.exists && (

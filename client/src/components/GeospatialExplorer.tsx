@@ -6,6 +6,7 @@ import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
+import { networkApi } from '../api/networkApi';
 import { logError, logDebug } from '../logging/clientLogger';
 import { MapToolbarActions } from './geospatial/MapToolbarActions';
 import { MapSection } from './geospatial/MapSection';
@@ -132,6 +133,7 @@ export default function GeospatialExplorer() {
     setShowTerrain,
   } = useMapPreferences();
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
+  const [siblingPairLoading, setSiblingPairLoading] = useState(false);
   const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
@@ -187,6 +189,24 @@ export default function GeospatialExplorer() {
     clearWigleObservations,
   } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
 
+  const manualSiblingTarget = useMemo(() => {
+    if (selectedNetworks.size !== 1) {
+      return null;
+    }
+
+    const selectedBssid = Array.from(selectedNetworks)[0];
+    const contextBssid = contextMenu.network?.bssid || null;
+    if (!selectedBssid || !contextBssid || selectedBssid === contextBssid) {
+      return null;
+    }
+
+    const selectedNetwork = networks.find((network) => network.bssid === selectedBssid);
+    return {
+      bssid: selectedBssid,
+      ssid: selectedNetwork?.ssid || null,
+    };
+  }, [contextMenu.network, networks, selectedNetworks]);
+
   const {
     showNoteModal,
     setShowNoteModal,
@@ -207,6 +227,36 @@ export default function GeospatialExplorer() {
   } = useNetworkNotes({ logError });
 
   const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
+
+  const handleMarkSiblingPair = async () => {
+    const anchorBssid = manualSiblingTarget?.bssid;
+    const contextBssid = contextMenu.network?.bssid || null;
+
+    if (!anchorBssid || !contextBssid || anchorBssid === contextBssid) {
+      return;
+    }
+
+    setSiblingPairLoading(true);
+    try {
+      const result = await networkApi.setNetworkSiblingOverride(
+        anchorBssid,
+        contextBssid,
+        'sibling'
+      );
+      if (!result?.ok) {
+        throw new Error(result?.error || 'Failed to save sibling pair');
+      }
+      closeContextMenu();
+      alert(`Saved sibling pair:\n${anchorBssid}\n${contextBssid}`);
+    } catch (error) {
+      logError('Failed to mark manual sibling pair', error);
+      alert(
+        `Failed to save sibling pair: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } finally {
+      setSiblingPairLoading(false);
+    }
+  };
 
   useFilterURLSync();
   const { getCurrentEnabled, setFilter, enableFilter } = useFilterStore();
@@ -348,14 +398,13 @@ export default function GeospatialExplorer() {
     wigleObservations,
   });
 
-  const { toggle3DBuildings, toggleTerrain } = useMapLayersToggle({
-    mapRef,
-    setShow3DBuildings,
-    setShowTerrain,
-  });
+  const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =
+    useMapLayersToggle({
+      mapRef,
+      setShow3DBuildings,
+      setShowTerrain,
+    });
 
-  // Helper functions for internal use
-  const add3DBuildings = () => toggle3DBuildings(true);
   const addTerrain = () => toggleTerrain(true);
 
   useApplyMapLayerDefaults({
@@ -525,6 +574,7 @@ export default function GeospatialExplorer() {
                 onMapStyleChange={changeMapStyle}
                 mapStyles={MAP_STYLES}
                 show3DBuildings={show3DBuildings}
+                is3DBuildingsAvailable={is3DBuildingsAvailable}
                 toggle3DBuildings={toggle3DBuildings}
                 showTerrain={showTerrain}
                 toggleTerrain={toggleTerrain}
@@ -638,6 +688,9 @@ export default function GeospatialExplorer() {
               closeContextMenu();
             }}
             wigleObservationsLoading={wigleObservations.loading}
+            manualSiblingTarget={manualSiblingTarget}
+            onMarkSiblingPair={handleMarkSiblingPair}
+            siblingPairLoading={siblingPairLoading}
             showNoteModal={showNoteModal}
             isEditNoteMode={hasExistingNote}
             selectedBssid={selectedBssid}

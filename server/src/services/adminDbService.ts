@@ -1106,6 +1106,24 @@ async function resetAppUserPassword(
   }
 }
 
+async function setNetworkSiblingOverride(
+  bssidA: string,
+  bssidB: string,
+  relation: 'sibling' | 'not_sibling',
+  updatedBy: string,
+  notes: string | null = null,
+  confidence = 1.0
+): Promise<void> {
+  await adminQuery(`SELECT app.set_network_sibling_override($1, $2, $3, $4, $5, $6)`, [
+    bssidA,
+    bssidB,
+    relation,
+    updatedBy,
+    notes,
+    confidence,
+  ]);
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
@@ -1143,6 +1161,7 @@ module.exports.addNetworkNotation = addNetworkNotation;
 module.exports.getNetworkNotations = getNetworkNotations;
 module.exports.addNetworkNoteWithFunction = addNetworkNoteWithFunction;
 module.exports.getNetworkNotes = getNetworkNotes;
+module.exports.setNetworkSiblingOverride = setNetworkSiblingOverride;
 module.exports.deleteNetworkNote = deleteNetworkNote;
 module.exports.updateNetworkNote = updateNetworkNote;
 module.exports.addNoteMedia = addNoteMedia;

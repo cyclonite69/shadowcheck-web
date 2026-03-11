@@ -65,6 +65,20 @@ export const networkApi = {
     return apiClient.post('/networks/wigle-observations/batch', { bssids });
   },
 
+  async setNetworkSiblingOverride(
+    bssidA: string,
+    bssidB: string,
+    relation: 'sibling' | 'not_sibling' = 'sibling',
+    notes?: string
+  ): Promise<any> {
+    return apiClient.post('/admin/siblings/override', {
+      bssidA,
+      bssidB,
+      relation,
+      notes,
+    });
+  },
+
   async addNetworkNote(data: AddNoteRequest): Promise<AddNoteResponse> {
     return apiClient.post<AddNoteResponse>('/admin/network-notes/add', data);
   },

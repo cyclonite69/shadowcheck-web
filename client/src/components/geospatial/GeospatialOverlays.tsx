@@ -25,6 +25,12 @@ interface GeospatialOverlaysProps {
   onGenerateThreatReport: () => void;
   onMapWigleObservations?: () => void;
   wigleObservationsLoading?: boolean;
+  manualSiblingTarget?: {
+    bssid: string;
+    ssid?: string | null;
+  } | null;
+  onMarkSiblingPair?: () => void;
+  siblingPairLoading?: boolean;
   showNoteModal: boolean;
   isEditNoteMode: boolean;
   selectedBssid: string;
@@ -55,6 +61,9 @@ export const GeospatialOverlays = ({
   onGenerateThreatReport,
   onMapWigleObservations,
   wigleObservationsLoading,
+  manualSiblingTarget,
+  onMarkSiblingPair,
+  siblingPairLoading,
   showNoteModal,
   isEditNoteMode,
   selectedBssid,
@@ -91,6 +100,9 @@ export const GeospatialOverlays = ({
         onGenerateThreatReport={onGenerateThreatReport}
         onMapWigleObservations={onMapWigleObservations}
         wigleObservationsLoading={wigleObservationsLoading}
+        manualSiblingTarget={manualSiblingTarget}
+        onMarkSiblingPair={onMarkSiblingPair}
+        siblingPairLoading={siblingPairLoading}
       />
 
       <NetworkNoteModal
