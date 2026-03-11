@@ -7,6 +7,7 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
 import { networkApi } from '../api/networkApi';
+import { useAuth } from '../hooks/useAuth';
 import { logError, logDebug } from '../logging/clientLogger';
 import { MapToolbarActions } from './geospatial/MapToolbarActions';
 import { MapSection } from './geospatial/MapSection';
@@ -59,6 +60,7 @@ import {
 export default function GeospatialExplorer() {
   // Set current page for filter scoping
   usePageFilters('geospatial');
+  const { isAdmin } = useAuth();
 
   // Location mode
   const [locationMode, setLocationMode] = useState('latest_observation');
@@ -81,9 +83,6 @@ export default function GeospatialExplorer() {
     resetPagination,
   } = useNetworkData({ locationMode });
 
-  // Server-side sorting - no client-side sorting needed
-  const filteredNetworks = useMemo(() => networks, [networks]);
-
   const {
     selectedNetworks,
     toggleSelectNetwork,
@@ -92,7 +91,7 @@ export default function GeospatialExplorer() {
     allSelected,
     someSelected,
   } = useNetworkSelection({
-    networks: filteredNetworks,
+    networks,
     onSelectionChange: (newSelection) => {
       // Auto-close panels when selection changes to a different network
       const newBssid = newSelection.size > 0 ? Array.from(newSelection)[0] : null;
@@ -134,6 +133,7 @@ export default function GeospatialExplorer() {
   } = useMapPreferences();
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [siblingPairLoading, setSiblingPairLoading] = useState(false);
+  const [linkedSiblingBssids, setLinkedSiblingBssids] = useState<Set<string>>(new Set());
   const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
@@ -228,6 +228,54 @@ export default function GeospatialExplorer() {
 
   const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
 
+  const selectedAnchorBssid = useMemo(() => {
+    if (selectedNetworks.size !== 1) {
+      return null;
+    }
+    return Array.from(selectedNetworks)[0];
+  }, [selectedNetworks]);
+
+  useEffect(() => {
+    if (!isAdmin || !selectedAnchorBssid) {
+      setLinkedSiblingBssids(new Set());
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSiblingLinks = async () => {
+      try {
+        const result = await networkApi.getNetworkSiblingLinks(selectedAnchorBssid);
+        if (cancelled) {
+          return;
+        }
+        const nextSet = new Set<string>(
+          Array.isArray(result?.links)
+            ? result.links
+                .map((row: any) =>
+                  String(row?.sibling_bssid || '')
+                    .trim()
+                    .toUpperCase()
+                )
+                .filter(Boolean)
+            : []
+        );
+        setLinkedSiblingBssids(nextSet);
+      } catch (error) {
+        if (!cancelled) {
+          logError('Failed to load sibling links', error);
+          setLinkedSiblingBssids(new Set());
+        }
+      }
+    };
+
+    void loadSiblingLinks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, selectedAnchorBssid]);
+
   const handleMarkSiblingPair = async () => {
     const anchorBssid = manualSiblingTarget?.bssid;
     const contextBssid = contextMenu.network?.bssid || null;
@@ -246,6 +294,11 @@ export default function GeospatialExplorer() {
       if (!result?.ok) {
         throw new Error(result?.error || 'Failed to save sibling pair');
       }
+      setLinkedSiblingBssids((prev) => {
+        const next = new Set(prev);
+        next.add(contextBssid);
+        return next;
+      });
       closeContextMenu();
       alert(`Saved sibling pair:\n${anchorBssid}\n${contextBssid}`);
     } catch (error) {
@@ -305,6 +358,31 @@ export default function GeospatialExplorer() {
 
   const debouncedFilterState = useDebouncedFilterState();
 
+  const filteredNetworks = useMemo(() => {
+    if (!selectedAnchorBssid || linkedSiblingBssids.size === 0) {
+      return networks;
+    }
+
+    const anchor: NetworkRow[] = [];
+    const siblings: NetworkRow[] = [];
+    const rest: NetworkRow[] = [];
+
+    for (const network of networks) {
+      if (network.bssid === selectedAnchorBssid) {
+        anchor.push(network);
+      } else if (linkedSiblingBssids.has(network.bssid)) {
+        siblings.push(network);
+      } else {
+        rest.push(network);
+      }
+    }
+
+    if (anchor.length === 0 && siblings.length === 0) {
+      return networks;
+    }
+
+    return [...anchor, ...siblings, ...rest];
+  }, [linkedSiblingBssids, networks, selectedAnchorBssid]);
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -638,6 +716,8 @@ export default function GeospatialExplorer() {
             filteredNetworks={filteredNetworks}
             error={error}
             selectedNetworks={selectedNetworks}
+            linkedSiblingBssids={linkedSiblingBssids}
+            selectedAnchorBssid={selectedAnchorBssid}
             onSelectExclusive={selectNetworkExclusive}
             onOpenContextMenu={openContextMenu}
             onToggleSelectNetwork={toggleSelectNetwork}
