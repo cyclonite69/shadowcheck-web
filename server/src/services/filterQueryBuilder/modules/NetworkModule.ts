@@ -130,7 +130,7 @@ export class NetworkModule {
 
       return {
         sql,
-        params: [limit, offset],
+        params: this.ctx.getParams() as any[],
         appliedFilters: this.ctx.state.appliedFilters(),
         ignoredFilters: this.ctx.state.ignoredFilters(),
         warnings: this.ctx.state.warnings(),
@@ -276,7 +276,7 @@ export class NetworkModule {
 
     return {
       sql,
-      params: [...params],
+      params: this.ctx.getParams() as any[],
       appliedFilters: this.ctx.state.appliedFilters(),
       ignoredFilters: this.ctx.state.ignoredFilters(),
       warnings: this.ctx.state.warnings(),
@@ -562,6 +562,9 @@ export class NetworkModule {
 
     this.ctx.params = [...this.ctx.getParams()]; // Ensure consistency
 
+    const limitParam = this.ctx.addParam(limit);
+    const offsetParam = this.ctx.addParam(offset);
+
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
     const safeOrderBy = orderBy
       .replace(/\bl\.observed_at\b/g, 'ne.observed_at')
@@ -625,12 +628,12 @@ export class NetworkModule {
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
       ${whereClause}
       ORDER BY ${safeOrderBy}
-      LIMIT ${this.ctx.addParam(limit)} OFFSET ${this.ctx.addParam(offset)}
+      LIMIT ${limitParam} OFFSET ${offsetParam}
     `;
 
     return {
       sql,
-      params: [...this.ctx.params],
+      params: this.ctx.getParams() as any[],
       appliedFilters: this.ctx.state.appliedFilters(),
       ignoredFilters: this.ctx.state.ignoredFilters(),
       warnings: this.ctx.state.warnings(),
@@ -657,7 +660,8 @@ export class NetworkModule {
       return this.buildNetworkOnlyCountQuery();
     }
 
-    const { cte, params } = this.getFilteredObservationsCte();
+    // SLOW PATH
+    const { cte } = this.getFilteredObservationsCte(); // Ignore CTE params, they are already in this.ctx
     const networkWhere = this.ctx.buildNetworkWhere();
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const effectiveWhereClause =
@@ -680,11 +684,11 @@ export class NetworkModule {
       )
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
-      JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
+      JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
       ${effectiveWhereClause}
     `;
 
-    return { sql, params: [...params] };
+    return { sql, params: this.ctx.getParams() as any[] };
   }
 
   public buildDashboardMetricsQuery(): QueryResult {
@@ -718,7 +722,8 @@ export class NetworkModule {
 
     if (networkOnly) {
       const countResult = this.buildNetworkOnlyCountQuery();
-      const whereClause = countResult.sql.substring(countResult.sql.indexOf('WHERE'));
+      const whereIdx = countResult.sql.indexOf('WHERE');
+      const whereClause = whereIdx !== -1 ? countResult.sql.substring(whereIdx) : '';
 
       return {
         sql: `SELECT ${selectClause} FROM app.api_network_explorer_mv ne ${whereClause}`,
@@ -726,7 +731,8 @@ export class NetworkModule {
       };
     }
 
-    const { cte, params } = this.getFilteredObservationsCte();
+    // SLOW PATH
+    const { cte } = this.getFilteredObservationsCte(); // Already in this.ctx
     const networkWhere = this.ctx.buildNetworkWhere();
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
     const effectiveWhereClause =
@@ -768,11 +774,11 @@ export class NetworkModule {
         COUNT(DISTINCT r.bssid) FILTER (WHERE ne.threat_level = 'LOW') as threats_low,
         COUNT(DISTINCT r.bssid) FILTER (WHERE ne.lat IS NOT NULL AND ne.lon IS NOT NULL) as enriched_count
       FROM obs_rollup r
-      JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
+      JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
       ${effectiveWhereClause}
     `;
 
-    return { sql, params: [...params] };
+    return { sql, params: this.ctx.getParams() as any[] };
   }
 
   private buildNetworkOnlyCountQuery(): QueryResult {
@@ -980,6 +986,14 @@ export class NetworkModule {
       );
       this.ctx.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
+    if (e.stationaryConfidenceMin && f.stationaryConfidenceMin !== undefined) {
+      where.push(`ne.stationary_confidence >= ${this.ctx.addParam(f.stationaryConfidenceMin)}`);
+      this.ctx.addApplied('threat', 'stationaryConfidenceMin', f.stationaryConfidenceMin);
+    }
+    if (e.stationaryConfidenceMax && f.stationaryConfidenceMax !== undefined) {
+      where.push(`ne.stationary_confidence <= ${this.ctx.addParam(f.stationaryConfidenceMax)}`);
+      this.ctx.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
+    }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
       const threatLevelMap: ThreatLevelMap = {
         critical: 'CRITICAL',
@@ -1003,6 +1017,7 @@ export class NetworkModule {
       this.ctx.addApplied('threat', 'threatCategories', f.threatCategories);
     }
     if (e.timeframe && f.timeframe) {
+      const scope = f.temporalScope || 'observation_time';
       if (f.timeframe.type === 'absolute') {
         if (f.timeframe.startTimestamp) {
           where.push(
@@ -1019,6 +1034,7 @@ export class NetworkModule {
         }
       }
       this.ctx.addApplied('temporal', 'timeframe', f.timeframe);
+      this.ctx.addApplied('temporal', 'temporalScope', scope);
     }
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';

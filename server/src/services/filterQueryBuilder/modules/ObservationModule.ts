@@ -250,7 +250,6 @@ export class ObservationModule {
   public buildFilteredObservationsCte(options: { selectedBssids?: string[] } = {}): CteResult {
     const { selectedBssids = [] } = options;
     const { where, joins } = this.buildObservationFilters();
-    const cteParams = [...this.ctx.getParams()];
 
     if (selectedBssids.length > 0) {
       where.push(
@@ -281,6 +280,6 @@ export class ObservationModule {
       )
     `;
 
-    return { cte, params: this.ctx.getParams() };
+    return { cte, params: this.ctx.getParams() as any[] };
   }
 }
