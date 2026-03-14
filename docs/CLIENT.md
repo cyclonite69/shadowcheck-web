@@ -239,6 +239,21 @@ client/
 
 ## Utilities
 
+### Data Layer Utilities
+
+| File                                                                             | Path                                         | Description                          |
+| -------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------ |
+| [`networkDataTransformation.ts`](src/utils/networkDataTransformation.ts)         | `src/utils/networkDataTransformation.ts`     | Core data mapping and transformation |
+| [`networkFilterParams.ts`](src/utils/networkFilterParams.ts)                     | `src/utils/networkFilterParams.ts`           | Filter parameter assembly            |
+| [`filteredRequestParams.ts`](src/utils/filteredRequestParams.ts)                 | `src/utils/filteredRequestParams.ts`         | API request parameter construction   |
+| [`filterUrlState.ts`](src/utils/filterUrlState.ts)                               | `src/utils/filterUrlState.ts`                | URL synchronization for filters      |
+| [`keplerDataTransformation.ts`](src/utils/keplerDataTransformation.ts)           | `src/utils/keplerDataTransformation.ts`      | Kepler.gl data format mapping        |
+| [`observationDataTransformation.ts`](src/utils/observationDataTransformation.ts) | `src/utils/observationDataTransformation.ts` | Observation data mapping             |
+| [`filteredPagination.ts`](src/utils/filteredPagination.ts)                       | `src/utils/filteredPagination.ts`            | Pagination logic for filtered views  |
+| [`networkFormatting.ts`](src/utils/networkFormatting.ts)                         | `src/utils/networkFormatting.ts`             | UI display formatting helpers        |
+
+### Mapping & UI Utilities
+
 | File                                                               | Path                                  | Description              |
 | ------------------------------------------------------------------ | ------------------------------------- | ------------------------ |
 | [`filterCapabilities.ts`](src/utils/filterCapabilities.ts)         | `src/utils/filterCapabilities.ts`     | Filter capabilities      |
@@ -252,39 +267,28 @@ client/
 | ------------------------------------------------ | ----------------------------- | ------------------- |
 | [`clientLogger.ts`](src/logging/clientLogger.ts) | `src/logging/clientLogger.ts` | Client-side logging |
 
-## Components Scheduled for Refactoring
+## Components Scheduled for Refactoring (Completed)
 
-The following components have been identified as having multiple responsibilities and are scheduled for modularization:
+The following components have been modularized to reduce complexity and improve maintainability:
 
-### GeospatialExplorer.tsx (622 lines) → 4 modules
+### GeospatialExplorer.tsx (~240 lines) → Sub-component extraction
 
-- **Currently:** Map rendering + controls + layout handling mixed
-- **Refactoring into:**
-  - `MapContainer.tsx` - Pure map viewport & rendering
-  - `LocationControls.tsx` - Map interaction controls
-  - `ResizeHandler.tsx` - Container sizing logic
-  - `GeospatialExplorer.tsx` - Feature container (~200 lines)
+- **Status:** Completed (March 2026)
+- **Outcome:** Orchestration logic moved to `useGeospatialExplorerState.ts` and `useSiblingLinks.ts`.
 
-### KeplerPage.tsx (626 lines) → 4 modules
+### KeplerPage.tsx (~180 lines) → 4 modules
 
-- **Currently:** Kepler.gl init + controls + filtering mixed
-- **Refactoring into:**
+- **Status:** Completed (March 2026)
+- **Extracted:**
+  - `useKepler.ts` hook
   - `KeplerVisualization.tsx` - Visualization rendering
   - `KeplerControls.tsx` - User interaction controls
   - `KeplerFilters.tsx` - Data filtering interface
-  - `KeplerPage.tsx` - Feature container (~150 lines)
 
-### ConfigurationTab.tsx (501 lines) → 7 modules
+### ConfigurationTab.tsx (~160 lines) → Domain-specific modules
 
-- **Currently:** Six configuration domains mixed in one file
-- **Refactoring into:**
-  - `MapboxConfig.tsx` - Mapbox API config
-  - `GoogleMapsConfig.tsx` - Google Maps config
-  - `AWSConfig.tsx` - AWS settings
-  - `GeocodingConfig.tsx` - Geocoding provider config
-  - `SmartyConfig.tsx` - Smarty Streets config
-  - `WiGLEConfig.tsx` - WiGLE API config
-  - `ConfigurationTab.tsx` - Container (~100 lines)
+- **Status:** Completed (March 2026)
+- **Extracted:** `useConfiguration.ts` hook and split into domain components (`MapboxConfig`, `AWSConfig`, `GeocodingConfig`, etc.).
 
 **Refactoring Timeline:** To be completed based on priority and team capacity.
 

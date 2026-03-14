@@ -31,10 +31,10 @@ flowchart TB
     end
 
     subgraph "Database Layer"
-        C1[(networks)]
-        C2[(observations)]
-        C3[(network_tags)]
-        C4[(location_markers)]
+        C1[(app.networks)]
+        C2[(app.observations)]
+        C3[(app.network_tags)]
+        C4[(app.location_markers)]
         C5[Materialized Views]
     end
 
@@ -100,7 +100,7 @@ flowchart TB
 
 ## Network Data Flow
 
-```mermaid
+````mermaid
 sequenceDiagram
     participant Import as Import Script
     participant Staging as Staging Tables
@@ -117,8 +117,8 @@ sequenceDiagram
     Transform->>Transform: Calculate threat scores
     Transform->>Transform: Enrich manufacturer
 
-    Transform->>Prod: INSERT INTO networks
-    Transform->>Prod: INSERT INTO observations
+    Transform->>Prod: INSERT INTO app.networks
+    Transform->>Prod: INSERT INTO app.observations
 
     Note over Prod: LOGGED tables with indexes
 
@@ -129,14 +129,14 @@ sequenceDiagram
     API->>Prod: SELECT with filters
     Prod-->>API: Result set
     API-->>Client: JSON response
-```
+    ```
 
----
+    ---
 
-## Threat Detection Flow
+    ## Threat Detection Flow
 
-```mermaid
-flowchart TD
+    ...
+    _Last Updated: 2026-03-14_
     A[Network Observation] --> B[Calculate Features]
 
     B --> C1[Observation Count]
@@ -172,7 +172,7 @@ flowchart TD
     style K fill:#f56565,stroke:#c53030,color:#fff
     style M fill:#ed8936,stroke:#c05621,color:#fff
     style N fill:#48bb78,stroke:#2f855a,color:#fff
-```
+````
 
 ---
 

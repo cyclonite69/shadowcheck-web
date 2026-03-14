@@ -1,72 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Map } from 'mapbox-gl';
-import type * as mapboxglType from 'mapbox-gl';
-import { useFilterStore } from '../stores/filterStore';
-import { useFilterURLSync } from '../hooks/useFilterURLSync';
+import { useEffect, useMemo, useState } from 'react';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
 import { networkApi } from '../api/networkApi';
 import { useAuth } from '../hooks/useAuth';
-import { logError, logDebug } from '../logging/clientLogger';
+import { logError } from '../logging/clientLogger';
 import { MapToolbarActions } from './geospatial/MapToolbarActions';
 import { MapSection } from './geospatial/MapSection';
 import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
 import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { NetworkExplorerSection } from './geospatial/NetworkExplorerSection';
-import { useMapLayersToggle } from './geospatial/MapLayersToggle';
 import { GeospatialFiltersPanel } from './geospatial/GeospatialFiltersPanel';
-import { useLocationSearch } from './geospatial/useLocationSearch';
-import { useHomeLocation } from './geospatial/useHomeLocation';
-import { useMapDimensions } from './geospatial/useMapDimensions';
-import { useBoundingBoxFilter } from './geospatial/useBoundingBoxFilter';
-import { useHomeLocationLayer } from './geospatial/useHomeLocationLayer';
-import { useObservationLayers } from './geospatial/useObservationLayers';
-import { useGeospatialMap } from './geospatial/useGeospatialMap';
-import { useMapStyleControls } from './geospatial/useMapStyleControls';
+import { useNearestAgencies } from './geospatial/useNearestAgencies';
 import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
 import { useNetworkNotes } from './geospatial/useNetworkNotes';
-import { useMapResizeHandle } from './geospatial/useMapResizeHandle';
 import { useNetworkSelection } from './geospatial/useNetworkSelection';
-import { useColumnVisibility } from './geospatial/useColumnVisibility';
-import { useNetworkSort } from './geospatial/useNetworkSort';
-import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFilters';
-import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
-import { useMapPreferences } from './geospatial/useMapPreferences';
-import { useDirectionsMode } from '../directions/useDirectionsMode';
-import { useObservationSummary } from './geospatial/useObservationSummary';
-import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
-import { useExplorerPanels } from './geospatial/useExplorerPanels';
 import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
 import { WigleLookupDialog } from './geospatial/WigleLookupDialog';
 import { WigleObservationsPanel } from './geospatial/WigleObservationsPanel';
 import { NearestAgenciesPanel } from './geospatial/NearestAgenciesPanel';
-import { useNearestAgencies } from './geospatial/useNearestAgencies';
-import { useWeatherFx } from '../weather/useWeatherFx';
 import { renderAgencyPopupCard } from '../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../utils/geospatial/mapViewUtils';
-
-// Types
-
-// Constants
-import {
-  NETWORK_COLUMNS,
-  API_SORT_MAP,
-  DEFAULT_CENTER,
-  DEFAULT_HOME_RADIUS,
-  MAP_STYLES,
-} from '../constants/network';
+import { useSiblingLinks } from './geospatial/useSiblingLinks';
+import { useGeospatialExplorerState } from './geospatial/useGeospatialExplorerState';
+import { NETWORK_COLUMNS, MAP_STYLES } from '../constants/network';
+import { NetworkRow } from '../types/network';
 
 export default function GeospatialExplorer() {
-  // Set current page for filter scoping
   usePageFilters('geospatial');
   const { isAdmin } = useAuth();
-
-  // Location mode
   const [locationMode, setLocationMode] = useState('latest_observation');
-  const [quickSearch, setQuickSearch] = useState('');
 
-  // Network data hook - handles fetching, pagination, sorting
   const {
     networks,
     loading: loadingNetworks,
@@ -93,24 +57,16 @@ export default function GeospatialExplorer() {
   } = useNetworkSelection({
     networks,
     onSelectionChange: (newSelection) => {
-      // Auto-close panels when selection changes to a different network
-      const newBssid = newSelection.size > 0 ? Array.from(newSelection)[0] : null;
-      const prevBssid = selectedNetworks.size > 0 ? Array.from(selectedNetworks)[0] : null;
-
-      if (newBssid !== prevBssid) {
-        // Close panels when selecting a different network
-        if (wigleObservations.observations.length > 0) {
-          clearWigleObservations();
-        }
-        // Note: agencies panel will auto-refresh for new network
-        if (timeFreqModal) {
-          closeTimeFrequency();
-        }
+      if (
+        newSelection.size > 0 &&
+        Array.from(newSelection)[0] !== Array.from(selectedNetworks)[0]
+      ) {
+        if (wigleObservations.observations.length > 0) clearWigleObservations();
+        if (timeFreqModal) closeTimeFrequency();
       }
     },
   });
 
-  // Observations hook - handles fetching observations for selected networks
   const {
     observationsByBssid,
     loading: loadingObservations,
@@ -120,60 +76,22 @@ export default function GeospatialExplorer() {
     renderBudget,
   } = useObservations(selectedNetworks, { useFilters: true });
 
-  // UI state
-  const [mapHeight, setMapHeight] = useState<number>(500);
-  const [containerHeight, setContainerHeight] = useState<number>(800);
-  const {
-    mapStyle,
-    setMapStyle,
-    show3DBuildings,
-    setShow3DBuildings,
-    showTerrain,
-    setShowTerrain,
-  } = useMapPreferences();
-  const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
-  const [siblingPairLoading, setSiblingPairLoading] = useState(false);
-  const [linkedSiblingBssids, setLinkedSiblingBssids] = useState<Set<string>>(new Set());
-  const [visibleSiblingGroupMap, setVisibleSiblingGroupMap] = useState<Map<string, string>>(
-    new Map()
-  );
-  const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
-    columns: NETWORK_COLUMNS,
+  const state = useGeospatialExplorerState({
+    selectedNetworks,
+    networks,
+    observationsByBssid,
+    resetPagination,
+    setSort,
+    setError,
+    locationMode,
+    sort,
   });
-  const {
-    filtersOpen,
-    showColumnSelector,
-    showAgenciesPanel,
-    toggleFilters,
-    toggleColumnSelector,
-    toggleAgenciesPanel,
-  } = useExplorerPanels();
 
-  // Nearest agencies for selected network(s)
-  const nearestAgencyBssid = useMemo(() => {
-    if (selectedNetworks.size === 1) {
-      return Array.from(selectedNetworks)[0];
-    } else if (selectedNetworks.size > 1) {
-      return Array.from(selectedNetworks);
-    }
-    return null;
-  }, [selectedNetworks]);
-
-  const {
-    agencies,
-    loading: agenciesLoading,
-    error: agenciesError,
-  } = useNearestAgencies(showAgenciesPanel ? nearestAgencyBssid : null);
-
-  // Map and location state
-  const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [homeButtonActive, setHomeButtonActive] = useState(false);
-  const [fitButtonActive, setFitButtonActive] = useState(false);
-  const [homeLocation, setHomeLocation] = useState<{
-    center: [number, number];
-    radius: number;
-  }>({ center: DEFAULT_CENTER, radius: DEFAULT_HOME_RADIUS });
+  const { linkedSiblingBssids, visibleSiblingGroupMap, setLinkedSiblingBssids } = useSiblingLinks({
+    isAdmin,
+    selectedAnchorBssid: selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null,
+    networks,
+  });
 
   const {
     contextMenu,
@@ -191,25 +109,6 @@ export default function GeospatialExplorer() {
     loadBatchWigleObservations,
     clearWigleObservations,
   } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
-
-  const manualSiblingTarget = useMemo(() => {
-    if (selectedNetworks.size !== 1) {
-      return null;
-    }
-
-    const selectedBssid = Array.from(selectedNetworks)[0];
-    const contextBssid = contextMenu.network?.bssid || null;
-    if (!selectedBssid || !contextBssid || selectedBssid === contextBssid) {
-      return null;
-    }
-
-    const selectedNetwork = networks.find((network) => network.bssid === selectedBssid);
-    return {
-      bssid: selectedBssid,
-      ssid: selectedNetwork?.ssid || null,
-      isLinked: linkedSiblingBssids.has(contextBssid),
-    };
-  }, [contextMenu.network, linkedSiblingBssids, networks, selectedNetworks]);
 
   const {
     showNoteModal,
@@ -231,422 +130,98 @@ export default function GeospatialExplorer() {
   } = useNetworkNotes({ logError });
 
   const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
+  const [siblingPairLoading, setSiblingPairLoading] = useState(false);
 
-  const selectedAnchorBssid = useMemo(() => {
-    if (selectedNetworks.size !== 1) {
-      return null;
-    }
-    return Array.from(selectedNetworks)[0];
-  }, [selectedNetworks]);
+  const {
+    agencies,
+    loading: agenciesLoading,
+    error: agenciesError,
+  } = useNearestAgencies(
+    state.showAgenciesPanel
+      ? selectedNetworks.size >= 1
+        ? Array.from(selectedNetworks)
+        : null
+      : null
+  );
 
-  useEffect(() => {
-    if (!isAdmin || !selectedAnchorBssid) {
-      setLinkedSiblingBssids(new Set());
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadSiblingLinks = async () => {
-      try {
-        const result = await networkApi.getNetworkSiblingLinks(selectedAnchorBssid);
-        if (cancelled) {
-          return;
-        }
-        const nextSet = new Set<string>(
-          Array.isArray(result?.links)
-            ? result.links
-                .map((row: any) =>
-                  String(row?.sibling_bssid || '')
-                    .trim()
-                    .toUpperCase()
-                )
-                .filter(Boolean)
-            : []
-        );
-        setLinkedSiblingBssids(nextSet);
-      } catch (error) {
-        if (!cancelled) {
-          logError('Failed to load sibling links', error);
-          setLinkedSiblingBssids(new Set());
-        }
-      }
+  const manualSiblingTarget = useMemo(() => {
+    if (selectedNetworks.size !== 1) return null;
+    const sBssid = Array.from(selectedNetworks)[0];
+    const cBssid = contextMenu.network?.bssid || null;
+    if (!sBssid || !cBssid || sBssid === cBssid) return null;
+    return {
+      bssid: sBssid,
+      ssid: networks.find((n) => n.bssid === sBssid)?.ssid || null,
+      isLinked: linkedSiblingBssids.has(cBssid),
     };
-
-    void loadSiblingLinks();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdmin, selectedAnchorBssid]);
-
-  useEffect(() => {
-    if (!isAdmin || networks.length === 0) {
-      setVisibleSiblingGroupMap(new Map());
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadVisibleSiblingGroups = async () => {
-      try {
-        const visibleBssids = networks
-          .map((network) =>
-            String(network.bssid || '')
-              .trim()
-              .toUpperCase()
-          )
-          .filter(Boolean);
-        const result = await networkApi.getNetworkSiblingLinksBatch(visibleBssids);
-        if (cancelled) {
-          return;
-        }
-
-        const edges = Array.isArray(result?.links) ? result.links : [];
-        const visibleSet = new Set(visibleBssids);
-        const adjacency = new Map<string, Set<string>>();
-
-        for (const bssid of visibleSet) {
-          adjacency.set(bssid, new Set());
-        }
-
-        for (const edge of edges) {
-          const a = String(edge?.bssid_a || '')
-            .trim()
-            .toUpperCase();
-          const b = String(edge?.bssid_b || '')
-            .trim()
-            .toUpperCase();
-          if (!visibleSet.has(a) || !visibleSet.has(b) || a === b) {
-            continue;
-          }
-          adjacency.get(a)?.add(b);
-          adjacency.get(b)?.add(a);
-        }
-
-        const groupMap = new Map<string, string>();
-        const visited = new Set<string>();
-        let groupCounter = 1;
-
-        const sortedVisible = Array.from(visibleSet).sort();
-        for (const start of sortedVisible) {
-          if (visited.has(start)) {
-            continue;
-          }
-          const neighbors = adjacency.get(start);
-          if (!neighbors || neighbors.size === 0) {
-            continue;
-          }
-
-          const stack = [start];
-          const component: string[] = [];
-          while (stack.length > 0) {
-            const current = stack.pop() as string;
-            if (visited.has(current)) {
-              continue;
-            }
-            visited.add(current);
-            component.push(current);
-            for (const next of adjacency.get(current) || []) {
-              if (!visited.has(next)) {
-                stack.push(next);
-              }
-            }
-          }
-
-          if (component.length < 2) {
-            continue;
-          }
-
-          const groupId = `S${groupCounter}`;
-          groupCounter += 1;
-          for (const bssid of component) {
-            groupMap.set(bssid, groupId);
-          }
-        }
-
-        setVisibleSiblingGroupMap(groupMap);
-      } catch (error) {
-        if (!cancelled) {
-          logError('Failed to load visible sibling groups', error);
-          setVisibleSiblingGroupMap(new Map());
-        }
-      }
-    };
-
-    void loadVisibleSiblingGroups();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdmin, networks]);
+  }, [contextMenu.network, linkedSiblingBssids, networks, selectedNetworks]);
 
   const handleMarkSiblingPair = async () => {
-    const anchorBssid = manualSiblingTarget?.bssid;
-    const contextBssid = contextMenu.network?.bssid || null;
+    const anchor = manualSiblingTarget?.bssid;
+    const context = contextMenu.network?.bssid;
+    if (!anchor || !context) return;
     const relation = manualSiblingTarget?.isLinked ? 'not_sibling' : 'sibling';
-
-    if (!anchorBssid || !contextBssid || anchorBssid === contextBssid) {
-      return;
-    }
-
     setSiblingPairLoading(true);
     try {
-      const result = await networkApi.setNetworkSiblingOverride(
-        anchorBssid,
-        contextBssid,
-        relation
-      );
-      if (!result?.ok) {
-        throw new Error(result?.error || 'Failed to save sibling pair');
-      }
+      const res = await networkApi.setNetworkSiblingOverride(anchor, context, relation);
+      if (!res?.ok) throw new Error(res?.error || 'Failed');
       setLinkedSiblingBssids((prev) => {
         const next = new Set(prev);
-        if (relation === 'sibling') {
-          next.add(contextBssid);
-        } else {
-          next.delete(contextBssid);
-        }
+        relation === 'sibling' ? next.add(context) : next.delete(context);
         return next;
       });
       closeContextMenu();
-      alert(
-        `${relation === 'sibling' ? 'Saved' : 'Removed'} sibling pair:\n${anchorBssid}\n${contextBssid}`
-      );
-    } catch (error) {
-      logError('Failed to mark manual sibling pair', error);
-      alert(
-        `Failed to save sibling pair: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+    } catch (err) {
+      logError('Sibling error', err);
     } finally {
       setSiblingPairLoading(false);
     }
   };
 
-  useFilterURLSync();
-  const { getCurrentEnabled, setFilter, enableFilter } = useFilterStore();
-  const enabled = getCurrentEnabled();
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const raw = quickSearch.trim();
-      const prefixed = raw.match(/^([sbm]):\s*(.+)$/i);
-
-      let target: 'ssid' | 'bssid' | 'manufacturer' = 'ssid';
-      let value = raw;
-
-      if (prefixed) {
-        const prefix = prefixed[1].toLowerCase();
-        value = prefixed[2].trim();
-        if (prefix === 'b') target = 'bssid';
-        if (prefix === 'm') target = 'manufacturer';
-        if (prefix === 's') target = 'ssid';
-      } else {
-        const macLike = /^([0-9a-f]{2}([:-]?)){2,6}[0-9a-f]{0,2}$/i.test(raw);
-        const ouiLike = /^[0-9a-f]{6}$/i.test(raw);
-        if (macLike) {
-          target = 'bssid';
-        } else if (ouiLike) {
-          target = 'manufacturer';
-        } else {
-          target = 'ssid';
-        }
-      }
-
-      const hasValue = value.length > 0;
-      const nextValue = hasValue ? value : '';
-
-      setFilter('ssid', target === 'ssid' ? nextValue : '');
-      setFilter('bssid', target === 'bssid' ? nextValue : '');
-      setFilter('manufacturer', target === 'manufacturer' ? nextValue : '');
-
-      enableFilter('ssid', hasValue && target === 'ssid');
-      enableFilter('bssid', hasValue && target === 'bssid');
-      enableFilter('manufacturer', hasValue && target === 'manufacturer');
-    }, 250);
-
-    return () => clearTimeout(timeout);
-  }, [quickSearch, setFilter, enableFilter]);
-
-  const debouncedFilterState = useDebouncedFilterState();
-
   const filteredNetworks = useMemo(() => {
-    if (visibleSiblingGroupMap.size === 0) {
-      return networks;
-    }
-
+    if (visibleSiblingGroupMap.size === 0) return networks;
     const grouped: NetworkRow[] = [];
-    const emittedGroups = new Set<string>();
-
-    for (const network of networks) {
-      const groupId = visibleSiblingGroupMap.get(network.bssid);
-      if (!groupId) {
-        grouped.push(network);
+    const emitted = new Set<string>();
+    for (const net of networks) {
+      const gid = visibleSiblingGroupMap.get(net.bssid);
+      if (!gid) {
+        grouped.push(net);
         continue;
       }
-
-      if (emittedGroups.has(groupId)) {
-        continue;
-      }
-
-      emittedGroups.add(groupId);
-      for (const candidate of networks) {
-        if (visibleSiblingGroupMap.get(candidate.bssid) === groupId) {
-          grouped.push(candidate);
-        }
-      }
+      if (emitted.has(gid)) continue;
+      emitted.add(gid);
+      networks
+        .filter((n) => visibleSiblingGroupMap.get(n.bssid) === gid)
+        .forEach((n) => grouped.push(n));
     }
-
     return grouped;
   }, [networks, visibleSiblingGroupMap]);
-  // Refs
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<Map | null>(null);
-  const mapboxRef = useRef<typeof mapboxglType | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInitRef = useRef(false);
-  const columnDropdownRef = useRef<HTMLDivElement>(null);
-  const {
-    locationSearch,
-    setLocationSearch,
-    searchResults,
-    showSearchResults,
-    setShowSearchResults,
-    searchingLocation,
-    locationSearchRef,
-    flyToLocation,
-  } = useLocationSearch({ mapRef, mapboxRef, logError });
 
-  // Location search moved into useLocationSearch hook
-
-  useResetPaginationOnFilters({
-    debouncedFilterState,
-    sort,
-    locationMode,
-    resetPagination,
-  });
-
-  useHomeLocation({ setHomeLocation, logError });
-
-  useMapDimensions({ setContainerHeight, setMapHeight });
-  useBoundingBoxFilter({
-    mapReady,
-    mapRef,
-    enabled: enabled.boundingBox,
-    setFilter,
-  });
-
-  useHomeLocationLayer({ mapReady, mapRef, homeLocation });
-
-  const { activeObservationSets, observationCount, networkLookup } = useObservationSummary({
-    selectedNetworks,
-    observationsByBssid,
-    networks,
-  });
-
-  const handleMouseDown = useMapResizeHandle({
-    mapHeight,
-    containerHeight,
-    mapRef,
-    setMapHeight,
-    setResizing: () => {},
-    logDebug,
-  });
-
-  useGeospatialMap({
-    mapStyle,
-    homeLocation,
-    mapRef,
-    mapboxRef,
-    mapContainerRef,
-    mapInitRef,
-    setMapReady,
-    setMapError,
-    logError,
-  });
-
-  // Weather effects
-  const { weatherFxMode, setWeatherFxMode } = useWeatherFx(mapRef, mapContainerRef, mapReady);
-
-  const {
-    mode: searchMode,
-    setMode: setSearchMode,
-    loading: directionsLoading,
-    fetchRoute,
-    clearRoute,
-  } = useDirectionsMode(mapRef);
-
-  const { handleColumnSort } = useNetworkSort({
-    setSort,
-    setError,
-    sortMap: API_SORT_MAP,
-    columnConfig: NETWORK_COLUMNS,
-  });
-
-  useObservationLayers({
-    mapReady,
-    mapRef,
-    mapboxRef,
-    activeObservationSets,
-    networkLookup,
-    wigleObservations,
-  });
-
-  const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =
-    useMapLayersToggle({
-      mapRef,
-      setShow3DBuildings,
-      setShowTerrain,
-    });
-
-  const addTerrain = () => toggleTerrain(true);
-
-  useApplyMapLayerDefaults({
-    mapReady,
-    show3DBuildings,
-    showTerrain,
-    add3DBuildings,
-    addTerrain,
-  });
-
-  // Render nearest agency markers
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !mapboxRef.current) return;
-    const map = mapRef.current;
-    const mapboxgl = mapboxRef.current;
-
-    const sourceId = 'nearest-agencies';
+    if (!state.mapReady || !state.mapRef.current || !state.mapboxRef.current) return;
+    const map = state.mapRef.current;
     const layerId = 'nearest-agencies-layer';
-
-    // Remove existing layer and source
+    const sourceId = 'nearest-agencies';
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     if (map.getSource(sourceId)) map.removeSource(sourceId);
-
-    if (agencies.length === 0 || !showAgenciesPanel) return;
-
-    // Create features for all agencies
-    const features = agencies.map((agency) => ({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [agency.longitude, agency.latitude],
-      },
-      properties: {
-        name: agency.name,
-        type: agency.office_type,
-        distance: (agency.distance_meters || 0) / 1000,
-        hasWigleObs: agency.has_wigle_obs,
-      },
-    }));
+    if (agencies.length === 0 || !state.showAgenciesPanel) return;
 
     map.addSource(sourceId, {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
-        features,
+        features: agencies.map((a) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [a.longitude, a.latitude] },
+          properties: {
+            name: a.name,
+            type: a.office_type,
+            distance: (a.distance_meters || 0) / 1000,
+            hasWigleObs: a.has_wigle_obs,
+          },
+        })),
       },
     });
-
     map.addLayer({
       id: layerId,
       type: 'circle',
@@ -659,182 +234,120 @@ export default function GeospatialExplorer() {
       },
     });
 
-    // Add click handler for tooltip
     const clickHandler = (e: any) => {
-      if (!e.features || e.features.length === 0) return;
-      const feature = e.features[0];
-      const props = feature.properties;
-
-      new mapboxgl.Popup({ className: 'sc-popup', maxWidth: '360px', offset: 14 })
+      if (!e.features?.length) return;
+      const p = e.features[0].properties;
+      new state.mapboxRef.current.Popup({ className: 'sc-popup', maxWidth: '360px', offset: 14 })
         .setLngLat(e.lngLat)
         .setHTML(
           renderAgencyPopupCard({
-            name: props.name,
-            officeType: props.type,
-            distanceKm: Number(props.distance),
-            hasWigleObs: Boolean(props.hasWigleObs),
+            name: p.name,
+            officeType: p.type,
+            distanceKm: Number(p.distance),
+            hasWigleObs: Boolean(p.hasWigleObs),
           })
         )
         .addTo(map);
     };
-
-    const mouseEnterHandler = () => {
-      map.getCanvas().style.cursor = 'pointer';
-    };
-
-    const mouseLeaveHandler = () => {
-      map.getCanvas().style.cursor = '';
-    };
-
     map.on('click', layerId, clickHandler);
-    map.on('mouseenter', layerId, mouseEnterHandler);
-    map.on('mouseleave', layerId, mouseLeaveHandler);
-
     return () => {
       map.off('click', layerId, clickHandler);
-      map.off('mouseenter', layerId, mouseEnterHandler);
-      map.off('mouseleave', layerId, mouseLeaveHandler);
       if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
     };
-  }, [mapReady, mapRef, mapboxRef, agencies, showAgenciesPanel]);
-
-  const { changeMapStyle } = useMapStyleControls({
-    mapRef,
-    setMapStyle,
-    setEmbeddedView,
-    setMapError,
-    homeLocation,
-    activeObservationSets,
-    networkLookup,
-    show3DBuildings,
-    showTerrain,
-    add3DBuildings,
-    addTerrain,
-    logError,
-  });
+  }, [state.mapReady, state.mapRef, state.mapboxRef, agencies, state.showAgenciesPanel]);
 
   return (
     <GeospatialLayout
-      filtersOpen={filtersOpen}
+      filtersOpen={state.filtersOpen}
       filterPanel={<GeospatialFiltersPanel />}
       content={
         <>
-          {/* Map Card */}
           <MapSection
-            mapHeight={mapHeight}
+            mapHeight={state.mapHeight}
             title="ShadowCheck Geospatial Intelligence"
             toolbar={
               <MapToolbarActions
-                locationSearchRef={locationSearchRef}
-                locationSearch={locationSearch}
-                setLocationSearch={setLocationSearch}
-                searchingLocation={searchingLocation}
-                showSearchResults={showSearchResults}
-                setShowSearchResults={setShowSearchResults}
-                searchResults={searchResults}
-                onSelectSearchResult={(result) => {
-                  if (searchMode === 'directions') {
-                    const dest: [number, number] = [result.center[0], result.center[1]];
-                    const origin = homeLocation.center;
-                    fetchRoute(origin, dest).then((data) => {
-                      // Fit map to show the full route from origin to destination
-                      if (data && mapRef.current && mapboxRef.current) {
-                        const bounds = new (mapboxRef.current as any).LngLatBounds(origin, origin);
-                        bounds.extend(dest);
-                        for (const coord of data.coordinates) {
-                          bounds.extend(coord);
-                        }
-                        fitBoundsWithZoomInset(mapRef.current, bounds, {
+                {...state}
+                locationSearchRef={state.locationSearchRef}
+                onSelectSearchResult={(res) => {
+                  if (state.searchMode === 'directions') {
+                    const dest: [number, number] = [res.center[0], res.center[1]];
+                    const origin = state.homeLocation.center;
+                    state.fetchRoute(origin, dest).then((data) => {
+                      if (data && state.mapRef.current && state.mapboxRef.current) {
+                        const bounds = new state.mapboxRef.current.LngLatBounds(
+                          origin,
+                          origin
+                        ).extend(dest);
+                        data.coordinates.forEach((c: any) => bounds.extend(c));
+                        fitBoundsWithZoomInset(state.mapRef.current, bounds, {
                           padding: 60,
                           duration: 2000,
                         });
                       }
                     });
-                    setShowSearchResults(false);
-                    setLocationSearch('');
+                    state.setShowSearchResults(false);
+                    state.setLocationSearch('');
                   } else {
-                    flyToLocation(result);
+                    state.flyToLocation(res);
                   }
                 }}
-                searchMode={searchMode}
                 onSearchModeToggle={() => {
-                  const next = searchMode === 'address' ? 'directions' : 'address';
-                  setSearchMode(next);
-                  if (next === 'address') clearRoute();
+                  const next = state.searchMode === 'address' ? 'directions' : 'address';
+                  state.setSearchMode(next);
+                  if (next === 'address') state.clearRoute();
                 }}
-                directionsLoading={directionsLoading}
-                mapStyle={mapStyle}
-                onMapStyleChange={changeMapStyle}
+                onMapStyleChange={state.changeMapStyle}
                 mapStyles={MAP_STYLES}
-                show3DBuildings={show3DBuildings}
-                is3DBuildingsAvailable={is3DBuildingsAvailable}
-                toggle3DBuildings={toggle3DBuildings}
-                showTerrain={showTerrain}
-                toggleTerrain={toggleTerrain}
-                fitButtonActive={fitButtonActive}
                 canFit={selectedNetworks.size > 0}
-                mapboxRef={mapboxRef}
-                mapRef={mapRef}
-                activeObservationSets={activeObservationSets}
-                setFitButtonActive={setFitButtonActive}
-                homeButtonActive={homeButtonActive}
-                setHomeButtonActive={setHomeButtonActive}
-                homeLocation={homeLocation}
-                logError={logError}
-                weatherFxMode={weatherFxMode}
-                onWeatherFxModeChange={setWeatherFxMode}
-                canWigle={selectedNetworks.size > 0}
+                onWigle={() =>
+                  wigleObservations.observations.length > 0
+                    ? clearWigleObservations()
+                    : loadBatchWigleObservations(Array.from(selectedNetworks))
+                }
+                onToggleAgenciesPanel={state.toggleAgenciesPanel}
                 wigleLoading={wigleObservations.loading}
                 wigleActive={wigleObservations.observations.length > 0}
                 selectedCount={selectedNetworks.size}
-                onWigle={() => {
-                  if (wigleObservations.observations.length > 0) {
-                    clearWigleObservations();
-                  } else {
-                    loadBatchWigleObservations(Array.from(selectedNetworks));
-                  }
-                }}
-                showAgenciesPanel={showAgenciesPanel}
-                onToggleAgenciesPanel={toggleAgenciesPanel}
               />
             }
-            mapReady={mapReady}
-            mapError={mapError}
-            embeddedView={embeddedView}
-            mapRef={mapRef}
-            mapContainerRef={mapContainerRef}
-            onResizeMouseDown={handleMouseDown}
+            mapError={state.mapError}
+            mapReady={state.mapReady}
+            embeddedView={state.embeddedView}
+            mapRef={state.mapRef}
+            mapContainerRef={state.mapContainerRef}
+            onResizeMouseDown={state.handleMouseDown}
           />
-
           <NetworkExplorerSection
             expensiveSort={expensiveSort}
-            quickSearch={quickSearch}
-            onQuickSearchChange={setQuickSearch}
+            quickSearch={state.quickSearch}
+            onQuickSearchChange={state.setQuickSearch}
             locationMode={locationMode}
-            onLocationModeChange={(mode) => setLocationMode(mode)}
-            filtersOpen={filtersOpen}
-            onToggleFilters={toggleFilters}
-            showColumnSelector={showColumnSelector}
-            columnDropdownRef={columnDropdownRef as React.RefObject<HTMLDivElement | null>}
-            visibleColumns={visibleColumns}
+            onLocationModeChange={setLocationMode}
+            filtersOpen={state.filtersOpen}
+            onToggleFilters={state.toggleFilters}
+            showColumnSelector={state.showColumnSelector}
+            columnDropdownRef={state.columnDropdownRef}
+            visibleColumns={state.visibleColumns}
             columns={NETWORK_COLUMNS}
-            onToggleColumnSelector={toggleColumnSelector}
-            onToggleColumn={toggleColumn}
+            onToggleColumnSelector={state.toggleColumnSelector}
+            onToggleColumn={state.toggleColumn}
             sort={sort}
             allSelected={allSelected}
             someSelected={someSelected}
             onToggleSelectAll={toggleSelectAll}
-            onColumnSort={handleColumnSort}
-            onReorderColumns={reorderColumns}
-            tableContainerRef={tableContainerRef as React.RefObject<HTMLDivElement | null>}
+            onColumnSort={state.handleColumnSort}
+            onReorderColumns={state.reorderColumns}
+            tableContainerRef={state.tableContainerRef}
             loadingNetworks={loadingNetworks}
             filteredNetworks={filteredNetworks}
             error={error}
             selectedNetworks={selectedNetworks}
             linkedSiblingBssids={linkedSiblingBssids}
             siblingGroupMap={visibleSiblingGroupMap}
-            selectedAnchorBssid={selectedAnchorBssid}
+            selectedAnchorBssid={
+              selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null
+            }
             selectedAnchorHasLinkedSiblings={linkedSiblingBssids.size > 0}
             onSelectExclusive={selectNetworkExclusive}
             onOpenContextMenu={openContextMenu}
@@ -846,7 +359,7 @@ export default function GeospatialExplorer() {
             networkTruncated={networkTruncated}
             networkTotal={networkTotal}
             selectedCount={selectedNetworks.size}
-            observationCount={observationCount}
+            observationCount={state.observationCount}
             observationsTruncated={observationsTruncated}
             observationsTotal={observationsTotal}
             renderBudgetExceeded={renderBudgetExceeded}
@@ -860,29 +373,23 @@ export default function GeospatialExplorer() {
           <GeospatialOverlays
             contextMenu={contextMenu}
             tagLoading={tagLoading}
-            contextMenuRef={contextMenuRef as React.RefObject<HTMLDivElement>}
+            contextMenuRef={contextMenuRef}
             onTagAction={handleTagAction}
             onCloseContextMenu={closeContextMenu}
             onOpenTimeFrequency={() => {
               const n = contextMenu.network;
-              const payload = n
-                ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') }
-                : null;
-              openTimeFrequency(payload);
+              if (n)
+                openTimeFrequency({ bssid: String(n.bssid || ''), ssid: String(n.ssid || '') });
               closeContextMenu();
             }}
             onOpenNote={() => {
-              const bssid = contextMenu.network?.bssid || '';
-              void openNoteModalForBssid(bssid);
+              void openNoteModalForBssid(contextMenu.network?.bssid || '');
               closeContextMenu();
             }}
             hasExistingNote={contextMenu.hasExistingNote}
             onGenerateThreatReport={handleGenerateThreatReportPdf}
             onMapWigleObservations={() => {
-              const n = contextMenu.network;
-              if (n) {
-                loadWigleObservations(n);
-              }
+              if (contextMenu.network) loadWigleObservations(contextMenu.network);
               closeContextMenu();
             }}
             wigleObservationsLoading={wigleObservations.loading}
@@ -895,7 +402,7 @@ export default function GeospatialExplorer() {
             noteType={noteType}
             noteContent={noteContent}
             noteAttachments={noteAttachments}
-            fileInputRef={fileInputRef as React.RefObject<HTMLInputElement>}
+            fileInputRef={fileInputRef}
             onNoteTypeChange={setNoteType}
             onNoteContentChange={setNoteContent}
             onAddAttachment={handleAddAttachment}
@@ -904,7 +411,7 @@ export default function GeospatialExplorer() {
             onCloseNote={resetNoteState}
             onCancelNote={resetNoteState}
             onSaveNote={handleSaveNote}
-            timeFreqModal={timeFreqModal}
+            timeFreqModal={state.timeFreqModal}
             onCloseTimeFrequency={closeTimeFrequency}
           />
           <WigleLookupDialog
@@ -924,7 +431,7 @@ export default function GeospatialExplorer() {
             batchStats={wigleObservations.batchStats}
             onClose={clearWigleObservations}
           />
-          {showAgenciesPanel && (
+          {state.showAgenciesPanel && (
             <NearestAgenciesPanel
               agencies={agencies}
               loading={agenciesLoading}

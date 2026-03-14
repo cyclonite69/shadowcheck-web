@@ -29,13 +29,14 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 
 - Node.js 20+ (TypeScript)
 - Express.js REST API
-- PostgreSQL 18 + PostGIS 3.6
+- PostgreSQL 18 + PostGIS 3.5
+- Redis 7.0 (Caching, Sessions)
 - Winston structured logging
 
 **Frontend:**
 
 - React 19 (TypeScript)
-- Vite build system
+- Vite 7 build system
 - Tailwind CSS v4
 - Mapbox GL JS / Deck.gl
 - Zustand state management
@@ -43,7 +44,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 **Infrastructure:**
 
 - Docker + Docker Compose
-- Jest testing framework
+- Jest 29.x testing framework
 - GitHub Actions CI/CD
 
 ---
@@ -94,5 +95,5 @@ We welcome contributions! Please see our [Contributing Guide](https://github.com
 
 ---
 
-_Last Updated: 2026-02-03_  
-_Version: 1.0.0_
+_Last Updated: 2026-03-14_  
+_Version: 1.1.0_
