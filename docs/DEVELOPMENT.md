@@ -25,9 +25,10 @@ Complete guide for setting up and developing ShadowCheck-Web with modern React +
 
 ### Required Software
 
-- **Node.js** 20+ (LTS) - Check with `node --version`
+- **Node.js** 22+ (LTS) - Check with `node --version`
+- **npm** 11+ - Check with `npm --version`
 - **PostgreSQL** 18+ with PostGIS extension
-- **Redis** 4.0+
+- **Redis** 7.0+
 - **Docker** (for containerized development)
 - **Git** for version control
 - **VS Code** with DevContainer support
@@ -182,9 +183,9 @@ The project includes a complete DevContainer configuration for consistent develo
 
 The DevContainer includes:
 
-- **Node.js 20** with npm
+- **Node.js 22** with npm 11
 - **PostgreSQL 18** with PostGIS
-- **Redis**
+- **Redis 7**
 - **All VS Code extensions** pre-installed
 - **Database setup** with sample data
 - **Port forwarding** for development servers

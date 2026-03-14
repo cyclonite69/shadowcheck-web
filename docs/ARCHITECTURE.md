@@ -683,7 +683,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 **Backend:**
 
-- Node.js 20+ (LTS)
+- Node.js 22+ (LTS)
 - Express 4.x (HTTP server)
 - pg 8.x (PostgreSQL client)
 - PostgreSQL 18 + PostGIS (geospatial database)
@@ -697,6 +697,11 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - Recharts / Chart.js (visualizations)
 - Mapbox GL JS / Deck.gl (mapping)
 - Zustand (State Management)
+
+**Runtime:**
+
+- npm 11+ (Dependency Management)
+- Docker (Containerization)
 
 **DevOps:**
 

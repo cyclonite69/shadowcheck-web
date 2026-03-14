@@ -100,7 +100,7 @@ Place these in `.env.local` for local development.
 
 ## Redis Configuration
 
-Redis is optional but recommended for caching and rate limiting.
+Redis is optional but recommended for caching and rate limiting. **Redis 7.0+** is the project standard for production deployments.
 
 ```bash
 REDIS_HOST=localhost
