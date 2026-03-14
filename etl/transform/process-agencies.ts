@@ -584,11 +584,76 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
   }
 }
 
-if (require.main === module) {
+export async function normalizePhones(options: { dryRun: boolean }): Promise<void> {
+  const pool = new Pool({
+    host: await resolveDbHost(),
+    user: process.env.DB_USER || 'shadowcheck_user',
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME || 'shadowcheck_db',
+    port: Number(process.env.DB_PORT || 5432),
+  });
+
+  console.log('\n☎️  Normalizing agency_offices phone numbers\n');
+  try {
+    if (options.dryRun) {
+      console.log('  [DRY RUN] Skipping phone normalization DB updates.');
+      return;
+    }
+
+    const updateRes = await pool.query<{ rowCount: number }>(`
+      WITH src AS (
+        SELECT id, regexp_replace(phone, '[^0-9]', '', 'g') AS digits
+        FROM app.agency_offices
+        WHERE NULLIF(BTRIM(phone), '') IS NOT NULL
+      ),
+      norm AS (
+        SELECT id, digits,
+          CASE
+            WHEN length(digits) = 10 THEN digits
+            WHEN length(digits) = 11 AND left(digits, 1) = '1' THEN substring(digits from 2 for 10)
+            ELSE NULL
+          END AS d10
+        FROM src
+      )
+      UPDATE app.agency_offices ao
+      SET
+        phone_digits = norm.digits,
+        normalized_phone = COALESCE(norm.d10, ao.normalized_phone),
+        normalized_phone_display = CASE
+          WHEN norm.d10 IS NULL THEN ao.normalized_phone_display
+          WHEN NULLIF(BTRIM(ao.normalized_phone_display), '') IS NULL THEN
+            '(' || substring(norm.d10 from 1 for 3) || ') ' ||
+            substring(norm.d10 from 4 for 3) || '-' ||
+            substring(norm.d10 from 7 for 4)
+          ELSE ao.normalized_phone_display
+        END,
+        updated_at = NOW()
+      FROM norm
+      WHERE ao.id = norm.id
+        AND (
+          (ao.phone_digits IS DISTINCT FROM norm.digits)
+          OR (norm.d10 IS NOT NULL AND ao.normalized_phone IS DISTINCT FROM norm.d10)
+          OR (NULLIF(BTRIM(ao.normalized_phone_display), '') IS NULL AND norm.d10 IS NOT NULL)
+        )
+    `);
+
+    console.log(`✅ Phone normalization applied.`);
+    console.log(`  Updated rows: ${updateRes.rowCount}`);
+  } finally {
+    await pool.end();
+  }
+}
+
+async function main() {
   const options = parseArgs(process.argv.slice(2));
-  enrichZip4(options).catch((err: unknown) => {
+  await enrichZip4(options);
+  await normalizePhones(options);
+}
+
+if (require.main === module) {
+  main().catch((err: unknown) => {
     const e = err as Error;
-    console.error(`\n❌ ZIP+4 enrichment failed: ${e.message}`);
+    console.error(`\n❌ Agency processing failed: ${e.message}`);
     process.exit(1);
   });
 }

@@ -27,15 +27,8 @@ interface StageConfig {
 
 const STAGES: StageConfig = {
   load: [{ script: 'load/sqlite-import.ts', requiresArg: true }],
-  transform: [
-    { script: 'transform/normalize-observations.ts' },
-    { script: 'transform/deduplicate.ts' },
-  ],
-  promote: [
-    { script: 'promote/validate-data.ts' },
-    { script: 'promote/refresh-mviews.ts' },
-    { script: 'promote/run-scoring.ts' },
-  ],
+  transform: [{ script: 'transform/process-observations.ts' }],
+  promote: [{ script: 'promote/process-promotion.ts' }],
 };
 
 /**

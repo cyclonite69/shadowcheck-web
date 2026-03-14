@@ -1,17 +1,20 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
- * Deduplicate Observations
+ * Process Observations
  *
- * Removes duplicate observations based on key fields:
- * - Uses (bssid, lat, lon, time) composite key
- * - Preserves highest signal strength (level) observation
- * - Updates deduplication stats
+ * 1. Normalizes raw import data (BSSID uppercase, coordinate validation)
+ * 2. Removes duplicates based on (bssid, lat, lon, time)
  */
 
 import { Pool, QueryResult } from 'pg';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
+
+interface RadioTypeRow {
+  radio_type: string;
+  count: string;
+}
 
 interface CountRow {
   count: string;
@@ -31,18 +34,58 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
+export async function normalizeObservations(): Promise<void> {
+  console.log('🔄 Normalizing observations...\n');
+  const startTime = Date.now();
+
+  try {
+    console.log('  [1/4] Standardizing BSSID format...');
+    const bssidResult: QueryResult = await pool.query(`
+      UPDATE app.observations
+      SET bssid = UPPER(bssid)
+      WHERE bssid != UPPER(bssid)
+    `);
+    console.log(`        Updated ${bssidResult.rowCount} BSSIDs`);
+
+    console.log('  [2/3] Validating coordinates...');
+    const invalidCoords: QueryResult<CountRow> = await pool.query(`
+      SELECT COUNT(*) as count FROM app.observations
+      WHERE lat IS NULL
+         OR lon IS NULL
+         OR lat < -90 OR lat > 90
+         OR lon < -180 OR lon > 180
+    `);
+    console.log(`        Found ${invalidCoords.rows[0].count} invalid coordinates`);
+
+    console.log('  [3/3] Validating radio types...');
+    const radioTypes: QueryResult<RadioTypeRow> = await pool.query(`
+      SELECT radio_type, COUNT(*) as count
+      FROM app.observations
+      GROUP BY radio_type
+      ORDER BY count DESC
+    `);
+    console.log('        Radio type distribution:');
+    radioTypes.rows.forEach((row) => {
+      console.log(`          - ${row.radio_type}: ${parseInt(row.count).toLocaleString()}`);
+    });
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`\n✅ Normalization complete in ${duration}s`);
+  } catch (error) {
+    console.error('❌ Normalization failed:', (error as Error).message);
+    throw error;
+  }
+}
+
 export async function deduplicateObservations(): Promise<DeduplicationResult> {
   console.log('🔄 Deduplicating observations...\n');
   const startTime = Date.now();
 
   try {
-    // Get initial count
     const beforeCount: QueryResult<CountRow> = await pool.query(
       'SELECT COUNT(*) as count FROM app.observations'
     );
     console.log(`  Initial count: ${parseInt(beforeCount.rows[0].count).toLocaleString()}`);
-
-    // Find and remove duplicates, keeping the one with highest signal (level)
     console.log('  Finding duplicates...');
 
     await pool.query(`
@@ -80,13 +123,20 @@ export async function deduplicateObservations(): Promise<DeduplicationResult> {
   } catch (error) {
     console.error('❌ Deduplication failed:', (error as Error).message);
     throw error;
+  }
+}
+
+async function main() {
+  try {
+    await normalizeObservations();
+    await deduplicateObservations();
   } finally {
     await pool.end();
   }
 }
 
 if (require.main === module) {
-  deduplicateObservations().catch((error) => {
+  main().catch((error) => {
     console.error(error);
     process.exit(1);
   });
