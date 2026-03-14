@@ -200,7 +200,7 @@ required.forEach((key) => {
 # docker-compose.dev.yml
 services:
   postgres:
-    image: postgis/postgis:15-3.3
+    image: postgis/postgis:18-3.5
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -227,7 +227,7 @@ services:
 # docker-compose.yml
 services:
   postgres:
-    image: postgis/postgis:15-3.3
+    image: postgis/postgis:18-3.5
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:

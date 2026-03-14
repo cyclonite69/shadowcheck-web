@@ -12,14 +12,14 @@
 
 ```sql
 -- Networks (WiFi, BLE, Cellular)
-public.networks          -- Network metadata (bssid, ssid, type, encryption)
-public.observations      -- Observation records (lat, lon, signal, time)
+app.networks             -- Network metadata (bssid, ssid, type, encryption)
+app.observations         -- Observation records (lat, lon, signal, time)
 
 -- Classifications
 app.network_tags         -- Manual classifications (threat, false_positive, known_safe)
 app.location_markers     -- Home/work locations for threat analysis
-
--- Enrichment
+...
+_Last Updated: 2026-03-14_
 app.wigle_networks_enriched  -- WiGLE API enrichment data
 app.radio_manufacturers      -- OUI → manufacturer mapping
 

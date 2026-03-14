@@ -136,23 +136,37 @@ flowchart LR
 
 ```mermaid
 graph LR
-    A["Networks API"] --> B["GET List Networks"]
-    A --> C["GET observations/:bssid"]
-    A --> D["GET search/:ssid"]
-    A --> E["GET tagged"]
-    A --> F["POST network-tags/:bssid"]
+    A["Networks API"] --> B["GET v1/networks"]
+    A --> C["GET v2/networks"]
+    A --> D["GET observations/:bssid"]
+    A --> E["GET search/:ssid"]
+    A --> F["GET tagged"]
+    A --> G["POST network-tags/:bssid"]
 
     style B fill:#4299e1,stroke:#2b6cb0,color:#fff
-    style F fill:#ed8936,stroke:#c05621,color:#fff
+    style C fill:#48bb78,stroke:#2f855a,color:#fff
+    style G fill:#ed8936,stroke:#c05621,color:#fff
 ```
 
-#### List Networks
+#### List Networks (v1)
 
 ```http
 GET /api/networks?page=1&limit=100&sort=lastSeen&order=DESC
 ```
 
-**Query Parameters:**
+#### List Networks (v2)
+
+```http
+GET /api/v2/networks?page=1&limit=100
+```
+
+**New in v2:**
+
+- Optimized query performance via materialized views
+- Improved filter alignment with universal filter system
+- Enhanced error reporting and metadata
+  ...
+  _Last Updated: 2026-03-14_
 
 | Parameter   | Type    | Default  | Description                            |
 | ----------- | ------- | -------- | -------------------------------------- |

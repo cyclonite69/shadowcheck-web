@@ -6,7 +6,7 @@
 [![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-static?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/redis-%3E%3D4.0.0-red?style=flat-square)](https://redis.io/)
+[![Redis](https://img.shields.io/badge/redis-%3E%3D7.0.0-red?style=flat-square)](https://redis.io/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/commits)
 [![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static)
 
@@ -117,9 +117,9 @@ See `docs/FEATURES.md` for the full feature catalog.
 ## Architecture
 
 **Backend:** Node.js/Express REST API with PostgreSQL + PostGIS + Redis (Modular architecture with Repositories and Services)
-**Frontend:** React + Vite with TypeScript (explorers and dashboards)
+**Frontend:** React 19 + Vite 7 with TypeScript (explorers and dashboards)
 **Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
-**Cache:** Redis v4+ for sessions, rate limiting, and analytics
+**Cache:** Redis v7 for sessions, rate limiting, and analytics
 **Development:** DevContainer support with VS Code integration
 **Deployment:** Production builds are served via the integrated asset handler in `server/server.ts`.
 
@@ -127,7 +127,7 @@ See `docs/FEATURES.md` for the full feature catalog.
 
 - Node.js 20+
 - PostgreSQL 18+ with PostGIS
-- Redis 4.0+
+- Redis 7.0+
 - TypeScript 5.0+ (included in devDependencies)
 
 ## Quick Start

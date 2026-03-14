@@ -61,8 +61,8 @@ graph TB
     end
 
     subgraph "Data Layer"
-        E[(PostgreSQL 18<br/>+ PostGIS)]
-        F[(Redis 4+<br/>Cache & Sessions)]
+        E[(PostgreSQL 18<br/>+ PostGIS 3.5)]
+        F[(Redis 7.0<br/>Cache & Sessions)]
         G[ETL Pipeline]
     end
 
@@ -156,18 +156,18 @@ graph LR
 shadowcheck-static/
 ├── 📁 client/              # React/Vite frontend
 │   ├── src/
-│   │   ├── components/     # React components (.tsx)
-│   │   ├── hooks/          # Custom React hooks
+│   │   ├── components/     # Modularized React components
+│   │   ├── hooks/          # 28+ Custom React hooks
 │   │   ├── stores/         # Zustand state management
-│   │   ├── utils/          # Utility functions
+│   │   ├── utils/          # Data layer & UI utilities
 │   │   └── types/          # TypeScript definitions
-│   └── vite.config.ts      # Vite configuration
+│   └── vite.config.ts      # Vite 7 configuration
 │
 ├── 📁 server/              # Express backend
-│   ├── server.ts           # Main server entry
+│   ├── server.ts           # Main server entry (serves client)
 │   └── src/
 │       ├── api/routes/     # REST API routes (v1 + v2)
-│       ├── services/       # Business logic layer
+│       ├── services/       # 33+ Business logic services
 │       ├── repositories/   # Data access layer
 │       ├── middleware/     # Express middleware
 │       └── utils/          # Server utilities
@@ -249,21 +249,22 @@ User Request
 
 - Node.js 20+ (TypeScript)
 - Express.js REST API
-- PostgreSQL 18 + PostGIS 3.6
+- PostgreSQL 18 + PostGIS 3.5
+- Redis 7.0 (Caching, Sessions)
 - Winston structured logging
 
 **Frontend:**
 
 - React 19 (TypeScript)
-- Vite build system
+- Vite 7 build system
 - Tailwind CSS v4
-- Mapbox GL JS / Deck.gl
+- Mapbox GL JS 3.x / Deck.gl 9.x
 - Zustand state management
 
 **Infrastructure:**
 
 - Docker + Docker Compose
-- Jest testing framework
+- Jest 29.x testing framework
 - GitHub Actions CI/CD
 
 ---
@@ -707,10 +708,8 @@ graph TB
 | Node.js    | 20+     | Runtime          |
 | Express    | 4.x     | Web framework    |
 | PostgreSQL | 18+     | Database         |
-| PostGIS    | 3.6+    | Geospatial       |
-| Redis      | 4+      | Cache & sessions |
-| Winston    | 3.x     | Logging          |
-| Jest       | 30.x    | Testing          |
+| PostGIS    | 3.5+    | Geospatial       |
+| Redis      | 7+      | Cache & sessions |
 | Winston    | 3.x     | Logging          |
 | Jest       | 29.x    | Testing          |
 
@@ -786,4 +785,4 @@ graph TB
 
 ---
 
-_Last Updated: 2026-02-07_
+_Last Updated: 2026-03-14_
