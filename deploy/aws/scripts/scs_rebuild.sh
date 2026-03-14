@@ -80,8 +80,9 @@ echo "[5/7] Restarting containers..."
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
-# Ensure certs directory exists and is writable by the nginx container (UID 101 for nginx:alpine)
-CERTS_DIR=/home/ssm-user/certs
+# Use persistent certs directory on the EBS volume
+# This ensures browsers don't trigger new security warnings on every move
+CERTS_DIR=/var/lib/postgresql/certs/web
 mkdir -p "$CERTS_DIR"
 chmod 755 "$CERTS_DIR"
 
