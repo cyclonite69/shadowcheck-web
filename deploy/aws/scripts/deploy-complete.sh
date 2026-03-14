@@ -74,21 +74,27 @@ if [ ! -f "$PROJECT_ROOT/deploy/aws/.env.aws" ]; then
   echo "Creating .env.aws from template..."
   cp "$PROJECT_ROOT/deploy/aws/.env.example" "$PROJECT_ROOT/deploy/aws/.env.aws"
   
-  # Auto-populate what we can
-  DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text 2>/dev/null | jq -r '.db_password // empty')
-  PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+  # Auto-populate all secrets from AWS SM
+  echo "🔍 Pulling secrets from AWS Secrets Manager..."
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query SecretString --output text 2>/dev/null)
+  
+  DB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.db_password // empty')
+  MAPBOX_TOKEN=$(echo "$SECRET_JSON" | jq -r '.mapbox_token // empty')
+  WIGLE_API_KEY=$(echo "$SECRET_JSON" | jq -r '.wigle_api_key // empty')
+  PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "localhost")
+  SESSION_SECRET=$(openssl rand -base64 32)
   
   sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" "$PROJECT_ROOT/deploy/aws/.env.aws"
+  sed -i "s|MAPBOX_TOKEN=.*|MAPBOX_TOKEN=$MAPBOX_TOKEN|" "$PROJECT_ROOT/deploy/aws/.env.aws"
+  sed -i "s|WIGLE_API_KEY=.*|WIGLE_API_KEY=$WIGLE_API_KEY|" "$PROJECT_ROOT/deploy/aws/.env.aws"
   sed -i "s|PUBLIC_IP=.*|PUBLIC_IP=$PUBLIC_IP|" "$PROJECT_ROOT/deploy/aws/.env.aws"
   
-  echo "✅ .env.aws created with auto-populated values"
-  echo ""
-  echo "⚠️  IMPORTANT: Edit the following values in deploy/aws/.env.aws:"
-  echo "   - MAPBOX_TOKEN (get from https://account.mapbox.com/)"
-  echo "   - WIGLE_API_KEY (optional, get from https://wigle.net/)"
-  echo "   - SESSION_SECRET (generate with: openssl rand -base64 32)"
-  echo ""
-  read -p "Press Enter after editing .env.aws to continue..."
+  # Add session secret if missing
+  if ! grep -q "SESSION_SECRET" "$PROJECT_ROOT/deploy/aws/.env.aws"; then
+    echo "SESSION_SECRET=$SESSION_SECRET" >> "$PROJECT_ROOT/deploy/aws/.env.aws"
+  fi
+  
+  echo "✅ .env.aws created and auto-populated from Secrets Manager"
 else
   echo "✅ .env.aws already exists"
 fi
@@ -98,6 +104,8 @@ echo ""
 echo "Step 5/5: Application Deployment"
 echo "================================"
 echo "Deploying ShadowCheck application..."
+# Force non-interactive build
+export DEBIAN_FRONTEND=noninteractive
 "$PROJECT_ROOT/deploy/aws/scripts/scs_rebuild.sh"
 echo ""
 
