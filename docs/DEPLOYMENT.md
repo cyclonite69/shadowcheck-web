@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Production deployment guide for ShadowCheck-Static.
+Production deployment guide for ShadowCheck-Web.
 
 **Wiki version (diagrams):** [Deployment Guide](../.github/wiki/Deployment-Guide.md)
 
@@ -477,7 +477,7 @@ sudo nano /etc/logrotate.d/shadowcheck
 2. **Create ECR Repository**
 
    ```bash
-   aws ecr create-repository --repository-name shadowcheck-static
+   aws ecr create-repository --repository-name shadowcheck-web
    ```
 
 3. **Build and Push Docker Image**
@@ -487,13 +487,13 @@ sudo nano /etc/logrotate.d/shadowcheck
    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin your-account-id.dkr.ecr.us-east-1.amazonaws.com
 
    # Build image
-   docker build -t shadowcheck-static .
+   docker build -t shadowcheck-web .
 
    # Tag image
-   docker tag shadowcheck-static:latest your-account-id.dkr.ecr.us-east-1.amazonaws.com/shadowcheck-static:latest
+   docker tag shadowcheck-web:latest your-account-id.dkr.ecr.us-east-1.amazonaws.com/shadowcheck-web:latest
 
    # Push image
-   docker push your-account-id.dkr.ecr.us-east-1.amazonaws.com/shadowcheck-static:latest
+   docker push your-account-id.dkr.ecr.us-east-1.amazonaws.com/shadowcheck-web:latest
    ```
 
 4. **Create ECS Task Definition**
@@ -949,7 +949,7 @@ LIMIT 10;
 
 - Core containers: `shadowcheck_postgres`, `shadowcheck_redis`, `shadowcheck_pgadmin` (optional).
 - Start services: `docker-compose up -d`.
-- Logs: `docker logs shadowcheck_postgres` and `docker logs shadowcheck_static_api`.
+- Logs: `docker logs shadowcheck_postgres` and `docker logs shadowcheck_web_api`.
 - psql: `docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db`.
 
 ## Deployment Checklist (Short)
@@ -965,7 +965,7 @@ LIMIT 10;
 ```bash
 docker-compose up -d
 docker logs shadowcheck_postgres
-docker logs shadowcheck_static_api
+docker logs shadowcheck_web_api
 docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 ```
 

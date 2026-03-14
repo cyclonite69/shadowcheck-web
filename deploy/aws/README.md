@@ -69,11 +69,11 @@ aws iam put-role-policy \
 
 ```bash
 # One-time system setup
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
 
 # Clone and deploy
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 ./deploy/aws/scripts/deploy-complete.sh
 ```

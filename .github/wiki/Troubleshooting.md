@@ -200,4 +200,4 @@ cat logs/combined.log
 - [Development](Development) - Development setup
 - [Installation](Installation) - Complete setup guide
 - [Database](Database) - Database operations
-- [Recent Fixes](https://github.com/cyclonite69/shadowcheck-static/blob/main/docs/TROUBLESHOOTING_RECENT_FIXES.md) - Recently resolved issues
+- [Recent Fixes](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/TROUBLESHOOTING_RECENT_FIXES.md) - Recently resolved issues

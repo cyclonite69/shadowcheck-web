@@ -32,7 +32,7 @@ aws ssm send-command \
   --document-name "AWS-RunShellScript" \
   --parameters '{"commands":[
     "cd /home/ssm-user",
-    "if [ -d shadowcheck ]; then cd shadowcheck && git pull; else git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck; fi"
+    "if [ -d shadowcheck ]; then cd shadowcheck && git pull; else git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck; fi"
   ]}' \
   --region $REGION \
   --output text \

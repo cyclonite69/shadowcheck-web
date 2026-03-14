@@ -1,8 +1,8 @@
-# ShadowCheckStatic: SIGINT Forensics Platform
+# ShadowCheckWeb: SIGINT Forensics Platform
 
 ## Project Overview
 
-**ShadowCheckStatic** is a production-grade SIGINT (Signals Intelligence) forensics and wireless network analysis platform. It provides real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
+**ShadowCheckWeb** is a production-grade SIGINT (Signals Intelligence) forensics and wireless network analysis platform. It provides real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
 - **Primary Technologies:** React 19, Vite 7, TypeScript, Node.js 20+, Express, PostgreSQL 18 + PostGIS, Redis 7.0.
 - **Architecture:** Modern modular architecture with clear separation of concerns:

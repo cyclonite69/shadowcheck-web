@@ -45,7 +45,7 @@ echo "========================="
 if [ ! -d "$PROJECT_ROOT/.git" ]; then
   echo "Cloning repository..."
   cd /home/ssm-user
-  git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+  git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
   cd shadowcheck
   echo "✅ Repository cloned"
 else

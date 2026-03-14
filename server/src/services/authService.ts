@@ -12,7 +12,7 @@ const AUTH_DB_USER = process.env.DB_USER || 'shadowcheck_user';
 const AUTH_DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
 const AUTH_DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
 const AUTH_DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
-const AUTH_DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-static'}-auth`;
+const AUTH_DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-web'}-auth`;
 const AUTH_DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 
 let authPool = null;

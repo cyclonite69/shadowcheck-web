@@ -18,8 +18,8 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 ```
 
 ### 2. Install Dependencies

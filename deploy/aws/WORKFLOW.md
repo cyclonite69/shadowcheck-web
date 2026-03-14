@@ -53,11 +53,11 @@ aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
 bash
 
 # 3. Download and run setup script
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
 
 # 4. Clone repository
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 
 # 5. Run complete deployment
@@ -93,7 +93,7 @@ This installs:
 
 ```bash
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 ```
 

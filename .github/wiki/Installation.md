@@ -38,8 +38,8 @@ Complete setup instructions for ShadowCheck development and production environme
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 ```
 
 ### 2. Install Node.js Dependencies

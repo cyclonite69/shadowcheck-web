@@ -17,7 +17,7 @@ const DB_ADMIN_USER = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
 const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
 const DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
 const DB_PORT = parseInt(process.env.DB_PORT, 10) || 5432;
-const DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-static'}-admin`;
+const DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-web'}-admin`;
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 
 let adminPool = null;

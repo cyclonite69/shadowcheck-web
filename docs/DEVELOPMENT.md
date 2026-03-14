@@ -2,7 +2,7 @@
 
 **Wiki versions (diagrams):** [Development](../.github/wiki/Development.md), [Installation](../.github/wiki/Installation.md)
 
-Complete guide for setting up and developing ShadowCheck-Static with modern React + Express architecture.
+Complete guide for setting up and developing ShadowCheck-Web with modern React + Express architecture.
 
 ## Table of Contents
 
@@ -83,8 +83,8 @@ The agency offices dataset undergoes a multi-stage enrichment and normalization 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 ```
 
 ### 2. Install Dependencies
@@ -125,29 +125,37 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 PORT=3001
 ```
+
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
 # Server Configuration
+
 PORT=3001
 NODE_ENV=development
 FORCE_HTTPS=false
 
 # CORS Configuration (comma-separated origins)
+
 CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173
 
 # Frontend Configuration (use AWS Secrets Manager; env vars for local overrides)
+
 MAPBOX_TOKEN=pk.your_mapbox_token_here
 
 # API Keys for enrichment
+
 OPENCAGE_API_KEY=your_opencage_key
 LOCATIONIQ_API_KEY=your_locationiq_key
 ABSTRACT_API_KEY=your_abstract_key
 
 # Weather FX Proxy (Open-Meteo)
+
 # No API key required for standard usage (<10k daily calls)
+
 # Endpoint: /api/weather -> https://api.open-meteo.com/v1/forecast
-```
+
+````
 
 **Note**: In production, secrets are stored in AWS Secrets Manager, not `.env`.
 
@@ -168,7 +176,7 @@ The project includes a complete DevContainer configuration for consistent develo
 
 # Option 2: VS Code will prompt when opening the project
 # Click "Reopen in Container" when prompted
-```
+````
 
 ### 3. DevContainer Features
 

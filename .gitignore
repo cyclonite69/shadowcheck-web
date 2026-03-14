@@ -95,7 +95,7 @@ tmp/
 compose_snapshot.txt
 project_snapshot.txt
 postgres_schema_current.sql
-shadowcheck-static.backup/
+shadowcheck-web.backup/
 shadowcheck-debug.tar.gz
 Thumbs.db
 Desktop.ini

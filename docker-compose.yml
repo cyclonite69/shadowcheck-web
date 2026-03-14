@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: shadowcheck_static_api
+    container_name: shadowcheck_web_api
     hostname: parrot
     restart: unless-stopped
     environment:
@@ -24,7 +24,7 @@ services:
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Connect to local Redis
-      REDIS_HOST: shadowcheck_static_redis
+      REDIS_HOST: shadowcheck_web_redis
       REDIS_PORT: 6379
       # AWS credentials for viewing/managing AWS resources
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
@@ -62,7 +62,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: shadowcheck_static_redis
+    container_name: shadowcheck_web_redis
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"

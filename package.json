@@ -29,7 +29,7 @@
     "lint:boundaries": "tsx scripts/check-client-imports.ts",
     "format": "prettier --write \"**/*.{js,json,md,yml}\"",
     "format:check": "prettier --check \"**/*.{js,json,md,yml}\"",
-    "docker:build": "docker build -t shadowcheck-static:latest .",
+    "docker:build": "docker build -t shadowcheck-web:latest .",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f api",

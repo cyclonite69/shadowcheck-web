@@ -142,7 +142,7 @@ aws ssm start-session --target INSTANCE_ID --region us-east-1
 # 3. Run complete deployment
 bash
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 sudo ./deploy/aws/scripts/setup-instance.sh
 ./deploy/aws/scripts/deploy-complete.sh

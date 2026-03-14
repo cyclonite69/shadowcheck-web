@@ -1,14 +1,14 @@
 # ShadowCheck - SIGINT Forensics Platform
 
-[![GitHub stars](https://img.shields.io/github/stars/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/network)
-[![GitHub issues](https://img.shields.io/github/issues/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/issues)
-[![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-static?style=flat-square)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/network)
+[![GitHub issues](https://img.shields.io/github/issues/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/issues)
+[![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-web?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/redis-%3E%3D7.0.0-red?style=flat-square)](https://redis.io/)
-[![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/commits)
-[![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static)
+[![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/commits)
+[![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web)
 
 🛡️ **Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
@@ -135,8 +135,8 @@ See `docs/FEATURES.md` for the full feature catalog.
 ### Local Development
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 npm install
 docker-compose up -d
 ```
@@ -144,8 +144,8 @@ docker-compose up -d
 ### Home Lab Deployment
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 ./deploy/homelab/scripts/setup.sh
 ```
 
@@ -164,9 +164,9 @@ aws ssm start-session --target INSTANCE_ID --region us-east-1
 
 # 3. Run automated setup
 bash
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 ./deploy/aws/scripts/deploy-complete.sh
 
@@ -190,8 +190,8 @@ git pull origin master
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/your-username/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/your-username/shadowcheck-web.git
+cd shadowcheck-web
 npm install
 ```
 
@@ -215,7 +215,7 @@ DB_HOST=shadowcheck_postgres
 DB_NAME=shadowcheck_db
 DB_PASSWORD=your_password
 DB_PORT=5432
-REDIS_HOST=shadowcheck_static_redis
+REDIS_HOST=shadowcheck_web_redis
 REDIS_PORT=6379
 PORT=3001
 ```
@@ -374,7 +374,7 @@ Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparame
 ## Project Structure
 
 ```
-shadowcheck-static/
+shadowcheck-web/
 ├── client/
 │   ├── src/
 │   │   ├── components/    # ⚛️ React components (TypeScript)

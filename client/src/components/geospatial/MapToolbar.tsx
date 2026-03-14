@@ -22,6 +22,7 @@ interface MapToolbarProps {
   onMapStyleChange: (value: string) => void;
   mapStyles: MapStyleOption[];
   show3DBuildings: boolean;
+  is3DBuildingsAvailable: boolean;
   onToggle3DBuildings: () => void;
   showTerrain: boolean;
   onToggleTerrain: () => void;
@@ -63,6 +64,7 @@ export const MapToolbar = ({
   onMapStyleChange,
   mapStyles,
   show3DBuildings,
+  is3DBuildingsAvailable,
   onToggle3DBuildings,
   showTerrain,
   onToggleTerrain,
@@ -228,6 +230,10 @@ export const MapToolbar = ({
       </select>
       <button
         onClick={onToggle3DBuildings}
+        disabled={!is3DBuildingsAvailable}
+        title={
+          is3DBuildingsAvailable ? 'Toggle 3D buildings' : '3D buildings unavailable for this style'
+        }
         style={{
           padding: '6px 10px',
           fontSize: '11px',
@@ -235,11 +241,12 @@ export const MapToolbar = ({
           border: show3DBuildings
             ? '1px solid rgba(59, 130, 246, 0.5)'
             : '1px solid rgba(148, 163, 184, 0.2)',
-          color: show3DBuildings ? '#60a5fa' : '#cbd5e1',
+          color: !is3DBuildingsAvailable ? '#64748b' : show3DBuildings ? '#60a5fa' : '#cbd5e1',
           borderRadius: '4px',
-          cursor: 'pointer',
+          cursor: is3DBuildingsAvailable ? 'pointer' : 'not-allowed',
           transition: 'all 0.2s',
           fontWeight: show3DBuildings ? '600' : '400',
+          opacity: is3DBuildingsAvailable ? 1 : 0.65,
         }}
       >
         🏢 3D Buildings

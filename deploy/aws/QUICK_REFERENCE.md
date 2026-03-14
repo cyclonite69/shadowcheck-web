@@ -11,11 +11,11 @@ aws ssm start-session --target i-XXXXX --region us-east-1
 
 # 3. Setup (EC2 instance)
 bash
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
 
 # 4. Clone (EC2 instance)
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 
 # 5. Dry-run (optional, recommended)
@@ -306,7 +306,7 @@ aws ec2 describe-instances --instance-ids i-XXXXX --region us-east-1 --query 'Re
 
 ## 📞 Support
 
-- Issues: https://github.com/cyclonite69/shadowcheck-static/issues
+- Issues: https://github.com/cyclonite69/shadowcheck-web/issues
 - Docs: deploy/aws/README.md
 - Workflow: deploy/aws/WORKFLOW.md
 - Quick Start: deploy/aws/QUICKSTART.md

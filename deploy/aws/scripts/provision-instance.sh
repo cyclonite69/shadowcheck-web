@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/cyclonite69/shadowcheck-static.git"
+REPO_URL="https://github.com/cyclonite69/shadowcheck-web.git"
 PROJECT_ROOT="/home/ssm-user/shadowcheck"
 SECRETS_DIR="/home/ssm-user/secrets"
 AWS_SECRET_NAME="shadowcheck/config"

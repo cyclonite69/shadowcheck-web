@@ -22,7 +22,7 @@ Use this checklist to ensure all steps are completed correctly.
 
 - [ ] Connect via SSM
 - [ ] Switch to bash: `bash`
-- [ ] Run system setup: `curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash`
+- [ ] Run system setup: `curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash`
 - [ ] Verify utilities installed:
   - [ ] `rg --version` (ripgrep)
   - [ ] `ncdu --version`
@@ -32,7 +32,7 @@ Use this checklist to ensure all steps are completed correctly.
 
 ## Repository Setup
 
-- [ ] Clone repository: `cd /home/ssm-user && git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck`
+- [ ] Clone repository: `cd /home/ssm-user && git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck`
 - [ ] Navigate to project: `cd shadowcheck`
 - [ ] Verify files present: `ls -la`
 
