@@ -91,58 +91,78 @@ const KeplerPage: React.FC = () => {
       };
 
       const layers = [];
+      const deck = window.deck;
+      if (!deck) return;
+
+      // Helper to find layer class in possible deck namespaces
+      const getLayer = (name: string) =>
+        deck[name] ||
+        (deck.layers && deck.layers[name]) ||
+        (deck.aggregationLayers && deck.aggregationLayers[name]);
+
       if (layerType === 'scatterplot') {
-        layers.push(
-          new window.deck.ScatterplotLayer({
-            id: 'points',
-            data,
-            getPosition: (d: NetworkData) => d.position,
-            getFillColor: (d: NetworkData) => d.color || [0, 128, 255, 200],
-            getRadius: pointSize * 50,
-            pickable: true,
-            autoHighlight: true,
-          })
-        );
+        const ScatterplotLayer = getLayer('ScatterplotLayer');
+        if (ScatterplotLayer) {
+          layers.push(
+            new ScatterplotLayer({
+              id: 'points',
+              data,
+              getPosition: (d: NetworkData) => d.position,
+              getFillColor: (d: NetworkData) => d.color || [0, 128, 255, 200],
+              getRadius: pointSize * 50,
+              pickable: true,
+              autoHighlight: true,
+            })
+          );
+        }
       } else if (layerType === 'heatmap') {
-        layers.push(
-          new window.deck.HeatmapLayer({
-            id: 'heatmap',
-            data,
-            getPosition: (d: NetworkData) => d.position,
-            getWeight: (d: NetworkData) => (d.signal ? (d.signal + 120) / 120 : 0.5),
-            radiusPixels: pointSize * 100,
-          })
-        );
+        const HeatmapLayer = getLayer('HeatmapLayer');
+        if (HeatmapLayer) {
+          layers.push(
+            new HeatmapLayer({
+              id: 'heatmap',
+              data,
+              getPosition: (d: NetworkData) => d.position,
+              getWeight: (d: NetworkData) => (d.signal ? (d.signal + 120) / 120 : 0.5),
+              radiusPixels: pointSize * 100,
+            })
+          );
+        }
       } else if (layerType === 'hexagon') {
-        layers.push(
-          new window.deck.HexagonLayer({
-            id: 'hexagon',
-            data,
-            getPosition: (d: NetworkData) => d.position,
-            radius: pointSize * 500,
-            elevationScale: height3d * 10,
-            extruded: pitch > 0,
-            pickable: true,
-          })
-        );
+        const HexagonLayer = getLayer('HexagonLayer');
+        if (HexagonLayer) {
+          layers.push(
+            new HexagonLayer({
+              id: 'hexagon',
+              data,
+              getPosition: (d: NetworkData) => d.position,
+              radius: pointSize * 500,
+              elevationScale: height3d * 10,
+              extruded: pitch > 0,
+              pickable: true,
+            })
+          );
+        }
       } else if (layerType === 'icon') {
-        layers.push(
-          new window.deck.IconLayer({
-            id: 'icon',
-            data,
-            // Simple built-in icon sprite approach
-            iconAtlas:
-              'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png',
-            iconMapping: {
-              marker: { x: 0, y: 0, width: 128, height: 128, mask: true },
-            },
-            getIcon: () => 'marker',
-            getPosition: (d: NetworkData) => d.position,
-            getSize: pointSize * 100,
-            getColor: (d: NetworkData) => d.color || [0, 128, 255, 200],
-            pickable: true,
-          })
-        );
+        const IconLayer = getLayer('IconLayer');
+        if (IconLayer) {
+          layers.push(
+            new IconLayer({
+              id: 'icon',
+              data,
+              iconAtlas:
+                'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png',
+              iconMapping: {
+                marker: { x: 0, y: 0, width: 128, height: 128, mask: true },
+              },
+              getIcon: () => 'marker',
+              getPosition: (d: NetworkData) => d.position,
+              getSize: pointSize * 100,
+              getColor: (d: NetworkData) => d.color || [0, 128, 255, 200],
+              pickable: true,
+            })
+          );
+        }
       }
       if (deckRef.current) {
         deckRef.current.setProps({ layers, initialViewState: INITIAL_VIEW_STATE });
@@ -180,8 +200,6 @@ const KeplerPage: React.FC = () => {
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css'),
           loadScript('https://unpkg.com/deck.gl@latest/dist.min.js'),
-          loadScript('https://unpkg.com/@deck.gl/aggregation-layers@latest/dist.min.js'),
-          loadScript('https://unpkg.com/@deck.gl/layers@latest/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;
