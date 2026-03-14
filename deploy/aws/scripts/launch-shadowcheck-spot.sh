@@ -90,6 +90,7 @@ if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" == "None" ]; then
     --launch-template LaunchTemplateName=$TEMPLATE_NAME \
     --instance-type "$INSTANCE_TYPE" \
     --placement "AvailabilityZone=$VOLUME_AZ" \
+    --security-group-ids "sg-0c3b2c64455ee8571" \
     --instance-market-options "{ \"MarketType\": \"spot\", \"SpotOptions\": { \"MaxPrice\": \"0.067\", \"SpotInstanceType\": \"persistent\", \"InstanceInterruptionBehavior\": \"stop\", \"LaunchGroup\": \"shadowcheck\" } }" \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=scs-ssm}]" \
     --region $REGION \
