@@ -3,11 +3,25 @@
 # Usage: ./launch-shadowcheck-spot.sh [instance-type]
 # Example: ./launch-shadowcheck-spot.sh m6g.large
 
-VOLUME_ID="vol-0f38f7789ac264d59"  # PostgreSQL data volume (optional)
-EIP_ALLOC_ID="eipalloc-0a85ace4f0c10d738"  # Elastic IP allocation
-TEMPLATE_NAME="shadowcheck-spot-template"
+# Configuration
 REGION="us-east-1"
-INSTANCE_TYPE="${1:-t4g.large}"  # Default to t4g.large (Graviton3, burstable)
+TEMPLATE_NAME="shadowcheck-spot-template"
+EIP_ALLOC_ID="eipalloc-0a85ace4f0c10d738"
+INSTANCE_TYPE="${1:-t4g.large}"
+
+# 🔍 Find the data volume by tag instead of hardcoded ID
+echo "🔍 Searching for ShadowCheck data volume..."
+VOLUME_ID=$(aws ec2 describe-volumes \
+  --filters "Name=tag:Name,Values=postgres-data-30gb" \
+  --region $REGION \
+  --query 'Volumes[0].VolumeId' \
+  --output text)
+
+if [ -z "$VOLUME_ID" ] || [ "$VOLUME_ID" == "None" ]; then
+  echo "❌ ERROR: Could not find volume with tag Name=postgres-data-30gb"
+  exit 1
+fi
+echo "✅ Found volume: $VOLUME_ID"
 
 echo "🚀 Launching ShadowCheck Spot Instance..."
 echo "Instance type: $INSTANCE_TYPE"
