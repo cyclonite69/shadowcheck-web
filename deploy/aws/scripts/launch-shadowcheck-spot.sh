@@ -61,16 +61,41 @@ echo "🔍 Checking volume $VOLUME_ID..."
 VOLUME_AZ=$(aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --region $REGION --query 'Volumes[0].AvailabilityZone' --output text)
 echo "📍 Volume is in $VOLUME_AZ"
 
-# 2. Launch instance
-INSTANCE_ID=$(aws ec2 run-instances \
-  --launch-template LaunchTemplateName=$TEMPLATE_NAME \
-  --instance-type "$INSTANCE_TYPE" \
-  --placement "AvailabilityZone=$VOLUME_AZ" \
-  --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.067,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}' \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=scs-ssm}]" \
-  --region $REGION \
-  --query 'Instances[0].InstanceId' \
-  --output text)
+# 2. Launch instance or use existing persistent request
+# Check if a persistent request already exists for this template
+EXISTING_SIR=$(aws ec2 describe-spot-instance-requests \
+  --filters "Name=state,Values=active,open" "Name=launch-group,Values=shadowcheck" \
+  --region $REGION --profile $AWS_PROFILE --query 'SpotInstanceRequests[0].SpotInstanceRequestId' --output text)
+
+if [ "$EXISTING_SIR" != "None" ] && [ -n "$EXISTING_SIR" ]; then
+  echo "ℹ️  Found existing Persistent Spot Request: $EXISTING_SIR"
+  INSTANCE_ID=$(aws ec2 describe-instances \
+    --filters "Name=spot-instance-request-id,Values=$EXISTING_SIR" "Name=instance-state-name,Values=pending,running" \
+    --region $REGION --profile $AWS_PROFILE --query 'Reservations[0].Instances[0].InstanceId' --output text)
+  
+  if [ "$INSTANCE_ID" != "None" ] && [ -n "$INSTANCE_ID" ]; then
+    echo "✅ Using existing instance from persistent request: $INSTANCE_ID"
+  else
+    echo "⏳ Waiting for instance to be assigned to request..."
+    sleep 10
+    INSTANCE_ID=$(aws ec2 describe-instances \
+      --filters "Name=spot-instance-request-id,Values=$EXISTING_SIR" "Name=instance-state-name,Values=pending,running" \
+      --region $REGION --profile $AWS_PROFILE --query 'Reservations[0].Instances[0].InstanceId' --output text)
+  fi
+fi
+
+if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" == "None" ]; then
+  echo "🚀 Launching NEW ShadowCheck Spot Instance..."
+  INSTANCE_ID=$(aws ec2 run-instances \
+    --launch-template LaunchTemplateName=$TEMPLATE_NAME \
+    --instance-type "$INSTANCE_TYPE" \
+    --placement "AvailabilityZone=$VOLUME_AZ" \
+    --instance-market-options "{ \"MarketType\": \"spot\", \"SpotOptions\": { \"MaxPrice\": \"0.067\", \"SpotInstanceType\": \"persistent\", \"InstanceInterruptionBehavior\": \"stop\", \"LaunchGroup\": \"shadowcheck\" } }" \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=scs-ssm}]" \
+    --region $REGION \
+    --query 'Instances[0].InstanceId' \
+    --output text)
+fi
 
 echo "✅ Instance launched: $INSTANCE_ID"
 echo "⏳ Waiting for instance to start..."
