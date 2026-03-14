@@ -34,7 +34,6 @@ export const FilterPanelContainer: React.FC<FilterPanelContainerProps> = ({
       className={`${positionStyles} max-h-[calc(100vh-80px)] bg-slate-900/95 border border-slate-600/60 backdrop-blur-xl rounded-xl shadow-2xl z-40 pointer-events-auto ${className}`}
     >
       <div className="max-h-[calc(100vh-80px)] p-3 space-y-2 overflow-y-auto">
-        {adaptedFilters && <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />}
         <FilterPanel density="compact" />
         {children}
       </div>
