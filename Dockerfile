@@ -1,5 +1,5 @@
 # Multi-stage build for optimized production image
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -30,7 +30,7 @@ RUN npm prune --omit=dev
 ###########################################
 # Production image
 ###########################################
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, and Docker CLI for PgAdmin management
 RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl
