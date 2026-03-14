@@ -6,5 +6,5 @@ interface KeplerFiltersProps {
 }
 
 export const KeplerFilters: React.FC<KeplerFiltersProps> = ({ showFilters }) => {
-  return <FilterPanelContainer isOpen={showFilters} />;
+  return <FilterPanelContainer isOpen={showFilters} position="overlay" />;
 };
