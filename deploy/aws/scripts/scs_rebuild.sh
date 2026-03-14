@@ -82,9 +82,11 @@ docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
 # Use persistent certs directory on the EBS volume
 # This ensures browsers don't trigger new security warnings on every move
-CERTS_DIR=/var/lib/postgresql/certs/web
-sudo mkdir -p "$CERTS_DIR"
-sudo chmod 755 "$CERTS_DIR"
+CERTS_DIR_BASE=/var/lib/postgresql/certs
+CERTS_DIR_WEB=$CERTS_DIR_BASE/web
+sudo mkdir -p "$CERTS_DIR_WEB"
+sudo chmod -R 755 "$CERTS_DIR_BASE"
+sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
 
 docker run -d --name shadowcheck_backend \
   --network host \
@@ -95,7 +97,7 @@ docker run -d --name shadowcheck_backend \
 
 docker run -d --name shadowcheck_frontend \
   --network host \
-  -v "$CERTS_DIR":/etc/nginx/certs \
+  -v "$CERTS_DIR_WEB":/etc/nginx/certs \
   -e CERT_DIR=/etc/nginx/certs \
   --restart unless-stopped \
   shadowcheck/frontend:latest
