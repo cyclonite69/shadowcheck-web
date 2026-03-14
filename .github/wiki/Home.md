@@ -27,7 +27,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 
 **Backend:**
 
-- Node.js 20+ (TypeScript)
+- Node.js 22+ (TypeScript)
 - Express.js REST API
 - PostgreSQL 18 + PostGIS 3.5
 - Redis 7.0 (Caching, Sessions)
