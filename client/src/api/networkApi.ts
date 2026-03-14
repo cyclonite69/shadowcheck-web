@@ -83,6 +83,10 @@ export const networkApi = {
     return apiClient.get(`/admin/siblings/linked/${encodeURIComponent(bssid)}`);
   },
 
+  async getNetworkSiblingLinksBatch(bssids: string[]): Promise<any> {
+    return apiClient.post('/admin/siblings/linked-batch', { bssids });
+  },
+
   async addNetworkNote(data: AddNoteRequest): Promise<AddNoteResponse> {
     return apiClient.post<AddNoteResponse>('/admin/network-notes/add', data);
   },
