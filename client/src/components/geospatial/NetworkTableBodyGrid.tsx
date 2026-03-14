@@ -55,6 +55,7 @@ export const NetworkTableBodyGrid = ({
   const virtualizer = useVirtualizer({
     count: filteredNetworks.length,
     getScrollElement: () => tableContainerRef.current,
+    getItemKey: (index) => filteredNetworks[index]?.bssid ?? index,
     estimateSize: () => 32,
     overscan: 10,
   });
@@ -133,7 +134,15 @@ export const NetworkTableBodyGrid = ({
           const isLinkedSibling = linkedSiblingBssids.has(net.bssid);
           const isSelectedAnchor = selectedAnchorBssid === net.bssid;
           const showSelectedAnchorLink = isSelectedAnchor && selectedAnchorHasLinkedSiblings;
-          const rowBackground = isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)';
+          const isSiblingLinkedRow = showSelectedAnchorLink || isLinkedSibling;
+          const rowBackground = isSelected
+            ? 'rgba(59, 130, 246, 0.1)'
+            : isSiblingLinkedRow
+              ? 'rgba(8, 47, 73, 0.55)'
+              : 'rgba(15, 23, 42, 0.45)';
+          const rowAccent = isSiblingLinkedRow
+            ? 'inset 3px 0 0 rgba(56, 189, 248, 0.95)'
+            : undefined;
 
           return (
             <div
@@ -151,6 +160,7 @@ export const NetworkTableBodyGrid = ({
                 overflow: 'hidden',
                 borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
                 background: rowBackground,
+                boxShadow: rowAccent,
                 cursor: 'pointer',
                 padding: '0',
               }}
@@ -162,7 +172,9 @@ export const NetworkTableBodyGrid = ({
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = isSelected
                   ? 'rgba(59, 130, 246, 0.15)'
-                  : 'rgba(71, 85, 105, 0.1)';
+                  : isSiblingLinkedRow
+                    ? 'rgba(12, 74, 110, 0.6)'
+                    : 'rgba(71, 85, 105, 0.1)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = isSelected

@@ -366,31 +366,7 @@ export default function GeospatialExplorer() {
 
   const debouncedFilterState = useDebouncedFilterState();
 
-  const filteredNetworks = useMemo(() => {
-    if (!selectedAnchorBssid || linkedSiblingBssids.size === 0) {
-      return networks;
-    }
-
-    const anchor: NetworkRow[] = [];
-    const siblings: NetworkRow[] = [];
-    const rest: NetworkRow[] = [];
-
-    for (const network of networks) {
-      if (network.bssid === selectedAnchorBssid) {
-        anchor.push(network);
-      } else if (linkedSiblingBssids.has(network.bssid)) {
-        siblings.push(network);
-      } else {
-        rest.push(network);
-      }
-    }
-
-    if (anchor.length === 0 && siblings.length === 0) {
-      return networks;
-    }
-
-    return [...anchor, ...siblings, ...rest];
-  }, [linkedSiblingBssids, networks, selectedAnchorBssid]);
+  const filteredNetworks = networks;
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
