@@ -295,23 +295,11 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
     );
   }
 
-  const dbHost = await resolveDbHost();
-  const dbUser = process.env.DB_USER || 'shadowcheck_user';
-  const dbName = process.env.DB_NAME || 'shadowcheck_db';
+  const pool = createPool();
+  const dbUser = 'shadowcheck_admin';
+  const dbHost = process.env.DB_HOST || 'localhost';
   const dbPort = Number(process.env.DB_PORT || 5432);
-  const dbPassword = (await secretsManager.getSecret('db_password')) || process.env.DB_PASSWORD;
-
-  if (!dbPassword) {
-    throw new Error('Database password not configured (db_password / DB_PASSWORD).');
-  }
-
-  const pool = new Pool({
-    host: dbHost,
-    user: dbUser,
-    password: dbPassword,
-    database: dbName,
-    port: dbPort,
-  });
+  const dbName = process.env.DB_NAME || 'shadowcheck_db';
 
   console.log('📮 Enriching agency_offices postal_code with ZIP+4 via Smarty\n');
   console.log(`  Mode: ${options.dryRun ? 'DRY RUN' : 'LIVE'}`);

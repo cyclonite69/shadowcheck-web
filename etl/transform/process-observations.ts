@@ -6,33 +6,15 @@
  * 2. Removes duplicates based on (bssid, lat, lon, time)
  */
 
-import { Pool, QueryResult } from 'pg';
+import { QueryResult } from 'pg';
 import * as dotenv from 'dotenv';
+import { createPool } from '../utils/db';
 
 dotenv.config();
 
-interface RadioTypeRow {
-  radio_type: string;
-  count: string;
-}
+// ... interfaces ...
 
-interface CountRow {
-  count: string;
-}
-
-interface DeduplicationResult {
-  before: number;
-  after: number;
-  removed: number;
-}
-
-const pool = new Pool({
-  user: process.env.DB_USER || 'shadowcheck_user',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'shadowcheck_db',
-  password: process.env.DB_PASSWORD,
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+const pool = createPool();
 
 export async function normalizeObservations(): Promise<void> {
   console.log('🔄 Normalizing observations...\n');

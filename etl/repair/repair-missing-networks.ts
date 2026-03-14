@@ -8,9 +8,9 @@
  *   DB_ADMIN_PASSWORD=xxx npx tsx etl/repair/repair-missing-networks.ts <sqlite_file>
  */
 
-import { Pool } from 'pg';
 import sqlite3 from 'sqlite3';
 import * as fs from 'fs';
+import { createPool } from '../utils/db';
 
 const sqliteFile = process.argv[2];
 if (!sqliteFile || !fs.existsSync(sqliteFile)) {
@@ -18,13 +18,7 @@ if (!sqliteFile || !fs.existsSync(sqliteFile)) {
   process.exit(1);
 }
 
-const pool = new Pool({
-  user: process.env.DB_ADMIN_USER || 'shadowcheck_admin',
-  password: process.env.DB_ADMIN_PASSWORD,
-  host: process.env.DB_HOST || '127.0.0.1',
-  database: process.env.DB_NAME || 'shadowcheck_db',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+const pool = createPool();
 
 const cleanStr = (s: string | null | undefined) => {
   if (!s) return '';
