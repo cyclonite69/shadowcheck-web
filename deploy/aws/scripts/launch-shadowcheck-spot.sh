@@ -9,6 +9,10 @@ TEMPLATE_NAME="shadowcheck-spot-template"
 EIP_ALLOC_ID="eipalloc-0a85ace4f0c10d738"
 INSTANCE_TYPE="${1:-t4g.large}"
 
+# Set profile if not already in environment
+export AWS_PROFILE="${AWS_PROFILE:-shadowcheck-sso}"
+echo "☁️  Using AWS Profile: $AWS_PROFILE"
+
 # 🔍 Find the data volume by tag instead of hardcoded ID
 echo "🔍 Searching for ShadowCheck data volume..."
 VOLUME_ID=$(aws ec2 describe-volumes \
