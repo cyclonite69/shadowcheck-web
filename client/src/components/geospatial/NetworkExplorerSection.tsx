@@ -33,6 +33,7 @@ interface NetworkExplorerSectionProps {
   error: string | null;
   selectedNetworks: Set<string>;
   linkedSiblingBssids?: Set<string>;
+  siblingGroupMap?: Map<string, string>;
   selectedAnchorBssid?: string | null;
   selectedAnchorHasLinkedSiblings?: boolean;
   onSelectExclusive: (bssid: string) => void;
@@ -82,6 +83,7 @@ export const NetworkExplorerSection = ({
   error,
   selectedNetworks,
   linkedSiblingBssids,
+  siblingGroupMap,
   selectedAnchorBssid,
   selectedAnchorHasLinkedSiblings,
   onSelectExclusive,
@@ -139,6 +141,7 @@ export const NetworkExplorerSection = ({
         error={error}
         selectedNetworks={selectedNetworks}
         linkedSiblingBssids={linkedSiblingBssids}
+        siblingGroupMap={siblingGroupMap}
         selectedAnchorBssid={selectedAnchorBssid}
         selectedAnchorHasLinkedSiblings={selectedAnchorHasLinkedSiblings}
         onSelectExclusive={onSelectExclusive}

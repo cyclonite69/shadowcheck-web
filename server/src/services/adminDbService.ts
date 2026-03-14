@@ -1157,6 +1157,56 @@ async function getNetworkSiblingLinks(bssid: string): Promise<
   return result.rows;
 }
 
+async function getNetworkSiblingLinksBatch(bssids: string[]): Promise<
+  Array<{
+    bssid_a: string;
+    bssid_b: string;
+    source: string | null;
+    rule: string | null;
+    pair_strength: string | null;
+    confidence: number | null;
+  }>
+> {
+  const normalized = Array.from(
+    new Set(
+      (Array.isArray(bssids) ? bssids : [])
+        .map((value) =>
+          String(value || '')
+            .trim()
+            .toUpperCase()
+        )
+        .filter(Boolean)
+    )
+  );
+
+  if (normalized.length === 0) {
+    return [];
+  }
+
+  const result = await adminQuery(
+    `
+      SELECT
+        bssid1 AS bssid_a,
+        bssid2 AS bssid_b,
+        source,
+        rule,
+        pair_strength,
+        confidence
+      FROM app.network_siblings_effective
+      WHERE bssid1 = ANY($1::text[])
+         OR bssid2 = ANY($1::text[])
+      ORDER BY
+        CASE WHEN source = 'manual' THEN 0 ELSE 1 END,
+        confidence DESC NULLS LAST,
+        bssid1 ASC,
+        bssid2 ASC
+    `,
+    [normalized]
+  );
+
+  return result.rows;
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
@@ -1196,6 +1246,7 @@ module.exports.addNetworkNoteWithFunction = addNetworkNoteWithFunction;
 module.exports.getNetworkNotes = getNetworkNotes;
 module.exports.setNetworkSiblingOverride = setNetworkSiblingOverride;
 module.exports.getNetworkSiblingLinks = getNetworkSiblingLinks;
+module.exports.getNetworkSiblingLinksBatch = getNetworkSiblingLinksBatch;
 module.exports.deleteNetworkNote = deleteNetworkNote;
 module.exports.updateNetworkNote = updateNetworkNote;
 module.exports.addNoteMedia = addNoteMedia;

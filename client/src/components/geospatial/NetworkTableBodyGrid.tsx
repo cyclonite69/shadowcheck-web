@@ -23,6 +23,7 @@ interface NetworkTableBodyGridProps {
   error: string | null;
   selectedNetworks: Set<string>;
   linkedSiblingBssids?: Set<string>;
+  siblingGroupMap?: Map<string, string>;
   selectedAnchorBssid?: string | null;
   selectedAnchorHasLinkedSiblings?: boolean;
   onSelectExclusive: (bssid: string) => void;
@@ -42,6 +43,7 @@ export const NetworkTableBodyGrid = ({
   error,
   selectedNetworks,
   linkedSiblingBssids = new Set<string>(),
+  siblingGroupMap = new Map<string, string>(),
   selectedAnchorBssid = null,
   selectedAnchorHasLinkedSiblings = false,
   onSelectExclusive,
@@ -132,9 +134,11 @@ export const NetworkTableBodyGrid = ({
           const net = filteredNetworks[virtualRow.index];
           const isSelected = selectedNetworks.has(net.bssid);
           const isLinkedSibling = linkedSiblingBssids.has(net.bssid);
+          const siblingGroupId = siblingGroupMap.get(net.bssid) || null;
           const isSelectedAnchor = selectedAnchorBssid === net.bssid;
           const showSelectedAnchorLink = isSelectedAnchor && selectedAnchorHasLinkedSiblings;
-          const isSiblingLinkedRow = showSelectedAnchorLink || isLinkedSibling;
+          const isSiblingLinkedRow =
+            Boolean(siblingGroupId) || showSelectedAnchorLink || isLinkedSibling;
           const rowBackground = isSelected
             ? 'rgba(59, 130, 246, 0.1)'
             : isSiblingLinkedRow
@@ -179,7 +183,9 @@ export const NetworkTableBodyGrid = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = isSelected
                   ? 'rgba(59, 130, 246, 0.1)'
-                  : 'rgba(15, 23, 42, 0.45)';
+                  : isSiblingLinkedRow
+                    ? 'rgba(8, 47, 73, 0.55)'
+                    : 'rgba(15, 23, 42, 0.45)';
               }}
             >
               {visibleColumns.map((col) => {
@@ -489,6 +495,23 @@ export const NetworkTableBodyGrid = ({
                           }
                         >
                           link
+                        </span>
+                      )}
+                      {siblingGroupId && (
+                        <span
+                          style={{
+                            flex: '0 0 auto',
+                            fontSize: '10px',
+                            color: '#cffafe',
+                            background: 'rgba(6, 182, 212, 0.18)',
+                            border: '1px solid rgba(34, 211, 238, 0.35)',
+                            borderRadius: '999px',
+                            padding: '1px 5px',
+                            fontWeight: 700,
+                          }}
+                          title={`Sibling group ${siblingGroupId}`}
+                        >
+                          {siblingGroupId}
                         </span>
                       )}
                     </div>

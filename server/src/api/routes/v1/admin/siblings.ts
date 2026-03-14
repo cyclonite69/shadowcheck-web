@@ -88,6 +88,42 @@ router.get('/admin/siblings/linked/:bssid', async (req, res) => {
   }
 });
 
+router.post('/admin/siblings/linked-batch', async (req, res) => {
+  try {
+    const rawBssids = Array.isArray(req.body?.bssids) ? req.body.bssids : [];
+    const bssids = Array.from(
+      new Set(
+        rawBssids
+          .map((value) =>
+            String(value || '')
+              .trim()
+              .toUpperCase()
+          )
+          .filter(Boolean)
+      )
+    );
+
+    if (bssids.length === 0) {
+      return res.json({
+        ok: true,
+        links: [],
+      });
+    }
+
+    const links = await adminDbService.getNetworkSiblingLinksBatch(bssids);
+    res.json({
+      ok: true,
+      links,
+    });
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to load batch linked siblings', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to load batch sibling links',
+    });
+  }
+});
+
 router.post('/admin/siblings/refresh', async (req, res) => {
   try {
     const { batchSize, maxOctetDelta, maxDistanceM, minCandidateConf, minStrongConf, maxBatches } =
