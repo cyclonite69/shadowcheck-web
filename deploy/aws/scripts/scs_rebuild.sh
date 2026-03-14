@@ -28,7 +28,9 @@ echo "  Disk usage: $(df -h / | awk 'NR==2{print $5, "used,", $4, "free"}')"
 
 # 1. Pull latest
 echo "[1/7] Pulling latest..."
-git pull origin master
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "  Detected branch: $CURRENT_BRANCH"
+git pull origin "$CURRENT_BRANCH"
 
 # 2. Build images (--no-cache ensures code changes are picked up)
 echo "[2/7] Building images..."
