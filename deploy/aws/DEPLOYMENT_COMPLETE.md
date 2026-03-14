@@ -121,7 +121,7 @@ If you need to deploy manually:
 
 ```bash
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 ```
 

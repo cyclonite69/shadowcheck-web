@@ -104,7 +104,7 @@ backend:
 ### Build Backend Image
 
 ```bash
-cd /path/to/shadowcheck-static
+cd /path/to/shadowcheck-web
 docker build -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 ```
 

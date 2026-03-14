@@ -38,8 +38,8 @@
 ### Quick Start
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 npm install
 # Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
 # Edit .env with your database credentials
@@ -149,4 +149,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-**Ready to contribute?** Check out [good first issues](https://github.com/cyclonite69/shadowcheck-static/labels/good%20first%20issue) to get started! 🚀
+**Ready to contribute?** Check out [good first issues](https://github.com/cyclonite69/shadowcheck-web/labels/good%20first%20issue) to get started! 🚀

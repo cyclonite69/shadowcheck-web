@@ -65,7 +65,7 @@ const result = await query('SELECT * FROM networks WHERE bssid = $1', [bssid]);
 
 // ❌ Unsafe - never do this
 const result = await query(`SELECT * FROM networks WHERE bssid = '${bssid}'`);
-````
+```
 
 ---
 
@@ -182,7 +182,7 @@ Error: Access to AWS Secrets Manager denied
 
 ## Related Documentation
 
-- [Secrets Management](https://github.com/cyclonite69/shadowcheck-static/blob/main/docs/security/SECRETS_MANAGEMENT.md) - Detailed secrets guide
-- [SQL Injection Prevention](https://github.com/cyclonite69/shadowcheck-static/blob/main/docs/security/SQL_INJECTION_PREVENTION.md) - Database security
+- [Secrets Management](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/security/SECRETS_MANAGEMENT.md) - Detailed secrets guide
+- [SQL Injection Prevention](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/security/SQL_INJECTION_PREVENTION.md) - Database security
 - [Architecture](Architecture) - Security architecture overview
 - [Development](Development) - Secure development practices

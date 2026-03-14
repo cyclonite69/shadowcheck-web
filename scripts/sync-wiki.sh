@@ -7,13 +7,13 @@ echo ""
 
 # Check if wiki is initialized
 echo "📋 Step 1: Checking if GitHub wiki is initialized..."
-if git ls-remote https://github.com/cyclonite69/shadowcheck-static.wiki.git &>/dev/null; then
+if git ls-remote https://github.com/cyclonite69/shadowcheck-web.wiki.git &>/dev/null; then
     echo "✅ Wiki repository found"
 else
     echo "❌ Wiki not initialized yet!"
     echo ""
     echo "Please initialize the wiki first:"
-    echo "1. Go to: https://github.com/cyclonite69/shadowcheck-static"
+    echo "1. Go to: https://github.com/cyclonite69/shadowcheck-web"
     echo "2. Click the 'Wiki' tab"
     echo "3. Click 'Create the first page'"
     echo "4. Add any content and save"
@@ -25,9 +25,9 @@ fi
 echo ""
 echo "📥 Step 2: Cloning wiki repository..."
 cd /tmp
-rm -rf shadowcheck-static.wiki
-git clone https://github.com/cyclonite69/shadowcheck-static.wiki.git
-cd shadowcheck-static.wiki
+rm -rf shadowcheck-web.wiki
+git clone https://github.com/cyclonite69/shadowcheck-web.wiki.git
+cd shadowcheck-web.wiki
 
 # Copy wiki files
 echo ""
@@ -53,4 +53,4 @@ git push origin master
 echo ""
 echo "✅ Wiki sync complete!"
 echo ""
-echo "View your wiki at: https://github.com/cyclonite69/shadowcheck-static/wiki"
+echo "View your wiki at: https://github.com/cyclonite69/shadowcheck-web/wiki"

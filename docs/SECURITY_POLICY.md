@@ -6,7 +6,7 @@ See [SECRETS.md](SECRETS.md) for the authoritative secrets guide.
 
 ## Reporting Security Vulnerabilities
 
-If you discover a security vulnerability in ShadowCheck-Static, please report it privately:
+If you discover a security vulnerability in ShadowCheck-Web, please report it privately:
 
 1. **DO NOT** open a public GitHub issue
 2. Email: [Your security contact email]

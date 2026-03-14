@@ -50,8 +50,8 @@ sudo usermod -aG docker $USER
 ### 2. Clone Repository
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 ```
 
 ### 3. Configure Environment
@@ -265,7 +265,7 @@ services:
 
 ```bash
 # Docker stats
-docker stats shadowcheck_postgres shadowcheck_static_api
+docker stats shadowcheck_postgres shadowcheck_web_api
 
 # System resources
 htop
@@ -285,7 +285,7 @@ SELECT * FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;
 
 ```bash
 # Application logs
-docker logs -f shadowcheck_static_api
+docker logs -f shadowcheck_web_api
 
 # Database logs
 docker logs -f shadowcheck_postgres
@@ -300,7 +300,7 @@ docker logs -f shadowcheck_postgres
 crontab -e
 
 # Daily backup at 2 AM
-0 2 * * * /path/to/shadowcheck-static/scripts/backup-shadowcheck.sh
+0 2 * * * /path/to/shadowcheck-web/scripts/backup-shadowcheck.sh
 ```
 
 ### Backup to NAS
@@ -330,7 +330,7 @@ docker-compose up -d
 ```bash
 # Check logs
 docker logs shadowcheck_postgres
-docker logs shadowcheck_static_api
+docker logs shadowcheck_web_api
 
 # Check disk space
 df -h
@@ -449,8 +449,8 @@ Cost: Shared with other VMs
 
 ## Support
 
-- **Issues**: https://github.com/cyclonite69/shadowcheck-static/issues
-- **Discussions**: https://github.com/cyclonite69/shadowcheck-static/discussions
+- **Issues**: https://github.com/cyclonite69/shadowcheck-web/issues
+- **Discussions**: https://github.com/cyclonite69/shadowcheck-web/discussions
 - **Discord**: [Coming soon]
 
 ---

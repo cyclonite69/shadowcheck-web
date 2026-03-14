@@ -19,7 +19,7 @@ aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
 
 ```bash
 cd /home/ssm-user/shadowcheck
-docker stop shadowcheck_static_api shadowcheck_static_redis 2>/dev/null || true
+docker stop shadowcheck_web_api shadowcheck_web_redis 2>/dev/null || true
 ```
 
 ### 3. Pull Latest Code
@@ -123,7 +123,7 @@ If deployment fails:
 docker-compose -f deploy/aws/docker-compose-aws.yml down
 
 # Restart old monolithic container
-docker start shadowcheck_static_api shadowcheck_static_redis
+docker start shadowcheck_web_api shadowcheck_web_redis
 ```
 
 ## Troubleshooting

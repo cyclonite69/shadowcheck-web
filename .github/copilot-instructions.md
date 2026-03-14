@@ -1,6 +1,6 @@
 # Copilot Instructions for ShadowCheck Static
 
-This document provides actionable guidance for AI coding agents (Claude, Copilot, etc.) when working with the ShadowCheck-Static codebase.
+This document provides actionable guidance for AI coding agents (Claude, Copilot, etc.) when working with the ShadowCheck-Web codebase.
 
 ## Quick Reference
 

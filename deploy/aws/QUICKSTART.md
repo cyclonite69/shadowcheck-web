@@ -12,7 +12,7 @@
 
 ```bash
 # From your local machine
-cd /path/to/shadowcheck-static
+cd /path/to/shadowcheck-web
 ./deploy/aws/scripts/launch-shadowcheck-spot.sh
 ```
 
@@ -51,11 +51,11 @@ aws iam put-role-policy \
 bash
 
 # Download and run system setup
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
 
 # Clone repository
 cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-static.git shadowcheck
+git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
 cd shadowcheck
 
 # Optional: Run dry-run to validate before deploying
@@ -237,4 +237,4 @@ curl http://localhost:3001/api/health
 
 - Documentation: `deploy/aws/README.md`
 - Workflow guide: `deploy/aws/WORKFLOW.md`
-- Issues: https://github.com/cyclonite69/shadowcheck-static/issues
+- Issues: https://github.com/cyclonite69/shadowcheck-web/issues

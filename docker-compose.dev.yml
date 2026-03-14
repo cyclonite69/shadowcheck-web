@@ -9,7 +9,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: builder # Use builder stage for development
-    container_name: shadowcheck_static_api_dev
+    container_name: shadowcheck_web_api_dev
     environment:
       NODE_ENV: development
       PORT: 3001
@@ -28,6 +28,6 @@ services:
     command: npm run dev # Use nodemon for hot-reload
 
   redis:
-    container_name: shadowcheck_static_redis_dev
+    container_name: shadowcheck_web_redis_dev
     ports:
       - "6380:6379" # Different port for dev to avoid conflicts

@@ -275,7 +275,7 @@ I will execute each in order and report findings.
 Or if you want to start manually:
 
 ```bash
-cd /path/to/shadowcheck-static
+cd /path/to/shadowcheck-web
 # And follow JOB-01 instructions
 ```
 

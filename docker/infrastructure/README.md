@@ -36,7 +36,7 @@ Once infrastructure is running, start application-specific containers from the p
 
 ```bash
 cd ../../  # Return to project root
-docker-compose up -d  # Starts shadowcheck_static_api + shadowcheck_static_redis
+docker-compose up -d  # Starts shadowcheck_web_api + shadowcheck_web_redis
 ```
 
 ## Access
@@ -123,7 +123,7 @@ docker exec -i shadowcheck_postgres pg_restore -U shadowcheck_user -d shadowchec
 │  shadowcheck_net (Docker Bridge Network)                    │
 │                                                              │
 │  ┌────────────────────┐  ┌─────────────────────────────┐   │
-│  │ shadowcheck_       │  │ shadowcheck_static_api      │   │
+│  │ shadowcheck_       │  │ shadowcheck_web_api      │   │
 │  │ postgres           │◄─┤ (This Project)              │   │
 │  │ (Port 5432)        │  │ Connects via DB_HOST env    │   │
 │  └────────────────────┘  └─────────────────────────────┘   │

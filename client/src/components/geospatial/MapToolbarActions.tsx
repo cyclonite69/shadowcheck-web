@@ -20,6 +20,7 @@ interface MapToolbarActionsProps {
   onMapStyleChange: (style: string) => void;
   mapStyles: MapStyleOption[];
   show3DBuildings: boolean;
+  is3DBuildingsAvailable: boolean;
   toggle3DBuildings: (enabled: boolean) => void;
   showTerrain: boolean;
   toggleTerrain: (enabled: boolean) => void;
@@ -64,6 +65,7 @@ export const MapToolbarActions = ({
   onMapStyleChange,
   mapStyles,
   show3DBuildings,
+  is3DBuildingsAvailable,
   toggle3DBuildings,
   showTerrain,
   toggleTerrain,
@@ -108,6 +110,7 @@ export const MapToolbarActions = ({
       onMapStyleChange={onMapStyleChange}
       mapStyles={mapStyles}
       show3DBuildings={show3DBuildings}
+      is3DBuildingsAvailable={is3DBuildingsAvailable}
       onToggle3DBuildings={() => toggle3DBuildings(!show3DBuildings)}
       showTerrain={showTerrain}
       onToggleTerrain={() => toggleTerrain(!showTerrain)}

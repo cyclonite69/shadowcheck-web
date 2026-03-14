@@ -4,7 +4,7 @@
 
 # Your repo details
 OWNER="cyclonite69"
-REPO="shadowcheck-static"
+REPO="shadowcheck-web"
 
 # Get token from git credentials
 TOKEN=$(git config --get credential.https://github.com.username 2>/dev/null || git config --get github.token 2>/dev/null)

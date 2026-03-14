@@ -153,7 +153,7 @@ graph LR
 ## Project Structure
 
 ```
-shadowcheck-static/
+shadowcheck-web/
 ├── 📁 client/              # React/Vite frontend
 │   ├── src/
 │   │   ├── components/     # Modularized React components

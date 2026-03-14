@@ -89,8 +89,8 @@ sequenceDiagram
 
 ```bash
 # Clone repository
-git clone https://github.com/cyclonite69/shadowcheck-static.git
-cd shadowcheck-static
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 
 # Install dependencies
 npm install
@@ -273,7 +273,7 @@ aws ssm start-session --target INSTANCE_ID --region us-east-1
 
 # 3. Run automated setup
 bash
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-static/master/deploy/aws/scripts/setup-instance.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
 
 # 4. Deploy application
 cd /home/ssm-user/shadowcheck

@@ -45,7 +45,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │  4. Clone Repository                                             │
 │     cd /home/ssm-user                                            │
-│     git clone https://github.com/.../shadowcheck-static.git      │
+│     git clone https://github.com/.../shadowcheck-web.git      │
 │     cd shadowcheck                                               │
 │                                                                   │
 └───────────────────────────┬─────────────────────────────────────┘

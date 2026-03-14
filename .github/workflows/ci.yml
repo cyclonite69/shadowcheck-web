@@ -130,7 +130,7 @@ jobs:
         run: npm ci
 
       - name: Build Docker image
-        run: docker build -t shadowcheck-static:${{ github.sha }} .
+        run: docker build -t shadowcheck-web:${{ github.sha }} .
 
       - name: Test Docker image
         run: |
@@ -139,7 +139,7 @@ jobs:
             -e DB_PASSWORD=test \
             -e DB_HOST=localhost \
             -e DB_NAME=test \
-            shadowcheck-static:${{ github.sha }}
+            shadowcheck-web:${{ github.sha }}
           sleep 5
           docker logs test-container
           docker stop test-container
