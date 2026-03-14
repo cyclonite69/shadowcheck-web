@@ -130,7 +130,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     e.preventDefault();
     e.stopPropagation();
 
-    const menuHeight = 320; // Height of context menu in pixels
+    const menuHeight = 440; // Estimated height of context menu in pixels
     const menuWidth = 200; // Width of context menu in pixels
     const padding = 10; // Padding from screen edge
 

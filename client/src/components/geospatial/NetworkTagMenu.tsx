@@ -24,6 +24,7 @@ interface NetworkTagMenuProps {
   manualSiblingTarget?: {
     bssid: string;
     ssid?: string | null;
+    isLinked?: boolean;
   } | null;
   onMarkSiblingPair?: () => void;
   siblingPairLoading?: boolean;
@@ -66,7 +67,9 @@ export const NetworkTagMenu = ({
         borderRadius: '8px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
         minWidth: '200px',
-        overflow: 'hidden',
+        maxHeight: 'calc(100vh - 20px)',
+        overflowX: 'hidden',
+        overflowY: 'auto',
       }}
     >
       {/* Header */}
@@ -265,8 +268,12 @@ export const NetworkTagMenu = ({
                 title={`Pair ${network.bssid} with ${manualSiblingTarget.bssid} as siblings`}
               >
                 {siblingPairLoading
-                  ? '🔗 Saving sibling pair...'
-                  : `🔗 Mark as sibling with ${manualSiblingTarget.ssid || manualSiblingTarget.bssid}`}
+                  ? manualSiblingTarget.isLinked
+                    ? '🔗 Removing sibling pair...'
+                    : '🔗 Saving sibling pair...'
+                  : manualSiblingTarget.isLinked
+                    ? `⛓️ Unlink these sibs: ${manualSiblingTarget.ssid || manualSiblingTarget.bssid}`
+                    : `🔗 Link these sibs: ${manualSiblingTarget.ssid || manualSiblingTarget.bssid}`}
               </button>
             )}
 

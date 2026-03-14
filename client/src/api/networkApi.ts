@@ -99,14 +99,8 @@ export const networkApi = {
       return [];
     };
 
-    try {
-      const response = await apiClient.get<any>(`/networks/${encodedBssid}/notes`);
-      return parseNotes(response);
-    } catch {
-      // Fallback for environments where /networks/:bssid/notes is not reachable.
-      const fallback = await apiClient.get<any>(`/admin/network-notes/${encodedBssid}`);
-      return parseNotes(fallback);
-    }
+    const response = await apiClient.get<any>(`/admin/network-notes/${encodedBssid}`);
+    return parseNotes(response);
   },
 
   async updateNetworkNote(bssid: string, noteId: number, content: string): Promise<any> {

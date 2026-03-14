@@ -204,8 +204,9 @@ export default function GeospatialExplorer() {
     return {
       bssid: selectedBssid,
       ssid: selectedNetwork?.ssid || null,
+      isLinked: linkedSiblingBssids.has(contextBssid),
     };
-  }, [contextMenu.network, networks, selectedNetworks]);
+  }, [contextMenu.network, linkedSiblingBssids, networks, selectedNetworks]);
 
   const {
     showNoteModal,
@@ -279,6 +280,7 @@ export default function GeospatialExplorer() {
   const handleMarkSiblingPair = async () => {
     const anchorBssid = manualSiblingTarget?.bssid;
     const contextBssid = contextMenu.network?.bssid || null;
+    const relation = manualSiblingTarget?.isLinked ? 'not_sibling' : 'sibling';
 
     if (!anchorBssid || !contextBssid || anchorBssid === contextBssid) {
       return;
@@ -289,18 +291,24 @@ export default function GeospatialExplorer() {
       const result = await networkApi.setNetworkSiblingOverride(
         anchorBssid,
         contextBssid,
-        'sibling'
+        relation
       );
       if (!result?.ok) {
         throw new Error(result?.error || 'Failed to save sibling pair');
       }
       setLinkedSiblingBssids((prev) => {
         const next = new Set(prev);
-        next.add(contextBssid);
+        if (relation === 'sibling') {
+          next.add(contextBssid);
+        } else {
+          next.delete(contextBssid);
+        }
         return next;
       });
       closeContextMenu();
-      alert(`Saved sibling pair:\n${anchorBssid}\n${contextBssid}`);
+      alert(
+        `${relation === 'sibling' ? 'Saved' : 'Removed'} sibling pair:\n${anchorBssid}\n${contextBssid}`
+      );
     } catch (error) {
       logError('Failed to mark manual sibling pair', error);
       alert(

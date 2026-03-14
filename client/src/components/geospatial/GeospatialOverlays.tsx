@@ -28,6 +28,7 @@ interface GeospatialOverlaysProps {
   manualSiblingTarget?: {
     bssid: string;
     ssid?: string | null;
+    isLinked?: boolean;
   } | null;
   onMarkSiblingPair?: () => void;
   siblingPairLoading?: boolean;
