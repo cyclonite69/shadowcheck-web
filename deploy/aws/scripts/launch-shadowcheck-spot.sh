@@ -7,15 +7,44 @@ VOLUME_ID="vol-0f38f7789ac264d59"  # PostgreSQL data volume (optional)
 EIP_ALLOC_ID="eipalloc-0a85ace4f0c10d738"  # Elastic IP allocation
 TEMPLATE_NAME="shadowcheck-spot-template"
 REGION="us-east-1"
-INSTANCE_TYPE="${1:-m6g.large}"  # Default to m6g.large (Graviton2, non-burstable)
+INSTANCE_TYPE="${1:-t4g.large}"  # Default to t4g.large (Graviton3, burstable)
 
 echo "🚀 Launching ShadowCheck Spot Instance..."
 echo "Instance type: $INSTANCE_TYPE"
 
-# Launch instance from template with instance type override
+# 0. Check if volume is attached to another instance and detach it
+if [ -n "$VOLUME_ID" ]; then
+  ATTACHED_INSTANCE=$(aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --region $REGION --query 'Volumes[0].Attachments[0].InstanceId' --output text)
+  if [ "$ATTACHED_INSTANCE" != "None" ]; then
+    echo "📦 Volume $VOLUME_ID is attached to $ATTACHED_INSTANCE"
+    
+    # Check instance state
+    STATE=$(aws ec2 describe-instances --instance-ids "$ATTACHED_INSTANCE" --region $REGION --query 'Reservations[0].Instances[0].State.Name' --output text)
+    if [ "$STATE" = "running" ]; then
+      echo "🛑 Stopping instance $ATTACHED_INSTANCE to ensure safe volume detachment..."
+      aws ec2 stop-instances --instance-ids "$ATTACHED_INSTANCE" --region $REGION > /dev/null
+      aws ec2 wait instance-stopped --instance-ids "$ATTACHED_INSTANCE" --region $REGION
+      echo "✅ Instance stopped"
+    fi
+
+    echo "📦 Detaching volume..."
+    aws ec2 detach-volume --volume-id "$VOLUME_ID" --region $REGION > /dev/null
+    echo "⏳ Waiting for detachment..."
+    aws ec2 wait volume-available --volume-ids "$VOLUME_ID" --region $REGION
+    echo "✅ Volume available"
+  fi
+fi
+
+# 1. Get volume AZ to ensure instance is launched in the same zone
+echo "🔍 Checking volume $VOLUME_ID..."
+VOLUME_AZ=$(aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --region $REGION --query 'Volumes[0].AvailabilityZone' --output text)
+echo "📍 Volume is in $VOLUME_AZ"
+
+# 2. Launch instance
 INSTANCE_ID=$(aws ec2 run-instances \
   --launch-template LaunchTemplateName=$TEMPLATE_NAME \
   --instance-type "$INSTANCE_TYPE" \
+  --placement "AvailabilityZone=$VOLUME_AZ" \
   --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.067,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}' \
   --region $REGION \
   --query 'Instances[0].InstanceId' \
