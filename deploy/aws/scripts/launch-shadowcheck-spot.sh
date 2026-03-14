@@ -50,6 +50,9 @@ if [ -n "$VOLUME_ID" ]; then
     echo "⏳ Waiting for detachment..."
     aws ec2 wait volume-available --volume-ids "$VOLUME_ID" --region $REGION
     echo "✅ Volume available"
+    
+    # Store old instance ID for cleanup
+    OLD_INSTANCE_ID="$ATTACHED_INSTANCE"
   fi
 fi
 
@@ -122,6 +125,14 @@ PUBLIC_IP=$(aws ec2 describe-addresses \
   --output text)
 
 echo "✅ Elastic IP associated: $PUBLIC_IP"
+
+# 5. Cleanup old instance
+if [ -n "${OLD_INSTANCE_ID:-}" ]; then
+  echo "♻️  Cleaning up old instance $OLD_INSTANCE_ID..."
+  aws ec2 terminate-instances --instance-ids "$OLD_INSTANCE_ID" --region $REGION > /dev/null
+  echo "✅ Old instance terminated"
+fi
+
 echo "⏳ Waiting for SSM agent..."
 
 # Wait for SSM to be ready
