@@ -25,8 +25,8 @@ type MapStyleControlsProps = {
   networkLookup: Map<string, NetworkRow>;
   show3DBuildings: boolean;
   showTerrain: boolean;
-  add3DBuildings: () => void;
-  addTerrain: () => void;
+  toggle3DBuildings: (enabled: boolean) => void;
+  toggleTerrain: (enabled: boolean) => void;
   logError: (message: string, error?: unknown) => void;
 };
 
@@ -40,8 +40,8 @@ export const useMapStyleControls = ({
   networkLookup,
   show3DBuildings,
   showTerrain,
-  add3DBuildings,
-  addTerrain,
+  toggle3DBuildings,
+  toggleTerrain,
   logError,
 }: MapStyleControlsProps) => {
   // Export KML for Google Earth
@@ -331,13 +331,9 @@ export const useMapStyleControls = ({
         },
       });
 
-      // Restore layers if they were enabled
-      if (show3DBuildings) {
-        add3DBuildings();
-      }
-      if (showTerrain) {
-        addTerrain();
-      }
+      // Restore layers if they were enabled (or set state for standard styles)
+      toggle3DBuildings(show3DBuildings);
+      toggleTerrain(showTerrain);
 
       // Re-render observations
       if (activeObservationSets.length > 0) {

@@ -17,15 +17,19 @@ export const useMapLayersToggle = ({
 
   const isStandardStyle = useCallback((): boolean => {
     if (!mapRef.current) return false;
-    if (mapStyle?.startsWith('mapbox://styles/mapbox/standard')) return true;
+    if (mapStyle?.includes('mapbox://styles/mapbox/standard')) return true;
 
     try {
       const style = mapRef.current.getStyle();
-      return (
-        style?.schema?.basemap !== undefined ||
-        style?.imports?.some((i: any) => i.id === 'basemap') ||
-        typeof mapRef.current.setConfigProperty === 'function'
+      if (!style) return false;
+
+      // Mapbox Standard styles have a 'basemap' configuration or import
+      const hasBasemapImport = style.imports?.some(
+        (i: any) => i.id === 'basemap' || i.id === 'mapbox-standard'
       );
+      const hasBasemapSchema = style.schema?.hasOwnProperty('basemap');
+
+      return Boolean(hasBasemapImport || hasBasemapSchema);
     } catch {
       return false;
     }
@@ -122,10 +126,17 @@ export const useMapLayersToggle = ({
     // Standard style handles 3D buildings via config property
     if (sourceId === 'mapbox-standard') {
       try {
+        // Mapbox standard styles usually import the basemap configuration
+        // Try 'basemap' first, then 'mapbox-standard' as fallback
         mapRef.current.setConfigProperty('basemap', 'show3dObjects', true);
         return true;
       } catch {
-        return false;
+        try {
+          mapRef.current.setConfigProperty('mapbox-standard', 'show3dObjects', true);
+          return true;
+        } catch {
+          return false;
+        }
       }
     }
 
@@ -184,7 +195,11 @@ export const useMapLayersToggle = ({
       try {
         mapRef.current.setConfigProperty('basemap', 'show3dObjects', enabled);
       } catch (e) {
-        console.error('Failed to set standard style 3D buildings:', e);
+        try {
+          mapRef.current.setConfigProperty('mapbox-standard', 'show3dObjects', enabled);
+        } catch (e2) {
+          console.error('Failed to set standard style 3D buildings:', e2);
+        }
       }
     } else if (enabled) {
       if (!add3DBuildings()) {
@@ -211,7 +226,12 @@ export const useMapLayersToggle = ({
         mapRef.current.setConfigProperty('basemap', 'showTerrain', true);
         return;
       } catch (e) {
-        // Fallback to traditional method if setConfigProperty fails
+        try {
+          mapRef.current.setConfigProperty('mapbox-standard', 'showTerrain', true);
+          return;
+        } catch (e2) {
+          // Fallback to traditional method
+        }
       }
     }
 
@@ -234,7 +254,11 @@ export const useMapLayersToggle = ({
       try {
         mapRef.current.setConfigProperty('basemap', 'showTerrain', enabled);
       } catch (e) {
-        console.error('Failed to set standard style terrain:', e);
+        try {
+          mapRef.current.setConfigProperty('mapbox-standard', 'showTerrain', enabled);
+        } catch (e2) {
+          console.error('Failed to set standard style terrain:', e2);
+        }
       }
     } else if (enabled) {
       addTerrain();

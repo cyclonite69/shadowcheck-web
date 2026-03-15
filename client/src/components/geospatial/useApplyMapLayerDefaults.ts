@@ -4,29 +4,25 @@ type ApplyMapLayerDefaultsProps = {
   mapReady: boolean;
   show3DBuildings: boolean;
   showTerrain: boolean;
-  add3DBuildings: () => void;
-  addTerrain: () => void;
+  toggle3DBuildings: (enabled: boolean) => void;
+  toggleTerrain: (enabled: boolean) => void;
 };
 
 export const useApplyMapLayerDefaults = ({
   mapReady,
   show3DBuildings,
   showTerrain,
-  add3DBuildings,
-  addTerrain,
+  toggle3DBuildings,
+  toggleTerrain,
 }: ApplyMapLayerDefaultsProps) => {
   useEffect(() => {
     if (!mapReady) return;
 
-    // Apply 3D buildings if persisted as enabled
-    if (show3DBuildings) {
-      add3DBuildings();
-    }
+    // Apply 3D buildings state (explicitly handles ON or OFF)
+    toggle3DBuildings(show3DBuildings);
 
-    // Apply terrain if persisted as enabled
-    if (showTerrain) {
-      addTerrain();
-    }
+    // Apply terrain state (explicitly handles ON or OFF)
+    toggleTerrain(showTerrain);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady]);
 };
