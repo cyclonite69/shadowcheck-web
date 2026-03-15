@@ -182,6 +182,9 @@ export class ObservationModule {
 
     if (e.timeframe && f.timeframe) {
       const scope = f.temporalScope || 'observation_time';
+      if (scope === 'threat_window') {
+        this.ctx.addWarning('Threat window scope mapped to observation_time on slow path.');
+      }
       const timeColumn = scope === 'threat_window' ? 'o.time' : 'o.time';
       if (f.timeframe.type === 'absolute') {
         if (f.timeframe.startTimestamp)
