@@ -272,7 +272,7 @@ const AdminPage: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="mb-5 bg-slate-900/60 p-3 rounded-xl border border-slate-700/40 backdrop-blur-sm">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {primaryTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -288,7 +288,7 @@ const AdminPage: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-2">
+          <div className="mt-2 flex flex-wrap justify-center gap-2 pt-2 border-t border-slate-800/50">
             {secondaryTabs.map((tab) => (
               <button
                 key={tab.id}

@@ -92,7 +92,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   wigle_v3_observation_count_min: false,
   gpsAccuracyMax: false,
   excludeInvalidCoords: false,
-  qualityFilter: true,
+  qualityFilter: false,
   distanceFromHomeMin: false,
   distanceFromHomeMax: false,
   boundingBox: false,
