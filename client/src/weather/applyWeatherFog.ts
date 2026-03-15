@@ -61,27 +61,6 @@ export function applyFog(map: Map, classification: WeatherClassification): void 
   const rangeMin = preset.range[0] / intensityFactor;
   const rangeMax = preset.range[1] / intensityFactor;
 
-  // Standard style support
-  const style = map.getStyle();
-  const isStandardStyle =
-    style?.schema?.hasOwnProperty('basemap') ||
-    style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard');
-
-  if (isStandardStyle) {
-    try {
-      const configId = style?.imports?.some((i: any) => i.id === 'basemap')
-        ? 'basemap'
-        : 'mapbox-standard';
-
-      // Standard styles use different config property names for environment
-      map.setConfigProperty(configId, 'fogColor', preset.color);
-      map.setConfigProperty(configId, 'fogRange', [rangeMin, rangeMax]);
-      return;
-    } catch (e) {
-      // Fallback to traditional setFog
-    }
-  }
-
   map.setFog({
     ...preset,
     range: [rangeMin, rangeMax],
@@ -89,26 +68,9 @@ export function applyFog(map: Map, classification: WeatherClassification): void 
 }
 
 export function clearFog(map: Map): void {
-  const style = map.getStyle();
-  const isStandardStyle =
-    style?.schema?.hasOwnProperty('basemap') ||
-    style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard');
-
-  if (isStandardStyle) {
-    try {
-      const configId = style?.imports?.some((i: any) => i.id === 'basemap')
-        ? 'basemap'
-        : 'mapbox-standard';
-      map.setConfigProperty(configId, 'fogRange', [1000, 1001]); // Effectively invisible
-    } catch (e) {
-      // Fallback
-    }
-  }
-
   try {
-    map.setFog(null as any);
-  } catch (e) {
-    // Some Mapbox versions or styles might throw on null
-    map.setFog({} as any);
+    map.setFog(null as unknown as FogSpecification);
+  } catch {
+    map.setFog({} as FogSpecification);
   }
 }

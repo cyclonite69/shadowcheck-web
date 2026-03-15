@@ -351,6 +351,11 @@ const WiglePage: React.FC = () => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
+    const ensure3DView = () => {
+      if (map.getPitch() >= 45) return;
+      map.easeTo({ pitch: 60, duration: 600, essential: true });
+    };
+
     const toggleBuildings = () => {
       const style = map.getStyle();
       const isStandardStyle =
@@ -363,9 +368,11 @@ const WiglePage: React.FC = () => {
         if (isStandardStyle) {
           try {
             map.setConfigProperty('basemap', 'show3dObjects', show3dBuildings);
+            if (show3dBuildings) ensure3DView();
           } catch (e) {
             try {
               map.setConfigProperty('mapbox-standard', 'show3dObjects', show3dBuildings);
+              if (show3dBuildings) ensure3DView();
             } catch (e2) {
               logDebug('[Wigle] Standard style 3D buildings config failed');
             }
@@ -413,6 +420,7 @@ const WiglePage: React.FC = () => {
               },
               labelLayerId
             );
+            ensure3DView();
           }
         } else {
           if (map.getLayer('3d-buildings')) {
@@ -437,6 +445,11 @@ const WiglePage: React.FC = () => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
+    const ensure3DView = () => {
+      if (map.getPitch() >= 45) return;
+      map.easeTo({ pitch: 60, duration: 600, essential: true });
+    };
+
     const toggleTerrainAction = () => {
       const style = map.getStyle();
       const isStandardStyle =
@@ -449,9 +462,11 @@ const WiglePage: React.FC = () => {
         if (isStandardStyle) {
           try {
             map.setConfigProperty('basemap', 'showTerrain', showTerrain);
+            if (showTerrain) ensure3DView();
           } catch (e) {
             try {
               map.setConfigProperty('mapbox-standard', 'showTerrain', showTerrain);
+              if (showTerrain) ensure3DView();
             } catch (e2) {
               logDebug('[Wigle] Standard style terrain config failed');
             }
@@ -469,6 +484,7 @@ const WiglePage: React.FC = () => {
             });
           }
           map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+          ensure3DView();
         } else {
           map.setTerrain(null);
           if (map.getSource('mapbox-dem')) {
