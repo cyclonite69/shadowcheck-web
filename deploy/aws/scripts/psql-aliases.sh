@@ -16,7 +16,7 @@ scdb() {
     local SECRET_JSON=$(get_db_secret)
     local password=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null)
     if [ -n "$password" ]; then
-        PGPASSWORD="$password" docker exec -it shadowcheck_postgres \
+        docker exec -it -e PGPASSWORD="$password" shadowcheck_postgres \
             psql -U shadowcheck_user -d shadowcheck_db "$@"
     else
         echo "ERROR: Could not retrieve db_password from Secrets Manager (shadowcheck/config)"
@@ -28,7 +28,7 @@ scdba() {
     local SECRET_JSON=$(get_db_secret)
     local password=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null)
     if [ -n "$password" ]; then
-        PGPASSWORD="$password" docker exec -it shadowcheck_postgres \
+        docker exec -it -e PGPASSWORD="$password" shadowcheck_postgres \
             psql -U shadowcheck_admin -d shadowcheck_db "$@"
     else
         echo "ERROR: Could not retrieve db_admin_password from Secrets Manager (shadowcheck/config)"
