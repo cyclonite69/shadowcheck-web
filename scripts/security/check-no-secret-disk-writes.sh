@@ -16,6 +16,10 @@ while IFS= read -r file; do
     docs/* | *.md | *.txt | .gitignore | .dockerignore | scripts/security/check-no-secret-disk-writes.sh) continue ;;
   esac
 
+  if [ ! -f "$file" ]; then
+    continue
+  fi
+
   # Block known secret-on-disk modalities:
   # - Writing .env files
   # - Copying .env.example to .env

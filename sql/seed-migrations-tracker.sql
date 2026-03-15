@@ -2,7 +2,8 @@
 -- Seed schema_migrations tracking table
 -- ============================================================================
 -- Run this ONCE on an existing database to mark all migrations as applied.
--- Marks both the 77 archived migrations AND the 10 consolidated baselines
+-- Marks the archived migrations, the superseded folded compatibility migrations,
+-- and the 10 consolidated baselines
 -- so the migration runner skips them all on existing deployments.
 --
 -- Usage:
@@ -96,6 +97,12 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('update_mv_threat_v5_distance_based.sql'),
   ('update_mv_threat_v6_precomputed.sql'),
   ('update_mv_threat_v7_improved_security.sql'),
+  -- === 5 superseded post-consolidation compatibility migrations ===
+  ('20260308_note_media_store_in_db.sql'),
+  ('20260308_sibling_detection_pipeline.sql'),
+  ('20260308_tune_sibling_scoring_common_ssids.sql'),
+  ('20260309_repair_sibling_pipeline_legacy_schema.sql'),
+  ('20260310_folded_note_media_and_sibling_backfill.sql'),
   -- === 10 consolidated baseline migrations ===
   ('20260216_consolidated_001_extensions_and_schemas.sql'),
   ('20260216_consolidated_002_core_tables.sql'),
