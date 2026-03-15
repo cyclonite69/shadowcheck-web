@@ -39,14 +39,14 @@ Launches ShadowCheck Spot instance with persistent data volume.
 ### WiGLE Import
 
 ```bash
-# Parallel import (fastest)
-npx tsx scripts/import/import-wigle-parallel.ts <file.csv>
+# Canonical SQLite import
+npx tsx etl/load/sqlite-import.ts <file.sqlite> [source_tag]
 
-# JSON import
-npx tsx scripts/import/import-wigle-v2-json.ts <file.json>
+# Canonical JSON import
+npx tsx etl/load/json-import.ts <file.json>
 
-# Turbo import (bulk)
-npx tsx scripts/import/turbo-import.ts <file.csv>
+# Legacy wrapper entrypoints remain temporarily for backwards compatibility,
+# but new operational docs should use the ETL paths above.
 ```
 
 ### Geocoding
