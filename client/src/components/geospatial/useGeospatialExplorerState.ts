@@ -237,8 +237,8 @@ export const useGeospatialExplorerState = ({
     mapReady,
     show3DBuildings,
     showTerrain,
-    add3DBuildings,
-    addTerrain: () => toggleTerrain(true),
+    toggle3DBuildings,
+    toggleTerrain,
   });
 
   const { changeMapStyle } = useMapStyleControls({

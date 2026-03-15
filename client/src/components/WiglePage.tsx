@@ -352,15 +352,24 @@ const WiglePage: React.FC = () => {
     if (!map || !mapReady) return;
 
     const toggleBuildings = () => {
+      const style = map.getStyle();
       const isStandardStyle =
-        mapStyle.startsWith('mapbox://styles/mapbox/standard') ||
+        mapStyle.includes('mapbox://styles/mapbox/standard') ||
         (typeof map.setConfigProperty === 'function' &&
-          (map.getStyle()?.schema?.basemap !== undefined ||
-            map.getStyle()?.imports?.some((i: any) => i.id === 'basemap')));
+          (style?.schema?.hasOwnProperty('basemap') ||
+            style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard')));
 
       try {
         if (isStandardStyle) {
-          map.setConfigProperty('basemap', 'show3dObjects', show3dBuildings);
+          try {
+            map.setConfigProperty('basemap', 'show3dObjects', show3dBuildings);
+          } catch (e) {
+            try {
+              map.setConfigProperty('mapbox-standard', 'show3dObjects', show3dBuildings);
+            } catch (e2) {
+              logDebug('[Wigle] Standard style 3D buildings config failed');
+            }
+          }
           return;
         }
 
@@ -429,15 +438,24 @@ const WiglePage: React.FC = () => {
     if (!map || !mapReady) return;
 
     const toggleTerrainAction = () => {
+      const style = map.getStyle();
       const isStandardStyle =
-        mapStyle.startsWith('mapbox://styles/mapbox/standard') ||
+        mapStyle.includes('mapbox://styles/mapbox/standard') ||
         (typeof map.setConfigProperty === 'function' &&
-          (map.getStyle()?.schema?.basemap !== undefined ||
-            map.getStyle()?.imports?.some((i: any) => i.id === 'basemap')));
+          (style?.schema?.hasOwnProperty('basemap') ||
+            style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard')));
 
       try {
         if (isStandardStyle) {
-          map.setConfigProperty('basemap', 'showTerrain', showTerrain);
+          try {
+            map.setConfigProperty('basemap', 'showTerrain', showTerrain);
+          } catch (e) {
+            try {
+              map.setConfigProperty('mapbox-standard', 'showTerrain', showTerrain);
+            } catch (e2) {
+              logDebug('[Wigle] Standard style terrain config failed');
+            }
+          }
           return;
         }
 
