@@ -164,23 +164,30 @@ describe('SQL Injection Prevention', () => {
     });
 
     test('treats full supported radioTypes selection as neutral in dashboard metrics path', async () => {
-      query
-        .mockResolvedValueOnce({ rows: [{ total_networks: '10', wifi_count: '3' }] })
-        .mockResolvedValueOnce({ rows: [{ total_observations: '20', wifi_observations: '6' }] })
-        .mockResolvedValueOnce({
-          rows: [
-            { threats_critical: '0', threats_high: '0', threats_medium: '0', threats_low: '0' },
-          ],
-        });
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            total_networks: '10',
+            wifi_count: '3',
+            total_observations: '20',
+            wifi_observations: '6',
+            threats_critical: '0',
+            threats_high: '0',
+            threats_medium: '0',
+            threats_low: '0',
+            enriched_count: '0',
+          },
+        ],
+      });
 
       await repo.getDashboardMetrics(
         { radioTypes: ['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'] },
         { radioTypes: true }
       );
 
-      expect(query).toHaveBeenCalledTimes(3);
+      expect(query).toHaveBeenCalledTimes(1);
       const firstSql = String(query.mock.calls[0]?.[0] || '');
-      expect(firstSql).toContain('FROM app.networks');
+      expect(firstSql).toContain('FROM app.api_network_explorer_mv ne');
       expect(firstSql).not.toContain('filtered_obs');
     });
 
@@ -217,13 +224,8 @@ describe('SQL Injection Prevention', () => {
       expect(metrics.filtersApplied).toBeGreaterThan(0);
       expect(query).toHaveBeenCalledTimes(1);
       const sql = String(query.mock.calls[0]?.[0] || '');
-      expect(sql).toContain('LEFT JOIN app.api_network_explorer_mv ne');
-      expect(sql).not.toContain('LEFT JOIN app.api_network_explorer ne');
-      expect(sql).not.toContain('ne.threat');
-      expect(sql).toContain(
-        'LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)'
-      );
-      expect(sql).toContain('LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(n.bssid)');
+      expect(sql).toContain('FROM app.api_network_explorer_mv ne');
+      expect(sql).not.toContain('${');
     });
 
     test('should not contain string interpolation in SQL', async () => {

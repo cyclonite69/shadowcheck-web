@@ -18,7 +18,7 @@ describe('observationCountMin - CRITICAL Investigation', () => {
     // Should generate WHERE clause
     expect(query.sql).toContain('ne.observations >=');
     expect(query.sql).toContain('$1');
-    expect((builder as any).params[0]).toBe(10);
+    expect(query.params[0]).toBe(10);
   });
 
   test('filter works with network-only optimization', () => {
@@ -70,7 +70,7 @@ describe('observationCountMin - CRITICAL Investigation', () => {
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const query = builder.buildNetworkListQuery();
 
-    expect((builder as any).params).toContain(1);
+    expect(query.params).toContain(1);
     expect(query.appliedFilters).toContainEqual({
       type: 'quality',
       field: 'observationCountMin',
@@ -84,7 +84,7 @@ describe('observationCountMin - CRITICAL Investigation', () => {
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const query = builder.buildNetworkListQuery();
 
-    expect((builder as any).params).toContain(100);
+    expect(query.params).toContain(100);
   });
 
   test('disabled by default in store', () => {

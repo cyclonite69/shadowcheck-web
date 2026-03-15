@@ -1,9 +1,18 @@
 import { FilterPredicateBuilder, type QueryContext } from './FilterPredicateBuilder';
 import { QueryState } from './QueryState';
 import { validateFilterPayload } from './validators';
-import { NETWORK_ONLY_FILTERS, RELATIVE_WINDOWS, type FilterKey } from './constants';
+import { FILTER_KEYS, NETWORK_ONLY_FILTERS, RELATIVE_WINDOWS, type FilterKey } from './constants';
 import { buildEngagementPredicates } from './engagementPredicates';
 import type { Filters, EnabledFlags, AppliedFilter } from './types';
+
+const ENABLE_ONLY_FILTERS = new Set<FilterKey>(['excludeInvalidCoords']);
+
+const hasMeaningfulFilterValue = (value: unknown): boolean => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+};
 
 export class FilterBuildContext extends FilterPredicateBuilder {
   public filters: Filters;
@@ -36,6 +45,18 @@ export class FilterBuildContext extends FilterPredicateBuilder {
     this.obsJoins = new Set();
     this.requiresHome = false;
     this.context = context || {};
+
+    FILTER_KEYS.forEach((key) => {
+      if (!this.enabled[key]) return;
+      if (ENABLE_ONLY_FILTERS.has(key)) return;
+      if (hasMeaningfulFilterValue(this.filters[key])) return;
+
+      this.addIgnored(
+        key === 'timeframe' || key === 'temporalScope' ? 'temporal' : 'input',
+        key,
+        'enabled_without_value'
+      );
+    });
 
     if (context?.trackPerformance || process.env.TRACK_QUERY_PERFORMANCE === 'true') {
       const { QueryPerformanceTracker } = require('../../utils/queryPerformanceTracker');
