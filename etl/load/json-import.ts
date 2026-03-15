@@ -11,7 +11,31 @@ import { PoolClient } from 'pg';
 import { createPool } from '../utils/db';
 
 interface WigleNetwork {
-  // ...
+  netid?: string | null;
+  ssid?: string | null;
+  qos?: number | null;
+  transid?: string | number | null;
+  firsttime?: string | null;
+  lasttime?: string | null;
+  lastupdt?: string | null;
+  housenumber?: string | null;
+  road?: string | null;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  postalcode?: string | null;
+  trilat?: string | number | null;
+  trilong?: string | number | null;
+  dhcp?: string | null;
+  paynet?: string | null;
+  userfound?: boolean | null;
+  channel?: number | string | null;
+  encryption?: string | null;
+  freenet?: string | null;
+  comment?: string | null;
+  wep?: string | null;
+  bcninterval?: number | string | null;
+  type?: string | null;
 }
 
 interface WigleJsonData {
