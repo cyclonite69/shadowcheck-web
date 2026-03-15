@@ -25,7 +25,7 @@ describe('Certification: Radio & Physical Filters', () => {
     const result = builder.buildObservationFilters();
 
     expect(result.where.some((clause: string) => clause.includes('= ANY('))).toBe(true);
-    expect((builder as any).params).toContainEqual(['W', 'L']);
+    expect(builder.getParams()).toContainEqual(['W', 'L']);
   });
 
   test.each([
@@ -51,8 +51,8 @@ describe('Certification: Radio & Physical Filters', () => {
 
     expect(whereSql).toContain('>=');
     expect(whereSql).toContain('<=');
-    expect((builder as any).params).toContain(1);
-    expect((builder as any).params).toContain(11);
+    expect(builder.getParams()).toContain(1);
+    expect(builder.getParams()).toContain(11);
   });
 
   test('rssiMin/rssiMax: includes null-check and noise-floor handling in observation predicates', () => {
@@ -62,7 +62,7 @@ describe('Certification: Radio & Physical Filters', () => {
     );
     const result = builder.buildObservationFilters();
     const whereSql = result.where.join('\n');
-    const params = (builder as any).params as unknown[];
+    const params = builder.getParams() as unknown[];
 
     expect(whereSql).toContain('o.level IS NOT NULL');
     expect(whereSql).toContain('o.level >=');

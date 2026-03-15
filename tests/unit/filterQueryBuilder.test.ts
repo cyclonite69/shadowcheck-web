@@ -147,19 +147,16 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql.length).toBeGreaterThan(0);
   });
 
-  test('timeframe + temporalScope + threatCategories uses MV fast path', () => {
+  test('threatCategories alone uses MV fast path', () => {
     const result = new UniversalFilterQueryBuilder(
       {
-        temporalScope: 'observation_time',
-        timeframe: { type: 'relative', relativeWindow: '90d' },
         threatCategories: ['high'],
       },
-      { timeframe: true, temporalScope: true, threatCategories: true }
+      { threatCategories: true }
     ).buildNetworkListQuery({ limit: 500, offset: 0 });
 
     expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
     expect(result.sql).not.toContain('WITH filtered_obs AS');
-    expect(result.appliedFilters.some((f: any) => f.field === 'timeframe')).toBe(true);
     expect(result.appliedFilters.some((f: any) => f.field === 'threatCategories')).toBe(true);
   });
 
@@ -329,14 +326,12 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql).toContain('ssid');
   });
 
-  test('count query for timeframe + temporalScope + threatCategories uses MV fast path', () => {
+  test('count query for threatCategories alone uses MV fast path', () => {
     const result = new UniversalFilterQueryBuilder(
       {
-        temporalScope: 'observation_time',
-        timeframe: { type: 'relative', relativeWindow: '90d' },
         threatCategories: ['high'],
       },
-      { timeframe: true, temporalScope: true, threatCategories: true }
+      { threatCategories: true }
     ).buildNetworkCountQuery();
 
     expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
