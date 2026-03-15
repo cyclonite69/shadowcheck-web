@@ -27,7 +27,7 @@ export class WeatherParticleOverlay {
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     this.canvas.style.pointerEvents = 'none';
-    this.canvas.style.zIndex = '10';
+    this.canvas.style.zIndex = '99';
     container.appendChild(this.canvas);
     this.ctx = this.canvas.getContext('2d');
     this.resize();

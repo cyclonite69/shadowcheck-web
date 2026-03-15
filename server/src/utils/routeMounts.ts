@@ -142,8 +142,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/analytics-public', analyticsPublicRoutes);
 
   // Weather proxy (no auth required)
-  // TEMPORARILY DISABLED - TypeScript ES module compatibility issue
-  // app.use('/', weatherRoutes);
+  app.use('/', weatherRoutes);
 
   // Agency offices (public data - mount outside /api to avoid admin auth middleware)
   const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;
