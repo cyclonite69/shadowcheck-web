@@ -160,10 +160,15 @@ CREATE TABLE IF NOT EXISTS app.note_media (
     file_name character varying(256) NOT NULL,
     file_size integer,
     media_type character varying(50),
-    created_at timestamp without time zone DEFAULT now()
+    created_at timestamp without time zone DEFAULT now(),
+    media_data bytea,
+    mime_type varchar(255),
+    storage_backend varchar(16) NOT NULL DEFAULT 'db'
 );
 
 COMMENT ON TABLE app.note_media IS 'Media attachments for network notes';
+COMMENT ON COLUMN app.note_media.media_data IS 'Raw attachment payload stored in Postgres (bytea).';
+COMMENT ON COLUMN app.note_media.storage_backend IS 'Storage backend indicator: db (bytea) or file (legacy path).';
 
 CREATE SEQUENCE IF NOT EXISTS app.note_media_id_seq
     AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
@@ -187,6 +192,129 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_note_media_bssid ON app.note_media USING btree (bssid);
 CREATE INDEX IF NOT EXISTS idx_note_media_created ON app.note_media USING btree (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_note_media_note_id ON app.note_media USING btree (note_id);
+CREATE INDEX IF NOT EXISTS idx_note_media_note_id_created ON app.note_media (note_id, created_at DESC);
+
+-- --------------------------------------------------------------------------
+-- network_sibling_pairs
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app.network_sibling_pairs (
+    bssid1 varchar(17) NOT NULL,
+    bssid2 varchar(17) NOT NULL,
+    rule text NOT NULL DEFAULT 'heuristic',
+    confidence numeric(6,3) NOT NULL,
+    pair_strength text NOT NULL DEFAULT 'candidate',
+    d_last_octet int,
+    d_third_octet int,
+    ssid1 text,
+    ssid2 text,
+    frequency1 int,
+    frequency2 int,
+    distance_m numeric,
+    quality_scope text NOT NULL DEFAULT 'default',
+    source text NOT NULL DEFAULT 'heuristic',
+    computed_at timestamptz NOT NULL DEFAULT now(),
+    is_active boolean NOT NULL DEFAULT true,
+    CONSTRAINT network_sibling_pairs_pkey PRIMARY KEY (bssid1, bssid2),
+    CONSTRAINT network_sibling_pairs_order_chk CHECK (bssid1 < bssid2),
+    CONSTRAINT network_sibling_pairs_strength_chk CHECK (pair_strength IN ('candidate', 'strong', 'verified')),
+    CONSTRAINT network_sibling_pairs_conf_chk CHECK (confidence >= 0 AND confidence <= 2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_conf
+    ON app.network_sibling_pairs (confidence DESC);
+CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_strength
+    ON app.network_sibling_pairs (pair_strength, confidence DESC);
+CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_bssid1
+    ON app.network_sibling_pairs (bssid1);
+CREATE INDEX IF NOT EXISTS idx_network_sibling_pairs_bssid2
+    ON app.network_sibling_pairs (bssid2);
+
+-- --------------------------------------------------------------------------
+-- network_sibling_overrides
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app.network_sibling_overrides (
+    bssid1 varchar(17) NOT NULL,
+    bssid2 varchar(17) NOT NULL,
+    relation text NOT NULL,
+    confidence numeric(6,3) NOT NULL DEFAULT 1.000,
+    notes text,
+    updated_by text NOT NULL DEFAULT 'analyst',
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    is_active boolean NOT NULL DEFAULT true,
+    CONSTRAINT network_sibling_overrides_pkey PRIMARY KEY (bssid1, bssid2),
+    CONSTRAINT network_sibling_overrides_order_chk CHECK (bssid1 < bssid2),
+    CONSTRAINT network_sibling_overrides_relation_chk CHECK (relation IN ('sibling', 'not_sibling')),
+    CONSTRAINT network_sibling_overrides_conf_chk CHECK (confidence >= 0 AND confidence <= 2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_network_sibling_overrides_relation
+    ON app.network_sibling_overrides (relation, is_active);
+
+-- --------------------------------------------------------------------------
+-- network_siblings_effective
+-- --------------------------------------------------------------------------
+CREATE OR REPLACE VIEW app.network_siblings_effective AS
+WITH blocked AS (
+    SELECT bssid1, bssid2
+    FROM app.network_sibling_overrides
+    WHERE is_active = true
+      AND relation = 'not_sibling'
+),
+manual_positive AS (
+    SELECT
+        o.bssid1,
+        o.bssid2,
+        'manual_override'::text AS rule,
+        o.confidence,
+        'verified'::text AS pair_strength,
+        null::int AS d_last_octet,
+        null::int AS d_third_octet,
+        null::text AS ssid1,
+        null::text AS ssid2,
+        null::int AS frequency1,
+        null::int AS frequency2,
+        null::numeric AS distance_m,
+        'default'::text AS quality_scope,
+        'manual'::text AS source,
+        o.updated_at AS computed_at
+    FROM app.network_sibling_overrides o
+    WHERE o.is_active = true
+      AND o.relation = 'sibling'
+),
+heuristic_strong AS (
+    SELECT
+        p.bssid1,
+        p.bssid2,
+        p.rule,
+        p.confidence,
+        CASE
+            WHEN p.confidence >= 0.97 THEN 'strong'
+            WHEN p.confidence >= 0.90 THEN 'candidate'
+            ELSE 'candidate'
+        END AS pair_strength,
+        p.d_last_octet,
+        p.d_third_octet,
+        p.ssid1,
+        p.ssid2,
+        p.frequency1,
+        p.frequency2,
+        p.distance_m,
+        p.quality_scope,
+        'heuristic'::text AS source,
+        p.computed_at
+    FROM app.network_sibling_pairs p
+    LEFT JOIN blocked b
+      ON b.bssid1 = p.bssid1 AND b.bssid2 = p.bssid2
+    WHERE p.confidence >= 0.92
+      AND b.bssid1 IS NULL
+)
+SELECT * FROM manual_positive
+UNION ALL
+SELECT hs.*
+FROM heuristic_strong hs
+LEFT JOIN manual_positive mp
+  ON mp.bssid1 = hs.bssid1 AND mp.bssid2 = hs.bssid2
+WHERE mp.bssid1 IS NULL;
 
 -- --------------------------------------------------------------------------
 -- network_media

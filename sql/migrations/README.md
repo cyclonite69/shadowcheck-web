@@ -15,4 +15,7 @@
 
 `sql/run-migrations.sh` applies these in filename sort order and tracks applied files in `app.schema_migrations`.
 
-Legacy incremental migrations have been moved under `sql/migrations/_archived/` for reference only.
+Later compatibility migrations that were briefly left active after the initial consolidation have also been folded back into the canonical files and moved under `sql/migrations/_archived/`.
+
+Active fresh-install path: 10 consolidated migrations.
+Archived reference path: original incremental migrations plus superseded compatibility/backfill migrations.
