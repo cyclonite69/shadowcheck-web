@@ -733,41 +733,11 @@ async function getNetworkTagsByBssid(bssid: string): Promise<any | null> {
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
-async function addNetworkTagArray(bssid: string, tags: string[]): Promise<void> {
-  await adminQuery(
-    `INSERT INTO app.network_tags (bssid, tags) VALUES ($1, $2)
-     ON CONFLICT (bssid) DO UPDATE SET tags = $2, updated_at = NOW()`,
-    [bssid, tags]
-  );
-}
-
-async function addSingleNetworkTag(bssid: string, tag: string): Promise<void> {
-  await adminQuery(
-    `INSERT INTO app.network_tags (bssid, tags) VALUES ($1, ARRAY[$2]::text[])
-     ON CONFLICT (bssid) DO UPDATE SET tags = array_append(app.network_tags.tags, $2), updated_at = NOW()`,
-    [bssid, tag]
-  );
-}
-
-async function removeSingleNetworkTag(bssid: string, tag: string): Promise<void> {
-  await adminQuery(
-    `UPDATE app.network_tags SET tags = array_remove(tags, $2), updated_at = NOW() WHERE bssid = $1`,
-    [bssid, tag]
-  );
-}
-
 async function getNetworkTagsAndNotes(bssid: string): Promise<any | null> {
   const result = await query('SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1', [
     bssid,
   ]);
   return result.rows.length > 0 ? result.rows[0] : null;
-}
-
-async function clearNetworkTags(bssid: string): Promise<void> {
-  await adminQuery(
-    `UPDATE app.network_tags SET tags = ARRAY[]::text[], updated_at = NOW() WHERE bssid = $1`,
-    [bssid]
-  );
 }
 
 async function getAllNetworkTags(): Promise<any[]> {
@@ -1256,11 +1226,7 @@ module.exports.updateNetworkNote = updateNetworkNote;
 module.exports.addNoteMedia = addNoteMedia;
 module.exports.getNoteMediaById = getNoteMediaById;
 module.exports.getNetworkTagsByBssid = getNetworkTagsByBssid;
-module.exports.addNetworkTagArray = addNetworkTagArray;
-module.exports.addSingleNetworkTag = addSingleNetworkTag;
-module.exports.removeSingleNetworkTag = removeSingleNetworkTag;
 module.exports.getNetworkTagsAndNotes = getNetworkTagsAndNotes;
-module.exports.clearNetworkTags = clearNetworkTags;
 module.exports.getAllNetworkTags = getAllNetworkTags;
 module.exports.searchNetworksByTag = searchNetworksByTag;
 module.exports.insertNetworkTagWithNotes = insertNetworkTagWithNotes;

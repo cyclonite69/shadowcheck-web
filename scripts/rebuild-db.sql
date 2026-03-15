@@ -3,6 +3,11 @@
 \set sqlite_path :ENV:SQLITE_PATH
 \set QUIET 0
 
+-- DEPRECATED:
+-- This helper preserves an old manual rebuild flow that references the legacy
+-- incremental migration path below. Prefer the canonical ETL + migration
+-- entrypoints under etl/ and sql/run-migrations.sh for current operations.
+
 -- WHY: Tag rebuild session for pg_stat_statements attribution.
 SET application_name = 'shadowcheck_rebuild';
 
@@ -31,7 +36,7 @@ DROP MATERIALIZED VIEW IF EXISTS public.api_network_explorer_mv;
 
 -- WHY: Raw ingest from SQLite is handled by the canonical importer.
 \if :{?sqlite_path}
-\! node scripts/import/turbo-import.js :'sqlite_path'
+\! npx tsx etl/load/sqlite-import.ts :'sqlite_path'
 \endif
 
 -- ==========================================================================
