@@ -268,6 +268,8 @@ export const NetworkTableRow = ({
               color: col === 'bssid' ? macColor(net.bssid) : '#f1f5f9',
               fontFamily: col === 'bssid' ? 'monospace' : 'inherit',
               fontSize: '11px',
+              fontWeight: col === 'bssid' ? 700 : undefined,
+              letterSpacing: col === 'bssid' ? '0.02em' : undefined,
               boxSizing: 'border-box',
             }}
           >

@@ -434,7 +434,9 @@ export const NetworkTableBodyGrid = ({
                         ...stickyCellStyle,
                         padding: '0 4px',
                         fontFamily: 'monospace',
-                        fontSize: '10px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        letterSpacing: '0.02em',
                         color: macColor(net.bssid),
                         whiteSpace: 'nowrap',
                         textOverflow: 'ellipsis',
@@ -462,6 +464,7 @@ export const NetworkTableBodyGrid = ({
                           minWidth: 0,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
+                          fontWeight: 700,
                         }}
                       >
                         {value as any}
