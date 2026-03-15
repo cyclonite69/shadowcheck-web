@@ -50,7 +50,6 @@ export const NetworkExplorerHeader = ({
         Networks Explorer
       </h2>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '11px', color: '#94a3b8' }}>Filters apply across list + map.</span>
         <label
           style={{
             display: 'flex',
