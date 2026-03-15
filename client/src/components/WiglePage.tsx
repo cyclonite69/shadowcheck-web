@@ -352,7 +352,18 @@ const WiglePage: React.FC = () => {
     if (!map || !mapReady) return;
 
     const toggleBuildings = () => {
+      const isStandardStyle =
+        mapStyle.startsWith('mapbox://styles/mapbox/standard') ||
+        (typeof map.setConfigProperty === 'function' &&
+          (map.getStyle()?.schema?.basemap !== undefined ||
+            map.getStyle()?.imports?.some((i: any) => i.id === 'basemap')));
+
       try {
+        if (isStandardStyle) {
+          map.setConfigProperty('basemap', 'show3dObjects', show3dBuildings);
+          return;
+        }
+
         if (show3dBuildings) {
           if (!map.getLayer('3d-buildings')) {
             const styleLayers = map.getStyle().layers;
@@ -401,7 +412,7 @@ const WiglePage: React.FC = () => {
         }
       } catch (err) {
         // Silently fail - some map styles don't have building layer
-        logDebug('[Wigle] 3D buildings not available for this map style');
+        logDebug('[Wigle] 3D buildings error: ' + (err as Error).message);
       }
     };
 
@@ -417,8 +428,19 @@ const WiglePage: React.FC = () => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    const toggleTerrain = () => {
+    const toggleTerrainAction = () => {
+      const isStandardStyle =
+        mapStyle.startsWith('mapbox://styles/mapbox/standard') ||
+        (typeof map.setConfigProperty === 'function' &&
+          (map.getStyle()?.schema?.basemap !== undefined ||
+            map.getStyle()?.imports?.some((i: any) => i.id === 'basemap')));
+
       try {
+        if (isStandardStyle) {
+          map.setConfigProperty('basemap', 'showTerrain', showTerrain);
+          return;
+        }
+
         if (showTerrain) {
           if (!map.getSource('mapbox-dem')) {
             map.addSource('mapbox-dem', {
@@ -437,14 +459,14 @@ const WiglePage: React.FC = () => {
         }
       } catch (err) {
         // Silently fail - terrain may not be available for all map styles
-        logDebug('[Wigle] Terrain not available for this map style');
+        logDebug('[Wigle] Terrain error: ' + (err as Error).message);
       }
     };
 
     if (map.isStyleLoaded()) {
-      toggleTerrain();
+      toggleTerrainAction();
     } else {
-      map.once('style.load', toggleTerrain);
+      map.once('style.load', toggleTerrainAction);
     }
   }, [showTerrain, mapReady, mapStyle]);
 

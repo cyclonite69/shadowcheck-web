@@ -230,6 +230,7 @@ export const useGeospatialExplorerState = ({
       mapRef,
       setShow3DBuildings,
       setShowTerrain,
+      mapStyle,
     });
 
   useApplyMapLayerDefaults({
