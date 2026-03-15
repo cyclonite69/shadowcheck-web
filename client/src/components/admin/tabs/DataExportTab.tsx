@@ -18,6 +18,31 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
 );
 
 export const DataExportTab: React.FC = () => {
+  const handleDownload = async (endpoint: string, filename: string) => {
+    try {
+      const response = await fetch(endpoint, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to export data. Please ensure you are logged in and try again.');
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Network Exports */}
@@ -27,13 +52,13 @@ export const DataExportTab: React.FC = () => {
             Export scanned networks in multiple formats for analysis and integration.
           </p>
           <button
-            onClick={() => window.open('/api/csv', '_blank')}
+            onClick={() => handleDownload('/api/csv', `shadowcheck_observations_${Date.now()}.csv`)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all text-sm"
           >
             Export as CSV
           </button>
           <button
-            onClick={() => window.open('/api/json', '_blank')}
+            onClick={() => handleDownload('/api/json', `shadowcheck_data_${Date.now()}.json`)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 transition-all text-sm"
           >
             Export as JSON
@@ -49,7 +74,9 @@ export const DataExportTab: React.FC = () => {
             applications.
           </p>
           <button
-            onClick={() => window.open('/api/geojson', '_blank')}
+            onClick={() =>
+              handleDownload('/api/geojson', `shadowcheck_geospatial_${Date.now()}.geojson`)
+            }
             className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all text-sm"
           >
             Export as GeoJSON

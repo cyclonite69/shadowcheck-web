@@ -116,8 +116,6 @@ function AppContent() {
             <Route path="/kepler" element={<KeplerPage />} />
             <Route path="/endpoint-test" element={<ApiPage />} />
             <Route path="/admin" element={<AdminPage />} />
-            {/* Catch-all: redirect API routes back to dashboard */}
-            <Route path="/api/*" element={<DashboardPage />} />
           </Routes>
         </Suspense>
       </main>
