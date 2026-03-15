@@ -326,6 +326,21 @@ const resolveProviderCredentials = async (
   return {};
 };
 
+const ensureProviderReady = (
+  provider: GeocodeProvider,
+  credentials: GeocodeProviderCredentials
+): void => {
+  if (provider === 'mapbox' && !credentials.mapboxToken) {
+    throw new Error('missing_key:mapbox');
+  }
+  if (provider === 'opencage' && !credentials.opencageKey) {
+    throw new Error('missing_key:opencage');
+  }
+  if (provider === 'locationiq' && !credentials.locationIqKey) {
+    throw new Error('missing_key:locationiq');
+  }
+};
+
 const calculateRateLimitBackoffMs = (
   provider: GeocodeProvider,
   consecutiveRateLimits: number
@@ -460,6 +475,7 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
 
   try {
     const credentials = await resolveProviderCredentials(options.provider);
+    ensureProviderReady(options.provider, credentials);
     return await runGeocodeCacheUpdateInternal(options, credentials);
   } finally {
     await releaseGeocodingRunLock();
@@ -473,6 +489,7 @@ const startGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
   }
 
   const credentials = await resolveProviderCredentials(options.provider);
+  ensureProviderReady(options.provider, credentials);
 
   void runGeocodeCacheUpdateInternal(options, credentials)
     .then((result) => {

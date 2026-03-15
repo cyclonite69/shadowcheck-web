@@ -55,6 +55,19 @@ router.post('/admin/geocoding/run', async (req, res) => {
       options,
     });
   } catch (err) {
+    if (err?.message === 'job_already_running') {
+      return res.status(409).json({
+        ok: false,
+        error: 'Geocoding job already running',
+      });
+    }
+    if (typeof err?.message === 'string' && err.message.startsWith('missing_key:')) {
+      const provider = err.message.split(':')[1] || 'provider';
+      return res.status(400).json({
+        ok: false,
+        error: `Missing API key for ${provider}`,
+      });
+    }
     logger.error('[Geocoding] Run failed', { error: err?.message });
     res.status(500).json({
       ok: false,

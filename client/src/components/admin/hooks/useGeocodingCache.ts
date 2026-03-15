@@ -40,9 +40,15 @@ export const useGeocodingCache = (precision = 5) => {
       setError('');
       try {
         const data = await adminApi.runGeocoding(options);
-        setActionMessage(data.message || 'Geocoding run completed');
+        setActionMessage(data.message || 'Geocoding run started in background');
         setLastResult(data.result || null);
         await refreshStats();
+        window.setTimeout(() => {
+          void refreshStats();
+        }, 5000);
+        window.setTimeout(() => {
+          void refreshStats();
+        }, 15000);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Geocoding run failed';
         setError(errorMessage);

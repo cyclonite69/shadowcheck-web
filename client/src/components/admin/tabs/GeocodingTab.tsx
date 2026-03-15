@@ -46,6 +46,11 @@ const MetricLabel: React.FC<{ label: string; tooltip: string }> = ({ label, tool
 );
 
 export const GeocodingTab: React.FC = () => {
+  const [limit, setLimit] = useState(1000);
+  const [precision, setPrecision] = useState(5);
+  const [perMinute, setPerMinute] = useState(200);
+  const [permanent, setPermanent] = useState(true);
+
   const {
     stats,
     isLoading,
@@ -55,12 +60,7 @@ export const GeocodingTab: React.FC = () => {
     lastResult,
     refreshStats,
     runGeocoding,
-  } = useGeocodingCache(5);
-
-  const [limit, setLimit] = useState(1000);
-  const [precision, setPrecision] = useState(5);
-  const [perMinute, setPerMinute] = useState(200);
-  const [permanent, setPermanent] = useState(true);
+  } = useGeocodingCache(precision);
 
   const runAddressPass = async () => {
     await runGeocoding({
