@@ -48,7 +48,7 @@ export const ActiveFiltersSummary: React.FC<ActiveFiltersSummaryProps> = ({
   adaptedFilters,
   compact = false,
 }) => {
-  const { clearFilters } = useFilterStore();
+  const clearFilters = useFilterStore((state) => state.clearFilters);
   const { filtersForPage, ignoredFilters, ignoredCount } = adaptedFilters;
 
   const activeCount = Object.keys(filtersForPage || {}).length;

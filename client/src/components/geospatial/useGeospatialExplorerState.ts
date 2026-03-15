@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
-import { useFilterStore } from '../../stores/filterStore';
+import { useCurrentEnabled, useFilterStore } from '../../stores/filterStore';
 import { useMapPreferences } from './useMapPreferences';
 import { useColumnVisibility } from './useColumnVisibility';
 import { useExplorerPanels } from './useExplorerPanels';
@@ -99,8 +99,9 @@ export const useGeospatialExplorerState = ({
     toggleAgenciesPanel,
   } = useExplorerPanels();
 
-  const { setFilter, enableFilter, getCurrentEnabled } = useFilterStore();
-  const enabled = getCurrentEnabled();
+  const setFilter = useFilterStore((state) => state.setFilter);
+  const enableFilter = useFilterStore((state) => state.enableFilter);
+  const enabled = useCurrentEnabled();
 
   // Quick Search Effect
   useEffect(() => {

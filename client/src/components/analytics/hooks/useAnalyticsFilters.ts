@@ -3,7 +3,11 @@
 // EXTRACTS: Filter state from lines 182-199 and timeframe effects from lines 286-313
 
 import { useState, useEffect, useRef } from 'react';
-import { useDebouncedFilters, useFilterStore } from '../../../stores/filterStore';
+import {
+  useCurrentEnabled,
+  useDebouncedFilters,
+  useFilterStore,
+} from '../../../stores/filterStore';
 import { TimeframeFilter } from '../../../types/filters';
 
 export type AnalyticsTimeFrame = NonNullable<TimeframeFilter['relativeWindow']>;
@@ -23,10 +27,10 @@ export const useAnalyticsFilters = (): UseAnalyticsFiltersReturn => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const { setFilter, enableFilter } = useFilterStore();
-  const activeFilterCount = useFilterStore(
-    (state) => Object.values(state.getCurrentEnabled()).filter(Boolean).length
-  );
+  const setFilter = useFilterStore((state) => state.setFilter);
+  const enableFilter = useFilterStore((state) => state.enableFilter);
+  const enabled = useCurrentEnabled();
+  const activeFilterCount = Object.values(enabled).filter(Boolean).length;
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );

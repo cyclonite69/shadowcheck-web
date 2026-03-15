@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useFilterStore } from '../stores/filterStore';
+import { useCurrentEnabled, useCurrentFilters, useFilterStore } from '../stores/filterStore';
 import { FilterSection } from './filter';
 import { FilterPanelHeader } from './filters/FilterPanelHeader';
 import {
@@ -25,22 +25,17 @@ interface FilterPanelProps {
 }
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) => {
-  const {
-    getCurrentFilters,
-    getCurrentEnabled,
-    setFilter,
-    toggleFilter,
-    enableFilter,
-    clearFilters,
-    resetFilters,
-    savePreset,
-    loadPreset,
-    deletePreset,
-    presets,
-  } = useFilterStore();
-
-  const filters = getCurrentFilters();
-  const enabled = getCurrentEnabled();
+  const filters = useCurrentFilters();
+  const enabled = useCurrentEnabled();
+  const setFilter = useFilterStore((state) => state.setFilter);
+  const toggleFilter = useFilterStore((state) => state.toggleFilter);
+  const enableFilter = useFilterStore((state) => state.enableFilter);
+  const clearFilters = useFilterStore((state) => state.clearFilters);
+  const resetFilters = useFilterStore((state) => state.resetFilters);
+  const savePreset = useFilterStore((state) => state.savePreset);
+  const loadPreset = useFilterStore((state) => state.loadPreset);
+  const deletePreset = useFilterStore((state) => state.deletePreset);
+  const presets = useFilterStore((state) => state.presets);
   const activeFilterCount = Object.values(enabled || {}).filter(Boolean).length;
   const [presetName, setPresetName] = useState('');
 

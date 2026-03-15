@@ -4,8 +4,12 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useFilterStore } from '../stores/filterStore';
-import { useDebouncedFilters } from '../stores/filterStore';
+import {
+  useCurrentEnabled,
+  useCurrentFilters,
+  useDebouncedFilters,
+  useFilterStore,
+} from '../stores/filterStore';
 import { adaptFiltersToPage, PageFilterCapabilities } from '../utils/filterCapabilities';
 import type { NetworkFilters } from '../types/filters';
 
@@ -14,9 +18,8 @@ import type { NetworkFilters } from '../types/filters';
  * Returns only the filters the page supports, plus metadata about ignored filters
  */
 export function useAdaptedFilters(capabilities: PageFilterCapabilities) {
-  // Use getCurrentFilters/getCurrentEnabled for per-page state
-  const filters = useFilterStore((state) => state.getCurrentFilters());
-  const enabled = useFilterStore((state) => state.getCurrentEnabled());
+  const filters = useCurrentFilters();
+  const enabled = useCurrentEnabled();
 
   const adapted = useMemo(() => {
     return adaptFiltersToPage(filters, enabled, capabilities);

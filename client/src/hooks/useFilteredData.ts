@@ -51,7 +51,7 @@ export function useFilteredData<T = unknown>(
   const [total, setTotal] = useState(0);
   const [currentOffset, setCurrentOffset] = useState(0);
 
-  const { setLoading: setGlobalLoading } = useFilterStore();
+  const setGlobalLoading = useFilterStore((state) => state.setLoading);
 
   const {
     endpoint,

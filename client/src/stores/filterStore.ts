@@ -120,14 +120,51 @@ const createDefaultPageState = (): PageFilterState => ({
   enabled: { ...defaultEnabled },
 });
 
+const DEFAULT_PAGE_STATE: PageFilterState = createDefaultPageState();
+
+const normalizePageState = (pageState?: PageFilterState): PageFilterState => {
+  if (!pageState) {
+    return DEFAULT_PAGE_STATE;
+  }
+
+  const nextFilters =
+    pageState.filters.qualityFilter === undefined
+      ? { ...pageState.filters, qualityFilter: defaultFilters.qualityFilter }
+      : pageState.filters;
+  const nextEnabled =
+    pageState.enabled.qualityFilter === undefined
+      ? { ...pageState.enabled, qualityFilter: defaultEnabled.qualityFilter }
+      : pageState.enabled;
+
+  if (nextFilters === pageState.filters && nextEnabled === pageState.enabled) {
+    return pageState;
+  }
+
+  return {
+    filters: nextFilters,
+    enabled: nextEnabled,
+  };
+};
+
 const getPageState = (
   pageStates: Record<string, PageFilterState>,
   page: string
 ): PageFilterState => {
-  if (!pageStates[page]) {
-    return createDefaultPageState();
+  return normalizePageState(pageStates[page]);
+};
+
+const ensurePageStateRecord = (
+  pageStates: Record<string, PageFilterState>,
+  page: string
+): Record<string, PageFilterState> => {
+  const normalized = normalizePageState(pageStates[page]);
+  if (pageStates[page] === normalized) {
+    return pageStates;
   }
-  return applyDataQualityDefaults(pageStates[page]);
+  return {
+    ...pageStates,
+    [page]: normalized,
+  };
 };
 
 export const useFilterStore = create<HardenedFilterStore>()(
@@ -140,7 +177,10 @@ export const useFilterStore = create<HardenedFilterStore>()(
       lastAppliedFilters: [],
 
       setCurrentPage: (pageName) => {
-        set({ currentPage: pageName });
+        set((state) => ({
+          currentPage: pageName,
+          pageStates: ensurePageStateRecord(state.pageStates, pageName),
+        }));
       },
 
       getCurrentFilters: () => {
@@ -445,7 +485,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
 
         const nextPageStates = Object.fromEntries(
           Object.entries((persistedState.pageStates as Record<string, PageFilterState>) || {}).map(
-            ([page, pageState]) => [page, applyDataQualityDefaults(pageState)]
+            ([page, pageState]) => [page, normalizePageState(pageState)]
           )
         );
 
@@ -498,3 +538,10 @@ export const useDebouncedFilters = (
     };
   }, [pageStates, currentPage, delay]);
 };
+
+export const useCurrentPageState = () =>
+  useFilterStore((state) => getPageState(state.pageStates, state.currentPage));
+
+export const useCurrentFilters = () => useCurrentPageState().filters;
+
+export const useCurrentEnabled = () => useCurrentPageState().enabled;

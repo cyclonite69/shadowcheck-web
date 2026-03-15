@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { useFilterStore } from '../stores/filterStore';
+import { useCurrentEnabled, useCurrentFilters, useFilterStore } from '../stores/filterStore';
 
 export const useFilterURLSync = () => {
-  const { setFromURLParams, getURLParams } = useFilterStore();
-  const filters = useFilterStore((state) => state.getCurrentFilters());
-  const enabled = useFilterStore((state) => state.getCurrentEnabled());
+  const setFromURLParams = useFilterStore((state) => state.setFromURLParams);
+  const getURLParams = useFilterStore((state) => state.getURLParams);
+  const filters = useCurrentFilters();
+  const enabled = useCurrentEnabled();
 
   // Load from URL on mount only
   useEffect(() => {
