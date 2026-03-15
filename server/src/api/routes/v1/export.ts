@@ -1,8 +1,10 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { exportService } = require('../../../config/container');
+const container = require('../../../config/container');
+const exportService = container.exportService;
 const { requireAuth } = require('../../../middleware/authMiddleware');
+const logger = require('../../../logging/logger');
 
 // Export as CSV with all available observation fields
 router.get('/csv', requireAuth, async (req, res) => {
@@ -41,6 +43,7 @@ router.get('/csv', requireAuth, async (req, res) => {
     );
     res.send(csv);
   } catch (error) {
+    logger.error(`Export failed: ${error.message}`, { error, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });
@@ -65,6 +68,7 @@ router.get('/json', requireAuth, async (req, res) => {
     );
     res.json(data);
   } catch (error) {
+    logger.error(`Export failed: ${error.message}`, { error, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });
@@ -108,6 +112,7 @@ router.get('/geojson', requireAuth, async (req, res) => {
     );
     res.json(geojson);
   } catch (error) {
+    logger.error(`Export failed: ${error.message}`, { error, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });

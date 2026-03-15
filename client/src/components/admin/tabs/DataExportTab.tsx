@@ -18,14 +18,25 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
 );
 
 export const DataExportTab: React.FC = () => {
-  const handleDownload = async (endpoint: string, filename: string) => {
+  const [exporting, setExporting] = React.useState<string | null>(null);
+
+  const handleDownload = async (endpoint: string, filename: string, type: string) => {
+    if (exporting) return;
+    setExporting(type);
     try {
       const response = await fetch(endpoint, {
         credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+        let errorMsg = `Export failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) errorMsg = errorData.error;
+        } catch {
+          // Use default error msg
+        }
+        throw new Error(errorMsg);
       }
 
       const blob = await response.blob();
@@ -37,9 +48,11 @@ export const DataExportTab: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Download error:', error);
-      alert('Failed to export data. Please ensure you are logged in and try again.');
+      alert(`Failed to export data: ${error.message || 'Unknown error'}`);
+    } finally {
+      setExporting(null);
     }
   };
 
@@ -52,16 +65,22 @@ export const DataExportTab: React.FC = () => {
             Export scanned networks in multiple formats for analysis and integration.
           </p>
           <button
-            onClick={() => handleDownload('/api/csv', `shadowcheck_observations_${Date.now()}.csv`)}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all text-sm"
+            onClick={() =>
+              handleDownload('/api/csv', `shadowcheck_observations_${Date.now()}.csv`, 'csv')
+            }
+            disabled={!!exporting}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Export as CSV
+            {exporting === 'csv' ? 'Generating CSV...' : 'Export as CSV'}
           </button>
           <button
-            onClick={() => handleDownload('/api/json', `shadowcheck_data_${Date.now()}.json`)}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 transition-all text-sm"
+            onClick={() =>
+              handleDownload('/api/json', `shadowcheck_data_${Date.now()}.json`, 'json')
+            }
+            disabled={!!exporting}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Export as JSON
+            {exporting === 'json' ? 'Generating JSON...' : 'Export as JSON'}
           </button>
         </div>
       </AdminCard>
@@ -75,12 +94,18 @@ export const DataExportTab: React.FC = () => {
           </p>
           <button
             onClick={() =>
-              handleDownload('/api/geojson', `shadowcheck_geospatial_${Date.now()}.geojson`)
+              handleDownload(
+                '/api/geojson',
+                `shadowcheck_geospatial_${Date.now()}.geojson`,
+                'geojson'
+              )
             }
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all text-sm"
+            disabled={!!exporting}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Export as GeoJSON
+            {exporting === 'geojson' ? 'Generating GeoJSON...' : 'Export as GeoJSON'}
           </button>
+
           <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50">
             <p className="mt-2">Compatible with:</p>
             <p>• QGIS, ArcGIS</p>

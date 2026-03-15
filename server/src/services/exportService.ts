@@ -3,10 +3,10 @@
  * Encapsulates database queries for data export operations
  */
 
-const { query } = require('../config/database');
+const db = require('../config/database');
 
 export async function getObservationsForCSV(): Promise<any[]> {
-  const result = await query(`
+  const result = await db.query(`
     SELECT
       bssid,
       ssid,
@@ -20,6 +20,7 @@ export async function getObservationsForCSV(): Promise<any[]> {
       accuracy
     FROM app.observations
     ORDER BY time DESC
+    LIMIT 50000
   `);
   return result.rows;
 }
@@ -29,7 +30,7 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
   networks: any[];
 }> {
   const [observations, networks] = await Promise.all([
-    query(`
+    db.query(`
       SELECT
         bssid,
         ssid,
@@ -44,9 +45,9 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
         altitude
       FROM app.observations
       ORDER BY time DESC
-      LIMIT 50000
+      LIMIT 20000
     `),
-    query(`
+    db.query(`
       SELECT
         bssid,
         ssid,
@@ -59,7 +60,7 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
         capabilities,
         security
       FROM app.networks
-      ORDER BY lasttime_ms DESC
+      ORDER BY lasttime_ms DESC NULLS LAST
       LIMIT 10000
     `),
   ]);
@@ -71,7 +72,7 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
 }
 
 export async function getObservationsForGeoJSON(): Promise<any[]> {
-  const result = await query(`
+  const result = await db.query(`
     SELECT
       bssid,
       ssid,
@@ -86,6 +87,7 @@ export async function getObservationsForGeoJSON(): Promise<any[]> {
     FROM app.observations
     WHERE lat IS NOT NULL AND lon IS NOT NULL
     ORDER BY time DESC
+    LIMIT 50000
   `);
   return result.rows;
 }
