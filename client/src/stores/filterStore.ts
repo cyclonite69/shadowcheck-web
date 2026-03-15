@@ -67,6 +67,7 @@ const defaultFilters: NetworkFilters = {
   has_notes: undefined,
   tag_type: [],
   wigle_v3_observation_count_min: undefined,
+  qualityFilter: 'all',
 };
 
 // EXPLICIT enable/disable - most filters DISABLED by default
@@ -91,7 +92,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   wigle_v3_observation_count_min: false,
   gpsAccuracyMax: false,
   excludeInvalidCoords: false,
-  qualityFilter: false,
+  qualityFilter: true,
   distanceFromHomeMin: false,
   distanceFromHomeMax: false,
   boundingBox: false,
@@ -103,9 +104,20 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   stationaryConfidenceMax: false,
 };
 
+const applyDataQualityDefaults = (pageState: PageFilterState): PageFilterState => ({
+  filters: {
+    ...pageState.filters,
+    qualityFilter: pageState.filters.qualityFilter ?? defaultFilters.qualityFilter,
+  },
+  enabled: {
+    ...pageState.enabled,
+    qualityFilter: pageState.enabled.qualityFilter ?? defaultEnabled.qualityFilter,
+  },
+});
+
 const createDefaultPageState = (): PageFilterState => ({
-  filters: defaultFilters,
-  enabled: defaultEnabled,
+  filters: { ...defaultFilters },
+  enabled: { ...defaultEnabled },
 });
 
 const getPageState = (
@@ -115,7 +127,7 @@ const getPageState = (
   if (!pageStates[page]) {
     return createDefaultPageState();
   }
-  return pageStates[page];
+  return applyDataQualityDefaults(pageStates[page]);
 };
 
 export const useFilterStore = create<HardenedFilterStore>()(
@@ -422,11 +434,26 @@ export const useFilterStore = create<HardenedFilterStore>()(
     }),
     {
       name: 'shadowcheck-filters-v2',
+      version: 3,
       partialize: (state) => ({
         currentPage: state.currentPage,
         pageStates: state.pageStates,
         presets: state.presets,
       }),
+      migrate: (persistedState: any) => {
+        if (!persistedState || typeof persistedState !== 'object') return persistedState;
+
+        const nextPageStates = Object.fromEntries(
+          Object.entries((persistedState.pageStates as Record<string, PageFilterState>) || {}).map(
+            ([page, pageState]) => [page, applyDataQualityDefaults(pageState)]
+          )
+        );
+
+        return {
+          ...persistedState,
+          pageStates: nextPageStates,
+        };
+      },
     }
   )
 );

@@ -25,6 +25,7 @@
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import dns from 'dns/promises';
+import { createPool } from '../utils/db';
 
 dotenv.config();
 

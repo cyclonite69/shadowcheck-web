@@ -12,7 +12,20 @@ import { createPool } from '../utils/db';
 
 dotenv.config();
 
-// ... interfaces ...
+interface CountRow {
+  count: string;
+}
+
+interface RadioTypeRow {
+  radio_type: string | null;
+  count: string;
+}
+
+interface DeduplicationResult {
+  before: number;
+  after: number;
+  removed: number;
+}
 
 const pool = createPool();
 

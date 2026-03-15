@@ -28,7 +28,7 @@ const defaultConfig: DatabaseConfig = {
  * @param options - Pool options to override defaults
  * @returns Pool instance
  */
-export function createPool(options: Partial<DatabaseConfig> = {}): Pool {
+export function createPool(options: PoolConfig = {}): Pool {
   return new Pool({
     ...defaultConfig,
     ...options,

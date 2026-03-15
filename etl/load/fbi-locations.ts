@@ -7,6 +7,8 @@
  * - https://www.fbi.gov/contact-us/field-offices/<office>/about
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { createPool } from '../utils/db';
 
 type OfficeType = 'field_office' | 'resident_agency';
