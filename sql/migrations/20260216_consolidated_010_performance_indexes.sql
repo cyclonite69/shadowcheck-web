@@ -1174,6 +1174,8 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO shadowcheck_user;
 -- Auth/session exceptions needed by runtime auth flows.
 GRANT INSERT, UPDATE, DELETE ON TABLE app.user_sessions TO shadowcheck_user;
 GRANT UPDATE (last_login) ON TABLE app.users TO shadowcheck_user;
+GRANT SELECT, INSERT, UPDATE ON TABLE app.geocoding_cache TO shadowcheck_user;
+GRANT USAGE, SELECT ON SEQUENCE app.geocoding_cache_id_seq TO shadowcheck_user;
 -- WiGLE import/runtime exceptions:
 -- - writes to WiGLE v3 tables
 -- - trigger app.update_networks_wigle_counts updates app.networks counters

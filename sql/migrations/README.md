@@ -14,6 +14,7 @@
 10. `20260216_consolidated_010_performance_indexes.sql`
 
 11. `20260315_geocoding_queue_indexes.sql`
+12. `20260315_geocoding_cache_runtime_grants.sql`
 
 `sql/run-migrations.sh` applies these in filename sort order and tracks applied files in `app.schema_migrations`.
 
