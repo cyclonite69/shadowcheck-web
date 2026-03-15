@@ -7,6 +7,7 @@ export {};
 import type {
   GeocodeMode,
   GeocodeProvider,
+  GeocodeProviderCredentials,
   GeocodeRunOptions,
   GeocodeResult,
   GeocodeRow,
@@ -20,6 +21,26 @@ import {
 } from './geocoding/providers';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const GEOCODING_RUN_LOCK_KEY = 74100531;
+const GEOCODING_UPSERT_BATCH_SIZE = 100;
+
+const PROVIDER_RATE_LIMIT_POLICY: Record<
+  GeocodeProvider,
+  { initialBackoffMs: number; maxBackoffMs: number }
+> = {
+  mapbox: { initialBackoffMs: 15000, maxBackoffMs: 120000 },
+  nominatim: { initialBackoffMs: 60000, maxBackoffMs: 300000 },
+  overpass: { initialBackoffMs: 60000, maxBackoffMs: 300000 },
+  opencage: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
+  locationiq: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
+};
+
+type GeocodeCacheWrite = {
+  row: GeocodeRow;
+  provider: string | null;
+  result: GeocodeResult;
+  mode: GeocodeMode;
+};
 
 const shouldSkipPoi = (address?: string | null): boolean => {
   if (!address) return false;
@@ -29,19 +50,55 @@ const shouldSkipPoi = (address?: string | null): boolean => {
   );
 };
 
-const upsertGeocodeCache = async (
-  row: GeocodeRow,
+const upsertGeocodeCacheBatch = async (
   precision: number,
-  provider: string | null,
-  result: GeocodeResult,
-  mode: GeocodeMode
-) => {
-  const poiSkip = shouldSkipPoi(result.address);
-  const now = new Date().toISOString();
-  const poiAttemptedAt = mode === 'poi-only' ? now : null;
-  const addressAttemptedAt = mode === 'address-only' ? now : null;
-  const poiAttempts = mode === 'poi-only' ? 1 : 0;
-  const addressAttempts = mode === 'address-only' ? 1 : 0;
+  entries: GeocodeCacheWrite[]
+): Promise<void> => {
+  if (entries.length === 0) return;
+
+  const values: string[] = [];
+  const params: unknown[] = [];
+  let idx = 1;
+
+  for (const entry of entries) {
+    const { row, provider, result, mode } = entry;
+    const poiSkip = shouldSkipPoi(result.address);
+    const now = new Date().toISOString();
+    const poiAttemptedAt = mode === 'poi-only' ? now : null;
+    const addressAttemptedAt = mode === 'address-only' ? now : null;
+    const poiAttempts = mode === 'poi-only' ? 1 : 0;
+    const addressAttempts = mode === 'address-only' ? 1 : 0;
+
+    values.push(
+      `($${idx},$${idx + 1},$${idx + 2},$${idx + 3},$${idx + 4},$${idx + 5},$${idx + 6},$${idx + 7},$${idx + 8},$${idx + 9},$${idx + 10},$${idx + 11},$${idx + 12},$${idx + 13},$${idx + 14},$${idx + 15},$${idx + 16},$${idx + 17},$${idx + 18},$${idx + 19},$${idx + 20})`
+    );
+
+    params.push(
+      precision,
+      row.lat_round,
+      row.lon_round,
+      row.lat_round,
+      row.lon_round,
+      result.ok ? result.address || null : null,
+      result.ok ? result.poiName || null : null,
+      result.ok ? result.poiCategory || null : null,
+      result.ok ? result.featureType || null : null,
+      poiSkip,
+      poiAttemptedAt,
+      poiAttempts,
+      addressAttemptedAt,
+      addressAttempts,
+      result.city || null,
+      result.state || null,
+      result.postal || null,
+      result.country || null,
+      result.ok ? provider : null,
+      result.confidence ?? null,
+      result.raw ? JSON.stringify(result.raw) : null
+    );
+
+    idx += 21;
+  }
 
   await query(
     `
@@ -68,7 +125,7 @@ const upsertGeocodeCache = async (
       confidence,
       raw_response
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+    VALUES ${values.join(', ')}
     ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
       address = COALESCE(app.geocoding_cache.address, EXCLUDED.address),
       poi_name = COALESCE(app.geocoding_cache.poi_name, EXCLUDED.poi_name),
@@ -91,32 +148,70 @@ const upsertGeocodeCache = async (
       lat = COALESCE(app.geocoding_cache.lat, EXCLUDED.lat),
       lon = COALESCE(app.geocoding_cache.lon, EXCLUDED.lon),
       geocoded_at = NOW(),
-      raw_response = COALESCE(app.geocoding_cache.raw_response, EXCLUDED.raw_response);
+      raw_response = COALESCE(app.geocoding_cache.raw_response, EXCLUDED.raw_response)
   `,
-    [
-      precision,
-      row.lat_round,
-      row.lon_round,
-      row.lat_round,
-      row.lon_round,
-      result.ok ? result.address || null : null,
-      result.ok ? result.poiName || null : null,
-      result.ok ? result.poiCategory || null : null,
-      result.ok ? result.featureType || null : null,
-      poiSkip,
-      poiAttemptedAt,
-      poiAttempts,
-      addressAttemptedAt,
-      addressAttempts,
-      result.city || null,
-      result.state || null,
-      result.postal || null,
-      result.country || null,
-      result.ok ? provider : null,
-      result.confidence ?? null,
-      result.raw ? JSON.stringify(result.raw) : null,
-    ]
+    params
   );
+};
+
+const seedAddressCandidates = async (precision: number, targetCount: number): Promise<number> => {
+  const result = await query(
+    `
+    WITH pending AS (
+      SELECT COUNT(*)::int AS pending_count
+      FROM app.geocoding_cache c
+      WHERE c.precision = $1
+        AND c.address IS NULL
+        AND c.address_attempts = 0
+    ),
+    rounded AS (
+      SELECT
+        round(lat::numeric, $1) AS lat_round,
+        round(lon::numeric, $1) AS lon_round,
+        COUNT(*) AS obs_count
+      FROM app.observations
+      WHERE lat BETWEEN -90 AND 90
+        AND lon BETWEEN -180 AND 180
+      GROUP BY 1, 2
+    ),
+    candidates AS (
+      SELECT r.lat_round, r.lon_round
+      FROM rounded r
+      LEFT JOIN app.geocoding_cache c
+        ON c.precision = $1
+       AND c.lat_round = r.lat_round
+       AND c.lon_round = r.lon_round
+      WHERE c.id IS NULL
+      ORDER BY r.obs_count DESC
+      LIMIT (
+        SELECT GREATEST($2 - pending.pending_count, 0)
+        FROM pending
+      )
+    ),
+    inserted AS (
+      INSERT INTO app.geocoding_cache (
+        precision,
+        lat_round,
+        lon_round,
+        lat,
+        lon
+      )
+      SELECT
+        $1,
+        candidates.lat_round,
+        candidates.lon_round,
+        candidates.lat_round,
+        candidates.lon_round
+      FROM candidates
+      ON CONFLICT (precision, lat_round, lon_round) DO NOTHING
+      RETURNING 1
+    )
+    SELECT COUNT(*)::int AS inserted_count FROM inserted
+  `,
+    [precision, targetCount]
+  );
+
+  return Number(result.rows[0]?.inserted_count || 0);
 };
 
 const fetchRows = async (
@@ -174,25 +269,15 @@ const fetchRows = async (
 
   const result = await query(
     `
-    WITH rounded AS (
-      SELECT
-        round(lat::numeric, $2) AS lat_round,
-        round(lon::numeric, $2) AS lon_round,
-        count(*) AS obs_count
-      FROM app.observations
-      GROUP BY 1, 2
-    )
     SELECT
-      r.lat_round::double precision AS lat_round,
-      r.lon_round::double precision AS lon_round,
-      r.obs_count
-    FROM rounded r
-    LEFT JOIN app.geocoding_cache c
-      ON c.precision = $2
-     AND c.lat_round = r.lat_round
-     AND c.lon_round = r.lon_round
-    WHERE c.id IS NULL
-    ORDER BY obs_count DESC
+      c.lat_round::double precision AS lat_round,
+      c.lon_round::double precision AS lon_round,
+      c.address
+    FROM app.geocoding_cache c
+    WHERE c.precision = $2
+      AND c.address IS NULL
+      AND c.address_attempts = 0
+    ORDER BY c.geocoded_at ASC, c.id ASC
     LIMIT $1;
   `,
     [limit, precision]
@@ -207,11 +292,69 @@ const getProviderLabel = (provider: GeocodeProvider, permanent: boolean) => {
   return provider;
 };
 
-const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
+const acquireGeocodingRunLock = async (): Promise<boolean> => {
+  const result = await query('SELECT pg_try_advisory_lock($1) AS acquired', [
+    GEOCODING_RUN_LOCK_KEY,
+  ]);
+  return Boolean(result.rows[0]?.acquired);
+};
+
+const releaseGeocodingRunLock = async (): Promise<void> => {
+  await query('SELECT pg_advisory_unlock($1)', [GEOCODING_RUN_LOCK_KEY]);
+};
+
+const resolveProviderCredentials = async (
+  provider: GeocodeProvider
+): Promise<GeocodeProviderCredentials> => {
+  if (provider === 'mapbox') {
+    const mapboxToken =
+      (await secretsManager.getSecret('mapbox_unlimited_api_key')) ||
+      (await secretsManager.getSecret('mapbox_token'));
+    return { mapboxToken: mapboxToken || undefined };
+  }
+
+  if (provider === 'opencage') {
+    const opencageKey = await secretsManager.getSecret('opencage_api_key');
+    return { opencageKey: opencageKey || undefined };
+  }
+
+  if (provider === 'locationiq') {
+    const locationIqKey = await secretsManager.getSecret('locationiq_api_key');
+    return { locationIqKey: locationIqKey || undefined };
+  }
+
+  return {};
+};
+
+const calculateRateLimitBackoffMs = (
+  provider: GeocodeProvider,
+  consecutiveRateLimits: number
+): number => {
+  const policy = PROVIDER_RATE_LIMIT_POLICY[provider];
+  const exponential = policy.initialBackoffMs * 2 ** Math.max(0, consecutiveRateLimits - 1);
+  const capped = Math.min(policy.maxBackoffMs, exponential);
+  const jitter = Math.floor(Math.random() * 1000);
+  return capped + jitter;
+};
+
+const runGeocodeCacheUpdateInternal = async (
+  options: GeocodeRunOptions,
+  credentials: GeocodeProviderCredentials
+) => {
   const precision = options.precision ?? 5;
   const limit = Math.max(1, options.limit ?? 1000);
   const perMinute = Math.max(1, options.perMinute ?? 200);
   const delayMs = Math.max(1, Math.floor(60000 / perMinute));
+  if (options.mode !== 'poi-only') {
+    const seeded = await seedAddressCandidates(precision, limit * 2);
+    if (seeded > 0) {
+      logger.info('[Geocoding] Seeded pending address candidates', {
+        precision,
+        seeded,
+        provider: options.provider,
+      });
+    }
+  }
   const rows = await fetchRows(precision, limit, options.mode, options.provider);
   const providerLabel = getProviderLabel(options.provider, Boolean(options.permanent));
 
@@ -220,6 +363,14 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
   let successful = 0;
   let poiHits = 0;
   let rateLimited = 0;
+  let consecutiveRateLimits = 0;
+  const pendingWrites: GeocodeCacheWrite[] = [];
+
+  const flushPendingWrites = async () => {
+    if (pendingWrites.length === 0) return;
+    const batch = pendingWrites.splice(0, pendingWrites.length);
+    await upsertGeocodeCacheBatch(precision, batch);
+  };
 
   for (const row of rows) {
     try {
@@ -229,33 +380,51 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
           row.lat_round,
           row.lon_round,
           options.mode,
-          Boolean(options.permanent)
+          Boolean(options.permanent),
+          credentials.mapboxToken
         );
       } else if (options.provider === 'nominatim') {
         result = await nominatimReverse(row.lat_round, row.lon_round);
       } else if (options.provider === 'overpass') {
         result = await overpassPoi(row.lat_round, row.lon_round);
       } else if (options.provider === 'opencage') {
-        result = await opencageReverse(row.lat_round, row.lon_round);
+        result = await opencageReverse(row.lat_round, row.lon_round, credentials.opencageKey);
       } else if (options.provider === 'locationiq') {
-        result = await locationIqReverse(row.lat_round, row.lon_round);
+        result = await locationIqReverse(row.lat_round, row.lon_round, credentials.locationIqKey);
       }
 
+      consecutiveRateLimits = 0;
       if (result.ok) {
         successful++;
         if (result.poiName) {
           poiHits++;
         }
       }
-      await upsertGeocodeCache(row, precision, providerLabel, result, options.mode);
+      pendingWrites.push({
+        row,
+        provider: providerLabel,
+        result,
+        mode: options.mode,
+      });
+      if (pendingWrites.length >= GEOCODING_UPSERT_BATCH_SIZE) {
+        await flushPendingWrites();
+      }
     } catch (err) {
       const error = err as Error;
       if (error.message === 'rate_limit') {
         rateLimited++;
-        logger.warn('[Geocoding] Rate limited, backing off for 60s');
-        await sleep(60000);
+        consecutiveRateLimits++;
+        const backoffMs = calculateRateLimitBackoffMs(options.provider, consecutiveRateLimits);
+        logger.warn('[Geocoding] Rate limited, backing off', {
+          provider: options.provider,
+          backoffMs,
+          consecutiveRateLimits,
+        });
+        await flushPendingWrites();
+        await sleep(backoffMs);
       } else if (error.message === 'missing_key') {
         logger.warn('[Geocoding] Missing API key for provider');
+        await flushPendingWrites();
         break;
       } else {
         logger.warn('[Geocoding] Provider error', { error: error.message });
@@ -268,6 +437,8 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
     }
   }
 
+  await flushPendingWrites();
+
   const durationMs = Date.now() - startedAt;
   return {
     precision,
@@ -279,6 +450,51 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
     rateLimited,
     durationMs,
   };
+};
+
+const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
+  const acquired = await acquireGeocodingRunLock();
+  if (!acquired) {
+    throw new Error('job_already_running');
+  }
+
+  try {
+    const credentials = await resolveProviderCredentials(options.provider);
+    return await runGeocodeCacheUpdateInternal(options, credentials);
+  } finally {
+    await releaseGeocodingRunLock();
+  }
+};
+
+const startGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
+  const acquired = await acquireGeocodingRunLock();
+  if (!acquired) {
+    return { started: false };
+  }
+
+  const credentials = await resolveProviderCredentials(options.provider);
+
+  void runGeocodeCacheUpdateInternal(options, credentials)
+    .then((result) => {
+      logger.info('[Geocoding] Background job completed', {
+        processed: result.processed,
+        successful: result.successful,
+      });
+    })
+    .catch((err) => {
+      logger.error('[Geocoding] Background job failed', { error: err?.message });
+    })
+    .finally(async () => {
+      try {
+        await releaseGeocodingRunLock();
+      } catch (err) {
+        logger.error('[Geocoding] Failed to release advisory lock', {
+          error: (err as Error)?.message,
+        });
+      }
+    });
+
+  return { started: true };
 };
 
 const getGeocodingCacheStats = async (precision: number) => {
@@ -338,5 +554,6 @@ const getGeocodingCacheStats = async (precision: number) => {
 
 module.exports = {
   runGeocodeCacheUpdate,
+  startGeocodeCacheUpdate,
   getGeocodingCacheStats,
 };

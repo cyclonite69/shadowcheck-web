@@ -1,6 +1,6 @@
 # Migration Guidance
 
-`sql/migrations/` now contains the canonical 10-file consolidated sequence:
+`sql/migrations/` now contains the canonical 10-file consolidated sequence plus active post-consolidation follow-up migrations:
 
 1. `20260216_consolidated_001_extensions_and_schemas.sql`
 2. `20260216_consolidated_002_core_tables.sql`
@@ -13,9 +13,11 @@
 9. `20260216_consolidated_009_functions_and_triggers.sql`
 10. `20260216_consolidated_010_performance_indexes.sql`
 
+11. `20260315_geocoding_queue_indexes.sql`
+
 `sql/run-migrations.sh` applies these in filename sort order and tracks applied files in `app.schema_migrations`.
 
 Later compatibility migrations that were briefly left active after the initial consolidation have also been folded back into the canonical files and moved under `sql/migrations/_archived/`.
 
-Active fresh-install path: 10 consolidated migrations.
+Active fresh-install path: 10 consolidated migrations plus active follow-up deltas.
 Archived reference path: original incremental migrations plus superseded compatibility/backfill migrations.

@@ -14,6 +14,12 @@ export type GeocodeRunOptions = {
   permanent?: boolean;
 };
 
+export type GeocodeProviderCredentials = {
+  mapboxToken?: string;
+  opencageKey?: string;
+  locationIqKey?: string;
+};
+
 export type GeocodeResult = {
   ok: boolean;
   address?: string | null;

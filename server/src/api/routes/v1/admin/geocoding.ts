@@ -1,7 +1,7 @@
 const express = require('express');
 const logger = require('../../../../logging/logger');
 const { geocodingCacheService } = require('../../../../config/container');
-const { runGeocodeCacheUpdate, getGeocodingCacheStats } = geocodingCacheService;
+const { startGeocodeCacheUpdate, getGeocodingCacheStats } = geocodingCacheService;
 
 export {};
 
@@ -41,24 +41,19 @@ router.post('/admin/geocoding/run', async (req, res) => {
       permanent: Boolean(permanent),
     };
 
-    // Return immediately and run in background
+    const started = await startGeocodeCacheUpdate(options);
+    if (!started.started) {
+      return res.status(409).json({
+        ok: false,
+        error: 'Geocoding job already running',
+      });
+    }
+
     res.json({
       ok: true,
       message: 'Geocoding job started in background',
       options,
     });
-
-    // Run async without blocking response
-    runGeocodeCacheUpdate(options)
-      .then((result) => {
-        logger.info('[Geocoding] Background job completed', {
-          processed: result.processed,
-          successful: result.successful,
-        });
-      })
-      .catch((err) => {
-        logger.error('[Geocoding] Background job failed', { error: err?.message });
-      });
   } catch (err) {
     logger.error('[Geocoding] Run failed', { error: err?.message });
     res.status(500).json({

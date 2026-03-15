@@ -5,8 +5,6 @@
 
 import type { GeocodeResult } from './types';
 
-const secretsManager = require('../secretsManager').default;
-
 export const nominatimReverse = async (lat: number, lon: number): Promise<GeocodeResult> => {
   const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
   const response = await fetch(url, { headers: { 'User-Agent': 'ShadowCheck/1.0' } });
@@ -77,8 +75,11 @@ export const overpassPoi = async (lat: number, lon: number): Promise<GeocodeResu
   };
 };
 
-export const opencageReverse = async (lat: number, lon: number): Promise<GeocodeResult> => {
-  const key = await secretsManager.getSecret('opencage_api_key');
+export const opencageReverse = async (
+  lat: number,
+  lon: number,
+  key?: string
+): Promise<GeocodeResult> => {
   if (!key) {
     throw new Error('missing_key');
   }
@@ -120,8 +121,11 @@ export const opencageReverse = async (lat: number, lon: number): Promise<Geocode
   };
 };
 
-export const locationIqReverse = async (lat: number, lon: number): Promise<GeocodeResult> => {
-  const key = await secretsManager.getSecret('locationiq_api_key');
+export const locationIqReverse = async (
+  lat: number,
+  lon: number,
+  key?: string
+): Promise<GeocodeResult> => {
   if (!key) {
     throw new Error('missing_key');
   }

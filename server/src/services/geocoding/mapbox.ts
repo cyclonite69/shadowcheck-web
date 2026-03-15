@@ -4,8 +4,6 @@
 
 import type { GeocodeMode, GeocodeResult } from './types';
 
-const secretsManager = require('../secretsManager').default;
-
 const parseMapboxContext = (
   context?: Array<{ id?: string; text?: string; short_code?: string }>
 ) => {
@@ -33,14 +31,11 @@ export const mapboxReverse = async (
   lat: number,
   lon: number,
   mode: GeocodeMode,
-  permanent: boolean
+  permanent: boolean,
+  token?: string
 ): Promise<GeocodeResult> => {
-  let token = await secretsManager.getSecret('mapbox_unlimited_api_key');
   if (!token) {
-    token = await secretsManager.getSecret('mapbox_token');
-  }
-  if (!token) {
-    throw new Error('Mapbox token not configured');
+    throw new Error('missing_key');
   }
 
   const types = mode === 'address-only' ? 'address' : 'poi,address';
