@@ -188,6 +188,13 @@ phase_deploy() {
   local public_ip
   public_ip=$(curl -s --connect-timeout 3 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 
+  # Detect Podman socket for current user
+  local podman_sock="/run/user/$(id -u)/podman/podman.sock"
+  local docker_opts=""
+  if [ -S "$podman_sock" ]; then
+    docker_opts="-v $podman_sock:/var/run/docker.sock --group-add $(stat -c '%g' "$podman_sock")"
+  fi
+
   cat > "$env_file" <<ENVEOF
 NODE_ENV=production
 PORT=3001
@@ -207,8 +214,7 @@ ENVEOF
   docker run -d --name shadowcheck_backend \
     --network host \
     --env-file "$env_file" \
-    -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
-    --group-add $(stat -c '%g' /run/user/1000/podman/podman.sock) \
+    $docker_opts \
     --restart unless-stopped \
     shadowcheck/backend:latest
 

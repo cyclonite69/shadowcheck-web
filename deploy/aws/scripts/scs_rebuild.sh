@@ -93,12 +93,18 @@ sudo mkdir -p "$CERTS_DIR_WEB"
 sudo chmod -R 755 "$CERTS_DIR_BASE"
 sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
 
+# Detect Podman socket for current user
+PODMAN_SOCK="/run/user/$(id -u)/podman/podman.sock"
+DOCKER_OPTS=""
+if [ -S "$PODMAN_SOCK" ]; then
+  DOCKER_OPTS="-v $PODMAN_SOCK:/var/run/docker.sock --group-add $(stat -c '%g' "$PODMAN_SOCK")"
+fi
+
 docker run -d --name shadowcheck_backend \
   --network host \
   --env-file "$ENV_FILE" \
   -e DB_HOST=localhost \
-  -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
-  --group-add $(stat -c '%g' /run/user/1000/podman/podman.sock) \
+  $DOCKER_OPTS \
   --restart unless-stopped \
   shadowcheck/backend:latest
 
