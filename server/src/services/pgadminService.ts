@@ -27,7 +27,7 @@ const serviceName = process.env.PGADMIN_SERVICE_NAME || 'pgadmin';
 const containerName = process.env.PGADMIN_CONTAINER_NAME || 'shadowcheck_pgadmin';
 const volumeName = process.env.PGADMIN_VOLUME_NAME || 'shadowcheck_pgadmin_data';
 const port = Number.parseInt(process.env.PGADMIN_PORT, 10) || 5050;
-const url = process.env.PGADMIN_URL || `http://localhost:${port}`;
+const url = process.env.PGADMIN_URL || `https://localhost:${port}`;
 const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
 
 const isDockerControlEnabled = () =>

@@ -128,7 +128,10 @@ export const PgAdminTab: React.FC = () => {
 
           {status?.url && (
             <button
-              onClick={() => window.open(status.url, '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                const url = status.url.replace('localhost', window.location.hostname);
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }}
               disabled={!running}
               className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all disabled:opacity-50 text-sm"
             >
