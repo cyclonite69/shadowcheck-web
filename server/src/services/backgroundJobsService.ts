@@ -8,12 +8,16 @@ const logger = require('../logging/logger');
 const { runPostgresBackup } = require('./backupService');
 const mlScoringService = require('./mlScoringService');
 const networkService = require('./networkService');
+const { query } = require('../config/database');
 
 export {};
 
 const ML_SCORING_CRON = '0 */4 * * *';
 // Daily backup at 3:00 AM (off-peak)
 const BACKUP_CRON = process.env.BACKUP_CRON || '0 3 * * *';
+// Daily MV refresh at 4:30 AM (after backup and some scoring)
+const MV_REFRESH_CRON = process.env.MV_REFRESH_CRON || '30 4 * * *';
+
 const ML_SCORING_LIMIT = 10000;
 const MAX_BSSID_LENGTH = 17;
 const MIN_OBSERVATIONS = 2;
@@ -49,6 +53,9 @@ class BackgroundJobsService {
       // Schedule daily backup to S3
       this.scheduleBackup();
 
+      // Schedule daily Materialized View refresh
+      this.scheduleMVRefresh();
+
       logger.info('[Background Jobs] Initialization complete');
     } catch (error) {
       logger.error('[Background Jobs] Initialization failed:', error);
@@ -82,6 +89,17 @@ class BackgroundJobsService {
   }
 
   /**
+   * Schedule Materialized View refresh: Daily at 4:30 AM
+   */
+  static scheduleMVRefresh() {
+    this.jobs.mvRefresh = schedule.scheduleJob(MV_REFRESH_CRON, async () => {
+      await this.runMVRefresh();
+    });
+
+    logger.info(`[Background Jobs] MV refresh scheduled: ${MV_REFRESH_CRON}`);
+  }
+
+  /**
    * Run automated backup with S3 upload
    */
   static async runScheduledBackup() {
@@ -104,6 +122,34 @@ class BackgroundJobsService {
     } catch (error) {
       logger.error(`[Backup Job] Failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Refresh all materialized views
+   */
+  static async runMVRefresh() {
+    const startTime = Date.now();
+    logger.info('[MV Refresh Job] Starting materialized view refresh...');
+
+    const views = [
+      { name: 'app.api_network_explorer_mv', concurrent: true },
+      { name: 'app.api_network_latest_mv', concurrent: false },
+      { name: 'app.analytics_summary_mv', concurrent: false },
+      { name: 'app.mv_network_timeline', concurrent: false },
+    ];
+
+    for (const view of views) {
+      try {
+        const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
+        logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
+        await query(sql);
+      } catch (error) {
+        logger.error(`[MV Refresh Job] Failed to refresh ${view.name}: ${error.message}`);
+      }
+    }
+
+    const duration = Date.now() - startTime;
+    logger.info(`[MV Refresh Job] Complete in ${duration}ms`);
   }
 
   /**
