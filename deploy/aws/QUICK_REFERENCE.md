@@ -60,7 +60,7 @@ scs-ssm   # Auto-login via AWS SSO if needed, then open SSM session
 sc        # cd /home/ssm-user/shadowcheck
 sclogs    # docker logs -f shadowcheck_backend
 scps      # docker ps (formatted)
-scdb      # pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db
+scdb      # psql as shadowcheck_user via AWS Secrets Manager
 scdeploy  # Deploy latest from GitHub
 scstatus  # Show containers and disk usage
 ```

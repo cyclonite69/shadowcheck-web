@@ -26,12 +26,12 @@ You'll be prompted for:
 - **Region**: `us-east-1`
 - **Account**: Select your AWS account
 - **Role**: Select your role (e.g., `AdministratorAccess` or `PowerUserAccess`)
-- **Profile name**: `shadowcheck` (or whatever you prefer)
+- **Profile name**: `shadowcheck-sso` (preferred)
 
 This creates `~/.aws/config`:
 
 ```ini
-[profile shadowcheck]
+[profile shadowcheck-sso]
 sso_start_url = https://YOUR-ORG.awsapps.com/start
 sso_region = us-east-1
 sso_account_id = 161020170158
@@ -39,31 +39,43 @@ sso_role_name = AdministratorAccess
 region = us-east-1
 ```
 
+If you already use `shadowcheck` locally, that is still supported. The `scs-ssm.sh` helper falls back across:
+
+- `AWS_PROFILE` if explicitly set
+- `shadowcheck-sso`
+- `shadowcheck`
+
 ### Daily Usage
 
 ```bash
 # Login (opens browser, expires after hours)
-aws sso login --profile shadowcheck
+aws sso login --profile shadowcheck-sso
 
 # Use any AWS command
-aws ssm start-session --target i-0021a7c116aeb2e9e --region us-east-1 --profile shadowcheck
-aws ec2 describe-instances --region us-east-1 --profile shadowcheck
+aws ssm start-session --target i-0021a7c116aeb2e9e --region us-east-1 --profile shadowcheck-sso
+aws ec2 describe-instances --region us-east-1 --profile shadowcheck-sso
 
 # Or set as default for session
-export AWS_PROFILE=shadowcheck
+export AWS_PROFILE=shadowcheck-sso
 aws ssm start-session --target i-0021a7c116aeb2e9e --region us-east-1
+```
+
+Preferred helper:
+
+```bash
+./deploy/aws/scripts/scs-ssm.sh
 ```
 
 ### Update Your Scripts
 
-Add `--profile shadowcheck` to all AWS CLI calls, or set `AWS_PROFILE` env var:
+Add `--profile shadowcheck-sso` to all AWS CLI calls, or set `AWS_PROFILE` env var:
 
 ```bash
 # Option 1: Add to each command
-aws ec2 run-instances --profile shadowcheck ...
+aws ec2 run-instances --profile shadowcheck-sso ...
 
 # Option 2: Set for entire script
-export AWS_PROFILE=shadowcheck
+export AWS_PROFILE=shadowcheck-sso
 # Now all aws commands use SSO creds
 ```
 
@@ -107,7 +119,7 @@ Once SSO is working:
    cp ~/.aws/credentials ~/.aws/credentials.backup
 
    # Remove [default] section with long-lived keys
-   # Keep only [profile shadowcheck] in ~/.aws/config
+   # Keep only [profile shadowcheck-sso] in ~/.aws/config
    ```
 
 2. **Deactivate IAM user keys:**

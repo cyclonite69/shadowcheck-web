@@ -196,8 +196,8 @@ sudo ./deploy/aws/scripts/deploy-redis.sh
 **Does:**
 
 - Verifies the AWS CLI and Session Manager plugin are installed
-- Checks whether the `shadowcheck-sso` profile is still valid
-- Runs `aws sso login` if the session is expired, which opens the browser login flow
+- Checks `AWS_PROFILE` if set, otherwise falls back to `shadowcheck-sso` and then `shadowcheck`
+- Runs `aws sso login` if the resolved session is expired, which opens the browser login flow
 - Resolves the latest EC2 instance tagged `Name=scs-ssm` if no instance id is passed
 - Starts the SSM session and retries once after re-login if needed
 

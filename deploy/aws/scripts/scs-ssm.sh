@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROFILE="${AWS_PROFILE:-shadowcheck-sso}"
 REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
 INSTANCE_ID="${1:-${SCS_INSTANCE_ID:-}}"
 INSTANCE_NAME_TAG="${SCS_INSTANCE_NAME_TAG:-scs-ssm}"
+EXPLICIT_PROFILE="${AWS_PROFILE:-}"
+PROFILE=""
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -14,10 +15,22 @@ require_command() {
 }
 
 ensure_login() {
-  if aws sts get-caller-identity --profile "$PROFILE" >/dev/null 2>&1; then
-    return 0
-  fi
+  local candidate
+  local candidates=()
 
+  if [[ -n "$EXPLICIT_PROFILE" ]]; then
+    candidates+=("$EXPLICIT_PROFILE")
+  fi
+  candidates+=("shadowcheck-sso" "shadowcheck")
+
+  for candidate in "${candidates[@]}"; do
+    if aws sts get-caller-identity --profile "$candidate" >/dev/null 2>&1; then
+      PROFILE="$candidate"
+      return 0
+    fi
+  done
+
+  PROFILE="${candidates[0]}"
   echo "AWS SSO session is missing or expired for profile '$PROFILE'."
   echo "Opening AWS SSO login..."
   aws sso login --profile "$PROFILE"
