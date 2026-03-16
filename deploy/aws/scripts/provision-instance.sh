@@ -86,8 +86,10 @@ EOF
   fi
 
   # Directories
-  mkdir -p "$PROJECT_ROOT" "$SECRETS_DIR" /home/ssm-user/backups
+  mkdir -p "$PROJECT_ROOT" "$SECRETS_DIR" /home/ssm-user/backups /var/lib/pgadmin /var/lib/redis
   chown -R ssm-user:ssm-user /home/ssm-user/{shadowcheck,secrets,backups}
+  chown -R 5050:5050 /var/lib/pgadmin
+  chown -R 999:999 /var/lib/redis
   chmod 700 "$SECRETS_DIR"
 
   log "System setup complete"

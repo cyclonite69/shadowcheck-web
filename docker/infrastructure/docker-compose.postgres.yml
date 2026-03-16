@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: ${DB_USER:-shadowcheck_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-shadowcheck_db}
-      PGDATA: /var/lib/postgresql/data/pgdata
+      PGDATA: /var/lib/postgresql/data
       # Performance tuning
       POSTGRES_SHARED_BUFFERS: ${POSTGRES_SHARED_BUFFERS:-256MB}
       POSTGRES_EFFECTIVE_CACHE_SIZE: ${POSTGRES_EFFECTIVE_CACHE_SIZE:-1GB}
@@ -18,7 +18,7 @@ services:
     ports:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - /var/lib/postgresql:/var/lib/postgresql
       - ./sql/init:/docker-entrypoint-initdb.d:ro
       - ./sql/migrations:/sql/migrations:ro
       - ./sql/run-migrations.sh:/sql/run-migrations.sh:ro
@@ -56,7 +56,7 @@ services:
     ports:
       - "${PGADMIN_PORT:-5050}:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - /var/lib/pgadmin:/var/lib/pgadmin
       - ./pgadmin-config/servers.json:/pgadmin4/servers.json:ro
       - ${PGADMIN_CERT_DIR:-./certs}:/certs:ro
     network_mode: host
@@ -77,7 +77,7 @@ services:
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
-      - redis_data:/data
+      - /var/lib/redis:/data
     network_mode: host
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -91,14 +91,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-volumes:
-  postgres_data:
-    external: true
-    name: shadowcheck_postgres_data
-  pgadmin_data:
-    external: true
-    name: shadowcheck_pgadmin_data
-  redis_data:
-    external: true
-    name: shadowcheck_redis_data
