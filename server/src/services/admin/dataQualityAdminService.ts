@@ -21,6 +21,11 @@ interface QualityFilterConfig {
 export class DataQualityAdminService {
   constructor(private pool: Pool) {}
 
+  private async refreshExplorerMv(): Promise<void> {
+    await this.pool.query('REFRESH MATERIALIZED VIEW app.api_network_explorer_mv');
+    logger.info('[DataQualityAdmin] Refreshed app.api_network_explorer_mv');
+  }
+
   async getQualityStats(): Promise<QualityFilterStats> {
     const result = await this.pool.query(`
       SELECT 
@@ -136,6 +141,7 @@ export class DataQualityAdminService {
       [config.signalMin, config.signalMax]
     );
 
+    await this.refreshExplorerMv();
     logger.info('[DataQualityAdmin] Quality filters applied');
 
     return this.getQualityStats();
@@ -152,6 +158,7 @@ export class DataQualityAdminService {
         quality_filter_applied_at = NULL
     `);
 
+    await this.refreshExplorerMv();
     logger.info('[DataQualityAdmin] Quality flags cleared');
   }
 }

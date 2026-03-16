@@ -6,6 +6,7 @@ interface UseBoundingBoxFilterParams {
   mapReady: boolean;
   mapRef: React.MutableRefObject<Map | null>;
   enabled?: boolean;
+  syncToViewport?: boolean;
   setFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
 }
 
@@ -13,10 +14,11 @@ export const useBoundingBoxFilter = ({
   mapReady,
   mapRef,
   enabled,
+  syncToViewport,
   setFilter,
 }: UseBoundingBoxFilterParams) => {
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !enabled) return;
+    if (!mapReady || !mapRef.current || !enabled || !syncToViewport) return;
 
     const map = mapRef.current;
     const updateBounds = () => {
@@ -35,5 +37,5 @@ export const useBoundingBoxFilter = ({
     return () => {
       map.off('moveend', updateBounds);
     };
-  }, [enabled, mapReady, mapRef, setFilter]);
+  }, [enabled, mapReady, mapRef, setFilter, syncToViewport]);
 };

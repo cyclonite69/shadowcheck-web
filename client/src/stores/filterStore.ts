@@ -18,6 +18,7 @@ interface HardenedFilterStore {
   // State - now page-scoped
   currentPage: string;
   pageStates: Record<string, PageFilterState>;
+  boundingBoxViewportLocks: Record<string, boolean>;
   presets: Record<string, FilterState>;
   isLoading: boolean;
   lastAppliedFilters: any[];
@@ -26,11 +27,13 @@ interface HardenedFilterStore {
   setCurrentPage: (pageName: string) => void;
   getCurrentFilters: () => NetworkFilters;
   getCurrentEnabled: () => Record<keyof NetworkFilters, boolean>;
+  getBoundingBoxViewportLock: () => boolean;
 
   // Actions - operate on current page
   setFilter: <K extends keyof NetworkFilters>(key: K, value: NetworkFilters[K]) => void;
   toggleFilter: (key: keyof NetworkFilters) => void;
   enableFilter: (key: keyof NetworkFilters, enabled: boolean) => void;
+  setBoundingBoxViewportLock: (locked: boolean) => void;
   clearFilters: () => void;
   resetFilters: () => void;
 
@@ -172,6 +175,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
     (set, get) => ({
       currentPage: 'default',
       pageStates: {},
+      boundingBoxViewportLocks: {},
       presets: {},
       isLoading: false,
       lastAppliedFilters: [],
@@ -191,6 +195,11 @@ export const useFilterStore = create<HardenedFilterStore>()(
       getCurrentEnabled: () => {
         const { pageStates, currentPage } = get();
         return getPageState(pageStates, currentPage).enabled;
+      },
+
+      getBoundingBoxViewportLock: () => {
+        const { boundingBoxViewportLocks, currentPage } = get();
+        return Boolean(boundingBoxViewportLocks[currentPage]);
       },
 
       setFilter: (key, value) => {
@@ -263,6 +272,16 @@ export const useFilterStore = create<HardenedFilterStore>()(
               ...pageState,
               enabled: { ...pageState.enabled, [key]: enabled },
             },
+          },
+        });
+      },
+
+      setBoundingBoxViewportLock: (locked) => {
+        const { currentPage, boundingBoxViewportLocks } = get();
+        set({
+          boundingBoxViewportLocks: {
+            ...boundingBoxViewportLocks,
+            [currentPage]: locked,
           },
         });
       },
@@ -478,6 +497,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
       partialize: (state) => ({
         currentPage: state.currentPage,
         pageStates: state.pageStates,
+        boundingBoxViewportLocks: state.boundingBoxViewportLocks,
         presets: state.presets,
       }),
       migrate: (persistedState: any) => {

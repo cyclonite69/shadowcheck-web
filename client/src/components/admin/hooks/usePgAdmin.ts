@@ -58,6 +58,25 @@ export const usePgAdmin = () => {
     }
   }, [refreshStatus]);
 
+  const destroyPgAdmin = useCallback(
+    async (removeVolume = false) => {
+      setActionLoading(true);
+      setActionMessage('');
+      setError('');
+      try {
+        const data = await adminApi.destroyPgAdmin(removeVolume);
+        setActionMessage(data.message || 'PgAdmin destroyed');
+        await refreshStatus();
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'PgAdmin destroy failed';
+        setError(errorMessage);
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [refreshStatus]
+  );
+
   useEffect(() => {
     refreshStatus();
   }, [refreshStatus]);
@@ -71,5 +90,6 @@ export const usePgAdmin = () => {
     refreshStatus,
     startPgAdmin,
     stopPgAdmin,
+    destroyPgAdmin,
   };
 };

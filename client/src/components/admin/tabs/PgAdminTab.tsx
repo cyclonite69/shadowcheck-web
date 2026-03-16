@@ -44,6 +44,7 @@ export const PgAdminTab: React.FC = () => {
     refreshStatus,
     startPgAdmin,
     stopPgAdmin,
+    destroyPgAdmin,
   } = usePgAdmin();
 
   const container = status?.container;
@@ -72,6 +73,15 @@ export const PgAdminTab: React.FC = () => {
 
   const handleStop = async () => {
     await stopPgAdmin();
+  };
+
+  const handleDestroy = async (removeVolume: boolean) => {
+    const warning = removeVolume
+      ? 'Destroying PgAdmin with data will remove the container and delete the pgadmin data volume. Continue?'
+      : 'Destroy the PgAdmin container? Saved data volume will be kept.';
+    const confirmed = window.confirm(warning);
+    if (!confirmed) return;
+    await destroyPgAdmin(removeVolume);
   };
 
   return (
@@ -164,8 +174,8 @@ export const PgAdminTab: React.FC = () => {
       <AdminCard icon={RocketIcon} title="PgAdmin Controls" color="from-indigo-500 to-indigo-600">
         <div className="space-y-4">
           <p className="text-sm text-slate-400">
-            Start PgAdmin using the shared infrastructure compose file. Reuse the existing data
-            volume or reset it for a clean setup.
+            Create, stop, destroy, or recreate PgAdmin using the shared infrastructure compose file.
+            Keep the saved volume when you only want to remove the container.
           </p>
 
           {!enabled && (
@@ -179,7 +189,7 @@ export const PgAdminTab: React.FC = () => {
             disabled={!enabled || actionLoading}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-sm"
           >
-            {actionLoading ? 'Starting...' : 'Start PgAdmin (Reuse Volume)'}
+            {actionLoading ? 'Working...' : exists ? 'Start / Recreate PgAdmin' : 'Create PgAdmin'}
           </button>
 
           <button
@@ -198,6 +208,22 @@ export const PgAdminTab: React.FC = () => {
             {actionLoading ? 'Working...' : 'Stop PgAdmin'}
           </button>
 
+          <button
+            onClick={() => handleDestroy(false)}
+            disabled={!enabled || actionLoading || !exists}
+            className="w-full px-4 py-2.5 bg-amber-900/60 text-amber-200 rounded-lg font-medium hover:bg-amber-800/70 transition-all disabled:opacity-50 text-sm"
+          >
+            {actionLoading ? 'Working...' : 'Destroy Container Only'}
+          </button>
+
+          <button
+            onClick={() => handleDestroy(true)}
+            disabled={!enabled || actionLoading || (!exists && !status?.volumeName)}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-rose-700 to-red-700 text-white rounded-lg font-medium hover:from-rose-600 hover:to-red-600 transition-all disabled:opacity-50 text-sm"
+          >
+            {actionLoading ? 'Working...' : 'Destroy Container + Data'}
+          </button>
+
           {actionMessage && (
             <div className="p-3 rounded-lg text-xs bg-emerald-900/30 text-emerald-300 border border-emerald-700/50">
               {actionMessage}
@@ -207,7 +233,8 @@ export const PgAdminTab: React.FC = () => {
           <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50 space-y-1">
             <p>• Controls Docker on: {status?.dockerHost || 'this API host'}</p>
             <p>• Uses docker-compose in docker/infrastructure</p>
-            <p>• Reset removes pgadmin data volume</p>
+            <p>• Destroy Container keeps the data volume for later recreation</p>
+            <p>• Destroy Container + Data removes the pgadmin data volume</p>
             <p>• Restart policy is enforced as unless-stopped</p>
             <p>• PgAdmin listens on port {status?.port || 5050}</p>
             <p>• Stop frees resources without deleting data</p>

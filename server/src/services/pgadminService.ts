@@ -184,14 +184,31 @@ const enforceRestartPolicy = async () => {
   });
 };
 
+const removePgAdminContainer = async () => {
+  await runCompose(['stop', serviceName], { allowFail: true });
+  await runCompose(['rm', '-f', '-s', serviceName], { allowFail: true });
+  await runCommand('docker', ['rm', '-f', containerName], { allowFail: true });
+};
+
+const destroyPgAdmin = async ({ removeVolume = false }: { removeVolume?: boolean } = {}) => {
+  logger.info('[PgAdmin] Destroy requested', { removeVolume });
+  await removePgAdminContainer();
+
+  if (removeVolume && volumeName) {
+    await runCommand('docker', ['volume', 'rm', '-f', volumeName], { allowFail: true });
+  }
+
+  return {
+    composeFile,
+    serviceName,
+    volumeRemoved: removeVolume,
+  };
+};
+
 const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
   if (reset) {
     logger.warn('[PgAdmin] Reset requested. Removing container and volume.');
-    await runCompose(['stop', serviceName], { allowFail: true });
-    await runCompose(['rm', '-f', '-s', serviceName], { allowFail: true });
-    if (volumeName) {
-      await runCommand('docker', ['volume', 'rm', volumeName], { allowFail: true });
-    }
+    await destroyPgAdmin({ removeVolume: true });
   }
 
   // Check if container exists but is stopped
@@ -244,4 +261,5 @@ module.exports = {
   getPgAdminStatus,
   startPgAdmin,
   stopPgAdmin,
+  destroyPgAdmin,
 };

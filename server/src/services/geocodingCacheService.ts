@@ -40,6 +40,14 @@ const PROVIDER_RATE_LIMIT_POLICY: Record<
   locationiq: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
 };
 
+const GEOCODABLE_OBSERVATION_PREDICATE = `
+  lat IS NOT NULL
+  AND lon IS NOT NULL
+  AND lat BETWEEN -90 AND 90
+  AND lon BETWEEN -180 AND 180
+  AND COALESCE(is_quality_filtered, false) = false
+`;
+
 type GeocodeCacheWrite = {
   row: GeocodeRow;
   provider: string;
@@ -175,8 +183,7 @@ const seedAddressCandidates = async (precision: number, targetCount: number): Pr
         round(lon::numeric, $1) AS lon_round,
         COUNT(*) AS obs_count
       FROM app.observations
-      WHERE lat BETWEEN -90 AND 90
-        AND lon BETWEEN -180 AND 180
+      WHERE ${GEOCODABLE_OBSERVATION_PREDICATE}
       GROUP BY 1, 2
     ),
     candidates AS (
@@ -735,13 +742,18 @@ const getGeocodingCacheStats = async (precision: number) => {
         round(lat::numeric, $1) AS lat_round,
         round(lon::numeric, $1) AS lon_round
       FROM app.observations
+      WHERE ${GEOCODABLE_OBSERVATION_PREDICATE}
       GROUP BY 1, 2
     ),
     cache AS (
       SELECT * FROM app.geocoding_cache WHERE precision = $1
     )
     SELECT
-      (SELECT count(*) FROM app.observations) AS observation_count,
+      (
+        SELECT count(*)
+        FROM app.observations
+        WHERE ${GEOCODABLE_OBSERVATION_PREDICATE}
+      ) AS observation_count,
       (SELECT count(*) FROM rounded) AS unique_blocks,
       (SELECT count(*) FROM cache) AS cached_blocks,
       (SELECT count(*) FROM cache WHERE address IS NOT NULL) AS resolved_address_rows,

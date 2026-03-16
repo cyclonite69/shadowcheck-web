@@ -22,14 +22,22 @@ type FilterPanelDensity = 'normal' | 'compact';
 
 interface FilterPanelProps {
   density?: FilterPanelDensity;
+  showBoundingBoxViewportLock?: boolean;
 }
 
-export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) => {
+export const FilterPanel: React.FC<FilterPanelProps> = ({
+  density = 'normal',
+  showBoundingBoxViewportLock = false,
+}) => {
   const filters = useCurrentFilters();
   const enabled = useCurrentEnabled();
   const setFilter = useFilterStore((state) => state.setFilter);
   const toggleFilter = useFilterStore((state) => state.toggleFilter);
   const enableFilter = useFilterStore((state) => state.enableFilter);
+  const boundingBoxViewportLock = useFilterStore((state) =>
+    Boolean(state.boundingBoxViewportLocks[state.currentPage])
+  );
+  const setBoundingBoxViewportLock = useFilterStore((state) => state.setBoundingBoxViewportLock);
   const clearFilters = useFilterStore((state) => state.clearFilters);
   const resetFilters = useFilterStore((state) => state.resetFilters);
   const savePreset = useFilterStore((state) => state.savePreset);
@@ -143,7 +151,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
           enabled={enabled}
           isCompact={isCompact}
           controlClass={controlClass}
+          showBoundingBoxViewportLock={showBoundingBoxViewportLock}
+          boundingBoxViewportLock={boundingBoxViewportLock}
           onSetFilter={setFilter}
+          onSetBoundingBoxViewportLock={setBoundingBoxViewportLock}
           onToggleFilter={toggleFilter}
         />
 

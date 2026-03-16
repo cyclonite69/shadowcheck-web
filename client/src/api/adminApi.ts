@@ -216,6 +216,10 @@ export const adminApi = {
     return apiClient.post('/admin/pgadmin/stop');
   },
 
+  async destroyPgAdmin(removeVolume: boolean = false): Promise<any> {
+    return apiClient.post('/admin/pgadmin/destroy', { removeVolume });
+  },
+
   // Backups
   async createBackup(uploadToS3: boolean = false): Promise<any> {
     return apiClient.post('/admin/backup', { uploadToS3 });

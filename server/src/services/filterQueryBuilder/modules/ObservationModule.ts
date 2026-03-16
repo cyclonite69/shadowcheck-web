@@ -279,7 +279,7 @@ export class ObservationModule {
         FROM app.observations o
         ${joinClause}
         ${this.ctx.requiresHome && !joinClause.includes('CROSS JOIN home') ? 'CROSS JOIN home' : ''}
-        ${whereClause}
+        ${whereClause.length > 0 ? `${whereClause} AND COALESCE(o.is_quality_filtered, FALSE) = FALSE` : 'WHERE COALESCE(o.is_quality_filtered, FALSE) = FALSE'}
       )
     `;
 

@@ -236,18 +236,16 @@ const AdminPage: React.FC = () => {
     { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
     { id: 'users', label: 'Users', icon: UsersIcon },
   ];
-  const primaryTabIds = new Set([
-    'config',
-    'api',
-    'ml',
-    'wigle',
-    'wigle-detail',
-    'imports',
-    'backups',
-    'exports',
-  ]);
-  const primaryTabs = tabs.filter((tab) => primaryTabIds.has(tab.id));
-  const secondaryTabs = tabs.filter((tab) => !primaryTabIds.has(tab.id));
+  const tabsPerRow = Math.ceil(tabs.length / 2);
+  const topRowTabs = tabs.slice(0, tabsPerRow);
+  const bottomRowTabs = tabs.slice(tabsPerRow);
+
+  const tabButtonClass = (tabId: string) =>
+    `flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
+      activeTab === tabId
+        ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
+        : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
+    }`;
 
   return (
     <div className="relative w-full h-screen overflow-y-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -272,49 +270,24 @@ const AdminPage: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="mb-5 bg-slate-900/60 p-3 rounded-xl border border-slate-700/40 backdrop-blur-sm flex flex-col gap-3">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}
-          >
-            {primaryTabs.map((tab) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+            {topRowTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
-                    : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
-                }`}
+                className={tabButtonClass(tab.id)}
               >
                 <tab.icon size={16} />
                 <span>{tab.label}</span>
               </button>
             ))}
           </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}
-            className="pt-2 border-t border-slate-800/50"
-          >
-            {secondaryTabs.map((tab) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 pt-2 border-t border-slate-800/50">
+            {bottomRowTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
-                    : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
-                }`}
+                className={tabButtonClass(tab.id)}
               >
                 <tab.icon size={16} />
                 <span>{tab.label}</span>

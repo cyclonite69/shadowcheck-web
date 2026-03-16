@@ -21,10 +21,8 @@ export function useAwsInstanceAction(): UseAwsInstanceActionReturn {
 
       try {
         const response = await adminApi.controlAwsInstance(instanceId, action);
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-          throw new Error(data.error || `Failed to ${action} instance`);
+        if (!response?.ok) {
+          throw new Error(response?.error || `Failed to ${action} instance`);
         }
 
         return true;

@@ -21,6 +21,22 @@ interface WsMessage {
   rows?: number;
 }
 
+function formatSsmCliError(message: string): string {
+  if (
+    message.includes('AccessDeniedException') &&
+    message.includes('ssm:StartSession') &&
+    message.includes('is not authorized')
+  ) {
+    return [
+      'Embedded SSM is not authorized for this EC2 role.',
+      'Attach deploy/aws/iam/ssm-embedded-session-policy.json to the instance role and retry.',
+      message,
+    ].join('\n');
+  }
+
+  return message;
+}
+
 function parseCookies(cookieHeader: string | undefined): Record<string, string> {
   const cookies: Record<string, string> = {};
   if (!cookieHeader) return cookies;
@@ -103,6 +119,7 @@ function initializeSsmWebSocket(
       activeSessions++;
       let child: ChildProcess | null = null;
       let killed = false;
+      let emittedTerminalError = false;
 
       const send = (type: string, data?: string) => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -134,7 +151,13 @@ function initializeSsmWebSocket(
         });
 
         child.stderr!.on('data', (data: Buffer) => {
-          send('output', data.toString());
+          const raw = data.toString();
+          const formatted = formatSsmCliError(raw);
+          send('output', raw);
+          if (formatted !== raw) {
+            emittedTerminalError = true;
+            send('error', formatted);
+          }
         });
 
         child.on('error', (err: Error) => {
@@ -148,6 +171,12 @@ function initializeSsmWebSocket(
 
         child.on('exit', (code: number | null) => {
           logger.info(`SSM session ended for ${ctx.instanceId}, exit code: ${code}`);
+          if (code && code !== 0 && !emittedTerminalError) {
+            send(
+              'error',
+              'SSM session failed. Check the EC2 role for ssm:StartSession permission and verify the Session Manager plugin is available.'
+            );
+          }
           send('exit', `Session ended (exit code: ${code})`);
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();

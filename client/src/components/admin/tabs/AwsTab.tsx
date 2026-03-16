@@ -110,6 +110,11 @@ export const AwsTab: React.FC = () => {
 
       <AdminCard icon={CloudIcon} title="EC2 Instances" color="from-slate-500 to-slate-600">
         <div className="space-y-4">
+          <div className="text-xs text-slate-400 border border-slate-700/50 bg-slate-900/40 rounded-lg p-3">
+            Embedded SSM uses the EC2 instance role from the running backend. If the terminal shows
+            an `ssm:StartSession` access denied error, attach
+            `deploy/aws/iam/ssm-embedded-session-policy.json` to that role and retry.
+          </div>
           {loading && <div className="text-sm text-slate-400">Loading instances...</div>}
           {!loading && instances.length === 0 && (
             <div className="text-sm text-slate-400">No instances found.</div>

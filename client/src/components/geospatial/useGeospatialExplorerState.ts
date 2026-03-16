@@ -85,6 +85,9 @@ export const useGeospatialExplorerState = ({
     showTerrain,
     setShowTerrain,
   } = useMapPreferences();
+  const lockBoundingBoxToViewport = useFilterStore((state) =>
+    Boolean(state.boundingBoxViewportLocks[state.currentPage])
+  );
 
   const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
@@ -167,6 +170,7 @@ export const useGeospatialExplorerState = ({
     mapReady,
     mapRef,
     enabled: enabled.boundingBox,
+    syncToViewport: lockBoundingBoxToViewport,
     setFilter,
   });
 
