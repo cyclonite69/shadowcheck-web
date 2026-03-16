@@ -62,6 +62,8 @@ cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
 API_GATE_ENABLED=true
+ADMIN_ALLOW_DOCKER=true
+PGADMIN_COMPOSE_FILE=/app/docker/infrastructure/docker-compose.postgres.yml
 DB_HOST=shadowcheck_postgres
 DB_PORT=5432
 DB_USER=shadowcheck_user
@@ -95,6 +97,8 @@ docker run -d --name shadowcheck_backend \
   --network host \
   --env-file "$ENV_FILE" \
   -e DB_HOST=localhost \
+  -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+  --group-add $(stat -c '%g' /run/user/1000/podman/podman.sock) \
   --restart unless-stopped \
   shadowcheck/backend:latest
 

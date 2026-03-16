@@ -191,6 +191,8 @@ phase_deploy() {
   cat > "$env_file" <<ENVEOF
 NODE_ENV=production
 PORT=3001
+ADMIN_ALLOW_DOCKER=true
+PGADMIN_COMPOSE_FILE=/app/docker/infrastructure/docker-compose.postgres.yml
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=shadowcheck_user
@@ -205,6 +207,8 @@ ENVEOF
   docker run -d --name shadowcheck_backend \
     --network host \
     --env-file "$env_file" \
+    -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+    --group-add $(stat -c '%g' /run/user/1000/podman/podman.sock) \
     --restart unless-stopped \
     shadowcheck/backend:latest
 
