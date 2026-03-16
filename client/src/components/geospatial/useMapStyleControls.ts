@@ -332,8 +332,15 @@ export const useMapStyleControls = ({
       });
 
       // Restore layers if they were enabled (or set state for standard styles)
-      toggle3DBuildings(show3DBuildings);
-      toggleTerrain(showTerrain);
+      // Small delay to ensure Mapbox internal state is fully ready for config properties
+      setTimeout(() => {
+        if (show3DBuildings) {
+          toggle3DBuildings(true);
+        }
+        if (showTerrain) {
+          toggleTerrain(true);
+        }
+      }, 100);
 
       // Re-render observations
       if (activeObservationSets.length > 0) {
