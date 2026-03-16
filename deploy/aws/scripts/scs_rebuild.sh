@@ -93,11 +93,30 @@ sudo mkdir -p "$CERTS_DIR_WEB"
 sudo chmod -R 755 "$CERTS_DIR_BASE"
 sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
 
-# Detect Podman socket for current user
-PODMAN_SOCK="/run/user/$(id -u)/podman/podman.sock"
+# Robust Podman/Docker socket detection
+PODMAN_SOCK=""
+if [ -n "${DOCKER_HOST:-}" ] && [[ "$DOCKER_HOST" == unix://* ]]; then
+  PODMAN_SOCK="${DOCKER_HOST#unix://}"
+fi
+if [ ! -S "$PODMAN_SOCK" ]; then
+  PODMAN_SOCK=$(podman info --format '{{.Host.RemoteSocket.Path}}' 2>/dev/null || echo "")
+fi
+if [ ! -S "$PODMAN_SOCK" ]; then
+  # Fallback to common paths
+  for path in "/run/user/$(id -u)/podman/podman.sock" "/run/podman/podman.sock" "/var/run/docker.sock"; do
+    if [ -S "$path" ]; then
+      PODMAN_SOCK="$path"
+      break
+    fi
+  done
+fi
+
 DOCKER_OPTS=""
 if [ -S "$PODMAN_SOCK" ]; then
-  DOCKER_OPTS="-v $PODMAN_SOCK:/var/run/docker.sock --group-add $(stat -c '%g' "$PODMAN_SOCK")"
+  echo "  ✅ Detected socket at $PODMAN_SOCK"
+  DOCKER_OPTS="-v $PODMAN_SOCK:/var/run/docker.sock --group-add $(stat -c '%g' "$PODMAN_SOCK") -e DOCKER_HOST=unix:///var/run/docker.sock"
+else
+  echo "  ⚠️ No Docker/Podman socket detected. PgAdmin controls will be disabled."
 fi
 
 docker run -d --name shadowcheck_backend \

@@ -188,11 +188,30 @@ phase_deploy() {
   local public_ip
   public_ip=$(curl -s --connect-timeout 3 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 
-  # Detect Podman socket for current user
-  local podman_sock="/run/user/$(id -u)/podman/podman.sock"
+  # Robust Podman/Docker socket detection
+  local podman_sock=""
+  if [ -n "${DOCKER_HOST:-}" ] && [[ "$DOCKER_HOST" == unix://* ]]; then
+    podman_sock="${DOCKER_HOST#unix://}"
+  fi
+  if [ ! -S "$podman_sock" ]; then
+    podman_sock=$(podman info --format '{{.Host.RemoteSocket.Path}}' 2>/dev/null || echo "")
+  fi
+  if [ ! -S "$podman_sock" ]; then
+    # Fallback to common paths
+    for path in "/run/user/$(id -u)/podman/podman.sock" "/run/podman/podman.sock" "/var/run/docker.sock"; do
+      if [ -S "$path" ]; then
+        podman_sock="$path"
+        break
+      fi
+    done
+  fi
+
   local docker_opts=""
   if [ -S "$podman_sock" ]; then
-    docker_opts="-v $podman_sock:/var/run/docker.sock --group-add $(stat -c '%g' "$podman_sock")"
+    log "Detected socket at $podman_sock"
+    docker_opts="-v $podman_sock:/var/run/docker.sock --group-add $(stat -c '%g' "$podman_sock") -e DOCKER_HOST=unix:///var/run/docker.sock"
+  else
+    log "WARNING: No Docker/Podman socket detected. PgAdmin controls will be disabled."
   fi
 
   cat > "$env_file" <<ENVEOF
