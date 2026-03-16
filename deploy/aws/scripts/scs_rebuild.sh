@@ -58,6 +58,14 @@ if [ -n "$IMDS_TOKEN" ]; then
 else
   PUBLIC_IP=$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 fi
+# Pull passwords from AWS Secrets Manager (sole secret store)
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+  --secret-id shadowcheck/config --region us-east-1 \
+  --query 'SecretString' --output text 2>/dev/null || echo "{}")
+
+DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
+DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
+
 cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
@@ -123,6 +131,8 @@ docker run -d --name shadowcheck_backend \
   --network host \
   --env-file "$ENV_FILE" \
   -e DB_HOST=localhost \
+  -e DB_PASSWORD="$DB_USER_PASSWORD" \
+  -e DB_ADMIN_PASSWORD="$DB_ADMIN_PASSWORD" \
   $DOCKER_OPTS \
   --restart unless-stopped \
   shadowcheck/backend:latest

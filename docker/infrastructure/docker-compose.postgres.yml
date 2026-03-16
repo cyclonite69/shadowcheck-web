@@ -23,8 +23,7 @@ services:
       - ./sql/migrations:/sql/migrations:ro
       - ./sql/run-migrations.sh:/sql/run-migrations.sh:ro
       - ./backups:/backups
-    networks:
-      - shadowcheck_net
+    network_mode: host
     healthcheck:
       test:
         ["CMD-SHELL", "pg_isready -U ${DB_USER:-shadowcheck_user} -d ${DB_NAME:-shadowcheck_db}"]
@@ -39,15 +38,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # Resource limits (optional - uncomment if needed)
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '2'
-    #       memory: 2G
-    #     reservations:
-    #       cpus: '1'
-    #       memory: 1G
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -69,8 +59,7 @@ services:
       - pgadmin_data:/var/lib/pgadmin
       - ./pgadmin-config/servers.json:/pgadmin4/servers.json:ro
       - ${PGADMIN_CERT_DIR:-./certs}:/certs:ro
-    networks:
-      - shadowcheck_net
+    network_mode: host
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,8 +78,7 @@ services:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - shadowcheck_net
+    network_mode: host
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -114,7 +102,3 @@ volumes:
   redis_data:
     external: true
     name: shadowcheck_redis_data
-
-networks:
-  shadowcheck_net:
-    external: true

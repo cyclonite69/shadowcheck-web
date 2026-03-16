@@ -222,7 +222,6 @@ PGADMIN_COMPOSE_FILE=/app/docker/infrastructure/docker-compose.postgres.yml
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=shadowcheck_user
-DB_PASSWORD=$db_password
 DB_NAME=shadowcheck_db
 CORS_ORIGINS=http://${public_ip},http://localhost
 SHADOWCHECK_AWS_SECRET=$AWS_SECRET_NAME
@@ -233,6 +232,8 @@ ENVEOF
   docker run -d --name shadowcheck_backend \
     --network host \
     --env-file "$env_file" \
+    -e DB_PASSWORD="$db_password" \
+    -e DB_ADMIN_PASSWORD="$db_password" \
     $docker_opts \
     --restart unless-stopped \
     shadowcheck/backend:latest
