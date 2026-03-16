@@ -59,6 +59,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-dbcoopers-briefcase-161020170158}
+      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-true}
+      PGADMIN_COMPOSE_FILE: /app/docker/infrastructure/docker-compose.postgres.yml
+      DOCKER_API_VERSION: "1.41"
     ports:
       - "127.0.0.1:3001:3001"
     depends_on:
@@ -69,6 +72,7 @@ services:
     volumes:
       - /home/ssm-user/shadowcheck/backups:/app/backups
       - /home/ssm-user/shadowcheck/logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
     logging:
       driver: "json-file"
       options:
