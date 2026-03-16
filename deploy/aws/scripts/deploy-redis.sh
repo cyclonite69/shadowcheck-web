@@ -29,6 +29,11 @@ docker run -d \
   --name shadowcheck_redis \
   --network host \
   --restart unless-stopped \
+  --health-cmd "redis-cli -h 127.0.0.1 ping || exit 1" \
+  --health-interval 10s \
+  --health-timeout 5s \
+  --health-retries 5 \
+  --health-start-period 10s \
   -v "$REDIS_DATA_DIR:/data" \
   --log-driver json-file \
   --log-opt max-size=10m \

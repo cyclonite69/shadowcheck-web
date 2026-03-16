@@ -286,6 +286,11 @@ if [ "$VOLUME_STATE" = "fresh" ]; then
     --network host \
     --restart unless-stopped \
     --shm-size 512m \
+    --health-cmd "pg_isready -h 127.0.0.1 -U shadowcheck_user -d shadowcheck_db" \
+    --health-interval 10s \
+    --health-timeout 5s \
+    --health-retries 6 \
+    --health-start-period 30s \
     -e POSTGRES_USER=shadowcheck_user \
     -e POSTGRES_PASSWORD="$DB_PASSWORD" \
     -e POSTGRES_DB=shadowcheck_db \
@@ -312,6 +317,11 @@ else
     --network host \
     --restart unless-stopped \
     --shm-size 512m \
+    --health-cmd "pg_isready -h 127.0.0.1 -U shadowcheck_user -d shadowcheck_db" \
+    --health-interval 10s \
+    --health-timeout 5s \
+    --health-retries 6 \
+    --health-start-period 30s \
     -e PGDATA=/var/lib/postgresql/data \
     -v /var/lib/postgresql:/var/lib/postgresql \
     --log-driver json-file \
