@@ -18,6 +18,37 @@ cd "$APP_DIR"
 # Config file for persistent settings (custom env overrides, etc.)
 SCS_ENV="$HOME/.shadowcheck-env"
 
+wait_for_container_health() {
+  local container="$1"
+  local timeout="${2:-60}"
+  local elapsed=0
+
+  while [ "$elapsed" -lt "$timeout" ]; do
+    local status
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || echo "missing")"
+
+    case "$status" in
+      healthy|running)
+        echo "  ✅ $container is $status"
+        return 0
+        ;;
+      unhealthy|exited|dead)
+        echo "  ❌ $container is $status"
+        docker logs --tail 50 "$container" 2>/dev/null || true
+        return 1
+        ;;
+    esac
+
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  echo "  ❌ Timed out waiting for $container health"
+  docker inspect --format 'status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true
+  docker logs --tail 50 "$container" 2>/dev/null || true
+  return 1
+}
+
 echo "=== scs_rebuild ==="
 
 # 0. Clean up old Docker artifacts to prevent disk fill
@@ -46,6 +77,9 @@ if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowche
 else
   echo "  ✅ Infrastructure already running"
 fi
+
+wait_for_container_health shadowcheck_postgres 90
+wait_for_container_health shadowcheck_redis 30
 
 # 4. Build env
 echo "[4/7] Preparing environment..."
@@ -147,6 +181,9 @@ docker run -d --name shadowcheck_frontend \
   shadowcheck/frontend:latest
 
 rm -f "$ENV_FILE"
+
+wait_for_container_health shadowcheck_backend 90
+wait_for_container_health shadowcheck_frontend 60
 
 # 5. Run database bootstrap + migrations
 echo "[6/7] Running database bootstrap & migrations..."
