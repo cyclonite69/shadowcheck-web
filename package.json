@@ -73,7 +73,7 @@
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "node-schedule": "^2.1.1",
-    "pdfkit": "^0.17.2",
+    "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "preact": "^10.29.0",
     "react": "^19.2.4",
