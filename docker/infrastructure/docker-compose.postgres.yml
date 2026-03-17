@@ -19,9 +19,7 @@ services:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - /var/lib/postgresql:/var/lib/postgresql
-      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/sql/init:/docker-entrypoint-initdb.d:ro
-      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/sql/migrations:/sql/migrations:ro
-      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/sql/run-migrations.sh:/sql/run-migrations.sh:ro
+      # NOTE: SQL migrations are handled by scs_rebuild.sh via docker cp to allow writable /sql directory
       - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/backups:/backups
     network_mode: host
     healthcheck:
