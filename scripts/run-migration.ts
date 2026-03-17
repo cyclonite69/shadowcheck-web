@@ -7,7 +7,7 @@ import { Pool } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import * as secretsManager from '../server/src/services/secretsManager';
+import secretsManager from '../server/src/services/secretsManager';
 
 dotenv.config();
 
@@ -33,11 +33,12 @@ async function runMigration(): Promise<void> {
     await secretsManager.load();
 
     const pool = new Pool({
-      user: process.env.DB_USER || 'shadowcheck',
-      password: secretsManager.getOrThrow('db_password'),
+      user: process.env.DB_ADMIN_USER || 'shadowcheck_admin',
+      password: secretsManager.getOrThrow('db_admin_password'),
       host: process.env.DB_HOST || '127.0.0.1',
       database: process.env.DB_NAME || 'shadowcheck',
       port: parseInt(process.env.DB_PORT || '5432', 10),
+      options: '-c search_path=app,public',
     });
 
     console.log(`Running migration: ${path.basename(migrationPath)}`);
