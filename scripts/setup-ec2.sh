@@ -17,8 +17,8 @@ if [ ! -f "$REPO_ROOT/.env" ]; then
 fi
 
 # 2. Certificate Symlink (Fixes pgAdmin gunicorn crash)
-if [ -d "$PG_CERT_DIR" ]; then
-    if [ ! -L "$PG_CERT_DIR/server.cert" ]; then
+if sudo [ -d "$PG_CERT_DIR" ]; then
+    if sudo [ ! -L "$PG_CERT_DIR/server.cert" ]; then
         echo "🔗 Creating certificate symlink..."
         sudo ln -sf server.crt "$PG_CERT_DIR/server.cert"
     else
