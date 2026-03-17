@@ -424,6 +424,31 @@ export async function getWigleObservations(
   return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
 }
 
+/**
+ * Fetch current user statistics from WiGLE API
+ */
+export async function getUserStats(): Promise<any> {
+  const secretsManager = require('./secretsManager').default;
+  const encoded = secretsManager.get('wigle_api_encoded');
+
+  if (!encoded) {
+    throw new Error('WiGLE API credentials not configured');
+  }
+
+  const response = await fetch('https://api.wigle.net/api/v2/stats/user', {
+    headers: {
+      Authorization: `Basic ${encoded}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `WiGLE API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 module.exports = {
   getWigleNetworkByBSSID,
   searchWigleDatabase,
@@ -439,4 +464,5 @@ module.exports = {
   getWigleDatabase,
   getWigleDetail,
   getWigleObservations,
+  getUserStats,
 };

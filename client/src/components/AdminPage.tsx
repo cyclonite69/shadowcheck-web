@@ -13,6 +13,7 @@ import { GeocodingTab } from './admin/tabs/GeocodingTab';
 import { AwsTab } from './admin/tabs/AwsTab';
 import { UsersTab } from './admin/tabs/UsersTab';
 import { JobsTab } from './admin/tabs/JobsTab';
+import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 
 // SVG Icons
 const ClockIcon = ({ size = 24, className = '' }) => (
@@ -27,6 +28,25 @@ const ClockIcon = ({ size = 24, className = '' }) => (
   >
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const TrophyIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
   </svg>
 );
 
@@ -241,6 +261,7 @@ const AdminPage: React.FC = () => {
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
     { id: 'jobs', label: 'Automation', icon: ClockIcon },
+    { id: 'wigle-stats', label: 'WiGLE Stats', icon: TrophyIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
     { id: 'ml', label: 'ML Training', icon: BrainIcon },
     { id: 'wigle', label: 'WiGLE Search (v2)', icon: SearchIcon },
@@ -317,6 +338,7 @@ const AdminPage: React.FC = () => {
         <div className="pb-8">
           {activeTab === 'config' && <ConfigurationTab />}
           {activeTab === 'jobs' && <JobsTab />}
+          {activeTab === 'wigle-stats' && <WigleStatsTab />}
           {activeTab === 'api' && <ApiTestingTab />}
           {activeTab === 'ml' && <MLTrainingTab />}
           {activeTab === 'wigle' && <WigleSearchTab />}
