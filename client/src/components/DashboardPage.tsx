@@ -20,6 +20,8 @@ import {
 } from './dashboard/icons';
 import { createInitialCards } from './dashboard/cardDefinitions';
 
+const MOBILE_BREAKPOINT_PX = 960;
+
 export default function DashboardPage() {
   // Set current page for filter scoping
   usePageFilters('dashboard');
@@ -43,6 +45,9 @@ export default function DashboardPage() {
   const [resizing, setResizing] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showFilters, setShowFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT_PX : false
+  );
 
   // Universal filter system
   const capabilities = getPageCapabilities('dashboard');
@@ -63,6 +68,16 @@ export default function DashboardPage() {
 
   // Fetch dashboard data using hook
   const { cards, setCards, loading, error, filtersApplied } = useDashboard(initialCards, filterKey);
+
+  useEffect(() => {
+    const updateViewportMode = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT_PX);
+    };
+
+    updateViewportMode();
+    window.addEventListener('resize', updateViewportMode);
+    return () => window.removeEventListener('resize', updateViewportMode);
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent, cardId: number, mode = 'move') => {
     e.preventDefault();
@@ -140,9 +155,132 @@ export default function DashboardPage() {
     };
   }, [dragging, resizing, handleMouseMove, handleMouseUp]);
 
+  const renderCard = (card: (typeof cards)[number], mode: 'desktop' | 'mobile') => {
+    const Icon = card.icon;
+    const isActive = dragging === card.id || resizing === card.id;
+
+    return (
+      <div
+        key={card.id}
+        style={
+          mode === 'desktop'
+            ? {
+                left: `${card.x}%`,
+                top: `${card.y}px`,
+                width: `${card.w}%`,
+                height: `${card.h}px`,
+                transition: isActive ? 'none' : 'box-shadow 0.2s ease',
+              }
+            : undefined
+        }
+        onMouseDown={mode === 'desktop' ? (e) => handleMouseDown(e, card.id, 'move') : undefined}
+        className={
+          mode === 'desktop'
+            ? `absolute p-1.5 ${isActive ? 'cursor-grabbing select-none z-30' : 'cursor-grab'}`
+            : 'min-h-[188px]'
+        }
+      >
+        <div className="h-full w-full rounded-xl border border-slate-700/40 bg-slate-900/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-300 group overflow-hidden flex flex-col hover:border-slate-600/50">
+          <div className="absolute inset-0 pointer-events-none opacity-30 bg-gradient-to-br from-white/5 via-transparent to-transparent rounded-xl" />
+
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-slate-700/30 flex-shrink-0">
+            <h3 className="text-xs font-semibold text-slate-200 truncate">{card.title}</h3>
+            {mode === 'desktop' ? (
+              <GripHorizontal
+                size={14}
+                className="text-slate-500 opacity-0 group-hover:opacity-100 group-hover:text-slate-300 transition-all flex-shrink-0"
+              />
+            ) : null}
+          </div>
+
+          <div
+            className={`flex-1 px-3 py-2 flex flex-col overflow-hidden ${
+              card.type === 'analytics-link'
+                ? 'cursor-pointer hover:bg-slate-800/20 transition-all items-center justify-center'
+                : 'items-center justify-center'
+            }`}
+            onClick={() => {
+              if (card.type === 'analytics-link') {
+                window.location.href = '/analytics';
+              }
+            }}
+          >
+            {card.type === 'analytics-link' ? (
+              <div className="text-center space-y-1">
+                <div className="bg-slate-800/40 rounded p-2 inline-block">
+                  <Icon
+                    size={22}
+                    className="drop-shadow-lg opacity-90"
+                    style={{ color: card.color }}
+                  />
+                </div>
+                <p className="text-xs font-semibold text-slate-200">View Analytics</p>
+                <p className="text-[10px] text-slate-500">Detailed charts & insights</p>
+              </div>
+            ) : (
+              <div className="text-center space-y-1 w-full">
+                <div className="bg-slate-800/40 rounded p-1.5 inline-block">
+                  <Icon
+                    size={20}
+                    className="drop-shadow-lg opacity-90"
+                    style={{ color: card.color }}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    Unique Networks
+                  </p>
+                  <p
+                    className="text-2xl font-bold tracking-tight leading-tight"
+                    style={{ color: card.color }}
+                  >
+                    {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
+                  </p>
+                </div>
+
+                {card.observations !== undefined && card.type !== 'analytics-link' && (
+                  <div className="pt-1 border-t border-slate-700/30">
+                    <p className="text-sm font-semibold text-slate-200 tabular-nums leading-tight">
+                      {card.observations.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-slate-500">Total Observations</p>
+                  </div>
+                )}
+
+                <div className="pt-1 border-t border-slate-700/30">
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    {loading
+                      ? 'Loading...'
+                      : error
+                        ? error
+                        : filtersApplied > 0
+                          ? `${filtersApplied} filter${filtersApplied !== 1 ? 's' : ''} active`
+                          : 'All networks'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {mode === 'desktop' ? (
+            <div
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleMouseDown(e, card.id, 'resize');
+              }}
+              className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 bg-gradient-to-tl from-white/40 to-transparent hover:from-white/60 rounded-tl-lg"
+            />
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
-      className="relative w-full h-screen overflow-hidden flex"
+      className={`relative w-full ${isMobile ? 'min-h-screen overflow-x-hidden overflow-y-auto' : 'h-screen overflow-hidden'} flex`}
       onMouseMove={(e) => handleMouseMove(e as any)}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
@@ -157,133 +295,18 @@ export default function DashboardPage() {
       <FilterButton isOpen={showFilters} onClick={() => setShowFilters(!showFilters)} />
       <FilterPanelContainer isOpen={showFilters} adaptedFilters={adaptedFilters} />
 
-      <div className="relative flex-1 overflow-y-auto h-screen">
-        <div className="relative min-h-[2400px]">
-          {cards.map((card) => {
-            const Icon = card.icon;
-            const width = `${card.w}%`;
-            const left = `${card.x}%`;
-            const isActive = dragging === card.id || resizing === card.id;
-
-            return (
-              <div
-                key={card.id}
-                style={{
-                  left,
-                  top: `${card.y}px`,
-                  width,
-                  height: `${card.h}px`,
-                  transition: isActive ? 'none' : 'box-shadow 0.2s ease',
-                }}
-                onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-                className={`absolute p-1.5 ${isActive ? 'cursor-grabbing select-none z-30' : 'cursor-grab'}`}
-              >
-                <div className="h-full w-full rounded-xl border border-slate-700/40 bg-slate-900/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-300 group overflow-hidden flex flex-col hover:border-slate-600/50">
-                  {/* Card gradient overlay */}
-                  <div className="absolute inset-0 pointer-events-none opacity-30 bg-gradient-to-br from-white/5 via-transparent to-transparent rounded-xl" />
-
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-slate-700/30 flex-shrink-0">
-                    <h3 className="text-xs font-semibold text-slate-200 truncate">{card.title}</h3>
-                    <GripHorizontal
-                      size={14}
-                      className="text-slate-500 opacity-0 group-hover:opacity-100 group-hover:text-slate-300 transition-all flex-shrink-0"
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div
-                    className={`flex-1 px-3 py-2 flex flex-col overflow-hidden ${
-                      card.type === 'analytics-link'
-                        ? 'cursor-pointer hover:bg-slate-800/20 transition-all items-center justify-center'
-                        : 'items-center justify-center'
-                    }`}
-                    onClick={() => {
-                      if (card.type === 'analytics-link') {
-                        window.location.href = '/analytics';
-                      }
-                    }}
-                  >
-                    {card.type === 'analytics-link' ? (
-                      /* Analytics Link - CTA */
-                      <div className="text-center space-y-1">
-                        <div className="bg-slate-800/40 rounded p-2 inline-block">
-                          <Icon
-                            size={22}
-                            className="drop-shadow-lg opacity-90"
-                            style={{ color: card.color }}
-                          />
-                        </div>
-                        <p className="text-xs font-semibold text-slate-200">View Analytics</p>
-                        <p className="text-[10px] text-slate-500">Detailed charts & insights</p>
-                      </div>
-                    ) : (
-                      /* KPI Tile */
-                      <div className="text-center space-y-1 w-full">
-                        {/* Icon */}
-                        <div className="bg-slate-800/40 rounded p-1.5 inline-block">
-                          <Icon
-                            size={20}
-                            className="drop-shadow-lg opacity-90"
-                            style={{ color: card.color }}
-                          />
-                        </div>
-
-                        {/* Primary Metric */}
-                        <div>
-                          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                            Unique Networks
-                          </p>
-                          <p
-                            className="text-2xl font-bold tracking-tight leading-tight"
-                            style={{ color: card.color }}
-                          >
-                            {typeof card.value === 'number'
-                              ? card.value.toLocaleString()
-                              : card.value}
-                          </p>
-                        </div>
-
-                        {/* Secondary Metric */}
-                        {card.observations !== undefined && card.type !== 'analytics-link' && (
-                          <div className="pt-1 border-t border-slate-700/30">
-                            <p className="text-sm font-semibold text-slate-200 tabular-nums leading-tight">
-                              {card.observations.toLocaleString()}
-                            </p>
-                            <p className="text-[10px] text-slate-500">Total Observations</p>
-                          </div>
-                        )}
-
-                        {/* Status Footer */}
-                        <div className="pt-1 border-t border-slate-700/30">
-                          <p className="text-[10px] text-slate-500 font-medium">
-                            {loading
-                              ? 'Loading...'
-                              : error
-                                ? error
-                                : filtersApplied > 0
-                                  ? `${filtersApplied} filter${filtersApplied !== 1 ? 's' : ''} active`
-                                  : 'All networks'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Resize Handle */}
-                  <div
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleMouseDown(e, card.id, 'resize');
-                    }}
-                    className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 bg-gradient-to-tl from-white/40 to-transparent hover:from-white/60 rounded-tl-lg"
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div
+        className={`relative flex-1 ${isMobile ? 'overflow-visible min-h-screen px-3 py-20' : 'overflow-y-auto h-screen'}`}
+      >
+        {isMobile ? (
+          <div className="mx-auto grid max-w-md grid-cols-1 gap-3 pb-8 sm:grid-cols-2">
+            {cards.map((card) => renderCard(card, 'mobile'))}
+          </div>
+        ) : (
+          <div className="relative min-h-[2400px]">
+            {cards.map((card) => renderCard(card, 'desktop'))}
+          </div>
+        )}
       </div>
     </div>
   );

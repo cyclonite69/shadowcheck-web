@@ -32,6 +32,9 @@ const KeplerPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
   const [scriptError, setScriptError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 960 : false
+  );
 
   // Universal filter system
   const capabilities = useMemo(() => getPageCapabilities('kepler'), []);
@@ -250,6 +253,16 @@ const KeplerPage: React.FC = () => {
     loadAssets();
   }, [mapboxToken, networkData, initDeck]);
 
+  useEffect(() => {
+    const updateViewportMode = () => {
+      setIsMobile(window.innerWidth < 960);
+    };
+
+    updateViewportMode();
+    window.addEventListener('resize', updateViewportMode);
+    return () => window.removeEventListener('resize', updateViewportMode);
+  }, []);
+
   return (
     <div className="relative w-full h-screen bg-slate-950 overflow-hidden">
       <KeplerVisualization
@@ -270,6 +283,11 @@ const KeplerPage: React.FC = () => {
 
       <KeplerControls
         showMenu={showMenu}
+        className={
+          isMobile
+            ? '!left-3 !right-3 !w-auto !max-h-[calc(100vh-92px)] !rounded-2xl !p-4'
+            : undefined
+        }
         onShowFilters={() => setShowFilters(!showFilters)}
         showFilters={showFilters}
         layerType={layerType}
@@ -292,7 +310,16 @@ const KeplerPage: React.FC = () => {
         onFitBounds={handleFitBounds}
       />
 
-      <KeplerFilters showFilters={showFilters} />
+      <KeplerFilters
+        showFilters={showFilters}
+        className={
+          isMobile
+            ? '!left-3 !right-3 !top-[4.5rem] !w-auto !max-h-[calc(100vh-100px)]'
+            : showMenu
+              ? ''
+              : 'hidden'
+        }
+      />
 
       {scriptError && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm z-50">

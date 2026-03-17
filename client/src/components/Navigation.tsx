@@ -1,15 +1,43 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const Navigation: React.FC = () => {
   const [navVisible, setNavVisible] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 960 : false
+  );
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
   const { isAdmin, logout } = useAuth();
   const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
 
+  useEffect(() => {
+    const updateViewportMode = () => {
+      setIsMobile(window.innerWidth < 960);
+    };
+
+    updateViewportMode();
+    window.addEventListener('resize', updateViewportMode);
+    return () => window.removeEventListener('resize', updateViewportMode);
+  }, []);
+
   const isActive = (path: string) => location.pathname === path;
+
+  const navLinks = useMemo(
+    () =>
+      [
+        demoMode ? { href: '/', label: 'Start' } : null,
+        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/geospatial-explorer', label: 'Geospatial' },
+        { href: '/analytics', label: 'Analytics' },
+        { href: '/wigle', label: 'WiGLE' },
+        { href: '/kepler', label: 'Kepler' },
+        isAdmin ? { href: '/admin', label: 'Admin' } : null,
+      ].filter(Boolean) as Array<{ href: string; label: string }>,
+    [demoMode, isAdmin]
+  );
 
   const linkStyle = (path: string) => ({
     minWidth: '100px',
@@ -61,8 +89,71 @@ const Navigation: React.FC = () => {
     } finally {
       setLoggingOut(false);
       setNavVisible(false);
+      setMobileNavOpen(false);
     }
   };
+
+  if (isMobile) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          aria-label="Open navigation"
+          className="fixed top-4 right-4 z-[10001] rounded-xl border border-slate-600/60 bg-slate-950/90 px-3 py-2 text-slate-200 shadow-2xl backdrop-blur-xl"
+        >
+          Menu
+        </button>
+        {mobileNavOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-[10000] bg-slate-950/70 backdrop-blur-sm"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="fixed inset-y-0 left-0 z-[10001] w-[min(84vw,22rem)] border-r border-slate-700/60 bg-slate-950/95 px-4 py-5 shadow-2xl backdrop-blur-xl">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <div className="text-lg font-bold text-blue-300">ShadowCheck</div>
+                  <div className="text-xs text-slate-400">Navigation</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="space-y-2">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={`block rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                      isActive(link.href)
+                        ? 'border border-blue-500/50 bg-blue-500/20 text-blue-200'
+                        : 'border border-slate-700/60 bg-slate-900/70 text-slate-200'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="mt-6 w-full rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm font-semibold text-red-200"
+              >
+                {loggingOut ? 'Logging out...' : 'Logout'}
+              </button>
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -104,66 +195,17 @@ const Navigation: React.FC = () => {
         }}
         onMouseLeave={() => setNavVisible(false)}
       >
-        {demoMode && (
+        {navLinks.map((link) => (
           <a
-            href="/"
-            style={linkStyle('/')}
+            key={link.href}
+            href={link.href}
+            style={linkStyle(link.href)}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            Start
+            {link.label}
           </a>
-        )}
-        <a
-          href="/dashboard"
-          style={linkStyle('/dashboard')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          Dashboard
-        </a>
-        <a
-          href="/geospatial-explorer"
-          style={linkStyle('/geospatial-explorer')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          Geospatial
-        </a>
-        <a
-          href="/analytics"
-          style={linkStyle('/analytics')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          Analytics
-        </a>
-        <a
-          href="/wigle"
-          style={linkStyle('/wigle')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          WiGLE
-        </a>
-        <a
-          href="/kepler"
-          style={linkStyle('/kepler')}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          Kepler
-        </a>
-        {isAdmin && (
-          <a
-            href="/admin"
-            style={linkStyle('/admin')}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            Admin
-          </a>
-        )}
+        ))}
         <button
           type="button"
           onClick={handleLogout}

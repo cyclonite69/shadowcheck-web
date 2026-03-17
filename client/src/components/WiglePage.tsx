@@ -85,6 +85,9 @@ const WiglePage: React.FC = () => {
   // Agency offices layer
   useAgencyOffices(mapRef, mapReady, agencyVisibility);
   const [showMenu, setShowMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 960 : false
+  );
   const [mapStyle, setMapStyleState] = useState(() => {
     return localStorage.getItem('wigle_map_style') || 'mapbox://styles/mapbox/dark-v11';
   });
@@ -507,12 +510,25 @@ const WiglePage: React.FC = () => {
   const loading = v2Loading || v3Loading;
   const totalLoaded = (layers.v2 ? v2Rows.length : 0) + (layers.v3 ? v3Rows.length : 0);
 
+  useEffect(() => {
+    const updateViewportMode = () => {
+      setIsMobile(window.innerWidth < 960);
+    };
+
+    updateViewportMode();
+    window.addEventListener('resize', updateViewportMode);
+    return () => window.removeEventListener('resize', updateViewportMode);
+  }, []);
+
   return (
     <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
       <HamburgerButton isOpen={showMenu} onClick={() => setShowMenu(!showMenu)} />
 
       <WigleControlPanel
         isOpen={showMenu}
+        className={
+          isMobile ? '!left-3 !right-3 !w-auto !max-h-[calc(100vh-92px)] !rounded-2xl !p-4' : ''
+        }
         onShowFilters={() => setShowFilters(!showFilters)}
         showFilters={showFilters}
         mapStyle={mapStyle}
@@ -535,9 +551,16 @@ const WiglePage: React.FC = () => {
       />
 
       <FilterPanelContainer
-        isOpen={showFilters && showMenu}
+        isOpen={showFilters}
         adaptedFilters={adaptedFilters}
         position="overlay"
+        className={
+          isMobile
+            ? '!left-3 !right-3 !top-[4.5rem] !w-auto !max-h-[calc(100vh-100px)]'
+            : showMenu
+              ? ''
+              : 'hidden'
+        }
       />
 
       <WigleMap
