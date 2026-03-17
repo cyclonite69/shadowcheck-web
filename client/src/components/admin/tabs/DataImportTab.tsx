@@ -61,11 +61,14 @@ function diff(after: number | undefined, before: number | undefined): React.Reac
 }
 
 function MetricsTable({ before, after }: { before: Metrics | null; after: Metrics | null }) {
-  const rows: { label: string; key: keyof Metrics }[] = [
+  const rows: { label: string; key: string }[] = [
     { label: 'Networks', key: 'networks' },
     { label: 'Access Points', key: 'access_points' },
     { label: 'Observations', key: 'observations' },
     { label: 'Explorer MV', key: 'in_explorer_mv' },
+    { label: 'Kismet Devices', key: 'kismet_devices' },
+    { label: 'Kismet Packets', key: 'kismet_packets' },
+    { label: 'Kismet Alerts', key: 'kismet_alerts' },
   ];
 
   return (
@@ -81,10 +84,10 @@ function MetricsTable({ before, after }: { before: Metrics | null; after: Metric
         {rows.map(({ label, key }) => (
           <tr key={key} className="border-b border-slate-800/40">
             <td className="py-1 pr-4 text-slate-400">{label}</td>
-            <td className="py-1 pr-4 text-right tabular-nums">{fmt(before?.[key])}</td>
+            <td className="py-1 pr-4 text-right tabular-nums">{fmt((before as any)?.[key])}</td>
             <td className="py-1 text-right tabular-nums">
-              {fmt(after?.[key])}
-              {diff(after?.[key], before?.[key])}
+              {fmt((after as any)?.[key])}
+              {diff((after as any)?.[key], (before as any)?.[key])}
             </td>
           </tr>
         ))}
@@ -228,20 +231,44 @@ export const DataImportTab: React.FC = () => {
 
   const canImport = !isLoading && sourceTag.trim().length > 0;
 
+  // Smart Detect: Suggest Kismet mode if filename looks like a kismet file
+  const [showKismetSuggestion, setShowKismetSuggestion] = useState(false);
+  const handleFileSelectionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.name.endsWith('.kismet')) {
+      setShowKismetSuggestion(true);
+    } else {
+      setShowKismetSuggestion(false);
+    }
+    handleFileImport(e);
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* SQLite Import */}
-        <AdminCard icon={UploadIcon} title="SQLite Import" color="from-orange-500 to-orange-600">
+        {/* SQLite/Kismet Import */}
+        <AdminCard
+          icon={UploadIcon}
+          title="SQLite / Kismet Import"
+          color={
+            showKismetSuggestion ? 'from-purple-500 to-purple-600' : 'from-orange-500 to-orange-600'
+          }
+        >
           <div className="space-y-4">
             <p className="text-sm text-slate-400">
-              Import observations from WiGLE SQLite backups. Only new records after the last import
-              for this source are added — safe to re-run.
+              Import observations from WiGLE SQLite backups or native Kismet sidecar files.
             </p>
+
+            {showKismetSuggestion && (
+              <div className="p-2 bg-purple-900/30 border border-purple-500/50 rounded-lg text-xs text-purple-300 animate-pulse">
+                ✨ <strong>Kismet File Detected:</strong> Data will be imported into forensic
+                sidecar tables (app.kismet_*) automatically.
+              </div>
+            )}
 
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">
-                Source Tag <span className="text-slate-500">(pick existing or type new)</span>
+                Source Tag / Session ID <span className="text-slate-500">(unique identifier)</span>
               </label>
               <SourceTagInput value={sourceTag} onChange={setSourceTag} disabled={isLoading} />
             </div>
@@ -261,31 +288,31 @@ export const DataImportTab: React.FC = () => {
               <input
                 id="sqlite-upload"
                 type="file"
-                accept=".sqlite,.db,.sqlite3"
-                onChange={handleFileImport}
+                accept=".sqlite,.db,.sqlite3,.kismet"
+                onChange={handleFileSelectionChange}
                 disabled={!canImport}
                 className="hidden"
               />
               <div
-                className={`px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r from-orange-600 to-orange-700 ${
-                  canImport
-                    ? 'hover:from-orange-500 hover:to-orange-600 cursor-pointer'
-                    : 'opacity-50 cursor-not-allowed'
-                }`}
+                className={`px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r ${
+                  showKismetSuggestion
+                    ? 'from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600'
+                    : 'from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600'
+                } ${canImport ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                 onClick={() => canImport && document.getElementById('sqlite-upload')?.click()}
               >
                 {isLoading
                   ? importStatus.startsWith('Running')
                     ? 'Backing up...'
                     : 'Importing...'
-                  : 'Choose SQLite File'}
+                  : `Choose ${showKismetSuggestion ? 'Kismet' : 'SQLite'} File`}
               </div>
             </label>
 
             {importStatus && (
               <div
                 className={`p-3 rounded-lg text-sm ${
-                  importStatus.startsWith('Imported')
+                  importStatus.startsWith('Imported') || importStatus.includes('Complete')
                     ? 'bg-green-900/30 text-green-300 border border-green-700/50'
                     : 'bg-red-900/30 text-red-300 border border-red-700/50'
                 }`}

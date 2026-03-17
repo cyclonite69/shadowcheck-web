@@ -23,12 +23,12 @@ export {};
 const upload = multer({
   dest: '/tmp/',
   fileFilter: (req: any, file: any, cb: any) => {
-    const allowedExts = ['.sqlite', '.db', '.sqlite3'];
+    const allowedExts = ['.sqlite', '.db', '.sqlite3', '.kismet'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExts.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only SQLite files (.sqlite, .db, .sqlite3) are allowed'));
+      cb(new Error('Only SQLite files (.sqlite, .db, .sqlite3, .kismet) are allowed'));
     }
   },
   limits: { fileSize: 500 * 1024 * 1024 },
@@ -49,19 +49,26 @@ const sqlUpload = multer({
 
 const PROJECT_ROOT = process.cwd();
 
-function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string; args: string[] } {
+function getImportCommand(
+  sqliteFile: string,
+  sourceTag: string,
+  originalName: string
+): { cmd: string; args: string[] } {
+  const isKismet = originalName.toLowerCase().endsWith('.kismet');
+  const scriptBase = isKismet ? 'kismet-import' : 'sqlite-import';
+
   const compiledCandidates = [
-    path.join(PROJECT_ROOT, 'dist/server/etl/load/sqlite-import.js'),
-    path.join(PROJECT_ROOT, 'etl/load/sqlite-import.js'),
-    path.join('/app/dist/server/etl/load/sqlite-import.js'),
+    path.join(PROJECT_ROOT, `dist/server/etl/load/${scriptBase}.js`),
+    path.join(PROJECT_ROOT, `etl/load/${scriptBase}.js`),
+    path.join(`/app/dist/server/etl/load/${scriptBase}.js`),
   ];
   const tsxCandidates = [
     path.join(PROJECT_ROOT, 'node_modules/.bin/tsx'),
     path.join('/app/node_modules/.bin/tsx'),
   ];
   const tsScriptCandidates = [
-    path.join(PROJECT_ROOT, 'etl/load/sqlite-import.ts'),
-    path.join('/app/etl/load/sqlite-import.ts'),
+    path.join(PROJECT_ROOT, `etl/load/${scriptBase}.ts`),
+    path.join(`/app/etl/load/${scriptBase}.ts`),
   ];
 
   const compiledScript = compiledCandidates.find((p) => fsNative.existsSync(p));
@@ -78,7 +85,7 @@ function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string;
     return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
   }
 
-  throw new Error('SQLite importer script not found (checked consolidated tsx and compiled paths)');
+  throw new Error(`${scriptBase} script not found (checked consolidated tsx and compiled paths)`);
 }
 
 function getSqlImportCommand(sqlFile: string): { cmd: string; args: string[]; env: any } {
@@ -142,11 +149,12 @@ router.post(
 
     const sqliteFile = req.file.path;
     const originalName = req.file.originalname;
+    const isKismet = originalName.toLowerCase().endsWith('.kismet');
     const backupRequested = req.body?.backup === 'true' || req.body?.backup === true;
     const startedAt = new Date();
 
     logger.info(
-      `Starting SQLite import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
+      `Starting ${isKismet ? 'Kismet Sidecar' : 'SQLite'} import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
     );
 
     const metricsBefore = await adminDbService.captureImportMetrics();
@@ -170,7 +178,7 @@ router.post(
       }
     }
 
-    const { cmd, args } = getImportCommand(sqliteFile, sourceTag);
+    const { cmd, args } = getImportCommand(sqliteFile, sourceTag, originalName);
     const adminPassword: string = secretsManager.get('db_admin_password') || '';
 
     const importProcess = spawn(cmd, args, {
@@ -208,10 +216,19 @@ router.post(
       const durationS = ((Date.now() - startedAt.getTime()) / 1000).toFixed(2);
 
       if (code === 0) {
-        const importedMatch = output.match(/Imported:\s*([\d,]+)/);
-        const failedMatch = output.match(/Failed:\s*([\d,]+)/);
-        const imported = importedMatch ? parseInt(importedMatch[1].replace(/,/g, '')) : 0;
-        const failed = failedMatch ? parseInt(failedMatch[1].replace(/,/g, '')) : 0;
+        let imported = 0;
+        let failed = 0;
+
+        if (isKismet) {
+          // For Kismet, we don't have a specific observation count in the same way,
+          // but we mark it as successful. The detailed metrics capture will show table changes.
+          imported = 1;
+        } else {
+          const importedMatch = output.match(/Imported:\s*([\d,]+)/);
+          const failedMatch = output.match(/Failed:\s*([\d,]+)/);
+          imported = importedMatch ? parseInt(importedMatch[1].replace(/,/g, '')) : 0;
+          failed = failedMatch ? parseInt(failedMatch[1].replace(/,/g, '')) : 0;
+        }
 
         const metricsAfter = await adminDbService.captureImportMetrics();
 
@@ -232,10 +249,12 @@ router.post(
         responseSent = true;
         res.json({
           ok: true,
-          importType: 'sqlite',
+          importType: isKismet ? 'kismet_sidecar' : 'sqlite',
           sourceTag,
           source_tag: sourceTag,
-          message: `Incremental import complete (source: ${sourceTag})`,
+          message: isKismet
+            ? `Kismet sidecar import complete (session: ${sourceTag})`
+            : `Incremental import complete (source: ${sourceTag})`,
           imported,
           failed,
           backupTaken,
