@@ -5,7 +5,7 @@ import {
   SECURITY_EXPR,
   WIFI_CHANNEL_EXPR,
 } from '../sqlExpressions';
-import { isOui, coerceOui } from '../normalizers';
+import { isOui, coerceOui, splitTextFilterTokens } from '../normalizers';
 import { buildRadioPredicates } from '../radioPredicates';
 import { buildEngagementPredicates } from '../engagementPredicates';
 import { RELATIVE_WINDOWS } from '../constants';
@@ -61,32 +61,40 @@ export class ObservationModule {
     }
 
     if (e.ssid && f.ssid) {
-      where.push(`o.ssid ILIKE ${this.ctx.addParam(`%${f.ssid}%`)}`);
+      const ssidTokens = splitTextFilterTokens(f.ssid);
+      const predicates = (ssidTokens.length > 0 ? ssidTokens : [String(f.ssid)]).map(
+        (token) => `o.ssid ILIKE ${this.ctx.addParam(`%${token}%`)}`
+      );
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
       this.ctx.addApplied('identity', 'ssid', f.ssid);
     }
 
     if (e.bssid && f.bssid) {
-      const value = String(f.bssid).toUpperCase();
-      if (value.length === 17) {
-        where.push(`UPPER(o.bssid) = ${this.ctx.addParam(value)}`);
-      } else {
-        where.push(`UPPER(o.bssid) LIKE ${this.ctx.addParam(`${value}%`)}`);
-      }
+      const bssidTokens = splitTextFilterTokens(f.bssid);
+      const predicates = (bssidTokens.length > 0 ? bssidTokens : [String(f.bssid)]).map((token) => {
+        const value = token.toUpperCase();
+        return value.length === 17
+          ? `UPPER(o.bssid) = ${this.ctx.addParam(value)}`
+          : `UPPER(o.bssid) LIKE ${this.ctx.addParam(`${value}%`)}`;
+      });
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
       this.ctx.addApplied('identity', 'bssid', f.bssid);
     }
 
     if (e.manufacturer && f.manufacturer) {
-      const cleaned = coerceOui(f.manufacturer);
-      if (isOui(cleaned)) {
-        where.push(
-          `UPPER(REPLACE(SUBSTRING(o.bssid, 1, 8), ':', '')) = ${this.ctx.addParam(cleaned)}`
-        );
-        this.ctx.addApplied('identity', 'manufacturerOui', cleaned);
-      } else {
+      const manufacturerTokens = splitTextFilterTokens(f.manufacturer);
+      const predicates = (
+        manufacturerTokens.length > 0 ? manufacturerTokens : [String(f.manufacturer)]
+      ).map((token) => {
+        const cleaned = coerceOui(token);
+        if (isOui(cleaned)) {
+          return `UPPER(REPLACE(SUBSTRING(o.bssid, 1, 8), ':', '')) = ${this.ctx.addParam(cleaned)}`;
+        }
         this.ctx.obsJoins.add(SqlFragmentLibrary.joinRadioManufacturers('o', 'rm'));
-        where.push(`rm.manufacturer ILIKE ${this.ctx.addParam(`%${f.manufacturer}%`)}`);
-        this.ctx.addApplied('identity', 'manufacturer', f.manufacturer);
-      }
+        return `rm.manufacturer ILIKE ${this.ctx.addParam(`%${token}%`)}`;
+      });
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
+      this.ctx.addApplied('identity', 'manufacturer', f.manufacturer);
     }
 
     const radioResult = buildRadioPredicates({

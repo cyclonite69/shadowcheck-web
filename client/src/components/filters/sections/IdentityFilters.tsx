@@ -36,9 +36,10 @@ export const IdentityFilters: React.FC<IdentityFiltersProps> = ({
           type="text"
           value={filters.ssid || ''}
           onChange={(e) => onSetFilter('ssid', e.target.value)}
-          placeholder="Network name..."
+          placeholder="Network name or comma list..."
           className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
         />
+        <p className="mt-1 text-xs text-slate-500">Use commas to match multiple SSIDs.</p>
       </FilterInput>
 
       <FilterInput
@@ -51,11 +52,11 @@ export const IdentityFilters: React.FC<IdentityFiltersProps> = ({
           type="text"
           value={filters.bssid || ''}
           onChange={(e) => onSetFilter('bssid', e.target.value)}
-          placeholder="AA:BB:CC:DD:EE:FF or AA:BB:CC"
+          placeholder="AA:BB:CC:DD:EE:FF, AA:BB:CC..."
           className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
         />
         <p className="mt-1 text-xs text-slate-500">
-          Full BSSID = exact match. Prefix = starts-with match.
+          Full BSSID = exact match. Prefix = starts-with match. Use commas for OR matching.
         </p>
       </FilterInput>
 
@@ -72,6 +73,9 @@ export const IdentityFilters: React.FC<IdentityFiltersProps> = ({
           placeholder="Apple, Samsung, 001A2B..."
           className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
         />
+        <p className="mt-1 text-xs text-slate-500">
+          Use commas to match multiple manufacturers or OUI prefixes.
+        </p>
       </FilterInput>
     </FilterSection>
   );

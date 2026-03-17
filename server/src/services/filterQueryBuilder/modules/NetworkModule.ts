@@ -9,7 +9,7 @@ import {
   SECURITY_EXPR,
   NETWORK_CHANNEL_EXPR,
 } from '../sqlExpressions';
-import { isOui, coerceOui } from '../normalizers';
+import { isOui, coerceOui, splitTextFilterTokens } from '../normalizers';
 import { buildRadioPredicates } from '../radioPredicates';
 import { buildEngagementPredicates } from '../engagementPredicates';
 import type { FilterBuildContext } from '../FilterBuildContext';
@@ -318,29 +318,36 @@ export class NetworkModule {
     `;
 
     if (e.ssid && f.ssid) {
-      where.push(`ne.ssid ILIKE ${this.ctx.addParam(`%${f.ssid}%`)}`);
+      const ssidTokens = splitTextFilterTokens(f.ssid);
+      const predicates = (ssidTokens.length > 0 ? ssidTokens : [String(f.ssid)]).map(
+        (token) => `ne.ssid ILIKE ${this.ctx.addParam(`%${token}%`)}`
+      );
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
       this.ctx.addApplied('identity', 'ssid', f.ssid);
     }
     if (e.bssid && f.bssid) {
-      const value = String(f.bssid).toUpperCase();
-      if (value.length === 17) {
-        where.push(`UPPER(ne.bssid) = ${this.ctx.addParam(value)}`);
-      } else {
-        where.push(`UPPER(ne.bssid) LIKE ${this.ctx.addParam(`${value}%`)}`);
-      }
+      const bssidTokens = splitTextFilterTokens(f.bssid);
+      const predicates = (bssidTokens.length > 0 ? bssidTokens : [String(f.bssid)]).map((token) => {
+        const value = token.toUpperCase();
+        return value.length === 17
+          ? `UPPER(ne.bssid) = ${this.ctx.addParam(value)}`
+          : `UPPER(ne.bssid) LIKE ${this.ctx.addParam(`${value}%`)}`;
+      });
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
       this.ctx.addApplied('identity', 'bssid', f.bssid);
     }
     if (e.manufacturer && f.manufacturer) {
-      const cleaned = coerceOui(f.manufacturer);
-      if (isOui(cleaned)) {
-        where.push(
-          `UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = ${this.ctx.addParam(cleaned)}`
-        );
-        this.ctx.addApplied('identity', 'manufacturerOui', cleaned);
-      } else {
-        where.push(`ne.manufacturer ILIKE ${this.ctx.addParam(`%${f.manufacturer}%`)}`);
-        this.ctx.addApplied('identity', 'manufacturer', f.manufacturer);
-      }
+      const manufacturerTokens = splitTextFilterTokens(f.manufacturer);
+      const predicates = (
+        manufacturerTokens.length > 0 ? manufacturerTokens : [String(f.manufacturer)]
+      ).map((token) => {
+        const cleaned = coerceOui(token);
+        return isOui(cleaned)
+          ? `UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = ${this.ctx.addParam(cleaned)}`
+          : `ne.manufacturer ILIKE ${this.ctx.addParam(`%${token}%`)}`;
+      });
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
+      this.ctx.addApplied('identity', 'manufacturer', f.manufacturer);
     }
     where.push(
       ...this.applyRadioFilters({
@@ -790,29 +797,36 @@ export class NetworkModule {
     }
 
     if (e.ssid && f.ssid) {
-      where.push(`ne.ssid ILIKE ${this.ctx.addParam(`%${f.ssid}%`)}`);
+      const ssidTokens = splitTextFilterTokens(f.ssid);
+      const predicates = (ssidTokens.length > 0 ? ssidTokens : [String(f.ssid)]).map(
+        (token) => `ne.ssid ILIKE ${this.ctx.addParam(`%${token}%`)}`
+      );
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
       this.ctx.addApplied('identity', 'ssid', f.ssid);
     }
     if (e.bssid && f.bssid) {
-      const value = String(f.bssid).toUpperCase();
-      if (value.length === 17) {
-        where.push(`UPPER(ne.bssid) = ${this.ctx.addParam(value)}`);
-      } else {
-        where.push(`UPPER(ne.bssid) LIKE ${this.ctx.addParam(`${value}%`)}`);
-      }
+      const bssidTokens = splitTextFilterTokens(f.bssid);
+      const predicates = (bssidTokens.length > 0 ? bssidTokens : [String(f.bssid)]).map((token) => {
+        const value = token.toUpperCase();
+        return value.length === 17
+          ? `UPPER(ne.bssid) = ${this.ctx.addParam(value)}`
+          : `UPPER(ne.bssid) LIKE ${this.ctx.addParam(`${value}%`)}`;
+      });
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
       this.ctx.addApplied('identity', 'bssid', f.bssid);
     }
     if (e.manufacturer && f.manufacturer) {
-      const cleaned = coerceOui(f.manufacturer);
-      if (isOui(cleaned)) {
-        where.push(
-          `UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = ${this.ctx.addParam(cleaned)}`
-        );
-        this.ctx.addApplied('identity', 'manufacturerOui', cleaned);
-      } else {
-        where.push(`ne.manufacturer ILIKE ${this.ctx.addParam(`%${f.manufacturer}%`)}`);
-        this.ctx.addApplied('identity', 'manufacturer', f.manufacturer);
-      }
+      const manufacturerTokens = splitTextFilterTokens(f.manufacturer);
+      const predicates = (
+        manufacturerTokens.length > 0 ? manufacturerTokens : [String(f.manufacturer)]
+      ).map((token) => {
+        const cleaned = coerceOui(token);
+        return isOui(cleaned)
+          ? `UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = ${this.ctx.addParam(cleaned)}`
+          : `ne.manufacturer ILIKE ${this.ctx.addParam(`%${token}%`)}`;
+      });
+      where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
+      this.ctx.addApplied('identity', 'manufacturer', f.manufacturer);
     }
     const radioResult = buildRadioPredicates({
       enabled: this.ctx.enabled,

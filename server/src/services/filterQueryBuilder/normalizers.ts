@@ -69,6 +69,17 @@ const toStringArray = (value: unknown): string[] | undefined => {
   return undefined;
 };
 
+const splitTextFilterTokens = (value: unknown): string[] => {
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean);
+};
+
 const normalizeRadioType = (value: string): string | null => {
   const upper = value.trim().toUpperCase();
   const map: Record<string, string> = {
@@ -199,4 +210,4 @@ const coerceOui = (value: unknown): string =>
     .replace(/[^0-9A-Fa-f]/g, '')
     .toUpperCase();
 
-export { normalizeEnabled, normalizeFilters, isOui, coerceOui };
+export { normalizeEnabled, normalizeFilters, isOui, coerceOui, splitTextFilterTokens };

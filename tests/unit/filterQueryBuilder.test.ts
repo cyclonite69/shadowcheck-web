@@ -73,6 +73,39 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.appliedFilters.some((f: { field: string }) => f.field === 'bssid')).toBe(true);
   });
 
+  test('comma-separated SSIDs generate OR predicates', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { ssid: 'HomeRouter, GuestNet' },
+      { ssid: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).toContain('OR');
+    expect(result.params).toContain('%HomeRouter%');
+    expect(result.params).toContain('%GuestNet%');
+  });
+
+  test('comma-separated BSSIDs preserve exact and prefix matching', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { bssid: 'AA:BB:CC:DD:EE:FF, AA:BB:CC' },
+      { bssid: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).toContain('OR');
+    expect(result.params).toContain('AA:BB:CC:DD:EE:FF');
+    expect(result.params).toContain('AA:BB:CC%');
+  });
+
+  test('comma-separated manufacturers support mixed text and OUI matching', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { manufacturer: 'Sierra Wireless, 28A331' },
+      { manufacturer: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).toContain('OR');
+    expect(result.params).toContain('%Sierra Wireless%');
+    expect(result.params).toContain('28A331');
+  });
+
   test('encryptionTypes filter with WPA2 → SQL contains RSN or WPA2 predicate', () => {
     const result = new UniversalFilterQueryBuilder(
       { encryptionTypes: ['WPA2'] },
