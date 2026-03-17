@@ -127,6 +127,7 @@ junit.xml
 
 # Docker & Infrastructure
 pgadmin-config/
+!docker/infrastructure/pgadmin-config/servers.json
 pgadmin_data/
 postgres_data/
 docker-data/

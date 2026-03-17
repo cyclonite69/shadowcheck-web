@@ -3,7 +3,7 @@
 
 services:
   postgres:
-    image: postgis/postgis:18-3.6
+    image: shadowcheck/postgres:18-postgis
     container_name: shadowcheck_postgres
     restart: unless-stopped
     environment:
@@ -19,10 +19,10 @@ services:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - /var/lib/postgresql:/var/lib/postgresql
-      - ./sql/init:/docker-entrypoint-initdb.d:ro
-      - ./sql/migrations:/sql/migrations:ro
-      - ./sql/run-migrations.sh:/sql/run-migrations.sh:ro
-      - ./backups:/backups
+      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/sql/init:/docker-entrypoint-initdb.d:ro
+      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/sql/migrations:/sql/migrations:ro
+      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/sql/run-migrations.sh:/sql/run-migrations.sh:ro
+      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/backups:/backups
     network_mode: host
     healthcheck:
       test:
@@ -51,11 +51,13 @@ services:
       PGADMIN_LISTEN_ADDRESS: 0.0.0.0
       PGADMIN_LISTEN_PORT: ${PGADMIN_PORT:-5050}
       PGADMIN_ENABLE_TLS: ${PGADMIN_ENABLE_TLS:-True}
-      PGADMIN_SERVER_CERT: ${PGADMIN_SERVER_CERT:-/certs/server.crt}
+      PGADMIN_SERVER_CERT: ${PGADMIN_SERVER_CERT:-/certs/server.cert}
       PGADMIN_SERVER_KEY: ${PGADMIN_SERVER_KEY:-/certs/server.key}
+      PGADMIN_DEFAULT_SERVER_HOST: 127.0.0.1
     volumes:
       - /var/lib/pgadmin:/var/lib/pgadmin
-      - ./pgadmin-config/servers.json:/pgadmin4/servers.json:ro
+      # NOTE: This file must be pre-created by scripts/setup-ec2.sh before compose up
+      - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro
       - /var/lib/postgresql/certs/web:/certs:ro
     network_mode: host
     depends_on:

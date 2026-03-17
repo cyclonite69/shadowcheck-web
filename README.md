@@ -492,3 +492,28 @@ See `CODE_OF_CONDUCT.md`.
 ## License
 
 MIT. See `LICENSE` for details.
+
+## EC2 Infrastructure Deployment
+
+For production deployment on AWS EC2 (Graviton/ARM64):
+
+1. **Clone & Prep:**
+
+   ```bash
+   git clone <repo_url> /home/ssm-user/shadowcheck
+   cd /home/ssm-user/shadowcheck
+   cp .env.example .env # And fill in AWS/DB secrets
+   ```
+
+2. **Bootstrap:**
+
+   ```bash
+   chmod +x scripts/setup-ec2.sh
+   ./scripts/setup-ec2.sh
+   ```
+
+3. **Start Services:**
+   ```bash
+   cd docker/infrastructure
+   docker-compose -f docker-compose.postgres.yml up -d
+   ```
