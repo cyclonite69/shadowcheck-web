@@ -21,14 +21,37 @@ export const useBoundingBoxFilter = ({
     if (!mapReady || !mapRef.current || !enabled || !syncToViewport) return;
 
     const map = mapRef.current;
+    const wrapLongitude = (lng: number) => {
+      const wrapped = ((((lng + 180) % 360) + 360) % 360) - 180;
+      return wrapped === -180 ? 180 : wrapped;
+    };
+
     const updateBounds = () => {
       const bounds = map.getBounds();
       if (!bounds) return;
+
+      const north = Math.min(90, Math.max(-90, bounds.getNorth()));
+      const south = Math.min(90, Math.max(-90, bounds.getSouth()));
+      const rawEast = bounds.getEast();
+      const rawWest = bounds.getWest();
+      const span = rawEast - rawWest;
+
+      let east: number;
+      let west: number;
+
+      if (span >= 360) {
+        west = -180;
+        east = 180;
+      } else {
+        west = wrapLongitude(rawWest);
+        east = wrapLongitude(rawEast);
+      }
+
       setFilter('boundingBox', {
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest(),
+        north,
+        south,
+        east,
+        west,
       });
     };
 

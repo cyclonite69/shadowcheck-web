@@ -217,6 +217,18 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql.toLowerCase()).toMatch(/lat|lon/);
   });
 
+  test('boundingBox crossing antimeridian uses split envelopes', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { boundingBox: { north: 10, south: -10, east: -170, west: 170 } },
+      { boundingBox: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).toContain('ST_MakeEnvelope');
+    expect(result.sql).toContain('OR o.geom && ST_MakeEnvelope');
+    expect(result.params).toContain(170);
+    expect(result.params).toContain(-170);
+  });
+
   test('buildGeospatialQuery threatCategories uses MV threat_level semantics', () => {
     const result = new UniversalFilterQueryBuilder(
       { threatCategories: ['high'] },

@@ -204,9 +204,21 @@ export class ObservationModule {
     }
 
     if (e.boundingBox && f.boundingBox) {
-      where.push(
-        `o.geom && ST_MakeEnvelope(${this.ctx.addParam(f.boundingBox.west)}, ${this.ctx.addParam(f.boundingBox.south)}, ${this.ctx.addParam(f.boundingBox.east)}, ${this.ctx.addParam(f.boundingBox.north)}, 4326)`
-      );
+      const west = f.boundingBox.west;
+      const south = f.boundingBox.south;
+      const east = f.boundingBox.east;
+      const north = f.boundingBox.north;
+
+      if (west <= east) {
+        where.push(
+          `o.geom && ST_MakeEnvelope(${this.ctx.addParam(west)}, ${this.ctx.addParam(south)}, ${this.ctx.addParam(east)}, ${this.ctx.addParam(north)}, 4326)`
+        );
+      } else {
+        // Antimeridian-crossing boxes need two envelopes in EPSG:4326.
+        where.push(
+          `(o.geom && ST_MakeEnvelope(${this.ctx.addParam(west)}, ${this.ctx.addParam(south)}, 180, ${this.ctx.addParam(north)}, 4326) OR o.geom && ST_MakeEnvelope(-180, ${this.ctx.addParam(south)}, ${this.ctx.addParam(east)}, ${this.ctx.addParam(north)}, 4326))`
+        );
+      }
       this.ctx.addApplied('spatial', 'boundingBox', f.boundingBox);
     }
 
