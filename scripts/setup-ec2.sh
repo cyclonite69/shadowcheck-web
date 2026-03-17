@@ -11,11 +11,9 @@ PGADMIN_CONFIG_DIR="$REPO_ROOT/docker/infrastructure/pgadmin-config"
 
 echo "🔍 Starting ShadowCheck EC2 Setup..."
 
-# 1. Environment Check
+# 1. Environment Warning (Optional)
 if [ ! -f "$REPO_ROOT/.env" ]; then
-    echo "❌ Error: .env file missing in $REPO_ROOT"
-    echo "Required variables: DB_PASSWORD, PGADMIN_PASSWORD"
-    exit 1
+    echo "ℹ️  Note: No local .env file found. Ensure secrets are provided via AWS Secrets Manager or environment variables at runtime."
 fi
 
 # 2. Certificate Symlink (Fixes pgAdmin gunicorn crash)
