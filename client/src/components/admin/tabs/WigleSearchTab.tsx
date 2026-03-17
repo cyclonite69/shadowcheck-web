@@ -377,7 +377,9 @@ export const WigleSearchTab: React.FC = () => {
                               <td className="px-3 py-2 font-medium text-white">
                                 {net.ssid || '<hidden>'}
                               </td>
-                              <td className="px-3 py-2 font-mono text-slate-400">{net.bssid}</td>
+                              <td className="px-3 py-2 font-mono text-slate-400">
+                                {net.netid || net.bssid}
+                              </td>
                               <td className="px-3 py-2">{net.type}</td>
                               <td className="px-3 py-2">{net.encryption}</td>
                               <td className="px-3 py-2">
