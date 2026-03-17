@@ -12,8 +12,24 @@ import { PgAdminTab } from './admin/tabs/PgAdminTab';
 import { GeocodingTab } from './admin/tabs/GeocodingTab';
 import { AwsTab } from './admin/tabs/AwsTab';
 import { UsersTab } from './admin/tabs/UsersTab';
+import { JobsTab } from './admin/tabs/JobsTab';
 
 // SVG Icons
+const ClockIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
 const SettingsIcon = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -224,6 +240,7 @@ const AdminPage: React.FC = () => {
 
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
+    { id: 'jobs', label: 'Automation', icon: ClockIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
     { id: 'ml', label: 'ML Training', icon: BrainIcon },
     { id: 'wigle', label: 'WiGLE Search (v2)', icon: SearchIcon },
@@ -299,6 +316,7 @@ const AdminPage: React.FC = () => {
         {/* Tab Content */}
         <div className="pb-8">
           {activeTab === 'config' && <ConfigurationTab />}
+          {activeTab === 'jobs' && <JobsTab />}
           {activeTab === 'api' && <ApiTestingTab />}
           {activeTab === 'ml' && <MLTrainingTab />}
           {activeTab === 'wigle' && <WigleSearchTab />}

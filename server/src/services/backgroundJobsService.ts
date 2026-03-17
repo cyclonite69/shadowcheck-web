@@ -38,7 +38,8 @@ const FEEDBACK_MULTIPLIERS = {
 };
 
 class BackgroundJobsService {
-  static jobs: Record<string, unknown> = {};
+  static jobs: Record<string, any> = {};
+  static lastConfig: Record<string, any> = {};
 
   /**
    * Initialize background jobs
@@ -47,56 +48,132 @@ class BackgroundJobsService {
     logger.info('[Background Jobs] Initializing background jobs service...');
 
     try {
-      // Schedule ML scoring every 4 hours
-      this.scheduleMLScoring();
+      // Perform initial job scheduling from database
+      await this.rescheduleJobs();
 
-      // Schedule daily backup to S3
-      this.scheduleBackup();
-
-      // Schedule daily Materialized View refresh
-      this.scheduleMVRefresh();
+      // Start configuration poller (every 5 minutes)
+      this.startConfigPoller();
 
       logger.info('[Background Jobs] Initialization complete');
     } catch (error) {
       logger.error('[Background Jobs] Initialization failed:', error);
-      throw error;
+      // Fallback to manual scheduling if DB fails initially
+      this.scheduleMLScoring();
+      this.scheduleBackup();
+      this.scheduleMVRefresh();
+    }
+  }
+
+  /**
+   * Poll database for configuration changes every 5 minutes
+   */
+  static startConfigPoller() {
+    this.jobs.poller = schedule.scheduleJob('*/5 * * * *', async () => {
+      await this.rescheduleJobs();
+    });
+  }
+
+  /**
+   * Reschedule all jobs based on database settings
+   */
+  static async rescheduleJobs() {
+    try {
+      const { rows } = await query(
+        "SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config')"
+      );
+
+      const configs: Record<string, any> = {};
+      rows.forEach((row: any) => {
+        configs[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      });
+
+      // 1. Backup Job
+      const backupConfig = configs.backup_job_config || {
+        enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
+        cron: BACKUP_CRON,
+      };
+      if (this.hasConfigChanged('backup', backupConfig)) {
+        this.updateJob('backup', backupConfig, () => this.runScheduledBackup());
+      }
+
+      // 2. ML Scoring Job
+      const mlConfig = configs.ml_scoring_job_config || {
+        enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
+        cron: ML_SCORING_CRON,
+      };
+      if (this.hasConfigChanged('mlScoring', mlConfig)) {
+        this.updateJob('mlScoring', mlConfig, () => this.runMLScoring());
+      }
+
+      // 3. MV Refresh Job
+      const mvConfig = configs.mv_refresh_job_config || {
+        enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
+        cron: MV_REFRESH_CRON,
+      };
+      if (this.hasConfigChanged('mvRefresh', mvConfig)) {
+        this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh());
+      }
+
+      this.lastConfig = configs;
+    } catch (error) {
+      logger.error('[Background Jobs] Failed to reschedule jobs from database:', error.message);
+    }
+  }
+
+  /**
+   * Check if a job configuration has changed
+   */
+  static hasConfigChanged(jobName: string, newConfig: any): boolean {
+    const oldConfig = this.lastConfig[`${jobName}_job_config`];
+    if (!oldConfig) return true;
+    return oldConfig.enabled !== newConfig.enabled || oldConfig.cron !== newConfig.cron;
+  }
+
+  /**
+   * Update a specific job (cancel and reschedule if needed)
+   */
+  static updateJob(name: string, config: any, task: () => Promise<void>) {
+    if (this.jobs[name]) {
+      this.jobs[name].cancel();
+      delete this.jobs[name];
+    }
+
+    if (config.enabled) {
+      this.jobs[name] = schedule.scheduleJob(config.cron, async () => {
+        await task();
+      });
+      logger.info(`[Background Jobs] Job '${name}' scheduled: ${config.cron}`);
+    } else {
+      logger.info(`[Background Jobs] Job '${name}' disabled`);
     }
   }
 
   /**
    * Schedule ML scoring: Every 4 hours (0:00, 4:00, 8:00, 12:00, 16:00, 20:00)
+   * (Retained for manual/fallback use)
    */
   static scheduleMLScoring() {
-    // Cron pattern: 0 */4 * * * (at minute 0 of every 4th hour)
-    const rule = ML_SCORING_CRON;
-
-    this.jobs.mlScoring = schedule.scheduleJob(rule, async () => {
-      await this.runMLScoring();
-    });
-
-    logger.info('[Background Jobs] ML scoring scheduled: every 4 hours (0, 4, 8, 12, 16, 20:00)');
+    this.updateJob('mlScoring', { enabled: true, cron: ML_SCORING_CRON }, () =>
+      this.runMLScoring()
+    );
   }
 
   /**
    * Schedule automated backup: Daily at 3:00 AM (configurable via BACKUP_CRON)
+   * (Retained for manual/fallback use)
    */
   static scheduleBackup() {
-    this.jobs.backup = schedule.scheduleJob(BACKUP_CRON, async () => {
-      await this.runScheduledBackup();
-    });
-
-    logger.info(`[Background Jobs] Backup scheduled: ${BACKUP_CRON}`);
+    this.updateJob('backup', { enabled: true, cron: BACKUP_CRON }, () => this.runScheduledBackup());
   }
 
   /**
    * Schedule Materialized View refresh: Daily at 4:30 AM
+   * (Retained for manual/fallback use)
    */
   static scheduleMVRefresh() {
-    this.jobs.mvRefresh = schedule.scheduleJob(MV_REFRESH_CRON, async () => {
-      await this.runMVRefresh();
-    });
-
-    logger.info(`[Background Jobs] MV refresh scheduled: ${MV_REFRESH_CRON}`);
+    this.updateJob('mvRefresh', { enabled: true, cron: MV_REFRESH_CRON }, () =>
+      this.runMVRefresh()
+    );
   }
 
   /**
