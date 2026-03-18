@@ -61,17 +61,17 @@ router.use(adminMediaRoutes);
 router.use(adminOuiRoutes);
 router.use(adminBackupRoutes);
 router.use(adminPgAdminRoutes);
-router.use('/settings', adminSettingsRoutes);
-router.use('/users', adminUsersRoutes);
+router.use('/admin/settings', adminSettingsRoutes);
+router.use('/admin/users', adminUsersRoutes);
 router.use(adminGeocodingRoutes);
 router.use(adminSecretsRoutes);
 router.use(adminAwsRoutes);
-router.use('/aws', adminAwsInstancesRoutes);
+router.use('/admin/aws', adminAwsInstancesRoutes);
 router.use(adminImportRoutes);
 router.use(adminMaintenanceRoutes);
 router.use(adminSiblingsRoutes);
-router.use('/data-quality', adminDataQualityRoutes);
-router.use('/db-stats', adminDbStatsRoutes);
+router.use('/admin/data-quality', adminDataQualityRoutes);
+router.use('/admin/db-stats', adminDbStatsRoutes);
 
 // GET /api/observations/check-duplicates/:bssid - Check for duplicate observations
 router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
