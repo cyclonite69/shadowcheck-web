@@ -11,7 +11,7 @@ const logger = require('../../../../logging/logger');
  * GET /api/v1/admin/db-stats
  * Detailed metrics on table row counts, storage, and activity
  */
-router.get('/db-stats', async (req: any, res: any, next: any) => {
+router.get('/', async (req: any, res: any, next: any) => {
   try {
     const stats = await adminDbService.getDetailedDatabaseStats();
     res.json(stats);
