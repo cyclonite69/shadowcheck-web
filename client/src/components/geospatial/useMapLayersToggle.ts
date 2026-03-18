@@ -22,26 +22,6 @@ export const useMapLayersToggle = ({
     return mapStyle.startsWith('mapbox://styles/');
   }, [mapStyle]);
 
-  const ensure3DView = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const currentPitch =
-      typeof map.getPitch === 'function'
-        ? map.getPitch()
-        : typeof map.pitch === 'number'
-          ? map.pitch
-          : 0;
-
-    if (currentPitch >= 45) return;
-
-    map.easeTo({
-      pitch: 60,
-      duration: 600,
-      essential: true,
-    });
-  }, [mapRef]);
-
   const isStandardStyle = useCallback((): boolean => {
     if (!mapRef.current) return false;
     if (mapStyle?.includes('mapbox://styles/mapbox/standard')) return true;
@@ -156,12 +136,10 @@ export const useMapLayersToggle = ({
         // Mapbox standard styles usually import the basemap configuration
         // Try 'basemap' first, then 'mapbox-standard' as fallback
         mapRef.current.setConfigProperty('basemap', 'show3dObjects', true);
-        ensure3DView();
         return true;
       } catch {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'show3dObjects', true);
-          ensure3DView();
           return true;
         } catch {
           return false;
@@ -210,7 +188,6 @@ export const useMapLayersToggle = ({
         } as any,
         labelLayerId
       );
-      ensure3DView();
       return true;
     } catch {
       return false;
@@ -224,11 +201,9 @@ export const useMapLayersToggle = ({
     if (sourceId === 'mapbox-standard') {
       try {
         mapRef.current.setConfigProperty('basemap', 'show3dObjects', enabled);
-        if (enabled) ensure3DView();
       } catch (e) {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'show3dObjects', enabled);
-          if (enabled) ensure3DView();
         } catch (e2) {
           console.error('Failed to set standard style 3D buildings:', e2);
         }
@@ -255,12 +230,10 @@ export const useMapLayersToggle = ({
     if (isStandardStyle()) {
       try {
         mapRef.current.setConfigProperty('basemap', 'showTerrain', true);
-        ensure3DView();
         return;
       } catch (e) {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'showTerrain', true);
-          ensure3DView();
           return;
         } catch (e2) {
           // Fallback to traditional method
@@ -278,7 +251,6 @@ export const useMapLayersToggle = ({
     });
 
     mapRef.current.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-    ensure3DView();
   };
 
   const toggleTerrain = (enabled: boolean) => {
@@ -287,11 +259,9 @@ export const useMapLayersToggle = ({
     if (isStandardStyle()) {
       try {
         mapRef.current.setConfigProperty('basemap', 'showTerrain', enabled);
-        if (enabled) ensure3DView();
       } catch (e) {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'showTerrain', enabled);
-          if (enabled) ensure3DView();
         } catch (e2) {
           console.error('Failed to set standard style terrain:', e2);
         }
