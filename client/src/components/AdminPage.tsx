@@ -309,8 +309,9 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-5 bg-slate-900/60 p-3 rounded-xl border border-slate-700/40 backdrop-blur-sm flex flex-col gap-3">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+        <div className="mb-5 bg-slate-900/60 p-4 rounded-xl border border-slate-700/40 backdrop-blur-sm flex flex-col gap-4">
+          {/* Row 1 */}
+          <div className="flex flex-wrap justify-center gap-2.5">
             {topRowTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -322,7 +323,9 @@ const AdminPage: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 pt-2 border-t border-slate-800/50">
+
+          {/* Row 2 */}
+          <div className="flex flex-wrap justify-center gap-2.5 pt-3 border-t border-slate-800/50">
             {bottomRowTabs.map((tab) => (
               <button
                 key={tab.id}
