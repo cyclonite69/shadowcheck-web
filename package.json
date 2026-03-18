@@ -45,10 +45,11 @@
   "author": "ShadowCheck",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-bedrock-runtime": "^3.1005.0",
-    "@aws-sdk/client-ec2": "^3.1004.0",
-    "@aws-sdk/client-secrets-manager": "^3.1000.0",
-    "@aws-sdk/client-sts": "^3.1000.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1011.0",
+    "@aws-sdk/client-ec2": "^3.1011.0",
+    "@aws-sdk/client-s3": "^3.1011.0",
+    "@aws-sdk/client-secrets-manager": "^3.1011.0",
+    "@aws-sdk/client-sts": "^3.1011.0",
     "@deck.gl/core": "^9.2.11",
     "@deck.gl/layers": "^9.2.11",
     "@deck.gl/react": "^9.2.10",
@@ -125,7 +126,7 @@
   "overrides": {
     "tar": ">=7.5.11",
     "flatted": ">=3.4.0",
-    "fast-xml-parser": ">=5.3.6",
+    "fast-xml-parser": "^5.5.6",
     "serialize-javascript": ">=7.0.3",
     "svgo": "4.0.1",
     "@tootallnate/once": "3.0.1"
