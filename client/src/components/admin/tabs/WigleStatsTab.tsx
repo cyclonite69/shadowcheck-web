@@ -79,6 +79,8 @@ export const WigleStatsTab: React.FC = () => {
   // Helper to access stats that might be at root or under statistics sub-object
   const getStat = (key: string) => stats?.[key] ?? stats?.statistics?.[key];
 
+  console.log('WIGLE RAW STATS:', JSON.stringify(stats, null, 2));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
