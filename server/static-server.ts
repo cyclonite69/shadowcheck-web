@@ -108,8 +108,8 @@ app.use((req, res, next) => {
     // Styles: self + Mapbox + Google Fonts + inline (Mapbox injects styles dynamically)
     "style-src 'self' https://api.mapbox.com https://fonts.googleapis.com 'unsafe-inline'",
 
-    // Images: self + Mapbox tiles + data URIs (for inline SVGs)
-    "img-src 'self' https://*.mapbox.com https://api.mapbox.com data: blob:",
+    // Images: self + Mapbox tiles + WiGLE badge + data URIs (for inline SVGs)
+    "img-src 'self' https://*.mapbox.com https://api.mapbox.com https://wigle.net data: blob:",
 
     // Fonts: self + Mapbox glyphs + Google Fonts
     "font-src 'self' https://api.mapbox.com https://fonts.gstatic.com",

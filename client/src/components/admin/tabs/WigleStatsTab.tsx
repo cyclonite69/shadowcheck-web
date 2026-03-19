@@ -46,7 +46,6 @@ const BadgeIcon = ({ size = 24, className = '' }) => (
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path d="M3.85 19.15a2.4 2.4 0 0 0-1.35-1.35 2.4 2.4 0 0 1-1.35-1.35 2.4 2.4 0 0 0-1.35-1.35 2.4 2.4 0 0 1-1.35-1.35" />
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
   </svg>
 );
@@ -76,6 +75,9 @@ export const WigleStatsTab: React.FC = () => {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  // Helper to access stats that might be at root or under statistics sub-object
+  const getStat = (key: string) => stats?.[key] ?? stats?.statistics?.[key];
 
   if (loading) {
     return (
@@ -107,7 +109,7 @@ export const WigleStatsTab: React.FC = () => {
         <AdminCard icon={TrophyIcon} title="User Ranking" color="from-yellow-500 to-yellow-600">
           <div className="flex flex-col items-center py-4">
             <div className="text-4xl font-black text-white mb-1">
-              #{stats?.rank?.toLocaleString() || '—'}
+              #{getStat('rank')?.toLocaleString() || '—'}
             </div>
             <div className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-6">
               Global Rank
@@ -116,16 +118,16 @@ export const WigleStatsTab: React.FC = () => {
             <div className="w-full space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Username</span>
-                <span className="text-white font-bold">{stats?.user || '—'}</span>
+                <span className="text-white font-bold">{getStat('user') || '—'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Class</span>
-                <span className="text-white font-bold">{stats?.class || '—'}</span>
+                <span className="text-white font-bold">{getStat('class') || '—'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Total Points</span>
                 <span className="text-white font-bold">
-                  {stats?.points?.toLocaleString() || '0'}
+                  {getStat('points')?.toLocaleString() || '0'}
                 </span>
               </div>
             </div>
@@ -139,25 +141,25 @@ export const WigleStatsTab: React.FC = () => {
               <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                 <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">WiFi</div>
                 <div className="text-xl font-bold text-blue-400">
-                  {stats?.discoveredWiFiGPS?.toLocaleString() || '0'}
+                  {getStat('discoveredWiFiGPS')?.toLocaleString() || '0'}
                 </div>
               </div>
               <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                 <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Bluetooth</div>
                 <div className="text-xl font-bold text-purple-400">
-                  {stats?.discoveredBluetoothGPS?.toLocaleString() || '0'}
+                  {getStat('discoveredBluetoothGPS')?.toLocaleString() || '0'}
                 </div>
               </div>
               <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                 <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Cell</div>
                 <div className="text-xl font-bold text-emerald-400">
-                  {stats?.discoveredCellGPS?.toLocaleString() || '0'}
+                  {getStat('discoveredCellGPS')?.toLocaleString() || '0'}
                 </div>
               </div>
               <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                 <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Total GPS</div>
                 <div className="text-xl font-bold text-white">
-                  {stats?.totalDiscovered?.toLocaleString() || '0'}
+                  {getStat('totalDiscovered')?.toLocaleString() || '0'}
                 </div>
               </div>
             </div>
@@ -165,12 +167,14 @@ export const WigleStatsTab: React.FC = () => {
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500">First Discovery</span>
                 <span className="text-slate-300">
-                  {stats?.firstTransID?.substring(0, 8) || '—'}
+                  {getStat('firstTransID')?.substring(0, 8) || '—'}
                 </span>
               </div>
               <div className="flex justify-between text-xs mt-2">
                 <span className="text-slate-500">Last Discovery</span>
-                <span className="text-slate-300">{stats?.lastTransID?.substring(0, 8) || '—'}</span>
+                <span className="text-slate-300">
+                  {getStat('lastTransID')?.substring(0, 8) || '—'}
+                </span>
               </div>
             </div>
           </div>
@@ -180,7 +184,7 @@ export const WigleStatsTab: React.FC = () => {
         <AdminCard icon={BadgeIcon} title="Official Badge" color="from-purple-500 to-purple-600">
           <div className="flex flex-col items-center justify-center h-full py-4">
             <img
-              src={`https://wigle.net/bi/${stats?.user}.png`}
+              src={`https://wigle.net/bi/${getStat('user')}.png`}
               alt="WiGLE Badge"
               className="rounded-lg shadow-2xl border border-slate-700"
               onError={(e) => {
@@ -191,7 +195,7 @@ export const WigleStatsTab: React.FC = () => {
               Live ranking badge from WiGLE.net
             </p>
             <a
-              href={`https://wigle.net/user/${stats?.user}`}
+              href={`https://wigle.net/user/${getStat('user')}`}
               target="_blank"
               rel="noreferrer"
               className="mt-4 text-xs text-blue-400 hover:text-blue-300 underline"
@@ -213,22 +217,26 @@ export const WigleStatsTab: React.FC = () => {
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Total Observations</span>
               <span className="text-white font-mono">
-                {stats?.totalObservations?.toLocaleString()}
+                {getStat('totalObservations')?.toLocaleString() || '—'}
               </span>
             </div>
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Total WiFi</span>
-              <span className="text-white font-mono">{stats?.totalWiFi?.toLocaleString()}</span>
+              <span className="text-white font-mono">
+                {getStat('totalWiFi')?.toLocaleString() || '—'}
+              </span>
             </div>
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Total Bluetooth</span>
               <span className="text-white font-mono">
-                {stats?.totalBluetooth?.toLocaleString()}
+                {getStat('totalBluetooth')?.toLocaleString() || '—'}
               </span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-slate-400">Total Cell</span>
-              <span className="text-white font-mono">{stats?.totalCell?.toLocaleString()}</span>
+              <span className="text-white font-mono">
+                {getStat('totalCell')?.toLocaleString() || '—'}
+              </span>
             </div>
           </div>
         </div>
@@ -242,25 +250,25 @@ export const WigleStatsTab: React.FC = () => {
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Ever Found WiFi</span>
               <span className="text-white font-mono">
-                {stats?.discoveredWiFi?.toLocaleString()}
+                {getStat('discoveredWiFi')?.toLocaleString() || '—'}
               </span>
             </div>
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Ever Found Bluetooth</span>
               <span className="text-white font-mono">
-                {stats?.discoveredBluetooth?.toLocaleString()}
+                {getStat('discoveredBluetooth')?.toLocaleString() || '—'}
               </span>
             </div>
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Ever Found Cell</span>
               <span className="text-white font-mono">
-                {stats?.discoveredCell?.toLocaleString()}
+                {getStat('discoveredCell')?.toLocaleString() || '—'}
               </span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-slate-400">Event Discoveries</span>
               <span className="text-white font-mono">
-                {stats?.eventDiscoveries?.toLocaleString()}
+                {getStat('eventDiscoveries')?.toLocaleString() || '—'}
               </span>
             </div>
           </div>
