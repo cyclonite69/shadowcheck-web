@@ -151,3 +151,4 @@ assets/images/
 # Setup scripts in root (should be in scripts/)
 /setup_*.sh
 /*_setup_*.sh
+telemetry-id
