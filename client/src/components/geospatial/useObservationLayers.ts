@@ -142,6 +142,7 @@ export const useObservationLayers = ({
             ssid: network?.ssid || '(hidden)',
             manufacturer: network?.manufacturer || null,
             security: network?.security || null,
+            capabilities: obs.capabilities || network?.capabilities || network?.security || null,
             threat_level: threatLevel,
             threat_score: network?.threat_score ?? null,
             first_seen: network?.firstSeen || null,

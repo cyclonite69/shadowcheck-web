@@ -1,5 +1,5 @@
 import { SqlFragmentLibrary } from '../SqlFragmentLibrary';
-import { OBS_TYPE_EXPR, SECURITY_FROM_CAPS_EXPR } from '../sqlExpressions';
+import { OBS_TYPE_EXPR, SECURITY_FROM_CAPS_EXPR, WIFI_CHANNEL_EXPR } from '../sqlExpressions';
 import { GeospatialQueryBuilder } from '../builders/GeospatialQueryBuilder';
 import type { FilterBuildContext } from '../FilterBuildContext';
 import type { FilteredQueryResult, CteResult, GeospatialOptions } from '../types';
@@ -29,12 +29,13 @@ export class GeospatialModule {
         SELECT
           o.bssid,
           o.ssid,
-          ne.capabilities,
+          COALESCE(o.radio_capabilities, ne.capabilities) AS capabilities,
           ${SECURITY_FROM_CAPS_EXPR('COALESCE(o.radio_capabilities, ne.capabilities)')} AS security,
           o.lat,
           o.lon,
           o.level AS signal,
           o.radio_frequency AS frequency,
+          ${WIFI_CHANNEL_EXPR('o')} AS channel,
           ${OBS_TYPE_EXPR('o')} AS type,
           o.time AS last_seen,
           ne.threat_score,
@@ -66,12 +67,13 @@ export class GeospatialModule {
       SELECT
         o.bssid,
         o.ssid,
-        ne.capabilities,
+        COALESCE(o.radio_capabilities, ne.capabilities) AS capabilities,
         ${SECURITY_FROM_CAPS_EXPR('COALESCE(o.radio_capabilities, ne.capabilities)')} AS security,
         o.lat,
         o.lon,
         o.level AS signal,
         o.radio_frequency AS frequency,
+        ${WIFI_CHANNEL_EXPR('o')} AS channel,
         ${OBS_TYPE_EXPR('o')} AS type,
         o.time AS last_seen,
         ne.threat_score,

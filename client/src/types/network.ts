@@ -89,6 +89,7 @@ export type Observation = {
   frequency?: number | null;
   altitude?: number | null;
   acc?: number | null;
+  capabilities?: string;
   distance_from_home_km?: number | null;
 };
 

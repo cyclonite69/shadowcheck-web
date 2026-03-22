@@ -295,7 +295,19 @@ export class ObservationModule {
     const cte = `
       WITH ${homeCte}
       filtered_obs AS (
-        SELECT o.*
+        SELECT 
+          o.bssid,
+          o.ssid,
+          o.lat,
+          o.lon,
+          o.level,
+          o.time,
+          o.accuracy,
+          o.radio_frequency,
+          o.radio_capabilities,
+          o.radio_type,
+          o.geom,
+          o.altitude
         FROM app.observations o
         ${joinClause}
         ${this.ctx.requiresHome && !joinClause.includes('CROSS JOIN home') ? 'CROSS JOIN home' : ''}

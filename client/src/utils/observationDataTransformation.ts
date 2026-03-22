@@ -35,6 +35,7 @@ export function mapObservationApiRow(row: ObservationApiRow): Observation | null
     frequency: radioFrequency,
     acc: accuracy,
     altitude,
+    capabilities: String(row.radio_capabilities || ''),
   };
 }
 
