@@ -17,6 +17,7 @@ cd "$APP_DIR"
 
 # Config file for persistent settings (custom env overrides, etc.)
 SCS_ENV="$HOME/.shadowcheck-env"
+PGADMIN_READY=0
 
 wait_for_container_health() {
   local container="$1"
@@ -84,16 +85,27 @@ if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowche
     DB_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
     
     export DB_PASSWORD REPO_ROOT="$APP_DIR"
-    docker-compose -f "$PGADMIN_COMPOSE" up -d pgadmin
+    if docker-compose -f "$PGADMIN_COMPOSE" up -d --no-deps pgadmin; then
+      PGADMIN_READY=1
+    else
+      echo "  ⚠️ pgAdmin update failed; continuing with backend/frontend rebuild"
+    fi
     unset DB_PASSWORD
   fi
 else
   echo "  ✅ Infrastructure already running"
+  if docker ps | grep -q shadowcheck_pgadmin; then
+    PGADMIN_READY=1
+  fi
 fi
 
 wait_for_container_health shadowcheck_postgres 90
 wait_for_container_health shadowcheck_redis 30
-wait_for_container_health shadowcheck_pgadmin 60
+if [ "$PGADMIN_READY" -eq 1 ]; then
+  wait_for_container_health shadowcheck_pgadmin 60
+else
+  echo "  ⚠️ Skipping pgAdmin health check"
+fi
 
 # 4. Build env
 echo "[4/7] Preparing environment..."
