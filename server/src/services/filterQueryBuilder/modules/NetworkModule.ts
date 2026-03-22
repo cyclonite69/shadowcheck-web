@@ -1,42 +1,17 @@
-import { RELATIVE_WINDOWS, NETWORK_ONLY_FILTERS, type FilterKey } from '../constants';
-import { SqlFragmentLibrary } from '../SqlFragmentLibrary';
-import { FIELD_EXPRESSIONS, NULL_SAFE_COMPARISONS } from '../SchemaCompat';
 import { NetworkListQueryBuilder } from '../builders/NetworkListQueryBuilder';
 import { NetworkOnlyQueryBuilder } from '../builders/NetworkOnlyQueryBuilder';
-import { OBS_TYPE_EXPR, SECURITY_FROM_CAPS_EXPR, SECURITY_EXPR } from '../sqlExpressions';
 import type { FilterBuildContext } from '../FilterBuildContext';
-import type {
-  QueryResult,
-  FilteredQueryResult,
-  CteResult,
-  NetworkListOptions,
-  AppliedFilter,
-} from '../types';
-import { applyEngagementFilters, applyRadioFilters } from './networkPredicateAdapters';
+import type { QueryResult, FilteredQueryResult, CteResult, NetworkListOptions } from '../types';
 import { buildNetworkOnlyCountQuery, buildNetworkOnlyQueryImpl } from './networkFastPathBuilder';
 import {
   buildNetworkSlowPathCountQuery,
   buildNetworkSlowPathListQuery,
 } from './networkSlowPathBuilder';
 import { buildNetworkDashboardMetricsQuery } from './networkMetricsBuilder';
-
-const logger = require('../../../logging/logger');
-
-interface ThreatLevelMap {
-  [key: string]: string;
-}
-
-const NE_NOT_IGNORED_EXISTS_CLAUSE = `NOT EXISTS (
-  SELECT 1
-  FROM app.network_tags nt_ignored
-  WHERE UPPER(nt_ignored.bssid) = UPPER(ne.bssid)
-    AND COALESCE((to_jsonb(nt_ignored)->>'is_ignored')::boolean, FALSE) = TRUE
-)`;
-const NT_FILTER_TAG_LOWER_EXPR = FIELD_EXPRESSIONS.threatTagLowercase('nt_filter');
-const NT_FILTER_IS_IGNORED_EXPR = NULL_SAFE_COMPARISONS.isIgnored('nt_filter');
-const NT_NOT_IGNORED_CLAUSE = 'COALESCE(nt.is_ignored, FALSE) = FALSE';
-const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
-const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
+import {
+  buildNetworkNoFilterCountQuery,
+  buildNetworkNoFilterListQuery,
+} from './networkNoFilterBuilder';
 
 export class NetworkModule {
   constructor(
@@ -59,79 +34,7 @@ export class NetworkModule {
 
     const noFiltersEnabled = Object.values(this.ctx.enabled).every((value) => !value);
     if (noFiltersEnabled) {
-      this.ctx.requiresHome = false;
-      const safeOrderBy = orderBy
-        .replace(/\bl\.observed_at\b/g, 'ne.observed_at')
-        .replace(/\bl\.level\b/g, 'ne.signal')
-        .replace(/\bl\.lat\b/g, 'ne.lat')
-        .replace(/\bl\.lon\b/g, 'ne.lon')
-        .replace(/\bl\.accuracy\b/g, 'ne.accuracy_meters')
-        .replace(/\br\.observation_count\b/g, 'ne.observations')
-        .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
-        .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
-        .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
-
-      const sql = `
-        SELECT
-          ne.bssid,
-          ne.ssid,
-          ne.type,
-          ${SECURITY_FROM_CAPS_EXPR('COALESCE(ne.capabilities, ne.security)')} AS security,
-          ne.frequency,
-          ne.capabilities,
-          (ne.frequency BETWEEN 5000 AND 5900) AS is_5ghz,
-          (ne.frequency BETWEEN 5925 AND 7125) AS is_6ghz,
-          (COALESCE(ne.ssid, '') = '') AS is_hidden,
-          ne.first_seen,
-          ne.last_seen,
-          ${RM_SELECT_FIELDS},
-          NULL::numeric AS min_altitude_m,
-          NULL::numeric AS max_altitude_m,
-          NULL::numeric AS altitude_span_m,
-          ne.max_distance_meters,
-          NULL::numeric AS last_altitude_m,
-          FALSE AS is_sentinel,
-          ne.distance_from_home_km,
-          ne.observations AS observations,
-          ne.wigle_v3_observation_count,
-          ne.wigle_v3_last_import_at,
-          ne.first_seen AS first_observed_at,
-          ne.last_seen AS last_observed_at,
-          NULL::integer AS unique_days,
-          NULL::integer AS unique_locations,
-          NULL::numeric AS avg_signal,
-          NULL::numeric AS min_signal,
-          NULL::numeric AS max_signal,
-          ne.observed_at,
-          ne.signal,
-          ne.lat,
-          ne.lon,
-          ne.accuracy_meters AS accuracy_meters,
-          NULL::numeric AS stationary_confidence,
-          ${NT_SELECT_FIELDS},
-          (
-            SELECT COUNT(*)
-            FROM app.network_notes nn
-            WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
-              AND nn.is_deleted IS NOT TRUE
-          )::integer AS notes_count,
-          JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
-          NULL::text AS network_id
-        FROM app.api_network_explorer_mv ne
-        ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
-        ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
-        ${includeIgnored ? '' : `WHERE ${NT_NOT_IGNORED_CLAUSE}`}
-        ORDER BY ${safeOrderBy}
-        LIMIT ${this.ctx.addParam(limit)} OFFSET ${this.ctx.addParam(offset)}
-      `;
-
-      return {
-        sql,
-        params: this.ctx.getParams() as any[],
-        appliedFilters: this.ctx.state.appliedFilters(),
-        ignoredFilters: this.ctx.state.ignoredFilters(),
-        warnings: this.ctx.state.warnings(),
-      };
+      return buildNetworkNoFilterListQuery(this.ctx, options);
     }
 
     const enabledKeys = Object.entries(this.ctx.enabled)
@@ -167,15 +70,9 @@ export class NetworkModule {
   }
 
   public buildNetworkCountQuery(): QueryResult {
-    const includeIgnored = this.ctx.shouldIncludeIgnoredByExplicitTagFilter();
     const noFiltersEnabled = Object.values(this.ctx.enabled).every((value) => !value);
     if (noFiltersEnabled) {
-      return {
-        sql: `SELECT COUNT(*) AS total
-              FROM app.api_network_explorer_mv ne
-              ${includeIgnored ? '' : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`}`,
-        params: [],
-      };
+      return buildNetworkNoFilterCountQuery(this.ctx);
     }
 
     const enabledKeys = Object.entries(this.ctx.enabled)
@@ -183,7 +80,7 @@ export class NetworkModule {
       .map(([key]) => key);
     const networkOnly = this.ctx.isFastPathEligible(enabledKeys);
     if (networkOnly) {
-      return this.buildNetworkOnlyCountQuery();
+      return buildNetworkOnlyCountQuery(this.ctx);
     }
 
     // SLOW PATH
@@ -192,9 +89,5 @@ export class NetworkModule {
 
   public buildDashboardMetricsQuery(): QueryResult {
     return buildNetworkDashboardMetricsQuery(this.ctx, this.getFilteredObservationsCte.bind(this));
-  }
-
-  private buildNetworkOnlyCountQuery(): QueryResult {
-    return buildNetworkOnlyCountQuery(this.ctx);
   }
 }
