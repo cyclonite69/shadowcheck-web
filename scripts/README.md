@@ -156,6 +156,14 @@ Validates dashboard filter behavior against `/api/dashboard-metrics`:
 - `filtersApplied` behavior
 - Neutral all-radio selection behavior
 
+If the target API requires authentication, create a cookie jar first:
+
+```bash
+bash scripts/login-admin-from-aws-sm.sh http://localhost:3001 /tmp/sc.cookies
+COOKIE_JAR=/tmp/sc.cookies bash scripts/test-dashboard-filters.sh http://localhost:3001
+COOKIE_JAR=/tmp/sc.cookies bash scripts/test-all-filters.sh localhost:3001
+```
+
 ## Utilities
 
 ### Set Home Location
