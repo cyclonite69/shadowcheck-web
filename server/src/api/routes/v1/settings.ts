@@ -290,6 +290,33 @@ router.post('/settings/opencage', requireAuth, async (req, res) => {
   }
 });
 
+// Get Geocodio API key (masked)
+router.get('/settings/geocodio', requireAuth, async (req, res) => {
+  try {
+    const apiKey = await secretsManager.getSecret('geocodio_api_key');
+    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set Geocodio API key
+router.post('/settings/geocodio', requireAuth, async (req, res) => {
+  try {
+    const { apiKey, value } = req.body;
+    const incomingValue = apiKey ?? value;
+    const keyValidation = validateGenericKey(incomingValue, 'geocodio_api_key');
+    if (!keyValidation.valid) {
+      return res.status(400).json({ error: keyValidation.error });
+    }
+
+    await secretsManager.putSecret('geocodio_api_key', keyValidation.value);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get LocationIQ API key (masked)
 router.get('/settings/locationiq', requireAuth, async (req, res) => {
   try {

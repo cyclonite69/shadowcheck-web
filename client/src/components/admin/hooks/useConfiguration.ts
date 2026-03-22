@@ -8,6 +8,7 @@ type SavedConfigurationValues = {
   googleMapsApiKey: string;
   awsRegion: string;
   opencageApiKey: string;
+  geocodioApiKey: string;
   locationIqApiKey: string;
   smartyAuthId: string;
   smartyAuthToken: string;
@@ -28,6 +29,7 @@ const EMPTY_SAVED_VALUES: SavedConfigurationValues = {
   googleMapsApiKey: '',
   awsRegion: '',
   opencageApiKey: '',
+  geocodioApiKey: '',
   locationIqApiKey: '',
   smartyAuthId: '',
   smartyAuthToken: '',
@@ -43,6 +45,7 @@ export const useConfiguration = () => {
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
   const [awsRegion, setAwsRegion] = useState('');
   const [opencageApiKey, setOpencageApiKey] = useState('');
+  const [geocodioApiKey, setGeocodioApiKey] = useState('');
   const [locationIqApiKey, setLocationIqApiKey] = useState('');
   const [smartyAuthId, setSmartyAuthId] = useState('');
   const [smartyAuthToken, setSmartyAuthToken] = useState('');
@@ -52,6 +55,7 @@ export const useConfiguration = () => {
   const [wigleConfigured, setWigleConfigured] = useState(false);
   const [awsConfigured, setAwsConfigured] = useState(false);
   const [opencageConfigured, setOpencageConfigured] = useState(false);
+  const [geocodioConfigured, setGeocodioConfigured] = useState(false);
   const [locationIqConfigured, setLocationIqConfigured] = useState(false);
   const [smartyConfigured, setSmartyConfigured] = useState(false);
   const [wigleApiName, setWigleApiName] = useState('');
@@ -165,6 +169,20 @@ export const useConfiguration = () => {
     }
   };
 
+  const saveGeocodioApiKey = async () => {
+    try {
+      setIsLoading(true);
+      await adminApi.saveGeocodioKey(geocodioApiKey);
+      setGeocodioConfigured(true);
+      setSavedValues((current) => ({ ...current, geocodioApiKey }));
+      alert('Geocodio API key saved!');
+    } catch (error) {
+      alert(`Error saving Geocodio key: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const saveSmartyCredentials = async () => {
     try {
       setIsLoading(true);
@@ -236,6 +254,7 @@ export const useConfiguration = () => {
           wigleRes,
           awsRes,
           opencageRes,
+          geocodioRes,
           locationIqRes,
           smartyRes,
         ] = await Promise.all([
@@ -245,6 +264,7 @@ export const useConfiguration = () => {
           adminApi.getWigleToken(),
           adminApi.getAwsSettings(),
           adminApi.getOpenCageKey(),
+          adminApi.getGeocodioKey(),
           adminApi.getLocationIQKey(),
           adminApi.getSmartyKey(),
         ]);
@@ -296,6 +316,12 @@ export const useConfiguration = () => {
           setOpencageApiKey(savedApiKey);
           setSavedValues((current) => ({ ...current, opencageApiKey: savedApiKey }));
         }
+        if (geocodioRes) {
+          setGeocodioConfigured(Boolean(geocodioRes.configured));
+          const savedApiKey = String(geocodioRes.value || '');
+          setGeocodioApiKey(savedApiKey);
+          setSavedValues((current) => ({ ...current, geocodioApiKey: savedApiKey }));
+        }
         if (locationIqRes) {
           setLocationIqConfigured(Boolean(locationIqRes.configured));
           const savedApiKey = String(locationIqRes.value || '');
@@ -321,6 +347,7 @@ export const useConfiguration = () => {
         setWigleConfigured(false);
         setAwsConfigured(false);
         setOpencageConfigured(false);
+        setGeocodioConfigured(false);
         setLocationIqConfigured(false);
         setSmartyConfigured(false);
       }
@@ -381,6 +408,8 @@ export const useConfiguration = () => {
     setAwsRegion,
     opencageApiKey,
     setOpencageApiKey,
+    geocodioApiKey,
+    setGeocodioApiKey,
     locationIqApiKey,
     setLocationIqApiKey,
     smartyAuthId,
@@ -393,6 +422,7 @@ export const useConfiguration = () => {
     wigleConfigured,
     awsConfigured,
     opencageConfigured,
+    geocodioConfigured,
     locationIqConfigured,
     smartyConfigured,
     wigleApiName,
@@ -411,6 +441,7 @@ export const useConfiguration = () => {
     saveGoogleMapsApiKey,
     saveAwsRegion,
     saveOpencageApiKey,
+    saveGeocodioApiKey,
     saveLocationIqApiKey,
     saveSmartyCredentials,
     saveWigleCredentials,

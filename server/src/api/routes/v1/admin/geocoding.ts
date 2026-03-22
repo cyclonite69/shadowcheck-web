@@ -29,7 +29,9 @@ router.post('/admin/geocoding/run', async (req, res) => {
       mode = 'address-only',
       limit = 1000,
       precision = 5,
-      perMinute = ['nominatim', 'overpass', 'opencage', 'locationiq'].includes(provider) ? 60 : 200,
+      perMinute = ['nominatim', 'overpass', 'opencage', 'geocodio', 'locationiq'].includes(provider)
+        ? 60
+        : 200,
       permanent = true,
     } = req.body || {};
 

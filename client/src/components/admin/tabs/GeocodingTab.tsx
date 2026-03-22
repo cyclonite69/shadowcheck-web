@@ -51,7 +51,7 @@ export const GeocodingTab: React.FC = () => {
   const [perMinute, setPerMinute] = useState(60);
   const [permanent, setPermanent] = useState(false);
   const [addressProvider, setAddressProvider] = useState<
-    'mapbox' | 'nominatim' | 'opencage' | 'locationiq'
+    'mapbox' | 'nominatim' | 'opencage' | 'geocodio' | 'locationiq'
   >('locationiq');
 
   const {
@@ -115,6 +115,17 @@ export const GeocodingTab: React.FC = () => {
   const runFallbackLocationIq = async () => {
     await runGeocoding({
       provider: 'locationiq',
+      mode: 'address-only',
+      limit,
+      precision,
+      perMinute: Math.min(perMinute, 60),
+      permanent: false,
+    });
+  };
+
+  const runFallbackGeocodio = async () => {
+    await runGeocoding({
+      provider: 'geocodio',
       mode: 'address-only',
       limit,
       precision,
@@ -280,12 +291,18 @@ export const GeocodingTab: React.FC = () => {
                 value={addressProvider}
                 onChange={(e) =>
                   setAddressProvider(
-                    e.target.value as 'mapbox' | 'nominatim' | 'opencage' | 'locationiq'
+                    e.target.value as
+                      | 'mapbox'
+                      | 'nominatim'
+                      | 'opencage'
+                      | 'geocodio'
+                      | 'locationiq'
                   )
                 }
                 className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
               >
                 <option value="locationiq">LocationIQ</option>
+                <option value="geocodio">Geocodio</option>
                 <option value="opencage">OpenCage</option>
                 <option value="nominatim">Nominatim</option>
                 <option value="mapbox">Mapbox</option>
@@ -359,6 +376,13 @@ export const GeocodingTab: React.FC = () => {
               className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 transition-all disabled:opacity-50 text-sm"
             >
               {actionLoading ? 'Running...' : 'Fallback Addresses (OpenCage)'}
+            </button>
+            <button
+              onClick={runFallbackGeocodio}
+              disabled={actionLoading}
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-lime-600 to-lime-700 text-white rounded-lg font-medium hover:from-lime-500 hover:to-lime-600 transition-all disabled:opacity-50 text-sm"
+            >
+              {actionLoading ? 'Running...' : 'Fallback Addresses (Geocodio)'}
             </button>
             <button
               onClick={runFallbackLocationIq}

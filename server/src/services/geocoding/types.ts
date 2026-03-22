@@ -3,7 +3,13 @@
  */
 
 export type GeocodeMode = 'address-only' | 'poi-only' | 'both';
-export type GeocodeProvider = 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+export type GeocodeProvider =
+  | 'mapbox'
+  | 'nominatim'
+  | 'overpass'
+  | 'opencage'
+  | 'geocodio'
+  | 'locationiq';
 
 export type GeocodeRunOptions = {
   precision: number;
@@ -17,6 +23,7 @@ export type GeocodeRunOptions = {
 export type GeocodeProviderCredentials = {
   mapboxToken?: string;
   opencageKey?: string;
+  geocodioKey?: string;
   locationIqKey?: string;
 };
 

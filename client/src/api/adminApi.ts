@@ -97,6 +97,10 @@ export const adminApi = {
     return apiClient.post('/settings/opencage', { apiKey: key });
   },
 
+  async saveGeocodioKey(key: string): Promise<any> {
+    return apiClient.post('/settings/geocodio', { apiKey: key });
+  },
+
   async saveLocationIQKey(key: string): Promise<any> {
     return apiClient.post('/settings/locationiq', { apiKey: key });
   },
@@ -135,6 +139,10 @@ export const adminApi = {
 
   async getOpenCageKey(): Promise<any> {
     return apiClient.get('/settings/opencage');
+  },
+
+  async getGeocodioKey(): Promise<any> {
+    return apiClient.get('/settings/geocodio');
   },
 
   async getLocationIQKey(): Promise<any> {

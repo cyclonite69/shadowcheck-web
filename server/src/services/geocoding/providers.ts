@@ -150,6 +150,50 @@ export const opencageReverse = async (
   };
 };
 
+export const geocodioReverse = async (
+  lat: number,
+  lon: number,
+  key?: string
+): Promise<GeocodeResult> => {
+  if (!key) {
+    throw new Error('missing_key');
+  }
+  const url = `https://api.geocod.io/v1.7/reverse?q=${lat},${lon}&api_key=${key}&limit=1`;
+  const response = await fetch(url);
+  if (response.status === 429) {
+    throw new Error('rate_limit');
+  }
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: `HTTP ${response.status}`,
+      raw: await readFailurePayload(response),
+    };
+  }
+  const json = (await response.json()) as {
+    results?: Array<{
+      formatted_address?: string;
+      address_components?: Record<string, string>;
+      accuracy?: number;
+    }>;
+  };
+  const result = json.results?.[0];
+  if (!result?.formatted_address) {
+    return { ok: false, raw: json };
+  }
+  const components = result.address_components || {};
+  return {
+    ok: true,
+    address: result.formatted_address,
+    city: components.city || components.county || components.place || components.locality || null,
+    state: components.state || null,
+    postal: components.zip || null,
+    country: components.country || null,
+    confidence: typeof result.accuracy === 'number' ? result.accuracy : null,
+    raw: json,
+  };
+};
+
 export const locationIqReverse = async (
   lat: number,
   lon: number,

@@ -50,6 +50,8 @@ export const ConfigurationTab: React.FC = () => {
     setAwsRegion,
     opencageApiKey,
     setOpencageApiKey,
+    geocodioApiKey,
+    setGeocodioApiKey,
     locationIqApiKey,
     setLocationIqApiKey,
     smartyAuthId,
@@ -62,6 +64,7 @@ export const ConfigurationTab: React.FC = () => {
     wigleConfigured,
     awsConfigured,
     opencageConfigured,
+    geocodioConfigured,
     locationIqConfigured,
     smartyConfigured,
     wigleApiName,
@@ -78,6 +81,7 @@ export const ConfigurationTab: React.FC = () => {
     saveAwsRegion,
     saveGoogleMapsApiKey,
     saveOpencageApiKey,
+    saveGeocodioApiKey,
     saveLocationIqApiKey,
     saveSmartyCredentials,
     saveHomeLocation,
@@ -190,19 +194,24 @@ export const ConfigurationTab: React.FC = () => {
           opencageApiKey={opencageApiKey}
           setOpencageApiKey={setOpencageApiKey}
           savedOpencageApiKey={savedValues.opencageApiKey}
+          geocodioApiKey={geocodioApiKey}
+          setGeocodioApiKey={setGeocodioApiKey}
+          savedGeocodioApiKey={savedValues.geocodioApiKey}
           locationIqApiKey={locationIqApiKey}
           setLocationIqApiKey={setLocationIqApiKey}
           savedLocationIqApiKey={savedValues.locationIqApiKey}
           isSaving={isLoading}
           onSave={() => {
             if (opencageApiKey !== savedValues.opencageApiKey) saveOpencageApiKey();
+            if (geocodioApiKey !== savedValues.geocodioApiKey) saveGeocodioApiKey();
             if (locationIqApiKey !== savedValues.locationIqApiKey) saveLocationIqApiKey();
           }}
           hasChanges={
             opencageApiKey !== savedValues.opencageApiKey ||
+            geocodioApiKey !== savedValues.geocodioApiKey ||
             locationIqApiKey !== savedValues.locationIqApiKey
           }
-          isConfigured={opencageConfigured || locationIqConfigured}
+          isConfigured={opencageConfigured || geocodioConfigured || locationIqConfigured}
         />
 
         {/* Google Maps */}

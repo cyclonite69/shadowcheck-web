@@ -20,6 +20,7 @@ import {
   nominatimReverse,
   overpassPoi,
   opencageReverse,
+  geocodioReverse,
   locationIqReverse,
 } from './geocoding/providers';
 
@@ -37,6 +38,7 @@ const PROVIDER_RATE_LIMIT_POLICY: Record<
   nominatim: { initialBackoffMs: 60000, maxBackoffMs: 300000 },
   overpass: { initialBackoffMs: 60000, maxBackoffMs: 300000 },
   opencage: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
+  geocodio: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
   locationiq: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
 };
 
@@ -487,6 +489,11 @@ const resolveProviderCredentials = async (
     return { opencageKey: opencageKey || undefined };
   }
 
+  if (provider === 'geocodio') {
+    const geocodioKey = await secretsManager.getSecret('geocodio_api_key');
+    return { geocodioKey: geocodioKey || undefined };
+  }
+
   if (provider === 'locationiq') {
     const locationIqKey = await secretsManager.getSecret('locationiq_api_key');
     return { locationIqKey: locationIqKey || undefined };
@@ -504,6 +511,9 @@ const ensureProviderReady = (
   }
   if (provider === 'opencage' && !credentials.opencageKey) {
     throw new Error('missing_key:opencage');
+  }
+  if (provider === 'geocodio' && !credentials.geocodioKey) {
+    throw new Error('missing_key:geocodio');
   }
   if (provider === 'locationiq' && !credentials.locationIqKey) {
     throw new Error('missing_key:locationiq');
@@ -573,6 +583,8 @@ const runGeocodeCacheUpdateInternal = async (
         result = await overpassPoi(row.lat_round, row.lon_round);
       } else if (options.provider === 'opencage') {
         result = await opencageReverse(row.lat_round, row.lon_round, credentials.opencageKey);
+      } else if (options.provider === 'geocodio') {
+        result = await geocodioReverse(row.lat_round, row.lon_round, credentials.geocodioKey);
       } else if (options.provider === 'locationiq') {
         result = await locationIqReverse(row.lat_round, row.lon_round, credentials.locationIqKey);
       }
@@ -847,6 +859,8 @@ const testGeocodingProvider = async (probe: GeocodingProviderProbe) => {
     result = await overpassPoi(coords.lat, coords.lon);
   } else if (probe.provider === 'opencage') {
     result = await opencageReverse(coords.lat, coords.lon, credentials.opencageKey);
+  } else if (probe.provider === 'geocodio') {
+    result = await geocodioReverse(coords.lat, coords.lon, credentials.geocodioKey);
   } else if (probe.provider === 'locationiq') {
     result = await locationIqReverse(coords.lat, coords.lon, credentials.locationIqKey);
   }

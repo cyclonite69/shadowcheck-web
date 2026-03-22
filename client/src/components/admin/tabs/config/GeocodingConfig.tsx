@@ -21,6 +21,9 @@ interface GeocodingConfigProps {
   opencageApiKey: string;
   setOpencageApiKey: (val: string) => void;
   savedOpencageApiKey: string;
+  geocodioApiKey: string;
+  setGeocodioApiKey: (val: string) => void;
+  savedGeocodioApiKey: string;
   locationIqApiKey: string;
   setLocationIqApiKey: (val: string) => void;
   savedLocationIqApiKey: string;
@@ -34,6 +37,9 @@ export const GeocodingConfig: React.FC<GeocodingConfigProps> = ({
   opencageApiKey,
   setOpencageApiKey,
   savedOpencageApiKey,
+  geocodioApiKey,
+  setGeocodioApiKey,
+  savedGeocodioApiKey,
   locationIqApiKey,
   setLocationIqApiKey,
   savedLocationIqApiKey,
@@ -55,6 +61,17 @@ export const GeocodingConfig: React.FC<GeocodingConfigProps> = ({
           actualValue={opencageApiKey}
           savedValue={savedOpencageApiKey}
           onChange={setOpencageApiKey}
+          sensitive={true}
+          placeholder="API Key"
+          className="w-full bg-slate-900/50 border border-slate-700/50 rounded-lg px-4 py-2.5 outline-none focus:border-green-500/50 transition-colors"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-300">Geocodio API Key</label>
+        <SavedValueInput
+          actualValue={geocodioApiKey}
+          savedValue={savedGeocodioApiKey}
+          onChange={setGeocodioApiKey}
           sensitive={true}
           placeholder="API Key"
           className="w-full bg-slate-900/50 border border-slate-700/50 rounded-lg px-4 py-2.5 outline-none focus:border-green-500/50 transition-colors"

@@ -7,7 +7,7 @@ import type {
 } from '../types/admin.types';
 
 type GeocodingRunOptions = {
-  provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+  provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
   mode: 'address-only' | 'poi-only' | 'both';
   limit: number;
   precision: number;
