@@ -48,11 +48,44 @@ async function getDetailedDatabaseStats(): Promise<any> {
       infra: ['settings', 'schema_migrations', 'import_history', 'geocoding_cache', 'ai_insights'],
     };
 
+    // 4. Get Materialized View Health
+    const { rows: mvStats } = await adminQuery(`
+      SELECT 
+        m.matviewname as view_name,
+        m.ispopulated as is_populated,
+        pg_size_pretty(pg_total_relation_size(quote_ident(m.schemaname) || '.' || quote_ident(m.matviewname))) as size_pretty,
+        s.seq_scan,
+        s.seq_tup_read,
+        COALESCE(s.last_analyze, s.last_autoanalyze) as last_active
+      FROM pg_matviews m
+      LEFT JOIN pg_stat_user_tables s ON s.relname = m.matviewname AND s.schemaname = m.schemaname
+      WHERE m.schemaname = 'app'
+      ORDER BY m.matviewname ASC
+    `);
+
+    // 5. Get Unused Index Report
+    const { rows: unusedIndexes } = await adminQuery(`
+      SELECT 
+        schemaname || '.' || relname as table_name,
+        indexrelname as index_name,
+        idx_scan as scan_count,
+        pg_size_pretty(pg_relation_size(indexrelid)) as size_pretty,
+        pg_relation_size(indexrelid) as size_bytes
+      FROM pg_stat_user_indexes
+      WHERE schemaname = 'app'
+        AND idx_scan = 0
+        AND indexrelname NOT LIKE '%_pkey'
+        AND indexrelname NOT LIKE '%_id_key'
+      ORDER BY pg_relation_size(indexrelid) DESC
+    `);
+
     return {
       success: true,
       total_db_size: totalDbSize,
       tables: tableStats,
       categories,
+      materialized_views: mvStats,
+      unused_indexes: unusedIndexes,
     };
   } catch (e: any) {
     logger.error('Failed to fetch detailed DB stats', { error: e.message });
