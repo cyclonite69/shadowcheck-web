@@ -225,7 +225,7 @@ DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db
-CORS_ORIGINS=http://${public_ip},http://localhost
+CORS_ORIGINS=http://${public_ip},https://${public_ip},http://localhost,https://localhost
 SHADOWCHECK_AWS_SECRET=$AWS_SECRET_NAME
 AWS_DEFAULT_REGION=$AWS_REGION
 ENVEOF

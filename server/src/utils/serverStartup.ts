@@ -15,6 +15,7 @@ interface StartupOptions {
   port: number;
   host: string;
   forceHttps: boolean;
+  allowedOrigins: string[];
   logger: Logger;
 }
 
@@ -22,12 +23,15 @@ interface StartupOptions {
  * Start the HTTP server and log configuration details.
  */
 function startServer(app: Express, options: StartupOptions): Server {
-  const { port, host, forceHttps, logger } = options;
+  const { port, host, forceHttps, allowedOrigins, logger } = options;
 
   return app.listen(port, host, () => {
     logger.info(`Server listening on port ${port}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`HTTPS redirect: ${forceHttps ? 'enabled' : 'disabled'}`);
+    logger.info(
+      `CORS origins: ${allowedOrigins.length > 0 ? allowedOrigins.join(', ') : '(none)'}`
+    );
   });
 }
 

@@ -137,8 +137,9 @@ df -h /var/lib/postgresql | tail -1
 echo ""
 echo "🔗 Access URLs:"
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-echo "   Frontend: http://$PUBLIC_IP:3000"
-echo "   Backend:  http://$PUBLIC_IP:3001"
+echo "   Frontend: https://$PUBLIC_IP"
+echo "   Backend API (proxied): https://$PUBLIC_IP/api"
+echo "   Backend health (local): http://$PUBLIC_IP:3001"
 echo ""
 echo "🔑 Credentials:"
 echo "   Database password: stored in AWS Secrets Manager (shadowcheck/config)"

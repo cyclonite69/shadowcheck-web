@@ -112,6 +112,7 @@ require('ts-node').register({
       port,
       host,
       forceHttps,
+      allowedOrigins,
       logger,
     });
 
