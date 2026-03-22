@@ -69,10 +69,42 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     )
   );
 
-  const rawCaps = String(pickFirst(raw.security, raw.encryption, raw.capabilities) || '');
+  const rawCaps = String(
+    pickFirst(raw.security, raw.encryption, raw.capabilities, raw.radio_capabilities) || ''
+  );
   const caps = parseCapabilities(rawCaps);
-  const freq = toNumberOrNull(raw.frequency) || 0;
+  const freq = toNumberOrNull(pickFirst(raw.frequency, raw.radio_frequency)) || 0;
   const canonicalSecurity = formatSecurity(rawCaps, 'Unknown');
+
+  // Calculate quality score if not provided
+  // Factor 1: Observation count (up to 20 obs for full points)
+  // Factor 2: GPS accuracy (under 10m for full points)
+  const obsCount = Number(
+    pickFirst(
+      raw.observation_count,
+      raw.obs_count,
+      raw.observations,
+      raw.wigle_v3_observation_count,
+      0
+    )
+  );
+  const accuracy = toNumberOrNull(pickFirst(raw.accuracy, raw.acc));
+
+  const calculatedQuality = (() => {
+    if (raw.quality_score !== undefined && raw.quality_score !== null) {
+      return toNumberOrNull(raw.quality_score) || 0;
+    }
+
+    let score = 0;
+    // Observations: 0 to 0.6 weight
+    score += Math.min(0.6, (obsCount / 20) * 0.6);
+    // Accuracy: 0 to 0.4 weight
+    if (accuracy !== null) {
+      const accBonus = Math.max(0, 0.4 * (1 - accuracy / 50));
+      score += accBonus;
+    }
+    return Math.min(1, score);
+  })();
 
   return {
     ssid: pickFirst(raw.ssid, raw.name, 'Hidden'),
@@ -100,15 +132,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     lon,
     altitude: toNumberOrNull(raw.altitude),
     manufacturer: pickFirst(raw.manufacturer, 'Unknown'),
-    observation_count: Number(
-      pickFirst(
-        raw.observation_count,
-        raw.obs_count,
-        raw.observations,
-        raw.wigle_v3_observation_count,
-        0
-      )
-    ),
+    observation_count: obsCount,
     timespan_days: toNumberOrNull(raw.timespan_days),
     time: pickFirst(raw.time, raw.timestamp, raw.last_seen, raw.lasttime, raw.observed_at),
     first_seen: pickFirst(raw.first_seen, raw.firsttime, raw.first_observed_at, raw.observed_at),
@@ -118,14 +142,14 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     ),
     max_distance_km: toNumberOrNull(raw.max_distance_km),
     unique_days: toNumberOrNull(raw.unique_days),
-    accuracy: toNumberOrNull(pickFirst(raw.accuracy, raw.acc)),
+    accuracy,
     number: toNumberOrNull(raw.number),
     time_since_prior: pickFirst(raw.time_since_prior, null),
     distance_from_last_point_m: toNumberOrNull(raw.distance_from_last_point_m),
     sibling_count: toNumberOrNull(raw.sibling_count) || 0,
     wigle_match: Boolean(raw.wigle_match),
     is_mobile: Boolean(raw.is_mobile),
-    quality_score: toNumberOrNull(raw.quality_score) || 0,
+    quality_score: calculatedQuality,
     notes: pickFirst(raw.notes, null),
     city: raw.city || '',
     region: raw.region || '',

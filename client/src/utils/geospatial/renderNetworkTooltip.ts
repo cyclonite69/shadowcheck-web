@@ -87,7 +87,7 @@ export const renderNetworkTooltip = (props: any): string => {
   const rssi = props.signal ?? props.rssi ?? props.level ?? -90;
   const score = Number(props.threat_score || 0);
   const quality = Math.round((props.quality_score || 0) * 100);
-  const qualColor = quality >= 80 ? '#22c55e' : quality >= 50 ? '#eab308' : '#ef4444';
+  const qualColor = quality >= 80 ? '#22c55e' : quality >= 60 ? '#eab308' : '#ef4444';
   const scoreColor = score >= 70 ? '#ef4444' : score >= 40 ? '#eab308' : '#22c55e';
   const lat = props.lat ?? props.latitude ?? props.trilat;
   const lon = props.lon ?? props.longitude ?? props.trilong;
@@ -192,8 +192,10 @@ export const renderNetworkTooltip = (props: any): string => {
 
   <div style="padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">
     <div style="font-size:9px;">
+      ${props.number ? `<div style="color:#3b82f6;font-weight:700;margin-bottom:2px;font-size:10px;">OBS # ${props.number} of ${props.observation_count}</div>` : ''}
       <div style="color:#334155;margin-bottom:1px;">FIRST <span style="color:#475569;">${fmtDate(props.first_seen)}</span></div>
-      <div style="color:#334155;">LAST <span style="color:#64748b;">${fmtDate(props.last_seen)}</span></div>
+      <div style="color:#334155;margin-bottom:1px;">LAST <span style="color:#64748b;">${fmtDate(props.last_seen)}</span></div>
+      ${props.time ? `<div style="color:#f8fafc;margin-top:2px;padding-top:2px;border-top:1px solid rgba(148,163,184,0.1);">THIS OBS <span style="color:#60a5fa;font-weight:700;">${fmtDate(props.time)}</span></div>` : ''}
       ${props.time_since_prior ? `<div style="color:#f97316;margin-top:1px;">+${props.time_since_prior} since prev</div>` : ''}
     </div>
     ${props.notes ? `<div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);color:#eab308;font-size:8.5px;padding:3px 7px;border-radius:4px;max-width:130px;text-align:right;line-height:1.3;">${props.notes}</div>` : ''}
