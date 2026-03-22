@@ -31,10 +31,18 @@ if [ -z "$ADMIN_PASSWORD" ]; then
   exit 1
 fi
 
-curl -sS -c "$COOKIE_JAR" \
+LOGIN_RESPONSE=$(curl -sS -c "$COOKIE_JAR" \
   -H 'Content-Type: application/json' \
   -d "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}" \
-  "$BASE_URL/api/auth/login" | jq
+  "$BASE_URL/api/auth/login")
+
+echo "$LOGIN_RESPONSE" | jq
+
+LOGIN_SUCCESS=$(printf '%s' "$LOGIN_RESPONSE" | jq -r '.success // false')
+if [ "$LOGIN_SUCCESS" != "true" ]; then
+  echo "ERROR: Login failed; cookie jar was not authenticated." >&2
+  exit 1
+fi
 
 echo ""
 echo "Cookie jar written to: $COOKIE_JAR"

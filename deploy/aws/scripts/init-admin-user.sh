@@ -93,9 +93,16 @@ if [ -z "$DB_USER_PASSWORD" ]; then
     DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('$SECRET_DB_KEY',''))" 2>/dev/null || echo "")
 fi
 
+if [ -z "$DB_USER_PASSWORD" ] && [ "$SECRET_DB_KEY" = "db_admin_password" ]; then
+    DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('db_password',''))" 2>/dev/null || echo "")
+    if [ -n "$DB_USER_PASSWORD" ]; then
+        echo "WARN: db_admin_password missing; falling back to db_password from AWS Secrets Manager."
+    fi
+fi
+
 if [ -z "$DB_USER_PASSWORD" ]; then
     echo "ERROR: Could not resolve DB password."
-    echo "Set DB_PASSWORD env var or ensure $SECRET_NAME has key '$SECRET_DB_KEY'."
+    echo "Set DB_PASSWORD env var or ensure $SECRET_NAME has key '$SECRET_DB_KEY' (or db_password for fallback)."
     exit 1
 fi
 
