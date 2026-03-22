@@ -7,7 +7,7 @@ const { query } = require('../config/database');
 // Duplicated from adminDbService.ts
 const AUTH_SALT_ROUNDS = 12;
 
-async function listUsers(): Promise<any[]> {
+export async function listUsers(): Promise<any[]> {
   try {
     // Read path uses app pool to avoid hard dependency on admin credentials.
     const result = await query(
@@ -30,7 +30,7 @@ async function listUsers(): Promise<any[]> {
   }
 }
 
-async function createAppUser(
+export async function createAppUser(
   username: string,
   email: string,
   password: string,
@@ -60,7 +60,7 @@ async function createAppUser(
   }
 }
 
-async function setAppUserActive(userId: number, isActive: boolean): Promise<any | null> {
+export async function setAppUserActive(userId: number, isActive: boolean): Promise<any | null> {
   let result;
   try {
     result = await adminQuery(
@@ -95,7 +95,7 @@ async function setAppUserActive(userId: number, isActive: boolean): Promise<any 
   return result.rows[0];
 }
 
-async function resetAppUserPassword(
+export async function resetAppUserPassword(
   userId: number,
   password: string,
   forcePasswordChange = true

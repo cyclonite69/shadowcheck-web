@@ -77,7 +77,26 @@ export const WigleStatsTab: React.FC = () => {
   }, []);
 
   // Helper to access stats that might be at root or under statistics sub-object
-  const getStat = (key: string) => stats?.[key] ?? stats?.statistics?.[key];
+  const getStat = (key: string) => {
+    // Map common aliases
+    const aliases: Record<string, string> = {
+      discoveredBluetoothGPS: 'discoveredBtGPS',
+      discoveredBluetooth: 'discoveredBt',
+      firstTransID: 'first',
+      lastTransID: 'last',
+      totalWiFi: 'discoveredWiFi',
+      totalBluetooth: 'discoveredBt',
+      totalCell: 'discoveredCell',
+      totalObservations: 'totalWiFiLocations',
+    };
+
+    const targetKey = aliases[key] || key;
+    return stats?.[targetKey] ?? stats?.statistics?.[targetKey];
+  };
+
+  const badgeUrl = stats?.imageBadgeUrl
+    ? `https://wigle.net${stats.imageBadgeUrl}`
+    : `https://wigle.net/bi/${getStat('user')}.png`;
 
   console.log('WIGLE RAW STATS:', JSON.stringify(stats, null, 2));
 
@@ -186,7 +205,7 @@ export const WigleStatsTab: React.FC = () => {
         <AdminCard icon={BadgeIcon} title="Official Badge" color="from-purple-500 to-purple-600">
           <div className="flex flex-col items-center justify-center h-full py-4">
             <img
-              src={`https://wigle.net/bi/${getStat('user')}.png`}
+              src={badgeUrl}
               alt="WiGLE Badge"
               className="rounded-lg shadow-2xl border border-slate-700"
               onError={(e) => {
