@@ -64,26 +64,39 @@ export function useObservations(
         let renderBudgetLimit: number | null = null;
         let didExceedRenderBudget = false;
         let allRows: any[] = [];
+        const usePostTransport = selectedBssids.length > 100;
 
         const observationFilters = useFilters ? debouncedFilterState : { filters: {}, enabled: {} };
 
         while (true) {
-          const params = buildFilteredRequestParams({
-            payload: observationFilters,
-            selectedBssids,
-            limit,
-            offset,
-            pageType:
-              currentPage === 'wigle' && observationFilters.enabled.wigle_v3_observation_count_min
-                ? 'wigle'
-                : undefined,
-          });
-          if (offset === 0) params.set('include_total', '1');
-
-          const data = await apiClient.get<any>(
-            `/v2/networks/filtered/observations?${params.toString()}`,
-            { signal: controller.signal }
-          );
+          const pageType =
+            currentPage === 'wigle' && observationFilters.enabled.wigle_v3_observation_count_min
+              ? 'wigle'
+              : undefined;
+          const data = usePostTransport
+            ? await apiClient.post<any>(
+                '/v2/networks/filtered/observations',
+                {
+                  filters: observationFilters.filters,
+                  enabled: observationFilters.enabled,
+                  bssids: selectedBssids,
+                  limit,
+                  offset,
+                  pageType,
+                  include_total: offset === 0 ? 1 : 0,
+                },
+                { signal: controller.signal }
+              )
+            : await apiClient.get<any>(
+                `/v2/networks/filtered/observations?${buildFilteredRequestParams({
+                  payload: observationFilters,
+                  selectedBssids,
+                  limit,
+                  offset,
+                  pageType,
+                }).toString()}`,
+                { signal: controller.signal }
+              );
           const rows = data.data || [];
           allRows = allRows.concat(rows);
 

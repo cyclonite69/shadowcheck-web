@@ -5,6 +5,8 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import {
+  type Filters,
+  type EnabledFlags,
   type QueryResult,
   type FilterQueryResult,
   type NetworkRow,
@@ -36,6 +38,12 @@ const resolvePageType = (req: Request): 'geospatial' | 'wigle' => {
   return req.query.pageType === 'wigle' ? 'wigle' : 'geospatial';
 };
 
+const resolveBodyPageType = (body: unknown): 'geospatial' | 'wigle' => {
+  const pageType =
+    body && typeof body === 'object' ? (body as { pageType?: unknown }).pageType : '';
+  return pageType === 'wigle' ? 'wigle' : 'geospatial';
+};
+
 const isIgnoredRow = (row: { is_ignored?: unknown }): boolean => {
   const raw = row?.is_ignored;
   if (typeof raw === 'boolean') return raw;
@@ -54,6 +62,66 @@ const applyEffectiveThreat = <T extends { is_ignored?: unknown; threat?: unknown
       level: 'NONE',
       flags: ['IGNORED'],
       signals: [],
+    },
+  };
+};
+
+const parseAndValidateBodyFilters = (
+  body: unknown,
+  validateFilterPayload: (filters: Filters, enabled: EnabledFlags) => { errors: string[] }
+) => {
+  const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+  const filters = (payload.filters as Filters | undefined) ?? {};
+  const enabled = (payload.enabled as EnabledFlags | undefined) ?? {};
+  const { errors } = validateFilterPayload(filters, enabled);
+
+  if (errors.length > 0) {
+    return {
+      ok: false as const,
+      status: 400,
+      body: { ok: false as const, errors },
+    };
+  }
+
+  return { ok: true as const, filters, enabled };
+};
+
+const buildFilteredObservationsResponse = async (
+  filters: Filters,
+  enabled: EnabledFlags,
+  limit: number,
+  selectedBssids: string[],
+  pageType: 'geospatial' | 'wigle'
+) => {
+  const builder = new UniversalFilterQueryBuilder(filters, enabled, {
+    pageType,
+  });
+  const { sql, params, appliedFilters }: FilterQueryResult = builder.buildGeospatialQuery({
+    limit,
+    selectedBssids,
+  });
+  const start = Date.now();
+  const result: QueryResult = await v2Service.executeV2Query(sql, params);
+  const durationMs = Date.now() - start;
+
+  if (DEBUG_GEOSPATIAL || durationMs > ROUTE_CONFIG.slowGeospatialQueryMs) {
+    logger.info('[geospatial] filtered/observations query', {
+      durationMs,
+      rows: result.rowCount || 0,
+      limit,
+      selectedBssids: Array.isArray(selectedBssids) ? selectedBssids.length : 0,
+      enabledCount: Object.values(enabled).filter(Boolean).length,
+      appliedCount: appliedFilters.length,
+    });
+  }
+
+  return {
+    ok: true,
+    data: result.rows || [],
+    meta: {
+      queryTime: Date.now(),
+      queryDurationMs: durationMs,
+      resultCount: result.rowCount || 0,
     },
   };
 };
@@ -310,37 +378,52 @@ router.get(
       'bssids'
     );
 
-    const builder = new UniversalFilterQueryBuilder(filters, enabled, {
-      pageType: resolvePageType(req),
-    });
-    const { sql, params, appliedFilters }: FilterQueryResult = builder.buildGeospatialQuery({
-      limit,
-      selectedBssids,
-    });
-    const start = Date.now();
-    const result: QueryResult = await v2Service.executeV2Query(sql, params);
-    const durationMs = Date.now() - start;
-
-    if (DEBUG_GEOSPATIAL || durationMs > ROUTE_CONFIG.slowGeospatialQueryMs) {
-      logger.info('[geospatial] filtered/observations query', {
-        durationMs,
-        rows: result.rowCount || 0,
+    res.json(
+      await buildFilteredObservationsResponse(
+        filters,
+        enabled,
         limit,
-        selectedBssids: Array.isArray(selectedBssids) ? selectedBssids.length : 0,
-        enabledCount: Object.values(enabled).filter(Boolean).length,
-        appliedCount: appliedFilters.length,
-      });
+        selectedBssids,
+        resolvePageType(req)
+      )
+    );
+  })
+);
+
+router.post(
+  '/observations',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = parseAndValidateBodyFilters(req.body, validateFilterPayload);
+    if (isParseValidatedFiltersError(parsed)) {
+      return res.status(parsed.status).json(parsed.body);
+    }
+    const { filters, enabled } = parsed;
+
+    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+      return;
     }
 
-    res.json({
-      ok: true,
-      data: result.rows || [],
-      meta: {
-        queryTime: Date.now(),
-        queryDurationMs: durationMs,
-        resultCount: result.rowCount || 0,
-      },
-    });
+    const payload =
+      req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : {};
+    const rawLimit =
+      typeof payload.limit === 'number' ? payload.limit : parseInt(String(payload.limit ?? ''), 10);
+    const limit = Math.min(
+      Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : ROUTE_CONFIG.observationsDefaultLimit,
+      ROUTE_CONFIG.observationsMaxLimit
+    );
+    const selectedBssids = Array.isArray(payload.bssids)
+      ? payload.bssids.filter((v): v is string => typeof v === 'string')
+      : [];
+
+    res.json(
+      await buildFilteredObservationsResponse(
+        filters,
+        enabled,
+        limit,
+        selectedBssids,
+        resolveBodyPageType(req.body)
+      )
+    );
   })
 );
 
