@@ -98,6 +98,7 @@ export async function getNearestAgenciesToNetwork(bssid: string, radius: number)
     SELECT * FROM agency_distances
     WHERE distance_meters <= ($2 * 1000)
     ORDER BY distance_meters ASC
+    LIMIT 1
   `;
 
   const result = await query(sql, [bssid, radius]);
@@ -111,21 +112,22 @@ export async function getNearestAgenciesToNetworksBatch(
   const sql = `
     WITH all_observations AS (
       -- Local observations (exclude default (0,0) coordinates)
-      SELECT DISTINCT lat, lon, 'local' as source
+      SELECT DISTINCT UPPER(bssid) as bssid, lat, lon, 'local' as source
       FROM app.observations
       WHERE UPPER(bssid) = ANY($1)
         AND lat IS NOT NULL AND lon IS NOT NULL
         AND NOT (lat = 0 AND lon = 0)
       UNION
       -- WiGLE v3 observations (exclude default (0,0) coordinates)
-      SELECT DISTINCT latitude as lat, longitude as lon, 'wigle' as source
+      SELECT DISTINCT UPPER(netid) as bssid, latitude as lat, longitude as lon, 'wigle' as source
       FROM app.wigle_v3_observations
       WHERE UPPER(netid) = ANY($1)
         AND latitude IS NOT NULL AND longitude IS NOT NULL
         AND NOT (latitude = 0 AND longitude = 0)
     ),
-    agency_distances AS (
+    network_agency_distances AS (
       SELECT
+        o.bssid,
         a.id,
         a.name,
         a.office_type,
@@ -141,10 +143,16 @@ export async function getNearestAgenciesToNetworksBatch(
         BOOL_OR(o.source = 'wigle') as has_wigle_obs
       FROM all_observations o
       CROSS JOIN app.agency_offices a
-      GROUP BY a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
+      GROUP BY o.bssid, a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
+    ),
+    closest_agencies_per_network AS (
+      SELECT DISTINCT ON (bssid) *
+      FROM network_agency_distances
+      WHERE distance_meters <= ($2 * 1000)
+      ORDER BY bssid, distance_meters ASC
     )
-    SELECT * FROM agency_distances
-    WHERE distance_meters <= ($2 * 1000)
+    SELECT DISTINCT id, name, office_type, city, state, postal_code, latitude, longitude, distance_meters, has_wigle_obs
+    FROM closest_agencies_per_network
     ORDER BY distance_meters ASC
   `;
 
