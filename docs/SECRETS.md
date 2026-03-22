@@ -19,6 +19,7 @@ Secrets are never written to disk.
 
 ## Optional Secrets
 
+- `admin_app_password`
 - `wigle_api_key`
 - `wigle_api_token`
 - `opencage_api_key`
