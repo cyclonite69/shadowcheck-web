@@ -62,8 +62,7 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
 
   // WPA3 variants (most-specific first)
   if (hasWpa3 && (hasEap || value.includes('802.1X'))) return 'WPA3-E';
-  if (hasWpa3 && (hasSae || hasPsk)) return 'WPA3-P';
-  if (hasWpa3) return 'WPA3';
+  if (hasWpa3) return 'WPA3-P'; // Default to Personal for standard WPA3 marker
 
   // WPA2 variants
   if (hasWpa2 && hasEap) return 'WPA2-E';
@@ -81,8 +80,7 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
   // RSN without explicit WPA2/WPA3 version tag — infer variant from PSK/EAP
   if (value.includes('RSN')) {
     if (hasEap) return 'WPA2-E';
-    if (hasPsk) return 'WPA2-P';
-    return 'WPA2';
+    return 'WPA2-P'; // Default to Personal for RSN marker
   }
 
   // CCMP/TKIP without version tag — infer variant from PSK/EAP

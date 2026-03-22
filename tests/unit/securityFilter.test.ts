@@ -78,8 +78,8 @@ describe('normalizeSecurityLabel – canonical taxonomy output', () => {
     expect(normalizeSecurityLabel('[WPA2-PSK-CCMP][WPA2-PSK-TKIP][ESS]')).toBe('WPA2-P');
   });
 
-  it('[WPA2][ESS] (no PSK/EAP marker) → WPA2', () => {
-    expect(normalizeSecurityLabel('[WPA2][ESS]')).toBe('WPA2');
+  it('[WPA2][ESS] (no PSK/EAP marker) → WPA2-P', () => {
+    expect(normalizeSecurityLabel('[WPA2][ESS]')).toBe('WPA2-P');
   });
 
   it('[WPA3-SAE][ESS] → WPA3-P (not WPA3-SAE)', () => {
@@ -90,8 +90,8 @@ describe('normalizeSecurityLabel – canonical taxonomy output', () => {
     expect(normalizeSecurityLabel('[WPA3-EAP][ESS]')).toBe('WPA3-E');
   });
 
-  it('[WPA3][ESS] → WPA3', () => {
-    expect(normalizeSecurityLabel('[WPA3][ESS]')).toBe('WPA3');
+  it('[WPA3][ESS] → WPA3-P', () => {
+    expect(normalizeSecurityLabel('[WPA3][ESS]')).toBe('WPA3-P');
   });
 
   it('OWE → OWE', () => {
