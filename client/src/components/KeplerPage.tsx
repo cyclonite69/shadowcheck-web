@@ -142,7 +142,7 @@ const KeplerPage: React.FC = () => {
         if (!map) return;
 
         navigationControlRef.current = new window.mapboxgl.NavigationControl();
-        map.addControl(navigationControlRef.current, 'top-left');
+        map.addControl(navigationControlRef.current, 'top-right');
       };
 
       // Helper to find layer class in possible deck namespaces
