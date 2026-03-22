@@ -25,16 +25,232 @@
     {
       "datasource": "ShadowCheck-Postgres",
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
+        "h": 4,
+        "w": 6,
         "x": 0,
         "y": 0
       },
       "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv;",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Networks",
+      "type": "stat"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(observations), 0)::bigint AS value FROM app.api_network_explorer_mv;",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Observations",
+      "type": "stat"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv WHERE threat_level = 'CRITICAL';",
+          "refId": "A"
+        }
+      ],
+      "title": "Critical Threats",
+      "type": "stat"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv WHERE threat_level IN ('HIGH', 'MEDIUM');",
+          "refId": "A"
+        }
+      ],
+      "title": "High + Medium Threats",
+      "type": "stat"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
       "options": {
         "displayLabels": ["name", "percent"],
         "legend": {
@@ -58,7 +274,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT threat_level, COUNT(*) as count\nFROM app.api_network_explorer_mv\nGROUP BY threat_level\nORDER BY count DESC",
+          "rawSql": "SELECT threat_level, COUNT(*)::bigint AS count\nFROM app.api_network_explorer_mv\nGROUP BY threat_level\nORDER BY count DESC;",
           "refId": "A"
         }
       ],
@@ -76,12 +292,100 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 4
       },
-      "id": 2,
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE type\n  WHEN 'W' THEN 'WiFi'\n  WHEN 'B' THEN 'BLE'\n  WHEN 'BT' THEN 'Bluetooth'\n  WHEN 'L' THEN 'LTE'\n  WHEN 'NR' THEN '5G NR'\n  WHEN 'G' THEN 'GSM'\n  ELSE COALESCE(type, 'Unknown')\nEND AS radio_type,\nCOUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1\nORDER BY networks DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Radio Type Distribution",
+      "type": "barchart"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "hidden",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(NULLIF(TRIM(manufacturer), ''), 'Unknown') AS manufacturer,\nCOUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1\nORDER BY networks DESC\nLIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Manufacturers",
+      "type": "barchart"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -99,11 +403,52 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  DATE_TRUNC('day', first_seen) as time,\n  COUNT(*) as networks\nFROM app.api_network_explorer_mv\nWHERE first_seen > NOW() - INTERVAL '90 days'\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  DATE_TRUNC('day', first_seen) AS time,\n  COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nWHERE first_seen >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "Networks Discovered Over Time",
+      "title": "Networks First Seen Over 30 Days",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  DATE_TRUNC('day', last_seen) AS time,\n  SUM(observations)::bigint AS observations\nFROM app.api_network_explorer_mv\nWHERE last_seen >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Observation Volume Over 30 Days",
       "type": "timeseries"
     },
     {
@@ -114,16 +459,16 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 12,
+        "w": 16,
         "x": 0,
-        "y": 9
+        "y": 20
       },
-      "id": 3,
+      "id": 10,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
-          "enablePagination": false,
+          "enablePagination": true,
           "fields": "",
           "reducer": ["sum"],
           "show": false
@@ -136,27 +481,26 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  matviewname as \"View\",\n  ispopulated as \"Populated\",\n  pg_size_pretty(pg_total_relation_size('app.' || matviewname)) as \"Size\"\nFROM pg_matviews\nWHERE schemaname = 'app'\nORDER BY matviewname",
+          "rawSql": "SELECT\n  bssid AS \"BSSID\",\n  ssid AS \"SSID\",\n  threat_level AS \"Threat\",\n  ROUND(threat_score::numeric, 2) AS \"Score\",\n  observations AS \"Observations\",\n  COALESCE(NULLIF(TRIM(manufacturer), ''), 'Unknown') AS \"Manufacturer\",\n  last_seen AS \"Last Seen\"\nFROM app.api_network_explorer_mv\nWHERE threat_level IN ('CRITICAL', 'HIGH', 'MEDIUM')\nORDER BY threat_score DESC, observations DESC\nLIMIT 25;",
           "refId": "A"
         }
       ],
-      "title": "Materialized View Health",
+      "title": "Top Threat Networks",
       "type": "table"
     },
     {
       "datasource": "ShadowCheck-Postgres",
-      "description": "Requires pg_stat_statements extension. See deploy/monitoring/README.md to enable.",
       "fieldConfig": {
         "defaults": {},
         "overrides": []
       },
       "gridPos": {
         "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 9
+        "w": 8,
+        "x": 16,
+        "y": 20
       },
-      "id": 4,
+      "id": 11,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -174,29 +518,29 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  LEFT(query, 80) as \"Query\",\n  ROUND(mean_exec_time::numeric, 2) as \"Avg ms\",\n  calls as \"Calls\"\nFROM pg_stat_statements\nWHERE query NOT LIKE '%pg_stat%'\n  AND query NOT LIKE '%BEGIN%'\nORDER BY mean_exec_time DESC\nLIMIT 10",
+          "rawSql": "SELECT\n  matviewname AS \"View\",\n  ispopulated AS \"Populated\",\n  pg_size_pretty(pg_total_relation_size('app.' || matviewname)) AS \"Size\"\nFROM pg_matviews\nWHERE schemaname = 'app'\nORDER BY matviewname;",
           "refId": "A"
         }
       ],
-      "title": "Top Slow Queries",
+      "title": "Materialized View Health",
       "type": "table"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["shadowcheck"],
+  "tags": ["shadowcheck", "overview"],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-90d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "ShadowCheck Overview",
   "uid": "shadowcheck-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
