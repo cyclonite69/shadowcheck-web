@@ -58,6 +58,12 @@ services:
       - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro
       - /var/lib/postgresql/certs/web:/certs:ro
     network_mode: host
+    healthcheck:
+      test: ["CMD", "python3", "/pgadmin4/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
