@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { Pool } = require('pg');
 const { query } = require('../config/database');
-const adminDbService = require('./adminDbService');
+const { resetAppUserPassword } = require('./adminUsersService');
 const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
 
@@ -328,7 +328,7 @@ class AuthService {
         return true;
       } catch (error) {
         if (error?.code === '42501' && plainTextPassword) {
-          await adminDbService.resetAppUserPassword(userId, plainTextPassword, false);
+          await resetAppUserPassword(userId, plainTextPassword, false);
           return true;
         }
 

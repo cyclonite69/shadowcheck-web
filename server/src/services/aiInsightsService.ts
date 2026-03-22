@@ -6,7 +6,7 @@ export {};
  * Writes use adminDbService (write role); reads use the default query helper.
  */
 
-const adminDbService = require('./adminDbService');
+const { adminQuery } = require('./adminDbService');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
@@ -46,7 +46,7 @@ async function saveInsight(params: SaveInsightParams): Promise<number> {
     tags = [],
   } = params;
 
-  const result = await adminDbService.query(
+  const result = await adminQuery(
     `INSERT INTO app.ai_insights
        (user_id, question, filtered_networks, claude_response, suggestions, tags)
      VALUES ($1, $2, $3::jsonb, $4, $5::text[], $6::text[])
@@ -93,7 +93,7 @@ async function getInsightHistory(userId: string | null, limit = 20): Promise<Ins
  * Record user feedback (thumbs up/down) on an insight.
  */
 async function markInsightUseful(insightId: number, useful: boolean): Promise<void> {
-  await adminDbService.query(
+  await adminQuery(
     `UPDATE app.ai_insights
      SET useful = $1, updated_at = NOW()
      WHERE id = $2`,
