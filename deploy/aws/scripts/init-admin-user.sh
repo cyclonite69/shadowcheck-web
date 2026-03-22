@@ -124,7 +124,7 @@ docker exec \
   -e DB_NAME="$DB_NAME" \
   -e APP_ADMIN_HASH="$HASH" \
   "$CONTAINER" \
-  bash -lc 'psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" <<'"'"'SQL'"'"'
+  bash -lc 'psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" <<'"'"'SQL'"'"'
 INSERT INTO app.users (username, password_hash, email, role, created_at)
 VALUES ('admin', :'APP_ADMIN_HASH', 'admin@shadowcheck.local', 'admin', NOW())
 ON CONFLICT (username) DO UPDATE
@@ -136,7 +136,7 @@ run_admin_upsert_with_db_user
 
 # Compatibility updates for newer schemas (run only if columns exist)
 run_compat_updates_with_db_user() {
-docker exec -e PGPASSWORD="$DB_USER_PASSWORD" "$CONTAINER" bash -lc "psql -U '$DB_USER' -d '$DB_NAME' -c \"
+docker exec -e PGPASSWORD="$DB_USER_PASSWORD" "$CONTAINER" bash -lc "psql -h 127.0.0.1 -U '$DB_USER' -d '$DB_NAME' -c \"
 DO \\\$\\\$
 BEGIN
   IF EXISTS (
