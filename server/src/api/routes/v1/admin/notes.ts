@@ -8,7 +8,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { adminDbService } = require('../../../../config/container');
+const { adminNetworkMediaService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 // Configure multer for media uploads (notes attachments)
@@ -47,7 +47,7 @@ router.post('/admin/network-notations/add', async (req, res, next) => {
     }
 
     // Add notation
-    const notation = await adminDbService.addNetworkNotation(bssid, text, type);
+    const notation = await adminNetworkMediaService.addNetworkNotation(bssid, text, type);
 
     res.json({
       ok: true,
@@ -65,7 +65,7 @@ router.get('/admin/network-notations/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const notations = await adminDbService.getNetworkNotations(bssid);
+    const notations = await adminNetworkMediaService.getNetworkNotations(bssid);
 
     res.json({
       ok: true,
@@ -90,7 +90,7 @@ router.post('/admin/network-notes/add', async (req, res) => {
       });
     }
 
-    const note_id = await adminDbService.addNetworkNoteWithFunction(
+    const note_id = await adminNetworkMediaService.addNetworkNoteWithFunction(
       bssid,
       content,
       note_type,
@@ -118,7 +118,7 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
   try {
     const { bssid } = req.params;
 
-    const notes = await adminDbService.getNetworkNotes(bssid);
+    const notes = await adminNetworkMediaService.getNetworkNotes(bssid);
 
     res.json({
       ok: true,
@@ -140,7 +140,7 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
 router.delete('/admin/network-notes/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
-    const bssid = await adminDbService.deleteNetworkNote(noteId);
+    const bssid = await adminNetworkMediaService.deleteNetworkNote(noteId);
     if (!bssid) {
       return res.status(404).json({ ok: false, error: 'Note not found' });
     }
@@ -164,7 +164,7 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
       : req.file.mimetype === 'application/pdf'
         ? 'document'
         : 'image';
-    const media = await adminDbService.addNoteMedia(
+    const media = await adminNetworkMediaService.addNoteMedia(
       noteId,
       bssid,
       null,
@@ -194,7 +194,7 @@ router.get('/media/:filename', (req, res) => {
     const { filename } = req.params;
     const isNumericId = /^\d+$/.test(filename);
     if (isNumericId) {
-      return adminDbService
+      return adminNetworkMediaService
         .getNoteMediaById(filename)
         .then((media) => {
           if (!media) {

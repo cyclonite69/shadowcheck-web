@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { adminDbService } = require('../../../../config/container');
+const { adminUsersService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 function parseUserId(param: string): number | null {
@@ -11,7 +11,7 @@ function parseUserId(param: string): number | null {
 
 router.get('/', async (_req, res) => {
   try {
-    const users = await adminDbService.listUsers();
+    const users = await adminUsersService.listUsers();
     res.json({ success: true, users });
   } catch (error: any) {
     logger.error('Failed to list users', { error: error.message });
@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'password must be at least 8 chars' });
     }
 
-    const user = await adminDbService.createAppUser(
+    const user = await adminUsersService.createAppUser(
       String(username).trim(),
       String(email).trim(),
       String(password),
@@ -69,7 +69,7 @@ router.put('/:id/active', async (req, res) => {
         .json({ success: false, error: 'You cannot disable your own admin account' });
     }
 
-    const user = await adminDbService.setAppUserActive(userId, isActive);
+    const user = await adminUsersService.setAppUserActive(userId, isActive);
     if (!user) {
       return res.status(404).json({ success: false, error: 'user not found' });
     }
@@ -93,7 +93,7 @@ router.put('/:id/password', async (req, res) => {
       return res.status(400).json({ success: false, error: 'password must be at least 8 chars' });
     }
 
-    const user = await adminDbService.resetAppUserPassword(
+    const user = await adminUsersService.resetAppUserPassword(
       userId,
       String(password),
       Boolean(forcePasswordChange)

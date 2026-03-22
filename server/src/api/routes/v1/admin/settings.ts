@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { adminDbService } = require('../../../../config/container');
+const { settingsAdminService } = require('../../../../config/container');
 const { backgroundJobsService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
@@ -11,7 +11,7 @@ const logger = require('../../../../logging/logger');
  */
 router.get('/', async (req, res) => {
   try {
-    const rows = await adminDbService.getAllSettings();
+    const rows = await settingsAdminService.getAllSettings();
     const settings = {};
     rows.forEach((row) => {
       settings[row.key] = {
@@ -48,7 +48,7 @@ router.get('/jobs/status', async (req, res) => {
 router.get('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    const setting = await adminDbService.getSettingByKey(key);
+    const setting = await settingsAdminService.getSettingByKey(key);
     if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });
     }
@@ -72,7 +72,7 @@ router.put('/:key', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Value is required' });
     }
 
-    const setting = await adminDbService.updateSetting(key, value);
+    const setting = await settingsAdminService.updateSetting(key, value);
 
     if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });
@@ -92,7 +92,7 @@ router.put('/:key', async (req, res) => {
  */
 router.post('/ml-blending/toggle', async (req, res) => {
   try {
-    const newValue = await adminDbService.toggleMLBlending();
+    const newValue = await settingsAdminService.toggleMLBlending();
     logger.info('ML blending toggled', { enabled: newValue });
     res.json({ success: true, ml_blending_enabled: newValue });
   } catch (error) {

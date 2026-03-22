@@ -9,7 +9,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const { adminDbService } = require('../../../config/container');
+const { adminNetworkTagsService } = require('../../../config/container');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
@@ -93,7 +93,7 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
       return res.status(400).json({ error: timeValidation.error });
     }
 
-    const data = await adminDbService.checkDuplicateObservations(
+    const data = await adminNetworkTagsService.checkDuplicateObservations(
       bssidValidation.cleaned,
       timeValidation.value
     );
@@ -127,7 +127,7 @@ router.get('/admin/notes-test', (req, res) => {
 router.post('/admin/add-note', async (req, res) => {
   try {
     const { bssid, content } = req.body;
-    const note_id = await adminDbService.addNetworkNote(bssid, content);
+    const note_id = await adminNetworkTagsService.addNetworkNote(bssid, content);
     res.json({ ok: true, note_id });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
@@ -140,7 +140,7 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const network = await adminDbService.getNetworkSummary(bssid);
+    const network = await adminNetworkTagsService.getNetworkSummary(bssid);
 
     if (!network) {
       return res.status(404).json({

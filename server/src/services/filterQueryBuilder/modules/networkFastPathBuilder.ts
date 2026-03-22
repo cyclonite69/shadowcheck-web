@@ -10,8 +10,48 @@ import { applyEngagementFilters, applyRadioFilters } from './networkPredicateAda
 const NT_TAG_LOWER_EXPR = FIELD_EXPRESSIONS.threatTagLowercase('nt');
 const NT_IS_IGNORED_EXPR = NULL_SAFE_COMPARISONS.isIgnored('nt');
 const NT_NOT_IGNORED_CLAUSE = 'COALESCE(nt.is_ignored, FALSE) = FALSE';
+const NE_NOT_IGNORED_EXISTS_CLAUSE = `NOT EXISTS (
+  SELECT 1
+  FROM app.network_tags nt_ignored
+  WHERE UPPER(nt_ignored.bssid) = UPPER(ne.bssid)
+    AND COALESCE((to_jsonb(nt_ignored)->>'is_ignored')::boolean, FALSE) = TRUE
+)`;
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
+const THREAT_LEVEL_MAP: Record<string, string> = {
+  critical: 'CRITICAL',
+  high: 'HIGH',
+  medium: 'MEDIUM',
+  low: 'LOW',
+  none: 'NONE',
+};
+
+function sanitizeFastPathOrderBy(orderBy: string): string {
+  return orderBy
+    .replace(/\bl\.observed_at\b/g, 'ne.observed_at')
+    .replace(/\bl\.level\b/g, 'ne.signal')
+    .replace(/\bl\.lat\b/g, 'ne.lat')
+    .replace(/\bl\.lon\b/g, 'ne.lon')
+    .replace(/\bl\.accuracy\b/g, 'ne.accuracy_meters')
+    .replace(/\br\.observation_count\b/g, 'ne.observations')
+    .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
+    .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
+    .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
+}
+
+function mapThreatCategoriesToDbLevels(threatCategories: string[]): string[] {
+  return Array.from(
+    new Set(
+      threatCategories
+        .flatMap((cat) => {
+          const mapped = THREAT_LEVEL_MAP[cat] || cat.toUpperCase();
+          if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
+          return [mapped];
+        })
+        .filter(Boolean)
+    )
+  );
+}
 
 export function buildNetworkOnlyQueryImpl(
   ctx: FilterBuildContext,
@@ -233,24 +273,7 @@ export function buildNetworkOnlyQueryImpl(
     ctx.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
   }
   if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-    const threatLevelMap: Record<string, string> = {
-      critical: 'CRITICAL',
-      high: 'HIGH',
-      medium: 'MEDIUM',
-      low: 'LOW',
-      none: 'NONE',
-    };
-    const dbThreatLevels = Array.from(
-      new Set(
-        f.threatCategories
-          .flatMap((cat) => {
-            const mapped = threatLevelMap[cat] || cat.toUpperCase();
-            if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
-            return [mapped];
-          })
-          .filter(Boolean)
-      )
-    );
+    const dbThreatLevels = mapThreatCategoriesToDbLevels(f.threatCategories);
     if (dbThreatLevels.length > 0) {
       where.push(`ne.threat_level = ANY(${ctx.addParam(dbThreatLevels)})`);
       ctx.addApplied('threat', 'threatCategories', f.threatCategories);
@@ -293,16 +316,7 @@ export function buildNetworkOnlyQueryImpl(
   const offsetParam = ctx.addParam(offset);
 
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
-  const safeOrderBy = orderBy
-    .replace(/\bl\.observed_at\b/g, 'ne.observed_at')
-    .replace(/\bl\.level\b/g, 'ne.signal')
-    .replace(/\bl\.lat\b/g, 'ne.lat')
-    .replace(/\bl\.lon\b/g, 'ne.lon')
-    .replace(/\bl\.accuracy\b/g, 'ne.accuracy_meters')
-    .replace(/\br\.observation_count\b/g, 'ne.observations')
-    .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
-    .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
-    .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
+  const safeOrderBy = sanitizeFastPathOrderBy(orderBy);
 
   const sql = `
       SELECT
@@ -372,12 +386,7 @@ export function buildNetworkOnlyCountQuery(ctx: FilterBuildContext): QueryResult
   const e = ctx.enabled;
   const where: string[] = [];
   if (!ctx.shouldIncludeIgnoredByExplicitTagFilter()) {
-    where.push(`NOT EXISTS (
-  SELECT 1
-  FROM app.network_tags nt_ignored
-  WHERE UPPER(nt_ignored.bssid) = UPPER(ne.bssid)
-    AND COALESCE((to_jsonb(nt_ignored)->>'is_ignored')::boolean, FALSE) = TRUE
-)`);
+    where.push(NE_NOT_IGNORED_EXISTS_CLAUSE);
   }
 
   if (e.ssid && f.ssid) {
@@ -579,24 +588,7 @@ export function buildNetworkOnlyCountQuery(ctx: FilterBuildContext): QueryResult
     ctx.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
   }
   if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-    const threatLevelMap: Record<string, string> = {
-      critical: 'CRITICAL',
-      high: 'HIGH',
-      medium: 'MEDIUM',
-      low: 'LOW',
-      none: 'NONE',
-    };
-    const dbThreatLevels = Array.from(
-      new Set(
-        f.threatCategories
-          .flatMap((cat) => {
-            const mapped = threatLevelMap[cat] || cat.toUpperCase();
-            if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
-            return [mapped];
-          })
-          .filter(Boolean)
-      )
-    );
+    const dbThreatLevels = mapThreatCategoriesToDbLevels(f.threatCategories);
     where.push(`ne.threat_level = ANY(${ctx.addParam(dbThreatLevels)})`);
     ctx.addApplied('threat', 'threatCategories', f.threatCategories);
   }

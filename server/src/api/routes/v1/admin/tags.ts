@@ -6,7 +6,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { adminDbService } = require('../../../../config/container');
+const { adminNetworkTagsService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { validateString, validateIntegerRange } = require('../../../../validation/schemas');
 
@@ -30,13 +30,13 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
     }
 
     // Check if network exists and has the tag
-    const existingResult = await adminDbService.getNetworkTagsByBssid(bssid);
+    const existingResult = await adminNetworkTagsService.getNetworkTagsByBssid(bssid);
 
     let action, _newTags;
 
     if (!existingResult) {
       // Network doesn't exist, create with tag
-      await adminDbService.insertNetworkTagWithNotes(bssid, [tag], notes);
+      await adminNetworkTagsService.insertNetworkTagWithNotes(bssid, [tag], notes);
       action = 'added';
       _newTags = [tag];
     } else {
@@ -46,19 +46,19 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
 
       if (hasTag) {
         // Remove tag
-        await adminDbService.removeTagFromNetwork(bssid, tag);
+        await adminNetworkTagsService.removeTagFromNetwork(bssid, tag);
         action = 'removed';
         _newTags = currentTags.filter((t) => t !== tag);
       } else {
         // Add tag
-        await adminDbService.addTagToNetwork(bssid, tag, notes);
+        await adminNetworkTagsService.addTagToNetwork(bssid, tag, notes);
         action = 'added';
         _newTags = [...currentTags, tag];
       }
     }
 
     // Get updated network info
-    const result = await adminDbService.getNetworkTagsAndNotes(bssid);
+    const result = await adminNetworkTagsService.getNetworkTagsAndNotes(bssid);
 
     res.json({
       ok: true,
@@ -84,10 +84,10 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
     }
 
     // Remove tag
-    await adminDbService.removeTagFromNetwork(bssid, tag);
+    await adminNetworkTagsService.removeTagFromNetwork(bssid, tag);
 
     // Get updated tags
-    const result = await adminDbService.getNetworkTagsAndNotes(bssid);
+    const result = await adminNetworkTagsService.getNetworkTagsAndNotes(bssid);
 
     res.json({
       ok: true,
@@ -105,7 +105,7 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await adminDbService.getNetworkTagsExpanded(bssid);
+    const result = await adminNetworkTagsService.getNetworkTagsExpanded(bssid);
 
     if (!result) {
       return res.status(404).json({
@@ -150,7 +150,10 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
     }
 
     // Find networks that have ALL specified tags
-    const result = await adminDbService.searchNetworksByTagArray(tagArray, limitValidation.value);
+    const result = await adminNetworkTagsService.searchNetworksByTagArray(
+      tagArray,
+      limitValidation.value
+    );
 
     res.json({
       ok: true,

@@ -4,7 +4,7 @@
 
 import express from 'express';
 const router = express.Router();
-const { adminDbService } = require('../../../../config/container');
+const { adminDbStatsService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 /**
@@ -13,7 +13,7 @@ const logger = require('../../../../logging/logger');
  */
 router.get('/', async (req: any, res: any, next: any) => {
   try {
-    const stats = await adminDbService.getDetailedDatabaseStats();
+    const stats = await adminDbStatsService.getDetailedDatabaseStats();
     res.json(stats);
   } catch (err: any) {
     logger.error(`[Admin] Failed to fetch DB stats: ${err.message}`);
