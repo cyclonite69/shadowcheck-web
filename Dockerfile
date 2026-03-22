@@ -16,7 +16,7 @@ ENV NODE_ENV=development \
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci --include=dev
+RUN npm ci --include=dev --legacy-peer-deps
 
 # Copy application files
 COPY . .
