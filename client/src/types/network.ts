@@ -40,6 +40,7 @@ export type NetworkRow = {
   type: 'W' | 'E' | 'B' | 'G' | 'C' | 'D' | 'L' | 'N' | 'F' | '?' | null;
   signal: number | null;
   security: string | null;
+  capabilities?: string | null;
   frequency: number | null;
   channel?: number | null;
   observations: number;

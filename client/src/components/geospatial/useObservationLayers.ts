@@ -3,7 +3,8 @@ import type { MutableRefObject } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
-import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
+import { macColor } from '../../utils/mapHelpers';
+import { buildObservationTooltipProps } from '../../utils/geospatial/observationTooltipProps';
 import type { WigleObservation, WigleObservationsState } from './useNetworkContextMenu';
 import { renderWigleObservationPopupCard } from '../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
@@ -111,9 +112,6 @@ export const useObservationLayers = ({
         }
         if (currentTime) lastTime = currentTime;
 
-        // Calculate channel from frequency
-        const channel = frequencyToChannel(obs.frequency);
-
         const coordKey = `${lat.toFixed(6)}:${lon.toFixed(6)}`;
         const seenCount = jitterIndex.get(coordKey) ?? 0;
         jitterIndex.set(coordKey, seenCount + 1);
@@ -132,36 +130,16 @@ export const useObservationLayers = ({
             type: 'Point',
             coordinates: [displayLon, displayLat],
           },
-          properties: {
-            bssid: obs.bssid,
-            signal: obs.signal,
-            time: obs.time,
-            frequency: obs.frequency,
-            channel: channel,
-            altitude: obs.altitude,
-            ssid: network?.ssid || '(hidden)',
-            manufacturer: network?.manufacturer || null,
-            security: network?.security || null,
-            capabilities: obs.capabilities || network?.capabilities || network?.security || null,
-            threat_level: threatLevel,
-            threat_score: network?.threat_score ?? null,
-            first_seen: network?.firstSeen || null,
-            last_seen: network?.lastSeen || null,
-            timespan_days: typeof network?.timespanDays === 'number' ? network.timespanDays : null,
-            distance_from_home_km: obs.distance_from_home_km ?? network?.distanceFromHome ?? null,
-            max_distance_km: network?.max_distance_meters
-              ? network.max_distance_meters / 1000
-              : null,
-            distance_from_last_point_m: deltaMeters,
-            time_since_prior: timeSincePrior,
-            time_since_prior_ms: timeSincePriorMs,
-            observation_count: network?.observations ?? 0,
-            accuracy: obs.acc ?? network?.accuracy ?? null,
-            unique_days: (network as any)?.unique_days ?? null,
-            type: network?.type || null,
+          properties: buildObservationTooltipProps({
+            obs,
+            network,
+            threatLevel,
+            deltaMeters,
+            timeSincePrior,
+            timeSincePriorMs,
             number: index + 1,
             color: bssidColors[obs.bssid],
-          },
+          }),
         });
       });
     });

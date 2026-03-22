@@ -120,6 +120,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     type: networkType,
     signal: typeof row.signal === 'number' ? row.signal : null,
     security: securityValue,
+    capabilities: row.capabilities ?? row.security ?? null,
     frequency: frequency,
     channel: channelValue,
     observations: parseIntegerField(row.observations ?? row.obs_count) ?? 0,
