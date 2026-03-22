@@ -54,7 +54,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 ### Getting Started
 
 - [Installation](Installation) - Set up your development environment
-- [Quick Start](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/guides/QUICK_START.md) - 5-minute setup tutorial
+- [Repo README](https://github.com/cyclonite69/shadowcheck-web/blob/main/README.md) - current setup and entry points
 - [Quick Reference](Quick-Reference) - Wiki navigation guide
 
 ### Documentation

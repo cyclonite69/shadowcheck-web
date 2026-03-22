@@ -103,7 +103,7 @@ We use 4 tests to identify modularity:
 3. **COHESION** - Do all lines serve the primary responsibility?
 4. **INDEPENDENCE** - Can it be understood in isolation?
 
-See [`docs/MODULARITY.md`](MODULARITY.md) for the complete audit framework.
+The same audit framework is now reflected in the current service/module layout and repo conventions.
 
 ## System Constraints
 
@@ -139,7 +139,7 @@ The following rules are immutable constraints of the system architecture:
 
 **Frontend Characteristics:**
 
-- **React 18** with TypeScript support
+- **React 19** with TypeScript support
 - **Vite** build system for fast development and optimized builds
 - **Component-based architecture** with lazy loading
 - **Zustand** for global state management
@@ -179,9 +179,9 @@ The following rules are immutable constraints of the system architecture:
 client/src/
 ├── components/           # React components
 │   ├── DashboardPage.tsx        # Main dashboard
-│   ├── GeospatialIntelligencePage.tsx  # Map interface
+│   ├── GeospatialExplorer.tsx / geospatial/  # Map interface
 │   ├── AnalyticsPage.tsx        # Charts and analytics
-│   ├── MLTrainingPage.tsx       # ML model management
+│   ├── KeplerPage.tsx           # Kepler workflow
 │   ├── AdminPage.tsx            # System administration
 │   ├── FilterPanel.tsx          # Universal filter UI
 │   ├── Navigation.tsx           # App navigation
@@ -199,9 +199,9 @@ client/src/
 ├── stores/               # State management
 │   └── filterStore.ts           # Zustand filter store
 ├── utils/                # Utility functions
-│   ├── filterCapabilities.ts   # Filter configuration
-│   ├── mapboxLoader.ts         # Mapbox integration
-│   └── mapOrientationControls.ts  # Map controls
+│   ├── filterCapabilities.ts    # Filter configuration
+│   ├── mapboxLoader.ts          # Mapbox integration
+│   └── geospatial/              # Tooltip, popup, and map helpers
 ├── logging/              # Client-side logging
 │   └── clientLogger.ts          # Error reporting
 ├── types/                # TypeScript definitions

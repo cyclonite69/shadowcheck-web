@@ -41,7 +41,7 @@ Production deployment guide for ShadowCheck-Web.
 ### Software Requirements
 
 - Docker 20.10+ and Docker Compose 2.0+
-- OR Node.js 20+ and PostgreSQL 18+
+- OR Node.js 22+ and PostgreSQL 18+
 - Nginx or Apache (for reverse proxy)
 - SSL certificate (Let's Encrypt recommended)
 
@@ -111,8 +111,8 @@ docker-compose --version
 ### 2. Clone Repository
 
 ```bash
-git clone https://github.com/your-org/ShadowCheckStatic.git
-cd ShadowCheckStatic
+git clone https://github.com/cyclonite69/shadowcheck-web.git
+cd shadowcheck-web
 ```
 
 ### 3. Configure Environment
@@ -123,7 +123,7 @@ export NODE_ENV=production
 export PORT=3001
 export DB_USER=shadowcheck_user
 export DB_HOST=postgres
-export DB_NAME=shadowcheck
+export DB_NAME=shadowcheck_db
 export DB_PORT=5432
 # Secrets must come from AWS Secrets Manager / runtime injection
 export DB_PASSWORD="<from-aws-secrets-manager>"
@@ -137,7 +137,7 @@ export MAPBOX_TOKEN="<from-aws-secrets-manager>"
 # Database
 DB_USER=shadowcheck_user
 DB_HOST=postgres
-DB_NAME=shadowcheck
+DB_NAME=shadowcheck_db
 DB_PASSWORD=<strong-random-password>
 DB_PORT=5432
 
@@ -185,7 +185,7 @@ openssl rand -base64 32
 docker-compose build
 
 # Start services
-docker-compose up -d
+docker compose up -d
 
 # Check status
 docker-compose ps
@@ -374,7 +374,7 @@ sudo useradd -r -m -d /opt/shadowcheck -s /bin/bash shadowcheck
 
 # Clone repository
 cd /opt/shadowcheck
-sudo -u shadowcheck git clone https://github.com/your-org/ShadowCheckStatic.git app
+sudo -u shadowcheck git clone https://github.com/cyclonite69/shadowcheck-web.git app
 cd app
 
 # Install dependencies
@@ -406,7 +406,7 @@ Environment=NODE_ENV=production
 Environment=PORT=3001
 Environment=DB_USER=shadowcheck_user
 Environment=DB_HOST=postgres
-Environment=DB_NAME=shadowcheck
+Environment=DB_NAME=shadowcheck_db
 # Inject DB_PASSWORD/API_KEY/MAPBOX_TOKEN securely at runtime (no disk-backed secret files)
 ExecStart=/usr/bin/node server/server.js
 Restart=on-failure
@@ -538,7 +538,7 @@ NODE_ENV=production
 PORT=3001
 DB_USER=shadowcheck_user
 DB_HOST=your-db-host
-DB_NAME=shadowcheck
+DB_NAME=shadowcheck_db
 DB_PASSWORD=<from-secrets-manager>
 API_KEY=<strong-random-key>
 MAPBOX_TOKEN=<your-token>
@@ -948,7 +948,7 @@ LIMIT 10;
 ## Docker Deployment Notes
 
 - Core containers: `shadowcheck_postgres`, `shadowcheck_redis`, `shadowcheck_pgadmin` (optional).
-- Start services: `docker-compose up -d`.
+- Start services: `docker compose up -d`.
 - Logs: `docker logs shadowcheck_postgres` and `docker logs shadowcheck_web_api`.
 - psql: `docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db`.
 
@@ -963,7 +963,7 @@ LIMIT 10;
 ## Ops Quick Reference
 
 ```bash
-docker-compose up -d
+docker compose up -d
 docker logs shadowcheck_postgres
 docker logs shadowcheck_web_api
 docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db

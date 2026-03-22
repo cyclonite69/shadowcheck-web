@@ -125,38 +125,15 @@ DB_PORT=5432
 REDIS_HOST=localhost
 REDIS_PORT=6379
 PORT=3001
-```
-
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Server Configuration
-
-PORT=3001
 NODE_ENV=development
 FORCE_HTTPS=false
-
-# CORS Configuration (comma-separated origins)
-
 CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173
-
-# Frontend Configuration (use AWS Secrets Manager; env vars for local overrides)
-
 MAPBOX_TOKEN=pk.your_mapbox_token_here
-
-# API Keys for enrichment
-
 OPENCAGE_API_KEY=your_opencage_key
 LOCATIONIQ_API_KEY=your_locationiq_key
 ABSTRACT_API_KEY=your_abstract_key
-
-# Weather FX Proxy (Open-Meteo)
-
-# No API key required for standard usage (<10k daily calls)
-
 # Endpoint: /api/weather -> https://api.open-meteo.com/v1/forecast
-
-````
+```
 
 **Note**: In production, secrets are stored in AWS Secrets Manager, not `.env`.
 
@@ -177,7 +154,7 @@ The project includes a complete DevContainer configuration for consistent develo
 
 # Option 2: VS Code will prompt when opening the project
 # Click "Reopen in Container" when prompted
-````
+```
 
 ### 3. DevContainer Features
 
@@ -249,7 +226,7 @@ The frontend uses modern React with TypeScript and Vite for fast development.
 
 #### Key Technologies
 
-- **React 18** with hooks and functional components
+- **React 19** with hooks and functional components
 - **TypeScript** for type safety
 - **Vite** for fast builds and HMR
 - **Tailwind CSS** for styling
@@ -261,9 +238,9 @@ The frontend uses modern React with TypeScript and Vite for fast development.
 ```
 client/src/components/
 ├── DashboardPage.tsx           # Main dashboard with metrics
-├── GeospatialIntelligencePage.tsx  # Interactive map interface
+├── GeospatialExplorer.tsx / geospatial/ # Interactive map interface
 ├── AnalyticsPage.tsx           # Charts and data visualization
-├── MLTrainingPage.tsx          # ML model management
+├── KeplerPage.tsx              # Kepler workflow
 ├── AdminPage.tsx               # System administration
 ├── FilterPanel.tsx             # Universal filter interface
 ├── ActiveFiltersSummary.tsx    # Filter status display
@@ -722,7 +699,7 @@ const pool = new Pool({
 ### Quick Start (Local)
 
 ```bash
-docker-compose up -d
+docker compose up -d
 npm install
 npm run dev
 ```
