@@ -8,9 +8,9 @@ export {};
 const express = require('express');
 const router = express.Router();
 const {
-  networkService,
   networkTagService,
-  adminDbService,
+  adminNetworkTagsService,
+  adminNetworkMediaService,
 } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
@@ -69,7 +69,7 @@ router.post('/:bssid', requireAdmin, async (req: any, res: any) => {
       }
     }
 
-    const result = await adminDbService.upsertNetworkTag(
+    const result = await adminNetworkTagsService.upsertNetworkTag(
       normalizedBssid,
       is_ignored ?? null,
       ignore_reason ?? null,
@@ -105,14 +105,14 @@ router.patch('/:bssid/ignore', requireAdmin, async (req: any, res: any) => {
 
     let result;
     if (!existing) {
-      result = await adminDbService.insertNetworkTagIgnore(
+      result = await adminNetworkTagsService.insertNetworkTagIgnore(
         normalizedBssid,
         true,
         ignore_reason ?? null
       );
     } else {
       const newIgnoreState = !existing.is_ignored;
-      result = await adminDbService.updateNetworkTagIgnore(
+      result = await adminNetworkTagsService.updateNetworkTagIgnore(
         normalizedBssid,
         newIgnoreState,
         newIgnoreState ? (ignore_reason ?? null) : null
@@ -151,13 +151,13 @@ router.patch('/:bssid/threat', requireAdmin, async (req: any, res: any) => {
 
     let result;
     if (!existing) {
-      result = await adminDbService.insertNetworkThreatTag(
+      result = await adminNetworkTagsService.insertNetworkThreatTag(
         normalizedBssid,
         threat_tag,
         threat_confidence ?? null
       );
     } else {
-      result = await adminDbService.updateNetworkThreatTag(
+      result = await adminNetworkTagsService.updateNetworkThreatTag(
         normalizedBssid,
         threat_tag,
         threat_confidence ?? null
@@ -194,7 +194,7 @@ router.patch('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
       return res.status(400).json({ error: 'notes content is required' });
     }
 
-    const noteId = await adminDbService.addNetworkNoteWithFunction(
+    const noteId = await adminNetworkMediaService.addNetworkNoteWithFunction(
       normalizedBssid,
       String(notes).trim(),
       'general',
@@ -216,7 +216,7 @@ router.patch('/:bssid/investigate', requireAdmin, async (req: any, res: any) => 
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
-    const result = await adminDbService.markNetworkInvestigate(normalizedBssid);
+    const result = await adminNetworkTagsService.markNetworkInvestigate(normalizedBssid);
 
     logger.info(`Network queued for investigation: ${normalizedBssid}`, { bssid: normalizedBssid });
 
@@ -239,7 +239,7 @@ router.delete('/:bssid', requireAdmin, async (req: any, res: any) => {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    const rowCount = await adminDbService.deleteNetworkTag(normalizedBssid);
+    const rowCount = await adminNetworkTagsService.deleteNetworkTag(normalizedBssid);
 
     if (rowCount === 0) {
       return res.status(404).json({ error: 'No tags found for this network' });
@@ -260,7 +260,7 @@ router.delete('/:bssid', requireAdmin, async (req: any, res: any) => {
  */
 router.get('/export/ml', requireAdmin, async (req: any, res: any) => {
   try {
-    const trainingData = await adminDbService.exportMLTrainingData();
+    const trainingData = await adminNetworkTagsService.exportMLTrainingData();
 
     res.json({
       training_data: trainingData,

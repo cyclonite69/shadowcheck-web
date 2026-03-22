@@ -80,16 +80,6 @@ const getRadioSVG = (type: string, color: string) => {
 };
 
 export const renderNetworkTooltip = (props: any): string => {
-  // Debug log to trace exact properties being passed to tooltip
-  console.log('[Tooltip] Render Properties:', {
-    bssid: props.bssid,
-    ssid: props.ssid,
-    freq: props.frequency,
-    chan: props.channel,
-    caps: props.capabilities,
-    distHome: props.distance_from_home_km,
-  });
-
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
   const tc = THREAT_COLOR[threat] || '#94a3b8';
   const bc = BORDER_COLOR[threat] || 'rgba(148,163,184,0.25)';
