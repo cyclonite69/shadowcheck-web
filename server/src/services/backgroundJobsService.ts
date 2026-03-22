@@ -8,6 +8,7 @@ const logger = require('../logging/logger');
 const { runPostgresBackup } = require('./backupService');
 const mlScoringService = require('./mlScoringService');
 const networkService = require('./networkService');
+const networkTagService = require('./networkTagService');
 const { query } = require('../config/database');
 const { getJobStatus, trackJobRun } = require('./jobRunRepository');
 
@@ -284,7 +285,7 @@ class BackgroundJobsService {
         );
 
         // Step 1: Query all manual tags for feedback-aware scoring
-        const tagRows = await networkService.getManualThreatTags();
+        const tagRows = await networkTagService.getManualThreatTags();
 
         // Step 2: Create tag lookup map
         const tagMap = new Map();

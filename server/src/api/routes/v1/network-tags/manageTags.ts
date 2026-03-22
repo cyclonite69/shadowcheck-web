@@ -7,7 +7,11 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { networkService, adminDbService } = require('../../../../config/container');
+const {
+  networkService,
+  networkTagService,
+  adminDbService,
+} = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
 const { bssidParamMiddleware } = require('../../../../validation/middleware');
@@ -97,7 +101,7 @@ router.patch('/:bssid/ignore', requireAdmin, async (req: any, res: any) => {
     const normalizedBssid = bssid.toUpperCase();
     const { ignore_reason } = req.body;
 
-    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
+    const existing = await networkTagService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
     if (!existing) {
@@ -143,7 +147,7 @@ router.patch('/:bssid/threat', requireAdmin, async (req: any, res: any) => {
       });
     }
 
-    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
+    const existing = await networkTagService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
     if (!existing) {

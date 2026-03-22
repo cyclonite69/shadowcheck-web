@@ -7,7 +7,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { networkService } = require('../../../../config/container');
+const { networkService, networkTagService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const {
   bssidParamMiddleware,
@@ -41,7 +41,7 @@ router.get('/:bssid', async (req: any, res: any) => {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    const tag = await networkService.getNetworkTagByBssid(normalizedBssid);
+    const tag = await networkTagService.getNetworkTagByBssid(normalizedBssid);
 
     if (!tag) {
       return res.json({
@@ -100,7 +100,7 @@ router.get('/', validateNetworkTagsQuery, async (req: any, res: any) => {
       whereClauses.push('nt.wigle_lookup_requested = true AND nt.wigle_result IS NULL');
     }
 
-    const { rows, totalCount } = await networkService.listNetworkTags(
+    const { rows, totalCount } = await networkTagService.listNetworkTags(
       whereClauses,
       params,
       limit,

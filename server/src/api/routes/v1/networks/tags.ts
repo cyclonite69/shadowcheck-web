@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-const { networkService } = require('../../../../config/container');
+const { networkService, networkTagService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import {
   validateBSSID,
@@ -59,7 +59,7 @@ router.get(
     const limit = limitResult.value ?? 50;
     const offset = (page - 1) * limit;
 
-    const { rows, totalCount } = await networkService.getTaggedNetworks(
+    const { rows, totalCount } = await networkTagService.getTaggedNetworks(
       tagValidation.value,
       limit,
       offset
@@ -114,15 +114,15 @@ router.post(
       return res.status(400).json({ error: 'Notes must be a string' });
     }
 
-    const networkExists = await networkService.checkNetworkExists(bssidValidation.cleaned);
+    const networkExists = await networkTagService.checkNetworkExists(bssidValidation.cleaned);
 
     if (!networkExists) {
       return res.status(404).json({ error: 'Network not found for tagging' });
     }
 
-    await networkService.deleteNetworkTag(bssidValidation.cleaned);
+    await networkTagService.deleteNetworkTag(bssidValidation.cleaned);
 
-    const tag = await networkService.insertNetworkTag(
+    const tag = await networkTagService.insertNetworkTag(
       bssidValidation.cleaned,
       tagValidation.value,
       confidenceValidation.value / 100.0,
@@ -146,7 +146,7 @@ router.delete(
       return res.status(400).json({ error: bssidValidation.error });
     }
 
-    const rowCount = await networkService.deleteNetworkTagReturning(bssidValidation.cleaned);
+    const rowCount = await networkTagService.deleteNetworkTagReturning(bssidValidation.cleaned);
 
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Tag not found for this BSSID' });
@@ -199,7 +199,7 @@ router.post(
 
     for (const bssid of bssidListValidation.value) {
       try {
-        const tag = await networkService.upsertThreatTag(
+        const tag = await networkTagService.upsertThreatTag(
           bssid,
           (reasonValidation as any).value || 'Manual threat tag'
         );

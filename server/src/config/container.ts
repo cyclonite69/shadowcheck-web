@@ -46,6 +46,7 @@ const mlScoringService = require('../services/ml/scoringService');
 const mlTrainingLock = require('../services/mlTrainingLock');
 const networkListService = require('../services/networkListService');
 const networkService = require('../services/networkService');
+const networkTagService = require('../services/networkTagService');
 const observationService = require('../services/observationService');
 const ouiGroupingService = require('../services/ouiGroupingService');
 const pgadminService = require('../services/pgadminService');
@@ -95,6 +96,7 @@ const container = {
   mlTrainingLock,
   networkListService,
   networkService,
+  networkTagService,
   observationService,
   ouiGroupingService,
   pgadminService,

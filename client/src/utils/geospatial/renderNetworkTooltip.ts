@@ -80,6 +80,16 @@ const getRadioSVG = (type: string, color: string) => {
 };
 
 export const renderNetworkTooltip = (props: any): string => {
+  // Debug log to trace exact properties being passed to tooltip
+  console.log('[Tooltip] Render Properties:', {
+    bssid: props.bssid,
+    ssid: props.ssid,
+    freq: props.frequency,
+    chan: props.channel,
+    caps: props.capabilities,
+    distHome: props.distance_from_home_km,
+  });
+
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
   const tc = THREAT_COLOR[threat] || '#94a3b8';
   const bc = BORDER_COLOR[threat] || 'rgba(148,163,184,0.25)';
@@ -92,6 +102,13 @@ export const renderNetworkTooltip = (props: any): string => {
   const lat = props.lat ?? props.latitude ?? props.trilat;
   const lon = props.lon ?? props.longitude ?? props.trilong;
   const randomized = isRandomizedMAC(props.bssid);
+
+  // Format distance from home logic
+  const distHomeRaw = Number(props.distance_from_home_km || 0);
+  const distHomeDisplay =
+    distHomeRaw > 10
+      ? `${distHomeRaw.toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
+      : `${Math.round(distHomeRaw * 1000)}m`;
 
   // Helper: Format timespan
   const timespanText = (() => {
@@ -181,7 +198,7 @@ export const renderNetworkTooltip = (props: any): string => {
       props.distance_from_last_point_m != null
         ? `
     <div style="margin-top:6px;display:flex;gap:10px;color:#475569;font-size:9px;">
-      ${props.distance_from_home_km != null ? `<span>HOME: <b style="color:#64748b;">${(props.distance_from_home_km * 1000).toFixed(0)}m</b></span>` : ''}
+      ${props.distance_from_home_km != null ? `<span>HOME: <b style="color:#64748b;">${distHomeDisplay}</b></span>` : ''}
       ${props.max_distance_km != null ? `<span>MAX: <b style="color:#64748b;">${(props.max_distance_km * 1000).toFixed(0)}m</b></span>` : ''}
       ${props.distance_from_last_point_m != null ? `<span>DELTA: <b style="color:#64748b;">${props.distance_from_last_point_m.toFixed(0)}m</b></span>` : ''}
     </div>
