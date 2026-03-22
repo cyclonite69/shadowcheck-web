@@ -9,6 +9,7 @@ const { runPostgresBackup } = require('./backupService');
 const mlScoringService = require('./mlScoringService');
 const networkService = require('./networkService');
 const { query } = require('../config/database');
+const { getJobStatus, trackJobRun } = require('./jobRunRepository');
 
 export {};
 
@@ -50,6 +51,7 @@ const DEFAULT_JOB_CONFIGS = {
 };
 
 type BackgroundJobName = keyof typeof JOB_SETTING_KEYS;
+export type { BackgroundJobName };
 
 class BackgroundJobsService {
   static jobs: Record<string, any> = {};
@@ -186,63 +188,77 @@ class BackgroundJobsService {
    * Run automated backup with S3 upload
    */
   static async runScheduledBackup() {
-    await this.trackJobRun('backup', async () => {
-      logger.info('[Backup Job] Starting scheduled backup...');
-      const result = await runPostgresBackup({ uploadToS3: true });
+    await trackJobRun(
+      'backup',
+      async () => {
+        logger.info('[Backup Job] Starting scheduled backup...');
+        const result = await runPostgresBackup({ uploadToS3: true });
 
-      if (result.s3) {
-        logger.info(
-          `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url}`
-        );
-      } else if (result.s3Error) {
-        logger.warn(
-          `[Backup Job] Backup created locally (${result.fileName}) but S3 upload failed: ${result.s3Error}`
-        );
+        if (result.s3) {
+          logger.info(
+            `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url}`
+          );
+        } else if (result.s3Error) {
+          logger.warn(
+            `[Backup Job] Backup created locally (${result.fileName}) but S3 upload failed: ${result.s3Error}`
+          );
+        }
+
+        return {
+          fileName: result.fileName,
+          bytes: result.bytes,
+          s3Url: result.s3?.url || null,
+          s3Error: result.s3Error || null,
+        };
+      },
+      {
+        lastConfig: this.lastConfig,
+        runningJobIds: this.runningJobIds,
       }
-
-      return {
-        fileName: result.fileName,
-        bytes: result.bytes,
-        s3Url: result.s3?.url || null,
-        s3Error: result.s3Error || null,
-      };
-    });
+    );
   }
 
   /**
    * Refresh all materialized views
    */
   static async runMVRefresh() {
-    await this.trackJobRun('mvRefresh', async () => {
-      logger.info('[MV Refresh Job] Starting materialized view refresh...');
+    await trackJobRun(
+      'mvRefresh',
+      async () => {
+        logger.info('[MV Refresh Job] Starting materialized view refresh...');
 
-      const views = [
-        { name: 'app.api_network_explorer_mv', concurrent: true },
-        { name: 'app.api_network_latest_mv', concurrent: false },
-        { name: 'app.analytics_summary_mv', concurrent: false },
-        { name: 'app.mv_network_timeline', concurrent: false },
-      ];
+        const views = [
+          { name: 'app.api_network_explorer_mv', concurrent: true },
+          { name: 'app.api_network_latest_mv', concurrent: false },
+          { name: 'app.analytics_summary_mv', concurrent: false },
+          { name: 'app.mv_network_timeline', concurrent: false },
+        ];
 
-      const failures: Array<{ view: string; error: string }> = [];
+        const failures: Array<{ view: string; error: string }> = [];
 
-      for (const view of views) {
-        try {
-          const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
-          logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
-          await query(sql);
-        } catch (error) {
-          failures.push({ view: view.name, error: error.message });
-          logger.error(`[MV Refresh Job] Failed to refresh ${view.name}: ${error.message}`);
+        for (const view of views) {
+          try {
+            const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
+            logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
+            await query(sql);
+          } catch (error) {
+            failures.push({ view: view.name, error: error.message });
+            logger.error(`[MV Refresh Job] Failed to refresh ${view.name}: ${error.message}`);
+          }
         }
-      }
 
-      if (failures.length > 0) {
-        const summary = failures.map((failure) => `${failure.view}: ${failure.error}`).join('; ');
-        throw new Error(summary);
-      }
+        if (failures.length > 0) {
+          const summary = failures.map((failure) => `${failure.view}: ${failure.error}`).join('; ');
+          throw new Error(summary);
+        }
 
-      return { refreshedViews: views.map((view) => view.name) };
-    });
+        return { refreshedViews: views.map((view) => view.name) };
+      },
+      {
+        lastConfig: this.lastConfig,
+        runningJobIds: this.runningJobIds,
+      }
+    );
   }
 
   /**
@@ -250,276 +266,139 @@ class BackgroundJobsService {
    * Based on mobility patterns, not user tags
    */
   static async runMLScoring() {
-    await this.trackJobRun('mlScoring', async () => {
-      logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
-      // Simple behavioral query - avoid complex PostGIS calculations
-      const networks = await mlScoringService.getNetworksForBehavioralScoring(
-        ML_SCORING_LIMIT,
-        MIN_OBSERVATIONS,
-        MAX_BSSID_LENGTH
-      );
+    await trackJobRun(
+      'mlScoring',
+      async () => {
+        logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
+        // Simple behavioral query - avoid complex PostGIS calculations
+        const networks = await mlScoringService.getNetworksForBehavioralScoring(
+          ML_SCORING_LIMIT,
+          MIN_OBSERVATIONS,
+          MAX_BSSID_LENGTH
+        );
 
-      const scores = [];
+        const scores = [];
 
-      logger.info(
-        `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`
-      );
+        logger.info(
+          `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`
+        );
 
-      // Step 1: Query all manual tags for feedback-aware scoring
-      const tagRows = await networkService.getManualThreatTags();
+        // Step 1: Query all manual tags for feedback-aware scoring
+        const tagRows = await networkService.getManualThreatTags();
 
-      // Step 2: Create tag lookup map
-      const tagMap = new Map();
-      for (const tag of tagRows) {
-        tagMap.set(tag.bssid, {
-          tag: tag.threat_tag,
-          confidence: tag.threat_confidence || 1.0,
-          notes: tag.notes,
-        });
-      }
-
-      logger.info(`[ML Scoring Job] Found ${tagMap.size} manual tags for feedback adjustment`);
-
-      // Step 3: Score each network with feedback-aware model
-      for (const net of networks) {
-        try {
-          // Calculate base ML score using behavioral model
-          const mobility =
-            net.max_distance_km > MOBILITY_HIGH_KM
-              ? 80
-              : net.max_distance_km > MOBILITY_MED_KM
-                ? 40
-                : 0;
-          const persistence =
-            net.unique_days > PERSISTENCE_HIGH_DAYS
-              ? 60
-              : net.unique_days > PERSISTENCE_MED_DAYS
-                ? 30
-                : 0;
-          const baseMlScore = mobility * 0.6 + persistence * 0.4;
-
-          // Step 4: Apply feedback adjustment based on manual tags
-          let finalScore = baseMlScore;
-          let feedbackApplied = false;
-
-          const tag = tagMap.get(net.bssid);
-          if (tag) {
-            feedbackApplied = true;
-            switch (tag.tag) {
-              case 'FALSE_POSITIVE':
-                finalScore = baseMlScore * FEEDBACK_MULTIPLIERS.FALSE_POSITIVE; // Suppress threat
-                break;
-              case 'THREAT':
-                finalScore =
-                  baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.THREAT_BOOST); // Boost threat
-                break;
-              case 'SUSPECT':
-                finalScore =
-                  baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.SUSPECT_BOOST); // Moderate boost
-                break;
-              case 'INVESTIGATE':
-                finalScore = baseMlScore; // Keep ML score unchanged
-                break;
-            }
-          }
-
-          // Step 5: Calculate final threat level from adjusted score
-          let threatLevel = 'NONE';
-          if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) {
-            threatLevel = 'CRITICAL';
-          } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) {
-            threatLevel = 'HIGH';
-          } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) {
-            threatLevel = 'MED';
-          } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.LOW) {
-            threatLevel = 'LOW';
-          }
-
-          // Step 6: Store both ML and final scores with feedback metadata
-          scores.push({
-            bssid: net.bssid,
-            ml_threat_score: baseMlScore,
-            ml_threat_probability: baseMlScore / 100.0,
-            ml_primary_class: baseMlScore >= 60 ? 'THREAT' : 'LEGITIMATE',
-            rule_based_score: 0,
-            final_threat_score: finalScore,
-            final_threat_level: threatLevel,
-            model_version: '2.0.0',
-            feedback_applied: feedbackApplied,
-            manual_tag: tag ? tag.tag : null,
+        // Step 2: Create tag lookup map
+        const tagMap = new Map();
+        for (const tag of tagRows) {
+          tagMap.set(tag.bssid, {
+            tag: tag.threat_tag,
+            confidence: tag.threat_confidence || 1.0,
+            notes: tag.notes,
           });
-        } catch (netError) {
-          logger.debug(`[ML Scoring Job] Error scoring ${net.bssid}: ${netError.message}`);
         }
+
+        logger.info(`[ML Scoring Job] Found ${tagMap.size} manual tags for feedback adjustment`);
+
+        // Step 3: Score each network with feedback-aware model
+        for (const net of networks) {
+          try {
+            // Calculate base ML score using behavioral model
+            const mobility =
+              net.max_distance_km > MOBILITY_HIGH_KM
+                ? 80
+                : net.max_distance_km > MOBILITY_MED_KM
+                  ? 40
+                  : 0;
+            const persistence =
+              net.unique_days > PERSISTENCE_HIGH_DAYS
+                ? 60
+                : net.unique_days > PERSISTENCE_MED_DAYS
+                  ? 30
+                  : 0;
+            const baseMlScore = mobility * 0.6 + persistence * 0.4;
+
+            // Step 4: Apply feedback adjustment based on manual tags
+            let finalScore = baseMlScore;
+            let feedbackApplied = false;
+
+            const tag = tagMap.get(net.bssid);
+            if (tag) {
+              feedbackApplied = true;
+              switch (tag.tag) {
+                case 'FALSE_POSITIVE':
+                  finalScore = baseMlScore * FEEDBACK_MULTIPLIERS.FALSE_POSITIVE; // Suppress threat
+                  break;
+                case 'THREAT':
+                  finalScore =
+                    baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.THREAT_BOOST); // Boost threat
+                  break;
+                case 'SUSPECT':
+                  finalScore =
+                    baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.SUSPECT_BOOST); // Moderate boost
+                  break;
+                case 'INVESTIGATE':
+                  finalScore = baseMlScore; // Keep ML score unchanged
+                  break;
+              }
+            }
+
+            // Step 5: Calculate final threat level from adjusted score
+            let threatLevel = 'NONE';
+            if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) {
+              threatLevel = 'CRITICAL';
+            } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) {
+              threatLevel = 'HIGH';
+            } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) {
+              threatLevel = 'MED';
+            } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.LOW) {
+              threatLevel = 'LOW';
+            }
+
+            // Step 6: Store both ML and final scores with feedback metadata
+            scores.push({
+              bssid: net.bssid,
+              ml_threat_score: baseMlScore,
+              ml_threat_probability: baseMlScore / 100.0,
+              ml_primary_class: baseMlScore >= 60 ? 'THREAT' : 'LEGITIMATE',
+              rule_based_score: 0,
+              final_threat_score: finalScore,
+              final_threat_level: threatLevel,
+              model_version: '2.0.0',
+              feedback_applied: feedbackApplied,
+              manual_tag: tag ? tag.tag : null,
+            });
+          } catch (netError) {
+            logger.debug(`[ML Scoring Job] Error scoring ${net.bssid}: ${netError.message}`);
+          }
+        }
+
+        // Bulk insert scores
+        const inserted = await mlScoringService.bulkUpsertThreatScores(scores);
+        logger.info(
+          `[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0`
+        );
+
+        // Step 2: Run OUI grouping and MAC randomization detection
+        logger.info('[ML Scoring Job] Running OUI grouping analysis...');
+        const OUIGroupingService = require('./ouiGroupingService');
+        await OUIGroupingService.generateOUIGroups();
+        await OUIGroupingService.detectMACRandomization();
+        logger.info('[ML Scoring Job] OUI grouping complete');
+
+        return {
+          analyzedNetworks: networks.length,
+          insertedScores: inserted,
+          feedbackTaggedNetworks: tagMap.size,
+        };
+      },
+      {
+        lastConfig: this.lastConfig,
+        runningJobIds: this.runningJobIds,
       }
-
-      // Bulk insert scores
-      const inserted = await mlScoringService.bulkUpsertThreatScores(scores);
-      logger.info(
-        `[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0`
-      );
-
-      // Step 2: Run OUI grouping and MAC randomization detection
-      logger.info('[ML Scoring Job] Running OUI grouping analysis...');
-      const OUIGroupingService = require('./ouiGroupingService');
-      await OUIGroupingService.generateOUIGroups();
-      await OUIGroupingService.detectMACRandomization();
-      logger.info('[ML Scoring Job] OUI grouping complete');
-
-      return {
-        analyzedNetworks: networks.length,
-        insertedScores: inserted,
-        feedbackTaggedNetworks: tagMap.size,
-      };
-    });
-  }
-
-  static async createJobRun(jobName: BackgroundJobName, cron: string): Promise<number> {
-    const result = await query(
-      `
-      INSERT INTO app.background_job_runs (
-        job_name,
-        cron,
-        status
-      )
-      VALUES ($1, $2, 'running')
-      RETURNING id;
-    `,
-      [jobName, cron]
     );
-
-    return Number(result.rows[0]?.id);
-  }
-
-  static async completeJobRun(jobId: number, details: Record<string, unknown>, durationMs: number) {
-    await query(
-      `
-      UPDATE app.background_job_runs
-      SET
-        status = 'completed',
-        details = $2::jsonb,
-        duration_ms = $3,
-        finished_at = NOW()
-      WHERE id = $1
-    `,
-      [jobId, JSON.stringify(details || {}), durationMs]
-    );
-  }
-
-  static async failJobRun(jobId: number, error: string, durationMs: number) {
-    await query(
-      `
-      UPDATE app.background_job_runs
-      SET
-        status = 'failed',
-        error = $2,
-        duration_ms = $3,
-        finished_at = NOW()
-      WHERE id = $1
-    `,
-      [jobId, error, durationMs]
-    );
-  }
-
-  static async trackJobRun(
-    jobName: BackgroundJobName,
-    task: () => Promise<Record<string, unknown> | void>
-  ): Promise<void> {
-    const cron =
-      this.lastConfig[JOB_SETTING_KEYS[jobName]]?.cron || DEFAULT_JOB_CONFIGS[jobName].cron;
-    const startTime = Date.now();
-    const jobId = await this.createJobRun(jobName, cron);
-    this.runningJobIds[jobName] = jobId;
-
-    try {
-      const details = (await task()) || {};
-      const durationMs = Date.now() - startTime;
-      await this.completeJobRun(jobId, details, durationMs);
-    } catch (error) {
-      const durationMs = Date.now() - startTime;
-      const message = error instanceof Error ? error.message : String(error);
-      logger.error(`[Background Jobs] ${jobName} failed: ${message}`);
-      await this.failJobRun(jobId, message, durationMs);
-    } finally {
-      delete this.runningJobIds[jobName];
-    }
   }
 
   static async getJobStatus() {
-    const { rows } = await query(
-      `
-      WITH recent_runs AS (
-        SELECT
-          id,
-          job_name,
-          status,
-          cron,
-          started_at,
-          finished_at,
-          duration_ms,
-          error,
-          details,
-          ROW_NUMBER() OVER (PARTITION BY job_name ORDER BY started_at DESC) AS row_num
-        FROM app.background_job_runs
-      )
-      SELECT
-        id,
-        job_name,
-        status,
-        cron,
-        started_at,
-        finished_at,
-        duration_ms,
-        error,
-        details,
-        row_num
-      FROM recent_runs
-      WHERE row_num <= 5
-      ORDER BY job_name, started_at DESC
-    `
-    );
-
-    const dbRuns: Record<string, any[]> = { backup: [], mlScoring: [], mvRefresh: [] };
-    rows.forEach((row: any) => {
-      dbRuns[row.job_name]?.push({
-        id: Number(row.id),
-        status: row.status,
-        cron: row.cron,
-        startedAt: row.started_at,
-        finishedAt: row.finished_at,
-        durationMs: row.duration_ms ? Number(row.duration_ms) : null,
-        error: row.error || null,
-        details: row.details || {},
-      });
-    });
-
-    const settingsRows = await query(
-      "SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config')"
-    );
-
-    const configs: Record<string, any> = {};
-    settingsRows.rows.forEach((row: any) => {
-      configs[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-    });
-
-    const jobs = (Object.keys(JOB_SETTING_KEYS) as BackgroundJobName[]).reduce(
-      (acc, jobName) => {
-        const config = configs[JOB_SETTING_KEYS[jobName]] || DEFAULT_JOB_CONFIGS[jobName];
-        const scheduledJob = this.jobs[jobName];
-        const nextInvocation = scheduledJob?.nextInvocation?.();
-        acc[jobName] = {
-          config,
-          nextRun: nextInvocation ? new Date(nextInvocation).toISOString() : null,
-          recentRuns: dbRuns[jobName] || [],
-          currentRun: (dbRuns[jobName] || []).find((run) => run.status === 'running') || null,
-          lastRun: (dbRuns[jobName] || []).find((run) => run.status !== 'running') || null,
-        };
-        return acc;
-      },
-      {} as Record<BackgroundJobName, any>
-    );
-
-    return { jobs };
+    return getJobStatus(this.jobs);
   }
 
   /**

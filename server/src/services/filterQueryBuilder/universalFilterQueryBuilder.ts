@@ -123,4 +123,8 @@ export class UniversalFilterQueryBuilder {
   public getAppliedCount(): number {
     return this.ctx.getAppliedCount();
   }
+
+  public getValidationErrors(): string[] {
+    return this.ctx.getValidationErrors();
+  }
 }

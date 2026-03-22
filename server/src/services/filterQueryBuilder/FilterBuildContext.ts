@@ -17,6 +17,7 @@ const hasMeaningfulFilterValue = (value: unknown): boolean => {
 export class FilterBuildContext extends FilterPredicateBuilder {
   public filters: Filters;
   public enabled: EnabledFlags;
+  public validationErrors: string[];
   public params: unknown[];
   public paramIndex: number;
   public state: QueryState;
@@ -36,9 +37,10 @@ export class FilterBuildContext extends FilterPredicateBuilder {
     }
   ) {
     super();
-    const { filters: normalized, enabled: flags } = validateFilterPayload(filters, enabled);
+    const { errors, filters: normalized, enabled: flags } = validateFilterPayload(filters, enabled);
     this.filters = normalized;
     this.enabled = flags;
+    this.validationErrors = errors;
     this.params = [];
     this.paramIndex = 1;
     this.state = new QueryState();
@@ -102,6 +104,10 @@ export class FilterBuildContext extends FilterPredicateBuilder {
 
   public getAppliedCount(): number {
     return this.getAppliedFilters().length;
+  }
+
+  public getValidationErrors(): string[] {
+    return [...this.validationErrors];
   }
 
   public isFastPathEligible(enabledKeys: string[]): boolean {

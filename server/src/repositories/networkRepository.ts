@@ -122,6 +122,37 @@ class NetworkRepository {
   async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
+      const validationErrors = builder.getValidationErrors();
+      if (validationErrors.length > 0) {
+        logger.error('Invalid filters for getDashboardMetrics', {
+          validationErrors,
+          enabledKeys: Object.keys(enabled || {}).filter((key) => enabled[key]),
+          filterKeys: Object.keys(filters || {}),
+        });
+        return {
+          totalNetworks: 0,
+          wifiCount: 0,
+          bleCount: 0,
+          bluetoothCount: 0,
+          lteCount: 0,
+          nrCount: 0,
+          gsmCount: 0,
+          totalObservations: 0,
+          wifiObservations: 0,
+          bleObservations: 0,
+          bluetoothObservations: 0,
+          lteObservations: 0,
+          nrObservations: 0,
+          gsmObservations: 0,
+          threatsCritical: 0,
+          threatsHigh: 0,
+          threatsMedium: 0,
+          threatsLow: 0,
+          activeSurveillance: 0,
+          enrichedCount: 0,
+          filtersApplied: 0,
+        };
+      }
       const { sql, params } = builder.buildDashboardMetricsQuery();
 
       const result = await query(sql, params);

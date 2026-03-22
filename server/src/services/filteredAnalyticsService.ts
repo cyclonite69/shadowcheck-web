@@ -1,6 +1,7 @@
 import type { QueryResult } from './filterQueryBuilder/types';
 
 const { UniversalFilterQueryBuilder } = require('./filterQueryBuilder');
+const logger = require('../logging/logger');
 const v2Service = require('./v2Service');
 
 type PageType = 'geospatial' | 'wigle';
@@ -61,6 +62,16 @@ export async function getFilteredAnalytics(
 ): Promise<FilteredAnalyticsResult> {
   const start = Date.now();
   const builder = new UniversalFilterQueryBuilder(filters, enabled, { pageType });
+  const validationErrors = builder.getValidationErrors();
+  if (validationErrors.length > 0) {
+    logger.error('Invalid filters for getFilteredAnalytics', {
+      validationErrors,
+      pageType,
+      enabledKeys: Object.keys(enabled || {}).filter((key) => enabled[key]),
+      filterKeys: Object.keys(filters || {}),
+    });
+    throw new Error(`Invalid filter payload: ${validationErrors.join('; ')}`);
+  }
   const queries = builder.buildAnalyticsQueries({ useLatestPerBssid: true });
 
   const [
