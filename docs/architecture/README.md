@@ -13,6 +13,11 @@ Suggested filenames:
 - `ShadowCheck_SIGINT_Forensics.pdf`
 - `NotebookLM_Mind_Map.png`
 
+Current assets:
+
+- [ShadowCheck SIGINT Forensics PDF](./ShadowCheck_SIGINT_Forensics.pdf) - exported architecture reference deck
+- [NotebookLM Mind Map PNG](./NotebookLM%20Mind%20Map.png) - visual mind map / architecture overview
+
 Notes:
 
 - Prefer keeping this directory limited to a small number of intentional assets.

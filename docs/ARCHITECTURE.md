@@ -27,6 +27,12 @@ This document describes the high-level architecture of the ShadowCheck-Web platf
 
 ShadowCheck-Web is a SIGINT (Signals Intelligence) forensics platform built on a modern modular architecture combining a React/Vite frontend with a Node.js/Express backend, using PostgreSQL + PostGIS for geospatial data processing and Redis for caching and session management.
 
+Additional architecture assets:
+
+- [Architecture Assets Index](architecture/README.md)
+- [ShadowCheck SIGINT Forensics PDF](architecture/ShadowCheck_SIGINT_Forensics.pdf)
+- [NotebookLM Mind Map PNG](architecture/NotebookLM%20Mind%20Map.png)
+
 ### Core Components
 
 ```

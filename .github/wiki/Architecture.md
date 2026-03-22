@@ -15,6 +15,12 @@ ShadowCheck uses a modern modular architecture combining:
 - **PostgreSQL + PostGIS** for geospatial data processing
 - **Redis** for caching, sessions, and rate limiting
 
+Additional reference assets:
+
+- [Architecture assets index](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/README.md)
+- [ShadowCheck SIGINT Forensics PDF](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/ShadowCheck_SIGINT_Forensics.pdf)
+- [NotebookLM Mind Map PNG](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/NotebookLM%20Mind%20Map.png)
+
 ---
 
 ## System Architecture Diagram
