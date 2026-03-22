@@ -11,7 +11,15 @@ const pickFirst = <T>(...values: T[]): T | null => {
 
 const toNumberOrNull = (value: any): number | null => {
   if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+  // Extract first numeric-looking part (handles "2412 MHz", "1,234", etc.)
+  const clean = String(value)
+    .replace(/,/g, '')
+    .match(/[-+]?\d*\.?\d+/);
+  if (!clean) return null;
+
+  const n = Number(clean[0]);
   return Number.isFinite(n) ? n : null;
 };
 
@@ -142,7 +150,11 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     distance_from_home_km: toNumberOrNull(
       pickFirst(raw.distance_from_home_km, raw.distance_from_home)
     ),
-    max_distance_km: toNumberOrNull(raw.max_distance_km),
+    max_distance_km:
+      toNumberOrNull(raw.max_distance_km) ??
+      (toNumberOrNull(raw.max_distance_meters) !== null
+        ? toNumberOrNull(raw.max_distance_meters)! / 1000.0
+        : null),
     unique_days: toNumberOrNull(raw.unique_days),
     accuracy,
     number: toNumberOrNull(raw.number),

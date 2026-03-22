@@ -118,6 +118,23 @@ export const renderNetworkTooltip = (props: any): string => {
       : `${Math.round(distHomeRaw * 1000)}m`;
   })();
 
+  const distMaxRaw = Number(props.max_distance_km);
+  const distMaxDisplay = (() => {
+    if (props.max_distance_km === null || props.max_distance_km === undefined) return null;
+    return distMaxRaw > 10
+      ? `${distMaxRaw.toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
+      : `${Math.round(distMaxRaw * 1000)}m`;
+  })();
+
+  const distDeltaRaw = Number(props.distance_from_last_point_m);
+  const distDeltaDisplay = (() => {
+    if (props.distance_from_last_point_m === null || props.distance_from_last_point_m === undefined)
+      return null;
+    return distDeltaRaw > 10000
+      ? `${(distDeltaRaw / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
+      : `${Math.round(distDeltaRaw)}m`;
+  })();
+
   // Helper: Format timespan
   const timespanText = (() => {
     if (!props.timespan_days) return '';
@@ -207,8 +224,8 @@ export const renderNetworkTooltip = (props: any): string => {
         ? `
     <div style="margin-top:6px;display:flex;gap:10px;color:#475569;font-size:9px;">
       <span>HOME: <b style="color:#64748b;">${distHomeDisplay}</b></span>
-      ${props.max_distance_km != null ? `<span>MAX: <b style="color:#64748b;">${(props.max_distance_km * 1000).toFixed(0)}m</b></span>` : ''}
-      ${props.distance_from_last_point_m != null ? `<span>DELTA: <b style="color:#64748b;">${props.distance_from_last_point_m.toFixed(0)}m</b></span>` : ''}
+      ${distMaxDisplay ? `<span>MAX: <b style="color:#64748b;">${distMaxDisplay}</b></span>` : ''}
+      ${distDeltaDisplay ? `<span>DELTA: <b style="color:#64748b;">${distDeltaDisplay}</b></span>` : ''}
     </div>
     `
         : ''
