@@ -14,7 +14,11 @@ const path = require('path');
 const fsNative = require('fs');
 const fs = fsNative.promises;
 const { spawn } = require('child_process');
-const { secretsManager, adminDbService, backupService } = require('../../../../config/container');
+const {
+  secretsManager,
+  adminImportHistoryService,
+  backupService,
+} = require('../../../../config/container');
 const { runPostgresBackup } = backupService;
 const logger = require('../../../../logging/logger');
 
@@ -157,9 +161,9 @@ router.post(
       `Starting ${isKismet ? 'Kismet Sidecar' : 'SQLite'} import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
     );
 
-    const metricsBefore = await adminDbService.captureImportMetrics();
+    const metricsBefore = await adminImportHistoryService.captureImportMetrics();
 
-    let historyId = await adminDbService.createImportHistoryEntry(
+    let historyId = await adminImportHistoryService.createImportHistoryEntry(
       sourceTag,
       originalName,
       metricsBefore
@@ -172,7 +176,7 @@ router.post(
         await runPostgresBackup({ uploadToS3: true });
         backupTaken = true;
         logger.info('Pre-import backup complete');
-        if (historyId) await adminDbService.markImportBackupTaken(historyId);
+        if (historyId) await adminImportHistoryService.markImportBackupTaken(historyId);
       } catch (e: any) {
         logger.warn(`Pre-import backup failed (continuing): ${e.message}`);
       }
@@ -230,10 +234,10 @@ router.post(
           failed = failedMatch ? parseInt(failedMatch[1].replace(/,/g, '')) : 0;
         }
 
-        const metricsAfter = await adminDbService.captureImportMetrics();
+        const metricsAfter = await adminImportHistoryService.captureImportMetrics();
 
         if (historyId) {
-          await adminDbService.completeImportSuccess(
+          await adminImportHistoryService.completeImportSuccess(
             historyId,
             imported,
             failed,
@@ -266,7 +270,7 @@ router.post(
       } else {
         const errMsg = errorOutput.slice(0, 500) || `exit code ${code}`;
         if (historyId) {
-          await adminDbService.failImportHistory(historyId, errMsg, durationS);
+          await adminImportHistoryService.failImportHistory(historyId, errMsg, durationS);
         }
 
         logger.error(`Import script failed with code ${code}`);
@@ -288,7 +292,7 @@ router.post(
       if (responseSent) return;
       logger.error(`Failed to start import script: ${error.message}`, { error });
       if (historyId) {
-        await adminDbService.failImportHistory(historyId, error.message);
+        await adminImportHistoryService.failImportHistory(historyId, error.message);
       }
       try {
         await fs.unlink(sqliteFile);
@@ -330,8 +334,8 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
       `Starting SQL import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
     );
 
-    const metricsBefore = await adminDbService.captureImportMetrics();
-    const historyId = await adminDbService.createImportHistoryEntry(
+    const metricsBefore = await adminImportHistoryService.captureImportMetrics();
+    const historyId = await adminImportHistoryService.createImportHistoryEntry(
       sourceTag,
       originalName,
       metricsBefore
@@ -342,7 +346,7 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
       try {
         await runPostgresBackup({ uploadToS3: true });
         backupTaken = true;
-        if (historyId) await adminDbService.markImportBackupTaken(historyId);
+        if (historyId) await adminImportHistoryService.markImportBackupTaken(historyId);
       } catch (e: any) {
         logger.warn(`Pre-SQL-import backup failed (continuing): ${e.message}`);
       }
@@ -365,11 +369,17 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
     p.on('close', async (code: number) => {
       await fs.unlink(sqlFile).catch(() => {});
       const durationS = ((Date.now() - startedAt) / 1000).toFixed(2);
-      const metricsAfter = await adminDbService.captureImportMetrics();
+      const metricsAfter = await adminImportHistoryService.captureImportMetrics();
 
       if (code === 0) {
         if (historyId) {
-          await adminDbService.completeImportSuccess(historyId, 0, 0, durationS, metricsAfter);
+          await adminImportHistoryService.completeImportSuccess(
+            historyId,
+            0,
+            0,
+            durationS,
+            metricsAfter
+          );
         }
 
         const metricsDelta = Object.keys(metricsAfter).reduce(
@@ -398,7 +408,7 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
 
       const errMsg = errorOutput.slice(0, 500) || `exit code ${code}`;
       if (historyId) {
-        await adminDbService.failImportHistory(historyId, errMsg, durationS);
+        await adminImportHistoryService.failImportHistory(historyId, errMsg, durationS);
       }
 
       return res.status(500).json({
@@ -419,7 +429,7 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
       await fs.unlink(sqlFile).catch(() => {});
       const durationS = ((Date.now() - startedAt) / 1000).toFixed(2);
       if (historyId) {
-        await adminDbService.failImportHistory(historyId, error.message, durationS);
+        await adminImportHistoryService.failImportHistory(historyId, error.message, durationS);
       }
       return res.status(500).json({
         ok: false,
@@ -445,7 +455,7 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
 router.get('/admin/import-history', async (req: any, res: any, next: any) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-    const history = await adminDbService.getImportHistory(limit);
+    const history = await adminImportHistoryService.getImportHistory(limit);
     res.json({ ok: true, history });
   } catch (e: any) {
     next(e);
@@ -455,7 +465,7 @@ router.get('/admin/import-history', async (req: any, res: any, next: any) => {
 // GET /api/admin/device-sources — known source tags with last import date
 router.get('/admin/device-sources', async (req: any, res: any, next: any) => {
   try {
-    const sources = await adminDbService.getDeviceSources();
+    const sources = await adminImportHistoryService.getDeviceSources();
     res.json({ ok: true, sources });
   } catch (e: any) {
     next(e);

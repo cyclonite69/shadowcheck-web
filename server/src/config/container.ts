@@ -10,6 +10,12 @@
 // ── Services ───────────────────────────────────────────────────────────────
 const adminDbService = require('../services/adminDbService');
 const adminSiblingService = require('../services/adminSiblingService');
+const adminUsersService = require('../services/adminUsersService');
+const adminMaintenanceService = require('../services/adminMaintenanceService');
+const adminDbStatsService = require('../services/adminDbStatsService');
+const adminImportHistoryService = require('../services/adminImportHistoryService');
+const adminNetworkMediaService = require('../services/adminNetworkMediaService');
+const adminNetworkTagsService = require('../services/adminNetworkTagsService');
 const networkTagsAdminService = require('../services/admin/networkTagsAdminService');
 const settingsAdminService = require('../services/admin/settingsAdminService');
 const importExportAdminService = require('../services/admin/importExportAdminService');
@@ -53,6 +59,12 @@ const wigleService = require('../services/wigleService');
 const container = {
   adminDbService,
   adminSiblingService,
+  adminUsersService,
+  adminMaintenanceService,
+  adminDbStatsService,
+  adminImportHistoryService,
+  adminNetworkMediaService,
+  adminNetworkTagsService,
   networkTagsAdminService,
   settingsAdminService,
   importExportAdminService,

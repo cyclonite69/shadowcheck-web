@@ -8,7 +8,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const {
-  adminDbService,
+  adminNetworkTagsService,
   ouiGroupingService: OUIGroupingService,
 } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
@@ -19,7 +19,7 @@ const logger = require('../../../../logging/logger');
  */
 router.get('/admin/oui/groups', async (req, res) => {
   try {
-    const groups = await adminDbService.getOUIGroups();
+    const groups = await adminNetworkTagsService.getOUIGroups();
 
     res.json({
       ok: true,
@@ -40,7 +40,8 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
   try {
     const { oui } = req.params;
 
-    const { group, randomization, networks } = await adminDbService.getOUIGroupDetails(oui);
+    const { group, randomization, networks } =
+      await adminNetworkTagsService.getOUIGroupDetails(oui);
 
     res.json({
       ok: true,
@@ -60,7 +61,7 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
  */
 router.get('/admin/oui/randomization/suspects', async (req, res) => {
   try {
-    const suspects = await adminDbService.getMACRandomizationSuspects();
+    const suspects = await adminNetworkTagsService.getMACRandomizationSuspects();
 
     res.json({
       ok: true,

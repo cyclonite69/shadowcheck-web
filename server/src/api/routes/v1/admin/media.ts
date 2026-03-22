@@ -7,7 +7,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { adminDbService } = require('../../../../config/container');
+const { adminNetworkMediaService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 // POST /api/admin/network-media/upload - Upload media (image/video) to network
@@ -32,7 +32,7 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
     const fileSize = mediaBuffer.length;
 
     // Insert media
-    const media = await adminDbService.uploadNetworkMedia(
+    const media = await adminNetworkMediaService.uploadNetworkMedia(
       bssid,
       media_type,
       filename,
@@ -58,7 +58,7 @@ router.get('/admin/network-media/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const media = await adminDbService.getNetworkMediaList(bssid);
+    const media = await adminNetworkMediaService.getNetworkMediaList(bssid);
 
     res.json({
       ok: true,
@@ -76,7 +76,7 @@ router.get('/admin/network-media/download/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const media = await adminDbService.getNetworkMediaFile(id);
+    const media = await adminNetworkMediaService.getNetworkMediaFile(id);
 
     if (!media) {
       return res.status(404).json({

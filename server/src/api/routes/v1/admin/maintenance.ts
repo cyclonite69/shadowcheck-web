@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { ROUTE_CONFIG } = require('../../../../config/routeConfig');
-const { adminDbService } = require('../../../../config/container');
+const { adminMaintenanceService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 export {};
@@ -15,9 +15,9 @@ router.post('/admin/cleanup-duplicates', async (req, res, next) => {
   try {
     logger.info('Removing duplicate observations...');
 
-    const before = await adminDbService.getDuplicateObservationStats();
-    const removed = await adminDbService.deleteDuplicateObservations();
-    const after = await adminDbService.getObservationCount();
+    const before = await adminMaintenanceService.getDuplicateObservationStats();
+    const removed = await adminMaintenanceService.deleteDuplicateObservations();
+    const after = await adminMaintenanceService.getObservationCount();
 
     logger.info(`Removed ${removed} duplicate observations`);
 
@@ -38,7 +38,7 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
   try {
     logger.info('Creating/refreshing co-location materialized view...');
 
-    await adminDbService.refreshColocationView(ROUTE_CONFIG.minValidTimestamp);
+    await adminMaintenanceService.refreshColocationView(ROUTE_CONFIG.minValidTimestamp);
 
     logger.info('Co-location view created successfully');
 
