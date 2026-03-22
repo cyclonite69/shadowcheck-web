@@ -35,6 +35,47 @@ const stripNullBytesDeep = (value: any): any => {
   return value;
 };
 
+const parseJsonObject = (value: any): any | undefined => {
+  if (!value) return undefined;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+};
+
+const parseJsonArray = (value: any): any[] | undefined => {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+function mapCachedDetailToApiShape(cached: any): any {
+  return {
+    networkId: cached.netid,
+    name: cached.name ?? cached.ssid ?? null,
+    ssid: cached.ssid ?? cached.name ?? null,
+    encryption: cached.encryption ?? null,
+    type: cached.type ?? null,
+    channel: cached.channel ?? null,
+    firstSeen: cached.first_seen ?? null,
+    lastSeen: cached.last_seen ?? null,
+    lastUpdate: cached.last_observed_at ?? cached.last_seen ?? null,
+    trilateratedLatitude: cached.trilat ?? cached.last_lat ?? null,
+    trilateratedLongitude: cached.trilon ?? cached.last_lon ?? null,
+    streetAddress: parseJsonObject(cached.street_address),
+    locationClusters: parseJsonArray(cached.location_clusters),
+    comment: cached.comment ?? null,
+    bestClusterWiGLEQoS: cached.qos ?? null,
+  };
+}
+
 async function importWigleV3Observations(
   netid: string,
   locationClusters: any[]
@@ -115,6 +156,23 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
   try {
     const netid = (req.params.netid || '').trim().toUpperCase();
     const shouldImport = req.body?.import === true;
+
+    if (!shouldImport) {
+      const cached = await wigleService.getWigleDetail(netid);
+      if (cached) {
+        logger.info(`[WiGLE] Serving cached ${endpoint} detail for: ${netid}`);
+        return res.json({
+          ok: true,
+          data: stripNullBytesDeep(mapCachedDetailToApiShape(cached)),
+          imported: false,
+          cached: true,
+          importedObservations: 0,
+          totalObservations: 0,
+          attemptedObservations: 0,
+          failedObservations: 0,
+        });
+      }
+    }
 
     const detailResponse = await fetchWigleDetail(netid, endpoint);
 
