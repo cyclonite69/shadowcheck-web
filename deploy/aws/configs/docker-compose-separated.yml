@@ -156,7 +156,11 @@ services:
     networks:
       - shadowcheck_internal
     healthcheck:
-      test: ["CMD", "python3", "/pgadmin4/healthcheck.py"]
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c "import ssl, urllib.request; r = urllib.request.urlopen(''https://127.0.0.1:5050/misc/ping'', context=ssl._create_unverified_context(), timeout=5); print(r.read().decode().strip())" | grep -qx OK',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
