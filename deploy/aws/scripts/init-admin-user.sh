@@ -6,8 +6,9 @@
 set -euo pipefail
 
 CONTAINER="${POSTGRES_CONTAINER:-shadowcheck_postgres}"
-# Admin user creation requires write access to app.users; default to admin DB role.
-DB_USER="${DB_USER:-shadowcheck_admin}"
+# This bootstrap path is intended to run as the container's primary DB role.
+# In deployed environments that is shadowcheck_user / db_password.
+DB_USER="${DB_USER:-shadowcheck_user}"
 DB_NAME="${DB_NAME:-shadowcheck_db}"
 SECRET_NAME="${SECRET_NAME:-shadowcheck/config}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
@@ -131,24 +132,7 @@ SET password_hash = EXCLUDED.password_hash;
 SQL'
 }
 
-run_admin_upsert_with_postgres_superuser() {
-docker exec \
-  -e DB_NAME="$DB_NAME" \
-  -e APP_ADMIN_HASH="$HASH" \
-  -u postgres \
-  "$CONTAINER" \
-  bash -lc 'psql -v ON_ERROR_STOP=1 -d "$DB_NAME" <<'"'"'SQL'"'"'
-INSERT INTO app.users (username, password_hash, email, role, created_at)
-VALUES ('admin', :'APP_ADMIN_HASH', 'admin@shadowcheck.local', 'admin', NOW())
-ON CONFLICT (username) DO UPDATE
-SET password_hash = EXCLUDED.password_hash;
-SQL'
-}
-
-if ! run_admin_upsert_with_db_user; then
-    echo "WARN: password auth for $DB_USER failed; falling back to postgres superuser inside container."
-    run_admin_upsert_with_postgres_superuser
-fi
+run_admin_upsert_with_db_user
 
 # Compatibility updates for newer schemas (run only if columns exist)
 run_compat_updates_with_db_user() {
@@ -175,33 +159,7 @@ END
 \""
 }
 
-run_compat_updates_with_postgres_superuser() {
-docker exec -u postgres "$CONTAINER" bash -lc "psql -d '$DB_NAME' -c \"
-DO \\\$\\\$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema='app' AND table_name='users' AND column_name='force_password_change'
-  ) THEN
-    EXECUTE 'UPDATE app.users SET force_password_change = true WHERE username = ''admin''';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema='app' AND table_name='users' AND column_name='updated_at'
-  ) THEN
-    EXECUTE 'UPDATE app.users SET updated_at = NOW() WHERE username = ''admin''';
-  END IF;
-END
-\\\$\\\$;
-\""
-}
-
-if ! run_compat_updates_with_db_user; then
-    run_compat_updates_with_postgres_superuser
-fi
+run_compat_updates_with_db_user
 
 echo ""
 echo "Admin user created successfully"
