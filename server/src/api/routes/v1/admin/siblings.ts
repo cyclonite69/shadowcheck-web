@@ -1,6 +1,9 @@
 const express = require('express');
 const logger = require('../../../../logging/logger');
-const { siblingDetectionAdminService, adminDbService } = require('../../../../config/container');
+const {
+  siblingDetectionAdminService,
+  adminSiblingService,
+} = require('../../../../config/container');
 
 export {};
 
@@ -34,7 +37,7 @@ router.post('/admin/siblings/override', async (req, res) => {
       });
     }
 
-    await adminDbService.setNetworkSiblingOverride(
+    await adminSiblingService.setNetworkSiblingOverride(
       bssidA,
       bssidB,
       relation,
@@ -73,7 +76,7 @@ router.get('/admin/siblings/linked/:bssid', async (req, res) => {
       });
     }
 
-    const links = await adminDbService.getNetworkSiblingLinks(bssid);
+    const links = await adminSiblingService.getNetworkSiblingLinks(bssid);
     res.json({
       ok: true,
       bssid,
@@ -110,7 +113,7 @@ router.post('/admin/siblings/linked-batch', async (req, res) => {
       });
     }
 
-    const links = await adminDbService.getNetworkSiblingLinksBatch(bssids);
+    const links = await adminSiblingService.getNetworkSiblingLinksBatch(bssids);
     res.json({
       ok: true,
       links,
