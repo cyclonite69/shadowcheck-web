@@ -103,9 +103,9 @@ export const renderNetworkTooltip = (props: any): string => {
   })();
 
   return `
-<div style="background:linear-gradient(160deg,rgba(9,13,26,0.98) 0%,rgba(6,10,20,0.98) 100%);color:#f1f5f9;padding:0;border-radius:10px;width:min(315px, 85vw);border:1px solid ${bc};font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;box-sizing:border-box;overflow:hidden;box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);">
+<div style="background:linear-gradient(160deg,rgba(9,13,26,0.98) 0%,rgba(6,10,20,0.98) 100%);color:#f1f5f9;padding:0;border-radius:10px;width:min(315px, 85vw);max-height:min(450px, 80vh);overflow-y:auto;border:1px solid ${bc};font-family:'JetBrains Mono','Fira Code',monospace;font-size:10.5px;box-sizing:border-box;box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.3) transparent;">
 
-  <div style="padding:12px 14px 10px;border-bottom:1px solid rgba(148,163,184,0.1);">
+  <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(148,163,184,0.1);position:sticky;top:0;background:rgba(9,13,26,0.95);backdrop-filter:blur(4px);z-index:10;">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;">
