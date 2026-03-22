@@ -27,9 +27,8 @@ flowchart TD
     B -->|Production| E[AWS Cloud]
 
     C --> C1[npm install]
-    C1 --> C2[Local PostgreSQL]
-    C2 --> C3[Local Redis]
-    C3 --> C4[npm run dev]
+    C1 --> C2[Dockerized PostgreSQL / Redis]
+    C2 --> C3[npm run dev]
 
     D --> D1[docker-compose.yml]
     D1 --> D2[Docker containers]
@@ -52,9 +51,9 @@ flowchart TD
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - PostgreSQL 18+
-- Redis 4+
+- Redis 7+
 - Git
 
 ### Setup Flow
@@ -95,14 +94,11 @@ cd shadowcheck-web
 # Install dependencies
 npm install
 
-# Setup database
-createdb shadowcheck_db
-psql -d shadowcheck_db -c "CREATE EXTENSION postgis;"
-psql -d shadowcheck_db -f sql/migrations/*.sql
+# Start supporting services
+docker compose up -d
 
 # Configure environment
-# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
-# Edit .env with your credentials
+# Secrets policy: do not create local .env files with credentials; use AWS Secrets Manager or explicit env-var overrides
 
 # Start development server
 npm run dev
@@ -164,7 +160,7 @@ flowchart LR
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # View logs
 docker-compose logs -f
@@ -173,7 +169,7 @@ docker-compose logs -f
 docker-compose down
 
 # Rebuild after changes
-docker-compose up -d --build
+docker compose up -d --build
 
 # Access pgAdmin
 # http://localhost:5050
@@ -299,7 +295,7 @@ sequenceDiagram
 
     EC2->>Docker: docker-compose down
     EC2->>Docker: docker-compose build
-    EC2->>Docker: docker-compose up -d
+    EC2->>Docker: docker compose up -d
 
     Docker->>App: Start containers
     App-->>Docker: Health check OK

@@ -14,12 +14,12 @@
 
 ## Current System Status
 
-- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/endpoint-test`)
+- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-explorer`, `/analytics`, `/wigle`, `/kepler`, `/endpoint-test`)
 - **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
 - **Integrated Asset Serving**: The main Express server natively serves compiled frontend assets from `dist/` with optimized security headers.
 - **Universal filter system** with 20+ filter types supporting complex queries across all pages
 - **DevContainer support** for consistent development environments with VS Code integration
-- **Static server** with security headers for production deployment and Lighthouse audits
+- **Integrated asset serving** via the main Express server plus an optional static server for Lighthouse/security-header benchmarking
 - **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence
 - **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
 - **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
@@ -125,7 +125,7 @@ See `docs/FEATURES.md` for the full feature catalog.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - PostgreSQL 18+ with PostGIS
 - Redis 7.0+
 - TypeScript 5.0+ (included in devDependencies)
@@ -138,7 +138,7 @@ See `docs/FEATURES.md` for the full feature catalog.
 git clone https://github.com/cyclonite69/shadowcheck-web.git
 cd shadowcheck-web
 npm install
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Home Lab Deployment
@@ -249,11 +249,10 @@ Server runs on `http://localhost:3001`
 ## Pages
 
 - Dashboard (React): `/` and `/dashboard`
-- Geospatial Intelligence (React): `/geospatial` or `/geospatial-intel`
+- Start Page (React): `/start`
 - Geospatial Explorer (React): `/geospatial-explorer`
 - Analytics (React): `/analytics`
 - API Test (React): `/endpoint-test`
-- ML Training (React): `/ml-training`
 - Admin: `/admin`
 - WiGLE (React): `/wigle`
 - Kepler (React): `/kepler`

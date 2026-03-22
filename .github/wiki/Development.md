@@ -6,7 +6,7 @@
 
 ## Prerequisites
 
-- **Node.js** 20+ (LTS recommended)
+- **Node.js** 22+ (LTS recommended)
 - **PostgreSQL** 18+ with PostGIS extension
 - **Docker** (optional, for containerized development)
 - **Git**
@@ -31,25 +31,11 @@ npm install
 ### 3. Configure Environment
 
 ```bash
-# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
-# Edit .env with your database credentials
+# Secrets policy: do not create local .env files with credentials; use AWS Secrets Manager or explicit env-var overrides
+docker compose up -d
 ```
 
-### 4. Set Secrets
-
-```bash
-node scripts/set-secret.js db_password "your-password"
-node scripts/set-secret.js db_admin_password "admin-password"
-node scripts/set-secret.js mapbox_token "pk.your-token"
-```
-
-### 5. Run Migrations
-
-```bash
-psql -U shadowcheck_admin -d shadowcheck_db -f sql/migrations/20260129_implement_db_security.sql
-```
-
-### 6. Start Development
+### 4. Start Development
 
 ```bash
 # Terminal 1: Backend
@@ -255,9 +241,8 @@ describe('GET /api/dashboard-metrics', () => {
 
 ### Pre-commit Hooks
 
-Husky runs automatically:
+Husky runs automatically for repo checks such as the secret-scan flow.
 
-- Secret scan
 - ESLint
 - Prettier
 

@@ -24,9 +24,9 @@ graph TB
     subgraph "Client Layer"
         A[React Frontend<br/>Vite + TypeScript]
         A1[Dashboard]
-        A2[Geospatial Intel]
+        A2[Geospatial Explorer]
         A3[Analytics]
-        A4[ML Training]
+        A4[WiGLE / Kepler]
         A5[Admin Panel]
         A --> A1
         A --> A2
@@ -36,7 +36,7 @@ graph TB
     end
 
     subgraph "API Gateway"
-        B[Express Server<br/>Node.js 20+]
+        B[Express Server<br/>Node.js 22+]
         B1[Rate Limiter<br/>1000 req/15min]
         B2[Auth Middleware]
         B3[Security Headers]
@@ -188,9 +188,9 @@ shadowcheck-web/
 │   └── migrations/         # Schema migrations
 │
 └── 📁 docs/                # Documentation
-    ├── architecture/       # System architecture
-    ├── security/           # Security guides
-    └── development/      # Development guides
+    ├── ARCHITECTURE.md     # System architecture
+    ├── SECURITY_POLICY.md  # Security guides
+    └── DEVELOPMENT.md      # Development guides
 ```
 
 ---

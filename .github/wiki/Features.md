@@ -42,18 +42,18 @@ mindmap
 
 ## Core UI & Exploration
 
-| Feature                     | Description                                                        |
-| --------------------------- | ------------------------------------------------------------------ |
-| **Dashboard**               | Real-time metrics cards, threat indicators, filter-aware summaries |
-| **Geospatial Intelligence** | Map-based analysis with heatmaps, routes, timeline overlays        |
-| **Geospatial Explorer**     | Interactive map view with network selection and tooltips           |
-| **Networks Explorer**       | Filtered network table with sorting and manufacturer cues          |
-| **Threats Explorer**        | Strong-signal candidate list with quick triage                     |
-| **Analytics**               | Temporal activity, radio-type trends, threat score charts          |
-| **WiGLE Page**              | Local WiGLE data search with optional live API lookups             |
-| **Kepler Page**             | Kepler.gl-ready GeoJSON feeds with filter support                  |
-| **API Test Page**           | Endpoint smoke tests and response inspection                       |
-| **Admin Page**              | Configuration workflows and operational controls                   |
+| Feature                 | Description                                                        |
+| ----------------------- | ------------------------------------------------------------------ |
+| **Dashboard**           | Real-time metrics cards, threat indicators, filter-aware summaries |
+| **Geospatial Explorer** | Map-based analysis with heatmaps, routes, timeline overlays        |
+| **Geospatial Explorer** | Interactive map view with network selection and tooltips           |
+| **Networks Explorer**   | Filtered network table with sorting and manufacturer cues          |
+| **Threats Explorer**    | Strong-signal candidate list with quick triage                     |
+| **Analytics**           | Temporal activity, radio-type trends, threat score charts          |
+| **WiGLE Page**          | Local WiGLE data search with optional live API lookups             |
+| **Kepler Page**         | Kepler.gl-ready GeoJSON feeds with filter support                  |
+| **API Test Page**       | Endpoint smoke tests and response inspection                       |
+| **Admin Page**          | Configuration workflows and operational controls                   |
 
 ---
 
@@ -613,25 +613,25 @@ _Last Updated: 2026-02-07_
 
 ## Admin, Auth & Security
 
-| Feature                 | Description                             |
-| ----------------------- | --------------------------------------- |
-| **Authentication**      | Session-based login/logout              |
-| **Role-Based Gating**   | Admin-only routes for sensitive actions |
-| **Settings Management** | AWS Secrets Manager-backed credentials  |
-| **Security Headers**    | CSP and hardened response headers       |
+| Feature                 | Description                              |
+| ----------------------- | ---------------------------------------- |
+| **Authentication**      | Session-based login/logout               |
+| **Role-Based Gating**   | Admin-only routes for sensitive actions  |
+| **Settings Management** | AWS Secrets Manager-backed credentials   |
+| **Security Headers**    | CSP and hardened response headers        |
 | **Secrets Handling**    | AWS Secrets Manager (no secrets on disk) |
 
 ---
 
 ## Platform & Operations
 
-| Feature             | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| **API Versioning**  | v1 and v2 endpoints                            |
-| **Modular Backend** | Services and repositories with validation      |
-| **ETL Pipeline**    | Load/transform/promote steps                   |
-| **Static Server**   | Production-ready hosting with security headers |
-| **Rate Limiting**   | 1000 req/15min per IP                          |
+| Feature             | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| **API Versioning**  | v1 and v2 endpoints                               |
+| **Modular Backend** | Services and repositories with validation         |
+| **ETL Pipeline**    | Load/transform/promote steps                      |
+| **Static Server**   | Optional benchmark/static hosting path for audits |
+| **Rate Limiting**   | 1000 req/15min per IP                             |
 
 ---
 
@@ -640,11 +640,9 @@ _Last Updated: 2026-02-07_
 | Page                | Route                  | Description                             |
 | ------------------- | ---------------------- | --------------------------------------- |
 | Dashboard           | `/`                    | Real-time metrics and threat indicators |
-| Geospatial Intel    | `/geospatial`          | Map-based analysis with heatmaps        |
+| Start               | `/start`               | Landing and launch flow                 |
 | Geospatial Explorer | `/geospatial-explorer` | Interactive map exploration             |
-| Networks Explorer   | `/networks`            | Filtered network table                  |
 | Analytics           | `/analytics`           | Charts and visualizations               |
-| ML Training         | `/ml-training`         | Model management and training           |
 | Admin               | `/admin`               | System administration                   |
 | WiGLE               | `/wigle`               | WiGLE database search                   |
 | Kepler              | `/kepler`              | Kepler.gl GeoJSON feeds                 |

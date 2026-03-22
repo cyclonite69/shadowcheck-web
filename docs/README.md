@@ -42,12 +42,12 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 ## Security
 
 - [Security Policy](SECURITY_POLICY.md) - Disclosure and security posture.
-- See `security/` for additional material.
+- See [SECRETS.md](SECRETS.md) and [../SECURITY.md](../SECURITY.md) for additional material.
 
 ## Optional/Internal
 
 - `kiro/` - Job manifest and execution guides for internal quality passes.
-- `bugfixes/` - Targeted fix plans and notes.
+- `fixes/` - Targeted fix plans and notes.
 
 ## Directory Map
 
@@ -79,7 +79,7 @@ docs/
 
 - [FEATURES.md](FEATURES.md) - Feature catalog
 - [CLIENT.md](CLIENT.md) - Frontend docs
-- `guides/` - Implementation guides
+- `development/` - Additional implementation notes
 
 ---
 
@@ -104,4 +104,4 @@ Historical notes are kept in dated markdown files and the `fixes/` directory. Pr
 
 ---
 
-**Last Updated:** 2026-03-14
+**Last Updated:** 2026-03-22
