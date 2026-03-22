@@ -39,6 +39,7 @@ module.exports = [
       'tests/unit/filterQueryBuilder*.ts',
       'tests/unit/radioFilterParity.test.ts',
       'tests/unit/networkFastPathPredicates.test.ts',
+      'tests/unit/threatCategoryLevels.test.ts',
       'tests/unit/analyticsQueryBuilders.test.ts',
       'tests/unit/geospatialQueryBuilders.test.ts',
       'tests/unit/observationFilterBuilder.test.ts',

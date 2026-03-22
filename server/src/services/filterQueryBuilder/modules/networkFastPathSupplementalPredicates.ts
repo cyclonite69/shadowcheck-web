@@ -1,30 +1,7 @@
 import { RELATIVE_WINDOWS } from '../constants';
 import type { FilterBuildContext } from '../FilterBuildContext';
+import { mapThreatCategoriesToDbLevels } from '../threatCategoryLevels';
 import type { FastPathPredicateOptions } from './networkFastPathPredicateTypes';
-
-const THREAT_LEVEL_MAP: Record<string, string> = {
-  critical: 'CRITICAL',
-  high: 'HIGH',
-  medium: 'MEDIUM',
-  low: 'LOW',
-  none: 'NONE',
-};
-
-function mapThreatCategoriesToDbLevels(threatCategories: string[]): string[] {
-  return Array.from(
-    new Set(
-      threatCategories
-        .flatMap((cat) => {
-          const mapped = THREAT_LEVEL_MAP[cat] || cat.toUpperCase();
-          if (mapped === 'MEDIUM' || mapped === 'MED') {
-            return ['MEDIUM', 'MED'];
-          }
-          return [mapped];
-        })
-        .filter(Boolean)
-    )
-  );
-}
 
 export function buildFastPathSupplementalPredicates(
   ctx: FilterBuildContext,
