@@ -1,4 +1,13 @@
+import { useEffect } from 'react';
+
+const GRAFANA_EMBED_COOKIE =
+  'shadowcheck_grafana_embed=1; Path=/; Max-Age=7200; Secure; SameSite=Lax';
+
 const MonitoringPage = () => {
+  useEffect(() => {
+    document.cookie = GRAFANA_EMBED_COOKIE;
+  }, []);
+
   return (
     <section className="flex h-full w-full flex-col bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-950/95 px-6 py-4 backdrop-blur">
