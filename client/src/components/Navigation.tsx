@@ -32,6 +32,7 @@ const Navigation: React.FC = () => {
         { href: '/dashboard', label: 'Dashboard' },
         { href: '/geospatial-explorer', label: 'Geospatial' },
         { href: '/analytics', label: 'Analytics' },
+        { href: '/monitoring', label: 'Monitoring' },
         { href: '/wigle', label: 'WiGLE' },
         { href: '/kepler', label: 'Kepler' },
         isAdmin ? { href: '/admin', label: 'Admin' } : null,
