@@ -2,7 +2,7 @@ apiVersion: 1
 datasources:
   - name: ShadowCheck-Postgres
     type: postgres
-    url: shadowcheck_postgres:5432
+    url: 127.0.0.1:5432
     database: shadowcheck_db
     user: shadowcheck_user
     secureJsonData:

@@ -1,6 +1,8 @@
 # ShadowCheck Monitoring Stack
 
 Standalone Grafana stack. Runs independently of the main app.
+For the current AWS deployment, Grafana joins Docker host networking because the
+main ShadowCheck services also run in `host` network mode.
 
 ## Start
 
@@ -30,6 +32,8 @@ docker compose -f docker-compose.monitoring.yml down
 Pre-wired to shadowcheck_postgres via provisioning.
 DB_PASSWORD is injected from the shell environment.
 In AWS deployments, source it from Secrets Manager before starting Grafana.
+Because the deployed containers use `host` networking, Grafana connects to
+Postgres at `127.0.0.1:5432`.
 
 ## Enable Slow Query Panel (optional)
 
