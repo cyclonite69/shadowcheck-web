@@ -3,6 +3,7 @@ import { QueryState } from './QueryState';
 import { validateFilterPayload } from './validators';
 import { FILTER_KEYS, NETWORK_ONLY_FILTERS, RELATIVE_WINDOWS, type FilterKey } from './constants';
 import { buildEngagementPredicates } from './engagementPredicates';
+import { mapThreatCategoriesToDbLevels } from './threatCategoryLevels';
 import type { Filters, EnabledFlags, AppliedFilter } from './types';
 
 const ENABLE_ONLY_FILTERS = new Set<FilterKey>(['excludeInvalidCoords']);
@@ -186,26 +187,7 @@ export class FilterBuildContext extends FilterPredicateBuilder {
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-      const threatLevelMap: Record<string, string> = {
-        critical: 'CRITICAL',
-        high: 'HIGH',
-        medium: 'MEDIUM',
-        low: 'LOW',
-        none: 'NONE',
-      };
-      const dbThreatLevels = Array.from(
-        new Set(
-          f.threatCategories
-            .flatMap((cat) => {
-              const mapped = threatLevelMap[cat] || cat.toUpperCase();
-              if (mapped === 'MEDIUM' || mapped === 'MED') {
-                return ['MEDIUM', 'MED'];
-              }
-              return [mapped];
-            })
-            .filter(Boolean)
-        )
-      );
+      const dbThreatLevels = mapThreatCategoriesToDbLevels(f.threatCategories);
       networkWhere.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
       this.addApplied('threat', 'threatCategories', f.threatCategories);
     }
