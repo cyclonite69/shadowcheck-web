@@ -1,0 +1,202 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT threat_level, COUNT(*) as count\nFROM app.api_network_explorer_mv\nGROUP BY threat_level\nORDER BY count DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Threat Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  DATE_TRUNC('day', first_seen) as time,\n  COUNT(*) as networks\nFROM app.api_network_explorer_mv\nWHERE first_seen > NOW() - INTERVAL '90 days'\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Networks Discovered Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  matviewname as \"View\",\n  ispopulated as \"Populated\",\n  pg_size_pretty(pg_total_relation_size('app.' || matviewname)) as \"Size\"\nFROM pg_matviews\nWHERE schemaname = 'app'\nORDER BY matviewname",
+          "refId": "A"
+        }
+      ],
+      "title": "Materialized View Health",
+      "type": "table"
+    },
+    {
+      "datasource": "ShadowCheck-Postgres",
+      "description": "Requires pg_stat_statements extension. See deploy/monitoring/README.md to enable.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": "ShadowCheck-Postgres",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  LEFT(query, 80) as \"Query\",\n  ROUND(mean_exec_time::numeric, 2) as \"Avg ms\",\n  calls as \"Calls\"\nFROM pg_stat_statements\nWHERE query NOT LIKE '%pg_stat%'\n  AND query NOT LIKE '%BEGIN%'\nORDER BY mean_exec_time DESC\nLIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Slow Queries",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["shadowcheck"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "ShadowCheck Overview",
+  "uid": "shadowcheck-overview",
+  "version": 1,
+  "weekStart": ""
+}

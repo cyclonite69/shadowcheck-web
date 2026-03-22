@@ -1,0 +1,25 @@
+services:
+  shadowcheck_grafana:
+    image: grafana/grafana:latest
+    container_name: shadowcheck_grafana
+    ports:
+      - "3002:3000"
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://34.204.161.164:3002
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    env_file:
+      - .env
+    networks:
+      - shadowcheck_net
+
+volumes:
+  grafana_data:
+
+networks:
+  shadowcheck_net:
+    external: true
