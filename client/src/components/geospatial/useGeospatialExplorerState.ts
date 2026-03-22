@@ -86,9 +86,6 @@ export const useGeospatialExplorerState = ({
     showTerrain,
     setShowTerrain,
   } = useMapPreferences();
-  const lockBoundingBoxToViewport = useFilterStore((state) =>
-    Boolean(state.boundingBoxViewportLocks[state.currentPage])
-  );
 
   const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
@@ -106,6 +103,13 @@ export const useGeospatialExplorerState = ({
   const setFilter = useFilterStore((state) => state.setFilter);
   const enableFilter = useFilterStore((state) => state.enableFilter);
   const enabled = useCurrentEnabled();
+
+  const lockBoundingBoxToViewport = useFilterStore((state) =>
+    Boolean(state.boundingBoxViewportLocks[state.currentPage])
+  );
+
+  // Effective lock only active if bounding box filter is enabled
+  const effectiveViewportLock = enabled.boundingBox && lockBoundingBoxToViewport;
 
   // Quick Search Effect
   useEffect(() => {
@@ -178,7 +182,7 @@ export const useGeospatialExplorerState = ({
   useMapInteractionLock({
     mapReady,
     mapRef,
-    isLocked: lockBoundingBoxToViewport,
+    isLocked: effectiveViewportLock,
   });
 
   useHomeLocationLayer({ mapReady, mapRef, homeLocation });
@@ -234,7 +238,7 @@ export const useGeospatialExplorerState = ({
     activeObservationSets,
     networkLookup,
     wigleObservations,
-    isViewportLocked: lockBoundingBoxToViewport,
+    isViewportLocked: effectiveViewportLock,
   });
 
   const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =
@@ -323,5 +327,6 @@ export const useGeospatialExplorerState = ({
     toggleTerrain,
     is3DBuildingsAvailable,
     changeMapStyle,
+    isViewportLocked: effectiveViewportLock,
   };
 };
