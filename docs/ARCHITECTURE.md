@@ -151,7 +151,7 @@ The following rules are immutable constraints of the system architecture:
 - **Modern modular API structure**: All routes organized in `server/src/api/` with services and repositories
 - **Modular services** in `server/src/services/` for business logic
 - **Repository pattern** in `server/src/repositories/` for data access
-- **Universal filter system** with 20+ filter types
+- **Universal filter system** with modular network, observation, geospatial, and analytics builders
 - **Structured logging** with Winston
 - **Connection pooling** with PostgreSQL
 - **Redis Integration** for caching and session management
@@ -169,9 +169,9 @@ The following rules are immutable constraints of the system architecture:
 - ✅ React frontend with modern tooling
 - ✅ Component-based UI architecture
 - ✅ Universal filter system
-- ✅ Modular backend services (partial)
-- 🔄 API route migration (in progress)
-- ⏳ Full repository pattern adoption
+- ✅ Modular backend services
+- ✅ API route migration
+- 🔄 Repository pattern adoption continues by service area
 
 ### Frontend Architecture
 
@@ -264,7 +264,7 @@ server/src/
 │       │   ├── weather.ts      # Weather proxy endpoints
 │       │   └── ...
 ├── services/             # Business logic layer
-│   ├── filterQueryBuilder.js   # Universal filter system
+│   ├── filterQueryBuilder/     # Universal filter system with modular builders
 │   ├── threatScoringService.js # Threat detection
 │   ├── mlScoringService.js     # ML predictions
 │   ├── analyticsService.js     # Analytics queries
