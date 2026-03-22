@@ -70,16 +70,30 @@ docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/
 
 # 3. Ensure infrastructure is running
 echo "[3/7] Ensuring infrastructure is running..."
-if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis; then
-  echo "  Starting PostgreSQL and Redis..."
+if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis || ! docker ps | grep -q shadowcheck_pgadmin; then
+  echo "  Starting/Updating Infrastructure (PostgreSQL, Redis, PgAdmin)..."
   sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
   sudo "$APP_DIR/deploy/aws/scripts/deploy-redis.sh"
+  
+  # Ensure pgAdmin is also up to date with its healthcheck
+  PGADMIN_COMPOSE="$APP_DIR/docker/infrastructure/docker-compose.postgres.yml"
+  if [ -f "$PGADMIN_COMPOSE" ]; then
+    echo "  Applying pgAdmin configuration from $PGADMIN_COMPOSE"
+    # Pull passwords for the compose file context
+    SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query 'SecretString' --output text 2>/dev/null || echo "{}")
+    DB_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
+    
+    export DB_PASSWORD REPO_ROOT="$APP_DIR"
+    docker-compose -f "$PGADMIN_COMPOSE" up -d pgadmin
+    unset DB_PASSWORD
+  fi
 else
   echo "  ✅ Infrastructure already running"
 fi
 
 wait_for_container_health shadowcheck_postgres 90
 wait_for_container_health shadowcheck_redis 30
+wait_for_container_health shadowcheck_pgadmin 60
 
 # 4. Build env
 echo "[4/7] Preparing environment..."
