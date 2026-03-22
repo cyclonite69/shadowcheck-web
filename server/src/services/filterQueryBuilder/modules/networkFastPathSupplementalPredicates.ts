@@ -16,7 +16,9 @@ function mapThreatCategoriesToDbLevels(threatCategories: string[]): string[] {
       threatCategories
         .flatMap((cat) => {
           const mapped = THREAT_LEVEL_MAP[cat] || cat.toUpperCase();
-          if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
+          if (mapped === 'MEDIUM' || mapped === 'MED') {
+            return ['MEDIUM', 'MED'];
+          }
           return [mapped];
         })
         .filter(Boolean)

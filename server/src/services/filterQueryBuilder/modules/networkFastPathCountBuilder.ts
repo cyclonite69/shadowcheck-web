@@ -12,8 +12,8 @@ export function buildNetworkOnlyCountQuery(ctx: FilterBuildContext): QueryResult
   const where = buildFastPathPredicates(ctx, {
     ignoredClause: NE_NOT_IGNORED_EXISTS_CLAUSE,
     channelExpr: NETWORK_CHANNEL_EXPR('ne'),
-    tagLowerExpr: `LOWER(COALESCE((to_jsonb(nt)->>'threat_tag'), ''))`,
-    tagIgnoredExpr: `COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)`,
+    tagLowerExpr: "LOWER(COALESCE((to_jsonb(nt)->>'threat_tag'), ''))",
+    tagIgnoredExpr: "COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)",
     allowUnknownEncryptionFallback: true,
   });
 

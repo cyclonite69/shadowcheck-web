@@ -24,7 +24,7 @@ class TestPredicateBuilder extends FilterPredicateBuilder {
     return this.buildRangePredicate({
       min,
       max,
-      expr: "CASE WHEN ne.frequency BETWEEN 2412 AND 2484 THEN 1 ELSE NULL END",
+      expr: 'CASE WHEN ne.frequency BETWEEN 2412 AND 2484 THEN 1 ELSE NULL END',
       wrapComparisons: true,
     });
   }

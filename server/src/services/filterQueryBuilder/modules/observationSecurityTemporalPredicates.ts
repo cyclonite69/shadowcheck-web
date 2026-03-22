@@ -65,14 +65,21 @@ export function buildObservationSecurityTemporalPredicates(ctx: FilterBuildConte
 
   if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
     const flagClauses: string[] = [];
-    if (f.securityFlags.includes('insecure'))
+    if (f.securityFlags.includes('insecure')) {
       flagClauses.push(`${obsSecurityExpr} IN ('OPEN', 'WEP', 'WPS')`);
-    if (f.securityFlags.includes('deprecated')) flagClauses.push(`${obsSecurityExpr} = 'WEP'`);
-    if (f.securityFlags.includes('enterprise'))
+    }
+    if (f.securityFlags.includes('deprecated')) {
+      flagClauses.push(`${obsSecurityExpr} = 'WEP'`);
+    }
+    if (f.securityFlags.includes('enterprise')) {
       flagClauses.push(`${obsSecurityExpr} IN ('WPA2-E', 'WPA3-E')`);
-    if (f.securityFlags.includes('personal'))
+    }
+    if (f.securityFlags.includes('personal')) {
       flagClauses.push(`${obsSecurityExpr} IN ('WPA', 'WPA2', 'WPA2-P', 'WPA3', 'WPA3-P')`);
-    if (f.securityFlags.includes('unknown')) flagClauses.push(`${obsSecurityExpr} = 'UNKNOWN'`);
+    }
+    if (f.securityFlags.includes('unknown')) {
+      flagClauses.push(`${obsSecurityExpr} = 'UNKNOWN'`);
+    }
     if (flagClauses.length > 0) {
       where.push(`(${flagClauses.join(' OR ')})`);
       ctx.addApplied('security', 'securityFlags', f.securityFlags);

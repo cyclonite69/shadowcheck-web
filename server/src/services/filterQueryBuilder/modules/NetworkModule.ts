@@ -28,7 +28,6 @@ export class NetworkModule {
 
   private buildNetworkListQueryImpl(options: NetworkListOptions = {}): FilteredQueryResult {
     const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
-    const includeIgnored = this.ctx.shouldIncludeIgnoredByExplicitTagFilter();
 
     this.ctx.requiresHome = true;
 
