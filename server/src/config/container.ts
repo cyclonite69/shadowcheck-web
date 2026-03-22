@@ -9,6 +9,7 @@
 
 // ── Services ───────────────────────────────────────────────────────────────
 const adminDbService = require('../services/adminDbService');
+const adminSiblingService = require('../services/adminSiblingService');
 const networkTagsAdminService = require('../services/admin/networkTagsAdminService');
 const settingsAdminService = require('../services/admin/settingsAdminService');
 const importExportAdminService = require('../services/admin/importExportAdminService');
@@ -51,6 +52,7 @@ const wigleService = require('../services/wigleService');
 
 const container = {
   adminDbService,
+  adminSiblingService,
   networkTagsAdminService,
   settingsAdminService,
   importExportAdminService,
