@@ -16,6 +16,7 @@ const AdminPage = lazy(() => import('./components/AdminPage'));
 const WiglePage = lazy(() => import('./components/WiglePage'));
 const KeplerPage = lazy(() => import('./components/KeplerPage'));
 const ApiPage = lazy(() => import('./components/ApiPage'));
+const MonitoringPage = lazy(() => import('./components/MonitoringPage'));
 
 /**
  * Route loading fallback - minimal, no layout shift
@@ -114,6 +115,7 @@ function AppContent() {
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/wigle" element={<WiglePage />} />
             <Route path="/kepler" element={<KeplerPage />} />
+            <Route path="/monitoring" element={<MonitoringPage />} />
             <Route path="/endpoint-test" element={<ApiPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>

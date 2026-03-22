@@ -124,41 +124,41 @@ export async function getFilteredNetworks(opts: {
     last_seen: 'ne.last_seen',
     last_observed_at: 'ne.last_seen',
     first_observed_at: 'ne.first_seen',
-    observed_at: 'ne.observed_at',
+    observed_at: 'ne.last_seen',
     ssid: 'lower(ne.ssid)',
     bssid: 'ne.bssid',
-    type: typeExpr,
-    security: 'ne.security',
-    signal: 'ne.signal',
+    type: 'ne.type',
+    security: 'ne.capabilities',
+    signal: 'ne.bestlevel',
     frequency: 'ne.frequency',
     channel: channelExpr,
     obs_count: 'ne.observations',
     observations: 'ne.observations',
-    distance_from_home_km: 'distance_from_home_km',
-    accuracy_meters: 'ne.accuracy_meters',
-    avg_signal: 'ne.signal',
-    min_signal: 'ne.signal',
-    max_signal: 'ne.signal',
-    unique_days: 'ne.unique_days',
-    unique_locations: 'ne.unique_locations',
-    threat: threatOrderExpr,
-    threat_score: `(${threatScoreExpr})::numeric`,
+    distance_from_home_km: 'ne.distance_from_home_km',
+    accuracy_meters: 'n.accuracy_meters',
+    avg_signal: 'ne.bestlevel',
+    min_signal: 'ne.bestlevel',
+    max_signal: 'ne.bestlevel',
+    unique_days: 'n.unique_days',
+    unique_locations: 'n.unique_locations',
+    threat: 'ne.threat_score',
+    threat_score: 'ne.threat_score',
     threat_rule_score: "COALESCE((nts.ml_feature_values->>'rule_score')::numeric, 0)",
     threat_ml_score: "COALESCE((nts.ml_feature_values->>'ml_score')::numeric, 0)",
     threat_ml_weight: "COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, 0)",
     threat_ml_boost: "COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, 0)",
-    threat_level: threatOrderExpr,
-    lat: 'ne.lat',
-    lon: 'ne.lon',
-    manufacturer: 'lower(rm.manufacturer)',
+    threat_level: 'ne.threat_level',
+    lat: 'ne.bestlat',
+    lon: 'ne.bestlon',
+    manufacturer: 'lower(ne.manufacturer)',
     manufacturer_address: 'lower(rm.address)',
-    capabilities: 'ne.security',
-    min_altitude_m: 'ne.min_altitude_m',
-    max_altitude_m: 'ne.max_altitude_m',
-    altitude_span_m: 'ne.altitude_span_m',
-    max_distance_meters: 'COALESCE(mv.max_distance_meters, 0)',
-    last_altitude_m: 'ne.last_altitude_m',
-    is_sentinel: 'ne.is_sentinel',
+    capabilities: 'ne.capabilities',
+    min_altitude_m: 'n.min_altitude_m',
+    max_altitude_m: 'n.max_altitude_m',
+    altitude_span_m: 'n.altitude_span_m',
+    max_distance_meters: 'ne.max_distance_meters',
+    last_altitude_m: 'n.last_altitude_m',
+    is_sentinel: 'n.is_sentinel',
     timespan_days: 'EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400.0',
   };
 
@@ -256,37 +256,36 @@ export async function getFilteredNetworks(opts: {
   const selectColumns = [
     'ne.bssid',
     'ne.ssid',
-    'TRIM(ne.type) AS type',
+    'ne.type',
     'ne.frequency',
-    'ne.signal',
-    'ne.lat',
-    'ne.lon',
+    'ne.bestlevel AS signal',
+    'ne.bestlat AS lat',
+    'ne.bestlon AS lon',
     'ne.last_seen AS last_observed_at',
     'ne.first_seen AS first_observed_at',
-    'ne.observed_at',
+    'ne.last_seen AS observed_at',
     'ne.observations AS obs_count',
     'ne.wigle_v3_observation_count',
     'ne.wigle_v3_last_import_at',
-    'ne.accuracy_meters',
+    'n.accuracy_meters',
     'ne.capabilities AS capabilities',
-    'ne.security',
-    `(${NETWORK_CHANNEL_EXPR}) AS channel`,
-    'COALESCE(ne.frequency, (SELECT MAX(radio_frequency) FROM app.observations WHERE bssid = ne.bssid)) AS frequency',
+    'ne.capabilities AS security',
+    `(${channelExpr}) AS channel`,
     'ne.wps',
-    'ne.battery',
-    'ne.altitude_m',
-    'ne.min_altitude_m',
-    'ne.max_altitude_m',
-    'ne.altitude_accuracy_m',
-    '(COALESCE(mv.max_distance_meters, 0) / 1000.0)::numeric(10,4) AS max_distance_km',
-    'ne.last_altitude_m',
-    'ne.unique_days',
-    'ne.unique_locations',
-    'ne.is_sentinel',
-    'rm.manufacturer',
+    'n.battery',
+    'n.altitude_m',
+    'n.min_altitude_m',
+    'n.max_altitude_m',
+    'n.altitude_accuracy_m',
+    'ne.max_distance_meters',
+    'n.last_altitude_m',
+    'n.unique_days',
+    'n.unique_locations',
+    'n.is_sentinel',
+    'ne.manufacturer',
     'rm.address',
-    `(${threatScoreExpr}) AS final_threat_score`,
-    `(${threatLevelExpr}) AS final_threat_level`,
+    'ne.threat_score AS final_threat_score',
+    'ne.threat_level AS final_threat_level',
     'nts.rule_based_score',
     'nts.ml_threat_score',
     'nts.model_version',
@@ -296,17 +295,17 @@ export async function getFilteredNetworks(opts: {
   ];
 
   const distanceExpr = homeLocation
-    ? buildDistanceExpr(homeLocation.lat, homeLocation.lon)
+    ? buildDistanceExpr(homeLocation.lat, homeLocation.lon, 'ne', 'o')
     : 'NULL';
   const columnsWithDistance = homeLocation
-    ? [...selectColumns, `(${distanceExpr})::numeric(10,4) AS distance_from_home_km`]
+    ? [...selectColumns, `(ne.distance_from_home_km)::numeric(10,4) AS distance_from_home_km`]
     : selectColumns;
 
   const joins = [
+    'LEFT JOIN app.networks n ON ne.bssid = n.bssid',
     'LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.prefix',
     'LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid',
     'LEFT JOIN app.network_threat_scores nts ON ne.bssid = nts.bssid',
-    'LEFT JOIN app.api_network_explorer_mv mv ON ne.bssid = mv.bssid',
   ];
 
   const conditions: string[] = [];
@@ -431,14 +430,14 @@ export async function getFilteredNetworks(opts: {
   }
   if (quickSearchPattern !== null) {
     conditions.push(
-      `(ne.ssid ILIKE $${paramIndex} OR ne.bssid ILIKE $${paramIndex} OR rm.manufacturer ILIKE $${paramIndex})`
+      `(ne.ssid ILIKE $${paramIndex} OR ne.bssid ILIKE $${paramIndex} OR ne.manufacturer ILIKE $${paramIndex})`
     );
     params.push(`%${escapeLikePattern(quickSearchPattern)}%`);
     paramIndex++;
   }
 
   if (manufacturer !== null) {
-    addCondition(`rm.manufacturer ILIKE $${paramIndex}`, `%${escapeLikePattern(manufacturer)}%`);
+    addCondition(`ne.manufacturer ILIKE $${paramIndex}`, `%${escapeLikePattern(manufacturer)}%`);
     appliedFiltersArray.push({ column: 'manufacturer', value: manufacturer });
   }
 
@@ -509,7 +508,7 @@ export async function getFilteredNetworks(opts: {
     const dataQuery = `
       SELECT
         ${columnsWithDistance.join(',\n')}
-      FROM app.network_entries ne
+      FROM app.api_network_explorer_mv ne
       ${joins.join('\n')}
       ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
       ORDER BY ${sortClauses}
@@ -545,7 +544,7 @@ export async function getNetworkCount(
 ): Promise<number> {
   const totalCountQuery = `
     SELECT COUNT(DISTINCT ne.bssid) AS total
-    FROM app.network_entries ne
+    FROM app.api_network_explorer_mv ne
     ${joins.join('\n')}
     ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
   `;
@@ -567,7 +566,7 @@ export async function listNetworks(
   const dataQuery = `
     SELECT
       ${selectColumns.join(',\n')}
-    FROM app.network_entries ne
+    FROM app.api_network_explorer_mv ne
     ${joins.join('\n')}
     ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
     ORDER BY ${sortClauses}
@@ -598,7 +597,7 @@ export async function explainQuery(
   const dataQuery = `
     SELECT
       ${selectColumns.join(',\n')}
-    FROM app.network_entries ne
+    FROM app.api_network_explorer_mv ne
     ${joins.join('\n')}
     ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
     ORDER BY ${sortClauses}
