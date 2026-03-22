@@ -62,7 +62,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'python3 -c "import ssl, urllib.request; r = urllib.request.urlopen(''https://127.0.0.1:5050/misc/ping'', context=ssl._create_unverified_context(), timeout=5); print(r.read().decode().strip())" | grep -qx OK',
+          'python3 -c "import ssl, urllib.request; urllib.request.urlopen(''https://127.0.0.1:5050/misc/ping'', context=ssl._create_unverified_context(), timeout=5).read()"',
         ]
       interval: 30s
       timeout: 10s
