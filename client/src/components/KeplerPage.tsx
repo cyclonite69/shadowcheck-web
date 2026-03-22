@@ -27,6 +27,7 @@ const KeplerPage: React.FC = () => {
 
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
+  const navigationControlRef = useRef<any>(null);
   const scriptsLoadedRef = useRef<boolean>(false);
   const [selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -134,6 +135,15 @@ const KeplerPage: React.FC = () => {
       const layers = [];
       const deck = window.deck;
       if (!deck) return;
+      const ensureNavigationControl = () => {
+        if (navigationControlRef.current || !window.mapboxgl || !deckRef.current) return;
+
+        const map = deckRef.current.getMapboxMap?.() ?? deckRef.current._map?.getMap?.();
+        if (!map) return;
+
+        navigationControlRef.current = new window.mapboxgl.NavigationControl();
+        map.addControl(navigationControlRef.current, 'top-left');
+      };
 
       // Helper to find layer class in possible deck namespaces
       const getLayer = (name: string) =>
@@ -149,7 +159,7 @@ const KeplerPage: React.FC = () => {
               id: 'points',
               data,
               getPosition: (d: NetworkData) => d.position,
-              getFillColor: (d: NetworkData) => d.color || [0, 128, 255, 200],
+              getFillColor: (d: NetworkData) => d.color || [34, 197, 94, 200],
               getRadius: pointSize * 50,
               pickable: true,
               autoHighlight: true,
@@ -207,6 +217,7 @@ const KeplerPage: React.FC = () => {
       }
       if (deckRef.current) {
         deckRef.current.setProps({ layers, initialViewState: INITIAL_VIEW_STATE });
+        ensureNavigationControl();
       } else {
         deckRef.current = new window.deck.DeckGL({
           container: mapRef.current,
@@ -230,6 +241,7 @@ const KeplerPage: React.FC = () => {
             };
           },
         });
+        ensureNavigationControl();
       }
     },
     [layerType, pointSize, pitch]

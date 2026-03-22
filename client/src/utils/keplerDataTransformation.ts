@@ -42,12 +42,18 @@ export function mapKeplerFeatureToNetworkData(feature: GeoFeature): NetworkData 
   const position = toPosition(feature);
   if (!position) return null;
   const props = feature.properties || {};
+  const [lon, lat] = position;
 
   const signal = toNumber(props.signal ?? props.rssi, -100);
   const level = toNumber(props.level ?? props.signal, -100);
 
   return {
+    ...props,
     position,
+    lon,
+    lat,
+    longitude: lon,
+    latitude: lat,
     bssid: String(props.bssid || ''),
     ssid: String(props.ssid || 'Hidden'),
     type: String(props.type || 'unknown'),

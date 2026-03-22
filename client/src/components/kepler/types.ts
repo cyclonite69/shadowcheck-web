@@ -26,6 +26,7 @@ export type NetworkData = {
   threat_score?: number;
   is_suspicious?: boolean;
   distance_from_home?: number;
+  [key: string]: unknown;
 };
 
 export type LayerType = 'scatterplot' | 'heatmap' | 'hexagon';

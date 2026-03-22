@@ -13,6 +13,8 @@ describe('keplerDataTransformation', () => {
         type: 'W',
         signal: -48,
         frequency: 2412,
+        observation_count: 7,
+        notes: 'field note',
       },
     };
 
@@ -25,6 +27,12 @@ describe('keplerDataTransformation', () => {
     expect(row?.level).toBe(-48);
     expect(row?.frequency).toBe(2412);
     expect(row?.encryption).toBe('Unknown');
+    expect(row?.lat).toBe(43.0);
+    expect(row?.lon).toBe(-83.7);
+    expect(row?.latitude).toBe(43.0);
+    expect(row?.longitude).toBe(-83.7);
+    expect(row?.observation_count).toBe(7);
+    expect(row?.notes).toBe('field note');
   });
 
   it('returns null for invalid geometry', () => {
