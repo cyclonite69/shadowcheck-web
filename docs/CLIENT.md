@@ -14,7 +14,7 @@ The client is a React application built with Vite, TypeScript, and Tailwind CSS.
 - **Build Tool**: Vite
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **State Management**: React Context + custom stores
+- **State Management**: Zustand + React Hooks
 - **Mapping**: Mapbox GL JS / Kepler.gl
 - **Charts**: Custom analytics charts
 

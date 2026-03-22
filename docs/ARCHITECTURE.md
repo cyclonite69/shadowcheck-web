@@ -69,7 +69,6 @@ Additional architecture assets:
   │  ┌──────────────────────────────────────────────────────┐   │
   │  Business Logic Layer                                 │   │
   │  • server/src/services/ (modular business logic)            │   │
-  │  • server/src/repositories/ (data access layer)             │   │
   │  • AdminDbService (privileged database operations)     │   │
   │  • Threat scoring algorithms                         │   │
 │  │  • ML training & prediction services                 │   │
@@ -154,9 +153,8 @@ The following rules are immutable constraints of the system architecture:
 
 **Backend Characteristics:**
 
-- **Modern modular API structure**: All routes organized in `server/src/api/` with services and repositories
-- **Modular services** in `server/src/services/` for business logic
-- **Repository pattern** in `server/src/repositories/` for data access
+- **Modern modular API structure**: All routes organized in `server/src/api/` with service integration
+- **Modular services** in `server/src/services/` for business logic and direct database interaction
 - **Universal filter system** with modular network, observation, geospatial, and analytics builders
 - **Structured logging** with Winston
 - **Connection pooling** with PostgreSQL
@@ -177,7 +175,8 @@ The following rules are immutable constraints of the system architecture:
 - ✅ Universal filter system
 - ✅ Modular backend services
 - ✅ API route migration
-- 🔄 Repository pattern adoption continues by service area
+- ✅ TypeScript migration (Full stack)
+- 🔄 Modular service decomposition continues
 
 ### Frontend Architecture
 
@@ -271,25 +270,22 @@ server/src/
 │       │   └── ...
 ├── services/             # Business logic layer
 │   ├── filterQueryBuilder/     # Universal filter system with modular builders
-│   ├── threatScoringService.js # Threat detection
-│   ├── mlScoringService.js     # ML predictions
-│   ├── analyticsService.js     # Analytics queries
-│   ├── backgroundJobsService.js # Background processing
-│   └── secretsManager.js       # Secrets management
-├── repositories/         # Data access layer
-│   ├── networkRepository.js    # Network data access
-│   └── baseRepository.js       # Base repository class
+│   ├── threatScoringService.ts # Threat detection
+│   ├── mlScoringService.ts     # ML predictions
+│   ├── analyticsService.ts     # Analytics queries
+│   ├── backgroundJobsService.ts # Background processing
+│   └── secretsManager.ts       # Secrets management
 ├── config/               # Configuration
-│   └── database.js             # Database configuration
+│   └── database.ts             # Database configuration
 ├── validation/           # Input validation
-│   ├── schemas.js              # Joi validation schemas
-│   └── middleware.js           # Validation middleware
+│   ├── schemas.ts              # Joi validation schemas
+│   └── middleware.ts           # Validation middleware
 ├── errors/               # Error handling
-│   ├── AppError.js             # Custom error classes
-│   └── errorHandler.js         # Global error handler
+│   ├── AppError.ts             # Custom error classes
+│   └── errorHandler.ts         # Global error handler
 └── logging/              # Server-side logging
-    ├── logger.js               # Winston logger
-    └── middleware.js           # Request logging
+    ├── logger.ts               # Winston logger
+    └── middleware.ts           # Request logging
 ```
 
 ### Client Module Organization
@@ -652,38 +648,38 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - [x] Create typed configuration management
 - [x] Add comprehensive unit tests
 
-### Phase 2: Data Layer Optimization (Completed)
+### Phase 2: Data Layer Optimization (In Progress)
 
 - [x] Add Redis caching layer
-- [x] Implement database read replicas
+- [ ] Implement database read replicas
 - [x] Add connection pool monitoring
 - [x] Optimize slow queries with materialized views
 - [x] Implement background job queue (Bull)
 
-### Phase 3: Security Hardening (Completed)
+### Phase 3: Security Hardening (Planned)
 
 - [x] Use AWS Secrets Manager for secrets
-- [x] Implement OAuth2 authentication
+- [ ] Implement OAuth2 authentication
 - [x] Add audit logging for all mutations
-- [x] Implement field-level encryption for PII
+- [ ] Implement field-level encryption for PII
 - [x] Add API versioning (v1, v2)
 
-### Phase 4: ML Enhancement (Completed)
+### Phase 4: ML Enhancement (Planned)
 
-- [x] Real-time threat detection (websockets)
+- [ ] Real-time threat detection (websockets)
 - [x] Improved ML model (ensemble methods)
-- [x] Anomaly detection (isolation forest)
-- [x] Temporal pattern analysis (LSTM)
+- [ ] Anomaly detection (isolation forest)
+- [ ] Temporal pattern analysis (LSTM)
 - [x] Automated retraining pipeline
 
-### Phase 5: Observability (Completed)
+### Phase 5: Observability (Planned)
 
 - [x] Structured logging (JSON format)
-- [x] Correlation IDs for request tracing
-- [x] Prometheus metrics export
-- [x] Grafana dashboards
-- [x] OpenTelemetry integration
-- [x] Error tracking (Sentry)
+- [ ] Correlation IDs for request tracing
+- [ ] Prometheus metrics export
+- [ ] Grafana dashboards
+- [ ] OpenTelemetry integration
+- [ ] Error tracking (Sentry)
 
 ## Technology Stack
 

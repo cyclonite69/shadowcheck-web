@@ -383,7 +383,7 @@ const navItems = [
    ```
 
 2. **Make Changes**
-   - Edit `server/server.js` or utility files
+   - Edit `server/server.ts` or utility files
    - Add tests in `tests/` directory
    - Update documentation if needed
 
@@ -504,7 +504,7 @@ ShadowCheck includes comprehensive testing for security and data integrity:
 #### Integration Tests
 
 - **SQL Injection Fixes** (44 tests) - Security vulnerability prevention
-- **Networks API Data Integrity** - Regression tests for recent fixes
+- **Networks API Data Integrity** - Regression tests for core filters
 
 #### Unit Tests
 
@@ -525,11 +525,10 @@ npm test
 npm run test:integration
 
 # Run specific test files
-npm test -- tests/integration/sql-injection-fixes.test.js
-npm test -- tests/integration/networks-data-integrity.test.js
+npm test -- tests/integration/sql-injection-fixes.test.ts
 
 # Run unit tests
-npm test -- tests/unit/your-test.test.js
+npm test -- tests/unit/your-test.test.ts
 ```
 
 ### Run Tests with Coverage
@@ -655,7 +654,7 @@ Create `.vscode/launch.json`:
       "request": "launch",
       "name": "Launch Server",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/server/server.js",
+      "program": "${workspaceFolder}/server/server.ts",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal"
     },
@@ -687,7 +686,7 @@ LOG_LEVEL=debug
 ### Database Query Logging
 
 ```javascript
-// In server/server.js
+// In server/server.ts
 const pool = new Pool({
   // ... config
   log: (msg) => console.log('DB:', msg), // Enable query logging
@@ -723,7 +722,7 @@ npm run dev
 
 ### Add New API Endpoint
 
-1. Add route handler in `server/server.js`:
+1. Add route handler in `server/server.ts`:
 
 ```javascript
 app.get('/api/your-endpoint', async (req, res) => {

@@ -7,7 +7,7 @@
 - **Primary Technologies:** React 19, Vite 7, TypeScript, Node.js 20+, Express, PostgreSQL 18 + PostGIS, Redis 7.0.
 - **Architecture:** Modern modular architecture with clear separation of concerns:
   - **Frontend:** Component-based UI with Zustand for state management, Mapbox GL JS and Deck.gl for spatial visualization.
-  - **Backend:** Express-based REST API with a Service-Repository pattern.
+  - **Backend:** Express-based REST API with a Service-Query pattern.
   - **Data Layer:** PostgreSQL (PostGIS) for spatial data, Redis for session management, rate limiting, and caching.
   - **ETL:** Modular pipeline for data ingestion, transformation, and enrichment.
 
@@ -16,8 +16,7 @@
 - `client/`: React/Vite frontend source code.
 - `server/`: Express backend source code.
   - `src/api/`: REST API route definitions.
-  - `src/services/`: Business logic layer.
-  - `src/repositories/`: Data access layer.
+  - `src/services/`: Business logic layer with direct SQL query integration.
 - `etl/`: ETL pipeline scripts and logic.
 - `scripts/`: Utility scripts for database management, geocoding, and maintenance.
 - `sql/`: Database schema, migrations, and PostGIS functions.
@@ -56,8 +55,7 @@
 
 ShadowCheck follows **responsibility-based modularity**. Each module should have one primary responsibility. Favor coherence and logical grouping over arbitrary line limits.
 
-- **Service Layer:** Houses all business logic and threat scoring algorithms.
-- **Repository Layer:** Encapsulates all direct database interactions using parameterized queries.
+- **Service Layer:** Houses all business logic and threat scoring algorithms, encapsulating direct database interactions using parameterized queries.
 
 ### Tech Stack Standards
 
