@@ -1,0 +1,19 @@
+apiVersion: 1
+datasources:
+  - name: ShadowCheck
+    type: postgres
+    uid: shadowcheck-pg
+    url: localhost:5432
+    database: shadowcheck_db
+    user: grafana_reader
+    secureJsonData:
+      password: "${GRAFANA_READER_PASSWORD}"
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1800
+      timescaledb: false
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      searchPath: app
+    editable: true
