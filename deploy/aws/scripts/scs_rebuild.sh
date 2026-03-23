@@ -18,6 +18,7 @@ cd "$APP_DIR"
 # Config file for persistent settings (custom env overrides, etc.)
 SCS_ENV="$HOME/.shadowcheck-env"
 PGADMIN_READY=0
+ENABLE_GRAFANA_MONITORING="${ENABLE_GRAFANA_MONITORING:-true}"
 
 wait_for_container_health() {
   local container="$1"
@@ -253,7 +254,34 @@ docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD'
 unset DB_ADMIN_PASSWORD DB_USER_PASSWORD SECRET_JSON
 
 # 6. Health check
-echo "[7/7] Verifying deployment..."
+# 7. Ensure Grafana monitoring secrets / role / container
+echo "[7/8] Syncing Grafana monitoring..."
+if [ "$ENABLE_GRAFANA_MONITORING" = "true" ]; then
+  SECRET_JSON=$(aws secretsmanager get-secret-value \
+    --secret-id shadowcheck/config --region us-east-1 \
+    --query 'SecretString' --output text 2>/dev/null || echo "{}")
+
+  GRAFANA_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('grafana_admin_password',''))" 2>/dev/null || echo "")
+  GRAFANA_READER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('grafana_reader_password',''))" 2>/dev/null || echo "")
+
+  if [ -z "$GRAFANA_ADMIN_PASSWORD" ] || [ -z "$GRAFANA_READER_PASSWORD" ]; then
+    echo "  Grafana secrets missing in AWS Secrets Manager; generating and syncing..."
+  else
+    echo "  Grafana secrets found in AWS Secrets Manager; syncing role and container..."
+  fi
+
+  GF_SERVER_ROOT_URL="https://${PUBLIC_IP}/grafana/" \
+    "$APP_DIR/deploy/aws/scripts/rotate-grafana-passwords.sh"
+
+  wait_for_container_health shadowcheck_grafana 60 || true
+else
+  echo "  Grafana monitoring disabled (ENABLE_GRAFANA_MONITORING=$ENABLE_GRAFANA_MONITORING)"
+fi
+
+unset GRAFANA_ADMIN_PASSWORD GRAFANA_READER_PASSWORD
+
+# 8. Health check
+echo "[8/8] Verifying deployment..."
 sleep 3
 
 # Check containers are running

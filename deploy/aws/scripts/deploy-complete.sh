@@ -107,6 +107,7 @@ echo "================================"
 echo "Deploying ShadowCheck application..."
 # Force non-interactive build
 export DEBIAN_FRONTEND=noninteractive
+export ENABLE_GRAFANA_MONITORING="${ENABLE_GRAFANA_MONITORING:-true}"
 "$PROJECT_ROOT/deploy/aws/scripts/scs_rebuild.sh"
 echo ""
 
@@ -140,9 +141,11 @@ PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "   Frontend: https://$PUBLIC_IP"
 echo "   Backend API (proxied): https://$PUBLIC_IP/api"
 echo "   Backend health (local): http://$PUBLIC_IP:3001"
+echo "   Grafana: https://$PUBLIC_IP/grafana/"
 echo ""
 echo "🔑 Credentials:"
 echo "   Database password: stored in AWS Secrets Manager (shadowcheck/config)"
+echo "   Grafana passwords: stored in AWS Secrets Manager (shadowcheck/config)"
 echo "   Admin user: run init-admin-user.sh to create (generates random password)"
 echo ""
 echo "📝 Useful Commands:"

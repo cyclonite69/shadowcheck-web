@@ -73,6 +73,7 @@ The script will:
 4. ✅ Create .env.aws with auto-populated values
 5. ✅ Build and start application containers
 6. ✅ Optionally initialize admin user
+7. ✅ Bootstrap Grafana credentials in AWS Secrets Manager and sync `grafana_reader` when monitoring is enabled
 
 ### Step 4: Configure API Keys
 
@@ -214,10 +215,11 @@ curl http://localhost:3001/api/health
 ## Security Notes
 
 1. **Database password** is auto-generated and stored in `AWS Secrets Manager (shadowcheck/config: db_password)`
-2. **SSL/TLS** is enforced for PostgreSQL connections
-3. **Security groups** restrict access - use `add-ip-access.sh` to allow your IP
-4. **Secrets** are never committed to git (.env.aws is gitignored)
-5. **Change default admin password** immediately after first login
+2. **Grafana passwords** are generated and stored in `AWS Secrets Manager (shadowcheck/config: grafana_admin_password, grafana_reader_password)` when monitoring is enabled
+3. **SSL/TLS** is enforced for PostgreSQL connections
+4. **Security groups** restrict access - use `add-ip-access.sh` to allow your IP
+5. **Secrets** are never committed to git (.env.aws is gitignored)
+6. **Change default admin password** immediately after first login
 
 ## Cost Optimization
 
