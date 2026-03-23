@@ -7,7 +7,10 @@ import {
   buildNetworkSlowPathCountQuery,
   buildNetworkSlowPathListQuery,
 } from './networkSlowPathBuilder';
-import { buildNetworkDashboardMetricsQuery } from './networkMetricsBuilder';
+import {
+  buildNetworkDashboardMetricsQuery,
+  buildThreatSeverityCountsQuery,
+} from './networkMetricsBuilder';
 import {
   buildNetworkNoFilterCountQuery,
   buildNetworkNoFilterListQuery,
@@ -84,6 +87,10 @@ export class NetworkModule {
 
     // SLOW PATH
     return buildNetworkSlowPathCountQuery(this.ctx, this.getFilteredObservationsCte.bind(this));
+  }
+
+  public buildThreatSeverityCountsQuery(): QueryResult {
+    return buildThreatSeverityCountsQuery(this.ctx, this.getFilteredObservationsCte.bind(this));
   }
 
   public buildDashboardMetricsQuery(): QueryResult {
