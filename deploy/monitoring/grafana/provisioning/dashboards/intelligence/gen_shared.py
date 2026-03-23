@@ -121,7 +121,7 @@ def full_ctes(extra_where="", include_num=False):
 
 # ── Datasource ref ─────────────────────────────────────────────────────────────
 def ds():
-    return {"type": "postgres", "uid": "${DS_SHADOWCHECK_DB}"}
+    return {"type": "grafana-postgresql-datasource", "uid": "shadowcheck-postgres"}
 
 # ── Panel builders ─────────────────────────────────────────────────────────────
 def _base(pid, ptype, title, x, y, w, h):
@@ -253,8 +253,8 @@ def variables():
 def dashboard_wrapper(uid, title, panels, description=""):
     return {
         "__inputs": [{"name": "DS_SHADOWCHECK_DB", "label": "shadowcheck_db",
-                      "type": "datasource", "pluginId": "postgres", "pluginName": "PostgreSQL"}],
-        "__requires": [{"type": "datasource", "id": "postgres", "name": "PostgreSQL", "version": "1.0.0"}],
+                      "type": "datasource", "pluginId": "grafana-postgresql-datasource", "pluginName": "PostgreSQL"}],
+        "__requires": [{"type": "datasource", "id": "grafana-postgresql-datasource", "name": "PostgreSQL", "version": "1.0.0"}],
         "uid": uid, "title": title, "description": description,
         "schemaVersion": 39, "version": 1,
         "time": {"from": "now-1y", "to": "now"},
