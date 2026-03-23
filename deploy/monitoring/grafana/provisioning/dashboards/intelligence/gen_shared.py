@@ -94,17 +94,19 @@ OUI_STATES_CTE = """oui_states AS (
   GROUP BY 1
 )"""
 
-# Lateral proximity — fast, no GROUP BY needed
+# Lateral proximity — uses base.trilat/trilong directly, no fan-out join
 PROXIMITY_CTE = """proximity AS (
   SELECT b.bssid,
     ao.name AS nearest_office,
-    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m
+    ROUND(ST_Distance(
+      ST_SetSRID(ST_MakePoint(b.trilong, b.trilat), 4326)::geography,
+      ao.location
+    )::numeric) AS min_dist_m
   FROM base b
-  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid
   LEFT JOIN LATERAL (
     SELECT name, location FROM app.agency_offices
     WHERE location IS NOT NULL
-    ORDER BY v2.location::geography <-> location LIMIT 1
+    ORDER BY ST_SetSRID(ST_MakePoint(b.trilong, b.trilat), 4326)::geography <-> location LIMIT 1
   ) ao ON TRUE
 )"""
 
