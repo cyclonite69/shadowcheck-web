@@ -148,6 +148,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;
   app.use('/agency-offices', agencyOfficesRoutes);
 
+  const federalCourthousesRoutes = require('../api/routes/v1/federalCourthouses').default;
+  app.use('/federal-courthouses', federalCourthousesRoutes);
+
   // API routes
   app.use('/api', authRoutes);
   app.use('/api', userGate, networksRoutes);

@@ -23,6 +23,7 @@ const networkNotesAdminService = require('../services/admin/networkNotesAdminSer
 const dataQualityAdminService = require('../services/admin/dataQualityAdminService');
 const siblingDetectionAdminService = require('../services/admin/siblingDetectionAdminService');
 const agencyService = require('../services/agencyService');
+const courthouseService = require('../services/courthouseService');
 const aiInsightsService = require('../services/aiInsightsService');
 const bedrockService = require('../services/bedrockService');
 const analyticsService = require('../services/analyticsService');
@@ -73,6 +74,7 @@ const container = {
   dataQualityAdminService,
   siblingDetectionAdminService,
   agencyService,
+  courthouseService,
   aiInsightsService,
   bedrockService,
   analyticsService,

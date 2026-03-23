@@ -81,6 +81,37 @@ const popupShell = ({
   </div>
 `;
 
+export const renderCourthousePopupCard = (props: {
+  name: string;
+  courthouseType: string;
+  district: string;
+  circuit: string;
+  address: string;
+}) => {
+  const typeMap: Record<string, string> = {
+    district_court: 'District Court',
+    circuit_court_of_appeals: 'Court of Appeals',
+    bankruptcy_court: 'Bankruptcy Court',
+    specialty_court: 'Specialty Court',
+    magistrate_court: 'Magistrate Court',
+  };
+  const typeDisplay = typeMap[props.courthouseType] || props.courthouseType.replace('_', ' ');
+
+  const body = `
+    <div style="font-size: 14px; font-weight: 600; color: #f8fafc; margin-bottom: 6px;">${props.name}</div>
+    <div style="margin-bottom: 8px; color: #cbd5e1;">${props.address}</div>
+    <div style="margin-bottom: 4px;"><span style="color:#94a3b8;">District:</span> ${props.district}</div>
+    <div style="margin-bottom: 4px;"><span style="color:#94a3b8;">Circuit:</span> ${props.circuit}</div>
+  `;
+
+  return popupShell({
+    title: 'Federal Courthouse',
+    subtitle: typeDisplay,
+    accent: '#f59e0b',
+    body,
+  });
+};
+
 export const renderAgencyPopupCard = (props: AgencyPopupProps) => {
   const officeType = props.officeType ? String(props.officeType).replace('_', ' ') : 'Office';
   const body = `

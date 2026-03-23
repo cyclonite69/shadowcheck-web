@@ -11,6 +11,7 @@ export const DEFAULT_LAYERS = {
   v3: false,
   fieldOffices: true,
   residentAgencies: true,
+  federalCourthouses: true,
 } as const;
 
 /**

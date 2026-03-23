@@ -6,6 +6,7 @@ export interface WigleLayerState {
   v3: boolean;
   fieldOffices: boolean;
   residentAgencies: boolean;
+  federalCourthouses: boolean;
 }
 
 function loadLayerState(): WigleLayerState {

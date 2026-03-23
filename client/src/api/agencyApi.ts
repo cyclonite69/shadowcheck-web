@@ -55,4 +55,9 @@ export const agencyApi = {
     const response = await fetch('/agency-offices', { credentials: 'include' });
     return response.json();
   },
+
+  async getFederalCourthouses(): Promise<any> {
+    const response = await fetch('/federal-courthouses', { credentials: 'include' });
+    return response.json();
+  },
 };

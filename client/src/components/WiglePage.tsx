@@ -12,6 +12,7 @@ import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug } from '../logging/clientLogger';
 import { useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
+import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
@@ -84,6 +85,10 @@ const WiglePage: React.FC = () => {
 
   // Agency offices layer
   useAgencyOffices(mapRef, mapReady, agencyVisibility);
+
+  // Federal courthouses layer
+  useFederalCourthouses(mapRef, mapReady, layers.federalCourthouses);
+
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 960 : false
