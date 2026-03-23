@@ -97,13 +97,16 @@ SELECT date_trunc('year', firsttime) AS "time",
 FROM classified GROUP BY 1 ORDER BY 1"""
 
 # ── High-value records ─────────────────────────────────────────────────────────
-SQL_HVR = f"""{full_ctes(MI_WHERE)}
+SQL_HVR = f"""{full_ctes(MI_WHERE, include_courthouse=True)}
 SELECT
   c.bssid AS "BSSID",
   COALESCE(c.manufacturer, '⚠ Unknown') AS "Manufacturer",
   COALESCE(NULLIF(c.city,''), '—') AS "City",
   c.min_dist_m AS "Dist (m)",
   c.nearest_office AS "Nearest office",
+  cp.courthouse_dist_m AS "Courthouse dist (m)",
+  cp.nearest_courthouse AS "Nearest courthouse",
+  cp.courthouse_district AS "District",
   ROUND(c.span_days) AS "Span (days)",
   c.firsttime AS "First seen",
   c.lasttime AS "Last seen",
@@ -111,6 +114,7 @@ SELECT
   c.encryption AS "Enc",
   CASE WHEN v3.netid IS NOT NULL THEN 'YES' ELSE 'no' END AS "v3?"
 FROM classified c
+LEFT JOIN courthouse_proximity cp ON cp.bssid = c.bssid
 LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = c.bssid
 WHERE c.min_dist_m <= 2000
    OR lower(c.manufacturer) LIKE ANY({FLEET_ARR})

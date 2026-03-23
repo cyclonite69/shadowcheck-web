@@ -109,6 +109,26 @@ PROXIMITY_CTE = """proximity AS (
   ) ao ON TRUE
 )"""
 
+# Courthouse proximity — parallel to PROXIMITY_CTE
+COURTHOUSE_PROXIMITY_CTE = """courthouse_proximity AS (
+  SELECT b.bssid,
+    ch.name AS nearest_courthouse,
+    ch.district AS courthouse_district,
+    ch.circuit AS courthouse_circuit,
+    ROUND(ST_Distance(
+      ST_SetSRID(ST_MakePoint(b.trilong, b.trilat), 4326)::geography,
+      ch.location
+    )::numeric) AS courthouse_dist_m
+  FROM base b
+  LEFT JOIN LATERAL (
+    SELECT name, district, circuit, location
+    FROM app.federal_courthouses
+    WHERE active = TRUE AND location IS NOT NULL
+    ORDER BY ST_SetSRID(ST_MakePoint(b.trilong, b.trilat), 4326)::geography <-> location LIMIT 1
+  ) ch ON TRUE
+)"""
+
+
 def classified_cte(include_num=False):
     num_col = f",\n    {hw_class_num_case()} AS hw_class_num" if include_num else ""
     return f"""classified AS (
@@ -123,8 +143,12 @@ def classified_cte(include_num=False):
   JOIN oui_states os ON os.oui_24 = b.oui_24
 )"""
 
-def full_ctes(extra_where="", include_num=False):
-    return f"WITH {base_cte(extra_where)},\n{OUI_STATES_CTE},\n{PROXIMITY_CTE},\n{classified_cte(include_num)}"
+def full_ctes(extra_where="", include_num=False, include_courthouse=False):
+    ctes = f"WITH {base_cte(extra_where)},\n{OUI_STATES_CTE},\n{PROXIMITY_CTE}"
+    if include_courthouse:
+        ctes += f",\n{COURTHOUSE_PROXIMITY_CTE}"
+    ctes += f",\n{classified_cte(include_num)}"
+    return ctes
 
 # ── Datasource ref ─────────────────────────────────────────────────────────────
 def ds():

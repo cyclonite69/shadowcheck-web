@@ -102,16 +102,69 @@ export const useFederalCourthouses = (
         });
       }
 
-      // Unclustered points
-      if (!map.getLayer('federal-courthouses-layer')) {
+      // District courts (gold)
+      if (!map.getLayer('courthouse-district')) {
         map.addLayer({
-          id: 'federal-courthouses-layer',
+          id: 'courthouse-district',
           type: 'circle',
           source: 'federal-courthouses',
-          filter: ['!', ['has', 'point_count']],
+          filter: [
+            'all',
+            ['!', ['has', 'point_count']],
+            ['==', ['get', 'courthouse_type'], 'district_court'],
+          ],
           paint: {
             'circle-color': '#f59e0b',
-            'circle-opacity': 0.8,
+            'circle-opacity': 0.85,
+            'circle-radius': 6,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': '#fff',
+          },
+        });
+      }
+
+      // Circuit courts of appeals (purple)
+      if (!map.getLayer('courthouse-circuit')) {
+        map.addLayer({
+          id: 'courthouse-circuit',
+          type: 'circle',
+          source: 'federal-courthouses',
+          filter: [
+            'all',
+            ['!', ['has', 'point_count']],
+            ['==', ['get', 'courthouse_type'], 'circuit_court_of_appeals'],
+          ],
+          paint: {
+            'circle-color': '#a855f7',
+            'circle-opacity': 0.85,
+            'circle-radius': 7,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': '#fff',
+          },
+        });
+      }
+
+      // Specialty/other (teal)
+      if (!map.getLayer('courthouse-specialty')) {
+        map.addLayer({
+          id: 'courthouse-specialty',
+          type: 'circle',
+          source: 'federal-courthouses',
+          filter: [
+            'all',
+            ['!', ['has', 'point_count']],
+            [
+              '!',
+              [
+                'in',
+                ['get', 'courthouse_type'],
+                ['literal', ['district_court', 'circuit_court_of_appeals']],
+              ],
+            ],
+          ],
+          paint: {
+            'circle-color': '#06b6d4',
+            'circle-opacity': 0.85,
             'circle-radius': 5,
             'circle-stroke-width': 1.5,
             'circle-stroke-color': '#fff',
@@ -119,10 +172,20 @@ export const useFederalCourthouses = (
         });
       }
 
-      // Click handler
-      map.on('click', 'federal-courthouses-layer', handleClick);
-
-      // Cluster click to zoom
+      const UNCLUSTERED_LAYERS = [
+        'courthouse-district',
+        'courthouse-circuit',
+        'courthouse-specialty',
+      ];
+      UNCLUSTERED_LAYERS.forEach((id) => {
+        map.on('click', id, handleClick);
+        map.on('mouseenter', id, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', id, () => {
+          map.getCanvas().style.cursor = '';
+        });
+      });
       map.on('click', 'courthouse-clusters', (e) => {
         const features = map.queryRenderedFeatures(e.point, {
           layers: ['courthouse-clusters'],
@@ -141,12 +204,6 @@ export const useFederalCourthouses = (
       });
 
       // Cursor pointer
-      map.on('mouseenter', 'federal-courthouses-layer', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'federal-courthouses-layer', () => {
-        map.getCanvas().style.cursor = '';
-      });
       map.on('mouseenter', 'courthouse-clusters', () => {
         map.getCanvas().style.cursor = 'pointer';
       });
@@ -198,13 +255,13 @@ export const useFederalCourthouses = (
 
 function applyVisibility(map: Map, isVisible: boolean) {
   const vis = isVisible ? 'visible' : 'none';
+  ['courthouse-district', 'courthouse-circuit', 'courthouse-specialty'].forEach((id) => {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+  });
   if (map.getLayer('courthouse-clusters')) {
     map.setLayoutProperty('courthouse-clusters', 'visibility', vis);
   }
   if (map.getLayer('courthouse-cluster-count')) {
     map.setLayoutProperty('courthouse-cluster-count', 'visibility', vis);
-  }
-  if (map.getLayer('federal-courthouses-layer')) {
-    map.setLayoutProperty('federal-courthouses-layer', 'visibility', vis);
   }
 }
