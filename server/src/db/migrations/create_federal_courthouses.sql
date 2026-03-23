@@ -495,7 +495,7 @@ VALUES
   -- West Virginia (Southern)
   ('United States Courthouse', 'Southern District of West Virginia - Huntington', 'district_court', 'Southern District of West Virginia', 'Fourth Circuit', '845 Fifth Avenue', 'Huntington', 'WV', '25701', 38.4192, -82.4453, 'Divisional courthouse'),
   ('United States Courthouse', 'Southern District of West Virginia - Beckley', 'district_court', 'Southern District of West Virginia', 'Fourth Circuit', '110 North Heber Street', 'Beckley', 'WV', '25801', 37.7784, -81.1881, 'Divisional courthouse'),
-  ('United States Courthouse', 'Southern District of West Virginia - Bluefield', 'district_court', 'Southern District of Virginia', 'Fourth Circuit', '601 Federal Street', 'Bluefield', 'WV', '24701', 37.2698, -81.2222, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of West Virginia - Bluefield', 'district_court', 'Southern District of West Virginia', 'Fourth Circuit', '601 Federal Street', 'Bluefield', 'WV', '24701', 37.2698, -81.2222, 'Divisional courthouse'),
   -- Wisconsin (Eastern)
   ('United States Courthouse', 'Eastern District of Wisconsin - Green Bay', 'district_court', 'Eastern District of Wisconsin', 'Seventh Circuit', '125 South Jefferson Street', 'Green Bay', 'WI', '54301', 44.5133, -88.0158, 'Divisional courthouse'),
   -- Wisconsin (Western)
