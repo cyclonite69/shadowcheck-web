@@ -45,7 +45,7 @@ HAVING COUNT(*) >= 5
 ORDER BY 4 ASC"""
 
 # ── Missing v3 imports ─────────────────────────────────────────────────────────
-SQL_MISSING_V3 = f"""WITH {base_cte()},
+SQL_MISSING_V3 = f"""WITH {base_cte(STATE_FILTER)},
 {OUI_STATES_CTE},
 {PROXIMITY_CTE},
 classified AS (
@@ -62,22 +62,32 @@ tiers AS (
       WHEN 'fleet_vehicle'     THEN '2 - Fleet vehicle'
       WHEN 'residential_agent' THEN '3 - Residential agent'
       WHEN 'enterprise'        THEN '4 - Enterprise'
-    END AS "Priority tier",
-    COUNT(*) AS "Count missing",
-    ROUND(AVG(min_dist_m)) AS "Avg dist (m)",
-    ROUND(AVG(span_days)) AS "Avg span (d)",
-    MIN(lasttime) AS "Oldest last seen",
-    MAX(lasttime) AS "Newest last seen"
+    END AS priority_tier,
+    COUNT(*)::bigint            AS count_missing,
+    ROUND(AVG(min_dist_m))      AS avg_dist_m,
+    ROUND(AVG(span_days))       AS avg_span_d,
+    MIN(lasttime)               AS oldest_last_seen,
+    MAX(lasttime)               AS newest_last_seen
   FROM classified
   WHERE hw_class IN ('mobile_command','fleet_vehicle','residential_agent','enterprise')
   GROUP BY hw_class
 )
-SELECT * FROM tiers
-UNION ALL
-SELECT 'TOTAL', SUM("Count missing"), ROUND(AVG("Avg dist (m)")),
-  ROUND(AVG("Avg span (d)")), MIN("Oldest last seen"), MAX("Newest last seen")
+SELECT priority_tier        AS "Priority tier",
+       count_missing        AS "Count missing",
+       avg_dist_m           AS "Avg dist (m)",
+       avg_span_d           AS "Avg span (d)",
+       oldest_last_seen     AS "Oldest last seen",
+       newest_last_seen     AS "Newest last seen"
 FROM tiers
-ORDER BY "Priority tier" """
+UNION ALL
+SELECT 'TOTAL',
+       SUM(count_missing),
+       ROUND(AVG(avg_dist_m)),
+       ROUND(AVG(avg_span_d)),
+       MIN(oldest_last_seen),
+       MAX(newest_last_seen)
+FROM tiers
+ORDER BY 1"""
 
 # ── Text ───────────────────────────────────────────────────────────────────────
 TEXT_OUI = """## OUI fleet fingerprint analysis
