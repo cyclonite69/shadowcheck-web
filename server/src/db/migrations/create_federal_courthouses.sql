@@ -67,6 +67,8 @@ CREATE TRIGGER courthouse_location_trigger
 GRANT SELECT ON app.federal_courthouses TO grafana_reader;
 
 -- Phase 2: Populate Data
+TRUNCATE app.federal_courthouses;
+
 INSERT INTO app.federal_courthouses 
   (name, short_name, courthouse_type, district, circuit, address_line1, city, state, postal_code, latitude, longitude, notes)
 VALUES
@@ -242,9 +244,370 @@ VALUES
   ('United States Tax Court Building', 'US Tax Court - Washington', 'specialty_court', 'National', 'None', '400 Second Street NW', 'Washington', 'DC', '20217', 38.8944, -77.0144, 'United States Tax Court'),
   ('James L. Watson United States Court of International Trade Building', 'US Court of International Trade - New York', 'specialty_court', 'National', 'Federal Circuit', 'One Federal Plaza', 'New York', 'NY', '10278', 40.7144, -74.0022, 'US Court of International Trade'),
   ('United States Court of Appeals for Veterans Claims', 'US Court of Appeals for Veterans Claims - Washington', 'specialty_court', 'National', 'None', '625 Indiana Avenue NW', 'Washington', 'DC', '20004', 38.8941, -77.0211, 'US Court of Appeals for Veterans Claims'),
-  ('United States Court of Appeals for the Armed Forces', 'US Court of Appeals for the Armed Forces - Washington', 'specialty_court', 'National', 'None', '450 E Street NW', 'Washington', 'DC', '20442', 38.8950, -77.0180, 'US Court of Appeals for the Armed Forces'),
+  ('United States Court of Appeals for the Armed Forces', 'United States Court of Appeals for the Armed Forces - Washington', 'specialty_court', 'National', 'None', '450 E Street NW', 'Washington', 'DC', '20442', 38.8950, -77.0180, 'US Court of Appeals for the Armed Forces'),
 
-  -- BANKRUPTCY COURTS (REPRESENTATIVE)
+  -- ADDITIONAL DISTRICT COURTS & DIVISIONAL LOCATIONS
+  -- Alabama (Southern)
+  ('John Archibald Campbell United States Courthouse', 'Southern District of Alabama - Mobile', 'district_court', 'Southern District of Alabama', 'Eleventh Circuit', '113 St. Joseph Street', 'Mobile', 'AL', '36602', 30.6922, -88.0431, 'Main district courthouse'),
+  -- Alaska
+  ('United States Post Office and Courthouse', 'District of Alaska - Fairbanks', 'district_court', 'District of Alaska', 'Ninth Circuit', '101 12th Avenue', 'Fairbanks', 'AK', '99701', 64.8431, -147.7231, 'Divisional courthouse'),
+  ('United States Post Office and Courthouse', 'District of Alaska - Juneau', 'district_court', 'District of Alaska', 'Ninth Circuit', '709 West 9th Street', 'Juneau', 'AK', '99801', 58.3019, -134.4197, 'Divisional courthouse'),
+  -- Arizona
+  ('United States Courthouse', 'District of Arizona - Flagstaff', 'district_court', 'District of Arizona', 'Ninth Circuit', '123 North San Francisco Street', 'Flagstaff', 'AZ', '86001', 35.1981, -111.6514, 'Divisional courthouse'),
+  -- Arkansas (Eastern)
+  ('George Howard Jr. Federal Building and United States Courthouse', 'Eastern District of Arkansas - Pine Bluff', 'district_court', 'Eastern District of Arkansas', 'Eighth Circuit', '100 East 8th Avenue', 'Pine Bluff', 'AR', '71601', 34.2284, -92.0031, 'Divisional courthouse'),
+  -- California (Eastern)
+  ('United States Courthouse', 'Eastern District of California - Redding', 'district_court', 'Eastern District of California', 'Ninth Circuit', '2986 Bechelli Lane', 'Redding', 'CA', '96002', 40.5865, -122.3917, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of California - Bakersfield', 'district_court', 'Eastern District of California', 'Ninth Circuit', '510 19th Street', 'Bakersfield', 'CA', '93301', 35.3733, -119.0187, 'Divisional courthouse'),
+  -- California (Central)
+  ('Edward R. Roybal Federal Building and United States Courthouse', 'Central District of California - Los Angeles (Roybal)', 'district_court', 'Central District of California', 'Ninth Circuit', '255 East Temple Street', 'Los Angeles', 'CA', '90012', 34.0500, -118.2400, 'CDCA secondary location'),
+  ('George E. Brown Jr. Federal Building and United States Courthouse', 'Central District of California - Riverside', 'district_court', 'Central District of California', 'Ninth Circuit', '3470 Twelfth Street', 'Riverside', 'CA', '92501', 33.9806, -117.3755, 'Divisional courthouse'),
+  -- California (Southern)
+  ('United States Courthouse', 'Southern District of California - El Centro', 'district_court', 'Southern District of California', 'Ninth Circuit', '2001 West Adams Avenue', 'El Centro', 'CA', '92243', 32.7920, -115.5631, 'Divisional courthouse'),
+  -- Colorado
+  ('Wayne Aspinall Federal Building and United States Courthouse', 'District of Colorado - Grand Junction', 'district_court', 'District of Colorado', 'Tenth Circuit', '400 Rood Avenue', 'Grand Junction', 'CO', '81501', 39.0639, -108.5667, 'Divisional courthouse'),
+  -- Florida (Northern)
+  ('United States Courthouse', 'Northern District of Florida - Pensacola', 'district_court', 'Northern District of Florida', 'Eleventh Circuit', '1 North Palafox Street', 'Pensacola', 'FL', '32502', 30.4131, -87.2150, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Florida - Gainesville', 'district_court', 'Northern District of Florida', 'Eleventh Circuit', '401 SE 1st Avenue', 'Gainesville', 'FL', '32601', 29.6516, -82.3248, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Florida - Panama City', 'district_court', 'Northern District of Florida', 'Eleventh Circuit', '30 West Government Street', 'Panama City', 'FL', '32401', 30.1588, -85.6603, 'Divisional courthouse'),
+  -- Florida (Middle)
+  ('United States Courthouse', 'Middle District of Florida - Orlando', 'district_court', 'Middle District of Florida', 'Eleventh Circuit', '401 West Central Boulevard', 'Orlando', 'FL', '32801', 28.5419, -81.3831, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Florida - Fort Myers', 'district_court', 'Middle District of Florida', 'Eleventh Circuit', '2110 First Street', 'Fort Myers', 'FL', '33901', 26.6406, -81.8722, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Florida - Ocala', 'district_court', 'Middle District of Florida', 'Eleventh Circuit', '207 NW Second Street', 'Ocala', 'FL', '34475', 29.1872, -82.1375, 'Divisional courthouse'),
+  -- Florida (Southern)
+  ('United States Courthouse', 'Southern District of Florida - Fort Lauderdale', 'district_court', 'Southern District of Florida', 'Eleventh Circuit', '299 East Broward Boulevard', 'Fort Lauderdale', 'FL', '33301', 26.1224, -80.1373, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Florida - Fort Pierce', 'district_court', 'Southern District of Florida', 'Eleventh Circuit', '101 South U.S. Highway 1', 'Fort Pierce', 'FL', '34950', 27.4467, -80.3256, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Florida - Key West', 'district_court', 'Southern District of Florida', 'Eleventh Circuit', '301 Simonton Street', 'Key West', 'FL', '33040', 24.5551, -81.8044, 'Divisional courthouse'),
+  -- Georgia (Northern)
+  ('United States Courthouse', 'Northern District of Georgia - Gainesville', 'district_court', 'Northern District of Georgia', 'Eleventh Circuit', '121 Spring Street SE', 'Gainesville', 'GA', '30501', 34.2978, -83.8242, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Georgia - Newnan', 'district_court', 'Northern District of Georgia', 'Eleventh Circuit', '18 Greenville Street', 'Newnan', 'GA', '30263', 33.3739, -84.7997, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Georgia - Rome', 'district_court', 'Northern District of Georgia', 'Eleventh Circuit', '600 East First Street', 'Rome', 'GA', '30161', 34.2570, -85.1647, 'Divisional courthouse'),
+  -- Georgia (Middle)
+  ('William Augustus Bootle Federal Building and United States Courthouse', 'Middle District of Georgia - Macon', 'district_court', 'Middle District of Georgia', 'Eleventh Circuit', '475 Mulberry Street', 'Macon', 'GA', '31201', 32.8406, -83.6324, 'Main district courthouse'),
+  ('C.B. King United States Courthouse', 'Middle District of Georgia - Albany', 'district_court', 'Middle District of Georgia', 'Eleventh Circuit', '201 West Broad Avenue', 'Albany', 'GA', '31701', 31.5785, -84.1558, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Georgia - Columbus', 'district_court', 'Middle District of Georgia', 'Eleventh Circuit', '120 12th Street', 'Columbus', 'GA', '31901', 32.4610, -84.9877, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Georgia - Valdosta', 'district_court', 'Middle District of Georgia', 'Eleventh Circuit', '401 North Patterson Street', 'Valdosta', 'GA', '31601', 30.8327, -83.2784, 'Divisional courthouse'),
+  -- Georgia (Southern)
+  ('Tomochichi Federal Building and United States Courthouse', 'Southern District of Georgia - Savannah', 'district_court', 'Southern District of Georgia', 'Eleventh Circuit', '125 Bull Street', 'Savannah', 'GA', '31401', 32.0761, -81.0912, 'Main district courthouse'),
+  ('United States Courthouse', 'Southern District of Georgia - Augusta', 'district_court', 'Southern District of Georgia', 'Eleventh Circuit', '600 James Brown Boulevard', 'Augusta', 'GA', '30901', 33.4703, -81.9748, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Georgia - Brunswick', 'district_court', 'Southern District of Georgia', 'Eleventh Circuit', '801 Gloucester Street', 'Brunswick', 'GA', '31520', 31.1472, -81.4912, 'Divisional courthouse'),
+  -- Hawaii
+  ('United States Courthouse', 'District of Hawaii - Wailuku', 'district_court', 'District of Hawaii', 'Ninth Circuit', '2145 Wells Street', 'Wailuku', 'HI', '96793', 20.8911, -156.5047, 'Divisional courthouse'),
+  -- Idaho
+  ('United States Courthouse', 'District of Idaho - Coeur d''Alene', 'district_court', 'District of Idaho', 'Ninth Circuit', '6450 North Mineral Drive', 'Coeur d''Alene', 'ID', '83815', 47.7231, -116.7831, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Idaho - Pocatello', 'district_court', 'District of Idaho', 'Ninth Circuit', '801 East Sherman Street', 'Pocatello', 'ID', '83201', 42.8712, -112.4450, 'Divisional courthouse'),
+  -- Illinois (Northern)
+  ('Everett McKinley Dirksen United States Courthouse', 'District of Illinois (Bankruptcy) - Chicago', 'bankruptcy_court', 'Northern District of Illinois', 'Seventh Circuit', '219 South Dearborn Street', 'Chicago', 'IL', '60604', 41.8781, -87.6298, 'Bankruptcy division'),
+  -- Illinois (Central)
+  ('United States Courthouse', 'Central District of Illinois - Peoria', 'district_court', 'Central District of Illinois', 'Seventh Circuit', '100 NE Monroe Street', 'Peoria', 'IL', '61602', 40.6936, -89.5889, 'Divisional courthouse'),
+  ('United States Courthouse', 'Central District of Illinois - Urbana', 'district_court', 'Central District of Illinois', 'Seventh Circuit', '201 South Vine Street', 'Urbana', 'IL', '61802', 40.1106, -88.2072, 'Divisional courthouse'),
+  -- Illinois (Southern)
+  ('United States Courthouse', 'Southern District of Illinois - Benton', 'district_court', 'Southern District of Illinois', 'Seventh Circuit', '301 West Main Street', 'Benton', 'IL', '62812', 37.9967, -88.9206, 'Divisional courthouse'),
+  -- Indiana (Northern)
+  ('United States Courthouse', 'Northern District of Indiana - Hammond', 'district_court', 'Northern District of Indiana', 'Seventh Circuit', '5400 Federal Plaza', 'Hammond', 'IN', '46320', 41.6214, -87.5120, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Indiana - Lafayette', 'district_court', 'Northern District of Indiana', 'Seventh Circuit', '230 North Fourth Street', 'Lafayette', 'IN', '47901', 40.4191, -86.8917, 'Divisional courthouse'),
+  -- Indiana (Southern)
+  ('United States Courthouse', 'Southern District of Indiana - Evansville', 'district_court', 'Southern District of Indiana', 'Seventh Circuit', '101 NW Martin Luther King Jr. Boulevard', 'Evansville', 'IN', '47708', 37.9716, -87.5711, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Indiana - New Albany', 'district_court', 'Southern District of Indiana', 'Seventh Circuit', '121 West Spring Street', 'New Albany', 'IN', '47150', 38.2856, -85.8242, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Indiana - Terre Haute', 'district_court', 'Southern District of Indiana', 'Seventh Circuit', '921 Ohio Street', 'Terre Haute', 'IN', '47807', 39.4667, -87.4139, 'Divisional courthouse'),
+  -- Iowa (Northern)
+  ('United States Courthouse', 'Northern District of Iowa - Sioux City', 'district_court', 'Northern District of Iowa', 'Eighth Circuit', '320 Sixth Street', 'Sioux City', 'IA', '51101', 42.4999, -96.4003, 'Divisional courthouse'),
+  -- Iowa (Southern)
+  ('United States Courthouse', 'Southern District of Iowa - Council Bluffs', 'district_court', 'Southern District of Iowa', 'Eighth Circuit', '8 South Sixth Street', 'Council Bluffs', 'IA', '51501', 41.2619, -95.8508, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Iowa - Davenport', 'district_court', 'Southern District of Iowa', 'Eighth Circuit', '131 East Fourth Street', 'Davenport', 'IA', '52801', 41.5236, -90.5775, 'Divisional courthouse'),
+  -- Kansas
+  ('United States Courthouse', 'District of Kansas - Wichita', 'district_court', 'District of Kansas', 'Tenth Circuit', '401 North Market Street', 'Wichita', 'KS', '67202', 37.6889, -97.3361, 'Divisional courthouse'),
+  -- Kentucky (Eastern)
+  ('United States Courthouse', 'Eastern District of Kentucky - Covington', 'district_court', 'Eastern District of Kentucky', 'Sixth Circuit', '35 West 5th Street', 'Covington', 'KY', '41011', 39.0837, -84.5122, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Kentucky - Frankfort', 'district_court', 'Eastern District of Kentucky', 'Sixth Circuit', '130 West Broadway', 'Frankfort', 'KY', '40601', 38.1972, -84.8631, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Kentucky - London', 'district_court', 'Eastern District of Kentucky', 'Sixth Circuit', '310 West Main Street', 'London', 'KY', '40741', 37.1289, -84.0833, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Kentucky - Ashland', 'district_court', 'Eastern District of Kentucky', 'Sixth Circuit', '1405 Greenup Avenue', 'Ashland', 'KY', '41101', 38.4783, -82.6372, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Kentucky - Pikeville', 'district_court', 'Eastern District of Kentucky', 'Sixth Circuit', '110 Main Street', 'Pikeville', 'KY', '41501', 37.4792, -82.5189, 'Divisional courthouse'),
+  -- Kentucky (Western)
+  ('United States Courthouse', 'Western District of Kentucky - Bowling Green', 'district_court', 'Western District of Kentucky', 'Sixth Circuit', '241 East Main Avenue', 'Bowling Green', 'KY', '42101', 36.9903, -86.4436, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Kentucky - Owensboro', 'district_court', 'Western District of Kentucky', 'Sixth Circuit', '423 Frederica Street', 'Owensboro', 'KY', '42301', 37.7719, -87.1111, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Kentucky - Paducah', 'district_court', 'Western District of Kentucky', 'Sixth Circuit', '501 Broadway', 'Paducah', 'KY', '42001', 37.0834, -88.6000, 'Divisional courthouse'),
+  -- Louisiana (Eastern)
+  ('United States Courthouse', 'Eastern District of Louisiana - Houma', 'magistrate_court', 'Eastern District of Louisiana', 'Fifth Circuit', '7272 Main Street', 'Houma', 'LA', '70360', 29.5958, -90.7194, 'Divisional location'),
+  -- Louisiana (Western)
+  ('United States Courthouse', 'Western District of Louisiana - Alexandria', 'district_court', 'Western District of Louisiana', 'Fifth Circuit', '515 Murray Street', 'Alexandria', 'LA', '71301', 31.3113, -92.4450, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Louisiana - Lafayette', 'district_court', 'Western District of Louisiana', 'Fifth Circuit', '800 Lafayette Street', 'Lafayette', 'LA', '70501', 30.2241, -92.0197, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Louisiana - Lake Charles', 'district_court', 'Western District of Louisiana', 'Fifth Circuit', '611 Broad Street', 'Lake Charles', 'LA', '70601', 30.2266, -93.2175, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Louisiana - Monroe', 'district_court', 'Western District of Louisiana', 'Fifth Circuit', '201 Jackson Street', 'Monroe', 'LA', '71201', 32.5007, -92.1194, 'Divisional courthouse'),
+  -- Maryland
+  ('United States Courthouse', 'District of Maryland - Salisbury', 'magistrate_court', 'District of Maryland', 'Fourth Circuit', '129 East Main Street', 'Salisbury', 'MD', '21801', 38.3607, -75.5994, 'Divisional location'),
+  -- Massachusetts
+  ('United States Courthouse', 'District of Massachusetts - Hyannis', 'magistrate_court', 'District of Massachusetts', 'First Circuit', '1200 Phinney''s Lane', 'Hyannis', 'MA', '02601', 41.6528, -70.2822, 'Divisional location'),
+  -- Michigan (Eastern)
+  ('United States Courthouse', 'Eastern District of Michigan - Ann Arbor', 'district_court', 'Eastern District of Michigan', 'Sixth Circuit', '200 East Liberty Street', 'Ann Arbor', 'MI', '48104', 42.2808, -83.7431, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Michigan - Bay City', 'district_court', 'Eastern District of Michigan', 'Sixth Circuit', '1000 Washington Avenue', 'Bay City', 'MI', '48708', 43.5944, -83.8889, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Michigan - Flint', 'district_court', 'Eastern District of Michigan', 'Sixth Circuit', '600 Church Street', 'Flint', 'MI', '48502', 43.0125, -83.6931, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Michigan - Port Huron', 'district_court', 'Eastern District of Michigan', 'Sixth Circuit', '526 Water Street', 'Port Huron', 'MI', '48060', 42.9708, -82.4239, 'Divisional courthouse'),
+  -- Michigan (Western)
+  ('United States Courthouse', 'Western District of Michigan - Kalamazoo', 'district_court', 'Western District of Michigan', 'Sixth Circuit', '410 West Michigan Avenue', 'Kalamazoo', 'MI', '49007', 42.2917, -85.5872, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Michigan - Lansing', 'district_court', 'Western District of Michigan', 'Sixth Circuit', '315 West Allegan Street', 'Lansing', 'MI', '48933', 42.7325, -84.5556, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Michigan - Marquette', 'district_court', 'Western District of Michigan', 'Sixth Circuit', '202 West Washington Street', 'Marquette', 'MI', '49855', 46.5436, -87.3953, 'Divisional courthouse'),
+  -- Minnesota
+  ('United States Courthouse', 'District of Minnesota - Duluth', 'district_court', 'District of Minnesota', 'Eighth Circuit', '515 West First Street', 'Duluth', 'MN', '55802', 46.7867, -92.1005, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Minnesota - Fergus Falls', 'district_court', 'District of Minnesota', 'Eighth Circuit', '118 South Mill Street', 'Fergus Falls', 'MN', '56537', 46.2831, -96.0778, 'Divisional courthouse'),
+  -- Mississippi (Northern)
+  ('United States Courthouse', 'Northern District of Mississippi - Aberdeen', 'district_court', 'Northern District of Mississippi', 'Fifth Circuit', '201 West Commerce Street', 'Aberdeen', 'MS', '39730', 33.8251, -88.5436, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Mississippi - Greenville', 'district_court', 'Northern District of Mississippi', 'Fifth Circuit', '305 Main Street', 'Greenville', 'MS', '38701', 33.4101, -91.0617, 'Divisional courthouse'),
+  -- Mississippi (Southern)
+  ('United States Courthouse', 'Southern District of Mississippi - Gulfport', 'district_court', 'Southern District of Mississippi', 'Fifth Circuit', '2012 15th Street', 'Gulfport', 'MS', '39501', 30.3675, -89.0928, 'Divisional courthouse'),
+  -- Missouri (Eastern)
+  ('United States Courthouse', 'Eastern District of Missouri - Cape Girardeau', 'district_court', 'Eastern District of Missouri', 'Eighth Circuit', '555 Independence Street', 'Cape Girardeau', 'MO', '63703', 37.3008, -89.5186, 'Divisional courthouse'),
+  -- Missouri (Western)
+  ('United States Courthouse', 'Western District of Missouri - Springfield', 'district_court', 'Western District of Missouri', 'Eighth Circuit', '222 North John Q. Hammons Parkway', 'Springfield', 'MO', '65806', 37.2089, -93.2922, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Missouri - Jefferson City', 'district_court', 'Western District of Missouri', 'Eighth Circuit', '80 Lafayette Street', 'Jefferson City', 'MO', '65101', 38.5767, -92.1736, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Missouri - Joplin', 'district_court', 'Western District of Missouri', 'Eighth Circuit', '400 South Main Street', 'Joplin', 'MO', '64801', 37.0842, -94.5133, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Missouri - St. Joseph', 'district_court', 'Western District of Missouri', 'Eighth Circuit', '201 North 8th Street', 'St. Joseph', 'MO', '64501', 39.7675, -94.8467, 'Divisional courthouse'),
+  -- Montana
+  ('United States Courthouse', 'District of Montana - Billings', 'district_court', 'District of Montana', 'Ninth Circuit', '2601 2nd Avenue North', 'Billings', 'MT', '59101', 45.7833, -108.5007, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Montana - Butte', 'district_court', 'District of Montana', 'Ninth Circuit', '400 North Main Street', 'Butte', 'MT', '59701', 46.0031, -112.5347, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Montana - Great Falls', 'district_court', 'District of Montana', 'Ninth Circuit', '125 Central Avenue', 'Great Falls', 'MT', '59401', 47.5053, -111.3008, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Montana - Helena', 'district_court', 'District of Montana', 'Ninth Circuit', '901 Front Street', 'Helena', 'MT', '59601', 46.5891, -112.0391, 'Divisional courthouse'),
+  -- Nebraska
+  ('United States Courthouse', 'District of Nebraska - North Platte', 'district_court', 'District of Nebraska', 'Eighth Circuit', '300 East Third Street', 'North Platte', 'NE', '69101', 41.1359, -100.7628, 'Divisional courthouse'),
+  -- Nevada
+  ('United States Courthouse', 'District of Nevada - Elko', 'magistrate_court', 'District of Nevada', 'Ninth Circuit', '2001 Errecart Boulevard', 'Elko', 'NV', '89801', 40.8325, -115.7631, 'Divisional location'),
+  -- New Hampshire
+  ('United States Courthouse', 'District of New Hampshire - Littleton', 'magistrate_court', 'District of New Hampshire', 'First Circuit', 'Post Office Building', 'Littleton', 'NH', '03561', 44.3061, -71.7700, 'Divisional location'),
+  -- New Jersey
+  ('United States Courthouse', 'District of New Jersey - Newark (Post Office)', 'district_court', 'District of New Jersey', 'Third Circuit', 'Federal Square', 'Newark', 'NJ', '07102', 40.7357, -74.1724, 'Secondary location'),
+  -- New Mexico
+  ('United States Courthouse', 'District of New Mexico - Santa Fe', 'district_court', 'District of New Mexico', 'Tenth Circuit', '106 South Federal Place', 'Santa Fe', 'NM', '87501', 35.6870, -105.9397, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of New Mexico - Las Cruces', 'district_court', 'District of New Mexico', 'Tenth Circuit', '100 North Church Street', 'Las Cruces', 'NM', '88001', 32.3122, -106.7783, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of New Mexico - Roswell', 'district_court', 'District of New Mexico', 'Tenth Circuit', '500 North Richardson Avenue', 'Roswell', 'NM', '88201', 33.3942, -104.5231, 'Divisional courthouse'),
+  -- New York (Northern)
+  ('United States Courthouse', 'Northern District of New York - Binghamton', 'district_court', 'Northern District of New York', 'Second Circuit', '15 Henry Street', 'Binghamton', 'NY', '13901', 42.1000, -75.9117, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of New York - Utica', 'district_court', 'Northern District of New York', 'Second Circuit', '10 Broad Street', 'Utica', 'NY', '13501', 43.1008, -75.2328, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of New York - Syracuse (Hanley)', 'bankruptcy_court', 'Northern District of New York', 'Second Circuit', '100 South Clinton Street', 'Syracuse', 'NY', '13261', 43.0481, -76.1500, 'Bankruptcy division'),
+  -- New York (Southern)
+  ('United States Courthouse', 'Southern District of New York - Manhattan (Foley Square)', 'bankruptcy_court', 'Southern District of New York', 'Second Circuit', 'One Bowling Green', 'New York', 'NY', '10004', 40.7040, -74.0130, 'Bankruptcy division'),
+  ('United States Courthouse', 'Southern District of New York - Poughkeepsie', 'magistrate_court', 'Southern District of New York', 'Second Circuit', '353 Main Street', 'Poughkeepsie', 'NY', '12601', 41.7003, -73.9236, 'Divisional location'),
+  -- New York (Eastern)
+  ('United States Courthouse', 'Eastern District of New York - Brooklyn (Bankruptcy)', 'bankruptcy_court', 'Eastern District of New York', 'Second Circuit', '271-C Cadman Plaza East', 'Brooklyn', 'NY', '11201', 40.6940, -73.9900, 'Bankruptcy division'),
+  -- New York (Western)
+  ('United States Courthouse', 'Western District of New York - Buffalo (Bankruptcy)', 'bankruptcy_court', 'Western District of New York', 'Second Circuit', '300 Pearl Street', 'Buffalo', 'NY', '14202', 42.8860, -78.8780, 'Bankruptcy division'),
+  -- North Carolina (Eastern)
+  ('United States Courthouse', 'Eastern District of North Carolina - Wilmington', 'district_court', 'Eastern District of North Carolina', 'Fourth Circuit', '201 Chestnut Street', 'Wilmington', 'NC', '28401', 34.2347, -77.9481, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of North Carolina - New Bern', 'district_court', 'Eastern District of North Carolina', 'Fourth Circuit', '413 Middle Street', 'New Bern', 'NC', '28560', 35.1083, -77.0442, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of North Carolina - Elizabeth City', 'district_court', 'Eastern District of North Carolina', 'Fourth Circuit', '306 East Main Street', 'Elizabeth City', 'NC', '27909', 36.3008, -76.2231, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of North Carolina - Greenville', 'district_court', 'Eastern District of North Carolina', 'Fourth Circuit', '201 West 5th Street', 'Greenville', 'NC', '27858', 35.6125, -77.3664, 'Divisional courthouse'),
+  -- North Carolina (Middle)
+  ('United States Courthouse', 'Middle District of North Carolina - Winston-Salem', 'district_court', 'Middle District of North Carolina', 'Fourth Circuit', '251 North Main Street', 'Winston-Salem', 'NC', '27101', 36.0997, -80.2442, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of North Carolina - Durham', 'district_court', 'Middle District of North Carolina', 'Fourth Circuit', '323 East Chapel Hill Street', 'Durham', 'NC', '27701', 35.9939, -78.8986, 'Divisional courthouse'),
+  -- North Carolina (Western)
+  ('United States Courthouse', 'Western District of North Carolina - Asheville', 'district_court', 'Western District of North Carolina', 'Fourth Circuit', '100 Otis Street', 'Asheville', 'NC', '28801', 35.5951, -82.5515, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of North Carolina - Statesville', 'district_court', 'Western District of North Carolina', 'Fourth Circuit', '200 West Broad Street', 'Statesville', 'NC', '28677', 35.7825, -80.8883, 'Divisional courthouse'),
+  -- North Dakota
+  ('United States Courthouse', 'District of North Dakota - Bismarck', 'district_court', 'District of North Dakota', 'Eighth Circuit', '220 East Rosser Avenue', 'Bismarck', 'ND', '58501', 46.8083, -100.7836, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of North Dakota - Grand Forks', 'district_court', 'District of North Dakota', 'Eighth Circuit', '102 North Fourth Street', 'Grand Forks', 'ND', '58203', 47.9253, -97.0328, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of North Dakota - Minot', 'district_court', 'District of North Dakota', 'Eighth Circuit', '100 First Street SW', 'Minot', 'ND', '58701', 48.2331, -101.2922, 'Divisional courthouse'),
+  -- Ohio (Northern)
+  ('United States Courthouse', 'Northern District of Ohio - Akron', 'district_court', 'Northern District of Ohio', 'Sixth Circuit', '2 South Main Street', 'Akron', 'OH', '44308', 41.0814, -81.5189, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Ohio - Toledo', 'district_court', 'Northern District of Ohio', 'Sixth Circuit', '1716 Spielbusch Avenue', 'Toledo', 'OH', '43604', 41.6528, -83.5378, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Ohio - Youngstown', 'district_court', 'Northern District of Ohio', 'Sixth Circuit', '125 Market Street', 'Youngstown', 'OH', '44503', 41.0997, -80.6497, 'Divisional courthouse'),
+  -- Ohio (Southern)
+  ('United States Courthouse', 'Southern District of Ohio - Dayton', 'district_court', 'Southern District of Ohio', 'Sixth Circuit', '200 West Second Street', 'Dayton', 'OH', '45402', 39.7589, -84.1917, 'Divisional courthouse'),
+  -- Oklahoma (Western)
+  ('United States Courthouse', 'Western District of Oklahoma - Enid', 'magistrate_court', 'Western District of Oklahoma', 'Tenth Circuit', 'Post Office Building', 'Enid', 'OK', '73701', 36.3956, -97.8783, 'Divisional location'),
+  -- Oklahoma (Northern)
+  ('United States Courthouse', 'Northern District of Oklahoma - Bartlesville', 'magistrate_court', 'Northern District of Oklahoma', 'Tenth Circuit', 'Post Office Building', 'Bartlesville', 'OK', '74003', 36.7472, -95.9761, 'Divisional location'),
+  -- Oklahoma (Eastern)
+  ('United States Courthouse', 'Eastern District of Oklahoma - Muskogee', 'district_court', 'Eastern District of Oklahoma', 'Tenth Circuit', '101 North 5th Street', 'Muskogee', 'OK', '74401', 35.7503, -95.3703, 'Main district courthouse'),
+  -- Oregon
+  ('United States Courthouse', 'District of Oregon - Eugene', 'district_court', 'District of Oregon', 'Ninth Circuit', '405 East Eighth Avenue', 'Eugene', 'OR', '97401', 44.0522, -123.0867, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Oregon - Medford', 'district_court', 'District of Oregon', 'Ninth Circuit', '310 West Sixth Street', 'Medford', 'OR', '97501', 42.3267, -122.8755, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Oregon - Pendleton', 'district_court', 'District of Oregon', 'Ninth Circuit', '104 SW Dorion Avenue', 'Pendleton', 'OR', '97801', 45.6721, -118.7886, 'Divisional courthouse'),
+  -- Pennsylvania (Eastern)
+  ('United States Courthouse', 'Eastern District of Pennsylvania - Reading', 'district_court', 'Eastern District of Pennsylvania', 'Third Circuit', 'Madison Building', 'Reading', 'PA', '19601', 40.3356, -75.9267, 'Divisional courthouse'),
+  -- Pennsylvania (Middle)
+  ('United States Courthouse', 'Middle District of Pennsylvania - Williamsport', 'district_court', 'Middle District of Pennsylvania', 'Third Circuit', '240 West Third Street', 'Williamsport', 'PA', '17701', 41.2411, -77.0011, 'Divisional courthouse'),
+  -- Pennsylvania (Western)
+  ('United States Courthouse', 'Western District of Pennsylvania - Johnstown', 'district_court', 'Western District of Pennsylvania', 'Third Circuit', '319 Washington Street', 'Johnstown', 'PA', '15901', 40.3267, -78.9219, 'Divisional courthouse'),
+  -- Rhode Island
+  ('United States Courthouse', 'District of Rhode Island - Providence (Bankruptcy)', 'bankruptcy_court', 'District of Rhode Island', 'First Circuit', '380 Westminster Street', 'Providence', 'RI', '02903', 41.8240, -71.4128, 'Bankruptcy division'),
+  -- South Carolina
+  ('United States Courthouse', 'District of South Carolina - Charleston', 'district_court', 'District of South Carolina', 'Fourth Circuit', '85 Broad Street', 'Charleston', 'SC', '29401', 32.7765, -79.9311, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Carolina - Greenville', 'district_court', 'District of South Carolina', 'Fourth Circuit', '300 East Washington Street', 'Greenville', 'SC', '29601', 34.8526, -82.3940, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Carolina - Florence', 'district_court', 'District of South Carolina', 'Fourth Circuit', '401 West Evans Street', 'Florence', 'SC', '29501', 34.1953, -79.7628, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Carolina - Aiken', 'district_court', 'District of South Carolina', 'Fourth Circuit', '223 Park Avenue SW', 'Aiken', 'SC', '29801', 33.5604, -81.7194, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Carolina - Anderson', 'district_court', 'District of South Carolina', 'Fourth Circuit', '315 South McDuffie Street', 'Anderson', 'SC', '29624', 34.5034, -82.6501, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Carolina - Spartanburg', 'district_court', 'District of South Carolina', 'Fourth Circuit', '201 Magnolia Street', 'Spartanburg', 'SC', '29306', 34.9496, -81.9320, 'Divisional courthouse'),
+  -- South Dakota
+  ('United States Courthouse', 'District of South Dakota - Sioux Falls', 'district_court', 'District of South Dakota', 'Eighth Circuit', '400 South Phillips Avenue', 'Sioux Falls', 'SD', '57104', 43.5446, -96.7311, 'Main district courthouse'),
+  ('United States Courthouse', 'District of South Dakota - Pierre', 'district_court', 'District of South Dakota', 'Eighth Circuit', '225 South Pierre Street', 'Pierre', 'SD', '57501', 44.3683, -100.3514, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Dakota - Aberdeen', 'district_court', 'District of South Dakota', 'Eighth Circuit', '102 Fourth Avenue SE', 'Aberdeen', 'SD', '57401', 45.4647, -98.4861, 'Divisional courthouse'),
+  -- Tennessee (Eastern)
+  ('United States Courthouse', 'Eastern District of Tennessee - Chattanooga', 'district_court', 'Eastern District of Tennessee', 'Sixth Circuit', '900 Georgia Avenue', 'Chattanooga', 'TN', '37402', 35.0456, -85.3097, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Tennessee - Greeneville', 'district_court', 'Eastern District of Tennessee', 'Sixth Circuit', '220 West Depot Street', 'Greeneville', 'TN', '37743', 36.1631, -82.8311, 'Divisional courthouse'),
+  -- Tennessee (Middle)
+  ('United States Courthouse', 'Middle District of Tennessee - Columbia', 'district_court', 'Middle District of Tennessee', 'Sixth Circuit', '815 South Garden Street', 'Columbia', 'TN', '38401', 35.6151, -87.0353, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Tennessee - Cookeville', 'district_court', 'Middle District of Tennessee', 'Sixth Circuit', '9 East Broad Street', 'Cookeville', 'TN', '38501', 36.1628, -85.5017, 'Divisional courthouse'),
+  -- Tennessee (Western)
+  ('United States Courthouse', 'Western District of Tennessee - Jackson', 'district_court', 'Western District of Tennessee', 'Sixth Circuit', '111 South Highland Avenue', 'Jackson', 'TN', '38301', 35.6145, -88.8139, 'Divisional courthouse'),
+  -- Texas (Northern)
+  ('United States Courthouse', 'Northern District of Texas - Abilene', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '341 Pine Street', 'Abilene', 'TX', '79601', 32.4487, -99.7331, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - Amarillo', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '205 SE Fifth Avenue', 'Amarillo', 'TX', '79101', 35.2220, -101.8314, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - Lubbock', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '1205 Texas Avenue', 'Lubbock', 'TX', '79401', 33.5779, -101.8553, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - San Angelo', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '33 East Twohig Avenue', 'San Angelo', 'TX', '76903', 31.4638, -100.4370, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - Wichita Falls', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '1000 Lamar Street', 'Wichita Falls', 'TX', '76301', 33.9137, -98.4911, 'Divisional courthouse'),
+  -- Texas (Southern)
+  ('United States Courthouse', 'Southern District of Texas - Brownsville', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '600 East Harrison Street', 'Brownsville', 'TX', '78520', 25.9017, -97.4975, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - Corpus Christi', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '1133 North Shoreline Boulevard', 'Corpus Christi', 'TX', '78401', 27.8006, -97.3964, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - Laredo', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '1300 Victoria Street', 'Laredo', 'TX', '78040', 27.5036, -99.5075, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - McAllen', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '1701 West Business Highway 83', 'McAllen', 'TX', '78501', 26.2034, -98.2300, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - Victoria', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '312 South Main Street', 'Victoria', 'TX', '77901', 28.8053, -97.0036, 'Divisional courthouse'),
+  -- Texas (Eastern)
+  ('United States Courthouse', 'Eastern District of Texas - Lufkin', 'district_court', 'Eastern District of Texas', 'Fifth Circuit', '104 North Third Street', 'Lufkin', 'TX', '75901', 31.3382, -94.7294, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Texas - Marshall', 'district_court', 'Eastern District of Texas', 'Fifth Circuit', '100 East Houston Street', 'Marshall', 'TX', '75670', 32.5449, -94.3674, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Texas - Sherman', 'district_court', 'Eastern District of Texas', 'Fifth Circuit', '101 East Pecan Street', 'Sherman', 'TX', '75090', 33.6357, -96.6089, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Texas - Texarkana', 'district_court', 'Eastern District of Texas', 'Fifth Circuit', '500 State Line Avenue', 'Texarkana', 'TX', '75501', 33.4251, -94.0436, 'Divisional courthouse'),
+  -- Texas (Western)
+  ('United States Courthouse', 'Western District of Texas - Waco', 'district_court', 'Western District of Texas', 'Fifth Circuit', '800 Franklin Avenue', 'Waco', 'TX', '76701', 31.5590, -97.1467, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Texas - Del Rio', 'district_court', 'Western District of Texas', 'Fifth Circuit', '111 East Broadway', 'Del Rio', 'TX', '78840', 29.3627, -100.8969, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Texas - Midland', 'district_court', 'Western District of Texas', 'Fifth Circuit', '200 East Wall Street', 'Midland', 'TX', '79701', 31.9972, -102.0778, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Texas - Pecos', 'district_court', 'Western District of Texas', 'Fifth Circuit', '410 South Cedar Street', 'Pecos', 'TX', '79772', 31.4226, -103.4933, 'Divisional courthouse'),
+  -- Utah
+  ('United States Courthouse', 'District of Utah - St. George', 'district_court', 'District of Utah', 'Tenth Circuit', '206 West Tabernacle Street', 'St. George', 'UT', '84770', 37.1041, -113.5842, 'Divisional courthouse'),
+  -- Vermont
+  ('United States Courthouse', 'District of Vermont - Brattleboro', 'magistrate_court', 'District of Vermont', 'Second Circuit', 'Post Office Building', 'Brattleboro', 'VT', '05301', 42.8509, -72.5578, 'Divisional location'),
+  -- Virginia (Eastern)
+  ('United States Courthouse', 'Eastern District of Virginia - Newport News', 'district_court', 'Eastern District of Virginia', 'Fourth Circuit', '2400 West Avenue', 'Newport News', 'VA', '23607', 36.9786, -76.4328, 'Divisional courthouse'),
+  -- Virginia (Western)
+  ('United States Courthouse', 'Western District of Virginia - Abingdon', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '180 West Main Street', 'Abingdon', 'VA', '24210', 36.7128, -81.9706, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Virginia - Big Stone Gap', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '322 East Wood Avenue', 'Big Stone Gap', 'VA', '24219', 36.8697, -82.7750, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Virginia - Charlottesville', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '255 West Main Street', 'Charlottesville', 'VA', '22902', 38.0293, -78.4767, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Virginia - Danville', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '212 West Main Street', 'Danville', 'VA', '24541', 36.5859, -79.3950, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Virginia - Harrisonburg', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '116 North Main Street', 'Harrisonburg', 'VA', '22802', 38.4496, -78.8689, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Virginia - Lynchburg', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '1101 Court Street', 'Lynchburg', 'VA', '24504', 37.4137, -79.1422, 'Divisional courthouse'),
+  -- Washington (Eastern)
+  ('United States Courthouse', 'Eastern District of Washington - Yakima', 'district_court', 'Eastern District of Washington', 'Ninth Circuit', '25 South 3rd Street', 'Yakima', 'WA', '98901', 46.6022, -120.5058, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Washington - Richland', 'district_court', 'Eastern District of Washington', 'Ninth Circuit', '825 Jadwin Avenue', 'Richland', 'WA', '99352', 46.2856, -119.2711, 'Divisional courthouse'),
+  -- Washington (Western)
+  ('United States Courthouse', 'Western District of Washington - Tacoma', 'district_court', 'Western District of Washington', 'Ninth Circuit', '1717 Pacific Avenue', 'Tacoma', 'WA', '98402', 47.2446, -122.4347, 'Divisional courthouse'),
+  -- West Virginia (Northern)
+  ('United States Courthouse', 'Northern District of West Virginia - Wheeling', 'district_court', 'Northern District of West Virginia', 'Fourth Circuit', '1125 Chapline Street', 'Wheeling', 'WV', '26003', 40.0639, -80.7208, 'Main district courthouse'),
+  ('United States Courthouse', 'Northern District of West Virginia - Clarksburg', 'district_court', 'Northern District of West Virginia', 'Fourth Circuit', '500 West Pike Street', 'Clarksburg', 'WV', '26301', 39.2806, -80.3403, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of West Virginia - Elkins', 'district_court', 'Northern District of West Virginia', 'Fourth Circuit', '300 Third Street', 'Elkins', 'WV', '26241', 38.9259, -79.8467, 'Divisional courthouse'),
+  -- West Virginia (Southern)
+  ('United States Courthouse', 'Southern District of West Virginia - Huntington', 'district_court', 'Southern District of West Virginia', 'Fourth Circuit', '845 Fifth Avenue', 'Huntington', 'WV', '25701', 38.4192, -82.4453, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of West Virginia - Beckley', 'district_court', 'Southern District of West Virginia', 'Fourth Circuit', '110 North Heber Street', 'Beckley', 'WV', '25801', 37.7784, -81.1881, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of West Virginia - Bluefield', 'district_court', 'Southern District of Virginia', 'Fourth Circuit', '601 Federal Street', 'Bluefield', 'WV', '24701', 37.2698, -81.2222, 'Divisional courthouse'),
+  -- Wisconsin (Eastern)
+  ('United States Courthouse', 'Eastern District of Wisconsin - Green Bay', 'district_court', 'Eastern District of Wisconsin', 'Seventh Circuit', '125 South Jefferson Street', 'Green Bay', 'WI', '54301', 44.5133, -88.0158, 'Divisional courthouse'),
+  -- Wisconsin (Western)
+  ('United States Courthouse', 'Western District of Wisconsin - Eau Claire', 'magistrate_court', 'Western District of Wisconsin', 'Seventh Circuit', '500 South Barstow Street', 'Eau Claire', 'WI', '54701', 44.8113, -91.4985, 'Divisional location'),
+  -- Wyoming
+  ('United States Courthouse', 'District of Wyoming - Cheyenne', 'district_court', 'District of Wyoming', 'Tenth Circuit', '2120 Capitol Avenue', 'Cheyenne', 'WY', '82001', 41.1400, -104.8202, 'Main district courthouse'),
+  ('United States Courthouse', 'District of Wyoming - Jackson', 'magistrate_court', 'District of Wyoming', 'Tenth Circuit', 'Post Office Building', 'Jackson', 'WY', '83001', 43.4799, -110.7624, 'Divisional location'),
+  ('United States Courthouse', 'District of Wyoming - Yellowstone', 'magistrate_court', 'District of Wyoming', 'Tenth Circuit', 'Mammoth Hot Springs', 'Yellowstone National Park', 'WY', '82190', 44.9764, -110.6997, 'Yellowstone division');
+INSERT INTO app.federal_courthouses 
+  (name, short_name, courthouse_type, district, circuit, address_line1, city, state, postal_code, latitude, longitude, notes)
+VALUES
+  -- FIRST CIRCUIT (Divisional / Additional)
+  ('Clemente Ruiz-Nazario United States Courthouse', 'District of Puerto Rico - Hato Rey (Nazario)', 'district_court', 'District of Puerto Rico', 'First Circuit', '150 Carlos Chardon Avenue', 'San Juan', 'PR', '00918', 18.4275, -66.0642, 'Additional SDPR location'),
+  ('Luis A. Ferre United States Courthouse and Post Office', 'District of Puerto Rico - Ponce', 'district_court', 'District of Puerto Rico', 'First Circuit', '201 West Hostos Avenue', 'Ponce', 'PR', '00731', 18.0111, -66.6142, 'Divisional courthouse'),
+  
+  -- SECOND CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'District of Connecticut - Waterbury', 'magistrate_court', 'District of Connecticut', 'Second Circuit', '147 Bank Street', 'Waterbury', 'CT', '06702', 41.5544, -73.0417, 'Divisional courthouse'),
+  ('Uniondale United States Courthouse', 'Eastern District of New York - Uniondale', 'district_court', 'Eastern District of New York', 'Second Circuit', '100 Federal Plaza', 'Uniondale', 'NY', '11553', 40.7256, -73.5939, 'Long Island divisional office'),
+  ('United States Courthouse', 'Northern District of New York - Plattsburgh', 'magistrate_court', 'Northern District of New York', 'Second Circuit', '14 Margaret Street', 'Plattsburgh', 'NY', '12901', 44.6994, -73.4528, 'Divisional location'),
+  ('United States Courthouse', 'Southern District of New York - Manhattan (500 Pearl)', 'district_court', 'Southern District of New York', 'Second Circuit', '500 Pearl Street', 'New York', 'NY', '10007', 40.7140, -74.0020, 'Daniel Patrick Moynihan building'),
+  ('United States Courthouse', 'Southern District of New York - Manhattan (40 Foley)', 'district_court', 'Southern District of New York', 'Second Circuit', '40 Foley Square', 'New York', 'NY', '10007', 40.7143, -74.0055, 'Thurgood Marshall building'),
+  ('United States Courthouse', 'Southern District of New York - Poughkeepsie (District)', 'district_court', 'Southern District of New York', 'Second Circuit', '353 Main Street', 'Poughkeepsie', 'NY', '12601', 41.7003, -73.9236, 'Divisional location'),
+  ('United States Courthouse', 'District of Vermont - Brattleboro (District)', 'district_court', 'District of Vermont', 'Second Circuit', '204 Main Street', 'Brattleboro', 'VT', '05301', 42.8509, -72.5578, 'Divisional courthouse'),
+
+  -- THIRD CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'Middle District of Pennsylvania - Williamsport (District)', 'district_court', 'Middle District of Pennsylvania', 'Third Circuit', '240 West Third Street', 'Williamsport', 'PA', '17701', 41.2411, -77.0011, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Pennsylvania - Johnstown (District)', 'district_court', 'Western District of Pennsylvania', 'Third Circuit', '319 Washington Street', 'Johnstown', 'PA', '15901', 40.3267, -78.9219, 'Divisional courthouse')
+ON CONFLICT DO NOTHING;
+INSERT INTO app.federal_courthouses 
+  (name, short_name, courthouse_type, district, circuit, address_line1, city, state, postal_code, latitude, longitude, notes)
+VALUES
+  -- FOURTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'Western District of North Carolina - Bryson City', 'district_court', 'Western District of North Carolina', 'Fourth Circuit', '155 Main Street', 'Bryson City', 'NC', '28713', 35.4297, -83.4467, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of South Carolina - Beaufort', 'magistrate_court', 'District of South Carolina', 'Fourth Circuit', '1501 Bay Street', 'Beaufort', 'SC', '29902', 32.4315, -80.6698, 'Divisional location'),
+  ('United States Courthouse', 'District of South Carolina - Rock Hill', 'magistrate_court', 'District of South Carolina', 'Fourth Circuit', '210 Main Street', 'Rock Hill', 'SC', '29730', 34.9249, -81.0251, 'Divisional location'),
+  ('United States Courthouse', 'Western District of Virginia - Harrisonburg (District)', 'district_court', 'Western District of Virginia', 'Fourth Circuit', '116 North Main Street', 'Harrisonburg', 'VA', '22802', 38.4496, -78.8689, 'Main divisional building'),
+  ('United States Courthouse', 'Southern District of West Virginia - Lewisburg', 'magistrate_court', 'Southern District of West Virginia', 'Fourth Circuit', '200 North Court Street', 'Lewisburg', 'WV', '24901', 37.8037, -80.4459, 'Divisional location'),
+  ('United States Courthouse', 'Southern District of West Virginia - Parkersburg', 'district_court', 'Southern District of West Virginia', 'Fourth Circuit', '425 Juliana Street', 'Parkersburg', 'WV', '26101', 39.2667, -81.5611, 'Divisional courthouse'),
+
+  -- FIFTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'Western District of Louisiana - Alexandria (District)', 'district_court', 'Western District of Louisiana', 'Fifth Circuit', '515 Murray Street', 'Alexandria', 'LA', '71301', 31.3113, -92.4450, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Louisiana - Monroe (District)', 'district_court', 'Western District of Louisiana', 'Fifth Circuit', '201 Jackson Street', 'Monroe', 'LA', '71201', 32.5007, -92.1194, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - Abilene (District)', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '341 Pine Street', 'Abilene', 'TX', '79601', 32.4487, -99.7331, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - Amarillo (District)', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '205 SE Fifth Avenue', 'Amarillo', 'TX', '79101', 35.2220, -101.8314, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Texas - San Angelo (District)', 'district_court', 'Northern District of Texas', 'Fifth Circuit', '33 East Twohig Avenue', 'San Angelo', 'TX', '76903', 31.4638, -100.4370, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - Brownsville (District)', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '600 East Harrison Street', 'Brownsville', 'TX', '78520', 25.9017, -97.4975, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - Corpus Christi (District)', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '1133 North Shoreline Boulevard', 'Corpus Christi', 'TX', '78401', 27.8006, -97.3964, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - Laredo (District)', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '1300 Victoria Street', 'Laredo', 'TX', '78040', 27.5036, -99.5075, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Texas - McAllen (District)', 'district_court', 'Southern District of Texas', 'Fifth Circuit', '1701 West Business Highway 83', 'McAllen', 'TX', '78501', 26.2034, -98.2300, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Texas - Midland (District)', 'district_court', 'Western District of Texas', 'Fifth Circuit', '200 East Wall Street', 'Midland', 'TX', '79701', 31.9972, -102.0778, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Texas - Del Rio (District)', 'district_court', 'Western District of Texas', 'Fifth Circuit', '111 East Broadway', 'Del Rio', 'TX', '78840', 29.3627, -100.8969, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Texas - Waco (District)', 'district_court', 'Western District of Texas', 'Fifth Circuit', '800 Franklin Avenue', 'Waco', 'TX', '76701', 31.5590, -97.1467, 'Divisional courthouse')
+ON CONFLICT DO NOTHING;
+INSERT INTO app.federal_courthouses 
+  (name, short_name, courthouse_type, district, circuit, address_line1, city, state, postal_code, latitude, longitude, notes)
+VALUES
+  -- SIXTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'Eastern District of Michigan - Flint (District)', 'district_court', 'Eastern District of Michigan', 'Sixth Circuit', '600 Church Street', 'Flint', 'MI', '48502', 43.0125, -83.6931, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Michigan - Lansing (District)', 'district_court', 'Western District of Michigan', 'Sixth Circuit', '315 West Allegan Street', 'Lansing', 'MI', '48933', 42.7325, -84.5556, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Michigan - Marquette (District)', 'district_court', 'Western District of Michigan', 'Sixth Circuit', '202 West Washington Street', 'Marquette', 'MI', '49855', 46.5436, -87.3953, 'Upper Peninsula divisional office'),
+  ('United States Courthouse', 'Northern District of Ohio - Toledo (District)', 'district_court', 'Northern District of Ohio', 'Sixth Circuit', '1716 Spielbusch Avenue', 'Toledo', 'OH', '43604', 41.6528, -83.5378, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Ohio - Dayton (District)', 'district_court', 'Southern District of Ohio', 'Sixth Circuit', '200 West Second Street', 'Dayton', 'OH', '45402', 39.7589, -84.1917, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of Tennessee - Chattanooga (District)', 'district_court', 'Eastern District of Tennessee', 'Sixth Circuit', '900 Georgia Avenue', 'Chattanooga', 'TN', '37402', 35.0456, -85.3097, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Tennessee - Columbia (District)', 'district_court', 'Middle District of Tennessee', 'Sixth Circuit', '815 South Garden Street', 'Columbia', 'TN', '38401', 35.6151, -87.0353, 'Divisional courthouse'),
+
+  -- SEVENTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'Northern District of Illinois - Rockford (District)', 'district_court', 'Northern District of Illinois', 'Seventh Circuit', '327 South Church Street', 'Rockford', 'IL', '61101', 42.2711, -89.0940, 'Divisional courthouse'),
+  ('United States Courthouse', 'Central District of Illinois - Peoria (District)', 'district_court', 'Central District of Illinois', 'Seventh Circuit', '100 NE Monroe Street', 'Peoria', 'IL', '61602', 40.6936, -89.5889, 'Divisional courthouse'),
+  ('United States Courthouse', 'Central District of Illinois - Urbana (District)', 'district_court', 'Central District of Illinois', 'Seventh Circuit', '201 South Vine Street', 'Urbana', 'IL', '61802', 40.1106, -88.2072, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Indiana - South Bend (District)', 'district_court', 'Northern District of Indiana', 'Seventh Circuit', '204 South Main Street', 'South Bend', 'IN', '46601', 41.6764, -86.2520, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Indiana - Evansville (District)', 'district_court', 'Southern District of Indiana', 'Seventh Circuit', '101 NW Martin Luther King Jr. Boulevard', 'Evansville', 'IN', '47708', 37.9716, -87.5711, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Wisconsin - Eau Claire (District)', 'district_court', 'Western District of Wisconsin', 'Seventh Circuit', '500 South Barstow Street', 'Eau Claire', 'WI', '54701', 44.8113, -91.4985, 'Divisional courthouse')
+ON CONFLICT DO NOTHING;
+INSERT INTO app.federal_courthouses 
+  (name, short_name, courthouse_type, district, circuit, address_line1, city, state, postal_code, latitude, longitude, notes)
+VALUES
+  -- EIGHTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'District of Minnesota - St. Paul (District)', 'district_court', 'District of Minnesota', 'Eighth Circuit', '316 North Robert Street', 'St. Paul', 'MN', '55101', 44.9537, -93.0900, 'Main divisional building'),
+  ('United States Courthouse', 'District of Nebraska - Lincoln (District)', 'district_court', 'District of Nebraska', 'Eighth Circuit', '100 Centennial Mall North', 'Lincoln', 'NE', '68508', 40.8136, -96.7026, 'Divisional courthouse'),
+
+  -- NINTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'District of Alaska - Fairbanks (District)', 'district_court', 'District of Alaska', 'Ninth Circuit', '101 12th Avenue', 'Fairbanks', 'AK', '99701', 64.8431, -147.7231, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Alaska - Juneau (District)', 'district_court', 'District of Alaska', 'Ninth Circuit', '709 West 9th Street', 'Juneau', 'AK', '99801', 58.3019, -134.4197, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Arizona - Tucson (District)', 'district_court', 'District of Arizona', 'Ninth Circuit', '405 West Congress Street', 'Tucson', 'AZ', '85701', 32.2217, -110.9265, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Arizona - Flagstaff (District)', 'district_court', 'District of Arizona', 'Ninth Circuit', '123 North San Francisco Street', 'Flagstaff', 'AZ', '86001', 35.1981, -111.6514, 'Divisional courthouse'),
+  ('United States Courthouse', 'Central District of California - Riverside (District)', 'district_court', 'Central District of California', 'Ninth Circuit', '3470 Twelfth Street', 'Riverside', 'CA', '92501', 33.9806, -117.3755, 'Divisional courthouse'),
+  ('United States Courthouse', 'Central District of California - Santa Ana (District)', 'district_court', 'Central District of California', 'Ninth Circuit', '411 West Fourth Street', 'Santa Ana', 'CA', '92701', 33.7455, -117.8677, 'Divisional courthouse'),
+  ('United States Courthouse', 'Eastern District of California - Sacramento (District)', 'district_court', 'Eastern District of California', 'Ninth Circuit', '501 I Street', 'Sacramento', 'CA', '95814', 38.5816, -121.4944, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of California - San Jose (District)', 'district_court', 'Northern District of California', 'Ninth Circuit', '280 South First Street', 'San Jose', 'CA', '95113', 37.3330, -121.8900, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of California - Oakland', 'district_court', 'Northern District of California', 'Ninth Circuit', '1301 Clay Street', 'Oakland', 'CA', '94612', 37.8044, -122.2711, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of Nevada - Reno (District)', 'district_court', 'District of Nevada', 'Ninth Circuit', '400 South Virginia Street', 'Reno', 'NV', '89501', 39.5296, -119.8138, 'Divisional courthouse')
+ON CONFLICT DO NOTHING;
+INSERT INTO app.federal_courthouses 
+  (name, short_name, courthouse_type, district, circuit, address_line1, city, state, postal_code, latitude, longitude, notes)
+VALUES
+  -- TENTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'District of Kansas - Topeka (District)', 'district_court', 'District of Kansas', 'Tenth Circuit', '444 SE Quincy Street', 'Topeka', 'KS', '66683', 39.0473, -95.6752, 'Divisional courthouse'),
+  ('United States Courthouse', 'District of New Mexico - Las Cruces (District)', 'district_court', 'District of New Mexico', 'Tenth Circuit', '100 North Church Street', 'Las Cruces', 'NM', '88001', 32.3122, -106.7783, 'Divisional courthouse'),
+  ('United States Courthouse', 'Western District of Oklahoma - Lawton', 'district_court', 'Western District of Oklahoma', 'Tenth Circuit', '200 SW 4th Street', 'Lawton', 'OK', '73501', 34.6036, -98.3959, 'Divisional courthouse'),
+
+  -- ELEVENTH CIRCUIT (Divisional / Additional)
+  ('United States Courthouse', 'Southern District of Florida - Fort Lauderdale (District)', 'district_court', 'Southern District of Florida', 'Eleventh Circuit', '299 East Broward Boulevard', 'Fort Lauderdale', 'FL', '33301', 26.1224, -80.1373, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Florida - West Palm Beach (District)', 'district_court', 'Southern District of Florida', 'Eleventh Circuit', '701 Clematis Street', 'West Palm Beach', 'FL', '33401', 26.7153, -80.0533, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Florida - Orlando (District)', 'district_court', 'Middle District of Florida', 'Eleventh Circuit', '401 West Central Boulevard', 'Orlando', 'FL', '32801', 28.5419, -81.3831, 'Divisional courthouse'),
+  ('United States Courthouse', 'Middle District of Florida - Tampa (District)', 'district_court', 'Middle District of Florida', 'Eleventh Circuit', '801 North Florida Avenue', 'Tampa', 'FL', '33602', 27.9506, -82.4572, 'Divisional courthouse'),
+  ('United States Courthouse', 'Northern District of Georgia - Gainesville (District)', 'district_court', 'Northern District of Georgia', 'Eleventh Circuit', '121 Spring Street SE', 'Gainesville', 'GA', '30501', 34.2978, -83.8242, 'Divisional courthouse'),
+  ('United States Courthouse', 'Southern District of Georgia - Augusta (District)', 'district_court', 'Southern District of Georgia', 'Eleventh Circuit', '600 James Brown Boulevard', 'Augusta', 'GA', '30901', 33.4703, -81.9748, 'Divisional courthouse'),
+
+  -- SPECIALTY COURTS (Additional)
   ('United States Bankruptcy Court', 'Bankruptcy District of Delaware - Wilmington', 'bankruptcy_court', 'District of Delaware', 'Third Circuit', '824 Market Street', 'Wilmington', 'DE', '19801', 39.7420, -75.5480, 'Delaware Bankruptcy Court'),
-  ('United States Bankruptcy Court', 'Bankruptcy SDNY - Manhattan', 'bankruptcy_court', 'Southern District of New York', 'Second Circuit', 'One Bowling Green', 'New York', 'NY', '10004', 40.7040, -74.0130, 'SDNY Bankruptcy Court'),
-  ('United States Bankruptcy Court', 'Bankruptcy CDCA - Los Angeles', 'bankruptcy_court', 'Central District of California', 'Ninth Circuit', '255 East Temple Street', 'Los Angeles', 'CA', '90012', 34.0500, -118.2400, 'CDCA Bankruptcy Court');
+  ('United States Bankruptcy Court', 'Bankruptcy Southern District of New York - Manhattan', 'bankruptcy_court', 'Southern District of New York', 'Second Circuit', 'One Bowling Green', 'New York', 'NY', '10004', 40.7040, -74.0130, 'SDNY Bankruptcy Court'),
+  ('United States Bankruptcy Court', 'Bankruptcy Central District of California - Los Angeles', 'bankruptcy_court', 'Central District of California', 'Ninth Circuit', '255 East Temple Street', 'Los Angeles', 'CA', '90012', 34.0500, -118.2400, 'CDCA Bankruptcy Court'),
+  ('United States Bankruptcy Court', 'Bankruptcy Northern District of Illinois - Chicago', 'bankruptcy_court', 'Northern District of Illinois', 'Seventh Circuit', '219 South Dearborn Street', 'Chicago', 'IL', '60604', 41.8781, -87.6298, 'Bankruptcy division'),
+  ('United States Bankruptcy Court', 'Bankruptcy Southern District of Florida - Miami', 'bankruptcy_court', 'Southern District of Florida', 'Eleventh Circuit', '301 North Miami Avenue', 'Miami', 'FL', '33128', 25.7743, -80.1937, 'Bankruptcy division')
+ON CONFLICT DO NOTHING;
