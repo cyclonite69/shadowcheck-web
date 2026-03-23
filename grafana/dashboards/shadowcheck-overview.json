@@ -10,18 +10,33 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "shadowcheck-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
         "colorMode": "value",
@@ -37,7 +52,10 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "shadowcheck-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -49,18 +67,33 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "shadowcheck-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "blue", "value": null }]
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
       "id": 2,
       "options": {
         "colorMode": "value",
@@ -76,7 +109,10 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "shadowcheck-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -88,10 +124,15 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "shadowcheck-postgres"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
@@ -101,25 +142,46 @@
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
       "id": 3,
       "options": {
         "legend": {
@@ -128,11 +190,17 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "shadowcheck-postgres"
+          },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
@@ -144,22 +212,43 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "shadowcheck-postgres"
+      },
       "fieldConfig": {
-        "defaults": { "color": { "mode": "palette-classic" } },
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
       "id": 4,
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
         "orientation": "auto",
         "showValue": "auto",
-        "tooltip": { "mode": "single", "sort": "none" }
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "shadowcheck-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -171,9 +260,20 @@
       "type": "barchart"
     },
     {
-      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
-      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 12 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "shadowcheck-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 12
+      },
       "id": 5,
       "options": {
         "cellHeight": "sm",
@@ -188,7 +288,10 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "shadowcheck-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -200,27 +303,48 @@
       "type": "table"
     },
     {
-      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "datasource": {
+        "type": "postgres",
+        "uid": "shadowcheck-postgres"
+      },
       "fieldConfig": {
-        "defaults": { "color": { "mode": "palette-classic" } },
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 12 },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
       "id": 6,
       "options": {
         "displayLabels": ["name", "percent"],
-        "legend": { "displayMode": "list", "placement": "right" },
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
+          "values": true,
+          "calcs": [],
+          "fields": "/^value$/"
         },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "shadowcheck-postgres"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -236,8 +360,13 @@
   "schemaVersion": 36,
   "style": "dark",
   "tags": ["shadowcheck", "tactical"],
-  "templating": { "list": [] },
-  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "",
   "title": "ShadowCheck Overview (Tactical)",
