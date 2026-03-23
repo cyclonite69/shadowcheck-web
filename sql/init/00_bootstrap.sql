@@ -84,12 +84,64 @@ END
 $$;
 
 -- ============================================================================
+-- 2b. Create grafana_reader role
+-- ============================================================================
+\echo '[2b/7] Creating grafana_reader role...'
+
+\if :{?grafana_reader_password}
+  SET app.grafana_reader_password = :'grafana_reader_password';
+\else
+  \getenv grafana_reader_password GRAFANA_READER_PASSWORD
+  \if :{?grafana_reader_password}
+    SET app.grafana_reader_password = :'grafana_reader_password';
+  \else
+    SET app.grafana_reader_password = '';
+  \endif
+\endif
+
+DO $$
+DECLARE
+    reader_pass text;
+BEGIN
+    BEGIN
+        reader_pass := current_setting('app.grafana_reader_password');
+    EXCEPTION WHEN OTHERS THEN
+        reader_pass := NULL;
+    END;
+
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
+        IF reader_pass IS NULL OR reader_pass = '' THEN
+            RAISE WARNING 'grafana_reader password not provided — skipping role creation';
+            RETURN;
+        END IF;
+
+        EXECUTE format('CREATE USER grafana_reader WITH PASSWORD %L', reader_pass);
+        RAISE NOTICE 'Created grafana_reader role';
+    ELSE
+        IF reader_pass IS NOT NULL AND reader_pass != '' THEN
+            EXECUTE format('ALTER USER grafana_reader PASSWORD %L', reader_pass);
+            RAISE NOTICE 'Updated grafana_reader password';
+        ELSE
+            RAISE NOTICE 'grafana_reader role already exists, no password provided — skipping password update';
+        END IF;
+    END IF;
+END
+$$;
+
+-- ============================================================================
 -- 3. Set search_path at role level
 -- ============================================================================
 \echo '[3/7] Setting search_path for roles...'
 
 ALTER ROLE shadowcheck_user SET search_path TO app, public, topology, tiger;
 ALTER ROLE shadowcheck_admin SET search_path TO app, public, topology, tiger;
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
+        EXECUTE 'ALTER ROLE grafana_reader SET search_path TO app, public, topology, tiger';
+    END IF;
+END
+$$;
 
 -- ============================================================================
 -- 4. Grant permissions
@@ -117,6 +169,23 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO shadowcheck_user;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO shadowcheck_user;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO shadowcheck_user;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO shadowcheck_user;
+
+-- Grafana: connect + strictly read-only
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
+        EXECUTE 'GRANT CONNECT ON DATABASE shadowcheck_db TO grafana_reader';
+        EXECUTE 'GRANT USAGE ON SCHEMA app TO grafana_reader';
+        EXECUTE 'GRANT USAGE ON SCHEMA public TO grafana_reader';
+        EXECUTE 'GRANT SELECT ON ALL TABLES IN SCHEMA app TO grafana_reader';
+        EXECUTE 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana_reader';
+        EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO grafana_reader';
+        EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO grafana_reader';
+        EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO grafana_reader';
+        EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana_reader';
+    END IF;
+END
+$$;
 
 -- Auth exception: user needs session management
 DO $$
@@ -149,6 +218,18 @@ ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
     GRANT EXECUTE ON FUNCTIONS TO shadowcheck_user;
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
     GRANT EXECUTE ON FUNCTIONS TO shadowcheck_user;
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT SELECT ON TABLES TO grafana_reader';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public GRANT SELECT ON TABLES TO grafana_reader';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT USAGE ON SEQUENCES TO grafana_reader';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public GRANT USAGE ON SEQUENCES TO grafana_reader';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT EXECUTE ON FUNCTIONS TO grafana_reader';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO grafana_reader';
+    END IF;
+END
+$$;
 
 -- ============================================================================
 -- 5. Create radio_manufacturers table with oui column

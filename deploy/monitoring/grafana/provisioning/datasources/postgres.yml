@@ -5,9 +5,9 @@ datasources:
     type: postgres
     url: 127.0.0.1:5432
     database: shadowcheck_db
-    user: shadowcheck_user
+    user: grafana_reader
     secureJsonData:
-      password: "${DB_PASSWORD}"
+      password: "${GRAFANA_READER_PASSWORD}"
     jsonData:
       sslmode: disable
       maxOpenConns: 5
@@ -15,4 +15,5 @@ datasources:
       connMaxLifetime: 14400
       postgresVersion: 1800
       timescaledb: false
+      searchPath: app
     isDefault: true

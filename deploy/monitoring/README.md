@@ -8,11 +8,14 @@ main ShadowCheck services also run in `host` network mode.
 
 ```bash
 git pull --rebase origin master
-export DB_PASSWORD="$(aws secretsmanager get-secret-value \
+SECRET_JSON="$(aws secretsmanager get-secret-value \
   --secret-id shadowcheck/config \
   --region us-east-1 \
   --query SecretString \
-  --output text | jq -r '.db_password')"
+  --output text)"
+export GRAFANA_ADMIN_PASSWORD="$(jq -r '.grafana_admin_password' <<<"$SECRET_JSON")"
+export GRAFANA_READER_PASSWORD="$(jq -r '.grafana_reader_password' <<<"$SECRET_JSON")"
+export GF_SERVER_ROOT_URL="https://34.204.161.164/grafana/"
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d shadowcheck_grafana
 ```
 
@@ -25,15 +28,27 @@ docker compose -f docker-compose.monitoring.yml down
 ## Access
 
 - Grafana: http://34.204.161.164:3002
-- Login: admin / admin (change after first login)
+- Login: `admin` with the runtime `GRAFANA_ADMIN_PASSWORD` secret from AWS Secrets Manager
 
 ## Datasource
 
 Pre-wired to shadowcheck_postgres via provisioning.
-DB_PASSWORD is injected from the shell environment.
+`GRAFANA_READER_PASSWORD` is injected from the shell environment at container startup.
 In AWS deployments, source it from Secrets Manager before starting Grafana.
 Because the deployed containers use `host` networking, Grafana connects to
 Postgres at `127.0.0.1:5432`.
+The provisioned datasource uses the least-privilege `grafana_reader` role.
+
+## Secrets
+
+Do not write Grafana or database credentials to disk.
+Source them from AWS Secrets Manager into the shell only for the duration of the
+deployment command.
+
+Recommended secret keys in `shadowcheck/config`:
+
+- `grafana_admin_password`
+- `grafana_reader_password`
 
 ## Enable Slow Query Panel (optional)
 

@@ -5,15 +5,16 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD from AWS Secrets Manager before starting Grafana}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      - GF_SERVER_ROOT_URL=https://34.204.161.164/grafana/
-      - GF_SERVER_HTTP_PORT=3002
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - DB_PASSWORD=${DB_PASSWORD}
+      - GF_SECURITY_ALLOW_EMBEDDING=${GF_SECURITY_ALLOW_EMBEDDING:-false}
+      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED:-false}
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=${GF_AUTH_ANONYMOUS_ORG_ROLE:-Viewer}
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:?Set GF_SERVER_ROOT_URL for the deployed Grafana URL}
+      - GF_SERVER_HTTP_PORT=${GF_SERVER_HTTP_PORT:-3002}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-true}
+      - GRAFANA_READER_PASSWORD=${GRAFANA_READER_PASSWORD:?Set GRAFANA_READER_PASSWORD from AWS Secrets Manager before starting Grafana}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning
