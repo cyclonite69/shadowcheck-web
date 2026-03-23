@@ -1,3 +1,4 @@
+import { UniversalFilterQueryBuilder } from './filterQueryBuilder/universalFilterQueryBuilder';
 /**
  * V2 API Service Layer
  * Encapsulates database queries for V2 API operations
@@ -472,63 +473,13 @@ export async function getThreatMapData(opts: {
  * Threat severity counts, optionally filtered by active threat categories.
  */
 export async function getThreatSeverityCounts(
-  filters: { threatCategories?: string[]; radioTypes?: string[] },
-  enabled: { threatCategories?: boolean; radioTypes?: boolean }
+  filters: any = {},
+  enabled: any = {}
 ): Promise<SeverityCounts> {
-  const ThreatLevelMap: Record<string, string> = {
-    critical: 'CRITICAL',
-    high: 'HIGH',
-    medium: 'MED',
-    low: 'LOW',
-    none: 'NONE',
-  };
+  const builder = new UniversalFilterQueryBuilder(filters, enabled);
+  const { sql, params } = builder.buildThreatSeverityCountsQuery();
 
-  // Keep ignored-tag suppression consistent with list/map/dashboard threat paths.
-  const conditions: string[] = ['nt.is_ignored IS NOT TRUE'];
-  const params: unknown[] = [];
-  const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
-
-  if (
-    enabled.threatCategories &&
-    Array.isArray(filters.threatCategories) &&
-    filters.threatCategories.length > 0
-  ) {
-    const dbThreatLevels = filters.threatCategories
-      .map((cat) => ThreatLevelMap[cat] || cat.toUpperCase())
-      .filter(Boolean);
-    if (dbThreatLevels.length > 0) {
-      const threatLevelsParamIndex = params.length + 1;
-      conditions.push(`(${dynamicThreatLevel}) = ANY($${threatLevelsParamIndex})`);
-      params.push(dbThreatLevels);
-    }
-  }
-
-  // Keep severity counts scoped by the same active radio filter used by dashboard/list endpoints.
-  if (enabled.radioTypes && Array.isArray(filters.radioTypes) && filters.radioTypes.length > 0) {
-    const radioTypes = normalizeRadioTypes(filters.radioTypes);
-    if (radioTypes.length > 0 && !isAllRadioTypesSelection(radioTypes)) {
-      const radioTypesParamIndex = params.length + 1;
-      conditions.push(`${OBS_TYPE_EXPR('ne')} = ANY($${radioTypesParamIndex})`);
-      params.push(radioTypes);
-    }
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join('\n      AND ')}` : '';
-
-  const result = await query(
-    `
-    SELECT
-      (${dynamicThreatLevel}) as severity,
-      COUNT(DISTINCT ne.bssid) as unique_networks,
-      SUM(ne.observations)::bigint as total_observations
-    FROM app.api_network_explorer_mv ne
-    LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)
-    LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
-    ${whereClause}
-    GROUP BY 1
-  `,
-    params
-  );
+  const result = await query(sql, params);
 
   const counts: SeverityCounts = {
     critical: { unique_networks: 0, total_observations: 0 },

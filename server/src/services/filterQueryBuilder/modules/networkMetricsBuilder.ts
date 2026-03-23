@@ -100,3 +100,71 @@ export function buildNetworkDashboardMetricsQuery(
 
   return { sql, params: ctx.getParams() as any[] };
 }
+
+export function buildThreatSeverityCountsQuery(
+  ctx: FilterBuildContext,
+  getFilteredObservationsCte: () => CteResult
+): QueryResult {
+  const includeIgnored = ctx.shouldIncludeIgnoredByExplicitTagFilter();
+  const enabledKeys = Object.entries(ctx.enabled)
+    .filter(([, value]) => value)
+    .map(([key]) => key);
+  const networkOnly = ctx.isFastPathEligible(enabledKeys);
+
+  const dynamicThreatLevel =
+    "COALESCE((to_jsonb(nt)->>'threat_level'), nts.final_threat_level, 'NONE')";
+  const selectClause = `
+    SELECT
+      (${dynamicThreatLevel}) as severity,
+      COUNT(DISTINCT ne.bssid) as unique_networks,
+      SUM(ne.observations)::bigint as total_observations
+  `;
+
+  if (networkOnly) {
+    const countResult = buildNetworkOnlyCountQuery(ctx);
+    const whereIdx = countResult.sql.indexOf('WHERE');
+    const whereClause = whereIdx !== -1 ? countResult.sql.substring(whereIdx) : '';
+
+    return {
+      sql: `${selectClause}
+      FROM app.api_network_explorer_mv ne
+      LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)
+      LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
+      ${whereClause}
+      GROUP BY 1`,
+      params: countResult.params,
+    };
+  }
+
+  const { cte } = getFilteredObservationsCte();
+  const networkWhere = ctx.buildNetworkWhere();
+  const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+  const effectiveWhereClause =
+    whereClause.length > 0
+      ? includeIgnored
+        ? whereClause
+        : `${whereClause} AND ${NE_NOT_IGNORED_EXISTS_CLAUSE}`
+      : includeIgnored
+        ? ''
+        : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`;
+
+  const sql = `
+    ${cte}
+    , obs_rollup AS (
+      SELECT
+        bssid,
+        COUNT(*) AS observation_count
+      FROM filtered_obs
+      GROUP BY bssid
+    )
+    ${selectClause}
+    FROM obs_rollup r
+    JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+    LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)
+    LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
+    ${effectiveWhereClause}
+    GROUP BY 1
+  `;
+
+  return { sql, params: ctx.getParams() as any[] };
+}

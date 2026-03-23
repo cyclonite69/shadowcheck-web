@@ -80,6 +80,10 @@ export class UniversalFilterQueryBuilder {
     return this.networkModule.buildNetworkCountQuery();
   }
 
+  public buildThreatSeverityCountsQuery(): QueryResult {
+    return this.networkModule.buildThreatSeverityCountsQuery();
+  }
+
   public buildDashboardMetricsQuery(): QueryResult {
     return this.networkModule.buildDashboardMetricsQuery();
   }
