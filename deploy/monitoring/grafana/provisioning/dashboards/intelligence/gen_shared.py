@@ -72,20 +72,20 @@ def base_cte(extra_where=""):
   FROM app.wigle_v2_networks_search v2
   LEFT JOIN app.radio_manufacturers rm
     ON rm.prefix = {OUI_EXPR} AND rm.bit_length = 24
-  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'
+  WHERE v2.ssid ILIKE '%${{ssid_pattern}}%'
     AND v2.country = 'US'
     AND v2.trilat IS NOT NULL
     {extra_where}
 )"""
 
-# State filter for use inside base CTE extra_where
-STATE_FILTER = "AND ('$state' = 'All' OR v2.region = ANY(string_to_array('$state', ',')))"
+# State filter — ${state:csv} gives comma-separated values; empty string = All
+STATE_FILTER = "AND (v2.region = ANY(string_to_array('${{state:csv}}', ',')) OR '${{state:csv}}' = '')"
 
 OUI_STATES_CTE = """oui_states AS (
   SELECT left(upper(replace(bssid,':','')),6) AS oui_24,
     COUNT(DISTINCT region) AS oui_state_count
   FROM app.wigle_v2_networks_search
-  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'
+  WHERE ssid ILIKE '%${{ssid_pattern}}%' AND country = 'US'
   GROUP BY 1
 )"""
 
@@ -228,7 +228,7 @@ def variables():
         {
             "name": "state", "type": "query", "label": "State",
             "datasource": ds(),
-            "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%' || '${ssid_pattern}' || '%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+            "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${{ssid_pattern}}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
             "multi": True, "includeAll": True, "allValue": ".*",
             "current": {"selected": True, "text": ["All"], "value": ["$__all"]},
             "refresh": 2, "hide": 0,

@@ -26,7 +26,7 @@ FROM base b JOIN proximity p ON p.bssid = b.bssid JOIN oui_states os ON os.oui_2
 SQL_FLEET_OUIS = f"""SELECT COUNT(*) AS "Fleet OUIs identified" FROM (
   SELECT {OUI_EXPR}
   FROM app.wigle_v2_networks_search v2
-  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%' AND v2.country = 'US'
+  WHERE v2.ssid ILIKE '%${{ssid_pattern}}%' AND v2.country = 'US'
   GROUP BY 1 HAVING COUNT(DISTINCT v2.region) >= 5
 ) t"""
 
@@ -76,7 +76,7 @@ SQL_OUI_TABLE = f"""SELECT
   ROUND(GREATEST(0, AVG(EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400))) AS "Avg Span (d)"
 FROM app.wigle_v2_networks_search v2
 LEFT JOIN app.radio_manufacturers rm ON rm.prefix = {OUI_EXPR} AND rm.bit_length = 24
-WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%' AND v2.country = 'US'
+WHERE v2.ssid ILIKE '%${{ssid_pattern}}%' AND v2.country = 'US'
   {STATE_FILTER}
 GROUP BY {OUI_EXPR}, rm.manufacturer
 HAVING COUNT(DISTINCT v2.region) >= 3

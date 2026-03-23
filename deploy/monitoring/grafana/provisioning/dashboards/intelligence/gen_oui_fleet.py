@@ -17,7 +17,7 @@ SQL_OUI_NATIONAL = f"""SELECT
   ROUND(GREATEST(0, AVG(EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400))) AS "Avg Span (d)"
 FROM app.wigle_v2_networks_search v2
 LEFT JOIN app.radio_manufacturers rm ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24
-WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%' AND v2.country = 'US'
+WHERE v2.ssid ILIKE '%${{ssid_pattern}}%' AND v2.country = 'US'
 GROUP BY left(upper(replace(v2.bssid,':','')),6), rm.manufacturer
 HAVING COUNT(DISTINCT v2.region) >= 3
 ORDER BY COUNT(DISTINCT v2.region) DESC"""
@@ -30,7 +30,7 @@ SQL_CONCENTRATION = f"""SELECT
   ROUND(COUNT(DISTINCT left(upper(replace(v2.bssid,':','')),6))::numeric / NULLIF(COUNT(*),0), 4) AS "Diversity ratio",
   (SELECT left(upper(replace(v2b.bssid,':','')),6)
    FROM app.wigle_v2_networks_search v2b
-   WHERE v2b.ssid ILIKE '%' || '$ssid_pattern' || '%' AND v2b.country='US' AND v2b.region=v2.region
+   WHERE v2b.ssid ILIKE '%${{ssid_pattern}}%' AND v2b.country='US' AND v2b.region=v2.region
    GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1) AS "Dominant OUI",
   CASE
     WHEN ROUND(COUNT(DISTINCT left(upper(replace(v2.bssid,':','')),6))::numeric / NULLIF(COUNT(*),0), 4) < 0.10 THEN 'Fleet signal'
@@ -38,7 +38,7 @@ SQL_CONCENTRATION = f"""SELECT
     ELSE 'High diversity'
   END AS "Concentration class"
 FROM app.wigle_v2_networks_search v2
-WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%' AND v2.country = 'US'
+WHERE v2.ssid ILIKE '%${{ssid_pattern}}%' AND v2.country = 'US'
   {STATE_FILTER}
 GROUP BY v2.region
 HAVING COUNT(*) >= 5
