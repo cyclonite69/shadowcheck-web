@@ -90,7 +90,7 @@ OUI_STATES_CTE = """oui_states AS (
   SELECT left(upper(replace(bssid,':','')),6) AS oui_24,
     COUNT(DISTINCT region) AS oui_state_count
   FROM app.wigle_v2_networks_search
-  WHERE ssid ILIKE '%${{ssid_pattern}}%' AND country = 'US'
+  WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US'
   GROUP BY 1
 )"""
 
@@ -234,7 +234,7 @@ def variables():
         {
             "name": "state", "type": "query", "label": "State",
             "datasource": ds(),
-            "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${{ssid_pattern}}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+            "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
             "multi": True, "includeAll": True, "allValue": ".*",
             "current": {"selected": True, "text": ["All"], "value": ["$__all"]},
             "refresh": 2, "hide": 0,
