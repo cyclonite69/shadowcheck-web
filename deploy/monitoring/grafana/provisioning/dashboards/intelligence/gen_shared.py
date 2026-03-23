@@ -28,7 +28,7 @@ def hw_class_case(mfr="b.manufacturer"):
       WHEN lower({mfr}) LIKE ANY({MOBILE_ARR})   THEN 'mobile_command'
       WHEN lower({mfr}) LIKE ANY({ENTER_ARR})    THEN 'enterprise'
       WHEN lower({mfr}) LIKE ANY({ISP_ARR})
-           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'
+           AND p.min_dist_m <= 2000 AND b.span_days >= ${{span_days_min}} THEN 'residential_agent'
       WHEN lower({mfr}) LIKE ANY({CONSUMER_ARR}) THEN 'consumer'
       WHEN lower({mfr}) LIKE ANY({ISP_ARR})      THEN 'other_isp_gateway'
       ELSE 'unknown_oui'
@@ -40,7 +40,7 @@ def hw_class_num_case(mfr="b.manufacturer"):
       WHEN lower({mfr}) LIKE ANY({MOBILE_ARR})   THEN 2
       WHEN lower({mfr}) LIKE ANY({ENTER_ARR})    THEN 3
       WHEN lower({mfr}) LIKE ANY({ISP_ARR})
-           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4
+           AND p.min_dist_m <= 2000 AND b.span_days >= ${{span_days_min}} THEN 4
       WHEN lower({mfr}) LIKE ANY({CONSUMER_ARR}) THEN 5
       WHEN lower({mfr}) LIKE ANY({ISP_ARR})      THEN 6
       ELSE 7
@@ -82,8 +82,7 @@ def base_cte(extra_where=""):
 # Grafana sends "$__all" when "All" is selected, so we guard against that too.
 # An empty string or the literal "$__all" means no state restriction.
 STATE_FILTER = (
-    "AND ('${state:csv}' IN ('', '$__all') OR "
-    "v2.region = ANY(string_to_array('${state:csv}', ',')))"
+    "AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )"
 )
 
 OUI_STATES_CTE = """oui_states AS (

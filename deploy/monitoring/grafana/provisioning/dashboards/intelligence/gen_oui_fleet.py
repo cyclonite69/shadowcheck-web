@@ -70,7 +70,7 @@ tiers AS (
     MAX(lasttime)               AS newest_last_seen
   FROM classified
   WHERE hw_class IN ('mobile_command','fleet_vehicle','residential_agent','enterprise')
-  GROUP BY hw_class
+  GROUP BY hw_class, priority_tier
 )
 SELECT priority_tier        AS "Priority tier",
        count_missing        AS "Count missing",
@@ -82,8 +82,8 @@ FROM tiers
 UNION ALL
 SELECT 'TOTAL',
        SUM(count_missing),
-       ROUND(AVG(avg_dist_m)),
-       ROUND(AVG(avg_span_d)),
+       ROUND(SUM(avg_dist_m * count_missing) / NULLIF(SUM(count_missing), 0)),
+       ROUND(SUM(avg_span_d  * count_missing) / NULLIF(SUM(count_missing), 0)),
        MIN(oldest_last_seen),
        MAX(newest_last_seen)
 FROM tiers
