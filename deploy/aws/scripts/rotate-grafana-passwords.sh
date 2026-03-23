@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure we run from the repo root so docker-compose.monitoring.yml
+# relative volume paths resolve correctly regardless of call site.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+cd "$REPO_ROOT"
+
 SECRET_NAME="${SECRET_NAME:-shadowcheck/config}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-shadowcheck_postgres}"
@@ -129,6 +135,21 @@ export GF_SERVER_ROOT_URL="$GRAFANA_ROOT_URL"
 COMPOSE_BIN="$(compose_cmd)"
 
 $COMPOSE_BIN -f docker-compose.monitoring.yml up -d --force-recreate "$GRAFANA_CONTAINER"
+
+# GF_SECURITY_ADMIN_PASSWORD is only honoured on first run (empty DB).
+# If the grafana_data volume already exists the env var is ignored, so we
+# force-sync the password into the SQLite DB via the CLI after startup.
+echo "Waiting for Grafana to become healthy..."
+for i in $(seq 1 30); do
+  if docker exec "$GRAFANA_CONTAINER" wget -q -O- http://127.0.0.1:3002/api/health >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+docker exec "$GRAFANA_CONTAINER" \
+  grafana cli --homepath /usr/share/grafana admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" >/dev/null
+echo "Admin password synced to Grafana DB."
 
 echo "Grafana credentials rotated successfully."
 echo "  Secret store: $SECRET_NAME"
