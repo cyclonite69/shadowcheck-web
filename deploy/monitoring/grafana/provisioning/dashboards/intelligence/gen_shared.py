@@ -236,7 +236,7 @@ def variables():
             "name": "state", "type": "query", "label": "State",
             "datasource": ds(),
             "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
-            "multi": True, "includeAll": True, "allValue": ".*",
+            "multi": True, "includeAll": True,
             "current": {"selected": True, "text": ["All"], "value": ["$__all"]},
             "refresh": 2, "hide": 0,
         },

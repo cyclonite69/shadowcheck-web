@@ -54,7 +54,6 @@
         "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
         "current": {
           "selected": true,
           "text": ["All"],
