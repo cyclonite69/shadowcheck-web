@@ -18,6 +18,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards/tactical
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3002/api/health >/dev/null || exit 1"]
       interval: 30s

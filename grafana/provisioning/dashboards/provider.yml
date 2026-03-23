@@ -1,9 +1,9 @@
 apiVersion: 1
 providers:
-  - name: ShadowCheck
+  - name: ShadowCheck Tactical
     orgId: 1
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30
     options:
-      path: /var/lib/grafana/dashboards
+      path: /etc/grafana/provisioning/dashboards/tactical

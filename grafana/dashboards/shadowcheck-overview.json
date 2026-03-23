@@ -10,30 +10,18 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": "ShadowCheck",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "id": 1,
       "options": {
         "colorMode": "value",
@@ -49,7 +37,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -61,30 +49,18 @@
       "type": "stat"
     },
     {
-      "datasource": "ShadowCheck",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
+            "steps": [{ "color": "blue", "value": null }]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "id": 2,
       "options": {
         "colorMode": "value",
@@ -100,11 +76,11 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv;",
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv WHERE is_ignored = FALSE;",
           "refId": "A"
         }
       ],
@@ -112,12 +88,10 @@
       "type": "stat"
     },
     {
-      "datasource": "ShadowCheck",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
+          "color": { "mode": "palette-classic" },
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
@@ -127,46 +101,25 @@
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
+            "scaleDistribution": { "type": "linear" },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "id": 3,
       "options": {
         "legend": {
@@ -175,14 +128,11 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
         {
-          "datasource": "ShadowCheck",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
@@ -194,41 +144,26 @@
       "type": "timeseries"
     },
     {
-      "datasource": "ShadowCheck",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
+        "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 4
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "id": 4,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
+        "legend": { "displayMode": "list", "placement": "bottom" },
         "orientation": "auto",
         "showValue": "auto",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
         {
-          "datasource": "ShadowCheck",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(threat_level, 'UNKNOWN') AS threat_level, COUNT(*)::bigint AS count FROM app.api_network_explorer_mv GROUP BY 1 ORDER BY count DESC;",
+          "rawSql": "SELECT COALESCE(threat_level, 'UNKNOWN') AS threat_level, COUNT(*)::bigint AS count FROM app.api_network_explorer_mv WHERE is_ignored = FALSE GROUP BY 1 ORDER BY count DESC;",
           "refId": "A"
         }
       ],
@@ -236,17 +171,9 @@
       "type": "barchart"
     },
     {
-      "datasource": "ShadowCheck",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 16,
-        "x": 0,
-        "y": 12
-      },
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 12 },
       "id": 5,
       "options": {
         "cellHeight": "sm",
@@ -261,11 +188,11 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT bssid, ssid, threat_level, ROUND(threat_score::numeric, 1) AS threat_score, manufacturer, last_seen FROM app.api_network_explorer_mv WHERE threat_score > 0 ORDER BY threat_score DESC LIMIT 20;",
+          "rawSql": "SELECT bssid, ssid, threat_level, ROUND(threat_score::numeric, 1) AS threat_score, manufacturer, last_seen FROM app.api_network_explorer_mv WHERE threat_score > 0 AND is_ignored = FALSE ORDER BY threat_score DESC LIMIT 20;",
           "refId": "A"
         }
       ],
@@ -273,46 +200,31 @@
       "type": "table"
     },
     {
-      "datasource": "ShadowCheck",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
+        "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []
       },
-      "gridPos": {
-        "h": 10,
-        "w": 8,
-        "x": 16,
-        "y": 12
-      },
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 12 },
       "id": 6,
       "options": {
         "displayLabels": ["name", "percent"],
-        "legend": {
-          "displayMode": "list",
-          "placement": "right"
-        },
+        "legend": { "displayMode": "list", "placement": "right" },
         "pieType": "pie",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
         {
-          "datasource": "ShadowCheck",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(NULLIF(TRIM(manufacturer), ''), 'Unknown') AS manufacturer, COUNT(*)::bigint AS count FROM app.api_network_explorer_mv GROUP BY 1 ORDER BY count DESC LIMIT 10;",
+          "rawSql": "SELECT COALESCE(NULLIF(TRIM(manufacturer), ''), 'Unknown') AS manufacturer, COUNT(*)::bigint AS count FROM app.api_network_explorer_mv WHERE is_ignored = FALSE GROUP BY 1 ORDER BY count DESC LIMIT 10;",
           "refId": "A"
         }
       ],
@@ -324,17 +236,12 @@
   "schemaVersion": 36,
   "style": "dark",
   "tags": ["shadowcheck", "tactical"],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-7d",
-    "to": "now"
-  },
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "ShadowCheck Overview (Tactical)",
   "uid": "shadowcheck-tactical",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
