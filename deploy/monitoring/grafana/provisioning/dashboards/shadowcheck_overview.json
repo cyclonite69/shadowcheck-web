@@ -605,7 +605,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  bssid                                                        AS \"BSSID\",\n  COALESCE(NULLIF(ssid,''),'<hidden>')                         AS \"SSID\",\n  threat_level                                                 AS \"Threat\",\n  ROUND(threat_score::numeric, 1)                              AS \"Score\",\n  observations                                                 AS \"Obs\",\n  COALESCE(NULLIF(TRIM(manufacturer),''),'Unknown')            AS \"Manufacturer\",\n  security                                                     AS \"Security\",\n  CASE WHEN frequency BETWEEN 2412 AND 2484 THEN '2.4G'\n       WHEN frequency BETWEEN 5170 AND 5825 THEN '5G'\n       WHEN frequency BETWEEN 5925 AND 7125 THEN '6G'\n       ELSE 'Other' END                                        AS \"Band\",\n  ROUND(distance_from_home_km::numeric, 2)                     AS \"Dist km\",\n  CASE WHEN stationary_confidence >= 0.8 THEN 'Fixed'\n       WHEN stationary_confidence >= 0.4 THEN '?'\n       ELSE 'Mobile' END                                       AS \"Mobility\",\n  COALESCE(NULLIF(tag_type,''),'—')                            AS \"Tag\",\n  last_seen                                                    AS \"Last Seen\"\nFROM app.api_network_explorer_mv\nWHERE threat_level IN ('CRITICAL','HIGH','MEDIUM')\nORDER BY threat_score DESC, observations DESC\nLIMIT 50;",
+          "rawSql": "SELECT\n  bssid                                                        AS \"BSSID\",\n  COALESCE(NULLIF(ssid,''),'<hidden>')                         AS \"SSID\",\n  threat_level                                                 AS \"Threat\",\n  ROUND(threat_score::numeric, 1)                              AS \"Score\",\n  observations                                                 AS \"Obs\",\n  COALESCE(NULLIF(TRIM(manufacturer),''),'Unknown')            AS \"Manufacturer\",\n  security                                                     AS \"Security\",\n  CASE WHEN frequency BETWEEN 2412 AND 2484 THEN '2.4G'\n       WHEN frequency BETWEEN 5170 AND 5825 THEN '5G'\n       WHEN frequency BETWEEN 5925 AND 7125 THEN '6G'\n       ELSE 'Other' END                                        AS \"Band\",\n  ROUND(distance_from_home_km::numeric, 2)                     AS \"Dist km\",\n  CASE WHEN stationary_confidence >= 0.8 THEN 'Fixed'\n       WHEN stationary_confidence >= 0.4 THEN '?'\n       ELSE 'Mobile' END                                       AS \"Mobility\",\n  COALESCE(NULLIF(tag_type,''),'—')                            AS \"Tag\",\n  TO_CHAR(TO_TIMESTAMP(last_seen::bigint / 1000.0), 'YYYY-MM-DD HH24:MI') AS \"Last Seen\"\nFROM app.api_network_explorer_mv\nWHERE threat_level IN ('CRITICAL','HIGH','MEDIUM')\nORDER BY threat_score DESC, observations DESC\nLIMIT 50;",
           "refId": "A"
         }
       ],
@@ -670,6 +670,6 @@
   "timezone": "",
   "title": "ShadowCheck Overview",
   "uid": "shadowcheck-overview",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }
