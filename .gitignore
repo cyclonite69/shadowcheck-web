@@ -152,3 +152,4 @@ assets/images/
 /setup_*.sh
 /*_setup_*.sh
 telemetry-id
+deploy/monitoring/grafana/provisioning/dashboards/intelligence/__pycache__/
