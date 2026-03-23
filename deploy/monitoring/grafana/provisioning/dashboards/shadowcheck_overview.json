@@ -1,52 +1,23 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
+  "annotations": { "list": [] },
   "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+            "steps": [{ "color": "blue", "value": null }]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "id": 1,
       "options": {
         "colorMode": "value",
@@ -77,27 +48,15 @@
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
+            "steps": [{ "color": "blue", "value": null }]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
       "id": 2,
       "options": {
         "colorMode": "value",
@@ -128,34 +87,21 @@
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
       "id": 3,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -183,34 +129,21 @@
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
             ]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
       "id": 4,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -238,35 +171,30 @@
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 }
+            ]
           }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 4
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
       "id": 5,
       "options": {
-        "displayLabels": ["name", "percent"],
-        "legend": {
-          "displayMode": "list",
-          "placement": "right"
-        },
-        "pieType": "pie",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "textMode": "auto"
       },
       "targets": [
         {
@@ -274,43 +202,103 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT threat_level, COUNT(*)::bigint AS count\nFROM app.api_network_explorer_mv\nGROUP BY threat_level\nORDER BY count DESC;",
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv WHERE tag_type IN ('THREAT','CRITICAL','SUSPECT','INVESTIGATE');",
           "refId": "A"
         }
       ],
-      "title": "Threat Distribution",
+      "title": "Manually Tagged",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "purple", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv WHERE wigle_v3_observation_count > 0;",
+          "refId": "A"
+        }
+      ],
+      "title": "WiGLE Enriched",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 4 },
+      "id": 7,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(threat_level,'NONE') AS metric, COUNT(*)::bigint AS value\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Threat Level Distribution",
       "type": "piechart"
     },
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
+        "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 4
-      },
-      "id": 6,
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 4 },
+      "id": 8,
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "orientation": "auto",
-        "showValue": "auto",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 100
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
         {
@@ -318,43 +306,31 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE type\n  WHEN 'W' THEN 'WiFi'\n  WHEN 'B' THEN 'BLE'\n  WHEN 'BT' THEN 'Bluetooth'\n  WHEN 'L' THEN 'LTE'\n  WHEN 'NR' THEN '5G NR'\n  WHEN 'G' THEN 'GSM'\n  ELSE COALESCE(type, 'Unknown')\nEND AS radio_type,\nCOUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1\nORDER BY networks DESC;",
+          "rawSql": "SELECT COALESCE(security,'UNKNOWN') AS metric, COUNT(*)::bigint AS value\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY value DESC;",
           "refId": "A"
         }
       ],
-      "title": "Radio Type Distribution",
-      "type": "barchart"
+      "title": "Security Protocol",
+      "type": "piechart"
     },
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
+        "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 4
-      },
-      "id": 7,
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 4 },
+      "id": 9,
       "options": {
-        "legend": {
-          "displayMode": "hidden",
-          "placement": "bottom"
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "orientation": "auto",
-        "showValue": "auto",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 100
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
         {
@@ -362,7 +338,68 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(NULLIF(TRIM(manufacturer), ''), 'Unknown') AS manufacturer,\nCOUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1\nORDER BY networks DESC\nLIMIT 10;",
+          "rawSql": "SELECT\n  CASE\n    WHEN frequency BETWEEN 2412 AND 2484 THEN '2.4 GHz'\n    WHEN frequency BETWEEN 5170 AND 5825 THEN '5 GHz'\n    WHEN frequency BETWEEN 5925 AND 7125 THEN '6 GHz'\n    WHEN frequency > 0 THEN 'Other RF'\n    ELSE 'Unknown'\n  END AS metric,\n  COUNT(*)::bigint AS value\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Frequency Band",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 4 },
+      "id": 10,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN stationary_confidence >= 0.8 THEN 'Stationary'\n    WHEN stationary_confidence >= 0.4 THEN 'Uncertain'\n    ELSE 'Mobile'\n  END AS metric,\n  COUNT(*)::bigint AS value\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY value DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Mobility Profile",
+      "type": "piechart"
+    },
+
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "id": 11,
+      "options": {
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(NULLIF(TRIM(manufacturer),''),'Unknown') AS manufacturer, COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY networks DESC LIMIT 12;",
           "refId": "A"
         }
       ],
@@ -372,105 +409,192 @@
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
+        "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 12
-      },
-      "id": 8,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "id": 12,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "orientation": "auto",
+        "showValue": "always",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0
       },
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  DATE_TRUNC('day', first_seen) AS time,\n  COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nWHERE first_seen >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  CASE type\n    WHEN 'W'  THEN 'WiFi'\n    WHEN 'B'  THEN 'BLE'\n    WHEN 'BT' THEN 'Bluetooth'\n    WHEN 'L'  THEN 'LTE'\n    WHEN 'NR' THEN '5G NR'\n    WHEN 'G'  THEN 'GSM'\n    ELSE COALESCE(type,'Unknown')\n  END AS radio_type,\n  COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY networks DESC;",
           "refId": "A"
         }
       ],
-      "title": "Networks First Seen Over 30 Days",
-      "type": "timeseries"
+      "title": "Radio Type",
+      "type": "barchart"
     },
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
+        "defaults": { "color": { "mode": "palette-classic" } },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "id": 9,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "id": 13,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "orientation": "auto",
+        "showValue": "always",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0
       },
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  DATE_TRUNC('day', last_seen) AS time,\n  SUM(observations)::bigint AS observations\nFROM app.api_network_explorer_mv\nWHERE last_seen >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  CASE\n    WHEN signal >= -50 THEN 'Excellent (>-50)'\n    WHEN signal >= -65 THEN 'Good (-65 to -50)'\n    WHEN signal >= -80 THEN 'Fair (-80 to -65)'\n    ELSE 'Poor (<-80)'\n  END AS signal_quality,\n  COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nWHERE signal IS NOT NULL AND signal != 0\nGROUP BY 1 ORDER BY networks DESC;",
           "refId": "A"
         }
       ],
-      "title": "Observation Volume Over 30 Days",
-      "type": "timeseries"
+      "title": "Signal Strength Quality",
+      "type": "barchart"
     },
+
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+      "id": 14,
+      "options": {
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "orientation": "auto",
+        "showValue": "always",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN distance_from_home_km < 1  THEN '< 1 km'\n    WHEN distance_from_home_km < 5  THEN '1–5 km'\n    WHEN distance_from_home_km < 20 THEN '5–20 km'\n    ELSE '> 20 km'\n  END AS distance_range,\n  COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nWHERE distance_from_home_km IS NOT NULL\nGROUP BY 1 ORDER BY networks DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Distance from Home",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 20 },
+      "id": 15,
+      "options": {
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "orientation": "auto",
+        "showValue": "always",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN threat_score >= 80 THEN '80–100 (Critical)'\n    WHEN threat_score >= 60 THEN '60–80 (High)'\n    WHEN threat_score >= 40 THEN '40–60 (Medium)'\n    WHEN threat_score >= 20 THEN '20–40 (Low)'\n    ELSE '0–20 (None)'\n  END AS score_range,\n  COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY MIN(threat_score);",
+          "refId": "A"
+        }
+      ],
+      "title": "ML Threat Score Distribution",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 20 },
+      "id": 16,
+      "options": {
+        "legend": { "displayMode": "hidden", "placement": "bottom" },
+        "orientation": "auto",
+        "showValue": "always",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(NULLIF(tag_type,''),'untagged') AS tag_type, COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY networks DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Network Tag Breakdown",
+      "type": "barchart"
+    },
+
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {},
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Threat" },
+            "properties": [
+              { "id": "custom.width", "value": 90 },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 1 },
+                    { "color": "orange", "value": 2 },
+                    { "color": "red", "value": 3 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Score" },
+            "properties": [
+              { "id": "custom.width", "value": 70 },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Obs" },
+            "properties": [{ "id": "custom.width", "value": 70 }]
+          }
+        ]
       },
-      "gridPos": {
-        "h": 10,
-        "w": 16,
-        "x": 0,
-        "y": 20
-      },
-      "id": 10,
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 28 },
+      "id": 17,
       "options": {
         "cellHeight": "sm",
         "footer": {
           "countRows": false,
           "enablePagination": true,
-          "fields": "",
-          "reducer": ["sum"],
           "show": false
         },
         "showHeader": true
@@ -481,35 +605,22 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  bssid AS \"BSSID\",\n  ssid AS \"SSID\",\n  threat_level AS \"Threat\",\n  ROUND(threat_score::numeric, 2) AS \"Score\",\n  observations AS \"Observations\",\n  COALESCE(NULLIF(TRIM(manufacturer), ''), 'Unknown') AS \"Manufacturer\",\n  last_seen AS \"Last Seen\"\nFROM app.api_network_explorer_mv\nWHERE threat_level IN ('CRITICAL', 'HIGH', 'MEDIUM')\nORDER BY threat_score DESC, observations DESC\nLIMIT 25;",
+          "rawSql": "SELECT\n  bssid                                                        AS \"BSSID\",\n  COALESCE(NULLIF(ssid,''),'<hidden>')                         AS \"SSID\",\n  threat_level                                                 AS \"Threat\",\n  ROUND(threat_score::numeric, 1)                              AS \"Score\",\n  observations                                                 AS \"Obs\",\n  COALESCE(NULLIF(TRIM(manufacturer),''),'Unknown')            AS \"Manufacturer\",\n  security                                                     AS \"Security\",\n  CASE WHEN frequency BETWEEN 2412 AND 2484 THEN '2.4G'\n       WHEN frequency BETWEEN 5170 AND 5825 THEN '5G'\n       WHEN frequency BETWEEN 5925 AND 7125 THEN '6G'\n       ELSE 'Other' END                                        AS \"Band\",\n  ROUND(distance_from_home_km::numeric, 2)                     AS \"Dist km\",\n  CASE WHEN stationary_confidence >= 0.8 THEN 'Fixed'\n       WHEN stationary_confidence >= 0.4 THEN '?'\n       ELSE 'Mobile' END                                       AS \"Mobility\",\n  COALESCE(NULLIF(tag_type,''),'—')                            AS \"Tag\",\n  TO_TIMESTAMP(last_seen / 1000)                               AS \"Last Seen\"\nFROM app.api_network_explorer_mv\nWHERE threat_level IN ('CRITICAL','HIGH','MEDIUM')\nORDER BY threat_score DESC, observations DESC\nLIMIT 50;",
           "refId": "A"
         }
       ],
       "title": "Top Threat Networks",
       "type": "table"
     },
+
     {
       "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 8,
-        "x": 16,
-        "y": 20
-      },
-      "id": 11,
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 40 },
+      "id": 18,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "enablePagination": false,
-          "fields": "",
-          "reducer": ["sum"],
-          "show": false
-        },
+        "footer": { "show": false },
         "showHeader": true
       },
       "targets": [
@@ -518,29 +629,47 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  matviewname AS \"View\",\n  ispopulated AS \"Populated\",\n  pg_size_pretty(pg_total_relation_size('app.' || matviewname)) AS \"Size\"\nFROM pg_matviews\nWHERE schemaname = 'app'\nORDER BY matviewname;",
+          "rawSql": "SELECT\n  matviewname                                                          AS \"View\",\n  ispopulated                                                          AS \"OK\",\n  pg_size_pretty(pg_total_relation_size('app.'||matviewname))          AS \"Size\"\nFROM pg_matviews\nWHERE schemaname = 'app'\nORDER BY matviewname;",
           "refId": "A"
         }
       ],
       "title": "Materialized View Health",
       "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 40 },
+      "id": 19,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  model_type                                    AS \"Model\",\n  version                                       AS \"Version\",\n  ROUND(accuracy::numeric * 100, 1) || '%'      AS \"Accuracy\",\n  training_samples                              AS \"Samples\",\n  threat_count                                  AS \"Threats\",\n  TO_CHAR(trained_at, 'YYYY-MM-DD HH24:MI')     AS \"Trained At\"\nFROM app.ml_training_history\nORDER BY trained_at DESC\nLIMIT 5;",
+          "refId": "A"
+        }
+      ],
+      "title": "ML Model History",
+      "type": "table"
     }
   ],
-  "refresh": "30s",
+  "refresh": "5m",
   "schemaVersion": 36,
   "style": "dark",
   "tags": ["shadowcheck", "overview"],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-30d",
-    "to": "now"
-  },
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "ShadowCheck Overview",
   "uid": "shadowcheck-overview",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
