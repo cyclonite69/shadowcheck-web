@@ -328,10 +328,10 @@ describe('getThreatSeverityCounts', () => {
     const counts = await getThreatSeverityCounts({}, { threatCategories: false });
 
     const sql: string = mockQuery.mock.calls[0][0];
-    // is_ignored suppression is unconditional
-    expect(sql).toMatch(/is_ignored IS NOT TRUE/i);
+    // is_ignored suppression uses the builder's NOT EXISTS clause
+    expect(sql).toMatch(/NOT EXISTS \(\s*SELECT 1\s*FROM app\.network_tags nt_ignored/i);
     // No category array filter when threatCategories is disabled
-    expect(sql).not.toMatch(/= ANY\(\$1\)/i);
+    expect(sql).not.toMatch(/ne\.threat_level = ANY\(\$1\)/i);
     // All buckets default to zero
     expect(counts.critical.unique_networks).toBe(0);
     expect(counts.medium.total_observations).toBe(0);
@@ -371,9 +371,8 @@ describe('getThreatSeverityCounts', () => {
 
     const sql: string = mockQuery.mock.calls[0][0];
     const params: unknown[] = mockQuery.mock.calls[0][1];
-    expect(sql).toMatch(
-      /UPPER\(COALESCE\(ne\.radio_type, ''\)\) IN \('W', 'WIFI', 'WI-FI'\) THEN 'W'/i
-    );
+    // Uses the generalized builder logic for radio types
+    expect(sql).toMatch(/ne\.type = ANY\(\$1\)/i);
     expect(params).toContainEqual(['W']);
   });
 
@@ -389,14 +388,16 @@ describe('getThreatSeverityCounts', () => {
     const sql: string = mockQuery.mock.calls[0][0];
     const params: unknown[] = mockQuery.mock.calls[0][1];
 
-    expect(sql).toContain(') = ANY($1)');
-    expect(sql).toContain('= ANY($2)');
+    // the builder assigns params dynamically; radioTypes is typically evaluated before threatCategories
+    expect(sql).toContain('ne.type = ANY($1)');
+    expect(sql).toContain('ne.threat_level = ANY($2)');
     expect(sql).toContain(
       'LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)'
     );
     expect(sql).toContain('LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)');
-    expect(params[0]).toEqual(['HIGH']);
-    expect(params[1]).toEqual(['W']);
+    // Based on UniversalFilterQueryBuilder execution order:
+    expect(params[0]).toEqual(['W']);
+    expect(params[1]).toEqual(['HIGH']);
   });
 
   it('treats full supported radioTypes selection as neutral (no radio predicate)', async () => {
