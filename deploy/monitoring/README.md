@@ -50,6 +50,13 @@ Recommended secret keys in `shadowcheck/config`:
 - `grafana_admin_password`
 - `grafana_reader_password`
 
+To generate/rotate both keys and sync the PostgreSQL `grafana_reader` role:
+
+```bash
+GF_SERVER_ROOT_URL="https://34.204.161.164/grafana/" \
+./deploy/aws/scripts/rotate-grafana-passwords.sh
+```
+
 ## Enable Slow Query Panel (optional)
 
 Run once:

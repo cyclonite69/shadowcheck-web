@@ -6,6 +6,7 @@
 
 ```bash
 ./scripts/rotate-db-password.sh
+./deploy/aws/scripts/rotate-grafana-passwords.sh
 ```
 
 Automated password rotation for PostgreSQL. Works in both local and AWS environments.
@@ -15,6 +16,13 @@ Automated password rotation for PostgreSQL. Works in both local and AWS environm
 - Updates PostgreSQL user password
 - Restarts affected services
 - See `docs/security/PASSWORD_ROTATION.md` for details
+
+Grafana rotation script:
+
+- Generates `grafana_admin_password` and `grafana_reader_password`
+- Updates `shadowcheck/config` in AWS Secrets Manager
+- Syncs the `grafana_reader` PostgreSQL role password/grants
+- Recreates `shadowcheck_grafana` with runtime-only env vars
 
 ### Database Backup
 
