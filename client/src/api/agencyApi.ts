@@ -52,10 +52,14 @@ export const agencyApi = {
 
   // Agency Offices (GeoJSON)
   async getAgencyOffices(): Promise<any> {
-    return apiClient.get('/agency-offices');
+    const response = await fetch('/agency-offices', { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch agency offices');
+    return response.json();
   },
 
   async getFederalCourthouses(): Promise<any> {
-    return apiClient.get('/federal-courthouses');
+    const response = await fetch('/federal-courthouses', { credentials: 'include' });
+    if (!response.ok) throw new Error('Failed to fetch federal courthouses');
+    return response.json();
   },
 };
