@@ -6,7 +6,7 @@
 
 import * as dotenv from 'dotenv';
 import { Pool } from 'pg';
-import * as secretsManager from '../server/src/services/secretsManager';
+import secretsManager from '../server/src/services/secretsManager';
 
 dotenv.config();
 

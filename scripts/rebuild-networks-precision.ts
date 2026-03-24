@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Pool, QueryResult } from 'pg';
-import * as secretsManager from '../server/src/services/secretsManager';
+import secretsManager from '../server/src/services/secretsManager';
 
 interface NetworkRow {
   bssid: string;

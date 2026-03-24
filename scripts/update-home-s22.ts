@@ -1,5 +1,5 @@
 import { Pool, QueryResult } from 'pg';
-import * as secretsManager from '../server/src/services/secretsManager';
+import secretsManager from '../server/src/services/secretsManager';
 import * as dotenv from 'dotenv';
 
 dotenv.config();

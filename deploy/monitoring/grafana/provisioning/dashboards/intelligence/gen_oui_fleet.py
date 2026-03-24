@@ -18,6 +18,7 @@ SQL_OUI_NATIONAL = f"""SELECT
 FROM app.wigle_v2_networks_search v2
 LEFT JOIN app.radio_manufacturers rm ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24
 WHERE v2.ssid ILIKE '%${{ssid_pattern}}%' AND v2.country = 'US'
+  AND v2.trilat IS NOT NULL AND v2.trilong IS NOT NULL
 GROUP BY left(upper(replace(v2.bssid,':','')),6), rm.manufacturer
 HAVING COUNT(DISTINCT v2.region) >= 3
 ORDER BY COUNT(DISTINCT v2.region) DESC"""
@@ -31,6 +32,7 @@ SQL_CONCENTRATION = f"""SELECT
   (SELECT left(upper(replace(v2b.bssid,':','')),6)
    FROM app.wigle_v2_networks_search v2b
    WHERE v2b.ssid ILIKE '%${{ssid_pattern}}%' AND v2b.country='US' AND v2b.region=v2.region
+     AND v2b.trilat IS NOT NULL AND v2b.trilong IS NOT NULL
    GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1) AS "Dominant OUI",
   CASE
     WHEN ROUND(COUNT(DISTINCT left(upper(replace(v2.bssid,':','')),6))::numeric / NULLIF(COUNT(*),0), 4) < 0.10 THEN 'Fleet signal'
@@ -39,6 +41,7 @@ SQL_CONCENTRATION = f"""SELECT
   END AS "Concentration class"
 FROM app.wigle_v2_networks_search v2
 WHERE v2.ssid ILIKE '%${{ssid_pattern}}%' AND v2.country = 'US'
+  AND v2.trilat IS NOT NULL AND v2.trilong IS NOT NULL
   {STATE_FILTER}
 GROUP BY v2.region
 HAVING COUNT(*) >= 5

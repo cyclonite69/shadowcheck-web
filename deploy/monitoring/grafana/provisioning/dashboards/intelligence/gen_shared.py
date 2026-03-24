@@ -74,7 +74,7 @@ def base_cte(extra_where=""):
     ON rm.prefix = {OUI_EXPR} AND rm.bit_length = 24
   WHERE v2.ssid ILIKE '%${{ssid_pattern}}%'
     AND v2.country = 'US'
-    AND v2.trilat IS NOT NULL
+    AND v2.trilat IS NOT NULL AND v2.trilong IS NOT NULL
     {extra_where}
 )"""
 
@@ -90,6 +90,7 @@ OUI_STATES_CTE = """oui_states AS (
     COUNT(DISTINCT region) AS oui_state_count
   FROM app.wigle_v2_networks_search
   WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US'
+    AND trilat IS NOT NULL AND trilong IS NOT NULL
   GROUP BY 1
 )"""
 

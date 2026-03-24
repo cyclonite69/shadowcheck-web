@@ -14,14 +14,14 @@ SQL_MI_AGENTS = f"""WITH {base_cte(MI_WHERE)},
 SELECT COUNT(*) AS "Residential agents"
 FROM base b JOIN proximity p ON p.bssid = b.bssid
 WHERE lower(b.manufacturer) LIKE ANY({ISP_ARR})
-  AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min"""
+  AND p.min_dist_m <= 2000 AND b.span_days >= ${{span_days_min}}"""
 
 SQL_MI_AVG_SPAN = f"""WITH {base_cte(MI_WHERE)},
 {PROXIMITY_CTE}
 SELECT ROUND(AVG(b.span_days)) AS "Avg span (days)"
 FROM base b JOIN proximity p ON p.bssid = b.bssid
 WHERE lower(b.manufacturer) LIKE ANY({ISP_ARR})
-  AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min"""
+  AND p.min_dist_m <= 2000 AND b.span_days >= ${{span_days_min}}"""
 
 SQL_MI_ACTIVE = f"""WITH {base_cte(MI_WHERE)}
 SELECT COUNT(*) AS "Active (90d)" FROM base
