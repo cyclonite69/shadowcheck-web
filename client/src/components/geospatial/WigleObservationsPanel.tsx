@@ -24,7 +24,7 @@ interface WigleObservationsPanelProps {
 }
 
 export const WigleObservationsPanel = ({
-  bssid,
+  bssid: propBssid,
   bssids,
   loading,
   error,
@@ -33,6 +33,7 @@ export const WigleObservationsPanel = ({
   onClose,
 }: WigleObservationsPanelProps) => {
   const isBatchMode = bssids && bssids.length > 1;
+  const bssid = propBssid || (bssids && bssids.length === 1 ? bssids[0] : null);
   const hasData = bssid || (bssids && bssids.length > 0);
 
   if (!hasData && !loading) return null;

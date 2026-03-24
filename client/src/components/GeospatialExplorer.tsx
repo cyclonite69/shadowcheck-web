@@ -52,6 +52,7 @@ export default function GeospatialExplorer() {
     closeWigleLookupDialog,
     handleWigleLookup,
     wigleObservations,
+    loadWigleObservations,
     loadBatchWigleObservations,
     clearWigleObservations,
   } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
@@ -104,6 +105,7 @@ export default function GeospatialExplorer() {
     sort,
     wigleObservations,
     clearWigleObservations,
+    loadWigleObservations,
     loadBatchWigleObservations,
     closeContextMenu,
     linkedSiblingBssids,

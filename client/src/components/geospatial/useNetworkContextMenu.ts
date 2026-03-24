@@ -469,11 +469,14 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
 
   // Load WiGLE observations for multiple networks (batch mode)
   const loadBatchWigleObservations = async (bssids: string[]) => {
-    if (!bssids || bssids.length === 0) return;
+    const normalizedBssids = Array.from(
+      new Set(bssids.filter(Boolean).map((b) => b.toUpperCase()))
+    );
+    if (normalizedBssids.length === 0) return;
 
     setWigleObservations({
-      bssid: null,
-      bssids: bssids,
+      bssid: normalizedBssids.length === 1 ? normalizedBssids[0] : null,
+      bssids: normalizedBssids,
       observations: [],
       stats: null,
       batchStats: null,
@@ -482,7 +485,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     });
 
     try {
-      const data = await networkApi.getWigleObservationsBatch(bssids);
+      const data = await networkApi.getWigleObservationsBatch(normalizedBssids);
 
       if (data.ok) {
         // Flatten all observations from all networks, adding bssid to each
@@ -496,11 +499,25 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
           }
         }
 
+        // For single-network mode, adapt the batch stats to the single stats format
+        let singleStats = null;
+        if (normalizedBssids.length === 1 && data.networks?.[0]) {
+          const s = data.networks[0].stats;
+          singleStats = {
+            wigle_total: s.wigle_total || 0,
+            matched: s.matched || 0,
+            unique: s.unique || 0,
+            our_observations: s.our_observations ?? 0,
+            max_distance_from_our_sightings_m:
+              s.max_distance_from_our_sightings_m ?? s.max_distance_m ?? 0,
+          };
+        }
+
         setWigleObservations({
-          bssid: null,
-          bssids: bssids,
+          bssid: normalizedBssids.length === 1 ? normalizedBssids[0] : null,
+          bssids: normalizedBssids,
           observations: allObservations,
-          stats: null,
+          stats: singleStats,
           batchStats: data.stats || null,
           loading: false,
           error: null,
