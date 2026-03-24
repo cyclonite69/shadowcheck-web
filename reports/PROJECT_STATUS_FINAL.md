@@ -1,4 +1,6 @@
-# ShadowCheck — Project Status Final
+# ShadowCheck — Project Status (ARCHIVED HISTORICAL)
+
+> **NOTE:** This report is a historical snapshot from February 2026. For current features including Federal Courthouses and standardized manufacturer data, see [docs/FEATURES.md](../docs/FEATURES.md).
 
 **Date**: 2026-02-22
 **Author**: Claude Code (automated modularization audit)

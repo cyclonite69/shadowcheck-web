@@ -401,6 +401,8 @@ User Request
 | `app.network_tags`          | `id`        | Manual classifications and forensic notes.                 |
 | `app.location_markers`      | `id`        | User-defined points of interest (Home, Work).              |
 | `app.agency_offices`        | `id`        | FBI Field Offices and Resident Agencies dataset.           |
+| `app.federal_courthouses`   | `id`        | US District and Circuit Court locations (357 records).     |
+| `app.radio_manufacturers`   | `prefix`    | Standardized OUI-to-vendor mapping (74k+ records).         |
 | `app.wigle_v3_observations` | `id`        | Crowdsourced enrichment data from WiGLE API.               |
 
 ### Entity Relationships
@@ -411,6 +413,8 @@ erDiagram
     networks ||--o{ network_tags : has
     agency_offices }o--|| agency_offices : "RA belongs to FO"
     location_markers ||--o{ networks : "proximity source"
+    federal_courthouses }o--|| federal_courthouses : "Divisional belongs to District"
+    radio_manufacturers ||--o{ networks : "identifies vendor"
     wigle_v3_observations }o--|| networks : enriches
 ```
 
@@ -431,6 +435,20 @@ erDiagram
 | `normalized_phone`       | `text`     | Cleaned 10-digit number.             |
 | `normalized_postal_code` | `text`     | ZIP+4 validated code.                |
 | `metadata`               | `jsonb`    | Enrichment logs and inference flags. |
+
+## Federal Courthouses Data Model
+
+| Column            | Type       | Description                                 |
+| :---------------- | :--------- | :------------------------------------------ |
+| `id`              | `integer`  | Primary identifier.                         |
+| `name`            | `text`     | Official courthouse name.                   |
+| `courthouse_type` | `text`     | district_court, specialty_court, etc.       |
+| `district`        | `text`     | US District (e.g. 'Eastern District of MI') |
+| `circuit`         | `text`     | US Circuit (e.g. 'Sixth Circuit')           |
+| `city`            | `text`     | City location.                              |
+| `state`           | `text`     | 2-letter State code.                        |
+| `location`        | `geometry` | PostGIS POINT (4326).                       |
+| `active`          | `boolean`  | Record status flag.                         |
 
 ## Threat Detection Algorithm
 

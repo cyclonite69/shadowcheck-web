@@ -39,6 +39,39 @@ Set via: `API_KEY=your-secret-key` in `.env`
 
 ---
 
+## Infrastructure Endpoints
+
+Public GeoJSON endpoints for geospatial visualization. Note: These are mounted at the root level to bypass standard API auth for map display.
+
+### GET /agency-offices
+
+Returns a GeoJSON FeatureCollection of all FBI Field Offices and Resident Agencies.
+
+**Response:**
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-83.0458, 42.3314] },
+      "properties": {
+        "name": "Detroit Field Office",
+        "office_type": "field_office",
+        "address": "477 Michigan Ave, Detroit, MI 48226"
+      }
+    }
+  ]
+}
+```
+
+### GET /federal-courthouses
+
+Returns a GeoJSON FeatureCollection of all Federal Courthouses.
+
+---
+
 ## Dashboard
 
 ### GET /api/dashboard-metrics

@@ -31,8 +31,9 @@ erDiagram
     WIGLE_V3_OBSERVATIONS }o--|| NETWORKS : "enriches"
     WIGLE_V3_NETWORK_DETAILS }o--|| NETWORKS : "enriches"
 
-    %% Agency Data
+    %% Infrastructure
     AGENCY_OFFICES }o--o{ OBSERVATIONS : "proximity to"
+    FEDERAL_COURTHOUSES }o--o{ OBSERVATIONS : "proximity to"
 
     %% Authentication
     USERS ||--o{ USER_SESSIONS : "has sessions"
@@ -242,10 +243,23 @@ erDiagram
         timestamptz trained_at
     }
 
+    FEDERAL_COURTHOUSES {
+        integer id PK
+        text name
+        text courthouse_type
+        text district
+        text circuit
+        geometry location
+        text city
+        text state
+        boolean active
+    }
+
     RADIO_MANUFACTURERS {
-        bigint id PK
-        text oui_prefix UK
+        text prefix PK
+        integer bit_length PK
         text manufacturer
+        text address
         timestamptz updated_at
     }
 
@@ -285,8 +299,9 @@ erDiagram
 - [WiGLE Integration](#wigle-integration)
   - [wigle_v3_observations](#wigle_v3_observations)
   - [wigle_v3_network_details](#wigle_v3_network_details)
-- [Agency Data](#agency-data)
+- [Infrastructure Data](#infrastructure-data)
   - [agency_offices](#agency_offices)
+  - [federal_courthouses](#federal_courthouses)
 - [Authentication](#authentication)
   - [users](#users)
   - [user_sessions](#user_sessions)
@@ -624,7 +639,7 @@ Detailed WiGLE network information.
 
 ---
 
-## Agency Data
+## Infrastructure Data
 
 ### agency_offices
 
@@ -652,6 +667,31 @@ FBI field offices and resident agencies for geospatial correlation.
 - `idx_agency_offices_location` - gist (location)
 - `idx_agency_offices_type` - btree (office_type)
 - `idx_agency_offices_state` - btree (state)
+
+---
+
+### federal_courthouses
+
+US District and Circuit Court locations (357 records).
+
+| Column          | Type                 | Nullable | Default   | Description                                 |
+| --------------- | -------------------- | -------- | --------- | ------------------------------------------- |
+| id              | integer              | NOT NULL | nextval() | Primary key                                 |
+| name            | text                 | NOT NULL | -         | Official courthouse name                    |
+| courthouse_type | text                 | NOT NULL | -         | district_court, specialty_court, etc.       |
+| district        | text                 | NOT NULL | -         | US District (e.g. 'Eastern District of MI') |
+| circuit         | text                 | NOT NULL | -         | US Circuit (e.g. 'Sixth Circuit')           |
+| location        | geometry(Point,4326) | NULL     | -         | PostGIS point (WGS84)                       |
+| city            | text                 | NOT NULL | -         | City location                               |
+| state           | text                 | NOT NULL | -         | 2-letter State code                         |
+| active          | boolean              | NOT NULL | true      | Record status flag                          |
+
+**Indexes:**
+
+- `federal_courthouses_pkey` - PRIMARY KEY btree (id)
+- `idx_federal_courthouses_location` - gist (location)
+- `idx_federal_courthouses_district` - btree (district)
+- `idx_federal_courthouses_circuit` - btree (circuit)
 
 ---
 
@@ -762,17 +802,19 @@ ML training run history with hyperparameters and results.
 
 OUI (Organizationally Unique Identifier) to manufacturer mapping.
 
-| Column       | Type        | Nullable | Default   | Description                               |
-| ------------ | ----------- | -------- | --------- | ----------------------------------------- |
-| id           | bigint      | NOT NULL | nextval() | Primary key                               |
-| oui_prefix   | text        | NOT NULL | -         | MAC prefix (first 6 hex chars, uppercase) |
-| manufacturer | text        | NOT NULL | -         | Manufacturer name                         |
-| updated_at   | timestamptz | NOT NULL | NOW()     | Last update timestamp                     |
+| Column       | Type        | Nullable | Default | Description                       |
+| ------------ | ----------- | -------- | ------- | --------------------------------- |
+| prefix       | text        | NOT NULL | -       | MAC prefix (hex chars, uppercase) |
+| bit_length   | integer     | NOT NULL | -       | OUI bit length (24, 28, 36)       |
+| manufacturer | text        | NULL     | -       | Standardized manufacturer name    |
+| address      | text        | NULL     | -       | Standardized organization address |
+| updated_at   | timestamptz | NOT NULL | NOW()   | Last update timestamp             |
 
 **Indexes:**
 
-- `radio_manufacturers_pkey` - PRIMARY KEY btree (id)
-- `radio_manufacturers_oui_prefix_key` - UNIQUE btree (oui_prefix)
+- `radio_manufacturers_pkey1` - PRIMARY KEY btree (prefix, bit_length)
+- `idx_radio_manufacturers_oui` - btree (prefix)
+- `idx_radio_manufacturers_manufacturer_gin` - gin (manufacturer gin_trgm_ops)
 
 ---
 
@@ -812,4 +854,4 @@ Application configuration key-value store.
 
 ---
 
-_Last Updated: 2026-02-07_
+_Last Updated: 2026-03-23_

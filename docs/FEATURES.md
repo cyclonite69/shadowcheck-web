@@ -55,32 +55,31 @@ A comprehensive system for visualizing current and historical weather conditions
 - **Data Points**: Displays Temperature (C/F), Humidity (%), Pressure (mb), Wind Speed (km/h), Precipitation, and Visibility.
 - **Forensic Utility**: Correlate signal propagation anomalies with weather conditions (e.g., rain fade, ducting).
 
-## Agency Offices Dataset
+## Agency & Judicial Infrastructure
 
-A comprehensive dataset of FBI field offices and resident agencies for geospatial correlation and proximity analysis.
+Comprehensive datasets of federal law enforcement and judicial locations for geospatial correlation and proximity analysis.
 
 ### Dataset Composition
 
-- **Field Offices**: 56 total primary offices. 100% coverage with ZIP+4 postal codes and precise coordinates.
-- **Resident Agencies**: 334 total satellite offices. 93.4% (312/334) coverage with ZIP+4 postal codes.
-- **Coordinates**: 100% (390/390) records have PostGIS POINT locations (Latitude/Longitude).
-- **Contact Info**: 100% coverage for phone numbers (normalized to 10 digits) and primary websites.
+- **FBI Field Offices**: 56 primary offices with 100% precise coordinate and ZIP+4 coverage.
+- **FBI Resident Agencies**: 334 satellite offices with 93.4% ZIP+4 coverage and inferred parent-office relationships.
+- **Federal Courthouses**: 357 records covering all 94 US District Courts and all 13 Circuits.
+- **Spatial Accuracy**: 100% PostGIS POINT coverage for all 747 infrastructure locations.
+- **Contact Info**: Normalized 10-digit phone numbers and verified website URLs.
 
 ### Data Engineering
 
-- **Normalization**: Addresses normalized via Smarty; phones normalized to 10-digit E.164-lite format (no +1).
-- **Inheritance**: Resident agencies inherit websites from their parent field offices or nearest regional offices.
-- **PostGIS Integration**: Locations stored as `geometry(Point, 4326)` for high-performance spatial queries and distance calculations.
-- **Metadata Strategy**: Original source values preserved in metadata (JSONB) to ensure auditability while using normalized fields for application logic.
+- **Judicial Alignment**: Courthouses are categorized by type (District, Appeals, Bankruptcy, Specialty) and mapped to their respective Circuits.
+- **Normalization**: Addresses standardized via Smarty; judicial naming cleaned for professional display.
+- **PostGIS Integration**: high-performance spatial queries using `ST_Distance` (spheroid) for accurate forensic proximity analysis.
 
 ## Data & Enrichment
 
 - **Multi-API address enrichment**: OpenCage, LocationIQ, Abstract, and Overpass support.
-- **Manufacturer/OUI resolution**: Populate vendor data from radio manufacturers.
-- **Network tagging**: Manual classification and tag lookups.
-- **Trilateration**: Estimate access point location from multiple observations.
-- **Export tooling**: CSV, JSON, and GeoJSON exports for observations and networks.
-- **Backup & restore**: JSON snapshot export with admin-protected restore workflow.
+- **Radio Manufacturer Standardization**: High-fidelity cleanup of 74,000+ records applying professional Title Casing and acronym preservation (IBM, NEC, TRW, LLC, Inc., etc.).
+- **Network tagging**: Manual classification and forensic note-taking.
+- **Trilateration**: Estimated access point locations derived from weighted observation centroids.
+- **Export tooling**: Streamed CSV, JSON, and GeoJSON exports.
 
 ## Threat Detection & ML
 

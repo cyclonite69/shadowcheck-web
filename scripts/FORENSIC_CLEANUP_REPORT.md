@@ -1,4 +1,6 @@
-# ShadowCheck Database Forensic Cleanup
+# ShadowCheck Database Forensic Cleanup (ARCHIVED HISTORICAL)
+
+> **NOTE:** This report is a historical snapshot from December 2025. It predates the expansion of the `app` schema including Federal Courthouses and standardized manufacturers.
 
 ## Final Report - Phase 6
 

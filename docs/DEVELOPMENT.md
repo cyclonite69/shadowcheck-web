@@ -61,17 +61,28 @@ The following rules are immutable constraints of the development environment:
 9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7.
 10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis with immutable weights per version.
 
-## Agency Offices Data Quality & Enrichment
+## Infrastructure Data Quality & Enrichment
 
-The agency offices dataset undergoes a multi-stage enrichment and normalization pipeline to ensure high spatial accuracy and data completeness.
+ShadowCheck maintains high-fidelity datasets for FBI offices and Federal Courthouses, ensuring accurate spatial correlation.
 
-### Enrichment Pipeline
+### FBI Agency Offices
 
 1.  **Smarty ZIP+4 Integration**: All addresses are processed through the Smarty (formerly SmartyStreets) enhanced matching engine. This is the sole provider for ZIP+4 codes. 22 records remain ZIP5-only because Smarty could not identify a safe Plus4 candidate.
 2.  **Reverse Geocoding**: Mapbox and Nominatim (OpenStreetMap) are used to validate address components against provided coordinates. Address corrections derived from these sources are stored in metadata and do not overwrite original source values.
 3.  **Parent Office Inference**: For resident agencies missing a parent field office in the source data, the system automatically infers the nearest field office using PostGIS `ST_Distance` calculations.
 4.  **Website Inheritance**: Resident agencies inherit the FBI.gov subpage URL of their parent field office to ensure 100% website coverage.
 5.  **Phone Normalization**: All phone numbers are normalized to a 10-digit format (e.g., 5551234567). The original raw string is preserved in the primary `phone` field.
+
+### Federal Courthouses
+
+1.  **Judicial Mapping**: Courthouses are strictly mapped to their respective US Districts and Circuits to enable regional legal forensics.
+2.  **Naming Standardization**: Official names are standardized for professional display (e.g., "Thomas F. Eagleton United States Courthouse").
+3.  **Spatial Integrity**: 100% of the 357 records have verified PostGIS coordinates.
+
+### Radio Manufacturers
+
+1.  **Standardization Script**: The `scripts/clean_manufacturers.py` utility applies professional Title Casing and acronym preservation to the vendor database.
+2.  **Acronym Preservation**: Known technical and corporate acronyms (IBM, NEC, LLC, Inc.) are kept in their canonical uppercase format during normalization.
 
 ### Data Preservation Rules
 

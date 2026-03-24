@@ -30,13 +30,13 @@
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
 - **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
 - **Weather FX System:** Real-time atmospheric visualization with rain/snow particle effects, dynamic fog, and historical weather lookup for observation points.
-- **Agency Offices Dataset:** [NEW] 56 Field Offices (100% ZIP+4 coverage) and 334 Resident Agencies (93.4% ZIP+4 coverage) with PostGIS coordinate points for geospatial correlation.
+- **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation.
 - **Geospatial Explorer:** Map-based network exploration with overlays and timeline views.
 - **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering.
 - **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms.
 - **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations.
 - **Address Enrichment:** Multi-API venue and business identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass).
-- **Device Classification:** Automatic identification of device types and behavioral profiling.
+- **Device Classification:** Standardized OUI-to-vendor resolution (74k+ records) with behavioral profiling.
 - **Network Tagging:** Manual classification and tag retrieval for networks.
 - **Trilateration:** AP location calculation from multiple observations with accuracy estimation.
 - **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning.

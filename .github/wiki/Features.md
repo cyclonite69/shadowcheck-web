@@ -573,20 +573,38 @@ graph TB
 
 ---
 
-_Last Updated: 2026-02-07_
+_Last Updated: 2026-03-23_
+
+---
+
+## Agency & Judicial Infrastructure
+
+Comprehensive datasets of federal law enforcement and judicial locations for geospatial correlation and proximity analysis.
+
+| Dataset                   | Records | Coverage                               |
+| ------------------------- | ------- | -------------------------------------- |
+| **FBI Field Offices**     | 56      | 100% Coordinate + ZIP+4                |
+| **FBI Resident Agencies** | 334     | 93% ZIP+4 + Parent Inference           |
+| **Federal Courthouses**   | 357     | 100% US Districts (94) + Circuits (13) |
+
+### Engineering Highlights
+
+- **Spatial Accuracy**: 100% PostGIS POINT coverage for all 747 infrastructure locations.
+- **Normalization**: Standardized naming, 10-digit phones, and verified websites.
+- **Judicial Context**: Courthouses mapped by type (Appeals, District, etc.) and legal jurisdiction.
 
 ---
 
 ## Data & Enrichment
 
-| Feature                  | Description                                       |
-| ------------------------ | ------------------------------------------------- |
-| **Multi-API Enrichment** | OpenCage, LocationIQ, Abstract, Overpass support  |
-| **Manufacturer/OUI**     | Vendor data from radio manufacturers              |
-| **Network Tagging**      | Manual classification and tag lookups             |
-| **Trilateration**        | Estimate AP location from multiple observations   |
-| **Export Tooling**       | CSV, JSON, GeoJSON exports                        |
-| **Backup & Restore**     | JSON snapshot export with admin-protected restore |
+| Feature                  | Description                                            |
+| ------------------------ | ------------------------------------------------------ |
+| **Multi-API Enrichment** | OpenCage, LocationIQ, Abstract, Overpass support       |
+| **Manufacturer/OUI**     | Standardized vendor data from 74k+ radio manufacturers |
+| **Network Tagging**      | Manual classification and tag lookups                  |
+| **Trilateration**        | Estimate AP location from multiple observations        |
+| **Export Tooling**       | CSV, JSON, GeoJSON exports                             |
+| **Backup & Restore**     | JSON snapshot export with admin-protected restore      |
 
 ---
 
