@@ -9,6 +9,7 @@ interface GeospatialMapContentProps {
   selectedNetworks: Set<string>;
   toggleWigleForBssids: (bssids: string[]) => void;
   wigleObservations: any;
+  onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
 }
 
 export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
@@ -16,6 +17,7 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
   selectedNetworks,
   toggleWigleForBssids,
   wigleObservations,
+  onOpenContextMenu,
 }) => (
   <MapSection
     mapHeight={state.mapHeight}
@@ -71,5 +73,6 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
     mapRef={state.mapRef}
     mapContainerRef={state.mapContainerRef}
     onResizeMouseDown={state.handleMouseDown}
+    onOpenContextMenu={onOpenContextMenu}
   />
 );

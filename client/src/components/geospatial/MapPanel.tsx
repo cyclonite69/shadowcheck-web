@@ -12,6 +12,7 @@ interface MapPanelProps {
   embeddedView: 'street-view' | 'earth' | null;
   mapRef: React.MutableRefObject<Map | null>;
   mapContainerRef: React.RefObject<HTMLDivElement | null>;
+  onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
 }
 
 export const MapPanel = ({
@@ -23,6 +24,7 @@ export const MapPanel = ({
   embeddedView,
   mapRef,
   mapContainerRef,
+  onOpenContextMenu,
 }: MapPanelProps) => {
   return (
     <div
@@ -42,6 +44,7 @@ export const MapPanel = ({
         embeddedView={embeddedView}
         mapRef={mapRef}
         mapContainerRef={mapContainerRef}
+        onOpenContextMenu={onOpenContextMenu}
       />
     </div>
   );

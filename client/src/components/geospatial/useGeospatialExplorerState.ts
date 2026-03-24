@@ -51,6 +51,7 @@ interface UseGeospatialExplorerStateProps {
   setLinkedSiblingBssids: React.Dispatch<React.SetStateAction<Set<string>>>;
   visibleSiblingGroupMap: Map<string, string>;
   contextMenuNetwork?: NetworkRow | null;
+  onOpenContextMenu: (e: any, network: any) => void;
 }
 
 export const useGeospatialExplorerState = ({
@@ -70,6 +71,7 @@ export const useGeospatialExplorerState = ({
   setLinkedSiblingBssids,
   visibleSiblingGroupMap,
   contextMenuNetwork,
+  onOpenContextMenu,
 }: UseGeospatialExplorerStateProps) => {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -258,6 +260,7 @@ export const useGeospatialExplorerState = ({
     networkLookup,
     wigleObservations,
     isViewportLocked: effectiveViewportLock,
+    onOpenContextMenu,
   });
 
   const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =

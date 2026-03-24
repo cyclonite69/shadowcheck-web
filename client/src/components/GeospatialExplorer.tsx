@@ -112,6 +112,7 @@ export default function GeospatialExplorer() {
     setLinkedSiblingBssids,
     visibleSiblingGroupMap,
     contextMenuNetwork: contextMenu.network,
+    onOpenContextMenu: openContextMenu,
   });
 
   // Agency Context
@@ -171,6 +172,7 @@ export default function GeospatialExplorer() {
             selectedNetworks={selectedNetworks}
             toggleWigleForBssids={state.toggleWigleForBssids}
             wigleObservations={wigleObservations}
+            onOpenContextMenu={openContextMenu}
           />
           <GeospatialTableContent
             state={state}
