@@ -9,6 +9,7 @@
 [![Redis](https://img.shields.io/badge/redis-%3E%3D7.0.0-red?style=flat-square)](https://redis.io/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/commits)
 [![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web)
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/shadowcheck-web)
 
 🛡️ **Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
