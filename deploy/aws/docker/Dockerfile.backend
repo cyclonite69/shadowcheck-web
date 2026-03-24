@@ -15,7 +15,7 @@ COPY client ./client
 COPY etl ./etl
 COPY scripts ./scripts
 
-RUN npm run build && npm prune --omit=dev
+RUN npm run build && npm prune --omit=dev --legacy-peer-deps
 
 ###########################################
 # Production image
