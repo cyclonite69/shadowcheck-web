@@ -3,7 +3,6 @@
  */
 
 import { apiClient } from './client';
-import federalCourthouses from '../data/federal-courthouses.json';
 
 interface AgencyOffice {
   name: string;
@@ -51,14 +50,12 @@ export const agencyApi = {
     );
   },
 
-  // Static file at root (not under /api/) — raw fetch
+  // Agency Offices (GeoJSON)
   async getAgencyOffices(): Promise<any> {
-    const response = await fetch('/agency-offices', { credentials: 'include' });
-    return response.json();
+    return apiClient.get('/agency-offices');
   },
 
   async getFederalCourthouses(): Promise<any> {
-    // Return static data directly as per the "Static data only" requirement
-    return federalCourthouses;
+    return apiClient.get('/federal-courthouses');
   },
 };

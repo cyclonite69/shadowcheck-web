@@ -152,51 +152,6 @@ const KeplerPage: React.FC = () => {
         }
       />
 
-      {/* Zoom control */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '64px',
-          right: '12px',
-          background: 'white',
-          border: '1px solid rgba(0,0,0,0.2)',
-          borderRadius: '4px',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 40,
-          overflow: 'hidden',
-        }}
-      >
-        {(['+', '−'] as const).map((sym, i) => (
-          <button
-            key={sym}
-            onClick={() => {
-              const next = Math.max(1, Math.min(22, zoom + (i === 0 ? 1 : -1)));
-              setZoom(next);
-              deckRef.current?.setProps({
-                initialViewState: { zoom: next, transitionDuration: 200 },
-              });
-            }}
-            style={{
-              width: '29px',
-              height: '29px',
-              background: 'none',
-              border: 'none',
-              borderTop: i === 1 ? '1px solid rgba(0,0,0,0.1)' : 'none',
-              cursor: 'pointer',
-              fontSize: '18px',
-              lineHeight: 1,
-              color: '#333',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {sym}
-          </button>
-        ))}
-      </div>
-
       {scriptError && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm z-50">
           <div className="bg-slate-900 border border-red-500/50 p-8 rounded-2xl shadow-2xl max-w-md text-center">
