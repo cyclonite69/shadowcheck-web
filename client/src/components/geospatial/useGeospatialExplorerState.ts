@@ -44,6 +44,7 @@ interface UseGeospatialExplorerStateProps {
   sort: any;
   wigleObservations: WigleObservationsState;
   clearWigleObservations: () => void;
+  loadWigleObservations: (network: NetworkRow) => void;
   loadBatchWigleObservations: (bssids: string[]) => void;
   closeContextMenu: () => void;
   linkedSiblingBssids: Set<string>;
@@ -62,6 +63,7 @@ export const useGeospatialExplorerState = ({
   sort,
   wigleObservations,
   clearWigleObservations,
+  loadWigleObservations,
   loadBatchWigleObservations,
   closeContextMenu,
   linkedSiblingBssids,
@@ -304,6 +306,14 @@ export const useGeospatialExplorerState = ({
     if (sameSelection) {
       clearWigleObservations();
       return;
+    }
+
+    if (normalized.length === 1) {
+      const net = networks.find((n) => n.bssid === normalized[0]);
+      if (net) {
+        loadWigleObservations(net);
+        return;
+      }
     }
 
     loadBatchWigleObservations(normalized);
