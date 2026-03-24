@@ -37,6 +37,7 @@ type ObservationLayerProps = {
   networkLookup: Map<string, NetworkRow>;
   wigleObservations?: WigleObservationsState;
   isViewportLocked?: boolean;
+  onOpenContextMenu?: (e: any, network: any) => void;
 };
 
 export const useObservationLayers = ({
@@ -47,6 +48,7 @@ export const useObservationLayers = ({
   networkLookup,
   wigleObservations,
   isViewportLocked = false,
+  onOpenContextMenu,
 }: ObservationLayerProps) => {
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -289,6 +291,27 @@ export const useObservationLayers = ({
           .addTo(map);
       });
 
+      // Add context menu handler for observation points
+      map.on('contextmenu', 'observation-points', (e: MapLayerMouseEvent) => {
+        if (!onOpenContextMenu || !e.features || e.features.length === 0) return;
+
+        const feature = e.features[0];
+        const props = feature.properties;
+        if (!props || !props.bssid) return;
+
+        const network = networkLookup.get(props.bssid);
+        if (network) {
+          const mockEvent = {
+            preventDefault: () => {},
+            stopPropagation: () => {},
+            clientX: e.originalEvent.clientX,
+            clientY: e.originalEvent.clientY,
+          } as any;
+
+          onOpenContextMenu(mockEvent, network);
+        }
+      });
+
       // Hover cursor
       map.on('mouseenter', 'wigle-unique-points', () => {
         map.getCanvas().style.cursor = 'pointer';
@@ -323,6 +346,7 @@ export const useObservationLayers = ({
             source: obs.source,
             distance_from_our_center_m: obs.distance_from_our_center_m,
             number: index + 1,
+            bssid: obs.bssid, // Ensure bssid is here for context menu if we ever add it to wigle points too.
           },
         }));
 
@@ -348,5 +372,13 @@ export const useObservationLayers = ({
         });
       }
     }
-  }, [mapReady, mapRef, mapboxRef, wigleObservations, isViewportLocked]);
+  }, [
+    mapReady,
+    mapRef,
+    mapboxRef,
+    wigleObservations,
+    isViewportLocked,
+    onOpenContextMenu,
+    networkLookup,
+  ]);
 };

@@ -13,6 +13,7 @@ interface MapSectionProps {
   mapRef: React.MutableRefObject<Map | null>;
   mapContainerRef: React.RefObject<HTMLDivElement | null>;
   onResizeMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
 }
 
 export const MapSection = ({
@@ -25,6 +26,7 @@ export const MapSection = ({
   mapRef,
   mapContainerRef,
   onResizeMouseDown,
+  onOpenContextMenu,
 }: MapSectionProps) => {
   return (
     <>
@@ -37,6 +39,7 @@ export const MapSection = ({
         embeddedView={embeddedView}
         mapRef={mapRef}
         mapContainerRef={mapContainerRef}
+        onOpenContextMenu={onOpenContextMenu}
       />
       <ResizeHandle onMouseDown={onResizeMouseDown} />
     </>
