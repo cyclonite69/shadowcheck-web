@@ -7,7 +7,7 @@ ENV HUSKY=0 \
     NODE_ENV=development
 
 COPY package*.json tsconfig*.json ./
-RUN npm ci --include=dev
+RUN npm ci --include=dev --legacy-peer-deps
 
 COPY client ./client
 COPY scripts ./scripts
