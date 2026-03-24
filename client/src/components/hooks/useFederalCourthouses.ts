@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
@@ -34,11 +34,25 @@ export const useFederalCourthouses = (
   mapReady: boolean,
   isVisible: boolean = true
 ) => {
+  const [hasBeenVisible, setHasBeenVisible] = useState(isVisible);
+
+  useEffect(() => {
+    if (isVisible && !hasBeenVisible) {
+      setHasBeenVisible(true);
+    }
+  }, [isVisible, hasBeenVisible]);
+
   const {
     data,
     loading,
     error: fetchError,
-  } = useAsyncData<FederalCourthousesGeoJSON>(() => agencyApi.getFederalCourthouses(), []);
+  } = useAsyncData<FederalCourthousesGeoJSON>(
+    () =>
+      hasBeenVisible
+        ? agencyApi.getFederalCourthouses()
+        : Promise.resolve({ type: 'FeatureCollection', features: [] } as FederalCourthousesGeoJSON),
+    [hasBeenVisible]
+  );
   const error = fetchError?.message ?? null;
 
   const dataRef = useRef<FederalCourthousesGeoJSON | null>(null);
@@ -50,11 +64,11 @@ export const useFederalCourthouses = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !data) return;
+    if (!map || !mapReady || !data || data.features.length === 0) return;
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle() || !currentData) return;
+      if (!map.getStyle() || !currentData || currentData.features.length === 0) return;
 
       // Source
       if (!map.getSource('federal-courthouses')) {
@@ -65,6 +79,9 @@ export const useFederalCourthouses = (
           clusterMaxZoom: 10,
           clusterRadius: 50,
         });
+      } else {
+        const source = map.getSource('federal-courthouses') as GeoJSONSource;
+        source.setData(currentData);
       }
 
       // Cluster circles (Gold/Yellow)
