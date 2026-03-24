@@ -134,6 +134,10 @@ export GF_SERVER_ROOT_URL="$GRAFANA_ROOT_URL"
 
 COMPOSE_BIN="$(compose_cmd)"
 
+# Explicitly remove existing container to prevent naming conflicts if it exists
+# but is not managed by the current compose project context.
+docker rm -f "$GRAFANA_CONTAINER" 2>/dev/null || true
+
 $COMPOSE_BIN -f docker-compose.monitoring.yml up -d --force-recreate "$GRAFANA_CONTAINER"
 
 # GF_SECURITY_ADMIN_PASSWORD is only honoured on first run (empty DB).
