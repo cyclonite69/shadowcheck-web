@@ -193,5 +193,9 @@ COMMENT ON MATERIALIZED VIEW app.api_network_explorer_mv IS
   'is_ignored=TRUE networks have threat_score=0 and threat_level=NONE. '
   'Includes pre-computed stationary confidence.';
 
+-- Restore grants lost by DROP ... CASCADE
+GRANT SELECT ON app.api_network_explorer_mv TO grafana_reader;
+GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
+
 -- Populate immediately (use CONCURRENTLY in production after indexes exist)
 REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
