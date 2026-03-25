@@ -292,7 +292,7 @@ export async function getFilteredNetworks(opts: {
     'nts.model_version',
     'nt.threat_tag',
     'nt.is_ignored',
-    '(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid) AS notes_count',
+    'COALESCE(nn.notes_count, 0) AS notes_count',
   ];
 
   const distanceExpr = homeLocation
@@ -307,6 +307,8 @@ export async function getFilteredNetworks(opts: {
     'LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.prefix',
     'LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid',
     'LEFT JOIN app.network_threat_scores nts ON ne.bssid = nts.bssid',
+    // Aggregate notes_count in a single JOIN instead of a correlated subquery per row
+    'LEFT JOIN (SELECT bssid, COUNT(*) AS notes_count FROM app.network_notes GROUP BY bssid) nn ON nn.bssid = ne.bssid',
   ];
 
   const conditions: string[] = [];
@@ -456,7 +458,7 @@ export async function getFilteredNetworks(opts: {
           ? 'triangulated'
           : 'centroid';
     joins.push(
-      `STATIC JOIN (SELECT bssid, ${modePrefix}_lat AS lat, ${modePrefix}_lon AS lon FROM app.network_locations WHERE bssid = ne.bssid) AS nl ON ne.bssid = nl.bssid`
+      `LEFT JOIN LATERAL (SELECT bssid, ${modePrefix}_lat AS lat, ${modePrefix}_lon AS lon FROM app.network_locations WHERE bssid = ne.bssid) AS nl ON true`
     );
   }
   if (bboxMinLat !== null && bboxMaxLat !== null && bboxMinLng !== null && bboxMaxLng !== null) {
@@ -468,7 +470,7 @@ export async function getFilteredNetworks(opts: {
       params.push(bboxMinLng, bboxMaxLng);
       paramIndex += 2;
     } else {
-      joins.push('STATIC JOIN app.network_locations nl ON ne.bssid = nl.bssid');
+      joins.push('LEFT JOIN app.network_locations nl ON ne.bssid = nl.bssid');
       conditions.push(`nl.lat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
       params.push(bboxMinLat, bboxMaxLat);
       paramIndex += 2;
@@ -613,14 +615,14 @@ export async function explainQuery(
 }
 
 export async function searchNetworksBySSID(searchPattern: string): Promise<any[]> {
+  // Use the pre-aggregated MV instead of joining raw observations (avoids N+1 GROUP BY).
+  // Keep the result shape aligned with the prior implementation.
   const { rows } = await query(
-    `SELECT n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel as signal, n.lasttime,
-            COUNT(DISTINCT l.unified_id) as observation_count
-     FROM app.networks n
-     LEFT JOIN app.observations l ON n.bssid = l.bssid
-     WHERE n.ssid ILIKE $1
-     GROUP BY n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel, n.lasttime
-     ORDER BY observation_count DESC LIMIT 50`,
+    `SELECT bssid, ssid, type, security AS encryption, signal,
+            last_seen AS lasttime, observations AS observation_count
+     FROM app.api_network_explorer_mv
+     WHERE ssid ILIKE $1
+     ORDER BY observations DESC LIMIT 50`,
     [searchPattern]
   );
   return rows;

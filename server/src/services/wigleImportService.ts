@@ -15,6 +15,9 @@ async function importWigleV2Json(jsonFilePath: string) {
     await client.query('BEGIN');
 
     for (const network of data.results) {
+      // Use a SAVEPOINT per row: a failed INSERT rolls back only that row,
+      // not the entire transaction (PostgreSQL aborts the txn on any error).
+      await client.query('SAVEPOINT sp_network');
       try {
         await client.query(
           `
@@ -53,8 +56,10 @@ async function importWigleV2Json(jsonFilePath: string) {
             network.type,
           ]
         );
+        await client.query('RELEASE SAVEPOINT sp_network');
         imported++;
       } catch (err) {
+        await client.query('ROLLBACK TO SAVEPOINT sp_network');
         logger.error(`Error inserting network ${network.netid}: ${(err as any).message}`);
       }
     }

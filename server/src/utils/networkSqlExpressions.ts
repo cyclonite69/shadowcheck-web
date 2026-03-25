@@ -245,6 +245,17 @@ export function buildDistanceExpr(
   netAlias = 'ne',
   obsAlias = 'o'
 ): string {
+  // Guard against invalid coordinates to prevent SQL injection via numeric literals
+  if (
+    !Number.isFinite(lat) ||
+    lat < -90 ||
+    lat > 90 ||
+    !Number.isFinite(lon) ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    throw new Error('Invalid coordinates');
+  }
   return `(
     SELECT ST_Distance(
       ST_MakePoint(${lon}, ${lat})::geography,

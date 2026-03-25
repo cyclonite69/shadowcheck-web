@@ -21,7 +21,30 @@ DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv CASCADE;
 --   • t.is_ignored added to GROUP BY
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
-WITH obs_centroids AS (
+WITH
+-- Materialize home location once to avoid re-fetching per bssid
+home_loc AS (
+  SELECT
+    public.st_setsrid(public.st_makepoint(longitude, latitude), 4326)::public.geography AS geog
+  FROM app.location_markers
+  WHERE marker_type = 'home'
+  LIMIT 1
+),
+-- Single DISTINCT ON replaces two correlated subqueries for lat/lon
+best_obs AS (
+  SELECT DISTINCT ON (o.bssid)
+    o.bssid, o.lat, o.lon
+  FROM app.observations o
+  CROSS JOIN home_loc h
+  WHERE o.lat IS NOT NULL AND o.lon IS NOT NULL
+    AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+  ORDER BY o.bssid,
+    public.st_distance(
+      public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+      h.geog
+    ) DESC
+),
+obs_centroids AS (
   SELECT
     o.bssid,
     ST_SetSRID(ST_MakePoint(AVG(o.lon), AVG(o.lat)), 4326)::geography AS centroid,
@@ -62,26 +85,8 @@ SELECT n.bssid,
   n.type,
   n.frequency,
   n.bestlevel AS signal,
-  (SELECT o.lat
-   FROM app.observations o
-   WHERE o.bssid = n.bssid
-     AND o.lat IS NOT NULL AND o.lon IS NOT NULL
-     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-   ORDER BY public.st_distance(
-     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
-     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-   ) DESC LIMIT 1) AS lat,
-  (SELECT o.lon
-   FROM app.observations o
-   WHERE o.bssid = n.bssid
-     AND o.lat IS NOT NULL AND o.lon IS NOT NULL
-     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-   ORDER BY public.st_distance(
-     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
-     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-   ) DESC LIMIT 1) AS lon,
+  bo.lat,
+  bo.lon,
   to_timestamp((((n.lasttime_ms)::numeric / 1000.0))::double precision) AS observed_at,
   n.capabilities AS capabilities,
   CASE
@@ -120,30 +125,27 @@ SELECT n.bssid,
        ELSE COALESCE(ts.final_threat_level, 'NONE'::character varying)
   END AS threat_level,
   ts.model_version,
-  COALESCE((public.st_distance(
-    (SELECT public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography
-     FROM app.observations o
-     WHERE o.bssid = n.bssid
-       AND o.lat IS NOT NULL AND o.lon IS NOT NULL
-       AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-     ORDER BY public.st_distance(
-       public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
-       (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-        FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-     ) DESC LIMIT 1),
-    (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-     FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-  ) / 1000.0::double precision), 0::double precision) AS distance_from_home_km,
-  (SELECT MAX(public.st_distance(
-    public.st_setsrid(public.st_makepoint(o1.lon, o1.lat), 4326)::public.geography,
-    public.st_setsrid(public.st_makepoint(o2.lon, o2.lat), 4326)::public.geography
-  ))
-   FROM app.observations o1, app.observations o2
-   WHERE o1.bssid = n.bssid AND o2.bssid = n.bssid
-     AND o1.lat IS NOT NULL AND o1.lon IS NOT NULL
-     AND o2.lat IS NOT NULL AND o2.lon IS NOT NULL
-     AND (o1.is_quality_filtered = false OR o1.is_quality_filtered IS NULL)
-     AND (o2.is_quality_filtered = false OR o2.is_quality_filtered IS NULL)
+  -- distance_from_home_km: use best_obs join + home_loc CTE (both materialized once)
+  COALESCE(
+    public.st_distance(
+      public.st_setsrid(public.st_makepoint(bo.lon, bo.lat), 4326)::public.geography,
+      (SELECT geog FROM home_loc)
+    ) / 1000.0::double precision,
+    0::double precision
+  ) AS distance_from_home_km,
+  -- max_distance_meters: ST_Extent bounding-box diagonal avoids O(n²) self-join
+  COALESCE(
+    public.st_distance(
+      public.st_setsrid(public.st_makepoint(
+        ST_XMin(ST_Extent(public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::geometry)),
+        ST_YMin(ST_Extent(public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::geometry))
+      ), 4326)::public.geography,
+      public.st_setsrid(public.st_makepoint(
+        ST_XMax(ST_Extent(public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::geometry)),
+        ST_YMax(ST_Extent(public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::geometry))
+      ), 4326)::public.geography
+    ),
+    0
   ) AS max_distance_meters,
   rm.manufacturer AS manufacturer,
   s.stationary_confidence
@@ -161,6 +163,7 @@ FROM app.networks n
   ) w3 ON (UPPER(n.bssid) = UPPER(w3.netid))
   LEFT JOIN app.radio_manufacturers rm ON (UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.prefix)
   LEFT JOIN obs_spatial s ON (n.bssid = s.bssid)
+  LEFT JOIN best_obs bo ON (n.bssid = bo.bssid)
 WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
   AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
 GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
@@ -168,7 +171,7 @@ GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
   w3.wigle_v3_observation_count, w3.wigle_v3_last_import_at,
   t.threat_tag, t.is_ignored,
   ts.final_threat_score, ts.final_threat_level, ts.model_version,
-  rm.manufacturer, s.stationary_confidence
+  rm.manufacturer, s.stationary_confidence, bo.lat, bo.lon
 WITH NO DATA;
 
 -- Recreate indexes
@@ -198,4 +201,4 @@ GRANT SELECT ON app.api_network_explorer_mv TO grafana_reader;
 GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
 
 -- Populate immediately (use CONCURRENTLY in production after indexes exist)
-REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
+REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv;

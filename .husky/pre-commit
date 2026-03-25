@@ -1,5 +1,4 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
 
 # Scan for potential secrets: long base64/hex strings that look like credentials
 if git diff --cached | grep "^+" | grep -iE "[A-Za-z0-9+/]{32,}=|[0-9a-f]{32,}" | grep -vE "test|placeholder|example" | grep -vE "integrity|resolved"; then

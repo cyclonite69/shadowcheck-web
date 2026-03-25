@@ -28,3 +28,8 @@ BEGIN
     END IF;
 END
 $$;
+
+-- pg_trgm GIN index for ILIKE SSID search on the MV (required by searchNetworksBySSID)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_ssid_trgm
+  ON app.api_network_explorer_mv USING gin (ssid gin_trgm_ops);

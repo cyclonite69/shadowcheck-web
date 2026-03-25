@@ -10,6 +10,7 @@ const mlScoringService = require('./mlScoringService');
 const networkService = require('./networkService');
 const networkTagService = require('./networkTagService');
 const { query } = require('../config/database');
+const { adminQuery } = require('./adminDbService');
 const { getJobStatus, trackJobRun } = require('./jobRunRepository');
 
 export {};
@@ -231,6 +232,9 @@ class BackgroundJobsService {
       async () => {
         logger.info('[MV Refresh Job] Starting materialized view refresh...');
 
+        // Critical views: failure here is a CRITICAL_FAILURE, not just FAILED
+        const criticalViews = new Set(['app.api_network_explorer_mv']);
+
         const views = [
           { name: 'app.api_network_explorer_mv', concurrent: true },
           { name: 'app.api_network_latest_mv', concurrent: false },
@@ -238,24 +242,33 @@ class BackgroundJobsService {
           { name: 'app.mv_network_timeline', concurrent: false },
         ];
 
-        const failures: Array<{ view: string; error: string }> = [];
+        const failures: Array<{ view: string; error: string; critical: boolean }> = [];
 
         for (const view of views) {
           try {
             const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
             logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
-            await query(sql);
+            // Use adminQuery: shadowcheck_user may lack MAINTAIN/owner privilege on MVs
+            await adminQuery(sql);
           } catch (error) {
-            failures.push({ view: view.name, error: (error as Error).message });
+            const isCritical = criticalViews.has(view.name);
+            failures.push({
+              view: view.name,
+              error: (error as Error).message,
+              critical: isCritical,
+            });
             logger.error(
-              `[MV Refresh Job] Failed to refresh ${view.name}: ${(error as Error).message}`
+              `[MV Refresh Job] ${isCritical ? 'CRITICAL ' : ''}Failed to refresh ${view.name}: ${(error as Error).message}`
             );
           }
         }
 
         if (failures.length > 0) {
-          const summary = failures.map((failure) => `${failure.view}: ${failure.error}`).join('; ');
-          throw new Error(summary);
+          const hasCritical = failures.some((f) => f.critical);
+          const summary = failures.map((f) => `${f.view}: ${f.error}`).join('; ');
+          const err = new Error(summary) as any;
+          if (hasCritical) err.severity = 'CRITICAL_FAILURE';
+          throw err;
         }
 
         return { refreshedViews: views.map((view) => view.name) };

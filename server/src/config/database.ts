@@ -58,10 +58,9 @@ const pool = new Pool({
       : false,
 });
 
-// Pool error handler
+// Pool error handler — log and let pg recover; do not kill the process
 pool.on('error', (err: Error) => {
   logger.error(`Unexpected error on idle client: ${err.message}`, { error: err });
-  process.exit(-1);
 });
 
 /**
