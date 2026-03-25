@@ -860,7 +860,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(NULLIF(tag_type,''),'untagged') AS tag_type, COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nGROUP BY 1 ORDER BY networks DESC;",
+          "rawSql": "SELECT COALESCE(NULLIF(tag_type,''),'untagged') AS tag_type, COUNT(*)::bigint AS networks\nFROM app.api_network_explorer_mv\nWHERE is_ignored = FALSE\nGROUP BY 1 ORDER BY networks DESC;",
           "refId": "A"
         }
       ],

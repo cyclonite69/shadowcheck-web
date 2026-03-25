@@ -176,12 +176,13 @@ BEGIN
     IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
         EXECUTE 'GRANT CONNECT ON DATABASE shadowcheck_db TO grafana_reader';
         EXECUTE 'GRANT USAGE ON SCHEMA app TO grafana_reader';
-        EXECUTE 'GRANT USAGE ON SCHEMA public TO grafana_reader';
         EXECUTE 'GRANT SELECT ON ALL TABLES IN SCHEMA app TO grafana_reader';
-        EXECUTE 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana_reader';
+        EXECUTE 'GRANT SELECT ON ALL MATERIALIZED VIEWS IN SCHEMA app TO grafana_reader';
         EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO grafana_reader';
-        EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO grafana_reader';
         EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO grafana_reader';
+
+        -- Minimal public access for PostGIS functions
+        EXECUTE 'GRANT USAGE ON SCHEMA public TO grafana_reader';
         EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana_reader';
     END IF;
 END
@@ -222,11 +223,9 @@ DO $$
 BEGIN
     IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
         EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT SELECT ON TABLES TO grafana_reader';
-        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public GRANT SELECT ON TABLES TO grafana_reader';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT SELECT ON MATERIALIZED VIEWS TO grafana_reader';
         EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT USAGE ON SEQUENCES TO grafana_reader';
-        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public GRANT USAGE ON SEQUENCES TO grafana_reader';
         EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app GRANT EXECUTE ON FUNCTIONS TO grafana_reader';
-        EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO grafana_reader';
     END IF;
 END
 $$;
