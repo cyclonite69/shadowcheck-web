@@ -57,41 +57,114 @@ cleanup_docker_artifacts() {
     echo "  ⚠️ Skipping Docker cleanup (SCS_SKIP_CLEANUP=true)"
     return 0
   fi
-
+  echo "  Cleaning up old Docker artifacts..."
   docker system prune -f 2>/dev/null || true
   docker image prune -a -f --filter "until=24h" 2>/dev/null || true
 }
 
+print_disk_usage() {
+  df -h / | awk 'NR==2{print $5, "used,", $4, "free"}'
+}
+
+log_cert_state() {
+  local cert_root="$1"
+  local cert_file="$cert_root/server.crt"
+  local key_file="$cert_root/server.key"
+
+  if sudo [ -f "$cert_file" ]; then
+    local fingerprint
+    local not_after
+    fingerprint="$(sudo openssl x509 -noout -fingerprint -sha256 -in "$cert_file" 2>/dev/null | cut -d= -f2 || echo "unknown")"
+    not_after="$(sudo openssl x509 -noout -enddate -in "$cert_file" 2>/dev/null | cut -d= -f2 || echo "unknown")"
+    echo "  🔐 Cert found: $cert_file"
+    echo "     SHA256: $fingerprint"
+    echo "     Expires: $not_after"
+  else
+    echo "  ⚠️ Cert missing at $cert_file"
+  fi
+
+  if sudo [ -L "$key_file" ]; then
+    echo "  🔎 Key is symlink: $key_file -> $(sudo readlink "$key_file" 2>/dev/null || echo "unknown")"
+  elif sudo [ -f "$key_file" ]; then
+    echo "  🔐 Key found: $key_file"
+  else
+    echo "  ⚠️ Key missing at $key_file"
+  fi
+}
+
 echo "=== scs_rebuild ==="
 
-# 1. Pull latest first, so we only spend time rebuilding/cleaning after fetch succeeds.
+# 1. Pull latest first
 echo "[1/8] Pulling latest..."
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "  Detected branch: $CURRENT_BRANCH"
 git pull origin "$CURRENT_BRANCH"
 
-# 2. Clean up old Docker artifacts to prevent disk fill before no-cache builds.
-echo "[2/8] Cleaning up old Docker artifacts..."
-cleanup_docker_artifacts
-echo "  Disk usage: $(df -h / | awk 'NR==2{print $5, \"used,\", $4, \"free\"}')"
+# 2. Prepare certificates and persistent volumes (CRITICAL: must happen before infra/containers start)
+echo "[2/8] Preparing persistent volumes and certificates..."
+CERTS_DIR_BASE=/var/lib/postgresql
+CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
 
-# 3. Build images (--no-cache ensures code changes are picked up)
-echo "[3/8] Building images..."
+sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
+sudo chmod 711 "$CERTS_DIR_BASE" 2>/dev/null || true
+
+# Repair/Migrate
+echo "  Auditing certificate state..."
+log_cert_state "$CERTS_DIR_WEB"
+
+# Migration: Move certs from old location if they exist and new location is empty
+OLD_PATHS="/var/lib/postgresql/certs/web /var/lib/postgresql/web /var/lib/postgresql/certs"
+for OLD_PATH in $OLD_PATHS; do
+  if sudo [ -f "$OLD_PATH/server.crt" ] && ! sudo [ -f "$CERTS_DIR_WEB/server.crt" ]; then
+    echo "  🚚 Migrating certificates from $OLD_PATH..."
+    sudo mv "$OLD_PATH/"* "$CERTS_DIR_WEB/" 2>/dev/null || true
+    break
+  fi
+done
+
+# Repair broken symlinks from previous regressions
+if sudo [ -L "$CERTS_DIR_WEB/server.key" ]; then
+  KEY_TARGET="$(sudo readlink "$CERTS_DIR_WEB/server.key" 2>/dev/null || true)"
+  if [ "$KEY_TARGET" = "server.key" ]; then
+    echo "  🛠️ Repairing broken self-referential server.key symlink..."
+    sudo rm -f "$CERTS_DIR_WEB/server.key"
+  fi
+fi
+
+# Ensure pgAdmin compatible symlink exists (it expects .cert, we generate .crt)
+if sudo [ -f "$CERTS_DIR_WEB/server.crt" ] && ! sudo [ -L "$CERTS_DIR_WEB/server.cert" ]; then
+  sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
+fi
+
+# Set permissions
+sudo chmod 755 "$CERTS_DIR_WEB"
+sudo chown -R 101:101 "$CERTS_DIR_WEB" # nginx user
+sudo chown -R 5050:5050 /var/lib/pgadmin # pgadmin user
+sudo chown -R 999:999 /var/lib/redis    # redis user
+
+echo "  Final cert state for this run:"
+log_cert_state "$CERTS_DIR_WEB"
+
+# 3. Clean up old Docker artifacts
+echo "[3/8] Cleaning up old Docker artifacts..."
+cleanup_docker_artifacts
+echo "  Disk usage: $(print_disk_usage)"
+
+# 4. Build images
+echo "[4/8] Building images..."
 docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
-# 4. Ensure infrastructure is running
-echo "[4/8] Ensuring infrastructure is running..."
+# 5. Ensure infrastructure is running
+echo "[5/8] Ensuring infrastructure is running..."
 if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis || ! docker ps | grep -q shadowcheck_pgadmin; then
   echo "  Starting/Updating Infrastructure (PostgreSQL, Redis, PgAdmin)..."
   sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
   sudo "$APP_DIR/deploy/aws/scripts/deploy-redis.sh"
   
-  # Ensure pgAdmin is also up to date with its healthcheck
   PGADMIN_COMPOSE="$APP_DIR/docker/infrastructure/docker-compose.postgres.yml"
   if [ -f "$PGADMIN_COMPOSE" ]; then
     echo "  Applying pgAdmin configuration from $PGADMIN_COMPOSE"
-    # Pull passwords for the compose file context
     SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query 'SecretString' --output text 2>/dev/null || echo "{}")
     DB_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
     
@@ -99,7 +172,7 @@ if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowche
     if docker-compose -f "$PGADMIN_COMPOSE" up -d --no-deps pgadmin; then
       PGADMIN_READY=1
     else
-      echo "  ⚠️ pgAdmin update failed; continuing with backend/frontend rebuild"
+      echo "  ⚠️ pgAdmin update failed"
     fi
     unset DB_PASSWORD
   fi
@@ -113,30 +186,20 @@ fi
 wait_for_container_health shadowcheck_postgres 90
 wait_for_container_health shadowcheck_redis 30
 if [ "$PGADMIN_READY" -eq 1 ]; then
-  # pgAdmin health depends on certs being present; if they aren't, it will time out.
-  # We make it non-fatal here so the script can proceed to start the frontend,
-  # which will generate the certs and resolve the issue.
   wait_for_container_health shadowcheck_pgadmin 60 || true
-else
-  echo "  ⚠️ Skipping pgAdmin health check"
 fi
 
-# 5. Build env
-echo "[5/8] Preparing environment..."
+# 6. Prepare environment and restart application
+echo "[6/8] Restarting application containers..."
 ENV_FILE=$(mktemp)
-
-# Build env — secrets come from AWS Secrets Manager at runtime, not env vars
 IMDS_TOKEN=$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")
 if [ -n "$IMDS_TOKEN" ]; then
   PUBLIC_IP=$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 else
   PUBLIC_IP=$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 fi
-# Pull passwords from AWS Secrets Manager (sole secret store)
-SECRET_JSON=$(aws secretsmanager get-secret-value \
-  --secret-id shadowcheck/config --region us-east-1 \
-  --query 'SecretString' --output text 2>/dev/null || echo "{}")
 
+SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query 'SecretString' --output text 2>/dev/null || echo "{}")
 DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
 DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
 
@@ -154,90 +217,26 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 CORS_ORIGINS=http://${PUBLIC_IP},https://${PUBLIC_IP},http://localhost,https://localhost
 ENVEOF
-echo "  Built env (passwords loaded from AWS SM at startup)"
 
-# Overlay with persistent config (non-secret overrides only)
 if [ -f "$SCS_ENV" ]; then
   cat "$SCS_ENV" >> "$ENV_FILE"
-  echo "  Loaded overrides from $SCS_ENV"
 fi
 
-# 6. Stop, remove, restart
-echo "[6/8] Restarting containers..."
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
-# Use persistent certs directory on the EBS volume
-# This ensures browsers don't trigger new security warnings on every move
-CERTS_DIR_BASE=/var/lib/postgresql
-CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
-
-echo "  Preparing persistent directories on EBS volume..."
-sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
-sudo chmod 711 "$CERTS_DIR_BASE" 2>/dev/null || true
-
-# Migration: Move certs from old location if they exist and new location is empty
-# Aggressively check multiple old paths where they might have landed due to previous regressions
-OLD_PATHS="/var/lib/postgresql/certs/web /var/lib/postgresql/web /var/lib/postgresql/certs"
-for OLD_PATH in $OLD_PATHS; do
-  if sudo [ -f "$OLD_PATH/server.crt" ] && ! sudo [ -f "$CERTS_DIR_WEB/server.crt" ]; then
-    echo "  🚚 Migrating certificates from $OLD_PATH..."
-    sudo mv "$OLD_PATH/"* "$CERTS_DIR_WEB/" 2>/dev/null || true
+# Detect socket
+PODMAN_SOCK=""
+for path in "/run/user/$(id -u)/podman/podman.sock" "/run/podman/podman.sock" "/var/run/docker.sock"; do
+  if [ -S "$path" ]; then
+    PODMAN_SOCK="$path"
     break
   fi
 done
 
-# Repair older regression where server.key was accidentally rewritten as a self-referential symlink.
-# If detected, remove it so frontend startup can generate a fresh keypair once and persist it.
-if sudo [ -L "$CERTS_DIR_WEB/server.key" ]; then
-  KEY_TARGET="$(sudo readlink "$CERTS_DIR_WEB/server.key" 2>/dev/null || true)"
-  if [ "$KEY_TARGET" = "server.key" ]; then
-    echo "  🛠️ Repairing broken self-referential server.key symlink..."
-    sudo rm -f "$CERTS_DIR_WEB/server.key"
-  fi
-fi
-
-# Ensure pgAdmin-compatible cert alias exists (it expects .cert, we generate .crt)
-# IMPORTANT: never rewrite server.key as a symlink (that can break nginx TLS startup).
-if sudo [ -f "$CERTS_DIR_WEB/server.crt" ] && ! sudo [ -L "$CERTS_DIR_WEB/server.cert" ]; then
-  sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
-fi
-
-# Verify creation before chmod to avoid "No such file or directory" errors
-if sudo [ -d "$CERTS_DIR_WEB" ]; then
-  sudo chmod 755 "$CERTS_DIR_WEB"
-  sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
-else
-  echo "  ⚠️ Warning: Failed to create or access $CERTS_DIR_WEB"
-fi
-
-sudo chown -R 5050:5050 /var/lib/pgadmin # 5050 is pgadmin user
-sudo chown -R 999:999 /var/lib/redis    # 999 is redis user
-
-# Robust Podman/Docker socket detection
-PODMAN_SOCK=""
-if [ -n "${DOCKER_HOST:-}" ] && [[ "$DOCKER_HOST" == unix://* ]]; then
-  PODMAN_SOCK="${DOCKER_HOST#unix://}"
-fi
-if [ ! -S "$PODMAN_SOCK" ]; then
-  PODMAN_SOCK=$(podman info --format '{{.Host.RemoteSocket.Path}}' 2>/dev/null || echo "")
-fi
-if [ ! -S "$PODMAN_SOCK" ]; then
-  # Fallback to common paths
-  for path in "/run/user/$(id -u)/podman/podman.sock" "/run/podman/podman.sock" "/var/run/docker.sock"; do
-    if [ -S "$path" ]; then
-      PODMAN_SOCK="$path"
-      break
-    fi
-  done
-fi
-
 DOCKER_OPTS=""
 if [ -S "$PODMAN_SOCK" ]; then
-  echo "  ✅ Detected socket at $PODMAN_SOCK"
   DOCKER_OPTS="-v $PODMAN_SOCK:/var/run/docker.sock --group-add $(stat -c '%g' "$PODMAN_SOCK") -e DOCKER_HOST=unix:///var/run/docker.sock"
-else
-  echo "  ⚠️ No Docker/Podman socket detected. PgAdmin controls will be disabled."
 fi
 
 docker run -d --name shadowcheck_backend \
@@ -258,14 +257,11 @@ docker run -d --name shadowcheck_frontend \
   shadowcheck/frontend:latest
 
 rm -f "$ENV_FILE"
-
 wait_for_container_health shadowcheck_backend 90
 wait_for_container_health shadowcheck_frontend 60
 
-# 7. Run database bootstrap + migrations
+# 7. Database migrations
 echo "[7/8] Running database bootstrap & migrations..."
-
-# Create /sql/ in postgres container and copy files (clean first to remove stale files)
 docker exec shadowcheck_postgres rm -rf /sql/migrations
 docker exec shadowcheck_postgres mkdir -p /sql
 docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
@@ -273,85 +269,28 @@ docker cp sql/migrations shadowcheck_postgres:/sql/migrations
 docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
 docker cp sql/seed-migrations-tracker.sql shadowcheck_postgres:/sql/seed-migrations-tracker.sql
 
-# Pull passwords from AWS Secrets Manager (sole secret store)
-SECRET_JSON=$(aws secretsmanager get-secret-value \
-  --secret-id shadowcheck/config --region us-east-1 \
-  --query 'SecretString' --output text 2>/dev/null || echo "{}")
-
-DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
-DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
-
-# Run bootstrap (idempotent — safe on existing DBs)
 docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -v admin_password='$DB_ADMIN_PASSWORD' -f /sql/00_bootstrap.sql" 2>&1 | tail -5
-
-# Seed migration tracker only for legacy/pre-tracker databases.
-# Never seed on a fresh database, or baseline consolidated migrations will be skipped.
-TRACKED_COUNT=$(docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -tAc \"SELECT COUNT(*) FROM app.schema_migrations\"")
-LEGACY_TABLES_PRESENT=$(docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -tAc \"SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='app' AND table_name='observations') OR EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='app' AND table_name='networks') THEN 1 ELSE 0 END\"")
-
-if [ "${TRACKED_COUNT//[[:space:]]/}" = "0" ] && [ "${LEGACY_TABLES_PRESENT//[[:space:]]/}" = "1" ]; then
-  echo "  Detected legacy DB without migration tracking; seeding schema_migrations..."
-  docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -f /sql/seed-migrations-tracker.sql -q" 2>&1 | tail -3
-else
-  echo "  Skipping migration seeding (tracked=$TRACKED_COUNT, legacy_tables=$LEGACY_TABLES_PRESENT)"
-fi
-
-# Run migrations (only applies new/untracked ones)
-# Use shadowcheck_admin for schema-level changes to avoid ownership issues.
 docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD' MIGRATION_DB_USER=shadowcheck_admin DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
-
-# Clear passwords from shell
 unset DB_ADMIN_PASSWORD DB_USER_PASSWORD SECRET_JSON
 
-# 8. Ensure Grafana monitoring secrets / role / container
-echo "[8/8] Syncing Grafana monitoring..."
+# 8. Monitoring
+echo "[8/8] Syncing monitoring..."
 if [ "$ENABLE_GRAFANA_MONITORING" = "true" ]; then
-  SECRET_JSON=$(aws secretsmanager get-secret-value \
-    --secret-id shadowcheck/config --region us-east-1 \
-    --query 'SecretString' --output text 2>/dev/null || echo "{}")
-
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query 'SecretString' --output text 2>/dev/null || echo "{}")
   GRAFANA_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('grafana_admin_password',''))" 2>/dev/null || echo "")
   GRAFANA_READER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('grafana_reader_password',''))" 2>/dev/null || echo "")
 
-  if [ -z "$GRAFANA_ADMIN_PASSWORD" ] || [ -z "$GRAFANA_READER_PASSWORD" ]; then
-    echo "  Grafana secrets missing in AWS Secrets Manager; generating and syncing..."
-  else
-    echo "  Grafana secrets found in AWS Secrets Manager; syncing role and container..."
-  fi
-
-  GF_SERVER_ROOT_URL="https://${PUBLIC_IP}/grafana/" \
-    "$APP_DIR/deploy/aws/scripts/rotate-grafana-passwords.sh"
-
+  GF_SERVER_ROOT_URL="https://${PUBLIC_IP}/grafana/" "$APP_DIR/deploy/aws/scripts/rotate-grafana-passwords.sh"
   wait_for_container_health shadowcheck_grafana 60 || true
-else
-  echo "  Grafana monitoring disabled (ENABLE_GRAFANA_MONITORING=$ENABLE_GRAFANA_MONITORING)"
+  unset GRAFANA_ADMIN_PASSWORD GRAFANA_READER_PASSWORD SECRET_JSON
 fi
 
-unset GRAFANA_ADMIN_PASSWORD GRAFANA_READER_PASSWORD
-
-# Final health check
+# Final
 echo "[final] Verifying deployment..."
 sleep 3
-
-# Check containers are running
-echo ""
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep shadowcheck
-
-# Quick API health check
-echo ""
-if curl -sf http://localhost:3001/api/health >/dev/null 2>&1; then
-  echo "API health check: OK"
-else
-  echo "API health check: WAITING (may need a few more seconds to start)"
-fi
-
-if curl -sfk https://localhost/health >/dev/null 2>&1; then
-  echo "HTTPS frontend check: OK"
-else
-  echo "HTTPS frontend check: WAITING (cert generation may still be in progress)"
-fi
-
-echo ""
+echo "API health: $(curl -sf http://localhost:3001/api/health >/dev/null && echo "OK" || echo "WAITING")"
+echo "HTTPS frontend: $(curl -sfk https://localhost/health >/dev/null && echo "OK" || echo "WAITING")"
 echo "=== Done ==="
-echo "Disk: $(df -h / | awk 'NR==2{print $5, "used,", $4, "free"}')"
+echo "Disk: $(print_disk_usage)"
 echo ""
