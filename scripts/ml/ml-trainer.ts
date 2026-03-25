@@ -23,7 +23,8 @@ interface TrainingResult {
 }
 
 class ThreatMLModel {
-  private model: LogisticRegression | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private model: any = null;
   private coefficients: number[] | null = null;
   private intercept: number | null = null;
   private readonly featureNames: string[] = [
@@ -94,7 +95,7 @@ class ThreatMLModel {
 
     return {
       coefficients: this.coefficients,
-      intercept: this.intercept,
+      intercept: this.intercept ?? 0,
       featureNames: this.featureNames,
       trainingSamples: taggedNetworks.length,
       threatCount: y.filter((label) => label === 1).length,

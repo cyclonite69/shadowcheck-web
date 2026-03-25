@@ -12,7 +12,7 @@ interface ReverseGeocodeResult {
 interface LocationRecord {
   lat: string;
   lon: string;
-  [key: string]: string;
+  [key: string]: string | null;
 }
 
 interface MapboxResponse {
