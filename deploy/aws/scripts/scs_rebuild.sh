@@ -177,10 +177,20 @@ for OLD_PATH in $OLD_PATHS; do
   fi
 done
 
-# Ensure pgAdmin compatible symlink exists (it expects .cert, we generate .crt)
+# Repair older regression where server.key was accidentally rewritten as a self-referential symlink.
+# If detected, remove it so frontend startup can generate a fresh keypair once and persist it.
+if sudo [ -L "$CERTS_DIR_WEB/server.key" ]; then
+  KEY_TARGET="$(sudo readlink "$CERTS_DIR_WEB/server.key" 2>/dev/null || true)"
+  if [ "$KEY_TARGET" = "server.key" ]; then
+    echo "  🛠️ Repairing broken self-referential server.key symlink..."
+    sudo rm -f "$CERTS_DIR_WEB/server.key"
+  fi
+fi
+
+# Ensure pgAdmin-compatible cert alias exists (it expects .cert, we generate .crt)
+# IMPORTANT: never rewrite server.key as a symlink (that can break nginx TLS startup).
 if sudo [ -f "$CERTS_DIR_WEB/server.crt" ] && ! sudo [ -L "$CERTS_DIR_WEB/server.cert" ]; then
   sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
-  sudo ln -sf server.key "$CERTS_DIR_WEB/server.key" # for consistency
 fi
 
 # Verify creation before chmod to avoid "No such file or directory" errors
