@@ -334,6 +334,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
   // Close context menu on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // Ignore right-clicks — they trigger openContextMenu which handles its own state
+      if (e.button === 2) return;
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
         closeContextMenu();
       }
