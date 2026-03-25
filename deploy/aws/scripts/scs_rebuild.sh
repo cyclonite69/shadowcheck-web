@@ -156,11 +156,20 @@ docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
 # Use persistent certs directory on the EBS volume
 # This ensures browsers don't trigger new security warnings on every move
-CERTS_DIR_BASE=/var/lib/postgresql/certs
-CERTS_DIR_WEB=$CERTS_DIR_BASE/web
+CERTS_DIR_BASE=/var/lib/postgresql
+CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
+
+echo "  Preparing persistent directories on EBS volume..."
 sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
-sudo chmod 755 "$CERTS_DIR_WEB"
-sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
+
+# Verify creation before chmod to avoid "No such file or directory" errors
+if [ -d "$CERTS_DIR_WEB" ]; then
+  sudo chmod 755 "$CERTS_DIR_WEB"
+  sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
+else
+  echo "  ⚠️ Warning: Failed to create $CERTS_DIR_WEB"
+fi
+
 sudo chown -R 5050:5050 /var/lib/pgadmin # 5050 is pgadmin user
 sudo chown -R 999:999 /var/lib/redis    # 999 is redis user
 

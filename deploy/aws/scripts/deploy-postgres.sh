@@ -75,8 +75,8 @@ if ! mountpoint -q /var/lib/postgresql; then
   sed -i '\|/var/lib/postgresql|d' /etc/fstab
   echo "UUID=$VOL_UUID /var/lib/postgresql xfs noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m,nofail 0 2" >> /etc/fstab
 
-  chmod 700 /var/lib/postgresql
-  echo "  Mounted at /var/lib/postgresql"
+  chmod 711 /var/lib/postgresql
+  echo "  Mounted at /var/lib/postgresql (permissions 711 for traversal)"
 else
   echo "  Already mounted"
 fi

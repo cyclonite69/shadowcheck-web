@@ -5,11 +5,16 @@
 set -e
 
 REPO_ROOT="${REPO_ROOT:-/home/ssm-user/shadowcheck}"
-PG_CERT_DIR="/var/lib/postgresql/certs/web"
+PG_CERT_DIR="/var/lib/postgresql/web_certs"
 PGADMIN_DATA_DIR="/var/lib/pgadmin"
 PGADMIN_CONFIG_DIR="$REPO_ROOT/docker/infrastructure/pgadmin-config"
 
 echo "🔍 Starting ShadowCheck EC2 Setup..."
+
+# Ensure parent directory traversal (if on EBS volume)
+if [ -d "/var/lib/postgresql" ]; then
+    sudo chmod 711 /var/lib/postgresql
+fi
 
 # 1. Environment Warning (Optional)
 if [ ! -f "$REPO_ROOT/.env" ]; then

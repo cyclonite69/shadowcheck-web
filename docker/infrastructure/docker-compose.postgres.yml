@@ -56,7 +56,7 @@ services:
       - /var/lib/pgadmin:/var/lib/pgadmin
       # NOTE: This file must be pre-created by scripts/setup-ec2.sh before compose up
       - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro
-      - /var/lib/postgresql/certs/web:/certs:ro
+      - /var/lib/postgresql/web_certs:/certs:ro
     network_mode: host
     healthcheck:
       test:
