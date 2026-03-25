@@ -107,6 +107,10 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
   const [tagLoading, setTagLoading] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
+  // Request tracking to prevent race conditions
+  const contextMenuRequestIdRef = useRef(0);
+  const wigleObservationsRequestIdRef = useRef(0);
+
   // WiGLE lookup dialog state
   const [wigleLookupDialog, setWigleLookupDialog] = useState<WigleLookupDialogState>({
     visible: false,
@@ -129,6 +133,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
   const openContextMenu = async (e: ReactMouseEvent, network: NetworkRow) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const requestId = ++contextMenuRequestIdRef.current;
 
     const menuHeight = 440; // Estimated height of context menu in pixels
     const menuWidth = 200; // Width of context menu in pixels
@@ -171,6 +177,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
       networkApi.getNetworkTags(network.bssid),
       networkApi.getNetworkNotes(network.bssid),
     ]);
+
+    // Check if a newer request has been made or if the menu was closed
+    if (requestId !== contextMenuRequestIdRef.current) return;
 
     if (tagResult.status === 'rejected') {
       logError('Failed to fetch network tag', tagResult.reason);
@@ -227,6 +236,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
   };
 
   const closeContextMenu = () => {
+    // Invalidate any pending open requests
+    contextMenuRequestIdRef.current++;
     setContextMenu((prev) => ({ ...prev, visible: false }));
   };
 
@@ -271,19 +282,25 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
       if (result && result.ok) {
         // Success: the API call succeeded and returned the updated tag
         if (result.tag) {
-          setContextMenu((prev) => ({ ...prev, tag: { ...result.tag, exists: true } }));
+          setContextMenu((prev) => {
+            if (prev.network?.bssid !== bssid) return prev;
+            return { ...prev, tag: { ...result.tag, exists: true } };
+          });
         } else if (result.deleted) {
-          setContextMenu((prev) => ({
-            ...prev,
-            tag: {
-              bssid: result.deleted,
-              is_ignored: false,
-              ignore_reason: null,
-              threat_tag: null,
-              notes: null,
-              exists: false,
-            },
-          }));
+          setContextMenu((prev) => {
+            if (prev.network?.bssid !== bssid) return prev;
+            return {
+              ...prev,
+              tag: {
+                bssid: result.deleted,
+                is_ignored: false,
+                ignore_reason: null,
+                threat_tag: null,
+                notes: null,
+                exists: false,
+              },
+            };
+          });
         }
 
         // Trigger refresh if callback provided
@@ -423,6 +440,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
   const loadWigleObservations = async (network: NetworkRow) => {
     if (!network?.bssid) return;
 
+    const requestId = ++wigleObservationsRequestIdRef.current;
+
     setWigleObservations({
       bssid: network.bssid,
       bssids: [network.bssid],
@@ -435,6 +454,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
 
     try {
       const data = await wigleApi.getNetworkWigleObservations(network.bssid);
+
+      if (requestId !== wigleObservationsRequestIdRef.current) return;
 
       if (data.ok) {
         setWigleObservations({
@@ -458,6 +479,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
         }));
       }
     } catch (err) {
+      if (requestId !== wigleObservationsRequestIdRef.current) return;
       logError('Failed to load WiGLE observations', err);
       setWigleObservations((prev) => ({
         ...prev,
@@ -474,6 +496,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     );
     if (normalizedBssids.length === 0) return;
 
+    const requestId = ++wigleObservationsRequestIdRef.current;
+
     setWigleObservations({
       bssid: normalizedBssids.length === 1 ? normalizedBssids[0] : null,
       bssids: normalizedBssids,
@@ -486,6 +510,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
 
     try {
       const data = await networkApi.getWigleObservationsBatch(normalizedBssids);
+
+      if (requestId !== wigleObservationsRequestIdRef.current) return;
 
       if (data.ok) {
         // Flatten all observations from all networks, adding bssid to each
@@ -534,6 +560,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
         }));
       }
     } catch (err) {
+      if (requestId !== wigleObservationsRequestIdRef.current) return;
       logError('Failed to load batch WiGLE observations', err);
       setWigleObservations((prev) => ({
         ...prev,

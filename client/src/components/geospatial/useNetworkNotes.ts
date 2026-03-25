@@ -13,6 +13,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   const [noteType, setNoteType] = useState('general');
   const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const noteRequestBssidRef = useRef<string>('');
 
   const resetNoteState = () => {
     setShowNoteModal(false);
@@ -26,6 +27,8 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   const openNoteModalForBssid = async (bssid: string) => {
     if (!bssid) return;
 
+    noteRequestBssidRef.current = bssid;
+
     setSelectedBssid(bssid);
     setExistingNoteId(null);
     setNoteContent('');
@@ -35,6 +38,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
 
     try {
       const notes = await networkApi.getNetworkNotes(bssid);
+      if (noteRequestBssidRef.current !== bssid) return;
       const latest = notes[0];
       if (latest) {
         setExistingNoteId(Number(latest.id));
