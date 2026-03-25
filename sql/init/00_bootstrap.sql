@@ -209,14 +209,16 @@ $$;
 -- Default privileges for future objects created by shadowcheck_admin
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
     GRANT SELECT ON TABLES TO shadowcheck_user;
-ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
-    GRANT SELECT ON TABLES TO shadowcheck_user;
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
-    GRANT USAGE ON SEQUENCES TO shadowcheck_user;
-ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
+    GRANT SELECT ON MATERIALIZED VIEWS TO shadowcheck_user;
+ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
     GRANT USAGE ON SEQUENCES TO shadowcheck_user;
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
     GRANT EXECUTE ON FUNCTIONS TO shadowcheck_user;
+
+-- Minimal public schema defaults
+ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
+    GRANT SELECT ON TABLES TO shadowcheck_user;
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
     GRANT EXECUTE ON FUNCTIONS TO shadowcheck_user;
 DO $$
