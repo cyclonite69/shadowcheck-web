@@ -1,3 +1,13 @@
+-- ============================================================
+-- WARNING: DEFAULT CREDENTIALS
+-- This seed file inserts a default admin account.
+-- The password MUST be changed on first login or via migration.
+-- Do NOT use these credentials in any environment without
+-- rotating them immediately after first boot.
+-- To rotate: UPDATE app.users SET password_hash = <new_hash>
+--            WHERE username = 'admin';
+-- ============================================================
+--
 -- ============================================================================
 -- Create admin user
 -- ============================================================================

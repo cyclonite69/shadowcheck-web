@@ -1,6 +1,7 @@
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 const { UniversalFilterQueryBuilder } = require('../services/filterQueryBuilder');
+const BaseRepository = require('./baseRepository');
 const {
   OBS_TYPE_EXPR,
   THREAT_LEVEL_EXPR,
@@ -11,7 +12,23 @@ const {
 
 export {};
 
-class NetworkRepository {
+class NetworkRepository extends BaseRepository {
+  static ALLOWED_COLUMNS = new Set([
+    'bssid',
+    'ssid',
+    'first_seen',
+    'last_seen',
+    'latitude',
+    'longitude',
+    'location',
+    'max_signal',
+    'frequency',
+  ]);
+
+  constructor() {
+    super('app.networks');
+  }
+
   private getEffectiveEnabledFilters(filters: any, enabled: any): any {
     const effectiveEnabled: any = { ...(enabled || {}) };
     if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {

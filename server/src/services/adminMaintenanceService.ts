@@ -43,6 +43,12 @@ async function getObservationCount(): Promise<number> {
 }
 
 async function refreshColocationView(minValidTimestamp: number): Promise<void> {
+  // Guard: prevent SQL injection via numeric literal interpolation
+  if (!Number.isFinite(minValidTimestamp) || minValidTimestamp < 0) {
+    throw new Error('Invalid minValidTimestamp');
+  }
+
+  // Recreate the materialized view from scratch, then populate it without blocking reads.
   await adminQuery('DROP MATERIALIZED VIEW IF EXISTS app.network_colocation_scores CASCADE');
   await adminQuery(`
     CREATE MATERIALIZED VIEW app.network_colocation_scores AS
@@ -81,10 +87,13 @@ async function refreshColocationView(minValidTimestamp: number): Promise<void> {
     GROUP BY n2.bssid
     HAVING COUNT(DISTINCT n1.bssid) >= 1 AND COUNT(DISTINCT n1.location_grid) >= 3
     ORDER BY bssid, companion_count DESC
+    WITH NO DATA
   `);
   await adminQuery(
-    'CREATE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)'
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)'
   );
+  // CONCURRENTLY requires the unique index to exist first; avoids blocking reads
+  await adminQuery('REFRESH MATERIALIZED VIEW CONCURRENTLY app.network_colocation_scores');
 }
 
 /**

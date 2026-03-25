@@ -1,57 +1,10 @@
 // @ts-ignore
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { Pool, QueryResult } from 'pg';
 import { query } from '../config/database';
 import { resetAppUserPassword } from './adminUsersService';
 import secretsManager from './secretsManager';
 import logger from '../logging/logger';
-
-const AUTH_DB_USER = process.env.DB_USER || 'shadowcheck_user';
-const AUTH_DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
-const AUTH_DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
-const AUTH_DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
-const AUTH_DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-web'}-auth`;
-const AUTH_DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
-
-let authPool: Pool | null = null;
-
-function getAuthPool(): Pool {
-  if (authPool) {
-    return authPool;
-  }
-
-  authPool = new Pool({
-    user: AUTH_DB_USER,
-    password: process.env.DB_PASSWORD || secretsManager.getOrThrow('db_password'),
-    host: AUTH_DB_HOST,
-    port: AUTH_DB_PORT,
-    database: AUTH_DB_NAME,
-    max: 3,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-    statement_timeout: 10000,
-    application_name: AUTH_DB_APP_NAME,
-    options: `-c search_path=${AUTH_DB_SEARCH_PATH}`,
-    ssl:
-      process.env.DB_SSL === 'true'
-        ? {
-            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
-            ca: process.env.DB_SSL_CA || undefined,
-          }
-        : false,
-  });
-
-  authPool.on('error', (error: Error) => {
-    logger.error(`Unexpected error on auth pool idle client: ${error.message}`, { error });
-  });
-
-  return authPool;
-}
-
-async function authQuery(text: string, params: unknown[] = []): Promise<QueryResult> {
-  return getAuthPool().query(text, params);
-}
 
 interface AuthUser {
   id: number;
@@ -101,7 +54,7 @@ class AuthService {
       const tokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
       const expiresAt = new Date(Date.now() + this.sessionDuration);
 
-      await authQuery(
+      await query(
         `INSERT INTO app.user_sessions (user_id, token_hash, expires_at, user_agent, ip_address)
          VALUES ($1, $2, $3, $4, $5)`,
         [user.id, tokenHash, expiresAt, userAgent, ipAddress]
@@ -187,7 +140,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      await authQuery('DELETE FROM app.user_sessions WHERE token_hash = $1', [tokenHash]);
+      await query('DELETE FROM app.user_sessions WHERE token_hash = $1', [tokenHash]);
 
       return { success: true };
     } catch (error) {
@@ -262,7 +215,7 @@ class AuthService {
    */
   async cleanupExpiredSessions() {
     try {
-      const result = await authQuery('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
+      const result = await query('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
 
       if (result.rowCount && result.rowCount > 0) {
         logger.info(`Cleaned up ${result.rowCount} expired sessions`);
@@ -272,7 +225,7 @@ class AuthService {
     }
   }
 
-  async getUserForLogin(username: string): Promise<QueryResult> {
+  async getUserForLogin(username: string) {
     try {
       return await query(
         `SELECT id, username, email, password_hash, role, is_active, force_password_change
@@ -294,7 +247,7 @@ class AuthService {
     }
   }
 
-  async getUserForPasswordChange(username: string): Promise<QueryResult> {
+  async getUserForPasswordChange(username: string) {
     try {
       return await query(
         `SELECT id, username, password_hash, is_active, force_password_change
@@ -316,9 +269,9 @@ class AuthService {
     }
   }
 
-  async getSessionUser(tokenHash: string): Promise<QueryResult> {
+  async getSessionUser(tokenHash: string) {
     try {
-      return await authQuery(
+      return await query(
         `SELECT u.id, u.username, u.email, u.role, u.is_active, u.force_password_change, s.expires_at
          FROM app.user_sessions s
          JOIN app.users u ON s.user_id = u.id
@@ -330,7 +283,7 @@ class AuthService {
       if (err.code !== '42703') {
         throw error;
       }
-      return authQuery(
+      return query(
         `SELECT u.id, u.username, u.email, u.role, u.is_active, false AS force_password_change, s.expires_at
          FROM app.user_sessions s
          JOIN app.users u ON s.user_id = u.id
