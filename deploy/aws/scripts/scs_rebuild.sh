@@ -103,7 +103,10 @@ fi
 wait_for_container_health shadowcheck_postgres 90
 wait_for_container_health shadowcheck_redis 30
 if [ "$PGADMIN_READY" -eq 1 ]; then
-  wait_for_container_health shadowcheck_pgadmin 60
+  # pgAdmin health depends on certs being present; if they aren't, it will time out.
+  # We make it non-fatal here so the script can proceed to start the frontend,
+  # which will generate the certs and resolve the issue.
+  wait_for_container_health shadowcheck_pgadmin 60 || true
 else
   echo "  ⚠️ Skipping pgAdmin health check"
 fi
@@ -161,6 +164,18 @@ CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
 
 echo "  Preparing persistent directories on EBS volume..."
 sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
+
+# Migration: Move certs from old location if they exist and new location is empty
+if [ ! -f "$CERTS_DIR_WEB/server.crt" ] && [ -d "$CERTS_DIR_BASE/certs/web" ]; then
+  echo "  🚚 Migrating certificates from old location..."
+  sudo mv "$CERTS_DIR_BASE/certs/web/"* "$CERTS_DIR_WEB/" 2>/dev/null || true
+fi
+
+# Ensure pgAdmin compatible symlink exists (it expects .cert, we generate .crt)
+if [ -f "$CERTS_DIR_WEB/server.crt" ] && [ ! -L "$CERTS_DIR_WEB/server.cert" ]; then
+  sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
+  sudo ln -sf server.key "$CERTS_DIR_WEB/server.key" # for consistency
+fi
 
 # Verify creation before chmod to avoid "No such file or directory" errors
 if [ -d "$CERTS_DIR_WEB" ]; then
