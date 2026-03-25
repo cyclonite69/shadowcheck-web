@@ -1,10 +1,6 @@
 export {};
 import type { Request, Response } from 'express';
 
-interface ValidatedRequest extends Request {
-  validated?: Record<string, unknown>;
-}
-
 const express = require('express');
 const router = express.Router();
 const { secretsManager, externalServiceHandler } = require('../../../config/container');
@@ -125,104 +121,96 @@ router.get('/api/mapbox-token', async (req: Request, res: Response) => {
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get(
-  '/api/mapbox-style',
-  validateMapboxStyleQuery,
-  async (req: ValidatedRequest, res: Response) => {
-    try {
-      const tokenRaw = secretsManager.get('mapbox_token');
-      const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
-      if (!token) {
-        return res
-          .status(500)
-          .json({ error: 'Mapbox token not configured', message: 'MAPBOX_TOKEN is missing' });
-      }
-
-      const styleId = req.validated?.style || 'mapbox/dark-v11';
-      const url = `https://api.mapbox.com/styles/v1/${styleId}?access_token=${token}`;
-
-      const resp = await withRetry(() => fetch(url), {
-        serviceName: 'Mapbox style',
-        timeoutMs: 10000,
-        maxRetries: 2,
-      });
-      const bodyText = await resp.text();
-      if (!resp.ok) {
-        return res
-          .status(resp.status)
-          .json({ error: 'Mapbox style fetch failed', status: resp.status, body: bodyText });
-      }
-
-      let styleJson;
-      try {
-        styleJson = JSON.parse(bodyText);
-      } catch {
-        return res.status(500).json({ error: 'Invalid JSON from Mapbox style', body: bodyText });
-      }
-
-      res.json({ ok: true, style: styleJson });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg || 'Failed to fetch Mapbox style' });
+router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req: Request, res: Response) => {
+  try {
+    const tokenRaw = secretsManager.get('mapbox_token');
+    const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
+    if (!token) {
+      return res
+        .status(500)
+        .json({ error: 'Mapbox token not configured', message: 'MAPBOX_TOKEN is missing' });
     }
+
+    const styleId = req.validated?.style || 'mapbox/dark-v11';
+    const url = `https://api.mapbox.com/styles/v1/${styleId}?access_token=${token}`;
+
+    const resp = await withRetry(() => fetch(url), {
+      serviceName: 'Mapbox style',
+      timeoutMs: 10000,
+      maxRetries: 2,
+    });
+    const bodyText = await resp.text();
+    if (!resp.ok) {
+      return res
+        .status(resp.status)
+        .json({ error: 'Mapbox style fetch failed', status: resp.status, body: bodyText });
+    }
+
+    let styleJson;
+    try {
+      styleJson = JSON.parse(bodyText);
+    } catch {
+      return res.status(500).json({ error: 'Invalid JSON from Mapbox style', body: bodyText });
+    }
+
+    res.json({ ok: true, style: styleJson });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg || 'Failed to fetch Mapbox style' });
   }
-);
+});
 
 /**
  * GET /api/mapbox-proxy?url=ENCODED - Proxy Mapbox requests to avoid client egress issues
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get(
-  '/api/mapbox-proxy',
-  validateMapboxProxyQuery,
-  async (req: ValidatedRequest, res: Response) => {
-    try {
-      const rawUrl = req.validated?.url;
-      if (!rawUrl) {
-        return res.status(400).json({ error: 'url query param is required' });
-      }
-
-      let target;
-      try {
-        target = new URL(String(rawUrl));
-      } catch {
-        return res.status(400).json({ error: 'Invalid URL' });
-      }
-
-      if (target.hostname !== 'api.mapbox.com') {
-        return res.status(400).json({ error: 'Only api.mapbox.com is allowed' });
-      }
-
-      const tokenRaw = secretsManager.get('mapbox_token');
-      const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
-      if (!token) {
-        return res.status(500).json({ error: 'Mapbox token not configured' });
-      }
-
-      if (!target.searchParams.has('access_token')) {
-        target.searchParams.set('access_token', token);
-      }
-
-      const upstream = await withRetry(() => fetch(target.toString()), {
-        serviceName: 'Mapbox proxy',
-        timeoutMs: 10000,
-        maxRetries: 1,
-      });
-
-      res.status(upstream.status);
-      upstream.headers.forEach((value: string, key: string) => {
-        res.setHeader(key, value);
-      });
-
-      pipeUpstreamBody(upstream, res);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error(`Mapbox proxy error: ${msg}`, { error: err });
-      res.status(500).json({ error: msg || 'Mapbox proxy failed' });
+router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req: Request, res: Response) => {
+  try {
+    const rawUrl = req.validated?.url;
+    if (!rawUrl) {
+      return res.status(400).json({ error: 'url query param is required' });
     }
+
+    let target;
+    try {
+      target = new URL(String(rawUrl));
+    } catch {
+      return res.status(400).json({ error: 'Invalid URL' });
+    }
+
+    if (target.hostname !== 'api.mapbox.com') {
+      return res.status(400).json({ error: 'Only api.mapbox.com is allowed' });
+    }
+
+    const tokenRaw = secretsManager.get('mapbox_token');
+    const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
+    if (!token) {
+      return res.status(500).json({ error: 'Mapbox token not configured' });
+    }
+
+    if (!target.searchParams.has('access_token')) {
+      target.searchParams.set('access_token', token);
+    }
+
+    const upstream = await withRetry(() => fetch(target.toString()), {
+      serviceName: 'Mapbox proxy',
+      timeoutMs: 10000,
+      maxRetries: 1,
+    });
+
+    res.status(upstream.status);
+    upstream.headers.forEach((value: string, key: string) => {
+      res.setHeader(key, value);
+    });
+
+    pipeUpstreamBody(upstream, res);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`Mapbox proxy error: ${msg}`, { error: err });
+    res.status(500).json({ error: msg || 'Mapbox proxy failed' });
   }
-);
+});
 
 /**
  * GET /api/google-maps-token - Get Google Maps API key for client-side use

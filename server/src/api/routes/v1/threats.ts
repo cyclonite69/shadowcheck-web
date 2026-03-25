@@ -50,11 +50,6 @@ interface ThreatRow {
   final_threat_level: string | null;
 }
 
-interface ValidatedRequest extends Request {
-  pagination: { page: number; limit: number; offset: number };
-  validated?: Record<string, unknown>;
-}
-
 /**
  * Validates optional threat detection query parameters.
  * @type {function}
@@ -72,9 +67,9 @@ router.get(
   '/threats/quick',
   paginationMiddleware(5000),
   validateThreatsQuickQuery,
-  async (req: ValidatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const { page, limit, offset } = req.pagination;
+      const { page, limit, offset } = req.pagination!;
       const minTimestamp = ROUTE_CONFIG.minValidTimestamp;
 
       // Configurable thresholds
