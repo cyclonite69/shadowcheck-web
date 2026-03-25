@@ -3,7 +3,7 @@ datasources:
   - name: ShadowCheck-Postgres
     uid: shadowcheck-postgres
     type: postgres
-    url: ${DB_HOST:-localhost}:${DB_PORT:-5432}
+    url: localhost:5432
     database: shadowcheck_db
     user: grafana_reader
     secureJsonData:
