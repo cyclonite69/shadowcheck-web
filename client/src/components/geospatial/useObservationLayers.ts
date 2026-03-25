@@ -291,8 +291,8 @@ export const useObservationLayers = ({
           .addTo(map);
       });
 
-      // Add context menu handler for observation points
-      map.on('contextmenu', 'observation-points', (e: MapLayerMouseEvent) => {
+      // Common handler for context menu
+      const handleContextMenu = (e: MapLayerMouseEvent) => {
         if (!onOpenContextMenu || !e.features || e.features.length === 0) return;
 
         const feature = e.features[0];
@@ -306,11 +306,18 @@ export const useObservationLayers = ({
             stopPropagation: () => {},
             clientX: e.originalEvent.clientX,
             clientY: e.originalEvent.clientY,
+            pageX: e.originalEvent.pageX,
+            pageY: e.originalEvent.pageY,
           } as any;
 
           onOpenContextMenu(mockEvent, network);
         }
-      });
+      };
+
+      // Add context menu handlers for all point layers
+      map.on('contextmenu', 'observation-points', handleContextMenu);
+      map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
+      map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
 
       // Hover cursor
       map.on('mouseenter', 'wigle-unique-points', () => {
@@ -346,7 +353,7 @@ export const useObservationLayers = ({
             source: obs.source,
             distance_from_our_center_m: obs.distance_from_our_center_m,
             number: index + 1,
-            bssid: obs.bssid, // Ensure bssid is here for context menu if we ever add it to wigle points too.
+            bssid: obs.bssid || wigleObservations.bssid, // Use parent BSSID if specific one missing
           },
         }));
 
