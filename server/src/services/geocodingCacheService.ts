@@ -30,6 +30,36 @@ const GEOCODING_UPSERT_BATCH_SIZE = 100;
 let currentRunSnapshot: GeocodingRunSnapshot | null = null;
 let lastRunSnapshot: GeocodingRunSnapshot | null = null;
 
+type GeocodeDaemonConfig = GeocodeRunOptions & {
+  idleSleepMs: number;
+  loopDelayMs: number;
+  errorSleepMs: number;
+  providers?: Array<{
+    provider: GeocodeProvider;
+    mode?: GeocodeMode;
+    limit?: number;
+    perMinute?: number;
+    permanent?: boolean;
+    enabled?: boolean;
+  }>;
+  providerCursor?: number;
+};
+
+let geocodeDaemon: {
+  running: boolean;
+  stopRequested: boolean;
+  config: GeocodeDaemonConfig | null;
+  startedAt?: string;
+  lastTickAt?: string;
+  lastResult?: GeocodeRunSummary;
+  lastError?: string;
+} = {
+  running: false,
+  stopRequested: false,
+  config: null,
+};
+const GEOCODING_DAEMON_STATE_KEY = 'geocoding_daemon_config';
+
 const PROVIDER_RATE_LIMIT_POLICY: Record<
   GeocodeProvider,
   { initialBackoffMs: number; maxBackoffMs: number }
@@ -282,7 +312,7 @@ const fetchRows = async (
     FROM app.geocoding_cache c
     WHERE c.precision = $2
       AND c.address IS NULL
-      AND c.address_attempts = 0
+      AND c.address_attempts < 3
     ORDER BY c.address_attempts ASC, c.geocoded_at ASC, c.id ASC
     LIMIT $1;
   `,
@@ -746,6 +776,182 @@ const startGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
   return { started: true };
 };
 
+const loadPersistedDaemonConfig = async (): Promise<GeocodeDaemonConfig | null> => {
+  const result = await query('SELECT value FROM app.settings WHERE key = $1 LIMIT 1', [
+    GEOCODING_DAEMON_STATE_KEY,
+  ]);
+  const row = result.rows[0];
+  if (!row?.value) return null;
+  if (typeof row.value === 'string') {
+    try {
+      return JSON.parse(row.value) as GeocodeDaemonConfig;
+    } catch {
+      return null;
+    }
+  }
+  return row.value as GeocodeDaemonConfig;
+};
+
+const persistDaemonConfig = async (config: GeocodeDaemonConfig): Promise<void> => {
+  await query(
+    `
+    INSERT INTO app.settings (key, value, description)
+    VALUES ($1, $2::jsonb, $3)
+    ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value,
+          description = EXCLUDED.description,
+          updated_at = NOW()
+  `,
+    [
+      GEOCODING_DAEMON_STATE_KEY,
+      JSON.stringify(config),
+      'Config and cursor state for continuous geocoding daemon',
+    ]
+  );
+};
+
+const normalizeDaemonConfig = (config: Partial<GeocodeDaemonConfig>): GeocodeDaemonConfig => {
+  const provider = (config.provider || 'mapbox') as GeocodeProvider;
+  const mode = (config.mode || 'address-only') as GeocodeMode;
+  const limit = Math.max(1, Number(config.limit) || 250);
+  const precision = Math.max(1, Number(config.precision) || 5);
+  const perMinute = Math.max(
+    1,
+    Number(config.perMinute) ||
+      (['nominatim', 'overpass', 'opencage', 'geocodio', 'locationiq'].includes(provider)
+        ? 60
+        : 200)
+  );
+  const loopDelayMs = Math.max(1000, Number(config.loopDelayMs) || 15000);
+  const idleSleepMs = Math.max(loopDelayMs, Number(config.idleSleepMs) || 180000);
+  const errorSleepMs = Math.max(1000, Number(config.errorSleepMs) || 60000);
+  const providers = Array.isArray(config.providers) ? config.providers : [];
+
+  return {
+    provider,
+    mode,
+    limit,
+    precision,
+    perMinute,
+    permanent: Boolean(config.permanent),
+    loopDelayMs,
+    idleSleepMs,
+    errorSleepMs,
+    providers,
+    providerCursor: Math.max(0, Number(config.providerCursor) || 0),
+  };
+};
+
+const getDaemonProviderRunOptions = (config: GeocodeDaemonConfig): GeocodeRunOptions => {
+  const activeProviders = (config.providers || []).filter((item) => item && item.enabled !== false);
+  if (!activeProviders.length) {
+    return {
+      provider: config.provider,
+      mode: config.mode,
+      precision: config.precision,
+      limit: config.limit,
+      perMinute: config.perMinute,
+      permanent: config.permanent,
+    };
+  }
+
+  const cursor = Math.max(0, Number(config.providerCursor) || 0) % activeProviders.length;
+  const selected = activeProviders[cursor];
+  config.providerCursor = (cursor + 1) % activeProviders.length;
+
+  return {
+    provider: selected.provider,
+    mode: selected.mode || config.mode,
+    precision: config.precision,
+    limit: Math.max(1, Number(selected.limit) || config.limit),
+    perMinute: Math.max(1, Number(selected.perMinute) || config.perMinute),
+    permanent:
+      selected.permanent !== undefined ? Boolean(selected.permanent) : Boolean(config.permanent),
+  };
+};
+
+const runGeocodeDaemonLoop = async () => {
+  if (!geocodeDaemon.config) return;
+
+  geocodeDaemon.running = true;
+  geocodeDaemon.stopRequested = false;
+  geocodeDaemon.startedAt = new Date().toISOString();
+  geocodeDaemon.lastError = undefined;
+
+  logger.info('[Geocoding] Continuous daemon started', { config: geocodeDaemon.config });
+
+  while (!geocodeDaemon.stopRequested) {
+    const config = geocodeDaemon.config;
+    if (!config) break;
+    geocodeDaemon.lastTickAt = new Date().toISOString();
+
+    try {
+      const runOptions = getDaemonProviderRunOptions(config);
+      await persistDaemonConfig(config);
+      const result = await runGeocodeCacheUpdate(runOptions);
+      geocodeDaemon.lastResult = result;
+      geocodeDaemon.lastError = undefined;
+
+      const sleepMs = result.processed > 0 ? config.loopDelayMs : config.idleSleepMs;
+      await sleep(sleepMs);
+    } catch (err) {
+      const error = err as Error;
+      geocodeDaemon.lastError = error.message;
+      logger.warn('[Geocoding] Continuous daemon tick failed', { error: error.message });
+      await sleep(config.errorSleepMs);
+    }
+  }
+
+  geocodeDaemon.running = false;
+  geocodeDaemon.stopRequested = false;
+  logger.info('[Geocoding] Continuous daemon stopped');
+};
+
+const startGeocodingDaemon = async (configInput: Partial<GeocodeDaemonConfig>) => {
+  const persisted = await loadPersistedDaemonConfig();
+  const config =
+    configInput && Object.keys(configInput).length > 0
+      ? normalizeDaemonConfig(configInput)
+      : normalizeDaemonConfig(persisted || {});
+
+  const providerChecks = (config.providers || [])
+    .filter((item) => item && item.enabled !== false)
+    .map((item) => item.provider);
+  const distinctProviders = Array.from(new Set([config.provider, ...providerChecks]));
+  for (const provider of distinctProviders) {
+    const credentials = await resolveProviderCredentials(provider);
+    ensureProviderReady(provider, credentials);
+  }
+
+  await persistDaemonConfig(config);
+  geocodeDaemon.config = config;
+
+  if (geocodeDaemon.running) {
+    return { started: false, status: geocodeDaemon };
+  }
+
+  void runGeocodeDaemonLoop();
+  return { started: true, status: geocodeDaemon };
+};
+
+const stopGeocodingDaemon = () => {
+  if (!geocodeDaemon.running) {
+    return { stopped: false, status: geocodeDaemon };
+  }
+  geocodeDaemon.stopRequested = true;
+  return { stopped: true, status: geocodeDaemon };
+};
+
+const getGeocodingDaemonStatus = async () => {
+  if (!geocodeDaemon.config) {
+    const persisted = await loadPersistedDaemonConfig();
+    if (persisted) {
+      geocodeDaemon.config = normalizeDaemonConfig(persisted);
+    }
+  }
+  return geocodeDaemon;
+};
+
 const getGeocodingCacheStats = async (precision: number) => {
   const result = await query(
     `
@@ -826,6 +1032,7 @@ const getGeocodingCacheStats = async (precision: number) => {
     providers,
     current_run: currentRunSnapshot,
     last_run: lastRunSnapshot,
+    daemon: await getGeocodingDaemonStatus(),
     recent_runs,
   };
 };
@@ -877,6 +1084,9 @@ const testGeocodingProvider = async (probe: GeocodingProviderProbe) => {
 module.exports = {
   runGeocodeCacheUpdate,
   startGeocodeCacheUpdate,
+  startGeocodingDaemon,
+  stopGeocodingDaemon,
+  getGeocodingDaemonStatus,
   getGeocodingCacheStats,
   testGeocodingProvider,
 };

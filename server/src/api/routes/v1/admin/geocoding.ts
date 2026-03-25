@@ -1,8 +1,14 @@
 const express = require('express');
 const logger = require('../../../../logging/logger');
 const { geocodingCacheService } = require('../../../../config/container');
-const { startGeocodeCacheUpdate, getGeocodingCacheStats, testGeocodingProvider } =
-  geocodingCacheService;
+const {
+  startGeocodeCacheUpdate,
+  getGeocodingCacheStats,
+  testGeocodingProvider,
+  startGeocodingDaemon,
+  stopGeocodingDaemon,
+  getGeocodingDaemonStatus,
+} = geocodingCacheService;
 
 export {};
 
@@ -75,6 +81,84 @@ router.post('/admin/geocoding/run', async (req: any, res: any) => {
     res.status(500).json({
       ok: false,
       error: err?.message || 'Geocoding run failed',
+    });
+  }
+});
+
+router.get('/admin/geocoding/daemon', async (req: any, res: any) => {
+  try {
+    const daemon = await getGeocodingDaemonStatus();
+    res.json({ ok: true, daemon });
+  } catch (err: any) {
+    logger.error('[Geocoding] Failed to read daemon status', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to read daemon status',
+    });
+  }
+});
+
+router.post('/admin/geocoding/daemon', async (req: any, res: any) => {
+  try {
+    const {
+      provider = 'mapbox',
+      mode = 'address-only',
+      limit = 250,
+      precision = 5,
+      perMinute = ['nominatim', 'overpass', 'opencage', 'geocodio', 'locationiq'].includes(provider)
+        ? 60
+        : 200,
+      permanent = true,
+      loopDelayMs = 15000,
+      idleSleepMs = 180000,
+      errorSleepMs = 60000,
+      providers = [],
+    } = req.body || {};
+
+    const started = await startGeocodingDaemon({
+      provider,
+      mode,
+      limit: Number.parseInt(limit, 10) || 250,
+      precision: Number.parseInt(precision, 10) || 5,
+      perMinute: Number.parseInt(perMinute, 10) || 200,
+      permanent: Boolean(permanent),
+      loopDelayMs: Number.parseInt(loopDelayMs, 10) || 15000,
+      idleSleepMs: Number.parseInt(idleSleepMs, 10) || 180000,
+      errorSleepMs: Number.parseInt(errorSleepMs, 10) || 60000,
+      providers: Array.isArray(providers) ? providers : [],
+    });
+
+    res.json({
+      ok: true,
+      started: started.started,
+      daemon: started.status,
+    });
+  } catch (err: any) {
+    if (typeof err?.message === 'string' && err.message.startsWith('missing_key:')) {
+      const provider = err.message.split(':')[1] || 'provider';
+      return res.status(400).json({
+        ok: false,
+        error: `Missing API key for ${provider}`,
+      });
+    }
+
+    logger.error('[Geocoding] Failed to start daemon', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to start geocoding daemon',
+    });
+  }
+});
+
+router.delete('/admin/geocoding/daemon', async (req: any, res: any) => {
+  try {
+    const stopped = stopGeocodingDaemon();
+    res.json({ ok: true, stopped: stopped.stopped, daemon: stopped.status });
+  } catch (err: any) {
+    logger.error('[Geocoding] Failed to stop daemon', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to stop geocoding daemon',
     });
   }
 });
