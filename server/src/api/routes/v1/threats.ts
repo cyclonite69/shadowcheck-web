@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Threats Routes (v1)
  * Handles threat detection endpoints
@@ -16,15 +17,53 @@ const {
 } = require('../../../validation/schemas');
 const logger = require('../../../logging/logger');
 
+interface ThreatRow {
+  bssid: string | null;
+  ssid: string | null;
+  radio_type: string | null;
+  channel: number | null;
+  signal_dbm: number | null;
+  encryption: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  first_seen: unknown;
+  last_seen: unknown;
+  observations: string;
+  unique_days: string;
+  unique_locations: string;
+  distance_range_km: string | null;
+  threat_score: string | null;
+  threat_level: string | null;
+  rule_based_flags: {
+    metrics?: unknown;
+    factors?: unknown;
+    flags?: unknown[];
+    summary?: string;
+    confidence?: string;
+  } | null;
+  type: string | null;
+  frequency: number | null;
+  network_latitude: number | null;
+  network_longitude: number | null;
+  total_observations: number | null;
+  final_threat_score: string | null;
+  final_threat_level: string | null;
+}
+
+interface ValidatedRequest extends Request {
+  pagination: { page: number; limit: number; offset: number };
+  validated?: Record<string, unknown>;
+}
+
 /**
  * Validates optional threat detection query parameters.
  * @type {function}
  */
 const validateThreatsQuickQuery = validateQuery({
-  minObs: optional((value) => validateIntegerRange(value, 1, 100000, 'minObs')),
-  minDays: optional((value) => validateIntegerRange(value, 1, 3650, 'minDays')),
-  minLocs: optional((value) => validateIntegerRange(value, 1, 100000, 'minLocs')),
-  minRange: optional((value) => validateNumberRange(value, 0, 10000, 'minRange')),
+  minObs: optional((value: unknown) => validateIntegerRange(value, 1, 100000, 'minObs')),
+  minDays: optional((value: unknown) => validateIntegerRange(value, 1, 3650, 'minDays')),
+  minLocs: optional((value: unknown) => validateIntegerRange(value, 1, 100000, 'minLocs')),
+  minRange: optional((value: unknown) => validateNumberRange(value, 0, 10000, 'minRange')),
   minScore: optional(validateSeverity),
 });
 
@@ -33,7 +72,7 @@ router.get(
   '/threats/quick',
   paginationMiddleware(5000),
   validateThreatsQuickQuery,
-  async (req, res) => {
+  async (req: ValidatedRequest, res: Response) => {
     try {
       const { page, limit, offset } = req.pagination;
       const minTimestamp = ROUTE_CONFIG.minValidTimestamp;
@@ -57,7 +96,7 @@ router.get(
       });
 
       res.json({
-        threats: rows.map((row) => ({
+        threats: rows.map((row: ThreatRow) => ({
           // Network identification
           bssid: row.bssid,
           ssid: row.ssid || '<Hidden>',
@@ -97,20 +136,21 @@ router.get(
         totalPages: Math.ceil(totalCount / limit),
       });
     } catch (error) {
-      logger.error(`Threat detection error: ${error.message}`, { error });
-      res.status(500).json({ error: error.message });
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`Threat detection error: ${msg}`, { error });
+      res.status(500).json({ error: msg });
     }
   }
 );
 
 // GET /api/threats/detect - Detailed threat analysis
-router.get('/threats/detect', async (req, res, next) => {
+router.get('/threats/detect', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const rows = await threatScoringService.getDetailedThreats();
 
     res.json({
       ok: true,
-      threats: rows.map((row) => {
+      threats: rows.map((row: ThreatRow) => {
         const details = row.rule_based_flags || {};
         const metrics = details.metrics || {};
         const factors = details.factors || {};
@@ -141,7 +181,7 @@ router.get('/threats/detect', async (req, res, next) => {
           observations: row.total_observations,
 
           // Threat analysis
-          threatScore: parseFloat(row.final_threat_score || 0),
+          threatScore: parseFloat(row.final_threat_score ?? '0'),
           threatType: details.summary || 'Unified threat score',
           threatLevel: String(row.final_threat_level || 'NONE').toLowerCase(),
           confidence: confidence,

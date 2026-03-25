@@ -11,6 +11,9 @@
  * Then run Lighthouse against http://localhost:4000
  */
 
+import type { Request, Response, NextFunction } from 'express';
+import type { IncomingMessage } from 'http';
+
 const express = require('express');
 const http = require('http');
 const https = require('https');
@@ -30,7 +33,7 @@ const app = express();
 // =============================================================================
 // API PROXY (must be BEFORE security headers and static files)
 // =============================================================================
-app.use('/api', (req, res) => {
+app.use('/api', (req: Request, res: Response) => {
   const proxyPath = `/api${req.url}`; // req.url includes query string
 
   // Determine protocol and select appropriate HTTP module
@@ -49,14 +52,14 @@ app.use('/api', (req, res) => {
     },
   };
 
-  const proxyReq = httpModule.request(options, (proxyRes) => {
+  const proxyReq = httpModule.request(options, (proxyRes: IncomingMessage) => {
     // Forward status and headers from upstream (don't add security headers to API responses)
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
     // Stream response body
-    proxyRes.pipe(res);
+    proxyRes.pipe(res as unknown as NodeJS.WritableStream);
   });
 
-  proxyReq.on('error', (err) => {
+  proxyReq.on('error', (err: Error) => {
     console.error(`[Proxy Error] ${req.method} ${proxyPath}:`, err.message);
     if (!res.headersSent) {
       res.status(502).json({
@@ -74,7 +77,7 @@ app.use('/api', (req, res) => {
 // =============================================================================
 // SECURITY HEADERS MIDDLEWARE (for static files only, after proxy)
 // =============================================================================
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   // Prevent clickjacking
   res.setHeader('X-Frame-Options', 'DENY');
 
@@ -160,7 +163,7 @@ app.use(
   express.static(DIST_DIR, {
     maxAge: 0,
     etag: true,
-    setHeaders: (res, filePath) => {
+    setHeaders: (res: Response, filePath: string) => {
       if (filePath.endsWith('index.html')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       }
@@ -171,7 +174,7 @@ app.use(
 // =============================================================================
 // SPA FALLBACK
 // =============================================================================
-app.get('*', (req, res) => {
+app.get('*', (req: Request, res: Response) => {
   res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
 

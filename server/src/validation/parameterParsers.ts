@@ -16,7 +16,14 @@ const { validateIntegerRange, validateNumberRange } = require('./schemas');
  * @param {string} invalidMessage - Error message for invalid value
  * @returns {{ ok: boolean, value?: number, error?: string }}
  */
-function parseRequiredInteger(value, min, max, fieldName, missingMessage, invalidMessage) {
+function parseRequiredInteger(
+  value: unknown,
+  min: number,
+  max: number,
+  fieldName: string,
+  missingMessage: string,
+  invalidMessage: string
+) {
   if (value === undefined) {
     return { ok: false, error: missingMessage };
   }
@@ -37,7 +44,7 @@ function parseRequiredInteger(value, min, max, fieldName, missingMessage, invali
  * @param {string} fieldName - Parameter name for error messages
  * @returns {{ ok: boolean, value?: number|null, error?: string }}
  */
-function parseOptionalNumber(value, min, max, fieldName) {
+function parseOptionalNumber(value: unknown, min: number, max: number, fieldName: string) {
   if (value === undefined) {
     return { ok: true, value: null };
   }
@@ -62,7 +69,7 @@ function parseOptionalNumber(value, min, max, fieldName) {
  * @param {string} fieldName - Parameter name for error messages
  * @returns {{ ok: boolean, value?: number|null, error?: string }}
  */
-function parseOptionalInteger(value, min, max, fieldName) {
+function parseOptionalInteger(value: unknown, min: number, max: number, fieldName: string) {
   if (value === undefined) {
     return { ok: true, value: null };
   }
@@ -85,7 +92,7 @@ function parseOptionalInteger(value, min, max, fieldName) {
  * @param {number} maxItems - Maximum allowed items
  * @returns {string[]|null} Normalized values or null
  */
-function parseCommaList(value, maxItems = 50) {
+function parseCommaList(value: unknown, maxItems = 50) {
   if (value === undefined) {
     return null;
   }
@@ -111,7 +118,12 @@ function parseCommaList(value, maxItems = 50) {
  * @param {any} maxLngRaw - Maximum longitude
  * @returns {{ ok: boolean, value?: object|null, error?: string }}
  */
-function parseBoundingBoxParams(minLatRaw, maxLatRaw, minLngRaw, maxLngRaw) {
+function parseBoundingBoxParams(
+  minLatRaw: unknown,
+  maxLatRaw: unknown,
+  minLngRaw: unknown,
+  maxLngRaw: unknown
+) {
   if (
     minLatRaw === undefined ||
     maxLatRaw === undefined ||
@@ -121,10 +133,10 @@ function parseBoundingBoxParams(minLatRaw, maxLatRaw, minLngRaw, maxLngRaw) {
     return { ok: true, value: null };
   }
 
-  const minLat = parseFloat(minLatRaw);
-  const maxLat = parseFloat(maxLatRaw);
-  const minLng = parseFloat(minLngRaw);
-  const maxLng = parseFloat(maxLngRaw);
+  const minLat = parseFloat(String(minLatRaw));
+  const maxLat = parseFloat(String(maxLatRaw));
+  const minLng = parseFloat(String(minLngRaw));
+  const maxLng = parseFloat(String(maxLngRaw));
 
   if (
     Number.isNaN(minLat) ||
@@ -165,14 +177,14 @@ function parseBoundingBoxParams(minLatRaw, maxLatRaw, minLngRaw, maxLngRaw) {
  * @param {any} radiusRaw - Radius meters
  * @returns {{ ok: boolean, value?: object|null, error?: string }}
  */
-function parseRadiusParams(latRaw, lngRaw, radiusRaw) {
+function parseRadiusParams(latRaw: unknown, lngRaw: unknown, radiusRaw: unknown) {
   if (latRaw === undefined || lngRaw === undefined || radiusRaw === undefined) {
     return { ok: true, value: null };
   }
 
-  const centerLat = parseFloat(latRaw);
-  const centerLng = parseFloat(lngRaw);
-  const radius = parseFloat(radiusRaw);
+  const centerLat = parseFloat(String(latRaw));
+  const centerLng = parseFloat(String(lngRaw));
+  const radius = parseFloat(String(radiusRaw));
 
   if (Number.isNaN(centerLat) || Number.isNaN(centerLng) || Number.isNaN(radius)) {
     return { ok: true, value: null };

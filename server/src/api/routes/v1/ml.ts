@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Machine Learning Routes
  * Handles ML model training and scoring
@@ -15,8 +16,8 @@ const {
 } = require('../../../validation/schemas');
 const { scoreAllNetworks } = mlScoringService;
 
-const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT, 10) || 100;
-const DEFAULT_AUTO_SCORE_LIMIT = parseInt(process.env.ML_AUTO_SCORE_LIMIT, 10) || 1000;
+const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT ?? '0', 10) || 100;
+const DEFAULT_AUTO_SCORE_LIMIT = parseInt(process.env.ML_AUTO_SCORE_LIMIT ?? '0', 10) || 1000;
 const DEFAULT_MODEL_VERSION = process.env.ML_MODEL_VERSION || '1.0.0';
 const MAX_SCORE_LIMIT = 200000;
 
@@ -51,14 +52,15 @@ try {
   mlModel = new ThreatMLModel();
   logger.info('ML model module loaded successfully');
 } catch (err) {
-  logger.warn(`ML model module not found or failed to load: ${err.message}`);
+  const loadMsg = err instanceof Error ? err.message : String(err);
+  logger.warn(`ML model module not found or failed to load: ${loadMsg}`);
   mlModel = null;
 }
 
 // ============================================
 // GET /api/ml/status - Model status
 // ============================================
-router.get('/ml/status', async (req, res, next) => {
+router.get('/ml/status', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const status = await mlScoringService.getMLModelStatus();
     res.json({
@@ -80,7 +82,7 @@ router.get('/ml/status', async (req, res, next) => {
  * @param {import('express').Response} res - Express response
  * @param {import('express').NextFunction} next - Express next
  */
-router.post('/ml/train', async (req, res, next) => {
+router.post('/ml/train', async (req: Request, res: Response, next: NextFunction) => {
   let lockAcquired = false;
   try {
     if (!mlModel) {
@@ -131,7 +133,8 @@ router.post('/ml/train', async (req, res, next) => {
             overwriteFinal: autoScoreOverwrite,
           });
         } catch (scoreError) {
-          logger.error(`[ML] Auto-scoring failed: ${scoreError.message}`, { error: scoreError });
+          const scoreMsg = scoreError instanceof Error ? scoreError.message : String(scoreError);
+          logger.error(`[ML] Auto-scoring failed: ${scoreMsg}`, { error: scoreError });
         }
       });
     }
@@ -158,7 +161,7 @@ router.post('/ml/train', async (req, res, next) => {
 // ============================================
 // POST /api/ml/score-all - Legacy ML scoring (v1.0)
 // ============================================
-router.post('/ml/score-all', async (req, res, next) => {
+router.post('/ml/score-all', async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info('[ML] Starting ML scoring of all networks...');
 
@@ -173,7 +176,8 @@ router.post('/ml/score-all', async (req, res, next) => {
       overwriteFinal,
     });
   } catch (err) {
-    logger.error(`[ML] Scoring error: ${err.message}`);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logger.error(`[ML] Scoring error: ${errMsg}`);
     next(err);
   }
 });
@@ -181,7 +185,7 @@ router.post('/ml/score-all', async (req, res, next) => {
 // ============================================
 // GET /api/ml/scores/:bssid - Get score for one network
 // ============================================
-router.get('/ml/scores/:bssid', async (req, res, next) => {
+router.get('/ml/scores/:bssid', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const bssidValidation = validateBSSID(req.params.bssid);
     if (!bssidValidation.valid) {
@@ -210,7 +214,7 @@ router.get('/ml/scores/:bssid', async (req, res, next) => {
 // ============================================
 // GET /api/ml/scores/level/:level - Get networks by threat level
 // ============================================
-router.get('/ml/scores/level/:level', async (req, res, next) => {
+router.get('/ml/scores/level/:level', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { level } = req.params;
     const { limit = 50 } = req.query;

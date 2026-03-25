@@ -1,4 +1,10 @@
 export {};
+import type { Request, Response } from 'express';
+
+interface ValidatedRequest extends Request {
+  validated?: Record<string, unknown>;
+}
+
 const express = require('express');
 const router = express.Router();
 const { secretsManager, externalServiceHandler } = require('../../../config/container');
@@ -16,7 +22,10 @@ const fetch = (...args: any[]) => {
   return (global as any).fetch(...args);
 };
 
-function pipeUpstreamBody(upstream, res) {
+function pipeUpstreamBody(
+  upstream: { body: { pipe?: (dest: Response) => void } | null },
+  res: Response
+) {
   if (!upstream.body) {
     res.end();
     return;
@@ -35,7 +44,7 @@ function pipeUpstreamBody(upstream, res) {
  * @param {any} value - Raw style value
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateMapboxStyle(value) {
+function validateMapboxStyle(value: unknown) {
   if (value === undefined || value === null || value === '') {
     return { valid: false, error: 'style must be a non-empty string' };
   }
@@ -59,7 +68,7 @@ function validateMapboxStyle(value) {
  * @param {any} value - Raw URL input
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateMapboxProxyUrl(value) {
+function validateMapboxProxyUrl(value: unknown) {
   const stringCheck = validateString(String(value || ''), 1, 2048, 'url');
   if (!stringCheck.valid) {
     return stringCheck;
@@ -89,7 +98,7 @@ const validateMapboxProxyQuery = validateQuery({
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/mapbox-token', async (req, res) => {
+router.get('/api/mapbox-token', async (req: Request, res: Response) => {
   try {
     const tokenRaw = secretsManager.get('mapbox_token');
     const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
@@ -106,7 +115,8 @@ router.get('/api/mapbox-token', async (req, res) => {
       ok: true,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
   }
 });
 
@@ -115,101 +125,111 @@ router.get('/api/mapbox-token', async (req, res) => {
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req, res) => {
-  try {
-    const tokenRaw = secretsManager.get('mapbox_token');
-    const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
-    if (!token) {
-      return res
-        .status(500)
-        .json({ error: 'Mapbox token not configured', message: 'MAPBOX_TOKEN is missing' });
-    }
-
-    const styleId = req.validated?.style || 'mapbox/dark-v11';
-    const url = `https://api.mapbox.com/styles/v1/${styleId}?access_token=${token}`;
-
-    const resp = await withRetry(() => fetch(url), {
-      serviceName: 'Mapbox style',
-      timeoutMs: 10000,
-      maxRetries: 2,
-    });
-    const bodyText = await resp.text();
-    if (!resp.ok) {
-      return res
-        .status(resp.status)
-        .json({ error: 'Mapbox style fetch failed', status: resp.status, body: bodyText });
-    }
-
-    let styleJson;
+router.get(
+  '/api/mapbox-style',
+  validateMapboxStyleQuery,
+  async (req: ValidatedRequest, res: Response) => {
     try {
-      styleJson = JSON.parse(bodyText);
-    } catch {
-      return res.status(500).json({ error: 'Invalid JSON from Mapbox style', body: bodyText });
-    }
+      const tokenRaw = secretsManager.get('mapbox_token');
+      const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
+      if (!token) {
+        return res
+          .status(500)
+          .json({ error: 'Mapbox token not configured', message: 'MAPBOX_TOKEN is missing' });
+      }
 
-    res.json({ ok: true, style: styleJson });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed to fetch Mapbox style' });
+      const styleId = req.validated?.style || 'mapbox/dark-v11';
+      const url = `https://api.mapbox.com/styles/v1/${styleId}?access_token=${token}`;
+
+      const resp = await withRetry(() => fetch(url), {
+        serviceName: 'Mapbox style',
+        timeoutMs: 10000,
+        maxRetries: 2,
+      });
+      const bodyText = await resp.text();
+      if (!resp.ok) {
+        return res
+          .status(resp.status)
+          .json({ error: 'Mapbox style fetch failed', status: resp.status, body: bodyText });
+      }
+
+      let styleJson;
+      try {
+        styleJson = JSON.parse(bodyText);
+      } catch {
+        return res.status(500).json({ error: 'Invalid JSON from Mapbox style', body: bodyText });
+      }
+
+      res.json({ ok: true, style: styleJson });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg || 'Failed to fetch Mapbox style' });
+    }
   }
-});
+);
 
 /**
  * GET /api/mapbox-proxy?url=ENCODED - Proxy Mapbox requests to avoid client egress issues
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
-  try {
-    const rawUrl = req.validated?.url;
-    if (!rawUrl) {
-      return res.status(400).json({ error: 'url query param is required' });
-    }
-
-    let target;
+router.get(
+  '/api/mapbox-proxy',
+  validateMapboxProxyQuery,
+  async (req: ValidatedRequest, res: Response) => {
     try {
-      target = new URL(String(rawUrl));
-    } catch {
-      return res.status(400).json({ error: 'Invalid URL' });
+      const rawUrl = req.validated?.url;
+      if (!rawUrl) {
+        return res.status(400).json({ error: 'url query param is required' });
+      }
+
+      let target;
+      try {
+        target = new URL(String(rawUrl));
+      } catch {
+        return res.status(400).json({ error: 'Invalid URL' });
+      }
+
+      if (target.hostname !== 'api.mapbox.com') {
+        return res.status(400).json({ error: 'Only api.mapbox.com is allowed' });
+      }
+
+      const tokenRaw = secretsManager.get('mapbox_token');
+      const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
+      if (!token) {
+        return res.status(500).json({ error: 'Mapbox token not configured' });
+      }
+
+      if (!target.searchParams.has('access_token')) {
+        target.searchParams.set('access_token', token);
+      }
+
+      const upstream = await withRetry(() => fetch(target.toString()), {
+        serviceName: 'Mapbox proxy',
+        timeoutMs: 10000,
+        maxRetries: 1,
+      });
+
+      res.status(upstream.status);
+      upstream.headers.forEach((value: string, key: string) => {
+        res.setHeader(key, value);
+      });
+
+      pipeUpstreamBody(upstream, res);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`Mapbox proxy error: ${msg}`, { error: err });
+      res.status(500).json({ error: msg || 'Mapbox proxy failed' });
     }
-
-    if (target.hostname !== 'api.mapbox.com') {
-      return res.status(400).json({ error: 'Only api.mapbox.com is allowed' });
-    }
-
-    const tokenRaw = secretsManager.get('mapbox_token');
-    const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
-    if (!token) {
-      return res.status(500).json({ error: 'Mapbox token not configured' });
-    }
-
-    if (!target.searchParams.has('access_token')) {
-      target.searchParams.set('access_token', token);
-    }
-
-    const upstream = await withRetry(() => fetch(target.toString()), {
-      serviceName: 'Mapbox proxy',
-      timeoutMs: 10000,
-      maxRetries: 1,
-    });
-
-    res.status(upstream.status);
-    upstream.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
-
-    pipeUpstreamBody(upstream, res);
-  } catch (err) {
-    logger.error(`Mapbox proxy error: ${err.message}`, { error: err });
-    res.status(500).json({ error: err.message || 'Mapbox proxy failed' });
   }
-});
+);
 
 /**
  * GET /api/google-maps-token - Get Google Maps API key for client-side use
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/google-maps-token', async (req, res) => {
+router.get('/api/google-maps-token', async (req: Request, res: Response) => {
   try {
     const apiKey = secretsManager.get('google_maps_api_key');
     if (!apiKey) {
@@ -220,7 +240,8 @@ router.get('/api/google-maps-token', async (req, res) => {
     }
     res.json({ apiKey, ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message, ok: false });
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg, ok: false });
   }
 });
 
@@ -230,7 +251,7 @@ router.get('/api/google-maps-token', async (req, res) => {
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
+router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req: Request, res: Response) => {
   try {
     const apiKey = secretsManager.get('google_maps_api_key');
     if (!apiKey) {
@@ -247,7 +268,7 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
       terrain: 'p',
     };
 
-    const lyrs = lyrsMap[type] || 'm';
+    const lyrs = lyrsMap[type as keyof typeof lyrsMap] || 'm';
 
     // Use Google's tile servers
     const server = Math.floor(Math.random() * 4); // mt0-mt3
@@ -277,8 +298,9 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
       Readable.fromWeb(response.body).pipe(res);
     }
   } catch (err) {
-    logger.error(`Google Maps tile proxy error: ${err.message}`, { error: err });
-    res.status(500).json({ error: err.message });
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`Google Maps tile proxy error: ${msg}`, { error: err });
+    res.status(500).json({ error: msg });
   }
 });
 

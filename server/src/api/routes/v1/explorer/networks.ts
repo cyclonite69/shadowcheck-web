@@ -5,6 +5,38 @@
  */
 
 export {};
+import type { Request, Response, NextFunction } from 'express';
+
+interface ExplorerRow {
+  bssid: string | null;
+  ssid: string | null;
+  observed_at: unknown;
+  level: number | null;
+  signal: number | null;
+  lat: number | null;
+  lon: number | null;
+  observations: number | null;
+  first_seen: unknown;
+  last_seen: unknown;
+  is_5ghz: boolean | null;
+  is_6ghz: boolean | null;
+  is_hidden: boolean | null;
+  type: string | null;
+  frequency: number | null;
+  capabilities: string | null;
+  security: string | null;
+  distance_from_home_km: number | null;
+  accuracy_meters: number | null;
+  manufacturer: string | null;
+  manufacturer_address: string | null;
+  min_altitude_m: number | null;
+  max_altitude_m: number | null;
+  altitude_span_m: number | null;
+  max_distance_meters: number | null;
+  last_altitude_m: number | null;
+  is_sentinel: boolean | null;
+  threat: unknown;
+}
 
 const express = require('express');
 const router = express.Router();
@@ -29,7 +61,7 @@ const {
 } = require('./shared');
 
 // GET /api/explorer/networks
-router.get('/explorer/networks', async (req, res, _next) => {
+router.get('/explorer/networks', async (req: Request, res: Response, _next: NextFunction) => {
   try {
     const limit = parseLimit(
       req.query.limit,
@@ -88,7 +120,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
 
     res.json({
       total: result.total,
-      rows: result.rows.map((row) => ({
+      rows: result.rows.map((row: ExplorerRow) => ({
         bssid: row.bssid ? row.bssid.toUpperCase() : null,
         ssid: row.ssid || '(hidden)',
         observed_at: row.observed_at,
@@ -110,13 +142,15 @@ router.get('/explorer/networks', async (req, res, _next) => {
       })),
     });
   } catch (err) {
-    logger.error(`Explorer networks query failed: ${err.message}`, { error: err });
-    res.status(500).json({ error: 'networks query failed', code: err.code, message: err.message });
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = (err as NodeJS.ErrnoException).code;
+    logger.error(`Explorer networks query failed: ${msg}`, { error: err });
+    res.status(500).json({ error: 'networks query failed', code, message: msg });
   }
 });
 
 // GET /api/explorer/networks-v2 (FORENSIC GRADE - uses DB view)
-router.get('/explorer/networks-v2', async (req, res, next) => {
+router.get('/explorer/networks-v2', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = parseLimit(
       req.query.limit,
@@ -144,7 +178,7 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       page,
       limit,
       hasMore: limit !== null && result.rows.length === limit,
-      rows: result.rows.map((row) => ({
+      rows: result.rows.map((row: ExplorerRow) => ({
         bssid: row.bssid ? row.bssid.toUpperCase() : null,
         ssid: row.ssid,
         observed_at: row.observed_at,
@@ -175,7 +209,8 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       })),
     });
   } catch (err) {
-    logger.error(`Explorer networks-v2 query failed: ${err.message}`, { error: err });
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`Explorer networks-v2 query failed: ${msg}`, { error: err });
     next(err);
   }
 });

@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../logging/logger');
@@ -55,7 +56,7 @@ function initDashboardRoutes(options: any) {
   dashboardService = options.dashboardService;
 }
 
-const sendDashboardMetrics = async (req, res) => {
+const sendDashboardMetrics = async (req: Request, res: Response) => {
   try {
     if (!dashboardService) {
       return res.status(500).json({ error: 'Dashboard service not initialized' });
@@ -114,15 +115,16 @@ const sendDashboardMetrics = async (req, res) => {
       timestamp: metrics.lastUpdated,
     });
   } catch (error) {
-    logger.error(`Dashboard metrics error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Dashboard metrics error: ${msg}`, { error });
+    res.status(500).json({ error: msg });
   }
 };
 
 router.get('/dashboard/metrics', sendDashboardMetrics);
 router.get('/dashboard-metrics', sendDashboardMetrics);
 
-router.get('/dashboard/threats', async (req, res) => {
+router.get('/dashboard/threats', async (req: Request, res: Response) => {
   try {
     if (!dashboardService) {
       return res.status(500).json({ error: 'Dashboard service not initialized' });
@@ -134,12 +136,13 @@ router.get('/dashboard/threats', async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error(`Dashboard threats error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Dashboard threats error: ${msg}`, { error });
+    res.status(500).json({ error: msg });
   }
 });
 
-router.get('/dashboard/summary', async (req, res) => {
+router.get('/dashboard/summary', async (req: Request, res: Response) => {
   try {
     if (!dashboardService) {
       return res.status(500).json({ error: 'Dashboard service not initialized' });
@@ -160,8 +163,9 @@ router.get('/dashboard/summary', async (req, res) => {
       timestamp: metrics.lastUpdated,
     });
   } catch (error) {
-    logger.error(`Dashboard summary error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Dashboard summary error: ${msg}`, { error });
+    res.status(500).json({ error: msg });
   }
 });
 

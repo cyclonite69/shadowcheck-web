@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const container = require('../../../config/container');
@@ -6,8 +7,22 @@ const exportService = container.exportService;
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const logger = require('../../../logging/logger');
 
+interface ExportRow {
+  bssid: string | null;
+  ssid: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  signal_dbm: number | null;
+  observed_at: unknown;
+  radio_type: string | null;
+  frequency: number | null;
+  capabilities: string | null;
+  accuracy: number | null;
+  [key: string]: unknown;
+}
+
 // Export as CSV with all available observation fields
-router.get('/csv', requireAuth, async (req, res) => {
+router.get('/csv', requireAuth, async (req: Request, res: Response) => {
   try {
     const rows = await exportService.getObservationsForCSV();
 
@@ -26,7 +41,7 @@ router.get('/csv', requireAuth, async (req, res) => {
 
     const csv = [
       headers.join(','),
-      ...rows.map((row) =>
+      ...rows.map((row: ExportRow) =>
         headers
           .map((h) => {
             const val = row[h];
@@ -43,13 +58,15 @@ router.get('/csv', requireAuth, async (req, res) => {
     );
     res.send(csv);
   } catch (error) {
-    logger.error(`Export failed: ${error.message}`, { error, stack: error.stack });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`Export failed: ${msg}`, { error, stack });
+    res.status(500).json({ error: msg });
   }
 });
 
 // Export as JSON with observations and networks
-router.get('/json', requireAuth, async (req, res) => {
+router.get('/json', requireAuth, async (req: Request, res: Response) => {
   try {
     const { observations, networks } = await exportService.getObservationsAndNetworksForJSON();
 
@@ -68,17 +85,19 @@ router.get('/json', requireAuth, async (req, res) => {
     );
     res.json(data);
   } catch (error) {
-    logger.error(`Export failed: ${error.message}`, { error, stack: error.stack });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`Export failed: ${msg}`, { error, stack });
+    res.status(500).json({ error: msg });
   }
 });
 
 // Export as GeoJSON
-router.get('/geojson', requireAuth, async (req, res) => {
+router.get('/geojson', requireAuth, async (req: Request, res: Response) => {
   try {
     const rows = await exportService.getObservationsForGeoJSON();
 
-    const features = rows.map((row) => ({
+    const features = rows.map((row: ExportRow) => ({
       type: 'Feature',
       geometry: {
         type: 'Point',
@@ -112,8 +131,10 @@ router.get('/geojson', requireAuth, async (req, res) => {
     );
     res.json(geojson);
   } catch (error) {
-    logger.error(`Export failed: ${error.message}`, { error, stack: error.stack });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`Export failed: ${msg}`, { error, stack });
+    res.status(500).json({ error: msg });
   }
 });
 

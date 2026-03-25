@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 /**
  * Kepler Routes (v1)
  * Provides GeoJSON endpoints for Kepler.gl visualization
@@ -11,18 +12,67 @@ const { UniversalFilterQueryBuilder, validateFilterPayload } = filterQueryBuilde
 const logger = require('../../../logging/logger');
 const { frequencyToChannel } = require('../../../utils/frequencyUtils');
 
-const parseJsonParam = (value, fallback, name) => {
+interface KeplerNetworkRow {
+  bssid: string | null;
+  ssid: string | null;
+  signal: number | null;
+  lon: number | null;
+  lat: number | null;
+  first_seen: unknown;
+  last_seen: unknown;
+  observed_at: unknown;
+  manufacturer: string | null;
+  type: string | null;
+  frequency: number | null;
+  capabilities: string | null;
+  last_altitude_m: number | null;
+  accuracy_meters: number | null;
+  observations: number | null;
+  threat: { level?: string; score?: number } | null;
+  distance_from_home_km: number | null;
+  max_distance_meters: number | null;
+  unique_days: number | null;
+  first_observed_at: unknown;
+  last_observed_at: unknown;
+}
+interface KeplerObsRow {
+  bssid: string | null;
+  ssid: string | null;
+  level: number | null;
+  lon: number | null;
+  lat: number | null;
+  time: unknown;
+  manufacturer: string | null;
+  radio_type: string | null;
+  radio_frequency: number | null;
+  radio_capabilities: string | null;
+  device_id: string | null;
+  source_tag: string | null;
+  altitude: number | null;
+  accuracy: number | null;
+  threat_level: string | null;
+  threat_score: number | null;
+  distance_from_home_km: number | null;
+}
+interface KeplerBssidRow {
+  bssid: string | null;
+}
+
+const parseJsonParam = (value: unknown, fallback: unknown, name: string) => {
   if (!value) {
     return fallback;
   }
   try {
-    return JSON.parse(value);
+    return JSON.parse(String(value));
   } catch {
     throw new Error(`Invalid JSON for ${name}`);
   }
 };
 
-const assertHomeExistsIfNeeded = async (enabled, res) => {
+const assertHomeExistsIfNeeded = async (
+  enabled: Record<string, unknown> | null | undefined,
+  res: Response
+) => {
   if (!enabled?.distanceFromHomeMin && !enabled?.distanceFromHomeMax) {
     return true;
   }
@@ -37,9 +87,10 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
     }
     return true;
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     res.status(400).json({
       ok: false,
-      error: err.message,
+      error: errMsg,
     });
     return false;
   }
@@ -53,7 +104,12 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
  * @param {string|null} capabilities - Capabilities string
  * @returns {string} Inferred radio type code
  */
-function inferRadioType(radioType, ssid, frequency, capabilities) {
+function inferRadioType(
+  radioType: string | null | undefined,
+  ssid: string | null | undefined,
+  frequency: string | number | null | undefined,
+  capabilities: string | null | undefined
+) {
   // If database has a valid radio_type, use it
   if (radioType && radioType !== '' && radioType !== null) {
     return radioType;
@@ -132,7 +188,7 @@ function inferRadioType(radioType, ssid, frequency, capabilities) {
 
   // Check frequency ranges
   if (frequency) {
-    const freq = parseInt(frequency, 10);
+    const freq = parseInt(String(frequency), 10);
 
     // WiFi 2.4GHz band (2400-2500 MHz)
     if (freq >= 2412 && freq <= 2484) {
@@ -171,18 +227,20 @@ function inferRadioType(radioType, ssid, frequency, capabilities) {
  * GET /api/kepler/data
  * Returns latest observation per network for Kepler.gl.
  */
-router.get('/kepler/data', async (req, res) => {
+router.get('/kepler/data', async (req: Request, res: Response) => {
   try {
     const { limit: limitRaw, offset: offsetRaw } = req.query;
-    const limit = limitRaw ? parseInt(limitRaw, 10) : null;
-    const offset = offsetRaw ? parseInt(offsetRaw, 10) : 0;
+    const limit = limitRaw ? parseInt(String(limitRaw), 10) : null;
+    const offset = offsetRaw ? parseInt(String(offsetRaw), 10) : 0;
     let filters = {};
     let enabled = {};
     try {
       filters = parseJsonParam(req.query.filters, {}, 'filters');
       enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
     } catch (err) {
-      return res.status(400).json({ ok: false, error: err.message });
+      return res
+        .status(400)
+        .json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
     const { errors } = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
@@ -198,7 +256,7 @@ router.get('/kepler/data', async (req, res) => {
 
     const result = await keplerService.executeKeplerQuery(sql, params);
 
-    const bssids = new Set((result.rows || []).map((r) => r.bssid).filter(Boolean));
+    const bssids = new Set((result.rows || []).map((r: KeplerBssidRow) => r.bssid).filter(Boolean));
     const actualCounts = {
       observations: result.rowCount || 0,
       networks: bssids.size,
@@ -208,8 +266,8 @@ router.get('/kepler/data', async (req, res) => {
       type: 'FeatureCollection',
       actualCounts,
       features: (result.rows || [])
-        .filter((row) => row.lon !== null && row.lat !== null)
-        .map((row) => ({
+        .filter((row: KeplerNetworkRow) => row.lon !== null && row.lat !== null)
+        .map((row: KeplerNetworkRow) => ({
           type: 'Feature',
           geometry: {
             type: 'Point',
@@ -246,8 +304,9 @@ router.get('/kepler/data', async (req, res) => {
 
     res.json(geojson);
   } catch (error) {
-    logger.error(`Kepler data error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message || 'Failed to fetch kepler data' });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Kepler data error: ${msg}`, { error });
+    res.status(500).json({ error: msg || 'Failed to fetch kepler data' });
   }
 });
 
@@ -255,7 +314,7 @@ router.get('/kepler/data', async (req, res) => {
  * GET /api/kepler/observations
  * Returns full observations dataset for Kepler.gl.
  */
-router.get('/kepler/observations', async (req, res) => {
+router.get('/kepler/observations', async (req: Request, res: Response) => {
   try {
     let filters = {};
     let enabled = {};
@@ -263,7 +322,9 @@ router.get('/kepler/observations', async (req, res) => {
       filters = parseJsonParam(req.query.filters, {}, 'filters');
       enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
     } catch (err) {
-      return res.status(400).json({ ok: false, error: err.message });
+      return res
+        .status(400)
+        .json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
     const { errors } = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
@@ -275,14 +336,14 @@ router.get('/kepler/observations', async (req, res) => {
     }
 
     const limitRaw = req.query.limit;
-    const limit = limitRaw ? parseInt(limitRaw, 10) : null;
+    const limit = limitRaw ? parseInt(String(limitRaw), 10) : null;
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { sql, params } = builder.buildGeospatialQuery({ limit });
 
     const result = await keplerService.executeKeplerQuery(sql, params);
 
-    const bssids = new Set((result.rows || []).map((r) => r.bssid).filter(Boolean));
+    const bssids = new Set((result.rows || []).map((r: KeplerBssidRow) => r.bssid).filter(Boolean));
     const actualCounts = {
       observations: result.rowCount || 0,
       networks: bssids.size,
@@ -292,8 +353,8 @@ router.get('/kepler/observations', async (req, res) => {
       type: 'FeatureCollection',
       actualCounts,
       features: (result.rows || [])
-        .filter((row) => row.lon !== null && row.lat !== null)
-        .map((row) => ({
+        .filter((row: KeplerObsRow) => row.lon !== null && row.lat !== null)
+        .map((row: KeplerObsRow) => ({
           type: 'Feature',
           geometry: {
             type: 'Point',
@@ -333,8 +394,9 @@ router.get('/kepler/observations', async (req, res) => {
 
     res.json(geojson);
   } catch (error) {
-    logger.error(`Observations data error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Observations data error: ${msg}`, { error });
+    res.status(500).json({ error: msg });
   }
 });
 
@@ -342,7 +404,7 @@ router.get('/kepler/observations', async (req, res) => {
  * GET /api/kepler/networks
  * Returns trilaterated networks from access_points for Kepler.gl.
  */
-router.get('/kepler/networks', async (req, res) => {
+router.get('/kepler/networks', async (req: Request, res: Response) => {
   try {
     let filters = {};
     let enabled = {};
@@ -350,7 +412,9 @@ router.get('/kepler/networks', async (req, res) => {
       filters = parseJsonParam(req.query.filters, {}, 'filters');
       enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
     } catch (err) {
-      return res.status(400).json({ ok: false, error: err.message });
+      return res
+        .status(400)
+        .json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
     const { errors } = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
@@ -362,15 +426,15 @@ router.get('/kepler/networks', async (req, res) => {
     }
 
     const { limit: limitRaw, offset: offsetRaw } = req.query;
-    const limit = limitRaw ? parseInt(limitRaw, 10) : null;
-    const offset = offsetRaw ? parseInt(offsetRaw, 10) : 0;
+    const limit = limitRaw ? parseInt(String(limitRaw), 10) : null;
+    const offset = offsetRaw ? parseInt(String(offsetRaw), 10) : 0;
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { sql, params } = builder.buildNetworkListQuery({ limit, offset });
 
     const result = await keplerService.executeKeplerQuery(sql, params);
 
-    const bssids = new Set((result.rows || []).map((r) => r.bssid).filter(Boolean));
+    const bssids = new Set((result.rows || []).map((r: KeplerBssidRow) => r.bssid).filter(Boolean));
     const actualCounts = {
       observations: result.rowCount || 0,
       networks: bssids.size,
@@ -380,8 +444,8 @@ router.get('/kepler/networks', async (req, res) => {
       type: 'FeatureCollection',
       actualCounts,
       features: (result.rows || [])
-        .filter((row) => row.lon !== null && row.lat !== null)
-        .map((row) => ({
+        .filter((row: KeplerNetworkRow) => row.lon !== null && row.lat !== null)
+        .map((row: KeplerNetworkRow) => ({
           type: 'Feature',
           geometry: {
             type: 'Point',
@@ -418,7 +482,8 @@ router.get('/kepler/networks', async (req, res) => {
             timespan_days:
               row.first_seen && row.last_seen
                 ? Math.ceil(
-                    ((new Date(row.last_seen) as any) - (new Date(row.first_seen) as any)) /
+                    ((new Date(row.last_seen as string) as any) -
+                      (new Date(row.first_seen as string) as any)) /
                       86400000
                   )
                 : null,
@@ -429,8 +494,9 @@ router.get('/kepler/networks', async (req, res) => {
 
     res.json(geojson);
   } catch (error) {
-    logger.error(`Networks data error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Networks data error: ${msg}`, { error });
+    res.status(500).json({ error: msg });
   }
 });
 

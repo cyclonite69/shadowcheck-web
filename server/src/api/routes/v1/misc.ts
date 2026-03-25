@@ -1,4 +1,6 @@
 export {};
+// TODO: split into geocoding.ts, wigle/import.ts, dataQuality.ts
+import type { Request, Response } from 'express';
 /**
  * Miscellaneous Routes (v1)
  * Small utility endpoints that don't warrant their own module.
@@ -22,7 +24,7 @@ const router = express.Router();
  * GET /demo/oui-grouping
  * Serves the OUI grouping demo page.
  */
-router.get('/demo/oui-grouping', (req, res) => {
+router.get('/demo/oui-grouping', (req: Request, res: Response) => {
   res.sendFile(path.join(process.cwd(), 'public', 'oui-grouping-demo.html'));
 });
 
@@ -30,7 +32,7 @@ router.get('/demo/oui-grouping', (req, res) => {
  * POST /api/geocode
  * Uses Mapbox Geocoding API to resolve an address.
  */
-router.post('/geocode', async (req, res) => {
+router.post('/geocode', async (req: Request, res: Response) => {
   try {
     const { address } = req.body;
     if (!address) {
@@ -63,7 +65,8 @@ router.post('/geocode', async (req, res) => {
       res.status(404).json({ error: 'Address not found' });
     }
   } catch (error) {
-    logger.error(`Geocoding error: ${error.message}`, { error });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Geocoding error: ${msg}`, { error });
     res.status(500).json({ error: 'Geocoding failed' });
   }
 });
@@ -72,14 +75,15 @@ router.post('/geocode', async (req, res) => {
  * POST /api/import/wigle
  * Imports WiGLE files from the local imports directory.
  */
-router.post('/import/wigle', async (req, res) => {
+router.post('/import/wigle', async (req: Request, res: Response) => {
   try {
     const importDir = path.join(process.cwd(), 'imports', 'wigle');
     const result = await importWigleDirectory(importDir);
     res.json({ success: true, ...result });
   } catch (error) {
-    logger.error(`WiGLE import error: ${error.message}`, { error });
-    res.status(500).json({ success: false, error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`WiGLE import error: ${msg}`, { error });
+    res.status(500).json({ success: false, error: msg });
   }
 });
 
@@ -87,7 +91,7 @@ router.post('/import/wigle', async (req, res) => {
  * GET /api/data-quality
  * Returns data quality metrics for observations.
  */
-router.get('/data-quality', async (req, res) => {
+router.get('/data-quality', async (req: Request, res: Response) => {
   try {
     const filter = req.query.filter || 'none'; // none, temporal, extreme, duplicate, all
 
@@ -108,8 +112,9 @@ router.get('/data-quality', async (req, res) => {
       ...metrics,
     });
   } catch (error) {
-    logger.error(`Data quality error: ${error.message}`, { error });
-    res.status(500).json({ success: false, error: error.message });
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Data quality error: ${msg}`, { error });
+    res.status(500).json({ success: false, error: msg });
   }
 });
 

@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Validation Middleware
  * Express middleware factories for common validation patterns
@@ -74,7 +75,7 @@ function optional(validator: any) {
  */
 function validateBody(validators: any) {
   return (req: any, res: any, next: any) => {
-    const errors = [];
+    const errors: { parameter: string; error: string }[] = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
       const result = (validator as any)(req.body[param]);
@@ -115,7 +116,7 @@ function validateBody(validators: any) {
  */
 function validateParams(validators: any) {
   return (req: any, res: any, next: any) => {
-    const errors = [];
+    const errors: { parameter: string; error: string }[] = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
       const result = (validator as any)(req.params[param]);
@@ -202,7 +203,7 @@ function paginationMiddleware(maxLimit = 5000) {
  * BSSID validation middleware
  * Validates and sanitizes BSSID from path parameter
  */
-function bssidParamMiddleware(req, res, next: any) {
+function bssidParamMiddleware(req: Request, res: Response, next: NextFunction) {
   const { bssid } = req.params;
   const validation = schemas.validateNetworkIdentifier(bssid);
 
@@ -222,7 +223,7 @@ function bssidParamMiddleware(req, res, next: any) {
  * MAC address validation middleware
  * Validates and sanitizes MAC address from path parameter
  */
-function macParamMiddleware(req, res, next: any) {
+function macParamMiddleware(req: Request, res: Response, next: NextFunction) {
   const { bssid } = req.params;
   const validation = schemas.validateMACAddress(bssid);
 
@@ -303,7 +304,7 @@ function sortMiddleware(allowedColumns: any) {
  * Rate limiting per parameter (e.g., per BSSID)
  * Prevents abuse of specific resources
  */
-function createParameterRateLimit(paramName, maxRequests, windowMs: any) {
+function createParameterRateLimit(paramName: string, maxRequests: number, windowMs: number) {
   const limits = new Map();
 
   return (req: any, res: any, next: any) => {
@@ -347,7 +348,7 @@ function createParameterRateLimit(paramName, maxRequests, windowMs: any) {
  * Input sanitization middleware
  * Removes dangerous characters from common parameters
  */
-function sanitizeMiddleware(req, res, next: any) {
+function sanitizeMiddleware(req: Request, res: Response, next: NextFunction) {
   // Sanitize query parameters
   Object.keys(req.query).forEach((key) => {
     if (typeof req.query[key] === 'string') {

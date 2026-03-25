@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { secretsManager } = require('../../../config/container');
@@ -10,7 +11,7 @@ const { validateString } = require('../../../validation/schemas');
  * @param {any} value - Raw token input
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateMapboxToken(value) {
+function validateMapboxToken(value: unknown) {
   const validation = validateString(String(value || ''), 'token');
   if (!validation.valid) {
     return validation;
@@ -29,7 +30,7 @@ function validateMapboxToken(value) {
  * @param {any} value - Raw label input
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateLabel(value) {
+function validateLabel(value: unknown) {
   const validation = validateString(String(value || ''), 'label');
   if (!validation.valid) {
     return validation;
@@ -42,7 +43,7 @@ function validateLabel(value) {
  * @param {any} value - Raw key input
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateGoogleMapsKey(value) {
+function validateGoogleMapsKey(value: unknown) {
   const validation = validateString(String(value || ''), 'google_maps_api_key');
   if (!validation.valid) {
     return validation;
@@ -56,7 +57,7 @@ function validateGoogleMapsKey(value) {
  * @param {string} field - Field name for error messages
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateGenericKey(value, field) {
+function validateGenericKey(value: unknown, field: string) {
   const validation = validateString(String(value || ''), field);
   if (!validation.valid) {
     return validation;
@@ -69,7 +70,7 @@ function validateGenericKey(value, field) {
  * @param {any} value - Raw region input
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateAwsRegion(value) {
+function validateAwsRegion(value: unknown) {
   const validation = validateString(String(value || ''), 'aws_region');
   if (!validation.valid) {
     return validation;
@@ -78,7 +79,7 @@ function validateAwsRegion(value) {
 }
 
 // Get WiGLE credentials (masked)
-router.get('/settings/wigle', requireAuth, async (req, res) => {
+router.get('/settings/wigle', requireAuth, async (req: Request, res: Response) => {
   try {
     const apiName = await secretsManager.getSecret('wigle_api_name');
     const apiToken = await secretsManager.getSecret('wigle_api_token');
@@ -88,12 +89,13 @@ router.get('/settings/wigle', requireAuth, async (req, res) => {
       apiToken: apiToken || '',
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set WiGLE credentials
-router.post('/settings/wigle', async (req, res) => {
+router.post('/settings/wigle', async (req: Request, res: Response) => {
   try {
     const { apiName, apiToken } = req.body;
 
@@ -152,7 +154,7 @@ router.post('/settings/wigle', async (req, res) => {
 });
 
 // Test WiGLE credentials
-router.get('/settings/wigle/test', requireAuth, async (req, res) => {
+router.get('/settings/wigle/test', requireAuth, async (req: Request, res: Response) => {
   try {
     const encoded = secretsManager.get('wigle_api_encoded');
     if (!encoded) {
@@ -168,12 +170,13 @@ router.get('/settings/wigle/test', requireAuth, async (req, res) => {
       res.json({ success: false, error: `HTTP ${response.status}` });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get Mapbox token status
-router.get('/settings/mapbox', requireAuth, async (req, res) => {
+router.get('/settings/mapbox', requireAuth, async (req: Request, res: Response) => {
   try {
     const token = await secretsManager.getSecret('mapbox_token');
     res.json({
@@ -182,12 +185,13 @@ router.get('/settings/mapbox', requireAuth, async (req, res) => {
       tokens: token ? [{ label: 'default', isPrimary: true }] : [],
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set Mapbox token
-router.post('/settings/mapbox', requireAuth, async (req, res) => {
+router.post('/settings/mapbox', requireAuth, async (req: Request, res: Response) => {
   try {
     const { token, value, label = 'default' } = req.body;
     const incomingToken = value ?? token;
@@ -205,22 +209,24 @@ router.post('/settings/mapbox', requireAuth, async (req, res) => {
     await secretsManager.putSecret('mapbox_token', tokenValidation.value);
     res.json({ success: true, label: labelValidation.value });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get Mapbox unlimited (geocoding) key (masked)
-router.get('/settings/mapbox-unlimited', requireAuth, async (req, res) => {
+router.get('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: Response) => {
   try {
     const apiKey = await secretsManager.getSecret('mapbox_unlimited_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set Mapbox unlimited (geocoding) key
-router.post('/settings/mapbox-unlimited', requireAuth, async (req, res) => {
+router.post('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -232,22 +238,24 @@ router.post('/settings/mapbox-unlimited', requireAuth, async (req, res) => {
     await secretsManager.putSecret('mapbox_unlimited_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get Google Maps API key (masked)
-router.get('/settings/google-maps', requireAuth, async (req, res) => {
+router.get('/settings/google-maps', requireAuth, async (req: Request, res: Response) => {
   try {
     const apiKey = await secretsManager.getSecret('google_maps_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set Google Maps API key
-router.post('/settings/google-maps', async (req, res) => {
+router.post('/settings/google-maps', async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -259,22 +267,24 @@ router.post('/settings/google-maps', async (req, res) => {
     await secretsManager.putSecret('google_maps_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get OpenCage API key (masked)
-router.get('/settings/opencage', requireAuth, async (req, res) => {
+router.get('/settings/opencage', requireAuth, async (req: Request, res: Response) => {
   try {
     const apiKey = await secretsManager.getSecret('opencage_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set OpenCage API key
-router.post('/settings/opencage', requireAuth, async (req, res) => {
+router.post('/settings/opencage', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -286,22 +296,24 @@ router.post('/settings/opencage', requireAuth, async (req, res) => {
     await secretsManager.putSecret('opencage_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get Geocodio API key (masked)
-router.get('/settings/geocodio', requireAuth, async (req, res) => {
+router.get('/settings/geocodio', requireAuth, async (req: Request, res: Response) => {
   try {
     const apiKey = await secretsManager.getSecret('geocodio_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set Geocodio API key
-router.post('/settings/geocodio', requireAuth, async (req, res) => {
+router.post('/settings/geocodio', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -313,22 +325,24 @@ router.post('/settings/geocodio', requireAuth, async (req, res) => {
     await secretsManager.putSecret('geocodio_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get LocationIQ API key (masked)
-router.get('/settings/locationiq', requireAuth, async (req, res) => {
+router.get('/settings/locationiq', requireAuth, async (req: Request, res: Response) => {
   try {
     const apiKey = await secretsManager.getSecret('locationiq_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set LocationIQ API key
-router.post('/settings/locationiq', requireAuth, async (req, res) => {
+router.post('/settings/locationiq', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -340,12 +354,13 @@ router.post('/settings/locationiq', requireAuth, async (req, res) => {
     await secretsManager.putSecret('locationiq_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get AWS runtime configuration (region only; credentials use provider chain)
-router.get('/settings/aws', requireAuth, async (req, res) => {
+router.get('/settings/aws', requireAuth, async (req: Request, res: Response) => {
   try {
     const region = await secretsManager.getSecret('aws_region');
 
@@ -355,12 +370,13 @@ router.get('/settings/aws', requireAuth, async (req, res) => {
       mode: 'runtime_provider_chain',
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set AWS region only (credentials must come from runtime provider chain)
-router.post('/settings/aws', async (req, res) => {
+router.post('/settings/aws', async (req: Request, res: Response) => {
   try {
     const { region } = req.body;
     const regionValidation = validateAwsRegion(region);
@@ -372,12 +388,13 @@ router.post('/settings/aws', async (req, res) => {
 
     res.json({ success: true, mode: 'runtime_provider_chain' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Get Smarty credentials (masked)
-router.get('/settings/smarty', requireAuth, async (req, res) => {
+router.get('/settings/smarty', requireAuth, async (req: Request, res: Response) => {
   try {
     const authId = await secretsManager.getSecret('smarty_auth_id');
     const authToken = await secretsManager.getSecret('smarty_auth_token');
@@ -387,12 +404,13 @@ router.get('/settings/smarty', requireAuth, async (req, res) => {
       authToken: authToken || '',
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Set Smarty credentials
-router.post('/settings/smarty', async (req, res) => {
+router.post('/settings/smarty', async (req: Request, res: Response) => {
   try {
     const { authId, authToken } = req.body;
     const idValidation = validateGenericKey(authId, 'smarty_auth_id');
@@ -410,27 +428,30 @@ router.post('/settings/smarty', async (req, res) => {
     });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // Delete Mapbox token
-router.delete('/settings/mapbox/:label', requireAuth, async (req, res) => {
+router.delete('/settings/mapbox/:label', requireAuth, async (req: Request, res: Response) => {
   try {
     await secretsManager.deleteSecret('mapbox_token');
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 
 // List all stored credentials (names only)
-router.get('/settings/list', requireAuth, async (req, res) => {
+router.get('/settings/list', requireAuth, async (req: Request, res: Response) => {
   try {
     const keys = Array.from(secretsManager.secrets.keys());
     res.json({ keys });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const _msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: _msg });
   }
 });
 

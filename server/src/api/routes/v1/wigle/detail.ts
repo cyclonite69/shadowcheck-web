@@ -13,6 +13,10 @@ import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { withRetry } from '../../../../services/externalServiceHandler';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
+interface FileUploadRequest extends Request {
+  files?: Record<string, { data: Buffer; name: string; [key: string]: unknown }>;
+}
+
 const stripNullBytes = (value: any): string | null => {
   if (value === undefined || value === null) return null;
   const cleaned = String(value).replace(/\u0000/g, '');
@@ -258,7 +262,7 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
 router.post(
   '/detail/:netid',
   requireAdmin,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await handleWigleDetailRequest(req, res, next, 'wifi');
   })
 );
@@ -269,7 +273,7 @@ router.post(
 router.post(
   '/detail/bt/:netid',
   requireAdmin,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await handleWigleDetailRequest(req, res, next, 'bt');
   })
 );
@@ -280,7 +284,7 @@ router.post(
 router.post(
   '/import/v3',
   requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req: FileUploadRequest, res: Response) => {
     if (!req.files || !(req.files as any).file) {
       return res.status(400).json({ ok: false, error: 'No file uploaded' });
     }
