@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 const GRAFANA_EMBED_COOKIE =
-  'shadowcheck_grafana_embed=1; Path=/; Max-Age=7200; Secure; SameSite=Lax';
+  'shadowcheck_grafana_embed=1; Path=/; Max-Age=7200; Secure; SameSite=None';
 
 const MonitoringPage = () => {
   useEffect(() => {
