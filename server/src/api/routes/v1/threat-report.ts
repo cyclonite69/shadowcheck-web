@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Threat Report Routes (v1)
  * Generates per-network report output as JSON, Markdown, HTML, or PDF.
@@ -9,13 +10,20 @@ const { threatReportService } = require('../../../config/container');
 import { validateBSSID } from '../../../validation/schemas';
 const { asyncHandler } = require('../../../utils/asyncHandler');
 
+type ThreatReportParams = {
+  bssid: string;
+};
+
 router.get(
   '/reports/threat/:bssid',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request<ThreatReportParams>, res: Response) => {
     try {
       const bssidValidation = validateBSSID(req.params.bssid);
       if (!bssidValidation.valid) {
         return res.status(400).json({ error: bssidValidation.error });
+      }
+      if (!bssidValidation.cleaned) {
+        return res.status(400).json({ error: 'Invalid BSSID format' });
       }
 
       const cleanBssid = bssidValidation.cleaned;

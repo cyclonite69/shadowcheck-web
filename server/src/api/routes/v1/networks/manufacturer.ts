@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Manufacturer Routes
  * Device manufacturer lookup by BSSID and network listing by OUI prefix
@@ -12,6 +13,10 @@ import { ROUTE_CONFIG } from '../../../../config/routeConfig';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const VALID_SORT_KEYS = new Set(['last_seen', 'ssid', 'obs_count', 'signal', 'bssid']);
+
+type ManufacturerRouteParams = {
+  bssid: string;
+};
 
 const validateManufacturerNetworksQuery = validateQuery({
   limit: optional((value: any) =>
@@ -34,12 +39,15 @@ const validateManufacturerNetworksQuery = validateQuery({
  */
 router.get(
   '/manufacturer/:bssid',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request<ManufacturerRouteParams>, res: Response) => {
     const { bssid } = req.params;
 
     const bssidValidation = validateBSSID(bssid);
     if (!bssidValidation.valid) {
       return res.status(400).json({ error: bssidValidation.error });
+    }
+    if (!bssidValidation.cleaned) {
+      return res.status(400).json({ error: 'Invalid BSSID format' });
     }
 
     const prefix = bssidValidation.cleaned.replace(/:/g, '').substring(0, 6).toUpperCase();
@@ -71,12 +79,15 @@ router.get(
 router.get(
   '/manufacturer/:bssid/networks',
   validateManufacturerNetworksQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request<ManufacturerRouteParams>, res: Response) => {
     const { bssid } = req.params;
 
     const bssidValidation = validateBSSID(bssid);
     if (!bssidValidation.valid) {
       return res.status(400).json({ error: bssidValidation.error });
+    }
+    if (!bssidValidation.cleaned) {
+      return res.status(400).json({ error: 'Invalid BSSID format' });
     }
 
     const prefix = bssidValidation.cleaned.replace(/:/g, '').substring(0, 6).toUpperCase();

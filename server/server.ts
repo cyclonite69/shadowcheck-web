@@ -124,7 +124,8 @@ require('ts-node').register({
   } catch (err) {
     console.error(err); // PRINT STACK TRACE
     const logger = require('./src/logging/logger');
-    logger.error(`Fatal error starting server: ${err.message}`, { error: err });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger.error(`Fatal error starting server: ${errorMessage}`, { error: err });
     process.exit(1);
   }
 })();

@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Network Tags Routes
  * Manual network classification and tagging
@@ -21,12 +22,26 @@ const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
+type NetworkTagParams = {
+  bssid: string;
+};
+
+interface TaggedNetworkRow {
+  bssid: string;
+  ssid: string | null;
+  tag_type: string;
+  confidence: string;
+  notes: string | null;
+  tagged_at: string;
+  updated_at: string;
+}
+
 /**
  * GET /networks/tagged - List tagged networks
  */
 router.get(
   '/networks/tagged',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { tag_type } = req.query;
     const tagValidation = validateEnum(tag_type, VALID_TAG_TYPES, 'tag_type');
     if (!tagValidation.valid) {
@@ -68,7 +83,7 @@ router.get(
     res.json({
       ok: true,
       tag_type: tagValidation.value,
-      networks: rows.map((row) => ({
+      networks: rows.map((row: TaggedNetworkRow) => ({
         bssid: row.bssid,
         ssid: row.ssid || '<Hidden>',
         tag_type: row.tag_type,
@@ -90,7 +105,7 @@ router.get(
  */
 router.post(
   '/tag-network',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { bssid, tag_type, confidence, notes } = req.body;
 
     const bssidValidation = validateBSSID(bssid);
@@ -107,6 +122,9 @@ router.post(
 
     const confidenceValidation = validateConfidence(confidence);
     if (!confidenceValidation.valid) {
+      return res.status(400).json({ error: 'Confidence must be a number between 0 and 100' });
+    }
+    if (confidenceValidation.value === undefined) {
       return res.status(400).json({ error: 'Confidence must be a number between 0 and 100' });
     }
 
@@ -138,7 +156,7 @@ router.post(
  */
 router.delete(
   '/tag-network/:bssid',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request<NetworkTagParams>, res: Response) => {
     const { bssid } = req.params;
 
     const bssidValidation = validateMACAddress(bssid);
@@ -161,18 +179,18 @@ router.delete(
  */
 router.post(
   '/networks/tag-threats',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { bssids, reason } = req.body;
 
     const bssidListValidation = validateBSSIDList(bssids);
     if (!bssidListValidation.valid) {
       return res.status(400).json({ error: bssidListValidation.error });
     }
+    if (!bssidListValidation.value) {
+      return res.status(400).json({ error: 'At least one valid BSSID is required' });
+    }
 
-    if (
-      bssidListValidation.value &&
-      bssidListValidation.value.length > ROUTE_CONFIG.networks.maxBulkBssids
-    ) {
+    if (bssidListValidation.value.length > ROUTE_CONFIG.networks.maxBulkBssids) {
       return res
         .status(400)
         .json({ error: `Maximum ${ROUTE_CONFIG.networks.maxBulkBssids} BSSIDs allowed` });

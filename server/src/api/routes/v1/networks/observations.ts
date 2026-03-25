@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * Network Observations Routes
  * Observation data and WiGLE crowdsourced observations
@@ -10,12 +11,58 @@ import logger from '../../../../logging/logger';
 import { validateBSSID } from '../../../../validation/schemas';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
+type NetworkObservationsParams = {
+  bssid: string;
+};
+
+interface WigleObservationRow {
+  bssid: string;
+  lat: number;
+  lon: number;
+  time: number;
+  level: number | null;
+  ssid: string | null;
+  frequency: number | null;
+  channel: number | null;
+  encryption: string | null;
+  altitude: number | null;
+  accuracy: number | null;
+  is_matched: boolean;
+  distance_from_our_center_m: number | null;
+}
+
+interface WigleObservationResponse {
+  lat: number;
+  lon: number;
+  time: number;
+  level: number | null;
+  ssid: string | null;
+  frequency: number | null;
+  channel: number | null;
+  encryption: string | null;
+  altitude: number | null;
+  accuracy: number | null;
+  source: 'matched' | 'wigle_unique';
+  distance_from_our_center_m: number | null;
+}
+
+interface WigleBatchNetwork {
+  bssid: string;
+  observations: WigleObservationResponse[];
+  stats: {
+    wigle_total: number;
+    matched: number;
+    unique: number;
+    max_distance_m: number;
+  };
+}
+
 /**
  * GET /networks/observations/:bssid - Get all observations for a network
  */
 router.get(
   '/networks/observations/:bssid',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request<NetworkObservationsParams>, res: Response) => {
     const { bssid } = req.params;
     const bssidValidation = validateBSSID(bssid);
     if (!bssidValidation.valid) {
@@ -50,7 +97,7 @@ router.get(
  */
 router.get(
   '/networks/:bssid/wigle-observations',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request<NetworkObservationsParams>, res: Response) => {
     const { bssid } = req.params;
     const bssidValidation = validateBSSID(bssid);
     if (!bssidValidation.valid) {
@@ -71,17 +118,23 @@ router.get(
       });
     }
 
-    const result = await observationService.getWigleObservationsByBSSID(cleanBssid);
+    const result = (await observationService.getWigleObservationsByBSSID(
+      cleanBssid
+    )) as WigleObservationRow[];
 
     const total = result.length;
-    const matched = result.filter((r) => r.is_matched).length;
+    const matched = result.filter((r: WigleObservationRow) => r.is_matched).length;
     const unique = total - matched;
 
     const ourCount = await observationService.getOurObservationCount(cleanBssid);
 
-    const maxDistance = result.reduce((max, r) => {
+    const maxDistance = result.reduce((max: number, r: WigleObservationRow) => {
       // "Farthest" should reflect WiGLE-only sightings, not matched points.
-      if (!r.is_matched && r.distance_from_our_center_m && r.distance_from_our_center_m > max) {
+      if (
+        !r.is_matched &&
+        typeof r.distance_from_our_center_m === 'number' &&
+        r.distance_from_our_center_m > max
+      ) {
         return r.distance_from_our_center_m;
       }
       return max;
@@ -90,20 +143,22 @@ router.get(
     res.json({
       ok: true,
       bssid: cleanBssid,
-      observations: result.map((r) => ({
-        lat: r.lat,
-        lon: r.lon,
-        time: r.time,
-        level: r.level,
-        ssid: r.ssid,
-        frequency: r.frequency,
-        channel: r.channel,
-        encryption: r.encryption,
-        altitude: r.altitude,
-        accuracy: r.accuracy,
-        source: r.is_matched ? 'matched' : 'wigle_unique',
-        distance_from_our_center_m: r.distance_from_our_center_m,
-      })),
+      observations: result.map(
+        (r: WigleObservationRow): WigleObservationResponse => ({
+          lat: r.lat,
+          lon: r.lon,
+          time: r.time,
+          level: r.level,
+          ssid: r.ssid,
+          frequency: r.frequency,
+          channel: r.channel,
+          encryption: r.encryption,
+          altitude: r.altitude,
+          accuracy: r.accuracy,
+          source: r.is_matched ? 'matched' : 'wigle_unique',
+          distance_from_our_center_m: r.distance_from_our_center_m,
+        })
+      ),
       stats: {
         wigle_total: total,
         matched: matched,
@@ -120,17 +175,21 @@ router.get(
  */
 router.post(
   '/networks/wigle-observations/batch',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { bssids } = req.body;
 
     if (!Array.isArray(bssids) || bssids.length === 0) {
       return res.status(400).json({ error: 'bssids array is required' });
     }
 
-    const cleanBssids = [];
-    for (const bssid of bssids) {
+    const cleanBssids: string[] = [];
+    for (const bssid of bssids as unknown[]) {
+      if (typeof bssid !== 'string') {
+        continue;
+      }
+
       const validation = validateBSSID(bssid);
-      if (validation.valid) {
+      if (validation.valid && validation.cleaned) {
         cleanBssids.push(validation.cleaned);
       }
     }
@@ -150,9 +209,11 @@ router.post(
       });
     }
 
-    const result = await observationService.getWigleObservationsBatch(cleanBssids);
+    const result = (await observationService.getWigleObservationsBatch(
+      cleanBssids
+    )) as WigleObservationRow[];
 
-    const networkMap = new Map();
+    const networkMap = new Map<string, WigleBatchNetwork>();
     // Ensure selected networks are represented even when they have zero WiGLE rows.
     for (const bssid of cleanBssids) {
       const normalized = bssid.toUpperCase();
@@ -168,6 +229,10 @@ router.post(
     for (const row of result) {
       const bssid = row.bssid.toUpperCase();
       const network = networkMap.get(bssid);
+      if (!network) {
+        continue;
+      }
+
       network.observations.push({
         lat: row.lat,
         lon: row.lon,
@@ -190,7 +255,10 @@ router.post(
         network.stats.unique++;
         totalUnique++;
       }
-      if (row.distance_from_our_center_m > network.stats.max_distance_m) {
+      if (
+        typeof row.distance_from_our_center_m === 'number' &&
+        row.distance_from_our_center_m > network.stats.max_distance_m
+      ) {
         network.stats.max_distance_m = row.distance_from_our_center_m;
       }
     }

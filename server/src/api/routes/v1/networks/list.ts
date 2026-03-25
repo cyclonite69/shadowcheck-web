@@ -4,6 +4,7 @@
  */
 
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { networkService } = require('../../../../config/container');
@@ -37,7 +38,7 @@ const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 router.get(
   '/networks',
   cacheMiddleware(60),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const limitRaw = req.query.limit;
     const offsetRaw = req.query.offset;
     const threatLevelRaw = req.query.threat_level;
@@ -178,7 +179,8 @@ router.get(
 
     let lastSeen = null;
     if (lastSeenRaw !== undefined) {
-      const parsed = new Date(lastSeenRaw);
+      const lastSeenValue = Array.isArray(lastSeenRaw) ? lastSeenRaw[0] : lastSeenRaw;
+      const parsed = new Date(String(lastSeenValue));
       if (Number.isNaN(parsed.getTime())) {
         return res.status(400).json({ error: 'Invalid last_seen parameter.' });
       }
@@ -288,7 +290,7 @@ router.get(
     if (radioTypesRaw !== undefined) {
       const values = parseCommaList(radioTypesRaw, 20);
       if (values && values.length > 0) {
-        radioTypes = values.map((value) => value.toUpperCase());
+        radioTypes = values.map((value: string) => value.toUpperCase());
       }
     }
 

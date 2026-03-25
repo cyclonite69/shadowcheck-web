@@ -1,15 +1,20 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { adminUsersService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
+
+type UserRouteParams = {
+  id: string;
+};
 
 function parseUserId(param: string): number | null {
   const id = Number.parseInt(param, 10);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-router.get('/', async (_req, res) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
     const users = await adminUsersService.listUsers();
     res.json({ success: true, users });
@@ -19,7 +24,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const { username, email, password, role = 'user', forcePasswordChange = false } = req.body;
 
@@ -52,7 +57,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id/active', async (req, res) => {
+router.put('/:id/active', async (req: Request<UserRouteParams>, res: Response) => {
   try {
     const userId = parseUserId(req.params.id);
     const { isActive } = req.body;
@@ -81,7 +86,7 @@ router.put('/:id/active', async (req, res) => {
   }
 });
 
-router.put('/:id/password', async (req, res) => {
+router.put('/:id/password', async (req: Request<UserRouteParams>, res: Response) => {
   try {
     const userId = parseUserId(req.params.id);
     const { password, forcePasswordChange = true } = req.body;

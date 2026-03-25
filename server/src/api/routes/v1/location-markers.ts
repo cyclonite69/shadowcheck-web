@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { homeLocationService } = require('../../../config/container');
@@ -7,7 +8,7 @@ const { asyncHandler } = require('../../../utils/asyncHandler');
 // Get all location markers
 router.get(
   '/location-markers',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const markers = await homeLocationService.getAllLocationMarkers();
     res.json({ ok: true, markers });
   })
@@ -16,7 +17,7 @@ router.get(
 // Get home location
 router.get(
   '/location-markers/home',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const marker = await homeLocationService.getHomeLocationMarker();
     res.json({ ok: true, marker: marker || null });
   })
@@ -25,7 +26,7 @@ router.get(
 // Set home location (replaces existing for this device)
 router.post(
   '/location-markers/home',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { latitude, longitude, altitude_gps, altitude_baro, device_id, device_type } = req.body;
 
     if (!latitude || !longitude) {
@@ -63,14 +64,14 @@ router.post(
 // Delete home location
 router.delete(
   '/location-markers/home',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     await homeLocationService.deleteHomeLocation();
     res.json({ ok: true });
   })
 );
 
 // TEST endpoint
-router.get('/test-location', async (req, res) => {
+router.get('/test-location', async (req: Request, res: Response) => {
   res.json({ message: 'Location routes working!' });
 });
 

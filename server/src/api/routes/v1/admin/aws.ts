@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../../logging/logger');
@@ -67,7 +68,7 @@ const isAccessDeniedError = (error: any) => {
   );
 };
 
-router.get('/admin/aws/overview', async (req, res) => {
+router.get('/admin/aws/overview', async (req: Request, res: Response) => {
   try {
     const { region } = await getAwsConfig();
     if (!region) {

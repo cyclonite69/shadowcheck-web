@@ -9,6 +9,7 @@ import {
   type EnabledFlags,
   type QueryResult,
   type FilterQueryResult,
+  type ParseValidatedFiltersResult,
   type NetworkRow,
   type GeospatialRow,
   DEBUG_GEOSPATIAL,
@@ -69,7 +70,7 @@ const applyEffectiveThreat = <T extends { is_ignored?: unknown; threat?: unknown
 const parseAndValidateBodyFilters = (
   body: unknown,
   validateFilterPayload: (filters: Filters, enabled: EnabledFlags) => { errors: string[] }
-) => {
+): ParseValidatedFiltersResult => {
   const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
   const filters = (payload.filters as Filters | undefined) ?? {};
   const enabled = (payload.enabled as EnabledFlags | undefined) ?? {};
@@ -399,7 +400,7 @@ router.post(
     }
     const { filters, enabled } = parsed;
 
-    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+    if (!(await assertHomeExistsIfNeeded(enabled as EnabledFlags, res))) {
       return;
     }
 
@@ -417,8 +418,8 @@ router.post(
 
     res.json(
       await buildFilteredObservationsResponse(
-        filters,
-        enabled,
+        filters as Filters,
+        enabled as EnabledFlags,
         limit,
         selectedBssids,
         resolveBodyPageType(req.body)
@@ -435,13 +436,17 @@ router.get(
     if (isParseValidatedFiltersError(parsed)) {
       return res.status(parsed.status).json(parsed.body);
     }
-    const { filters, enabled } = parsed;
+    const { filters = {}, enabled = {} } = parsed;
 
-    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+    if (!(await assertHomeExistsIfNeeded(enabled as EnabledFlags, res))) {
       return;
     }
 
-    const analytics = await getFilteredAnalytics(filters, enabled, resolvePageType(req));
+    const analytics = await getFilteredAnalytics(
+      filters as Filters,
+      enabled as EnabledFlags,
+      resolvePageType(req)
+    );
 
     res.json({
       ok: true,
