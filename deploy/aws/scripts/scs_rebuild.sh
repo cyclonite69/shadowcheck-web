@@ -19,6 +19,7 @@ cd "$APP_DIR"
 SCS_ENV="$HOME/.shadowcheck-env"
 PGADMIN_READY=0
 ENABLE_GRAFANA_MONITORING="${ENABLE_GRAFANA_MONITORING:-true}"
+SCS_SKIP_CLEANUP="${SCS_SKIP_CLEANUP:-false}"
 
 wait_for_container_health() {
   local container="$1"
@@ -51,27 +52,36 @@ wait_for_container_health() {
   return 1
 }
 
+cleanup_docker_artifacts() {
+  if [ "$SCS_SKIP_CLEANUP" = "true" ]; then
+    echo "  ⚠️ Skipping Docker cleanup (SCS_SKIP_CLEANUP=true)"
+    return 0
+  fi
+
+  docker system prune -f 2>/dev/null || true
+  docker image prune -a -f --filter "until=24h" 2>/dev/null || true
+}
+
 echo "=== scs_rebuild ==="
 
-# 0. Clean up old Docker artifacts to prevent disk fill
-echo "[0/7] Cleaning up old Docker artifacts..."
-docker system prune -f 2>/dev/null || true
-docker image prune -a -f --filter "until=24h" 2>/dev/null || true
-echo "  Disk usage: $(df -h / | awk 'NR==2{print $5, "used,", $4, "free"}')"
-
-# 1. Pull latest
-echo "[1/7] Pulling latest..."
+# 1. Pull latest first, so we only spend time rebuilding/cleaning after fetch succeeds.
+echo "[1/8] Pulling latest..."
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "  Detected branch: $CURRENT_BRANCH"
 git pull origin "$CURRENT_BRANCH"
 
-# 2. Build images (--no-cache ensures code changes are picked up)
-echo "[2/7] Building images..."
+# 2. Clean up old Docker artifacts to prevent disk fill before no-cache builds.
+echo "[2/8] Cleaning up old Docker artifacts..."
+cleanup_docker_artifacts
+echo "  Disk usage: $(df -h / | awk 'NR==2{print $5, \"used,\", $4, \"free\"}')"
+
+# 3. Build images (--no-cache ensures code changes are picked up)
+echo "[3/8] Building images..."
 docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
-# 3. Ensure infrastructure is running
-echo "[3/7] Ensuring infrastructure is running..."
+# 4. Ensure infrastructure is running
+echo "[4/8] Ensuring infrastructure is running..."
 if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis || ! docker ps | grep -q shadowcheck_pgadmin; then
   echo "  Starting/Updating Infrastructure (PostgreSQL, Redis, PgAdmin)..."
   sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
@@ -111,8 +121,8 @@ else
   echo "  ⚠️ Skipping pgAdmin health check"
 fi
 
-# 4. Build env
-echo "[4/7] Preparing environment..."
+# 5. Build env
+echo "[5/8] Preparing environment..."
 ENV_FILE=$(mktemp)
 
 # Build env — secrets come from AWS Secrets Manager at runtime, not env vars
@@ -152,8 +162,8 @@ if [ -f "$SCS_ENV" ]; then
   echo "  Loaded overrides from $SCS_ENV"
 fi
 
-# 4. Stop, remove, restart
-echo "[5/7] Restarting containers..."
+# 6. Stop, remove, restart
+echo "[6/8] Restarting containers..."
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
@@ -177,10 +187,20 @@ for OLD_PATH in $OLD_PATHS; do
   fi
 done
 
-# Ensure pgAdmin compatible symlink exists (it expects .cert, we generate .crt)
+# Repair older regression where server.key was accidentally rewritten as a self-referential symlink.
+# If detected, remove it so frontend startup can generate a fresh keypair once and persist it.
+if sudo [ -L "$CERTS_DIR_WEB/server.key" ]; then
+  KEY_TARGET="$(sudo readlink "$CERTS_DIR_WEB/server.key" 2>/dev/null || true)"
+  if [ "$KEY_TARGET" = "server.key" ]; then
+    echo "  🛠️ Repairing broken self-referential server.key symlink..."
+    sudo rm -f "$CERTS_DIR_WEB/server.key"
+  fi
+fi
+
+# Ensure pgAdmin-compatible cert alias exists (it expects .cert, we generate .crt)
+# IMPORTANT: never rewrite server.key as a symlink (that can break nginx TLS startup).
 if sudo [ -f "$CERTS_DIR_WEB/server.crt" ] && ! sudo [ -L "$CERTS_DIR_WEB/server.cert" ]; then
   sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
-  sudo ln -sf server.key "$CERTS_DIR_WEB/server.key" # for consistency
 fi
 
 # Verify creation before chmod to avoid "No such file or directory" errors
@@ -242,8 +262,8 @@ rm -f "$ENV_FILE"
 wait_for_container_health shadowcheck_backend 90
 wait_for_container_health shadowcheck_frontend 60
 
-# 5. Run database bootstrap + migrations
-echo "[6/7] Running database bootstrap & migrations..."
+# 7. Run database bootstrap + migrations
+echo "[7/8] Running database bootstrap & migrations..."
 
 # Create /sql/ in postgres container and copy files (clean first to remove stale files)
 docker exec shadowcheck_postgres rm -rf /sql/migrations
@@ -283,9 +303,8 @@ docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD'
 # Clear passwords from shell
 unset DB_ADMIN_PASSWORD DB_USER_PASSWORD SECRET_JSON
 
-# 6. Health check
-# 7. Ensure Grafana monitoring secrets / role / container
-echo "[7/8] Syncing Grafana monitoring..."
+# 8. Ensure Grafana monitoring secrets / role / container
+echo "[8/8] Syncing Grafana monitoring..."
 if [ "$ENABLE_GRAFANA_MONITORING" = "true" ]; then
   SECRET_JSON=$(aws secretsmanager get-secret-value \
     --secret-id shadowcheck/config --region us-east-1 \
@@ -310,8 +329,8 @@ fi
 
 unset GRAFANA_ADMIN_PASSWORD GRAFANA_READER_PASSWORD
 
-# 8. Health check
-echo "[8/8] Verifying deployment..."
+# Final health check
+echo "[final] Verifying deployment..."
 sleep 3
 
 # Check containers are running
