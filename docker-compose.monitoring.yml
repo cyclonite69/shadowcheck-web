@@ -15,12 +15,15 @@ services:
       - GF_SERVER_HTTP_PORT=${GF_SERVER_HTTP_PORT:-3002}
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-true}
       - GRAFANA_READER_PASSWORD=${GRAFANA_READER_PASSWORD:?Set GRAFANA_READER_PASSWORD from AWS Secrets Manager before starting Grafana}
+      # Database connection for provisioned datasource (postgres.yml)
+      - DB_HOST=localhost
+      - DB_PORT=5432
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards/tactical
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3002/api/health >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:3002/api/health >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
