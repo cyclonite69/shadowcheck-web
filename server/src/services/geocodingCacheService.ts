@@ -333,7 +333,7 @@ const loadRecentJobHistory = async (): Promise<GeocodingRunSnapshot[]> => {
   `
   );
 
-  return result.rows.map((row) => ({
+  return result.rows.map((row: any) => ({
     id: Number(row.id),
     status: row.status,
     provider: row.provider,

@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import * as dotenv from 'dotenv';
 import { Pool, PoolClient } from 'pg';
+import logger from '../server/src/logging/logger';
 
 dotenv.config();
 
@@ -85,7 +86,7 @@ function determineThreatLevel(score: number): string {
 async function scoreAll(): Promise<void> {
   const client: PoolClient = await pool.connect();
   try {
-    console.log('Starting full scoring run...');
+    logger.info('Starting full scoring run...');
 
     // 1. Load Model
     const modelResult = await client.query<ModelRow>(
@@ -95,7 +96,7 @@ async function scoreAll(): Promise<void> {
     );
 
     if (modelResult.rows.length === 0) {
-      console.error('No model found!');
+      logger.error('No model found!');
       return;
     }
 

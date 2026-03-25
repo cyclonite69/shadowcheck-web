@@ -58,7 +58,7 @@ async function getNetworkTypes(): Promise<{ type: string; count: number }[]> {
       ORDER BY count DESC
     `);
 
-    return rows.map((row) => ({
+    return rows.map((row: NetworkTypeRow) => ({
       type: row.network_type,
       count: parseInt(row.count),
     }));
@@ -94,7 +94,7 @@ async function getSecurityDistribution(): Promise<{ type: string; count: number 
       ORDER BY count DESC
     `);
 
-    return rows.map((row) => ({
+    return rows.map((row: SecurityRow) => ({
       type: row.security_type,
       count: parseInt(row.count),
     }));
@@ -136,7 +136,7 @@ async function getTopNetworks(limit = 100): Promise<
       [limit]
     );
 
-    return rows.map((row) => ({
+    return rows.map((row: TopNetworkRow) => ({
       bssid: row.bssid,
       ssid: row.ssid || '<Hidden>',
       type: row.type,

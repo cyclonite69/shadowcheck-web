@@ -29,9 +29,9 @@ describeIfIntegration('Observability Integration', () => {
     test.skip('requires RUN_INTEGRATION_TESTS', () => {});
     return;
   }
-  let app;
-  let pool;
-  let secretsManager;
+  let app: any;
+  let pool: any;
+  let secretsManager: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -55,7 +55,7 @@ describeIfIntegration('Observability Integration', () => {
     app.use(healthRoutes);
 
     // Test route to verify request ID
-    app.get('/test', (req, res) => {
+    app.get('/test', (req: any, res: any) => {
       res.json({
         requestId: req.requestId,
         hasStartTime: Boolean(req.startTime),
@@ -139,7 +139,7 @@ describeIfIntegration('Observability Integration', () => {
     });
 
     test('returns degraded when mapbox token missing', async () => {
-      secretsManager.has.mockImplementation((key) => key === 'db_password');
+      secretsManager.has.mockImplementation((key: string) => key === 'db_password');
 
       const response = await request(app).get('/health');
 

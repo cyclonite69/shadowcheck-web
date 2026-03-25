@@ -9,6 +9,7 @@
  */
 
 import * as dotenv from 'dotenv';
+import logger from '../server/src/logging/logger';
 
 dotenv.config();
 
@@ -25,7 +26,7 @@ async function main(): Promise<void> {
     (await secretsManager.getSecret('smarty_auth_token')) || process.env.SMARTY_AUTH_TOKEN;
 
   if (!authId || !authToken) {
-    console.error('Missing Smarty credentials (smarty_auth_id / smarty_auth_token).');
+    logger.error('Missing Smarty credentials (smarty_auth_id / smarty_auth_token).');
     process.exit(2);
   }
 
@@ -40,16 +41,16 @@ async function main(): Promise<void> {
   const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
   const body = await res.text().catch(() => '');
 
-  console.log(`Smarty US Street API status: ${res.status}`);
+  logger.info(`Smarty US Street API status: ${res.status}`);
   if (!res.ok) {
-    console.log(body.slice(0, 300));
+    logger.info(body.slice(0, 300));
     process.exit(1);
   }
 }
 
 if (require.main === module) {
   main().catch((e) => {
-    console.error(e?.message || String(e));
+    logger.error(e?.message || String(e));
     process.exit(1);
   });
 }

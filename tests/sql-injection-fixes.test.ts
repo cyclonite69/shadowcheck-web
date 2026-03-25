@@ -32,7 +32,7 @@ const testIfGetPaginated = hasGetPaginated ? test : test.skip;
 
 describe('SQL Injection Prevention', () => {
   describe('BaseRepository.findMany() - ORDER BY Validation', () => {
-    let repo;
+    let repo: any;
 
     beforeEach(() => {
       repo = new BaseRepository('app.networks');
@@ -91,7 +91,7 @@ describe('SQL Injection Prevention', () => {
   });
 
   describeIfGetPaginated('NetworkRepository.getPaginated() - Sort Validation', () => {
-    let repo;
+    let repo: any;
 
     beforeEach(() => {
       repo = new NetworkRepository();
@@ -141,7 +141,7 @@ describe('SQL Injection Prevention', () => {
   });
 
   describe('NetworkRepository.getDashboardMetrics() - Config Parameterization', () => {
-    let repo;
+    let repo: any;
 
     beforeEach(() => {
       repo = new NetworkRepository();
@@ -239,7 +239,7 @@ describe('SQL Injection Prevention', () => {
       await repo.getDashboardMetrics();
 
       // Verify no query contains ${
-      query.mock.calls.forEach(([sql]) => {
+      query.mock.calls.forEach(([sql]: any) => {
         expect(sql).not.toContain('${');
       });
     });

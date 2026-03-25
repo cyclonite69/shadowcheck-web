@@ -1,5 +1,6 @@
 import { Pool, QueryResult } from 'pg';
 import secretsManager from '../server/src/services/secretsManager';
+import logger from '../server/src/logging/logger';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -41,9 +42,9 @@ async function updateHome(): Promise<void> {
   const result: QueryResult<HomeLocationRow> = await pool.query(
     "SELECT device_id, device_type, latitude, longitude FROM app.location_markers WHERE marker_type='home'"
   );
-  console.log('Home location:', result.rows);
+  logger.info(`Home location: ${JSON.stringify(result.rows)}`);
 
   await pool.end();
 }
 
-updateHome().catch(console.error);
+updateHome().catch((err) => logger.error(err instanceof Error ? err.message : String(err)));

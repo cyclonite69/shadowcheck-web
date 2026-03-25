@@ -246,7 +246,7 @@ async function runSiblingRefreshJob(
         (SELECT MAX(bssid)::text FROM seeds) AS next_cursor
     `;
 
-    const result = await adminQuery(chunkSql, [
+    const result: any = await adminQuery(chunkSql, [
       normalized.batchSize,
       cursor,
       normalized.maxOctetDelta,

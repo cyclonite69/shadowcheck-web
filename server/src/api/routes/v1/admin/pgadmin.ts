@@ -7,7 +7,7 @@ const { isDockerControlEnabled, getPgAdminStatus, startPgAdmin, stopPgAdmin, des
 
 export {};
 
-router.get('/admin/pgadmin/status', async (req, res) => {
+router.get('/admin/pgadmin/status', async (req: any, res: any) => {
   try {
     const status = await getPgAdminStatus();
     res.json({
@@ -15,7 +15,7 @@ router.get('/admin/pgadmin/status', async (req, res) => {
       enabled: isDockerControlEnabled(),
       ...status,
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[PgAdmin] Failed to get status', { error: err?.message });
     res.status(500).json({
       ok: false,
@@ -25,7 +25,7 @@ router.get('/admin/pgadmin/status', async (req, res) => {
   }
 });
 
-router.post('/admin/pgadmin/start', async (req, res) => {
+router.post('/admin/pgadmin/start', async (req: any, res: any) => {
   if (!isDockerControlEnabled()) {
     return res.status(403).json({
       ok: false,
@@ -43,7 +43,7 @@ router.post('/admin/pgadmin/start', async (req, res) => {
       message: reset ? 'PgAdmin reset and started' : 'PgAdmin started',
       ...result,
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[PgAdmin] Failed to start', { error: err?.message });
     res.status(500).json({
       ok: false,
@@ -52,7 +52,7 @@ router.post('/admin/pgadmin/start', async (req, res) => {
   }
 });
 
-router.post('/admin/pgadmin/stop', async (req, res) => {
+router.post('/admin/pgadmin/stop', async (req: any, res: any) => {
   if (!isDockerControlEnabled()) {
     return res.status(403).json({
       ok: false,
@@ -67,7 +67,7 @@ router.post('/admin/pgadmin/stop', async (req, res) => {
       message: 'PgAdmin stopped',
       ...result,
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[PgAdmin] Failed to stop', { error: err?.message });
     res.status(500).json({
       ok: false,
@@ -76,7 +76,7 @@ router.post('/admin/pgadmin/stop', async (req, res) => {
   }
 });
 
-router.post('/admin/pgadmin/destroy', async (req, res) => {
+router.post('/admin/pgadmin/destroy', async (req: any, res: any) => {
   if (!isDockerControlEnabled()) {
     return res.status(403).json({
       ok: false,
@@ -96,7 +96,7 @@ router.post('/admin/pgadmin/destroy', async (req, res) => {
         : 'PgAdmin container destroyed',
       ...result,
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[PgAdmin] Failed to destroy', { error: err?.message });
     res.status(500).json({
       ok: false,

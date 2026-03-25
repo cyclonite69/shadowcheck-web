@@ -24,6 +24,20 @@ const logger = require('../../../../logging/logger');
 
 export {};
 
+// SQLite magic bytes: "SQLite format 3\0" (first 16 bytes)
+const SQLITE_MAGIC = Buffer.from('53514c69746520666f726d61742033', 'hex');
+
+async function validateSQLiteMagic(filePath: string): Promise<boolean> {
+  const fd = await fs.open(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(15);
+    const { bytesRead } = await fd.read(buf, 0, 15, 0);
+    return bytesRead === 15 && buf.equals(SQLITE_MAGIC);
+  } finally {
+    await fd.close();
+  }
+}
+
 const upload = multer({
   dest: '/tmp/',
   fileFilter: (req: any, file: any, cb: any) => {
@@ -134,6 +148,14 @@ router.post(
   async (req: any, res: any, next: any) => {
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'No SQLite file uploaded' });
+    }
+
+    const isSQLiteFile = await validateSQLiteMagic(req.file.path).catch(() => false);
+    if (!isSQLiteFile) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res
+        .status(400)
+        .json({ ok: false, error: 'Uploaded file is not a valid SQLite database' });
     }
 
     const rawTag = (req.body?.source_tag || '') as string;

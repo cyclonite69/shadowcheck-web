@@ -125,7 +125,10 @@ class BackgroundJobsService {
 
       this.lastConfig = configs;
     } catch (error) {
-      logger.error('[Background Jobs] Failed to reschedule jobs from database:', error.message);
+      logger.error(
+        '[Background Jobs] Failed to reschedule jobs from database:',
+        (error as Error).message
+      );
     }
   }
 
@@ -243,8 +246,10 @@ class BackgroundJobsService {
             logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
             await query(sql);
           } catch (error) {
-            failures.push({ view: view.name, error: error.message });
-            logger.error(`[MV Refresh Job] Failed to refresh ${view.name}: ${error.message}`);
+            failures.push({ view: view.name, error: (error as Error).message });
+            logger.error(
+              `[MV Refresh Job] Failed to refresh ${view.name}: ${(error as Error).message}`
+            );
           }
         }
 
@@ -368,7 +373,9 @@ class BackgroundJobsService {
               manual_tag: tag ? tag.tag : null,
             });
           } catch (netError) {
-            logger.debug(`[ML Scoring Job] Error scoring ${net.bssid}: ${netError.message}`);
+            logger.debug(
+              `[ML Scoring Job] Error scoring ${net.bssid}: ${(netError as Error).message}`
+            );
           }
         }
 

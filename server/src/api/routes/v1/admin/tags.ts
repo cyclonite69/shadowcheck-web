@@ -11,7 +11,7 @@ const logger = require('../../../../logging/logger');
 const { validateString, validateIntegerRange } = require('../../../../validation/schemas');
 
 // POST /api/admin/network-tags/toggle - Toggle tag on/off (add if missing, remove if present)
-router.post('/admin/network-tags/toggle', async (req, res, next) => {
+router.post('/admin/network-tags/toggle', async (req: any, res: any, next: any) => {
   try {
     const { bssid, tag, notes } = req.body;
 
@@ -48,7 +48,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
         // Remove tag
         await adminNetworkTagsService.removeTagFromNetwork(bssid, tag);
         action = 'removed';
-        _newTags = currentTags.filter((t) => t !== tag);
+        _newTags = currentTags.filter((t: any) => t !== tag);
       } else {
         // Add tag
         await adminNetworkTagsService.addTagToNetwork(bssid, tag, notes);
@@ -66,14 +66,14 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
       message: `Tag '${tag}' ${action} ${action === 'added' ? 'to' : 'from'} network ${bssid}`,
       network: result.rows[0],
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Toggle tag error: ${error.message}`);
     next(error);
   }
 });
 
 // DELETE /api/admin/network-tags/remove - Remove tag from network
-router.delete('/admin/network-tags/remove', async (req, res, next) => {
+router.delete('/api/admin/network-tags/remove', async (req: any, res: any, next: any) => {
   try {
     const { bssid, tag } = req.body;
 
@@ -94,14 +94,14 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
       message: `Tag '${tag}' removed from network ${bssid}`,
       network: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Remove tag error: ${error.message}`);
     next(error);
   }
 });
 
 // GET /api/admin/network-tags/:bssid - Get all tags for a network
-router.get('/admin/network-tags/:bssid', async (req, res, next) => {
+router.get('/admin/network-tags/:bssid', async (req: any, res: any, next: any) => {
   try {
     const { bssid } = req.params;
 
@@ -117,13 +117,13 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
       ok: true,
       network: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
 
 // GET /api/admin/network-tags/search - Search networks by tags
-router.get('/admin/network-tags/search', async (req, res, next) => {
+router.get('/admin/network-tags/search', async (req: any, res: any, next: any) => {
   try {
     const { tags, limit = 50 } = req.query;
 
@@ -136,7 +136,7 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
 
     const tagArray = String(tags)
       .split(',')
-      .map((t) => t.trim())
+      .map((t: any) => t.trim())
       .filter(Boolean);
     if (tagArray.length === 0) {
       return res.status(400).json({
@@ -161,7 +161,7 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
       networks: result,
       count: result.length,
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });

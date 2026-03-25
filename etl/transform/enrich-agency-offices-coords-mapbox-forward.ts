@@ -305,17 +305,15 @@ async function main(): Promise<void> {
           [row.id, result.lat, result.lon, JSON.stringify(meta)]
         );
 
-        if (updateRes.rowCount > 0) {
+        if ((updateRes.rowCount ?? 0) > 0) {
           updated += 1;
         }
       } catch (e) {
         const msg = String((e as Error)?.message || e);
         if (msg.includes('rate_limit')) {
           await sleep(1500);
-          failed += 1;
-        } else {
-          failed += 1;
         }
+        failed += 1;
       } finally {
         await sleep(options.sleepMs);
       }

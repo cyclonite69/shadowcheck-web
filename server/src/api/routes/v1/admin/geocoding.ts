@@ -8,12 +8,12 @@ export {};
 
 const router = express.Router();
 
-router.get('/admin/geocoding/stats', async (req, res) => {
+router.get('/admin/geocoding/stats', async (req: any, res: any) => {
   try {
     const precision = Number.parseInt(req.query.precision, 10) || 5;
     const stats = await getGeocodingCacheStats(precision);
     res.json({ ok: true, stats });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[Geocoding] Failed to load stats', { error: err?.message });
     res.status(500).json({
       ok: false,
@@ -22,7 +22,7 @@ router.get('/admin/geocoding/stats', async (req, res) => {
   }
 });
 
-router.post('/admin/geocoding/run', async (req, res) => {
+router.post('/admin/geocoding/run', async (req: any, res: any) => {
   try {
     const {
       provider = 'mapbox',
@@ -57,7 +57,7 @@ router.post('/admin/geocoding/run', async (req, res) => {
       message: 'Geocoding job started in background',
       options,
     });
-  } catch (err) {
+  } catch (err: any) {
     if (err?.message === 'job_already_running') {
       return res.status(409).json({
         ok: false,
@@ -79,7 +79,7 @@ router.post('/admin/geocoding/run', async (req, res) => {
   }
 });
 
-router.post('/admin/geocoding/test', async (req, res) => {
+router.post('/admin/geocoding/test', async (req: any, res: any) => {
   try {
     const {
       provider = 'locationiq',
@@ -100,7 +100,7 @@ router.post('/admin/geocoding/test', async (req, res) => {
     });
 
     res.json({ ok: true, result });
-  } catch (err) {
+  } catch (err: any) {
     if (typeof err?.message === 'string' && err.message.startsWith('missing_key:')) {
       const provider = err.message.split(':')[1] || 'provider';
       return res.status(400).json({

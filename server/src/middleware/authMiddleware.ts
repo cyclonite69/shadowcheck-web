@@ -6,7 +6,7 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 const authService = require('../services/authService');
 const logger = require('../logging/logger');
 
-// Extend Express Request to include user
+// Extend Express Request to include user, request ID, and scoped logger
 declare global {
   namespace Express {
     interface Request {
@@ -15,6 +15,9 @@ declare global {
         username: string;
         role: string;
       };
+      id?: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      logger?: any;
     }
   }
 }

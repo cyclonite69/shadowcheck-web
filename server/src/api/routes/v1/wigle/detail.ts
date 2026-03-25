@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * WiGLE Detail & Import Routes
  * WiGLE API detail lookups and file imports
@@ -279,7 +280,7 @@ router.post(
 router.post(
   '/import/v3',
   requireAdmin,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     if (!req.files || !(req.files as any).file) {
       return res.status(400).json({ ok: false, error: 'No file uploaded' });
     }

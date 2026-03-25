@@ -45,7 +45,7 @@ async function getThreatDistribution(): Promise<{ range: string; count: number }
       ORDER BY range DESC
     `);
 
-    return rows.map((row) => ({
+    return rows.map((row: ThreatDistributionRow) => ({
       range: row.range,
       count: parseInt(row.count),
     }));
@@ -116,7 +116,7 @@ async function getThreatTrends(
       [range, minTimestamp]
     );
 
-    return rows.map((row) => ({
+    return rows.map((row: ThreatTrendRow) => ({
       date: row.date,
       avgScore: row.avg_score,
       criticalCount: parseInt(row.critical_count) || 0,

@@ -3,26 +3,24 @@
  * Uses shadowcheck_admin credentials for sensitive administrative operations
  */
 
-const { Pool } = require('pg');
-const secretsManager = require('./secretsManager').default;
-const logger = require('../logging/logger');
-
-export {};
+import { Pool, QueryResult } from 'pg';
+import secretsManager from './secretsManager';
+import logger from '../logging/logger';
 
 // Admin connection settings
 const DB_ADMIN_USER = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
 const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
 const DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
-const DB_PORT = parseInt(process.env.DB_PORT, 10) || 5432;
+const DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
 const DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-web'}-admin`;
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 
-let adminPool = null;
+let adminPool: Pool | null = null;
 
 /**
  * Initialize the admin connection pool
  */
-function getAdminPool() {
+function getAdminPool(): Pool | null {
   if (adminPool) {
     return adminPool;
   }
@@ -46,10 +44,16 @@ function getAdminPool() {
     statement_timeout: 300000, // 5 minutes for heavy admin tasks
     application_name: DB_APP_NAME,
     options: `-c search_path=${DB_SEARCH_PATH}`,
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    ssl:
+      process.env.DB_SSL === 'true'
+        ? {
+            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+            ca: process.env.DB_SSL_CA || undefined,
+          }
+        : false,
   });
 
-  adminPool.on('error', (err) => {
+  adminPool.on('error', (err: Error) => {
     logger.error(`Unexpected error on admin pool idle client: ${err.message}`, { error: err });
   });
 
@@ -60,9 +64,9 @@ function getAdminPool() {
  * Administrative query wrapper
  * @param {string} text - SQL query
  * @param {Array} params - Query parameters
- * @returns {Promise<Object>} Query result
+ * @returns {Promise<QueryResult<any>>} Query result
  */
-async function adminQuery(text, params = []) {
+async function adminQuery(text: string, params: any[] = []): Promise<QueryResult<any>> {
   const pool = getAdminPool();
   if (!pool) {
     throw new Error('Admin database pool not initialized (check DB_ADMIN_PASSWORD)');
@@ -82,7 +86,9 @@ async function closeAdminPool() {
   }
 }
 
-module.exports = {
+export { adminQuery, getAdminPool, closeAdminPool };
+
+export default {
   adminQuery,
   getAdminPool,
   closeAdminPool,

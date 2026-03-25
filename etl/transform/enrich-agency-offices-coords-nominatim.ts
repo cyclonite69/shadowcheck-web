@@ -341,7 +341,7 @@ async function main(): Promise<void> {
           [row.id, lat, lon, JSON.stringify(meta)]
         );
 
-        if (updateRes.rowCount > 0) {
+        if ((updateRes.rowCount ?? 0) > 0) {
           updated += 1;
         }
       } catch (e) {
@@ -387,7 +387,7 @@ async function main(): Promise<void> {
                   `,
                   [row.id, lat, lon, JSON.stringify(meta)]
                 );
-                if (updateRes.rowCount > 0) updated += 1;
+                if ((updateRes.rowCount ?? 0) > 0) updated += 1;
               }
             }
           } catch {

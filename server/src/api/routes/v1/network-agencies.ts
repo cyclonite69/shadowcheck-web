@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { agencyService } = require('../../../config/container');
@@ -10,9 +11,9 @@ const { asyncHandler } = require('../../../utils/asyncHandler');
  */
 router.get(
   '/nearest-agencies/:bssid',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { bssid } = req.params;
-    const radius = parseFloat(req.query.radius) || 250; // Default 250km
+    const radius = parseFloat(req.query.radius as string) || 250; // Default 250km
 
     const agencies = await agencyService.getNearestAgenciesToNetwork(bssid, radius);
 
@@ -32,14 +33,14 @@ router.get(
  */
 router.post(
   '/nearest-agencies/batch',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { bssids } = req.body;
 
     if (!Array.isArray(bssids) || bssids.length === 0) {
       return res.status(400).json({ error: 'bssids array is required' });
     }
 
-    const radius = parseFloat(req.query.radius) || 250; // Default 250km
+    const radius = parseFloat(req.query.radius as string) || 250; // Default 250km
 
     // Convert all BSSIDs to uppercase for consistent matching
     const upperBssids = bssids.map((b) => String(b).toUpperCase());

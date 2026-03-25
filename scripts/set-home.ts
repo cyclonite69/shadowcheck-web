@@ -6,6 +6,7 @@
 
 import * as dotenv from 'dotenv';
 import { Pool } from 'pg';
+import logger from '../server/src/logging/logger';
 import secretsManager from '../server/src/services/secretsManager';
 
 dotenv.config();
@@ -14,8 +15,8 @@ const lat = parseFloat(process.argv[2]);
 const lng = parseFloat(process.argv[3]);
 
 if (isNaN(lat) || isNaN(lng)) {
-  console.error('Usage: node set-home.js <latitude> <longitude>');
-  console.error('Example: node set-home.js 43.0234 -83.6968');
+  logger.error('Usage: node set-home.js <latitude> <longitude>');
+  logger.error('Example: node set-home.js 43.0234 -83.6968');
   process.exit(1);
 }
 
@@ -40,11 +41,11 @@ if (isNaN(lat) || isNaN(lng)) {
       [lat, lng]
     );
 
-    console.log('✓ Home location set successfully');
-    console.log(`  Latitude: ${lat}`);
-    console.log(`  Longitude: ${lng}`);
+    logger.info('✓ Home location set successfully');
+    logger.info(`  Latitude: ${lat}`);
+    logger.info(`  Longitude: ${lng}`);
   } catch (error) {
-    console.error('✗ Failed to set home location:', (error as Error).message);
+    logger.error('✗ Failed to set home location:', (error as Error).message);
   }
 
   await pool.end();

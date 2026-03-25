@@ -9,11 +9,11 @@ const logger = require('../../../../logging/logger');
  * GET /api/admin/settings
  * Get all settings
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req: any, res: any) => {
   try {
     const rows = await settingsAdminService.getAllSettings();
-    const settings = {};
-    rows.forEach((row) => {
+    const settings: any = {};
+    rows.forEach((row: any) => {
       settings[row.key] = {
         value: row.value,
         description: row.description,
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
       };
     });
     res.json({ success: true, settings });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to get settings', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
@@ -31,11 +31,11 @@ router.get('/', async (req, res) => {
  * GET /api/admin/settings/jobs/status
  * Get background job runtime status and recent history
  */
-router.get('/jobs/status', async (req, res) => {
+router.get('/jobs/status', async (req: any, res: any) => {
   try {
     const status = await backgroundJobsService.getJobStatus();
     res.json({ success: true, ...status });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to get background job status', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
@@ -45,7 +45,7 @@ router.get('/jobs/status', async (req, res) => {
  * GET /api/admin/settings/:key
  * Get a specific setting
  */
-router.get('/:key', async (req, res) => {
+router.get('/:key', async (req: any, res: any) => {
   try {
     const { key } = req.params;
     const setting = await settingsAdminService.getSettingByKey(key);
@@ -53,7 +53,7 @@ router.get('/:key', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Setting not found' });
     }
     res.json({ success: true, key, ...setting });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to get setting', { error: error.message, key: req.params.key });
     res.status(500).json({ success: false, error: error.message });
   }
@@ -63,7 +63,7 @@ router.get('/:key', async (req, res) => {
  * PUT /api/admin/settings/:key
  * Update a setting
  */
-router.put('/:key', async (req, res) => {
+router.put('/:key', async (req: any, res: any) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -80,7 +80,7 @@ router.put('/:key', async (req, res) => {
 
     logger.info('Setting updated', { key, value });
     res.json({ success: true, setting });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to update setting', { error: error.message, key: req.params.key });
     res.status(500).json({ success: false, error: error.message });
   }
@@ -90,12 +90,12 @@ router.put('/:key', async (req, res) => {
  * POST /api/admin/settings/ml-blending/toggle
  * Quick toggle for ML blending
  */
-router.post('/ml-blending/toggle', async (req, res) => {
+router.post('/ml-blending/toggle', async (req: any, res: any) => {
   try {
     const newValue = await settingsAdminService.toggleMLBlending();
     logger.info('ML blending toggled', { enabled: newValue });
     res.json({ success: true, ml_blending_enabled: newValue });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to toggle ML blending', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }

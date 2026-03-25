@@ -20,7 +20,7 @@ class BaseRepository {
    * @param {Array} params - Query parameters
    * @returns {Promise<Object>} Query result
    */
-  async query(text, params = []) {
+  async query(text: string, params: unknown[] = []) {
     return query(text, params);
   }
 
@@ -30,7 +30,7 @@ class BaseRepository {
    * @param {Array} params - Query parameters
    * @returns {Promise<Object|null>} Single row or null
    */
-  async findOne(whereClause, params = []) {
+  async findOne(whereClause: string, params: unknown[] = []) {
     const sql = `SELECT * FROM ${this.tableName} WHERE ${whereClause} LIMIT 1`;
     const result = await this.query(sql, params);
     return result.rows[0] || null;
@@ -106,7 +106,7 @@ class BaseRepository {
    * @param {Object} data - Column-value pairs
    * @returns {Promise<Object>} Inserted row
    */
-  async insert(data) {
+  async insert(data: any) {
     const columns = Object.keys(data);
     const values = Object.values(data);
     const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
@@ -128,7 +128,7 @@ class BaseRepository {
    * @param {Array} whereParams - WHERE parameters
    * @returns {Promise<number>} Number of updated rows
    */
-  async update(data, whereClause, whereParams = []) {
+  async update(data: any, whereClause: string, whereParams: any[] = []) {
     const columns = Object.keys(data);
     const values = Object.values(data);
 
@@ -151,7 +151,7 @@ class BaseRepository {
    * @param {Array} params - Query parameters
    * @returns {Promise<number>} Number of deleted rows
    */
-  async delete(whereClause, params = []) {
+  async delete(whereClause: string, params: any[] = []) {
     const sql = `DELETE FROM ${this.tableName} WHERE ${whereClause}`;
     const result = await this.query(sql, params);
     return result.rowCount;

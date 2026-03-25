@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 /**
  * Home Location Routes
  * Handles home location management for admin page
@@ -21,7 +22,7 @@ const toResponse = (location: any) => ({
 // GET /api/home-location - Get current home location
 router.get(
   '/home-location',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const location = await homeLocationService.getCurrentHomeLocation();
 
     if (!location) {
@@ -39,7 +40,7 @@ router.get(
 router.get(
   '/admin/home-location',
   requireAdmin,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const location = await homeLocationService.getCurrentHomeLocation();
 
     if (!location) {
@@ -57,7 +58,7 @@ router.get(
 router.post(
   '/admin/home-location',
   requireAdmin,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const latitude = Number(req.body.latitude);
     const longitude = Number(req.body.longitude);
     const radius = req.body.radius === undefined ? 100 : Number(req.body.radius);

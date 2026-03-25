@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 /**
  * Analytics Routes (v1)
  * Modular endpoint definitions for analytics operations
@@ -20,7 +21,7 @@ const { ROUTE_CONFIG } = require('../../../config/routeConfig');
  */
 router.get(
   '/network-types',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving network type distribution');
 
     const data = await analyticsService.getNetworkTypes();
@@ -42,7 +43,7 @@ router.get(
  */
 router.get(
   '/signal-strength',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving signal strength distribution');
 
     const data = await analyticsService.getSignalStrengthDistribution();
@@ -64,7 +65,7 @@ router.get(
  */
 router.get(
   '/temporal-activity',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving temporal activity distribution');
 
     const data = await analyticsService.getTemporalActivity(ROUTE_CONFIG.minValidTimestamp);
@@ -89,7 +90,7 @@ router.get(
  */
 router.get(
   '/radio-type-over-time',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const range = req.query.range || '30d';
 
     // Validate range parameter
@@ -126,7 +127,7 @@ router.get(
  */
 router.get(
   '/security',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving security distribution');
 
     const data = await analyticsService.getSecurityDistribution();
@@ -151,7 +152,7 @@ router.get(
  */
 router.get(
   '/top-networks',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const limit = validators.limit(req.query.limit as string, 1, 500, 100);
 
     req.logger?.info('Retrieving top networks', { limit });
@@ -177,7 +178,7 @@ router.get(
  */
 router.get(
   '/dashboard',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving dashboard statistics');
 
     const data = await analyticsService.getDashboardStats();
@@ -197,7 +198,7 @@ router.get(
  */
 router.get(
   '/bulk',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving bulk analytics');
 
     const data = await analyticsService.getBulkAnalytics();
@@ -219,7 +220,7 @@ router.get(
  */
 router.get(
   '/threat-distribution',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     req.logger?.info('Retrieving threat score distribution');
 
     const data = await analyticsService.getThreatDistribution();
@@ -244,7 +245,7 @@ router.get(
  */
 router.get(
   '/threat-trends',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const range = req.query.range || '30d';
 
     // Validate range parameter

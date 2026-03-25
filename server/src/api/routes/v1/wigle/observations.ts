@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * WiGLE Observations Routes
  * Fetch stored observation data with pagination support
@@ -21,7 +22,7 @@ const validateObservationsQuery = validateQuery({
 router.get(
   '/observations/:netid',
   validateObservationsQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { netid } = req.params;
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;

@@ -1,11 +1,12 @@
 export {};
+import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { adminDbService } = require('../../../config/container');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
 
 // Backup database as JSON (simpler than pg_dump version issues)
-router.get('/backup', requireAdmin, async (req, res) => {
+router.get('/backup', requireAdmin, async (req: Request, res: Response) => {
   try {
     const timestamp = Date.now();
     const filename = `shadowcheck_backup_${timestamp}.json`;
@@ -33,18 +34,19 @@ router.get('/backup', requireAdmin, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.json(backup);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 
 // Restore database from JSON backup
-router.post('/restore', requireAdmin, async (req, res) => {
+router.post('/restore', requireAdmin, async (req: Request, res: Response) => {
   try {
-    if (!req.files || !req.files.backup) {
+    const reqAny = req as any;
+    if (!reqAny.files || !reqAny.files.backup) {
       return res.status(400).json({ error: 'No backup file provided' });
     }
 
-    const backupFile = req.files.backup;
+    const backupFile = reqAny.files.backup;
     const backup = JSON.parse(backupFile.data.toString());
 
     if (!backup.tables) {
@@ -61,7 +63,7 @@ router.post('/restore', requireAdmin, async (req, res) => {
       counts: backup.counts,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 

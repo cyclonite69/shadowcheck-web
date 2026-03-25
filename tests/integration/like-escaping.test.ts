@@ -43,7 +43,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // ============================================================================
 
   describeIfSearchBySSID('NetworkRepository.searchBySSID() - LIKE Escaping', () => {
-    let repo;
+    let repo: any;
 
     beforeEach(() => {
       repo = new NetworkRepository();

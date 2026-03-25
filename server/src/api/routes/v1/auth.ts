@@ -1,15 +1,32 @@
 export {};
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { authService } = require('../../../config/container');
 const { requireAdmin, extractToken } = require('../../../middleware/authMiddleware');
 const logger = require('../../../logging/logger');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const changePasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many password change attempts, please try again after 1 hour',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * POST /api/auth/login
  * User login
  */
-router.post('/auth/login', async (req, res) => {
+router.post('/auth/login', loginLimiter, async (req: any, res: any) => {
   try {
     const { username, password } = req.body;
 
@@ -42,7 +59,7 @@ router.post('/auth/login', async (req, res) => {
       forcePasswordChange: Boolean(result.forcePasswordChange),
       message: 'Login successful',
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Login route error:', error);
     console.error('[AUTH ERROR]', error);
     res.status(500).json({ error: 'Login failed', details: error.message });
@@ -53,7 +70,7 @@ router.post('/auth/login', async (req, res) => {
  * POST /api/auth/logout
  * User logout
  */
-router.post('/auth/logout', async (req, res) => {
+router.post('/auth/logout', async (req: any, res: any) => {
   try {
     const token = extractToken(req);
 
@@ -72,7 +89,7 @@ router.post('/auth/logout', async (req, res) => {
       success: true,
       message: 'Logout successful',
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Logout route error:', error);
     res.status(500).json({ error: 'Logout failed' });
   }
@@ -82,7 +99,7 @@ router.post('/auth/logout', async (req, res) => {
  * GET /api/auth/me
  * Get current user info
  */
-router.get('/auth/me', async (req, res) => {
+router.get('/auth/me', async (req: any, res: any) => {
   try {
     const token = extractToken(req);
 
@@ -107,7 +124,7 @@ router.get('/auth/me', async (req, res) => {
       user: result.user,
       forcePasswordChange: Boolean(result.forcePasswordChange),
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Auth me route error:', error);
     res.status(500).json({
       error: 'Authentication check failed',
@@ -120,7 +137,7 @@ router.get('/auth/me', async (req, res) => {
  * POST /api/auth/change-password
  * Change user password (requires current password)
  */
-router.post('/auth/change-password', async (req, res) => {
+router.post('/auth/change-password', changePasswordLimiter, async (req: any, res: any) => {
   try {
     const { username, currentPassword, newPassword } = req.body;
 
@@ -148,7 +165,7 @@ router.post('/auth/change-password', async (req, res) => {
       success: true,
       message: 'Password changed successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Change password route error:', error);
     res.status(500).json({ error: 'Failed to change password' });
   }
@@ -158,7 +175,7 @@ router.post('/auth/change-password', async (req, res) => {
  * POST /api/auth/create-user
  * Create new user (admin only)
  */
-router.post('/auth/create-user', requireAdmin, async (req, res) => {
+router.post('/auth/create-user', requireAdmin, async (req: any, res: any) => {
   try {
     const { username, email, password, role = 'user' } = req.body;
 
@@ -187,7 +204,7 @@ router.post('/auth/create-user', requireAdmin, async (req, res) => {
       user: result.user,
       message: 'User created successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Create user route error:', error);
     res.status(500).json({ error: 'Failed to create user' });
   }

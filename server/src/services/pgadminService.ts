@@ -26,7 +26,7 @@ const composeDir = path.dirname(composeFile);
 const serviceName = process.env.PGADMIN_SERVICE_NAME || 'pgadmin';
 const containerName = process.env.PGADMIN_CONTAINER_NAME || 'shadowcheck_pgadmin';
 const volumeName = process.env.PGADMIN_VOLUME_NAME || 'shadowcheck_pgadmin_data';
-const port = Number.parseInt(process.env.PGADMIN_PORT, 10) || 5050;
+const port = Number.parseInt(process.env.PGADMIN_PORT || '5050', 10) || 5050;
 const url = process.env.PGADMIN_URL || `https://localhost:${port}`;
 const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
 
@@ -48,22 +48,22 @@ const runCommand = (
     let stderr = '';
 
     if (child.stdout) {
-      child.stdout.on('data', (data) => {
+      child.stdout.on('data', (data: any) => {
         stdout += data.toString();
       });
     }
 
     if (child.stderr) {
-      child.stderr.on('data', (data) => {
+      child.stderr.on('data', (data: any) => {
         stderr += data.toString();
       });
     }
 
-    child.on('error', (err) => {
+    child.on('error', (err: any) => {
       reject(err);
     });
 
-    child.on('close', (code) => {
+    child.on('close', (code: any) => {
       if (code === 0 || options.allowFail) {
         resolve({
           code,
@@ -172,7 +172,7 @@ const getPgAdminStatus = async () => {
     status.container = parseDockerStatus(result.stdout);
   } catch (err) {
     status.dockerAvailable = false;
-    status.error = err?.message || 'Docker CLI not available';
+    status.error = (err as any)?.message || 'Docker CLI not available';
   }
 
   return status;

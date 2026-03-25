@@ -30,7 +30,7 @@ export class NetworkModule {
   }
 
   private buildNetworkListQueryImpl(options: NetworkListOptions = {}): FilteredQueryResult {
-    const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+    const { limit = undefined, offset = 0, orderBy = 'last_observed_at DESC' } = options;
 
     this.ctx.requiresHome = true;
 

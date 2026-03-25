@@ -11,7 +11,7 @@ const logger = require('../../../../logging/logger');
 
 export {};
 
-router.post('/admin/cleanup-duplicates', async (req, res, next) => {
+router.post('/admin/cleanup-duplicates', async (req: any, res: any, next: any) => {
   try {
     logger.info('Removing duplicate observations...');
 
@@ -28,13 +28,13 @@ router.post('/admin/cleanup-duplicates', async (req, res, next) => {
       after,
       removed,
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error(`Error removing duplicates: ${err.message}`, { error: err });
     next(err);
   }
 });
 
-router.post('/admin/refresh-colocation', async (req, res, next) => {
+router.post('/admin/refresh-colocation', async (req: any, res: any, next: any) => {
   try {
     logger.info('Creating/refreshing co-location materialized view...');
 
@@ -46,7 +46,7 @@ router.post('/admin/refresh-colocation', async (req, res, next) => {
       ok: true,
       message: 'Co-location materialized view created/refreshed successfully',
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error(`Error creating co-location view: ${err.message}`, { error: err });
     next(err);
   }

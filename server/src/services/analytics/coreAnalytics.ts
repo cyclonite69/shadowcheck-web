@@ -47,7 +47,7 @@ async function getSignalStrengthDistribution(): Promise<{ range: string; count: 
       ORDER BY signal_range DESC
     `);
 
-    return rows.map((row) => ({
+    return rows.map((row: SignalRow) => ({
       range: row.signal_range,
       count: parseInt(row.count),
     }));
@@ -77,7 +77,7 @@ async function getTemporalActivity(
       [minTimestamp]
     );
 
-    return rows.map((row) => ({
+    return rows.map((row: TemporalRow) => ({
       hour: parseInt(row.hour),
       count: parseInt(row.count),
     }));
@@ -134,7 +134,7 @@ async function getRadioTypeOverTime(
       [range, minTimestamp]
     );
 
-    return rows.map((row) => ({
+    return rows.map((row: RadioTypeRow) => ({
       date: row.date,
       type: row.network_type,
       count: parseInt(row.count),

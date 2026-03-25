@@ -11,7 +11,7 @@ const { adminNetworkMediaService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 // POST /api/admin/network-media/upload - Upload media (image/video) to network
-router.post('/admin/network-media/upload', async (req, res, next) => {
+router.post('/admin/network-media/upload', async (req: any, res: any, next: any) => {
   try {
     const { bssid, media_type, filename, media_data_base64, description, mime_type } = req.body;
 
@@ -47,14 +47,14 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
       message: `${media_type} uploaded successfully`,
       media,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Upload media error: ${error.message}`);
     next(error);
   }
 });
 
 // GET /api/admin/network-media/:bssid - Get media list for network
-router.get('/admin/network-media/:bssid', async (req, res, next) => {
+router.get('/admin/network-media/:bssid', async (req: any, res: any, next: any) => {
   try {
     const { bssid } = req.params;
 
@@ -66,13 +66,13 @@ router.get('/admin/network-media/:bssid', async (req, res, next) => {
       media,
       count: media.length,
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
 
 // GET /api/admin/network-media/download/:id - Download media file
-router.get('/admin/network-media/download/:id', async (req, res, next) => {
+router.get('/admin/network-media/download/:id', async (req: any, res: any, next: any) => {
   try {
     const { id } = req.params;
 
@@ -90,7 +90,7 @@ router.get('/admin/network-media/download/:id', async (req, res, next) => {
     });
 
     res.send(media.media_data);
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });

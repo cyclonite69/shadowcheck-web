@@ -12,6 +12,8 @@
  * 5. Verify response format matches original
  */
 
+import type { Express } from 'express';
+
 export {};
 
 const { runIntegration } = require('../helpers/integrationEnv');
@@ -19,7 +21,7 @@ const describeIfIntegration = runIntegration ? describe : describe.skip;
 
 // Mock secretsManager BEFORE importing routes
 const mockSecretsManager = {
-  get: jest.fn((key) => {
+  get: jest.fn((key: string) => {
     console.log(`[MOCK] secretsManager.get('${key}') called`);
     // Return null for api_key to disable auth in tests
     if (key === 'api_key') {
@@ -31,13 +33,13 @@ const mockSecretsManager = {
     }
     return null;
   }),
-  getOrThrow: jest.fn((key) => {
+  getOrThrow: jest.fn((key: string) => {
     if (key === 'mapbox_token') {
       return 'pk.test-token';
     }
     throw new Error(`Secret ${key} not found`);
   }),
-  has: jest.fn((key) => key === 'mapbox_token'),
+  has: jest.fn((key: string) => key === 'mapbox_token'),
 };
 
 jest.mock('../../server/src/services/secretsManager', () => mockSecretsManager);
@@ -58,18 +60,18 @@ jest.mock('../../server/src/config/database', () => ({
   },
 }));
 
-let express;
-let request;
-let query;
-let CONFIG;
+let express: any;
+let request: (app: any) => any;
+let query: any;
+let CONFIG: any;
 
 // Import route modules
-let networksRoutes;
-let threatsRoutes;
-let wigleRoutes;
-let adminRoutes;
-let mlRoutes;
-let geospatialRoutes;
+let networksRoutes: any;
+let threatsRoutes: any;
+let wigleRoutes: any;
+let adminRoutes: any;
+let mlRoutes: any;
+let geospatialRoutes: any;
 
 if (runIntegration) {
   express = require('express');
@@ -84,12 +86,12 @@ if (runIntegration) {
 }
 
 // Create test app for each route module
-function createTestApp(routes) {
-  const app = express();
+function createTestApp(routes: any) {
+  const app: Express = express();
   app.use(express.json());
   app.use('/api', routes);
   // Add error handler
-  app.use((err, req, res, next) => {
+  app.use((err: any, req: any, res: any, next: any) => {
     console.error('Test app error:', err);
     res.status(500).json({ error: err.message });
   });
@@ -117,7 +119,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('✅ PRIORITY 1: networks.js - GET /api/networks', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(networksRoutes);
@@ -200,7 +202,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 1: networks.js - GET /api/networks/search/:ssid', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(networksRoutes);
@@ -259,7 +261,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 1: networks.js - POST /api/tag-network', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(networksRoutes);
@@ -342,7 +344,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 1: networks.js - GET /api/networks/observations/:bssid', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(networksRoutes);
@@ -367,7 +369,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('✅ PRIORITY 2: threats.js - GET /api/threats/quick', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(threatsRoutes);
@@ -406,7 +408,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 2: threats.js - GET /api/threats/detect', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(threatsRoutes);
@@ -456,7 +458,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('✅ PRIORITY 3: wigle.js - GET /api/wigle/network/:bssid', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(wigleRoutes);
@@ -483,7 +485,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 3: wigle.js - GET /api/wigle/search', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(wigleRoutes);
@@ -521,7 +523,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('✅ PRIORITY 4: admin.js - GET /api/observations/check-duplicates/:bssid', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(adminRoutes);
@@ -552,7 +554,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 4: admin.js - POST /api/admin/cleanup-duplicates', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(adminRoutes);
@@ -579,7 +581,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('✅ PRIORITY 5: ml.js - POST /api/ml/train', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(mlRoutes);
@@ -595,7 +597,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 5: ml.js - GET /api/ml/status', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(mlRoutes);
@@ -618,7 +620,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   // ============================================================================
 
   describe('✅ PRIORITY 6: geospatial.js - GET /', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = express();
@@ -634,7 +636,7 @@ describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   });
 
   describe('✅ PRIORITY 6: geospatial.js - GET /api/mapbox-token', () => {
-    let app;
+    let app: Express;
 
     beforeEach(() => {
       app = createTestApp(geospatialRoutes);

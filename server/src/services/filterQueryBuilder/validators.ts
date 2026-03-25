@@ -5,7 +5,7 @@
 
 import { NOISE_FLOOR_DBM, MAX_GPS_ACCURACY_METERS } from './constants';
 import { normalizeEnabled, normalizeFilters } from './normalizers';
-import type { Filters, EnabledFlags, ValidationResult } from './types';
+import type { ValidationResult } from './types';
 
 const validateFilterPayload = (filters: unknown, enabled: unknown): ValidationResult => {
   const errors: string[] = [];

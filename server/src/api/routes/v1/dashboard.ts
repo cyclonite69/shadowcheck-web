@@ -4,7 +4,7 @@ const router = express.Router();
 const logger = require('../../../logging/logger');
 const { keplerService } = require('../../../config/container');
 
-let dashboardService = null;
+let dashboardService: any = null;
 
 /**
  * Safely parses JSON query parameters.
@@ -12,7 +12,7 @@ let dashboardService = null;
  * @param {string} fieldName - Field name for error messages
  * @returns {{ ok: boolean, value?: object, error?: string }}
  */
-function parseJsonQuery(value, fieldName) {
+function parseJsonQuery(value: any, fieldName: any) {
   if (value === undefined || value === null || value === '') {
     return { ok: true, value: {} };
   }
@@ -28,7 +28,7 @@ function parseJsonQuery(value, fieldName) {
   }
 }
 
-const assertHomeExistsIfNeeded = async (enabled, res) => {
+const assertHomeExistsIfNeeded = async (enabled: any, res: any) => {
   if (!enabled?.distanceFromHomeMin && !enabled?.distanceFromHomeMax) {
     return true;
   }
@@ -42,7 +42,7 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
       return false;
     }
     return true;
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).json({
       ok: false,
       error: err.message,
@@ -51,7 +51,7 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
   }
 };
 
-function initDashboardRoutes(options) {
+function initDashboardRoutes(options: any) {
   dashboardService = options.dashboardService;
 }
 

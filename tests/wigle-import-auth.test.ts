@@ -8,8 +8,8 @@ const { runIntegration } = require('./helpers/integrationEnv');
 
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
-let request;
-let app;
+let request: any;
+let app: any;
 
 if (runIntegration) {
   request = require('supertest');

@@ -8,89 +8,102 @@
 export {};
 
 import {
-  OPEN_PREDICATE,
+  openPredicate,
   encryptionTypePredicate,
   buildEncryptionTypeCondition,
+  authMethodPredicate,
+  buildAuthMethodCondition,
   buildThreatScoreExpr,
   buildThreatLevelExpr,
   buildTypeExpr,
   buildDistanceExpr,
 } from '../../server/src/utils/networkSqlExpressions';
 
-// ── OPEN_PREDICATE ────────────────────────────────────────────────────────────
+// ── openPredicate ────────────────────────────────────────────────────────────
 
-describe('OPEN_PREDICATE', () => {
+describe('openPredicate', () => {
   it('matches NULL security', () => {
-    expect(OPEN_PREDICATE).toContain('IS NULL');
+    const result = openPredicate(1);
+    expect(result.sql).toContain('IS NULL');
   });
 
   it('matches empty string security', () => {
-    expect(OPEN_PREDICATE).toContain("= ''");
+    const result = openPredicate(1);
+    expect(result.sql).toContain("= ''");
   });
 
   it('excludes rows with recognised encryption keywords via !~*', () => {
-    expect(OPEN_PREDICATE).toContain('!~*');
-    expect(OPEN_PREDICATE).toMatch(/WPA/);
-    expect(OPEN_PREDICATE).toMatch(/WEP/);
-    expect(OPEN_PREDICATE).toMatch(/RSN/);
+    const result = openPredicate(1);
+    expect(result.sql).toContain('!~*');
+    expect(result.sql).toContain('$1');
+    expect(result.params[0]).toMatch(/WPA|WEP|RSN/);
   });
 });
 
 // ── encryptionTypePredicate ───────────────────────────────────────────────────
 
 describe('encryptionTypePredicate', () => {
-  it('OPEN returns the OPEN_PREDICATE constant', () => {
-    expect(encryptionTypePredicate('OPEN')).toBe(OPEN_PREDICATE);
+  it('OPEN returns the openPredicate result', () => {
+    const result = encryptionTypePredicate('OPEN', 1);
+    expect(result.sql).toContain('IS NULL');
+    expect(result.params).toHaveLength(1);
   });
 
-  it('NONE (legacy alias) also returns the OPEN_PREDICATE constant', () => {
-    expect(encryptionTypePredicate('NONE')).toBe(OPEN_PREDICATE);
+  it('NONE (legacy alias) also returns the openPredicate result', () => {
+    const result = encryptionTypePredicate('NONE', 1);
+    expect(result.sql).toContain('IS NULL');
   });
 
-  it('WEP returns a predicate containing WEP ILIKE', () => {
-    const pred = encryptionTypePredicate('WEP');
-    expect(pred).toContain('WEP');
-    expect(pred).toMatch(/ILIKE/i);
+  it('WEP returns a predicate containing WEP ILIKE placeholder', () => {
+    const result = encryptionTypePredicate('WEP', 1);
+    expect(result.sql).toContain('ne.security ILIKE $1');
+    expect(result.params).toEqual(['%WEP%']);
   });
 
-  it('WPA returns predicate that includes WPA but excludes WPA2 and WPA3', () => {
-    const pred = encryptionTypePredicate('WPA');
-    expect(pred).toContain("ILIKE '%WPA%'");
-    expect(pred).toContain("NOT ILIKE '%WPA2%'");
-    expect(pred).toContain("NOT ILIKE '%WPA3%'");
-    expect(pred).toMatch(/RSN|SAE/); // also excludes RSN/SAE
+  it('WPA returns predicate that includes WPA but excludes WPA2 and WPA3 with placeholders', () => {
+    const result = encryptionTypePredicate('WPA', 1);
+    expect(result.sql).toContain('ne.security ILIKE $1');
+    expect(result.sql).toContain('ne.security NOT ILIKE $2');
+    expect(result.sql).toContain('ne.security NOT ILIKE $3');
+    expect(result.sql).toContain('ne.security !~* $4');
+    expect(result.params).toEqual(['%WPA%', '%WPA2%', '%WPA3%', '(RSN|SAE)']);
   });
 
-  it('WPA2 predicate includes RSN and excludes WPA3', () => {
-    const pred = encryptionTypePredicate('WPA2');
-    expect(pred).toMatch(/RSN/);
-    expect(pred).toContain("NOT ILIKE '%WPA3%'");
+  it('WPA2 predicate includes RSN and excludes WPA3 with placeholders', () => {
+    const result = encryptionTypePredicate('WPA2', 1);
+    expect(result.sql).toContain('ILIKE $1');
+    expect(result.sql).toContain('OR ne.security ~* $2');
+    expect(result.sql).toContain('NOT ILIKE $3');
+    expect(result.params).toEqual(['%WPA2%', 'RSN', '%WPA3%']);
   });
 
-  it('WPA3 predicate includes SAE (WPA3-Personal) and WPA3', () => {
-    const pred = encryptionTypePredicate('WPA3');
-    expect(pred).toMatch(/SAE/);
-    expect(pred).toContain('WPA3');
+  it('WPA3 predicate includes SAE (WPA3-Personal) and WPA3 with placeholders', () => {
+    const result = encryptionTypePredicate('WPA3', 1);
+    expect(result.sql).toContain('ILIKE $1');
+    expect(result.sql).toContain('OR ne.security ~* $2');
+    expect(result.params).toEqual(['%WPA3%', 'SAE']);
   });
 
-  it('OWE returns a predicate matching OWE', () => {
-    const pred = encryptionTypePredicate('OWE');
-    expect(pred).toMatch(/OWE/);
+  it('OWE returns a predicate matching OWE with placeholder', () => {
+    const result = encryptionTypePredicate('OWE', 1);
+    expect(result.sql).toContain('ne.security ~* $1');
+    expect(result.params).toEqual(['OWE']);
   });
 
-  it('SAE returns a predicate matching SAE', () => {
-    const pred = encryptionTypePredicate('SAE');
-    expect(pred).toMatch(/SAE/);
+  it('SAE returns a predicate matching SAE with placeholder', () => {
+    const result = encryptionTypePredicate('SAE', 1);
+    expect(result.sql).toContain('ne.security ~* $1');
+    expect(result.params).toEqual(['SAE']);
   });
 
-  it('unknown type falls through to generic ILIKE with the value', () => {
-    const pred = encryptionTypePredicate('CUSTOM_TYPE');
-    expect(pred).toMatch(/ILIKE/i);
-    expect(pred).toContain('CUSTOM_TYPE');
+  it('unknown type falls through to generic ILIKE with the value as parameter', () => {
+    const result = encryptionTypePredicate('CUSTOM_TYPE', 1);
+    expect(result.sql).toContain('ne.security ILIKE $1');
+    expect(result.params).toEqual(['%CUSTOM_TYPE%']);
   });
 
   it('accepts lowercase input (case-insensitive switch)', () => {
-    expect(encryptionTypePredicate('wpa3')).toEqual(encryptionTypePredicate('WPA3'));
+    expect(encryptionTypePredicate('wpa3', 1)).toEqual(encryptionTypePredicate('WPA3', 1));
   });
 });
 
@@ -98,34 +111,71 @@ describe('encryptionTypePredicate', () => {
 
 describe('buildEncryptionTypeCondition', () => {
   it('returns null for an empty array', () => {
-    expect(buildEncryptionTypeCondition([])).toBeNull();
+    expect(buildEncryptionTypeCondition([], 1)).toBeNull();
   });
 
   it('returns null for a falsy argument', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(buildEncryptionTypeCondition(null as any)).toBeNull();
+    expect(buildEncryptionTypeCondition(null as any, 1)).toBeNull();
   });
 
   it('wraps a single type in outer parentheses', () => {
-    const result = buildEncryptionTypeCondition(['WEP']);
+    const result = buildEncryptionTypeCondition(['WEP'], 1);
     expect(result).not.toBeNull();
-    expect(result!.startsWith('(')).toBe(true);
-    expect(result!.endsWith(')')).toBe(true);
-    expect(result).toContain('WEP');
+    expect(result!.sql.startsWith('(')).toBe(true);
+    expect(result!.sql.endsWith(')')).toBe(true);
+    expect(result!.sql).toContain('$1');
+    expect(result!.params).toEqual(['%WEP%']);
   });
 
-  it('joins multiple types with OR', () => {
-    const result = buildEncryptionTypeCondition(['WPA2', 'WPA3']);
+  it('joins multiple types with OR and increments placeholders', () => {
+    const result = buildEncryptionTypeCondition(['WEP', 'SAE'], 1);
     expect(result).not.toBeNull();
-    expect(result).toMatch(/\bOR\b/);
-    expect(result).toMatch(/RSN/); // WPA2 predicate
-    expect(result).toMatch(/SAE/); // WPA3 predicate
+    expect(result!.sql).toMatch(/\bOR\b/);
+    expect(result!.sql).toContain('$1');
+    expect(result!.sql).toContain('$2');
+    expect(result!.params).toEqual(['%WEP%', 'SAE']);
   });
 
-  it('includes OPEN_PREDICATE when OPEN is in the list', () => {
-    const result = buildEncryptionTypeCondition(['OPEN']);
-    expect(result).not.toBeNull();
-    expect(result).toContain('IS NULL');
+  it('handles complex types with multiple parameters correctly', () => {
+    const result = buildEncryptionTypeCondition(['WPA', 'WPA3'], 1);
+    // WPA uses 4 params, WPA3 uses 2 params. Total 6.
+    expect(result!.params).toHaveLength(6);
+    expect(result!.sql).toContain('$1');
+    expect(result!.sql).toContain('$4');
+    expect(result!.sql).toContain('$5');
+    expect(result!.sql).toContain('$6');
+  });
+});
+
+// ── authMethodPredicate ──────────────────────────────────────────────────────
+
+describe('authMethodPredicate', () => {
+  it('NONE returns a predicate matching NULL/empty or NONE', () => {
+    const result = authMethodPredicate('NONE', 1);
+    expect(result.sql).toContain('ne.auth IS NULL');
+    expect(result.sql).toContain('ILIKE $1');
+    expect(result.params).toEqual(['%NONE%']);
+  });
+
+  it('specific method returns ILIKE placeholder', () => {
+    const result = authMethodPredicate('PSK', 1);
+    expect(result.sql).toBe('ne.auth ILIKE $1');
+    expect(result.params).toEqual(['%PSK%']);
+  });
+});
+
+// ── buildAuthMethodCondition ─────────────────────────────────────────────────
+
+describe('buildAuthMethodCondition', () => {
+  it('returns null for empty array', () => {
+    expect(buildAuthMethodCondition([], 1)).toBeNull();
+  });
+
+  it('joins multiple methods with OR', () => {
+    const result = buildAuthMethodCondition(['PSK', 'EAP'], 1);
+    expect(result!.sql).toBe('(ne.auth ILIKE $1 OR ne.auth ILIKE $2)');
+    expect(result!.params).toEqual(['%PSK%', '%EAP%']);
   });
 });
 
@@ -135,13 +185,8 @@ describe('buildThreatScoreExpr', () => {
   describe('default scoring (simpleScoring = false)', () => {
     const expr = buildThreatScoreExpr(false);
 
-    it('references final_threat_score', () => {
-      expect(expr).toContain('final_threat_score');
-    });
-
-    it('applies 0.7 / 0.3 blend for THREAT classification', () => {
-      expect(expr).toContain('0.7');
-      expect(expr).toContain('0.3');
+    it('references ne.threat_score', () => {
+      expect(expr).toContain('ne.threat_score');
     });
 
     it('returns 0 for FALSE_POSITIVE', () => {
@@ -156,13 +201,9 @@ describe('buildThreatScoreExpr', () => {
   describe('simple scoring (simpleScoring = true)', () => {
     const expr = buildThreatScoreExpr(true);
 
-    it('references rule_based_score instead of final_threat_score', () => {
+    it('references rule_based_score instead of threat_score', () => {
       expect(expr).toContain('rule_based_score');
-      expect(expr).not.toContain('final_threat_score');
-    });
-
-    it('does not include the 0.7 blending factor', () => {
-      expect(expr).not.toContain('0.7');
+      expect(expr).not.toContain('ne.threat_score');
     });
   });
 });
@@ -236,7 +277,7 @@ describe('buildTypeExpr', () => {
     expect(expr).toContain('BETWEEN 2412 AND 7125');
   });
 
-  it('infers WiFi from security string patterns (WPA/WEP/ESS/RSN)', () => {
+  it('infers WiFi from security string patterns (WPA|WEP|ESS|RSN)', () => {
     expect(expr).toMatch(/WPA|WEP|ESS|RSN/);
   });
 

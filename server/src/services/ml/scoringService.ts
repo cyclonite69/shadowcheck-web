@@ -9,7 +9,7 @@ const { validateIntegerRange } = require('../../validation/schemas');
 
 export {};
 
-const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT, 10) || 100;
+const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT || '100', 10);
 const DEFAULT_MODEL_VERSION = process.env.ML_MODEL_VERSION || '1.0.0';
 const MAX_SCORE_LIMIT = 200000;
 

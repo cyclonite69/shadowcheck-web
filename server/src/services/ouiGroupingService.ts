@@ -29,7 +29,7 @@ class OUIGroupingService {
         ORDER BY SUBSTRING(ap.bssid, 1, 8), nts.final_threat_score DESC
       `);
 
-      const ouiGroups = {};
+      const ouiGroups: Record<string, any> = {};
 
       // Group by OUI
       for (const net of networks.rows) {

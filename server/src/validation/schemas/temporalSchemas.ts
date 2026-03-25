@@ -167,6 +167,7 @@ export function validateTimeWindow(params: {
     const now = new Date();
     let start: Date;
 
+    if (!rangeVal) throw new Error('Invalid range');
     switch (rangeVal.unit) {
       case 'h':
         start = new Date(now.getTime() - rangeVal.value * 60 * 60 * 1000);

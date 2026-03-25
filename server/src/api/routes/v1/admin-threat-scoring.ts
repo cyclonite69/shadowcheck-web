@@ -6,7 +6,7 @@ const logger = require('../../logging/logger');
 export {};
 
 // POST /api/admin/threat-scoring/compute - Manual threat score computation
-router.post('/threat-scoring/compute', async (req, res) => {
+router.post('/threat-scoring/compute', async (req: any, res: any) => {
   try {
     const { batchSize = 1000, maxAgeHours = 24 } = req.body;
 
@@ -17,7 +17,7 @@ router.post('/threat-scoring/compute', async (req, res) => {
       message: 'Threat score computation completed',
       ...result,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Manual threat scoring failed', { error: error.message });
     res.status(500).json({
       success: false,
@@ -27,7 +27,7 @@ router.post('/threat-scoring/compute', async (req, res) => {
 });
 
 // POST /api/admin/threat-scoring/recompute-all - Mark all for recomputation
-router.post('/threat-scoring/recompute-all', async (req, res) => {
+router.post('/threat-scoring/recompute-all', async (req: any, res: any) => {
   try {
     const result = await threatScoringService.markAllForRecompute();
 
@@ -36,7 +36,7 @@ router.post('/threat-scoring/recompute-all', async (req, res) => {
       message: 'All networks marked for threat recomputation',
       ...result,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to mark all for recomputation', { error: error.message });
     res.status(500).json({
       success: false,
@@ -46,7 +46,7 @@ router.post('/threat-scoring/recompute-all', async (req, res) => {
 });
 
 // GET /api/admin/threat-scoring/stats - Get threat scoring statistics
-router.get('/threat-scoring/stats', (req, res) => {
+router.get('/threat-scoring/stats', (req: any, res: any) => {
   try {
     const stats = threatScoringService.getStats();
 
@@ -54,7 +54,7 @@ router.get('/threat-scoring/stats', (req, res) => {
       success: true,
       stats,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to get threat scoring stats', { error: error.message });
     res.status(500).json({
       success: false,

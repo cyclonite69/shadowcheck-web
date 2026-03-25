@@ -1,12 +1,11 @@
-const bcrypt = require('bcrypt');
-const crypto = require('crypto');
-const { Pool } = require('pg');
-const { query } = require('../config/database');
-const { resetAppUserPassword } = require('./adminUsersService');
-const secretsManager = require('./secretsManager').default;
-const logger = require('../logging/logger');
-
-export {};
+// @ts-ignore
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { Pool, QueryResult } from 'pg';
+import { query } from '../config/database';
+import { resetAppUserPassword } from './adminUsersService';
+import secretsManager from './secretsManager';
+import logger from '../logging/logger';
 
 const AUTH_DB_USER = process.env.DB_USER || 'shadowcheck_user';
 const AUTH_DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
@@ -15,9 +14,9 @@ const AUTH_DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
 const AUTH_DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-web'}-auth`;
 const AUTH_DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 
-let authPool = null;
+let authPool: Pool | null = null;
 
-function getAuthPool() {
+function getAuthPool(): Pool {
   if (authPool) {
     return authPool;
   }
@@ -34,18 +33,34 @@ function getAuthPool() {
     statement_timeout: 10000,
     application_name: AUTH_DB_APP_NAME,
     options: `-c search_path=${AUTH_DB_SEARCH_PATH}`,
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    ssl:
+      process.env.DB_SSL === 'true'
+        ? {
+            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+            ca: process.env.DB_SSL_CA || undefined,
+          }
+        : false,
   });
 
-  authPool.on('error', (error) => {
+  authPool.on('error', (error: Error) => {
     logger.error(`Unexpected error on auth pool idle client: ${error.message}`, { error });
   });
 
   return authPool;
 }
 
-async function authQuery(text, params = []) {
+async function authQuery(text: string, params: unknown[] = []): Promise<QueryResult> {
   return getAuthPool().query(text, params);
+}
+
+interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  password_hash: string;
+  is_active: boolean;
+  force_password_change?: boolean;
 }
 
 class AuthService {
@@ -60,7 +75,7 @@ class AuthService {
   /**
    * Authenticate user with username/password
    */
-  async login(username, password, userAgent = '', ipAddress = '') {
+  async login(username: string, password: string, userAgent = '', ipAddress = '') {
     try {
       // Find user
       const userResult = await this.getUserForLogin(username);
@@ -69,7 +84,7 @@ class AuthService {
         return { success: false, error: 'Invalid credentials' };
       }
 
-      const user = userResult.rows[0];
+      const user: AuthUser = userResult.rows[0];
 
       if (!user.is_active) {
         return { success: false, error: 'Account is disabled' };
@@ -125,7 +140,7 @@ class AuthService {
   /**
    * Validate session token
    */
-  async validateSession(token) {
+  async validateSession(token: string) {
     try {
       if (!token) {
         return { valid: false, error: 'No token provided' };
@@ -139,7 +154,7 @@ class AuthService {
         return { valid: false, error: 'Invalid or expired session' };
       }
 
-      const user = result.rows[0];
+      const user: AuthUser = result.rows[0];
 
       if (!user.is_active) {
         return { valid: false, error: 'Account is disabled' };
@@ -164,7 +179,7 @@ class AuthService {
   /**
    * Logout user (invalidate session)
    */
-  async logout(token) {
+  async logout(token: string) {
     try {
       if (!token) {
         return { success: true };
@@ -184,7 +199,7 @@ class AuthService {
   /**
    * Create new user (admin only)
    */
-  async createUser(username, email, password, role = 'user') {
+  async createUser(username: string, email: string, password: string, role = 'user') {
     try {
       const passwordHash = await bcrypt.hash(password, this.saltRounds);
 
@@ -195,8 +210,9 @@ class AuthService {
       );
 
       return { success: true, user: result.rows[0] };
-    } catch (error) {
-      if (error.code === '23505') {
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code === '23505') {
         // Unique violation
         return { success: false, error: 'Username or email already exists' };
       }
@@ -208,7 +224,7 @@ class AuthService {
   /**
    * Change user password (requires current password verification)
    */
-  async changePassword(username, currentPassword, newPassword) {
+  async changePassword(username: string, currentPassword: string, newPassword: string) {
     try {
       const userResult = await this.getUserForPasswordChange(username);
 
@@ -216,7 +232,7 @@ class AuthService {
         return { success: false, error: 'Invalid credentials' };
       }
 
-      const user = userResult.rows[0];
+      const user: AuthUser = userResult.rows[0];
 
       if (!user.is_active) {
         return { success: false, error: 'Account is disabled' };
@@ -248,7 +264,7 @@ class AuthService {
     try {
       const result = await authQuery('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
 
-      if (result.rowCount > 0) {
+      if (result.rowCount && result.rowCount > 0) {
         logger.info(`Cleaned up ${result.rowCount} expired sessions`);
       }
     } catch (error) {
@@ -256,7 +272,7 @@ class AuthService {
     }
   }
 
-  async getUserForLogin(username) {
+  async getUserForLogin(username: string): Promise<QueryResult> {
     try {
       return await query(
         `SELECT id, username, email, password_hash, role, is_active, force_password_change
@@ -264,8 +280,9 @@ class AuthService {
          WHERE username = $1`,
         [username]
       );
-    } catch (error) {
-      if (error?.code !== '42703') {
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code !== '42703') {
         throw error;
       }
       return query(
@@ -277,7 +294,7 @@ class AuthService {
     }
   }
 
-  async getUserForPasswordChange(username) {
+  async getUserForPasswordChange(username: string): Promise<QueryResult> {
     try {
       return await query(
         `SELECT id, username, password_hash, is_active, force_password_change
@@ -285,8 +302,9 @@ class AuthService {
          WHERE username = $1`,
         [username]
       );
-    } catch (error) {
-      if (error?.code !== '42703') {
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code !== '42703') {
         throw error;
       }
       return query(
@@ -298,7 +316,7 @@ class AuthService {
     }
   }
 
-  async getSessionUser(tokenHash) {
+  async getSessionUser(tokenHash: string): Promise<QueryResult> {
     try {
       return await authQuery(
         `SELECT u.id, u.username, u.email, u.role, u.is_active, u.force_password_change, s.expires_at
@@ -307,8 +325,9 @@ class AuthService {
          WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
         [tokenHash]
       );
-    } catch (error) {
-      if (error?.code !== '42703') {
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code !== '42703') {
         throw error;
       }
       return authQuery(
@@ -321,18 +340,23 @@ class AuthService {
     }
   }
 
-  async updateUserPassword(userId, passwordHash, plainTextPassword) {
-    const runUpdate = async (sql) => {
+  async updateUserPassword(
+    userId: number,
+    passwordHash: string,
+    plainTextPassword?: string
+  ): Promise<void> {
+    const runUpdate = async (sql: string) => {
       try {
         await query(sql, [passwordHash, userId]);
         return true;
-      } catch (error) {
-        if (error?.code === '42501' && plainTextPassword) {
+      } catch (error: unknown) {
+        const err = error as { code?: string };
+        if (err.code === '42501' && plainTextPassword) {
           await resetAppUserPassword(userId, plainTextPassword, false);
           return true;
         }
 
-        if (error?.code === '42703') {
+        if (err.code === '42703') {
           return false;
         }
 
@@ -360,4 +384,7 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService();
+const authService = new AuthService();
+export default authService;
+// @ts-ignore
+module.exports = authService;

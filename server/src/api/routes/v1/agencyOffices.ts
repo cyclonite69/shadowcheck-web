@@ -30,7 +30,7 @@ router.get('/count', async (req: Request, res: Response) => {
     res.json({
       ok: true,
       data: rows,
-      total: rows.reduce((sum, row) => sum + parseInt(row.count), 0),
+      total: rows.reduce((sum: number, row: { count: string }) => sum + parseInt(row.count), 0),
     });
   } catch (error) {
     console.error('Error counting agency offices:', error);

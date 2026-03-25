@@ -9,7 +9,7 @@ const logger = require('../../../../logging/logger');
  * GET /api/admin/secrets
  * List all configured secrets (names only, no values)
  */
-router.get('/admin/secrets', requireAdmin, async (req, res) => {
+router.get('/admin/secrets', requireAdmin, async (req: any, res: any) => {
   try {
     const secrets = [
       'db_password',
@@ -29,7 +29,7 @@ router.get('/admin/secrets', requireAdmin, async (req, res) => {
     }));
 
     res.json({ ok: true, secrets: status });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[Admin] Failed to list secrets', { error: err?.message });
     res.status(500).json({ ok: false, error: 'Failed to list secrets' });
   }
@@ -39,7 +39,7 @@ router.get('/admin/secrets', requireAdmin, async (req, res) => {
  * POST /api/admin/secrets/:key
  * Store a secret in AWS Secrets Manager
  */
-router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
+router.post('/admin/secrets/:key', requireAdmin, async (req: any, res: any) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -52,7 +52,7 @@ router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
     logger.info('[Admin] Secret stored', { key });
 
     res.json({ ok: true, message: `Secret '${key}' stored successfully` });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[Admin] Failed to store secret', { error: err?.message });
     res.status(500).json({ ok: false, error: 'Failed to store secret' });
   }
@@ -62,9 +62,9 @@ router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
  * DELETE /api/admin/secrets/:key
  * Remove a secret from AWS Secrets Manager
  */
-router.delete('/admin/secrets/:key', requireAdmin, async (req, res) => {
+router.delete('/admin/secrets/:key', requireAdmin, async (req: any, res: any) => {
   try {
-    const { key } = req.params;
+    const { key } = req.params as any;
 
     // Prevent deletion of required secrets
     if (['db_password', 'session_secret'].includes(key)) {
@@ -78,7 +78,7 @@ router.delete('/admin/secrets/:key', requireAdmin, async (req, res) => {
     logger.info('[Admin] Secret deleted', { key });
 
     res.json({ ok: true, message: `Secret '${key}' deleted successfully` });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[Admin] Failed to delete secret', { error: err?.message });
     res.status(500).json({ ok: false, error: 'Failed to delete secret' });
   }

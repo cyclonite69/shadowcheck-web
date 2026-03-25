@@ -10,7 +10,7 @@ export {};
  * @param {number} ms - Milliseconds to wait
  * @returns {Promise<void>} Promise that resolves after delay
  */
-function delay(ms) {
+function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -33,7 +33,7 @@ async function withRetry(serviceFn: any, options: Record<string, unknown> = {}) 
     serviceName = 'External service',
   } = options as any;
 
-  let lastError;
+  let lastError: any;
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt += 1) {
     try {
@@ -52,7 +52,9 @@ async function withRetry(serviceFn: any, options: Record<string, unknown> = {}) 
     }
   }
 
-  throw new Error(`${serviceName} failed after ${maxRetries + 1} attempts: ${lastError.message}`);
+  throw new Error(
+    `${serviceName} failed after ${maxRetries + 1} attempts: ${lastError?.message || String(lastError)}`
+  );
 }
 
 export { delay, withRetry };

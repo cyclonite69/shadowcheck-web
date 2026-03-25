@@ -3,6 +3,8 @@
  * Provides request/response logging and request ID tracking
  */
 
+import type { Request, Response, NextFunction } from 'express';
+
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
 
@@ -12,9 +14,9 @@ export {};
  * Request ID middleware
  * Adds unique ID to each request for tracing across logs
  */
-function requestIdMiddleware(req, res, next) {
+function requestIdMiddleware(req: Request, res: Response, next: NextFunction) {
   req.id = req.headers['x-request-id'] || uuidv4();
-  res.setHeader('X-Request-ID', req.id);
+  res.setHeader('X-Request-ID', req.id!);
 
   // Create request-scoped logger
   req.logger = logger.createRequestLogger(req.id);
@@ -26,7 +28,7 @@ function requestIdMiddleware(req, res, next) {
  * Request logging middleware
  * Logs incoming requests with method, path, IP, user agent
  */
-function requestLoggingMiddleware(req, res, next) {
+function requestLoggingMiddleware(req: Request, res: Response, next: NextFunction) {
   const startTime = Date.now();
 
   // Log the incoming request
@@ -40,8 +42,8 @@ function requestLoggingMiddleware(req, res, next) {
   });
 
   // Override res.json to log response
-  const originalJson = res.json;
-  res.json = function (data) {
+  const originalJson = res.json.bind(res);
+  res.json = function (data: unknown) {
     const duration = Date.now() - startTime;
     const statusCode = res.statusCode;
 
@@ -65,7 +67,12 @@ function requestLoggingMiddleware(req, res, next) {
  * Logs errors with full context
  * Should be registered after error handler
  */
-function errorLoggingMiddleware(err, req, res, next) {
+function errorLoggingMiddleware(
+  err: Error & { statusCode?: number; code?: string; detail?: string },
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const statusCode = err.statusCode || 500;
 
   req.logger.error({
@@ -85,7 +92,7 @@ function errorLoggingMiddleware(err, req, res, next) {
  * Security event logging
  * Logs suspicious activity
  */
-function logSecurityEvent(req, event, details = {}) {
+function logSecurityEvent(req: Request, event: string, details: Record<string, unknown> = {}) {
   req.logger.warn({
     message: `Security: ${event}`,
     event,
@@ -101,12 +108,12 @@ function logSecurityEvent(req, event, details = {}) {
  * Tracks and logs slow requests
  */
 function performanceMiddleware(slowThresholdMs = 1000) {
-  return (req, res, next) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const startTime = Date.now();
 
     // Override res.json to check duration
-    const originalJson = res.json;
-    res.json = function (data) {
+    const originalJson = res.json.bind(res);
+    res.json = function (data: unknown) {
       const duration = Date.now() - startTime;
 
       if (duration > slowThresholdMs) {
@@ -131,7 +138,7 @@ function performanceMiddleware(slowThresholdMs = 1000) {
  * Database query logging
  * Call from database query wrapper
  */
-function logQuery(query, params = [], durationMs = 0) {
+function logQuery(query: string, params: unknown[] = [], durationMs: number = 0) {
   logger.debug({
     message: 'Database query',
     query: query.substring(0, 500), // Truncate long queries
@@ -143,7 +150,11 @@ function logQuery(query, params = [], durationMs = 0) {
 /**
  * Database query error logging
  */
-function logQueryError(query, params = [], error) {
+function logQueryError(
+  query: string,
+  params: unknown[] = [],
+  error: Error & { code?: string; detail?: string }
+) {
   logger.error({
     message: `Database query error: ${error.message}`,
     code: error.code,
@@ -156,7 +167,7 @@ function logQueryError(query, params = [], error) {
 /**
  * HTTP status code to log level mapper
  */
-function getLogLevelForStatus(statusCode) {
+function getLogLevelForStatus(statusCode: number): string {
   if (statusCode >= 500) {
     return 'error';
   }
@@ -173,7 +184,7 @@ function getLogLevelForStatus(statusCode) {
  * Compliance audit logging
  * Logs data access for compliance requirements
  */
-function logDataAccess(req, resource, action, recordCount = 0) {
+function logDataAccess(req: Request, resource: string, action: string, recordCount: number = 0) {
   logger.info({
     message: `Data access: ${action} ${resource}`,
     action,

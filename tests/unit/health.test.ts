@@ -3,8 +3,9 @@ export {};
 import { runIntegration } from '../helpers/integrationEnv';
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
-import request from 'supertest';
+const request = require('supertest');
 import express from 'express';
+import type { Express } from 'express';
 
 // Mock dependencies
 jest.mock('../../server/src/config/database', () => ({
@@ -22,7 +23,7 @@ describeIfIntegration('Health Check Endpoint', () => {
     test.skip('requires RUN_INTEGRATION_TESTS', () => {});
     return;
   }
-  let app: express.Application;
+  let app: Express;
   let healthRoutes: any;
   let pool: any;
   let secretsManager: any;

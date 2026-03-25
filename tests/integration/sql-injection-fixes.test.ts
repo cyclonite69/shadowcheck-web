@@ -51,7 +51,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
   // ============================================================================
 
   describe('Fix #1: BaseRepository.findMany() - ORDER BY Injection', () => {
-    let repo;
+    let repo: any;
 
     beforeEach(() => {
       repo = new BaseRepository('app.networks');
@@ -216,7 +216,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
   // ============================================================================
 
   describe('Fix #2: NetworkRepository.getPaginated() - Sort Injection', () => {
-    let repo;
+    let repo: any;
 
     beforeEach(() => {
       repo = new NetworkRepository();
@@ -425,7 +425,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
         await repo.getDashboardMetrics();
 
         // Verify no query contains ${
-        query.mock.calls.forEach(([sql]) => {
+        query.mock.calls.forEach(([sql]: any) => {
           expect(sql).not.toContain('${');
         });
       });
@@ -641,7 +641,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
       try {
         await repo.getPaginated({ sort: 'password_column' });
         throw new Error('Should have thrown error');
-      } catch (err) {
+      } catch (err: any) {
         // Error should mention validation failure
         expect(err.message).toContain('Invalid sort column');
         // But should not reveal actual table structure or schema details

@@ -411,7 +411,7 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
         };
       });
 
-      const candidates = await fetchSmartyCandidates(authId, authToken, inputs);
+      const candidates = await fetchSmartyCandidates(authId, authToken, inputs as any);
       const byId = new Map<string, SmartyCandidate[]>();
       for (const c of candidates) {
         if (!c.input_id) continue;
@@ -543,7 +543,7 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
           ]
         );
 
-        if (updateRes.rowCount > 0) {
+        if ((updateRes.rowCount ?? 0) > 0) {
           updated += 1;
           if (!o.normalized_address_line1 && normLine1) normalizedFilled += 1;
           if (wantCoords && canProvideCoords) coordsFilled += 1;

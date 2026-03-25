@@ -9,7 +9,7 @@ export {};
 
 const router = express.Router();
 
-router.post('/admin/siblings/override', async (req, res) => {
+router.post('/admin/siblings/override', async (req: any, res: any) => {
   try {
     const relation = req.body?.relation === 'not_sibling' ? 'not_sibling' : 'sibling';
     const bssidA = String(req.body?.bssidA || '')
@@ -63,7 +63,7 @@ router.post('/admin/siblings/override', async (req, res) => {
   }
 });
 
-router.get('/admin/siblings/linked/:bssid', async (req, res) => {
+router.get('/admin/siblings/linked/:bssid', async (req: any, res: any) => {
   try {
     const bssid = String(req.params?.bssid || '')
       .trim()
@@ -91,13 +91,13 @@ router.get('/admin/siblings/linked/:bssid', async (req, res) => {
   }
 });
 
-router.post('/admin/siblings/linked-batch', async (req, res) => {
+router.post('/admin/siblings/linked-batch', async (req: any, res: any) => {
   try {
     const rawBssids = Array.isArray(req.body?.bssids) ? req.body.bssids : [];
     const bssids = Array.from(
       new Set(
         rawBssids
-          .map((value) =>
+          .map((value: any) =>
             String(value || '')
               .trim()
               .toUpperCase()
@@ -127,7 +127,7 @@ router.post('/admin/siblings/linked-batch', async (req, res) => {
   }
 });
 
-router.post('/admin/siblings/refresh', async (req, res) => {
+router.post('/admin/siblings/refresh', async (req: any, res: any) => {
   try {
     const { batchSize, maxOctetDelta, maxDistanceM, minCandidateConf, minStrongConf, maxBatches } =
       req.body || {};
@@ -157,7 +157,7 @@ router.post('/admin/siblings/refresh', async (req, res) => {
   }
 });
 
-router.get('/admin/siblings/refresh/status', (req, res) => {
+router.get('/admin/siblings/refresh/status', (req: any, res: any) => {
   try {
     const status = siblingDetectionAdminService.getSiblingRefreshStatus();
     res.json({ ok: true, status });
@@ -170,7 +170,7 @@ router.get('/admin/siblings/refresh/status', (req, res) => {
   }
 });
 
-router.get('/admin/siblings/stats', async (req, res) => {
+router.get('/admin/siblings/stats', async (req: any, res: any) => {
   try {
     const stats = await siblingDetectionAdminService.getSiblingStats();
     res.json({ ok: true, stats });

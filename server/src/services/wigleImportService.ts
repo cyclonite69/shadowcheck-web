@@ -5,7 +5,7 @@ const adminDb = require('./adminDbService');
 
 export {};
 
-async function importWigleV2Json(jsonFilePath) {
+async function importWigleV2Json(jsonFilePath: string) {
   const client = await adminDb.getAdminPool().connect();
 
   try {
@@ -55,7 +55,7 @@ async function importWigleV2Json(jsonFilePath) {
         );
         imported++;
       } catch (err) {
-        logger.error(`Error inserting network ${network.netid}: ${err.message}`);
+        logger.error(`Error inserting network ${network.netid}: ${(err as any).message}`);
       }
     }
 
@@ -69,15 +69,15 @@ async function importWigleV2Json(jsonFilePath) {
   }
 }
 
-async function importWigleDirectory(importDir) {
+async function importWigleDirectory(importDir: string) {
   if (!fs.existsSync(importDir)) {
     throw new Error(`Directory not found: ${importDir}`);
   }
 
   const files = fs
     .readdirSync(importDir)
-    .filter((file) => file.endsWith('.json'))
-    .map((file) => path.join(importDir, file));
+    .filter((file: any) => file.endsWith('.json'))
+    .map((file: any) => path.join(importDir, file));
 
   let totalImported = 0;
   const results = [];
@@ -88,7 +88,7 @@ async function importWigleDirectory(importDir) {
       totalImported += imported;
       results.push({ file: path.basename(file), imported, error: null });
     } catch (err) {
-      results.push({ file: path.basename(file), imported: 0, error: err.message });
+      results.push({ file: path.basename(file), imported: 0, error: (err as any).message });
     }
   }
 

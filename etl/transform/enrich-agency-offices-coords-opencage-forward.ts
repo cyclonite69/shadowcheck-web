@@ -304,7 +304,7 @@ async function main(): Promise<void> {
           ]
         );
 
-        if (updateRes.rowCount > 0) updated += 1;
+        if ((updateRes.rowCount ?? 0) > 0) updated += 1;
       } catch (e) {
         const msg = String((e as Error)?.message || e);
         if (msg.includes('rate_limit')) {

@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import type { Request, Response } from 'express';
 const router = express.Router();
 const { networkListService } = require('../../../../config/container');
 import { escapeLikePattern } from '../../../../utils/escapeSQL';
@@ -27,7 +28,7 @@ const validateSearchQuery = validateQuery({
 router.get(
   '/networks/search/:ssid',
   validateSearchQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { ssid } = req.params;
 
     const ssidValidation = validateString(String(ssid || ''), 'SSID');

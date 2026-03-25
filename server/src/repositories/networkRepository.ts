@@ -48,13 +48,13 @@ class NetworkRepository {
       `);
 
       return result.rows || [];
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching networks: ${error.message}`, { error });
       return [];
     }
   }
 
-  async getNetworksByType(type) {
+  async getNetworksByType(type: string) {
     try {
       const result = await query(
         `
@@ -81,7 +81,7 @@ class NetworkRepository {
       );
 
       return result.rows || [];
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching ${type} networks: ${error.message}`, { error });
       return [];
     }
@@ -113,13 +113,13 @@ class NetworkRepository {
       `);
 
       return result.rows || [];
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Error fetching threatened networks: ${error.message}`, { error });
       return [];
     }
   }
 
-  async getDashboardMetrics(filters = {}, enabled = {}) {
+  async getDashboardMetrics(filters: any = {}, enabled: any = {}) {
     try {
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const validationErrors = builder.getValidationErrors();

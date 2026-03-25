@@ -9,11 +9,20 @@
  *
  * Used by:
  *  - server/src/api/routes/v1/networks/list.ts
+ *  - server/src/services/networkService.ts
  */
 
-export {};
+export interface SqlCondition {
+  sql: string;
+  params: any[];
+}
 
 // ── Security predicates ────────────────────────────────────────────────────
+
+/**
+ * Regex pattern for recognised encryption keywords.
+ */
+const ENCRYPTION_KEYWORDS_REGEX = '(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)';
 
 /**
  * SQL predicate that matches open / unencrypted networks.
@@ -22,51 +31,71 @@ export {};
  * encryption keywords.  ESS / IBSS are infrastructure-mode flags, not
  * encryption markers, and are intentionally absent from the exclusion list.
  */
-export const OPEN_PREDICATE =
-  "(ne.security IS NULL OR ne.security = '' OR ne.security !~* '(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)')";
+export function openPredicate(paramIndex: number): SqlCondition {
+  return {
+    sql: `(ne.security IS NULL OR ne.security = '' OR ne.security !~* $${paramIndex})`,
+    params: [ENCRYPTION_KEYWORDS_REGEX],
+  };
+}
 
 /**
  * Map a single canonical encryption type value to its SQL WHERE clause.
  *
- * @param enc  Canonical type (e.g. 'OPEN', 'WEP', 'WPA', 'WPA2', 'WPA3',
- *             'OWE', 'SAE').  Unknown values fall through to a generic ILIKE.
+ * @param enc         Canonical type (e.g. 'OPEN', 'WEP', 'WPA', 'WPA2', 'WPA3',
+ *                    'OWE', 'SAE').
+ * @param paramIndex  Current parameter index for $n placeholders.
  */
-export function encryptionTypePredicate(enc: string): string {
+export function encryptionTypePredicate(enc: string, paramIndex: number): SqlCondition {
   switch (enc.toUpperCase()) {
     case 'OPEN':
     case 'NONE': // legacy alias
-      return OPEN_PREDICATE;
+      return openPredicate(paramIndex);
 
     case 'WEP':
-      return "ne.security ILIKE '%WEP%'";
+      return {
+        sql: `ne.security ILIKE $${paramIndex}`,
+        params: ['%WEP%'],
+      };
 
     case 'WPA':
       // WPA v1 only — explicitly exclude WPA2/WPA3 and RSN/SAE rows
-      return (
-        "(ne.security ILIKE '%WPA%'" +
-        " AND ne.security NOT ILIKE '%WPA2%'" +
-        " AND ne.security NOT ILIKE '%WPA3%'" +
-        " AND ne.security !~* '(RSN|SAE)')"
-      );
+      return {
+        sql: `(ne.security ILIKE $${paramIndex} AND ne.security NOT ILIKE $${paramIndex + 1} AND ne.security NOT ILIKE $${paramIndex + 2} AND ne.security !~* $${paramIndex + 3})`,
+        params: ['%WPA%', '%WPA2%', '%WPA3%', '(RSN|SAE)'],
+      };
 
     case 'WPA2':
       // WPA2 or RSN-tagged rows, excluding WPA3
-      return "((ne.security ILIKE '%WPA2%' OR ne.security ~* 'RSN') AND ne.security NOT ILIKE '%WPA3%')";
+      return {
+        sql: `((ne.security ILIKE $${paramIndex} OR ne.security ~* $${paramIndex + 1}) AND ne.security NOT ILIKE $${paramIndex + 2})`,
+        params: ['%WPA2%', 'RSN', '%WPA3%'],
+      };
 
     case 'WPA3':
       // WPA3 or SAE (WPA3-Personal)
-      return "(ne.security ILIKE '%WPA3%' OR ne.security ~* 'SAE')";
+      return {
+        sql: `(ne.security ILIKE $${paramIndex} OR ne.security ~* $${paramIndex + 1})`,
+        params: ['%WPA3%', 'SAE'],
+      };
 
     case 'OWE':
-      return "ne.security ~* 'OWE'";
+      return {
+        sql: `ne.security ~* $${paramIndex}`,
+        params: ['OWE'],
+      };
 
     case 'SAE':
-      return "ne.security ~* 'SAE'";
+      return {
+        sql: `ne.security ~* $${paramIndex}`,
+        params: ['SAE'],
+      };
 
     default:
-      // Generic ILIKE fallback — safe because enc has been parsed from a
-      // comma-separated list and is not directly from user input.
-      return "ne.security ILIKE '%" + enc.replace(/'/g, "''") + "%'";
+      // Generic ILIKE fallback
+      return {
+        sql: `ne.security ILIKE $${paramIndex}`,
+        params: [`%${enc}%`],
+      };
   }
 }
 
@@ -75,12 +104,71 @@ export function encryptionTypePredicate(enc: string): string {
  *
  * Returns null when the list is empty (caller should skip the clause).
  */
-export function buildEncryptionTypeCondition(types: string[]): string | null {
+export function buildEncryptionTypeCondition(
+  types: string[],
+  paramIndex: number
+): SqlCondition | null {
   if (!types || types.length === 0) {
     return null;
   }
-  const clauses = types.map(encryptionTypePredicate);
-  return `(${clauses.join(' OR ')})`;
+  const params: any[] = [];
+  let currentParamIndex = paramIndex;
+  const clauses: string[] = [];
+
+  for (const type of types) {
+    const result = encryptionTypePredicate(type, currentParamIndex);
+    clauses.push(result.sql);
+    params.push(...result.params);
+    currentParamIndex += result.params.length;
+  }
+
+  return {
+    sql: `(${clauses.join(' OR ')})`,
+    params,
+  };
+}
+
+/**
+ * Map a single canonical auth method value to its SQL WHERE clause.
+ */
+export function authMethodPredicate(auth: string, paramIndex: number): SqlCondition {
+  if (auth.toUpperCase() === 'NONE') {
+    return {
+      sql: `(ne.auth IS NULL OR ne.auth = '' OR ne.auth ILIKE $${paramIndex})`,
+      params: ['%NONE%'],
+    };
+  }
+  return {
+    sql: `ne.auth ILIKE $${paramIndex}`,
+    params: [`%${auth}%`],
+  };
+}
+
+/**
+ * Build a combined SQL WHERE condition for an `authMethods` filter list.
+ */
+export function buildAuthMethodCondition(
+  methods: string[],
+  paramIndex: number
+): SqlCondition | null {
+  if (!methods || methods.length === 0) {
+    return null;
+  }
+  const params: any[] = [];
+  let currentParamIndex = paramIndex;
+  const clauses: string[] = [];
+
+  for (const method of methods) {
+    const result = authMethodPredicate(method, currentParamIndex);
+    clauses.push(result.sql);
+    params.push(...result.params);
+    currentParamIndex += result.params.length;
+  }
+
+  return {
+    sql: `(${clauses.join(' OR ')})`,
+    params,
+  };
 }
 
 // ── Threat score / level expressions ──────────────────────────────────────
@@ -96,96 +184,60 @@ export function buildThreatScoreExpr(simpleScoring = false): string {
     return `COALESCE(
       CASE
         WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-        WHEN nt.threat_tag = 'INVESTIGATE'    THEN COALESCE(nts.rule_based_score, 0)::numeric
-        ELSE                                       COALESCE(nts.rule_based_score, 0)::numeric
-      END,
-      0
-    )`;
+        WHEN nt.threat_tag = 'INVESTIGATE'    THEN COALESCE(nts.rule_based_score, 0)
+        ELSE COALESCE(nts.rule_based_score, 0)
+      END, 0)`;
   }
 
   return `COALESCE(
-      CASE
-        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
-        WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-        ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-      END,
-      0
-    )`;
+    CASE
+      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
+      WHEN nt.threat_tag = 'INVESTIGATE'    THEN ne.threat_score
+      ELSE ne.threat_score
+    END, 0)`;
 }
 
 /**
- * Build the threat-level SQL CASE expression.
- *
- * Thresholds: ≥80 CRITICAL, ≥60 HIGH, ≥40 MED, ≥20 LOW, else NONE.
- *
- * @param scoreExpr  The threat-score SQL sub-expression (from buildThreatScoreExpr).
+ * Build the threat-level SQL CASE expression based on a score expression.
  */
 export function buildThreatLevelExpr(scoreExpr: string): string {
   return `CASE
-      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-      WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-      ELSE (
-        CASE
-          WHEN ${scoreExpr} >= 80 THEN 'CRITICAL'
-          WHEN ${scoreExpr} >= 60 THEN 'HIGH'
-          WHEN ${scoreExpr} >= 40 THEN 'MED'
-          WHEN ${scoreExpr} >= 20 THEN 'LOW'
-          ELSE 'NONE'
-        END
-      )
-    END`;
+    WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
+    WHEN (${scoreExpr}) >= 80 THEN 'CRITICAL'
+    WHEN (${scoreExpr}) >= 60 THEN 'HIGH'
+    WHEN (${scoreExpr}) >= 40 THEN 'MED'
+    WHEN (${scoreExpr}) >= 20 THEN 'LOW'
+    ELSE 'NONE'
+  END`;
 }
 
-// ── Network type classification ────────────────────────────────────────────
+// ── Network type expressions ───────────────────────────────────────────────
 
 /**
- * Build a SQL CASE expression that normalises the raw `type` column to a
- * single-letter canonical code ('W', 'E', 'B', 'L', 'N', 'G', 'C', 'D', 'F').
+ * Build the SQL expression to canonicalise network type (W, E, L, N, G).
  *
- * Falls back to frequency-range inference and then to security-string pattern
- * matching when `type` is NULL or the sentinel value '?'.
- *
- * @param alias  Table alias for the network row (default `'ne'`).
+ * Falls back to frequency-based inference or security-pattern matching
+ * when the 'type' column is empty/null.
  */
 export function buildTypeExpr(alias = 'ne'): string {
-  return `
-      CASE
-        WHEN ${alias}.type IS NOT NULL AND ${alias}.type <> '?' THEN
-          CASE
-            WHEN UPPER(${alias}.type) IN ('W', 'WIFI', 'WI-FI') THEN 'W'
-            WHEN UPPER(${alias}.type) IN ('E', 'BLE', 'BTLE', 'BLUETOOTHLE', 'BLUETOOTH_LOW_ENERGY') THEN 'E'
-            WHEN UPPER(${alias}.type) IN ('B', 'BT', 'BLUETOOTH') THEN 'B'
-            WHEN UPPER(${alias}.type) IN ('L', 'LTE', '4G') THEN 'L'
-            WHEN UPPER(${alias}.type) IN ('N', 'NR', '5G') THEN 'N'
-            WHEN UPPER(${alias}.type) IN ('G', 'GSM', '2G') THEN 'G'
-            WHEN UPPER(${alias}.type) IN ('C', 'CDMA') THEN 'C'
-            WHEN UPPER(${alias}.type) IN ('D', '3G', 'UMTS') THEN 'D'
-            WHEN UPPER(${alias}.type) IN ('F', 'NFC') THEN 'F'
-            ELSE UPPER(${alias}.type)
-          END
-        WHEN ${alias}.frequency BETWEEN 2412 AND 7125 THEN 'W'
-        WHEN COALESCE(${alias}.security, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
-        WHEN COALESCE(${alias}.security, '') ~* '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
-        WHEN COALESCE(${alias}.security, '') ~* '(BLUETOOTH)' THEN 'B'
-        ELSE '?'
-      END
-    `;
+  return `CASE
+    WHEN ${alias}.type IN ('WIFI', 'W') THEN 'W'
+    WHEN ${alias}.type IN ('BLE', 'BT', 'E') THEN 'E'
+    WHEN ${alias}.type IN ('LTE', '4G', 'L') THEN 'L'
+    WHEN ${alias}.type IN ('NR', '5G', 'N') THEN 'N'
+    WHEN ${alias}.type IN ('GSM', '2G', 'G') THEN 'G'
+    WHEN ${alias}.frequency BETWEEN 2412 AND 7125 THEN 'W'
+    WHEN ${alias}.capabilities ~* '(WPA|WEP|ESS|RSN)' THEN 'W'
+    ELSE ${alias}.type
+  END`;
 }
 
-// ── Distance from home ─────────────────────────────────────────────────────
+// ── Distance-from-home expressions ──────────────────────────────────────────
 
 /**
- * Build a correlated subquery that returns the maximum ST_Distance (km)
- * between the home coordinate and any stored observation for `netAlias.bssid`.
+ * Build a subquery that calculates distance from home for each network.
  *
- * The home coordinates are embedded as SQL numeric literals (safe: they come
- * from the trusted `app.location_markers` table, not from user input).
- *
- * @param lat       Home latitude  (from location_markers).
- * @param lon       Home longitude (from location_markers).
- * @param netAlias  Alias of the network row (default `'ne'`).
- * @param obsAlias  Alias used for the inner observations scan (default `'o'`).
+ * Note: Requires lat/lon to be passed as literals (checked/sanitised by caller).
  */
 export function buildDistanceExpr(
   lat: number,
@@ -193,22 +245,14 @@ export function buildDistanceExpr(
   netAlias = 'ne',
   obsAlias = 'o'
 ): string {
-  // Sanity check: if home location is effectively (0,0), distance is meaningless
-  if (Math.abs(lat) < 0.0001 && Math.abs(lon) < 0.0001) {
-    return 'NULL';
-  }
-
-  return `
-        (
-          SELECT MAX(ST_Distance(
-            ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography,
-            ST_SetSRID(ST_MakePoint(${obsAlias}.lon, ${obsAlias}.lat), 4326)::geography
-          )) / 1000.0
-          FROM app.observations ${obsAlias}
-          WHERE ${obsAlias}.bssid = ${netAlias}.bssid
-            AND ${obsAlias}.lat IS NOT NULL AND ${obsAlias}.lon IS NOT NULL
-            AND ${obsAlias}.lat != 0 AND ${obsAlias}.lon != 0
-            -- Exclude observations that are essentially at 0,0 (common error)
-            AND ABS(${obsAlias}.lat) > 0.0001 AND ABS(${obsAlias}.lon) > 0.0001
-        )`;
+  return `(
+    SELECT ST_Distance(
+      ST_MakePoint(${lon}, ${lat})::geography,
+      ST_MakePoint(${obsAlias}.lon, ${obsAlias}.lat)::geography
+    ) / 1000
+    FROM app.observations ${obsAlias}
+    WHERE ${obsAlias}.bssid = ${netAlias}.bssid
+    ORDER BY ${obsAlias}.time DESC
+    LIMIT 1
+  )`;
 }

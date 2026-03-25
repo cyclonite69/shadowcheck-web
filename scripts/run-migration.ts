@@ -8,20 +8,21 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import secretsManager from '../server/src/services/secretsManager';
+import logger from '../server/src/logging/logger';
 
 dotenv.config();
 
 const migrationFile = process.argv[2];
 
 if (!migrationFile) {
-  console.error('Usage: node run-migration.js <migration-file.sql>');
+  logger.error('Usage: node run-migration.js <migration-file.sql>');
   process.exit(1);
 }
 
 const migrationPath = path.resolve(migrationFile);
 
 if (!fs.existsSync(migrationPath)) {
-  console.error(`Migration file not found: ${migrationPath}`);
+  logger.error(`Migration file not found: ${migrationPath}`);
   process.exit(1);
 }
 
@@ -41,13 +42,13 @@ async function runMigration(): Promise<void> {
       options: '-c search_path=app,public',
     });
 
-    console.log(`Running migration: ${path.basename(migrationPath)}`);
+    logger.info(`Running migration: ${path.basename(migrationPath)}`);
     await pool.query(sql);
-    console.log('✓ Migration completed successfully');
+    logger.info('✓ Migration completed successfully');
     await pool.end();
     process.exit(0);
   } catch (error) {
-    console.error('✗ Migration failed:', (error as Error).message);
+    logger.error(`✗ Migration failed: ${(error as Error).message}`);
     process.exit(1);
   }
 }

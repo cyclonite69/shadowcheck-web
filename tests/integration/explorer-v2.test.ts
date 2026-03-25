@@ -3,16 +3,18 @@
  * Validates that /api/explorer/networks-v2 is a strict superset of v1
  */
 
+import type { Express } from 'express';
+
 export {};
 
 const { runIntegration } = require('../helpers/integrationEnv');
 
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
-let request;
-let express;
-let explorerRouter;
-let app;
+let request: (app: any) => any;
+let express: any;
+let explorerRouter: any;
+let app: Express;
 
 if (runIntegration) {
   request = require('supertest');
@@ -28,8 +30,8 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
     return;
   }
 
-  let v1Response;
-  let v2Response;
+  let v1Response: any;
+  let v2Response: any;
 
   // ============================================================================
   // Setup: Fetch both endpoints
@@ -101,7 +103,7 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
       'accuracy_meters',
     ];
 
-    test.each(requiredFields)('V2 should have legacy field: %s', (field) => {
+    test.each(requiredFields)('V2 should have legacy field: %s', (field: string) => {
       if (v2Response.rows.length > 0) {
         expect(v2Response.rows[0]).toHaveProperty(field);
       }
@@ -110,11 +112,15 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
     test('V2 legacy fields should match V1 exactly', () => {
       if (v1Response.rows.length > 0 && v2Response.rows.length > 0) {
         // Sort both by BSSID for comparison
-        const v1Sorted = [...v1Response.rows].sort((a, b) => a.bssid.localeCompare(b.bssid));
-        const v2Sorted = [...v2Response.rows].sort((a, b) => a.bssid.localeCompare(b.bssid));
+        const v1Sorted = [...v1Response.rows].sort((a: any, b: any) =>
+          a.bssid.localeCompare(b.bssid)
+        );
+        const v2Sorted = [...v2Response.rows].sort((a: any, b: any) =>
+          a.bssid.localeCompare(b.bssid)
+        );
 
         // Extract legacy fields
-        const extractLegacy = (row) => ({
+        const extractLegacy = (row: any) => ({
           bssid: row.bssid,
           ssid: row.ssid,
           observed_at: row.observed_at,
@@ -158,7 +164,7 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
       'is_sentinel',
     ];
 
-    test.each(newFields)('V2 should have new field: %s', (field) => {
+    test.each(newFields)('V2 should have new field: %s', (field: string) => {
       if (v2Response.rows.length > 0) {
         expect(v2Response.rows[0]).toHaveProperty(field);
       }
@@ -259,7 +265,7 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
       expect(res.status).toBe(200);
       // Should be sorted alphabetically
       if (res.body.rows.length > 1) {
-        const ssids = res.body.rows.map((r) => r.ssid);
+        const ssids = res.body.rows.map((r: any) => r.ssid);
         const sorted = [...ssids].sort();
         expect(ssids).toEqual(sorted);
       }
@@ -273,7 +279,7 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
       // Results should contain 'test' in ssid, bssid, or manufacturer
       if (res.body.rows.length > 0) {
         const hasMatch = res.body.rows.some(
-          (row) =>
+          (row: any) =>
             row.ssid.toLowerCase().includes('test') ||
             row.bssid.toLowerCase().includes('test') ||
             (row.manufacturer && row.manufacturer.toLowerCase().includes('test'))

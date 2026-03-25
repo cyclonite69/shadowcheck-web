@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 /**
  * WiGLE Database Routes
  * Local WiGLE database queries
@@ -64,7 +65,7 @@ const validateWigleNetworksQuery = validateQuery({
 router.get(
   '/network/:bssid',
   macParamMiddleware,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { bssid } = req.params;
     const network = await wigleService.getWigleDetail(bssid);
     if (!network) {
@@ -80,7 +81,7 @@ router.get(
 router.get(
   '/search',
   validateWigleSearchQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const ssid = (req as any).validated?.ssid ? String((req as any).validated.ssid).trim() : '';
     const bssid = (req as any).validated?.bssid ? String((req as any).validated.bssid).trim() : '';
     const limit = (req as any).validated?.limit ?? null;
@@ -100,7 +101,7 @@ router.get(
 router.get(
   '/networks-v2',
   validateWigleNetworksQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { filters, enabled } = req.query;
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
@@ -145,7 +146,7 @@ router.get(
 router.get(
   '/networks-v3',
   validateWigleNetworksQuery,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const tableExists = await wigleService.checkWigleV3TableExists();
     if (!tableExists) {
       return res.json({

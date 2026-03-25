@@ -40,7 +40,7 @@ router.use(requireAdmin);
 // Configure multer for SQLite file uploads
 const upload = multer({
   dest: '/tmp/',
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const allowedExts = ['.sqlite', '.db', '.sqlite3'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExts.includes(ext)) {
@@ -74,7 +74,7 @@ router.use('/admin/data-quality', adminDataQualityRoutes);
 router.use('/admin/db-stats', adminDbStatsRoutes);
 
 // GET /api/observations/check-duplicates/:bssid - Check for duplicate observations
-router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
+router.get('/observations/check-duplicates/:bssid', async (req: any, res: any, next: any) => {
   try {
     const { bssid } = req.params;
     const { time } = req.query;
@@ -103,40 +103,40 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
       data,
       isSuspicious: data && data.total_observations >= 10,
     });
-  } catch (err) {
+  } catch (err: any) {
     next(err);
   }
 });
 
 // TEST endpoint to verify admin routes work
-router.get('/admin/test', async (req, res) => {
+router.get('/admin/test', async (req: any, res: any) => {
   res.json({ message: 'Admin routes are working!' });
 });
 
 // Simple test route to verify new routes work
-router.get('/admin/simple-test', (req, res) => {
+router.get('/admin/simple-test', (req: any, res: any) => {
   res.json({ ok: true, message: 'Simple test route working' });
 });
 
 // Test notes route
-router.get('/admin/notes-test', (req, res) => {
+router.get('/admin/notes-test', (req: any, res: any) => {
   res.json({ ok: true, message: 'Notes route working' });
 });
 
 // Add note endpoint
-router.post('/admin/add-note', async (req, res) => {
+router.post('/admin/add-note', async (req: any, res: any) => {
   try {
     const { bssid, content } = req.body;
     const note_id = await adminNetworkTagsService.addNetworkNote(bssid, content);
     res.json({ ok: true, note_id });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
 
 // Simple test route to verify new routes work
 // GET /api/admin/network-summary/:bssid - Get complete network summary
-router.get('/admin/network-summary/:bssid', async (req, res, next) => {
+router.get('/admin/network-summary/:bssid', async (req: any, res: any, next: any) => {
   try {
     const { bssid } = req.params;
 
@@ -152,7 +152,7 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
       ok: true,
       network,
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 });
@@ -160,7 +160,7 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
 /**
  * GET /api/demo/context-menu - Serve context menu demo
  */
-router.get('/demo/context-menu', (req, res) => {
+router.get('/demo/context-menu', (req: any, res: any) => {
   res.send(`
 <!DOCTYPE html>
 <html>

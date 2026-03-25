@@ -1,13 +1,11 @@
-const fs = require('fs').promises;
-const { constants } = require('fs');
-const path = require('path');
-const os = require('os');
-const { spawn, execSync } = require('child_process');
-const logger = require('../logging/logger');
-const secretsManager = require('./secretsManager').default;
+import fs from 'fs/promises';
+import { constants, Dirent } from 'fs';
+import path from 'path';
+import os from 'os';
+import { spawn, execSync } from 'child_process';
+import logger from '../logging/logger';
+import secretsManager from './secretsManager';
 const { getAwsConfig } = require('./awsService');
-
-export {};
 
 const repoRoot = '/app';
 
@@ -38,7 +36,7 @@ const getBackupSource = (): {
   return { hostname, environment: 'local' };
 };
 
-const getBackupDir = () => {
+const getBackupDir = (): string => {
   const configured = process.env.BACKUP_DIR;
   if (configured) {
     return path.isAbsolute(configured) ? configured : path.resolve(repoRoot, configured);
@@ -46,15 +44,15 @@ const getBackupDir = () => {
   return path.join(repoRoot, 'backups', 'db');
 };
 
-const stamp = () => {
+const stamp = (): string => {
   const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = (n: number | string) => String(n).padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(
     d.getHours()
   )}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 };
 
-const pruneOldBackups = async (dir, days) => {
+const pruneOldBackups = async (dir: string, days: number): Promise<void> => {
   if (!days || days <= 0) {
     return;
   }
@@ -62,8 +60,8 @@ const pruneOldBackups = async (dir, days) => {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   await Promise.all(
     entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith('.dump'))
-      .map(async (entry) => {
+      .filter((entry: Dirent) => entry.isFile() && entry.name.endsWith('.dump'))
+      .map(async (entry: Dirent) => {
         const fullPath = path.join(dir, entry.name);
         const stat = await fs.stat(fullPath);
         if (stat.mtimeMs < cutoff) {
@@ -73,8 +71,8 @@ const pruneOldBackups = async (dir, days) => {
   );
 };
 
-const buildPgEnv = () => {
-  const env = { ...process.env };
+const buildPgEnv = (): NodeJS.ProcessEnv => {
+  const env: NodeJS.ProcessEnv = { ...process.env };
   if (!env.PGHOST && process.env.DB_HOST) {
     env.PGHOST = process.env.DB_HOST;
   }
@@ -96,7 +94,7 @@ const buildPgEnv = () => {
   return env;
 };
 
-const buildBackupPgEnv = () => {
+const buildBackupPgEnv = (): NodeJS.ProcessEnv => {
   const env = buildPgEnv();
   const preferredAdminUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
   const adminPassword = secretsManager.get('db_admin_password') || process.env.DB_ADMIN_PASSWORD;
@@ -114,13 +112,13 @@ const buildBackupPgEnv = () => {
   return env;
 };
 
-const resolvePgDumpPath = async () => {
+const resolvePgDumpPath = async (): Promise<string> => {
   const candidates = [
     process.env.PG_DUMP_PATH,
     '/usr/bin/pg_dump',
     '/usr/local/bin/pg_dump',
     'pg_dump',
-  ].filter(Boolean);
+  ].filter((c): c is string => Boolean(c));
 
   for (const candidate of candidates) {
     if (candidate === 'pg_dump') {
@@ -137,10 +135,10 @@ const resolvePgDumpPath = async () => {
 };
 
 const uploadToS3 = async (
-  filePath,
-  fileName,
+  filePath: string,
+  fileName: string,
   source?: { hostname: string; environment: string; instanceId?: string }
-) => {
+): Promise<any> => {
   const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
   const env_label = source?.environment || 'unknown';
   const s3Key = `backups/${env_label}/${fileName}`;
@@ -164,7 +162,7 @@ const uploadToS3 = async (
       source?.instanceId ? `instance-id=${source.instanceId}` : null,
       `created-at=${new Date().toISOString()}`,
     ]
-      .filter(Boolean)
+      .filter((m): m is string => Boolean(m))
       .join(',');
 
     const child = spawn(
@@ -185,19 +183,19 @@ const uploadToS3 = async (
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (data) => {
+    child.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
-    child.on('error', (err) => {
+    child.on('error', (err: Error) => {
       reject(err);
     });
 
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       if (code === 0) {
         logger.info(`[Backup] S3 upload completed: ${stdout.trim()}`);
         resolve({
@@ -212,7 +210,7 @@ const uploadToS3 = async (
   });
 };
 
-const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
+export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}): Promise<any> => {
   const { uploadToS3: shouldUploadToS3 = false } = options;
   const backupDir = getBackupDir();
   const database = process.env.PGDATABASE || process.env.DB_NAME || 'shadowcheck_db';
@@ -224,7 +222,7 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   const globalsFileName = `globals_${timestamp}.sql`;
   const globalsFilePath = path.join(backupDir, globalsFileName);
 
-  const retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS, 10) || 14;
+  const retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS || '14', 10);
 
   await fs.mkdir(backupDir, { recursive: true });
 
@@ -249,9 +247,9 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
         env: pgEnv,
       });
       let stderr = '';
-      child.stderr.on('data', (data) => (stderr += data.toString()));
+      child.stderr.on('data', (data: Buffer) => (stderr += data.toString()));
       child.on('error', reject);
-      child.on('close', (code) => {
+      child.on('close', (code: number | null) => {
         if (code === 0) resolve(undefined);
         else reject(new Error(`pg_dumpall globals failed: ${stderr}`));
       });
@@ -282,15 +280,15 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
     }
     const child = spawn(pgDumpPath, args, { env: pgEnv });
     let stderr = '';
-    child.stderr.on('data', (data) => {
+    child.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
       logger.debug(`[Backup] pg_dump stderr: ${data.toString().trim()}`);
     });
-    child.on('error', (err) => {
+    child.on('error', (err: Error) => {
       logger.error(`[Backup] pg_dump process error: ${err.message}`);
       reject(err);
     });
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       if (code === 0) resolve(undefined);
       else {
         logger.error(`[Backup] pg_dump failed with code ${code}. Stderr: ${stderr}`);
@@ -347,7 +345,7 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   return result;
 };
 
-const listS3Backups = async () => {
+export const listS3Backups = async (): Promise<any> => {
   const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
 
   logger.info(`[Backup] Listing S3 backups from s3://${bucketName}/backups/`);
@@ -383,19 +381,19 @@ const listS3Backups = async () => {
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (data) => {
+    child.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
-    child.on('error', (err) => {
+    child.on('error', (err: Error) => {
       reject(err);
     });
 
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       if (code === 0) {
         try {
           const backups = JSON.parse(stdout || '[]');
@@ -424,7 +422,7 @@ const listS3Backups = async () => {
   });
 };
 
-const deleteS3Backup = async (key: string) => {
+export const deleteS3Backup = async (key: string): Promise<any> => {
   const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
 
   logger.info(`[Backup] Deleting S3 backup: s3://${bucketName}/${key}`);
@@ -447,19 +445,19 @@ const deleteS3Backup = async (key: string) => {
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (data) => {
+    child.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
-    child.on('error', (err) => {
+    child.on('error', (err: Error) => {
       reject(err);
     });
 
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       if (code === 0) {
         logger.info(`[Backup] S3 backup deleted: ${key}`);
         resolve({ deleted: true, key });
@@ -469,5 +467,3 @@ const deleteS3Backup = async (key: string) => {
     });
   });
 };
-
-module.exports = { runPostgresBackup, listS3Backups, deleteS3Backup };

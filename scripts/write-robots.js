@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
+const logger = require('../server/src/logging/logger');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const allowIndexing = process.env.ALLOW_INDEXING === 'true' || isProduction;
@@ -16,7 +17,7 @@ Disallow: /`;
 const outputPath = path.join(__dirname, '../client/public/robots.txt');
 fs.writeFileSync(outputPath, robotsTxt);
 
-console.log(
+logger.info(
   `[write-robots] Generated robots.txt (indexing: ${allowIndexing ? 'ALLOWED' : 'DISALLOWED'})`
 );
-console.log(`[write-robots] Output: ${outputPath}`);
+logger.info(`[write-robots] Output: ${outputPath}`);

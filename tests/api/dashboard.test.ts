@@ -43,8 +43,8 @@ const NetworkRepository = require('../../server/src/repositories/networkReposito
 const DashboardService = require('../../server/src/services/dashboardService');
 
 describe('Dashboard API', () => {
-  let dashboardService;
-  let networkRepository;
+  let dashboardService: any;
+  let networkRepository: any;
 
   beforeEach(() => {
     jest.clearAllMocks();

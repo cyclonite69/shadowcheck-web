@@ -11,6 +11,7 @@ const { safeJsonParse } = require('../utils/safeJsonParse');
 const { NETWORK_CHANNEL_EXPR } = require('./filterQueryBuilder/sqlExpressions');
 const {
   buildEncryptionTypeCondition,
+  buildAuthMethodCondition,
   buildThreatScoreExpr,
   buildThreatLevelExpr,
   buildTypeExpr,
@@ -401,19 +402,21 @@ export async function getFilteredNetworks(opts: {
     appliedFiltersArray.push({ column: 'radioTypes', value: radioTypes });
   }
   if (encryptionTypes && encryptionTypes.length > 0) {
-    const encCondition = buildEncryptionTypeCondition(encryptionTypes);
-    if (encCondition) {
-      conditions.push(encCondition);
+    const encResult = buildEncryptionTypeCondition(encryptionTypes, paramIndex);
+    if (encResult) {
+      conditions.push(encResult.sql);
+      params.push(...encResult.params);
+      paramIndex += encResult.params.length;
     }
     appliedFiltersArray.push({ column: 'encryptionTypes', value: encryptionTypes });
   }
   if (authMethods && authMethods.length > 0) {
-    const authConditions = authMethods.map((auth) =>
-      auth === 'NONE'
-        ? "(ne.auth IS NULL OR ne.auth = '' OR ne.auth ILIKE '%NONE%')"
-        : `ne.auth ILIKE '%${String(auth).replace(/'/g, "''")}%'`
-    );
-    conditions.push(`(${authConditions.join(' OR ')})`);
+    const authResult = buildAuthMethodCondition(authMethods, paramIndex);
+    if (authResult) {
+      conditions.push(authResult.sql);
+      params.push(...authResult.params);
+      paramIndex += authResult.params.length;
+    }
     appliedFiltersArray.push({ column: 'authMethods', value: authMethods });
   }
   if (insecureFlags && insecureFlags.length > 0) {

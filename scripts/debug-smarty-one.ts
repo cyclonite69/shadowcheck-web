@@ -11,6 +11,7 @@
  */
 
 import * as dotenv from 'dotenv';
+import logger from '../server/src/logging/logger';
 
 dotenv.config();
 
@@ -76,15 +77,15 @@ async function main(): Promise<void> {
   try {
     const json = JSON.parse(text);
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify(json, null, 2));
+    logger.info(JSON.stringify(json, null, 2));
   } catch {
     // eslint-disable-next-line no-console
-    console.log(text);
+    logger.info(text);
   }
 }
 
 main().catch((e) => {
   // eslint-disable-next-line no-console
-  console.error(String(e?.stack || e));
+  logger.error(String(e?.stack || e));
   process.exit(1);
 });

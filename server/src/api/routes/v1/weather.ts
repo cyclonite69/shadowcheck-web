@@ -1,4 +1,5 @@
 export {};
+import type { Request, Response } from 'express';
 /**
  * Weather API Proxy
  * Proxies requests to Open-Meteo API to avoid CSP issues
@@ -7,7 +8,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 
-router.get('/api/weather', async (req, res) => {
+router.get('/api/weather', async (req: Request, res: Response) => {
   const { lat, lon } = req.query;
 
   if (!lat || !lon) {

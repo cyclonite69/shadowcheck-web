@@ -208,7 +208,9 @@ interface ModelCheckRow {
   has_recent_model: boolean;
 }
 interface ScoringResult {
-  scored?: number;
+  scored: number;
+  message: string;
+  modelVersion?: string;
 }
 
 export async function runScoring(): Promise<void> {
@@ -241,8 +243,8 @@ export async function runScoring(): Promise<void> {
     });
 
     if (response.ok) {
-      const result: ScoringResult = await response.json();
-      console.log(`  ✅ Scored ${result.scored || 0} networks`);
+      const result = (await response.json()) as ScoringResult;
+      console.log(`  ✅ Scored ${result.scored} networks`);
     } else {
       console.log(`  ⚠️  Scoring API returned ${response.status}`);
     }

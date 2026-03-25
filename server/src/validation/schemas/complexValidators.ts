@@ -264,7 +264,7 @@ export function validateTag(tag: {
     const validTags = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
     const tagTypeValidation = validateEnum(tag.tagType, validTags, 'Tag type');
     if (!tagTypeValidation.valid) {
-      errors.push(tagTypeValidation.error);
+      if (tagTypeValidation.error) errors.push(tagTypeValidation.error);
     }
   }
 
