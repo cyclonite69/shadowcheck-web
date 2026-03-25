@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-const logger = require('../server/src/logging/logger');
+const logger = { info: console.log };
 
 const isProduction = process.env.NODE_ENV === 'production';
 const allowIndexing = process.env.ALLOW_INDEXING === 'true' || isProduction;
