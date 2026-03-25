@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
@@ -50,6 +50,15 @@ export const useObservationLayers = ({
   isViewportLocked = false,
   onOpenContextMenu,
 }: ObservationLayerProps) => {
+  // Use refs for dynamic callbacks/data to avoid stale closures in Mapbox event handlers
+  const onOpenContextMenuRef = useRef(onOpenContextMenu);
+  const networkLookupRef = useRef(networkLookup);
+
+  useEffect(() => {
+    onOpenContextMenuRef.current = onOpenContextMenu;
+    networkLookupRef.current = networkLookup;
+  });
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
 
@@ -72,7 +81,7 @@ export const useObservationLayers = ({
       let lastTime: Date | null = null;
 
       set.observations.forEach((obs, index) => {
-        const network = networkLookup.get(obs.bssid);
+        const network = networkLookupRef.current.get(obs.bssid);
         const threatLevel = network?.threat?.level ?? 'NONE';
         const lat = obs.lat;
         const lon = obs.lon;
@@ -184,7 +193,7 @@ export const useObservationLayers = ({
       );
       fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000, maxZoom: 15 });
     }
-  }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup, isViewportLocked]);
+  }, [activeObservationSets, mapReady, mapRef, mapboxRef, isViewportLocked]);
 
   // WiGLE observations layer effect
   useEffect(() => {
@@ -193,6 +202,28 @@ export const useObservationLayers = ({
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
     if (!mapboxgl) return;
+
+    const handleContextMenu = (e: MapLayerMouseEvent) => {
+      if (!onOpenContextMenuRef.current || !e.features || e.features.length === 0) return;
+
+      const feature = e.features[0];
+      const props = feature.properties;
+      if (!props || !props.bssid) return;
+
+      const network = networkLookupRef.current.get(props.bssid);
+      if (network) {
+        const mockEvent = {
+          preventDefault: () => {},
+          stopPropagation: () => {},
+          clientX: e.originalEvent.clientX,
+          clientY: e.originalEvent.clientY,
+          pageX: e.originalEvent.pageX,
+          pageY: e.originalEvent.pageY,
+        } as any;
+
+        onOpenContextMenuRef.current(mockEvent, network);
+      }
+    };
 
     // Add WiGLE observations source if it doesn't exist
     if (!map.getSource('wigle-observations')) {
@@ -211,7 +242,6 @@ export const useObservationLayers = ({
         source: 'wigle-observations',
         filter: ['==', ['get', 'source'], 'wigle_unique'],
         paint: {
-          // Match default network observation marker size.
           'circle-radius': 7,
           'circle-color': '#f59e0b', // amber-500
           'circle-stroke-width': 1,
@@ -291,30 +321,7 @@ export const useObservationLayers = ({
           .addTo(map);
       });
 
-      // Common handler for context menu
-      const handleContextMenu = (e: MapLayerMouseEvent) => {
-        if (!onOpenContextMenu || !e.features || e.features.length === 0) return;
-
-        const feature = e.features[0];
-        const props = feature.properties;
-        if (!props || !props.bssid) return;
-
-        const network = networkLookup.get(props.bssid);
-        if (network) {
-          const mockEvent = {
-            preventDefault: () => {},
-            stopPropagation: () => {},
-            clientX: e.originalEvent.clientX,
-            clientY: e.originalEvent.clientY,
-            pageX: e.originalEvent.pageX,
-            pageY: e.originalEvent.pageY,
-          } as any;
-
-          onOpenContextMenu(mockEvent, network);
-        }
-      };
-
-      // Add context menu handlers for all point layers
+      // Add context menu handlers
       map.on('contextmenu', 'observation-points', handleContextMenu);
       map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
       map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
@@ -353,7 +360,7 @@ export const useObservationLayers = ({
             source: obs.source,
             distance_from_our_center_m: obs.distance_from_our_center_m,
             number: index + 1,
-            bssid: obs.bssid || wigleObservations.bssid, // Use parent BSSID if specific one missing
+            bssid: obs.bssid || wigleObservations.bssid,
           },
         }));
 
@@ -379,13 +386,5 @@ export const useObservationLayers = ({
         });
       }
     }
-  }, [
-    mapReady,
-    mapRef,
-    mapboxRef,
-    wigleObservations,
-    isViewportLocked,
-    onOpenContextMenu,
-    networkLookup,
-  ]);
+  }, [mapReady, mapRef, mapboxRef, wigleObservations, isViewportLocked]);
 };
