@@ -67,6 +67,7 @@ services:
       AWS_REGION: ${AWS_REGION:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
       AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_SDK_LOAD_CONFIG: "1"
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
@@ -74,12 +75,14 @@ services:
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
       ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}
       MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+      HOME: /home/nodejs
     ports:
       - "127.0.0.1:${PORT:-3001}:3001"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./backups:/app/backups
+      - ${HOME}/.aws:/home/nodejs/.aws
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1"]
       interval: 30s
