@@ -92,7 +92,12 @@ AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
 AWS_PROFILE="${AWS_PROFILE:-}"
 
 if [ -z "$AWS_REGION" ]; then
-  AWS_REGION="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | sed -n 's/.*"region"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  IMDS_TOKEN="$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")"
+  if [ -n "$IMDS_TOKEN" ]; then
+    AWS_REGION="$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | sed -n 's/.*"region"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  else
+    AWS_REGION="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | sed -n 's/.*"region"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  fi
 fi
 
 if [ -f "$PGDATA/PG_VERSION" ]; then

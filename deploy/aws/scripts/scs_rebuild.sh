@@ -103,6 +103,21 @@ get_public_ip() {
   echo "${public_ip:-127.0.0.1}"
 }
 
+get_imds_document() {
+  local imds_token
+  local identity_document
+
+  imds_token="$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")"
+
+  if [ -n "$imds_token" ]; then
+    identity_document="$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $imds_token" http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null || true)"
+  else
+    identity_document="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null || true)"
+  fi
+
+  echo "$identity_document"
+}
+
 resolve_aws_region() {
   local identity_document
   local profile_region
@@ -125,7 +140,7 @@ resolve_aws_region() {
     fi
   fi
 
-  identity_document="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null || true)"
+  identity_document="$(get_imds_document)"
   if [ -n "$identity_document" ]; then
     echo "$identity_document" | sed -n 's/.*"region"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
     return 0
