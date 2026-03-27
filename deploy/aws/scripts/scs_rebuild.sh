@@ -223,12 +223,12 @@ sudo rm -rf /var/lib/postgresql/certs/web
 sudo rm -rf /var/lib/postgresql/web_certs
 sudo rm -f /var/lib/postgresql/data/server.crt
 
-# Canonical permissions: root:999 keeps PostgreSQL happy while group 999 can be
-# granted to the other containers for read-only access to the shared key.
+# Canonical permissions: PostgreSQL runs as 999:999 and needs direct access to
+# the canonical pair before deploy-postgres.sh starts the container.
 echo "  Enforcing canonical certificate permissions..."
-sudo chown root:999 "$CANONICAL_CERT_DIR" 2>/dev/null || true
-sudo chown root:999 "$CANONICAL_CERT" "$CANONICAL_KEY" 2>/dev/null || true
-sudo chmod 750 "$CANONICAL_CERT_DIR"
+sudo chown 999:999 "$CANONICAL_CERT_DIR" 2>/dev/null || true
+sudo chown 999:999 "$CANONICAL_CERT" "$CANONICAL_KEY" 2>/dev/null || true
+sudo chmod 700 "$CANONICAL_CERT_DIR"
 sudo chmod 640 "$CANONICAL_KEY" 2>/dev/null || true
 sudo chmod 644 "$CANONICAL_CERT" 2>/dev/null || true
 

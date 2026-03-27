@@ -104,11 +104,23 @@ echo ""
 echo "[3/7] SSL certificates..."
 
 CERT_DIR="/var/lib/postgresql/certs"
+CERT_FILE="$CERT_DIR/shadowcheck.crt"
+KEY_FILE="$CERT_DIR/shadowcheck.key"
+LEGACY_CERT_FILE="$CERT_DIR/server.crt"
+LEGACY_KEY_FILE="$CERT_DIR/server.key"
 mkdir -p "$CERT_DIR"
 
-if [ ! -f "$CERT_DIR/server.crt" ]; then
+if [ ! -f "$CERT_FILE" ]; then
+  if [ -f "$LEGACY_CERT_FILE" ] && [ -f "$LEGACY_KEY_FILE" ]; then
+    echo "  Migrating existing legacy certificate to canonical names..."
+    cp "$LEGACY_CERT_FILE" "$CERT_FILE"
+    cp "$LEGACY_KEY_FILE" "$KEY_FILE"
+  fi
+fi
+
+if [ ! -f "$CERT_FILE" ]; then
   openssl req -new -x509 -days 3650 -nodes -text \
-    -out "$CERT_DIR/server.crt" -keyout "$CERT_DIR/server.key" \
+    -out "$CERT_FILE" -keyout "$KEY_FILE" \
     -subj "/CN=shadowcheck-postgres"
   echo "  Created"
 else
@@ -117,10 +129,10 @@ fi
 
 # Mandatory permissions: PostgreSQL will NOT start if server.key is group/world readable
 echo "  Enforcing strict certificate permissions..."
-chown 999:999 "$CERT_DIR/server.key" "$CERT_DIR/server.crt" 2>/dev/null || true
+chown 999:999 "$KEY_FILE" "$CERT_FILE" 2>/dev/null || true
 chmod 700 "$CERT_DIR"
-chmod 600 "$CERT_DIR/server.key"
-chmod 644 "$CERT_DIR/server.crt"
+chmod 600 "$KEY_FILE"
+chmod 644 "$CERT_FILE"
 echo "  ✅ Permissions set (0600 for server.key)"
 
 # ============================================================================
@@ -190,8 +202,8 @@ track_functions = pl
 # Security
 password_encryption = scram-sha-256
 ssl = on
-ssl_cert_file = '/var/lib/postgresql/certs/server.crt'
-ssl_key_file = '/var/lib/postgresql/certs/server.key'
+ssl_cert_file = '/var/lib/postgresql/certs/shadowcheck.crt'
+ssl_key_file = '/var/lib/postgresql/certs/shadowcheck.key'
 
 # Logging (no credentials in logs)
 log_statement = 'none'
