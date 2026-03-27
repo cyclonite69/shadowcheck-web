@@ -128,38 +128,54 @@ flowchart LR
 - **Response**: 429 Too Many Requests when exceeded
 - **Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 
+## Threat Scoring (v4.0)
+
+ShadowCheck v4.0 uses a behavioral scoring engine with the following weighted components:
+
+| Component                | Weight | Criteria                                                             |
+| :----------------------- | :----- | :------------------------------------------------------------------- |
+| **Following Pattern**    | 35%    | Multiple clusters >2km from home; max distance spread.               |
+| **Parked Surveillance**  | 20%    | Repeated detections within 100m and 10-minute windows.               |
+| **Location Correlation** | 15%    | Percentage of observations near home vs. distinct clusters.          |
+| **Equipment Profile**    | 10%    | Manufacturer OUI matching (industrial/vehicular) and SSID patterns.  |
+| **Temporal Persistence** | 5%     | Number of distinct days observed.                                    |
+| **Fleet Bonus**          | 15%    | Correlation with other high-score networks (same manufacturer/SSID). |
+
+**Thresholds:**
+
+- **CRITICAL**: 81+
+- **HIGH**: 61-80
+- **MEDIUM**: 41-60
+- **LOW**: 21-40
+- **NONE**: <21
+
+Default display threshold: **40**
+
 ---
 
 ## Infrastructure Endpoints
 
-Public GeoJSON endpoints for geospatial visualization. Note: These are mounted at the root level to bypass standard API auth for map display.
+Public GeoJSON and data export endpoints. Note: These are mounted at the root level to bypass standard API auth for map display or direct download.
 
 ### GET /agency-offices
 
 Returns a GeoJSON FeatureCollection of all FBI Field Offices and Resident Agencies.
 
-**Response:**
-
-```json
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "geometry": { "type": "Point", "coordinates": [-83.0458, 42.3314] },
-      "properties": {
-        "name": "Detroit Field Office",
-        "office_type": "field_office",
-        "address": "477 Michigan Ave, Detroit, MI 48226"
-      }
-    }
-  ]
-}
-```
-
 ### GET /federal-courthouses
 
 Returns a GeoJSON FeatureCollection of all Federal Courthouses.
+
+### GET /csv
+
+Export observations as CSV (full dataset).
+
+### GET /json
+
+Export observations + networks as JSON (full dataset).
+
+### GET /geojson
+
+Export observations as GeoJSON (full dataset).
 
 ---
 

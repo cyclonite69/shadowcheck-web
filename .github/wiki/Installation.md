@@ -12,7 +12,7 @@ Complete setup instructions for ShadowCheck development and production environme
 
 | Software   | Version | Purpose                                     |
 | ---------- | ------- | ------------------------------------------- |
-| Node.js    | 20+     | Runtime environment                         |
+| Node.js    | 22+     | Runtime environment                         |
 | PostgreSQL | 18+     | Database with PostGIS extension             |
 | Docker     | 20.10+  | Containerization (optional but recommended) |
 | Git        | 2.30+   | Version control                             |
@@ -142,7 +142,7 @@ Access the application:
 ### Steps
 
 1. Open in DevContainer (VS Code will prompt)
-2. Wait for container build (includes Node.js 20, PostgreSQL 18, PostGIS)
+2. Wait for container build (includes Node.js 22, PostgreSQL 18, PostGIS)
 3. Start developing:
    ```bash
    npm run dev          # Backend

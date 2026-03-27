@@ -711,7 +711,7 @@ graph TB
 
 | Technology | Version | Purpose          |
 | ---------- | ------- | ---------------- |
-| Node.js    | 20+     | Runtime          |
+| Node.js    | 22+     | Runtime          |
 | Express    | 4.x     | Web framework    |
 | PostgreSQL | 18+     | Database         |
 | PostGIS    | 3.5+    | Geospatial       |
