@@ -4,6 +4,9 @@
  */
 
 const db = require('../config/database');
+const { adminQuery } = require('./adminDbService');
+
+const quoteIdent = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
 
 export async function getObservationsForCSV(): Promise<any[]> {
   const result = await db.query(`
@@ -92,8 +95,43 @@ export async function getObservationsForGeoJSON(): Promise<any[]> {
   return result.rows;
 }
 
+export async function getFullDatabaseSnapshot(): Promise<{
+  schema: string;
+  exported_at: string;
+  tables: Record<string, { rowCount: number; rows: any[] }>;
+}> {
+  const tableList = await adminQuery(
+    `
+      SELECT tablename
+      FROM pg_tables
+      WHERE schemaname = 'app'
+      ORDER BY tablename
+    `
+  );
+
+  const tables: Record<string, { rowCount: number; rows: any[] }> = {};
+
+  for (const row of tableList.rows) {
+    const tableName = String(row.tablename);
+    const qualifiedTable = `${quoteIdent('app')}.${quoteIdent(tableName)}`;
+    const result = await adminQuery(`SELECT * FROM ${qualifiedTable}`);
+
+    tables[tableName] = {
+      rowCount: result.rows.length,
+      rows: result.rows,
+    };
+  }
+
+  return {
+    schema: 'app',
+    exported_at: new Date().toISOString(),
+    tables,
+  };
+}
+
 module.exports = {
   getObservationsForCSV,
   getObservationsAndNetworksForJSON,
   getObservationsForGeoJSON,
+  getFullDatabaseSnapshot,
 };
