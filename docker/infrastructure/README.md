@@ -54,12 +54,16 @@ docker-compose up -d  # Starts shadowcheck_web_api + shadowcheck_web_redis
 
 ## Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root for shared defaults, and use `.env.local` for local host
+overrides if your backend runs outside Docker:
 
 ```bash
 # Database
+DB_HOST=127.0.0.1
+DB_ADMIN_USER=shadowcheck_admin
 DB_USER=shadowcheck_user
 DB_PASSWORD=your_secure_password
+DB_ADMIN_PASSWORD=your_admin_password
 DB_NAME=shadowcheck_db
 DB_PORT=5432
 
@@ -71,6 +75,13 @@ PGADMIN_PORT=5050
 # Redis
 REDIS_PORT=6379
 ```
+
+Notes:
+
+- `DB_PASSWORD` is required for the normal application pool.
+- `DB_ADMIN_PASSWORD` is required for admin DB routes such as the geocoding daemon endpoints.
+- If the backend container runs inside Docker on the shared network, `DB_HOST=shadowcheck_postgres`
+  is the correct value instead of `127.0.0.1`.
 
 ## Management Commands
 

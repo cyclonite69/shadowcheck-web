@@ -207,22 +207,39 @@ For AWS/EC2, use the deployment scripts in `deploy/aws/scripts/` (especially `sc
 
 ### 3. Environment Configuration
 
-Provision secrets in AWS Secrets Manager and export any local overrides via environment variables:
+Use the example env files to keep local dev separate from AWS/deployed settings:
 
-```
-DB_USER=shadowcheck_user
-DB_HOST=shadowcheck_postgres
-DB_NAME=shadowcheck_db
-DB_PASSWORD=your_password
+- `.env.example`
+  For shared non-secret defaults.
+- `.env.local.example`
+  For local-machine overrides when your backend runs on the host instead of inside Docker.
+
+Typical local dev values when PostgreSQL and Redis are published on localhost:
+
+```bash
+DB_HOST=127.0.0.1
 DB_PORT=5432
-REDIS_HOST=shadowcheck_web_redis
+DB_USER=shadowcheck_user
+DB_ADMIN_USER=shadowcheck_admin
+DB_NAME=shadowcheck_db
+REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 PORT=3001
+NODE_ENV=development
 ```
 
-See `.env.example` for non-secret options only.
+Credentials needed for local dev:
 
-> **Bare-metal only**: Replace `DB_HOST` and `REDIS_HOST` with `localhost` if running without Docker.
+- `DB_PASSWORD`
+  Required for the normal application DB pool.
+- `DB_ADMIN_PASSWORD`
+  Required for admin DB routes, including `/api/admin/geocoding/daemon`.
+
+If the backend runs inside Docker instead of on the host, `DB_HOST=shadowcheck_postgres` is the
+expected local value.
+
+Do not point local `.env` at the deployed EC2 database unless you intentionally want your local app
+to use the remote environment.
 
 ### 4. Run Migrations
 
