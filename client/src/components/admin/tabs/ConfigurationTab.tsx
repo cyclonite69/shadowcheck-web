@@ -152,7 +152,11 @@ export const ConfigurationTab: React.FC = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AdminCard icon={ToggleIcon} title="Feature Flags" color="from-cyan-500 to-blue-600">
+        <AdminCard
+          icon={ToggleIcon}
+          title="Feature Flags (Read-Only)"
+          color="from-cyan-500 to-blue-600"
+        >
           <div className="space-y-3">
             {featureItems.map((item) => (
               <div
@@ -177,6 +181,10 @@ export const ConfigurationTab: React.FC = () => {
                 </div>
               </div>
             ))}
+            <div className="rounded-lg border border-slate-700/50 bg-slate-950/50 px-3 py-2 text-xs text-slate-400">
+              These are status indicators only. They reflect frontend build flags and API runtime
+              environment flags. They are not editable from the admin UI.
+            </div>
           </div>
         </AdminCard>
 

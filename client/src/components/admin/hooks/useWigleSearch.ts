@@ -190,7 +190,12 @@ export const useWigleSearch = () => {
   };
 
   const hasMorePages = searchAfter !== null;
-  const totalPages = Math.ceil(totalResults / 100);
+  const effectiveLoadedCount =
+    searchResults?.run?.rowsReturned ?? searchResults?.loadedCount ?? allResults.length;
+  const effectiveTotalResults = searchResults?.run?.apiTotalResults ?? totalResults;
+  const effectiveCurrentPage = searchResults?.run?.pagesFetched ?? currentPage;
+  const effectiveTotalPages =
+    searchResults?.run?.totalPages ?? Math.max(1, Math.ceil((effectiveTotalResults || 0) / 100));
 
   return {
     apiStatus,
@@ -205,10 +210,10 @@ export const useWigleSearch = () => {
     // Pagination
     loadMoreResults,
     hasMorePages,
-    currentPage,
-    totalPages,
-    totalResults,
-    loadedCount: allResults.length,
+    currentPage: effectiveCurrentPage,
+    totalPages: effectiveTotalPages,
+    totalResults: effectiveTotalResults,
+    loadedCount: effectiveLoadedCount,
     lastImportRun,
   };
 };
