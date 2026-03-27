@@ -164,7 +164,10 @@ export const renderNetworkTooltip = (props: any): string => {
   const accuracyNumber = Number(props.accuracy);
   const accuracyValue = Number.isFinite(accuracyNumber) ? `${accuracyNumber} m` : '';
   const altitudeNumber = Number(props.altitude);
-  const altitudeValue = Number.isFinite(altitudeNumber) ? `${Math.round(altitudeNumber)} m` : '';
+  const altitudeValue =
+    Number.isFinite(altitudeNumber) && Math.abs(altitudeNumber) > 0.5
+      ? `${Math.round(altitudeNumber)} m`
+      : '';
 
   const fieldRows = [
     !isMissingValue(props.encryption || props.security)
