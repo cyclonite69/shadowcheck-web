@@ -10,7 +10,7 @@
 ### 🚀 launch-shadowcheck-spot.sh
 
 **Run from:** Local machine  
-**Purpose:** Launch new EC2 spot instance  
+**Purpose:** Legacy EC2 spot instance launcher  
 **Does:**
 
 - Launches t4g.medium spot instance from template
@@ -22,6 +22,39 @@
 
 ```bash
 ./deploy/aws/scripts/launch-shadowcheck-spot.sh
+```
+
+### 🚀 launch-shadowcheck-arm-spot.sh
+
+**Run from:** Local machine  
+**Purpose:** Recommended single-node ARM Spot replacement launcher  
+**Does:**
+
+- Uses one-time Spot instead of a persistent Spot request
+- Tries multiple ARM instance types in order
+- Keeps the instance in the same AZ as the PostgreSQL EBS volume
+- Stops and detaches the old volume owner before reattaching
+- Reassociates the Elastic IP automatically
+- Optionally terminates the displaced instance after handoff
+- Waits briefly for SSM registration
+
+**Default ARM pool:**
+
+- `m7g.large`
+- `m6g.large`
+- `c7g.large`
+- `c6g.large`
+
+**Usage:**
+
+```bash
+./deploy/aws/scripts/launch-shadowcheck-arm-spot.sh
+```
+
+**Override candidate types:**
+
+```bash
+./deploy/aws/scripts/launch-shadowcheck-arm-spot.sh m7g.large m6g.large
 ```
 
 ---
