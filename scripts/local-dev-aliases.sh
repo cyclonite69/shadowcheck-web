@@ -36,6 +36,16 @@ scapi() {
   docker compose up -d --build --force-recreate api "$@"
 }
 
+scgrafana() {
+  scroot || return 1
+
+  export AWS_PROFILE="${AWS_PROFILE:-shadowcheck-sso}"
+  export AWS_REGION="${AWS_REGION:-us-east-1}"
+  export SHADOWCHECK_AWS_SECRET="${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}"
+
+  ./scripts/start-local-grafana.sh "$@"
+}
+
 scps() {
   docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 }
@@ -51,6 +61,7 @@ scdba() {
 export -f scroot
 export -f sclocal
 export -f scapi
+export -f scgrafana
 export -f scps
 export -f scdb
 export -f scdba
@@ -59,6 +70,7 @@ echo "Local ShadowCheck aliases loaded:"
 echo "  scroot   - cd to the repo"
 echo "  sclocal  - docker compose up -d --build"
 echo "  scapi    - recreate api with AWS_PROFILE/AWS_REGION/SHADOWCHECK_AWS_SECRET defaults"
+echo "  scgrafana - start local Grafana with AWS-backed Grafana secrets and grafana_reader sync"
 echo "  scps     - formatted docker ps"
 echo "  scdb     - psql as shadowcheck_user on local Postgres"
 echo "  scdba    - psql as shadowcheck_admin on local Postgres"
