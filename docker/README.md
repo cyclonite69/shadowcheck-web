@@ -92,6 +92,12 @@ This gives you:
 
 - `scroot` to jump to the repo
 - `sclocal` to run `docker compose up -d --build`
+- `scapi` to recreate the local `api` container with
+  `AWS_PROFILE=shadowcheck-sso`, `AWS_REGION=us-east-1`,
+  and `SHADOWCHECK_AWS_SECRET=shadowcheck/config`
 - `scps` for formatted container status
 - `scdb` for `psql` as `shadowcheck_user`
 - `scdba` for `psql` as `shadowcheck_admin`
+
+If you call `sclocal api`, the helper will refuse to run unless
+`AWS_PROFILE`, `AWS_REGION`, and `SHADOWCHECK_AWS_SECRET` are already set.

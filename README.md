@@ -238,6 +238,10 @@ Local Docker behavior:
   before `docker compose up`
 - Optional shell helpers can be loaded with `source ./scripts/local-dev-aliases.sh`
 - `sclocal` runs `docker compose up -d --build`
+- `scapi` recreates the local `api` container with AWS defaults:
+  `AWS_PROFILE=shadowcheck-sso`, `AWS_REGION=us-east-1`,
+  `SHADOWCHECK_AWS_SECRET=shadowcheck/config`
+- `sclocal api` will refuse to run unless those three env vars are already set
 - `scdb` opens `psql` as `shadowcheck_user`
 - `scdba` opens `psql` as `shadowcheck_admin`
 

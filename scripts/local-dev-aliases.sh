@@ -7,7 +7,33 @@ scroot() {
 
 sclocal() {
   scroot || return 1
+  local wants_api=0
+  for arg in "$@"; do
+    if [ "$arg" = "api" ]; then
+      wants_api=1
+      break
+    fi
+  done
+
+  if [ "$wants_api" -eq 1 ] && {
+    [ -z "${AWS_PROFILE:-}" ] || [ -z "${AWS_REGION:-}" ] || [ -z "${SHADOWCHECK_AWS_SECRET:-}" ];
+  }; then
+    echo "sclocal: AWS-backed api requested, but AWS_PROFILE/AWS_REGION/SHADOWCHECK_AWS_SECRET is incomplete." >&2
+    echo "Use 'scapi' or export the required env vars first." >&2
+    return 1
+  fi
+
   docker compose up -d --build "$@"
+}
+
+scapi() {
+  scroot || return 1
+
+  export AWS_PROFILE="${AWS_PROFILE:-shadowcheck-sso}"
+  export AWS_REGION="${AWS_REGION:-us-east-1}"
+  export SHADOWCHECK_AWS_SECRET="${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}"
+
+  docker compose up -d --build --force-recreate api "$@"
 }
 
 scps() {
@@ -24,6 +50,7 @@ scdba() {
 
 export -f scroot
 export -f sclocal
+export -f scapi
 export -f scps
 export -f scdb
 export -f scdba
@@ -31,6 +58,7 @@ export -f scdba
 echo "Local ShadowCheck aliases loaded:"
 echo "  scroot   - cd to the repo"
 echo "  sclocal  - docker compose up -d --build"
+echo "  scapi    - recreate api with AWS_PROFILE/AWS_REGION/SHADOWCHECK_AWS_SECRET defaults"
 echo "  scps     - formatted docker ps"
 echo "  scdb     - psql as shadowcheck_user on local Postgres"
 echo "  scdba    - psql as shadowcheck_admin on local Postgres"

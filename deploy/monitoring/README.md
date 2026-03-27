@@ -15,6 +15,7 @@ SECRET_JSON="$(aws secretsmanager get-secret-value \
   --output text)"
 export GRAFANA_ADMIN_PASSWORD="$(jq -r '.grafana_admin_password' <<<"$SECRET_JSON")"
 export GRAFANA_READER_PASSWORD="$(jq -r '.grafana_reader_password' <<<"$SECRET_JSON")"
+export GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-grafanaadmin}"
 export GF_SERVER_ROOT_URL="https://34.204.161.164/grafana/"
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d shadowcheck_grafana
 ```
@@ -28,7 +29,7 @@ docker compose -f docker-compose.monitoring.yml down
 ## Access
 
 - Grafana: http://34.204.161.164:3002
-- Login: `admin` with the runtime `GRAFANA_ADMIN_PASSWORD` secret from AWS Secrets Manager
+- Login: `grafanaadmin` with the runtime `GRAFANA_ADMIN_PASSWORD` secret from AWS Secrets Manager
 
 ## Datasource
 
@@ -49,6 +50,10 @@ Recommended secret keys in `shadowcheck/config`:
 
 - `grafana_admin_password`
 - `grafana_reader_password`
+
+Recommended runtime env:
+
+- `GRAFANA_ADMIN_USER=grafanaadmin`
 
 To generate/rotate both keys and sync the PostgreSQL `grafana_reader` role:
 

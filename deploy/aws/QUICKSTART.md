@@ -215,7 +215,7 @@ curl http://localhost:3001/api/health
 ## Security Notes
 
 1. **Database password** is auto-generated and stored in `AWS Secrets Manager (shadowcheck/config: db_password)`
-2. **Grafana passwords** are generated and stored in `AWS Secrets Manager (shadowcheck/config: grafana_admin_password, grafana_reader_password)` when monitoring is enabled
+2. **Grafana credentials** use username `grafanaadmin`; passwords are generated and stored in `AWS Secrets Manager (shadowcheck/config: grafana_admin_password, grafana_reader_password)` when monitoring is enabled
 3. **SSL/TLS** is enforced for PostgreSQL connections
 4. **Security groups** restrict access - use `add-ip-access.sh` to allow your IP
 5. **Secrets** are never committed to git (.env.aws is gitignored)
