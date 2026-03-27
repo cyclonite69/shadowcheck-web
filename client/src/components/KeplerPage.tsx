@@ -71,7 +71,7 @@ const KeplerPage: React.FC = () => {
       try {
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css'),
-          loadScript('https://unpkg.com/deck.gl@latest/dist.min.js'),
+          loadScript('https://cdn.jsdelivr.net/npm/deck.gl@latest/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;
