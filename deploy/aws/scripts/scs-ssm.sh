@@ -62,7 +62,12 @@ resolve_instance_id() {
 }
 
 start_session() {
-  aws ssm start-session --target "$1" --region "$REGION" --profile "$PROFILE"
+  aws ssm start-session \
+    --target "$1" \
+    --region "$REGION" \
+    --profile "$PROFILE" \
+    --document-name AWS-StartInteractiveCommand \
+    --parameters '{"command":["bash -c \"cd ~/shadowcheck && exec bash --login\""]}'
 }
 
 require_command aws
