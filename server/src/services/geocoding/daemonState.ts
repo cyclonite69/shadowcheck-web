@@ -1,4 +1,4 @@
-const { query } = require('../../config/database');
+const { adminQuery } = require('../adminDbService');
 
 export {};
 
@@ -19,7 +19,7 @@ const geocodeDaemon: GeocodingDaemonStatus = {
 };
 
 const loadPersistedDaemonConfig = async (): Promise<GeocodeDaemonConfig | null> => {
-  const result = await query('SELECT value FROM app.settings WHERE key = $1 LIMIT 1', [
+  const result = await adminQuery('SELECT value FROM app.settings WHERE key = $1 LIMIT 1', [
     GEOCODING_DAEMON_STATE_KEY,
   ]);
   const row = result.rows[0];
@@ -35,7 +35,7 @@ const loadPersistedDaemonConfig = async (): Promise<GeocodeDaemonConfig | null> 
 };
 
 const persistDaemonConfig = async (config: GeocodeDaemonConfig): Promise<void> => {
-  await query(
+  await adminQuery(
     `
     INSERT INTO app.settings (key, value, description)
     VALUES ($1, $2::jsonb, $3)
