@@ -95,9 +95,30 @@ This gives you:
 - `scapi` to recreate the local `api` container with
   `AWS_PROFILE=shadowcheck-sso`, `AWS_REGION=us-east-1`,
   and `SHADOWCHECK_AWS_SECRET=shadowcheck/config`
+- `scgrafana` to fetch Grafana secrets from AWS, sync the local `grafana_reader`
+  role, and start local Grafana on `http://127.0.0.1:3002/`
 - `scps` for formatted container status
 - `scdb` for `psql` as `shadowcheck_user`
 - `scdba` for `psql` as `shadowcheck_admin`
 
 If you call `sclocal api`, the helper will refuse to run unless
 `AWS_PROFILE`, `AWS_REGION`, and `SHADOWCHECK_AWS_SECRET` are already set.
+
+To start local Grafana directly without shell aliases:
+
+```bash
+AWS_PROFILE=shadowcheck-sso \
+AWS_REGION=us-east-1 \
+SHADOWCHECK_AWS_SECRET=shadowcheck/config \
+./scripts/start-local-grafana.sh
+```
+
+Local Grafana uses:
+
+- URL: `http://127.0.0.1:3002/`
+- Username: `grafanaadmin`
+- Password: `grafana_admin_password` from `shadowcheck/config`
+
+If the existing local Grafana volume was initialized with a different admin username,
+the password reset still works, but the username may remain unchanged until that
+local Grafana data volume is recreated.
