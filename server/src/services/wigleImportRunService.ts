@@ -615,6 +615,11 @@ const executeImportLoop = async (runId: number) => {
         );
       }
 
+      if (results.length === 0 && nextCursor === null) {
+        run = await completeRun(runId);
+        return run;
+      }
+
       run = await processSuccessfulPage(
         runId,
         pageNumber,

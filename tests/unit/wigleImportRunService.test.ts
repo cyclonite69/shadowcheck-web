@@ -570,4 +570,71 @@ describe('wigleImportRunService', () => {
     expect(cancelled.status).toBe('cancelled');
     expect(cancelled.completedAt).toBeTruthy();
   });
+
+  it('does not commit an extra empty terminal page when WiGLE ends with no results and no cursor', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(
+        makeResponse({
+          totalResults: 3,
+          search_after: 'cursor-2',
+          results: [
+            {
+              netid: 'AA:AA',
+              ssid: 'fbi-1',
+              trilat: '1',
+              trilong: '2',
+              lastupdt: '2026-01-01T00:00:00Z',
+            },
+            {
+              netid: 'BB:BB',
+              ssid: 'fbi-2',
+              trilat: '3',
+              trilong: '4',
+              lastupdt: '2026-01-02T00:00:00Z',
+            },
+          ],
+        })
+      )
+      .mockResolvedValueOnce(
+        makeResponse({
+          totalResults: 3,
+          search_after: 'cursor-final',
+          results: [
+            {
+              netid: 'CC:CC',
+              ssid: 'fbi-3',
+              trilat: '5',
+              trilong: '6',
+              lastupdt: '2026-01-03T00:00:00Z',
+            },
+          ],
+        })
+      )
+      .mockResolvedValueOnce(
+        makeResponse({
+          totalResults: 3,
+          search_after: null,
+          results: [],
+        })
+      );
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const service = require('../../server/src/services/wigleImportRunService');
+    const result = await service.startImportRun({
+      ssid: 'fbi',
+      region: 'AL',
+      country: 'US',
+      resultsPerPage: 2,
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.totalPages).toBe(2);
+    expect(result.pagesFetched).toBe(2);
+    expect(result.lastSuccessfulPage).toBe(2);
+    expect(result.nextPage).toBe(3);
+    expect(result.rowsReturned).toBe(3);
+    expect(result.rowsInserted).toBe(3);
+    expect(result.pages.map((page: any) => page.pageNumber)).toEqual([2, 1]);
+    expect(dbState.pages.filter((page) => page.run_id === result.id)).toHaveLength(2);
+  });
 });
