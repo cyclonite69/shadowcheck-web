@@ -230,6 +230,10 @@ Local Docker behavior:
   real AWS credentials or export `DB_PASSWORD`, `DB_ADMIN_PASSWORD`, and any optional
   API keys like `MAPBOX_TOKEN` in your shell
   before `docker compose up`
+- Optional shell helpers can be loaded with `source ./scripts/local-dev-aliases.sh`
+- `sclocal` runs `docker compose up -d --build`
+- `scdb` opens `psql` as `shadowcheck_user`
+- `scdba` opens `psql` as `shadowcheck_admin`
 
 Host-based local development behavior:
 

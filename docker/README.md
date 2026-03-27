@@ -21,11 +21,25 @@ Passwords are not hardcoded in compose:
 - `db_password` still comes from `secretsManager.getOrThrow('db_password')`
 - `db_admin_password` still comes from `secretsManager.get('db_admin_password')`
 
-To let the API container reach AWS Secrets Manager, run `docker compose up` with real
-AWS credentials in your shell, for example `AWS_PROFILE`, `AWS_REGION`, or the
-standard `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` variables. If you do not want
-to use AWS Secrets Manager locally, export `DB_PASSWORD` and `DB_ADMIN_PASSWORD`
-explicitly in your shell before starting the compose stack.
+To let the API container reach AWS Secrets Manager with your normal local AWS login,
+the compose file mounts `${HOME}/.aws` into the API container and enables AWS
+shared-config loading. In the common case, you only need:
+
+```bash
+export AWS_PROFILE=shadowcheck-sso
+export AWS_REGION=us-east-1
+docker compose up -d --force-recreate api
+```
+
+If you use a non-default secret name, also export:
+
+```bash
+export SHADOWCHECK_AWS_SECRET=your/real/secret-name
+```
+
+If you do not want to use AWS Secrets Manager locally, export `DB_PASSWORD`,
+`DB_ADMIN_PASSWORD`, `MAPBOX_TOKEN`, and any other required secrets explicitly in
+your shell before starting the compose stack.
 
 Production EC2 keeps its explicit deployed database host in `.env`, for example:
 
@@ -47,3 +61,17 @@ export S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
 ./scripts/fetch-latest-s3-backup.sh
 ./scripts/restore-local-backup.sh ./backups/s3/<latest-backup>.dump
 ```
+
+Local shell helpers are also available:
+
+```bash
+source ./scripts/local-dev-aliases.sh
+```
+
+This gives you:
+
+- `scroot` to jump to the repo
+- `sclocal` to run `docker compose up -d --build`
+- `scps` for formatted container status
+- `scdb` for `psql` as `shadowcheck_user`
+- `scdba` for `psql` as `shadowcheck_admin`
