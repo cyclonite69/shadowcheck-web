@@ -36,6 +36,7 @@ deploy/aws/
 - **[QUICKSTART.md](QUICKSTART.md)** - Complete deployment from scratch (recommended)
 - **[WORKFLOW.md](WORKFLOW.md)** - Development and update workflow
 - **[DEPLOYMENT_COMPLETE.md](DEPLOYMENT_COMPLETE.md)** - Detailed deployment notes
+- **[ARM_SPOT_ASG_CUTOVER.md](docs/ARM_SPOT_ASG_CUTOVER.md)** - staged migration plan for mixed-instance ARM Spot ASG
 
 ## Quick Commands
 
@@ -44,6 +45,16 @@ deploy/aws/
 ```bash
 ./scripts/launch-shadowcheck-spot.sh
 ```
+
+### Stage Mixed ARM Spot ASG
+
+```bash
+SCS_SUBNET_ID=subnet-xxxxxxxx ./scripts/create-shadowcheck-asg.sh
+```
+
+This stages the new single-AZ mixed-instance ARM Spot ASG design. It does not
+replace the current instance unless you deliberately scale the ASG up and cut
+over.
 
 ### Connect to Instance
 
@@ -118,6 +129,7 @@ See [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md) for complete 
 - **[SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md)** - Network isolation and container security
 - **[POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md)** - Performance optimization
 - **[PASSWORD_ROTATION.md](docs/PASSWORD_ROTATION.md)** - Security procedures
+- **[ARM_SPOT_ASG_CUTOVER.md](docs/ARM_SPOT_ASG_CUTOVER.md)** - staged single-AZ ARM Spot ASG cutover
 
 ## Configuration Files
 

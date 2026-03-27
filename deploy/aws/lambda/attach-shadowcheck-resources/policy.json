@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeAddresses",
+        "ec2:AttachVolume",
+        "ec2:DetachVolume",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

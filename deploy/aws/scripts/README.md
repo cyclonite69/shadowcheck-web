@@ -217,6 +217,44 @@ alias scs-ssm='$PWD/deploy/aws/scripts/scs-ssm.sh'
 
 ---
 
+### 🧭 create-shadowcheck-asg.sh
+
+**Run from:** Local machine  
+**Purpose:** Stage or update the single-AZ mixed-instance ARM Spot ASG  
+**Does:**
+
+- Creates or updates a mixed-instance Spot ASG definition
+- Defaults desired capacity to `0` so you can inspect it before cutover
+- Restricts the instance pool to ARM types under the `m7g.large` price cap
+
+**Usage:**
+
+```bash
+SCS_SUBNET_ID=subnet-xxxxxxxx ./deploy/aws/scripts/create-shadowcheck-asg.sh
+```
+
+**Review all placeholders before running.**
+
+---
+
+### 🧹 cancel-shadowcheck-persistent-spot.sh
+
+**Run from:** Local machine  
+**Purpose:** Audit or cancel the legacy persistent Spot request  
+**Does:**
+
+- Lists the Spot request(s) from the old launcher flow
+- Cancels them only when invoked with `--cancel`
+
+**Usage:**
+
+```bash
+./deploy/aws/scripts/cancel-shadowcheck-persistent-spot.sh
+./deploy/aws/scripts/cancel-shadowcheck-persistent-spot.sh --cancel
+```
+
+---
+
 ## Specialized Scripts
 
 ### ☁️ setup-cloudformation.sh
