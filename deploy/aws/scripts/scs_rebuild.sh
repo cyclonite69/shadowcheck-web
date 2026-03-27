@@ -26,6 +26,11 @@ if [ -f "$SCS_ENV" ]; then
   . "$SCS_ENV"
 fi
 
+AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
+AWS_PROFILE="${AWS_PROFILE:-}"
+SHADOWCHECK_ENV="${SHADOWCHECK_ENV:-prod}"
+S3_BUCKET_PARAM="${S3_BUCKET_PARAM:-/shadowcheck/${SHADOWCHECK_ENV}/s3_bucket}"
+
 wait_for_container_health() {
   local container="$1"
   local timeout="${2:-60}"
@@ -96,6 +101,59 @@ get_public_ip() {
   fi
 
   echo "${public_ip:-127.0.0.1}"
+}
+
+resolve_aws_region() {
+  local identity_document
+  local profile_region
+
+  if [ -n "$AWS_REGION" ]; then
+    echo "$AWS_REGION"
+    return 0
+  fi
+
+  if [ -n "${AWS_DEFAULT_REGION:-}" ]; then
+    echo "$AWS_DEFAULT_REGION"
+    return 0
+  fi
+
+  if [ -n "$AWS_PROFILE" ]; then
+    profile_region="$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null || true)"
+    if [ -n "$profile_region" ]; then
+      echo "$profile_region"
+      return 0
+    fi
+  fi
+
+  identity_document="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null || true)"
+  if [ -n "$identity_document" ]; then
+    echo "$identity_document" | sed -n 's/.*"region"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+    return 0
+  fi
+
+  return 1
+}
+
+resolve_s3_bucket() {
+  local parameter_bucket
+
+  if [ -n "${S3_BUCKET:-}" ]; then
+    return 0
+  fi
+
+  if [ -z "${AWS_REGION:-}" ]; then
+    return 0
+  fi
+
+  if [ -n "$AWS_PROFILE" ]; then
+    parameter_bucket="$(aws ssm get-parameter --name "$S3_BUCKET_PARAM" --region "$AWS_REGION" --profile "$AWS_PROFILE" --query 'Parameter.Value' --output text 2>/dev/null || true)"
+  else
+    parameter_bucket="$(aws ssm get-parameter --name "$S3_BUCKET_PARAM" --region "$AWS_REGION" --query 'Parameter.Value' --output text 2>/dev/null || true)"
+  fi
+
+  if [ -n "$parameter_bucket" ] && [ "$parameter_bucket" != "None" ]; then
+    S3_BUCKET="$parameter_bucket"
+  fi
 }
 
 backup_file_to_s3_if_missing() {
@@ -172,6 +230,12 @@ EOF
 }
 
 echo "=== scs_rebuild ==="
+
+if AWS_REGION="$(resolve_aws_region)"; then
+  export AWS_REGION AWS_DEFAULT_REGION="$AWS_REGION"
+fi
+
+resolve_s3_bucket
 
 # 1. Pull latest
 echo "[1/8] Pulling latest..."
@@ -289,7 +353,11 @@ fi
 # 6. Restart Application and pgAdmin
 echo "[6/8] Restarting application containers and pgAdmin..."
 ENV_FILE=$(mktemp)
-SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query 'SecretString' --output text 2>/dev/null || echo "{}")
+if [ -n "$AWS_PROFILE" ]; then
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region "$AWS_REGION" --profile "$AWS_PROFILE" --query 'SecretString' --output text 2>/dev/null || echo "{}")
+else
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region "$AWS_REGION" --query 'SecretString' --output text 2>/dev/null || echo "{}")
+fi
 DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
 DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
 
