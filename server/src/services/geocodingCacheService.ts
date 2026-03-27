@@ -535,7 +535,14 @@ const runGeocodeDaemonLoop = async () => {
 };
 
 const startGeocodingDaemon = async (configInput: Partial<GeocodeDaemonConfig>) => {
-  const persisted = await loadPersistedDaemonConfig();
+  let persisted: GeocodeDaemonConfig | null = null;
+  try {
+    persisted = await loadPersistedDaemonConfig();
+  } catch (err) {
+    logger.warn('[Geocoding] Failed to load persisted daemon config before start', {
+      error: (err as Error)?.message,
+    });
+  }
   const config =
     configInput && Object.keys(configInput).length > 0
       ? normalizeDaemonConfig(configInput)
@@ -571,9 +578,16 @@ const stopGeocodingDaemon = () => {
 
 const getGeocodingDaemonStatus = async () => {
   if (!geocodeDaemon.config) {
-    const persisted = await loadPersistedDaemonConfig();
-    if (persisted) {
-      geocodeDaemon.config = normalizeDaemonConfig(persisted);
+    try {
+      const persisted = await loadPersistedDaemonConfig();
+      if (persisted) {
+        geocodeDaemon.config = normalizeDaemonConfig(persisted);
+      }
+    } catch (err) {
+      geocodeDaemon.lastError = (err as Error)?.message || 'Failed to load geocoding daemon config';
+      logger.warn('[Geocoding] Failed to load persisted daemon config for status', {
+        error: geocodeDaemon.lastError,
+      });
     }
   }
   return geocodeDaemon;
