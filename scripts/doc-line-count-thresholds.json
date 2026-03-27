@@ -1,8 +1,22 @@
 {
-  "client/src/components/GeospatialExplorer.tsx": 300,
-  "client/src/components/KeplerPage.tsx": 250,
-  "client/src/components/admin/tabs/MLTrainingTab.tsx": 40,
-  "client/src/components/admin/tabs/ConfigurationTab.tsx": 220,
-  "client/src/hooks/useKeplerDeck.ts": 270,
-  "server/src/utils/routeMounts.ts": 230
+  "files": {
+    "client/src/components/GeospatialExplorer.tsx": 300,
+    "client/src/components/KeplerPage.tsx": 250,
+    "client/src/components/admin/tabs/MLTrainingTab.tsx": 40,
+    "client/src/components/admin/tabs/ConfigurationTab.tsx": 220,
+    "client/src/components/admin/tabs/GeocodingTab.tsx": 260,
+    "client/src/components/admin/hooks/useGeocodingCache.ts": 220,
+    "server/src/utils/routeMounts.ts": 230,
+    "server/src/services/geocodingCacheService.ts": 850
+  },
+  "globs": [
+    {
+      "pattern": "client/src/components/admin/tabs/geocoding/*.tsx",
+      "threshold": 320
+    },
+    {
+      "pattern": "server/src/services/geocoding/*.ts",
+      "threshold": 320
+    }
+  ]
 }

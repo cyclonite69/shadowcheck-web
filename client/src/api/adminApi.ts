@@ -38,7 +38,7 @@ export const adminApi = {
 
   // Geocoding job request payload
   async runGeocoding(options: {
-    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
     mode: 'address-only' | 'poi-only' | 'both';
     limit: number;
     precision: number;
@@ -57,6 +57,36 @@ export const adminApi = {
     lon?: number;
   }): Promise<any> {
     return apiClient.post('/admin/geocoding/test', options);
+  },
+
+  async getGeocodingDaemon(): Promise<any> {
+    return apiClient.get('/admin/geocoding/daemon');
+  },
+
+  async startGeocodingDaemon(options: {
+    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
+    mode: 'address-only' | 'poi-only' | 'both';
+    limit: number;
+    precision: number;
+    perMinute: number;
+    permanent?: boolean;
+    loopDelayMs: number;
+    idleSleepMs: number;
+    errorSleepMs: number;
+    providers?: Array<{
+      provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
+      mode?: 'address-only' | 'poi-only' | 'both';
+      limit?: number;
+      perMinute?: number;
+      permanent?: boolean;
+      enabled?: boolean;
+    }>;
+  }): Promise<any> {
+    return apiClient.post('/admin/geocoding/daemon', options);
+  },
+
+  async stopGeocodingDaemon(): Promise<any> {
+    return apiClient.delete('/admin/geocoding/daemon');
   },
 
   // ML Training

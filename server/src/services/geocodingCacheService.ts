@@ -1,10 +1,10 @@
 const logger = require('../logging/logger');
-const secretsManager = require('./secretsManager').default;
 const { query } = require('../config/database');
 
 export {};
 
 import type {
+  GeocodeDaemonConfig,
   GeocodeMode,
   GeocodeProvider,
   GeocodeProviderCredentials,
@@ -15,62 +15,35 @@ import type {
   GeocodeResult,
   GeocodeRow,
 } from './geocoding/types';
-import { mapboxReverse } from './geocoding/mapbox';
 import {
-  nominatimReverse,
-  overpassPoi,
-  opencageReverse,
-  geocodioReverse,
-  locationIqReverse,
-} from './geocoding/providers';
+  calculateRateLimitBackoffMs,
+  ensureProviderReady,
+  executeProviderLookup,
+  getProviderLabel,
+  resolveProviderCredentials,
+} from './geocoding/providerRuntime';
+import {
+  geocodeDaemon,
+  getDaemonProviderRunOptions,
+  loadPersistedDaemonConfig,
+  normalizeDaemonConfig,
+  persistDaemonConfig,
+} from './geocoding/daemonState';
+import {
+  acquireGeocodingRunLock,
+  completeJobRun,
+  createJobRun,
+  createRunSnapshot,
+  failJobRun,
+  getProbeCoordinates,
+  loadRecentJobHistory,
+  releaseGeocodingRunLock,
+} from './geocoding/jobState';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const GEOCODING_RUN_LOCK_KEY = 74100531;
 const GEOCODING_UPSERT_BATCH_SIZE = 100;
 let currentRunSnapshot: GeocodingRunSnapshot | null = null;
 let lastRunSnapshot: GeocodingRunSnapshot | null = null;
-
-type GeocodeDaemonConfig = GeocodeRunOptions & {
-  idleSleepMs: number;
-  loopDelayMs: number;
-  errorSleepMs: number;
-  providers?: Array<{
-    provider: GeocodeProvider;
-    mode?: GeocodeMode;
-    limit?: number;
-    perMinute?: number;
-    permanent?: boolean;
-    enabled?: boolean;
-  }>;
-  providerCursor?: number;
-};
-
-let geocodeDaemon: {
-  running: boolean;
-  stopRequested: boolean;
-  config: GeocodeDaemonConfig | null;
-  startedAt?: string;
-  lastTickAt?: string;
-  lastResult?: GeocodeRunSummary;
-  lastError?: string;
-} = {
-  running: false,
-  stopRequested: false,
-  config: null,
-};
-const GEOCODING_DAEMON_STATE_KEY = 'geocoding_daemon_config';
-
-const PROVIDER_RATE_LIMIT_POLICY: Record<
-  GeocodeProvider,
-  { initialBackoffMs: number; maxBackoffMs: number }
-> = {
-  mapbox: { initialBackoffMs: 15000, maxBackoffMs: 120000 },
-  nominatim: { initialBackoffMs: 60000, maxBackoffMs: 300000 },
-  overpass: { initialBackoffMs: 60000, maxBackoffMs: 300000 },
-  opencage: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
-  geocodio: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
-  locationiq: { initialBackoffMs: 30000, maxBackoffMs: 180000 },
-};
 
 const GEOCODABLE_OBSERVATION_PREDICATE = `
   lat IS NOT NULL
@@ -321,246 +294,6 @@ const fetchRows = async (
   return result.rows as GeocodeRow[];
 };
 
-const createRunSnapshot = (
-  status: GeocodingRunSnapshot['status'],
-  options: GeocodeRunOptions,
-  extras: Partial<GeocodingRunSnapshot> = {}
-): GeocodingRunSnapshot => ({
-  status,
-  startedAt: extras.startedAt || new Date().toISOString(),
-  provider: options.provider,
-  mode: options.mode,
-  precision: options.precision ?? 5,
-  limit: options.limit ?? 1000,
-  perMinute: options.perMinute ?? 200,
-  permanent: options.permanent,
-  ...extras,
-});
-
-const loadRecentJobHistory = async (): Promise<GeocodingRunSnapshot[]> => {
-  const result = await query(
-    `
-    SELECT
-      id,
-      status,
-      provider,
-      mode,
-      precision,
-      limit_rows,
-      per_minute,
-      permanent,
-      processed,
-      successful,
-      poi_hits,
-      rate_limited,
-      duration_ms,
-      error,
-      started_at,
-      finished_at
-    FROM app.geocoding_job_runs
-    ORDER BY started_at DESC
-    LIMIT 10;
-  `
-  );
-
-  return result.rows.map((row: any) => ({
-    id: Number(row.id),
-    status: row.status,
-    provider: row.provider,
-    mode: row.mode,
-    precision: Number(row.precision),
-    limit: Number(row.limit_rows),
-    perMinute: Number(row.per_minute),
-    permanent: Boolean(row.permanent),
-    startedAt:
-      row.started_at instanceof Date ? row.started_at.toISOString() : String(row.started_at),
-    finishedAt: row.finished_at
-      ? row.finished_at instanceof Date
-        ? row.finished_at.toISOString()
-        : String(row.finished_at)
-      : undefined,
-    error: row.error || undefined,
-    result:
-      row.processed !== null && row.processed !== undefined
-        ? {
-            precision: Number(row.precision),
-            mode: row.mode,
-            provider: row.provider,
-            processed: Number(row.processed || 0),
-            successful: Number(row.successful || 0),
-            poiHits: Number(row.poi_hits || 0),
-            rateLimited: Number(row.rate_limited || 0),
-            durationMs: Number(row.duration_ms || 0),
-          }
-        : undefined,
-  }));
-};
-
-const getProbeCoordinates = async (
-  precision: number
-): Promise<{ lat: number; lon: number } | null> => {
-  const result = await query(
-    `
-    SELECT
-      round(lat::numeric, $1)::double precision AS lat_round,
-      round(lon::numeric, $1)::double precision AS lon_round
-    FROM app.observations
-    WHERE lat BETWEEN -90 AND 90
-      AND lon BETWEEN -180 AND 180
-    GROUP BY 1, 2
-    ORDER BY COUNT(*) DESC
-    LIMIT 1;
-  `,
-    [precision]
-  );
-
-  const row = result.rows[0];
-  if (!row) return null;
-  return { lat: Number(row.lat_round), lon: Number(row.lon_round) };
-};
-
-const getProviderLabel = (provider: GeocodeProvider, permanent: boolean) => {
-  if (provider === 'mapbox') {
-    return permanent ? 'mapbox_v5_permanent' : 'mapbox_v5';
-  }
-  return provider;
-};
-
-const createJobRun = async (options: GeocodeRunOptions): Promise<number> => {
-  const result = await query(
-    `
-    INSERT INTO app.geocoding_job_runs (
-      provider,
-      mode,
-      precision,
-      limit_rows,
-      per_minute,
-      permanent,
-      status
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, 'running')
-    RETURNING id;
-  `,
-    [
-      options.provider,
-      options.mode,
-      options.precision ?? 5,
-      options.limit ?? 1000,
-      options.perMinute ?? 200,
-      Boolean(options.permanent),
-    ]
-  );
-
-  return Number(result.rows[0]?.id);
-};
-
-const completeJobRun = async (jobId: number, result: GeocodeRunSummary): Promise<void> => {
-  await query(
-    `
-    UPDATE app.geocoding_job_runs
-    SET
-      status = 'completed',
-      processed = $2,
-      successful = $3,
-      poi_hits = $4,
-      rate_limited = $5,
-      duration_ms = $6,
-      finished_at = NOW()
-    WHERE id = $1;
-  `,
-    [
-      jobId,
-      result.processed,
-      result.successful,
-      result.poiHits,
-      result.rateLimited,
-      result.durationMs,
-    ]
-  );
-};
-
-const failJobRun = async (jobId: number, error: string): Promise<void> => {
-  await query(
-    `
-    UPDATE app.geocoding_job_runs
-    SET
-      status = 'failed',
-      error = $2,
-      finished_at = NOW()
-    WHERE id = $1;
-  `,
-    [jobId, error]
-  );
-};
-
-const acquireGeocodingRunLock = async (): Promise<boolean> => {
-  const result = await query('SELECT pg_try_advisory_lock($1) AS acquired', [
-    GEOCODING_RUN_LOCK_KEY,
-  ]);
-  return Boolean(result.rows[0]?.acquired);
-};
-
-const releaseGeocodingRunLock = async (): Promise<void> => {
-  await query('SELECT pg_advisory_unlock($1)', [GEOCODING_RUN_LOCK_KEY]);
-};
-
-const resolveProviderCredentials = async (
-  provider: GeocodeProvider
-): Promise<GeocodeProviderCredentials> => {
-  if (provider === 'mapbox') {
-    const mapboxToken =
-      (await secretsManager.getSecret('mapbox_unlimited_api_key')) ||
-      (await secretsManager.getSecret('mapbox_token'));
-    return { mapboxToken: mapboxToken || undefined };
-  }
-
-  if (provider === 'opencage') {
-    const opencageKey = await secretsManager.getSecret('opencage_api_key');
-    return { opencageKey: opencageKey || undefined };
-  }
-
-  if (provider === 'geocodio') {
-    const geocodioKey = await secretsManager.getSecret('geocodio_api_key');
-    return { geocodioKey: geocodioKey || undefined };
-  }
-
-  if (provider === 'locationiq') {
-    const locationIqKey = await secretsManager.getSecret('locationiq_api_key');
-    return { locationIqKey: locationIqKey || undefined };
-  }
-
-  return {};
-};
-
-const ensureProviderReady = (
-  provider: GeocodeProvider,
-  credentials: GeocodeProviderCredentials
-): void => {
-  if (provider === 'mapbox' && !credentials.mapboxToken) {
-    throw new Error('missing_key:mapbox');
-  }
-  if (provider === 'opencage' && !credentials.opencageKey) {
-    throw new Error('missing_key:opencage');
-  }
-  if (provider === 'geocodio' && !credentials.geocodioKey) {
-    throw new Error('missing_key:geocodio');
-  }
-  if (provider === 'locationiq' && !credentials.locationIqKey) {
-    throw new Error('missing_key:locationiq');
-  }
-};
-
-const calculateRateLimitBackoffMs = (
-  provider: GeocodeProvider,
-  consecutiveRateLimits: number
-): number => {
-  const policy = PROVIDER_RATE_LIMIT_POLICY[provider];
-  const exponential = policy.initialBackoffMs * 2 ** Math.max(0, consecutiveRateLimits - 1);
-  const capped = Math.min(policy.maxBackoffMs, exponential);
-  const jitter = Math.floor(Math.random() * 1000);
-  return capped + jitter;
-};
-
 const runGeocodeCacheUpdateInternal = async (
   options: GeocodeRunOptions,
   credentials: GeocodeProviderCredentials
@@ -598,26 +331,14 @@ const runGeocodeCacheUpdateInternal = async (
 
   for (const row of rows) {
     try {
-      let result: GeocodeResult = { ok: false };
-      if (options.provider === 'mapbox') {
-        result = await mapboxReverse(
-          row.lat_round,
-          row.lon_round,
-          options.mode,
-          Boolean(options.permanent),
-          credentials.mapboxToken
-        );
-      } else if (options.provider === 'nominatim') {
-        result = await nominatimReverse(row.lat_round, row.lon_round);
-      } else if (options.provider === 'overpass') {
-        result = await overpassPoi(row.lat_round, row.lon_round);
-      } else if (options.provider === 'opencage') {
-        result = await opencageReverse(row.lat_round, row.lon_round, credentials.opencageKey);
-      } else if (options.provider === 'geocodio') {
-        result = await geocodioReverse(row.lat_round, row.lon_round, credentials.geocodioKey);
-      } else if (options.provider === 'locationiq') {
-        result = await locationIqReverse(row.lat_round, row.lon_round, credentials.locationIqKey);
-      }
+      const result: GeocodeResult = await executeProviderLookup(
+        options.provider,
+        options.mode,
+        row.lat_round,
+        row.lon_round,
+        Boolean(options.permanent),
+        credentials
+      );
 
       consecutiveRateLimits = 0;
       if (result.ok) {
@@ -774,100 +495,6 @@ const startGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
     });
 
   return { started: true };
-};
-
-const loadPersistedDaemonConfig = async (): Promise<GeocodeDaemonConfig | null> => {
-  const result = await query('SELECT value FROM app.settings WHERE key = $1 LIMIT 1', [
-    GEOCODING_DAEMON_STATE_KEY,
-  ]);
-  const row = result.rows[0];
-  if (!row?.value) return null;
-  if (typeof row.value === 'string') {
-    try {
-      return JSON.parse(row.value) as GeocodeDaemonConfig;
-    } catch {
-      return null;
-    }
-  }
-  return row.value as GeocodeDaemonConfig;
-};
-
-const persistDaemonConfig = async (config: GeocodeDaemonConfig): Promise<void> => {
-  await query(
-    `
-    INSERT INTO app.settings (key, value, description)
-    VALUES ($1, $2::jsonb, $3)
-    ON CONFLICT (key) DO UPDATE
-      SET value = EXCLUDED.value,
-          description = EXCLUDED.description,
-          updated_at = NOW()
-  `,
-    [
-      GEOCODING_DAEMON_STATE_KEY,
-      JSON.stringify(config),
-      'Config and cursor state for continuous geocoding daemon',
-    ]
-  );
-};
-
-const normalizeDaemonConfig = (config: Partial<GeocodeDaemonConfig>): GeocodeDaemonConfig => {
-  const provider = (config.provider || 'mapbox') as GeocodeProvider;
-  const mode = (config.mode || 'address-only') as GeocodeMode;
-  const limit = Math.max(1, Number(config.limit) || 250);
-  const precision = Math.max(1, Number(config.precision) || 5);
-  const perMinute = Math.max(
-    1,
-    Number(config.perMinute) ||
-      (['nominatim', 'overpass', 'opencage', 'geocodio', 'locationiq'].includes(provider)
-        ? 60
-        : 200)
-  );
-  const loopDelayMs = Math.max(1000, Number(config.loopDelayMs) || 15000);
-  const idleSleepMs = Math.max(loopDelayMs, Number(config.idleSleepMs) || 180000);
-  const errorSleepMs = Math.max(1000, Number(config.errorSleepMs) || 60000);
-  const providers = Array.isArray(config.providers) ? config.providers : [];
-
-  return {
-    provider,
-    mode,
-    limit,
-    precision,
-    perMinute,
-    permanent: Boolean(config.permanent),
-    loopDelayMs,
-    idleSleepMs,
-    errorSleepMs,
-    providers,
-    providerCursor: Math.max(0, Number(config.providerCursor) || 0),
-  };
-};
-
-const getDaemonProviderRunOptions = (config: GeocodeDaemonConfig): GeocodeRunOptions => {
-  const activeProviders = (config.providers || []).filter((item) => item && item.enabled !== false);
-  if (!activeProviders.length) {
-    return {
-      provider: config.provider,
-      mode: config.mode,
-      precision: config.precision,
-      limit: config.limit,
-      perMinute: config.perMinute,
-      permanent: config.permanent,
-    };
-  }
-
-  const cursor = Math.max(0, Number(config.providerCursor) || 0) % activeProviders.length;
-  const selected = activeProviders[cursor];
-  config.providerCursor = (cursor + 1) % activeProviders.length;
-
-  return {
-    provider: selected.provider,
-    mode: selected.mode || config.mode,
-    precision: config.precision,
-    limit: Math.max(1, Number(selected.limit) || config.limit),
-    perMinute: Math.max(1, Number(selected.perMinute) || config.perMinute),
-    permanent:
-      selected.permanent !== undefined ? Boolean(selected.permanent) : Boolean(config.permanent),
-  };
 };
 
 const runGeocodeDaemonLoop = async () => {
@@ -1051,26 +678,14 @@ const testGeocodingProvider = async (probe: GeocodingProviderProbe) => {
   const credentials = await resolveProviderCredentials(probe.provider);
   ensureProviderReady(probe.provider, credentials);
 
-  let result: GeocodeResult = { ok: false, error: 'Unsupported provider' };
-  if (probe.provider === 'mapbox') {
-    result = await mapboxReverse(
-      coords.lat,
-      coords.lon,
-      probe.mode,
-      Boolean(probe.permanent),
-      credentials.mapboxToken
-    );
-  } else if (probe.provider === 'nominatim') {
-    result = await nominatimReverse(coords.lat, coords.lon);
-  } else if (probe.provider === 'overpass') {
-    result = await overpassPoi(coords.lat, coords.lon);
-  } else if (probe.provider === 'opencage') {
-    result = await opencageReverse(coords.lat, coords.lon, credentials.opencageKey);
-  } else if (probe.provider === 'geocodio') {
-    result = await geocodioReverse(coords.lat, coords.lon, credentials.geocodioKey);
-  } else if (probe.provider === 'locationiq') {
-    result = await locationIqReverse(coords.lat, coords.lon, credentials.locationIqKey);
-  }
+  const result: GeocodeResult = await executeProviderLookup(
+    probe.provider,
+    probe.mode,
+    coords.lat,
+    coords.lon,
+    Boolean(probe.permanent),
+    credentials
+  );
 
   return {
     sample: coords,

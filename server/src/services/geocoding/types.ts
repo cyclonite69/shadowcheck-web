@@ -27,6 +27,23 @@ export type GeocodeProviderCredentials = {
   locationIqKey?: string;
 };
 
+export type GeocodingDaemonProviderConfig = {
+  provider: GeocodeProvider;
+  mode?: GeocodeMode;
+  limit?: number;
+  perMinute?: number;
+  permanent?: boolean;
+  enabled?: boolean;
+};
+
+export type GeocodeDaemonConfig = GeocodeRunOptions & {
+  idleSleepMs: number;
+  loopDelayMs: number;
+  errorSleepMs: number;
+  providers?: GeocodingDaemonProviderConfig[];
+  providerCursor?: number;
+};
+
 export type GeocodeResult = {
   ok: boolean;
   address?: string | null;
@@ -82,4 +99,14 @@ export type GeocodeRow = {
   lon_round: number;
   obs_count?: number;
   address?: string | null;
+};
+
+export type GeocodingDaemonStatus = {
+  running: boolean;
+  stopRequested: boolean;
+  config: GeocodeDaemonConfig | null;
+  startedAt?: string;
+  lastTickAt?: string;
+  lastResult?: GeocodeRunSummary;
+  lastError?: string;
 };

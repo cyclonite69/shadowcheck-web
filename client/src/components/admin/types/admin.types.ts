@@ -124,9 +124,43 @@ export interface GeocodingStats {
   recent_activity: number;
   last_activity_at?: string | null;
   providers: Record<string, number>;
+  daemon?: GeocodingDaemonStatus | null;
   current_run?: GeocodingRunSnapshot | null;
   last_run?: GeocodingRunSnapshot | null;
   recent_runs?: GeocodingRunSnapshot[];
+}
+
+export interface GeocodingDaemonProviderConfig {
+  provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
+  mode?: 'address-only' | 'poi-only' | 'both';
+  limit?: number;
+  perMinute?: number;
+  permanent?: boolean;
+  enabled?: boolean;
+}
+
+export interface GeocodingDaemonConfig {
+  provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
+  mode: 'address-only' | 'poi-only' | 'both';
+  limit: number;
+  precision: number;
+  perMinute: number;
+  permanent?: boolean;
+  loopDelayMs: number;
+  idleSleepMs: number;
+  errorSleepMs: number;
+  providerCursor?: number;
+  providers?: GeocodingDaemonProviderConfig[];
+}
+
+export interface GeocodingDaemonStatus {
+  running: boolean;
+  stopRequested: boolean;
+  config: GeocodingDaemonConfig | null;
+  startedAt?: string;
+  lastTickAt?: string;
+  lastResult?: GeocodingRunResult;
+  lastError?: string;
 }
 
 export interface GeocodingRunResult {
