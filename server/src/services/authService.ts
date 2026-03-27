@@ -2,7 +2,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { query } from '../config/database';
-import { resetAppUserPassword } from './adminUsersService';
+import { createAppUser, resetAppUserPassword } from './adminUsersService';
 import secretsManager from './secretsManager';
 import logger from '../logging/logger';
 
@@ -154,15 +154,8 @@ class AuthService {
    */
   async createUser(username: string, email: string, password: string, role = 'user') {
     try {
-      const passwordHash = await bcrypt.hash(password, this.saltRounds);
-
-      const result = await query(
-        `INSERT INTO app.users (username, email, password_hash, role)
-         VALUES ($1, $2, $3, $4) RETURNING id, username, email, role`,
-        [username, email, passwordHash, role]
-      );
-
-      return { success: true, user: result.rows[0] };
+      const user = await createAppUser(username, email, password, role as 'user' | 'admin', false);
+      return { success: true, user };
     } catch (error: unknown) {
       const err = error as { code?: string };
       if (err.code === '23505') {
