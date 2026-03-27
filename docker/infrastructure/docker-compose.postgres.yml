@@ -49,14 +49,13 @@ services:
       PGADMIN_LISTEN_ADDRESS: 0.0.0.0
       PGADMIN_LISTEN_PORT: ${PGADMIN_PORT:-5050}
       PGADMIN_ENABLE_TLS: ${PGADMIN_ENABLE_TLS:-True}
-      PGADMIN_SERVER_CERT: ${PGADMIN_SERVER_CERT:-/certs/server.cert}
-      PGADMIN_SERVER_KEY: ${PGADMIN_SERVER_KEY:-/certs/server.key}
       PGADMIN_DEFAULT_SERVER_HOST: 127.0.0.1
     volumes:
       - /var/lib/pgadmin:/var/lib/pgadmin
       # NOTE: This file must be pre-created by scripts/setup-ec2.sh before compose up
       - ${REPO_ROOT:-/home/ssm-user/shadowcheck}/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro
-      - /var/lib/postgresql/web_certs:/certs:ro
+      - /var/lib/postgresql/certs/shadowcheck.crt:/certs/server.cert:ro
+      - /var/lib/postgresql/certs/shadowcheck.key:/certs/server.key:ro
     network_mode: host
     healthcheck:
       test:

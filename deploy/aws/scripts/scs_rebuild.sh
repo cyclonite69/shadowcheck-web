@@ -420,19 +420,17 @@ docker run -d \
   -e PGADMIN_LISTEN_ADDRESS=0.0.0.0 \
   -e PGADMIN_LISTEN_PORT="${PGADMIN_PORT:-5050}" \
   -e PGADMIN_ENABLE_TLS="${PGADMIN_ENABLE_TLS:-True}" \
-  -e PGADMIN_SERVER_CERT=/certs/shadowcheck.crt \
-  -e PGADMIN_SERVER_KEY=/certs/shadowcheck.key \
   -e PGADMIN_DEFAULT_SERVER_HOST=127.0.0.1 \
   -v /var/lib/pgadmin:/var/lib/pgadmin \
   -v "$APP_DIR/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro" \
-  -v "$CANONICAL_CERT:/certs/shadowcheck.crt:ro" \
-  -v "$CANONICAL_KEY:/certs/shadowcheck.key:ro" \
+  -v "$CANONICAL_CERT:/certs/server.cert:ro" \
+  -v "$CANONICAL_KEY:/certs/server.key:ro" \
   --log-driver json-file \
   --log-opt max-size=10m \
   --log-opt max-file=3 \
   dpage/pgadmin4:latest
 
-if docker exec shadowcheck_pgadmin sh -c 'test -f /certs/shadowcheck.crt && test -f /certs/shadowcheck.key' >/dev/null 2>&1; then
+if docker exec shadowcheck_pgadmin sh -c 'test -f /certs/server.cert && test -f /certs/server.key' >/dev/null 2>&1; then
   echo "  ✅ pgAdmin sees the canonical TLS files at container start"
 else
   echo "  ❌ pgAdmin TLS files are missing inside the container"
