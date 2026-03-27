@@ -29,15 +29,17 @@ export const createCirclePolygon = (
   };
 };
 
-// Signal range calculation based on signal strength and frequency
-// Returns pixel radius that represents a fixed geographic distance
+// Signal range estimation based on signal strength and frequency.
+// Returns an estimated distance in meters so the rendered footprint scales naturally with zoom.
 export const calculateSignalRange = (
   signalDbm: number | null,
   frequencyMhz?: number | null,
-  zoom: number = 10,
-  latitude: number = 40 // Default to mid-latitude for reasonable approximation
+  _zoom: number = 10,
+  _latitude: number = 40
 ): number => {
-  if (!signalDbm || signalDbm === null) return 30;
+  if (signalDbm === null || signalDbm === undefined || !Number.isFinite(signalDbm)) {
+    return 30;
+  }
 
   let freq = frequencyMhz;
   if (typeof freq === 'string') {
@@ -45,27 +47,18 @@ export const calculateSignalRange = (
   }
   if (!freq || freq <= 0) freq = 2437; // Default to channel 6 (2.4GHz)
 
-  // Signal strength to distance mapping (inverse relationship)
-  // Stronger signal = closer = smaller circle, weaker signal = farther = larger circle
-  let distanceMeters;
-  if (signalDbm >= -30) distanceMeters = 15;
-  else if (signalDbm >= -50) distanceMeters = 40;
-  else if (signalDbm >= -60) distanceMeters = 80;
-  else if (signalDbm >= -70) distanceMeters = 120;
-  else if (signalDbm >= -80) distanceMeters = 180;
-  else distanceMeters = 250;
+  // Simple log-distance propagation estimate.
+  // Stronger signal => smaller radius; weaker signal => larger radius.
+  // 5/6 GHz generally attenuates faster than 2.4 GHz.
+  const referenceRssiAtOneMeter = freq >= 5900 ? -45 : freq >= 5000 ? -43 : -40;
+  const pathLossExponent = freq >= 5000 ? 3.1 : 2.7;
+  const distanceMeters = Math.pow(
+    10,
+    (referenceRssiAtOneMeter - signalDbm) / (10 * pathLossExponent)
+  );
 
-  // Frequency adjustment (5GHz has shorter range)
-  if (freq > 5000) distanceMeters *= 0.7;
-
-  // Convert meters to pixels at current zoom level
-  // At zoom 0, the world is 256 pixels wide (40,075km at equator)
-  // metersPerPixel = 156543.03392 * cos(lat) / 2^zoom
-  const metersPerPixel = (156543.03392 * Math.cos((latitude * Math.PI) / 180)) / Math.pow(2, zoom);
-  const radiusPixels = distanceMeters / metersPerPixel;
-
-  // Clamp radius for display - ensure minimum visibility but cap maximum
-  return Math.max(8, Math.min(radiusPixels, 400));
+  // Keep the visualization in a sane operator-facing range.
+  return Math.max(6, Math.min(distanceMeters, 350));
 };
 
 // BSSID-based color generation for consistent network coloring

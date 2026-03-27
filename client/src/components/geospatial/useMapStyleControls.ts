@@ -237,18 +237,28 @@ export const useMapStyleControls = ({
       mapRef.current.addLayer(
         {
           id: 'hover-circle-fill',
-          type: 'circle',
+          type: 'fill',
           source: 'hover-circle',
           paint: {
-            'circle-radius': ['get', 'radius'],
-            'circle-color': ['get', 'color'],
-            'circle-opacity': 0.35,
-            'circle-stroke-width': 4,
-            'circle-stroke-color': ['get', 'strokeColor'],
-            'circle-stroke-opacity': 0.9,
+            'fill-color': ['get', 'color'],
+            'fill-opacity': 0.18,
           },
         },
-        'observation-lines' // Insert before observation-lines layer
+        'observation-lines'
+      );
+
+      mapRef.current.addLayer(
+        {
+          id: 'hover-circle-outline',
+          type: 'line',
+          source: 'hover-circle',
+          paint: {
+            'line-color': ['get', 'strokeColor'],
+            'line-width': 2,
+            'line-opacity': 0.85,
+          },
+        },
+        'observation-lines'
       );
 
       // Re-add home location sources and layers

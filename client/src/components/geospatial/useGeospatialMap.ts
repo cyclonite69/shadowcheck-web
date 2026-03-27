@@ -221,18 +221,28 @@ export const useGeospatialMap = ({
           map.addLayer(
             {
               id: 'hover-circle-fill',
-              type: 'circle',
+              type: 'fill',
               source: 'hover-circle',
               paint: {
-                'circle-radius': ['get', 'radius'],
-                'circle-color': ['get', 'color'],
-                'circle-opacity': 0.35,
-                'circle-stroke-width': 4,
-                'circle-stroke-color': ['get', 'strokeColor'],
-                'circle-stroke-opacity': 0.9,
+                'fill-color': ['get', 'color'],
+                'fill-opacity': 0.18,
               },
             },
-            'observation-lines' // Insert before observation-lines layer
+            'observation-lines'
+          );
+
+          map.addLayer(
+            {
+              id: 'hover-circle-outline',
+              type: 'line',
+              source: 'hover-circle',
+              paint: {
+                'line-color': ['get', 'strokeColor'],
+                'line-width': 2,
+                'line-opacity': 0.85,
+              },
+            },
+            'observation-lines'
           );
 
           // Show signal circle on hover (tooltip removed - click for details)
@@ -245,11 +255,10 @@ export const useGeospatialMap = ({
             const props = feature.properties;
             if (!props || !e.lngLat) return;
 
-            const currentZoom = map.getZoom();
             const signalRadius = calculateSignalRange(
               props.signal,
               props.frequency,
-              currentZoom,
+              map.getZoom(),
               e.lngLat.lat
             );
             const bssidColor = macColor(props.bssid);
@@ -261,13 +270,8 @@ export const useGeospatialMap = ({
                 type: 'FeatureCollection',
                 features: [
                   {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [e.lngLat.lng, e.lngLat.lat],
-                    },
+                    ...createCirclePolygon([e.lngLat.lng, e.lngLat.lat], signalRadius),
                     properties: {
-                      radius: signalRadius,
                       color: bssidColor,
                       strokeColor: bssidColor,
                     },
@@ -296,11 +300,10 @@ export const useGeospatialMap = ({
             const props = feature.properties;
             if (!props) return;
 
-            const currentZoom = map.getZoom();
             const signalRadius = calculateSignalRange(
               props.signal,
               props.frequency,
-              currentZoom,
+              map.getZoom(),
               e.lngLat.lat
             );
             const bssidColor = macColor(props.bssid);
@@ -311,13 +314,8 @@ export const useGeospatialMap = ({
                 type: 'FeatureCollection',
                 features: [
                   {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [e.lngLat.lng, e.lngLat.lat],
-                    },
+                    ...createCirclePolygon([e.lngLat.lng, e.lngLat.lat], signalRadius),
                     properties: {
-                      radius: signalRadius,
                       color: bssidColor,
                       strokeColor: bssidColor,
                     },
