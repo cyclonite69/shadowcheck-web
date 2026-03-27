@@ -172,12 +172,59 @@ async function runSiblingRefreshJob(
           END AS distance_penalty
         FROM dedup d
       ),
+      partner_stats AS (
+        SELECT
+          radio_bssid,
+          COUNT(*) FILTER (WHERE ssid_same AND ssid_common) AS common_partner_count
+        FROM (
+          SELECT
+            s.bssid1 AS radio_bssid,
+            s.ssid_same,
+            s.ssid_common
+          FROM scored s
+          UNION ALL
+          SELECT
+            s.bssid2 AS radio_bssid,
+            s.ssid_same,
+            s.ssid_common
+          FROM scored s
+        ) radio_pairs
+        GROUP BY radio_bssid
+      ),
+      family_stats AS (
+        SELECT
+          family_nodes.ssid_norm,
+          family_pairs.family_pair_count,
+          COUNT(*) AS family_radio_count
+        FROM (
+          SELECT DISTINCT
+            s.n1 AS ssid_norm,
+            s.bssid1 AS radio_bssid
+          FROM scored s
+          WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
+          UNION
+          SELECT DISTINCT
+            s.n1 AS ssid_norm,
+            s.bssid2 AS radio_bssid
+          FROM scored s
+          WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
+        ) family_nodes
+        JOIN (
+          SELECT
+            s.n1 AS ssid_norm,
+            COUNT(*) AS family_pair_count
+          FROM scored s
+          WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
+          GROUP BY s.n1
+        ) family_pairs ON family_pairs.ssid_norm = family_nodes.ssid_norm
+        GROUP BY family_nodes.ssid_norm, family_pairs.family_pair_count
+      ),
       final_pairs AS (
         SELECT
           s.bssid1,
           s.bssid2,
           s.rule,
-          (
+          GREATEST(0, (
             s.confidence
             - s.distance_penalty
             + CASE
@@ -192,7 +239,40 @@ async function runSiblingRefreshJob(
                 THEN 0.35
                 ELSE 0
               END
-          ) AS final_conf,
+            - CASE
+                WHEN s.ssid_same AND s.ssid_common THEN
+                  CASE
+                    WHEN GREATEST(
+                      COALESCE(ps1.common_partner_count, 0),
+                      COALESCE(ps2.common_partner_count, 0)
+                    ) >= 12 THEN 0.55
+                    WHEN GREATEST(
+                      COALESCE(ps1.common_partner_count, 0),
+                      COALESCE(ps2.common_partner_count, 0)
+                    ) >= 8 THEN 0.40
+                    WHEN GREATEST(
+                      COALESCE(ps1.common_partner_count, 0),
+                      COALESCE(ps2.common_partner_count, 0)
+                    ) >= 5 THEN 0.25
+                    WHEN GREATEST(
+                      COALESCE(ps1.common_partner_count, 0),
+                      COALESCE(ps2.common_partner_count, 0)
+                    ) >= 3 THEN 0.12
+                    ELSE 0
+                  END
+                ELSE 0
+              END
+            - CASE
+                WHEN s.ssid_same AND s.ssid_common THEN
+                  CASE
+                    WHEN COALESCE(fs.family_radio_count, 0) >= 18 THEN 0.25
+                    WHEN COALESCE(fs.family_radio_count, 0) >= 10 THEN 0.15
+                    WHEN COALESCE(fs.family_radio_count, 0) >= 6 THEN 0.08
+                    ELSE 0
+                  END
+                ELSE 0
+              END
+          )) AS final_conf,
           s.d_last_octet,
           s.d_third_octet,
           s.ssid1,
@@ -201,6 +281,9 @@ async function runSiblingRefreshJob(
           s.frequency2,
           s.distance_m
         FROM scored s
+        LEFT JOIN partner_stats ps1 ON ps1.radio_bssid = s.bssid1
+        LEFT JOIN partner_stats ps2 ON ps2.radio_bssid = s.bssid2
+        LEFT JOIN family_stats fs ON fs.ssid_norm = s.n1
       ),
       upserted AS (
         INSERT INTO app.network_sibling_pairs (
