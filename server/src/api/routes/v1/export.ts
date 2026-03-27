@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const container = require('../../../config/container');
 const exportService = container.exportService;
-const { requireAuth } = require('../../../middleware/authMiddleware');
+const { requireAuth, requireAdmin } = require('../../../middleware/authMiddleware');
 const logger = require('../../../logging/logger');
 
 interface ExportRow {
@@ -88,6 +88,25 @@ router.get('/json', requireAuth, async (req: Request, res: Response) => {
     const msg = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     logger.error(`Export failed: ${msg}`, { error, stack });
+    res.status(500).json({ error: msg });
+  }
+});
+
+// Export full app schema as JSON (admin only)
+router.get('/json/full', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const snapshot = await exportService.getFullDatabaseSnapshot();
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="shadowcheck_full_app_schema_${Date.now()}.json"`
+    );
+    res.json(snapshot);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`Full export failed: ${msg}`, { error, stack });
     res.status(500).json({ error: msg });
   }
 });
