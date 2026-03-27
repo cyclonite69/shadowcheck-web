@@ -96,7 +96,7 @@ This gives you:
   `AWS_PROFILE=shadowcheck-sso`, `AWS_REGION=us-east-1`,
   and `SHADOWCHECK_AWS_SECRET=shadowcheck/config`
 - `scgrafana` to fetch Grafana secrets from AWS, sync the local `grafana_reader`
-  role, and start local Grafana on `http://127.0.0.1:3002/`
+  role, and start local Grafana on `http://localhost:8080/grafana/`
 - `scps` for formatted container status
 - `scdb` for `psql` as `shadowcheck_user`
 - `scdba` for `psql` as `shadowcheck_admin`
@@ -110,15 +110,20 @@ To start local Grafana directly without shell aliases:
 AWS_PROFILE=shadowcheck-sso \
 AWS_REGION=us-east-1 \
 SHADOWCHECK_AWS_SECRET=shadowcheck/config \
-./scripts/start-local-grafana.sh
+bash ./scripts/start-local-grafana.sh
 ```
 
 Local Grafana uses:
 
-- URL: `http://127.0.0.1:3002/`
+- App/embed URL: `http://localhost:8080/grafana/`
+- Upstream listener: `http://127.0.0.1:3002/`
 - Username: `grafanaadmin`
 - Password: `grafana_admin_password` from `shadowcheck/config`
 
 If the existing local Grafana volume was initialized with a different admin username,
 the password reset still works, but the username may remain unchanged until that
 local Grafana data volume is recreated.
+
+The monitoring page embeds Grafana through the frontend proxy, so local iframe
+testing should use `http://localhost:8080/monitoring` rather than going directly
+to port `3002`.

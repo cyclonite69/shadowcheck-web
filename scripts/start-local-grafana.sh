@@ -11,7 +11,8 @@ POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-shadowcheck_postgres_local}"
 GRAFANA_CONTAINER="${GRAFANA_CONTAINER:-shadowcheck_grafana}"
 GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-grafanaadmin}"
 GF_SERVER_HTTP_PORT="${GF_SERVER_HTTP_PORT:-3002}"
-GF_SERVER_ROOT_URL="${GF_SERVER_ROOT_URL:-http://127.0.0.1:${GF_SERVER_HTTP_PORT}/}"
+FRONTEND_PUBLIC_URL="${FRONTEND_PUBLIC_URL:-http://localhost:8080}"
+GF_SERVER_ROOT_URL="${GF_SERVER_ROOT_URL:-${FRONTEND_PUBLIC_URL%/}/grafana/}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -62,6 +63,7 @@ export GRAFANA_ADMIN_PASSWORD
 export GRAFANA_READER_PASSWORD
 export GF_SERVER_HTTP_PORT
 export GF_SERVER_ROOT_URL
+export FRONTEND_PUBLIC_URL
 
 docker exec \
   -e GRAFANA_READER_PASSWORD="$GRAFANA_READER_PASSWORD" \
@@ -107,6 +109,7 @@ $COMPOSE_BIN -f docker-compose.monitoring.yml up -d --force-recreate "$GRAFANA_C
 
 echo "Local Grafana started."
 echo "  URL: $GF_SERVER_ROOT_URL"
+echo "  Upstream: http://127.0.0.1:${GF_SERVER_HTTP_PORT}/"
 echo "  Login: $GRAFANA_ADMIN_USER"
 echo "  Password source: $SECRET_NAME:grafana_admin_password"
 echo
