@@ -15,11 +15,16 @@ fi
 APP_DIR="${SCS_DIR:-$HOME/shadowcheck}"
 cd "$APP_DIR"
 
-# Config file for persistent settings (custom env overrides, etc.)
+# Config file for persistent settings
 SCS_ENV="$HOME/.shadowcheck-env"
 ENABLE_GRAFANA_MONITORING="${ENABLE_GRAFANA_MONITORING:-true}"
 SCS_SKIP_CLEANUP="${SCS_SKIP_CLEANUP:-false}"
 SCS_RESTORE_CERT="${SCS_RESTORE_CERT:-}"
+
+if [ -f "$SCS_ENV" ]; then
+  # shellcheck disable=SC1090
+  . "$SCS_ENV"
+fi
 
 wait_for_container_health() {
   local container="$1"
@@ -37,7 +42,6 @@ wait_for_container_health() {
         ;;
       unhealthy|exited|dead)
         echo "  ❌ $container is $status"
-        # Don't fail immediately, wait for full timeout as some containers take time to settle
         ;;
     esac
 
@@ -46,6 +50,7 @@ wait_for_container_health() {
   done
 
   echo "  ❌ Timed out waiting for $container health"
+  echo "  --- $container logs (last 20 lines) ---"
   docker logs --tail 20 "$container" 2>/dev/null || true
   return 1
 }
@@ -78,6 +83,94 @@ log_cert_state() {
   fi
 }
 
+get_public_ip() {
+  local imds_token
+  local public_ip
+
+  imds_token="$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")"
+
+  if [ -n "$imds_token" ]; then
+    public_ip="$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $imds_token" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")"
+  else
+    public_ip="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")"
+  fi
+
+  echo "${public_ip:-127.0.0.1}"
+}
+
+backup_file_to_s3_if_missing() {
+  local local_path="$1"
+  local s3_uri="$2"
+
+  if [ -z "${S3_BUCKET:-}" ]; then
+    echo "  ℹ️ S3_BUCKET is not set; skipping certificate backup"
+    return 0
+  fi
+
+  if aws s3 ls "$s3_uri" >/dev/null 2>&1; then
+    echo "  ☁️ Backup already present: $s3_uri"
+    return 0
+  fi
+
+  if aws s3 cp "$local_path" "$s3_uri" >/dev/null 2>&1; then
+    echo "  ☁️ Backed up: $s3_uri"
+  else
+    echo "  ⚠️ Failed to back up $local_path to $s3_uri"
+  fi
+}
+
+ensure_canonical_cert_pair() {
+  local cert_path="$1"
+  local key_path="$2"
+  local public_ip="$3"
+  local openssl_config
+  local temp_cert
+  local temp_key
+
+  if sudo [ -f "$cert_path" ] && sudo [ -f "$key_path" ]; then
+    echo "  Using canonical certificate already present on EBS"
+    log_cert_state "$cert_path" "Canonical certificate"
+    return 0
+  fi
+
+  if sudo [ -f "$cert_path" ] || sudo [ -f "$key_path" ]; then
+    echo "  ⚠️ Incomplete canonical cert pair detected; regenerating a clean pair"
+    sudo rm -f "$cert_path" "$key_path"
+  fi
+
+  echo "  Generating new 10-year self-signed certificate for IP $public_ip"
+  openssl_config="$(mktemp)"
+  temp_cert="$(mktemp)"
+  temp_key="$(mktemp)"
+
+  cat > "$openssl_config" <<EOF
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+CN = $public_ip
+
+[v3_req]
+subjectAltName = IP:$public_ip,IP:127.0.0.1,DNS:localhost
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+EOF
+
+  openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout "$temp_key" \
+    -out "$temp_cert" \
+    -days 3650 \
+    -config "$openssl_config" >/dev/null 2>&1
+
+  sudo install -o root -g 999 -m 644 "$temp_cert" "$cert_path"
+  sudo install -o root -g 999 -m 640 "$temp_key" "$key_path"
+  rm -f "$openssl_config" "$temp_cert" "$temp_key"
+
+  log_cert_state "$cert_path" "Canonical certificate"
+}
+
 echo "=== scs_rebuild ==="
 
 # 1. Pull latest
@@ -89,67 +182,55 @@ git pull origin "$CURRENT_BRANCH"
 # 2. Prepare certificates and persistent volumes
 echo "[2/8] Preparing persistent volumes and certificates..."
 CERTS_DIR_BASE=/var/lib/postgresql
-CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
+CANONICAL_CERT_DIR=$CERTS_DIR_BASE/certs
+CANONICAL_CERT=$CANONICAL_CERT_DIR/shadowcheck.crt
+CANONICAL_KEY=$CANONICAL_CERT_DIR/shadowcheck.key
+POSTGRES_CONFIG=/var/lib/postgresql/postgresql.conf
 
-sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
+sudo mkdir -p "$CANONICAL_CERT_DIR" /var/lib/pgadmin /var/lib/redis
 sudo chmod 711 "$CERTS_DIR_BASE" 2>/dev/null || true
 
-# Audit and Locate Original Certificates
-echo "  Auditing all certificates found on EBS volume..."
-FOUND_CERTS=$(sudo find "$CERTS_DIR_BASE" -name "server.crt" 2>/dev/null || true)
-for c in $FOUND_CERTS; do
-  log_cert_state "$c" "Found candidate"
-done
+echo "  Auditing canonical certificate path..."
+if sudo [ -f "$CANONICAL_CERT" ]; then
+  log_cert_state "$CANONICAL_CERT" "Canonical certificate"
+else
+  echo "  ℹ️ No canonical certificate found yet at $CANONICAL_CERT"
+fi
 
-# MANUAL RESTORE OVERRIDE
+# Manual restore override takes precedence over generation.
 if [ -n "$SCS_RESTORE_CERT" ]; then
   if sudo [ -f "$SCS_RESTORE_CERT" ]; then
-    echo "  🚨 MANUAL RESTORE: Overwriting web_certs with $SCS_RESTORE_CERT"
-    sudo cp "$SCS_RESTORE_CERT" "$CERTS_DIR_WEB/server.crt"
-    # Try to find a matching key in same dir
-    KEY_CANDIDATE="${SCS_RESTORE_CERT%.crt}.key"
-    if sudo [ -f "$KEY_CANDIDATE" ]; then
-      sudo cp "$KEY_CANDIDATE" "$CERTS_DIR_WEB/server.key"
+    echo "  🚨 MANUAL RESTORE: Restoring $SCS_RESTORE_CERT"
+    sudo install -o root -g 999 -m 644 "$SCS_RESTORE_CERT" "$CANONICAL_CERT"
+    RESTORE_DIR=$(dirname "$SCS_RESTORE_CERT")
+    if sudo [ -f "$RESTORE_DIR/server.key" ]; then
+      sudo install -o root -g 999 -m 640 "$RESTORE_DIR/server.key" "$CANONICAL_KEY"
+    elif sudo [ -f "$RESTORE_DIR/shadowcheck.key" ]; then
+      sudo install -o root -g 999 -m 640 "$RESTORE_DIR/shadowcheck.key" "$CANONICAL_KEY"
     fi
   else
     echo "  ❌ ERROR: Manual restore path $SCS_RESTORE_CERT not found!"
   fi
 fi
 
-# Migration logic: Only if web_certs is empty
-if ! sudo [ -f "$CERTS_DIR_WEB/server.crt" ]; then
-  OLD_PATHS="/var/lib/postgresql/certs/web /var/lib/postgresql/web /var/lib/postgresql/certs /var/lib/postgresql/data"
-  for OLD_PATH in $OLD_PATHS; do
-    if sudo [ -f "$OLD_PATH/server.crt" ]; then
-      echo "  🚚 Migrating certificates from $OLD_PATH..."
-      sudo cp "$OLD_PATH/server.crt" "$CERTS_DIR_WEB/server.crt"
-      if sudo [ -f "$OLD_PATH/server.key" ]; then
-        sudo cp "$OLD_PATH/server.key" "$CERTS_DIR_WEB/server.key"
-      fi
-      break
-    fi
-  done
-fi
+PUBLIC_IP="$(get_public_ip)"
+ensure_canonical_cert_pair "$CANONICAL_CERT" "$CANONICAL_KEY" "$PUBLIC_IP"
+backup_file_to_s3_if_missing "$CANONICAL_CERT" "s3://${S3_BUCKET:-}/certs/shadowcheck.crt"
+backup_file_to_s3_if_missing "$CANONICAL_KEY" "s3://${S3_BUCKET:-}/certs/shadowcheck.key"
 
-# Repair broken symlinks
-if sudo [ -L "$CERTS_DIR_WEB/server.key" ]; then
-  KEY_TARGET="$(sudo readlink "$CERTS_DIR_WEB/server.key" 2>/dev/null || true)"
-  if [ "$KEY_TARGET" = "server.key" ]; then
-    echo "  🛠️ Repairing broken self-referential server.key symlink..."
-    sudo rm -f "$CERTS_DIR_WEB/server.key"
-  fi
-fi
+echo "  Removing stale certificate locations..."
+sudo rm -rf /var/lib/postgresql/certs/web
+sudo rm -rf /var/lib/postgresql/web_certs
+sudo rm -f /var/lib/postgresql/data/server.crt
 
-# Ensure pgAdmin compatible symlink
-if sudo [ -f "$CERTS_DIR_WEB/server.crt" ] && ! sudo [ -L "$CERTS_DIR_WEB/server.cert" ]; then
-  sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
-fi
-
-# SET PERMISSIONS (CRITICAL: pgAdmin (5050) needs to read these)
-echo "  Setting strict permissions (accessible by nginx and pgAdmin)..."
-sudo chown -R 101:5050 "$CERTS_DIR_WEB" 2>/dev/null || true
-sudo chmod 750 "$CERTS_DIR_WEB"
-sudo chmod 640 "$CERTS_DIR_WEB"/* 2>/dev/null || true
+# Canonical permissions: root:999 keeps PostgreSQL happy while group 999 can be
+# granted to the other containers for read-only access to the shared key.
+echo "  Enforcing canonical certificate permissions..."
+sudo chown root:999 "$CANONICAL_CERT_DIR" 2>/dev/null || true
+sudo chown root:999 "$CANONICAL_CERT" "$CANONICAL_KEY" 2>/dev/null || true
+sudo chmod 750 "$CANONICAL_CERT_DIR"
+sudo chmod 640 "$CANONICAL_KEY" 2>/dev/null || true
+sudo chmod 644 "$CANONICAL_CERT" 2>/dev/null || true
 
 sudo chown -R 5050:5050 /var/lib/pgadmin 2>/dev/null || true
 sudo chown -R 999:999 /var/lib/redis 2>/dev/null || true
@@ -171,6 +252,18 @@ sudo "$APP_DIR/deploy/aws/scripts/deploy-redis.sh"
 wait_for_container_health shadowcheck_postgres 90
 wait_for_container_health shadowcheck_redis 30
 
+if sudo [ -f "$POSTGRES_CONFIG" ]; then
+  echo "  Ensuring PostgreSQL uses the canonical SSL certificate paths..."
+  sudo sed -i \
+    -e "s#^ssl_cert_file = '.*'#ssl_cert_file = '/var/lib/postgresql/certs/shadowcheck.crt'#" \
+    -e "s#^ssl_key_file = '.*'#ssl_key_file = '/var/lib/postgresql/certs/shadowcheck.key'#" \
+    "$POSTGRES_CONFIG"
+  sudo chown 999:999 "$POSTGRES_CONFIG" 2>/dev/null || true
+  sudo chmod 600 "$POSTGRES_CONFIG"
+  docker restart shadowcheck_postgres >/dev/null
+  wait_for_container_health shadowcheck_postgres 90
+fi
+
 # 6. Restart Application and pgAdmin
 echo "[6/8] Restarting application containers and pgAdmin..."
 ENV_FILE=$(mktemp)
@@ -178,7 +271,6 @@ SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config
 DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
 DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
 
-# IMDS Public IP
 IMDS_TOKEN=$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")
 PUBLIC_IP=$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 
@@ -195,13 +287,43 @@ ENVEOF
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
-# Force Restart pgAdmin
-PGADMIN_COMPOSE="$APP_DIR/docker/infrastructure/docker-compose.postgres.yml"
-if [ -f "$PGADMIN_COMPOSE" ]; then
-  echo "  Force-recreating pgAdmin..."
-  export DB_PASSWORD="$DB_USER_PASSWORD" REPO_ROOT="$APP_DIR"
-  docker-compose -f "$PGADMIN_COMPOSE" up -d --force-recreate --no-deps pgadmin
-  unset DB_PASSWORD
+docker stop shadowcheck_pgadmin 2>/dev/null || true
+docker rm shadowcheck_pgadmin 2>/dev/null || true
+
+echo "  Starting pgAdmin with the canonical TLS certificate..."
+docker run -d \
+  --name shadowcheck_pgadmin \
+  --network host \
+  --restart unless-stopped \
+  --group-add 999 \
+  --health-cmd "python3 -c \"import ssl, urllib.request; urllib.request.urlopen('https://127.0.0.1:5050/misc/ping', context=ssl._create_unverified_context(), timeout=5).read()\"" \
+  --health-interval 30s \
+  --health-timeout 10s \
+  --health-retries 3 \
+  --health-start-period 30s \
+  -e PGADMIN_DEFAULT_EMAIL="${PGADMIN_EMAIL:-admin@example.com}" \
+  -e PGADMIN_DEFAULT_PASSWORD="${PGADMIN_PASSWORD:-admin}" \
+  -e PGADMIN_CONFIG_SERVER_MODE=False \
+  -e PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False \
+  -e PGADMIN_LISTEN_ADDRESS=0.0.0.0 \
+  -e PGADMIN_LISTEN_PORT="${PGADMIN_PORT:-5050}" \
+  -e PGADMIN_ENABLE_TLS="${PGADMIN_ENABLE_TLS:-True}" \
+  -e PGADMIN_SERVER_CERT=/certs/shadowcheck.crt \
+  -e PGADMIN_SERVER_KEY=/certs/shadowcheck.key \
+  -e PGADMIN_DEFAULT_SERVER_HOST=127.0.0.1 \
+  -v /var/lib/pgadmin:/var/lib/pgadmin \
+  -v "$APP_DIR/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro" \
+  -v "$CANONICAL_CERT:/certs/shadowcheck.crt:ro" \
+  -v "$CANONICAL_KEY:/certs/shadowcheck.key:ro" \
+  --log-driver json-file \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  dpage/pgadmin4:latest
+
+if docker exec shadowcheck_pgadmin sh -c 'test -f /certs/shadowcheck.crt && test -f /certs/shadowcheck.key' >/dev/null 2>&1; then
+  echo "  ✅ pgAdmin sees the canonical TLS files at container start"
+else
+  echo "  ❌ pgAdmin TLS files are missing inside the container"
 fi
 
 # Detect socket
@@ -215,7 +337,11 @@ if [ -S "$PODMAN_SOCK" ]; then
 fi
 
 docker run -d --name shadowcheck_backend --network host --env-file "$ENV_FILE" -e DB_PASSWORD="$DB_USER_PASSWORD" -e DB_ADMIN_PASSWORD="$DB_ADMIN_PASSWORD" $DOCKER_OPTS --restart unless-stopped shadowcheck/backend:latest
-docker run -d --name shadowcheck_frontend --network host -v "$CERTS_DIR_WEB":/etc/nginx/certs -e CERT_DIR=/etc/nginx/certs --restart unless-stopped shadowcheck/frontend:latest
+docker run -d --name shadowcheck_frontend --network host --group-add 999 \
+  -v "$CANONICAL_CERT:/etc/nginx/certs/server.crt:ro" \
+  -v "$CANONICAL_KEY:/etc/nginx/certs/server.key:ro" \
+  -e CERT_DIR=/etc/nginx/certs \
+  --restart unless-stopped shadowcheck/frontend:latest
 
 rm -f "$ENV_FILE"
 wait_for_container_health shadowcheck_backend 90
@@ -234,7 +360,7 @@ docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD'
 # 8. Monitoring
 echo "[8/8] Syncing monitoring..."
 if [ "$ENABLE_GRAFANA_MONITORING" = "true" ]; then
-  "$APP_DIR/deploy/aws/scripts/rotate-grafana-passwords.sh"
+  "$APP_DIR/deploy/aws/scripts/rotate-grafana-passwords.sh" || true
   wait_for_container_health shadowcheck_grafana 60 || true
 fi
 

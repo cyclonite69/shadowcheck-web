@@ -131,6 +131,7 @@ pgadmin-config/
 pgadmin_data/
 postgres_data/
 docker-data/
+docker/infrastructure/certs/local/
 !docker/infrastructure/README.md
 docker-compose.override.yml
 
