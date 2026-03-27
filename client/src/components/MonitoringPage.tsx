@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 
-const GRAFANA_EMBED_COOKIE =
-  'shadowcheck_grafana_embed=1; Path=/; Max-Age=7200; Secure; SameSite=None';
 const GRAFANA_DASHBOARD_PATH = '/grafana/d/shadowcheck-overview/shadowcheck-overview?orgId=1';
 const GRAFANA_EMBED_SRC = `${GRAFANA_DASHBOARD_PATH}&kiosk`;
 
 const MonitoringPage = () => {
   useEffect(() => {
-    document.cookie = GRAFANA_EMBED_COOKIE;
+    const secureCookie =
+      window.location.protocol === 'https:' ? '; Secure; SameSite=None' : '; SameSite=Lax';
+    document.cookie = `shadowcheck_grafana_embed=1; Path=/; Max-Age=7200${secureCookie}`;
   }, []);
 
   return (

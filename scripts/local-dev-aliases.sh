@@ -43,7 +43,7 @@ scgrafana() {
   export AWS_REGION="${AWS_REGION:-us-east-1}"
   export SHADOWCHECK_AWS_SECRET="${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}"
 
-  ./scripts/start-local-grafana.sh "$@"
+  bash ./scripts/start-local-grafana.sh "$@"
 }
 
 scps() {

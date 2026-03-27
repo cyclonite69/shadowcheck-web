@@ -30,12 +30,13 @@ Grafana rotation script:
 AWS_PROFILE=shadowcheck-sso \
 AWS_REGION=us-east-1 \
 SHADOWCHECK_AWS_SECRET=shadowcheck/config \
-./scripts/start-local-grafana.sh
+bash ./scripts/start-local-grafana.sh
 ```
 
-Starts local Grafana on `http://127.0.0.1:3002/`, pulls
-`grafana_admin_password` and `grafana_reader_password` from
-`shadowcheck/config`, and syncs the local `grafana_reader` PostgreSQL role.
+Starts local Grafana for the proxied app URL at `http://localhost:8080/grafana/`,
+keeps the upstream listener on `http://127.0.0.1:3002/`, pulls
+`grafana_admin_password` and `grafana_reader_password` from `shadowcheck/config`,
+and syncs the local `grafana_reader` PostgreSQL role.
 
 ### Database Backup
 
