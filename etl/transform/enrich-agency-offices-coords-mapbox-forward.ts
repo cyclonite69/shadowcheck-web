@@ -12,11 +12,9 @@
  *   npx --yes tsx etl/transform/enrich-agency-offices-coords-mapbox-forward.ts --live --states=PR,VI --limit=200 --sleep-ms=200
  */
 
-import * as dotenv from 'dotenv';
+import '../loadEnv';
 import { Pool } from 'pg';
 import dns from 'dns/promises';
-
-dotenv.config();
 
 type SecretsManager = {
   getSecret: (name: string) => Promise<string | null>;

@@ -1,9 +1,7 @@
 #!/usr/bin/env tsx
 import * as fs from 'fs';
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 const pool = new Pool({
   user: process.env.DB_USER,

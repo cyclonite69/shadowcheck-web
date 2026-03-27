@@ -1,9 +1,7 @@
 #!/usr/bin/env tsx
-import * as dotenv from 'dotenv';
+import './loadEnv';
 import { Pool, PoolClient } from 'pg';
 import logger from '../server/src/logging/logger';
-
-dotenv.config();
 
 interface ModelRow {
   coefficients: number[] | string;

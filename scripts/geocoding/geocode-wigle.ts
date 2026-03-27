@@ -1,9 +1,7 @@
 #!/usr/bin/env tsx
 import * as fs from 'fs';
 import * as https from 'https';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface GeocodeResult {
   lat: number | null;

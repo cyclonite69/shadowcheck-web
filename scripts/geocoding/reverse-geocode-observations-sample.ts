@@ -1,9 +1,7 @@
 #!/usr/bin/env tsx
 import * as https from 'https';
 import { Pool, QueryResult } from 'pg';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface RoundedRow {
   lat_round: number;

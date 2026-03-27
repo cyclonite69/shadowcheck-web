@@ -12,10 +12,8 @@
 import * as fs from 'fs';
 import { Pool } from 'pg';
 import sqlite3 from 'sqlite3';
-import * as dotenv from 'dotenv';
+import '../loadEnv';
 import * as path from 'path';
-
-dotenv.config();
 
 const CONFIG = {
   BATCH_SIZE: 500,

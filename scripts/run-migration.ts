@@ -6,11 +6,9 @@
 import { Pool } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as dotenv from 'dotenv';
+import './loadEnv';
 import secretsManager from '../server/src/services/secretsManager';
 import logger from '../server/src/logging/logger';
-
-dotenv.config();
 
 const migrationFile = process.argv[2];
 

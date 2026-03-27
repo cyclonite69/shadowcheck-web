@@ -1,8 +1,6 @@
 import { Pool } from 'pg';
 import * as fs from 'fs';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface GeocodeData {
   bssid: string;

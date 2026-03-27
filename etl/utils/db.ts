@@ -3,9 +3,7 @@
  */
 
 import { Pool, PoolConfig, QueryResult } from 'pg';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface DatabaseConfig extends PoolConfig {
   user: string;

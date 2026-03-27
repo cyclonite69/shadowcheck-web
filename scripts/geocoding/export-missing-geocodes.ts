@@ -1,9 +1,7 @@
 #!/usr/bin/env tsx
 import { Pool, QueryResult } from 'pg';
 import * as fs from 'fs';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface LocationRow {
   bssid: string;

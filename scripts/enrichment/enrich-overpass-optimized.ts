@@ -2,9 +2,7 @@
 import * as https from 'https';
 import { IncomingMessage, ClientRequest } from 'http';
 import { Pool, QueryResult } from 'pg';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface NetworkRow {
   bssid: string;

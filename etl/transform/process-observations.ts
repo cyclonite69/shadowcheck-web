@@ -7,10 +7,8 @@
  */
 
 import { QueryResult } from 'pg';
-import * as dotenv from 'dotenv';
+import '../loadEnv';
 import { createPool } from '../utils/db';
-
-dotenv.config();
 
 interface CountRow {
   count: string;

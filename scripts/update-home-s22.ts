@@ -1,9 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import secretsManager from '../server/src/services/secretsManager';
 import logger from '../server/src/logging/logger';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import './loadEnv';
 
 interface HomeLocationRow {
   device_id: string;

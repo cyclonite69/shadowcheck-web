@@ -23,11 +23,9 @@
  */
 
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
+import '../loadEnv';
 import dns from 'dns/promises';
 import { createPool } from '../utils/db';
-
-dotenv.config();
 
 type SecretsManager = {
   getSecret: (name: string) => Promise<string | null>;

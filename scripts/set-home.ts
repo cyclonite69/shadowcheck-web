@@ -4,12 +4,10 @@
  * Usage: node set-home.js <latitude> <longitude>
  */
 
-import * as dotenv from 'dotenv';
+import './loadEnv';
 import { Pool } from 'pg';
 import logger from '../server/src/logging/logger';
 import secretsManager from '../server/src/services/secretsManager';
-
-dotenv.config();
 
 const lat = parseFloat(process.argv[2]);
 const lng = parseFloat(process.argv[3]);

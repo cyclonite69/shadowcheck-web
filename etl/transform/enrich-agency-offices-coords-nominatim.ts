@@ -10,11 +10,9 @@
  *   npx --yes tsx etl/transform/enrich-agency-offices-coords-nominatim.ts --live --states=PR,VI --limit=200 --sleep-ms=1200
  */
 
-import * as dotenv from 'dotenv';
+import '../loadEnv';
 import { Pool } from 'pg';
 import dns from 'dns/promises';
-
-dotenv.config();
 
 type SecretsManager = {
   getSecret: (name: string) => Promise<string | null>;

@@ -6,9 +6,7 @@
  * (`/api/admin/geocoding/run`) so ETL and UI behavior stay aligned.
  */
 
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 type GeocodeProvider = 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
 type GeocodeMode = 'address-only' | 'poi-only' | 'both';

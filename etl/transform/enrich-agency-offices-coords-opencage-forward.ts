@@ -10,11 +10,9 @@
  *   npx --yes tsx etl/transform/enrich-agency-offices-coords-opencage-forward.ts --live --agency=FBI --limit=200 --sleep-ms=300 --min-confidence=7
  */
 
-import * as dotenv from 'dotenv';
+import '../loadEnv';
 import { Pool } from 'pg';
 import dns from 'dns/promises';
-
-dotenv.config();
 
 type SecretsManager = {
   getSecret: (name: string) => Promise<string | null>;

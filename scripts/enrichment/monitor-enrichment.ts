@@ -1,7 +1,5 @@
 import { Pool, QueryResult } from 'pg';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import '../loadEnv';
 
 interface StatsRow {
   total_networks: string;

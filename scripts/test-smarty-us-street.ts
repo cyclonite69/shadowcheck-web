@@ -8,10 +8,8 @@
  *   npx tsx scripts/test-smarty-us-street.ts
  */
 
-import * as dotenv from 'dotenv';
+import './loadEnv';
 import logger from '../server/src/logging/logger';
-
-dotenv.config();
 
 type SecretsManager = {
   getSecret: (name: string) => Promise<string | null>;
