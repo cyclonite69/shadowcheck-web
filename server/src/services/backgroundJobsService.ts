@@ -295,10 +295,30 @@ class BackgroundJobsService {
           { name: 'app.analytics_summary_mv', concurrent: false },
           { name: 'app.mv_network_timeline', concurrent: false },
         ];
+        const existingViewsResult = await adminQuery(
+          `
+            SELECT schemaname || '.' || matviewname AS full_name
+            FROM pg_matviews
+            WHERE schemaname = 'app'
+          `
+        );
+        const existingViews = new Set(
+          existingViewsResult.rows.map((row: { full_name: string }) => row.full_name)
+        );
+        const availableViews = views.filter((view) => existingViews.has(view.name));
+        const missingViews = views
+          .filter((view) => !existingViews.has(view.name))
+          .map((view) => view.name);
 
         const failures: Array<{ view: string; error: string; critical: boolean }> = [];
 
-        for (const view of views) {
+        if (missingViews.length > 0) {
+          logger.warn(
+            `[MV Refresh Job] Skipping non-existent materialized views: ${missingViews.join(', ')}`
+          );
+        }
+
+        for (const view of availableViews) {
           try {
             const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
             logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
