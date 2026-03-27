@@ -1,5 +1,6 @@
 export {};
 import type { Request, Response, NextFunction } from 'express';
+import ThreatMLModel from '../../../services/ml/trainer';
 /**
  * Machine Learning Routes
  * Handles ML model training and scoring
@@ -24,7 +25,6 @@ const ML_TRAINING_ENABLED =
   String(process.env.ADMIN_ALLOW_ML_TRAINING ?? 'true').toLowerCase() === 'true';
 const ML_SCORING_ENABLED =
   String(process.env.ADMIN_ALLOW_ML_SCORING ?? 'true').toLowerCase() === 'true';
-
 const parseBoolean = (value: any, defaultValue = false) => {
   if (value === undefined || value === null || value === '') {
     return defaultValue;
@@ -50,9 +50,8 @@ const determineThreatLevel = (score: number) => {
 };
 
 // Load ML model with error handling
-let ThreatMLModel, mlModel;
+let mlModel;
 try {
-  ThreatMLModel = require('../../../../../scripts/ml/ml-trainer');
   mlModel = new ThreatMLModel();
   logger.info('ML model module loaded successfully');
 } catch (err) {
