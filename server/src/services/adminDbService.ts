@@ -11,7 +11,7 @@ import logger from '../logging/logger';
 // Admin connection settings
 const DB_ADMIN_USER = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
 const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
-const DB_HOST = process.env.DB_HOST || '127.0.0.1';
+const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
 const DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-web'}-admin`;
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
@@ -26,7 +26,7 @@ function getAdminPool(): Pool | null {
     return adminPool;
   }
 
-  const adminPassword = secretsManager.get('db_admin_password');
+  const adminPassword = process.env.DB_ADMIN_PASSWORD || secretsManager.get('db_admin_password');
 
   if (!adminPassword) {
     logger.error('db_admin_password not available. Admin operations will fail.');

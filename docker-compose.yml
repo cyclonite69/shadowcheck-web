@@ -1,64 +1,29 @@
 # LOCAL DEVELOPMENT docker-compose
-# Connects to SHARED PostgreSQL and PgAdmin containers on external shadowcheck_net network
-# For AWS deployment, use: deploy/aws/configs/docker-compose-separated.yml
+# Self-contained local stack with PostgreSQL, Redis, and the API service.
+# For AWS deployment, use the scripts and compose files under deploy/aws/.
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: shadowcheck_web_api
-    hostname: parrot
+  postgres:
+    image: postgis/postgis:18-3.6
+    platform: linux/amd64
+    container_name: shadowcheck_postgres_local
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: ${PORT:-3001}
-      API_GATE_ENABLED: "true"
-      # Connect to SHARED external PostgreSQL container
-      DB_HOST: shadowcheck_postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-shadowcheck_user}
-      DB_NAME: ${DB_NAME:-shadowcheck_db}
-      DB_PASSWORD: ${DB_PASSWORD:-}
-      DB_SSL: ${DB_SSL:-false}
-      FORCE_HTTPS: ${FORCE_HTTPS:-false}
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
-      # Connect to local Redis
-      REDIS_HOST: shadowcheck_web_redis
-      REDIS_PORT: 6379
-      # AWS credentials for viewing/managing AWS resources
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
-      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-your-s3-bucket-name}
-      # Admin Docker controls (for PgAdmin management)
-      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}
-      # Docker API version compatibility
-      DOCKER_API_VERSION: "1.41"
+      POSTGRES_USER: ${DB_USER:-shadowcheck_user}
+      POSTGRES_DB: ${DB_NAME:-shadowcheck_db}
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "127.0.0.1:${PORT:-3001}:3001"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./backups:/app/backups
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - shadowcheck_net
+      - postgres_data:/var/lib/postgresql
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    depends_on:
-      redis:
-        condition: service_healthy
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-shadowcheck_user} -d ${DB_NAME:-shadowcheck_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -74,16 +39,79 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    networks:
-      - shadowcheck_net
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shadowcheck_web_api
+    hostname: shadowcheck-local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3001}
+      API_GATE_ENABLED: "true"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-shadowcheck_user}
+      DB_ADMIN_USER: ${DB_ADMIN_USER:-shadowcheck_admin}
+      DB_NAME: ${DB_NAME:-shadowcheck_db}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD:-}
+      DB_SSL: ${DB_SSL:-false}
+      FORCE_HTTPS: ${FORCE_HTTPS:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+      AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      SHADOWCHECK_AWS_SECRET: ${SHADOWCHECK_AWS_SECRET:-}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+    ports:
+      - "127.0.0.1:${PORT:-3001}:3001"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend.local
+    container_name: shadowcheck_web_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
+  postgres_data:
+    driver: local
   redis_data:
     driver: local
-
-# Use EXISTING external network that connects to shared postgres/pgadmin
-networks:
-  shadowcheck_net:
-    external: true
-    name: shadowcheck_net

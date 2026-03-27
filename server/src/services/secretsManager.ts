@@ -79,6 +79,15 @@ class SecretsManager {
     });
   }
 
+  private getEnvOverride(secret: string): string | null {
+    const envKey = secret.toUpperCase();
+    const value = process.env[envKey];
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+    return null;
+  }
+
   async load(): Promise<void> {
     this.secrets.clear();
 
@@ -87,6 +96,12 @@ class SecretsManager {
     const generated: Record<string, string> = {};
 
     for (const secret of allSecrets) {
+      const envOverride = this.getEnvOverride(secret);
+      if (envOverride) {
+        this.secrets.set(secret, envOverride);
+        continue;
+      }
+
       const value = blob[secret];
       if (value) {
         this.secrets.set(secret, value);
@@ -160,7 +175,7 @@ class SecretsManager {
 
   get(secret: string): string | null {
     const key = secret.toLowerCase();
-    const value = this.secrets.get(key) ?? null;
+    const value = this.getEnvOverride(key) ?? this.secrets.get(key) ?? null;
     this.logAccess(key, Boolean(value));
     return value;
   }
@@ -174,7 +189,7 @@ class SecretsManager {
   }
 
   has(secret: string): boolean {
-    return this.secrets.has(secret);
+    return Boolean(this.getEnvOverride(secret.toLowerCase()) || this.secrets.has(secret));
   }
 
   getAccessLog(): AccessLogEntry[] {

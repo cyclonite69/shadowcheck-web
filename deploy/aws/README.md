@@ -56,6 +56,18 @@ This stages the new single-AZ mixed-instance ARM Spot ASG design. It does not
 replace the current instance unless you deliberately scale the ASG up and cut
 over.
 
+## Local Docker vs EC2
+
+- Local Docker uses the root [docker-compose.yml](../../docker-compose.yml) and the
+  local `postgres` service name for `DB_HOST`
+- Production EC2 keeps the deployed PostgreSQL host in `.env`, for example
+  `DB_HOST=34.204.161.164`
+- Passwords remain sourced from AWS Secrets Manager in both cases; local Docker can
+  pass through real AWS credentials or provide `DB_PASSWORD` / `DB_ADMIN_PASSWORD`
+  as shell environment overrides
+- `S3_BACKUP_BUCKET` is runtime configuration, not a secret; the EC2 rebuild flow can
+  source it from `.env` or AWS SSM Parameter Store
+
 ### Connect to Instance
 
 ```bash

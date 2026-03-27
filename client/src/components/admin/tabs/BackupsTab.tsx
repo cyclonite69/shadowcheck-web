@@ -180,7 +180,7 @@ export const BackupsTab: React.FC = () => {
           <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-700/50">
             <p>• Local backups stored on server</p>
             <p>• S3 backups use STANDARD_IA storage class</p>
-            <p>• S3 bucket: dbcoopers-briefcase-161020170158</p>
+            <p>• S3 bucket comes from runtime configuration</p>
             <p>• Retention: 14 days (default)</p>
           </div>
         </div>
@@ -190,7 +190,7 @@ export const BackupsTab: React.FC = () => {
       <AdminCard icon={ShieldIcon} title="S3 Backup Management" color="from-blue-500 to-blue-600">
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <p className="text-sm text-slate-400">Manage backups in your S3 briefcase</p>
+            <p className="text-sm text-slate-400">Manage backups in the configured S3 bucket</p>
             <button
               onClick={loadS3Backups}
               disabled={s3Loading}
@@ -250,7 +250,7 @@ export const BackupsTab: React.FC = () => {
           </div>
 
           <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-700/50">
-            <p>• Bucket: dbcoopers-briefcase-161020170158</p>
+            <p>• Bucket: runtime-configured</p>
             <p>• Storage class: STANDARD_IA</p>
             <p>• Deletions are permanent</p>
           </div>

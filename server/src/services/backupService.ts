@@ -134,12 +134,22 @@ const resolvePgDumpPath = async (): Promise<string> => {
   return 'pg_dump';
 };
 
+const getConfiguredS3BackupBucket = (): string => {
+  const bucketName = process.env.S3_BACKUP_BUCKET?.trim();
+  if (!bucketName) {
+    throw new Error(
+      'S3_BACKUP_BUCKET is not configured. Set it via environment or AWS SSM Parameter Store before using S3 backup operations.'
+    );
+  }
+  return bucketName;
+};
+
 const uploadToS3 = async (
   filePath: string,
   fileName: string,
   source?: { hostname: string; environment: string; instanceId?: string }
 ): Promise<any> => {
-  const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
+  const bucketName = getConfiguredS3BackupBucket();
   const env_label = source?.environment || 'unknown';
   const s3Key = `backups/${env_label}/${fileName}`;
 
@@ -346,7 +356,7 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
 };
 
 export const listS3Backups = async (): Promise<any> => {
-  const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
+  const bucketName = getConfiguredS3BackupBucket();
 
   logger.info(`[Backup] Listing S3 backups from s3://${bucketName}/backups/`);
 
@@ -423,7 +433,7 @@ export const listS3Backups = async (): Promise<any> => {
 };
 
 export const deleteS3Backup = async (key: string): Promise<any> => {
-  const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
+  const bucketName = getConfiguredS3BackupBucket();
 
   logger.info(`[Backup] Deleting S3 backup: s3://${bucketName}/${key}`);
 

@@ -107,7 +107,7 @@ function getImportCommand(
 }
 
 function getSqlImportCommand(sqlFile: string): { cmd: string; args: string[]; env: any } {
-  const dbHost = process.env.DB_HOST || 'shadowcheck_postgres';
+  const dbHost = process.env.DB_HOST || 'localhost';
   const dbPort = process.env.DB_PORT || '5432';
   const dbName = process.env.DB_NAME || 'shadowcheck_db';
   const dbUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';

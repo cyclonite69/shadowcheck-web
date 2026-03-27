@@ -1,7 +1,5 @@
-version: "3.8"
-
 # Development overrides for ShadowCheckStatic
-# Connects to shared PostgreSQL on shadowcheck_net network
+# Layer on top of docker-compose.yml for a local hot-reload workflow.
 
 services:
   api:
@@ -14,12 +12,15 @@ services:
       NODE_ENV: development
       PORT: 3001
       API_GATE_ENABLED: "true"
-      # Connect to SHARED PostgreSQL
-      DB_HOST: shadowcheck_postgres
+      DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-shadowcheck_user}
-      # DB_PASSWORD loaded from AWS Secrets Manager at runtime
+      DB_ADMIN_USER: ${DB_ADMIN_USER:-shadowcheck_admin}
       DB_NAME: ${DB_NAME:-shadowcheck_db}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD:-}
+      # DB_PASSWORD and DB_ADMIN_PASSWORD still come from AWS Secrets Manager
+      # or explicit shell environment overrides.
     volumes:
       - .:/app:cached
       - /app/node_modules
