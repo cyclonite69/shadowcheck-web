@@ -157,6 +157,27 @@ const completeJobRun = async (jobId: number, result: GeocodeRunSummary): Promise
   );
 };
 
+const updateJobRunProgress = async (
+  jobId: number,
+  result: Pick<GeocodeRunSummary, 'processed' | 'successful' | 'poiHits' | 'rateLimited'>,
+  durationMs: number
+): Promise<void> => {
+  await query(
+    `
+    UPDATE app.geocoding_job_runs
+    SET
+      processed = $2,
+      successful = $3,
+      poi_hits = $4,
+      rate_limited = $5,
+      duration_ms = $6
+    WHERE id = $1
+      AND status = 'running';
+  `,
+    [jobId, result.processed, result.successful, result.poiHits, result.rateLimited, durationMs]
+  );
+};
+
 const failJobRun = async (jobId: number, error: string): Promise<void> => {
   await query(
     `
@@ -191,4 +212,5 @@ export {
   getProbeCoordinates,
   loadRecentJobHistory,
   releaseGeocodingRunLock,
+  updateJobRunProgress,
 };

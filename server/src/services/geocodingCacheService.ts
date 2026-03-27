@@ -38,6 +38,7 @@ import {
   getProbeCoordinates,
   loadRecentJobHistory,
   releaseGeocodingRunLock,
+  updateJobRunProgress,
 } from './geocoding/jobState';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -296,7 +297,8 @@ const fetchRows = async (
 
 const runGeocodeCacheUpdateInternal = async (
   options: GeocodeRunOptions,
-  credentials: GeocodeProviderCredentials
+  credentials: GeocodeProviderCredentials,
+  jobId?: number
 ): Promise<GeocodeRunSummary> => {
   const precision = options.precision ?? 5;
   const limit = Math.max(1, options.limit ?? 1000);
@@ -323,10 +325,38 @@ const runGeocodeCacheUpdateInternal = async (
   let consecutiveRateLimits = 0;
   const pendingWrites: GeocodeCacheWrite[] = [];
 
+  const syncProgress = async () => {
+    if (!jobId) return;
+    const durationMs = Date.now() - startedAt;
+    const result = {
+      processed,
+      successful,
+      poiHits,
+      rateLimited,
+    };
+    await updateJobRunProgress(jobId, result, durationMs);
+    if (currentRunSnapshot?.id === jobId) {
+      currentRunSnapshot = {
+        ...currentRunSnapshot,
+        result: {
+          precision,
+          mode: options.mode,
+          provider: providerLabel,
+          processed,
+          successful,
+          poiHits,
+          rateLimited,
+          durationMs,
+        },
+      };
+    }
+  };
+
   const flushPendingWrites = async () => {
     if (pendingWrites.length === 0) return;
     const batch = pendingWrites.splice(0, pendingWrites.length);
     await upsertGeocodeCacheBatch(precision, batch);
+    await syncProgress();
   };
 
   for (const row of rows) {
@@ -368,10 +398,12 @@ const runGeocodeCacheUpdateInternal = async (
           consecutiveRateLimits,
         });
         await flushPendingWrites();
+        await syncProgress();
         await sleep(backoffMs);
       } else if (error.message === 'missing_key') {
         logger.warn('[Geocoding] Missing API key for provider');
         await flushPendingWrites();
+        await syncProgress();
         break;
       } else {
         logger.warn('[Geocoding] Provider error', { error: error.message });
@@ -410,7 +442,7 @@ const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
     currentRunSnapshot = createRunSnapshot('running', options, { id: jobId });
     const credentials = await resolveProviderCredentials(options.provider);
     ensureProviderReady(options.provider, credentials);
-    const result = await runGeocodeCacheUpdateInternal(options, credentials);
+    const result = await runGeocodeCacheUpdateInternal(options, credentials, jobId);
     await completeJobRun(jobId, result);
     lastRunSnapshot = createRunSnapshot('completed', options, {
       id: jobId,
@@ -457,7 +489,7 @@ const startGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
   const jobId = await createJobRun(options);
   currentRunSnapshot = createRunSnapshot('running', options, { id: jobId });
 
-  void runGeocodeCacheUpdateInternal(options, credentials)
+  void runGeocodeCacheUpdateInternal(options, credentials, jobId)
     .then((result) => {
       return completeJobRun(jobId, result).then(() => result);
     })
