@@ -43,7 +43,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "",
+          "fields": "/^value$/",
           "values": false
         },
         "textMode": "auto"
@@ -100,7 +100,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "",
+          "fields": "/^value$/",
           "values": false
         },
         "textMode": "auto"
@@ -161,7 +161,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "",
+          "fields": "/^value$/",
           "values": false
         },
         "textMode": "auto"
@@ -222,7 +222,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "",
+          "fields": "/^value$/",
           "values": false
         },
         "textMode": "auto"
@@ -283,7 +283,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "",
+          "fields": "/^value$/",
           "values": false
         },
         "textMode": "auto"
@@ -340,7 +340,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "",
+          "fields": "/^value$/",
           "values": false
         },
         "textMode": "auto"
