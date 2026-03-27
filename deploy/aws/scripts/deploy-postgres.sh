@@ -88,6 +88,12 @@ echo ""
 echo "[2/7] Detecting volume state..."
 
 PGDATA="/var/lib/postgresql/data"
+AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
+AWS_PROFILE="${AWS_PROFILE:-}"
+
+if [ -z "$AWS_REGION" ]; then
+  AWS_REGION="$(curl -s --connect-timeout 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | sed -n 's/.*"region"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+fi
 
 if [ -f "$PGDATA/PG_VERSION" ]; then
   VOLUME_STATE="reattach"
@@ -274,9 +280,15 @@ docker rm shadowcheck_postgres 2>/dev/null || true
 if [ "$VOLUME_STATE" = "fresh" ]; then
   echo "  FRESH INIT: Fetching credentials from AWS Secrets Manager..."
 
-  SM_JSON=$(aws secretsmanager get-secret-value \
-    --secret-id shadowcheck/config --region us-east-1 \
-    --query 'SecretString' --output text 2>/dev/null || echo "")
+  if [ -n "$AWS_PROFILE" ]; then
+    SM_JSON=$(aws secretsmanager get-secret-value \
+      --secret-id shadowcheck/config --region "$AWS_REGION" --profile "$AWS_PROFILE" \
+      --query 'SecretString' --output text 2>/dev/null || echo "")
+  else
+    SM_JSON=$(aws secretsmanager get-secret-value \
+      --secret-id shadowcheck/config --region "$AWS_REGION" \
+      --query 'SecretString' --output text 2>/dev/null || echo "")
+  fi
 
   if [ -z "$SM_JSON" ]; then
     echo "ERROR: Cannot read shadowcheck/config from Secrets Manager"
