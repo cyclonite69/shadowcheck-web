@@ -107,7 +107,12 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('20260315_geocoding_job_runs.sql'),
   ('20260315_geocoding_queue_indexes.sql'),
   ('20260316_add_background_job_settings.sql'),
+  ('20260316_kismet_unique_constraints.sql'),
   ('20260318_background_job_runs.sql'),
+  ('20260323_add_is_ignored_to_mv.sql'),
+  ('20260323_standardize_radio_manufacturers.sql'),
+  ('20260325_regrant_app_schema_permissions.sql'),
+  ('20260327_add_feature_flag_settings.sql'),
   ('20260327_add_wigle_import_runs.sql'),
   -- === 10 consolidated baseline migrations ===
   ('20260216_consolidated_001_extensions_and_schemas.sql'),
