@@ -1,0 +1,54 @@
+{
+  "files": {
+    "client/src/components/admin/tabs/GeocodingTab.tsx": {
+      "maxLines": 260,
+      "maxImports": 8,
+      "maxExports": 1,
+      "maxFunctions": 18,
+      "maxFunctionLines": 240
+    },
+    "client/src/components/admin/hooks/useGeocodingCache.ts": {
+      "maxLines": 220,
+      "maxImports": 6,
+      "maxExports": 1,
+      "maxFunctions": 14,
+      "maxFunctionLines": 160
+    },
+    "server/src/services/geocodingCacheService.ts": {
+      "maxLines": 850,
+      "maxImports": 12,
+      "maxExports": 8,
+      "maxFunctions": 30,
+      "maxFunctionLines": 150
+    },
+    "server/src/utils/routeMounts.ts": {
+      "maxLines": 230,
+      "maxImports": 12,
+      "maxExports": 8,
+      "maxFunctions": 12,
+      "maxFunctionLines": 140
+    }
+  },
+  "globs": [
+    {
+      "pattern": "client/src/components/admin/tabs/geocoding/*.tsx",
+      "rules": {
+        "maxLines": 320,
+        "maxImports": 8,
+        "maxExports": 3,
+        "maxFunctions": 18,
+        "maxFunctionLines": 260
+      }
+    },
+    {
+      "pattern": "server/src/services/geocoding/*.ts",
+      "rules": {
+        "maxLines": 320,
+        "maxImports": 10,
+        "maxExports": 16,
+        "maxFunctions": 18,
+        "maxFunctionLines": 140
+      }
+    }
+  ]
+}
