@@ -22,10 +22,12 @@ export const buildObservationTooltipProps = ({
 }) => {
   const frequency = obs.frequency ?? network?.frequency ?? null;
   const channel = frequencyToChannel(frequency) ?? network?.channel ?? null;
+  const signal = obs.signal ?? obs.level ?? network?.signal ?? null;
 
   return {
     bssid: obs.bssid,
-    signal: obs.signal,
+    signal,
+    level: signal,
     time: obs.time,
     frequency,
     channel,

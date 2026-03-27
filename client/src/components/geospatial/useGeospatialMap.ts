@@ -14,6 +14,22 @@ import {
   createGoogleStyle,
 } from '../../utils/mapHelpers';
 
+const getNumericProperty = (props: Record<string, unknown>, ...keys: string[]): number | null => {
+  for (const key of keys) {
+    const value = props[key];
+    if (value === null || value === undefined || value === '') continue;
+    if (typeof value === 'number') {
+      if (Number.isFinite(value)) return value;
+      continue;
+    }
+
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return null;
+};
+
 type HomeLocation = {
   center: [number, number];
   radius: number;
@@ -252,12 +268,23 @@ export const useGeospatialMap = ({
             if (!e.features || e.features.length === 0) return;
 
             const feature = e.features[0];
-            const props = feature.properties;
+            const props = feature.properties as Record<string, unknown> | undefined;
             if (!props || !e.lngLat) return;
 
+            const signal = getNumericProperty(
+              props,
+              'signal',
+              'level',
+              'bestlevel',
+              'rssi',
+              'signalDbm',
+              'maxSignal',
+              'max_signal'
+            );
+            const frequency = getNumericProperty(props, 'frequency', 'radio_frequency');
             const signalRadius = calculateSignalRange(
-              props.signal,
-              props.frequency,
+              signal,
+              frequency,
               map.getZoom(),
               e.lngLat.lat
             );
@@ -297,12 +324,23 @@ export const useGeospatialMap = ({
           map.on('mousemove', 'observation-points', (e: MapLayerMouseEvent) => {
             if (!e.features || e.features.length === 0 || !e.lngLat) return;
             const feature = e.features[0];
-            const props = feature.properties;
+            const props = feature.properties as Record<string, unknown> | undefined;
             if (!props) return;
 
+            const signal = getNumericProperty(
+              props,
+              'signal',
+              'level',
+              'bestlevel',
+              'rssi',
+              'signalDbm',
+              'maxSignal',
+              'max_signal'
+            );
+            const frequency = getNumericProperty(props, 'frequency', 'radio_frequency');
             const signalRadius = calculateSignalRange(
-              props.signal,
-              props.frequency,
+              signal,
+              frequency,
               map.getZoom(),
               e.lngLat.lat
             );

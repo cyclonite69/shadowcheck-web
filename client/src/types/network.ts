@@ -86,6 +86,7 @@ export type Observation = {
   lat: number;
   lon: number;
   signal?: number | null;
+  level?: number | null;
   time?: string;
   frequency?: number | null;
   altitude?: number | null;
