@@ -88,8 +88,7 @@ export const mapboxReverse = async (
   }
 
   const poiFeature = features.find((f) => f.place_type?.includes('poi'));
-  const addressFeature =
-    features.find((f) => f.place_type?.includes('address')) || features[0] || poiFeature;
+  const addressFeature = features.find((f) => f.place_type?.includes('address'));
   const context = parseMapboxContext(addressFeature?.context || poiFeature?.context);
 
   return {
@@ -97,7 +96,7 @@ export const mapboxReverse = async (
     poiName: poiFeature?.text || null,
     poiCategory: poiFeature?.properties?.category || null,
     featureType: addressFeature?.place_type?.[0] || poiFeature?.place_type?.[0] || null,
-    address: addressFeature?.place_name || poiFeature?.place_name || null,
+    address: addressFeature?.place_name || null,
     city: context.city || null,
     state: context.state || null,
     postal: context.postal || null,
