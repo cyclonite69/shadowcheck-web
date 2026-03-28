@@ -5,7 +5,7 @@ import os from 'os';
 import { spawn, execSync } from 'child_process';
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
-const { getAwsConfig } = require('./awsService');
+import { deleteS3BackupObject, listS3BackupObjects, uploadBackupToS3 } from './backup/awsCli';
 
 const repoRoot = '/app';
 
@@ -154,82 +154,6 @@ const getConfiguredS3BackupBucket = (): string => {
   return bucketName;
 };
 
-const uploadToS3 = async (
-  filePath: string,
-  fileName: string,
-  source?: { hostname: string; environment: string; instanceId?: string }
-): Promise<any> => {
-  const bucketName = getConfiguredS3BackupBucket();
-  const env_label = source?.environment || 'unknown';
-  const s3Key = `backups/${env_label}/${fileName}`;
-
-  logger.info(`[Backup] Uploading to S3: s3://${bucketName}/${s3Key}`);
-
-  const awsConfig = await getAwsConfig();
-  const env: Record<string, string> = {
-    ...(process.env as Record<string, string>),
-    PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
-  };
-
-  if (awsConfig.region) {
-    env.AWS_DEFAULT_REGION = awsConfig.region;
-  }
-
-  return new Promise((resolve, reject) => {
-    const metadataStr = [
-      `source-env=${env_label}`,
-      `source-host=${source?.hostname || os.hostname()}`,
-      source?.instanceId ? `instance-id=${source.instanceId}` : null,
-      `created-at=${new Date().toISOString()}`,
-    ]
-      .filter((m): m is string => Boolean(m))
-      .join(',');
-
-    const child = spawn(
-      'aws',
-      [
-        's3',
-        'cp',
-        filePath,
-        `s3://${bucketName}/${s3Key}`,
-        '--storage-class',
-        'STANDARD_IA',
-        '--metadata',
-        metadataStr,
-      ],
-      { env }
-    );
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    child.on('error', (err: Error) => {
-      reject(err);
-    });
-
-    child.on('close', (code: number | null) => {
-      if (code === 0) {
-        logger.info(`[Backup] S3 upload completed: ${stdout.trim()}`);
-        resolve({
-          bucket: bucketName,
-          key: s3Key,
-          url: `s3://${bucketName}/${s3Key}`,
-        });
-      } else {
-        reject(new Error(stderr || `AWS S3 upload failed with code ${code}`));
-      }
-    });
-  });
-};
-
 export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}): Promise<any> => {
   const { uploadToS3: shouldUploadToS3 = false } = options;
   const backupDir = getBackupDir();
@@ -349,11 +273,21 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
   if (shouldUploadToS3) {
     try {
       result.s3 = [];
-      const dbUpload = (await uploadToS3(dbFilePath, dbFileName, source)) as any;
+      const dbUpload = (await uploadBackupToS3(
+        getConfiguredS3BackupBucket(),
+        dbFilePath,
+        dbFileName,
+        source
+      )) as any;
       result.s3.push({ ...dbUpload, type: 'database' });
 
       if (globalsSuccess) {
-        const globalsUpload = (await uploadToS3(globalsFilePath, globalsFileName, source)) as any;
+        const globalsUpload = (await uploadBackupToS3(
+          getConfiguredS3BackupBucket(),
+          globalsFilePath,
+          globalsFileName,
+          source
+        )) as any;
         result.s3.push({ ...globalsUpload, type: 'globals' });
       }
     } catch (error: any) {
@@ -367,123 +301,25 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
 
 export const listS3Backups = async (): Promise<any> => {
   const bucketName = getConfiguredS3BackupBucket();
+  const backups = await listS3BackupObjects(bucketName);
 
-  logger.info(`[Backup] Listing S3 backups from s3://${bucketName}/backups/`);
-
-  const awsConfig = await getAwsConfig();
-  const env: Record<string, string> = {
-    ...(process.env as Record<string, string>),
-    PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
-  };
-
-  if (awsConfig.region) {
-    env.AWS_DEFAULT_REGION = awsConfig.region;
-  }
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      'aws',
-      [
-        's3api',
-        'list-objects-v2',
-        '--bucket',
-        bucketName,
-        '--prefix',
-        'backups/',
-        '--query',
-        'Contents[?Size>`0`].{Key:Key,Size:Size,LastModified:LastModified}',
-        '--output',
-        'json',
-      ],
-      { env }
-    );
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    child.on('error', (err: Error) => {
-      reject(err);
-    });
-
-    child.on('close', (code: number | null) => {
-      if (code === 0) {
-        try {
-          const backups = JSON.parse(stdout || '[]');
-          resolve(
-            backups.map((backup: any) => {
-              // Parse source from key: backups/<env>/<filename> or legacy backups/<filename>
-              const parts = backup.Key.replace('backups/', '').split('/');
-              const hasEnvPrefix = parts.length > 1;
-              return {
-                key: backup.Key,
-                fileName: hasEnvPrefix ? parts.slice(1).join('/') : parts[0],
-                sourceEnv: hasEnvPrefix ? parts[0] : 'unknown',
-                size: backup.Size,
-                lastModified: backup.LastModified,
-                url: `s3://${bucketName}/${backup.Key}`,
-              };
-            })
-          );
-        } catch (parseError) {
-          reject(new Error(`Failed to parse S3 response: ${parseError}`));
-        }
-      } else {
-        reject(new Error(stderr || `AWS S3 list failed with code ${code}`));
-      }
-    });
+  return backups.map((backup: any) => {
+    const parts = backup.Key.replace('backups/', '').split('/');
+    const hasEnvPrefix = parts.length > 1;
+    return {
+      key: backup.Key,
+      fileName: hasEnvPrefix ? parts.slice(1).join('/') : parts[0],
+      sourceEnv: hasEnvPrefix ? parts[0] : 'unknown',
+      size: backup.Size,
+      lastModified: backup.LastModified,
+      url: `s3://${bucketName}/${backup.Key}`,
+    };
   });
 };
 
 export const deleteS3Backup = async (key: string): Promise<any> => {
   const bucketName = getConfiguredS3BackupBucket();
-
-  logger.info(`[Backup] Deleting S3 backup: s3://${bucketName}/${key}`);
-
-  const awsConfig = await getAwsConfig();
-  const env: Record<string, string> = {
-    ...(process.env as Record<string, string>),
-    PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
-  };
-
-  if (awsConfig.region) {
-    env.AWS_DEFAULT_REGION = awsConfig.region;
-  }
-
-  return new Promise((resolve, reject) => {
-    const child = spawn('aws', ['s3api', 'delete-object', '--bucket', bucketName, '--key', key], {
-      env,
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    child.on('error', (err: Error) => {
-      reject(err);
-    });
-
-    child.on('close', (code: number | null) => {
-      if (code === 0) {
-        logger.info(`[Backup] S3 backup deleted: ${key}`);
-        resolve({ deleted: true, key });
-      } else {
-        reject(new Error(stderr || `AWS S3 delete failed with code ${code}`));
-      }
-    });
-  });
+  await deleteS3BackupObject(bucketName, key);
+  logger.info(`[Backup] S3 backup deleted: ${key}`);
+  return { deleted: true, key };
 };

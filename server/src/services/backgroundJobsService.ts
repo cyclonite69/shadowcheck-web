@@ -5,9 +5,6 @@
 
 const schedule = require('node-schedule');
 const logger = require('../logging/logger');
-const { runPostgresBackup } = require('./backupService');
-const mlScoringService = require('./ml/scoringService');
-const networkTagService = require('./networkTagService');
 const { adminQuery } = require('./adminDbService');
 const { getJobStatus, trackJobRun } = require('../repositories/jobRunRepository');
 
@@ -24,13 +21,9 @@ import {
   hasJobConfigChanged,
   loadBackgroundJobConfigs,
 } from './backgroundJobs/settings';
-import { scoreBehavioralThreats } from './backgroundJobs/mlBehavioralScoring';
 import { refreshMaterializedViews } from './backgroundJobs/mvRefresh';
+import { runBackupJob, runBehavioralMlScoringJob } from './backgroundJobs/runners';
 import type { BackgroundJobName } from './backgroundJobs/config';
-
-const ML_SCORING_LIMIT = 10000;
-const MAX_BSSID_LENGTH = 17;
-const MIN_OBSERVATIONS = 2;
 
 export type { BackgroundJobName };
 
@@ -205,34 +198,10 @@ class BackgroundJobsService {
     if (this.runningJobIds.backup) {
       throw new Error('backup job already running');
     }
-    await trackJobRun(
-      'backup',
-      async () => {
-        logger.info('[Backup Job] Starting scheduled backup...');
-        const result = await runPostgresBackup({ uploadToS3: true });
-
-        if (result.s3) {
-          logger.info(
-            `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url}`
-          );
-        } else if (result.s3Error) {
-          logger.warn(
-            `[Backup Job] Backup created locally (${result.fileName}) but S3 upload failed: ${result.s3Error}`
-          );
-        }
-
-        return {
-          fileName: result.fileName,
-          bytes: result.bytes,
-          s3Url: result.s3?.url || null,
-          s3Error: result.s3Error || null,
-        };
-      },
-      {
-        lastConfig: this.lastConfig,
-        runningJobIds: this.runningJobIds,
-      }
-    );
+    await trackJobRun('backup', async () => runBackupJob(), {
+      lastConfig: this.lastConfig,
+      runningJobIds: this.runningJobIds,
+    });
   }
 
   /**
@@ -256,50 +225,10 @@ class BackgroundJobsService {
     if (this.runningJobIds.mlScoring) {
       throw new Error('ML scoring job already running');
     }
-    await trackJobRun(
-      'mlScoring',
-      async () => {
-        logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
-        // Simple behavioral query - avoid complex PostGIS calculations
-        const networks = await mlScoringService.getNetworksForBehavioralScoring(
-          ML_SCORING_LIMIT,
-          MIN_OBSERVATIONS,
-          MAX_BSSID_LENGTH
-        );
-
-        logger.info(
-          `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`
-        );
-
-        const tagRows = await networkTagService.getManualThreatTags();
-        const { scores, tagMap } = scoreBehavioralThreats(networks, tagRows);
-
-        logger.info(`[ML Scoring Job] Found ${tagMap.size} manual tags for feedback adjustment`);
-
-        // Bulk insert scores
-        const inserted = await mlScoringService.bulkUpsertThreatScores(scores);
-        logger.info(
-          `[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0`
-        );
-
-        // Step 2: Run OUI grouping and MAC randomization detection
-        logger.info('[ML Scoring Job] Running OUI grouping analysis...');
-        const OUIGroupingService = require('./ouiGroupingService');
-        await OUIGroupingService.generateOUIGroups();
-        await OUIGroupingService.detectMACRandomization();
-        logger.info('[ML Scoring Job] OUI grouping complete');
-
-        return {
-          analyzedNetworks: networks.length,
-          insertedScores: inserted,
-          feedbackTaggedNetworks: tagMap.size,
-        };
-      },
-      {
-        lastConfig: this.lastConfig,
-        runningJobIds: this.runningJobIds,
-      }
-    );
+    await trackJobRun('mlScoring', async () => runBehavioralMlScoringJob(), {
+      lastConfig: this.lastConfig,
+      runningJobIds: this.runningJobIds,
+    });
   }
 
   static async getJobStatus() {
