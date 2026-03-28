@@ -8,30 +8,35 @@ const TOGGLE_LABELS: Record<JobKey, string> = {
   backup: 'Enable Schedule',
   mlScoring: 'Enable ML Scoring',
   mvRefresh: 'Enable Refresh',
+  siblingDetection: 'Enable Discovery',
 };
 
 const SAVE_LABELS: Record<JobKey, string> = {
   backup: 'Save Backup Config',
   mlScoring: 'Save Scoring Config',
   mvRefresh: 'Save Refresh Config',
+  siblingDetection: 'Save Discovery Config',
 };
 
 const RUN_LABELS: Record<JobKey, string> = {
   backup: 'Run Backup Now',
   mlScoring: 'Run Scoring Now',
   mvRefresh: 'Run Refresh Now',
+  siblingDetection: 'Discover Siblings Now',
 };
 
 const TOGGLE_CLASSES: Record<JobKey, string> = {
   backup: 'bg-emerald-500',
   mlScoring: 'bg-blue-500',
   mvRefresh: 'bg-purple-500',
+  siblingDetection: 'bg-orange-500',
 };
 
 const SAVE_CLASSES: Record<JobKey, string> = {
   backup: 'bg-emerald-600 hover:bg-emerald-500',
   mlScoring: 'bg-blue-600 hover:bg-blue-500',
   mvRefresh: 'bg-purple-600 hover:bg-purple-500',
+  siblingDetection: 'bg-orange-600 hover:bg-orange-500',
 };
 
 export function JobCard({
@@ -91,6 +96,13 @@ export function JobCard({
         </div>
 
         <JobScheduleEditor
+          accentClass={accentClass}
+          config={config}
+          jobKey={jobKey}
+          onUpdate={onUpdate}
+        />
+
+        <JobOptionsEditor
           accentClass={accentClass}
           config={config}
           jobKey={jobKey}

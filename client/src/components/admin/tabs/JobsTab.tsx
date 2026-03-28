@@ -10,7 +10,7 @@ import {
 } from './jobTypes';
 import { normalizeJobConfig } from './jobUtils';
 import { JobCard } from './JobCard';
-import { ClockIcon, ActivityIcon, RefreshIcon } from './JobIcons';
+import { ClockIcon, ActivityIcon, RefreshIcon, ShareIcon } from './JobIcons';
 
 const JOB_CARDS = [
   {
@@ -26,6 +26,13 @@ const JOB_CARDS = [
     title: 'Behavioral Scoring',
     color: 'from-blue-500 to-blue-600',
     accentClass: 'focus:ring-blue-500/40',
+  },
+  {
+    jobKey: 'siblingDetection' as const,
+    icon: ShareIcon,
+    title: 'Sibling Detection',
+    color: 'from-orange-500 to-amber-600',
+    accentClass: 'focus:ring-orange-500/40',
   },
   {
     jobKey: 'mvRefresh' as const,
@@ -76,6 +83,10 @@ export const JobsTab: React.FC = () => {
             findValue('mv_refresh_job_config'),
             DEFAULT_CONFIGS.mvRefresh
           ),
+          siblingDetection: normalizeJobConfig(
+            findValue('sibling_detection_job_config'),
+            DEFAULT_CONFIGS.siblingDetection
+          ),
         });
       }
     } catch (err) {
@@ -109,7 +120,8 @@ export const JobsTab: React.FC = () => {
   const handleRunNow = async (key: JobKey) => {
     setRunning(key);
     try {
-      const response = await apiClient.post(`/admin/settings/jobs/${key}/run`);
+      const config = configs[key] || DEFAULT_CONFIGS[key];
+      const response = await apiClient.post(`/admin/settings/jobs/${key}/run`, config);
       if (!response?.success) {
         throw new Error(response?.error || 'Manual job run failed');
       }
@@ -144,6 +156,7 @@ export const JobsTab: React.FC = () => {
     backup: configs.backup || DEFAULT_CONFIGS.backup,
     mlScoring: configs.mlScoring || DEFAULT_CONFIGS.mlScoring,
     mvRefresh: configs.mvRefresh || DEFAULT_CONFIGS.mvRefresh,
+    siblingDetection: configs.siblingDetection || DEFAULT_CONFIGS.siblingDetection,
   };
 
   return (
@@ -169,7 +182,7 @@ export const JobsTab: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {JOB_CARDS.map(({ jobKey, icon, title, color, accentClass }) => (
           <JobCard
             key={jobKey}

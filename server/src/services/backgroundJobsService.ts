@@ -22,7 +22,11 @@ import {
   loadBackgroundJobConfigs,
 } from './backgroundJobs/settings';
 import { refreshMaterializedViews } from './backgroundJobs/mvRefresh';
-import { runBackupJob, runBehavioralMlScoringJob } from './backgroundJobs/runners';
+import {
+  runBackupJob,
+  runBehavioralMlScoringJob,
+  runSiblingDetectionJob,
+} from './backgroundJobs/runners';
 import type { BackgroundJobName } from './backgroundJobs/config';
 
 export type { BackgroundJobName };
@@ -111,6 +115,20 @@ class BackgroundJobsService {
         this.lastSchedulerEnabled !== schedulerEnabled
       ) {
         this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh(), schedulerEnabled);
+      }
+
+      // 4. Sibling Detection Job
+      const siblingConfig = getResolvedJobConfig(configs, 'siblingDetection');
+      if (
+        hasJobConfigChanged(this.lastConfig, 'siblingDetection', siblingConfig) ||
+        this.lastSchedulerEnabled !== schedulerEnabled
+      ) {
+        this.updateJob(
+          'siblingDetection',
+          siblingConfig,
+          () => this.runSiblingDetection(),
+          schedulerEnabled
+        );
       }
 
       this.lastConfig = configs;
@@ -218,6 +236,19 @@ class BackgroundJobsService {
   }
 
   /**
+   * Run automated sibling detection
+   */
+  static async runSiblingDetection(options: any = {}) {
+    if (this.runningJobIds.siblingDetection) {
+      throw new Error('sibling detection job already running');
+    }
+    await trackJobRun('siblingDetection', async () => runSiblingDetectionJob(options), {
+      lastConfig: this.lastConfig,
+      runningJobIds: this.runningJobIds,
+    });
+  }
+
+  /**
    * Run behavioral threat scoring for all networks (v2.0 - Simple)
    * Based on mobility patterns, not user tags
    */
@@ -248,8 +279,8 @@ class BackgroundJobsService {
     return this.runMLScoring();
   }
 
-  static async runJobNow(jobName: BackgroundJobName) {
-    logger.info('[Background Jobs] Manual trigger requested', { jobName });
+  static async runJobNow(jobName: BackgroundJobName, options: any = {}) {
+    logger.info('[Background Jobs] Manual trigger requested', { jobName, options });
 
     if (jobName === 'backup') {
       await this.runScheduledBackup();
@@ -266,13 +297,18 @@ class BackgroundJobsService {
       return { jobName, status: 'completed' };
     }
 
+    if (jobName === 'siblingDetection') {
+      await this.runSiblingDetection(options);
+      return { jobName, status: 'completed' };
+    }
+
     throw new Error(`Unsupported background job: ${jobName}`);
   }
 
-  static async startJobNow(jobName: BackgroundJobName) {
-    logger.info('[Background Jobs] Manual background start requested', { jobName });
+  static async startJobNow(jobName: BackgroundJobName, options: any = {}) {
+    logger.info('[Background Jobs] Manual background start requested', { jobName, options });
 
-    const jobPromise = this.runJobNow(jobName).catch((error) => {
+    const jobPromise = this.runJobNow(jobName, options).catch((error) => {
       logger.error('[Background Jobs] Manual background run failed', {
         jobName,
         error: error instanceof Error ? error.message : String(error),

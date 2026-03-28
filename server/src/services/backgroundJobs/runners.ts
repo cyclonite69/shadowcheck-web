@@ -67,4 +67,28 @@ const runBehavioralMlScoringJob = async () => {
   };
 };
 
-export { runBackupJob, runBehavioralMlScoringJob };
+const runSiblingDetectionJob = async (options: any = {}) => {
+  const { adminQuery } = require('../adminDbService');
+  logger.info('[Sibling Detection Job] Starting sibling radio discovery...');
+
+  const maxOctetDelta = options.max_octet_delta || 6;
+  const maxDistanceM = options.max_distance_m || 5000;
+  const minCandidateConf = options.min_candidate_conf || 0.7;
+  const seedLimit = options.seed_limit || 1000;
+  const incremental = options.incremental !== undefined ? options.incremental : true;
+
+  const result = await adminQuery(
+    'SELECT app.refresh_network_sibling_pairs($1, $2, $3, 0.92, $4, $5) as count',
+    [maxOctetDelta, maxDistanceM, minCandidateConf, seedLimit, incremental]
+  );
+
+  const count = parseInt(result.rows[0]?.count || '0');
+  logger.info(`[Sibling Detection Job] Complete: Identified/updated ${count} sibling pairs`);
+
+  return {
+    pairsProcessed: count,
+    parameters: { maxOctetDelta, maxDistanceM, minCandidateConf, seedLimit, incremental },
+  };
+};
+
+export { runBackupJob, runBehavioralMlScoringJob, runSiblingDetectionJob };
