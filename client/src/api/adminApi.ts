@@ -187,6 +187,10 @@ export const adminApi = {
     return apiClient.get('/admin/settings/runtime');
   },
 
+  async runLocalStackAction(action: 'recreate-api' | 'rebuild-frontend' | 'rebuild-stack') {
+    return apiClient.post(`/admin/settings/local-stack/${action}`, {});
+  },
+
   async updateAdminSetting(key: string, value: unknown): Promise<any> {
     return apiClient.put(`/admin/settings/${key}`, { value });
   },

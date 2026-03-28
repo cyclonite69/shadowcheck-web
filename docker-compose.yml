@@ -74,12 +74,12 @@ services:
       # Region is safe to default locally; credentials still must come from the shell or mounted ~/.aws.
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
-      AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_PROFILE: ${AWS_PROFILE:-shadowcheck-sso}
       AWS_SDK_LOAD_CONFIG: "1"
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
-      SHADOWCHECK_AWS_SECRET: ${SHADOWCHECK_AWS_SECRET:-}
+      SHADOWCHECK_AWS_SECRET: ${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
       ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-true}
       API_RUN_AS_ROOT_FOR_DOCKER: ${API_RUN_AS_ROOT_FOR_DOCKER:-true}

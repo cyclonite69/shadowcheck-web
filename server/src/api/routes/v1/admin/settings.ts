@@ -1,6 +1,8 @@
 export {};
 const express = require('express');
 const router = express.Router();
+const { spawn } = require('child_process');
+const path = require('path');
 const { settingsAdminService } = require('../../../../config/container');
 const { backgroundJobsService } = require('../../../../config/container');
 const featureFlagService = require('../../../../services/featureFlagService');
@@ -10,6 +12,50 @@ const envFlag = (value: unknown, defaultValue = false) => {
   if (value === undefined || value === null || value === '') return defaultValue;
   return String(value).toLowerCase() === 'true';
 };
+
+const repoRoot = process.cwd();
+
+const runCommand = (command: string, args: string[], cwd = repoRoot) =>
+  new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: process.env,
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data: any) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data: any) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', (error: any) => reject(error));
+    child.on('close', (code: number | null) => {
+      if (code === 0) {
+        resolve({ code, stdout: stdout.trim(), stderr: stderr.trim() });
+        return;
+      }
+      reject(new Error(stderr.trim() || `${command} exited with code ${code}`));
+    });
+  });
+
+const runLocalCompose = async (args: string[]) => {
+  try {
+    return await runCommand('docker-compose', args, repoRoot);
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      return runCommand('docker', ['compose', ...args], repoRoot);
+    }
+    throw error;
+  }
+};
+
+const isLocalDockerMode = () =>
+  (process.env.DB_HOST || '').trim() === 'postgres' && process.env.NODE_ENV !== 'production';
 
 /**
  * GET /api/admin/settings
@@ -97,6 +143,73 @@ router.get('/runtime', async (req: any, res: any) => {
   } catch (error: any) {
     logger.error('Failed to get runtime settings', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/local-stack/:action', async (req: any, res: any) => {
+  if (!featureFlagService.getFlag('admin_allow_docker')) {
+    return res.status(403).json({
+      success: false,
+      error: 'Docker controls disabled. Enable admin_allow_docker to allow local stack actions.',
+    });
+  }
+
+  if (!isLocalDockerMode()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Local stack controls are only available in local Docker mode.',
+    });
+  }
+
+  const action = String(req.params.action || '');
+  const actionMap: Record<string, { args: string[]; message: string }> = {
+    'recreate-api': {
+      args: ['up', '-d', '--force-recreate', 'api'],
+      message: 'API container recreated',
+    },
+    'rebuild-frontend': {
+      args: ['up', '-d', '--build', '--force-recreate', 'frontend'],
+      message: 'Frontend rebuilt and recreated',
+    },
+    'rebuild-stack': {
+      args: ['up', '-d', '--build'],
+      message: 'Full local stack rebuilt',
+    },
+  };
+
+  const selected = actionMap[action];
+  if (!selected) {
+    return res.status(400).json({
+      success: false,
+      error: `Unsupported local stack action '${action}'`,
+    });
+  }
+
+  try {
+    const result = await runLocalCompose(selected.args);
+    logger.info('Local stack action completed', {
+      action,
+      args: selected.args,
+    });
+    res.json({
+      success: true,
+      action,
+      message: selected.message,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      cwd: repoRoot,
+      composeFile: path.join(repoRoot, 'docker-compose.yml'),
+    });
+  } catch (error: any) {
+    logger.error('Local stack action failed', {
+      action,
+      error: error.message,
+    });
+    res.status(500).json({
+      success: false,
+      action,
+      error: error.message,
+    });
   }
 });
 
