@@ -332,6 +332,11 @@ Use the recurrence panels below to distinguish:
 3. **Longer-lived repeat home visits** by Air Link, Aumovio/Hotspot, GM, Sierra, and WNC classes
 """
 
+TEXT_NAV = """<center>
+[← Michigan Intelligence](shadowcheck-michigan) | [America Fleet Patterns](shadowcheck-national) | [Home Fleet Detection](shadowcheck-home-fleet-detection) | [Contractor/OUI](shadowcheck-oui-fleet)
+</center>
+"""
+
 panels = [
     text_panel(1, "Detection Context", TEXT_CONTEXT, x=0, y=0, w=24, h=8),
     stat_panel(2, "Burst BSSIDs", SQL_BURST_TOTAL, "short", x=0, y=8, fixed_color="#E85D24"),
@@ -347,6 +352,7 @@ panels = [
     timeseries_panel(12, "Home class activity by day", SQL_DAILY_CLASSES, x=0, y=50, w=24, h=10),
     timeseries_panel(13, "Ivy vs home fleet activity", SQL_IVY_OVERLAY, x=0, y=60, w=24, h=10),
     table_panel(14, "Home recurrence by class", SQL_CLASS_SUMMARY, x=0, y=70, w=24, h=10),
+    text_panel(15, "Navigate dashboards", TEXT_NAV, x=0, y=80, w=24, h=2),
 ]
 
 dashboard = dashboard_wrapper(
