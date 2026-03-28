@@ -9,17 +9,11 @@ const { validateIntegerRange } = require('../../validation/schemas');
 
 export {};
 
+import { scoreNetworkWithModel } from './modelScoring';
+
 const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT || '100', 10);
 const DEFAULT_MODEL_VERSION = process.env.ML_MODEL_VERSION || '1.0.0';
 const MAX_SCORE_LIMIT = 200000;
-
-const determineThreatLevel = (score: number): string => {
-  if (score >= 80) return 'CRITICAL';
-  if (score >= 60) return 'HIGH';
-  if (score >= 40) return 'MED';
-  if (score >= 20) return 'LOW';
-  return 'NONE';
-};
 
 export const scoreAllNetworks = async ({
   limit,
@@ -94,100 +88,15 @@ export const scoreAllNetworks = async ({
 
   for (const net of networks) {
     try {
-      const featureStats = {
-        distance_range_km: { min: 0, max: 9.29 },
-        unique_days: { min: 1, max: 222 },
-        observation_count: { min: 1, max: 2260 },
-        max_signal: { min: -149, max: 127 },
-        unique_locations: { min: 1, max: 213 },
-        seen_both_locations: { min: 0, max: 1 },
-      };
-
-      const normalize = (value: number, min: number, max: number) => {
-        if (max === min) return 0;
-        return (value - min) / (max - min);
-      };
-
-      const rawFeatures = {
-        distance_range_km: parseFloat(net.max_distance_km || 0),
-        unique_days: parseInt(net.unique_days || 0),
-        observation_count: parseInt(net.observation_count || 0),
-        max_signal: parseInt(net.max_signal || -100),
-        unique_locations: parseInt(net.unique_locations || 0),
-        seen_both_locations: net.seen_at_home && net.seen_away_from_home ? 1 : 0,
-      };
-
-      const features: Record<string, number> = {};
-      for (const [key, value] of Object.entries(rawFeatures)) {
-        const stats = featureStats[key as keyof typeof featureStats];
-        features[key] = stats ? normalize(value, stats.min, stats.max) : value;
-      }
-
-      let z = intercept;
-      for (let i = 0; i < coefficients.length && i < featureNames.length; i++) {
-        const featureName = featureNames[i];
-        const featureValue = features[featureName] || 0;
-        if (!isNaN(featureValue)) {
-          z += coefficients[i] * featureValue;
-        }
-      }
-
-      let probability;
-      if (z > 500) {
-        probability = 1.0;
-      } else if (z < -500) {
-        probability = 0.0;
-      } else {
-        probability = 1 / (1 + Math.exp(-z));
-      }
-
-      if (isNaN(probability) || !isFinite(probability)) {
-        probability = 0.5;
-      }
-
-      const threatScore = probability * 100;
-      const ruleResult = net.live_rule_result || {};
-      const ruleScore = parseFloat(ruleResult.score || 0);
-
-      const obsCount = parseInt(net.observation_count || 0);
-      const uniqueDays = parseInt(net.unique_days || 0);
-      const uniqueLocs = parseInt(net.unique_locations || 0);
-
-      let evidenceWeight = 0;
-      if (obsCount >= 3 && uniqueDays >= 2) {
-        evidenceWeight = Math.min(
-          1.0,
-          Math.log1p(obsCount) / Math.log1p(30),
-          uniqueDays / 7.0,
-          uniqueLocs / 5.0
-        );
-      }
-
-      const mlConfidenceWeight = threatScore > 90 ? Math.max(evidenceWeight, 0.7) : evidenceWeight;
-      const mlBoost = mlConfidenceWeight * Math.max(0, threatScore - ruleScore);
-      const hybridScore = ruleScore + mlBoost;
-      const finalScore = overwriteFinal ? hybridScore : ruleScore;
-      const threatLevel = determineThreatLevel(finalScore);
-
-      scores.push({
-        bssid: net.bssid,
-        ml_threat_score: parseFloat(threatScore.toFixed(2)),
-        ml_threat_probability: parseFloat(probability.toFixed(3)),
-        ml_primary_class: threatScore >= 50 ? 'THREAT' : 'LEGITIMATE',
-        ml_feature_values: {
-          rule_score: parseFloat(ruleScore.toFixed(2)),
-          ml_score: parseFloat(threatScore.toFixed(2)),
-          evidence_weight: parseFloat(evidenceWeight.toFixed(3)),
-          ml_confidence_weight: parseFloat(mlConfidenceWeight.toFixed(3)),
-          ml_boost: parseFloat(mlBoost.toFixed(2)),
-          features: rawFeatures,
-        },
-        rule_based_score: ruleScore,
-        rule_based_flags: ruleResult,
-        final_threat_score: parseFloat(finalScore.toFixed(2)),
-        final_threat_level: threatLevel,
-        model_version: DEFAULT_MODEL_VERSION,
-      });
+      scores.push(
+        scoreNetworkWithModel(net, {
+          coefficients,
+          featureNames,
+          intercept,
+          overwriteFinal,
+          modelVersion: DEFAULT_MODEL_VERSION,
+        })
+      );
     } catch (netError: any) {
       logger.warn(`[ML] Error scoring network ${net.bssid}: ${netError.message}`);
     }
