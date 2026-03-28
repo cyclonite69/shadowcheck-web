@@ -29,6 +29,8 @@ export const AwsTab: React.FC = () => {
   const stateBadges = Object.entries(counts.states || {});
   const displayError = error || overview?.error || actionError;
   const displayWarning = overview?.warning;
+  const isLocalMode = overview?.mode === 'local';
+  const credentialsAvailable = overview?.credentialsAvailable ?? overview?.configured ?? false;
 
   const handleInstanceAction = async (instanceId: string | null, action: string) => {
     if (!instanceId) return;
@@ -62,6 +64,14 @@ export const AwsTab: React.FC = () => {
             <div className="text-sm text-amber-300">{displayWarning}</div>
           )}
 
+          {!displayError && overview && isLocalMode && !credentialsAvailable && (
+            <div className="text-sm text-slate-300">
+              Local development mode is running without AWS credentials in the backend process.
+              Region-aware settings still show up, but account identity, EC2 listing, and embedded
+              SSM stay unavailable until you start the API with runtime AWS credentials.
+            </div>
+          )}
+
           {!displayError && overview && !overview.region && (
             <div className="text-sm text-amber-300">
               AWS region not configured. Set the AWS region in Configuration. Credentials come from
@@ -74,10 +84,12 @@ export const AwsTab: React.FC = () => {
               <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
                 <div className="text-xs uppercase tracking-wider text-slate-400">Account</div>
                 <div className="text-sm text-white mt-2">
-                  {overview.identity?.account || 'Unknown'}
+                  {overview.identity?.account ||
+                    (isLocalMode ? 'Local development runtime' : 'Unknown')}
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
-                  {overview.identity?.arn || 'ARN unavailable'}
+                  {overview.identity?.arn ||
+                    (isLocalMode ? 'No AWS caller identity loaded' : 'ARN unavailable')}
                 </div>
               </div>
               <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
@@ -85,7 +97,11 @@ export const AwsTab: React.FC = () => {
                 <div className="text-2xl font-semibold text-white mt-2">{counts.total}</div>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {stateBadges.length === 0 && (
-                    <span className="text-xs text-slate-500">No instance data</span>
+                    <span className="text-xs text-slate-500">
+                      {isLocalMode && !credentialsAvailable
+                        ? 'Instance listing unavailable without runtime AWS credentials'
+                        : 'No instance data'}
+                    </span>
                   )}
                   {stateBadges.map(([state, count]) => (
                     <span
@@ -100,7 +116,11 @@ export const AwsTab: React.FC = () => {
               <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
                 <div className="text-xs uppercase tracking-wider text-slate-400">Credentials</div>
                 <div className="text-sm text-white mt-2">
-                  {overview.configured ? 'Configured' : 'Not configured'}
+                  {credentialsAvailable
+                    ? 'Available'
+                    : isLocalMode
+                      ? 'Not loaded in local API'
+                      : 'Not configured'}
                 </div>
                 <div className="text-xs text-slate-500 mt-1">Manage in Configuration tab</div>
               </div>
@@ -111,11 +131,19 @@ export const AwsTab: React.FC = () => {
 
       <AdminCard icon={CloudIcon} title="EC2 Instances" color="from-slate-500 to-slate-600">
         <div className="space-y-4">
-          <div className="text-xs text-slate-400 border border-slate-700/50 bg-slate-900/40 rounded-lg p-3">
-            Embedded SSM uses the EC2 instance role from the running backend. If the terminal shows
-            an `ssm:StartSession` access denied error, attach
-            `deploy/aws/iam/ssm-embedded-session-policy.json` to that role and retry.
-          </div>
+          {isLocalMode ? (
+            <div className="text-xs text-slate-400 border border-slate-700/50 bg-slate-900/40 rounded-lg p-3">
+              This panel controls EC2 only when the backend is running with usable AWS credentials.
+              In local mode without them, instance listing and embedded SSM are intentionally
+              unavailable.
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 border border-slate-700/50 bg-slate-900/40 rounded-lg p-3">
+              Embedded SSM uses the EC2 instance role from the running backend. If the terminal
+              shows an `ssm:StartSession` access denied error, attach
+              `deploy/aws/iam/ssm-embedded-session-policy.json` to that role and retry.
+            </div>
+          )}
           {loading && <div className="text-sm text-slate-400">Loading instances...</div>}
           {!loading && instances.length === 0 && (
             <div className="text-sm text-slate-400">No instances found.</div>

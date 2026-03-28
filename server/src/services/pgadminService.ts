@@ -152,6 +152,26 @@ const parseDockerStatus = (stdout: string) => {
   };
 };
 
+const probePgAdminReachable = async () => {
+  const probeUrl =
+    process.env.PGADMIN_STATUS_PROBE_URL ||
+    (localMode ? `http://host.containers.internal:${port}/` : url);
+
+  try {
+    const result = await runCommand('curl', ['-sSI', '--max-time', '3', probeUrl], {
+      allowFail: true,
+    });
+    const statusLine = result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => /^HTTP\/\d/.test(line));
+
+    return Boolean(statusLine && /\s(200|301|302|303|307|308)\b/.test(statusLine));
+  } catch {
+    return false;
+  }
+};
+
 const getPgAdminStatus = async () => {
   const status = {
     dockerHost,
@@ -188,6 +208,20 @@ const getPgAdminStatus = async () => {
   } catch (err) {
     status.dockerAvailable = false;
     status.error = (err as any)?.message || 'Docker CLI not available';
+  }
+
+  if (!status.container.running && (await probePgAdminReachable())) {
+    status.container = {
+      exists: true,
+      running: true,
+      status: status.dockerAvailable ? 'Up (HTTP probe)' : 'Reachable (HTTP probe)',
+      ports: `127.0.0.1:${port}->${port}/tcp`,
+      id: status.container.id,
+      name: containerName,
+    };
+    if (!status.dockerAvailable) {
+      status.error = '';
+    }
   }
 
   return status;

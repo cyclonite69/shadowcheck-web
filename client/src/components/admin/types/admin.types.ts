@@ -299,6 +299,8 @@ export interface AwsInstanceSummary {
 
 export interface AwsOverview {
   configured: boolean;
+  credentialsAvailable?: boolean;
+  mode?: 'local' | 'aws';
   region: string | null;
   identity: {
     account: string | null;

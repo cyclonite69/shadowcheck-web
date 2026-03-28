@@ -9,6 +9,9 @@ const { getAwsConfig } = awsService;
 const { EC2Client, DescribeInstancesCommand } = require('@aws-sdk/client-ec2');
 const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
 
+const isLocalRuntime =
+  (process.env.DB_HOST || '').trim() === 'postgres' && process.env.NODE_ENV !== 'production';
+
 const buildClientConfig = async () => {
   const { region } = await getAwsConfig();
   if (!region) {
@@ -84,7 +87,12 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
   try {
     const { region } = await getAwsConfig();
     if (!region) {
-      return res.json({ configured: false, error: 'AWS region not configured' });
+      return res.json({
+        configured: false,
+        credentialsAvailable: false,
+        mode: isLocalRuntime ? 'local' : 'aws',
+        error: 'AWS region not configured',
+      });
     }
 
     const clientConfig = await buildClientConfig();
@@ -92,6 +100,7 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
     const ec2Client = new EC2Client(clientConfig);
 
     let identity = null;
+    let credentialsAvailable = false;
     try {
       const identityResult = await stsClient.send(new GetCallerIdentityCommand({}));
       identity = {
@@ -99,6 +108,7 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
         arn: identityResult.Arn || null,
         userId: identityResult.UserId || null,
       };
+      credentialsAvailable = true;
     } catch (error: any) {
       logger.warn('[AWS] Failed to resolve caller identity', { error: error.message });
     }
@@ -116,7 +126,9 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
           'Missing permission ec2:DescribeInstances for current role; showing identity and region only.';
         logger.warn('[AWS] Missing DescribeInstances permission', { error: error.message });
       } else if (isCredentialError(error)) {
-        warning = 'AWS credentials unavailable locally; showing region only.';
+        warning = isLocalRuntime
+          ? 'Local runtime has no AWS credentials loaded; showing region only.'
+          : 'AWS credentials unavailable; showing region only.';
         logger.warn('[AWS] Missing or stale AWS credentials', { error: error.message });
       } else {
         throw error;
@@ -125,6 +137,8 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
 
     res.json({
       configured: Boolean(identity),
+      credentialsAvailable,
+      mode: isLocalRuntime ? 'local' : 'aws',
       region,
       identity,
       counts,
@@ -135,11 +149,15 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
     if (process.env.NODE_ENV !== 'production' && isCredentialError(error)) {
       return res.json({
         configured: false,
+        credentialsAvailable: false,
+        mode: isLocalRuntime ? 'local' : 'aws',
         region: (await getAwsConfig()).region || null,
         identity: null,
         counts: { total: 0, states: {} },
         instances: [],
-        warning: 'AWS credentials unavailable locally.',
+        warning: isLocalRuntime
+          ? 'Local runtime has no AWS credentials loaded.'
+          : 'AWS credentials unavailable.',
       });
     }
     logger.error('[AWS] Failed to load overview', { error: error.message, stack: error.stack });

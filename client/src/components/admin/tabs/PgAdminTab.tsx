@@ -51,6 +51,8 @@ export const PgAdminTab: React.FC = () => {
   const enabled = status?.enabled ?? false;
   const exists = container?.exists ?? false;
   const running = container?.running ?? false;
+  const dockerAvailable = status?.dockerAvailable ?? false;
+  const controlsAvailable = enabled && dockerAvailable;
 
   const statusLabel = running ? 'Running' : exists ? 'Stopped' : 'Not Found';
   const statusBadgeClass = running
@@ -154,9 +156,16 @@ export const PgAdminTab: React.FC = () => {
           )}
 
           {status && !status.dockerAvailable && (
-            <div className="p-3 rounded-lg text-xs bg-red-900/30 text-red-300 border border-red-700/50">
-              Docker CLI not available for the API process. Run the server on the host or expose
-              Docker to it.
+            <div
+              className={`p-3 rounded-lg text-xs border ${
+                running
+                  ? 'bg-amber-900/30 text-amber-300 border-amber-700/50'
+                  : 'bg-red-900/30 text-red-300 border-red-700/50'
+              }`}
+            >
+              {running
+                ? 'PgAdmin is reachable locally, but Docker control is unavailable to the API process. Open access works; start/stop/reset controls are disabled.'
+                : 'Docker CLI not available for the API process. Run the server on the host or expose Docker to it.'}
             </div>
           )}
 
@@ -181,16 +190,17 @@ export const PgAdminTab: React.FC = () => {
             Keep the saved volume when you only want to remove the container.
           </p>
 
-          {!enabled && (
+          {!controlsAvailable && (
             <div className="p-3 rounded-lg text-xs bg-amber-900/30 text-amber-300 border border-amber-700/50">
-              Docker controls are disabled. Set ADMIN_ALLOW_DOCKER=true, restart the API server,
-              then manage the flag from Configuration.
+              {!enabled
+                ? 'Docker controls are disabled. Set ADMIN_ALLOW_DOCKER=true, restart the API server, then manage the flag from Configuration.'
+                : 'Docker controls are unavailable to the API process right now, so only Open PgAdmin is supported.'}
             </div>
           )}
 
           <button
             onClick={handleStart}
-            disabled={!enabled || actionLoading}
+            disabled={!controlsAvailable || actionLoading}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-sm"
           >
             {actionLoading ? 'Working...' : exists ? 'Start / Recreate PgAdmin' : 'Create PgAdmin'}
@@ -198,7 +208,7 @@ export const PgAdminTab: React.FC = () => {
 
           <button
             onClick={handleReset}
-            disabled={!enabled || actionLoading}
+            disabled={!controlsAvailable || actionLoading}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-500 hover:to-red-600 transition-all disabled:opacity-50 text-sm"
           >
             {actionLoading ? 'Working...' : 'Reset & Start Fresh'}
@@ -206,7 +216,7 @@ export const PgAdminTab: React.FC = () => {
 
           <button
             onClick={handleStop}
-            disabled={!enabled || actionLoading || !running}
+            disabled={!controlsAvailable || actionLoading || !running}
             className="w-full px-4 py-2.5 bg-slate-800/80 text-slate-200 rounded-lg font-medium hover:bg-slate-700/80 transition-all disabled:opacity-50 text-sm"
           >
             {actionLoading ? 'Working...' : 'Stop PgAdmin'}
@@ -214,7 +224,7 @@ export const PgAdminTab: React.FC = () => {
 
           <button
             onClick={() => handleDestroy(false)}
-            disabled={!enabled || actionLoading || !exists}
+            disabled={!controlsAvailable || actionLoading || !exists}
             className="w-full px-4 py-2.5 bg-amber-900/60 text-amber-200 rounded-lg font-medium hover:bg-amber-800/70 transition-all disabled:opacity-50 text-sm"
           >
             {actionLoading ? 'Working...' : 'Destroy Container Only'}
@@ -222,7 +232,7 @@ export const PgAdminTab: React.FC = () => {
 
           <button
             onClick={() => handleDestroy(true)}
-            disabled={!enabled || actionLoading || (!exists && !status?.volumeName)}
+            disabled={!controlsAvailable || actionLoading || (!exists && !status?.volumeName)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-rose-700 to-red-700 text-white rounded-lg font-medium hover:from-rose-600 hover:to-red-600 transition-all disabled:opacity-50 text-sm"
           >
             {actionLoading ? 'Working...' : 'Destroy Container + Data'}
