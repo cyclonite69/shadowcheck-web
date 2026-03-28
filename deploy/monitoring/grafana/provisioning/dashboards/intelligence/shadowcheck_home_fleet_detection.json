@@ -739,6 +739,25 @@
         "defaults": {},
         "overrides": []
       }
+    },
+    {
+      "id": 15,
+      "type": "text",
+      "title": "Navigate dashboards",
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "<center>\n[\u2190 Michigan Intelligence](shadowcheck-michigan) | [America Fleet Patterns](shadowcheck-national) | [Home Fleet Detection](shadowcheck-home-fleet-detection) | [Contractor/OUI](shadowcheck-oui-fleet)\n</center>\n"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
     }
   ],
   "editable": true,
