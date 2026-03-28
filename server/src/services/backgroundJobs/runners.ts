@@ -2,7 +2,7 @@ export {};
 
 const logger = require('../../logging/logger');
 const { runPostgresBackup } = require('../backupService');
-const mlScoringService = require('../ml/scoringService');
+const mlScoringRepository = require('../ml/repository');
 const networkTagService = require('../networkTagService');
 const OUIGroupingService = require('../ouiGroupingService');
 
@@ -37,7 +37,7 @@ const runBackupJob = async () => {
 const runBehavioralMlScoringJob = async () => {
   logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
 
-  const networks = await mlScoringService.getNetworksForBehavioralScoring(
+  const networks = await mlScoringRepository.getNetworksForBehavioralScoring(
     ML_SCORING_LIMIT,
     MIN_OBSERVATIONS,
     MAX_BSSID_LENGTH
@@ -52,7 +52,7 @@ const runBehavioralMlScoringJob = async () => {
 
   logger.info(`[ML Scoring Job] Found ${tagMap.size} manual tags for feedback adjustment`);
 
-  const inserted = await mlScoringService.bulkUpsertThreatScores(scores);
+  const inserted = await mlScoringRepository.bulkUpsertThreatScores(scores);
   logger.info(`[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0`);
 
   logger.info('[ML Scoring Job] Running OUI grouping analysis...');
