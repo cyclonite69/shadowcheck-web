@@ -4,6 +4,14 @@
  */
 
 const { query } = require('../config/database');
+import {
+  buildWigleObservationsQuery,
+  buildWigleSearchQuery,
+  buildWigleV2CountQuery,
+  buildWigleV2NetworksQuery,
+  buildWigleV3CountQuery,
+  buildWigleV3NetworksQuery,
+} from './wigleQueries';
 
 type QueryExecutor = {
   query: (text: string, params?: any[]) => Promise<any>;
@@ -23,25 +31,8 @@ export async function searchWigleDatabase(params: {
   bssid?: string;
   limit: number | null;
 }): Promise<any[]> {
-  const queryParams: any[] = [];
-  let searchQuery: string;
-
-  if (params.bssid) {
-    searchQuery = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime
-                   FROM app.wigle_v2_networks_search WHERE bssid ILIKE $1 ORDER BY lasttime DESC`;
-    queryParams.push(`%${params.bssid}%`);
-  } else {
-    searchQuery = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime
-                   FROM app.wigle_v2_networks_search WHERE ssid ILIKE $1 ORDER BY lasttime DESC`;
-    queryParams.push(`%${params.ssid}%`);
-  }
-
-  if (params.limit !== null) {
-    queryParams.push(params.limit);
-    searchQuery += ` LIMIT $${queryParams.length}`;
-  }
-
-  const { rows } = await query(searchQuery, queryParams);
+  const { sql, queryParams } = buildWigleSearchQuery(params);
+  const { rows } = await query(sql, queryParams);
   return rows;
 }
 
@@ -52,24 +43,8 @@ export async function getWigleV2Networks(params: {
   whereClauses: string[];
   queryParams: any[];
 }): Promise<any[]> {
-  const whereSql =
-    params.whereClauses.length > 0 ? `WHERE ${params.whereClauses.join(' AND ')}` : '';
-  const paginationClauses: string[] = [];
-  const allParams = [...params.queryParams];
-
-  if (params.limit !== null) {
-    allParams.push(params.limit);
-    paginationClauses.push(`LIMIT $${allParams.length}`);
-  }
-  if (params.offset !== null) {
-    allParams.push(params.offset);
-    paginationClauses.push(`OFFSET $${allParams.length}`);
-  }
-
-  const paginationSql = paginationClauses.join(' ');
-  const dataQuery = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime, type
-                     FROM app.wigle_v2_networks_search ${whereSql} ORDER BY lasttime DESC ${paginationSql}`;
-  const { rows } = await query(dataQuery, allParams);
+  const { sql, queryParams } = buildWigleV2NetworksQuery(params);
+  const { rows } = await query(sql, queryParams);
   return rows;
 }
 
@@ -77,9 +52,8 @@ export async function getWigleV2NetworksCount(
   whereClauses: string[],
   queryParams: any[]
 ): Promise<number> {
-  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-  const countQuery = `SELECT COUNT(*) as total FROM app.wigle_v2_networks_search ${whereSql}`;
-  const countResult = await query(countQuery, queryParams);
+  const { sql, queryParams: resolvedParams } = buildWigleV2CountQuery(whereClauses, queryParams);
+  const countResult = await query(sql, resolvedParams);
   return parseInt(countResult.rows[0].total, 10);
 }
 
@@ -99,26 +73,8 @@ export async function getWigleV3Networks(params: {
   whereClauses?: string[];
   queryParams?: any[];
 }): Promise<any[]> {
-  const whereSql =
-    params.whereClauses && params.whereClauses.length > 0
-      ? `WHERE ${params.whereClauses.join(' AND ')}`
-      : '';
-  const paginationClauses: string[] = [];
-  const allParams = params.queryParams ? [...params.queryParams] : [];
-
-  if (params.limit !== null) {
-    allParams.push(params.limit);
-    paginationClauses.push(`LIMIT $${allParams.length}`);
-  }
-  if (params.offset !== null) {
-    allParams.push(params.offset);
-    paginationClauses.push(`OFFSET $${allParams.length}`);
-  }
-
-  const paginationSql = paginationClauses.join(' ');
-  const dataQuery = `SELECT netid, ssid, encryption, latitude, longitude, observed_at
-                    FROM app.wigle_v3_observations ${whereSql} ORDER BY observed_at DESC ${paginationSql}`;
-  const { rows } = await query(dataQuery, allParams);
+  const { sql, queryParams } = buildWigleV3NetworksQuery(params);
+  const { rows } = await query(sql, queryParams);
   return rows;
 }
 
@@ -126,9 +82,8 @@ export async function getWigleV3NetworksCount(
   whereClauses: string[] = [],
   queryParams: any[] = []
 ): Promise<number> {
-  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-  const countQuery = `SELECT COUNT(*) as total FROM app.wigle_v3_observations ${whereSql}`;
-  const countResult = await query(countQuery, queryParams);
+  const { sql, queryParams: resolvedParams } = buildWigleV3CountQuery(whereClauses, queryParams);
+  const countResult = await query(sql, resolvedParams);
   return parseInt(countResult.rows[0].total, 10);
 }
 
@@ -409,26 +364,10 @@ export async function getWigleObservations(
   limit?: number | null,
   offset?: number | null
 ): Promise<{ rows: any[]; total: number }> {
-  const params: any[] = [netid];
-
-  let sql = `SELECT id, netid, latitude, longitude, altitude, accuracy,
-                    signal, observed_at, last_update, ssid,
-                    frequency, channel, encryption, noise, snr, month
-             FROM app.wigle_v3_observations
-             WHERE netid = $1
-             ORDER BY observed_at DESC`;
-
-  if (limit !== null && limit !== undefined) {
-    params.push(limit);
-    sql += ` LIMIT $${params.length}`;
-  }
-  if (offset !== null && offset !== undefined) {
-    params.push(offset);
-    sql += ` OFFSET $${params.length}`;
-  }
+  const { sql, queryParams } = buildWigleObservationsQuery(netid, limit, offset);
 
   const [{ rows }, countResult] = await Promise.all([
-    query(sql, params),
+    query(sql, queryParams),
     query(`SELECT COUNT(*) AS total FROM app.wigle_v3_observations WHERE netid = $1`, [netid]),
   ]);
 
