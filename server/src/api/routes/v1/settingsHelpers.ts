@@ -67,4 +67,5 @@ module.exports = {
   validateGoogleMapsKey,
   validateLabel,
   validateMapboxToken,
+  validateString,
 };
