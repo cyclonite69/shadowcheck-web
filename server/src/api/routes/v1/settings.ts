@@ -6,6 +6,7 @@ const { secretsManager } = require('../../../config/container');
 const { adminQuery } = require('../../../services/adminDbService');
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const { validateString } = require('../../../validation/schemas');
+const { registerProviderSecretRoutes } = require('./settingsSecretRoutes');
 const {
   getConfiguredAwsRegion,
   getErrorMessage,
@@ -149,140 +150,7 @@ router.post('/settings/mapbox', requireAuth, async (req: Request, res: Response)
   }
 });
 
-// Get Mapbox unlimited (geocoding) key (masked)
-router.get('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const apiKey = await secretsManager.getSecret('mapbox_unlimited_api_key');
-    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Set Mapbox unlimited (geocoding) key
-router.post('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { apiKey, value } = req.body;
-    const incomingValue = getIncomingValue(req.body, 'apiKey');
-    const keyValidation = validateGenericKey(incomingValue, 'mapbox_unlimited_api_key');
-    if (!keyValidation.valid) {
-      return res.status(400).json({ error: keyValidation.error });
-    }
-
-    await secretsManager.putSecret('mapbox_unlimited_api_key', keyValidation.value);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Get Google Maps API key (masked)
-router.get('/settings/google-maps', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const apiKey = await secretsManager.getSecret('google_maps_api_key');
-    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Set Google Maps API key
-router.post('/settings/google-maps', async (req: Request, res: Response) => {
-  try {
-    const { apiKey, value } = req.body;
-    const incomingValue = getIncomingValue(req.body, 'apiKey');
-    const keyValidation = validateGoogleMapsKey(incomingValue);
-    if (!keyValidation.valid) {
-      return res.status(400).json({ error: keyValidation.error });
-    }
-
-    await secretsManager.putSecret('google_maps_api_key', keyValidation.value);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Get OpenCage API key (masked)
-router.get('/settings/opencage', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const apiKey = await secretsManager.getSecret('opencage_api_key');
-    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Set OpenCage API key
-router.post('/settings/opencage', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { apiKey, value } = req.body;
-    const incomingValue = getIncomingValue(req.body, 'apiKey');
-    const keyValidation = validateGenericKey(incomingValue, 'opencage_api_key');
-    if (!keyValidation.valid) {
-      return res.status(400).json({ error: keyValidation.error });
-    }
-
-    await secretsManager.putSecret('opencage_api_key', keyValidation.value);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Get Geocodio API key (masked)
-router.get('/settings/geocodio', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const apiKey = await secretsManager.getSecret('geocodio_api_key');
-    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Set Geocodio API key
-router.post('/settings/geocodio', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { apiKey, value } = req.body;
-    const incomingValue = getIncomingValue(req.body, 'apiKey');
-    const keyValidation = validateGenericKey(incomingValue, 'geocodio_api_key');
-    if (!keyValidation.valid) {
-      return res.status(400).json({ error: keyValidation.error });
-    }
-
-    await secretsManager.putSecret('geocodio_api_key', keyValidation.value);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Get LocationIQ API key (masked)
-router.get('/settings/locationiq', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const apiKey = await secretsManager.getSecret('locationiq_api_key');
-    res.json({ configured: Boolean(apiKey), value: apiKey || '' });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
-
-// Set LocationIQ API key
-router.post('/settings/locationiq', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { apiKey, value } = req.body;
-    const incomingValue = apiKey ?? value;
-    const keyValidation = validateGenericKey(incomingValue, 'locationiq_api_key');
-    if (!keyValidation.valid) {
-      return res.status(400).json({ error: keyValidation.error });
-    }
-
-    await secretsManager.putSecret('locationiq_api_key', keyValidation.value);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
-});
+registerProviderSecretRoutes({ router, secretsManager });
 
 // Get AWS runtime configuration (region only; credentials use provider chain)
 router.get('/settings/aws', requireAuth, async (req: Request, res: Response) => {
