@@ -57,7 +57,7 @@ npm install
 docker-compose up -d postgres
 
 # Verify it's running
-docker ps | grep shadowcheck_postgres
+docker ps | grep postgres
 ```
 
 #### Option B: Local PostgreSQL
@@ -78,27 +78,27 @@ CREATE EXTENSION postgis;
 ```bash
 # Configure non-secret runtime vars
 export DB_USER=shadowcheck_user
-export DB_HOST=localhost
+export DB_HOST=postgres
 export DB_NAME=shadowcheck_db
 export DB_PORT=5432
 ```
 
 **Essential environment variables:**
 
-```env
+````env
 # Database
 DB_USER=shadowcheck_user
-DB_HOST=localhost
+DB_HOST=postgres
 DB_NAME=shadowcheck_db
 DB_PORT=5432
-
+```,old_string:
 # Server
 PORT=3001
 NODE_ENV=development
 
 # Frontend
 MAPBOX_TOKEN=pk.your_mapbox_token_here
-```
+````
 
 ### 5. Set Secrets
 
@@ -158,7 +158,7 @@ Access the application:
 ```bash
 # Configure environment
 export DB_USER=shadowcheck_user
-export DB_HOST=shadowcheck_postgres
+export DB_HOST=postgres
 export DB_NAME=shadowcheck_db
 export DB_PORT=5432
 

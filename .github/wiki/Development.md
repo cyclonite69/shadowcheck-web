@@ -195,10 +195,10 @@ const MyComponent = lazy(() => import('./components/MyComponent'));
 
 ```bash
 # Connect to database
-docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
+docker exec -it postgres psql -U shadowcheck_user -d shadowcheck_db
 
 # Run migration
-docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/your_migration.sql
+docker exec -i postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/your_migration.sql
 
 # Backup database
 pg_dump -U shadowcheck_user -d shadowcheck_db -F c -f backup_$(date +%Y%m%d).dump
@@ -282,10 +282,10 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Verify Docker PostgreSQL is running
-docker ps | grep shadowcheck_postgres
+docker ps | grep postgres
 
 # Test connection
-docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
+docker exec postgres psql -U shadowcheck_user -d shadowcheck_db
 ```
 
 ### Port Already in Use

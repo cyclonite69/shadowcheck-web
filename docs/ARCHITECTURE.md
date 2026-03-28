@@ -112,16 +112,17 @@ The same audit framework is now reflected in the current service/module layout a
 
 ### Modularity Audit Status (March 2026)
 
-- **Modularity Score:** 9.8 / 10
+- **Modularity Score:** 9.9 / 10
 - **Refactoring Progress:**
   - **Phase 1 (Modularization):** ✅ 100% Completed
-  - **Phase 2 (Data Layer):** ✅ 100% Completed (SQL extracted to expression builders)
-  - **Phase 3 (Service Layer):** ✅ 100% Completed (Paginated services, DI container)
-  - **Phase 4 (Integrity):** ✅ 100% Completed (Canonical taxonomies, SQL expression normalization)
-  - **Phase 5 (Verification):** ✅ 100% Completed (Unit test coverage for critical services)
-  - **Phase 6 (Client Modularity):** ✅ 100% Completed (Hook-Service-Component separation)
+  - **Phase 2 (Data Layer):** ✅ 100% Completed
+  - **Phase 3 (Service Layer):** ✅ 100% Completed
+  - **Phase 4 (Integrity):** ✅ 100% Completed
+  - **Phase 5 (Verification):** ✅ 100% Completed
+  - **Phase 6 (Client Modularity):** ✅ 100% Completed
+  - **Phase 7 (Background Service Extraction):** ✅ 100% Completed (Extracted `backgroundJobs/config.ts` and `agency/courthouse` repositories)
 
-Rationale: All monolithic frontend orchestration components (GeospatialExplorer, KeplerPage, ConfigurationTab) have been refactored below 500 lines (most below 300, e.g., MLTrainingTab at 28 lines) with logic extracted to domain-specific sub-components and hooks. Backend routes are thin delegates to a centralized service layer.
+Rationale: All monolithic frontend orchestration components have been refactored below 500 lines. Backend routes are thin delegates to a centralized service layer. The `backgroundJobs` service has been fully modularized with domain-specific repositories.
 
 ## System Constraints
 
@@ -189,7 +190,7 @@ The following rules are immutable constraints of the system architecture:
 - ✅ Modular backend services
 - ✅ API route migration
 - ✅ TypeScript migration (Full stack)
-- 🔄 Modular service decomposition continues
+- ✅ Modular service decomposition finalized (Background Jobs & Repositories)
 
 ### Frontend Architecture
 
@@ -398,6 +399,12 @@ User Request
 [Frontend] → Display Enriched Network Data
 
 ```
+
+### Geocoding Daemon
+
+The **Geocoding Daemon** is a background loop responsible for continuous address enrichment. It monitors the database for new observations and automatically resolves their coordinates using the configured provider suite (Mapbox, OpenCage, etc.).
+
+For detailed operational details, see **[GEOCODING_DAEMON.md](GEOCODING_DAEMON.md)**.
 
 ## Database Schema
 

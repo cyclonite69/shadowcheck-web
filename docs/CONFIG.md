@@ -19,14 +19,14 @@ This document describes all configuration options for ShadowCheckStatic.
 
 ### Database Configuration
 
-| Variable        | Required | Default | Description                                            |
-| --------------- | -------- | ------- | ------------------------------------------------------ |
-| `DB_USER`       | Yes      | -       | Database username                                      |
-| `DB_ADMIN_USER` | Yes      | -       | Admin database username                                |
-| `DB_HOST`       | Yes      | -       | Database host                                          |
-| `DB_NAME`       | Yes      | -       | Database name                                          |
-| `DB_PORT`       | No       | `5432`  | Database port                                          |
-| `DB_PASSWORD`   | Yes      | -       | Database password (see [Secrets](#secrets-management)) |
+| Variable        | Required | Default    | Description                                                       |
+| --------------- | -------- | ---------- | ----------------------------------------------------------------- |
+| `DB_USER`       | Yes      | -          | Database username                                                 |
+| `DB_ADMIN_USER` | Yes      | -          | Admin database username                                           |
+| `DB_HOST`       | Yes      | `postgres` | Database host ('postgres' for Docker, 'localhost' for host-based) |
+| `DB_NAME`       | Yes      | -          | Database name                                                     |
+| `DB_PORT`       | No       | `5432`     | Database port                                                     |
+| `DB_PASSWORD`   | Yes      | -          | Database password (see [Secrets](#secrets-management))            |
 
 ### Server Configuration
 

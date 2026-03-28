@@ -152,7 +152,7 @@ $$ LANGUAGE plpgsql;
 psql -U shadowcheck_admin -d shadowcheck_db -f sql/migrations/00_init_schema.sql
 
 # Via Docker
-docker exec -i shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db < sql/migrations/00_init_schema.sql
+docker exec -i postgres psql -U shadowcheck_admin -d shadowcheck_db < sql/migrations/00_init_schema.sql
 ```
 
 ### Migration Order

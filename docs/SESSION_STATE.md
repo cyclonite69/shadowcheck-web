@@ -1,12 +1,14 @@
 # Session State (Docs + Secrets Cleanup)
 
 ## Summary
+
 - Docs cleaned and reduced to current-state set under `docs/`.
 - Wiki-first policy established; wiki pages link back to docs.
 - All keyring references removed; AWS Secrets Manager is the only secrets source.
 - Legacy keyring scripts removed.
 
 ## Current Docs Set (kept)
+
 - `docs/ARCHITECTURE.md`
 - `docs/DEVELOPMENT.md`
 - `docs/DEPLOYMENT.md`
@@ -21,7 +23,9 @@
 - `docs/kiro/`
 
 ## Wiki-First Linking
+
 Wiki pages updated to point back to docs:
+
 - `.github/wiki/Home.md`
 - `.github/wiki/Architecture.md`
 - `.github/wiki/API-Reference.md`
@@ -38,6 +42,7 @@ Wiki pages updated to point back to docs:
 - `.github/wiki/Troubleshooting.md`
 
 ## Secrets Cleanup
+
 - Keyring docs, scripts, and references removed.
 - `.env.example` updated to AWS Secrets Manager only.
 - `tests/unit/secretsManager.test.ts` rewritten to mock AWS Secrets Manager.
@@ -45,8 +50,10 @@ Wiki pages updated to point back to docs:
 - `server/src/services/keyringService.ts` removed.
 
 ## Removed (Cleanup)
+
 - Large doc subfolders: `docs/architecture`, `docs/guides`, `docs/security`, etc.
 - Legacy keyring scripts and helpers.
 
 ## Pending Decision
+
 - `dist/` still contains old compiled keyring code. Decide whether to delete `dist/` now or rebuild later.

@@ -75,7 +75,7 @@ Comprehensive datasets of federal law enforcement and judicial locations for geo
 
 ## Data & Enrichment
 
-- **Multi-API address enrichment**: OpenCage, LocationIQ, Abstract, and Overpass support.
+- **Multi-API address enrichment**: OpenCage, LocationIQ, and Overpass support.
 - **Radio Manufacturer Standardization**: High-fidelity cleanup of 74,000+ records applying professional Title Casing and acronym preservation (IBM, NEC, TRW, LLC, Inc., etc.).
 - **Network tagging**: Manual classification and forensic note-taking.
 - **Trilateration**: Estimated access point locations derived from weighted observation centroids.

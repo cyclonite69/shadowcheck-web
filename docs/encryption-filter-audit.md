@@ -1,6 +1,7 @@
 # Encryption Filter Audit
 
 ## Canonical encryption buckets
+
 - `OPEN`
 - `WEP`
 - `WPA`
@@ -9,8 +10,10 @@
 - `Mixed` (includes `WPA`, `WPA2*`, `WPA3*`)
 
 ## Source-of-truth relationship
+
 - Explorer row `security` is now derived from computed capabilities, not raw text.
 - Fallback order:
+
 1. Latest observation capabilities (`observations.radio_capabilities`)
 2. Explorer MV capabilities (`api_network_explorer_mv.capabilities`)
 3. Explorer MV legacy security text (`api_network_explorer_mv.security`)
