@@ -27,6 +27,22 @@ router.get('/admin/backup/s3', async (req: Request, res: Response) => {
     res.json({ ok: true, backups });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('S3_BACKUP_BUCKET is not configured')) {
+      return res.json({
+        ok: true,
+        backups: [],
+        configured: false,
+        message: msg,
+      });
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      return res.json({
+        ok: true,
+        backups: [],
+        configured: false,
+        message: msg || 'S3 backup listing unavailable in local development',
+      });
+    }
     logger.error(`[Backup] Failed to list S3 backups: ${msg}`, { error: err });
     res.status(500).json({ ok: false, error: msg || 'Failed to list S3 backups' });
   }

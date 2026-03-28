@@ -36,6 +36,10 @@ password and the persisted admin username in Grafana's SQLite DB. Existing EC2
 installs that were initialized with legacy login `admin` are reconciled to
 `grafanaadmin` on the next rotation/start.
 
+The startup/rotation path also syncs a `shadowcheck-rotation` playlist that
+cycles the provisioned dashboards every 5 minutes. Requests to `/grafana/`
+redirect to that playlist in kiosk mode.
+
 ## Datasource
 
 Pre-wired to shadowcheck_postgres via provisioning.

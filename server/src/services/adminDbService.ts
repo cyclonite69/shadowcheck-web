@@ -27,15 +27,23 @@ function getAdminPool(): Pool | null {
   }
 
   const adminPassword = process.env.DB_ADMIN_PASSWORD || secretsManager.get('db_admin_password');
+  const allowPasswordlessLocalAdmin =
+    !adminPassword && DB_HOST === 'postgres' && process.env.DB_SSL !== 'true';
 
-  if (!adminPassword) {
+  if (!adminPassword && !allowPasswordlessLocalAdmin) {
     logger.error('db_admin_password not available. Admin operations will fail.');
     return null;
   }
 
+  if (allowPasswordlessLocalAdmin) {
+    logger.warn(
+      'db_admin_password not available; using passwordless local admin connection against compose postgres.'
+    );
+  }
+
   adminPool = new Pool({
     user: DB_ADMIN_USER,
-    password: adminPassword,
+    password: adminPassword || '',
     host: DB_HOST,
     port: DB_PORT,
     database: DB_NAME,

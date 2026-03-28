@@ -74,9 +74,10 @@ services:
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       SHADOWCHECK_AWS_SECRET: ${SHADOWCHECK_AWS_SECRET:-}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
-      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}
+      ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-true}
       MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
       HOME: /home/nodejs
+      DOCKER_HOST: unix:///var/run/docker.sock
     ports:
       - "127.0.0.1:${PORT:-3001}:3001"
     volumes:
@@ -84,6 +85,7 @@ services:
       - ./logs:/app/logs
       - ./backups:/app/backups
       - ${HOME}/.aws:/home/nodejs/.aws
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/podman/podman.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1"]
       interval: 30s

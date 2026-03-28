@@ -89,6 +89,53 @@ SQL
   echo "Admin username synced to Grafana DB ($current_login -> $desired_login)."
 }
 
+sync_grafana_playlist() {
+  local api_url playlist_uid existing_status payload
+
+  api_url="http://127.0.0.1:3002"
+  playlist_uid="${GRAFANA_PLAYLIST_UID:-shadowcheck-rotation}"
+
+  payload="$(cat <<JSON
+{
+  "kind": "Playlist",
+  "apiVersion": "playlist.grafana.app/v1",
+  "metadata": {
+    "name": "${playlist_uid}"
+  },
+  "spec": {
+    "title": "ShadowCheck Rotation",
+    "interval": "5m",
+    "items": [
+      { "type": "dashboard_by_uid", "value": "shadowcheck-overview" },
+      { "type": "dashboard_by_uid", "value": "shadowcheck-national" },
+      { "type": "dashboard_by_uid", "value": "shadowcheck-michigan" },
+      { "type": "dashboard_by_uid", "value": "shadowcheck-oui-fleet" }
+    ]
+  }
+}
+JSON
+)"
+
+  existing_status="$(curl -s -o /dev/null -w '%{http_code}' -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}" \
+    "${api_url}/apis/playlist.grafana.app/v1/namespaces/default/playlists/${playlist_uid}" || true)"
+
+  if [[ "$existing_status" == "200" ]]; then
+    curl -fsS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}" \
+      -H 'Content-Type: application/json' \
+      -X PUT \
+      -d "$payload" \
+      "${api_url}/apis/playlist.grafana.app/v1/namespaces/default/playlists/${playlist_uid}" >/dev/null
+  else
+    curl -fsS -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}" \
+      -H 'Content-Type: application/json' \
+      -X POST \
+      -d "$payload" \
+      "${api_url}/apis/playlist.grafana.app/v1/namespaces/default/playlists" >/dev/null
+  fi
+
+  echo "Grafana playlist synced: ${playlist_uid}"
+}
+
 require_command aws
 require_command jq
 require_command docker
@@ -244,6 +291,7 @@ sync_grafana_admin_user "$GRAFANA_ADMIN_USER"
 
 docker exec "$GRAFANA_CONTAINER" \
   grafana cli --homepath /usr/share/grafana admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" >/dev/null
+sync_grafana_playlist
 echo "Admin password synced to Grafana DB."
 
 echo "Grafana credentials rotated successfully."

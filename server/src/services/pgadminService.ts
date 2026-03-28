@@ -20,16 +20,24 @@ type RunCommandResult = {
 export {};
 
 const repoRoot = process.cwd();
+const localMode =
+  (process.env.DB_HOST || '').trim() === 'postgres' && process.env.NODE_ENV !== 'production';
 const composeFile =
   process.env.PGADMIN_COMPOSE_FILE ||
   path.join(repoRoot, 'docker', 'infrastructure', 'docker-compose.postgres.yml');
 const composeDir = path.dirname(composeFile);
 const serviceName = process.env.PGADMIN_SERVICE_NAME || 'pgadmin';
-const containerName = process.env.PGADMIN_CONTAINER_NAME || 'shadowcheck_pgadmin';
-const volumeName = process.env.PGADMIN_VOLUME_NAME || 'shadowcheck_pgadmin_data';
+const containerName =
+  process.env.PGADMIN_CONTAINER_NAME ||
+  (localMode ? 'shadowcheck_pgadmin_local' : 'shadowcheck_pgadmin');
+const volumeName =
+  process.env.PGADMIN_VOLUME_NAME ||
+  (localMode ? 'shadowcheck_pgadmin_local_data' : 'shadowcheck_pgadmin_data');
 const port = Number.parseInt(process.env.PGADMIN_PORT || '5050', 10) || 5050;
-const url = process.env.PGADMIN_URL || `https://localhost:${port}`;
+const url = process.env.PGADMIN_URL || `${localMode ? 'http' : 'https'}://localhost:${port}`;
 const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
+const pgAdminEmail = process.env.PGADMIN_EMAIL || 'admin@example.com';
+const pgAdminPassword = process.env.PGADMIN_PASSWORD || 'admin';
 
 const isDockerControlEnabled = () => featureFlagService.getFlag('admin_allow_docker');
 
@@ -78,6 +86,9 @@ const runCommand = (
   });
 
 const composeFileExists = async () => {
+  if (localMode) {
+    return true;
+  }
   try {
     await fs.access(composeFile);
     return true;
@@ -87,6 +98,10 @@ const composeFileExists = async () => {
 };
 
 const runCompose = async (args: string[], options: RunCommandOptions = {}) => {
+  if (localMode) {
+    throw new Error('docker-compose pgAdmin control is disabled in local mode');
+  }
+
   if (!(await composeFileExists())) {
     throw new Error(`Compose file not found at ${composeFile}`);
   }
@@ -185,8 +200,10 @@ const enforceRestartPolicy = async () => {
 };
 
 const removePgAdminContainer = async () => {
-  await runCompose(['stop', serviceName], { allowFail: true });
-  await runCompose(['rm', '-f', '-s', serviceName], { allowFail: true });
+  if (!localMode) {
+    await runCompose(['stop', serviceName], { allowFail: true });
+    await runCompose(['rm', '-f', '-s', serviceName], { allowFail: true });
+  }
   await runCommand('docker', ['rm', '-f', containerName], { allowFail: true });
 };
 
@@ -233,6 +250,45 @@ const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
     // Container doesn't exist, proceed with compose up
   }
 
+  if (localMode) {
+    logger.info('[PgAdmin] Starting local PgAdmin via docker run');
+    await runCommand('docker', ['rm', '-f', containerName], { allowFail: true });
+    const runResult = await runCommand('docker', [
+      'run',
+      '-d',
+      '--name',
+      containerName,
+      '--restart',
+      'unless-stopped',
+      '-p',
+      `127.0.0.1:${port}:${port}`,
+      '-e',
+      `PGADMIN_DEFAULT_EMAIL=${pgAdminEmail}`,
+      '-e',
+      `PGADMIN_DEFAULT_PASSWORD=${pgAdminPassword}`,
+      '-e',
+      'PGADMIN_CONFIG_SERVER_MODE=False',
+      '-e',
+      'PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False',
+      '-e',
+      'PGADMIN_LISTEN_ADDRESS=0.0.0.0',
+      '-e',
+      `PGADMIN_LISTEN_PORT=${port}`,
+      '-e',
+      'PGADMIN_DEFAULT_SERVER_HOST=host.containers.internal',
+      '-v',
+      `${volumeName}:/var/lib/pgadmin`,
+      'dpage/pgadmin4:latest',
+    ]);
+
+    return {
+      output: runResult.stdout,
+      warnings: runResult.stderr,
+      composeFile: 'local-docker-run',
+      serviceName,
+    };
+  }
+
   logger.info('[PgAdmin] Starting PgAdmin via docker-compose');
   const result = await runCompose(['up', '-d', '--no-deps', serviceName]);
   await enforceRestartPolicy();
@@ -246,6 +302,17 @@ const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
 };
 
 const stopPgAdmin = async () => {
+  if (localMode) {
+    logger.info('[PgAdmin] Stopping local PgAdmin via docker stop');
+    const result = await runCommand('docker', ['stop', containerName], { allowFail: true });
+    return {
+      output: result.stdout,
+      warnings: result.stderr,
+      composeFile: 'local-docker-run',
+      serviceName,
+    };
+  }
+
   logger.info('[PgAdmin] Stopping PgAdmin via docker-compose');
   const result = await runCompose(['stop', serviceName]);
   return {

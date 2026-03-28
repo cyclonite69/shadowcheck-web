@@ -14,6 +14,7 @@ services:
       - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:?Set GF_SERVER_ROOT_URL for the deployed Grafana URL}
       - GF_SERVER_HTTP_PORT=${GF_SERVER_HTTP_PORT:-3002}
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-true}
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=${GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH:-/etc/grafana/provisioning/dashboards/shadowcheck_overview.json}
       - GRAFANA_READER_PASSWORD=${GRAFANA_READER_PASSWORD:?Set GRAFANA_READER_PASSWORD from AWS Secrets Manager before starting Grafana}
       # Database connection for provisioned datasource (postgres.yml)
       - DB_HOST=localhost

@@ -98,11 +98,21 @@ const buildBackupPgEnv = (): NodeJS.ProcessEnv => {
   const env = buildPgEnv();
   const preferredAdminUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
   const adminPassword = secretsManager.get('db_admin_password') || process.env.DB_ADMIN_PASSWORD;
+  const allowPasswordlessLocalAdmin =
+    !adminPassword &&
+    (process.env.DB_HOST || '').trim() === 'postgres' &&
+    process.env.DB_SSL !== 'true';
 
   if (adminPassword) {
     env.PGUSER = preferredAdminUser;
     env.PGPASSWORD = adminPassword;
     logger.info(`[Backup] Using admin DB role for backup operations: ${preferredAdminUser}`);
+  } else if (allowPasswordlessLocalAdmin) {
+    env.PGUSER = preferredAdminUser;
+    env.PGPASSWORD = '';
+    logger.warn(
+      `[Backup] db_admin_password not found; using passwordless local admin role for backup operations: ${preferredAdminUser}`
+    );
   } else {
     logger.warn(
       '[Backup] db_admin_password not found; falling back to application DB credentials for backup'

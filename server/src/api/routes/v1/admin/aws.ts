@@ -68,6 +68,18 @@ const isAccessDeniedError = (error: any) => {
   );
 };
 
+const isCredentialError = (error: any) => {
+  const text = `${error?.name || ''} ${error?.message || ''}`.toLowerCase();
+  return (
+    text.includes('credential') ||
+    text.includes('expiredtoken') ||
+    text.includes('invalidclienttokenid') ||
+    text.includes('unable to locate') ||
+    text.includes('token') ||
+    text.includes('sso')
+  );
+};
+
 router.get('/admin/aws/overview', async (req: Request, res: Response) => {
   try {
     const { region } = await getAwsConfig();
@@ -103,6 +115,9 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
         warning =
           'Missing permission ec2:DescribeInstances for current role; showing identity and region only.';
         logger.warn('[AWS] Missing DescribeInstances permission', { error: error.message });
+      } else if (isCredentialError(error)) {
+        warning = 'AWS credentials unavailable locally; showing region only.';
+        logger.warn('[AWS] Missing or stale AWS credentials', { error: error.message });
       } else {
         throw error;
       }
@@ -117,6 +132,16 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
       warning,
     });
   } catch (error: any) {
+    if (process.env.NODE_ENV !== 'production' && isCredentialError(error)) {
+      return res.json({
+        configured: false,
+        region: (await getAwsConfig()).region || null,
+        identity: null,
+        counts: { total: 0, states: {} },
+        instances: [],
+        warning: 'AWS credentials unavailable locally.',
+      });
+    }
     logger.error('[AWS] Failed to load overview', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message || 'Failed to load AWS overview' });
   }

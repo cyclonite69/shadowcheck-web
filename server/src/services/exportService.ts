@@ -98,8 +98,21 @@ export async function getObservationsForGeoJSON(): Promise<any[]> {
 export async function getFullDatabaseSnapshot(): Promise<{
   schema: string;
   exported_at: string;
-  tables: Record<string, { rowCount: number; rows: any[] }>;
+  truncated: boolean;
+  limits: {
+    maxRowsPerTable: number;
+    maxRowsTotal: number;
+  };
+  tables: Record<
+    string,
+    { rowCount: number; exportedRowCount: number; truncated: boolean; rows: any[] }
+  >;
 }> {
+  const maxRowsPerTable = Number.parseInt(
+    process.env.FULL_EXPORT_MAX_ROWS_PER_TABLE || '10000',
+    10
+  );
+  const maxRowsTotal = Number.parseInt(process.env.FULL_EXPORT_MAX_ROWS_TOTAL || '100000', 10);
   const tableList = await adminQuery(
     `
       SELECT tablename
@@ -109,15 +122,37 @@ export async function getFullDatabaseSnapshot(): Promise<{
     `
   );
 
-  const tables: Record<string, { rowCount: number; rows: any[] }> = {};
+  const tables: Record<
+    string,
+    { rowCount: number; exportedRowCount: number; truncated: boolean; rows: any[] }
+  > = {};
+  let totalExportedRows = 0;
+  let snapshotTruncated = false;
 
   for (const row of tableList.rows) {
     const tableName = String(row.tablename);
     const qualifiedTable = `${quoteIdent('app')}.${quoteIdent(tableName)}`;
-    const result = await adminQuery(`SELECT * FROM ${qualifiedTable}`);
+    const countResult = await adminQuery(`SELECT COUNT(*)::bigint AS count FROM ${qualifiedTable}`);
+    const rowCount = Number(countResult.rows[0]?.count || 0);
+    const remainingBudget = Math.max(0, maxRowsTotal - totalExportedRows);
+    const exportLimit = Math.max(0, Math.min(maxRowsPerTable, remainingBudget));
+    const result =
+      exportLimit > 0
+        ? await adminQuery(`SELECT * FROM ${qualifiedTable} LIMIT ${exportLimit}`)
+        : { rows: [] };
+    const exportedRowCount = Array.isArray(result.rows) ? result.rows.length : 0;
+    const tableTruncated = exportedRowCount < rowCount;
+
+    if (tableTruncated) {
+      snapshotTruncated = true;
+    }
+
+    totalExportedRows += exportedRowCount;
 
     tables[tableName] = {
-      rowCount: result.rows.length,
+      rowCount,
+      exportedRowCount,
+      truncated: tableTruncated,
       rows: result.rows,
     };
   }
@@ -125,6 +160,11 @@ export async function getFullDatabaseSnapshot(): Promise<{
   return {
     schema: 'app',
     exported_at: new Date().toISOString(),
+    truncated: snapshotTruncated,
+    limits: {
+      maxRowsPerTable,
+      maxRowsTotal,
+    },
     tables,
   };
 }
