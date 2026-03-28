@@ -1,0 +1,414 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-mobile-unit-nationwide",
+  "title": "ShadowCheck \u2014 Mobile Unit Signature (Nationwide)",
+  "description": "National footprint of the coordinated WNC/Aumovio/OnStar/T-Mobile signature.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "",
+  "liveNow": false,
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "selected": true,
+          "text": "FBI",
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "shadowcheck-postgres"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "selected": true,
+          "text": "60",
+          "value": "60"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "40",
+            "value": "40"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": true,
+            "text": "60",
+            "value": "60"
+          },
+          {
+            "selected": false,
+            "text": "70",
+            "value": "70"
+          },
+          {
+            "selected": false,
+            "text": "80",
+            "value": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "selected": true,
+          "text": "365",
+          "value": "365"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "90",
+            "value": "90"
+          },
+          {
+            "selected": false,
+            "text": "180",
+            "value": "180"
+          },
+          {
+            "selected": true,
+            "text": "365",
+            "value": "365"
+          },
+          {
+            "selected": false,
+            "text": "730",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "1095",
+            "value": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Mobile unit signature - nationwide",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Map shows WNC/Aumovio/OnStar/T-Mobile clusters that match the home burst signature. Table highlights hourly clusters with bearing, speed, and distance."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "geomap",
+      "title": "Signature map (color = timestamp)",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 16,
+        "h": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH signature AS (\n  SELECT\n    o.time,\n    o.lat,\n    o.lon,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.region, 'Unknown') AS region\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND (\n  UPPER(o.bssid) IN (\n    '02:54:AF:F2:5F:7F','88:5A:85:8F:6A:82','88:5A:85:D9:65:74',\n    '5A:E4:03:C8:0A:E8','00:54:AF:8E:C2:D2'\n  )\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%myGMC%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%T Mobile%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n  OR COALESCE(e.ssid,'') ILIKE 'TMOBILE%'\n)\n    AND o.time >= '2024-01-01'\n)\n,\nordered AS (\n  SELECT\n    *,\n    LAG(lat) OVER (PARTITION BY bssid ORDER BY time) AS prev_lat,\n    LAG(lon) OVER (PARTITION BY bssid ORDER BY time) AS prev_lon,\n    LAG(time) OVER (PARTITION BY bssid ORDER BY time) AS prev_time\n  FROM signature\n),\nmovement AS (\n  SELECT\n    time,\n    lat,\n    lon,\n    bssid,\n    ssid,\n    manufacturer,\n    region,\n    CASE WHEN prev_lat IS NOT NULL AND prev_lon IS NOT NULL THEN\n      ROUND(\n        ST_Distance(\n          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,\n          ST_SetSRID(ST_MakePoint(prev_lon, prev_lat), 4326)::geography\n        )::numeric,\n        1\n      )\n    END AS distance_m,\n    CASE WHEN prev_time IS NOT NULL THEN\n      ROUND(EXTRACT(EPOCH FROM (time - prev_time))::numeric, 1)\n    END AS delta_s,\n    CASE WHEN prev_lat IS NOT NULL AND prev_lon IS NOT NULL THEN\n      DEGREES(\n        ST_Azimuth(\n          ST_SetSRID(ST_MakePoint(prev_lon, prev_lat), 4326)::geography,\n          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography\n        )\n      )\n    END AS bearing_deg\n  FROM ordered\n),\nmovement_enriched AS (\n  SELECT\n    time,\n    lat,\n    lon,\n    bssid,\n    ssid,\n    manufacturer,\n    region,\n    distance_m,\n    delta_s,\n    bearing_deg,\n    CASE\n      WHEN delta_s > 0 AND distance_m IS NOT NULL THEN ROUND(distance_m / delta_s::numeric, 2)\n    END AS speed_m_s\n  FROM movement\n)\n\nSELECT\n  lat AS trilat,\n  lon AS trilong,\n  time,\n  EXTRACT(EPOCH FROM time)::numeric AS time_epoch,\n  bssid,\n  ssid,\n  manufacturer,\n  region,\n  distance_m,\n  speed_m_s,\n  bearing_deg\nFROM movement_enriched\nORDER BY time DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 44.3,
+          "lon": -85.5,
+          "zoom": 4
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Networks",
+            "tooltip": true,
+            "config": {
+              "size": {
+                "fixed": 6
+              },
+              "color": {
+                "field": "time_epoch"
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "trilat",
+              "longitude": "trilong"
+            }
+          }
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Unique signature locations",
+      "gridPos": {
+        "x": 16,
+        "y": 3,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH signature AS (\n  SELECT\n    o.time,\n    o.lat,\n    o.lon,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.region, 'Unknown') AS region\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND (\n  UPPER(o.bssid) IN (\n    '02:54:AF:F2:5F:7F','88:5A:85:8F:6A:82','88:5A:85:D9:65:74',\n    '5A:E4:03:C8:0A:E8','00:54:AF:8E:C2:D2'\n  )\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%myGMC%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%T Mobile%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n  OR COALESCE(e.ssid,'') ILIKE 'TMOBILE%'\n)\n    AND o.time >= '2024-01-01'\n)\n\nSELECT COUNT(DISTINCT ROUND(lat::numeric, 4) || ':' || ROUND(lon::numeric, 4)) AS value\nFROM signature",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Unique locations by state",
+      "gridPos": {
+        "x": 16,
+        "y": 7,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH signature AS (\n  SELECT\n    o.time,\n    o.lat,\n    o.lon,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.region, 'Unknown') AS region\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND (\n  UPPER(o.bssid) IN (\n    '02:54:AF:F2:5F:7F','88:5A:85:8F:6A:82','88:5A:85:D9:65:74',\n    '5A:E4:03:C8:0A:E8','00:54:AF:8E:C2:D2'\n  )\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%myGMC%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%T Mobile%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n  OR COALESCE(e.ssid,'') ILIKE 'TMOBILE%'\n)\n    AND o.time >= '2024-01-01'\n)\n\nSELECT\n  region AS state,\n  COUNT(DISTINCT bssid) AS \"unique_locations\"\nFROM signature\nGROUP BY 1\nORDER BY 2 DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "stacking": "none",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Weekly signature sightings",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH signature AS (\n  SELECT\n    o.time,\n    o.lat,\n    o.lon,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.region, 'Unknown') AS region\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND (\n  UPPER(o.bssid) IN (\n    '02:54:AF:F2:5F:7F','88:5A:85:8F:6A:82','88:5A:85:D9:65:74',\n    '5A:E4:03:C8:0A:E8','00:54:AF:8E:C2:D2'\n  )\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%myGMC%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%T Mobile%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n  OR COALESCE(e.ssid,'') ILIKE 'TMOBILE%'\n)\n    AND o.time >= '2024-01-01'\n)\n\nSELECT\n  date_trunc('week', time) AS time,\n  COUNT(DISTINCT bssid) AS \"devices\"\nFROM signature\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Cluster motion stats",
+      "gridPos": {
+        "x": 16,
+        "y": 13,
+        "w": 8,
+        "h": 14
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH signature AS (\n  SELECT\n    o.time,\n    o.lat,\n    o.lon,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.region, 'Unknown') AS region\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND (\n  UPPER(o.bssid) IN (\n    '02:54:AF:F2:5F:7F','88:5A:85:8F:6A:82','88:5A:85:D9:65:74',\n    '5A:E4:03:C8:0A:E8','00:54:AF:8E:C2:D2'\n  )\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%myGMC%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%T Mobile%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n  OR COALESCE(e.ssid,'') ILIKE 'TMOBILE%'\n)\n    AND o.time >= '2024-01-01'\n)\n,\nordered AS (\n  SELECT\n    *,\n    LAG(lat) OVER (PARTITION BY bssid ORDER BY time) AS prev_lat,\n    LAG(lon) OVER (PARTITION BY bssid ORDER BY time) AS prev_lon,\n    LAG(time) OVER (PARTITION BY bssid ORDER BY time) AS prev_time\n  FROM signature\n),\nmovement AS (\n  SELECT\n    time,\n    lat,\n    lon,\n    bssid,\n    ssid,\n    manufacturer,\n    region,\n    CASE WHEN prev_lat IS NOT NULL AND prev_lon IS NOT NULL THEN\n      ROUND(\n        ST_Distance(\n          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,\n          ST_SetSRID(ST_MakePoint(prev_lon, prev_lat), 4326)::geography\n        )::numeric,\n        1\n      )\n    END AS distance_m,\n    CASE WHEN prev_time IS NOT NULL THEN\n      ROUND(EXTRACT(EPOCH FROM (time - prev_time))::numeric, 1)\n    END AS delta_s,\n    CASE WHEN prev_lat IS NOT NULL AND prev_lon IS NOT NULL THEN\n      DEGREES(\n        ST_Azimuth(\n          ST_SetSRID(ST_MakePoint(prev_lon, prev_lat), 4326)::geography,\n          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography\n        )\n      )\n    END AS bearing_deg\n  FROM ordered\n),\nmovement_enriched AS (\n  SELECT\n    time,\n    lat,\n    lon,\n    bssid,\n    ssid,\n    manufacturer,\n    region,\n    distance_m,\n    delta_s,\n    bearing_deg,\n    CASE\n      WHEN delta_s > 0 AND distance_m IS NOT NULL THEN ROUND(distance_m / delta_s::numeric, 2)\n    END AS speed_m_s\n  FROM movement\n)\n\nSELECT\n  date_trunc('hour', time) AS \"Window\",\n  ROUND(lat::numeric, 4) AS \"Lat\",\n  ROUND(lon::numeric, 4) AS \"Lon\",\n  manufacturer AS \"Manufacturer\",\n  region AS \"State\",\n  COUNT(DISTINCT bssid) AS \"Unique BSSIDs\",\n  ROUND(AVG(speed_m_s)::numeric, 2) AS \"Avg speed (m/s)\",\n  ROUND(AVG(bearing_deg)::numeric, 1) AS \"Avg bearing\",\n  ROUND(SUM(distance_m)::numeric, 1) AS \"Total distance (m)\",\n  COUNT(*) AS \"Observations\"\nFROM movement_enriched\nGROUP BY 1,2,3,4,5\nORDER BY \"Window\" DESC\nLIMIT 100",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  }
+}

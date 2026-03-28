@@ -1,0 +1,353 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-oct-2025-shutdowns",
+  "title": "ShadowCheck \u2014 October 2025 Infrastructure Disappearances",
+  "description": "Stacked view of devices that vanished in October 2025 plus regional heatmap.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "",
+  "liveNow": false,
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "selected": true,
+          "text": "FBI",
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "shadowcheck-postgres"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "selected": true,
+          "text": "60",
+          "value": "60"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "40",
+            "value": "40"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": true,
+            "text": "60",
+            "value": "60"
+          },
+          {
+            "selected": false,
+            "text": "70",
+            "value": "70"
+          },
+          {
+            "selected": false,
+            "text": "80",
+            "value": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "selected": true,
+          "text": "365",
+          "value": "365"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "90",
+            "value": "90"
+          },
+          {
+            "selected": false,
+            "text": "180",
+            "value": "180"
+          },
+          {
+            "selected": true,
+            "text": "365",
+            "value": "365"
+          },
+          {
+            "selected": false,
+            "text": "730",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "1095",
+            "value": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "barchart",
+      "title": "Devices disappeared Oct 2025",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 12
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH disappearances AS (\n  SELECT\n    *,\n    CASE\n      WHEN UPPER(bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(bssid) LIKE 'E2:DB:D1:25:0C:B%' THEN 'Ivy3737'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Air Link%' THEN 'Airlink'\n      ELSE 'Other'\n    END AS manufacturer_group,\n    COALESCE(region, 'Unknown') AS state,\n    date_trunc('day', last_seen) AS day\n  FROM app.api_network_explorer_mv\n  WHERE last_seen >= '2025-10-01' AND last_seen < '2025-11-01'\n)\n\nSELECT day AS \"date\", manufacturer_group AS \"manufacturer\", COUNT(*) AS \"count\"\nFROM disappearances\nGROUP BY 1,2\nORDER BY 1,2",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "stacking": "normal",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Oct 2025 disappearances",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 12
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH disappearances AS (\n  SELECT\n    *,\n    CASE\n      WHEN UPPER(bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(bssid) LIKE 'E2:DB:D1:25:0C:B%' THEN 'Ivy3737'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Air Link%' THEN 'Airlink'\n      ELSE 'Other'\n    END AS manufacturer_group,\n    COALESCE(region, 'Unknown') AS state,\n    date_trunc('day', last_seen) AS day\n  FROM app.api_network_explorer_mv\n  WHERE last_seen >= '2025-10-01' AND last_seen < '2025-11-01'\n)\n\nSELECT\n  bssid,\n  ssid,\n  manufacturer,\n  security,\n  state,\n  ROUND(observations::numeric, 0) AS observations,\n  ROUND(unique_locations::numeric, 0) AS unique_locations,\n  first_seen,\n  last_seen\nFROM disappearances\nORDER BY last_seen DESC\nLIMIT 200",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "heatmap",
+      "title": "States \u00d7 manufacturers (Oct 2025)",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 16,
+        "h": 12
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH disappearances AS (\n  SELECT\n    *,\n    CASE\n      WHEN UPPER(bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(bssid) LIKE 'E2:DB:D1:25:0C:B%' THEN 'Ivy3737'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Air Link%' THEN 'Airlink'\n      ELSE 'Other'\n    END AS manufacturer_group,\n    COALESCE(region, 'Unknown') AS state,\n    date_trunc('day', last_seen) AS day\n  FROM app.api_network_explorer_mv\n  WHERE last_seen >= '2025-10-01' AND last_seen < '2025-11-01'\n)\n\nSELECT state, manufacturer_group AS manufacturer, COUNT(*) AS \"count\"\nFROM disappearances\nGROUP BY 1,2\nORDER BY 1,2",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "color": {
+          "mode": "spectrum",
+          "cardColor": "#1D9E75",
+          "colorScale": "sqrt"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "xAxis": {
+          "show": true
+        },
+        "yAxis": {
+          "show": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total Oct 2025 loss",
+      "gridPos": {
+        "x": 16,
+        "y": 12,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "\nWITH disappearances AS (\n  SELECT\n    *,\n    CASE\n      WHEN UPPER(bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(bssid) LIKE 'E2:DB:D1:25:0C:B%' THEN 'Ivy3737'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n      WHEN COALESCE(manufacturer, '') ILIKE '%Air Link%' THEN 'Airlink'\n      ELSE 'Other'\n    END AS manufacturer_group,\n    COALESCE(region, 'Unknown') AS state,\n    date_trunc('day', last_seen) AS day\n  FROM app.api_network_explorer_mv\n  WHERE last_seen >= '2025-10-01' AND last_seen < '2025-11-01'\n)\n\nSELECT COUNT(*) AS value FROM disappearances",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "text",
+      "title": "Assessment",
+      "gridPos": {
+        "x": 16,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Do the peaks align across Ivy3737, Sierra Wireless, and Airlink? Use this heatmap to spot regional coordination."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  }
+}

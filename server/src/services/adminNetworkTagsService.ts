@@ -17,7 +17,7 @@ import {
   updateNetworkTagNotes,
   updateNetworkThreatTag,
   upsertNetworkTag,
-} from './admin/networkTagCore';
+} from '../repositories/adminNetworkTagRepository';
 import {
   addTagToNetwork,
   getAllNetworkTags,
@@ -31,7 +31,7 @@ import {
   removeTagFromNetwork,
   searchNetworksByTag,
   searchNetworksByTagArray,
-} from './admin/networkTagOui';
+} from '../repositories/adminNetworkTagOuiRepository';
 
 module.exports = {
   checkDuplicateObservations,

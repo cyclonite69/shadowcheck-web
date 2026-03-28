@@ -224,7 +224,21 @@ def barchart_panel(pid, title, sql, x, y, w, h, stacking="none", overrides=None)
     p["fieldConfig"] = {"defaults": {}, "overrides": overrides or []}
     return p
 
-def geomap_panel(pid, title, sql, x, y, w, h, lat=44.3, lng=-85.5, zoom=6):
+def heatmap_panel(pid, title, sql, x, y, w, h, overrides=None):
+    p = _base(pid, "heatmap", title, x, y, w, h)
+    p["datasource"] = ds()
+    p["targets"] = [_sql_target(sql)]
+    p["options"] = {
+        "color": {"mode": "spectrum", "cardColor": "#1D9E75", "colorScale": "sqrt"},
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": True},
+        "xAxis": {"show": True},
+        "yAxis": {"show": True},
+    }
+    p["fieldConfig"] = {"defaults": {}, "overrides": overrides or []}
+    return p
+
+def geomap_panel(pid, title, sql, x, y, w, h, lat=44.3, lng=-85.5, zoom=6, color_field="hw_class_num", size_field=None):
     p = _base(pid, "geomap", title, x, y, w, h)
     p["datasource"] = ds()
     p["targets"] = [_sql_target(sql)]
@@ -232,7 +246,10 @@ def geomap_panel(pid, title, sql, x, y, w, h, lat=44.3, lng=-85.5, zoom=6):
         "view": {"id": "coords", "lat": lat, "lon": lng, "zoom": zoom},
         "layers": [{
             "type": "markers", "name": "Networks", "tooltip": True,
-            "config": {"size": {"fixed": 6}, "color": {"field": "hw_class_num"}},
+            "config": {
+                "size": {"field": size_field} if size_field else {"fixed": 6},
+                "color": {"field": color_field} if color_field else {"fixed": 0},
+            },
             "location": {"mode": "coords", "latitude": "trilat", "longitude": "trilong"},
         }],
         "controls": {"showZoom": True, "mouseWheelZoom": True, "showAttribution": True},
@@ -282,7 +299,7 @@ def variables():
     ]
 
 # ── Dashboard wrapper ──────────────────────────────────────────────────────────
-def dashboard_wrapper(uid, title, panels, description=""):
+def dashboard_wrapper(uid, title, panels, description="", annotations=None):
     return {
         "__inputs": [{"name": "DS_SHADOWCHECK_DB", "label": "shadowcheck_db",
                       "type": "datasource", "pluginId": "grafana-postgresql-datasource", "pluginName": "PostgreSQL"}],
@@ -295,5 +312,5 @@ def dashboard_wrapper(uid, title, panels, description=""):
         "templating": {"list": variables()},
         "panels": panels,
         "editable": True, "graphTooltip": 1, "links": [],
-        "annotations": {"list": []},
+        "annotations": {"list": annotations or []},
     }

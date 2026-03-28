@@ -1,0 +1,396 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-ivy-disappearance-correlation",
+  "title": "ShadowCheck \u2014 Ivy3737 Disappearance & Fleet Correlation",
+  "description": "Timeline of Ivy3737 observations near the home marker with the fleet anchor overlaid.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "",
+  "liveNow": false,
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "selected": true,
+          "text": "FBI",
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "shadowcheck-postgres"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "selected": true,
+          "text": "60",
+          "value": "60"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "40",
+            "value": "40"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": true,
+            "text": "60",
+            "value": "60"
+          },
+          {
+            "selected": false,
+            "text": "70",
+            "value": "70"
+          },
+          {
+            "selected": false,
+            "text": "80",
+            "value": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "selected": true,
+          "text": "365",
+          "value": "365"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "90",
+            "value": "90"
+          },
+          {
+            "selected": false,
+            "text": "180",
+            "value": "180"
+          },
+          {
+            "selected": true,
+            "text": "365",
+            "value": "365"
+          },
+          {
+            "selected": false,
+            "text": "730",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "1095",
+            "value": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Ivy3737 disappearance context",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Ivy3737 disappearance + fleet overlay\n\n- **Fleet anchor**: coordinated home burst happened on `2025-10-18 20:29:54+00`.\n- **Ivy3737 last seen**: `2025-10-29 06:12:12+00`.\n- **Interpretation tip**: negative days difference = fleet appeared before Ivy vanished (surveillance). Positive value = fleet came after (equipment removal)."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Daily Ivy + fleet observations",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "home AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nivy AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.lat,\n    o.lon,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (UPPER(o.bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(o.bssid) LIKE 'E2:DB:D1:25:0C:B%')\n    AND o.time >= '2024-10-01'\n    AND o.time < '2025-11-01'\n),\ndays AS (\n  SELECT generate_series(\n    (SELECT COALESCE(MIN(date_trunc('day', time)), TIMESTAMPTZ '2024-10-01') FROM ivy),\n    (SELECT COALESCE(MAX(date_trunc('day', time)), TIMESTAMPTZ '2025-10-31') FROM ivy),\n    INTERVAL '1 day'\n  ) AS day\n),\nivy_daily AS (\n  SELECT date_trunc('day', time) AS day, COUNT(*) AS ivy_obs FROM ivy GROUP BY 1\n),\nfleet_daily AS (\n  SELECT\n    date_trunc('day', o.time) AS day,\n    COUNT(*) AS fleet_obs\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND ((\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n))\n    AND o.time >= (SELECT MIN(time) FROM ivy)\n    AND o.time <= (SELECT MAX(time) FROM ivy)\n  GROUP BY 1\n)\nSELECT\n  day AS \"time\",\n  COALESCE(i.ivy_obs, 0) AS \"Ivy obs\",\n  COALESCE(f.fleet_obs, 0) AS \"Home fleet obs\"\nFROM days d\nLEFT JOIN ivy_daily i ON i.day = d.day\nLEFT JOIN fleet_daily f ON f.day = d.day\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Ivy variants near home",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "home AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nivy AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.lat,\n    o.lon,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (UPPER(o.bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(o.bssid) LIKE 'E2:DB:D1:25:0C:B%')\n    AND o.time >= '2024-10-01'\n    AND o.time < '2025-11-01'\n)\nSELECT\n  bssid AS \"BSSID\",\n  COALESCE(manufacturer, 'unknown') AS \"Manufacturer\",\n  security AS \"Security\",\n  MIN(time) AS \"First seen\",\n  MAX(time) AS \"Last seen\",\n  COUNT(*) AS \"Observations\",\n  ROUND(AVG(level)::numeric, 1) AS \"Avg signal (dBm)\",\n  ROUND(MIN(dist_m)::numeric, 1) AS \"Closest to home (m)\"\nFROM ivy\nGROUP BY bssid, manufacturer, security\nORDER BY MAX(time) DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Unique Ivy BSSIDs",
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "home AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nivy AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.lat,\n    o.lon,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (UPPER(o.bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(o.bssid) LIKE 'E2:DB:D1:25:0C:B%')\n    AND o.time >= '2024-10-01'\n    AND o.time < '2025-11-01'\n)\nSELECT COUNT(DISTINCT bssid) AS \"Unique Ivy BSSIDs\" FROM ivy",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Fleet \u2192 Ivy difference (days)",
+      "gridPos": {
+        "x": 8,
+        "y": 24,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "home AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nivy AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.lat,\n    o.lon,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (UPPER(o.bssid) LIKE 'E2:DB:D1:1E:0C:B%' OR UPPER(o.bssid) LIKE 'E2:DB:D1:25:0C:B%')\n    AND o.time >= '2024-10-01'\n    AND o.time < '2025-11-01'\n)\nWITH ivy_span AS (\n  SELECT MAX(time) AS last_seen FROM ivy\n)\nSELECT\n  ROUND(EXTRACT(EPOCH FROM (TIMESTAMPTZ '2025-10-18 20:29:54+00' - last_seen)) / 86400::numeric, 2) AS \"Days difference\"\nFROM ivy_span",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "days",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "text",
+      "title": "Interpretation",
+      "gridPos": {
+        "x": 16,
+        "y": 24,
+        "w": 8,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Negative difference: the fleet appeared before Ivy vanished (surveillance). Positive difference: fleet arrived after Ivy stopped broadcasting (removal/redeployment)."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": [
+      {
+        "name": "Fleet burst",
+        "datasource": "shadowcheck-postgres",
+        "enable": true,
+        "iconColor": "#E85D24",
+        "type": "query",
+        "query": "SELECT TIMESTAMPTZ '2025-10-18 20:29:54+00' AS time, 'Coordinated fleet at home' AS text",
+        "text": "Coordinated fleet detection"
+      },
+      {
+        "name": "Ivy last seen",
+        "datasource": "shadowcheck-postgres",
+        "enable": true,
+        "iconColor": "#378ADD",
+        "type": "query",
+        "query": "SELECT TIMESTAMPTZ '2025-10-29 06:12:12+00' AS time, 'Ivy3737 final observation' AS text",
+        "text": "Ivy3737 final observation"
+      }
+    ]
+  }
+}
