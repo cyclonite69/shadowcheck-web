@@ -4,6 +4,7 @@
  */
 
 const { query } = require('../config/database');
+import { buildExplorerV2OrderClause, resolveLegacySortColumn } from './explorerSorting';
 
 export async function checkHomeLocationForFilters(enabled: any): Promise<boolean> {
   if (!enabled?.distanceFromHomeMin && !enabled?.distanceFromHomeMax) {
@@ -27,58 +28,6 @@ export async function executeExplorerQuery(sql: string, params: any[]): Promise<
   return result;
 }
 
-// ── Sort map for listNetworks ──────────────────────────────────────────────────
-
-const NETWORKS_SORT_MAP: Record<string, string> = {
-  observed_at: 'observed_at',
-  last_seen: 'last_seen',
-  ssid: 'ssid',
-  bssid: 'bssid',
-  signal: 'level',
-  frequency: 'frequency',
-  observations: 'observations',
-  distance_from_home_km: 'distance_from_home_km',
-  accuracy_meters: 'accuracy_meters',
-};
-
-const NETWORKS_V2_SORT_MAP: Record<string, string> = {
-  observed_at: 'observed_at',
-  last_seen: 'last_seen',
-  first_seen: 'first_seen',
-  ssid: 'ssid',
-  bssid: 'bssid',
-  signal: 'signal',
-  frequency: 'frequency',
-  observations: 'observations',
-  distance: 'distance_from_home_km',
-  distancefromhome: 'distance_from_home_km',
-  distance_from_home_km: 'distance_from_home_km',
-  accuracy: 'accuracy_meters',
-  accuracy_meters: 'accuracy_meters',
-  type: 'type',
-  security: 'security',
-  manufacturer: 'manufacturer',
-  threat_score: "(threat->>'score')::numeric",
-  'threat.score': "(threat->>'score')::numeric",
-  min_altitude_m: 'min_altitude_m',
-  max_altitude_m: 'max_altitude_m',
-  altitude_span_m: 'altitude_span_m',
-  max_distance_meters: 'max_distance_meters',
-  maxdistancemeters: 'max_distance_meters',
-  max_distance: 'max_distance_meters',
-  last_altitude_m: 'last_altitude_m',
-  is_sentinel: 'is_sentinel',
-  lastseen: 'last_seen',
-  lastSeen: 'last_seen',
-  distanceFromHome: 'distance_from_home_km',
-};
-
-function getThreatLevelSort(order: string): string {
-  return order === 'asc'
-    ? "CASE WHEN threat->>'level' = 'NONE' THEN 1 WHEN threat->>'level' = 'LOW' THEN 2 WHEN threat->>'level' = 'MED' THEN 3 WHEN threat->>'level' = 'HIGH' THEN 4 WHEN threat->>'level' = 'CRITICAL' THEN 5 ELSE 0 END"
-    : "CASE WHEN threat->>'level' = 'CRITICAL' THEN 1 WHEN threat->>'level' = 'HIGH' THEN 2 WHEN threat->>'level' = 'MED' THEN 3 WHEN threat->>'level' = 'LOW' THEN 4 WHEN threat->>'level' = 'NONE' THEN 5 ELSE 6 END";
-}
-
 /**
  * Legacy paginated network list with optional search, quality filter and sort.
  * Joins obs_latest CTE with access_points and computes ST_Distance from home.
@@ -94,7 +43,7 @@ export async function listNetworks(opts: {
   offset: number;
 }): Promise<{ total: number; rows: any[] }> {
   const { homeLon, homeLat, search, sort, order, qualityWhere, limit, offset } = opts;
-  const sortColumn = NETWORKS_SORT_MAP[sort] || 'last_seen';
+  const sortColumn = resolveLegacySortColumn(sort);
 
   const params: any[] = [homeLon, homeLat];
   const where: string[] = [];
@@ -179,29 +128,7 @@ export async function listNetworksV2(opts: {
   offset: number;
 }): Promise<{ total: number; rows: any[] }> {
   const { search, sort, order, limit, offset } = opts;
-
-  const sortColumns = String(sort)
-    .toLowerCase()
-    .split(',')
-    .map((s) => s.trim());
-  const sortOrders = String(order)
-    .toLowerCase()
-    .split(',')
-    .map((o) => o.trim());
-
-  const orderByClauses = sortColumns
-    .map((col, idx) => {
-      const dir = sortOrders[idx] === 'asc' ? 'ASC' : 'DESC';
-      if (col === 'threat') {
-        return `${getThreatLevelSort(sortOrders[idx])} ${dir}`;
-      }
-      if (col === 'threat_score') {
-        return `(threat->>'score')::numeric ${dir} NULLS LAST`;
-      }
-      const mappedCol = NETWORKS_V2_SORT_MAP[col] || 'last_seen';
-      return `${mappedCol} ${dir} NULLS LAST`;
-    })
-    .join(', ');
+  const orderByClauses = buildExplorerV2OrderClause(sort, order);
 
   const params: any[] = [];
   const where: string[] = [];
