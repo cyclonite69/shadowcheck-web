@@ -1,6 +1,12 @@
 # LOCAL DEVELOPMENT docker-compose
 # Self-contained local stack with PostgreSQL, Redis, and the API service.
 # For AWS deployment, use the scripts and compose files under deploy/aws/.
+#
+# Secrets strategy for local Docker:
+# - Preferred: mount your host ~/.aws read-only and let the API read Secrets Manager
+# - Alternative: pass AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN
+# - Local-only fallback: export DB_PASSWORD / DB_ADMIN_PASSWORD / MAPBOX_TOKEN /
+#   OPENCAGE_API_KEY in your shell before `docker compose up`
 
 services:
   postgres:
@@ -65,8 +71,9 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      AWS_REGION: ${AWS_REGION:-}
-      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+      # Region is safe to default locally; credentials still must come from the shell or mounted ~/.aws.
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
       AWS_PROFILE: ${AWS_PROFILE:-}
       AWS_SDK_LOAD_CONFIG: "1"
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
@@ -75,6 +82,7 @@ services:
       SHADOWCHECK_AWS_SECRET: ${SHADOWCHECK_AWS_SECRET:-}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
       ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-true}
+      API_RUN_AS_ROOT_FOR_DOCKER: ${API_RUN_AS_ROOT_FOR_DOCKER:-true}
       MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
       HOME: /home/nodejs
       DOCKER_HOST: unix:///var/run/docker.sock
@@ -84,7 +92,9 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./backups:/app/backups
-      - ${HOME}/.aws:/home/nodejs/.aws
+      # Option B (preferred): read-only AWS shared config/credentials from the host.
+      # Refresh SSO/login on the host first; the container only reads the files.
+      - ${HOME}/.aws:/home/nodejs/.aws:ro
       - ${XDG_RUNTIME_DIR:-/run/user/1000}/podman/podman.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1"]

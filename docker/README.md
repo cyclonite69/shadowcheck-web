@@ -14,16 +14,21 @@ What it starts:
 - `frontend` on `http://127.0.0.1:8080`
 
 Local Docker uses `DB_HOST=postgres` automatically. No `.env` file is required for
-the DB host wiring.
+the DB host wiring. If you run the backend on your host instead of inside Docker,
+set `DB_HOST=localhost` explicitly.
 
 Passwords are not hardcoded in compose:
 
 - `db_password` still comes from `secretsManager.getOrThrow('db_password')`
 - `db_admin_password` still comes from `secretsManager.get('db_admin_password')`
 
-To let the API container reach AWS Secrets Manager with your normal local AWS login,
-the compose file mounts `${HOME}/.aws` into the API container and enables AWS
-shared-config loading. In the common case, you only need:
+Preferred local secrets approach:
+
+- keep production secrets in AWS Secrets Manager
+- mount `${HOME}/.aws` into the API container read-only
+- export `AWS_PROFILE` / `AWS_REGION` on the host before `docker compose up`
+
+In the common case, you only need:
 
 ```bash
 export AWS_PROFILE=shadowcheck-sso
@@ -43,13 +48,35 @@ If you use a non-default secret name, also export:
 export SHADOWCHECK_AWS_SECRET=your/real/secret-name
 ```
 
-The `${HOME}/.aws` mount is writable on purpose so AWS SSO can refresh its local cache.
-If that mount is read-only, Secrets Manager access from the API container will fail even
-though the profile and cache files are present.
+The `${HOME}/.aws` mount is read-only by design. Refresh SSO or any other local
+AWS credentials on the host first, then recreate the API container so it reads the
+updated files. This keeps local Docker from writing secret material into mounted
+credential files.
 
-If you do not want to use AWS Secrets Manager locally, export `DB_PASSWORD`,
-`DB_ADMIN_PASSWORD`, `MAPBOX_TOKEN`, and any other required secrets explicitly in
-your shell before starting the compose stack.
+Alternative local Docker credentials path:
+
+- export `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
+  directly in your shell before `docker compose up`
+- this works without the shared-config mount as long as the credentials have access
+  to `shadowcheck/config`
+
+Local-only mock secrets path:
+
+- if you intentionally do not use AWS Secrets Manager, export `DB_PASSWORD`,
+  `DB_ADMIN_PASSWORD`, `MAPBOX_TOKEN`, `OPENCAGE_API_KEY`, and any other required
+  secrets explicitly in your shell before starting the compose stack
+- do not commit those values to `.env`
+
+Common Secrets Manager keys:
+
+- `db_password`
+- `db_admin_password`
+- `mapbox_token`
+- `opencage_api_key`
+- `google_maps_api_key`
+- `locationiq_api_key`
+- `smarty_auth_id`
+- `smarty_auth_token`
 
 The local API container also defaults to:
 

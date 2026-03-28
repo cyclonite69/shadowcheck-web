@@ -141,10 +141,9 @@ npm install
 docker compose up -d
 ```
 
-`docker compose up -d` starts a self-contained local PostgreSQL, Redis, and API
-stack plus a local frontend on port `8080`. No `.env` file is required for the DB host wiring: Docker uses
-`DB_HOST=postgres`, while host-based local development still defaults to
-`localhost` if `DB_HOST` is unset.
+`docker compose up -d` starts a self-contained local PostgreSQL, Redis, API, and
+frontend stack. Local Docker uses `DB_HOST=postgres` by default. No `.env` file
+is required unless you want to override ports, AWS settings, or other defaults.
 
 ### Home Lab Deployment
 
@@ -222,20 +221,20 @@ Use the example env files to keep local dev separate from AWS/deployed settings:
 
 Local Docker behavior:
 
-- `docker compose up -d` starts a local `postgres` service and sets `DB_HOST=postgres`
+- `docker compose up -d` starts a local `postgres` service and uses `DB_HOST=postgres` by default
 - `docker compose up -d` also starts the backend API on `127.0.0.1:3001` and the frontend on `http://127.0.0.1:8080`
 - No `.env` file is required for container-to-container DB connectivity
 - PostgreSQL data is stored in the local `postgres_data` volume
-- Secrets are still loaded from AWS Secrets Manager; local Docker mounts `${HOME}/.aws`
-  into the API container and enables AWS shared-config loading
-- For AWS SSO-backed local Docker, export `AWS_PROFILE=shadowcheck-sso`,
-  `AWS_REGION=us-east-1`, and optionally `SHADOWCHECK_AWS_SECRET` if you do not use the
-  default `shadowcheck/config` secret name
-- The local API container needs writable access to the mounted AWS config/cache so SSO
-  token refresh can succeed
-- If you do not want to use AWS Secrets Manager locally, export `DB_PASSWORD`,
-  `DB_ADMIN_PASSWORD`, and any optional API keys like `MAPBOX_TOKEN` in your shell
-  before `docker compose up`
+- Preferred local secrets path: export `AWS_PROFILE=shadowcheck-sso`,
+  `AWS_REGION=us-east-1`, and optionally `SHADOWCHECK_AWS_SECRET`, then let the
+  API container read `shadowcheck/config` through the read-only `${HOME}/.aws`
+  mount
+- Alternative local secrets path: export `AWS_ACCESS_KEY_ID`,
+  `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` directly in your shell before
+  `docker compose up`
+- Local-only mock path: if you intentionally do not use AWS Secrets Manager,
+  export `DB_PASSWORD`, `DB_ADMIN_PASSWORD`, and any needed API keys such as
+  `MAPBOX_TOKEN` or `OPENCAGE_API_KEY` in your shell before `docker compose up`
 - Optional shell helpers can be loaded with `source ./scripts/local-dev-aliases.sh`
 - `sclocal` runs `docker compose up -d --build`
 - `scapi` recreates the local `api` container with AWS defaults:
@@ -247,9 +246,9 @@ Local Docker behavior:
 
 Host-based local development behavior:
 
-- If `DB_HOST` is unset, the server defaults to `localhost`
-- If your backend runs on the host, local Postgres published on `127.0.0.1:5432` works
-  with no explicit `DB_HOST`
+- The server now defaults to `DB_HOST=postgres`, which is correct for local Docker
+- If your backend runs on the host, set `DB_HOST=localhost` explicitly so it can
+  use Postgres published on `127.0.0.1:5432`
 
 Typical local dev values when PostgreSQL and Redis are published on localhost:
 
@@ -272,15 +271,18 @@ Credentials needed for local dev:
 - `DB_ADMIN_PASSWORD`
   Required for admin DB routes, including `/api/admin/geocoding/daemon`.
 
-If the backend runs inside Docker instead of on the host, `DB_HOST=postgres` is the
-expected local value.
+If the backend runs inside Docker, `DB_HOST=postgres` is the expected local value.
 
-Production/deployed environments can keep an explicit `.env` with the deployed database host, for
-example:
+Production/deployed environments can keep an explicit `.env` with the deployed
+database host, for example:
 
 ```bash
 DB_HOST=34.204.161.164
 ```
+
+Production keeps Secrets Manager as the source of truth for `db_password`,
+`db_admin_password`, `mapbox_token`, `opencage_api_key`, and related keys. The
+production `.env` should point at the deployed DB host, not duplicate those secrets.
 
 Do not point local `.env` at the deployed EC2 database unless you intentionally want your local app
 to use the remote environment.
