@@ -31,6 +31,11 @@ docker compose -f docker-compose.monitoring.yml down
 - Grafana: http://34.204.161.164:3002
 - Login: `grafanaadmin` with the runtime `GRAFANA_ADMIN_PASSWORD` secret from AWS Secrets Manager
 
+For existing Grafana volumes, the password should be force-synced into Grafana with
+`grafana cli admin reset-admin-password` during deploy/rotation. Legacy EC2 installs
+that were initialized before the username default changed may still use login
+`admin` instead of `grafanaadmin`.
+
 ## Datasource
 
 Pre-wired to shadowcheck_postgres via provisioning.

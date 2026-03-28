@@ -107,11 +107,29 @@ COMPOSE_BIN="$(compose_cmd)"
 docker rm -f "$GRAFANA_CONTAINER" 2>/dev/null || true
 $COMPOSE_BIN -f docker-compose.monitoring.yml up -d --force-recreate "$GRAFANA_CONTAINER"
 
+# GF_SECURITY_ADMIN_PASSWORD is only honoured on first run (empty DB).
+# If the grafana_data volume already exists the env var is ignored, so we
+# force-sync the password into the SQLite DB via the CLI after startup.
+echo "Waiting for Grafana to become healthy..."
+for i in $(seq 1 30); do
+  HEALTH_STATUS=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$GRAFANA_CONTAINER" 2>/dev/null || echo "missing")
+  if [ "$HEALTH_STATUS" = "healthy" ] || [ "$HEALTH_STATUS" = "running" ]; then
+    if docker exec "$GRAFANA_CONTAINER" wget -q -O- "http://127.0.0.1:${GF_SERVER_HTTP_PORT}/api/health" >/dev/null 2>&1; then
+      break
+    fi
+  fi
+  sleep 2
+done
+
+docker exec "$GRAFANA_CONTAINER" \
+  grafana cli --homepath /usr/share/grafana admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" >/dev/null
+
 echo "Local Grafana started."
 echo "  URL: $GF_SERVER_ROOT_URL"
 echo "  Upstream: http://127.0.0.1:${GF_SERVER_HTTP_PORT}/"
 echo "  Login: $GRAFANA_ADMIN_USER"
 echo "  Password source: $SECRET_NAME:grafana_admin_password"
 echo
-echo "Note: if an existing Grafana data volume was initialized with a different admin username,"
-echo "the password will still reset but the username may remain unchanged until the local Grafana volume is recreated."
+echo "Note: the admin password is now force-synced into Grafana on startup."
+echo "If an existing Grafana data volume was initialized with a different admin username,"
+echo "the username may still remain unchanged until that Grafana data volume is recreated."

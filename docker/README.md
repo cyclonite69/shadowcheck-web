@@ -129,9 +129,12 @@ Local Grafana uses:
 - Username: `grafanaadmin`
 - Password: `grafana_admin_password` from `shadowcheck/config`
 
+The local startup script force-syncs `grafana_admin_password` into Grafana itself
+with `grafana cli`, so the stored password matches Secrets Manager even when the
+Grafana data volume already exists.
+
 If the existing local Grafana volume was initialized with a different admin username,
-the password reset still works, but the username may remain unchanged until that
-local Grafana data volume is recreated.
+the username may remain unchanged until that local Grafana data volume is recreated.
 
 The monitoring page embeds Grafana through the frontend proxy, so local iframe
 testing should use `http://localhost:8080/monitoring` rather than going directly
