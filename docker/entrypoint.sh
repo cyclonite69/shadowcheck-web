@@ -61,6 +61,10 @@ load_runtime_secrets() {
 
 load_runtime_secrets
 
+if [ "${API_RUN_AS_ROOT_FOR_DOCKER:-false}" = "true" ]; then
+  exec dumb-init -- "$@"
+fi
+
 if [ -S "$SOCKET" ]; then
   SOCK_GID=$(stat -c '%g' "$SOCKET" 2>/dev/null)
   if [ -n "$SOCK_GID" ] && [ "$SOCK_GID" != "0" ]; then

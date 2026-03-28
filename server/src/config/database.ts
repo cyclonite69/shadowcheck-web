@@ -8,12 +8,12 @@ import './loadEnv';
 import secretsManager from '../services/secretsManager';
 import logger from '../logging/logger';
 
-// Normalized connection settings with local-safe defaults.
-// Local host processes should work against localhost with no .env.
-// Containerized local/dev can set DB_HOST=postgres explicitly.
+// Normalized connection settings with Docker-first defaults.
+// Local compose uses the postgres service automatically; host-based local
+// development should override DB_HOST=localhost explicitly.
 const DB_USER = process.env.DB_USER || 'shadowcheck_user';
 const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
-const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_HOST = process.env.DB_HOST || 'postgres';
 const DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
 const DB_APP_NAME = process.env.DB_APP_NAME || 'shadowcheck-web';
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
