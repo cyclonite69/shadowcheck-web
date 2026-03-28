@@ -3,12 +3,19 @@
 import subprocess, sys, json, os
 
 here = os.path.dirname(os.path.abspath(__file__))
-generators = ["gen_national.py", "gen_michigan.py", "gen_oui_fleet.py", "gen_critical_infra.py"]
+generators = [
+    "gen_national.py",
+    "gen_michigan.py",
+    "gen_oui_fleet.py",
+    "gen_critical_infra.py",
+    "gen_home_fleet_detection.py",
+]
 expected = [
     "shadowcheck_national.json",
     "shadowcheck_michigan.json",
     "shadowcheck_oui_fleet.json",
     "shadowcheck_critical_infra.json",
+    "shadowcheck_home_fleet_detection.json",
 ]
 
 for gen in generators:
