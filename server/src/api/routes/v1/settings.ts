@@ -3,91 +3,19 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { secretsManager } = require('../../../config/container');
-const { query } = require('../../../config/database');
 const { adminQuery } = require('../../../services/adminDbService');
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const { validateString } = require('../../../validation/schemas');
-
-/**
- * Validates a mapbox token string.
- * @param {any} value - Raw token input
- * @returns {{ valid: boolean, error?: string, value?: string }}
- */
-function validateMapboxToken(value: unknown) {
-  const validation = validateString(String(value || ''), 'token');
-  if (!validation.valid) {
-    return validation;
-  }
-
-  const token = String(value).trim();
-  if (!token.startsWith('pk.') && !token.startsWith('sk.')) {
-    return { valid: false, error: 'token must start with pk. or sk.' };
-  }
-
-  return { valid: true, value: token };
-}
-
-/**
- * Validates a label string for stored tokens.
- * @param {any} value - Raw label input
- * @returns {{ valid: boolean, error?: string, value?: string }}
- */
-function validateLabel(value: unknown) {
-  const validation = validateString(String(value || ''), 'label');
-  if (!validation.valid) {
-    return validation;
-  }
-  return { valid: true, value: String(value).trim() };
-}
-
-/**
- * Validates a Google Maps API key string.
- * @param {any} value - Raw key input
- * @returns {{ valid: boolean, error?: string, value?: string }}
- */
-function validateGoogleMapsKey(value: unknown) {
-  const validation = validateString(String(value || ''), 'google_maps_api_key');
-  if (!validation.valid) {
-    return validation;
-  }
-  return { valid: true, value: String(value).trim() };
-}
-
-/**
- * Validates a generic API key string.
- * @param {any} value - Raw key input
- * @param {string} field - Field name for error messages
- * @returns {{ valid: boolean, error?: string, value?: string }}
- */
-function validateGenericKey(value: unknown, field: string) {
-  const validation = validateString(String(value || ''), field);
-  if (!validation.valid) {
-    return validation;
-  }
-  return { valid: true, value: String(value).trim() };
-}
-
-/**
- * Validates an AWS region string.
- * @param {any} value - Raw region input
- * @returns {{ valid: boolean, error?: string, value?: string }}
- */
-function validateAwsRegion(value: unknown) {
-  const validation = validateString(String(value || ''), 'aws_region');
-  if (!validation.valid) {
-    return validation;
-  }
-  return { valid: true, value: String(value).trim() };
-}
-
-async function getConfiguredAwsRegion(): Promise<string | null> {
-  const result = await query('SELECT value FROM app.settings WHERE key = $1 LIMIT 1', [
-    'aws_region',
-  ]);
-  const raw = result.rows[0]?.value;
-  if (!raw) return null;
-  return typeof raw === 'string' ? raw : String(raw);
-}
+const {
+  getConfiguredAwsRegion,
+  getErrorMessage,
+  getIncomingValue,
+  validateAwsRegion,
+  validateGenericKey,
+  validateGoogleMapsKey,
+  validateLabel,
+  validateMapboxToken,
+} = require('./settingsHelpers');
 
 // Get WiGLE credentials (masked)
 router.get('/settings/wigle', requireAuth, async (req: Request, res: Response) => {
@@ -100,8 +28,7 @@ router.get('/settings/wigle', requireAuth, async (req: Request, res: Response) =
       apiToken: apiToken || '',
     });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -160,7 +87,7 @@ router.post('/settings/wigle', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[WiGLE Settings] Unexpected error:', error);
-    res.status(500).json({ error: error?.message || String(error) });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -181,8 +108,7 @@ router.get('/settings/wigle/test', requireAuth, async (req: Request, res: Respon
       res.json({ success: false, error: `HTTP ${response.status}` });
     }
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -196,8 +122,7 @@ router.get('/settings/mapbox', requireAuth, async (req: Request, res: Response) 
       tokens: token ? [{ label: 'default', isPrimary: true }] : [],
     });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -205,7 +130,7 @@ router.get('/settings/mapbox', requireAuth, async (req: Request, res: Response) 
 router.post('/settings/mapbox', requireAuth, async (req: Request, res: Response) => {
   try {
     const { token, value, label = 'default' } = req.body;
-    const incomingToken = value ?? token;
+    const incomingToken = getIncomingValue(req.body, 'token');
 
     const tokenValidation = validateMapboxToken(incomingToken);
     if (!tokenValidation.valid) {
@@ -220,8 +145,7 @@ router.post('/settings/mapbox', requireAuth, async (req: Request, res: Response)
     await secretsManager.putSecret('mapbox_token', tokenValidation.value);
     res.json({ success: true, label: labelValidation.value });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -231,8 +155,7 @@ router.get('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: 
     const apiKey = await secretsManager.getSecret('mapbox_unlimited_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -240,7 +163,7 @@ router.get('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: 
 router.post('/settings/mapbox-unlimited', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
-    const incomingValue = apiKey ?? value;
+    const incomingValue = getIncomingValue(req.body, 'apiKey');
     const keyValidation = validateGenericKey(incomingValue, 'mapbox_unlimited_api_key');
     if (!keyValidation.valid) {
       return res.status(400).json({ error: keyValidation.error });
@@ -249,8 +172,7 @@ router.post('/settings/mapbox-unlimited', requireAuth, async (req: Request, res:
     await secretsManager.putSecret('mapbox_unlimited_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -260,8 +182,7 @@ router.get('/settings/google-maps', requireAuth, async (req: Request, res: Respo
     const apiKey = await secretsManager.getSecret('google_maps_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -269,7 +190,7 @@ router.get('/settings/google-maps', requireAuth, async (req: Request, res: Respo
 router.post('/settings/google-maps', async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
-    const incomingValue = apiKey ?? value;
+    const incomingValue = getIncomingValue(req.body, 'apiKey');
     const keyValidation = validateGoogleMapsKey(incomingValue);
     if (!keyValidation.valid) {
       return res.status(400).json({ error: keyValidation.error });
@@ -278,8 +199,7 @@ router.post('/settings/google-maps', async (req: Request, res: Response) => {
     await secretsManager.putSecret('google_maps_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -289,8 +209,7 @@ router.get('/settings/opencage', requireAuth, async (req: Request, res: Response
     const apiKey = await secretsManager.getSecret('opencage_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -298,7 +217,7 @@ router.get('/settings/opencage', requireAuth, async (req: Request, res: Response
 router.post('/settings/opencage', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
-    const incomingValue = apiKey ?? value;
+    const incomingValue = getIncomingValue(req.body, 'apiKey');
     const keyValidation = validateGenericKey(incomingValue, 'opencage_api_key');
     if (!keyValidation.valid) {
       return res.status(400).json({ error: keyValidation.error });
@@ -307,8 +226,7 @@ router.post('/settings/opencage', requireAuth, async (req: Request, res: Respons
     await secretsManager.putSecret('opencage_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -318,8 +236,7 @@ router.get('/settings/geocodio', requireAuth, async (req: Request, res: Response
     const apiKey = await secretsManager.getSecret('geocodio_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -327,7 +244,7 @@ router.get('/settings/geocodio', requireAuth, async (req: Request, res: Response
 router.post('/settings/geocodio', requireAuth, async (req: Request, res: Response) => {
   try {
     const { apiKey, value } = req.body;
-    const incomingValue = apiKey ?? value;
+    const incomingValue = getIncomingValue(req.body, 'apiKey');
     const keyValidation = validateGenericKey(incomingValue, 'geocodio_api_key');
     if (!keyValidation.valid) {
       return res.status(400).json({ error: keyValidation.error });
@@ -336,8 +253,7 @@ router.post('/settings/geocodio', requireAuth, async (req: Request, res: Respons
     await secretsManager.putSecret('geocodio_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -347,8 +263,7 @@ router.get('/settings/locationiq', requireAuth, async (req: Request, res: Respon
     const apiKey = await secretsManager.getSecret('locationiq_api_key');
     res.json({ configured: Boolean(apiKey), value: apiKey || '' });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -365,8 +280,7 @@ router.post('/settings/locationiq', requireAuth, async (req: Request, res: Respo
     await secretsManager.putSecret('locationiq_api_key', keyValidation.value);
     res.json({ success: true });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -382,8 +296,7 @@ router.get('/settings/aws', requireAuth, async (req: Request, res: Response) => 
       mode: 'runtime_provider_chain',
     });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -414,8 +327,7 @@ router.post('/settings/aws', requireAuth, async (req: Request, res: Response) =>
 
     res.json({ success: true, mode: 'runtime_provider_chain' });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -430,8 +342,7 @@ router.get('/settings/smarty', requireAuth, async (req: Request, res: Response) 
       authToken: authToken || '',
     });
   } catch (error) {
-    const _msg = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ error: _msg });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
