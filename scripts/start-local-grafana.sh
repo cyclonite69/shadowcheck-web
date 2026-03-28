@@ -34,6 +34,55 @@ compose_cmd() {
   exit 1
 }
 
+sync_grafana_admin_user() {
+  local mountpoint db_path current_login desired_login escaped_login
+
+  desired_login="$1"
+
+  if ! command -v sqlite3 >/dev/null 2>&1; then
+    echo "WARN: sqlite3 not installed; skipping Grafana admin username sync." >&2
+    return 0
+  fi
+
+  mountpoint="$(docker inspect "$GRAFANA_CONTAINER" --format '{{range .Mounts}}{{if eq .Destination "/var/lib/grafana"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+  if [[ -z "$mountpoint" ]]; then
+    echo "WARN: Could not resolve Grafana data mount; skipping admin username sync." >&2
+    return 0
+  fi
+
+  db_path="$mountpoint/grafana.db"
+  if [[ ! -f "$db_path" ]]; then
+    echo "WARN: Grafana DB not found at $db_path; skipping admin username sync." >&2
+    return 0
+  fi
+
+  current_login="$(sqlite3 "$db_path" "SELECT login FROM user WHERE is_admin = 1 ORDER BY id LIMIT 1;" 2>/dev/null || true)"
+  if [[ -z "$current_login" || "$current_login" == "$desired_login" ]]; then
+    return 0
+  fi
+
+  escaped_login="${desired_login//\'/\'\'}"
+  if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM user WHERE login = '$escaped_login';" 2>/dev/null || echo 0)" != "0" ]]; then
+    echo "WARN: Grafana user '$desired_login' already exists; leaving legacy admin login '$current_login' unchanged." >&2
+    return 0
+  fi
+
+  sqlite3 "$db_path" <<SQL
+UPDATE user
+SET login = '$escaped_login',
+    updated = datetime('now')
+WHERE id = (
+  SELECT id
+  FROM user
+  WHERE is_admin = 1
+  ORDER BY id
+  LIMIT 1
+);
+SQL
+
+  echo "Admin username synced to Grafana DB ($current_login -> $desired_login)."
+}
+
 require_command aws
 require_command jq
 require_command docker
@@ -158,6 +207,8 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
+sync_grafana_admin_user "$GRAFANA_ADMIN_USER"
+
 docker exec "$GRAFANA_CONTAINER" \
   grafana cli --homepath /usr/share/grafana admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" >/dev/null
 
@@ -168,5 +219,4 @@ echo "  Login: $GRAFANA_ADMIN_USER"
 echo "  Password source: $SECRET_NAME:grafana_admin_password"
 echo
 echo "Note: the admin password is now force-synced into Grafana on startup."
-echo "If an existing Grafana data volume was initialized with a different admin username,"
-echo "the username may still remain unchanged until that Grafana data volume is recreated."
+echo "The admin username is also reconciled against the persisted Grafana data volume."

@@ -11,6 +11,7 @@ SECRET_NAME="${SECRET_NAME:-shadowcheck/config}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-shadowcheck_postgres}"
 GRAFANA_CONTAINER="${GRAFANA_CONTAINER:-shadowcheck_grafana}"
+GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-grafanaadmin}"
 GRAFANA_ADMIN_SECRET_KEY="${GRAFANA_ADMIN_SECRET_KEY:-grafana_admin_password}"
 GRAFANA_READER_SECRET_KEY="${GRAFANA_READER_SECRET_KEY:-grafana_reader_password}"
 GRAFANA_ROOT_URL="${GF_SERVER_ROOT_URL:-${GRAFANA_ROOT_URL:-}}"
@@ -37,6 +38,55 @@ compose_cmd() {
   fi
   echo "ERROR: Neither docker-compose nor docker compose is available" >&2
   exit 1
+}
+
+sync_grafana_admin_user() {
+  local mountpoint db_path current_login desired_login escaped_login
+
+  desired_login="$1"
+
+  if ! command -v sqlite3 >/dev/null 2>&1; then
+    echo "WARN: sqlite3 not installed; skipping Grafana admin username sync." >&2
+    return 0
+  fi
+
+  mountpoint="$(docker inspect "$GRAFANA_CONTAINER" --format '{{range .Mounts}}{{if eq .Destination "/var/lib/grafana"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+  if [[ -z "$mountpoint" ]]; then
+    echo "WARN: Could not resolve Grafana data mount; skipping admin username sync." >&2
+    return 0
+  fi
+
+  db_path="$mountpoint/grafana.db"
+  if [[ ! -f "$db_path" ]]; then
+    echo "WARN: Grafana DB not found at $db_path; skipping admin username sync." >&2
+    return 0
+  fi
+
+  current_login="$(sqlite3 "$db_path" "SELECT login FROM user WHERE is_admin = 1 ORDER BY id LIMIT 1;" 2>/dev/null || true)"
+  if [[ -z "$current_login" || "$current_login" == "$desired_login" ]]; then
+    return 0
+  fi
+
+  escaped_login="${desired_login//\'/\'\'}"
+  if [[ "$(sqlite3 "$db_path" "SELECT COUNT(*) FROM user WHERE login = '$escaped_login';" 2>/dev/null || echo 0)" != "0" ]]; then
+    echo "WARN: Grafana user '$desired_login' already exists; leaving legacy admin login '$current_login' unchanged." >&2
+    return 0
+  fi
+
+  sqlite3 "$db_path" <<SQL
+UPDATE user
+SET login = '$escaped_login',
+    updated = datetime('now')
+WHERE id = (
+  SELECT id
+  FROM user
+  WHERE is_admin = 1
+  ORDER BY id
+  LIMIT 1
+);
+SQL
+
+  echo "Admin username synced to Grafana DB ($current_login -> $desired_login)."
 }
 
 require_command aws
@@ -164,6 +214,7 @@ if [[ -z "$GRAFANA_ROOT_URL" ]]; then
 fi
 
 export GRAFANA_ADMIN_PASSWORD
+export GRAFANA_ADMIN_USER
 export GF_SERVER_ROOT_URL="$GRAFANA_ROOT_URL"
 
 COMPOSE_BIN="$(compose_cmd)"
@@ -188,6 +239,8 @@ for i in $(seq 1 30); do
   fi
   sleep 2
 done
+
+sync_grafana_admin_user "$GRAFANA_ADMIN_USER"
 
 docker exec "$GRAFANA_CONTAINER" \
   grafana cli --homepath /usr/share/grafana admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" >/dev/null
