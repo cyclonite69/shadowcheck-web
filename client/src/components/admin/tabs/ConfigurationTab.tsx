@@ -1,4 +1,5 @@
 import React from 'react';
+import { adminApi } from '../../../api/adminApi';
 import { useConfiguration } from '../hooks/useConfiguration';
 import { MapboxConfig } from './config/MapboxConfig';
 import { AWSConfig } from './config/AWSConfig';
@@ -90,113 +91,286 @@ export const ConfigurationTab: React.FC = () => {
     saveSmartyCredentials,
     saveHomeLocation,
   } = useConfiguration();
+  const [stackActionLoading, setStackActionLoading] = React.useState<
+    null | 'recreate-api' | 'rebuild-frontend' | 'rebuild-stack'
+  >(null);
+  const [stackActionMessage, setStackActionMessage] = React.useState<{
+    tone: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
   const featureFlags = runtimeConfig?.featureFlags;
   const runtime = runtimeConfig?.runtime;
-  const featureItems = [
+  const featureSections = [
     {
-      label: 'Demo Mode',
-      enabled: demoMode,
-      detail: 'VITE_DEMO_MODE',
-      source: 'Frontend build flag',
+      title: 'Runtime Toggles',
+      summary: 'Database-backed flags apply live from the admin UI.',
+      items: [
+        {
+          label: 'Docker Controls',
+          enabled: featureFlags?.adminAllowDocker ?? false,
+          detail: 'admin_allow_docker',
+          source: 'Database setting',
+          impact: 'Live',
+          editable: true,
+        },
+        {
+          label: 'ML Training',
+          enabled: featureFlags?.adminAllowMlTraining ?? true,
+          detail: 'admin_allow_ml_training',
+          source: 'Database setting',
+          impact: 'Live',
+          editable: true,
+        },
+        {
+          label: 'ML Scoring',
+          enabled: featureFlags?.adminAllowMlScoring ?? true,
+          detail: 'admin_allow_ml_scoring',
+          source: 'Database setting',
+          impact: 'Live',
+          editable: true,
+        },
+        {
+          label: 'Background Jobs',
+          enabled: featureFlags?.enableBackgroundJobs ?? false,
+          detail: 'enable_background_jobs',
+          source: 'Database setting',
+          impact: 'Live',
+          editable: true,
+        },
+        {
+          label: 'Simple Rule Scoring',
+          enabled: featureFlags?.simpleRuleScoringEnabled ?? false,
+          detail: 'simple_rule_scoring_enabled',
+          source: 'Database setting',
+          impact: 'Live',
+          editable: true,
+        },
+      ],
     },
     {
-      label: 'Docker Controls',
-      enabled: featureFlags?.adminAllowDocker ?? false,
-      detail: 'admin_allow_docker',
-      source: 'Database setting',
-      editable: true,
+      title: 'Deploy-Time Settings',
+      summary: 'Environment-backed values require container recreate or restart to change.',
+      items: [
+        {
+          label: 'API Gate',
+          enabled: featureFlags?.apiGateEnabled ?? true,
+          detail: 'API_GATE_ENABLED',
+          source: 'Environment-backed',
+          impact: 'Restart',
+          recommendedAction: 'Recreate API',
+        },
+        {
+          label: 'Force HTTPS',
+          enabled: featureFlags?.forceHttps ?? false,
+          detail: 'FORCE_HTTPS',
+          source: 'Environment-backed',
+          impact: 'Restart',
+          recommendedAction: 'Recreate API',
+        },
+        {
+          label: 'Cookie Secure',
+          enabled: featureFlags?.cookieSecure ?? false,
+          detail: 'COOKIE_SECURE',
+          source: 'Environment-backed',
+          impact: 'Restart',
+          recommendedAction: 'Recreate API',
+        },
+      ],
     },
     {
-      label: 'ML Training',
-      enabled: featureFlags?.adminAllowMlTraining ?? true,
-      detail: 'admin_allow_ml_training',
-      source: 'Database setting',
-      editable: true,
-    },
-    {
-      label: 'ML Scoring',
-      enabled: featureFlags?.adminAllowMlScoring ?? true,
-      detail: 'admin_allow_ml_scoring',
-      source: 'Database setting',
-      editable: true,
-    },
-    {
-      label: 'Background Jobs',
-      enabled: featureFlags?.enableBackgroundJobs ?? false,
-      detail: 'enable_background_jobs',
-      source: 'Database setting',
-      editable: true,
-    },
-    {
-      label: 'API Gate',
-      enabled: featureFlags?.apiGateEnabled ?? true,
-      detail: 'API_GATE_ENABLED',
-      source: 'Environment-backed',
-    },
-    {
-      label: 'Force HTTPS',
-      enabled: featureFlags?.forceHttps ?? false,
-      detail: 'FORCE_HTTPS',
-      source: 'Environment-backed',
-    },
-    {
-      label: 'Cookie Secure',
-      enabled: featureFlags?.cookieSecure ?? false,
-      detail: 'COOKIE_SECURE',
-      source: 'Environment-backed',
-    },
-    {
-      label: 'Simple Rule Scoring',
-      enabled: featureFlags?.simpleRuleScoringEnabled ?? false,
-      detail: 'simple_rule_scoring_enabled',
-      source: 'Database setting',
-      editable: true,
+      title: 'Build-Time Settings',
+      summary: 'Frontend build flags only change after rebuilding the frontend bundle.',
+      items: [
+        {
+          label: 'Demo Mode',
+          enabled: demoMode,
+          detail: 'VITE_DEMO_MODE',
+          source: 'Frontend build flag',
+          impact: 'Rebuild',
+          recommendedAction: 'Rebuild Frontend',
+        },
+      ],
     },
   ];
+
+  const impactClassName = (impact: string) => {
+    switch (impact) {
+      case 'Live':
+        return 'border-emerald-700/50 bg-emerald-900/20 text-emerald-300';
+      case 'Restart':
+        return 'border-amber-700/50 bg-amber-900/20 text-amber-200';
+      case 'Rebuild':
+        return 'border-fuchsia-700/50 bg-fuchsia-900/20 text-fuchsia-200';
+      default:
+        return 'border-slate-700/50 bg-slate-800/60 text-slate-300';
+    }
+  };
+
+  const runLocalStackAction = async (
+    action: 'recreate-api' | 'rebuild-frontend' | 'rebuild-stack'
+  ) => {
+    const confirmationText: Record<typeof action, string> = {
+      'recreate-api':
+        'Recreate the API container now? Use this after changing deploy-time settings or secrets.',
+      'rebuild-frontend':
+        'Rebuild the frontend container now? Use this after changing build-time frontend flags.',
+      'rebuild-stack':
+        'Rebuild the full local stack now? This is the most disruptive option and will recreate multiple services.',
+    };
+
+    if (!window.confirm(confirmationText[action])) {
+      return;
+    }
+
+    try {
+      setStackActionLoading(action);
+      setStackActionMessage(null);
+      const response = await adminApi.runLocalStackAction(action);
+      setStackActionMessage({
+        tone: 'success',
+        text: response?.message || `Local stack action '${action}' completed.`,
+      });
+    } catch (error) {
+      setStackActionMessage({
+        tone: 'error',
+        text: `Failed to run '${action}': ${(error as Error).message}`,
+      });
+    } finally {
+      setStackActionLoading(null);
+    }
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AdminCard icon={ToggleIcon} title="Feature Flags" color="from-cyan-500 to-blue-600">
-          <div className="space-y-3">
-            {featureItems.map((item) => (
+        <AdminCard
+          icon={ToggleIcon}
+          title="Configuration Mutability"
+          color="from-cyan-500 to-blue-600"
+        >
+          <div className="space-y-4">
+            {featureSections.map((section) => (
               <div
-                key={item.label}
-                className="flex items-start justify-between gap-3 rounded-lg border border-slate-700/50 bg-slate-900/40 px-3 py-2"
+                key={section.title}
+                className="rounded-xl border border-slate-700/50 bg-slate-950/40"
               >
-                <div>
-                  <div className="text-sm font-medium text-white">{item.label}</div>
-                  <div className="text-xs text-slate-500">{item.detail}</div>
+                <div className="border-b border-slate-800/80 px-4 py-3">
+                  <div className="text-sm font-semibold text-white">{section.title}</div>
+                  <div className="mt-1 text-xs text-slate-400">{section.summary}</div>
                 </div>
-                <div className="text-right">
-                  <div
-                    className={`inline-flex rounded-md border px-2 py-0.5 text-xs ${
-                      item.enabled
-                        ? 'border-emerald-700/50 bg-emerald-900/30 text-emerald-300'
-                        : 'border-slate-700/50 bg-slate-800/60 text-slate-300'
-                    }`}
-                  >
-                    {item.enabled ? 'Enabled' : 'Disabled'}
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-500">{item.source}</div>
-                  {item.editable ? (
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => updateFeatureFlag(item.detail, !item.enabled)}
-                      className="mt-2 rounded-md border border-blue-600/50 bg-blue-600/10 px-2 py-1 text-[11px] text-blue-200 transition hover:bg-blue-600/20 disabled:cursor-not-allowed disabled:opacity-50"
+                <div className="space-y-3 p-3">
+                  {section.items.map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-slate-700/50 bg-slate-900/40 px-3 py-2"
                     >
-                      {item.enabled ? 'Disable' : 'Enable'}
-                    </button>
-                  ) : null}
+                      <div>
+                        <div className="text-sm font-medium text-white">{item.label}</div>
+                        <div className="text-xs text-slate-500">{item.detail}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <div
+                            className={`inline-flex rounded-md border px-2 py-0.5 text-xs ${
+                              item.enabled
+                                ? 'border-emerald-700/50 bg-emerald-900/30 text-emerald-300'
+                                : 'border-slate-700/50 bg-slate-800/60 text-slate-300'
+                            }`}
+                          >
+                            {item.enabled ? 'Enabled' : 'Disabled'}
+                          </div>
+                          <div
+                            className={`inline-flex rounded-md border px-2 py-0.5 text-xs ${impactClassName(item.impact)}`}
+                          >
+                            {item.impact}
+                          </div>
+                        </div>
+                        <div className="mt-1 text-[11px] text-slate-500">{item.source}</div>
+                        {item.editable ? (
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => updateFeatureFlag(item.detail, !item.enabled)}
+                            className="mt-2 rounded-md border border-blue-600/50 bg-blue-600/10 px-2 py-1 text-[11px] text-blue-200 transition hover:bg-blue-600/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {item.enabled ? 'Disable live' : 'Enable live'}
+                          </button>
+                        ) : (
+                          <div className="mt-2 space-y-1 text-[11px] text-slate-500">
+                            <div>
+                              {item.impact === 'Restart'
+                                ? 'Change env/secret, then recreate the container.'
+                                : 'Change build config, then rebuild the frontend.'}
+                            </div>
+                            {item.recommendedAction ? (
+                              <div className="text-slate-400">
+                                Recommended next action: {item.recommendedAction}
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
             <div className="rounded-lg border border-slate-700/50 bg-slate-950/50 px-3 py-2 text-xs text-slate-400">
-              Database-backed flags update live from the admin UI. Build-time and environment-backed
-              flags remain read-only here.
+              This view now reflects how ShadowCheck actually changes: some controls update live,
+              some require a container recreate, and frontend build flags only take effect after a
+              rebuild.
             </div>
+          </div>
+        </AdminCard>
+
+        <AdminCard icon={ServerIcon} title="Stack Actions" color="from-emerald-500 to-teal-600">
+          <div className="space-y-3">
+            <div className="rounded-lg border border-slate-700/50 bg-slate-950/50 px-3 py-2 text-xs text-slate-400">
+              Use these only when you intentionally want to apply deploy-time or build-time config
+              changes to the local Docker stack.
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                disabled={stackActionLoading !== null}
+                onClick={() => runLocalStackAction('recreate-api')}
+                className="rounded-lg border border-amber-600/40 bg-amber-600/10 px-3 py-2 text-sm text-amber-100 transition hover:bg-amber-600/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {stackActionLoading === 'recreate-api' ? 'Recreating API...' : 'Recreate API'}
+              </button>
+              <button
+                type="button"
+                disabled={stackActionLoading !== null}
+                onClick={() => runLocalStackAction('rebuild-frontend')}
+                className="rounded-lg border border-fuchsia-600/40 bg-fuchsia-600/10 px-3 py-2 text-sm text-fuchsia-100 transition hover:bg-fuchsia-600/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {stackActionLoading === 'rebuild-frontend'
+                  ? 'Rebuilding frontend...'
+                  : 'Rebuild Frontend'}
+              </button>
+              <button
+                type="button"
+                disabled={stackActionLoading !== null}
+                onClick={() => runLocalStackAction('rebuild-stack')}
+                className="rounded-lg border border-blue-600/40 bg-blue-600/10 px-3 py-2 text-sm text-blue-100 transition hover:bg-blue-600/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {stackActionLoading === 'rebuild-stack'
+                  ? 'Rebuilding full stack...'
+                  : 'Rebuild Full Stack'}
+              </button>
+            </div>
+            {stackActionMessage ? (
+              <div
+                className={`rounded-lg border px-3 py-2 text-xs ${
+                  stackActionMessage.tone === 'success'
+                    ? 'border-emerald-700/50 bg-emerald-900/20 text-emerald-200'
+                    : 'border-red-700/50 bg-red-900/20 text-red-200'
+                }`}
+              >
+                {stackActionMessage.text}
+              </div>
+            ) : null}
           </div>
         </AdminCard>
 
