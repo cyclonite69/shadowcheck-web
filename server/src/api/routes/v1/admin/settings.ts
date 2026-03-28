@@ -101,7 +101,7 @@ router.post('/jobs/:jobName/run', async (req: any, res: any) => {
       return res.status(400).json({ success: false, error: 'Unsupported background job' });
     }
 
-    const result = await backgroundJobsService.runJobNow(jobName);
+    const result = await backgroundJobsService.startJobNow(jobName);
     const status = await backgroundJobsService.getJobStatus();
     res.json({ success: true, result, ...status });
   } catch (error: any) {
