@@ -1,0 +1,661 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-edsel-freeway-traffic",
+  "title": "ShadowCheck \u2014 Edsel Ford Freeway Vehicle Traffic Analysis",
+  "description": "Trajectories, speed trends, and equipment breakdown for BSSIDs detected along the Edsel Ford Freeway.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "",
+  "liveNow": false,
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "selected": true,
+          "text": "FBI",
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "shadowcheck-postgres"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "selected": true,
+          "text": "60",
+          "value": "60"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "40",
+            "value": "40"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": true,
+            "text": "60",
+            "value": "60"
+          },
+          {
+            "selected": false,
+            "text": "70",
+            "value": "70"
+          },
+          {
+            "selected": false,
+            "text": "80",
+            "value": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "selected": true,
+          "text": "365",
+          "value": "365"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "90",
+            "value": "90"
+          },
+          {
+            "selected": false,
+            "text": "180",
+            "value": "180"
+          },
+          {
+            "selected": true,
+            "text": "365",
+            "value": "365"
+          },
+          {
+            "selected": false,
+            "text": "730",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "1095",
+            "value": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Freeway context",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Edsel Ford Freeway vehicle traffic snapshot\n- **Area**: lat 42.28\u202642.34, lon -83.22\u2026-83.05 (Edsel Ford Freeway corridor)\n- **Time window**: last 12 hours\n- **Goal**: translate BSSID detections into fast/medium/slow vehicle trajectories with equipment context.\n"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Unique vehicles",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT COUNT(DISTINCT bssid) AS \"Unique vehicles\" FROM vehicle_summary",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total observations",
+      "gridPos": {
+        "x": 6,
+        "y": 3,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT COUNT(*) AS \"Total observations\" FROM edsel_obs",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Vehicles / min & Obs / vehicle",
+      "gridPos": {
+        "x": 12,
+        "y": 3,
+        "w": 6,
+        "h": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  ROUND(COUNT(DISTINCT bssid)::numeric / GREATEST(EXTRACT(EPOCH FROM (MAX(time) - MIN(time))) / 60, 1), 2) AS \"Vehicles / min\",\n  ROUND(COUNT(*)::numeric / GREATEST(COUNT(DISTINCT bssid), 1), 2) AS \"Obs / vehicle\"\nFROM edsel_obs",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "geomap",
+      "title": "Vehicle trajectories (color=speed)",
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 16,
+        "h": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  vs.bssid,\n  vs.start_lat,\n  vs.start_lon,\n  vs.end_lat,\n  vs.end_lon,\n  vs.speed_mph,\n  CASE\n    WHEN vs.speed_mph >= 50 THEN 'fast'\n    WHEN vs.speed_mph >= 30 THEN 'medium'\n    ELSE 'slow'\n  END AS speed_class,\n  ROUND(vs.distance_m::numeric, 1) AS distance_m,\n  ROUND(vs.duration_s::numeric, 1) AS duration_s\nFROM vehicle_summary vs\nORDER BY vs.speed_mph DESC NULLS LAST",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 42.31,
+          "lon": -83.155,
+          "zoom": 13
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Networks",
+            "tooltip": true,
+            "config": {
+              "size": {
+                "fixed": 6
+              },
+              "color": {
+                "field": "speed_mph"
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "trilat",
+              "longitude": "trilong"
+            }
+          },
+          {
+            "type": "lines",
+            "name": "Vehicle paths",
+            "tooltip": true,
+            "config": {
+              "color": {
+                "field": "speed_mph"
+              },
+              "colorScale": {
+                "type": "linear",
+                "min": 0,
+                "max": 80,
+                "color": ["#2e7d32", "#fdd835", "#c62828"]
+              },
+              "size": {
+                "fixed": 4
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitudeStart": "start_lat",
+              "longitudeStart": "start_lon",
+              "latitudeEnd": "end_lat",
+              "longitudeEnd": "end_lon"
+            }
+          }
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Speed distribution (mph)",
+      "gridPos": {
+        "x": 16,
+        "y": 6,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  CONCAT(bin_start, '-', bin_start + 5) AS \"speed_range\",\n  COUNT(*) AS \"vehicles\",\n  ROUND(MIN(speed_mph)::numeric, 1) AS \"min_speed\",\n  ROUND(MAX(speed_mph)::numeric, 1) AS \"max_speed\"\nFROM (\n  SELECT\n    *,\n    FLOOR(speed_mph / 5) * 5 AS bin_start\n  FROM vehicle_summary\n  WHERE speed_mph IS NOT NULL\n) s\nGROUP BY bin_start\nORDER BY bin_start",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "stacking": "none",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Speed summary",
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  ROUND(MIN(speed_mph)::numeric, 1) AS \"Min speed\",\n  ROUND(MAX(speed_mph)::numeric, 1) AS \"Max speed\",\n  ROUND(AVG(speed_mph)::numeric, 1) AS \"Mean speed\",\n  ROUND(COALESCE(STDDEV(speed_mph), 0)::numeric, 1) AS \"Std dev\"\nFROM vehicle_summary\nWHERE speed_mph IS NOT NULL",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Vehicle detections per minute",
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  date_trunc('minute', time) AS \"time\",\n  COUNT(DISTINCT bssid) AS \"Vehicles\",\n  COUNT(*) AS \"Observations\"\nFROM edsel_obs\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Vehicle trajectories",
+      "gridPos": {
+        "x": 16,
+        "y": 22,
+        "w": 8,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  vs.bssid AS \"BSSID\",\n  COALESCE(vm.manufacturer, 'unknown') AS \"Manufacturer\",\n  COALESCE(vm.security, 'unknown') AS \"Security\",\n  vs.start_time AS \"Start time\",\n  vs.end_time AS \"End time\",\n  ROUND(vs.distance_m::numeric, 1) AS \"Distance (m)\",\n  ROUND(vs.duration_s::numeric, 1) AS \"Duration (s)\",\n  ROUND(vs.speed_mph::numeric, 1) AS \"Speed (mph)\",\n  vm.avg_signal AS \"Avg signal (dBm)\",\n  vm.observation_count AS \"Observations\"\nFROM vehicle_summary vs\nLEFT JOIN vehicle_meta vm USING (bssid)\nORDER BY vs.speed_mph DESC NULLS LAST, vs.distance_m DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Equipment manifest",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  COALESCE(vm.manufacturer, 'unknown') AS \"Manufacturer\",\n  COALESCE(vm.security, 'unknown') AS \"Security\",\n  COUNT(*) AS \"Vehicles\",\n  ROUND(AVG(vm.avg_signal)::numeric, 1) AS \"Avg signal\"\nFROM vehicle_meta vm\nGROUP BY vm.manufacturer, vm.security\nORDER BY \"Vehicles\" DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Observation timeline (lat vs time)",
+      "gridPos": {
+        "x": 16,
+        "y": 32,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nedsel_obs AS (\n  SELECT\n    o.id,\n    o.bssid,\n    o.time,\n    o.lat,\n    o.lon,\n    o.level,\n    COALESCE(e.manufacturer, 'unknown') AS manufacturer,\n    COALESCE(e.security, 'unknown') AS security\n  FROM app.observations o\n  LEFT JOIN app.api_network_explorer_mv e\n    ON UPPER(e.bssid) = UPPER(o.bssid)\n  WHERE o.lat BETWEEN 42.28 AND 42.34\n    AND o.lon BETWEEN -83.22 AND -83.05\n    AND o.time >= now() - INTERVAL '12 hours'\n),\nranked AS (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time ASC) AS seq_start,\n    ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY time DESC) AS seq_end\n  FROM edsel_obs\n),\nfirst_points AS (\n  SELECT bssid, lat AS start_lat, lon AS start_lon, time AS start_time\n  FROM ranked\n  WHERE seq_start = 1\n),\nlast_points AS (\n  SELECT bssid, lat AS end_lat, lon AS end_lon, time AS end_time\n  FROM ranked\n  WHERE seq_end = 1\n),\nvehicle_summary_base AS (\n  SELECT\n    f.bssid,\n    f.start_time,\n    l.end_time,\n    EXTRACT(EPOCH FROM (l.end_time - f.start_time)) AS duration_s,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(f.start_lon, f.start_lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(l.end_lon, l.end_lat), 4326)::geography\n      )::numeric,\n      1\n    ) AS distance_m,\n    f.start_lat,\n    f.start_lon,\n    l.end_lat,\n    l.end_lon\n  FROM first_points f\n  JOIN last_points l USING (bssid)\n),\nvehicle_summary AS (\n  SELECT\n    *,\n    CASE\n      WHEN duration_s > 0 THEN ROUND((distance_m / 1609.34) / (duration_s / 3600), 1)\n    END AS speed_mph\n  FROM vehicle_summary_base\n),\nvehicle_meta AS (\n  SELECT\n    bssid,\n    COALESCE(MAX(NULLIF(manufacturer, '')), 'unknown') AS manufacturer,\n    COALESCE(MAX(NULLIF(security, '')), 'unknown') AS security,\n    ROUND(AVG(level)::numeric, 1) AS avg_signal,\n    COUNT(*) AS observation_count\n  FROM edsel_obs\n  GROUP BY bssid\n)\n\nSELECT\n  o.time AS \"time\",\n  o.lat AS \"Latitude\",\n  vs.speed_mph AS \"Speed\"\nFROM edsel_obs o\nLEFT JOIN vehicle_summary vs USING (bssid)\nORDER BY o.time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  }
+}

@@ -238,7 +238,7 @@ def heatmap_panel(pid, title, sql, x, y, w, h, overrides=None):
     p["fieldConfig"] = {"defaults": {}, "overrides": overrides or []}
     return p
 
-def geomap_panel(pid, title, sql, x, y, w, h, lat=44.3, lng=-85.5, zoom=6, color_field="hw_class_num", size_field=None):
+def geomap_panel(pid, title, sql, x, y, w, h, lat=44.3, lng=-85.5, zoom=6, color_field="hw_class_num", size_field=None, extra_layers=None):
     p = _base(pid, "geomap", title, x, y, w, h)
     p["datasource"] = ds()
     p["targets"] = [_sql_target(sql)]
@@ -251,7 +251,7 @@ def geomap_panel(pid, title, sql, x, y, w, h, lat=44.3, lng=-85.5, zoom=6, color
                 "color": {"field": color_field} if color_field else {"fixed": 0},
             },
             "location": {"mode": "coords", "latitude": "trilat", "longitude": "trilong"},
-        }],
+        }] + (extra_layers or []),
         "controls": {"showZoom": True, "mouseWheelZoom": True, "showAttribution": True},
         "tooltip": {"mode": "details"},
     }
