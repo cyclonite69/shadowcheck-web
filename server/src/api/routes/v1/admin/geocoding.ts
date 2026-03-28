@@ -9,6 +9,13 @@ const {
   stopGeocodingDaemon,
   getGeocodingDaemonStatus,
 } = geocodingCacheService;
+const {
+  parseRunOptions,
+  parseDaemonOptions,
+  parseTestOptions,
+  hasMissingKeyError,
+  missingKeyInfo,
+} = require('./adminGeocodingHelpers');
 
 export {};
 
@@ -30,25 +37,7 @@ router.get('/admin/geocoding/stats', async (req: any, res: any) => {
 
 router.post('/admin/geocoding/run', async (req: any, res: any) => {
   try {
-    const {
-      provider = 'mapbox',
-      mode = 'address-only',
-      limit = 1000,
-      precision = 5,
-      perMinute = ['nominatim', 'overpass', 'opencage', 'geocodio', 'locationiq'].includes(provider)
-        ? 60
-        : 200,
-      permanent = true,
-    } = req.body || {};
-
-    const options = {
-      provider,
-      mode,
-      limit: Number.parseInt(limit, 10) || 1000,
-      precision: Number.parseInt(precision, 10) || 5,
-      perMinute: Number.parseInt(perMinute, 10) || 200,
-      permanent: Boolean(permanent),
-    };
+    const options = parseRunOptions(req.body || {});
 
     const started = await startGeocodeCacheUpdate(options);
     if (!started.started) {
@@ -70,12 +59,8 @@ router.post('/admin/geocoding/run', async (req: any, res: any) => {
         error: 'Geocoding job already running',
       });
     }
-    if (typeof err?.message === 'string' && err.message.startsWith('missing_key:')) {
-      const provider = err.message.split(':')[1] || 'provider';
-      return res.status(400).json({
-        ok: false,
-        error: `Missing API key for ${provider}`,
-      });
+    if (hasMissingKeyError(err)) {
+      return res.status(400).json(missingKeyInfo(err));
     }
     logger.error('[Geocoding] Run failed', { error: err?.message });
     res.status(500).json({
@@ -106,33 +91,8 @@ router.get('/admin/geocoding/daemon', async (req: any, res: any) => {
 
 router.post('/admin/geocoding/daemon', async (req: any, res: any) => {
   try {
-    const {
-      provider = 'mapbox',
-      mode = 'address-only',
-      limit = 250,
-      precision = 5,
-      perMinute = ['nominatim', 'overpass', 'opencage', 'geocodio', 'locationiq'].includes(provider)
-        ? 60
-        : 200,
-      permanent = true,
-      loopDelayMs = 15000,
-      idleSleepMs = 180000,
-      errorSleepMs = 60000,
-      providers = [],
-    } = req.body || {};
-
-    const started = await startGeocodingDaemon({
-      provider,
-      mode,
-      limit: Number.parseInt(limit, 10) || 250,
-      precision: Number.parseInt(precision, 10) || 5,
-      perMinute: Number.parseInt(perMinute, 10) || 200,
-      permanent: Boolean(permanent),
-      loopDelayMs: Number.parseInt(loopDelayMs, 10) || 15000,
-      idleSleepMs: Number.parseInt(idleSleepMs, 10) || 180000,
-      errorSleepMs: Number.parseInt(errorSleepMs, 10) || 60000,
-      providers: Array.isArray(providers) ? providers : [],
-    });
+    const options = parseDaemonOptions(req.body || {});
+    const started = await startGeocodingDaemon(options);
 
     res.json({
       ok: true,
@@ -140,12 +100,8 @@ router.post('/admin/geocoding/daemon', async (req: any, res: any) => {
       daemon: started.status,
     });
   } catch (err: any) {
-    if (typeof err?.message === 'string' && err.message.startsWith('missing_key:')) {
-      const provider = err.message.split(':')[1] || 'provider';
-      return res.status(400).json({
-        ok: false,
-        error: `Missing API key for ${provider}`,
-      });
+    if (hasMissingKeyError(err)) {
+      return res.status(400).json(missingKeyInfo(err));
     }
 
     logger.error('[Geocoding] Failed to start daemon', { error: err?.message });
@@ -171,32 +127,12 @@ router.delete('/admin/geocoding/daemon', async (req: any, res: any) => {
 
 router.post('/admin/geocoding/test', async (req: any, res: any) => {
   try {
-    const {
-      provider = 'locationiq',
-      mode = provider === 'overpass' ? 'poi-only' : 'address-only',
-      precision = 4,
-      permanent = false,
-      lat,
-      lon,
-    } = req.body || {};
-
-    const result = await testGeocodingProvider({
-      provider,
-      mode,
-      precision: Number.parseInt(precision, 10) || 4,
-      permanent: Boolean(permanent),
-      lat: lat !== undefined ? Number(lat) : undefined,
-      lon: lon !== undefined ? Number(lon) : undefined,
-    });
+    const result = await testGeocodingProvider(parseTestOptions(req.body || {}));
 
     res.json({ ok: true, result });
   } catch (err: any) {
-    if (typeof err?.message === 'string' && err.message.startsWith('missing_key:')) {
-      const provider = err.message.split(':')[1] || 'provider';
-      return res.status(400).json({
-        ok: false,
-        error: `Missing API key for ${provider}`,
-      });
+    if (hasMissingKeyError(err)) {
+      return res.status(400).json(missingKeyInfo(err));
     }
     logger.error('[Geocoding] Provider test failed', { error: err?.message });
     res.status(500).json({

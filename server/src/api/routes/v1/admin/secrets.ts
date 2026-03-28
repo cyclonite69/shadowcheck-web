@@ -2,33 +2,20 @@ import express from 'express';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 
 const router = express.Router();
-const { secretsManager } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
+const {
+  listSecretsStatus,
+  storeSecret,
+  deleteSecret,
+} = require('./adminSecretsHelpers');
 
 /**
  * GET /api/admin/secrets
  * List all configured secrets (names only, no values)
  */
-router.get('/admin/secrets', requireAdmin, async (req: any, res: any) => {
+router.get('/admin/secrets', requireAdmin, async (_req: any, res: any) => {
   try {
-    const secrets = [
-      'db_password',
-      'session_secret',
-      'mapbox_token',
-      'wigle_api_key',
-      'wigle_api_token',
-      'opencage_api_key',
-      'locationiq_api_key',
-      'google_maps_api_key',
-    ];
-
-    const status = secrets.map((key) => ({
-      key,
-      configured: secretsManager.has(key),
-      required: ['db_password', 'session_secret'].includes(key),
-    }));
-
-    res.json({ ok: true, secrets: status });
+    res.json({ ok: true, secrets: listSecretsStatus() });
   } catch (err: any) {
     logger.error('[Admin] Failed to list secrets', { error: err?.message });
     res.status(500).json({ ok: false, error: 'Failed to list secrets' });
@@ -41,20 +28,12 @@ router.get('/admin/secrets', requireAdmin, async (req: any, res: any) => {
  */
 router.post('/admin/secrets/:key', requireAdmin, async (req: any, res: any) => {
   try {
-    const { key } = req.params;
-    const { value } = req.body;
-
-    if (!value) {
-      return res.status(400).json({ ok: false, error: 'Value is required' });
-    }
-
-    await secretsManager.putSecret(key, value);
-    logger.info('[Admin] Secret stored', { key });
-
-    res.json({ ok: true, message: `Secret '${key}' stored successfully` });
+    await storeSecret(req.params.key, req.body.value);
+    logger.info('[Admin] Secret stored', { key: req.params.key });
+    res.json({ ok: true, message: `Secret '${req.params.key}' stored successfully` });
   } catch (err: any) {
     logger.error('[Admin] Failed to store secret', { error: err?.message });
-    res.status(500).json({ ok: false, error: 'Failed to store secret' });
+    res.status(500).json({ ok: false, error: err.message || 'Failed to store secret' });
   }
 });
 
@@ -64,23 +43,13 @@ router.post('/admin/secrets/:key', requireAdmin, async (req: any, res: any) => {
  */
 router.delete('/admin/secrets/:key', requireAdmin, async (req: any, res: any) => {
   try {
-    const { key } = req.params as any;
-
-    // Prevent deletion of required secrets
-    if (['db_password', 'session_secret'].includes(key)) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Cannot delete required secrets',
-      });
-    }
-
-    await secretsManager.deleteSecret(key);
-    logger.info('[Admin] Secret deleted', { key });
-
-    res.json({ ok: true, message: `Secret '${key}' deleted successfully` });
+    await deleteSecret(req.params.key);
+    logger.info('[Admin] Secret deleted', { key: req.params.key });
+    res.json({ ok: true, message: `Secret '${req.params.key}' deleted successfully` });
   } catch (err: any) {
+    const status = err.code === 'REQUIRED' ? 400 : 500;
     logger.error('[Admin] Failed to delete secret', { error: err?.message });
-    res.status(500).json({ ok: false, error: 'Failed to delete secret' });
+    res.status(status).json({ ok: false, error: err.message || 'Failed to delete secret' });
   }
 });
 

@@ -1,8 +1,10 @@
+export {};
 const multer = require('multer');
 const path = require('path');
 const fsNative = require('fs');
 const fs = fsNative.promises;
-const { secretsManager } = require('../../../../config/container');
+const configContainer = require('../../../../config/container');
+const secretsManager = configContainer.secretsManager;
 
 const SQLITE_MAGIC = Buffer.from('53514c69746520666f726d61742033', 'hex');
 const PROJECT_ROOT = process.cwd();
