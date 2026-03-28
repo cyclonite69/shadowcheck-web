@@ -21,7 +21,8 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 | **Network Analysis**    | Deep dive into 173,326+ unique networks with behavioral profiling             |
 | **Universal Filters**   | 20+ filter types supporting complex temporal, spatial, and behavioral queries |
 | **ML Training**         | Multi-algorithm threat detection with hyperparameter optimization             |
-| **Address Enrichment**  | Multi-API venue identification (OpenCage, LocationIQ, Abstract, Overpass)     |
+| **Geocoding Daemon**    | Continuous background address enrichment with multi-API support               |
+| **ARM Spot Launcher**   | Optimized single-node AWS deployment for m7g/m6g instances                    |
 | **Monitoring**          | Standalone Grafana stack with "Tactical Overview" dashboards                  |
 
 ### 🛠️ Technology Stack
@@ -45,7 +46,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 **Infrastructure:**
 
 - Docker + Docker Compose
-- Jest 29.x testing framework
+- Jest 30.x testing framework
 - GitHub Actions CI/CD
 
 ---
@@ -67,11 +68,13 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 - [Development](Development) - Contributing and workflow
 - [Database](Database) - Schema and query reference
 - [Features](Features) - Complete feature catalog
+- [Geocoding Daemon](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/GEOCODING_DAEMON.md) - Background enrichment guide
 
 ### Advanced Topics
 
 - [Machine Learning](Machine-Learning) - ML threat detection system
 - [Security](Security) - Security best practices and hardening
+- [Intelligence Dashboards](https://github.com/cyclonite69/shadowcheck-web/blob/main/deploy/monitoring/INTELLIGENCE.md) - Forensic visualization guide
 
 ### Operations
 
@@ -97,5 +100,5 @@ We welcome contributions! Please see our [Contributing Guide](https://github.com
 
 ---
 
-_Last Updated: 2026-03-14_  
-_Version: 1.1.0_
+_Last Updated: 2026-03-28_  
+_Version: 1.2.0_

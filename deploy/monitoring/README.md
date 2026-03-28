@@ -94,8 +94,17 @@ docker exec \
 Then add `-c shared_preload_libraries=pg_stat_statements` to your postgres
 service command in docker-compose.yml and restart postgres.
 
-## Adding New Dashboards
+### Adding New Dashboards
 
 Drop `.json` files into:
 `deploy/monitoring/grafana/provisioning/dashboards/`
 Grafana picks them up within 30 seconds.
+
+## Intelligence Dashboards
+
+ShadowCheck includes specialized intelligence dashboards generated via Python scripts to visualize complex behavioral patterns.
+
+- **Home Fleet Detection**: Visualizes coordinated multi-vehicle movement and manufacturer-based fleet clustering.
+- **Generation Script**: `deploy/monitoring/grafana/provisioning/dashboards/intelligence/gen_home_fleet_detection.py`
+
+For details on how these dashboards are constructed and used for forensics, see **[INTELLIGENCE.md](INTELLIGENCE.md)**.

@@ -19,13 +19,13 @@
 
 ```bash
 # Verify Docker PostgreSQL is running
-docker ps | grep shadowcheck_postgres
+docker ps | grep postgres
 
 # Or check local PostgreSQL
 sudo systemctl status postgresql
 
 # Test connection
-docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
+docker exec postgres psql -U shadowcheck_user -d shadowcheck_db
 ```
 
 ### Problem: Password Authentication Failed
@@ -200,4 +200,4 @@ cat logs/combined.log
 - [Development](Development) - Development setup
 - [Installation](Installation) - Complete setup guide
 - [Database](Database) - Database operations
-- [Recent Fixes](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/TROUBLESHOOTING_RECENT_FIXES.md) - Recently resolved issues
+- [Recent Fixes](https://github.com/cyclonite69/shadowcheck-web/blob/main/alignment_audit_report.md) - Comprehensive code-documentation alignment audit

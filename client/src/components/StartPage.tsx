@@ -227,6 +227,38 @@ export default function StartPage() {
           </a>
         </div>
 
+        <div className="mb-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400 mb-3">
+            Project Resources
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="https://dbcoopers-briefcase-161020170158.s3.us-east-1.amazonaws.com/demo-assets/Deconstructing_ShadowCheck.mp4"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-200 text-sm font-semibold transition-colors"
+            >
+              Watch Video Demo
+            </a>
+            <a
+              href="https://dbcoopers-briefcase-161020170158.s3.us-east-1.amazonaws.com/demo-assets/ShadowCheck_and_the_invisible_wireless_fog.m4a"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-200 text-sm font-semibold transition-colors"
+            >
+              Listen to Audio Overview
+            </a>
+            <a
+              href="https://dbcoopers-briefcase-161020170158.s3.us-east-1.amazonaws.com/demo-assets/ShadowCheck_SIGINT_Forensics.pptx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-200 text-sm font-semibold transition-colors"
+            >
+              Download Presentation
+            </a>
+          </div>
+        </div>
+
         {loading && (
           <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-slate-300">
             Loading live metrics...
