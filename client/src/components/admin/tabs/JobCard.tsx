@@ -2,6 +2,7 @@ import React from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { JobConfig, JobKey, JobRuntimeStatus } from './jobTypes';
 import { JobScheduleEditor } from './JobScheduleEditor';
+import { JobOptionsEditor } from './JobOptionsEditor';
 import { JobRunHistory } from './JobRunHistory';
 
 const TOGGLE_LABELS: Record<JobKey, string> = {
