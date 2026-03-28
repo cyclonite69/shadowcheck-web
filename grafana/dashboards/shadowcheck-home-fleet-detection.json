@@ -1,0 +1,769 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-home-fleet-detection",
+  "title": "ShadowCheck \u2014 Coordinated Fleet Detection at Home",
+  "description": "Home-location burst and recurrence dashboard for Aumovio, Air Link, WNC, GM, and Sierra patterns.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "",
+  "liveNow": false,
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "selected": true,
+          "text": "FBI",
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "shadowcheck-postgres"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "selected": true,
+          "text": "60",
+          "value": "60"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "40",
+            "value": "40"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": true,
+            "text": "60",
+            "value": "60"
+          },
+          {
+            "selected": false,
+            "text": "70",
+            "value": "70"
+          },
+          {
+            "selected": false,
+            "text": "80",
+            "value": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "selected": true,
+          "text": "365",
+          "value": "365"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "90",
+            "value": "90"
+          },
+          {
+            "selected": false,
+            "text": "180",
+            "value": "180"
+          },
+          {
+            "selected": true,
+            "text": "365",
+            "value": "365"
+          },
+          {
+            "selected": false,
+            "text": "730",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "1095",
+            "value": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Detection Context",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Coordinated fleet detection at the home marker\n\nThis dashboard anchors on the strongest verified mixed burst near the home marker:\n\n- **Burst window**: `2025-10-18 20:29:54+00` to `2025-10-18 20:30:41+00`\n- **Burst span**: `47 seconds`\n- **Relevant radios in-window**: `6` distinct BSSIDs across `Aumovio`, `LG Innotek / GM`, `WNC`, and `Air Link`\n- **Signal range**: roughly `-94 dBm` to `-66 dBm`\n- **Distance from home marker**: approximately `86.5m` to `123.7m`\n\nThe database **does not** show Sierra Wireless inside this exact 47-second slice. It **does** show Sierra repeatedly at the same home location and on the same day (`2025-10-18`) later that evening, so the dashboard separates the confirmed burst from same-day contractor recurrence.\n\nInterpretation: the data supports **repeated mixed mobile/contractor activity near home**, with one clean short-duration burst and many repeat passes. It does **not**, by itself, prove surveillance purpose.\n"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Burst BSSIDs",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT COUNT(DISTINCT bssid) AS \"Distinct BSSIDs\" FROM burst",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E85D24"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Burst seconds",
+      "gridPos": {
+        "x": 6,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT ROUND(EXTRACT(EPOCH FROM (MAX(time) - MIN(time)))::numeric, 1) AS \"Burst seconds\" FROM burst",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Avg signal",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT ROUND(AVG(level)::numeric, 1) AS \"Avg signal\" FROM burst",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dBm",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Manufacturers",
+      "gridPos": {
+        "x": 18,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT COUNT(DISTINCT manufacturer) FILTER (WHERE manufacturer <> '') AS \"Manufacturers\" FROM burst",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "geomap",
+      "title": "Home burst map",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 10,
+        "h": 13
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT\n  trilat,\n  trilong,\n  hw_class_num,\n  bssid,\n  ssid,\n  manufacturer,\n  class,\n  level,\n  dist_m,\n  time\nFROM burst\nORDER BY time, bssid",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 43.02345147,
+          "lon": -83.69682688,
+          "zoom": 15
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Networks",
+            "tooltip": true,
+            "config": {
+              "size": {
+                "fixed": 6
+              },
+              "color": {
+                "field": "hw_class_num"
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "trilat",
+              "longitude": "trilong"
+            }
+          }
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Burst equipment manifest",
+      "gridPos": {
+        "x": 10,
+        "y": 12,
+        "w": 14,
+        "h": 13
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT\n  bssid AS \"BSSID\",\n  ssid AS \"SSID\",\n  manufacturer AS \"Manufacturer\",\n  security AS \"Security\",\n  class AS \"Class\",\n  MIN(time) AS \"First seen\",\n  MAX(time) AS \"Last seen\",\n  COUNT(*) AS \"Observations\",\n  ROUND(AVG(level)::numeric, 1) AS \"Avg signal\",\n  ROUND(MIN(dist_m)::numeric, 1) AS \"Closest to home (m)\"\nFROM burst\nGROUP BY bssid, ssid, manufacturer, security, class\nORDER BY MIN(time), bssid",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Burst signal timeline",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nburst AS (\n  SELECT\n    o.time,\n    o.lat AS trilat,\n    o.lon AS trilong,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n        ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n      )::numeric,\n      1\n    ) AS dist_m,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 1\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 2\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 3\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 4\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 5\n  ELSE 6\nEND AS hw_class_num\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN TIMESTAMPTZ '2025-10-18 20:29:54+00' AND TIMESTAMPTZ '2025-10-18 20:30:41+00'\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT\n  time AS \"time\",\n  MAX(level) FILTER (WHERE bssid = '00:54:AF:EB:EA:1A') AS \"Aumovio HotspotEA1A\",\n  MAX(level) FILTER (WHERE bssid = 'F8:96:FE:5D:FA:ED') AS \"GM 9780 ED\",\n  MAX(level) FILTER (WHERE bssid = 'F8:96:FE:5D:FA:EF') AS \"GM 9780 EF\",\n  MAX(level) FILTER (WHERE bssid = '24:41:FE:57:6C:8E') AS \"WNC Cheeto fingers\",\n  MAX(level) FILTER (WHERE bssid = '00:14:3E:9B:06:E0') AS \"AirLink mdt\",\n  MAX(level) FILTER (WHERE bssid = '00:14:3E:9B:06:E1') AS \"AirLink 801\"\nFROM burst\nGROUP BY time\nORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Same-day Sierra sightings",
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 10,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n)\nSELECT\n  o.time AS \"Time\",\n  o.bssid AS \"BSSID\",\n  COALESCE(e.ssid, o.ssid, '') AS \"SSID\",\n  COALESCE(e.manufacturer, '') AS \"Manufacturer\",\n  COALESCE(e.security, '') AS \"Security\",\n  o.level AS \"Signal\",\n  ROUND(\n    ST_Distance(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography\n    )::numeric,\n    1\n  ) AS \"Dist to home (m)\"\nFROM app.observations o\nCROSS JOIN home h\nLEFT JOIN app.api_network_explorer_mv e\n  ON e.bssid = o.bssid\nWHERE o.lat IS NOT NULL\n  AND o.lon IS NOT NULL\n  AND ST_DWithin(\n    ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n    ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n    250\n  )\n  AND date_trunc('day', o.time) = TIMESTAMPTZ '2025-10-18 00:00:00+00'\n  AND COALESCE(e.manufacturer, '') ILIKE '%Sierra Wireless%'\nORDER BY o.time",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Top mixed home windows",
+      "gridPos": {
+        "x": 10,
+        "y": 35,
+        "w": 14,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nrel AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\n, windows AS (\n  SELECT\n    date_trunc('minute', time) AS minute_bucket,\n    MIN(time) AS first_seen,\n    MAX(time) AS last_seen,\n    ROUND(EXTRACT(EPOCH FROM (MAX(time) - MIN(time)))::numeric, 1) AS span_s,\n    COUNT(*) AS obs_count,\n    COUNT(DISTINCT bssid) AS bssid_count,\n    COUNT(DISTINCT class) AS class_count,\n    STRING_AGG(DISTINCT class, ',' ORDER BY class) AS classes\n  FROM rel\n  GROUP BY 1\n)\nSELECT\n  minute_bucket AS \"Window\",\n  first_seen AS \"First seen\",\n  last_seen AS \"Last seen\",\n  span_s AS \"Span (s)\",\n  obs_count AS \"Obs\",\n  bssid_count AS \"BSSIDs\",\n  class_count AS \"Classes\",\n  classes AS \"Class mix\"\nFROM windows\nWHERE class_count >= 3\nORDER BY class_count DESC, bssid_count DESC, obs_count DESC, first_seen DESC\nLIMIT 25",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "text",
+      "title": "Ivy Correlation",
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 24,
+        "h": 7
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## What the database supports\n\n- **Ivy3737 lifecycle**: `2024-10-03 18:35:26+00` to `2025-10-29 06:12:12+00`\n- **Burst vs Ivy end**: the anchor burst happens about **10.40 days before** Ivy's final observation\n- **Air Link during Ivy lifetime**: `919` home-near observations across `119` active days\n- **Sierra during Ivy lifetime**: `104` home-near observations across `37` active days\n- **Same-day Sierra on burst day**: `2025-10-18 23:09:17+00` to `23:09:47+00`, roughly `9.6m` from home\n\nUse the recurrence panels below to distinguish:\n\n1. **Exact burst evidence** in the 47-second window\n2. **Same-day same-location Sierra recurrence**\n3. **Longer-lived repeat home visits** by Air Link, Aumovio/Hotspot, GM, Sierra, and WNC classes\n"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Home class activity by day",
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nrel AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT\n  date_trunc('day', time) AS \"time\",\n  COUNT(DISTINCT bssid) FILTER (WHERE class = 'airlink') AS \"airlink\",\n  COUNT(DISTINCT bssid) FILTER (WHERE class = 'aumovio_hotspot') AS \"aumovio_hotspot\",\n  COUNT(DISTINCT bssid) FILTER (WHERE class = 'gm') AS \"gm\",\n  COUNT(DISTINCT bssid) FILTER (WHERE class = 'sierra') AS \"sierra\",\n  COUNT(DISTINCT bssid) FILTER (WHERE class = 'wnc') AS \"wnc\"\nFROM rel\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Ivy vs home fleet activity",
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nivy_span AS (\n  SELECT MIN(time) AS ivy_first, MAX(time) AS ivy_last\n  FROM app.observations\n  WHERE bssid LIKE 'E2:DB:D1:1E:0C:B%'\n     OR bssid LIKE 'E2:DB:D1:25:0C:B%'\n),\nivy_daily AS (\n  SELECT date_trunc('day', time) AS day, COUNT(*) AS ivy_obs\n  FROM app.observations\n  WHERE bssid LIKE 'E2:DB:D1:1E:0C:B%'\n     OR bssid LIKE 'E2:DB:D1:25:0C:B%'\n  GROUP BY 1\n),\nfleet_daily AS (\n  SELECT\n    date_trunc('day', o.time) AS day,\n    COUNT(*) AS home_fleet_obs,\n    COUNT(*) FILTER (WHERE COALESCE(e.manufacturer, '') ILIKE '%Air Link%') AS airlink_obs,\n    COUNT(*) FILTER (WHERE COALESCE(e.manufacturer, '') ILIKE '%Sierra Wireless%') AS sierra_obs\n  FROM app.observations o\n  CROSS JOIN home h\n  CROSS JOIN ivy_span i\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND o.time BETWEEN i.ivy_first AND i.ivy_last\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n  GROUP BY 1\n),\ndays AS (\n  SELECT generate_series(\n    (SELECT date_trunc('day', ivy_first) FROM ivy_span),\n    (SELECT date_trunc('day', ivy_last) FROM ivy_span),\n    INTERVAL '1 day'\n  ) AS day\n)\nSELECT\n  day AS \"time\",\n  COALESCE(i.ivy_obs, 0) AS \"ivy_obs\",\n  COALESCE(f.home_fleet_obs, 0) AS \"home_fleet_obs\",\n  COALESCE(f.airlink_obs, 0) AS \"airlink_obs\",\n  COALESCE(f.sierra_obs, 0) AS \"sierra_obs\"\nFROM days d\nLEFT JOIN ivy_daily i ON i.day = d.day\nLEFT JOIN fleet_daily f ON f.day = d.day\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Home recurrence by class",
+      "gridPos": {
+        "x": 0,
+        "y": 70,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH\nhome AS (\n  SELECT latitude, longitude\n  FROM app.location_markers\n  WHERE marker_type = 'home'\n  LIMIT 1\n),\nrel AS (\n  SELECT\n    o.time,\n    o.bssid,\n    COALESCE(e.ssid, o.ssid, '') AS ssid,\n    COALESCE(e.manufacturer, '') AS manufacturer,\n    COALESCE(e.security, '') AS security,\n    o.level,\n    CASE\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Wnc%' OR COALESCE(e.ssid,'') ILIKE 'hum%' THEN 'wnc'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Aumovio%' OR COALESCE(e.ssid,'') ILIKE 'Hotspot%' THEN 'aumovio_hotspot'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%' THEN 'sierra'\n  WHEN COALESCE(e.manufacturer,'') ILIKE '%Air Link%' THEN 'airlink'\n  WHEN COALESCE(e.ssid,'') ILIKE 'myGMC%' OR COALESCE(e.ssid,'') = 'myGMC' OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%' THEN 'gm'\n  ELSE 'other'\nEND AS class\n  FROM app.observations o\n  CROSS JOIN home h\n  LEFT JOIN app.api_network_explorer_mv e\n    ON e.bssid = o.bssid\n  WHERE o.lat IS NOT NULL\n    AND o.lon IS NOT NULL\n    AND ST_DWithin(\n      ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n      ST_SetSRID(ST_MakePoint(h.longitude, h.latitude), 4326)::geography,\n      250\n    )\n    AND (\n  COALESCE(e.manufacturer,'') ILIKE '%Sierra Wireless%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Air Link%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Wnc%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Aumovio%'\n  OR COALESCE(e.manufacturer,'') ILIKE '%Lg Innotek%'\n  OR COALESCE(e.ssid,'') ILIKE 'Hotspot%'\n  OR COALESCE(e.ssid,'') ILIKE 'hum%'\n  OR COALESCE(e.ssid,'') ILIKE 'myGMC%'\n)\n)\nSELECT\n  class AS \"Class\",\n  COUNT(*) AS \"Obs\",\n  COUNT(DISTINCT bssid) AS \"Distinct BSSIDs\",\n  COUNT(DISTINCT date_trunc('day', time)) AS \"Active days\",\n  MIN(time) AS \"First seen\",\n  MAX(time) AS \"Last seen\"\nFROM rel\nGROUP BY class\nORDER BY COUNT(DISTINCT date_trunc('day', time)) DESC, COUNT(DISTINCT bssid) DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "type": "text",
+      "title": "Navigate dashboards",
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "<center>\n[\u2190 Michigan Intelligence](shadowcheck-michigan) | [America Fleet Patterns](shadowcheck-national) | [Home Fleet Detection](shadowcheck-home-fleet-detection) | [Contractor/OUI](shadowcheck-oui-fleet)\n</center>\n"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  }
+}

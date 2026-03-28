@@ -1,11 +1,11 @@
-const multerLib = require('multer');
+const multer = require('multer');
 const pathLib = require('path');
 const fsLib = require('fs');
 
 const NOTES_MEDIA_DIR = pathLib.join(__dirname, '../../../../data/notes-media');
 
-const mediaUpload = multerLib({
-  storage: multerLib.memoryStorage(),
+const mediaUpload = multer({
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (_req: any, file: any, cb: any) => {
     const allowed = /\.(jpg|jpeg|png|gif|pdf|mp4|mov|avi)$/i;
