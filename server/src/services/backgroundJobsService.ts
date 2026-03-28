@@ -6,53 +6,32 @@
 const schedule = require('node-schedule');
 const logger = require('../logging/logger');
 const { runPostgresBackup } = require('./backupService');
-const mlScoringService = require('./mlScoringService');
-const networkService = require('./networkService');
+const mlScoringService = require('./ml/scoringService');
 const networkTagService = require('./networkTagService');
-const { query } = require('../config/database');
 const { adminQuery } = require('./adminDbService');
-const { getJobStatus, trackJobRun } = require('./jobRunRepository');
+const { getJobStatus, trackJobRun } = require('../repositories/jobRunRepository');
 
 export {};
 
-const ML_SCORING_CRON = '0 */4 * * *';
-// Daily backup at 3:00 AM (off-peak)
-const BACKUP_CRON = process.env.BACKUP_CRON || '0 3 * * *';
-// Daily MV refresh at 4:30 AM (after backup and some scoring)
-const MV_REFRESH_CRON = process.env.MV_REFRESH_CRON || '30 4 * * *';
+import {
+  BACKUP_CRON,
+  DEFAULT_JOB_CONFIGS,
+  ML_SCORING_CRON,
+  MV_REFRESH_CRON,
+} from './backgroundJobs/config';
+import {
+  getResolvedJobConfig,
+  hasJobConfigChanged,
+  loadBackgroundJobConfigs,
+} from './backgroundJobs/settings';
+import { scoreBehavioralThreats } from './backgroundJobs/mlBehavioralScoring';
+import { refreshMaterializedViews } from './backgroundJobs/mvRefresh';
+import type { BackgroundJobName } from './backgroundJobs/config';
 
 const ML_SCORING_LIMIT = 10000;
 const MAX_BSSID_LENGTH = 17;
 const MIN_OBSERVATIONS = 2;
-const MOBILITY_HIGH_KM = 5;
-const MOBILITY_MED_KM = 1;
-const PERSISTENCE_HIGH_DAYS = 7;
-const PERSISTENCE_MED_DAYS = 3;
-const THREAT_LEVEL_THRESHOLDS = {
-  CRITICAL: 80,
-  HIGH: 60,
-  MED: 40,
-  LOW: 20,
-};
-const FEEDBACK_MULTIPLIERS = {
-  FALSE_POSITIVE: 0.1,
-  THREAT_BOOST: 0.3,
-  SUSPECT_BOOST: 0.15,
-};
 
-const JOB_SETTING_KEYS = {
-  backup: 'backup_job_config',
-  mlScoring: 'ml_scoring_job_config',
-  mvRefresh: 'mv_refresh_job_config',
-} as const;
-
-const DEFAULT_JOB_CONFIGS = {
-  backup: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: BACKUP_CRON },
-  mlScoring: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: ML_SCORING_CRON },
-  mvRefresh: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: MV_REFRESH_CRON },
-};
-
-type BackgroundJobName = keyof typeof JOB_SETTING_KEYS;
 export type { BackgroundJobName };
 
 class BackgroundJobsService {
@@ -110,39 +89,32 @@ class BackgroundJobsService {
    */
   static async rescheduleJobs() {
     try {
-      const { rows } = await query(
-        "SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config')"
-      );
-
-      const configs: Record<string, any> = {};
-      rows.forEach((row: any) => {
-        configs[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-      });
+      const configs = await loadBackgroundJobConfigs();
 
       const schedulerEnabled = this.isSchedulerEnabled();
 
       // 1. Backup Job
-      const backupConfig = configs.backup_job_config || DEFAULT_JOB_CONFIGS.backup;
+      const backupConfig = getResolvedJobConfig(configs, 'backup');
       if (
-        this.hasConfigChanged('backup', backupConfig) ||
+        hasJobConfigChanged(this.lastConfig, 'backup', backupConfig) ||
         this.lastSchedulerEnabled !== schedulerEnabled
       ) {
         this.updateJob('backup', backupConfig, () => this.runScheduledBackup(), schedulerEnabled);
       }
 
       // 2. ML Scoring Job
-      const mlConfig = configs.ml_scoring_job_config || DEFAULT_JOB_CONFIGS.mlScoring;
+      const mlConfig = getResolvedJobConfig(configs, 'mlScoring');
       if (
-        this.hasConfigChanged('mlScoring', mlConfig) ||
+        hasJobConfigChanged(this.lastConfig, 'mlScoring', mlConfig) ||
         this.lastSchedulerEnabled !== schedulerEnabled
       ) {
         this.updateJob('mlScoring', mlConfig, () => this.runMLScoring(), schedulerEnabled);
       }
 
       // 3. MV Refresh Job
-      const mvConfig = configs.mv_refresh_job_config || DEFAULT_JOB_CONFIGS.mvRefresh;
+      const mvConfig = getResolvedJobConfig(configs, 'mvRefresh');
       if (
-        this.hasConfigChanged('mvRefresh', mvConfig) ||
+        hasJobConfigChanged(this.lastConfig, 'mvRefresh', mvConfig) ||
         this.lastSchedulerEnabled !== schedulerEnabled
       ) {
         this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh(), schedulerEnabled);
@@ -156,17 +128,6 @@ class BackgroundJobsService {
         (error as Error).message
       );
     }
-  }
-
-  /**
-   * Check if a job configuration has changed
-   */
-  static hasConfigChanged(jobName: string, newConfig: any): boolean {
-    const oldConfig =
-      this.lastConfig[JOB_SETTING_KEYS[jobName as BackgroundJobName]] ||
-      this.lastConfig[`${jobName}_job_config`];
-    if (!oldConfig) return true;
-    return oldConfig.enabled !== newConfig.enabled || oldConfig.cron !== newConfig.cron;
   }
 
   /**
@@ -281,77 +242,10 @@ class BackgroundJobsService {
     if (this.runningJobIds.mvRefresh) {
       throw new Error('materialized view refresh job already running');
     }
-    await trackJobRun(
-      'mvRefresh',
-      async () => {
-        logger.info('[MV Refresh Job] Starting materialized view refresh...');
-
-        // Critical views: failure here is a CRITICAL_FAILURE, not just FAILED
-        const criticalViews = new Set(['app.api_network_explorer_mv']);
-
-        const views = [
-          { name: 'app.api_network_explorer_mv', concurrent: true },
-          { name: 'app.api_network_latest_mv', concurrent: false },
-          { name: 'app.analytics_summary_mv', concurrent: false },
-          { name: 'app.mv_network_timeline', concurrent: false },
-        ];
-        const existingViewsResult = await adminQuery(
-          `
-            SELECT schemaname || '.' || matviewname AS full_name
-            FROM pg_matviews
-            WHERE schemaname = 'app'
-          `
-        );
-        const existingViews = new Set(
-          existingViewsResult.rows.map((row: { full_name: string }) => row.full_name)
-        );
-        const availableViews = views.filter((view) => existingViews.has(view.name));
-        const missingViews = views
-          .filter((view) => !existingViews.has(view.name))
-          .map((view) => view.name);
-
-        const failures: Array<{ view: string; error: string; critical: boolean }> = [];
-
-        if (missingViews.length > 0) {
-          logger.warn(
-            `[MV Refresh Job] Skipping non-existent materialized views: ${missingViews.join(', ')}`
-          );
-        }
-
-        for (const view of availableViews) {
-          try {
-            const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
-            logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
-            // Use adminQuery: shadowcheck_user may lack MAINTAIN/owner privilege on MVs
-            await adminQuery(sql);
-          } catch (error) {
-            const isCritical = criticalViews.has(view.name);
-            failures.push({
-              view: view.name,
-              error: (error as Error).message,
-              critical: isCritical,
-            });
-            logger.error(
-              `[MV Refresh Job] ${isCritical ? 'CRITICAL ' : ''}Failed to refresh ${view.name}: ${(error as Error).message}`
-            );
-          }
-        }
-
-        if (failures.length > 0) {
-          const hasCritical = failures.some((f) => f.critical);
-          const summary = failures.map((f) => `${f.view}: ${f.error}`).join('; ');
-          const err = new Error(summary) as any;
-          if (hasCritical) err.severity = 'CRITICAL_FAILURE';
-          throw err;
-        }
-
-        return { refreshedViews: views.map((view) => view.name) };
-      },
-      {
-        lastConfig: this.lastConfig,
-        runningJobIds: this.runningJobIds,
-      }
-    );
+    await trackJobRun('mvRefresh', async () => refreshMaterializedViews(adminQuery), {
+      lastConfig: this.lastConfig,
+      runningJobIds: this.runningJobIds,
+    });
   }
 
   /**
@@ -373,101 +267,14 @@ class BackgroundJobsService {
           MAX_BSSID_LENGTH
         );
 
-        const scores = [];
-
         logger.info(
           `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`
         );
 
-        // Step 1: Query all manual tags for feedback-aware scoring
         const tagRows = await networkTagService.getManualThreatTags();
-
-        // Step 2: Create tag lookup map
-        const tagMap = new Map();
-        for (const tag of tagRows) {
-          tagMap.set(tag.bssid, {
-            tag: tag.threat_tag,
-            confidence: tag.threat_confidence || 1.0,
-            notes: tag.notes,
-          });
-        }
+        const { scores, tagMap } = scoreBehavioralThreats(networks, tagRows);
 
         logger.info(`[ML Scoring Job] Found ${tagMap.size} manual tags for feedback adjustment`);
-
-        // Step 3: Score each network with feedback-aware model
-        for (const net of networks) {
-          try {
-            // Calculate base ML score using behavioral model
-            const mobility =
-              net.max_distance_km > MOBILITY_HIGH_KM
-                ? 80
-                : net.max_distance_km > MOBILITY_MED_KM
-                  ? 40
-                  : 0;
-            const persistence =
-              net.unique_days > PERSISTENCE_HIGH_DAYS
-                ? 60
-                : net.unique_days > PERSISTENCE_MED_DAYS
-                  ? 30
-                  : 0;
-            const baseMlScore = mobility * 0.6 + persistence * 0.4;
-
-            // Step 4: Apply feedback adjustment based on manual tags
-            let finalScore = baseMlScore;
-            let feedbackApplied = false;
-
-            const tag = tagMap.get(net.bssid);
-            if (tag) {
-              feedbackApplied = true;
-              switch (tag.tag) {
-                case 'FALSE_POSITIVE':
-                  finalScore = baseMlScore * FEEDBACK_MULTIPLIERS.FALSE_POSITIVE; // Suppress threat
-                  break;
-                case 'THREAT':
-                  finalScore =
-                    baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.THREAT_BOOST); // Boost threat
-                  break;
-                case 'SUSPECT':
-                  finalScore =
-                    baseMlScore * (1.0 + tag.confidence * FEEDBACK_MULTIPLIERS.SUSPECT_BOOST); // Moderate boost
-                  break;
-                case 'INVESTIGATE':
-                  finalScore = baseMlScore; // Keep ML score unchanged
-                  break;
-              }
-            }
-
-            // Step 5: Calculate final threat level from adjusted score
-            let threatLevel = 'NONE';
-            if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) {
-              threatLevel = 'CRITICAL';
-            } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) {
-              threatLevel = 'HIGH';
-            } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) {
-              threatLevel = 'MED';
-            } else if (finalScore >= THREAT_LEVEL_THRESHOLDS.LOW) {
-              threatLevel = 'LOW';
-            }
-
-            // Step 6: Store both ML and final scores with feedback metadata
-            scores.push({
-              bssid: net.bssid,
-              ml_threat_score: baseMlScore,
-              ml_threat_probability: baseMlScore / 100.0,
-              ml_primary_class: baseMlScore >= 60 ? 'THREAT' : 'LEGITIMATE',
-              rule_based_score: 0,
-              final_threat_score: finalScore,
-              final_threat_level: threatLevel,
-              model_version: '2.0.0',
-              feedback_applied: feedbackApplied,
-              manual_tag: tag ? tag.tag : null,
-            });
-          } catch (netError) {
-            logger.debug(
-              `[ML Scoring Job] Error scoring ${net.bssid}: ${(netError as Error).message}`
-            );
-          }
-        }
 
         // Bulk insert scores
         const inserted = await mlScoringService.bulkUpsertThreatScores(scores);

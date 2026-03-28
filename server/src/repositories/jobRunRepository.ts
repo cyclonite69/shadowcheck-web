@@ -2,26 +2,12 @@ export {};
 
 const logger = require('../logging/logger');
 const { query } = require('../config/database');
-
-// Duplicated here to avoid a circular dependency on backgroundJobsService.ts.
-const JOB_SETTING_KEYS = {
-  backup: 'backup_job_config',
-  mlScoring: 'ml_scoring_job_config',
-  mvRefresh: 'mv_refresh_job_config',
-} as const;
-
-// Duplicated here to avoid a circular dependency on backgroundJobsService.ts.
-const DEFAULT_JOB_CONFIGS = {
-  backup: {
-    enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
-    cron: process.env.BACKUP_CRON || '0 3 * * *',
-  },
-  mlScoring: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: '0 */4 * * *' },
-  mvRefresh: {
-    enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
-    cron: process.env.MV_REFRESH_CRON || '30 4 * * *',
-  },
-};
+import { JOB_SETTING_NAMES, resolveJobConfig } from '../services/backgroundJobs/config';
+import {
+  getResolvedJobConfig,
+  loadBackgroundJobConfigs,
+} from '../services/backgroundJobs/settings';
+import type { BackgroundJobName } from '../services/backgroundJobs/config';
 
 async function createJobRun(jobName: string, cron: string): Promise<number> {
   const result = await query(
@@ -71,19 +57,17 @@ async function failJobRun(jobId: number, error: string, durationMs: number) {
 }
 
 async function trackJobRun(
-  jobName: string,
+  jobName: BackgroundJobName,
   task: () => Promise<Record<string, unknown> | void>,
   {
     lastConfig,
     runningJobIds,
   }: {
     lastConfig: Record<string, any>;
-    runningJobIds: Partial<Record<string, number>>;
+    runningJobIds: Partial<Record<BackgroundJobName, number>>;
   }
 ): Promise<void> {
-  const cron =
-    lastConfig[JOB_SETTING_KEYS[jobName as keyof typeof JOB_SETTING_KEYS]]?.cron ||
-    DEFAULT_JOB_CONFIGS[jobName as keyof typeof DEFAULT_JOB_CONFIGS].cron;
+  const cron = resolveJobConfig(lastConfig, jobName).cron;
   const startTime = Date.now();
   const jobId = await createJobRun(jobName, cron);
   runningJobIds[jobName] = jobId;
@@ -150,20 +134,11 @@ async function getJobStatus(jobs: Record<string, any>) {
     });
   });
 
-  const settingsRows = await query(
-    "SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config')"
-  );
+  const configs = await loadBackgroundJobConfigs();
 
-  const configs: Record<string, any> = {};
-  settingsRows.rows.forEach((row: any) => {
-    configs[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-  });
-
-  const resolvedJobs = (Object.keys(JOB_SETTING_KEYS) as string[]).reduce(
+  const resolvedJobs = JOB_SETTING_NAMES.reduce(
     (acc, jobName) => {
-      const config =
-        configs[JOB_SETTING_KEYS[jobName as keyof typeof JOB_SETTING_KEYS]] ||
-        DEFAULT_JOB_CONFIGS[jobName as keyof typeof DEFAULT_JOB_CONFIGS];
+      const config = getResolvedJobConfig(configs, jobName);
       const scheduledJob = jobs[jobName];
       const nextInvocation = scheduledJob?.nextInvocation?.();
       acc[jobName] = {
