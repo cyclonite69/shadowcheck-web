@@ -114,7 +114,7 @@ export const JobsTab: React.FC = () => {
         throw new Error(response?.error || 'Manual job run failed');
       }
       await fetchJobStatus();
-      alert(`${key} job completed.`);
+      alert(`${key} job started. Check Runtime Status for completion or failure.`);
     } catch (err: any) {
       alert(`Failed to run job: ${err.message}`);
     } finally {

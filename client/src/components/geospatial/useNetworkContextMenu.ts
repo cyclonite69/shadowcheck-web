@@ -3,6 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { NetworkRow, NetworkTag } from '../../types/network';
 import { networkApi } from '../../api/networkApi';
 import { wigleApi } from '../../api/wigleApi';
+import { calculateContextMenuPlacement, fetchNetworkTagAndNotes } from './contextMenuUtils';
 
 type ContextMenuState = {
   visible: boolean;
@@ -135,48 +136,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     e.stopPropagation();
 
     const requestId = ++contextMenuRequestIdRef.current;
-
-    const menuHeight = 440; // Estimated height of context menu in pixels
-    const menuWidth = 200; // Width of context menu in pixels
-    const padding = 10; // Padding from screen edge
-
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-
-    let posX = e.clientX;
-    let posY = e.clientY;
-    let position: 'below' | 'above' = 'below';
-
-    // ========== VERTICAL POSITIONING ==========
-    // Check if menu would go off bottom of screen
-    if (posY + menuHeight + padding > viewportHeight) {
-      // Flip menu upward
-      posY = e.clientY - menuHeight;
-      position = 'above';
-    }
-
-    // Ensure menu doesn't go above top of screen
-    if (posY < padding) {
-      posY = padding;
-      position = 'below'; // Reset to below if we hit top
-    }
-
-    // ========== HORIZONTAL POSITIONING ==========
-    // Check if menu would go off right side of screen
-    if (posX + menuWidth + padding > viewportWidth) {
-      posX = viewportWidth - menuWidth - padding;
-    }
-
-    // Check if menu would go off left side of screen
-    if (posX - padding < 0) {
-      posX = padding;
-    }
-
-    // Fetch tag and notes independently so one failure doesn't hide note edit mode.
-    const [tagResult, notesResult] = await Promise.allSettled([
-      networkApi.getNetworkTags(network.bssid),
-      networkApi.getNetworkNotes(network.bssid),
-    ]);
+    const { x: posX, y: posY, position } = calculateContextMenuPlacement(e);
+    const { tagResult, notesResult } = await fetchNetworkTagAndNotes(network.bssid);
 
     // Check if a newer request has been made or if the menu was closed
     if (requestId !== contextMenuRequestIdRef.current) return;

@@ -34,7 +34,15 @@ async function getDetailedDatabaseStats(): Promise<any> {
 
     // 3. Categorize results for the frontend
     const categories = {
-      core: ['networks', 'observations', 'access_points', 'device_sources'],
+      core: [
+        'networks',
+        'observations',
+        'access_points',
+        'device_sources',
+        'radio_manufacturers',
+        'network_sibling_pairs',
+        'network_sibling_overrides',
+      ],
       wigle: ['wigle_v2_networks_search', 'wigle_v3_network_details', 'wigle_v3_observations'],
       kismet: [
         'kismet_devices',
@@ -45,7 +53,15 @@ async function getDetailedDatabaseStats(): Promise<any> {
         'kismet_messages',
         'kismet_snapshots',
       ],
-      infra: ['settings', 'schema_migrations', 'import_history', 'geocoding_cache', 'ai_insights'],
+      infra: [
+        'settings',
+        'schema_migrations',
+        'import_history',
+        'geocoding_cache',
+        'agency_offices',
+        'federal_courthouses',
+        'ai_insights',
+      ],
     };
 
     // 4. Get Materialized View Health

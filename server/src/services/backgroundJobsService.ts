@@ -269,6 +269,21 @@ class BackgroundJobsService {
     throw new Error(`Unsupported background job: ${jobName}`);
   }
 
+  static async startJobNow(jobName: BackgroundJobName) {
+    logger.info('[Background Jobs] Manual background start requested', { jobName });
+
+    const jobPromise = this.runJobNow(jobName).catch((error) => {
+      logger.error('[Background Jobs] Manual background run failed', {
+        jobName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
+    void jobPromise;
+
+    return { jobName, status: 'started' };
+  }
+
   /**
    * Shutdown all jobs
    */
