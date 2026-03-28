@@ -402,6 +402,9 @@ DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db
 REDIS_HOST=localhost
 CORS_ORIGINS=http://${PUBLIC_IP},https://${PUBLIC_IP},http://localhost,https://localhost
+SHADOWCHECK_AWS_SECRET=shadowcheck/config
+AWS_DEFAULT_REGION=${AWS_REGION:-us-east-1}
+S3_BACKUP_BUCKET=${S3_BUCKET:-}
 ENVEOF
 
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
