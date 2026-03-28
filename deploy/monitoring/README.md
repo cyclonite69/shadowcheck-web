@@ -67,6 +67,9 @@ GF_SERVER_ROOT_URL="https://34.204.161.164/grafana/" \
 ./deploy/aws/scripts/rotate-grafana-passwords.sh
 ```
 
+The rotation script also force-repairs the `grafana_reader` role grants for
+tables, sequences, functions, and existing materialized views in schema `app`.
+
 ## Enable Slow Query Panel (optional)
 
 Run once:

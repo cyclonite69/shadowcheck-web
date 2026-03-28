@@ -70,14 +70,37 @@ docker exec \
   "$POSTGRES_CONTAINER" \
   psql -U shadowcheck_user -d shadowcheck_db -v ON_ERROR_STOP=1 \
   -v grafana_reader_password="$GRAFANA_READER_PASSWORD" <<'SQL'
+\if :{?grafana_reader_password}
+  SET app.grafana_reader_password = :'grafana_reader_password';
+\else
+  \getenv grafana_reader_password GRAFANA_READER_PASSWORD
+  \if :{?grafana_reader_password}
+    SET app.grafana_reader_password = :'grafana_reader_password';
+  \else
+    SET app.grafana_reader_password = '';
+  \endif
+\endif
+
 DO $$
 DECLARE
-    reader_pass text := :'grafana_reader_password';
+    reader_pass text;
 BEGIN
+    BEGIN
+        reader_pass := current_setting('app.grafana_reader_password');
+    EXCEPTION WHEN OTHERS THEN
+        reader_pass := NULL;
+    END;
+
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
+        IF reader_pass IS NULL OR reader_pass = '' THEN
+            RAISE WARNING 'grafana_reader password not provided - skipping role creation';
+            RETURN;
+        END IF;
         EXECUTE format('CREATE USER grafana_reader WITH PASSWORD %L', reader_pass);
     ELSE
-        EXECUTE format('ALTER USER grafana_reader PASSWORD %L', reader_pass);
+        IF reader_pass IS NOT NULL AND reader_pass != '' THEN
+            EXECUTE format('ALTER USER grafana_reader PASSWORD %L', reader_pass);
+        END IF;
     END IF;
 END
 $$;
@@ -87,16 +110,30 @@ ALTER ROLE grafana_reader SET search_path TO app, public, topology, tiger;
 GRANT CONNECT ON DATABASE shadowcheck_db TO grafana_reader;
 GRANT USAGE ON SCHEMA app TO grafana_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA app TO grafana_reader;
-GRANT SELECT ON ALL MATERIALIZED VIEWS IN SCHEMA app TO grafana_reader;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO grafana_reader;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO grafana_reader;
 GRANT USAGE ON SCHEMA public TO grafana_reader;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO grafana_reader;
+DO $$
+DECLARE
+    mv RECORD;
+BEGIN
+    FOR mv IN
+        SELECT schemaname, matviewname
+        FROM pg_matviews
+        WHERE schemaname = 'app'
+    LOOP
+        EXECUTE format(
+            'GRANT SELECT ON TABLE %I.%I TO grafana_reader',
+            mv.schemaname,
+            mv.matviewname
+        );
+    END LOOP;
+END
+$$;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
   GRANT SELECT ON TABLES TO grafana_reader;
-ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
-  GRANT SELECT ON MATERIALIZED VIEWS TO grafana_reader;
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
   GRANT USAGE ON SEQUENCES TO grafana_reader;
 ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA app
