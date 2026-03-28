@@ -204,7 +204,7 @@ async function markNetworkInvestigate(bssid: string): Promise<any> {
   return result.rows[0];
 }
 
-async function getNetworksPendingWigleLookup(limit: number): Promise<any[]> {
+async function fetchNetworksPendingWigleLookup(limit: number): Promise<any[]> {
   const result = await query(
     `SELECT bssid FROM app.network_tags
      WHERE wigle_lookup_requested = true AND wigle_result IS NULL
@@ -214,7 +214,7 @@ async function getNetworksPendingWigleLookup(limit: number): Promise<any[]> {
   return result.rows;
 }
 
-async function exportMLTrainingData(): Promise<any[]> {
+async function exportMLTrainingSet(): Promise<any[]> {
   const result = await query(
     `SELECT
       nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored, nt.tag_history,
@@ -230,7 +230,7 @@ async function exportMLTrainingData(): Promise<any[]> {
     LEFT JOIN app.observations o ON nt.bssid = o.bssid
     WHERE nt.threat_tag IS NOT NULL
     GROUP BY nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored,
-             nt.tag_history, n.ssid, n.type, n.frequency, n.capabilities, n.bestlevel, nt.updated_at
+      nt.tag_history, n.ssid, n.type, n.frequency, n.capabilities, n.bestlevel, nt.updated_at
     ORDER BY nt.updated_at DESC`
   );
   return result.rows;
@@ -240,10 +240,10 @@ export {
   addNetworkNote,
   checkDuplicateObservations,
   deleteNetworkTag,
-  exportMLTrainingData,
+  exportMLTrainingSet,
   getBackupData,
   getNetworkSummary,
-  getNetworksPendingWigleLookup,
+  fetchNetworksPendingWigleLookup,
   insertNetworkTagIgnore,
   insertNetworkTagNotes,
   insertNetworkThreatTag,
@@ -254,3 +254,6 @@ export {
   updateNetworkThreatTag,
   upsertNetworkTag,
 };
+
+export { fetchNetworksPendingWigleLookup as getNetworksPendingWigleLookup };
+export { exportMLTrainingSet as exportMLTrainingData };

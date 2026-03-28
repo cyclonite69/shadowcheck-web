@@ -260,7 +260,7 @@ router.delete('/:bssid', requireAdmin, async (req: any, res: any) => {
  */
 router.get('/export/ml', requireAdmin, async (req: any, res: any) => {
   try {
-    const trainingData = await adminNetworkTagsService.exportMLTrainingData();
+    const trainingData = await adminNetworkTagsService.exportMLTrainingSet();
 
     res.json({
       training_data: trainingData,

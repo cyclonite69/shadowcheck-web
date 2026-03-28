@@ -232,3 +232,6 @@ export async function exportMLTrainingSet(): Promise<any[]> {
   );
   return result.rows;
 }
+
+export { fetchNetworksPendingWigleLookup as getNetworksPendingWigleLookup };
+export { exportMLTrainingSet as exportMLTrainingData };
