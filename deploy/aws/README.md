@@ -60,8 +60,7 @@ over.
 
 - Local Docker uses the root [docker-compose.yml](../../docker-compose.yml) and the
   local `postgres` service name for `DB_HOST`
-- Production EC2 keeps the deployed PostgreSQL host in `.env`, for example
-  `DB_HOST=34.204.161.164`
+- Production EC2 defaults to `DB_HOST=postgres` when running the backend inside the Docker network (standard for `scs_rebuild.sh`). Use `DB_HOST=127.0.0.1` only for host-mode development or legacy standalone setups.
 - Passwords remain sourced from AWS Secrets Manager in both cases; local Docker can
   pass through real AWS credentials or provide `DB_PASSWORD` / `DB_ADMIN_PASSWORD`
   as shell environment overrides

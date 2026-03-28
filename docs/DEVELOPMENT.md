@@ -130,7 +130,7 @@ Non-secret config example:
 
 ```env
 DB_USER=shadowcheck_user
-DB_HOST=localhost  # or shadowcheck_postgres for Docker
+DB_HOST=postgres   # or localhost for host-based development
 DB_NAME=shadowcheck_db
 DB_PORT=5432
 REDIS_HOST=localhost

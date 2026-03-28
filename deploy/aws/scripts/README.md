@@ -7,43 +7,19 @@
 
 ## Core Deployment Scripts (The Essential 6)
 
-### 🚀 launch-shadowcheck-spot.sh
-
-**Run from:** Local machine  
-**Purpose:** Legacy EC2 spot instance launcher  
-**Does:**
-
-- Launches t4g.medium spot instance from template
-- Checks volume AZ compatibility before attaching
-- Associates Elastic IP automatically
-- Waits for SSM agent to be ready
-
-**Usage:**
-
-```bash
-./deploy/aws/scripts/launch-shadowcheck-spot.sh
-```
-
-### 🚀 launch-shadowcheck-arm-spot.sh
+### 🚀 launch-shadowcheck-arm-spot.sh (RECOMMENDED)
 
 **Run from:** Local machine  
 **Purpose:** Recommended single-node ARM Spot replacement launcher  
 **Does:**
 
-- Uses one-time Spot instead of a persistent Spot request
-- Tries multiple ARM instance types in order
+- Uses one-time Spot instead of a persistent Spot request (more cost-effective)
+- Tries multiple ARM instance types in order (`m7g.large`, `m6g.large`, `c7g.large`, `c6g.large`)
 - Keeps the instance in the same AZ as the PostgreSQL EBS volume
-- Stops and detaches the old volume owner before reattaching
+- Stops and detaches the old volume owner before reattaching to the new instance
 - Reassociates the Elastic IP automatically
 - Optionally terminates the displaced instance after handoff
 - Waits briefly for SSM registration
-
-**Default ARM pool:**
-
-- `m7g.large`
-- `m6g.large`
-- `c7g.large`
-- `c6g.large`
 
 **Usage:**
 
@@ -59,67 +35,31 @@
 
 ---
 
-### ⚙️ setup-instance.sh
-
-**Run from:** EC2 instance (via SSM, requires sudo)  
-**Purpose:** First-time system configuration  
-**Does:**
-
-- Installs system packages (ripgrep, ncdu, jq, etc.)
-- Installs Docker and adds ssm-user to docker group
-- Installs Docker Compose
-- Installs Node.js 20
-- Installs AWS CLI v2
-- Installs pip3 and pgcli
-- Creates directories (/home/ssm-user/shadowcheck, secrets, backups)
-- Symlinks scs_rebuild to /usr/local/bin
-
-**Usage:**
-
-```bash
-sudo ./deploy/aws/scripts/setup-instance.sh
-```
-
-**Run once per instance.**
-
----
-
-### 🎯 deploy-complete.sh
+### 🔄 scs_rebuild.sh (CANONICAL)
 
 **Run from:** EC2 instance (as ssm-user)  
-**Purpose:** Complete deployment orchestrator  
+**Purpose:** Canonical daily rebuild, update, and migration orchestrator. This is the primary entry point for all application updates.  
 **Does:**
 
-1. Runs setup-instance.sh (if needed)
-2. Clones/updates repository
-3. Runs deploy-postgres.sh and deploy-redis.sh
-4. Configures environment (.env.aws)
-5. Runs scs_rebuild.sh
-6. Optionally initializes admin user
+1. **Self-Installation**: Symlinks itself to `/usr/local/bin/scs_rebuild` for global access.
+2. **Environment Loading**: Reads persistent settings from `~/.shadowcheck-env`.
+3. **Branch Awareness**: Automatically detects the current git branch and pulls the latest code.
+4. **Certificate Management**:
+   - Generates or reuses a 10-year self-signed TLS certificate for the instance's public IP.
+   - Backs up certificates to S3 (if `S3_BUCKET` is configured via SSM).
+   - Enforces correct permissions (999:999) for PostgreSQL and pgAdmin access.
+5. **Infrastructure Sync**: Ensures `shadowcheck_postgres` and `shadowcheck_redis` are running and healthy.
+6. **Container Rebuild**: Performs a `--no-cache` build of both backend and frontend images.
+7. **Database Migrations**:
+   - Bootstraps the `shadowcheck_admin` role.
+   - Runs `sql/run-migrations.sh` to apply all pending schema updates.
+8. **Monitoring**: Syncs Grafana passwords and ensures the monitoring stack is healthy.
 
-**Usage:**
+**Parameters (via Environment):**
 
-```bash
-./deploy/aws/scripts/deploy-complete.sh
-```
-
-**Run once for fresh deployments.**
-
----
-
-### 🔄 scs_rebuild.sh
-
-**Run from:** EC2 instance (as ssm-user)  
-**Purpose:** Daily rebuild and update script  
-**Does:**
-
-1. Cleans old Docker artifacts
-2. Pulls latest code from GitHub
-3. Builds backend and frontend images
-4. Ensures PostgreSQL and Redis are running
-5. Restarts backend and frontend containers
-6. Runs database migrations
-7. Health checks
+- `ENABLE_GRAFANA_MONITORING`: Toggle Grafana sync (default: `true`).
+- `SCS_SKIP_CLEANUP`: Skip Docker system prune (default: `false`).
+- `SCS_RESTORE_CERT`: Manual path to a certificate to restore.
 
 **Usage:**
 
@@ -129,7 +69,15 @@ scs_rebuild  # (symlinked to /usr/local/bin)
 ./deploy/aws/scripts/scs_rebuild.sh
 ```
 
-**Run this for every code update.**
+**Run this for every code update. It replaces legacy manual SQL migration steps.**
+
+---
+
+### 🚀 launch-shadowcheck-spot.sh (LEGACY)
+
+**Run from:** Local machine  
+**Purpose:** Legacy EC2 spot instance launcher (uses persistent requests)  
+**Usage:** `./deploy/aws/scripts/launch-shadowcheck-spot.sh`
 
 ---
 

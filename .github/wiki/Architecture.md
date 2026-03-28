@@ -654,7 +654,7 @@ graph LR
 ```mermaid
 graph TB
     A[docker-compose up] --> B[shadowcheck-app<br/>Container]
-    A --> C[shadowcheck-postgres<br/>Container]
+    A --> C[postgres<br/>Container]
     A --> D[shadowcheck-redis<br/>Container]
     A --> E[pgadmin<br/>Container]
 

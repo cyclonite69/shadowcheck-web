@@ -1,58 +1,40 @@
 # Secrets Management
 
-**Wiki reference (diagrams):** [Security](../.github/wiki/Security.md)
+ShadowCheck uses **AWS Secrets Manager** as the single source of truth for all sensitive credentials (database passwords, API tokens, etc.). Secrets are never written to disk and are resolved at runtime.
 
-ShadowCheck uses **AWS Secrets Manager** as the single source of truth for secrets.
-Secrets are never written to disk.
+## Core Mandates
 
-## Architecture
+- **No Secrets on Disk**: Never commit `.env` files with real credentials or write secrets to local configuration files.
+- **Runtime Resolution**: Use `server/src/services/secretsManager.ts` to fetch secrets from AWS at application startup.
+- **Local Overrides**: For local development only, environment variables (e.g., `DB_PASSWORD`) can be used as explicit overrides.
 
-**Single Source of Truth:** AWS Secrets Manager
-**Runtime Loading:** `secretsManager` resolves secrets at runtime
-**Local Overrides:** Environment variables only (explicit, non-persistent)
+## Required Secret Keys
 
-## Required Secrets
+Provision these keys in your AWS Secrets Manager secret (default: `shadowcheck/config`):
 
-- `db_password` - PostgreSQL password
-- `session_secret` - Express session secret
-- `mapbox_token` - Mapbox API token
+| Secret Key | Description |
+| :--- | :--- |
+| `db_password` | Standard database user password. |
+| `db_admin_password` | Admin database role password (required for migrations). |
+| `mapbox_token` | Mapbox GL JS access token. |
+| `wigle_api_token` | WiGLE API v2 bearer token. |
 
-## Optional Secrets
+## Accessing Secrets
 
-- `admin_app_password`
-- `wigle_api_key`
-- `wigle_api_token`
-- `opencage_api_key`
-- `locationiq_api_key`
-- `google_maps_api_key`
-
-## Runtime Usage
-
-```js
-const secretsManager = require('./services/secretsManager');
-const dbPassword = secretsManager.getOrThrow('db_password');
+### Backend (Node.js)
+```typescript
+import secretsManager from './services/secretsManager';
+const dbPassword = secretsManager.get('db_password');
 ```
 
-## Development Setup
+### Scripts (Bash)
+Use `aws secretsmanager get-secret-value` with `jq` to parse the `SecretString`.
 
-Use environment variables only for local dev overrides:
+## Rotation Policy
 
-```bash
-export DB_PASSWORD=...
-export SESSION_SECRET=...
-export MAPBOX_TOKEN=...
-```
+- **Schedule**: Database and API secrets should be rotated every 90 days.
+- **Automation**: Use `deploy/aws/scripts/rotate-grafana-passwords.sh` for monitoring credentials.
+- **Manual Rotation**: Update the value in AWS Secrets Manager and restart the application services to pick up the change.
 
-## Security Guarantees
-
-- **No disk storage:** Secrets are never written to files.
-- **Runtime-only:** Secrets are loaded from AWS SM or env vars.
-- **No hardcoded values:** Secrets are never committed to the repo.
-
-## Troubleshooting
-
-### AWS Secrets Manager Access Denied
-
-- Ensure the IAM role/user has access to the secret.
-- Verify the AWS region configuration.
-- Use environment variables only for explicit local overrides.
+## Security Audit
+All data-modifying scripts (`scs_rebuild.sh`, `deploy-postgres.sh`) are audited to ensure they do not log or persist decrypted secret values to the filesystem or terminal history.

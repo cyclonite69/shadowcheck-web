@@ -32,7 +32,18 @@ This update integrates the complete instance setup process into the AWS deployme
 sudo ./deploy/aws/scripts/setup-instance.sh
 ```
 
-### 2. `deploy/aws/scripts/deploy-complete.sh`
+### 2. `deploy/aws/scripts/launch-shadowcheck-arm-spot.sh`
+
+**Purpose:** Optimized ARM Spot replacement launcher
+
+**What it does:**
+
+- Orchestrates the transition from an old instance to a new one.
+- Detaches and reattaches the persistent EBS volume across instances.
+- Reassociates the Elastic IP automatically.
+- Supports a mixed pool of ARM instance types (`m7g`, `m6g`, `c7g`, `c6g`).
+
+### 3. `deploy/aws/scripts/deploy-complete.sh`
 
 **Purpose:** Orchestrates entire deployment process
 
