@@ -56,10 +56,11 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        const rawMessage = (data && (data.error || data.message)) || text;
         const message =
-          (data && (data.error || data.message)) ||
-          text ||
-          `Request failed: ${response.status} ${response.statusText}`;
+          typeof rawMessage === 'object'
+            ? JSON.stringify(rawMessage)
+            : rawMessage || `Request failed: ${response.status} ${response.statusText}`;
         const error = new Error(message) as Error & { status?: number; data?: unknown };
         error.status = response.status;
         error.data = data;
