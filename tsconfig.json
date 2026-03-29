@@ -14,7 +14,8 @@
     "resolveJsonModule": true,
     "declaration": false,
     "sourceMap": false,
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
   "include": ["server/**/*", "scripts/**/*", "etl/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist", "client"]

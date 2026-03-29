@@ -1,19 +1,11 @@
 import React from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../types/network';
-import { NETWORK_COLUMNS } from '../../constants/network';
-import { macColor } from '../../utils/mapHelpers';
-import { TypeBadge, ThreatBadge } from '../badges';
 import {
   NETWORK_TABLE_COLUMN_WIDTHS,
   NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS,
 } from './networkTableGridConfig';
-import {
-  getSignalColor,
-  getSignalDisplay,
-  getTimespanBadgeStyle,
-  getTimespanDisplay,
-} from '../../utils/networkFormatting';
+import { NetworkTableRow } from './networkTable/NetworkTableRow';
 
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -132,8 +124,6 @@ export const NetworkTableBodyGrid = ({
       >
         {items.map((virtualRow) => {
           const net = filteredNetworks[virtualRow.index];
-          const isSelected = selectedNetworks.has(net.bssid);
-          const isLinkedSibling = linkedSiblingBssids.has(net.bssid);
           const siblingGroupId = siblingGroupMap.get(net.bssid) || null;
           const prevSiblingGroupId =
             virtualRow.index > 0
@@ -143,425 +133,34 @@ export const NetworkTableBodyGrid = ({
             virtualRow.index < filteredNetworks.length - 1
               ? siblingGroupMap.get(filteredNetworks[virtualRow.index + 1]?.bssid) || null
               : null;
-          const isSelectedAnchor = selectedAnchorBssid === net.bssid;
-          const showSelectedAnchorLink = isSelectedAnchor && selectedAnchorHasLinkedSiblings;
-          const isSiblingLinkedRow =
-            Boolean(siblingGroupId) || showSelectedAnchorLink || isLinkedSibling;
           const isSiblingGroupStart =
             Boolean(siblingGroupId) && prevSiblingGroupId !== siblingGroupId;
           const isSiblingGroupEnd =
             Boolean(siblingGroupId) && nextSiblingGroupId !== siblingGroupId;
-          const rowBackground = isSelected
-            ? 'rgba(59, 130, 246, 0.1)'
-            : isSiblingLinkedRow
-              ? 'rgba(8, 47, 73, 0.55)'
-              : 'rgba(15, 23, 42, 0.45)';
-          const rowAccent = isSiblingLinkedRow
-            ? [
-                'inset 5px 0 0 rgba(56, 189, 248, 0.98)',
-                isSiblingGroupStart ? 'inset 0 1px 0 rgba(103, 232, 249, 0.55)' : '',
-                isSiblingGroupEnd ? 'inset 0 -1px 0 rgba(103, 232, 249, 0.55)' : '',
-              ]
-                .filter(Boolean)
-                .join(', ')
-            : undefined;
 
           return (
-            <div
+            <NetworkTableRow
               key={net.bssid}
-              style={{
-                position: 'absolute',
-                top: `${virtualRow.start}px`,
-                left: 0,
-                width: `${totalGridWidth}px`,
-                height: `${virtualRow.size}px`,
-                display: 'grid',
-                gridTemplateColumns,
-                minWidth: 0,
-                alignItems: 'center',
-                overflow: 'hidden',
-                background: rowBackground,
-                boxShadow: rowAccent,
-                cursor: 'pointer',
-                padding: '0',
-                borderTop: isSiblingGroupStart ? '1px solid rgba(103, 232, 249, 0.35)' : undefined,
-                borderBottom: isSiblingGroupEnd
-                  ? '1px solid rgba(103, 232, 249, 0.35)'
-                  : '1px solid rgba(71, 85, 105, 0.2)',
-              }}
-              onClick={() => onSelectExclusive(net.bssid)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                onOpenContextMenu(e, net);
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = isSelected
-                  ? 'rgba(59, 130, 246, 0.15)'
-                  : isSiblingLinkedRow
-                    ? 'rgba(12, 74, 110, 0.6)'
-                    : 'rgba(71, 85, 105, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = isSelected
-                  ? 'rgba(59, 130, 246, 0.1)'
-                  : isSiblingLinkedRow
-                    ? 'rgba(8, 47, 73, 0.55)'
-                    : 'rgba(15, 23, 42, 0.45)';
-              }}
-            >
-              {visibleColumns.map((col) => {
-                const column = NETWORK_COLUMNS[col as keyof typeof NETWORK_COLUMNS];
-                if (!column) return null;
-
-                const value = net[col as keyof NetworkRow];
-                const isLockedColumn = NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(
-                  String(col)
-                );
-                const stickyCellStyle: React.CSSProperties = isLockedColumn
-                  ? {
-                      position: 'sticky',
-                      left: `${getLockedLeft(col)}px`,
-                      zIndex: getLockedZIndex(col),
-                      background: rowBackground,
-                      boxShadow:
-                        col === lastLockedVisibleColumn
-                          ? '1px 0 0 rgba(71, 85, 105, 0.25)'
-                          : undefined,
-                    }
-                  : { minWidth: 0, overflow: 'hidden' };
-
-                // Select checkbox
-                if (col === 'select') {
-                  return (
-                    <div
-                      key={col}
-                      style={{
-                        ...stickyCellStyle,
-                        padding: '0 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        height: '100%',
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onToggleSelectNetwork(net.bssid)}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ cursor: 'pointer', margin: 0, display: 'block' }}
-                      />
-                    </div>
-                  );
-                }
-
-                // Type badge
-                if (col === 'type') {
-                  return (
-                    <div
-                      key={col}
-                      style={{
-                        ...stickyCellStyle,
-                        padding: '0 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        height: '100%',
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      <TypeBadge type={(value as any) || '?'} />
-                    </div>
-                  );
-                }
-
-                // Threat badge with reasons and evidence
-                if (col === 'threat') {
-                  const allTagsTooltip =
-                    typeof net.all_tags === 'string' && net.all_tags.trim().length > 0
-                      ? `Manual tags: ${net.all_tags}`
-                      : undefined;
-                  return (
-                    <div
-                      key={col}
-                      style={{ ...stickyCellStyle, padding: '0 4px' }}
-                      title={allTagsTooltip}
-                    >
-                      <ThreatBadge
-                        threat={net.threat || undefined}
-                        reasons={net.threatReasons as any}
-                        evidence={net.threatEvidence as any}
-                      />
-                    </div>
-                  );
-                }
-
-                // Signal with color coding
-                if (col === 'signal') {
-                  const signalValue = value as number | null;
-                  return (
-                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
-                      <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
-                        {getSignalDisplay(signalValue)}
-                      </span>
-                    </div>
-                  );
-                }
-
-                // Observations count badge
-                if (col === 'observations') {
-                  return (
-                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
-                      <span
-                        style={{
-                          background: 'rgba(59, 130, 246, 0.2)',
-                          color: '#93c5fd',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: '500',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          display: 'inline-block',
-                        }}
-                      >
-                        {value as number}
-                      </span>
-                    </div>
-                  );
-                }
-
-                // Channel badge (WiFi only)
-                if (col === 'channel') {
-                  const channelValue = value as number | null;
-                  const networkType = net.type;
-                  if (networkType === 'W' && channelValue !== null && channelValue !== 0) {
-                    return (
-                      <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
-                        <span
-                          style={{
-                            background: 'rgba(16, 185, 129, 0.2)',
-                            color: '#10b981',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: '500',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            display: 'inline-block',
-                          }}
-                        >
-                          {channelValue}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      key={col}
-                      style={{ ...stickyCellStyle, padding: '0 4px', color: '#cbd5e1' }}
-                    >
-                      {networkType === 'W' ? 'N/A' : '—'}
-                    </div>
-                  );
-                }
-
-                // Frequency
-                if (col === 'frequency') {
-                  const freqValue = value as number | null;
-                  if (freqValue !== null && freqValue !== 0) {
-                    const isWiFi = net.type === 'W';
-                    return (
-                      <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
-                        <span
-                          style={{
-                            color: isWiFi ? '#10b981' : '#94a3b8',
-                            fontWeight: isWiFi ? '600' : '400',
-                          }}
-                        >
-                          {freqValue} MHz
-                        </span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      key={col}
-                      style={{ ...stickyCellStyle, padding: '0 4px', color: '#cbd5e1' }}
-                    >
-                      N/A
-                    </div>
-                  );
-                }
-
-                // Timespan badge (3-tier traffic light)
-                if (col === 'timespanDays') {
-                  const days = value as number | null;
-                  if (days !== null && days >= 0) {
-                    const { bg, color, border } = getTimespanBadgeStyle(days);
-                    return (
-                      <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
-                        <span
-                          style={{
-                            background: bg,
-                            color,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: '500',
-                            border: `1px solid ${border}`,
-                            display: 'inline-block',
-                          }}
-                        >
-                          {getTimespanDisplay(days)}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      key={col}
-                      style={{ ...stickyCellStyle, padding: '0 4px', color: '#94a3b8' }}
-                    >
-                      Not computed
-                    </div>
-                  );
-                }
-
-                // BSSID with color (not SSID!)
-                if (col === 'bssid') {
-                  return (
-                    <div
-                      key={col}
-                      style={{
-                        ...stickyCellStyle,
-                        padding: '0 4px',
-                        fontFamily: 'monospace',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        letterSpacing: '0.02em',
-                        color: macColor(net.bssid),
-                        whiteSpace: 'nowrap',
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      {(showSelectedAnchorLink || isLinkedSibling) && (
-                        <span
-                          title={
-                            showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'
-                          }
-                          style={{
-                            color: '#38bdf8',
-                            flex: '0 0 auto',
-                          }}
-                        >
-                          🔗
-                        </span>
-                      )}
-                      <span
-                        style={{
-                          minWidth: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {value as any}
-                      </span>
-                    </div>
-                  );
-                }
-
-                // SSID (no color, just text)
-                if (col === 'ssid') {
-                  return (
-                    <div
-                      key={col}
-                      style={{
-                        ...stickyCellStyle,
-                        padding: '0 4px',
-                        color: '#f1f5f9',
-                        fontWeight: 500,
-                        minWidth: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                      title={value as string}
-                    >
-                      <span
-                        style={{
-                          minWidth: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {(value as any) || '(hidden)'}
-                      </span>
-                      {(showSelectedAnchorLink || isLinkedSibling) && (
-                        <span
-                          style={{
-                            flex: '0 0 auto',
-                            fontSize: '10px',
-                            color: '#7dd3fc',
-                            background: 'rgba(14, 165, 233, 0.15)',
-                            border: '1px solid rgba(56, 189, 248, 0.35)',
-                            borderRadius: '999px',
-                            padding: '1px 5px',
-                          }}
-                          title={
-                            showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'
-                          }
-                        >
-                          link
-                        </span>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (column.render) {
-                  return (
-                    <div key={col} style={{ ...stickyCellStyle, padding: '0 4px' }}>
-                      {column.render(value, net)}
-                    </div>
-                  );
-                }
-
-                // Default text
-                return (
-                  <div
-                    key={col}
-                    style={{
-                      ...stickyCellStyle,
-                      padding: '0 4px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      color: '#f1f5f9',
-                    }}
-                    title={
-                      typeof value === 'string' || typeof value === 'number' ? String(value) : ''
-                    }
-                  >
-                    {
-                      (typeof value === 'string' ||
-                      typeof value === 'number' ||
-                      typeof value === 'boolean'
-                        ? (value as any)
-                        : value == null
-                          ? 'N/A'
-                          : '—') as any
-                    }
-                  </div>
-                );
-              })}
-            </div>
+              virtualRow={virtualRow}
+              net={net}
+              visibleColumns={visibleColumns}
+              totalGridWidth={totalGridWidth}
+              gridTemplateColumns={gridTemplateColumns}
+              selectedNetworks={selectedNetworks}
+              linkedSiblingBssids={linkedSiblingBssids}
+              siblingGroupId={siblingGroupId}
+              isSiblingGroupStart={isSiblingGroupStart}
+              isSiblingGroupEnd={isSiblingGroupEnd}
+              selectedAnchorBssid={selectedAnchorBssid}
+              selectedAnchorHasLinkedSiblings={selectedAnchorHasLinkedSiblings}
+              onSelectExclusive={onSelectExclusive}
+              onOpenContextMenu={onOpenContextMenu}
+              onToggleSelectNetwork={onToggleSelectNetwork}
+              lockedVisibleColumns={lockedVisibleColumns}
+              lastLockedVisibleColumn={lastLockedVisibleColumn}
+              getLockedLeft={getLockedLeft}
+              getLockedZIndex={getLockedZIndex}
+            />
           );
         })}
       </div>

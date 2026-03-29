@@ -66,12 +66,12 @@ module.exports = {
   // Transform - Add TypeScript support
   preset: 'ts-jest',
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': 'ts-jest',
     '^.+\\.js$': 'babel-jest',
   },
 
   // Module file extensions
-  moduleFileExtensions: ['js', 'ts', 'json'],
+  moduleFileExtensions: ['js', 'ts', 'tsx', 'json'],
 
   // Global setup/teardown
   // globalSetup: '<rootDir>/tests/globalSetup.js',

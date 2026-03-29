@@ -1,0 +1,345 @@
+import React from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import type { NetworkRow } from '../../../types/network';
+import type { NetworkColumnConfig } from '../../../constants/network';
+import { TypeBadge, ThreatBadge } from '../../badges';
+import { macColor } from '../../../utils/mapHelpers';
+import {
+  getSignalColor,
+  getSignalDisplay,
+  getTimespanBadgeStyle,
+  getTimespanDisplay,
+} from '../../../utils/networkFormatting';
+
+export interface NetworkTableCellRendererContext {
+  column: keyof NetworkRow | 'select';
+  columnConfig?: NetworkColumnConfig;
+  row: NetworkRow;
+  value: unknown;
+  isSelected: boolean;
+  isLinkedSibling: boolean;
+  showSelectedAnchorLink: boolean;
+  onToggleSelectNetwork: (bssid: string) => void;
+}
+
+export interface NetworkTableCellRendererResult {
+  content: ReactNode;
+  style?: CSSProperties;
+  title?: string;
+}
+
+const renderSelect = ({
+  row,
+  isSelected,
+  onToggleSelectNetwork,
+}: NetworkTableCellRendererContext) => {
+  const bssid = row.bssid;
+  const handleChange = () => {
+    if (bssid) {
+      onToggleSelectNetwork(bssid);
+    }
+  };
+
+  return {
+    content: (
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={handleChange}
+        onClick={(event) => event.stopPropagation()}
+        style={{ cursor: 'pointer', margin: 0, display: 'block' }}
+      />
+    ),
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      height: '100%',
+      boxSizing: 'border-box' as CSSProperties['boxSizing'],
+    } as CSSProperties,
+  };
+};
+
+const renderType = ({ value }: NetworkTableCellRendererContext) => {
+  const networkType = (value as NetworkRow['type']) || '?';
+  return {
+    content: <TypeBadge type={networkType} />,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      height: '100%',
+      boxSizing: 'border-box',
+    } as CSSProperties,
+  };
+};
+
+const renderThreat = ({ row }: NetworkTableCellRendererContext) => {
+  const tooltip =
+    typeof row.all_tags === 'string' && row.all_tags.trim().length > 0
+      ? `Manual tags: ${row.all_tags}`
+      : undefined;
+
+  return {
+    content: (
+      <ThreatBadge
+        threat={row.threat || undefined}
+        reasons={row.threatReasons as any}
+        evidence={row.threatEvidence as any}
+      />
+    ),
+    title: tooltip,
+  };
+};
+
+const renderSignal = ({ value }: NetworkTableCellRendererContext) => {
+  const signalValue = value as number | null;
+  return {
+    content: (
+      <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
+        {getSignalDisplay(signalValue)}
+      </span>
+    ),
+  };
+};
+
+const renderObservations = ({ value }: NetworkTableCellRendererContext) => ({
+  content: (
+    <span
+      style={{
+        background: 'rgba(59, 130, 246, 0.2)',
+        color: '#93c5fd',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontWeight: '500',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
+        display: 'inline-block',
+      }}
+    >
+      {value as number}
+    </span>
+  ),
+});
+
+const renderChannel = ({ value, row }: NetworkTableCellRendererContext) => {
+  const channelValue = value as number | null;
+  const networkType = row.type;
+  if (networkType === 'W' && channelValue && channelValue !== 0) {
+    return {
+      content: (
+        <span
+          style={{
+            background: 'rgba(16, 185, 129, 0.2)',
+            color: '#10b981',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '500',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            display: 'inline-block',
+          }}
+        >
+          {channelValue}
+        </span>
+      ),
+    };
+  }
+
+  return {
+    content: <span>{networkType === 'W' ? 'N/A' : '—'}</span>,
+    style: { color: '#cbd5e1' },
+  };
+};
+
+const renderFrequency = ({ value, row }: NetworkTableCellRendererContext) => {
+  const freqValue = value as number | null;
+  if (freqValue && freqValue !== 0) {
+    const isWiFi = row.type === 'W';
+    return {
+      content: (
+        <span style={{ color: isWiFi ? '#10b981' : '#94a3b8', fontWeight: isWiFi ? '600' : '400' }}>
+          {freqValue} MHz
+        </span>
+      ),
+    };
+  }
+
+  return {
+    content: <span>N/A</span>,
+    style: { color: '#cbd5e1' },
+  };
+};
+
+const renderTimespanDays = ({ value }: NetworkTableCellRendererContext) => {
+  const days = value as number | null;
+  if (days !== null && days >= 0) {
+    const { bg, color, border } = getTimespanBadgeStyle(days);
+    return {
+      content: (
+        <span
+          style={{
+            background: bg,
+            color,
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '500',
+            border: `1px solid ${border}`,
+            display: 'inline-block',
+          }}
+        >
+          {getTimespanDisplay(days)}
+        </span>
+      ),
+    };
+  }
+
+  return {
+    content: <span>Not computed</span>,
+    style: { color: '#94a3b8' },
+  };
+};
+
+const renderBssid = ({
+  value,
+  row,
+  showSelectedAnchorLink,
+  isLinkedSibling,
+}: NetworkTableCellRendererContext) => {
+  const label = value == null ? '—' : String(value);
+  return {
+    content: (
+      <div
+        style={{
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.02em',
+          color: macColor(row.bssid ?? ''),
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        {(showSelectedAnchorLink || isLinkedSibling) && (
+          <span
+            title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
+            style={{ color: '#38bdf8', flex: '0 0 auto' }}
+          >
+            🔗
+          </span>
+        )}
+        <span
+          style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}
+        >
+          {label}
+        </span>
+      </div>
+    ),
+  };
+};
+
+const renderSsid = ({
+  value,
+  showSelectedAnchorLink,
+  isLinkedSibling,
+}: NetworkTableCellRendererContext) => {
+  const textContent =
+    value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
+  const title = typeof value === 'string' && value.length > 0 ? value : undefined;
+  return {
+    content: (
+      <div
+        style={{
+          color: '#f1f5f9',
+          fontWeight: 500,
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+        title={title}
+      >
+        <span
+          style={{
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {textContent}
+        </span>
+        {(showSelectedAnchorLink || isLinkedSibling) && (
+          <span
+            title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
+            style={{
+              flex: '0 0 auto',
+              fontSize: '10px',
+              color: '#7dd3fc',
+              background: 'rgba(14, 165, 233, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              borderRadius: '999px',
+              padding: '1px 5px',
+            }}
+          >
+            link
+          </span>
+        )}
+      </div>
+    ),
+  };
+};
+
+const defaultValue = (value: unknown) => {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+  if (value == null) {
+    return 'N/A';
+  }
+  return '—';
+};
+
+const defaultTitle = (value: unknown) =>
+  typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
+
+export const renderNetworkTableCell = (
+  context: NetworkTableCellRendererContext
+): NetworkTableCellRendererResult => {
+  switch (context.column) {
+    case 'select':
+      return renderSelect(context);
+    case 'type':
+      return renderType(context);
+    case 'threat':
+      return renderThreat(context);
+    case 'signal':
+      return renderSignal(context);
+    case 'observations':
+      return renderObservations(context);
+    case 'channel':
+      return renderChannel(context);
+    case 'frequency':
+      return renderFrequency(context);
+    case 'timespanDays':
+      return renderTimespanDays(context);
+    case 'bssid':
+      return renderBssid(context);
+    case 'ssid':
+      return renderSsid(context);
+    default:
+      if (context.columnConfig?.render) {
+        return { content: context.columnConfig.render(context.value, context.row) };
+      }
+      return {
+        content: defaultValue(context.value),
+        title: defaultTitle(context.value),
+      };
+  }
+};
