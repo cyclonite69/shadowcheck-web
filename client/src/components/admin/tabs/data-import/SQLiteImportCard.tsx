@@ -2,6 +2,9 @@ import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
 import { SourceTagInput } from '../../components/SourceTagInput';
 import { UploadIcon } from './UploadIcon';
+import { ImportStatusMessage } from './ImportStatusMessage';
+import { BackupCheckbox } from './BackupCheckbox';
+import { FileImportButton } from './FileImportButton';
 
 interface SQLiteImportCardProps {
   backupEnabled: boolean;
@@ -50,53 +53,29 @@ export const SQLiteImportCard = ({
         <SourceTagInput value={sourceTag} onChange={setSourceTag} disabled={isLoading} />
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={backupEnabled}
-          onChange={(e) => onToggleBackup(e.target.checked)}
-          disabled={isLoading}
-          className="w-4 h-4 rounded accent-orange-500"
-        />
-        <span className="text-xs text-slate-400">Back up database before importing</span>
-      </label>
+      <BackupCheckbox
+        enabled={backupEnabled}
+        onToggle={onToggleBackup}
+        disabled={isLoading}
+        accentColor="accent-orange-500"
+      />
 
-      <label className="block">
-        <input
-          id="sqlite-upload"
-          type="file"
-          accept=".sqlite,.db,.sqlite3,.kismet"
-          onChange={onFileChange}
-          disabled={!canImport}
-          className="hidden"
-        />
-        <div
-          className={`px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r ${
-            showKismetSuggestion
-              ? 'from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600'
-              : 'from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600'
-          } ${canImport ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
-          onClick={() => canImport && document.getElementById('sqlite-upload')?.click()}
-        >
-          {isLoading
-            ? importStatus.startsWith('Running')
-              ? 'Backing up...'
-              : 'Importing...'
-            : `Choose ${showKismetSuggestion ? 'Kismet' : 'SQLite'} File`}
-        </div>
-      </label>
+      <FileImportButton
+        id="sqlite-upload"
+        accept=".sqlite,.db,.sqlite3,.kismet"
+        onChange={onFileChange}
+        disabled={!canImport}
+        isLoading={isLoading}
+        loadingText={importStatus.startsWith('Running') ? 'Backing up...' : 'Importing...'}
+        idleText={`Choose ${showKismetSuggestion ? 'Kismet' : 'SQLite'} File`}
+        activeColorClass={
+          showKismetSuggestion
+            ? 'from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600'
+            : 'from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600'
+        }
+      />
 
-      {importStatus && (
-        <div
-          className={`p-3 rounded-lg text-sm ${
-            importStatus.startsWith('Imported') || importStatus.includes('Complete')
-              ? 'bg-green-900/30 text-green-300 border border-green-700/50'
-              : 'bg-red-900/30 text-red-300 border border-red-700/50'
-          }`}
-        >
-          {importStatus}
-        </div>
-      )}
+      <ImportStatusMessage status={importStatus} />
     </div>
   </AdminCard>
 );
