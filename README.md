@@ -162,6 +162,7 @@ Available helpers:
 - `scps` - Formatted `docker ps` view for ShadowCheck services.
 - `scdb` - Open `psql` as `shadowcheck_user` on the local database.
 - `scdba` - Open `psql` as `shadowcheck_admin` on the local database.
+- `scsecrets` - Restart the API + reload frontend so the stack re-reads AWS Secrets Manager before you log in.
 
 ### Home Lab Deployment
 

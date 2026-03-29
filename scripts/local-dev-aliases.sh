@@ -58,6 +58,11 @@ scdba() {
   docker exec -it shadowcheck_postgres_local psql -U shadowcheck_admin -d shadowcheck_db "$@"
 }
 
+scsecrets() {
+  scroot || return 1
+  ./scripts/start-local-with-secrets.sh
+}
+
 export -f scroot
 export -f sclocal
 export -f scapi
@@ -65,6 +70,7 @@ export -f scgrafana
 export -f scps
 export -f scdb
 export -f scdba
+export -f scsecrets
 
 echo "Local ShadowCheck aliases loaded:"
 echo "  scroot   - cd to the repo"
@@ -74,3 +80,4 @@ echo "  scgrafana - start local Grafana with AWS-backed Grafana secrets and graf
 echo "  scps     - formatted docker ps"
 echo "  scdb     - psql as shadowcheck_user on local Postgres"
 echo "  scdba    - psql as shadowcheck_admin on local Postgres"
+echo "  scsecrets - restart api & reload frontend so AWS secrets reload before you log in"
