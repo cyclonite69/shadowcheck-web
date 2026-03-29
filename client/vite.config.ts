@@ -47,7 +47,14 @@ export default defineConfig({
               return 'vendor-mapbox';
             }
             // Bundle core React runtime to avoid splitting cross dependencies
-            const reactDeps = ['react-dom', 'react', 'scheduler', 'use-sync-external-store'];
+            const reactDeps = [
+              'react-dom',
+              'react',
+              'recharts',
+              'zustand',
+              'scheduler',
+              'use-sync-external-store',
+            ];
             if (reactDeps.some((dep) => id.includes(dep))) {
               return 'vendor-react';
             }
