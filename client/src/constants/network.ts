@@ -175,6 +175,7 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   altitude_span_m: 'altitude_span_m',
   max_distance_meters: 'max_distance_meters',
   last_altitude_m: 'last_altitude_m',
+  stationaryConfidence: 'stationary_confidence',
   is_ignored: 'is_ignored',
   notes_count: 'notes_count',
   timespanDays: 'timespan_days',
