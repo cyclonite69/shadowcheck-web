@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
-
-export interface Metrics {
-  networks: number;
-  access_points: number;
-  observations: number;
-  in_explorer_mv: number;
-  kismet_devices?: number;
-  kismet_packets?: number;
-  kismet_alerts?: number;
-}
+import type { Metrics } from './types';
 
 interface ImportRun {
   id: number;
