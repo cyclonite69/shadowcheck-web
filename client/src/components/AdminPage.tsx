@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { WigleSearchTab } from './admin/tabs/WigleSearchTab';
 import { WigleDetailTab } from './admin/tabs/WigleDetailTab';
-import { MLTrainingTab } from './admin/tabs/MLTrainingTab';
 import { BackupsTab } from './admin/tabs/BackupsTab';
-import { ConfigurationTab } from './admin/tabs/ConfigurationTab';
 import { ApiTestingTab } from './admin/tabs/ApiTestingTab';
 import { DataImportTab } from './admin/tabs/DataImportTab';
 import { DataExportTab } from './admin/tabs/DataExportTab';
@@ -17,6 +15,13 @@ import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 import { DbStatsTab } from './admin/tabs/DbStatsTab';
 import { adminApi } from '../api/adminApi';
 import type { AdminRuntimeConfig } from './admin/types/admin.types';
+
+const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
+const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));
+
+const TabLoadingFallback = () => (
+  <div className="px-6 py-8 text-sm text-slate-500 text-center">Loading tab...</div>
+);
 
 // SVG Icons
 const ClockIcon = ({ size = 24, className = '' }) => (
@@ -366,12 +371,20 @@ const AdminPage: React.FC = () => {
 
         {/* Tab Content */}
         <div className="pb-8">
-          {activeTab === 'config' && <ConfigurationTab />}
+          {activeTab === 'config' && (
+            <Suspense fallback={<TabLoadingFallback />}>
+              <ConfigurationTab />
+            </Suspense>
+          )}
           {activeTab === 'jobs' && <JobsTab />}
           {activeTab === 'db-stats' && <DbStatsTab />}
           {activeTab === 'wigle-stats' && <WigleStatsTab />}
           {activeTab === 'api' && <ApiTestingTab />}
-          {activeTab === 'ml' && <MLTrainingTab />}
+          {activeTab === 'ml' && (
+            <Suspense fallback={<TabLoadingFallback />}>
+              <MLTrainingTab />
+            </Suspense>
+          )}
           {activeTab === 'wigle' && <WigleSearchTab />}
           {activeTab === 'wigle-detail' && <WigleDetailTab />}
           {activeTab === 'imports' && <DataImportTab />}
