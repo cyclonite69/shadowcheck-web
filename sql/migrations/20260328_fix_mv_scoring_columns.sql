@@ -125,4 +125,9 @@ CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat ON app.api_network
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_rule_score ON app.api_network_explorer_mv USING btree (rule_based_score DESC);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_ml_score ON app.api_network_explorer_mv USING btree (ml_threat_score DESC);
 
+-- Grant permissions
+GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
+GRANT SELECT ON app.api_network_explorer_mv TO grafana_reader;
+GRANT SELECT ON app.api_network_explorer_mv TO PUBLIC;
+
 -- REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
