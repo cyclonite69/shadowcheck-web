@@ -44,12 +44,12 @@ function buildFastPathListSql(
         ne.first_seen,
         ne.last_seen,
         ${RM_SELECT_FIELDS},
-        NULL::numeric AS min_altitude_m,
-        NULL::numeric AS max_altitude_m,
-        NULL::numeric AS altitude_span_m,
+        n.min_altitude_m,
+        n.max_altitude_m,
+        n.altitude_span_m,
         ne.max_distance_meters,
-        NULL::numeric AS last_altitude_m,
-        FALSE AS is_sentinel,
+        n.last_altitude_m,
+        COALESCE(n.is_sentinel, FALSE) AS is_sentinel,
         ne.distance_from_home_km,
         ne.observations AS observations,
         ne.wigle_v3_observation_count,
@@ -75,8 +75,13 @@ function buildFastPathListSql(
             AND nn.is_deleted IS NOT TRUE
         )::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
+        ne.rule_based_score,
+        ne.ml_threat_score,
+        ne.ml_weight,
+        ne.ml_boost,
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
+      LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
       ${whereClause}

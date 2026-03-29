@@ -88,12 +88,12 @@ export function buildNetworkSlowPathListQuery(
       ne.first_seen,
       ne.last_seen,
       ${RM_SELECT_FIELDS},
-      NULL::numeric AS min_altitude_m,
-      NULL::numeric AS max_altitude_m,
-      NULL::numeric AS altitude_span_m,
+      n.min_altitude_m,
+      n.max_altitude_m,
+      n.altitude_span_m,
       ne.max_distance_meters,
-      NULL::numeric AS last_altitude_m,
-      FALSE AS is_sentinel,
+      n.last_altitude_m,
+      COALESCE(n.is_sentinel, FALSE) AS is_sentinel,
       CASE
         WHEN home.home_point IS NOT NULL AND l.lat IS NOT NULL AND l.lon IS NOT NULL
         THEN ST_Distance(
@@ -126,10 +126,15 @@ export function buildNetworkSlowPathListQuery(
           AND nn.is_deleted IS NOT TRUE
       )::integer AS notes_count,
       JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
+      COALESCE(nts.rule_based_score, ne.rule_based_score) AS rule_based_score,
+      COALESCE(nts.ml_threat_score, ne.ml_threat_score) AS ml_threat_score,
+      COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, ne.ml_weight, 0) AS ml_weight,
+      COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, ne.ml_boost, 0) AS ml_boost,
       NULL::text AS network_id
     FROM obs_rollup r
     JOIN obs_latest l ON l.bssid = r.bssid
       LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+      LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(l.bssid)
       LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
       ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}

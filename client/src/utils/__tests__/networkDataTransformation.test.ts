@@ -208,4 +208,30 @@ describe('mapApiRowToNetwork', () => {
     );
     expect(net.security).toBe('WPA2-E');
   });
+
+  it('maps threat sub-scores and altitude enrichment fields from the API row', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        rule_based_score: '45.2',
+        ml_threat_score: '87.4',
+        ml_weight: '0.30',
+        ml_boost: '12.7',
+        min_altitude_m: '34.3',
+        max_altitude_m: '35.1',
+        altitude_span_m: '0.8',
+        last_altitude_m: '34.9',
+      },
+      0
+    );
+
+    expect(net.threat_rule_score).toBe(45.2);
+    expect(net.threat_ml_score).toBe(87.4);
+    expect(net.threat_ml_weight).toBe(0.3);
+    expect(net.threat_ml_boost).toBe(12.7);
+    expect(net.min_altitude_m).toBe(34.3);
+    expect(net.max_altitude_m).toBe(35.1);
+    expect(net.altitude_span_m).toBe(0.8);
+    expect(net.last_altitude_m).toBe(34.9);
+  });
 });
