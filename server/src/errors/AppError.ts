@@ -372,6 +372,18 @@ function toAppError(error: unknown): AppError {
     return new TimeoutError('Operation', 60000);
   }
 
+  if (err.message && err.message.includes('has not been populated')) {
+    const error = new AppError(
+      'The database is currently synchronizing. Please wait a few moments and try again.',
+      503,
+      'DB_INITIALIZING'
+    );
+    // Override the user message
+    error.getUserMessage = () =>
+      'The database is currently synchronizing. Please wait a few moments and try again (or run the refresh script).';
+    return error;
+  }
+
   // Generic fallback
   const message = err.message || 'An unexpected error occurred';
   if (process.env.NODE_ENV !== 'development') {
