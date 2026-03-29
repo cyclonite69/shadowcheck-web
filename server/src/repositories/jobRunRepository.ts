@@ -120,7 +120,12 @@ async function getJobStatus(jobs: Record<string, any>) {
     `
   );
 
-  const dbRuns: Record<string, any[]> = { backup: [], mlScoring: [], mvRefresh: [] };
+  const dbRuns: Record<string, any[]> = {
+    backup: [],
+    mlScoring: [],
+    mvRefresh: [],
+    siblingDetection: [],
+  };
   rows.forEach((row: any) => {
     dbRuns[row.job_name]?.push({
       id: Number(row.id),
