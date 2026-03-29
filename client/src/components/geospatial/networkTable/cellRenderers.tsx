@@ -199,6 +199,43 @@ const renderTimespanDays = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
+const formatNumber = (value: number | null | undefined, precision = 1) =>
+  value == null ? null : value.toFixed(precision);
+
+const threatScoreColor = (value: number | null) => {
+  if (value == null) return '#94a3b8';
+  if (value >= 75) return '#dc2626';
+  if (value >= 50) return '#f97316';
+  if (value >= 25) return '#f59e0b';
+  return '#22c55e';
+};
+
+const renderThreatScore = ({ value }: NetworkTableCellRendererContext) => {
+  const score = typeof value === 'number' ? value : null;
+  const label = formatNumber(score, 1) ?? '—';
+  return {
+    content: <span style={{ color: threatScoreColor(score), fontWeight: 600 }}>{label}</span>,
+    title: score != null ? `Threat score ${score.toFixed(1)}` : undefined,
+  };
+};
+
+const renderDistanceFromHome = ({ value }: NetworkTableCellRendererContext) => {
+  const km = typeof value === 'number' ? value : null;
+  const label = formatNumber(km, 1);
+  return {
+    content: <span>{label ? `${label} km` : '—'}</span>,
+    title: km != null ? `${km.toFixed(1)} km from home` : undefined,
+  };
+};
+
+const renderStationaryConfidence = ({ value }: NetworkTableCellRendererContext) => {
+  const percent = typeof value === 'number' ? Math.round(value * 100) : null;
+  return {
+    content: <span>{percent != null ? `${percent}%` : '—'}</span>,
+    title: percent != null ? 'Stationary confidence' : undefined,
+  };
+};
+
 const renderBssid = ({
   value,
   row,
@@ -309,37 +346,41 @@ const defaultValue = (value: unknown) => {
 const defaultTitle = (value: unknown) =>
   typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
 
+const columnRenderers: Partial<
+  Record<
+    keyof NetworkRow | 'select',
+    (context: NetworkTableCellRendererContext) => NetworkTableCellRendererResult
+  >
+> = {
+  select: renderSelect,
+  type: renderType,
+  threat: renderThreat,
+  signal: renderSignal,
+  threat_score: renderThreatScore,
+  observations: renderObservations,
+  channel: renderChannel,
+  frequency: renderFrequency,
+  timespanDays: renderTimespanDays,
+  bssid: renderBssid,
+  ssid: renderSsid,
+  distanceFromHome: renderDistanceFromHome,
+  stationaryConfidence: renderStationaryConfidence,
+};
+
 export const renderNetworkTableCell = (
   context: NetworkTableCellRendererContext
 ): NetworkTableCellRendererResult => {
-  switch (context.column) {
-    case 'select':
-      return renderSelect(context);
-    case 'type':
-      return renderType(context);
-    case 'threat':
-      return renderThreat(context);
-    case 'signal':
-      return renderSignal(context);
-    case 'observations':
-      return renderObservations(context);
-    case 'channel':
-      return renderChannel(context);
-    case 'frequency':
-      return renderFrequency(context);
-    case 'timespanDays':
-      return renderTimespanDays(context);
-    case 'bssid':
-      return renderBssid(context);
-    case 'ssid':
-      return renderSsid(context);
-    default:
-      if (context.columnConfig?.render) {
-        return { content: context.columnConfig.render(context.value, context.row) };
-      }
-      return {
-        content: defaultValue(context.value),
-        title: defaultTitle(context.value),
-      };
+  const renderer = columnRenderers[context.column];
+  if (renderer) {
+    return renderer(context);
   }
+
+  if (context.columnConfig?.render) {
+    return { content: context.columnConfig.render(context.value, context.row) };
+  }
+
+  return {
+    content: defaultValue(context.value),
+    title: defaultTitle(context.value),
+  };
 };

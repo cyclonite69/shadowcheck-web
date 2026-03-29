@@ -1,7 +1,7 @@
-import React from 'react';
 import type { NetworkRow } from '../../client/src/types/network';
 import { NETWORK_COLUMNS } from '../../client/src/constants/network';
 import { renderNetworkTableCell } from '../../client/src/components/geospatial/networkTable/cellRenderers';
+import React from 'react';
 
 const baseRow: NetworkRow = {
   bssid: 'AA:BB:CC:DD:EE:FF',
@@ -50,9 +50,38 @@ describe('renderNetworkTableCell', () => {
 
   it('falls back to simple content for columns without special renderers', () => {
     const value = 123.45;
-    const context = makeContext('distanceFromHome', value);
+    const context = makeContext('accuracy', value);
     const result = renderNetworkTableCell(context);
     expect(result.content).toBe(value);
     expect(result.title).toBe(String(value));
   });
+
+  it('renders threat score with formatted badge', () => {
+    const context = makeContext('threat_score', 92);
+    const result = renderNetworkTableCell(context);
+    const content = getText(result.content);
+    expect(content).toBe('92.0');
+  });
+
+  it('formats distance from home as kilometers', () => {
+    const context = makeContext('distanceFromHome', 5.2);
+    const result = renderNetworkTableCell(context);
+    const content = getText(result.content);
+    expect(content).toBe('5.2 km');
+    expect(result.title).toBe('5.2 km from home');
+  });
+
+  it('renders stationary confidence as percent', () => {
+    const context = makeContext('stationaryConfidence', 0.37);
+    const result = renderNetworkTableCell(context);
+    expect(getText(result.content)).toBe('37%');
+  });
 });
+
+const getText = (node: React.ReactNode) => {
+  if (React.isValidElement(node)) {
+    const element = node as React.ReactElement<{ children: React.ReactNode }>;
+    return element.props.children;
+  }
+  return node;
+};
