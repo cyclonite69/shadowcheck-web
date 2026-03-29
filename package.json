@@ -133,7 +133,8 @@
     "tar": ">=7.5.11",
     "flatted": ">=3.4.0",
     "fast-xml-parser": "^5.5.6",
-    "serialize-javascript": ">=7.0.3",
+    "serialize-javascript": ">=7.0.5",
+    "brace-expansion": ">=1.1.13",
     "svgo": "4.0.1",
     "@tootallnate/once": "3.0.1"
   },
