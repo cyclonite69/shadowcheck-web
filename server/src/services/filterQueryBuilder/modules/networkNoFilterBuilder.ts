@@ -31,7 +31,8 @@ export function buildNetworkNoFilterListQuery(
     .replace(/\br\.observation_count\b/g, 'ne.observations')
     .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
     .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
-    .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
+    .replace(/\bne\.stationary_confidence\b/g, 'ne.stationary_confidence')
+    .replace(/\bs\.stationary_confidence\b/g, 'ne.stationary_confidence');
 
   const sql = `
     SELECT
