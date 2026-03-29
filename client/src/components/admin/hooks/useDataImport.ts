@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
+import type { DataImportResult } from '../tabs/data-import/types';
 
 export const useDataImport = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -7,7 +8,7 @@ export const useDataImport = () => {
   const [sqlImportStatus, setSqlImportStatus] = useState('');
   const [sourceTag, setSourceTag] = useState('');
   const [backupEnabled, setBackupEnabled] = useState(true);
-  const [lastResult, setLastResult] = useState<any>(null);
+  const [lastResult, setLastResult] = useState<DataImportResult | null>(null);
 
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

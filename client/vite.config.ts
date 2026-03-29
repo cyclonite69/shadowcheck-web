@@ -46,14 +46,9 @@ export default defineConfig({
             if (id.includes('mapbox-gl')) {
               return 'vendor-mapbox';
             }
-            // Bundle ALL React ecosystem together to prevent load order issues
-            if (
-              id.includes('recharts') ||
-              id.includes('react-dom') ||
-              id.includes('react') ||
-              id.includes('zustand') ||
-              id.includes('use-sync-external-store')
-            ) {
+            // Bundle core React runtime to avoid splitting cross dependencies
+            const reactDeps = ['react-dom', 'react', 'scheduler', 'use-sync-external-store'];
+            if (reactDeps.some((dep) => id.includes(dep))) {
               return 'vendor-react';
             }
             // Everything else

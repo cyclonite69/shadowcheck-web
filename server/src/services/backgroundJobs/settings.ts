@@ -10,7 +10,7 @@ type JobConfig = {
   cron: string;
 };
 
-const SETTINGS_SQL = `SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config')`;
+const SETTINGS_SQL = `SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config', 'sibling_detection_job_config')`;
 
 const loadBackgroundJobConfigs = async (): Promise<Record<string, JobConfig>> => {
   const { rows } = await query(SETTINGS_SQL);
