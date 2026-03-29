@@ -227,10 +227,19 @@ The filter system powers filtering across all pages (Dashboard, Geospatial, Kepl
    });
    ```
 
-5. **Register and mount** in `server/server.js`
+5. **Register and mount** in `server/server.ts`
    ```javascript
    app.use('/api/myroute', require('./src/api/routes/v1/myroute'));
    ```
+
+### Adding a New Filter Type
+
+1. Add filter type constant to `client/src/constants/filters.ts`
+2. Update filter schema in `server/src/validation/schemas/complexValidators.ts`
+3. Add query builder logic in `server/src/services/filterQueryBuilder/`
+4. Use `useAdaptedFilters()` hook in component - it handles everything else
+
+**Existing route modules (v1)**: `admin`, `admin-threat-scoring`, `analytics`, `analytics-public`, `agencyOffices`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `home-location`, `kepler`, `location-markers`, `misc`, `ml`, `networks`, `network-agencies`, `network-tags`, `settings`, `threats`, `weather`, `wigle`
 
 ### Running Commands
 
@@ -464,7 +473,11 @@ docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db
 
 ## Secrets Management
 
-**Source of Truth**: AWS Secrets Manager
+**Source of Truth**: AWS Secrets Manager (`shadowcheck/config`)
+
+**Resolution Order**: AWS Secrets Manager → local files (`./secrets/`) → environment variables
+
+**How it works**: The app reads secrets at startup via `secretsManager.load()`. Secrets can also be set via the Config UI or admin API, which writes through to AWS SM.
 
 **Local Overrides (optional)**:
 
@@ -473,6 +486,9 @@ export DB_PASSWORD=...
 export DB_ADMIN_PASSWORD=...
 export MAPBOX_TOKEN=...
 ```
+
+**Required Secrets**: `db_password`, `db_admin_password`, `mapbox_token`  
+**Optional Secrets**: `wigle_api_key`, `wigle_api_name`, `wigle_api_token`, `locationiq_api_key`, `opencage_api_key`, `google_maps_api_key`
 
 ## ETL Pipeline
 
@@ -489,9 +505,46 @@ export MAPBOX_TOKEN=...
 
 **Optimization**: Staging tables are UNLOGGED for ingestion speed
 
-## AI Agent Best Practices
+## Troubleshooting
 
-### Before Writing Code
+**Database Connection Errors**:
+
+- Verify Docker PostgreSQL: `docker ps | grep shadowcheck_postgres`
+- If local API, STOP local PostgreSQL: `sudo systemctl stop postgresql`
+- Test connection: `docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db`
+
+**Dashboard Shows Zeros**:
+
+- Check data exists: `SELECT COUNT(*) FROM app.networks;`
+- Verify home location set in `app.location_markers`
+- Check if filters are active (displayed in UI)
+
+**Admin Operations Failing (500 errors on tags/imports)**:
+
+- Ensure `db_admin_password` secret exists in AWS Secrets Manager
+- Verify migration applied: `sql/migrations/20260129_implement_db_security.sql`
+
+**Frontend Not Reflecting Recent Code**:
+
+- Frontend builds are served from `dist/`. Clear browser cache or do a hard refresh (Ctrl+Shift+R)
+- Verify build completed: `npm run build`
+- Check browser console for errors
+
+## Commit & Pull Request Guidelines
+
+- Use Conventional Commits: `feat(...)`, `fix(...)`, `refactor(...)`, `docs(...)`
+- Keep commits scoped to a coherent change. Avoid mixing frontend, backend, SQL, and docs churn unless part of one tightly-coupled fix
+- PRs should include behavior summary, validation performed, and docs updates when workflow or operational assumptions changed
+- Always run `npm run lint:fix` before committing
+
+## Database and SQL Guidance
+
+- Treat `sql/` as part of the product surface, not a dumping ground
+- If a table/function/view is no longer needed, remove it from migrations instead of preserving dead creation logic
+- Keep live/manual cleanup separate from migration-path cleanup: the repo should represent the desired end state
+- Follow `sql/migrations/README.md` and existing migration ordering conventions
+
+## AI Agent Best Practices
 
 1. **Verify Docker status**: `docker ps | grep shadowcheck_postgres`
 2. **Read relevant documentation**: CLAUDE.md + docs/ folder
