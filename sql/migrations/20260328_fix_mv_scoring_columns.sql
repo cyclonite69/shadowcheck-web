@@ -130,4 +130,4 @@ GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
 GRANT SELECT ON app.api_network_explorer_mv TO grafana_reader;
 GRANT SELECT ON app.api_network_explorer_mv TO PUBLIC;
 
--- REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
+REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
