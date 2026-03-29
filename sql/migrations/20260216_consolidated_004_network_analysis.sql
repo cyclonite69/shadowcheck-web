@@ -570,7 +570,7 @@ CREATE TABLE IF NOT EXISTS app.background_job_runs (
     error text,
     details jsonb NOT NULL DEFAULT '{}'::jsonb,
     CONSTRAINT background_job_runs_job_name_check
-        CHECK (job_name IN ('backup', 'mlScoring', 'mvRefresh', 'siblingDetection')),
+        CHECK (job_name IN ('backup', 'mlScoring', 'mvRefresh')),
     CONSTRAINT background_job_runs_status_check
         CHECK (status IN ('running', 'completed', 'failed'))
 );
