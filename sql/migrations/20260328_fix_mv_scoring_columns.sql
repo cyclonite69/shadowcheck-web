@@ -1,37 +1,48 @@
 -- Migration: Add missing scoring columns to api_network_explorer_mv
 -- Date: 2026-03-28
 
--- Drop and recreate the MV to include rule_based_score, ml_threat_score, ml_weight, and ml_boost
+-- Drop and recreate the MV to include rule_based_score, ml_threat_score, ml_weight, ml_boost, is_ignored, and stationary_confidence
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv CASCADE;
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
+WITH best_obs AS (
+  -- Find the best observation (farthest from home) for each network to use as coordinates
+  SELECT DISTINCT ON (o.bssid)
+    o.bssid,
+    o.lat,
+    o.lon
+  FROM app.observations o
+  WHERE o.lat IS NOT NULL 
+    AND o.lon IS NOT NULL
+    AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+  ORDER BY o.bssid, public.st_distance(
+    public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+    (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+     FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+  ) DESC
+),
+obs_spatial AS (
+  -- Pre-calculate stationary confidence
+  SELECT 
+    bssid,
+    CASE 
+      WHEN count(*) < 3 THEN 0
+      WHEN stddev(lat) < 0.0001 AND stddev(lon) < 0.0001 THEN 0.95
+      WHEN stddev(lat) < 0.0005 AND stddev(lon) < 0.0005 THEN 0.75
+      ELSE 0.25
+    END as stationary_confidence
+  FROM app.observations
+  WHERE lat IS NOT NULL AND lon IS NOT NULL
+    AND (is_quality_filtered = false OR is_quality_filtered IS NULL)
+  GROUP BY bssid
+)
 SELECT n.bssid,
   n.ssid,
   n.type,
   n.frequency,
   n.bestlevel AS signal,
-  (SELECT o.lat
-   FROM app.observations o
-   WHERE o.bssid = n.bssid
-     AND o.lat IS NOT NULL
-     AND o.lon IS NOT NULL
-     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-   ORDER BY public.st_distance(
-     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
-     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-   ) DESC LIMIT 1) AS lat,
-  (SELECT o.lon
-   FROM app.observations o
-   WHERE o.bssid = n.bssid
-     AND o.lat IS NOT NULL
-     AND o.lon IS NOT NULL
-     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-   ORDER BY public.st_distance(
-     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
-     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-   ) DESC LIMIT 1) AS lon,
+  bo.lat,
+  bo.lon,
   to_timestamp((((n.lasttime_ms)::numeric / 1000.0))::double precision) AS observed_at,
   n.capabilities AS capabilities,
   CASE
@@ -54,31 +65,22 @@ SELECT n.bssid,
   COALESCE(w3.wigle_v3_observation_count, n.wigle_v3_observation_count, 0) AS wigle_v3_observation_count,
   COALESCE(w3.wigle_v3_last_import_at, n.wigle_v3_last_import_at) AS wigle_v3_last_import_at,
   COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
+  COALESCE(t.is_ignored, FALSE) AS is_ignored,
   count(o.id) AS observations,
   count(DISTINCT date(o."time")) AS unique_days,
   count(DISTINCT ((round((o.lat)::numeric, 3) || ','::text) || round((o.lon)::numeric, 3))) AS unique_locations,
   max(o.accuracy) AS accuracy_meters,
   min(o."time") AS first_seen,
   max(o."time") AS last_seen,
-  COALESCE(ts.final_threat_score, (0)::numeric) AS threat_score,
-  COALESCE(ts.final_threat_level, 'NONE'::character varying) AS threat_level,
+  CASE WHEN COALESCE(t.is_ignored, FALSE) THEN 0::numeric ELSE COALESCE(ts.final_threat_score, (0)::numeric) END AS threat_score,
+  CASE WHEN COALESCE(t.is_ignored, FALSE) THEN 'NONE'::character varying ELSE COALESCE(ts.final_threat_level, 'NONE'::character varying) END AS threat_level,
   COALESCE(ts.rule_based_score, (0)::numeric) AS rule_based_score,
   COALESCE(ts.ml_threat_score, (0)::numeric) AS ml_threat_score,
   COALESCE((ts.ml_feature_values->>'evidence_weight')::numeric, 0) AS ml_weight,
   COALESCE((ts.ml_feature_values->>'ml_boost')::numeric, 0) AS ml_boost,
   ts.model_version,
   COALESCE((public.st_distance(
-    (SELECT public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography
-     FROM app.observations o
-     WHERE o.bssid = n.bssid
-       AND o.lat IS NOT NULL
-       AND o.lon IS NOT NULL
-       AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-     ORDER BY public.st_distance(
-       public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
-       (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
-        FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
-     ) DESC LIMIT 1),
+    public.st_setsrid(public.st_makepoint(bo.lon, bo.lat), 4326)::public.geography,
     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
   ) / (1000.0)::double precision), (0)::double precision) AS distance_from_home_km,
@@ -96,11 +98,14 @@ SELECT n.bssid,
      AND (o1.is_quality_filtered = false OR o1.is_quality_filtered IS NULL)
      AND (o2.is_quality_filtered = false OR o2.is_quality_filtered IS NULL)
   ) AS max_distance_meters,
-  rm.manufacturer AS manufacturer
+  rm.manufacturer AS manufacturer,
+  osp.stationary_confidence
 FROM app.networks n
   LEFT JOIN app.network_tags t ON (n.bssid = t.bssid::text)
   LEFT JOIN app.observations o ON (n.bssid = o.bssid)
   LEFT JOIN app.network_threat_scores ts ON (n.bssid = ts.bssid::text)
+  LEFT JOIN best_obs bo ON (n.bssid = bo.bssid)
+  LEFT JOIN obs_spatial osp ON (n.bssid = osp.bssid)
   LEFT JOIN (
     SELECT
       netid,
@@ -115,8 +120,9 @@ WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
 GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
   n.lasttime_ms, n.capabilities, n.wigle_v3_observation_count, n.wigle_v3_last_import_at,
   w3.wigle_v3_observation_count, w3.wigle_v3_last_import_at,
-  t.threat_tag, ts.final_threat_score, ts.final_threat_level, ts.rule_based_score, ts.ml_threat_score, ts.ml_feature_values, ts.model_version, rm.manufacturer
-WITH NO DATA;
+  t.threat_tag, t.is_ignored, ts.final_threat_score, ts.final_threat_level, 
+  ts.rule_based_score, ts.ml_threat_score, ts.ml_feature_values, ts.model_version, 
+  rm.manufacturer, bo.lat, bo.lon, osp.stationary_confidence;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_api_network_explorer_mv_bssid ON app.api_network_explorer_mv USING btree (bssid);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type ON app.api_network_explorer_mv USING btree (type);
@@ -124,6 +130,8 @@ CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_observed_at ON app.api_ne
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv USING btree (threat_score DESC);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_rule_score ON app.api_network_explorer_mv USING btree (rule_based_score DESC);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_ml_score ON app.api_network_explorer_mv USING btree (ml_threat_score DESC);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_stationary ON app.api_network_explorer_mv USING btree (stationary_confidence) WHERE stationary_confidence IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_ignored ON app.api_network_explorer_mv USING btree (is_ignored) WHERE is_ignored = TRUE;
 
 -- Grant permissions
 GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
