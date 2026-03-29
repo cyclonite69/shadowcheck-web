@@ -174,8 +174,6 @@ const createHandlers = (deps: HandlerDeps) => {
         offset,
         orderBy,
       });
-    const buildTime = Date.now() - buildStart;
-
     const queryStart = Date.now();
     const result = await v2Service.executeV2Query(sql, params);
     const queryTime = Date.now() - queryStart;
