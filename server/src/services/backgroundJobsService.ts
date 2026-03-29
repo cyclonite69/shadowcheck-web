@@ -309,10 +309,10 @@ class BackgroundJobsService {
     logger.info('[Background Jobs] Manual background start requested', { jobName, options });
 
     const jobPromise = this.runJobNow(jobName, options).catch((error) => {
-      logger.error('[Background Jobs] Manual background run failed', {
-        jobName,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        `[Background Jobs] Manual background run failed for ${jobName}: ${errorMessage}`
+      );
     });
 
     void jobPromise;
