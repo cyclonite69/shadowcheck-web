@@ -105,10 +105,21 @@ export function buildNetworkNoFilterListQuery(
 export function buildNetworkNoFilterCountQuery(ctx: FilterBuildContext): QueryResult {
   const includeIgnored = ctx.shouldIncludeIgnoredByExplicitTagFilter();
 
+  if (includeIgnored) {
+    return {
+      sql: 'SELECT COUNT(*) AS total FROM app.api_network_explorer_mv ne',
+      params: [],
+    };
+  }
+
+  // Optimize: Use table statistics for total count if no filters are applied
   return {
-    sql: `SELECT COUNT(*) AS total
-          FROM app.api_network_explorer_mv ne
-          ${includeIgnored ? '' : `WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE}`}`,
+    sql: `SELECT 
+            CASE 
+              WHEN (SELECT reltuples FROM pg_class WHERE oid = 'app.api_network_explorer_mv'::regclass) > 100000 
+              THEN (SELECT reltuples::bigint FROM pg_class WHERE oid = 'app.api_network_explorer_mv'::regclass)
+              ELSE (SELECT COUNT(*) FROM app.api_network_explorer_mv ne WHERE ${NE_NOT_IGNORED_EXISTS_CLAUSE})
+            END AS total`,
     params: [],
   };
 }

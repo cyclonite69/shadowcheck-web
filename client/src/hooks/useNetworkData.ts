@@ -177,7 +177,11 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         applyResponse(data);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          setError(err.message);
+          const errorMessage =
+            typeof err === 'object' && err !== null
+              ? err.message || JSON.stringify(err)
+              : String(err);
+          setError(errorMessage);
           setLoading(false);
         }
       } finally {
