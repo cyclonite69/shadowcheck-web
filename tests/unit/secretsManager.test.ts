@@ -42,15 +42,32 @@ jest.mock('@aws-sdk/client-secrets-manager', () => {
 describe('SecretsManager (AWS SM only)', () => {
   let secretsManager: any;
   let awsSdk: any;
+  let originalDbPassword: string | undefined;
+  let originalMapboxToken: string | undefined;
+
+  beforeAll(() => {
+    originalDbPassword = process.env.DB_PASSWORD;
+    originalMapboxToken = process.env.MAPBOX_TOKEN;
+  });
 
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    delete process.env.DB_PASSWORD;
+    delete process.env.MAPBOX_TOKEN;
     awsSdk = require('@aws-sdk/client-secrets-manager');
     awsSdk.__setSecretStore({});
     secretsManager = require('../../server/src/services/secretsManager').default;
     secretsManager.secrets.clear();
     secretsManager.accessLog = [];
+  });
+
+  afterAll(() => {
+    if (originalDbPassword === undefined) delete process.env.DB_PASSWORD;
+    else process.env.DB_PASSWORD = originalDbPassword;
+
+    if (originalMapboxToken === undefined) delete process.env.MAPBOX_TOKEN;
+    else process.env.MAPBOX_TOKEN = originalMapboxToken;
   });
 
   test('loads secrets from AWS Secrets Manager', async () => {

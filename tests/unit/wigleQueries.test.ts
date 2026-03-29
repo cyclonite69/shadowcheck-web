@@ -7,7 +7,7 @@ import {
   buildWigleV2NetworksQuery,
   buildWigleV3CountQuery,
   buildWigleV3NetworksQuery,
-} from '../../server/src/services/wigleQueries';
+} from '../../server/src/repositories/wigleQueriesRepository';
 
 describe('wigle query builders', () => {
   it('builds bssid and ssid search queries with optional limit', () => {
