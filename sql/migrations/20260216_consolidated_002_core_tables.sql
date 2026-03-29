@@ -55,6 +55,16 @@ CREATE TABLE IF NOT EXISTS app.networks (
     threat_level character varying(20),
     threat_updated_at timestamp with time zone,
     ml_threat_score integer DEFAULT 0,
+    min_altitude_m double precision DEFAULT 0,
+    max_altitude_m double precision DEFAULT 0,
+    altitude_span_m double precision DEFAULT 0,
+    last_altitude_m double precision DEFAULT 0,
+    altitude_m double precision DEFAULT 0,
+    altitude_accuracy_m double precision DEFAULT 0,
+    unique_days integer DEFAULT 1,
+    unique_locations integer DEFAULT 1,
+    is_sentinel boolean DEFAULT false,
+    accuracy_meters double precision DEFAULT 0,
     CONSTRAINT networks_bssid_upper CHECK ((bssid = upper(bssid)))
 );
 ALTER TABLE ONLY app.networks ALTER COLUMN bssid SET STATISTICS 500;
