@@ -26,3 +26,5 @@ export const MLTrainingTab: React.FC = () => {
     </div>
   );
 };
+
+export default MLTrainingTab;
