@@ -16,8 +16,8 @@
       "version": "1.0.0"
     }
   ],
-  "uid": "shadowcheck-home-fleet-detection",
-  "title": "ShadowCheck \u2014 Coordinated Fleet Detection at Home",
+  "uid": "sc-home-fleet-detection-tactical",
+  "title": "ShadowCheck \u2014 Coordinated Fleet Detection at Home (Tactical)",
   "description": "Home-location burst and recurrence dashboard for Aumovio, Air Link, WNC, GM, and Sierra patterns.",
   "schemaVersion": 39,
   "version": 1,

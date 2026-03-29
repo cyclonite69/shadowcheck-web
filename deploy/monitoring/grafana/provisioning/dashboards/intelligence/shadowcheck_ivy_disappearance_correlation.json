@@ -16,7 +16,7 @@
       "version": "1.0.0"
     }
   ],
-  "uid": "shadowcheck-ivy-disappearance-correlation",
+  "uid": "sc-ivy-disappearance-correlation",
   "title": "ShadowCheck \u2014 Ivy3737 Disappearance & Fleet Correlation",
   "description": "Timeline of Ivy3737 observations near the home marker with the fleet anchor overlaid.",
   "schemaVersion": 39,
