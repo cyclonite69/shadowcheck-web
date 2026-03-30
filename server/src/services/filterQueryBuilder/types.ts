@@ -103,6 +103,7 @@ export interface NetworkListOptions {
   limit?: number;
   offset?: number;
   orderBy?: string;
+  locationMode?: 'latest_observation' | 'centroid' | 'weighted_centroid';
 }
 
 export interface GeospatialOptions {

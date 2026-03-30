@@ -169,6 +169,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
               currentPage === 'wigle' && currentFilterState.enabled?.wigle_v3_observation_count_min
                 ? 'wigle'
                 : undefined,
+            locationMode,
             planCheck,
           });
           return apiClient.get<any>(`/v2/networks/filtered?${params.toString()}`, {

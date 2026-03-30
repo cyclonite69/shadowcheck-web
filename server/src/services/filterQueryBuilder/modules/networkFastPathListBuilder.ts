@@ -29,7 +29,8 @@ function sanitizeFastPathOrderBy(orderBy: string): string {
 function buildFastPathListSql(
   whereClause: string,
   safeOrderBy: string,
-  limitParam: string
+  limitParam: string,
+  locationMode: string
 ): string {
   return `
       SELECT
@@ -64,8 +65,7 @@ function buildFastPathListSql(
         NULL::numeric AS max_signal,
         ne.observed_at AS observed_at,
         ne.signal AS signal,
-        ne.lat,
-        ne.lon,
+        ${SqlFragmentLibrary.selectLocationCoords('ne', locationMode)},
         ne.accuracy_meters AS accuracy_meters,
         ne.stationary_confidence AS stationary_confidence,
         ${NT_SELECT_FIELDS},
@@ -75,9 +75,12 @@ function buildFastPathListSql(
         ne.ml_threat_score,
         ne.ml_weight,
         ne.ml_boost,
-        NULL::text AS network_id
+        NULL::text AS network_id,
+        n.bestlat AS raw_lat,
+        n.bestlon AS raw_lon
       FROM app.api_network_explorer_mv ne
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
+      ${SqlFragmentLibrary.joinNetworkLocations('ne', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
       LEFT JOIN LATERAL (
@@ -96,7 +99,12 @@ export function buildNetworkOnlyQueryImpl(
   ctx: FilterBuildContext,
   options: NetworkListOptions
 ): FilteredQueryResult {
-  const { limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+  const {
+    limit = 500,
+    offset = 0,
+    orderBy = 'last_observed_at DESC',
+    locationMode = 'latest_observation',
+  } = options;
   const where = buildFastPathPredicates(ctx, {
     ignoredClause: NT_NOT_IGNORED_CLAUSE,
     channelExpr: buildListChannelExpr('ne.frequency'),
@@ -112,7 +120,7 @@ export function buildNetworkOnlyQueryImpl(
   const offsetParam = ctx.addParam(offset);
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
   const safeOrderBy = sanitizeFastPathOrderBy(orderBy);
-  const sql = `${buildFastPathListSql(whereClause, safeOrderBy, limitParam)} OFFSET ${offsetParam}`;
+  const sql = `${buildFastPathListSql(whereClause, safeOrderBy, limitParam, locationMode)} OFFSET ${offsetParam}`;
 
   return {
     sql,

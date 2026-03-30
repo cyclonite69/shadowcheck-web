@@ -83,6 +83,17 @@ const refreshMaterializedViews = async (
 
   throwOnRefreshFailures(failures);
 
+  // Recompute network_locations (centroid + weighted centroid) after MV refresh.
+  // Uses the same quality-filter criterion as the MV. Non-critical: failure is logged but
+  // does not abort the refresh job.
+  try {
+    logger.info('[MV Refresh Job] Refreshing app.network_locations...');
+    await runAdminQuery('SELECT app.refresh_network_locations()');
+    logger.info('[MV Refresh Job] app.network_locations refreshed.');
+  } catch (error) {
+    logger.error('[MV Refresh Job] Failed to refresh network_locations:', (error as Error).message);
+  }
+
   return { refreshedViews: MATERIALIZED_VIEWS.map((view) => view.name) };
 };
 

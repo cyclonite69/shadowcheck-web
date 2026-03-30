@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
@@ -22,6 +23,8 @@ export default function GeospatialExplorer() {
   usePageFilters('geospatial');
   const { isAdmin } = useAuth();
 
+  const [locationMode, setLocationMode] = useState('latest_observation');
+
   // Basic Data Fetching
   const {
     networks,
@@ -37,7 +40,7 @@ export default function GeospatialExplorer() {
     setSort,
     loadMore,
     resetPagination,
-  } = useNetworkData({ locationMode: 'latest_observation' }); // Default location mode
+  } = useNetworkData({ locationMode });
 
   // High-level context menu & Dialogs
   const {
@@ -113,6 +116,8 @@ export default function GeospatialExplorer() {
     visibleSiblingGroupMap,
     contextMenuNetwork: contextMenu.network,
     onOpenContextMenu: openContextMenu,
+    locationMode,
+    setLocationMode,
   });
 
   // Agency Context

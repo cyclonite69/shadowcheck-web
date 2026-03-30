@@ -115,7 +115,6 @@ export const NetworkExplorerHeader = ({
           <option value="latest_observation">Location: latest</option>
           <option value="centroid">Location: centroid</option>
           <option value="weighted_centroid">Location: weighted</option>
-          <option value="triangulated">Location: triangulated</option>
         </select>
         <button
           onClick={onToggleFilters}

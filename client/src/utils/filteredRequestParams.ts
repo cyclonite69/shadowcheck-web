@@ -14,6 +14,7 @@ export interface BuildFilteredParamsOptions {
   order?: string;
   orderBy?: string;
   pageType?: 'geospatial' | 'wigle';
+  locationMode?: string;
   selectedBssids?: string[];
   planCheck?: boolean;
 }
@@ -28,6 +29,7 @@ export function buildFilteredRequestParams(options: BuildFilteredParamsOptions):
     order,
     orderBy,
     pageType,
+    locationMode,
     selectedBssids,
     planCheck,
   } = options;
@@ -46,6 +48,8 @@ export function buildFilteredRequestParams(options: BuildFilteredParamsOptions):
   if (order) params.set('order', order);
   if (orderBy) params.set('orderBy', orderBy);
   if (pageType) params.set('pageType', pageType);
+  if (locationMode && locationMode !== 'latest_observation')
+    params.set('location_mode', locationMode);
   if (planCheck) params.set('planCheck', '1');
   if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
     params.set('bssids', JSON.stringify(selectedBssids));

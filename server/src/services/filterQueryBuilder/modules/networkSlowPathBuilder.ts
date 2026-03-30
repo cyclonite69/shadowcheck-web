@@ -18,7 +18,12 @@ export function buildNetworkSlowPathListQuery(
   getFilteredObservationsCte: () => CteResult,
   options: NetworkListOptions
 ): FilteredQueryResult {
-  const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+  const {
+    limit = null,
+    offset = 0,
+    orderBy = 'last_observed_at DESC',
+    locationMode = 'latest_observation',
+  } = options;
   const includeIgnored = ctx.shouldIncludeIgnoredByExplicitTagFilter();
   const { cte } = getFilteredObservationsCte();
   const networkWhere = ctx.buildNetworkWhere();
@@ -114,8 +119,7 @@ export function buildNetworkSlowPathListQuery(
       r.max_signal,
       l.observed_at,
       COALESCE(l.level, ne.signal) AS signal,
-      l.lat,
-      l.lon,
+      ${SqlFragmentLibrary.selectLocationCoords('l', locationMode)},
       l.accuracy AS accuracy_meters,
       ne.stationary_confidence,
       ${NT_SELECT_FIELDS},
@@ -125,12 +129,15 @@ export function buildNetworkSlowPathListQuery(
       COALESCE(nts.ml_threat_score, ne.ml_threat_score) AS ml_threat_score,
       COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, ne.ml_weight, 0) AS ml_weight,
       COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, ne.ml_boost, 0) AS ml_boost,
-      NULL::text AS network_id
+      NULL::text AS network_id,
+      n.bestlat AS raw_lat,
+      n.bestlon AS raw_lon
     FROM obs_rollup r
     JOIN obs_latest l ON l.bssid = r.bssid
       LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(l.bssid)
       LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
+      ${SqlFragmentLibrary.joinNetworkLocations('l', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
       LEFT JOIN LATERAL (

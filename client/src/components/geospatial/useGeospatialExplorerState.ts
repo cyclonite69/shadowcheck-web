@@ -52,6 +52,8 @@ interface UseGeospatialExplorerStateProps {
   visibleSiblingGroupMap: Map<string, string>;
   contextMenuNetwork?: NetworkRow | null;
   onOpenContextMenu: (e: any, network: any) => void;
+  locationMode: string;
+  setLocationMode: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export const useGeospatialExplorerState = ({
@@ -72,6 +74,8 @@ export const useGeospatialExplorerState = ({
   visibleSiblingGroupMap,
   contextMenuNetwork,
   onOpenContextMenu,
+  locationMode,
+  setLocationMode,
 }: UseGeospatialExplorerStateProps) => {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -86,7 +90,6 @@ export const useGeospatialExplorerState = ({
     center: DEFAULT_CENTER,
     radius: DEFAULT_HOME_RADIUS,
   });
-  const [locationMode, setLocationMode] = useState('latest_observation');
   const [siblingPairLoading, setSiblingPairLoading] = useState(false);
 
   // Refs

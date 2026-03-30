@@ -160,6 +160,10 @@ const createHandlers = (deps: HandlerDeps) => {
     const offset = validators.offset(req.query.offset as string);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
     const includeTotal = req.query.includeTotal !== '0' && req.query.includeTotal !== 'false';
+    const rawLocationMode = req.query.location_mode as string | undefined;
+    const locationMode = ['centroid', 'weighted_centroid'].includes(rawLocationMode ?? '')
+      ? (rawLocationMode as 'centroid' | 'weighted_centroid')
+      : 'latest_observation';
 
     const trackPerformance = process.env.TRACK_QUERY_PERFORMANCE === 'true';
     const builder = new UniversalFilterQueryBuilder(filters, enabled, {
@@ -173,6 +177,7 @@ const createHandlers = (deps: HandlerDeps) => {
         limit,
         offset,
         orderBy,
+        locationMode,
       });
     const buildTime = Date.now() - buildStart;
     const queryStart = Date.now();

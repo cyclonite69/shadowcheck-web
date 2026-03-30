@@ -63,6 +63,37 @@ export class SqlFragmentLibrary {
   }
 
   /**
+   * Returns LEFT JOIN for app.network_locations (centroid / weighted_centroid modes).
+   * When locationMode is latest_observation (default) returns empty string — no join needed.
+   */
+  static joinNetworkLocations(
+    sourceBssidAlias: string,
+    locationMode: string,
+    locAlias = 'nl'
+  ): string {
+    if (locationMode === 'latest_observation') {
+      return '';
+    }
+    return `LEFT JOIN app.network_locations ${locAlias} ON UPPER(${locAlias}.bssid) = UPPER(${sourceBssidAlias}.bssid)`;
+  }
+
+  /**
+   * Returns the lat/lon SELECT expressions for the given locationMode.
+   * Falls back to ne.lat/ne.lon for latest_observation (MV best-observation coords).
+   */
+  static selectLocationCoords(mvAlias: string, locationMode: string, locAlias = 'nl'): string {
+    if (locationMode === 'centroid') {
+      return `COALESCE(${locAlias}.centroid_lat, ${mvAlias}.lat) AS lat,
+      COALESCE(${locAlias}.centroid_lon, ${mvAlias}.lon) AS lon`;
+    }
+    if (locationMode === 'weighted_centroid') {
+      return `COALESCE(${locAlias}.weighted_lat, ${mvAlias}.lat) AS lat,
+      COALESCE(${locAlias}.weighted_lon, ${mvAlias}.lon) AS lon`;
+    }
+    return `${mvAlias}.lat, ${mvAlias}.lon`;
+  }
+
+  /**
    * Returns radio manufacturer OUI join.
    */
   static joinRadioManufacturers(sourceBssidAlias: string, manufacturerAlias = 'rm'): string {

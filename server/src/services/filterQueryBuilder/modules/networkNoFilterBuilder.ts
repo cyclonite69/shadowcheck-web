@@ -17,7 +17,12 @@ export function buildNetworkNoFilterListQuery(
   ctx: FilterBuildContext,
   options: NetworkListOptions = {}
 ): FilteredQueryResult {
-  const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+  const {
+    limit = null,
+    offset = 0,
+    orderBy = 'last_observed_at DESC',
+    locationMode = 'latest_observation',
+  } = options;
   const includeIgnored = ctx.shouldIncludeIgnoredByExplicitTagFilter();
 
   ctx.requiresHome = false;
@@ -67,8 +72,7 @@ export function buildNetworkNoFilterListQuery(
       NULL::numeric AS max_signal,
       ne.observed_at,
       ne.signal,
-      ne.lat,
-      ne.lon,
+      ${SqlFragmentLibrary.selectLocationCoords('ne', locationMode)},
       ne.accuracy_meters AS accuracy_meters,
       NULL::numeric AS stationary_confidence,
       ${NT_SELECT_FIELDS},
@@ -78,9 +82,12 @@ export function buildNetworkNoFilterListQuery(
       ne.ml_threat_score,
       ne.ml_weight,
       ne.ml_boost,
-      NULL::text AS network_id
+      NULL::text AS network_id,
+      n.bestlat AS raw_lat,
+      n.bestlon AS raw_lon
     FROM app.api_network_explorer_mv ne
     LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
+    ${SqlFragmentLibrary.joinNetworkLocations('ne', locationMode)}
     ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
     ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
     LEFT JOIN LATERAL (
