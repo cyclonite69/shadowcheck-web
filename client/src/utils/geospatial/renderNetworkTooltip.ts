@@ -1,4 +1,5 @@
 import { isRandomizedMAC } from '../macUtils';
+import { formatISODate } from '../formatDate';
 
 /**
  * Network Tooltip Renderer
@@ -35,17 +36,8 @@ function normalizeDisplay(value: unknown): string {
 }
 
 function formatDate(value?: string | Date): string {
-  if (!value) return EM_DASH;
-  try {
-    return new Date(value).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  } catch {
-    return EM_DASH;
-  }
+  const result = formatISODate(value ?? null);
+  return result === '—' ? '&mdash;' : result;
 }
 
 function buildLocation(props: any): string {

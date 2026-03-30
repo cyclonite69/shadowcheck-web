@@ -2,6 +2,7 @@ import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
 import type { GeocodingDaemonStatus } from '../../types/admin.types';
 import { ClockIcon } from './GeocodingIcons';
+import { formatShortDate } from '../../../../utils/formatDate';
 
 type Provider = 'mapbox' | 'nominatim' | 'opencage' | 'geocodio' | 'locationiq';
 
@@ -73,12 +74,8 @@ export const GeocodingDaemonCard: React.FC<{
               {daemon?.running ? 'Running' : daemon?.stopRequested ? 'Stopping' : 'Stopped'}
             </span>
           </div>
-          <div>
-            Last tick: {daemon?.lastTickAt ? new Date(daemon.lastTickAt).toLocaleString() : '—'}
-          </div>
-          <div>
-            Started: {daemon?.startedAt ? new Date(daemon.startedAt).toLocaleString() : '—'}
-          </div>
+          <div>Last tick: {daemon?.lastTickAt ? formatShortDate(daemon.lastTickAt) : '—'}</div>
+          <div>Started: {daemon?.startedAt ? formatShortDate(daemon.startedAt) : '—'}</div>
           <div>
             Last result:{' '}
             {daemon?.lastResult

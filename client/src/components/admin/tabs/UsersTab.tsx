@@ -3,6 +3,7 @@ import { adminApi } from '../../../api/adminApi';
 import { useAuth } from '../../../hooks/useAuth';
 import type { AdminUser } from '../types/admin.types';
 import { AdminCard } from '../components/AdminCard';
+import { formatShortDate } from '../../../utils/formatDate';
 
 const UsersIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -212,7 +213,7 @@ export const UsersTab: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-2 pr-4 text-xs">
-                      {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                      {user.last_login ? formatShortDate(user.last_login) : 'Never'}
                     </td>
                     <td className="py-2 pr-4">
                       <div className="flex items-center gap-2 flex-wrap">

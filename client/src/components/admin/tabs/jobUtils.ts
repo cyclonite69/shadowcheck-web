@@ -1,4 +1,5 @@
 import { INTERVAL_OPTIONS, JobConfig, ScheduleFormState, WEEKDAY_OPTIONS } from './jobTypes';
+import { formatShortDate } from '../../../utils/formatDate';
 
 export function normalizeJobConfig(rawValue: unknown, fallback: JobConfig): JobConfig {
   let parsedValue = rawValue;
@@ -101,13 +102,7 @@ export function describeSchedule(schedule: ScheduleFormState): string {
 }
 
 export function formatTimestamp(value?: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatShortDate(value);
 }
 
 export function formatDuration(durationMs?: number | null): string {

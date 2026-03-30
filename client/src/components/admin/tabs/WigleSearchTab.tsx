@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
 import { US_STATES } from '../../../constants/network';
+import { formatShortDate } from '../../../utils/formatDate';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -386,7 +387,7 @@ export const WigleSearchTab: React.FC = () => {
                                 {[net.city, net.region, net.country].filter(Boolean).join(', ')}
                               </td>
                               <td className="px-3 py-2">
-                                {net.lasttime ? new Date(net.lasttime).toLocaleDateString() : 'N/A'}
+                                {net.lasttime ? formatShortDate(net.lasttime) : 'N/A'}
                               </td>
                             </tr>
                           ))}

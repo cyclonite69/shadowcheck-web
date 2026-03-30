@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNetworkObservations } from '../../hooks/useNetworkObservations';
 import { createPortal } from 'react-dom';
+import { formatShortDate } from '../../utils/formatDate';
 
 interface NetworkTimeFrequencyModalProps {
   bssid: string;
@@ -87,8 +88,8 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
     const range =
       minTime !== Infinity
         ? {
-            start: new Date(minTime).toLocaleDateString(),
-            end: new Date(maxTime).toLocaleDateString(),
+            start: formatShortDate(new Date(minTime)),
+            end: formatShortDate(new Date(maxTime)),
           }
         : null;
 

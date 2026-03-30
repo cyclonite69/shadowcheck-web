@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
+import { formatShortDate } from '../../../utils/formatDate';
 
 interface DeviceSource {
   source_tag: string;
@@ -11,15 +12,6 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return 'never imported';
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 export const SourceTagInput: React.FC<Props> = ({ value, onChange, disabled }) => {
@@ -105,7 +97,7 @@ export const SourceTagInput: React.FC<Props> = ({ value, onChange, disabled }) =
             >
               <span className="font-mono text-sm text-slate-200">{s.source_tag}</span>
               <span className="text-xs text-slate-500 ml-3 whitespace-nowrap">
-                {formatDate(s.last_import)}
+                {formatShortDate(s.last_import)}
                 {s.total_imported > 0 && <> · {s.total_imported.toLocaleString()} obs</>}
               </span>
             </li>
