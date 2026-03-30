@@ -87,50 +87,37 @@ export const NetworkTableHeaderGrid = ({
           const isDraggable = col !== 'select' && !!onReorderColumns;
           const isDropTarget = dropTarget === col && dragCol !== col;
 
+          // Drop zone handlers live on the cell div (not draggable itself) so
+          // they always fire regardless of which child initiated the drag.
+          const dropZoneProps = isDraggable
+            ? {
+                onDragOver: (e: React.DragEvent<HTMLDivElement>) => {
+                  if (!dragCol || dragCol === col) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  setDropTarget(col);
+                },
+                onDragLeave: () => {
+                  if (dropTarget === col) setDropTarget(null);
+                },
+                onDrop: (e: React.DragEvent<HTMLDivElement>) => {
+                  e.preventDefault();
+                  if (dragCol && dragCol !== col && onReorderColumns) {
+                    onReorderColumns(
+                      dragCol as keyof NetworkRow | 'select',
+                      col as keyof NetworkRow | 'select'
+                    );
+                  }
+                  setDragCol(null);
+                  setDropTarget(null);
+                },
+              }
+            : {};
+
           return (
             <div
               key={col}
-              draggable={isDraggable}
-              onDragStart={(e) => {
-                if (!isDraggable) return;
-                setDragCol(col);
-                e.dataTransfer.effectAllowed = 'move';
-                if (!dragImageRef.current) {
-                  const el = document.createElement('div');
-                  el.style.position = 'absolute';
-                  el.style.top = '-9999px';
-                  document.body.appendChild(el);
-                  dragImageRef.current = el;
-                }
-                dragImageRef.current.textContent = column.label;
-                dragImageRef.current.style.cssText =
-                  'position:absolute;top:-9999px;padding:4px 8px;background:#1e293b;color:#e2e8f0;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;';
-                e.dataTransfer.setDragImage(dragImageRef.current, 0, 0);
-              }}
-              onDragOver={(e) => {
-                if (!isDraggable || !dragCol || dragCol === col) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                setDropTarget(col);
-              }}
-              onDragLeave={() => {
-                if (dropTarget === col) setDropTarget(null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragCol && dragCol !== col && onReorderColumns) {
-                  onReorderColumns(
-                    dragCol as keyof NetworkRow | 'select',
-                    col as keyof NetworkRow | 'select'
-                  );
-                }
-                setDragCol(null);
-                setDropTarget(null);
-              }}
-              onDragEnd={() => {
-                setDragCol(null);
-                setDropTarget(null);
-              }}
+              {...dropZoneProps}
               style={{
                 ...(NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
                   ? {
@@ -147,7 +134,7 @@ export const NetworkTableHeaderGrid = ({
                 minWidth: 0,
                 overflow: 'hidden',
                 background: sortState ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.98)',
-                cursor: isDraggable ? 'grab' : isSortable ? 'pointer' : 'default',
+                cursor: isSortable ? 'pointer' : 'default',
                 userSelect: 'none',
                 display: 'flex',
                 alignItems: 'center',
@@ -158,10 +145,10 @@ export const NetworkTableHeaderGrid = ({
               onClick={(e) => isSortable && onColumnSort(col as keyof NetworkRow, e.shiftKey)}
               title={
                 isSortable
-                  ? 'Click to sort, drag to reorder (Shift+click for multi-sort)'
+                  ? 'Click to sort (Shift+click for multi-sort)'
                   : col === 'select'
                     ? undefined
-                    : 'Drag to reorder'
+                    : undefined
               }
             >
               {/* Select all checkbox */}
@@ -177,11 +164,60 @@ export const NetworkTableHeaderGrid = ({
                 />
               ) : (
                 <>
-                  <span>{column.label}</span>
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {column.label}
+                  </span>
                   {sortState && (
-                    <span style={{ fontSize: '10px', color: '#60a5fa' }}>
+                    <span style={{ fontSize: '10px', color: '#60a5fa', flexShrink: 0 }}>
                       {sortState.direction === 'asc' ? '↑' : '↓'}
                       {sort.length > 1 && <span style={{ fontSize: '8px' }}>{sortIndex + 1}</span>}
+                    </span>
+                  )}
+                  {/* Drag handle — draggable is isolated here so onClick on the cell is never blocked */}
+                  {isDraggable && (
+                    <span
+                      draggable
+                      onDragStart={(e) => {
+                        setDragCol(col);
+                        e.dataTransfer.effectAllowed = 'move';
+                        if (!dragImageRef.current) {
+                          const el = document.createElement('div');
+                          el.style.position = 'absolute';
+                          el.style.top = '-9999px';
+                          document.body.appendChild(el);
+                          dragImageRef.current = el;
+                        }
+                        dragImageRef.current.textContent = column.label;
+                        dragImageRef.current.style.cssText =
+                          'position:absolute;top:-9999px;padding:4px 8px;background:#1e293b;color:#e2e8f0;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;';
+                        e.dataTransfer.setDragImage(dragImageRef.current, 0, 0);
+                        e.stopPropagation();
+                      }}
+                      onDragEnd={(e) => {
+                        e.stopPropagation();
+                        setDragCol(null);
+                        setDropTarget(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      title="Drag to reorder"
+                      style={{
+                        cursor: 'grab',
+                        color: 'rgba(148,163,184,0.5)',
+                        fontSize: '10px',
+                        flexShrink: 0,
+                        paddingLeft: '2px',
+                        lineHeight: 1,
+                      }}
+                    >
+                      ⠿
                     </span>
                   )}
                 </>

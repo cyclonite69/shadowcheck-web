@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { logDebug } from '../logging/clientLogger';
 import { apiClient } from '../api/client';
@@ -68,6 +68,27 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
   const currentPage = useFilterStore((state) => state.currentPage);
 
+  // Stable serialized keys — only change when values actually change
+  const filterKey = useRef('');
+  const sortKey = useRef('');
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+
+  useEffect(() => {
+    const newFilterKey = JSON.stringify(debouncedFilterState);
+    const newSortKey = JSON.stringify(sort);
+    const filtersChanged = newFilterKey !== filterKey.current;
+    const sortChanged = newSortKey !== sortKey.current;
+
+    if (!filtersChanged && !sortChanged) return;
+
+    filterKey.current = newFilterKey;
+    sortKey.current = newSortKey;
+
+    // Reset to page 0 and trigger a single fetch
+    setPagination({ offset: 0, hasMore: true });
+    setFetchTrigger((n) => n + 1);
+  }, [debouncedFilterState, sort]);
+
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
   }, []);
@@ -84,7 +105,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   // Derived state: loading more if pagination offset > 0 and loading
   const isLoadingMore = loading && pagination.offset > 0;
 
-  // Fetch networks
+  // Fetch networks — triggered by fetchTrigger (filter/sort change) or pagination.offset (load more)
   useEffect(() => {
     const controller = new AbortController();
 
@@ -94,18 +115,20 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
       setExpensiveSort(false);
 
       try {
-        const sortKeys = sort
-          .map((entry) => API_SORT_MAP[entry.column])
+        const currentSort: SortState[] = JSON.parse(sortKey.current || '[]');
+        const currentFilterState = JSON.parse(filterKey.current || '{}');
+
+        const sortKeys = currentSort
+          .map((entry: SortState) => API_SORT_MAP[entry.column])
           .filter((value): value is string => Boolean(value));
 
-        if (sortKeys.length !== sort.length) {
+        if (sortKeys.length !== currentSort.length) {
           setError('One or more sort columns are not supported by the API.');
           setLoading(false);
           return;
         }
 
-        // Send all filters and enabled flags - backend will handle which to apply
-        const applyResponse = (data: any) => {
+        const applyResponse = (data: any, offset: number) => {
           const rows = data.data || [];
           setExpensiveSort(Boolean(data.expensive_sort));
           setNetworkTotal(
@@ -115,7 +138,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
 
           const mapped: NetworkRow[] = rows.map(mapApiRowToNetwork);
 
-          if (pagination.offset === 0) {
+          if (offset === 0) {
             setNetworks(mapped);
           } else {
             setNetworks((prev) => [...prev, ...mapped]);
@@ -130,16 +153,20 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           }));
         };
 
-        const requestNetworks = async (includeTotalFlag: boolean, limit = NETWORK_PAGE_LIMIT) => {
+        const requestNetworks = async (
+          currentOffset: number,
+          includeTotalFlag: boolean,
+          limit = NETWORK_PAGE_LIMIT
+        ) => {
           const params = buildFilteredRequestParams({
-            payload: debouncedFilterState,
+            payload: currentFilterState,
             limit,
-            offset: pagination.offset,
+            offset: currentOffset,
             sort: sortKeys.join(','),
-            order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
+            order: currentSort.map((entry: SortState) => entry.direction.toUpperCase()).join(','),
             includeTotal: includeTotalFlag,
             pageType:
-              currentPage === 'wigle' && debouncedFilterState.enabled.wigle_v3_observation_count_min
+              currentPage === 'wigle' && currentFilterState.enabled?.wigle_v3_observation_count_min
                 ? 'wigle'
                 : undefined,
             planCheck,
@@ -149,10 +176,12 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           });
         };
 
-        const shouldIncludeTotal = pagination.offset === 0;
+        // Read current offset from pagination state at call time
+        const currentOffset = pagination.offset;
+        const shouldIncludeTotal = currentOffset === 0;
         let data;
         try {
-          data = await requestNetworks(shouldIncludeTotal);
+          data = await requestNetworks(currentOffset, shouldIncludeTotal);
         } catch (primaryErr: any) {
           if (
             shouldIncludeTotal &&
@@ -160,10 +189,10 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
             isCountTimeoutError(primaryErr)
           ) {
             try {
-              data = await requestNetworks(false);
+              data = await requestNetworks(currentOffset, false);
             } catch (secondaryErr: any) {
               if (secondaryErr?.name !== 'AbortError' && isCountTimeoutError(secondaryErr)) {
-                data = await requestNetworks(false, 200);
+                data = await requestNetworks(currentOffset, false, 200);
               } else {
                 throw secondaryErr;
               }
@@ -174,7 +203,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         }
 
         logDebug(`Networks response received`);
-        applyResponse(data);
+        applyResponse(data, currentOffset);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           const errorMessage =
@@ -191,13 +220,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
 
     fetchNetworks();
     return () => controller.abort();
-  }, [
-    pagination.offset,
-    JSON.stringify(debouncedFilterState),
-    JSON.stringify(sort),
-    planCheck,
-    locationMode,
-  ]);
+  }, [fetchTrigger, pagination.offset, planCheck, locationMode, currentPage]);
 
   return {
     networks,

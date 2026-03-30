@@ -69,12 +69,7 @@ function buildFastPathListSql(
         ne.accuracy_meters AS accuracy_meters,
         ne.stationary_confidence AS stationary_confidence,
         ${NT_SELECT_FIELDS},
-        (
-          SELECT COUNT(*)
-          FROM app.network_notes nn
-          WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
-            AND nn.is_deleted IS NOT TRUE
-        )::integer AS notes_count,
+        COALESCE(nn_agg.notes_count, 0)::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         ne.rule_based_score,
         ne.ml_threat_score,
@@ -85,6 +80,12 @@ function buildFastPathListSql(
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::integer AS notes_count
+        FROM app.network_notes nn
+        WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
+          AND nn.is_deleted IS NOT TRUE
+      ) nn_agg ON TRUE
       ${whereClause}
       ORDER BY ${safeOrderBy}
       LIMIT ${limitParam}

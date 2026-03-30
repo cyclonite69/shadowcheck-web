@@ -119,12 +119,7 @@ export function buildNetworkSlowPathListQuery(
       l.accuracy AS accuracy_meters,
       ne.stationary_confidence,
       ${NT_SELECT_FIELDS},
-      (
-        SELECT COUNT(*)
-        FROM app.network_notes nn
-        WHERE UPPER(nn.bssid) = UPPER(l.bssid)
-          AND nn.is_deleted IS NOT TRUE
-      )::integer AS notes_count,
+      COALESCE(nn_agg.notes_count, 0)::integer AS notes_count,
       JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
       COALESCE(nts.rule_based_score, ne.rule_based_score) AS rule_based_score,
       COALESCE(nts.ml_threat_score, ne.ml_threat_score) AS ml_threat_score,
@@ -138,6 +133,12 @@ export function buildNetworkSlowPathListQuery(
       LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
       ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::integer AS notes_count
+        FROM app.network_notes nn
+        WHERE UPPER(nn.bssid) = UPPER(l.bssid)
+          AND nn.is_deleted IS NOT TRUE
+      ) nn_agg ON TRUE
     ${ctx.requiresHome ? 'CROSS JOIN home' : ''}
     ${effectiveWhereClause}
     ORDER BY ${orderBy}
