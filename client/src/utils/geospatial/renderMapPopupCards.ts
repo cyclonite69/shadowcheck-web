@@ -1,3 +1,5 @@
+import { formatShortDate } from '../formatDate';
+
 type AgencyPopupProps = {
   name?: string;
   officeType?: string;
@@ -34,18 +36,12 @@ const formatPopupTime = (value: string | number | null | undefined): string => {
   if (Number.isFinite(numeric)) {
     // Accept either milliseconds or seconds epoch.
     const epochMs = numeric < 1e12 ? numeric * 1000 : numeric;
-    const date = new Date(epochMs);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleString();
-    }
+    const result = formatShortDate(new Date(epochMs));
+    if (result !== '—') return result;
   }
 
-  const parsed = new Date(String(value));
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toLocaleString();
-  }
-
-  return 'Unknown';
+  const result = formatShortDate(String(value));
+  return result !== '—' ? result : 'Unknown';
 };
 
 const popupShell = ({

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
+import { formatShortDate } from '../../../utils/formatDate';
 
 const DatabaseIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -166,14 +167,7 @@ export const DbStatsTab: React.FC = () => {
                   </span>
                 </td>
                 <td className="py-2 pl-4 text-right whitespace-nowrap text-slate-500">
-                  {t.last_active
-                    ? new Date(t.last_active).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : 'Never'}
+                  {t.last_active ? formatShortDate(t.last_active) : 'Never'}
                 </td>
               </tr>
             );
@@ -227,14 +221,7 @@ export const DbStatsTab: React.FC = () => {
                 {parseInt(mv.seq_tup_read || '0').toLocaleString()}
               </td>
               <td className="py-2 pl-4 text-right whitespace-nowrap text-slate-500">
-                {mv.last_active
-                  ? new Date(mv.last_active).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : 'Never'}
+                {mv.last_active ? formatShortDate(mv.last_active) : 'Never'}
               </td>
             </tr>
           ))}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useBackups } from '../hooks/useBackups';
+import { formatShortDate } from '../../../utils/formatDate';
 
 const DatabaseIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -215,7 +216,7 @@ export const BackupsTab: React.FC = () => {
                       <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
                         <span>{formatBytes(backup.size)}</span>
                         <span>•</span>
-                        <span>{new Date(backup.lastModified).toLocaleDateString()}</span>
+                        <span>{formatShortDate(backup.lastModified)}</span>
                         {backup.sourceEnv && backup.sourceEnv !== 'unknown' && (
                           <>
                             <span>•</span>

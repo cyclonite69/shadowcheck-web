@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { Metrics } from './types';
+import { formatShortDate } from '../../../../utils/formatDate';
 
 interface ImportRun {
   id: number;
@@ -153,7 +154,7 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
                 onClick={() => toggle(run.id)}
               >
                 <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                  {new Date(run.started_at).toLocaleString()}
+                  {formatShortDate(run.started_at)}
                 </td>
                 <td className="py-1.5 pr-3 font-mono">{run.source_tag}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.imported)}</td>

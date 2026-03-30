@@ -2,6 +2,7 @@
 
 import React, { type ReactNode } from 'react';
 import type { NetworkRow } from '../types/network';
+import { formatRelativeTime } from '../utils/formatDate';
 
 export type NetworkColumnConfig = {
   label: string;
@@ -138,10 +139,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     default: false,
     render: (value) => {
       if (!value) return '—';
-      const date = new Date(String(value));
-      const now = new Date();
-      const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-      const label = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
+      const label = formatRelativeTime(String(value));
       return React.createElement('span', { className: 'text-xs text-gray-600' }, label);
     },
   },

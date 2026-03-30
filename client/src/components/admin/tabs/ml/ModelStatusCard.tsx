@@ -1,5 +1,6 @@
 import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
+import { formatShortDate } from '../../../../utils/formatDate';
 
 const TargetIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -39,7 +40,7 @@ export const ModelStatusCard: React.FC<ModelStatusCardProps> = ({ mlStatus }) =>
         <div className="flex justify-between items-center py-2">
           <span className="text-sm text-slate-400">Updated:</span>
           <span className="text-sm text-slate-300">
-            {new Date(mlStatus.modelInfo.updated_at).toLocaleDateString()}
+            {formatShortDate(mlStatus.modelInfo.updated_at)}
           </span>
         </div>
       )}

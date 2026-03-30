@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiClient } from '../api/client';
+import { formatShortDate } from '../utils/formatDate';
 
 type DashboardMetrics = {
   threats: {
@@ -368,7 +369,7 @@ export default function StartPage() {
                   <BluetoothIcon className="w-4 h-4" />
                   Last updated:{' '}
                   {summary?.timestamp || metrics?.timestamp
-                    ? new Date(summary?.timestamp || metrics?.timestamp || '').toLocaleString()
+                    ? formatShortDate(summary?.timestamp || metrics?.timestamp)
                     : 'Unknown'}
                 </div>
               </div>

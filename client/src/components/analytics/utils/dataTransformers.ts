@@ -3,6 +3,9 @@
 // EXTRACTS: Data processing functions from lines 340-516 in original AnalyticsPage.tsx
 
 import { NETWORK_TYPE_COLORS, SECURITY_TYPE_COLORS } from './chartConstants';
+import { formatChartDate } from '../../../utils/formatDate';
+
+const CHART_DEFAULT_RANGE_MS = 30 * 86_400_000; // 30 days → MMM DD format
 
 // Transform network types data for pie chart
 export const transformNetworkTypesData = (rawData: any[]) => {
@@ -75,10 +78,7 @@ export const transformRadioTimeData = (rawData: any[]) => {
 
   const radioTimeMap = new Map();
   rawData.forEach((item) => {
-    const dateKey = new Date(item.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    const dateKey = formatChartDate(new Date(item.date), CHART_DEFAULT_RANGE_MS);
     if (!radioTimeMap.has(dateKey)) {
       radioTimeMap.set(dateKey, { label: dateKey });
     }
@@ -92,10 +92,7 @@ export const transformThreatTrendsData = (rawData: any[]) => {
   if (!rawData || !Array.isArray(rawData)) return [];
 
   return rawData.map((item) => ({
-    label: new Date(item.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }),
+    label: formatChartDate(new Date(item.date), CHART_DEFAULT_RANGE_MS),
     avgScore: Number.isFinite(Number(item.avgScore)) ? Number(item.avgScore) : 0,
     criticalCount: Number(item.criticalCount) || 0,
     highCount: Number(item.highCount) || 0,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trash2 } from './icons';
 import type { NetworkNote } from './types';
+import { formatShortDate } from '../../utils/formatDate';
 
 interface NetworkContextNotesProps {
   selectedBSSID: string;
@@ -25,7 +26,7 @@ export const NetworkContextNotes = ({
               <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded mb-2">
                 {note.note_type}
               </span>
-              <p className="text-xs text-gray-500">{new Date(note.created_at).toLocaleString()}</p>
+              <p className="text-xs text-gray-500">{formatShortDate(note.created_at)}</p>
             </div>
             <button
               onClick={() => onDeleteNote(selectedBSSID, note.id)}
