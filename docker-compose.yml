@@ -95,7 +95,7 @@ services:
       # Option B (preferred): read-only AWS shared config/credentials from the host.
       # Refresh SSO/login on the host first; the container only reads the files.
       - ${HOME}/.aws:/home/nodejs/.aws:ro
-      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/podman/podman.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1"]
       interval: 30s
