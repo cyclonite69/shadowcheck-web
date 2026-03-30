@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Comprehensive Filter Testing System
 # Tests all filters individually and in combinations with performance metrics
 

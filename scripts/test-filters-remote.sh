@@ -1,8 +1,13 @@
 #!/bin/bash
+set -euo pipefail
 # Remote Filter Testing - Run from local machine to test EC2 instance
 # Usage: ./test-filters-remote.sh [IP_ADDRESS]
 
-IP="${1:-34.204.161.164}"
+IP="${1:-${SHADOWCHECK_HOST:-}}"
+if [ -z "$IP" ]; then
+  echo "ERROR: No IP provided. Pass as argument or set SHADOWCHECK_HOST env var." >&2
+  exit 1
+fi
 PORT="3001"
 TARGET="http://${IP}:${PORT}"
 LIMIT=5

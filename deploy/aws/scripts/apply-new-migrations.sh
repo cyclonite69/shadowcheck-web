@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Apply the two new migrations manually
 # Run on AWS instance: bash apply-new-migrations.sh
 

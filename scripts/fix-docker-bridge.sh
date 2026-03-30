@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Fix Docker bridge network missing gateway IP
 
 BRIDGE="br-0198a91b1396"

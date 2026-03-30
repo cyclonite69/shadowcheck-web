@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Refresh threat scoring materialized view
 # Run daily at 3 AM via cron: 0 3 * * * /path/to/refresh-threat-scores.sh
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 set -e
 
 echo "Building ShadowCheck containers on AWS instance..."

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Test script to verify filter system is working
 
 echo "Testing filter system..."

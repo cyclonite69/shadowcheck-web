@@ -100,8 +100,6 @@ export const WigleStatsTab: React.FC = () => {
     ? `https://wigle.net${stats.imageBadgeUrl}`
     : `https://wigle.net/bi/${getStat('user')}.png`;
 
-  console.log('WIGLE RAW STATS:', JSON.stringify(stats, null, 2));
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">

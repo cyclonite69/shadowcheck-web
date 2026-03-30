@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # ShadowCheck Database Setup Script
 
 echo "ShadowCheck Database Setup"

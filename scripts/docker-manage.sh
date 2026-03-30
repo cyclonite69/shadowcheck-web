@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # ShadowCheck Docker Management Script
 # Manages PostgreSQL infrastructure and application services
 

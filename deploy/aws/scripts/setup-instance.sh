@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Complete EC2 instance setup for ShadowCheck
 # Run this script after instance launch to configure everything
 
