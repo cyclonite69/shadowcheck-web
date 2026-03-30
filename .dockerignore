@@ -55,6 +55,7 @@ logs/
 # Secrets
 secrets/
 certs/
+!certs/generate-cert.sh
 *.pem
 *.key
 *.crt
