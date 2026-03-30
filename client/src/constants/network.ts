@@ -2,7 +2,7 @@
 
 import React, { type ReactNode } from 'react';
 import type { NetworkRow } from '../types/network';
-import { formatRelativeTime } from '../utils/formatDate';
+import { formatRelativeTime, formatShortDate, formatISODate } from '../utils/formatDate';
 
 export type NetworkColumnConfig = {
   label: string;
@@ -39,8 +39,28 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   distanceFromHome: { label: 'Distance (m)', width: 100, sortable: true, default: true },
   accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
   stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
-  firstSeen: { label: 'First Seen', width: 160, sortable: true, default: false },
-  lastSeen: { label: 'Last Seen', width: 160, sortable: true, default: true },
+  firstSeen: {
+    label: 'First Seen',
+    width: 160,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (!value) return '—';
+      const str = String(value);
+      return React.createElement('span', { title: formatISODate(str) }, formatShortDate(str));
+    },
+  },
+  lastSeen: {
+    label: 'Last Seen',
+    width: 160,
+    sortable: true,
+    default: true,
+    render: (value) => {
+      if (!value) return '—';
+      const str = String(value);
+      return React.createElement('span', { title: formatISODate(str) }, formatShortDate(str));
+    },
+  },
   timespanDays: { label: 'Timespan', width: 120, sortable: true, default: true },
   // Enrichment columns (networks-v2 API) - hidden by default
   manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
