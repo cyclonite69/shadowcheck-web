@@ -54,6 +54,12 @@ logs/
 
 # Secrets
 secrets/
+certs/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
 # Build artifacts
 dist/

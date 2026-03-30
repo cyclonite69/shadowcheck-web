@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # ShadowCheck Endpoint Test Harness
 # Safely tests API endpoints without causing OOM or excessive output
 

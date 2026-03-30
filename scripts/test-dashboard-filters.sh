@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 set -u
 
 BASE="${1:-http://localhost:3001}"
