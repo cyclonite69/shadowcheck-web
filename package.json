@@ -46,7 +46,7 @@
   "author": "ShadowCheck",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-bedrock-runtime": "^3.1015.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1019.0",
     "@aws-sdk/client-ec2": "^3.1019.0",
     "@aws-sdk/client-s3": "^3.1015.0",
     "@aws-sdk/client-secrets-manager": "^3.1015.0",
