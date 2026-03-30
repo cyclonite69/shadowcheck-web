@@ -11,16 +11,16 @@ load_runtime_secrets() {
     return 0
   fi
 
-  if [ -z "${AWS_REGION:-${AWS_DEFAULT_REGION:-}}" ]; then
-    return 0
-  fi
 
   if ! command -v aws >/dev/null 2>&1; then
     return 0
   fi
 
+  _REGION_ARG=""
+  _RESOLVED_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
+  if [ -n "$_RESOLVED_REGION" ]; then _REGION_ARG="--region $_RESOLVED_REGION"; fi
   SECRET_JSON=$(aws secretsmanager get-secret-value \
-    --region "${AWS_REGION:-${AWS_DEFAULT_REGION}}" \
+    $_REGION_ARG \
     --secret-id "$AWS_SECRET_NAME" \
     --query SecretString \
     --output text 2>/dev/null || true)

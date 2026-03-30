@@ -382,10 +382,12 @@ fi
 
 # 6. Migrations (must complete before backend starts to avoid 503 DB_INITIALIZING)
 echo "[6/8] Running migrations..."
+REGION_ARGS=""
+if [ -n "${AWS_REGION:-}" ]; then REGION_ARGS="--region $AWS_REGION"; fi
 if [ -n "$AWS_PROFILE" ]; then
-  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region "$AWS_REGION" --profile "$AWS_PROFILE" --query 'SecretString' --output text 2>/dev/null || echo "{}")
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config $REGION_ARGS --profile "$AWS_PROFILE" --query 'SecretString' --output text 2>/dev/null || echo "{}")
 else
-  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region "$AWS_REGION" --query 'SecretString' --output text 2>/dev/null || echo "{}")
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config $REGION_ARGS --query 'SecretString' --output text 2>/dev/null || echo "{}")
 fi
 DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
 DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
