@@ -76,7 +76,6 @@ export const useGeospatialMap = ({
         mapboxRef.current = mapboxgl as any;
         await import('mapbox-gl/dist/mapbox-gl.css' as any);
         (mapboxgl as any).accessToken = String(tokenBody.token).trim();
-        let hoverPopup: mapboxglType.Popup | null = null;
 
         if (mapContainerRef.current) {
           mapContainerRef.current.innerHTML = '';
@@ -189,7 +188,7 @@ export const useGeospatialMap = ({
             },
           });
 
-          // Add click handlers for observation points with signal circle tooltips
+          // Click: show full tooltip popup
           map.on('click', 'observation-points', (e: MapLayerMouseEvent) => {
             if (!e.features || e.features.length === 0) return;
 
@@ -288,103 +287,11 @@ export const useGeospatialMap = ({
             );
           }
 
-          // Show signal circle and lightweight tooltip on hover.
+          // Hover: draw signal-range circle only (tooltip is on click)
           map.on('mouseenter', 'observation-points', (e: MapLayerMouseEvent) => {
             map.getCanvas().style.cursor = 'pointer';
 
             if (!e.features || e.features.length === 0) return;
-
-            const feature = e.features[0];
-            const props = feature.properties as Record<string, unknown> | undefined;
-            if (!props || !e.lngLat) return;
-
-            hoverPopup?.remove();
-            hoverPopup = null;
-
-            const signal = getNumericProperty(
-              props,
-              'signal',
-              'level',
-              'bestlevel',
-              'rssi',
-              'signalDbm',
-              'maxSignal',
-              'max_signal'
-            );
-            const frequency = getNumericProperty(props, 'frequency', 'radio_frequency');
-            const coChannelNeighbors = getNumericProperty(props, 'co_channel_neighbors') ?? 0;
-            const signalRadius = calculateSignalRange(
-              signal,
-              frequency,
-              map.getZoom(),
-              e.lngLat.lat,
-              coChannelNeighbors
-            );
-            const bssidColor = macColor(String(props.bssid ?? ''));
-
-            // Add signal range circle to map
-            const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
-            if (hoverCircleSource) {
-              hoverCircleSource.setData({
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    ...createCirclePolygon([e.lngLat.lng, e.lngLat.lat], signalRadius),
-                    properties: {
-                      color: bssidColor,
-                      strokeColor: bssidColor,
-                    },
-                  },
-                ],
-              });
-            }
-
-            const lng = (feature.geometry as any).coordinates[0];
-            const lat = (feature.geometry as any).coordinates[1];
-            const popupHTML = renderNetworkTooltip(
-              normalizeTooltipData(
-                {
-                  ...props,
-                  lat,
-                  lon: lng,
-                },
-                [lng, lat]
-              )
-            );
-            const anchor = getPopupAnchor(map, e.lngLat, popupHTML);
-
-            hoverPopup = new (mapboxgl as any).Popup({
-              anchor,
-              offset: 15,
-              className: 'sc-popup',
-              maxWidth: 'min(340px, 90vw)',
-              closeOnClick: false,
-              closeButton: false,
-              focusAfterOpen: false,
-            })
-              .setLngLat(e.lngLat)
-              .setHTML(popupHTML)
-              .addTo(map);
-          });
-
-          map.on('mouseleave', 'observation-points', () => {
-            map.getCanvas().style.cursor = '';
-
-            hoverPopup?.remove();
-            hoverPopup = null;
-
-            // Clear hover circle from map
-            const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
-            if (hoverCircleSource) {
-              hoverCircleSource.setData({
-                type: 'FeatureCollection',
-                features: [],
-              });
-            }
-          });
-
-          map.on('mousemove', 'observation-points', (e: MapLayerMouseEvent) => {
-            if (!e.features || e.features.length === 0 || !e.lngLat) return;
             const feature = e.features[0];
             const props = feature.properties as Record<string, unknown> | undefined;
             if (!props) return;
@@ -416,14 +323,25 @@ export const useGeospatialMap = ({
                 type: 'FeatureCollection',
                 features: [
                   {
-                    ...createCirclePolygon([e.lngLat.lng, e.lngLat.lat], signalRadius),
-                    properties: {
-                      color: bssidColor,
-                      strokeColor: bssidColor,
-                    },
+                    ...createCirclePolygon(
+                      [
+                        (feature.geometry as any).coordinates[0],
+                        (feature.geometry as any).coordinates[1],
+                      ],
+                      signalRadius
+                    ),
+                    properties: { color: bssidColor, strokeColor: bssidColor },
                   },
                 ],
               });
+            }
+          });
+
+          map.on('mouseleave', 'observation-points', () => {
+            map.getCanvas().style.cursor = '';
+            const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
+            if (hoverCircleSource) {
+              hoverCircleSource.setData({ type: 'FeatureCollection', features: [] });
             }
           });
 
