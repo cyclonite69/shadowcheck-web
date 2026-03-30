@@ -380,9 +380,8 @@ if [ "$POSTGRES_RESTART_REQUIRED" = true ]; then
   wait_for_container_health shadowcheck_postgres 90
 fi
 
-# 6. Restart Application and pgAdmin
-echo "[6/8] Restarting application containers and pgAdmin..."
-ENV_FILE=$(mktemp)
+# 6. Migrations (must complete before backend starts to avoid 503 DB_INITIALIZING)
+echo "[6/8] Running migrations..."
 if [ -n "$AWS_PROFILE" ]; then
   SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region "$AWS_REGION" --profile "$AWS_PROFILE" --query 'SecretString' --output text 2>/dev/null || echo "{}")
 else
@@ -391,9 +390,24 @@ fi
 DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
 DB_ADMIN_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
 
+docker exec shadowcheck_postgres mkdir -p /sql
+docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
+docker cp sql/migrations shadowcheck_postgres:/sql/migrations
+docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
+docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -v admin_password='$DB_ADMIN_PASSWORD' -f /sql/00_bootstrap.sql" 2>&1 | tail -5
+docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD' MIGRATION_DB_USER=shadowcheck_admin DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
+
+echo "  Refreshing materialized view before backend starts..."
+docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -c 'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv;'" 2>/dev/null \
+  || docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -c 'REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;'" 2>/dev/null \
+  || echo "  ⚠️  MV refresh skipped (view may not exist yet)"
+
+# 7. Restart Application and pgAdmin
+echo "[7/8] Restarting application containers and pgAdmin..."
 IMDS_TOKEN=$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")
 PUBLIC_IP=$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 
+ENV_FILE=$(mktemp)
 cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
@@ -468,15 +482,6 @@ rm -f "$ENV_FILE"
 wait_for_container_health shadowcheck_backend 90
 wait_for_container_health shadowcheck_frontend 60
 wait_for_container_health shadowcheck_pgadmin 60 || true
-
-# 7. Migrations
-echo "[7/8] Running migrations..."
-docker exec shadowcheck_postgres mkdir -p /sql
-docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
-docker cp sql/migrations shadowcheck_postgres:/sql/migrations
-docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
-docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -v admin_password='$DB_ADMIN_PASSWORD' -f /sql/00_bootstrap.sql" 2>&1 | tail -5
-docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD' MIGRATION_DB_USER=shadowcheck_admin DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
 
 # 8. Monitoring
 echo "[8/8] Syncing monitoring..."
