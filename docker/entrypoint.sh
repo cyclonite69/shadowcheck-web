@@ -89,7 +89,7 @@ run_migrations() {
   fi
   echo "[entrypoint] Running database migrations..."
   MIGRATIONS_DIR=/app/sql/migrations \
-  MIGRATION_DB_USER="${DB_ADMIN_USER:-shadowcheck_admin}" \
+  MIGRATION_DB_USER="${DB_ADMIN_USER:-${DB_USER:-shadowcheck_user}}" \
   DB_NAME="${DB_NAME:-shadowcheck_db}" \
   PGPASSWORD="${DB_ADMIN_PASSWORD:-${DB_PASSWORD:-}}" \
   PGHOST="${DB_HOST:-postgres}" \
