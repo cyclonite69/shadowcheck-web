@@ -63,7 +63,29 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   },
   timespanDays: { label: 'Timespan', width: 120, sortable: true, default: true },
   // Enrichment columns (networks-v2 API) - hidden by default
-  manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
+  manufacturer: {
+    label: 'Manufacturer',
+    width: 150,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (!value) return '—';
+      const str = String(value);
+      return React.createElement(
+        'span',
+        {
+          title: str,
+          style: {
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: 'block',
+          },
+        },
+        str
+      );
+    },
+  },
   min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
   max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: true, default: false },
   altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: true, default: false },
