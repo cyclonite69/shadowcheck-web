@@ -2,6 +2,7 @@ import React from 'react';
 import type { VirtualItem } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../../types/network';
 import { NETWORK_COLUMNS } from '../../../constants/network';
+import { THREAT_LEVEL_CONFIG } from '../../../constants/network';
 import { NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS } from '../networkTableGridConfig';
 import { renderNetworkTableCell } from './cellRenderers';
 
@@ -53,16 +54,20 @@ export const NetworkTableRow: React.FC<NetworkTableRowProps> = ({
   const showSelectedAnchorLink =
     net.bssid === selectedAnchorBssid && selectedAnchorHasLinkedSiblings;
   const isSiblingLinkedRow = Boolean(siblingGroupId) || showSelectedAnchorLink || isLinkedSibling;
+  const threatLevel = (
+    net.threat?.level || 'NONE'
+  ).toUpperCase() as keyof typeof THREAT_LEVEL_CONFIG;
+  const siblingColor = (THREAT_LEVEL_CONFIG[threatLevel] || THREAT_LEVEL_CONFIG.NONE).color;
   const rowBackground = isSelected
     ? 'rgba(59, 130, 246, 0.1)'
     : isSiblingLinkedRow
-      ? 'rgba(8, 47, 73, 0.55)'
+      ? `${siblingColor}0a`
       : 'rgba(15, 23, 42, 0.45)';
   const rowAccent = isSiblingLinkedRow
     ? [
-        'inset 5px 0 0 rgba(56, 189, 248, 0.98)',
-        isSiblingGroupStart ? 'inset 0 1px 0 rgba(103, 232, 249, 0.55)' : '',
-        isSiblingGroupEnd ? 'inset 0 -1px 0 rgba(103, 232, 249, 0.55)' : '',
+        `inset 3px 0 0 ${siblingColor}cc`,
+        isSiblingGroupStart ? `inset 0 1px 0 ${siblingColor}55` : '',
+        isSiblingGroupEnd ? `inset 0 -1px 0 ${siblingColor}55` : '',
       ]
         .filter(Boolean)
         .join(', ')
@@ -147,14 +152,14 @@ export const NetworkTableRow: React.FC<NetworkTableRowProps> = ({
         e.currentTarget.style.background = isSelected
           ? 'rgba(59, 130, 246, 0.15)'
           : isSiblingLinkedRow
-            ? 'rgba(12, 74, 110, 0.6)'
+            ? `${siblingColor}12`
             : 'rgba(71, 85, 105, 0.1)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = isSelected
           ? 'rgba(59, 130, 246, 0.1)'
           : isSiblingLinkedRow
-            ? 'rgba(8, 47, 73, 0.55)'
+            ? `${siblingColor}0a`
             : 'rgba(15, 23, 42, 0.45)';
       }}
     >
