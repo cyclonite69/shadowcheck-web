@@ -2,9 +2,9 @@ import React from 'react';
 import type { VirtualItem } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../../types/network';
 import { NETWORK_COLUMNS } from '../../../constants/network';
-import { THREAT_LEVEL_CONFIG } from '../../../constants/network';
 import { NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS } from '../networkTableGridConfig';
 import { renderNetworkTableCell } from './cellRenderers';
+import { macColor } from '../../../utils/mapHelpers';
 
 interface NetworkTableRowProps {
   net: NetworkRow;
@@ -15,6 +15,7 @@ interface NetworkTableRowProps {
   selectedNetworks: Set<string>;
   linkedSiblingBssids: Set<string>;
   siblingGroupId: string | null;
+  siblingGroupColor: string | null;
   isSiblingGroupStart: boolean;
   isSiblingGroupEnd: boolean;
   selectedAnchorBssid: string | null;
@@ -37,6 +38,7 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
   selectedNetworks,
   linkedSiblingBssids,
   siblingGroupId,
+  siblingGroupColor,
   isSiblingGroupStart,
   isSiblingGroupEnd,
   selectedAnchorBssid,
@@ -54,10 +56,7 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
   const showSelectedAnchorLink =
     net.bssid === selectedAnchorBssid && selectedAnchorHasLinkedSiblings;
   const isSiblingLinkedRow = Boolean(siblingGroupId) || showSelectedAnchorLink || isLinkedSibling;
-  const threatLevel = (
-    net.threat?.level || 'NONE'
-  ).toUpperCase() as keyof typeof THREAT_LEVEL_CONFIG;
-  const siblingColor = (THREAT_LEVEL_CONFIG[threatLevel] || THREAT_LEVEL_CONFIG.NONE).color;
+  const siblingColor = siblingGroupColor || macColor(net.bssid ?? '');
   const rowBackground = isSelected
     ? 'rgba(59, 130, 246, 0.1)'
     : isSiblingLinkedRow
@@ -188,6 +187,7 @@ export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, 
     prevProps.linkedSiblingBssids.has(prevProps.net.bssid) ===
       nextProps.linkedSiblingBssids.has(nextProps.net.bssid) &&
     prevProps.siblingGroupId === nextProps.siblingGroupId &&
+    prevProps.siblingGroupColor === nextProps.siblingGroupColor &&
     // Position changed?
     prevProps.virtualRow.start === nextProps.virtualRow.start &&
     prevProps.virtualRow.size === nextProps.virtualRow.size &&

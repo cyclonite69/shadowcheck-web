@@ -6,6 +6,7 @@ import {
   NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS,
 } from './networkTableGridConfig';
 import { NetworkTableRow } from './networkTable/NetworkTableRow';
+import { mixBssidColors } from '../../utils/wigle/colors';
 
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -112,6 +113,19 @@ export const NetworkTableBodyGrid = ({
     [lockedVisibleColumns]
   );
 
+  // Compute mixed BSSID color per sibling group
+  const siblingGroupColors = React.useMemo(() => {
+    const groups = new Map<string, string[]>();
+    siblingGroupMap.forEach((groupId, bssid) => {
+      const arr = groups.get(groupId);
+      if (arr) arr.push(bssid);
+      else groups.set(groupId, [bssid]);
+    });
+    const colors = new Map<string, string>();
+    groups.forEach((bssids, groupId) => colors.set(groupId, mixBssidColors(bssids)));
+    return colors;
+  }, [siblingGroupMap]);
+
   // Show initial loading / empty / error states only when we have no rows yet.
   if (
     (loadingNetworks && filteredNetworks.length === 0) ||
@@ -173,6 +187,9 @@ export const NetworkTableBodyGrid = ({
               selectedNetworks={selectedNetworks}
               linkedSiblingBssids={linkedSiblingBssids}
               siblingGroupId={siblingGroupId}
+              siblingGroupColor={
+                siblingGroupId ? (siblingGroupColors.get(siblingGroupId) ?? null) : null
+              }
               isSiblingGroupStart={isSiblingGroupStart}
               isSiblingGroupEnd={isSiblingGroupEnd}
               selectedAnchorBssid={selectedAnchorBssid}

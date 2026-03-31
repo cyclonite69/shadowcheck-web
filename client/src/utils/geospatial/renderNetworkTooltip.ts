@@ -1,4 +1,5 @@
 import { THREAT_LEVEL_CONFIG } from '../../constants/network';
+import { macColor } from '../../utils/mapHelpers';
 import {
   formatCoord,
   formatAltitude,
@@ -91,6 +92,8 @@ export const renderNetworkTooltip = (props: any): string => {
   const tc = threatConfig.color;
   const threatBg = threatConfig.bg;
   const threatBorder = `${threatConfig.color}40`;
+  const bssidRaw = props.bssid || props.netid || '';
+  const bc = bssidRaw ? macColor(bssidRaw) : tc;
   const rssiValue =
     props.signal ??
     props.rssi ??
@@ -205,16 +208,16 @@ export const renderNetworkTooltip = (props: any): string => {
     !isMissingValue(props.time);
 
   return `
-<div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:2px solid ${tc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
+<div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:2px solid ${bc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
     <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:flex;align-items:center;gap:6px;">
-      <div style="flex-shrink:0;">${getRadioSVG(props.radio_type || 'WiFi', tc)}</div>
+      <div style="flex-shrink:0;">${getRadioSVG(props.radio_type || 'WiFi', bc)}</div>
       <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
     </div>
     <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;">
-    <div style="font-size:11px;font-family:monospace;color:${tc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>
+    <div style="font-size:11px;font-family:monospace;color:${bc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;">
