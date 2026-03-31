@@ -541,10 +541,9 @@ Get status of the persistent geocoding daemon.
 
 **POST /api/admin/geocoding/daemon 🔒**
 Start the geocoding daemon.
-DELETE /api/admin/geocoding/daemon 🔒\*\*
-Stop the geocoding daemon.
 
----
+**DELETE /api/admin/geocoding/daemon 🔒**
+Stop the geocoding daemon.
 
 ---
 

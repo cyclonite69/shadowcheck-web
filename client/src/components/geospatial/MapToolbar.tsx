@@ -45,6 +45,8 @@ interface MapToolbarProps {
   onToggleCourthousesPanel?: () => void;
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
+  onResetBearing?: () => void;
+  onResetPitch?: () => void;
 }
 
 const Separator = () => (
@@ -97,17 +99,22 @@ export const MapToolbar = ({
   onToggleCourthousesPanel,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
+  onResetBearing,
+  onResetPitch,
 }: MapToolbarProps) => {
   const [layersOpen, setLayersOpen] = useState(false);
   const [mapStyleOpen, setMapStyleOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const layersRef = useRef<HTMLDivElement>(null);
   const mapStyleRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (layersRef.current && !layersRef.current.contains(e.target as Node)) setLayersOpen(false);
       if (mapStyleRef.current && !mapStyleRef.current.contains(e.target as Node))
         setMapStyleOpen(false);
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -121,32 +128,32 @@ export const MapToolbar = ({
   return (
     <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0 }}>
       {/* Zone 1 — Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
         <div
           style={{
-            width: '22px',
-            height: '22px',
+            width: '24px',
+            height: '24px',
             borderRadius: '5px',
-            background: 'var(--nav-accent-bg)',
-            border: '0.5px solid rgba(59,130,246,0.3)',
+            background: 'rgba(59,130,246,0.12)',
+            border: '0.5px solid rgba(59,130,246,0.32)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <circle cx="6" cy="6" r="4.5" stroke="#60a5fa" strokeWidth="1" />
-            <circle cx="6" cy="6" r="1.5" fill="#60a5fa" />
-            <line x1="6" y1="0" x2="6" y2="3" stroke="#60a5fa" strokeWidth="0.8" />
-            <line x1="6" y1="9" x2="6" y2="12" stroke="#60a5fa" strokeWidth="0.8" />
-            <line x1="0" y1="6" x2="3" y2="6" stroke="#60a5fa" strokeWidth="0.8" />
-            <line x1="9" y1="6" x2="12" y2="6" stroke="#60a5fa" strokeWidth="0.8" />
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="6.5" r="5" stroke="#60a5fa" strokeWidth="1" />
+            <circle cx="6.5" cy="6.5" r="1.8" fill="#60a5fa" />
+            <line x1="6.5" y1="0.5" x2="6.5" y2="3" stroke="#60a5fa" strokeWidth="0.9" />
+            <line x1="6.5" y1="10" x2="6.5" y2="12.5" stroke="#60a5fa" strokeWidth="0.9" />
+            <line x1="0.5" y1="6.5" x2="3" y2="6.5" stroke="#60a5fa" strokeWidth="0.9" />
+            <line x1="10" y1="6.5" x2="12.5" y2="6.5" stroke="#60a5fa" strokeWidth="0.9" />
           </svg>
         </div>
         <span
           style={{
             ...mono,
-            fontSize: '13px',
+            fontSize: '14px',
             fontWeight: 500,
             color: '#e2e8f0',
             whiteSpace: 'nowrap',
@@ -264,6 +271,139 @@ export const MapToolbar = ({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Zone 2b — NAV dropdown */}
+      <div ref={navRef} style={{ position: 'relative', flexShrink: 0 }}>
+        <button
+          onClick={() => setNavOpen((v) => !v)}
+          style={{
+            height: '28px',
+            padding: '0 10px',
+            borderRadius: '6px',
+            border: '0.5px solid rgba(59,130,246,0.25)',
+            background: 'rgba(59,130,246,0.08)',
+            color: '#60a5fa',
+            fontSize: '11px',
+            ...mono,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+          }}
+        >
+          <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="#60a5fa" strokeWidth="1" />
+            <line x1="6.5" y1="1.5" x2="6.5" y2="4" stroke="#60a5fa" strokeWidth="0.8" />
+            <line x1="6.5" y1="9" x2="6.5" y2="11.5" stroke="#60a5fa" strokeWidth="0.8" />
+            <line x1="1.5" y1="6.5" x2="4" y2="6.5" stroke="#60a5fa" strokeWidth="0.8" />
+            <line x1="9" y1="6.5" x2="11.5" y2="6.5" stroke="#60a5fa" strokeWidth="0.8" />
+          </svg>
+          NAV ▾
+        </button>
+        {navOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              background: '#161b25',
+              border: '0.5px solid rgba(59,130,246,0.15)',
+              borderRadius: '8px',
+              padding: '6px',
+              minWidth: '160px',
+              zIndex: 200,
+            }}
+          >
+            <div
+              onClick={() => {
+                onGps();
+                setNavOpen(false);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '7px 10px',
+                borderRadius: '5px',
+                fontSize: '12px',
+                ...mono,
+                color: 'rgba(255,255,255,0.5)',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+              }}
+            >
+              <span>Go to GPS</span>
+            </div>
+            {onResetBearing && (
+              <div
+                onClick={() => {
+                  onResetBearing();
+                  setNavOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '5px',
+                  fontSize: '12px',
+                  ...mono,
+                  color: 'rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                }}
+              >
+                <span>Reset bearing</span>
+              </div>
+            )}
+            {onResetPitch && (
+              <div
+                onClick={() => {
+                  onResetPitch();
+                  setNavOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  borderRadius: '5px',
+                  fontSize: '12px',
+                  ...mono,
+                  color: 'rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                }}
+              >
+                <span>Reset pitch</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -404,6 +544,7 @@ export const MapToolbar = ({
             cursor: 'pointer',
             background: 'transparent',
             color: 'var(--nav-text-inactive)',
+            display: 'none',
           }}
         >
           GPS

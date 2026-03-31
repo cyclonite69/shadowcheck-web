@@ -239,7 +239,7 @@ The filter system powers filtering across all pages (Dashboard, Geospatial, Kepl
 3. Add query builder logic in `server/src/services/filterQueryBuilder/`
 4. Use `useAdaptedFilters()` hook in component - it handles everything else
 
-**Existing route modules (v1)**: `admin`, `admin-threat-scoring`, `analytics`, `analytics-public`, `agencyOffices`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `home-location`, `kepler`, `location-markers`, `misc`, `ml`, `networks`, `network-agencies`, `network-tags`, `settings`, `threats`, `weather`, `wigle`
+**Existing route modules (v1)**: `admin`, `admin-threat-scoring`, `analytics`, `analytics-public`, `agencyOffices`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `home-location`, `kepler`, `location-markers`, `misc`, `ml`, `networks`, `network-agencies`, `network-tags`, `settings`, `threats`, `wigle`
 
 ### Running Commands
 

@@ -14,7 +14,31 @@ export const NearestAgenciesPanel: React.FC<NearestAgenciesPanelProps> = ({
   error,
   networkCount = 1,
 }) => {
-  if (agencies.length === 0 && !loading) return null;
+  if (agencies.length === 0 && !loading && !error) {
+    if (networkCount === 0) {
+      return (
+        <div
+          style={{
+            position: 'fixed',
+            top: '120px',
+            right: '80px',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgb(100, 116, 139)',
+            borderRadius: '12px',
+            padding: '16px',
+            minWidth: '320px',
+            maxWidth: '400px',
+            zIndex: 1000,
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <h2 className="text-lg font-semibold mb-2">Nearest Agencies</h2>
+          <p className="text-sm text-slate-500">Select networks to find nearby agencies</p>
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div
@@ -37,14 +61,14 @@ export const NearestAgenciesPanel: React.FC<NearestAgenciesPanelProps> = ({
         <h2 className="text-lg font-semibold">Nearest Agencies</h2>
         {agencies.length > 0 && (
           <span className="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">
-            {agencies.length} found
+            {agencies.length} unique
           </span>
         )}
       </div>
       <p className="text-xs text-slate-500 mb-3">
         {networkCount > 1
-          ? `Agencies near all observation points from ${networkCount} networks (local + WiGLE)`
-          : 'Agencies near all observation points (local + WiGLE)'}
+          ? `Nearest unique agencies across ${networkCount} selected networks`
+          : 'Nearest agencies to observation points'}
       </p>
 
       {loading && <p className="text-slate-400 text-sm">Loading...</p>}

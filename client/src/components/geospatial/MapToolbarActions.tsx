@@ -171,6 +171,12 @@ export const MapToolbarActions = ({
       onToggleCourthousesPanel={onToggleCourthousesPanel}
       showNetworkSummaries={showNetworkSummaries}
       onToggleNetworkSummaries={onToggleNetworkSummaries}
+      onResetBearing={() => {
+        mapRef.current?.resetNorth({ duration: 500 });
+      }}
+      onResetPitch={() => {
+        mapRef.current?.easeTo({ pitch: 0, duration: 500 });
+      }}
     />
   );
 };

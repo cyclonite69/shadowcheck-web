@@ -17,6 +17,8 @@ interface NetworkExplorerHeaderProps {
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
 }
 
+const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
+
 export const NetworkExplorerHeader = ({
   expensiveSort,
   quickSearch,
@@ -33,83 +35,186 @@ export const NetworkExplorerHeader = ({
   return (
     <div
       style={{
-        padding: '8px 12px',
-        borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
-        background: 'rgba(15, 23, 42, 0.6)',
-        borderRadius: '12px 12px 0 0',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        height: '40px',
+        padding: '0 14px',
+        gap: 0,
+        background: '#0e1117',
+        borderBottom: '0.5px solid rgba(59,130,246,0.08)',
       }}
     >
-      <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#f1f5f9', margin: 0 }}>
-        Networks Explorer
-      </h2>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <label
+      {/* Title */}
+      <span
+        style={{
+          ...mono,
+          fontSize: '13px',
+          fontWeight: 500,
+          color: '#e2e8f0',
+          letterSpacing: '0.02em',
+          flexShrink: 0,
+        }}
+      >
+        Networks <span style={{ color: '#60a5fa' }}>Explorer</span>
+      </span>
+
+      {/* Separator */}
+      <div
+        style={{
+          width: '1px',
+          height: '16px',
+          background: 'rgba(255,255,255,0.07)',
+          margin: '0 10px',
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Filters checkbox */}
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'default',
+          flexShrink: 0,
+        }}
+        title="Filters apply to both network list and observations on map"
+      >
+        <div
           style={{
+            width: '13px',
+            height: '13px',
+            borderRadius: '3px',
+            border: '0.5px solid rgba(59,130,246,0.35)',
+            background: 'rgba(59,130,246,0.15)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            fontSize: '11px',
-            color: '#cbd5e1',
-            padding: '4px 6px',
-            borderRadius: '6px',
-            border: '1px solid rgba(71, 85, 105, 0.4)',
-            background: 'rgba(15, 23, 42, 0.6)',
+            justifyContent: 'center',
+            fontSize: '9px',
+            color: '#60a5fa',
+            lineHeight: 1,
           }}
-          title="Filters apply to both network list and observations on map"
         >
-          <input type="checkbox" checked={true} disabled style={{ cursor: 'not-allowed' }} />
+          ✓
+        </div>
+        <span style={{ ...mono, fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
           Filters apply to list + map
-        </label>
-        {expensiveSort && (
+        </span>
+      </label>
+
+      {expensiveSort && (
+        <>
+          <div
+            style={{
+              width: '1px',
+              height: '16px',
+              background: 'rgba(255,255,255,0.07)',
+              margin: '0 10px',
+              flexShrink: 0,
+            }}
+          />
           <span
             style={{
+              ...mono,
               fontSize: '10px',
               color: '#fbbf24',
-              border: '1px solid rgba(251, 191, 36, 0.4)',
+              border: '0.5px solid rgba(251,191,36,0.3)',
               padding: '2px 6px',
               borderRadius: '999px',
-              background: 'rgba(120, 53, 15, 0.3)',
+              background: 'rgba(120,53,15,0.3)',
             }}
           >
             Expensive sort
           </span>
-        )}
-        <input
-          type="text"
-          value={quickSearch}
-          onChange={(e) => onQuickSearchChange(e.target.value)}
-          placeholder="Quick search (SSID+Manufacturer by default). Prefix: b:, s:, m:"
-          title="Quick identity search. Unprefixed text searches SSID and manufacturer. Prefix with s:, b:, or m: to target one field."
+        </>
+      )}
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Right controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Quick search */}
+        <div
           style={{
-            width: '320px',
-            maxWidth: '38vw',
-            padding: '4px 8px',
-            fontSize: '11px',
-            background: 'rgba(30, 41, 59, 0.7)',
-            border: '1px solid rgba(148, 163, 184, 0.3)',
-            color: '#e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '0.5px solid rgba(255,255,255,0.09)',
             borderRadius: '6px',
+            height: '28px',
+            padding: '0 9px',
+            minWidth: '180px',
           }}
-        />
+        >
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            style={{ opacity: 0.3, flexShrink: 0 }}
+          >
+            <circle cx="6" cy="6" r="5" />
+            <line x1="10" y1="10" x2="13" y2="13" />
+          </svg>
+          <input
+            type="text"
+            value={quickSearch}
+            onChange={(e) => onQuickSearchChange(e.target.value)}
+            placeholder="SSID+Manufacturer by default. Prefix: b:, s:, m:"
+            title="Quick identity search. Unprefixed text searches SSID and manufacturer. Prefix with s:, b:, or m: to target one field."
+            style={{
+              flex: 1,
+              ...mono,
+              fontSize: '11px',
+              background: 'none',
+              border: 'none',
+              outline: 'none',
+              color: 'rgba(255,255,255,0.65)',
+              minWidth: 0,
+            }}
+          />
+        </div>
+
+        {/* Show Filters */}
         <button
           onClick={onToggleFilters}
           style={{
-            padding: '4px 8px',
-            fontSize: '10px',
-            background: filtersOpen ? 'rgba(59, 130, 246, 0.9)' : 'rgba(30, 41, 59, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            height: '28px',
+            padding: '0 10px',
+            borderRadius: '6px',
             border: filtersOpen
-              ? '1px solid rgba(59, 130, 246, 0.8)'
-              : '1px solid rgba(148, 163, 184, 0.3)',
-            color: '#f8fafc',
-            borderRadius: '5px',
+              ? '0.5px solid rgba(59,130,246,0.25)'
+              : '0.5px solid rgba(255,255,255,0.10)',
+            background: filtersOpen ? 'rgba(59,130,246,0.10)' : 'rgba(255,255,255,0.03)',
+            color: filtersOpen ? '#60a5fa' : 'rgba(255,255,255,0.45)',
+            ...mono,
+            fontSize: '11px',
             cursor: 'pointer',
           }}
         >
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <line x1="1" y1="3" x2="13" y2="3" />
+            <line x1="3" y1="7" x2="11" y2="7" />
+            <line x1="5" y1="11" x2="9" y2="11" />
+          </svg>
           {filtersOpen ? 'Hide Filters' : 'Show Filters'}
         </button>
+
+        {/* Column selector (gear) */}
         <ColumnSelector
           visible={showColumnSelector}
           anchorRef={columnDropdownRef}
