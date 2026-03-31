@@ -140,9 +140,11 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
         ? 'WiFi'
         : raw.radio_type === 'B'
           ? 'Bluetooth'
-          : raw.radio_type === 'L'
-            ? 'LTE'
-            : raw.radio_type || 'WiFi',
+          : raw.radio_type === 'E'
+            ? 'BLE'
+            : ['L', 'G', 'C', 'D', 'N', 'F'].includes(raw.radio_type)
+              ? 'Cellular'
+              : raw.radio_type || 'WiFi',
     threat_level: pickFirst(raw.threat_level, raw.threat, 'NONE'),
     threat_score: Number(pickFirst(raw.threat_score, 0)),
     signal: toNumberOrNull(
@@ -158,6 +160,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     ),
     security: canonicalSecurity,
     encryption: canonicalSecurity,
+    capabilities_raw: rawCaps || null,
     wps: caps.wps,
     mfpc: caps.mfpc,
     frequency: freq,

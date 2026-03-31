@@ -43,12 +43,91 @@ export const createCirclePolygon = (
 //   Each co-channel neighbour forces the AP to back off / compete, which effectively
 //   reduces the usable range for any one network.  We apply a modest shrink factor:
 //   radius *= 1 / (1 + neighbours * 0.06)  — 6 % reduction per neighbour, soft cap ~50 %.
+/**
+ * Reconcile WiGLE type field with capabilities to determine actual radio technology.
+ * Capabilities is the source of truth — type is WiGLE's initial classification which
+ * can be wrong (e.g. type=G with capabilities=LTE;310410).
+ */
+export type RadioTech =
+  | 'wifi_2g'
+  | 'wifi_5g'
+  | 'wifi_6g'
+  | 'bt_classic'
+  | 'ble'
+  | 'lte'
+  | 'nr'
+  | 'gsm'
+  | 'iwlan'
+  | 'unknown';
+
+export const resolveRadioTech = (
+  type: string | null | undefined,
+  capabilities: string | null | undefined,
+  frequencyMhz?: number | null
+): RadioTech => {
+  const caps = (capabilities || '').toUpperCase();
+  const t = (type || '').toUpperCase();
+
+  // Capabilities-first: check what the device actually advertised
+  if (caps.startsWith('NR')) return 'nr';
+  if (caps.startsWith('LTE')) return 'lte';
+  if (caps.startsWith('GSM')) return 'gsm';
+  if (caps.startsWith('IWLAN')) return 'iwlan';
+
+  // WiFi capabilities (bracket format like [WPA2-PSK-CCMP])
+  if (
+    caps.startsWith('[') ||
+    caps.includes('WPA') ||
+    caps.includes('RSN') ||
+    caps.includes('ESS')
+  ) {
+    const freq = frequencyMhz ?? 0;
+    if (freq >= 5925) return 'wifi_6g';
+    if (freq >= 5000) return 'wifi_5g';
+    return 'wifi_2g';
+  }
+
+  // BT/BLE: capabilities contain device class (e.g. "Headphones;10", "Misc")
+  if (t === 'E') return 'ble';
+  if (t === 'B') return 'bt_classic';
+
+  // Fall back to type field
+  if (t === 'N') return 'nr';
+  if (t === 'L') return 'lte';
+  if (t === 'G') return 'gsm';
+  if (t === 'C' || t === 'D' || t === 'F') return 'lte'; // CDMA/generic → treat as LTE-era
+  if (t === 'W') {
+    const freq = frequencyMhz ?? 0;
+    if (freq >= 5925) return 'wifi_6g';
+    if (freq >= 5000) return 'wifi_5g';
+    return 'wifi_2g';
+  }
+
+  return 'unknown';
+};
+
+// Radio propagation parameters per technology
+const RADIO_PARAMS: Record<RadioTech, { refRssi: number; pathLoss: number; maxRange: number }> = {
+  wifi_2g: { refRssi: -40, pathLoss: 2.7, maxRange: 500 },
+  wifi_5g: { refRssi: -43, pathLoss: 3.1, maxRange: 275 },
+  wifi_6g: { refRssi: -46, pathLoss: 3.5, maxRange: 200 },
+  bt_classic: { refRssi: -35, pathLoss: 2.5, maxRange: 100 },
+  ble: { refRssi: -35, pathLoss: 2.0, maxRange: 200 },
+  lte: { refRssi: -30, pathLoss: 2.0, maxRange: 35000 },
+  nr: { refRssi: -35, pathLoss: 2.2, maxRange: 10000 },
+  gsm: { refRssi: -30, pathLoss: 2.0, maxRange: 35000 },
+  iwlan: { refRssi: -40, pathLoss: 2.7, maxRange: 500 }, // WiFi-based calling
+  unknown: { refRssi: -40, pathLoss: 2.7, maxRange: 500 },
+};
+
 export const calculateSignalRange = (
   signalDbm: number | null,
   frequencyMhz?: number | null,
   _zoom: number = 10,
   _latitude: number = 40,
-  congestionNeighbors: number = 0
+  congestionNeighbors: number = 0,
+  radioType?: string | null,
+  capabilities?: string | null
 ): number => {
   if (signalDbm === null || signalDbm === undefined || !Number.isFinite(signalDbm)) {
     return 30;
@@ -58,35 +137,32 @@ export const calculateSignalRange = (
   if (typeof freq === 'string') {
     freq = parseFloat((freq as any).replace(' GHz', '')) * 1000;
   }
-  if (!freq || freq <= 0) freq = 2437;
+  if (!freq || freq <= 0) freq = null;
 
-  // Per-band reference RSSI at 1 m and path-loss exponent
-  let referenceRssiAtOneMeter: number;
-  let pathLossExponent: number;
+  const tech = resolveRadioTech(radioType, capabilities, freq);
+  const params = RADIO_PARAMS[tech];
 
-  if (freq >= 5925) {
-    // 6 GHz (WiFi 6E) — fastest attenuation
-    referenceRssiAtOneMeter = -46;
-    pathLossExponent = 3.5;
-  } else if (freq >= 5000) {
-    // 5 GHz
-    referenceRssiAtOneMeter = -43;
-    pathLossExponent = 3.1;
-  } else {
-    // 2.4 GHz
-    referenceRssiAtOneMeter = -40;
-    pathLossExponent = 2.7;
+  // For WiFi, still use frequency-specific params if we have freq but no type/caps
+  let { refRssi, pathLoss, maxRange } = params;
+  if (tech.startsWith('wifi') && freq) {
+    if (freq >= 5925) {
+      refRssi = -46;
+      pathLoss = 3.5;
+      maxRange = 200;
+    } else if (freq >= 5000) {
+      refRssi = -43;
+      pathLoss = 3.1;
+      maxRange = 275;
+    }
   }
 
-  const rawDistance = Math.pow(10, (referenceRssiAtOneMeter - signalDbm) / (10 * pathLossExponent));
+  const rawDistance = Math.pow(10, (refRssi - signalDbm) / (10 * pathLoss));
+  const clampedDistance = Math.max(6, Math.min(rawDistance, maxRange));
 
-  // Band-appropriate caps: 2.4 GHz travels furthest, 6 GHz least
-  const maxDistance = freq >= 5925 ? 200 : freq >= 5000 ? 275 : 500;
-  const clampedDistance = Math.max(6, Math.min(rawDistance, maxDistance));
-
-  // Co-channel congestion shrink: each neighbour on the same channel reduces
-  // effective range by ~6 %, asymptotically capped so radius never goes below ~50 %
-  const congestionFactor = 1 / (1 + Math.min(congestionNeighbors, 12) * 0.06);
+  // Co-channel congestion only applies to WiFi
+  const congestionFactor = tech.startsWith('wifi')
+    ? 1 / (1 + Math.min(congestionNeighbors, 12) * 0.06)
+    : 1;
 
   return clampedDistance * congestionFactor;
 };

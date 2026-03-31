@@ -1,5 +1,6 @@
 import { THREAT_LEVEL_CONFIG } from '../../constants/network';
 import { macColor } from '../../utils/mapHelpers';
+import { resolveRadioTech } from '../../utils/mapHelpers';
 import {
   formatCoord,
   formatAltitude,
@@ -51,7 +52,7 @@ function formatObservationText(countValue: unknown, daysValue: unknown): string 
   if (!Number.isFinite(count)) return '';
   const base = `${count} obs`;
   const days = Number(daysValue);
-  return Number.isFinite(days) ? `${base} · ${Math.round(days)} days` : base;
+  return Number.isFinite(days) && days > 0 ? `${base} · ${Math.round(days)} days` : base;
 }
 
 function statBar(fillPct: number, color: string): string {
@@ -74,13 +75,67 @@ function fieldRow(label: string, value: string, title?: string): string {
   </div>`;
 }
 
+// Decode Bluetooth Class of Device (CoD) major device class
+// WiGLE stores CoD in the "frequency" field for BT/BLE devices
+function decodeBtCoD(cod: number): string {
+  const major = (cod >> 8) & 0x1f;
+  const labels: Record<number, string> = {
+    0: 'Miscellaneous',
+    1: 'Computer',
+    2: 'Phone',
+    3: 'LAN/Network AP',
+    4: 'Audio/Video',
+    5: 'Peripheral',
+    6: 'Imaging',
+    7: 'Wearable',
+    8: 'Toy',
+    9: 'Health',
+    31: 'Uncategorized',
+  };
+  return labels[major] || `Class 0x${cod.toString(16)}`;
+}
+
+// Parse BT/BLE capabilities: "Headphones;10" → { device: "Headphones", btVersion: "4.x" }
+function parseBtCapabilities(caps: string): { device: string | null; btVersion: string | null } {
+  if (!caps || caps.startsWith('[')) return { device: null, btVersion: null }; // WiFi caps leaked in
+  const parts = caps.split(';');
+  const raw = parts[0]?.trim() || null;
+  const device = raw && raw !== 'null' && raw !== 'Uncategorized' && raw !== 'Misc' ? raw : null;
+  const verCode = parts[1]?.trim();
+  const btVersion = verCode === '10' ? '4.x' : verCode === '12' ? '5.x' : verCode || null;
+  return { device, btVersion };
+}
+
+// Common US MCC/MNC → carrier name
+const MCC_MNC_CARRIERS: Record<string, string> = {
+  '310410': 'AT&T',
+  '310260': 'T-Mobile',
+  '311480': 'Verizon',
+  '310120': 'Sprint',
+  '311580': 'US Cellular',
+  '310830': 'TracFone',
+  '315010': 'FirstNet',
+};
+
+// Parse LTE capabilities: "LTE;310410" → { tech: "LTE", carrier: "AT&T" }
+function parseLteCapabilities(caps: string): { tech: string; carrier: string | null } {
+  const parts = caps.split(';');
+  const tech = parts[0]?.trim() || 'LTE';
+  const mccMnc = parts[1]?.trim() || '';
+  const carrier =
+    MCC_MNC_CARRIERS[mccMnc] || (mccMnc && mccMnc !== 'us' ? `MCC/MNC ${mccMnc}` : null);
+  return { tech, carrier };
+}
+
 // Helper: Get radio type SVG icon with custom color
 const getRadioSVG = (type: string, color: string) => {
   const iconMap: Record<string, string> = {
-    WiFi: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.94 0M12 20h.01"/></svg>`,
-    Bluetooth: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m0 6v4M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h4M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/></svg>`,
-    LTE: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`,
-    Unknown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    WiFi: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.94 0"/><circle cx="12" cy="20" r="0.5" fill="${color}"/></svg>`,
+    Bluetooth: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>`,
+    BLE: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/><path d="M2 8h2M2 16h2M20 8h2M20 16h2" stroke-width="1.5" opacity="0.5"/></svg>`,
+    Cellular: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>`,
+    LTE: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>`,
+    Unknown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="${color}"/></svg>`,
   };
   return iconMap[type] || iconMap['WiFi'];
 };
@@ -114,6 +169,8 @@ export const renderNetworkTooltip = (props: any): string => {
   const lon = props.lon ?? props.longitude ?? props.trilong;
   const ssid = normalizeDisplay(props.ssid);
   const bssid = normalizeDisplay(props.bssid || props.netid);
+  const obsNumber = Number(props.number) || 0;
+  const obsTotal = Number(props.observation_count) || 0;
 
   const signalFill = Number.isFinite(rssi) ? clamp(((rssi - -90) / 60) * 100, 0, 100) : 0;
   const signalColor = !Number.isFinite(rssi)
@@ -139,15 +196,45 @@ export const renderNetworkTooltip = (props: any): string => {
   const qualityText = Number.isFinite(quality) ? formatConfidence(quality, true) : EM_DASH;
 
   const hasBand = !isMissingValue(props.band);
-  const channelValue = isMissingValue(props.channel)
-    ? ''
-    : `${normalizeDisplay(props.channel)}${hasBand ? ` (${normalizeDisplay(props.band)})` : ''}`;
   const frequencyNumber = Number(props.frequency);
-  const frequencyValue = isMissingValue(props.frequency)
-    ? ''
-    : Number.isFinite(frequencyNumber)
+  const rawCaps = String(props.capabilities_raw || props.capabilities || '').trim();
+  const rawType = String(props.radio_type || props.type || '');
+
+  // Reconcile type + capabilities to determine actual radio technology
+  const tech = resolveRadioTech(rawType, rawCaps, frequencyNumber || null);
+  const isBT = tech === 'bt_classic' || tech === 'ble';
+  const isCellular = tech === 'lte' || tech === 'nr' || tech === 'gsm' || tech === 'iwlan';
+  const isWiFi = tech.startsWith('wifi') || tech === 'unknown';
+
+  // Determine display radio type for SVG icon
+  const displayRadioType = isBT
+    ? tech === 'ble'
+      ? 'BLE'
+      : 'Bluetooth'
+    : isCellular
+      ? 'Cellular'
+      : 'WiFi';
+
+  // Parse radio-type-specific capabilities
+  const btInfo = isBT ? parseBtCapabilities(rawCaps) : null;
+  const cellInfo = isCellular ? parseLteCapabilities(rawCaps) : null;
+  const btCoDDevice =
+    isBT && !btInfo?.device && Number.isFinite(frequencyNumber) && frequencyNumber > 0
+      ? decodeBtCoD(frequencyNumber)
+      : null;
+  const btDeviceLabel = btInfo?.device || btCoDDevice || null;
+
+  const channelValue =
+    isWiFi && !isMissingValue(props.channel) && Number(props.channel) !== 0
+      ? `${normalizeDisplay(props.channel)}${hasBand ? ` (${normalizeDisplay(props.band)})` : ''}`
+      : '';
+  const frequencyValue =
+    isWiFi &&
+    !isMissingValue(props.frequency) &&
+    Number.isFinite(frequencyNumber) &&
+    frequencyNumber > 0
       ? `${frequencyNumber} MHz`
-      : normalizeDisplay(props.frequency);
+      : '';
   const observationsValue = formatObservationText(props.observation_count, props.timespan_days);
   const siblingValue =
     Number(props.sibling_count) > 0 ? `${Number(props.sibling_count)} radios` : '';
@@ -160,13 +247,20 @@ export const renderNetworkTooltip = (props: any): string => {
       ? formatAltitude(altitudeNumber)
       : '';
 
+  const securityValue = String(props.encryption || props.security || '').toUpperCase();
+  const showSecurity = isWiFi && securityValue && securityValue !== 'UNKNOWN';
+
   const fieldRows = [
-    !isMissingValue(props.encryption || props.security)
+    showSecurity
       ? fieldRow('Encryption', normalizeDisplay(props.encryption || props.security))
       : '',
+    btDeviceLabel ? fieldRow('Device Type', btDeviceLabel) : '',
+    btInfo?.btVersion ? fieldRow('BT Version', btInfo.btVersion) : '',
+    cellInfo?.carrier ? fieldRow('Carrier', cellInfo.carrier) : '',
+    cellInfo && !cellInfo.carrier ? fieldRow('Network', cellInfo.tech) : '',
     channelValue ? fieldRow('Channel', channelValue) : '',
     frequencyValue ? fieldRow('Frequency', frequencyValue) : '',
-    !isMissingValue(props.manufacturer)
+    !isMissingValue(props.manufacturer) && String(props.manufacturer).toUpperCase() !== 'UNKNOWN'
       ? fieldRow('Manufacturer', normalizeDisplay(props.manufacturer))
       : '',
     observationsValue ? fieldRow('Observations', observationsValue) : '',
@@ -211,7 +305,7 @@ export const renderNetworkTooltip = (props: any): string => {
 <div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:2px solid ${bc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
     <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:flex;align-items:center;gap:6px;">
-      <div style="flex-shrink:0;">${getRadioSVG(props.radio_type || 'WiFi', bc)}</div>
+      <div style="flex-shrink:0;">${getRadioSVG(displayRadioType, bc)}</div>
       <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
     </div>
     <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>
@@ -236,17 +330,17 @@ export const renderNetworkTooltip = (props: any): string => {
 
   <div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
   ${locationText ? `<div style="padding:1px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}
-  ${hasCoords ? `<div title="${lat.toFixed(6)}, ${lon.toFixed(6)}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}</div>` : ''}
+  ${hasCoords ? `<div title="${lat.toFixed(6)}, ${lon.toFixed(6)}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}${obsNumber > 0 && obsTotal > 0 ? `<span style="color:rgba(255,255,255,0.3);">#${obsNumber} / ${obsTotal}</span>` : ''}</div>` : ''}
   ${
     Number.isFinite(homeKm)
       ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);white-space:nowrap;">HOME</div>
     <div style="flex:1;">${statBar((homeKm / 25) * 100, homeColor)}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:nowrap;">${formatDistance(homeKm)}${Number.isFinite(maxKm) ? `<span style="color:rgba(255,255,255,0.45);"> · max ${formatDistance(maxKm)}</span>` : ''}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:nowrap;">${formatDistance(homeKm)}${Number.isFinite(maxKm) && maxKm > 0 ? `<span style="color:rgba(255,255,255,0.45);"> · max ${formatDistance(maxKm)}</span>` : ''}</div>
   </div>`
       : ''
   }
-  ${Number.isFinite(lastPointMeters) ? fieldRow('Last Pt', `${Math.round(lastPointMeters)}m`) : ''}
+  ${Number.isFinite(lastPointMeters) && lastPointMeters > 0 ? fieldRow('Last Pt', `${Math.round(lastPointMeters)}m`) : ''}
 
   ${
     temporalPresent
