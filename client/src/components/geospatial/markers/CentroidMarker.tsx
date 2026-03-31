@@ -1,17 +1,11 @@
 import React from 'react';
-
-interface CentroidMarkerProps {
-  size?: number;
-  color?: string;
-  strokeWidth?: number;
-  className?: string;
-}
+import type { MarkerProps } from './types';
 
 /**
  * CentroidMarker: Presentational SVG component for network centroid markers.
  * Rendered as a hollow diamond shape, representing the geometric center of a network's observations.
  */
-export const CentroidMarker: React.FC<CentroidMarkerProps> = ({
+export const CentroidMarker: React.FC<MarkerProps> = ({
   size = 24,
   color = '#60a5fa',
   strokeWidth = 2,

@@ -1,17 +1,11 @@
 import React from 'react';
-
-interface WeightedMarkerProps {
-  size?: number;
-  color?: string;
-  strokeWidth?: number;
-  className?: string;
-}
+import type { MarkerProps } from './types';
 
 /**
  * WeightedMarker: Presentational SVG component for network weighted average markers.
  * Rendered as a hollow triangle (pointing up), representing the weighted average position of a network's observations.
  */
-export const WeightedMarker: React.FC<WeightedMarkerProps> = ({
+export const WeightedMarker: React.FC<MarkerProps> = ({
   size = 24,
   color = '#34d399',
   strokeWidth = 2,
