@@ -51,6 +51,9 @@ interface MapToolbarProps {
   // Courthouses panel
   showCourthousesPanel?: boolean;
   onToggleCourthousesPanel?: () => void;
+  // Network summaries
+  showNetworkSummaries?: boolean;
+  onToggleNetworkSummaries?: (value: boolean) => void;
 }
 
 export const MapToolbar = ({
@@ -91,6 +94,8 @@ export const MapToolbar = ({
   onToggleAgenciesPanel,
   showCourthousesPanel,
   onToggleCourthousesPanel,
+  showNetworkSummaries = false,
+  onToggleNetworkSummaries,
 }: MapToolbarProps) => {
   return (
     <div
@@ -273,6 +278,25 @@ export const MapToolbar = ({
         }}
       >
         ⛰️ Terrain
+      </button>
+      <button
+        onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
+        style={{
+          padding: '6px 10px',
+          fontSize: '11px',
+          background: showNetworkSummaries ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
+          border: showNetworkSummaries
+            ? '1px solid rgba(59, 130, 246, 0.5)'
+            : '1px solid rgba(148, 163, 184, 0.2)',
+          color: showNetworkSummaries ? '#60a5fa' : '#cbd5e1',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          fontWeight: showNetworkSummaries ? '600' : '400',
+        }}
+        title="Toggle network summaries"
+      >
+        📊 Network Summaries
       </button>
       {onWeatherFxModeChange && (
         <>

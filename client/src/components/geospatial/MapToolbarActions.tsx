@@ -53,6 +53,9 @@ interface MapToolbarActionsProps {
   // Courthouses panel
   showCourthousesPanel?: boolean;
   onToggleCourthousesPanel?: () => void;
+  // Network summaries
+  showNetworkSummaries?: boolean;
+  onToggleNetworkSummaries?: (value: boolean) => void;
 }
 
 export const MapToolbarActions = ({
@@ -96,6 +99,8 @@ export const MapToolbarActions = ({
   onToggleAgenciesPanel,
   showCourthousesPanel,
   onToggleCourthousesPanel,
+  showNetworkSummaries = false,
+  onToggleNetworkSummaries,
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -172,6 +177,8 @@ export const MapToolbarActions = ({
       onToggleAgenciesPanel={onToggleAgenciesPanel}
       showCourthousesPanel={showCourthousesPanel}
       onToggleCourthousesPanel={onToggleCourthousesPanel}
+      showNetworkSummaries={showNetworkSummaries}
+      onToggleNetworkSummaries={onToggleNetworkSummaries}
     />
   );
 };

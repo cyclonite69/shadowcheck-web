@@ -188,6 +188,10 @@ export const useGeospatialMap = ({
             },
           });
 
+          // TODO: render centroid/weighted network summary markers when showNetworkSummaries is true
+          // This will eventually add derived markers (centroids or weighted averages) as a separate GeoJSON layer
+          // above the observation points layer. Coordinate type (centroid vs. weighted) and marker styling TBD.
+
           // Click: show full tooltip popup
           map.on('click', 'observation-points', (e: MapLayerMouseEvent) => {
             if (!e.features || e.features.length === 0) return;

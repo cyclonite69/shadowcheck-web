@@ -10,6 +10,8 @@ interface GeospatialMapContentProps {
   toggleWigleForBssids: (bssids: string[]) => void;
   wigleObservations: any;
   onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
+  showNetworkSummaries?: boolean;
+  onToggleNetworkSummaries?: (value: boolean) => void;
 }
 
 export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
@@ -18,6 +20,8 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
   toggleWigleForBssids,
   wigleObservations,
   onOpenContextMenu,
+  showNetworkSummaries = false,
+  onToggleNetworkSummaries,
 }) => (
   <MapSection
     mapHeight={state.mapHeight}
@@ -65,6 +69,8 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
         wigleActive={wigleObservations.observations.length > 0}
         selectedCount={selectedNetworks.size}
         onWeatherFxModeChange={state.setWeatherFxMode}
+        showNetworkSummaries={showNetworkSummaries}
+        onToggleNetworkSummaries={onToggleNetworkSummaries}
       />
     }
     mapError={state.mapError}

@@ -24,6 +24,7 @@ export default function GeospatialExplorer() {
   const { isAdmin } = useAuth();
 
   const [locationMode, setLocationMode] = useState('latest_observation');
+  const [showNetworkSummaries, setShowNetworkSummaries] = useState(false);
 
   // Basic Data Fetching
   const {
@@ -178,6 +179,8 @@ export default function GeospatialExplorer() {
             toggleWigleForBssids={state.toggleWigleForBssids}
             wigleObservations={wigleObservations}
             onOpenContextMenu={openContextMenu}
+            showNetworkSummaries={showNetworkSummaries}
+            onToggleNetworkSummaries={setShowNetworkSummaries}
           />
           <GeospatialTableContent
             state={state}
