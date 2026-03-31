@@ -46,7 +46,7 @@ describe('observation filter helper modules', () => {
     ]);
   });
 
-  test('spatial/quality helper adds network join and home requirement when needed', () => {
+  test('spatial/quality helper adds home requirement when needed', () => {
     const ctx = new FilterBuildContext(
       {
         observationCountMin: 5,
@@ -57,12 +57,10 @@ describe('observation filter helper modules', () => {
 
     const where = buildObservationSpatialQualityPredicates(ctx);
 
-    expect(Array.from(ctx.obsJoins)).toContain(
-      'JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)'
-    );
-    expect(where[0]).toContain('ap.observations >= $1');
-    expect(where[1]).toContain('home.home_point');
+    // observationCountMin is handled at the network level (networkWhereBuilder),
+    // not in the observation predicates. Only distance filter appears here.
+    const joined = where.join(' ');
+    expect(joined).toContain('home.home_point');
     expect(ctx.requiresHome).toBe(true);
-    expect(ctx.getParams()).toEqual([5, 2000]);
   });
 });

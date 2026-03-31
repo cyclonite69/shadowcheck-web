@@ -14,7 +14,7 @@ export const NetworkTagMenuHeader = ({ network }: NetworkTagMenuHeaderProps) => 
     }}
   >
     <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '2px' }}>
-      {network.ssid || '<Hidden>'}
+      {network.ssid || '(hidden)'}
     </div>
     <div style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>
       {network.bssid}

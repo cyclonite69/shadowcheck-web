@@ -187,7 +187,7 @@ export const WigleDetailTab: React.FC = () => {
             <div className="flex justify-between items-start pb-4 border-b border-slate-700/50">
               <div>
                 <h3 className="text-xl font-bold text-white mb-1">
-                  {data.ssid || data.name || '<Hidden>'}
+                  {data.ssid || data.name || '(hidden)'}
                 </h3>
                 <div className="font-mono text-cyan-400 text-sm">{data.networkId}</div>
               </div>

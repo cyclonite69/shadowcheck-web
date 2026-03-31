@@ -6,8 +6,12 @@ interface SecurityBadgeProps {
 
 /** Canonical security label badge aligned to the analytics color palette. */
 export const SecurityBadge = ({ security }: SecurityBadgeProps) => {
-  const label = security || 'UNKNOWN';
-  const color = SECURITY_TYPE_COLORS[label] ?? SECURITY_TYPE_COLORS['UNKNOWN'];
+  const isUnknown = !security || security === 'UNKNOWN' || security === '—';
+  const label = isUnknown ? '—' : security;
+  const color = isUnknown
+    ? SECURITY_TYPE_COLORS['UNKNOWN']
+    : (SECURITY_TYPE_COLORS[label as string] ?? SECURITY_TYPE_COLORS['UNKNOWN']);
+
   return (
     <span
       className="px-1.5 py-0.5 rounded text-xs font-medium inline-block"
