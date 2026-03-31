@@ -55,6 +55,7 @@ export const buildObservationTooltipProps = ({
     accuracy: obs.acc ?? network?.accuracy ?? null,
     unique_days: (network as any)?.unique_days ?? null,
     type: network?.type || null,
+    radio_type: network?.type || null,
     number,
     color,
     co_channel_neighbors: coChannelNeighbors,

@@ -367,7 +367,9 @@ export const useGeospatialMap = ({
               frequency,
               map.getZoom(),
               e.lngLat.lat,
-              coChannelNeighbors
+              coChannelNeighbors,
+              String(props.radio_type || props.type || ''),
+              String(props.capabilities || '')
             );
             const bssidColor = macColor(String(props.bssid ?? ''));
             const center: [number, number] = [
