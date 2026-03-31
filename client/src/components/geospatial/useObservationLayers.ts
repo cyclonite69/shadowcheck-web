@@ -415,137 +415,151 @@ export const useObservationLayers = ({
 
   // Network summary markers (centroid/weighted) layer effect
   useEffect(() => {
-    if (!mapReady || !mapRef.current || activeObservationSets.length === 0) return;
+    if (!mapReady || !mapRef.current) return;
 
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
     if (!mapboxgl) return;
 
-    // Add network summary source if it doesn't exist
-    if (!map.getSource('network-summaries')) {
-      map.addSource('network-summaries', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [],
-        },
-      });
+    try {
+      // Add network summary source if it doesn't exist
+      if (!map.getSource('network-summaries')) {
+        map.addSource('network-summaries', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [],
+          },
+        });
 
-      // Centroid markers - hollow diamonds (blue) rendered as circles with a stroke
-      map.addLayer({
-        id: 'network-centroid-markers',
-        type: 'circle',
-        source: 'network-summaries',
-        filter: ['==', ['get', 'markerType'], 'centroid'],
-        paint: {
-          'circle-radius': 12,
-          'circle-color': 'rgba(96, 165, 250, 0.1)', // Very light blue fill
-          'circle-stroke-width': 2.5,
-          'circle-stroke-color': '#60a5fa', // Bright blue stroke
-          'circle-opacity': 1,
-        },
-      });
-
-      // Weighted markers - hollow triangles (green) rendered as circles with a stroke
-      map.addLayer({
-        id: 'network-weighted-markers',
-        type: 'circle',
-        source: 'network-summaries',
-        filter: ['==', ['get', 'markerType'], 'weighted'],
-        paint: {
-          'circle-radius': 12,
-          'circle-color': 'rgba(52, 211, 153, 0.1)', // Very light green fill
-          'circle-stroke-width': 2.5,
-          'circle-stroke-color': '#34d399', // Bright green stroke
-          'circle-opacity': 1,
-        },
-      });
-
-      // Add labels to distinguish marker types
-      map.addLayer({
-        id: 'network-marker-labels',
-        type: 'symbol',
-        source: 'network-summaries',
-        layout: {
-          'text-field': ['case', ['==', ['get', 'markerType'], 'centroid'], '◊', '▲'],
-          'text-size': 16,
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
-          'text-offset': [0, 0],
-        },
-        paint: {
-          'text-color': ['case', ['==', ['get', 'markerType'], 'centroid'], '#60a5fa', '#34d399'],
-          'text-opacity': 0.9,
-        },
-      });
-    }
-
-    // Build feature array for network summary markers when enabled
-    if (showNetworkSummaries) {
-      const summaryFeatures: any[] = [];
-
-      activeObservationSets.forEach((set) => {
-        const network = networkLookupRef.current.get(set.bssid);
-        if (!network) return;
-
-        // Add centroid marker if coordinates exist
-        if (
-          network.centroid_lat !== null &&
-          network.centroid_lat !== undefined &&
-          network.centroid_lon !== null &&
-          network.centroid_lon !== undefined
-        ) {
-          summaryFeatures.push({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [network.centroid_lon, network.centroid_lat],
-            },
-            properties: {
-              bssid: set.bssid,
-              markerType: 'centroid',
-              ssid: network.ssid,
+        // Centroid markers - hollow circles with blue stroke
+        if (!map.getLayer('network-centroid-markers')) {
+          map.addLayer({
+            id: 'network-centroid-markers',
+            type: 'circle',
+            source: 'network-summaries',
+            filter: ['==', ['get', 'markerType'], 'centroid'],
+            paint: {
+              'circle-radius': 12,
+              'circle-color': 'rgba(96, 165, 250, 0.1)',
+              'circle-stroke-width': 2.5,
+              'circle-stroke-color': '#60a5fa',
+              'circle-opacity': 1,
             },
           });
         }
 
-        // Add weighted marker if coordinates exist
-        if (
-          network.weighted_lat !== null &&
-          network.weighted_lat !== undefined &&
-          network.weighted_lon !== null &&
-          network.weighted_lon !== undefined
-        ) {
-          summaryFeatures.push({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [network.weighted_lon, network.weighted_lat],
-            },
-            properties: {
-              bssid: set.bssid,
-              markerType: 'weighted',
-              ssid: network.ssid,
+        // Weighted markers - hollow circles with green stroke
+        if (!map.getLayer('network-weighted-markers')) {
+          map.addLayer({
+            id: 'network-weighted-markers',
+            type: 'circle',
+            source: 'network-summaries',
+            filter: ['==', ['get', 'markerType'], 'weighted'],
+            paint: {
+              'circle-radius': 12,
+              'circle-color': 'rgba(52, 211, 153, 0.1)',
+              'circle-stroke-width': 2.5,
+              'circle-stroke-color': '#34d399',
+              'circle-opacity': 1,
             },
           });
         }
-      });
 
-      if (map.getSource('network-summaries')) {
-        (map.getSource('network-summaries') as GeoJSONSource).setData({
+        // Add labels to distinguish marker types
+        if (!map.getLayer('network-marker-labels')) {
+          map.addLayer({
+            id: 'network-marker-labels',
+            type: 'symbol',
+            source: 'network-summaries',
+            layout: {
+              'text-field': ['case', ['==', ['get', 'markerType'], 'centroid'], '◊', '▲'],
+              'text-size': 16,
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+              'text-offset': [0, 0],
+            },
+            paint: {
+              'text-color': [
+                'case',
+                ['==', ['get', 'markerType'], 'centroid'],
+                '#60a5fa',
+                '#34d399',
+              ],
+              'text-opacity': 0.9,
+            },
+          });
+        }
+      }
+
+      // Update marker data based on showNetworkSummaries flag
+      const source = map.getSource('network-summaries') as GeoJSONSource;
+      if (!source) return;
+
+      if (showNetworkSummaries && activeObservationSets.length > 0) {
+        const summaryFeatures: any[] = [];
+
+        activeObservationSets.forEach((set) => {
+          const network = networkLookupRef.current.get(set.bssid);
+          if (!network) return;
+
+          // Add centroid marker if coordinates exist
+          if (
+            network.centroid_lat !== null &&
+            network.centroid_lat !== undefined &&
+            network.centroid_lon !== null &&
+            network.centroid_lon !== undefined
+          ) {
+            summaryFeatures.push({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [network.centroid_lon, network.centroid_lat],
+              },
+              properties: {
+                bssid: set.bssid,
+                markerType: 'centroid',
+                ssid: network.ssid,
+              },
+            });
+          }
+
+          // Add weighted marker if coordinates exist
+          if (
+            network.weighted_lat !== null &&
+            network.weighted_lat !== undefined &&
+            network.weighted_lon !== null &&
+            network.weighted_lon !== undefined
+          ) {
+            summaryFeatures.push({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [network.weighted_lon, network.weighted_lat],
+              },
+              properties: {
+                bssid: set.bssid,
+                markerType: 'weighted',
+                ssid: network.ssid,
+              },
+            });
+          }
+        });
+
+        source.setData({
           type: 'FeatureCollection',
           features: summaryFeatures,
         });
-      }
-    } else {
-      // Clear network summary markers when disabled
-      if (map.getSource('network-summaries')) {
-        (map.getSource('network-summaries') as GeoJSONSource).setData({
+      } else {
+        // Clear markers when disabled
+        source.setData({
           type: 'FeatureCollection',
           features: [],
         });
       }
+    } catch (err) {
+      console.error('[useObservationLayers] Error managing network summary markers:', err);
     }
   }, [mapReady, mapRef, mapboxRef, activeObservationSets, showNetworkSummaries]);
 };
