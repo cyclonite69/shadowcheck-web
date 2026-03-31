@@ -3,12 +3,16 @@ import type { MarkerProps } from './types';
 
 /**
  * CentroidMarker: Presentational SVG component for network centroid markers.
- * Rendered as a hollow diamond shape, representing the geometric center of a network's observations.
+ * Rendered as a hollow diamond shape with strong stroke, representing the
+ * geometric center of a network's observations.
+ *
+ * Note: When centroid and weighted markers overlap (same screen position),
+ * they receive a subtle pixel offset applied by the map renderer to remain visible.
  */
 export const CentroidMarker: React.FC<MarkerProps> = ({
-  size = 24,
+  size = 28,
   color = '#60a5fa',
-  strokeWidth = 2,
+  strokeWidth = 2.5,
   className = '',
 }) => (
   <svg
@@ -19,7 +23,10 @@ export const CentroidMarker: React.FC<MarkerProps> = ({
     fill="none"
     stroke={color}
     strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
   >
-    <polygon points="12 2 22 12 12 22 2 12" />
+    {/* Hollow diamond: larger and more pronounced */}
+    <polygon points="12 1 23 12 12 23 1 12" />
   </svg>
 );

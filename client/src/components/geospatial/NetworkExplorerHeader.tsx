@@ -7,8 +7,6 @@ interface NetworkExplorerHeaderProps {
   expensiveSort: boolean;
   quickSearch: string;
   onQuickSearchChange: (value: string) => void;
-  locationMode: string;
-  onLocationModeChange: (mode: string) => void;
   filtersOpen: boolean;
   onToggleFilters: () => void;
   showColumnSelector: boolean;
@@ -23,8 +21,6 @@ export const NetworkExplorerHeader = ({
   expensiveSort,
   quickSearch,
   onQuickSearchChange,
-  locationMode,
-  onLocationModeChange,
   filtersOpen,
   onToggleFilters,
   showColumnSelector,
@@ -98,24 +94,6 @@ export const NetworkExplorerHeader = ({
             borderRadius: '6px',
           }}
         />
-        <select
-          value={locationMode}
-          onChange={(e) => onLocationModeChange(e.target.value)}
-          aria-label="Network location mode"
-          style={{
-            padding: '4px 6px',
-            fontSize: '11px',
-            background: 'rgba(30, 41, 59, 0.7)',
-            border: '1px solid rgba(148, 163, 184, 0.3)',
-            color: '#e2e8f0',
-            borderRadius: '6px',
-          }}
-          title="Network location mode"
-        >
-          <option value="latest_observation">Location: latest</option>
-          <option value="centroid">Location: centroid</option>
-          <option value="weighted_centroid">Location: weighted</option>
-        </select>
         <button
           onClick={onToggleFilters}
           style={{

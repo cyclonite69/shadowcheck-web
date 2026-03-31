@@ -99,14 +99,21 @@ export const MapToolbar = ({
 }: MapToolbarProps) => {
   return (
     <div
-      className="flex flex-wrap items-center gap-2"
+      className="flex items-center gap-2"
       style={{
         fontSize: '11px',
+        minWidth: 0,
+        overflow: 'hidden',
       }}
     >
       <div
         ref={searchContainerRef}
-        style={{ position: 'relative', minWidth: '300px', flex: '1 1 300px' }}
+        style={{
+          position: 'relative',
+          minWidth: '280px',
+          flex: '1 1 280px',
+          minHeight: '32px',
+        }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <input

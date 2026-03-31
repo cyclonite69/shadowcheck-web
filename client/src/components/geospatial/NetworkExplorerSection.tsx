@@ -11,8 +11,6 @@ interface NetworkExplorerSectionProps {
   expensiveSort: boolean;
   quickSearch: string;
   onQuickSearchChange: (value: string) => void;
-  locationMode: string;
-  onLocationModeChange: (mode: string) => void;
   filtersOpen: boolean;
   onToggleFilters: () => void;
   showColumnSelector: boolean;
@@ -61,8 +59,6 @@ export const NetworkExplorerSection = ({
   expensiveSort,
   quickSearch,
   onQuickSearchChange,
-  locationMode,
-  onLocationModeChange,
   filtersOpen,
   onToggleFilters,
   showColumnSelector,
@@ -111,8 +107,6 @@ export const NetworkExplorerSection = ({
         expensiveSort={expensiveSort}
         quickSearch={quickSearch}
         onQuickSearchChange={onQuickSearchChange}
-        locationMode={locationMode}
-        onLocationModeChange={onLocationModeChange}
         filtersOpen={filtersOpen}
         onToggleFilters={onToggleFilters}
         showColumnSelector={showColumnSelector}

@@ -13,8 +13,6 @@ interface GeospatialTableContentProps {
   expensiveSort: boolean;
   pagination: any;
   sort: any;
-  locationMode: string;
-  setLocationMode: (mode: string) => void;
   toggleSelectAll: () => void;
   allSelected: boolean;
   someSelected: boolean;
@@ -44,8 +42,6 @@ export const GeospatialTableContent: React.FC<GeospatialTableContentProps> = ({
   expensiveSort,
   pagination,
   sort,
-  locationMode,
-  setLocationMode,
   toggleSelectAll,
   allSelected,
   someSelected,
@@ -67,8 +63,6 @@ export const GeospatialTableContent: React.FC<GeospatialTableContentProps> = ({
     expensiveSort={expensiveSort}
     quickSearch={state.quickSearch}
     onQuickSearchChange={state.setQuickSearch}
-    locationMode={locationMode}
-    onLocationModeChange={setLocationMode}
     filtersOpen={state.filtersOpen}
     onToggleFilters={state.toggleFilters}
     showColumnSelector={state.showColumnSelector}

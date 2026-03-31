@@ -189,8 +189,15 @@ export const useGeospatialMap = ({
           });
 
           // TODO: render centroid/weighted network summary markers when showNetworkSummaries is true
-          // This will eventually add derived markers (centroids or weighted averages) as a separate GeoJSON layer
-          // above the observation points layer. Coordinate type (centroid vs. weighted) and marker styling TBD.
+          // Strategy for overlapping markers:
+          // When centroid_lat/lon and weighted_lat/lon are identical or very close (<0.0001° ~11m),
+          // apply a deterministic pixel offset based on marker type to keep both visible:
+          // - Centroid: offset up-right (+2px, -2px)
+          // - Weighted: offset down-left (-2px, +2px)
+          // This applies only at screen level (pixel-space) after projection, not geographic coordinates.
+          // See: https://docs.mapbox.com/mapbox-gl-js/api/layer/#paint-properties
+          // Eventually add derived markers (centroids or weighted averages) as a separate GeoJSON layer
+          // above the observation points layer, with appropriate styling from CentroidMarker + WeightedMarker components.
 
           // Click: show full tooltip popup
           map.on('click', 'observation-points', (e: MapLayerMouseEvent) => {

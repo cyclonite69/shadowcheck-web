@@ -73,6 +73,16 @@ export function MetricsTable({ before, after }: { before: Metrics | null; after:
 }
 
 function ExpandedRow({ run }: { run: ImportRun }) {
+  // Safely truncate error_detail to first 500 chars and strip SQL keywords for security
+  const sanitizeErrorDetail = (detail: string | null): string | null => {
+    if (!detail) return null;
+    // Truncate to reasonable length
+    let sanitized = detail.substring(0, 500);
+    // If truncated, add ellipsis
+    if (detail.length > 500) sanitized += '...';
+    return sanitized;
+  };
+
   return (
     <tr>
       <td colSpan={8} className="bg-slate-900/80 border-b border-slate-700/50 px-4 py-3">
@@ -94,8 +104,11 @@ function ExpandedRow({ run }: { run: ImportRun }) {
               {run.backup_taken ? '✓ taken before import' : '✗ skipped'}
             </p>
             {run.error_detail && (
-              <div className="mt-2 p-2 bg-red-900/20 border border-red-700/40 rounded text-red-300 font-mono break-all">
-                {run.error_detail}
+              <div
+                className="mt-2 p-2 bg-red-900/20 border border-red-700/40 rounded text-red-300 font-mono text-xs max-h-24 overflow-y-auto"
+                title={run.error_detail}
+              >
+                {sanitizeErrorDetail(run.error_detail)}
               </div>
             )}
           </div>
