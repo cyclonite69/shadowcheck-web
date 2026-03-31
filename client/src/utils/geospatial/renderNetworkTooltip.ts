@@ -89,6 +89,8 @@ export const renderNetworkTooltip = (props: any): string => {
   const threatConfig =
     THREAT_LEVEL_CONFIG[threat as keyof typeof THREAT_LEVEL_CONFIG] || THREAT_LEVEL_CONFIG.NONE;
   const tc = threatConfig.color;
+  const threatBg = threatConfig.bg;
+  const threatBorder = `${threatConfig.color}40`;
   const rssiValue =
     props.signal ??
     props.rssi ??
@@ -209,7 +211,7 @@ export const renderNetworkTooltip = (props: any): string => {
       <div style="flex-shrink:0;">${getRadioSVG(props.radio_type || 'WiFi', tc)}</div>
       <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
     </div>
-    <div style="flex-shrink:0;padding:2px 7px;border-radius:9999px;font-size:10px;font-weight:500;font-family:monospace;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;background:${tc}22;border:1px solid ${tc};color:${tc};">${threat}</div>
+    <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;">
     <div style="font-size:11px;font-family:monospace;color:${tc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>
@@ -247,7 +249,7 @@ export const renderNetworkTooltip = (props: any): string => {
     temporalPresent
       ? `<div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
     ${!isMissingValue(props.number) ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;">OBS #${normalizeDisplay(props.number)}</div>` : ''}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
       <div style="text-align:center;">
         <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">First</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.first_seen)}</div>
@@ -256,15 +258,11 @@ export const renderNetworkTooltip = (props: any): string => {
         <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">Last</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.last_seen)}</div>
       </div>
+      <div ${!isMissingValue(props.time) ? `style="padding:4px 6px;background:#eab30820;border:1px solid #eab30840;border-radius:4px;text-align:center;"` : `style="text-align:center;"`}>
+        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.3)'};font-weight:${!isMissingValue(props.time) ? '600' : '400'};margin-bottom:2px;">Seen</div>
+        <div style="font-size:${!isMissingValue(props.time) ? '11px;font-weight:600' : '10px'};color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.85)'};font-family:monospace;line-height:1.3;">${!isMissingValue(props.time) ? formatDateTime(props.time) : '—'}${!isMissingValue(props.time) && !isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:9px;color:rgba(234,179,8,0.6);"> · ${normalizeDisplay(props.time_since_prior)}</span>` : ''}</div>
+      </div>
     </div>
-    ${
-      !isMissingValue(props.time)
-        ? `<div style="padding:8px 10px;background:#eab30820;border:1px solid #eab30840;border-radius:6px;text-align:center;">
-      <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:#eab308;font-weight:600;margin-bottom:3px;">Seen</div>
-      <div style="font-size:11px;font-weight:600;color:#eab308;font-family:monospace;line-height:1.3;">${formatDateTime(props.time)}${!isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:10px;color:rgba(234,179,8,0.6);"> · ${normalizeDisplay(props.time_since_prior)} prior</span>` : ''}</div>
-    </div>`
-        : ''
-    }
   </div>`
       : ''
   }
