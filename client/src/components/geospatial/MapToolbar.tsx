@@ -185,8 +185,8 @@ export const MapToolbar = ({
               padding: '0 10px',
               fontSize: '11px',
               ...mono,
-              background: 'rgba(255,255,255,0.05)',
-              border: '0.5px solid rgba(255,255,255,0.1)',
+              background: 'rgba(3,105,161,0.12)',
+              border: '0.5px solid rgba(3,105,161,0.25)',
               borderRadius: onSearchModeToggle ? '7px 0 0 7px' : '7px',
               color: '#f1f5f9',
               outline: 'none',
@@ -203,8 +203,8 @@ export const MapToolbar = ({
                 padding: '0 8px',
                 fontSize: '11px',
                 background:
-                  searchMode === 'directions' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
-                border: '0.5px solid rgba(255,255,255,0.1)',
+                  searchMode === 'directions' ? 'rgba(59,130,246,0.15)' : 'rgba(3,105,161,0.12)',
+                border: '0.5px solid rgba(3,105,161,0.25)',
                 borderLeft: 'none',
                 borderRadius: '0 7px 7px 0',
                 color: searchMode === 'directions' ? '#60a5fa' : 'rgba(255,255,255,0.35)',
@@ -277,63 +277,125 @@ export const MapToolbar = ({
 
       <Separator />
 
-      {/* Zone 2b — NAV dropdown */}
+      {/* Zone 2b — NAV toggle + slide panel */}
       <div ref={navRef} style={{ position: 'relative', flexShrink: 0 }}>
         <button
           onClick={() => setNavOpen((v) => !v)}
+          title="Navigation menu"
           style={{
+            width: '30px',
             height: '28px',
-            padding: '0 10px',
             borderRadius: '6px',
-            border: '0.5px solid rgba(59,130,246,0.25)',
-            background: 'rgba(59,130,246,0.08)',
-            color: '#60a5fa',
-            fontSize: '11px',
-            ...mono,
+            border: navOpen
+              ? '0.5px solid rgba(59,130,246,0.3)'
+              : '0.5px solid rgba(255,255,255,0.10)',
+            background: navOpen ? 'rgba(59,130,246,0.10)' : 'rgba(255,255,255,0.03)',
+            color: navOpen ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+            fontSize: '16px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
+            justifyContent: 'center',
           }}
         >
-          <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
-            <circle cx="6.5" cy="6.5" r="4.5" stroke="#60a5fa" strokeWidth="1" />
-            <line x1="6.5" y1="1.5" x2="6.5" y2="4" stroke="#60a5fa" strokeWidth="0.8" />
-            <line x1="6.5" y1="9" x2="6.5" y2="11.5" stroke="#60a5fa" strokeWidth="0.8" />
-            <line x1="1.5" y1="6.5" x2="4" y2="6.5" stroke="#60a5fa" strokeWidth="0.8" />
-            <line x1="9" y1="6.5" x2="11.5" y2="6.5" stroke="#60a5fa" strokeWidth="0.8" />
-          </svg>
-          NAV ▾
+          {navOpen ? '✕' : '≡'}
         </button>
         {navOpen && (
-          <div
+          <nav
             style={{
-              position: 'absolute',
-              top: 'calc(100% + 6px)',
+              position: 'fixed',
               left: 0,
-              background: '#161b25',
-              border: '0.5px solid rgba(59,130,246,0.15)',
-              borderRadius: '8px',
-              padding: '6px',
-              minWidth: '160px',
-              zIndex: 200,
+              top: '48px',
+              width: '220px',
+              height: 'calc(100vh - 48px)',
+              background: '#0e1117',
+              borderRight: '0.5px solid rgba(59,130,246,0.12)',
+              padding: '8px 0',
+              zIndex: 999,
+              overflowY: 'auto',
             }}
           >
+            <div
+              style={{
+                padding: '6px 14px 4px',
+                ...mono,
+                fontSize: '10px',
+                color: 'rgba(255,255,255,0.25)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Pages
+            </div>
+            {[
+              { href: '/dashboard', label: 'Dashboard' },
+              { href: '/geospatial-explorer', label: 'Geospatial Explorer' },
+              { href: '/analytics', label: 'Analytics' },
+              { href: '/wigle', label: 'WiGLE' },
+              { href: '/kepler', label: 'Kepler' },
+              { href: '/monitoring', label: 'Monitoring' },
+              { href: '/endpoint-test', label: 'API Test' },
+              { href: '/admin', label: 'Admin' },
+            ].map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'block',
+                  padding: '8px 14px',
+                  ...mono,
+                  fontSize: '12px',
+                  color:
+                    window.location.pathname === item.href ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                  textDecoration: 'none',
+                  borderRadius: '4px',
+                  margin: '0 6px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color =
+                    window.location.pathname === item.href ? '#60a5fa' : 'rgba(255,255,255,0.5)';
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
+            <div
+              style={{
+                height: '1px',
+                background: 'rgba(255,255,255,0.06)',
+                margin: '8px 14px',
+              }}
+            />
+            <div
+              style={{
+                padding: '6px 14px 4px',
+                ...mono,
+                fontSize: '10px',
+                color: 'rgba(255,255,255,0.25)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Map tools
+            </div>
             <div
               onClick={() => {
                 onGps();
                 setNavOpen(false);
               }}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '7px 10px',
-                borderRadius: '5px',
-                fontSize: '12px',
+                padding: '8px 14px',
                 ...mono,
+                fontSize: '12px',
                 color: 'rgba(255,255,255,0.5)',
                 cursor: 'pointer',
+                borderRadius: '4px',
+                margin: '0 6px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
@@ -344,7 +406,7 @@ export const MapToolbar = ({
                 e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
               }}
             >
-              <span>Go to GPS</span>
+              Go to GPS
             </div>
             {onResetBearing && (
               <div
@@ -353,15 +415,13 @@ export const MapToolbar = ({
                   setNavOpen(false);
                 }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '7px 10px',
-                  borderRadius: '5px',
-                  fontSize: '12px',
+                  padding: '8px 14px',
                   ...mono,
+                  fontSize: '12px',
                   color: 'rgba(255,255,255,0.5)',
                   cursor: 'pointer',
+                  borderRadius: '4px',
+                  margin: '0 6px',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
@@ -372,7 +432,7 @@ export const MapToolbar = ({
                   e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
                 }}
               >
-                <span>Reset bearing</span>
+                Reset bearing
               </div>
             )}
             {onResetPitch && (
@@ -382,15 +442,13 @@ export const MapToolbar = ({
                   setNavOpen(false);
                 }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '7px 10px',
-                  borderRadius: '5px',
-                  fontSize: '12px',
+                  padding: '8px 14px',
                   ...mono,
+                  fontSize: '12px',
                   color: 'rgba(255,255,255,0.5)',
                   cursor: 'pointer',
+                  borderRadius: '4px',
+                  margin: '0 6px',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
@@ -401,10 +459,10 @@ export const MapToolbar = ({
                   e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
                 }}
               >
-                <span>Reset pitch</span>
+                Reset pitch
               </div>
             )}
-          </div>
+          </nav>
         )}
       </div>
 
@@ -660,17 +718,23 @@ export const MapToolbar = ({
             onClick={() => setMapStyleOpen((v) => !v)}
             style={{
               height: '28px',
-              padding: '0 10px',
+              padding: '0 12px',
               borderRadius: '6px',
-              border: '0.5px solid rgba(255,255,255,0.10)',
-              background: 'rgba(255,255,255,0.03)',
-              color: 'rgba(255,255,255,0.4)',
+              border: '0.5px solid rgba(3,105,161,0.25)',
+              background: 'rgba(3,105,161,0.12)',
+              color: '#e5e7eb',
               fontSize: '11px',
               ...mono,
               cursor: 'pointer',
+              minWidth: '160px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            {currentStyleLabel} ▾
+            <span>{currentStyleLabel}</span>
+            <span style={{ opacity: 0.5, marginLeft: '6px' }}>▾</span>
           </button>
           {mapStyleOpen && (
             <div
@@ -679,10 +743,10 @@ export const MapToolbar = ({
                 top: 'calc(100% + 6px)',
                 right: 0,
                 background: '#161b25',
-                border: '0.5px solid rgba(59,130,246,0.15)',
+                border: '0.5px solid rgba(3,105,161,0.25)',
                 borderRadius: '8px',
                 padding: '4px',
-                minWidth: '140px',
+                minWidth: '200px',
                 zIndex: 200,
               }}
             >
