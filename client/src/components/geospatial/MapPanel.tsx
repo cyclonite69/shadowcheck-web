@@ -37,7 +37,7 @@ export const MapPanel = ({
         backdropFilter: 'blur(8px)',
       }}
     >
-      <MapHeader title={title} toolbar={toolbar} />
+      <MapHeader title="" toolbar={toolbar} />
       <MapViewport
         mapReady={mapReady}
         mapError={mapError}

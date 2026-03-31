@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface MapStyleOption {
   value: string;
@@ -31,26 +31,33 @@ interface MapToolbarProps {
   homeButtonActive: boolean;
   onHome: () => void;
   onGps: () => void;
-  // WiGLE observations
   canWigle?: boolean;
   wigleLoading?: boolean;
   wigleActive?: boolean;
   selectedCount?: number;
   onWigle?: () => void;
-  // Directions mode
   searchMode?: SearchMode;
   onSearchModeToggle?: () => void;
   directionsLoading?: boolean;
-  // Agencies panel
   showAgenciesPanel?: boolean;
   onToggleAgenciesPanel?: () => void;
-  // Courthouses panel
   showCourthousesPanel?: boolean;
   onToggleCourthousesPanel?: () => void;
-  // Network summaries
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
 }
+
+const Separator = () => (
+  <div
+    style={{
+      width: '1px',
+      height: '20px',
+      background: 'var(--nav-sep)',
+      margin: '0 10px',
+      flexShrink: 0,
+    }}
+  />
+);
 
 export const MapToolbar = ({
   searchContainerRef,
@@ -61,7 +68,7 @@ export const MapToolbar = ({
   showSearchResults,
   searchResults,
   onSelectSearchResult,
-  searchPlaceholder = '🔍 Search worldwide locations...',
+  searchPlaceholder = 'Search locations...',
   mapStyle,
   onMapStyleChange,
   mapStyles,
@@ -91,43 +98,92 @@ export const MapToolbar = ({
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
 }: MapToolbarProps) => {
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [mapStyleOpen, setMapStyleOpen] = useState(false);
+  const layersRef = useRef<HTMLDivElement>(null);
+  const mapStyleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (layersRef.current && !layersRef.current.contains(e.target as Node)) setLayersOpen(false);
+      if (mapStyleRef.current && !mapStyleRef.current.contains(e.target as Node))
+        setMapStyleOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const hasActiveLayers = !!showAgenciesPanel || !!showCourthousesPanel;
+  const currentStyleLabel = mapStyles.find((s) => s.value === mapStyle)?.label ?? 'Style';
+
+  const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
+
   return (
-    <div
-      className="flex items-center gap-2"
-      style={{
-        fontSize: '11px',
-        minWidth: 0,
-        overflow: 'hidden',
-      }}
-    >
+    <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0 }}>
+      {/* Zone 1 — Brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <div
+          style={{
+            width: '22px',
+            height: '22px',
+            borderRadius: '5px',
+            background: 'var(--nav-accent-bg)',
+            border: '0.5px solid rgba(59,130,246,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <circle cx="6" cy="6" r="4.5" stroke="#60a5fa" strokeWidth="1" />
+            <circle cx="6" cy="6" r="1.5" fill="#60a5fa" />
+            <line x1="6" y1="0" x2="6" y2="3" stroke="#60a5fa" strokeWidth="0.8" />
+            <line x1="6" y1="9" x2="6" y2="12" stroke="#60a5fa" strokeWidth="0.8" />
+            <line x1="0" y1="6" x2="3" y2="6" stroke="#60a5fa" strokeWidth="0.8" />
+            <line x1="9" y1="6" x2="12" y2="6" stroke="#60a5fa" strokeWidth="0.8" />
+          </svg>
+        </div>
+        <span
+          style={{
+            ...mono,
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#e2e8f0',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Shadow<span style={{ color: '#60a5fa' }}>Check</span>
+        </span>
+      </div>
+
+      <Separator />
+
+      {/* Zone 2 — Search */}
       <div
         ref={searchContainerRef}
-        style={{
-          position: 'relative',
-          minWidth: '280px',
-          flex: '1 1 280px',
-          minHeight: '32px',
-        }}
+        style={{ position: 'relative', minWidth: '120px', flex: '1 1 280px', flexShrink: 1 }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <input
             type="text"
             placeholder={
-              searchMode === 'directions' ? '🛣️ Search destination for route...' : searchPlaceholder
+              searchMode === 'directions' ? 'Search destination for route...' : searchPlaceholder
             }
             value={locationSearch}
             onChange={(e) => onLocationSearchChange(e.target.value)}
+            onFocus={onLocationSearchFocus}
             style={{
               flex: 1,
-              padding: '6px 10px',
+              height: '32px',
+              padding: '0 10px',
               fontSize: '11px',
-              background: 'rgba(30, 41, 59, 0.9)',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              borderRadius: onSearchModeToggle ? '4px 0 0 4px' : '4px',
+              ...mono,
+              background: 'rgba(255,255,255,0.05)',
+              border: '0.5px solid rgba(255,255,255,0.1)',
+              borderRadius: onSearchModeToggle ? '7px 0 0 7px' : '7px',
               color: '#f1f5f9',
               outline: 'none',
             }}
-            onFocus={onLocationSearchFocus}
           />
           {onSearchModeToggle && (
             <button
@@ -136,17 +192,16 @@ export const MapToolbar = ({
                 searchMode === 'address' ? 'Switch to Directions mode' : 'Switch to Address mode'
               }
               style={{
-                padding: '6px 8px',
+                height: '32px',
+                padding: '0 8px',
                 fontSize: '11px',
                 background:
-                  searchMode === 'directions' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(30, 41, 59, 0.9)',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
+                  searchMode === 'directions' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                border: '0.5px solid rgba(255,255,255,0.1)',
                 borderLeft: 'none',
-                borderRadius: '0 4px 4px 0',
-                color: searchMode === 'directions' ? '#60a5fa' : '#cbd5e1',
+                borderRadius: '0 7px 7px 0',
+                color: searchMode === 'directions' ? '#60a5fa' : 'rgba(255,255,255,0.35)',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
-                lineHeight: 1,
               }}
             >
               {directionsLoading ? '⏳' : searchMode === 'address' ? '📍' : '🛣️'}
@@ -175,12 +230,12 @@ export const MapToolbar = ({
               left: 0,
               right: 0,
               marginTop: '4px',
-              background: 'rgba(30, 41, 59, 0.98)',
-              border: '1px solid rgba(148, 163, 184, 0.3)',
-              borderRadius: '6px',
+              background: '#161b25',
+              border: '0.5px solid rgba(59,130,246,0.15)',
+              borderRadius: '8px',
               maxHeight: '300px',
               overflowY: 'auto',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               zIndex: 1000,
             }}
           >
@@ -192,19 +247,16 @@ export const MapToolbar = ({
                   padding: '8px 10px',
                   cursor: 'pointer',
                   borderBottom:
-                    index < searchResults.length - 1
-                      ? '1px solid rgba(148, 163, 184, 0.1)'
-                      : 'none',
-                  transition: 'background 0.2s',
+                    index < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                  e.currentTarget.style.background = 'rgba(59,130,246,0.15)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#f1f5f9' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
                   {result.text}
                 </div>
                 <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
@@ -216,201 +268,382 @@ export const MapToolbar = ({
         )}
       </div>
 
-      <label className="sr-only" htmlFor="map-style">
-        Map style
-      </label>
-      <select
-        id="map-style"
-        value={mapStyle}
-        onChange={(e) => onMapStyleChange(e.target.value)}
+      <Separator />
+
+      {/* Zone 3 — View mode toggle group */}
+      <div
         style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background: 'rgba(30, 41, 59, 0.9)',
-          border: '1px solid rgba(148, 163, 184, 0.2)',
-          color: '#f8fafc',
-          borderRadius: '4px',
-          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          background: 'rgba(255,255,255,0.03)',
+          border: '0.5px solid rgba(255,255,255,0.08)',
+          borderRadius: '7px',
+          padding: '3px',
+          gap: '2px',
+          flexShrink: 0,
         }}
       >
-        {mapStyles.map((style) => (
-          <option key={style.value} value={style.value}>
-            {style.label}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={onToggle3DBuildings}
-        disabled={!is3DBuildingsAvailable}
-        title={
-          is3DBuildingsAvailable ? 'Toggle 3D buildings' : '3D buildings unavailable for this style'
-        }
-        style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background: show3DBuildings ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-          border: show3DBuildings
-            ? '1px solid rgba(59, 130, 246, 0.5)'
-            : '1px solid rgba(148, 163, 184, 0.2)',
-          color: !is3DBuildingsAvailable ? '#64748b' : show3DBuildings ? '#60a5fa' : '#cbd5e1',
-          borderRadius: '4px',
-          cursor: is3DBuildingsAvailable ? 'pointer' : 'not-allowed',
-          transition: 'all 0.2s',
-          fontWeight: show3DBuildings ? '600' : '400',
-          opacity: is3DBuildingsAvailable ? 1 : 0.65,
-        }}
-      >
-        🏢 3D Buildings
-      </button>
-      <button
-        onClick={onToggleTerrain}
-        style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background: showTerrain ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-          border: showTerrain
-            ? '1px solid rgba(59, 130, 246, 0.5)'
-            : '1px solid rgba(148, 163, 184, 0.2)',
-          color: showTerrain ? '#60a5fa' : '#cbd5e1',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          fontWeight: showTerrain ? '600' : '400',
-        }}
-      >
-        ⛰️ Terrain
-      </button>
-      <button
-        onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
-        style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background: showNetworkSummaries ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-          border: showNetworkSummaries
-            ? '1px solid rgba(59, 130, 246, 0.5)'
-            : '1px solid rgba(148, 163, 184, 0.2)',
-          color: showNetworkSummaries ? '#60a5fa' : '#cbd5e1',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          fontWeight: showNetworkSummaries ? '600' : '400',
-        }}
-        title="Toggle network summaries"
-      >
-        📊 Network Summaries
-      </button>
-      <button
-        onClick={onFit}
-        style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background:
-            fitButtonActive || canFit ? 'rgba(59, 130, 246, 0.9)' : 'rgba(30, 41, 59, 0.9)',
-          border:
-            fitButtonActive || canFit ? '1px solid #3b82f6' : '1px solid rgba(148, 163, 184, 0.2)',
-          color: fitButtonActive || canFit ? '#ffffff' : '#cbd5e1',
-          borderRadius: '4px',
-          cursor: canFit ? 'pointer' : 'not-allowed',
-          opacity: canFit ? 1 : 0.5,
-        }}
-        disabled={!canFit}
-      >
-        🎯 Fit
-      </button>
-      <button
-        onClick={onHome}
-        style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background: homeButtonActive ? 'rgba(16, 185, 129, 0.9)' : 'rgba(30, 41, 59, 0.9)',
-          border: homeButtonActive ? '1px solid #10b981' : '1px solid rgba(148, 163, 184, 0.2)',
-          color: homeButtonActive ? '#ffffff' : '#cbd5e1',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-        }}
-      >
-        🏠 Home
-      </button>
-      <button
-        onClick={onGps}
-        style={{
-          padding: '6px 10px',
-          fontSize: '11px',
-          background: 'rgba(30, 41, 59, 0.9)',
-          border: '1px solid rgba(148, 163, 184, 0.2)',
-          color: '#cbd5e1',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        }}
-      >
-        📍 GPS
-      </button>
-      {onWigle && (
         <button
-          onClick={onWigle}
-          disabled={!canWigle || wigleLoading}
+          onClick={onToggle3DBuildings}
+          disabled={!is3DBuildingsAvailable}
+          title={
+            is3DBuildingsAvailable
+              ? 'Toggle 3D buildings'
+              : '3D buildings unavailable for this style'
+          }
           style={{
-            padding: '6px 10px',
+            height: '26px',
+            padding: '0 10px',
+            borderRadius: '5px',
+            border: show3DBuildings ? '0.5px solid rgba(59,130,246,0.25)' : 'none',
             fontSize: '11px',
-            background: wigleActive
-              ? 'rgba(245, 158, 11, 0.9)'
-              : canWigle
-                ? 'rgba(245, 158, 11, 0.2)'
-                : 'rgba(30, 41, 59, 0.9)',
-            border: wigleActive
-              ? '1px solid #f59e0b'
-              : canWigle
-                ? '1px solid rgba(245, 158, 11, 0.5)'
-                : '1px solid rgba(148, 163, 184, 0.2)',
-            color: wigleActive ? '#ffffff' : canWigle ? '#f59e0b' : '#64748b',
-            borderRadius: '4px',
-            cursor: canWigle && !wigleLoading ? 'pointer' : 'not-allowed',
-            opacity: canWigle ? 1 : 0.5,
-            transition: 'all 0.2s',
+            ...mono,
+            letterSpacing: '0.05em',
+            cursor: is3DBuildingsAvailable ? 'pointer' : 'not-allowed',
+            background: show3DBuildings ? 'rgba(59,130,246,0.15)' : 'transparent',
+            color: !is3DBuildingsAvailable
+              ? '#64748b'
+              : show3DBuildings
+                ? '#60a5fa'
+                : 'var(--nav-text-inactive)',
+            opacity: is3DBuildingsAvailable ? 1 : 0.65,
           }}
         >
-          🌐 {wigleLoading ? 'Loading...' : `WiGLE${selectedCount ? ` (${selectedCount})` : ''}`}
+          3D
         </button>
-      )}
-      {onToggleAgenciesPanel && (
         <button
-          onClick={onToggleAgenciesPanel}
+          onClick={onToggleTerrain}
           style={{
-            padding: '6px 10px',
+            height: '26px',
+            padding: '0 10px',
+            borderRadius: '5px',
+            border: showTerrain ? '0.5px solid rgba(59,130,246,0.25)' : 'none',
             fontSize: '11px',
-            background: showAgenciesPanel ? 'rgba(16, 185, 129, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-            border: showAgenciesPanel
-              ? '1px solid rgba(16, 185, 129, 0.5)'
-              : '1px solid rgba(148, 163, 184, 0.2)',
-            color: showAgenciesPanel ? '#10b981' : '#94a3b8',
-            borderRadius: '4px',
+            ...mono,
+            letterSpacing: '0.05em',
             cursor: 'pointer',
-            transition: 'all 0.2s',
+            background: showTerrain ? 'rgba(59,130,246,0.15)' : 'transparent',
+            color: showTerrain ? '#60a5fa' : 'var(--nav-text-inactive)',
           }}
         >
-          🏢 Agencies
+          Terrain
         </button>
-      )}
-      {onToggleCourthousesPanel && (
+      </div>
+
+      <Separator />
+
+      {/* Zone 4 — Overlay toggles */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
         <button
-          onClick={onToggleCourthousesPanel}
+          onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
+          title="Toggle network summaries"
           style={{
-            padding: '6px 10px',
+            height: '30px',
+            padding: '0 10px',
+            borderRadius: '6px',
+            border: 'none',
             fontSize: '11px',
-            background: showCourthousesPanel ? 'rgba(245, 158, 11, 0.2)' : 'rgba(30, 41, 59, 0.9)',
-            border: showCourthousesPanel
-              ? '1px solid rgba(245, 158, 11, 0.5)'
-              : '1px solid rgba(148, 163, 184, 0.2)',
-            color: showCourthousesPanel ? '#f59e0b' : '#94a3b8',
-            borderRadius: '4px',
+            ...mono,
+            letterSpacing: '0.04em',
             cursor: 'pointer',
-            transition: 'all 0.2s',
+            background: showNetworkSummaries ? 'rgba(59,130,246,0.10)' : 'transparent',
+            color: showNetworkSummaries ? '#60a5fa' : 'var(--nav-text-inactive)',
           }}
         >
-          ⚖️ Federal Courthouses
+          <span className="hidden-narrow">Networks</span>
         </button>
+        {onWigle && (
+          <button
+            onClick={onWigle}
+            disabled={!canWigle || wigleLoading}
+            title="Toggle WiGLE observations"
+            style={{
+              height: '30px',
+              padding: '0 10px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '11px',
+              ...mono,
+              letterSpacing: '0.04em',
+              cursor: canWigle && !wigleLoading ? 'pointer' : 'not-allowed',
+              background: wigleActive ? 'rgba(59,130,246,0.10)' : 'transparent',
+              color: wigleActive ? '#60a5fa' : 'var(--nav-text-inactive)',
+              opacity: canWigle ? 1 : 0.5,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {wigleLoading ? 'Loading...' : 'WIGLE'}
+            {!wigleLoading && selectedCount != null && selectedCount > 0 && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  padding: '1px 5px',
+                  borderRadius: '3px',
+                  background: 'rgba(59,130,246,0.2)',
+                  color: '#60a5fa',
+                  marginLeft: '5px',
+                }}
+              >
+                {selectedCount}
+              </span>
+            )}
+          </button>
+        )}
+        <button
+          onClick={onGps}
+          title="Go to GPS location"
+          style={{
+            height: '30px',
+            padding: '0 10px',
+            borderRadius: '6px',
+            border: 'none',
+            fontSize: '11px',
+            ...mono,
+            letterSpacing: '0.04em',
+            cursor: 'pointer',
+            background: 'transparent',
+            color: 'var(--nav-text-inactive)',
+          }}
+        >
+          GPS
+        </button>
+      </div>
+
+      <Separator />
+
+      {/* Zone 5 — Layers dropdown */}
+      {(onToggleAgenciesPanel || onToggleCourthousesPanel) && (
+        <div ref={layersRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setLayersOpen((v) => !v)}
+            style={{
+              height: '28px',
+              padding: '0 10px',
+              borderRadius: '6px',
+              border: hasActiveLayers
+                ? '0.5px solid rgba(59,130,246,0.3)'
+                : '0.5px solid rgba(255,255,255,0.10)',
+              background: 'rgba(255,255,255,0.03)',
+              color: hasActiveLayers ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+              fontSize: '11px',
+              ...mono,
+              cursor: 'pointer',
+            }}
+          >
+            Layers ▾
+          </button>
+          {layersOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                left: 0,
+                background: '#161b25',
+                border: '0.5px solid rgba(59,130,246,0.15)',
+                borderRadius: '8px',
+                padding: '4px',
+                minWidth: '180px',
+                zIndex: 200,
+              }}
+            >
+              {onToggleAgenciesPanel && (
+                <div
+                  onClick={() => {
+                    onToggleAgenciesPanel();
+                    setLayersOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    ...mono,
+                    color: showAgenciesPanel ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <span>Agencies</span>
+                  {showAgenciesPanel && <span style={{ color: '#60a5fa' }}>✓</span>}
+                </div>
+              )}
+              {onToggleCourthousesPanel && (
+                <div
+                  onClick={() => {
+                    onToggleCourthousesPanel();
+                    setLayersOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    ...mono,
+                    color: showCourthousesPanel ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <span>Federal Courthouses</span>
+                  {showCourthousesPanel && <span style={{ color: '#60a5fa' }}>✓</span>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
+
+      {/* Flex spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Right utility zone */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+        {/* Map style dropdown chip */}
+        <div ref={mapStyleRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setMapStyleOpen((v) => !v)}
+            style={{
+              height: '28px',
+              padding: '0 10px',
+              borderRadius: '6px',
+              border: '0.5px solid rgba(255,255,255,0.10)',
+              background: 'rgba(255,255,255,0.03)',
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: '11px',
+              ...mono,
+              cursor: 'pointer',
+            }}
+          >
+            {currentStyleLabel} ▾
+          </button>
+          {mapStyleOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                background: '#161b25',
+                border: '0.5px solid rgba(59,130,246,0.15)',
+                borderRadius: '8px',
+                padding: '4px',
+                minWidth: '140px',
+                zIndex: 200,
+              }}
+            >
+              {mapStyles.map((s) => (
+                <div
+                  key={s.value}
+                  onClick={() => {
+                    onMapStyleChange(s.value);
+                    setMapStyleOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    ...mono,
+                    color: mapStyle === s.value ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <span>{s.label}</span>
+                  {mapStyle === s.value && <span style={{ color: '#60a5fa' }}>✓</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Fit icon button */}
+        <button
+          className="nav-icon-btn"
+          onClick={onFit}
+          disabled={!canFit}
+          title="Fit view"
+          style={{
+            width: '30px',
+            height: '30px',
+            borderRadius: '6px',
+            border: 'none',
+            background: 'transparent',
+            color: canFit ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
+            cursor: canFit ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: canFit ? 1 : 0.5,
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <polyline points="1,4 1,1 4,1" />
+            <polyline points="10,1 13,1 13,4" />
+            <polyline points="13,10 13,13 10,13" />
+            <polyline points="4,13 1,13 1,10" />
+          </svg>
+        </button>
+
+        {/* Home icon button */}
+        <button
+          className="nav-icon-btn"
+          onClick={onHome}
+          title="Home"
+          style={{
+            width: '30px',
+            height: '30px',
+            borderRadius: '6px',
+            border: 'none',
+            background: 'transparent',
+            color: 'rgba(255,255,255,0.3)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M2 7L7 2L12 7" />
+            <path d="M3 7V12H6V9H8V12H11V7" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 };

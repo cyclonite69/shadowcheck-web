@@ -63,6 +63,17 @@ body {
 
 /* Component layer - custom components that don't conflict with Tailwind */
 @layer components {
+  /* Navbar responsive: hide Networks label on narrow viewports */
+  @media (max-width: 1024px) {
+    .hidden-narrow { display: none; }
+  }
+
+  /* Navbar icon button hover */
+  .nav-icon-btn:hover {
+    background: var(--nav-hover-bg);
+    color: var(--nav-text-hover);
+  }
+
   /* ML training page background gradient */
   .bg-ml-training {
     background:
