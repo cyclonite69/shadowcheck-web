@@ -1,12 +1,21 @@
-# Copilot Instructions for ShadowCheck Static
+# Copilot Instructions for ShadowCheck-Web
 
 This document provides actionable guidance for AI coding agents (Claude, Copilot, etc.) when working with the ShadowCheck-Web codebase.
 
 ## Quick Reference
 
-**Tech Stack**: Node.js 20+, Express.js, PostgreSQL 18 + PostGIS, React 18, Vite, Tailwind CSS v4, TypeScript
+**Tech Stack**: Node.js 22+, Express.js, PostgreSQL 18 + PostGIS, React 19, Vite 7, Tailwind CSS v4, TypeScript 5+
 
 **Critical Constraint**: PostgreSQL runs in Docker. Never use local system PostgreSQL. If running API locally, stop it: `sudo systemctl stop postgresql`
+
+**IMMUTABLE SECURITY RULE #1**: NEVER write secrets to disk. All credentials must be injected at runtime via environment variables or AWS Secrets Manager. Violating this rule is a security breach.
+
+**IMMUTABLE SECURITY RULE #2**: EC2 instances have NO public ingress ports. All access to EC2 instances is ONLY through AWS Systems Manager (SSM) Session Manager. Do NOT open SSH (port 22), HTTP (80), HTTPS (443), or any other inbound ports directly to instances.
+
+**Module Systems** (critical distinction):
+
+- **Backend**: CommonJS (`require`, `module.exports`) – DO NOT use ES modules
+- **Frontend**: ES modules (`import`, `export`) – DO NOT use CommonJS
 
 ## Project Architecture
 
@@ -46,6 +55,31 @@ This document provides actionable guidance for AI coding agents (Claude, Copilot
 │   └── setup.ts                  # Jest configuration & globals
 └── CLAUDE.md                     # General development guidance
 ```
+
+### Data Flow Pattern
+
+The backend follows a **three-tier service architecture**:
+
+1. **Routes** (`server/src/api/routes/`) – Request validation, parameter extraction
+2. **Services** (`server/src/services/`) – Business logic, threat scoring, filter building
+3. **Repositories** (`server/src/repositories/`) – SQL query execution, data transformation
+
+Example flow: API request → validate with Yup schema → call service → service queries repository → repository executes parameterized SQL → result maps back through service → response returned.
+
+This separation ensures:
+
+- Routes never contain business logic
+- Services are testable without HTTP context
+- SQL never appears in routes (injection prevention)
+- Repositories can be mocked in tests
+
+### Frontend Structure
+
+- **Routes** defined in `App.tsx` using React Router
+- **Pages/Components** map to routes (e.g., `/analytics` → `AnalyticsPage.tsx`)
+- **Stores** (Zustand) hold cross-component state (filters, user session, etc.)
+- **Hooks** encapsulate data fetching logic (`useNetworkData`, `useAdaptedFilters`, etc.)
+- **Utils** contain formatting, geospatial calculations, geocoding logic
 
 ## Key Patterns & Conventions
 
@@ -247,22 +281,46 @@ The filter system powers filtering across all pages (Dashboard, Geospatial, Kepl
 
 ### Running Commands
 
-**Development**:
+**Build & Development**:
 
 ```bash
-docker-compose up -d --build api    # Run API in Docker (recommended)
-npm run build                        # Build frontend + server TypeScript
-npm run dev                          # Local backend with auto-reload (port 3001)
-npm run dev:frontend                 # Vite dev server (port 5173)
+npm run build                        # Full build (frontend + server TypeScript) → dist/
+npm run build:frontend               # Vite build only → dist/ (static files)
+npm run build:server                 # TypeScript compilation only → dist/server/
+npm run dev                          # Local backend with auto-reload (port 3001, needs frontend built)
+npm run dev:frontend                 # Vite dev server (port 5173, hot reload for React)
+npm run preview                      # Test production build locally
+npm start                            # Run production server from dist/
 ```
+
+**Build Output**:
+
+- Frontend: `dist/` (static HTML/JS/CSS served by Express)
+- Server: `dist/server/` (compiled CommonJS)
+- Both: Combined by `npm run build` for deployment
+
+**Development Workflow**:
+
+1. Terminal 1: `npm run dev` (auto-rebuilds server on changes, restarts)
+2. Terminal 2: `npm run dev:frontend` (Vite dev server with hot reload)
+3. Frontend requests proxy to http://localhost:3001 (see `client/vite.config.ts`)
 
 **Testing**:
 
 ```bash
-npm test                             # All tests
-npm run test:watch                   # Watch mode
-npm run test:cov                     # With coverage (70% threshold)
-npx jest tests/unit/file.test.js    # Single test file
+npm test                                          # All tests
+npm run test:watch                                # Watch mode (re-run on file changes)
+npm run test:cov                                  # With coverage report (70% threshold enforced)
+npx jest tests/unit/mymodule.test.ts             # Single test file
+npx jest tests/unit/mymodule.test.ts -t "test name"  # Single test by name/pattern
+npm run test:integration                          # Integration tests only (requires DB)
+npm run test:certification                        # Certification tests
+```
+
+**Coverage**: Coverage reports are generated in `coverage/` directory. To view in browser:
+
+```bash
+npm run test:cov && open coverage/index.html
 ```
 
 **Linting**:
@@ -278,6 +336,30 @@ npm run lint:boundaries              # Check client/server import boundaries
 ```bash
 docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 ```
+
+### TypeScript & Build Configuration
+
+**Two separate configs** handle frontend and backend:
+
+- **`tsconfig.json`** – Frontend (React, Vite) using ES2020+ target, strict mode
+- **`tsconfig.server.json`** – Backend (CommonJS) with ES2020 target, strict mode
+
+**Key differences**:
+
+- Frontend: Transpiled by Vite to ES2020, imports are ES modules
+- Backend: Compiled to CommonJS via tsc, runs directly with Node.js
+
+**When working with types**:
+
+- Shared types can go in separate files imported by both frontend and backend
+- Backend never imports client files; use API responses as interfaces instead
+- Frontend types are in `client/src/types/` and mirror API response shapes
+
+**Build validation**:
+
+- `npm run build` runs both compilations; fails if either has TS errors
+- `npm run lint` includes `tsx` checks for type safety
+- Frontend must rebuild after TypeScript changes: `npm run build:frontend`
 
 ### Testing Patterns
 
@@ -323,7 +405,15 @@ it('GET /api/endpoint should return 200', async () => {
 - Test environment: Node.js
 - Test match: `tests/**/*.test.{js,ts}`, `**/*.spec.{js,ts}`
 - Coverage threshold: 70% (branches, functions, lines, statements)
-- Setup: `tests/setup.ts` - Mocks and environment variables
+- Setup: `tests/setup.ts` - Global mocks, environment setup, database test fixtures
+
+**When Adding Tests**:
+
+- Unit tests go in `tests/unit/` – test functions/services in isolation
+- Integration tests go in `tests/integration/` – test endpoints with mocked DB
+- Always mock external dependencies (database, HTTP calls, secrets manager)
+- Import from `tests/setup.ts` for common test utilities and fixtures
+- Tests should be deterministic (no flaky assertions based on timing or order)
 
 **Coverage Command**: `npm run test:cov` (70% threshold enforced)
 
@@ -477,22 +567,89 @@ docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db
 
 ## Secrets Management
 
-**Source of Truth**: AWS Secrets Manager (`shadowcheck/config`)
+🔒 **IMMUTABLE RULE: SECRETS ARE STORED IN AWS SECRETS MANAGER ONLY. NEVER WRITE SECRETS TO DISK.**
 
-**Resolution Order**: AWS Secrets Manager → local files (`./secrets/`) → environment variables
+The application ONLY retrieves secrets from AWS Secrets Manager. No disk storage, no temporary files, no local copies.
 
-**How it works**: The app reads secrets at startup via `secretsManager.load()`. Secrets can also be set via the Config UI or admin API, which writes through to AWS SM.
+**How it works**:
 
-**Local Overrides (optional)**:
+1. At startup, `secretsManager.load()` fetches secrets from AWS Secrets Manager (`shadowcheck/config`)
+2. Secrets are held in memory ONLY
+3. Secrets are NEVER written to `.env`, files, temp directories, or any persistent storage
+4. Secrets are NEVER logged, printed, or exposed in debug output
+
+**For Development - Environment Variables Only**:
+
+When testing locally without AWS access, inject secrets as environment variables at runtime:
 
 ```bash
-export DB_PASSWORD=...
-export DB_ADMIN_PASSWORD=...
-export MAPBOX_TOKEN=...
+# ✅ CORRECT: Inject at runtime, never write to disk
+export DB_PASSWORD="dev_password"
+export DB_ADMIN_PASSWORD="dev_admin_password"
+export MAPBOX_TOKEN="your_mapbox_token"
+npm run dev
+
+# ❌ NEVER DO THIS
+echo "DB_PASSWORD=password" >> .env              # Write to disk = BREACH
+cat > .env.local << EOF                          # Write to disk = BREACH
+DB_PASSWORD=password
+EOF
+curl https://aws.amazonaws.com/.../secret > /tmp/secret.json  # Pull to disk = BREACH
 ```
 
-**Required Secrets**: `db_password`, `db_admin_password`, `mapbox_token`  
-**Optional Secrets**: `wigle_api_key`, `wigle_api_name`, `wigle_api_token`, `locationiq_api_key`, `opencage_api_key`, `google_maps_api_key`
+**CI/CD & Deployment**:
+
+- Inject secrets as GitHub Actions secrets or AWS Secrets Manager
+- Secrets are passed as environment variables to the container at runtime
+- Application reads from `process.env` only
+- Never embed secrets in Docker images, config files, or version control
+
+**Required Secrets** (AWS Secrets Manager keys):
+
+- `db_password`
+- `db_admin_password`
+- `mapbox_token`
+
+**Optional Secrets**:
+
+- `wigle_api_key`, `wigle_api_name`, `wigle_api_token`
+- `locationiq_api_key`, `opencage_api_key`, `google_maps_api_key`
+
+## AWS Infrastructure Security
+
+🔒 **IMMUTABLE RULE: EC2 INSTANCES HAVE ZERO PUBLIC INGRESS. ACCESS ONLY VIA AWS SYSTEMS MANAGER.**
+
+All EC2 instances use AWS Systems Manager Session Manager for secure remote access. No SSH keys, no port 22, no inbound security group rules.
+
+**Accessing EC2 Instances**:
+
+```bash
+# Connect to EC2 via SSM Session Manager
+aws ssm start-session --target i-0123456789abcdef0 --region us-east-1
+
+# Once connected, you are in an interactive shell on the instance
+# Use standard Linux commands (curl, docker, systemctl, etc.)
+
+# To copy files to/from instance, use SSM/S3 or port forwarding:
+aws ssm start-session --target i-0123456789abcdef0 \
+  --document-name AWS-StartPortForwardingSession \
+  --parameters "portNumber=3001,localPortNumber=3001"
+# Then curl http://localhost:3001 locally
+```
+
+**Security Architecture**:
+
+- EC2 instances have security group with NO inbound rules (except from ALB on port 3001)
+- Instances have IAM role with `AmazonSSMManagedInstanceCore` permissions
+- AWS Systems Manager Agent (ssm-agent) runs on all instances
+- Access is logged and audited via CloudTrail
+
+**DO NOT**:
+
+- Open SSH (port 22) to instances
+- Create security group rules allowing 0.0.0.0/0 ingress
+- Store SSH keys for instances
+- Expose instances directly to the internet
 
 ## ETL Pipeline
 
@@ -550,19 +707,51 @@ export MAPBOX_TOKEN=...
 
 ## AI Agent Best Practices
 
-1. **Verify Docker status**: `docker ps | grep shadowcheck_postgres`
-2. **Read relevant documentation**: CLAUDE.md + docs/ folder
-3. **Check existing patterns**: Look at similar route/component before implementing
-4. **Validate database schema**: Check `sql/` for table definitions
-5. **Review test coverage**: Understand expected behavior from tests
+**Before Making Changes**:
+
+1. **Check existing patterns first**: Look at similar route/component/service before implementing
+   - Adding an API endpoint? Check `server/src/api/routes/v1/networks.ts` as a template
+   - Adding a component? Look at `client/src/components/Dashboard.tsx` for Tailwind + hooks patterns
+   - Adding a service method? Review `server/src/services/networkService.ts` for error handling + logging
+
+2. **Validate database schema**: Check `sql/` directory for table definitions before writing queries
+   - Understand the security model: `shadowcheck_user` is read-only, use `adminDbService` for writes
+   - Review spatial indexes and materialized views if working with geospatial data
+
+3. **Review test coverage**: Look at similar tests before writing new ones
+   - Check `tests/setup.ts` for available test utilities and fixtures
+   - Run `npm run test:cov` to identify which parts need more coverage
+
+**When Making Code Changes**:
+
+1. **Build and test locally first**:
+
+   ```bash
+   npm run build          # Verify no TypeScript errors
+   npm run lint           # Check linting issues
+   npm test               # Run tests (or specific test)
+   ```
+
+2. **If editing backend logic**: Consider adding/updating corresponding tests
+   - Services should have unit tests (`tests/unit/myservice.test.ts`)
+   - Routes should have integration tests (`tests/integration/myroute.test.ts`)
+
+3. **If editing frontend components**: Use the existing Zustand stores and custom hooks
+   - Don't create new API calls directly in components; use existing hooks
+   - Use `useAdaptedFilters()` for filter state instead of creating new state
+
+4. **If modifying SQL/database**: Check migration history first
+   - New migrations go in `sql/migrations/` with numeric prefixes
+   - Never modify existing migration files
+   - Test migrations with: `npm run db:migrate`
 
 ### When Writing Code
 
-1. **Follow module structure** - Don't mix concerns
-2. **Use provided utilities** - Don't reinvent escaping, secrets, validation
-3. **Write tests alongside code** - Unit tests for logic, integration tests for endpoints
-4. **Mock external dependencies** - Database, APIs, file system in tests
-5. **Run linting before commits** - `npm run lint:fix`
+1. **Follow module structure** - Don't mix concerns (routes ≠ services ≠ repositories)
+2. **Use provided utilities** - Don't reinvent escaping (use `escapeSqlIdentifier`), secrets validation, or parameterized queries
+3. **Write tests alongside code** - Unit tests for logic, integration tests for endpoints (70% threshold enforced)
+4. **Mock external dependencies** - Database, AWS APIs, file system in tests; never make real calls in tests
+5. **Run linting before commits** - `npm run lint:fix` auto-fixes many issues
 
 ### Common Mistakes to Avoid
 
@@ -572,7 +761,8 @@ export MAPBOX_TOKEN=...
 - ❌ Frontend importing from backend (use API calls)
 - ❌ CommonJS in frontend, ES modules in backend
 - ❌ Ignoring database security roles (admin vs. user)
-- ❌ Hard-coding secrets (use secretsManager)
+- ❌ **Writing secrets to disk (SECURITY BREACH)**
+- ❌ **Opening EC2 SSH ports or other inbound rules (use SSM only)**
 - ❌ Applying pagination limits to Kepler endpoints
 - ❌ Forgetting to run tests before pushing
 
