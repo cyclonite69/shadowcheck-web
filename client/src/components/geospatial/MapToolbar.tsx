@@ -126,7 +126,17 @@ export const MapToolbar = ({
   const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0 }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        minWidth: 0,
+        justifyContent: 'flex-end',
+        gap: '10px',
+      }}
+    >
       {/* Zone 1 — Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
         <div
@@ -165,10 +175,16 @@ export const MapToolbar = ({
 
       <Separator />
 
-      {/* Zone 2 — Search */}
+      {/* Zone 2 — Search (flex: 1 to consume remaining space) */}
       <div
         ref={searchContainerRef}
-        style={{ position: 'relative', minWidth: '120px', flex: '1 1 280px', flexShrink: 1 }}
+        style={{
+          position: 'relative',
+          minWidth: '120px',
+          flex: '1 1 280px',
+          flexShrink: 1,
+          marginRight: 'auto', // Push everything after this to the right
+        }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <input
@@ -469,9 +485,7 @@ export const MapToolbar = ({
       <Separator />
 
       {/* Right-aligned control group: Zones 3, 4, 5 */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, marginLeft: 'auto' }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
         {/* Zone 3 — View mode toggle group */}
         <div
           style={{
