@@ -68,7 +68,6 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
         wigleLoading={wigleObservations.loading}
         wigleActive={wigleObservations.observations.length > 0}
         selectedCount={selectedNetworks.size}
-        onWeatherFxModeChange={state.setWeatherFxMode}
         showNetworkSummaries={showNetworkSummaries}
         onToggleNetworkSummaries={onToggleNetworkSummaries}
       />

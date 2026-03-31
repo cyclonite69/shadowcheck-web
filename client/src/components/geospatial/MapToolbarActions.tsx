@@ -4,7 +4,6 @@ import type * as mapboxglType from 'mapbox-gl';
 import { MapToolbar } from './MapToolbar';
 import { LocationSearchResult } from './useLocationSearch';
 import { MapStyleOption } from '../../constants/network';
-import { WeatherFxMode } from '../../weather/useWeatherFx';
 import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 
 interface MapToolbarActionsProps {
@@ -34,9 +33,6 @@ interface MapToolbarActionsProps {
   setHomeButtonActive: (value: boolean) => void;
   homeLocation: { center: [number, number]; zoom?: number };
   logError: (message: string, error: unknown) => void;
-  // Weather FX
-  weatherFxMode?: WeatherFxMode;
-  onWeatherFxModeChange?: (mode: WeatherFxMode) => void;
   // WiGLE observations
   canWigle?: boolean;
   wigleLoading?: boolean;
@@ -85,8 +81,6 @@ export const MapToolbarActions = ({
   setHomeButtonActive,
   homeLocation,
   logError,
-  weatherFxMode,
-  onWeatherFxModeChange,
   canWigle,
   wigleLoading,
   wigleActive,
@@ -163,8 +157,6 @@ export const MapToolbarActions = ({
           }
         );
       }}
-      weatherFxMode={weatherFxMode}
-      onWeatherFxModeChange={(mode: any) => onWeatherFxModeChange?.(mode)}
       canWigle={canWigle}
       wigleLoading={wigleLoading}
       wigleActive={wigleActive}

@@ -397,39 +397,6 @@ flowchart TD
 
 ---
 
-## Weather FX Data Flow
-
-```mermaid
-sequenceDiagram
-    participant Map as Map Component
-    participant API as Backend API
-    participant OpenMeteo as Open-Meteo API
-    participant FX as Weather FX Engine
-
-    Map->>Map: Get map center coords
-    Map->>API: GET /api/weather?lat=X&lon=Y
-    API->>OpenMeteo: Fetch current weather
-    OpenMeteo-->>API: Weather data
-    API-->>Map: Proxy response
-
-    Map->>FX: Update weather state
-
-    alt Rain Detected
-        FX->>FX: Initialize rain particles
-        FX->>FX: Render vertical streaks
-    else Snow Detected
-        FX->>FX: Initialize snow particles
-        FX->>FX: Render sinusoidal drift
-    else Clear
-        FX->>FX: Clear particles
-        FX->>FX: Adjust fog opacity
-    end
-
-    FX->>Map: Update canvas overlay
-```
-
----
-
 ## Backup & Restore Flow
 
 ```mermaid

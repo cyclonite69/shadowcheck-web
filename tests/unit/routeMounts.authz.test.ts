@@ -83,7 +83,6 @@ function buildDeps() {
     settingsRoutes: makeTerminalHandler('settings'),
     networkTagsRoutes: makeTerminalHandler('network-tags'),
     authRoutes: makeTerminalHandler('auth'),
-    weatherRoutes: makeTerminalHandler('weather'),
     claudeRoutes: makeTerminalHandler('claude'),
     threatReportRoutes: makeTerminalHandler('threat-report'),
   };

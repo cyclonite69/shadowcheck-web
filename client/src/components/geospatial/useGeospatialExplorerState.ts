@@ -14,7 +14,6 @@ import { useHomeLocationLayer } from './useHomeLocationLayer';
 import { useObservationSummary } from './useObservationSummary';
 import { useMapResizeHandle } from './useMapResizeHandle';
 import { useGeospatialMap } from './useGeospatialMap';
-import { useWeatherFx } from '../../weather/useWeatherFx';
 import { useDirectionsMode } from '../../directions/useDirectionsMode';
 import { useNetworkSort } from './useNetworkSort';
 import { useObservationLayers } from './useObservationLayers';
@@ -238,8 +237,6 @@ export const useGeospatialExplorerState = ({
     logError,
   });
 
-  const { weatherFxMode, setWeatherFxMode } = useWeatherFx(mapRef, mapContainerRef, mapReady);
-
   const {
     mode: searchMode,
     setMode: setSearchMode,
@@ -422,8 +419,6 @@ export const useGeospatialExplorerState = ({
     observationCount,
     networkLookup,
     handleMouseDown,
-    weatherFxMode,
-    setWeatherFxMode,
     searchMode,
     setSearchMode,
     directionsLoading,

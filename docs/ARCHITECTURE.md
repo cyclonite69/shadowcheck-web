@@ -50,7 +50,7 @@ Additional architecture assets:
 │  State Management: Zustand + React Hooks                   │
 │  Routing: React Router with lazy loading                   │
 │  Styling: Tailwind CSS with dark theme                     │
-│  Modules: Weather FX (Canvas Overlay), Mapbox GL JS        │
+│  Modules: Mapbox GL JS                                     │
 └───────────────────────────┬─────────────────────────────────┘
                             │ REST API (JSON)
 ┌───────────────────────────┴─────────────────────────────────┐
@@ -64,7 +64,6 @@ Additional architecture assets:
 │  │  • /api/networks/* (CRUD operations)                 │   │
 │  │  • /api/analytics/* (temporal, signal, security)     │   │
 │  │  • /api/ml/* (training, prediction)                  │   │
-│  │  • /api/weather (Open-Meteo Proxy)                   │   │
 │  └──────────────────────────────────────────────────────┘   │
   │  ┌──────────────────────────────────────────────────────┐   │
   │  Business Logic Layer                                 │   │
@@ -132,12 +131,11 @@ The following rules are immutable constraints of the system architecture:
 2.  **Dataset Scaling**: The dataset size scales linearly with observations; no result set limits are imposed on exports or analysis.
 3.  **Universal Filters**: The filter system applies uniformly across all pages (Dashboard, Explorer, Analytics) with no page-specific exceptions.
 4.  **Distance Calculations**: All distance calculations utilize PostGIS `ST_Distance` (spheroid). No planar approximations or haversine formulas are used in SQL.
-5.  **Weather FX Integration**: All weather data is fetched via the `/api/weather` backend proxy. No direct external API calls (e.g., to Open-Meteo) are permitted from the frontend.
-6.  **Authentication**: Authentication is session-based using Redis. OAuth and stateless JWTs are not supported.
-7.  **API Format**: All API responses use JSON. XML, CSV (except for exports), or other formats are not supported.
-8.  **Database**: The system requires PostgreSQL 18+ with PostGIS. Migration to other relational or NoSQL databases is not supported.
-9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7. No other frameworks (Angular, Vue, Next.js) are supported.
-10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis. The weights are immutable for each algorithm version to ensure consistency.
+5.  **Authentication**: Authentication is session-based using Redis. OAuth and stateless JWTs are not supported.
+6.  **API Format**: All API responses use JSON. XML, CSV (except for exports), or other formats are not supported.
+7.  **Database**: The system requires PostgreSQL 18+ with PostGIS. Migration to other relational or NoSQL databases is not supported.
+8.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7. No other frameworks (Angular, Vue, Next.js) are supported.
+9.  **Threat Scoring**: Threat scoring utilizes multi-factor analysis. The weights are immutable for each algorithm version to ensure consistency.
 
 ## Agency Offices Constraints
 
@@ -208,13 +206,7 @@ client/src/
 ├── hooks/                # Custom React hooks
 │   ├── useFilteredData.ts       # Data filtering logic
 │   ├── useAdaptedFilters.ts     # Filter adaptation
-│   ├── usePageFilters.ts        # Page-specific filters
-│   └── useWeatherFx.ts          # Weather visualization orchestration
-├── weather/              # Weather FX System
-│   ├── weatherFxPolicy.ts       # Fog/Particle logic classification
-│   ├── WeatherParticleOverlay.ts # Canvas particle engine
-│   ├── openMeteoClient.ts       # Frontend API client
-│   └── applyWeatherFog.ts       # Mapbox fog controller
+│   └── usePageFilters.ts        # Page-specific filters
 ├── stores/               # State management
 │   └── filterStore.ts           # Zustand filter store
 ├── utils/                # Utility functions
@@ -280,7 +272,6 @@ server/src/
 ├── api/                  # Modern API routes (v2)
 │   └── routes/           # Route handlers
 │       ├── v1/
-│       │   ├── weather.ts      # Weather proxy endpoints
 │       │   └── ...
 ├── services/             # Business logic layer
 │   ├── filterQueryBuilder/     # Universal filter system with modular builders
@@ -362,22 +353,6 @@ User Request
 ↓
 [Frontend] → Render Threat Table
 
-```
-
-### Weather FX Request Flow
-
-```
-[Frontend Map Move] → useWeatherFx Hook
-↓
-[openMeteoClient] → GET /api/weather?lat=...&lon=...
-↓
-[Express Proxy] → GET https://api.open-meteo.com/v1/forecast?...
-↓
-[Open-Meteo API] → Returns JSON (Temp, Code, CloudCover)
-↓
-[Frontend] → weatherFxPolicy.ts (Classifies weather: Rain/Snow/Clear)
-├─→ [applyWeatherFog] → Update Mapbox Fog (Color/Range)
-└─→ [WeatherParticleOverlay] → Render Canvas Particles (Rain/Snow)
 ```
 
 ### Enrichment Data Flow

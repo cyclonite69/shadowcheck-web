@@ -36,7 +36,6 @@ interface ApiRouteDependencies {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
-  weatherRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
 }
@@ -75,7 +74,6 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     settingsRoutes,
     networkTagsRoutes,
     authRoutes,
-    weatherRoutes,
     claudeRoutes,
     threatReportRoutes,
   } = deps;
@@ -117,7 +115,6 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     settingsRoutes,
     networkTagsRoutes,
     authRoutes,
-    weatherRoutes,
     claudeRoutes,
     threatReportRoutes,
   };
@@ -140,9 +137,6 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
 
   // Public analytics routes (no auth required) - mount outside /api
   app.use('/analytics-public', analyticsPublicRoutes);
-
-  // Weather proxy (no auth required)
-  app.use('/', weatherRoutes);
 
   // Agency offices (public data - mount outside /api to avoid admin auth middleware)
   const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;

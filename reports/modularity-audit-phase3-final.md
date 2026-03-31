@@ -57,7 +57,7 @@ Both use `Promise.all` for concurrent data + `COUNT(*)` queries in a single roun
 
 ### Clean routes (representative sample)
 
-All WiGLE routes, all explorer routes, both v2 route modules (`filtered`, `networks`, `threats`), all network-tag routes, all kepler routes, search, manufacturer (both endpoints), observations, analytics, threats, dashboard, geospatial, auth, export, backup, admin, misc, home-location, location-markers, weather, settings, ML, agency — all delegate entirely to service layer.
+All WiGLE routes, all explorer routes, both v2 route modules (`filtered`, `networks`, `threats`), all network-tag routes, all kepler routes, search, manufacturer (both endpoints), observations, analytics, threats, dashboard, geospatial, auth, export, backup, admin, misc, home-location, location-markers, settings, ML, agency — all delegate entirely to service layer.
 
 ---
 

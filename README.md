@@ -29,7 +29,6 @@
 
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
 - **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
-- **Weather FX System:** Real-time atmospheric visualization with rain/snow particle effects, dynamic fog, and historical weather lookup for observation points.
 - **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation.
 - **Geospatial Explorer:** Map-based network exploration with overlays and timeline views.
 - **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering.
@@ -67,13 +66,6 @@ See `docs/FEATURES.md` for the full feature catalog.
 - **Resident Agencies**: 334 total, 312 ZIP+4 (93.4%), 22 ZIP5-only.
 - **Data Completeness**: 0 missing cities, states, postal codes, phones, websites, or coordinates across all 390 primary records.
 - **Normalization**: Full address and phone normalization (10 digits) with original value preservation.
-
-✅ **Weather FX & Atmospheric Visualization**
-
-- **Real-time Weather Overlay**: Dynamic fog, rain, and snow effects based on live Open-Meteo data at the map center.
-- **Particle System**: High-performance canvas-based particle engine for realistic rain (vertical streaks) and snow (sinusoidal drift).
-- **Historical Weather Context**: Ability to view weather conditions (temp, pressure, visibility) for any past observation point via the backend proxy.
-- **Backend Proxy**: New `/api/weather` endpoints to securely fetch external weather data without exposing keys or triggering CSP issues.
 
 ✅ **TypeScript Migration & Build Pipeline**
 
@@ -385,7 +377,6 @@ Server runs on `http://localhost:3001`
 
 - `GET /api/analytics/dashboard-metrics` - Key metrics for dashboard cards
 - `GET /api/analytics/*` - Various statistical distribution endpoints (temporal, signal, etc.)
-- `GET /api/weather` - Current weather proxy for map overlays (Open-Meteo)
 - `GET /api/wigle/api-status` - Check WiGLE API connectivity
 - `GET /api/mapbox-token` - Securely retrieve Mapbox API token
 

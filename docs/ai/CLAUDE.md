@@ -181,7 +181,7 @@ Networks scored on: seen at home AND away (+40 pts), distance range >200m (+25 p
 4. Register services in `server/src/config/container.ts` (if needed)
 5. Import and mount route in `server/server.js`
 
-**Existing route modules (v1)**: `admin`, `admin-threat-scoring`, `analytics`, `analytics-public`, `agencyOffices`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `home-location`, `kepler`, `location-markers`, `misc`, `ml`, `networks`, `network-agencies`, `network-tags`, `settings`, `threats`, `weather`, `wigle`
+**Existing route modules (v1)**: `admin`, `admin-threat-scoring`, `analytics`, `analytics-public`, `agencyOffices`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `home-location`, `kepler`, `location-markers`, `misc`, `ml`, `networks`, `network-agencies`, `network-tags`, `settings`, `threats`, `wigle`
 
 ## ETL Pipeline
 

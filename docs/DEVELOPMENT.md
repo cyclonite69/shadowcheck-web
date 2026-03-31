@@ -54,12 +54,11 @@ The following rules are immutable constraints of the development environment:
 2.  **Dataset Scaling**: The dataset size scales linearly with observations.
 3.  **Universal Filters**: The filter system applies uniformly across all pages.
 4.  **Distance Calculations**: All distance calculations utilize PostGIS `ST_Distance` (spheroid).
-5.  **Weather FX Integration**: All weather data is fetched via the `/api/weather` backend proxy.
-6.  **Authentication**: Authentication is session-based using Redis.
-7.  **API Format**: All API responses use JSON.
-8.  **Database**: The system requires PostgreSQL 18+ with PostGIS.
-9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7.
-10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis with immutable weights per version.
+5.  **Authentication**: Authentication is session-based using Redis.
+6.  **API Format**: All API responses use JSON.
+7.  **Database**: The system requires PostgreSQL 18+ with PostGIS.
+8.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7.
+9.  **Threat Scoring**: Threat scoring utilizes multi-factor analysis with immutable weights per version.
 
 ## Infrastructure Data Quality & Enrichment
 
@@ -143,7 +142,6 @@ MAPBOX_TOKEN=pk.your_mapbox_token_here
 OPENCAGE_API_KEY=your_opencage_key
 LOCATIONIQ_API_KEY=your_locationiq_key
 ABSTRACT_API_KEY=your_abstract_key
-# Endpoint: /api/weather -> https://api.open-meteo.com/v1/forecast
 ```
 
 **Note**: In production, secrets are stored in AWS Secrets Manager, not `.env`.

@@ -137,7 +137,6 @@ Comprehensive data flow visualizations.
 - Analytics aggregation
 - Authentication flow
 - Export flow
-- Weather FX flow
 - Backup & restore
 - Real-time updates
 
@@ -197,7 +196,6 @@ Complete feature catalog with visual explanations.
 - Dashboard architecture
 - Universal filter system
 - Geospatial mapping
-- Weather FX system
 - Threat detection
 - ML pipeline
 - Analytics system

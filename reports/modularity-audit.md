@@ -37,11 +37,10 @@ stores/           1 file (filterStore.ts — Zustand)
 types/            2 files
 utils/            4 root + geospatial/ + wigle/
 directions/       1 folder (feature slice)
-weather/          1 folder (feature slice)
 ```
 
 **Assessment:** Clean overall. `geospatial/` is a proper feature slice with co-located hooks and
-components. `api/` is a dedicated layer. The `directions/` and `weather/` folders show emerging
+components. `api/` is a dedicated layer. The `directions/` folder shows emerging
 feature-slice thinking which is good for Bedrock.
 
 ### Server (`server/src/`)
@@ -230,7 +229,7 @@ Filters:          useBoundingBoxFilter, useDebouncedFilterState, useResetPaginat
 UX:               useNetworkContextMenu, useNetworkNotes, useNetworkSelection,
                   useNetworkSort, useNetworkInfiniteScroll, useColumnVisibility
 Panels:           useExplorerPanels, useTimeFrequencyModal, useNearestAgencies
-External:         useDirectionsMode, useWeatherFx, useLocationSearch
+External:         useDirectionsMode, useLocationSearch
 Store:            useFilterURLSync, usePageFilters
 ```
 

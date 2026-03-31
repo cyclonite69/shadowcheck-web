@@ -37,6 +37,16 @@ body {
   --red-500: #ef4444;
   --amber-400: #fbbf24;
   --blue-500-rgb: 59, 130, 246;
+  /* Navbar tokens */
+  --nav-bg: #0e1117;
+  --nav-border: rgba(59,130,246,0.10);
+  --nav-sep: rgba(255,255,255,0.08);
+  --nav-accent: #60a5fa;
+  --nav-accent-bg: rgba(59,130,246,0.12);
+  --nav-accent-border: rgba(59,130,246,0.28);
+  --nav-text-inactive: rgba(255,255,255,0.35);
+  --nav-text-hover: rgba(255,255,255,0.75);
+  --nav-hover-bg: rgba(255,255,255,0.05);
   --emerald-400-rgb: 52, 211, 153;
   --dashboard-grad-1: #0a1525;
   --dashboard-grad-2: #0d1c31;

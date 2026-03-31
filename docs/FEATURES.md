@@ -32,29 +32,6 @@ This catalog summarizes the features implemented in the current ShadowCheck code
 - **Location markers & home location**: CRUD for saved markers plus radius-based home zone.
 - **Unified tooltips**: Consistent, rich hover tooltips across map views.
 
-## Weather FX & Atmospheric Visualization
-
-A comprehensive system for visualizing current and historical weather conditions directly on the geospatial map.
-
-### Real-Time Visualization
-
-- **Dynamic Overlay**: Updates automatically based on the map center location.
-- **Fog Effects**: Adjustable atmospheric fog density and color that shifts based on weather conditions (clear, cloudy, rainy, snowy).
-- **Backend Proxy**: Uses `/api/weather` to fetch data from Open-Meteo, preventing CSP issues and hiding API interactions.
-- **Toggle Modes**: `Off` | `Auto` (Real-time) | `Always Rain` | `Always Snow` for analysis or demonstration.
-
-### Particle System
-
-- **Canvas-based Rendering**: High-performance overlay (`WeatherParticleOverlay.ts`) capable of rendering thousands of particles without map lag.
-- **Rain Animation**: Vertical streaks with varying opacity and speed to simulate depth.
-- **Snow Animation**: Circular particles with sinusoidal drift to simulate wind effects.
-
-### Historical Context
-
-- **Observation Lookup**: Click on any historical WiFi observation point to trigger a weather lookup for that specific timestamp and location.
-- **Data Points**: Displays Temperature (C/F), Humidity (%), Pressure (mb), Wind Speed (km/h), Precipitation, and Visibility.
-- **Forensic Utility**: Correlate signal propagation anomalies with weather conditions (e.g., rain fade, ducting).
-
 ## Agency & Judicial Infrastructure
 
 Comprehensive datasets of federal law enforcement and judicial locations for geospatial correlation and proximity analysis.

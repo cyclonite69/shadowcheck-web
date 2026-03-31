@@ -41,7 +41,6 @@ interface RouteModules {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
-  weatherRoutes: Router;
   miscRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
@@ -89,7 +88,6 @@ function loadRouteModules(): RouteModules {
     settingsRoutes: require('../api/routes/v1/settings'),
     networkTagsRoutes: require('../api/routes/v1/network-tags'),
     authRoutes: require('../api/routes/v1/auth'),
-    weatherRoutes: require('../api/routes/v1/weather'),
     miscRoutes: require('../api/routes/v1/misc'),
     claudeRoutes: require('../api/routes/v1/claude'),
     threatReportRoutes: require('../api/routes/v1/threat-report').default,

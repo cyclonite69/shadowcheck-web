@@ -50,7 +50,6 @@ interface RouteModules {
   miscRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
-  weatherRoutes?: Router;
 }
 
 interface InitializeRoutesOptions {
@@ -96,7 +95,6 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     settingsRoutes: routes.settingsRoutes,
     networkTagsRoutes: routes.networkTagsRoutes,
     authRoutes: routes.authRoutes,
-    weatherRoutes: routes.weatherRoutes ?? (null as any),
     claudeRoutes: routes.claudeRoutes,
     threatReportRoutes: routes.threatReportRoutes,
   });

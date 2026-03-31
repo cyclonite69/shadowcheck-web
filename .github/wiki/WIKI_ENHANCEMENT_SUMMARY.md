@@ -34,7 +34,6 @@ Comprehensive wiki documentation has been created with extensive Mermaid diagram
 - Analytics aggregation flow
 - Authentication flow
 - Export flow
-- Weather FX data flow
 - Backup & restore flow
 - Real-time update flow
 
@@ -71,7 +70,6 @@ Comprehensive wiki documentation has been created with extensive Mermaid diagram
 - Dashboard architecture
 - Universal filter system flow
 - Geospatial mapping layers
-- Weather FX system flow
 - Threat detection system flow
 - ML pipeline flow
 - Analytics system architecture

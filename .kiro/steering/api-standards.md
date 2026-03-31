@@ -19,7 +19,7 @@ All routes pass through an API gate controlled by `API_GATE_ENABLED` (default: `
 
 - `userGate` (`requireAuth`): Applied to most data endpoints
 - `adminGate` (`requireAdmin`): Applied to admin, backup, ML, settings, import endpoints
-- Public (no gate): `/health`, `/api/auth/*`, agency offices, federal courthouses, weather proxy
+- Public (no gate): `/health`, `/api/auth/*`, agency offices, federal courthouses
 
 Auth uses session-based tokens. Token extraction order:
 

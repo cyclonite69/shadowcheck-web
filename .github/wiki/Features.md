@@ -29,7 +29,6 @@ mindmap
     Visualization
       Interactive Maps
       Analytics Charts
-      Weather FX
       Heatmaps
     Security
       Authentication
@@ -146,7 +145,6 @@ graph TB
         C[Heatmap Layer]
         D[Route Layer]
         E[Marker Layer]
-        F[Weather FX Layer]
     end
 
     subgraph "Interactions"
@@ -159,7 +157,6 @@ graph TB
     subgraph "Controls"
         K[Layer Toggle]
         L[Style Selector]
-        M[Weather Toggle]
         N[Filter Panel]
     end
 
@@ -167,7 +164,6 @@ graph TB
     A --> C
     A --> D
     A --> E
-    A --> F
 
     B --> G
     B --> H
@@ -176,11 +172,9 @@ graph TB
     K --> C
     K --> D
     L --> A
-    M --> F
     N --> B
 
     style A fill:#4a5568,stroke:#cbd5e0,color:#fff
-    style F fill:#4299e1,stroke:#2b6cb0,color:#fff
 ```
 
 | Feature                | Description                                        |
@@ -191,41 +185,6 @@ graph TB
 | **Routes & Timelines** | Movement visualization                             |
 | **Location Markers**   | CRUD for saved markers plus radius-based home zone |
 | **Unified Tooltips**   | Consistent, rich hover tooltips across map views   |
-| **Weather FX**         | Real-time atmospheric visualization                |
-
----
-
-## Weather FX System
-
-```mermaid
-flowchart TD
-    A[Map Center] --> B[Fetch Weather Data]
-    B --> C{Weather Condition}
-
-    C -->|Rain| D[Rain Particle System]
-    C -->|Snow| E[Snow Particle System]
-    C -->|Clear| F[Clear Particles]
-
-    D --> G[Vertical Streaks<br/>Speed: 15-20 px/frame]
-    E --> H[Sinusoidal Drift<br/>Gentle Fall]
-    F --> I[Adjust Fog Opacity]
-
-    G --> J[Canvas Overlay]
-    H --> J
-    I --> J
-
-    J --> K[Render on Map]
-
-    style K fill:#48bb78,stroke:#2f855a,color:#fff
-```
-
-### Weather Features
-
-- **Real-time Weather Overlay**: Dynamic fog, rain, and snow effects
-- **Particle System**: High-performance canvas-based rendering
-- **Historical Weather**: View past conditions for observation points
-- **Backend Proxy**: Secure `/api/weather` endpoints
-- **Atmospheric Effects**: Temperature, pressure, visibility data
 
 ---
 

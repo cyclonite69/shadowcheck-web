@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 
 - `client/src/` is the React 18 + TypeScript frontend. Routing lives in `client/src/App.tsx`; page and feature UI is mainly under `client/src/components/`, with heavier map work in `client/src/components/geospatial/`, `client/src/components/kepler/`, and `client/src/components/wigle/`.
-- `client/src/api/`, `client/src/hooks/`, `client/src/stores/`, `client/src/constants/`, and `client/src/utils/` contain the frontend data, state, and shared behavior layers. There are also feature folders such as `client/src/directions/` and `client/src/weather/`.
+- `client/src/api/`, `client/src/hooks/`, `client/src/stores/`, `client/src/constants/`, and `client/src/utils/` contain the frontend data, state, and shared behavior layers. There are also feature folders such as `client/src/directions/`.
 - `server/src/` is the Express API. Routes live under `server/src/api/routes/`, business logic under `server/src/services/`, data access under `server/src/repositories/`, validation under `server/src/validation/`, and shared infra under `server/src/config/`, `server/src/middleware/`, and `server/src/logging/`.
 - `server/src/services/filterQueryBuilder/` contains the v2 filtered explorer query stack. `server/src/services/admin/`, `analytics/`, `geocoding/`, `ml/`, and `reports/` are active service areas.
 - `etl/` contains import, transform, and promote pipeline code.

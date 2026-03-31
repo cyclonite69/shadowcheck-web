@@ -541,36 +541,14 @@ Get status of the persistent geocoding daemon.
 
 **POST /api/admin/geocoding/daemon 🔒**
 Start the geocoding daemon.
-
-**DELETE /api/admin/geocoding/daemon 🔒**
+DELETE /api/admin/geocoding/daemon 🔒\*\*
 Stop the geocoding daemon.
 
 ---
 
 ---
 
-### Weather API
-
-```http
-GET /api/weather?lat=40.7128&lon=-74.006
-```
-
-Proxies Open-Meteo weather data for map overlays.
-
-**Response:**
-
-```json
-{
-  "temperature": 15.5,
-  "precipitation": 0.2,
-  "visibility": 10000,
-  "weather_code": 61
-}
-```
-
----
-
-## Request/Response Flow
+### Request/Response Flow
 
 ```mermaid
 sequenceDiagram
