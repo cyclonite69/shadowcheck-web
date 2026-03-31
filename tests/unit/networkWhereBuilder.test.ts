@@ -21,7 +21,7 @@ describe('buildNetworkWhere', () => {
     const where = buildNetworkWhere(ctx);
 
     expect(where[0]).toContain('ne.threat_level = ANY');
-    expect(where[1]).toContain('r.observation_count >= $2');
+    expect(where[1]).toContain('ne.observations >= $2');
     expect(where[2]).toContain('ne.last_seen >= NOW() - $3::interval');
     expect(ctx.getParams()).toEqual([['MEDIUM', 'MED'], 5, '7 days']);
     expect(ctx.getAppliedFilters().map((entry) => entry.field)).toEqual([

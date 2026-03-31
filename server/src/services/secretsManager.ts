@@ -109,15 +109,24 @@ class SecretsManager {
     const generated: Record<string, string> = {};
 
     for (const secret of allSecrets) {
-      // For credential keys, AWS SM is the sole source of truth — env vars
-      // must never override them (secrets are never written to disk).
+      // For credential keys, AWS SM is the sole source of truth when reachable.
+      // If SM was unreachable (expired SSO, no IAM role, etc.), fall back to env
+      // vars so local dev and tests still work. SM value always wins when present.
       if (CREDENTIAL_SECRETS.has(secret)) {
         const smValue = blob[secret];
         if (smValue) {
           this.secrets.set(secret, smValue);
           continue;
         }
-        // SM didn't have it — fall through to auto-gen or error below
+        // SM didn't have it — try env fallback only if SM was unreachable
+        if (!this.smReachable) {
+          const envFallback = this.getEnvOverride(secret);
+          if (envFallback) {
+            this.secrets.set(secret, envFallback);
+            continue;
+          }
+        }
+        // Fall through to auto-gen or error below
       } else {
         // Non-credential keys: env override is fine
         const envOverride = this.getEnvOverride(secret);
@@ -217,10 +226,12 @@ class SecretsManager {
 
   get(secret: string): string | null {
     const key = secret.toLowerCase();
-    // Credential keys: never fall back to env vars — SM is the sole source of truth.
-    const value = CREDENTIAL_SECRETS.has(key)
-      ? (this.secrets.get(key) ?? null)
-      : (this.getEnvOverride(key) ?? this.secrets.get(key) ?? null);
+    // Credential keys: SM is source of truth when reachable. If SM was never
+    // reachable, allow env fallback so local dev/tests work.
+    const value =
+      CREDENTIAL_SECRETS.has(key) && this.smReachable
+        ? (this.secrets.get(key) ?? null)
+        : (this.getEnvOverride(key) ?? this.secrets.get(key) ?? null);
     this.logAccess(key, Boolean(value));
     return value;
   }
@@ -235,7 +246,7 @@ class SecretsManager {
 
   has(secret: string): boolean {
     const key = secret.toLowerCase();
-    if (CREDENTIAL_SECRETS.has(key)) {
+    if (CREDENTIAL_SECRETS.has(key) && this.smReachable) {
       return this.secrets.has(key);
     }
     return Boolean(this.getEnvOverride(key) || this.secrets.has(key));
