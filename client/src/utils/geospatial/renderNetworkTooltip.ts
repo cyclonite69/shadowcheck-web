@@ -95,15 +95,17 @@ function decodeBtCoD(cod: number): string {
   return labels[major] || `Class 0x${cod.toString(16)}`;
 }
 
-// Parse BT/BLE capabilities: "Headphones;10" → { device: "Headphones", btVersion: "4.x" }
-function parseBtCapabilities(caps: string): { device: string | null; btVersion: string | null } {
-  if (!caps || caps.startsWith('[')) return { device: null, btVersion: null }; // WiFi caps leaked in
+// Parse BT/BLE capabilities: "Headphones;10" → { device: "Headphones", bondState: "Not Paired" }
+// Suffix is Android BluetoothDevice.getBondState(): 10=BOND_NONE, 11=BONDING, 12=BONDED
+function parseBtCapabilities(caps: string): { device: string | null; bondState: string | null } {
+  if (!caps || caps.startsWith('[')) return { device: null, bondState: null }; // WiFi caps leaked in
   const parts = caps.split(';');
   const raw = parts[0]?.trim() || null;
   const device = raw && raw !== 'null' && raw !== 'Uncategorized' && raw !== 'Misc' ? raw : null;
-  const verCode = parts[1]?.trim();
-  const btVersion = verCode === '10' ? '4.x' : verCode === '12' ? '5.x' : verCode || null;
-  return { device, btVersion };
+  const bond = parts[1]?.trim();
+  const bondState =
+    bond === '10' ? 'Not Paired' : bond === '11' ? 'Pairing' : bond === '12' ? 'Paired' : null;
+  return { device, bondState };
 }
 
 // Common US MCC/MNC → carrier name
@@ -255,7 +257,7 @@ export const renderNetworkTooltip = (props: any): string => {
       ? fieldRow('Encryption', normalizeDisplay(props.encryption || props.security))
       : '',
     btDeviceLabel ? fieldRow('Device Type', btDeviceLabel) : '',
-    btInfo?.btVersion ? fieldRow('BT Version', btInfo.btVersion) : '',
+    btInfo?.bondState ? fieldRow('Bond State', btInfo.bondState) : '',
     cellInfo?.carrier ? fieldRow('Carrier', cellInfo.carrier) : '',
     cellInfo && !cellInfo.carrier ? fieldRow('Network', cellInfo.tech) : '',
     channelValue ? fieldRow('Channel', channelValue) : '',

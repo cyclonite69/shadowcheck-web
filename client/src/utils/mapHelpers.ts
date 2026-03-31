@@ -98,6 +98,9 @@ export const resolveRadioTech = (
   if (t === 'C' || t === 'D' || t === 'F') return 'lte'; // CDMA/generic → treat as LTE-era
   if (t === 'W') {
     const freq = frequencyMhz ?? 0;
+    // Detect BLE misclassified as WiFi: freq 7936 = CoD Uncategorized, or BT-style caps
+    if (freq === 7936 || caps.includes('UNCATEGORIZED') || (caps === 'MISC' && freq === 0))
+      return 'ble';
     if (freq >= 5925) return 'wifi_6g';
     if (freq >= 5000) return 'wifi_5g';
     return 'wifi_2g';
