@@ -28,7 +28,7 @@ interface NetworkTableRowProps {
   getLockedZIndex: (col: keyof NetworkRow | 'select') => number;
 }
 
-export const NetworkTableRow: React.FC<NetworkTableRowProps> = ({
+const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
   net,
   virtualRow,
   visibleColumns,
@@ -167,3 +167,33 @@ export const NetworkTableRow: React.FC<NetworkTableRowProps> = ({
     </div>
   );
 };
+
+/**
+ * Memoized NetworkTableRow - only re-renders when network data or selection state actually changes.
+ * This prevents re-renders on every parent update and significantly improves performance when
+ * scrolling or dragging the map (which updates parent but not individual rows).
+ */
+export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render), false if different (re-render)
+  const propsEqual =
+    // Network data changed?
+    prevProps.net.bssid === nextProps.net.bssid &&
+    prevProps.net.ssid === nextProps.net.ssid &&
+    prevProps.net.bestlevel === nextProps.net.bestlevel &&
+    prevProps.net.threat?.level === nextProps.net.threat?.level &&
+    // Selection state changed?
+    prevProps.selectedNetworks.has(prevProps.net.bssid) ===
+      nextProps.selectedNetworks.has(nextProps.net.bssid) &&
+    // Sibling linking changed?
+    prevProps.linkedSiblingBssids.has(prevProps.net.bssid) ===
+      nextProps.linkedSiblingBssids.has(nextProps.net.bssid) &&
+    prevProps.siblingGroupId === nextProps.siblingGroupId &&
+    // Position changed?
+    prevProps.virtualRow.start === nextProps.virtualRow.start &&
+    prevProps.virtualRow.size === nextProps.virtualRow.size &&
+    // Layout changed?
+    prevProps.visibleColumns.length === nextProps.visibleColumns.length &&
+    prevProps.totalGridWidth === nextProps.totalGridWidth;
+
+  return propsEqual; // true = skip re-render, false = do re-render
+});

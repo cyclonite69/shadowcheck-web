@@ -46,12 +46,14 @@ export const NetworkTableBodyGrid = ({
   onLoadMore,
   onHorizontalScroll,
 }: NetworkTableBodyGridProps) => {
+  // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
+  // This significantly reduces DOM nodes and render work during scrolling
   const virtualizer = useVirtualizer({
     count: filteredNetworks.length,
     getScrollElement: () => tableContainerRef.current,
     getItemKey: (index) => filteredNetworks[index]?.bssid ?? index,
     estimateSize: () => 32,
-    overscan: 10,
+    overscan: 5,
   });
 
   // Infinite scroll: load more when scrolled near bottom
@@ -68,6 +70,47 @@ export const NetworkTableBodyGrid = ({
       onLoadMore();
     }
   };
+
+  // Memoize expensive grid calculations - these should only recompute when visibleColumns changes
+  const { gridTemplateColumns, totalGridWidth, lockedVisibleColumns, lastLockedVisibleColumn } =
+    React.useMemo(() => {
+      const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
+        NETWORK_TABLE_COLUMN_WIDTHS[String(col)] ?? 100;
+      const gridTemplateCols = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
+      const totalWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
+      const lockedCols = visibleColumns.filter((col) =>
+        NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
+      );
+      const lastLockedCol = lockedCols[lockedCols.length - 1] ?? null;
+
+      return {
+        gridTemplateColumns: gridTemplateCols,
+        totalGridWidth: totalWidth,
+        lockedVisibleColumns: lockedCols,
+        lastLockedVisibleColumn: lastLockedCol,
+      };
+    }, [visibleColumns]);
+
+  // Memoize column helper functions
+  const getLockedLeft = React.useCallback(
+    (col: keyof NetworkRow | 'select'): number =>
+      visibleColumns
+        .slice(0, visibleColumns.indexOf(col))
+        .filter((candidate) => NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
+        .reduce(
+          (sum, candidate) => sum + (NETWORK_TABLE_COLUMN_WIDTHS[String(candidate)] ?? 100),
+          0
+        ),
+    [visibleColumns]
+  );
+
+  const getLockedZIndex = React.useCallback(
+    (col: keyof NetworkRow | 'select'): number => {
+      const idx = lockedVisibleColumns.indexOf(col);
+      return idx >= 0 ? 12 - idx : 4;
+    },
+    [lockedVisibleColumns]
+  );
 
   // Show initial loading / empty / error states only when we have no rows yet.
   if (
@@ -88,25 +131,6 @@ export const NetworkTableBodyGrid = ({
   }
 
   const items = virtualizer.getVirtualItems();
-
-  // Build grid template columns based on visible columns
-  const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
-    NETWORK_TABLE_COLUMN_WIDTHS[String(col)] ?? 100;
-  const gridTemplateColumns = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
-  const totalGridWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
-  const lockedVisibleColumns = visibleColumns.filter((col) =>
-    NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
-  );
-  const lastLockedVisibleColumn = lockedVisibleColumns[lockedVisibleColumns.length - 1] ?? null;
-  const getLockedLeft = (col: keyof NetworkRow | 'select'): number =>
-    visibleColumns
-      .slice(0, visibleColumns.indexOf(col))
-      .filter((candidate) => NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
-      .reduce((sum, candidate) => sum + getColumnWidth(candidate), 0);
-  const getLockedZIndex = (col: keyof NetworkRow | 'select'): number => {
-    const idx = lockedVisibleColumns.indexOf(col);
-    return idx >= 0 ? 12 - idx : 4;
-  };
 
   return (
     <div
