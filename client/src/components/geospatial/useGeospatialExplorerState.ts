@@ -53,6 +53,7 @@ interface UseGeospatialExplorerStateProps {
   onOpenContextMenu: (e: any, network: any) => void;
   locationMode: string;
   setLocationMode: React.Dispatch<React.SetStateAction<string>>;
+  showNetworkSummaries?: boolean;
 }
 
 export const useGeospatialExplorerState = ({
@@ -75,6 +76,7 @@ export const useGeospatialExplorerState = ({
   onOpenContextMenu,
   locationMode,
   setLocationMode,
+  showNetworkSummaries = false,
 }: UseGeospatialExplorerStateProps) => {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -261,6 +263,7 @@ export const useGeospatialExplorerState = ({
     wigleObservations,
     isViewportLocked: effectiveViewportLock,
     onOpenContextMenu,
+    showNetworkSummaries,
   });
 
   const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =

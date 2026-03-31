@@ -484,11 +484,7 @@ export const MapToolbar = ({
         <button
           onClick={onToggle3DBuildings}
           disabled={!is3DBuildingsAvailable}
-          title={
-            is3DBuildingsAvailable
-              ? 'Toggle 3D buildings'
-              : '3D buildings unavailable for this style'
-          }
+          title={is3DBuildingsAvailable ? 'Toggle 3D' : '3D unavailable for this style'}
           style={{
             height: '26px',
             padding: '0 10px',
