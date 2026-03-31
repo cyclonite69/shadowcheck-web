@@ -20,7 +20,7 @@
   "title": "ShadowCheck \u2014 Coordinated Fleet Detection at Home",
   "description": "Home-location burst and recurrence dashboard for Aumovio, Air Link, WNC, GM, and Sierra patterns.",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "time": {
     "from": "now-1y",
     "to": "now"
@@ -741,12 +741,201 @@
       }
     },
     {
+      "type": "text",
+      "title": "PAS/MDT Fleet Co-occurrence Analysis",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 82
+      },
+      "options": {
+        "content": "## Fleet Vehicle Co-occurrence at Operator Locations\n\nAnalysis of **162 fleet vehicles** (PAS + MDT + GreatLakesMobile) across 4 confirmed operator locations.\n\n- **Vehicle AF:1F** (PAS-131/323/RIG): detected at **all 4 locations** \u2014 HOME, Smoke Shop (Burton), Meijer (Hill Rd), Hurley Front Entrance\n- **28 vehicles** seen at 2+ operator locations\n- Overnight parking events: 13h (May 10) and 6.3h (Oct 21) within 5m of home\n- Encounter cadence shows **bursty pattern** (clusters + long gaps) inconsistent with regular shift work\n- Hurley observations are at the **front entrance**, not the ambulance bay on the south side",
+        "mode": "markdown"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Fleet vehicles at multiple operator locations",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 87
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH locations AS (\n  SELECT 'HOME' as place, 43.02345 as lat, -83.69683 as lon, 200 as radius_m\n  UNION ALL SELECT 'SMOKE_SHOP', 42.979, -83.673, 300\n  UNION ALL SELECT 'MEIJER_HILL', 42.9468, -83.7287, 400\n  UNION ALL SELECT 'HURLEY_FRONT', 43.0214, -83.7046, 300\n),\nfleet_at AS (\n  SELECT LEFT(o.bssid, 15) as vehicle, ne.ssid, l.place, DATE(o.time) as day\n  FROM app.observations o\n  JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid\n  CROSS JOIN locations l\n  WHERE (ne.ssid LIKE 'PAS-%' OR ne.ssid = 'mdt' OR ne.ssid LIKE 'GreatLakes%')\n    AND ne.manufacturer ILIKE ANY(ARRAY['%air link%','%sierra%','%azure wave%'])\n    AND ST_DWithin(ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,\n                   ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography, l.radius_m)\n)\nSELECT vehicle, ARRAY_TO_STRING(ARRAY_AGG(DISTINCT ssid ORDER BY ssid), ', ') as ssids,\n  COUNT(DISTINCT place) as locations, ARRAY_TO_STRING(ARRAY_AGG(DISTINCT place ORDER BY place), ', ') as places,\n  COUNT(DISTINCT day) as total_days\nFROM fleet_at GROUP BY vehicle HAVING COUNT(DISTINCT place) >= 2\nORDER BY COUNT(DISTINCT place) DESC, total_days DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Vehicle AF:1F encounter cadence (tide pattern)",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 99
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "SELECT DATE(o.time) as time, COUNT(*) as observations\nFROM app.observations o\nWHERE o.bssid LIKE '00:14:3E:AF:1F:%'\n  AND o.lat BETWEEN 43.020 AND 43.026\nGROUP BY DATE(o.time) ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Overnight dwell events (>1 hour within 200m of home)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 109
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "SELECT LEFT(o.bssid, 15) as vehicle,\n  ARRAY_TO_STRING(ARRAY_AGG(DISTINCT ne.ssid), ', ') as ssids,\n  DATE(o.time) as day,\n  MIN(o.time)::time as first_seen, MAX(o.time)::time as last_seen,\n  ROUND(EXTRACT(EPOCH FROM MAX(o.time) - MIN(o.time)) / 3600.0, 1) as dwell_hours,\n  COUNT(*) as observations\nFROM app.observations o\nJOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid\nWHERE (ne.ssid LIKE 'PAS-%' OR ne.ssid = 'mdt' OR ne.ssid LIKE 'GreatLakes%')\n  AND o.lat BETWEEN 43.022 AND 43.025 AND o.lon BETWEEN -83.699 AND -83.694\nGROUP BY LEFT(o.bssid, 15), DATE(o.time)\nHAVING EXTRACT(EPOCH FROM MAX(o.time) - MIN(o.time)) > 3600\nORDER BY dwell_hours DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "title": "AI Insights",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 117
+      },
+      "options": {
+        "content": "## AI-Generated Intelligence Insights\nFindings from automated and analyst-assisted analysis, stored in `app.ai_insights`.",
+        "mode": "markdown"
+      }
+    },
+    {
+      "type": "table",
+      "title": "AI Insights \u2014 latest findings",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 121
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "SELECT id, LEFT(question, 80) as finding,\n  ARRAY_TO_STRING(tags, ', ') as tags,\n  LEFT(claude_response, 200) as summary,\n  ARRAY_TO_STRING(suggestions, ' | ') as next_steps,\n  created_at\nFROM app.ai_insights ORDER BY created_at DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "geomap",
+      "title": "Fleet coverage \u2014 WiGLE v3 crowdsourced (PAS + MDT + GreatLakes)",
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 133
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 43.0,
+          "lon": -83.7,
+          "zoom": 7
+        },
+        "basemap": {
+          "type": "dark"
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "config": {
+              "style": {
+                "size": {
+                  "fixed": 4
+                },
+                "color": {
+                  "field": "fleet",
+                  "fixed": "dark-green"
+                }
+              },
+              "showLegend": true
+            }
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "SELECT w.latitude as latitude, w.longitude as longitude,\n  w.netid, w.ssid,\n  CASE WHEN w.ssid LIKE 'PAS-%' THEN 'PAS'\n       WHEN w.ssid = 'mdt' THEN 'MDT'\n       ELSE 'GreatLakes' END as fleet,\n  w.observed_at as time\nFROM app.wigle_v3_observations w\nWHERE w.ssid LIKE 'PAS-%' OR w.ssid = 'mdt' OR w.ssid LIKE 'GreatLakes%'\nORDER BY w.observed_at",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "id": 15,
       "type": "text",
       "title": "Navigate dashboards",
       "gridPos": {
         "x": 0,
-        "y": 80,
+        "y": 149,
         "w": 24,
         "h": 2
       },
