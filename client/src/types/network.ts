@@ -71,6 +71,11 @@ export type NetworkRow = {
   max_distance_meters?: number | null;
   last_altitude_m?: number | null;
   is_sentinel?: boolean | null;
+  // Network summary markers (v2 API)
+  centroid_lat?: number | null;
+  centroid_lon?: number | null;
+  weighted_lat?: number | null;
+  weighted_lon?: number | null;
   // Tag fields (from app.network_tags JOIN in list query)
   threat_tag?: 'THREAT' | 'SUSPECT' | 'FALSE_POSITIVE' | 'INVESTIGATE' | null;
   is_ignored?: boolean | null;

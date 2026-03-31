@@ -119,6 +119,7 @@ export default function GeospatialExplorer() {
     onOpenContextMenu: openContextMenu,
     locationMode,
     setLocationMode,
+    showNetworkSummaries,
   });
 
   // Agency Context

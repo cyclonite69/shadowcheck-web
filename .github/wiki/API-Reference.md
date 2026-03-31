@@ -214,8 +214,6 @@ GET /api/v2/networks?page=1&limit=100
 - Optimized query performance via materialized views
 - Improved filter alignment with universal filter system
 - Enhanced error reporting and metadata
-  ...
-  _Last Updated: 2026-03-14_
 
 | Parameter   | Type    | Default  | Description                            |
 | ----------- | ------- | -------- | -------------------------------------- |

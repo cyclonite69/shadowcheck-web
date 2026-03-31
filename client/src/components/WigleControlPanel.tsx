@@ -128,7 +128,7 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
           }`}
         >
-          {show3dBuildings ? '✓ ' : ''}3D Buildings
+          {show3dBuildings ? '✓ ' : ''}3D
         </button>
         <button
           onClick={onToggleTerrain}
