@@ -319,11 +319,7 @@ const renderBssid = ({
   };
 };
 
-const renderSsid = ({
-  value,
-  showSelectedAnchorLink,
-  isLinkedSibling,
-}: NetworkTableCellRendererContext) => {
+const renderSsid = ({ value }: NetworkTableCellRendererContext) => {
   const textContent =
     value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
   const title = typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -337,38 +333,10 @@ const renderSsid = ({
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
         }}
         title={title}
       >
-        <span
-          style={{
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {textContent}
-        </span>
-        {(showSelectedAnchorLink || isLinkedSibling) && (
-          <span
-            title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
-            style={{
-              flex: '0 0 auto',
-              fontSize: '10px',
-              color: '#7dd3fc',
-              background: 'rgba(14, 165, 233, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              borderRadius: '999px',
-              padding: '1px 5px',
-            }}
-          >
-            link
-          </span>
-        )}
+        {textContent}
       </div>
     ),
   };
