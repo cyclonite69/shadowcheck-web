@@ -20,7 +20,7 @@
   "title": "ShadowCheck \u2014 Edsel Ford Freeway Vehicle Traffic Analysis",
   "description": "Trajectories, speed trends, and equipment breakdown for BSSIDs detected along the Edsel Ford Freeway.",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "time": {
     "from": "now-1y",
     "to": "now"
@@ -661,7 +661,7 @@
         "y": 38
       },
       "options": {
-        "content": "## Companion Radio Analysis\n\nThe operator's device was physically present in a **GMC vehicle** based on persistent companion radios:\n\n| Radio | SSID | Signal | Identification |\n|---|---|---|---|\n| `88:5A:85:8F:6A:82` | **hum85023** | -39 to -51 dBm | OnStar Hum unit (WNC Corp) \u2014 **in-vehicle** |\n| `5A:E4:03:C8:0A:E8` | **myGMC 0AE8** | -72 to -96 dBm | GM vehicle WiFi hotspot |\n| `02:54:AF:F2:5F:7F` | **Hotspot5F7F** | -58 to -87 dBm | Vehicle hotspot |\n| `88:5A:85:D9:65:74` | **hum30319** | -70 to -95 dBm | Second Hum unit \u2014 **nearby vehicle** |\n\n**Speed:** 53.2 mph SW on I-94. **60 GPS fixes in 68 seconds.** Operator confirms not transiting this corridor in 20-30 years.",
+        "content": "## Companion Radio Analysis\n\nThe operator's device was physically present in a **GMC vehicle** based on persistent companion radios:\n\n| Radio | SSID | Signal | Identification |\n|---|---|---|---|\n| `88:5A:85:8F:6A:82` | **hum85023** | -39 to -51 dBm | OnStar Hum unit (WNC Corp) \u2014 **in-vehicle** |\n| `5A:E4:03:C8:0A:E8` | **myGMC 0AE8** | -72 to -96 dBm | GM vehicle WiFi hotspot |\n| `02:54:AF:F2:5F:7F` | **Hotspot5F7F** | -58 to -87 dBm | Vehicle hotspot |\n| `88:5A:85:D9:65:74` | **hum30319** | -70 to -95 dBm | Second Hum unit \u2014 **nearby vehicle** |\n| `6E:02:E0:C3:F5:A4` | **DIRECT-a4-HP M15 LaserJet** | -78 to -90 dBm | **Printer at origin building** |\n\n## Trajectory\n\n| Parameter | Value |\n|---|---|\n| **Origin** | **7764 Granger Street, Detroit, MI 48213** (Gratiot Town/Kettering) |\n| **Bearing** | 234.9\u00b0 (Southwest) |\n| **Speed** | 53.2 mph / 85.6 km/h |\n| **Distance** | 1,616 meters in 68 seconds |\n| **GPS Fixes** | 60 continuous (1/sec) |\n| **Time (local)** | 10:48:30 \u2192 10:49:41 AM EDT |\n| **From Home** | 90.5 km |\n\nHP LaserJet detected at origin confirms device was **inside a building** on Granger Street before departure onto I-94 SW.\n\n**Mapbox directions coordinate:** `42.3806535, -83.0178422`",
         "mode": "markdown"
       }
     },
