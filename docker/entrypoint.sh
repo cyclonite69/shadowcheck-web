@@ -17,7 +17,7 @@ load_runtime_secrets() {
   _REGION_ARG=""
   _RESOLVED_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
   if [ -n "$_RESOLVED_REGION" ]; then _REGION_ARG="--region $_RESOLVED_REGION"; fi
-  SECRET_JSON=$(aws secretsmanager get-secret-value \
+  export SECRET_JSON=$(aws secretsmanager get-secret-value \
     $_REGION_ARG \
     --secret-id "$AWS_SECRET_NAME" \
     --query SecretString \
@@ -59,7 +59,9 @@ load_runtime_secrets() {
   ')
 
   if [ -n "$EXPORTS" ]; then
+    set -a
     eval "$EXPORTS"
+    set +a
   fi
 }
 
