@@ -3,6 +3,29 @@ import { NetworkData, LayerType } from '../components/kepler/types';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../utils/geospatial/tooltipDataNormalizer';
 
+/** Compute center + zoom that fits [[minLon,minLat],[maxLon,maxLat]] into a viewport. */
+function zoomForBounds(
+  bounds: [[number, number], [number, number]],
+  width: number,
+  height: number,
+  padding = 60
+): { longitude: number; latitude: number; zoom: number } {
+  const [[w, s], [e, n]] = bounds;
+  const lng = (w + e) / 2;
+  const lat = (s + n) / 2;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const latY = (l: number) => Math.log(Math.tan(Math.PI / 4 + toRad(l) / 2));
+  const vw = Math.max(width - padding * 2, 1);
+  const vh = Math.max(height - padding * 2, 1);
+  const lonZoom = Math.log2((vw * 360) / (256 * Math.max(e - w, 0.001)));
+  const latZoom = Math.log2((vh * Math.PI) / (128 * Math.abs(latY(n) - latY(s) || 0.001)));
+  return {
+    longitude: lng,
+    latitude: lat,
+    zoom: Math.max(1, Math.min(18, Math.min(lonZoom, latZoom))),
+  };
+}
+
 export function useKeplerDeck({
   layerType,
   pointSize,
@@ -38,17 +61,26 @@ export function useKeplerDeck({
         if (lat > maxLat) maxLat = lat;
       }
 
-      const centerLon = (minLon + maxLon) / 2;
-      const centerLat = (minLat + maxLat) / 2;
-      const lonDiff = maxLon - minLon;
-      const latDiff = maxLat - minLat;
-      const maxDiff = Math.max(lonDiff, latDiff, 0.01);
-      const newZoom = Math.max(1, Math.min(15, 10 - Math.log2(maxDiff)));
+      const el = mapRef.current;
+      const w = el?.clientWidth || 1200;
+      const h = el?.clientHeight || 800;
+      const {
+        longitude,
+        latitude,
+        zoom: newZoom,
+      } = zoomForBounds(
+        [
+          [minLon, minLat],
+          [maxLon, maxLat],
+        ],
+        w,
+        h
+      );
 
       deckRef.current.setProps({
         initialViewState: {
-          longitude: centerLon,
-          latitude: centerLat,
+          longitude,
+          latitude,
           zoom: newZoom,
           pitch,
           bearing: 0,
@@ -83,10 +115,18 @@ export function useKeplerDeck({
             if (lat < minLat) minLat = lat;
             if (lat > maxLat) maxLat = lat;
           }
-          centerLon = (minLon + maxLon) / 2;
-          centerLat = (minLat + maxLat) / 2;
-          const maxDiff = Math.max(maxLon - minLon, maxLat - minLat, 0.01);
-          initialZoom = Math.max(1, Math.min(15, 10 - Math.log2(maxDiff)));
+          const el = mapRef.current;
+          const fit = zoomForBounds(
+            [
+              [minLon, minLat],
+              [maxLon, maxLat],
+            ],
+            el?.clientWidth || 1200,
+            el?.clientHeight || 800
+          );
+          centerLon = fit.longitude;
+          centerLat = fit.latitude;
+          initialZoom = fit.zoom;
         }
       }
 

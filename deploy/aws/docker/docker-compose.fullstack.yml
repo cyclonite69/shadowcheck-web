@@ -53,6 +53,7 @@ services:
       DB_HOST: shadowcheck_postgres
       DB_PORT: 5432
       DB_USER: shadowcheck_user
+      DB_ADMIN_USER: shadowcheck_admin
       # DB_PASSWORD / DB_ADMIN_PASSWORD: fetched from AWS Secrets Manager by entrypoint.sh
       DB_NAME: shadowcheck_db
       DB_SSL: "true"
