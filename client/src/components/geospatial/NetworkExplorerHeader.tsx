@@ -146,6 +146,7 @@ export const NetworkExplorerHeader = ({
             height: '28px',
             padding: '0 9px',
             minWidth: '180px',
+            maxWidth: '220px',
           }}
         >
           <svg
@@ -175,6 +176,7 @@ export const NetworkExplorerHeader = ({
               outline: 'none',
               color: 'rgba(255,255,255,0.65)',
               minWidth: 0,
+              maxWidth: '100%',
             }}
           />
         </div>
