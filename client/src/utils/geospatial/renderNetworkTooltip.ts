@@ -141,7 +141,9 @@ const getRadioSVG = (type: string, color: string) => {
     Stingray: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="${color}"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>`,
     Unknown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="${color}"/></svg>`,
   };
-  return iconMap[type] || iconMap['Unknown'];
+  // Normalize type lookup: try exact match, then Unknown
+  const normalized = type?.toString().trim() || 'Unknown';
+  return iconMap[normalized] || iconMap['Unknown'];
 };
 
 function formatThreatFactors(factors: any): string {

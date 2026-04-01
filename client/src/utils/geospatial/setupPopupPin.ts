@@ -51,7 +51,7 @@ export function setupPopupPin(popup: mapboxgl.Popup, map: mapboxgl.Map): () => v
   const pinState: PopupPinState = {
     popup,
     isPinned: false,
-    originalOffset: popup.getOffset(),
+    originalOffset: popup.options?.offset || [0, 0],
     pinButton,
   };
 
