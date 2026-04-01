@@ -11,21 +11,28 @@ load_runtime_secrets() {
   # come from AWS Secrets Manager.  Only skip the fetch when non-credential
   # tokens are already present AND the aws CLI isn't available.
   if ! command -v aws >/dev/null 2>&1; then
+    echo "[entrypoint] Warning: aws CLI not found in PATH"
     return 0
   fi
 
   _REGION_ARG=""
   _RESOLVED_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
   if [ -n "$_RESOLVED_REGION" ]; then _REGION_ARG="--region $_RESOLVED_REGION"; fi
+  
+  echo "[entrypoint] Fetching secrets from AWS Secrets Manager (secret: $AWS_SECRET_NAME, region: ${_RESOLVED_REGION:-default})..."
   export SECRET_JSON=$(aws secretsmanager get-secret-value \
     $_REGION_ARG \
     --secret-id "$AWS_SECRET_NAME" \
     --query SecretString \
-    --output text 2>/dev/null || true)
+    --output text 2>&1 || true)
 
   if [ -z "$SECRET_JSON" ] || [ "$SECRET_JSON" = "None" ]; then
+    echo "[entrypoint] Warning: Could not retrieve secrets from AWS Secrets Manager"
+    echo "[entrypoint] Secret response: $SECRET_JSON"
     return 0
   fi
+  
+  echo "[entrypoint] Successfully retrieved secret from AWS Secrets Manager"
 
   EXPORTS=$(SECRET_JSON="$SECRET_JSON" node -e '
     const obj = JSON.parse(process.env.SECRET_JSON || "{}");
@@ -88,11 +95,25 @@ fi
 
 run_migrations() {
   if [ ! -f /app/sql/run-migrations.sh ]; then
+    echo "[entrypoint] Migrations script not found, skipping..."
     return 0
   fi
   if [ -z "${DB_HOST:-}" ] || [ -z "${DB_NAME:-}" ]; then
+    echo "[entrypoint] DB_HOST or DB_NAME not set, skipping migrations..."
     return 0
   fi
+  
+  # CRITICAL: Verify database credentials are available before attempting migration
+  if [ -z "${DB_PASSWORD:-}" ] && [ -z "${DB_ADMIN_PASSWORD:-}" ]; then
+    echo "[entrypoint] ERROR: Database credentials (DB_PASSWORD or DB_ADMIN_PASSWORD) not set!"
+    echo "[entrypoint] The AWS Secrets Manager fetch may have failed."
+    echo "[entrypoint] Verify:"
+    echo "[entrypoint]   1. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are available"
+    echo "[entrypoint]   2. EC2 instance IAM role has secretsmanager:GetSecretValue permission"
+    echo "[entrypoint]   3. Secret exists: $AWS_SECRET_NAME in region ${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
+    exit 1
+  fi
+  
   echo "[entrypoint] Running database migrations..."
   MIGRATIONS_DIR=/app/sql/migrations \
   MIGRATION_DB_USER="${DB_ADMIN_USER:-${DB_USER:-shadowcheck_user}}" \
