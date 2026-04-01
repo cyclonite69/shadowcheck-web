@@ -30,65 +30,108 @@ function createTetherSVG(): SVGSVGElement {
   svg.style.width = '100%';
   svg.style.height = '100%';
 
-  // Add marker definition for arrowhead
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-  marker.setAttribute('id', 'tether-arrow');
-  marker.setAttribute('markerWidth', '6');
-  marker.setAttribute('markerHeight', '6');
-  marker.setAttribute('refX', '3');
-  marker.setAttribute('refY', '3');
-  marker.setAttribute('orient', 'auto');
-
-  const markerPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  markerPath.setAttribute('d', 'M0,0 L6,3 L0,6 Z');
-  markerPath.setAttribute('fill', 'white');
-  markerPath.setAttribute('opacity', '0.8');
-
-  marker.appendChild(markerPath);
-  defs.appendChild(marker);
-  svg.appendChild(defs);
-
   return svg;
 }
 
 /**
- * Create line element for tether
+ * Create line element for tether (no arrow)
  */
 function createTetherLine(): SVGLineElement {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('stroke', 'white');
   line.setAttribute('stroke-width', '1.5');
   line.setAttribute('stroke-dasharray', '4,4');
-  line.setAttribute('opacity', '0.8');
-  line.setAttribute('marker-end', 'url(#tether-arrow)');
+  line.setAttribute('opacity', '0.7');
   return line;
 }
 
 /**
- * Update tether line position based on popup and observation point
+ * Update tether line position based on popup and observation point (edge to edge)
  */
 function updateTetherLine(
   lineElement: SVGLineElement,
-  observationPoint: { x: number; y: number },
-  popupCenter: { x: number; y: number }
+  observationEdge: { x: number; y: number },
+  popupEdge: { x: number; y: number }
 ): void {
-  lineElement.setAttribute('x1', String(observationPoint.x));
-  lineElement.setAttribute('y1', String(observationPoint.y));
-  lineElement.setAttribute('x2', String(popupCenter.x));
-  lineElement.setAttribute('y2', String(popupCenter.y));
+  lineElement.setAttribute('x1', String(observationEdge.x));
+  lineElement.setAttribute('y1', String(observationEdge.y));
+  lineElement.setAttribute('x2', String(popupEdge.x));
+  lineElement.setAttribute('y2', String(popupEdge.y));
 }
 
 /**
- * Get screen coordinates of observation point
+ * Get screen coordinates of observation point with offset to edge toward popup
  */
-function getObservationScreenCoords(map: Map, lngLat: LngLatLike): { x: number; y: number } {
+function getObservationScreenCoords(
+  map: Map,
+  lngLat: LngLatLike,
+  popupCenter: { x: number; y: number },
+  observationRadius: number = 6
+): { x: number; y: number } {
   const point = map.project(lngLat);
   const canvasRect = map.getCanvas().getBoundingClientRect();
+  const obsScreenX = point.x + canvasRect.left;
+  const obsScreenY = point.y + canvasRect.top;
+
+  // Calculate direction from observation point to popup center
+  const dx = popupCenter.x - obsScreenX;
+  const dy = popupCenter.y - obsScreenY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance === 0) {
+    return { x: obsScreenX, y: obsScreenY };
+  }
+
+  // Move from center toward popup edge by observationRadius
+  const ratio = observationRadius / distance;
   return {
-    x: point.x + canvasRect.left,
-    y: point.y + canvasRect.top,
+    x: obsScreenX + dx * ratio,
+    y: obsScreenY + dy * ratio,
   };
+}
+
+/**
+ * Get popup edge coordinates (edge closest to observation point)
+ */
+function getPopupEdgeCoords(
+  popupElement: HTMLElement,
+  observationPoint: { x: number; y: number }
+): { x: number; y: number } {
+  const rect = popupElement.getBoundingClientRect();
+  const popupCenterX = rect.left + rect.width / 2;
+  const popupCenterY = rect.top + rect.height / 2;
+
+  // Calculate direction from popup center to observation point
+  const dx = observationPoint.x - popupCenterX;
+  const dy = observationPoint.y - popupCenterY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance === 0) {
+    return { x: popupCenterX, y: popupCenterY };
+  }
+
+  // Determine which edge of popup is closest
+  const normalizedDx = dx / distance;
+  const normalizedDy = dy / distance;
+
+  let edgeX = popupCenterX;
+  let edgeY = popupCenterY;
+
+  // Clamp to popup box edges
+  const halfWidth = rect.width / 2;
+  const halfHeight = rect.height / 2;
+
+  if (Math.abs(normalizedDx) > Math.abs(normalizedDy)) {
+    // Hit left or right edge
+    edgeX = normalizedDx > 0 ? rect.left + rect.width : rect.left;
+    edgeY = popupCenterY;
+  } else {
+    // Hit top or bottom edge
+    edgeX = popupCenterX;
+    edgeY = normalizedDy > 0 ? rect.top + rect.height : rect.top;
+  }
+
+  return { x: edgeX, y: edgeY };
 }
 
 /**
@@ -103,7 +146,7 @@ function getPopupCenter(popupElement: HTMLElement): { x: number; y: number } {
 }
 
 /**
- * Setup tether line from popup to observation point
+ * Setup tether line from popup to observation point (edge to edge)
  */
 export function setupPopupTether(popup: Popup, map: Map, lngLat: LngLatLike): PopupTetherState {
   const popupElement = popup.getElement();
@@ -141,9 +184,15 @@ export function setupPopupTether(popup: Popup, map: Map, lngLat: LngLatLike): Po
   };
 
   // Update line position initially
-  const obsCoords = getObservationScreenCoords(map, lngLat);
-  const popupCoords = getPopupCenter(popupElement);
-  updateTetherLine(lineElement, obsCoords, popupCoords);
+  const popupCenterCoords = { x: 0, y: 0 }; // Temporary, will be recalculated below
+  const popupRect = popupElement.getBoundingClientRect();
+  const popupCenter = {
+    x: popupRect.left + popupRect.width / 2,
+    y: popupRect.top + popupRect.height / 2,
+  };
+  const obsEdge = getObservationScreenCoords(map, lngLat, popupCenter);
+  const popupEdge = getPopupEdgeCoords(popupElement, obsEdge);
+  updateTetherLine(lineElement, obsEdge, popupEdge);
 
   // Create update handler
   const updateTether = () => {
@@ -151,9 +200,14 @@ export function setupPopupTether(popup: Popup, map: Map, lngLat: LngLatLike): Po
       return;
     }
 
-    const obsCoords = getObservationScreenCoords(tetherState.map, tetherState.lngLat);
-    const popupCoords = getPopupCenter(popupElement);
-    updateTetherLine(tetherState.lineElement, obsCoords, popupCoords);
+    const popupRect = popupElement.getBoundingClientRect();
+    const popupCenter = {
+      x: popupRect.left + popupRect.width / 2,
+      y: popupRect.top + popupRect.height / 2,
+    };
+    const obsEdge = getObservationScreenCoords(tetherState.map, tetherState.lngLat, popupCenter);
+    const popupEdge = getPopupEdgeCoords(popupElement, obsEdge);
+    updateTetherLine(tetherState.lineElement, obsEdge, popupEdge);
   };
 
   // Assign listeners
@@ -168,7 +222,7 @@ export function setupPopupTether(popup: Popup, map: Map, lngLat: LngLatLike): Po
 }
 
 /**
- * Update tether line during popup drag
+ * Update tether line during popup drag (edge to edge)
  */
 export function updateTetherDuringDrag(
   tetherState: PopupTetherState,
@@ -178,9 +232,14 @@ export function updateTetherDuringDrag(
     return;
   }
 
-  const obsCoords = getObservationScreenCoords(tetherState.map, tetherState.lngLat);
-  const popupCoords = getPopupCenter(popupElement);
-  updateTetherLine(tetherState.lineElement, obsCoords, popupCoords);
+  const popupRect = popupElement.getBoundingClientRect();
+  const popupCenter = {
+    x: popupRect.left + popupRect.width / 2,
+    y: popupRect.top + popupRect.height / 2,
+  };
+  const obsEdge = getObservationScreenCoords(tetherState.map, tetherState.lngLat, popupCenter);
+  const popupEdge = getPopupEdgeCoords(popupElement, obsEdge);
+  updateTetherLine(tetherState.lineElement, obsEdge, popupEdge);
 }
 
 /**

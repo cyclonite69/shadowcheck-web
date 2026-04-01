@@ -578,13 +578,14 @@ Comprehensive datasets of federal law enforcement and judicial locations for geo
 
 ### Threat Score Calculation
 
-| Factor       | Points | Condition              |
-| ------------ | ------ | ---------------------- |
-| Home/Away    | +40    | Seen at home AND away  |
-| Distance     | +25    | Distance range > 200m  |
-| Temporal     | +5-15  | Multiple unique days   |
-| Observations | +5-10  | High observation count |
-| Speed        | +10-20 | High movement speed    |
+| Factor                   | Weight | Condition                                                            |
+| ------------------------ | ------ | -------------------------------------------------------------------- |
+| **Following Pattern**    | 35%    | Multiple clusters >2km from home; max distance spread.               |
+| **Parked Surveillance**  | 20%    | Repeated detections within 100m and 10-minute windows.               |
+| **Location Correlation** | 15%    | Percentage of observations near home vs. distinct clusters.          |
+| **Equipment Profile**    | 10%    | Manufacturer OUI matching (industrial/vehicular) and SSID patterns.  |
+| **Temporal Persistence** | 5%     | Number of distinct days observed.                                    |
+| **Fleet Bonus**          | 15%    | Correlation with other high-score networks (same manufacturer/SSID). |
 
 ---
 

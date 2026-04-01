@@ -15,6 +15,7 @@ import {
   cleanupPopupTether,
   type PopupTetherState,
 } from '../../utils/geospatial/setupPopupTether';
+import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 
 interface AgencyOffice {
   type: 'Feature';
@@ -247,6 +248,7 @@ export const useAgencyOffices = (
       // Setup drag and tether
       let dragState: PopupDragState | null = null;
       let tetherState: PopupTetherState | null = null;
+      let pinCleanup: (() => void) | null = null;
 
       dragState = setupPopupDrag(popup, (offset) => {
         if (tetherState && popup.getElement()) {
@@ -256,6 +258,9 @@ export const useAgencyOffices = (
 
       tetherState = setupPopupTether(popup, map, e.lngLat);
 
+      // Setup pin to viewport functionality
+      pinCleanup = setupPopupPin(popup, map);
+
       // Cleanup on popup close
       const originalRemove = popup.remove.bind(popup);
       popup.remove = function () {
@@ -264,6 +269,9 @@ export const useAgencyOffices = (
         }
         if (tetherState) {
           cleanupPopupTether(tetherState);
+        }
+        if (pinCleanup) {
+          pinCleanup();
         }
         return originalRemove();
       };
