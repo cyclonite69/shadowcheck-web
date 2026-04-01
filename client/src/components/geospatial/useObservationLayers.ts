@@ -96,6 +96,23 @@ export const useObservationLayers = ({
       channelNeighborCount.set(set.bssid, count);
     });
 
+    // Pre-calculate jitter offsets to avoid expensive sin/cos calls during rendering
+    const jitterOffsets = new Map<string, [number, number]>();
+    const calculateJitterOffset = (
+      seenCount: number,
+      lat: number,
+      lon: number
+    ): [number, number] => {
+      if (seenCount === 0) return [0, 0];
+      const cacheKey = `${seenCount}`;
+      if (!jitterOffsets.has(cacheKey)) {
+        const angle = seenCount * 2.399963229728653; // golden angle in radians
+        const radius = Math.min(0.00015, 0.00002 * Math.sqrt(seenCount));
+        jitterOffsets.set(cacheKey, [Math.sin(angle) * radius, Math.cos(angle) * radius]);
+      }
+      return jitterOffsets.get(cacheKey) || [0, 0];
+    };
+
     // Create numbered point features for each observation (numbered per network)
     const jitterIndex = new Map<string, number>();
     const features: any[] = [];
@@ -153,10 +170,10 @@ export const useObservationLayers = ({
         let displayLat = lat;
         let displayLon = lon;
         if (seenCount > 0) {
-          const angle = seenCount * 2.399963229728653; // golden angle in radians
+          const [sinOffset, cosOffset] = calculateJitterOffset(seenCount, lat, lon);
           const radius = Math.min(0.00015, 0.00002 * Math.sqrt(seenCount));
-          displayLat = lat + Math.sin(angle) * radius;
-          displayLon = lon + Math.cos(angle) * radius;
+          displayLat = lat + sinOffset * radius;
+          displayLon = lon + cosOffset * radius;
         }
 
         features.push({
