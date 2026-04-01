@@ -201,5 +201,6 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     region: raw.region || '',
     housenumber: raw.housenumber || '',
     road: raw.road || '',
+    threat_factors: raw.threat_factors || null,
   };
 };

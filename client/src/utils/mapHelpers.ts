@@ -58,6 +58,7 @@ export type RadioTech =
   | 'nr'
   | 'gsm'
   | 'iwlan'
+  | 'stingray'
   | 'unknown';
 
 export const resolveRadioTech = (
@@ -67,6 +68,9 @@ export const resolveRadioTech = (
 ): RadioTech => {
   const caps = (capabilities || '').toUpperCase();
   const t = (type || '').toUpperCase();
+
+  // Special detection for SIGINT assets
+  if (caps.includes('STINGRAY') || caps.includes('HAILSTORM') || t === 'S') return 'stingray';
 
   // Capabilities-first: check what the device actually advertised
   if (caps.startsWith('NR')) return 'nr';
@@ -120,6 +124,7 @@ const RADIO_PARAMS: Record<RadioTech, { refRssi: number; pathLoss: number; maxRa
   nr: { refRssi: -35, pathLoss: 2.2, maxRange: 10000 },
   gsm: { refRssi: -30, pathLoss: 2.0, maxRange: 35000 },
   iwlan: { refRssi: -40, pathLoss: 2.7, maxRange: 500 }, // WiFi-based calling
+  stingray: { refRssi: -25, pathLoss: 2.0, maxRange: 50000 }, // High-powered cell simulator
   unknown: { refRssi: -40, pathLoss: 2.7, maxRange: 500 },
 };
 

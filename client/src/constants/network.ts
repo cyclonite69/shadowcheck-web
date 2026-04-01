@@ -34,6 +34,50 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   observations: { label: 'Observations', width: 100, sortable: true, default: true },
   latitude: { label: 'Latitude', width: 100, sortable: true, default: false },
   longitude: { label: 'Longitude', width: 100, sortable: true, default: false },
+  centroid_lat: {
+    label: 'Centroid Lat',
+    width: 110,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined) return '—';
+      const num = Number(value);
+      return Number.isFinite(num) ? num.toFixed(6) : '—';
+    },
+  },
+  centroid_lon: {
+    label: 'Centroid Lon',
+    width: 110,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined) return '—';
+      const num = Number(value);
+      return Number.isFinite(num) ? num.toFixed(6) : '—';
+    },
+  },
+  weighted_lat: {
+    label: 'Weighted Lat',
+    width: 110,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined) return '—';
+      const num = Number(value);
+      return Number.isFinite(num) ? num.toFixed(6) : '—';
+    },
+  },
+  weighted_lon: {
+    label: 'Weighted Lon',
+    width: 110,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined) return '—';
+      const num = Number(value);
+      return Number.isFinite(num) ? num.toFixed(6) : '—';
+    },
+  },
   rawLatitude: { label: 'Raw Lat', width: 100, sortable: false, default: false },
   rawLongitude: { label: 'Raw Lon', width: 100, sortable: false, default: false },
   distanceFromHome: { label: 'Distance (m)', width: 100, sortable: true, default: true },
@@ -222,6 +266,10 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   all_tags: 'all_tags',
   wigle_v3_observation_count: 'wigle_v3_observation_count',
   wigle_v3_last_import_at: 'wigle_v3_last_import_at',
+  centroid_lat: 'centroid_lat',
+  centroid_lon: 'centroid_lon',
+  weighted_lat: 'weighted_lat',
+  weighted_lon: 'weighted_lon',
 };
 
 // Pagination limit for network queries

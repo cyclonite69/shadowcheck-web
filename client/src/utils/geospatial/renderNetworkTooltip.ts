@@ -1,6 +1,7 @@
 import { THREAT_LEVEL_CONFIG } from '../../constants/network';
 import { macColor } from '../../utils/mapHelpers';
 import { resolveRadioTech } from '../../utils/mapHelpers';
+import { getRadioTypeIcon } from '../../utils/icons/radioTypeIcons';
 import {
   formatCoord,
   formatAltitude,
@@ -137,10 +138,32 @@ const getRadioSVG = (type: string, color: string) => {
     BLE: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/><path d="M2 8h2M2 16h2M20 8h2M20 16h2" stroke-width="1.5" opacity="0.5"/></svg>`,
     Cellular: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>`,
     LTE: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>`,
+    Stingray: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="${color}"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>`,
     Unknown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="${color}"/></svg>`,
   };
   return iconMap[type] || iconMap['WiFi'];
 };
+
+function formatThreatFactors(factors: any): string {
+  if (!factors || typeof factors !== 'object' || Object.keys(factors).length === 0) return '';
+
+  const rows = Object.entries(factors)
+    .map(([key, value]) => {
+      const label = key.replace(/_/g, ' ').toUpperCase();
+      const val = typeof value === 'number' ? value.toFixed(1) : String(value);
+      return `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+        <span style="color:rgba(255,255,255,0.3);font-size:8px;letter-spacing:0.05em;">${label}</span>
+        <span style="color:rgba(255,255,255,0.7);font-size:9px;font-family:monospace;">${val}</span>
+      </div>`;
+    })
+    .join('');
+
+  return `
+    <div style="padding:6px 12px;background:rgba(255,0,255,0.05);border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:4px;">Threat Factors</div>
+      ${rows}
+    </div>`;
+}
 
 export const renderNetworkTooltip = (props: any): string => {
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
@@ -149,8 +172,18 @@ export const renderNetworkTooltip = (props: any): string => {
   const tc = threatConfig.color;
   const threatBg = threatConfig.bg;
   const threatBorder = `${threatConfig.color}40`;
+
+  const frequencyNumber = Number(props.frequency);
+  const rawCaps = String(props.capabilities_raw || props.capabilities || '').trim();
+  const rawType = String(props.radio_type || props.type || '');
+
+  // Reconcile type + capabilities to determine actual radio technology
+  const tech = resolveRadioTech(rawType, rawCaps, frequencyNumber || null);
+  const isStingray = tech === 'stingray';
+
   const bssidRaw = props.bssid || props.netid || '';
-  const bc = bssidRaw ? macColor(bssidRaw) : tc;
+  const bc = isStingray ? '#FF00FF' : bssidRaw ? macColor(bssidRaw) : tc;
+
   const rssiValue =
     props.signal ??
     props.rssi ??
@@ -198,24 +231,22 @@ export const renderNetworkTooltip = (props: any): string => {
   const qualityText = Number.isFinite(quality) ? formatConfidence(quality, true) : EM_DASH;
 
   const hasBand = !isMissingValue(props.band);
-  const frequencyNumber = Number(props.frequency);
-  const rawCaps = String(props.capabilities_raw || props.capabilities || '').trim();
-  const rawType = String(props.radio_type || props.type || '');
 
-  // Reconcile type + capabilities to determine actual radio technology
-  const tech = resolveRadioTech(rawType, rawCaps, frequencyNumber || null);
   const isBT = tech === 'bt_classic' || tech === 'ble';
-  const isCellular = tech === 'lte' || tech === 'nr' || tech === 'gsm' || tech === 'iwlan';
+  const isCellular =
+    tech === 'lte' || tech === 'nr' || tech === 'gsm' || tech === 'iwlan' || isStingray;
   const isWiFi = tech.startsWith('wifi') || tech === 'unknown';
 
   // Determine display radio type for SVG icon
-  const displayRadioType = isBT
-    ? tech === 'ble'
-      ? 'BLE'
-      : 'Bluetooth'
-    : isCellular
-      ? 'Cellular'
-      : 'WiFi';
+  const displayRadioType = isStingray
+    ? 'Stingray'
+    : isBT
+      ? tech === 'ble'
+        ? 'BLE'
+        : 'Bluetooth'
+      : isCellular
+        ? 'Cellular'
+        : 'WiFi';
 
   // Parse radio-type-specific capabilities
   const btInfo = isBT ? parseBtCapabilities(rawCaps) : null;
@@ -253,6 +284,7 @@ export const renderNetworkTooltip = (props: any): string => {
   const showSecurity = isWiFi && securityValue && securityValue !== 'UNKNOWN';
 
   const fieldRows = [
+    isStingray ? fieldRow('SIGINT Type', 'Stingray') : '',
     showSecurity
       ? fieldRow('Encryption', normalizeDisplay(props.encryption || props.security))
       : '',
@@ -329,6 +361,7 @@ export const renderNetworkTooltip = (props: any): string => {
   </div>
 
   ${fieldRows}
+  ${formatThreatFactors(props.threat_factors)}
 
   <div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
   ${locationText ? `<div style="padding:1px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}

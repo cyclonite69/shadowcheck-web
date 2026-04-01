@@ -49,7 +49,6 @@ export const SecurityFilters: React.FC<SecurityFiltersProps> = ({
               'WPA3',
               'OWE',
               'WPS',
-              'UNKNOWN',
             ] as EncryptionType[]
           ).map((type) => (
             <label key={type} className="flex items-center space-x-2">
@@ -82,25 +81,23 @@ export const SecurityFilters: React.FC<SecurityFiltersProps> = ({
         compact={isCompact}
       >
         <div className={listLayoutClass}>
-          {(['insecure', 'deprecated', 'enterprise', 'personal', 'unknown'] as SecurityFlag[]).map(
-            (flag) => (
-              <label key={flag} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={filters.securityFlags?.includes(flag) || false}
-                  onChange={(e) => {
-                    const current = filters.securityFlags || [];
-                    const updated = e.target.checked
-                      ? [...current, flag]
-                      : current.filter((f: string) => f !== flag);
-                    onSetFilter('securityFlags', updated);
-                  }}
-                  className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
-                />
-                <span className={`${listItemTextClass} text-slate-300 capitalize`}>{flag}</span>
-              </label>
-            )
-          )}
+          {(['insecure', 'deprecated', 'enterprise', 'personal'] as SecurityFlag[]).map((flag) => (
+            <label key={flag} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={filters.securityFlags?.includes(flag) || false}
+                onChange={(e) => {
+                  const current = filters.securityFlags || [];
+                  const updated = e.target.checked
+                    ? [...current, flag]
+                    : current.filter((f: string) => f !== flag);
+                  onSetFilter('securityFlags', updated);
+                }}
+                className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+              />
+              <span className={`${listItemTextClass} text-slate-300 capitalize`}>{flag}</span>
+            </label>
+          ))}
         </div>
       </FilterInput>
     </FilterSection>
