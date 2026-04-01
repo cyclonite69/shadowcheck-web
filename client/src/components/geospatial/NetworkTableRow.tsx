@@ -22,7 +22,7 @@ interface NetworkTableRowProps {
   style?: React.CSSProperties;
 }
 
-export const NetworkTableRow = ({
+const NetworkTableRowComponent = ({
   net,
   index: _index,
   visibleColumns,
@@ -280,3 +280,17 @@ export const NetworkTableRow = ({
     </tr>
   );
 };
+
+// Memoize with deep comparison of props
+export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.net === nextProps.net &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.style === nextProps.style &&
+    prevProps.visibleColumns === nextProps.visibleColumns &&
+    prevProps.index === nextProps.index &&
+    prevProps.onSelectExclusive === nextProps.onSelectExclusive &&
+    prevProps.onOpenContextMenu === nextProps.onOpenContextMenu &&
+    prevProps.onToggleSelectNetwork === nextProps.onToggleSelectNetwork
+  );
+});

@@ -14,7 +14,7 @@ interface GeospatialMapContentProps {
   onToggleNetworkSummaries?: (value: boolean) => void;
 }
 
-export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
+const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
   state,
   selectedNetworks,
   toggleWigleForBssids,
@@ -81,3 +81,5 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
     onOpenContextMenu={onOpenContextMenu}
   />
 );
+
+export const GeospatialMapContent = React.memo(GeospatialMapContentComponent);
