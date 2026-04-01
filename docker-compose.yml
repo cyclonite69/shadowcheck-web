@@ -114,10 +114,6 @@ services:
       dockerfile: docker/Dockerfile.frontend.local
     container_name: shadowcheck_web_frontend
     restart: unless-stopped
-    environment:
-      - GRAFANA_UPSTREAM=${GRAFANA_UPSTREAM:-http://host.containers.internal:3002/}
-    extra_hosts:
-      - "host.containers.internal:host-gateway"
     ports:
       - "127.0.0.1:8080:80"
     healthcheck:

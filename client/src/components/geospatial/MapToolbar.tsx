@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { HamburgerButton } from '../HamburgerButton';
 
 interface MapStyleOption {
   value: string;
@@ -106,7 +105,6 @@ export const MapToolbar = ({
   const [layersOpen, setLayersOpen] = useState(false);
   const [mapStyleOpen, setMapStyleOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const layersRef = useRef<HTMLDivElement>(null);
   const mapStyleRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
@@ -136,9 +134,6 @@ export const MapToolbar = ({
         gap: '8px',
       }}
     >
-      {/* Hamburger Menu — Leftmost */}
-      <HamburgerButton isOpen={hamburgerOpen} onClick={() => setHamburgerOpen(!hamburgerOpen)} />
-
       {/* Zone 1 — Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
         <div
