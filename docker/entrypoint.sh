@@ -20,15 +20,20 @@ load_runtime_secrets() {
   if [ -n "$_RESOLVED_REGION" ]; then _REGION_ARG="--region $_RESOLVED_REGION"; fi
   
   echo "[entrypoint] Fetching secrets from AWS Secrets Manager (secret: $AWS_SECRET_NAME, region: ${_RESOLVED_REGION:-default})..."
-  export SECRET_JSON=$(aws secretsmanager get-secret-value \
+  
+  _AWS_ERROR=$(aws secretsmanager get-secret-value \
     $_REGION_ARG \
     --secret-id "$AWS_SECRET_NAME" \
     --query SecretString \
-    --output text 2>&1 || true)
+    --output text 2>&1)
+  
+  _AWS_EXIT=$?
+  export SECRET_JSON="$_AWS_ERROR"
 
-  if [ -z "$SECRET_JSON" ] || [ "$SECRET_JSON" = "None" ]; then
-    echo "[entrypoint] Warning: Could not retrieve secrets from AWS Secrets Manager"
-    echo "[entrypoint] Secret response: $SECRET_JSON"
+  if [ $_AWS_EXIT -ne 0 ] || [ -z "$SECRET_JSON" ] || [ "$SECRET_JSON" = "None" ]; then
+    echo "[entrypoint] Warning: Could not retrieve secrets from AWS Secrets Manager (exit code: $_AWS_EXIT)"
+    echo "[entrypoint] AWS error: $SECRET_JSON"
+    echo "[entrypoint] Falling back to environment variables (if any credentials are already set)..."
     return 0
   fi
   
@@ -72,9 +77,10 @@ load_runtime_secrets() {
   
   EXPORT_EXIT=$?
   if [ $EXPORT_EXIT -ne 0 ]; then
-    echo "[entrypoint] ERROR: Failed to parse/export secrets from JSON"
+    echo "[entrypoint] WARNING: Failed to parse secrets from JSON"
     echo "[entrypoint] Parser output: $EXPORTS"
-    exit 1
+    echo "[entrypoint] Will proceed if credentials are already in environment..."
+    return 0
   fi
 
   if [ -n "$EXPORTS" ]; then
