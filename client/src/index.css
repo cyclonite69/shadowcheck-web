@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Google Fonts loaded via <link> in index.html to avoid render-blocking @import */
 
 /* Tailwind CSS v4 import */
 @import "tailwindcss";
@@ -44,7 +44,7 @@ body {
   --nav-accent: #60a5fa;
   --nav-accent-bg: rgba(59,130,246,0.12);
   --nav-accent-border: rgba(59,130,246,0.28);
-  --nav-text-inactive: rgba(255,255,255,0.35);
+  --nav-text-inactive: rgba(255,255,255,0.50);
   --nav-text-hover: rgba(255,255,255,0.75);
   --nav-hover-bg: rgba(255,255,255,0.05);
   --emerald-400-rgb: 52, 211, 153;

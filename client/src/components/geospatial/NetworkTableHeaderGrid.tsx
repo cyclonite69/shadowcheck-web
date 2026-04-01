@@ -156,6 +156,7 @@ export const NetworkTableHeaderGrid = ({
                 <input
                   type="checkbox"
                   checked={allSelected}
+                  aria-label="Select all networks"
                   ref={(el) => {
                     if (el) el.indeterminate = someSelected && !allSelected;
                   }}

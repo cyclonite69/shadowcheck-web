@@ -1,4 +1,4 @@
-import { SECURITY_TYPE_COLORS } from '../analytics/utils/chartConstants';
+import { SECURITY_TYPE_COLORS } from '../../constants/colors';
 
 interface SecurityBadgeProps {
   security: string | null | undefined;

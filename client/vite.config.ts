@@ -49,6 +49,10 @@ export default defineConfig({
             if (id.includes('mapbox-gl')) {
               return 'vendor-mapbox';
             }
+            // xterm is only used on admin page — isolate it
+            if (id.includes('@xterm') || id.includes('xterm')) {
+              return 'vendor-xterm';
+            }
             // Bundle core React runtime to avoid splitting cross dependencies
             const reactDeps = [
               'react-dom',

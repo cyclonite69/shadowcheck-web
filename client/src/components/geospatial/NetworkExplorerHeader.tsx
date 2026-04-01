@@ -97,7 +97,7 @@ export const NetworkExplorerHeader = ({
         >
           ✓
         </div>
-        <span style={{ ...mono, fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+        <span style={{ ...mono, fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
           Filters apply to list + map
         </span>
       </label>
@@ -195,7 +195,7 @@ export const NetworkExplorerHeader = ({
               ? '0.5px solid rgba(59,130,246,0.25)'
               : '0.5px solid rgba(255,255,255,0.10)',
             background: filtersOpen ? 'rgba(59,130,246,0.10)' : 'rgba(255,255,255,0.03)',
-            color: filtersOpen ? '#60a5fa' : 'rgba(255,255,255,0.45)',
+            color: filtersOpen ? '#60a5fa' : 'rgba(255,255,255,0.5)',
             ...mono,
             fontSize: '11px',
             cursor: 'pointer',

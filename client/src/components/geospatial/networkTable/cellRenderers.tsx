@@ -50,6 +50,7 @@ const renderSelect = ({
       <input
         type="checkbox"
         checked={isSelected}
+        aria-label={`Select network ${row.ssid || row.bssid || ''}`}
         onChange={handleChange}
         onClick={(event) => event.stopPropagation()}
         style={{ cursor: 'pointer', margin: 0, display: 'block' }}

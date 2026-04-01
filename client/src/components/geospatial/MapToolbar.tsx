@@ -311,7 +311,7 @@ export const MapToolbar = ({
                 ? '0.5px solid rgba(59,130,246,0.3)'
                 : '0.5px solid rgba(255,255,255,0.10)',
               background: navOpen ? 'rgba(59,130,246,0.10)' : 'rgba(255,255,255,0.03)',
-              color: navOpen ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+              color: navOpen ? '#60a5fa' : 'rgba(255,255,255,0.5)',
               fontSize: '16px',
               cursor: 'pointer',
               display: 'flex',
@@ -648,7 +648,7 @@ export const MapToolbar = ({
                   ? '0.5px solid rgba(59,130,246,0.3)'
                   : '0.5px solid rgba(255,255,255,0.10)',
                 background: 'rgba(255,255,255,0.03)',
-                color: hasActiveLayers ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                color: hasActiveLayers ? '#60a5fa' : 'rgba(255,255,255,0.5)',
                 fontSize: '11px',
                 ...mono,
                 cursor: 'pointer',
