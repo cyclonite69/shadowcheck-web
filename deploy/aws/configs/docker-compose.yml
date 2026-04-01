@@ -48,8 +48,10 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: shadowcheck_user
+      DB_ADMIN_USER: shadowcheck_admin
       DB_NAME: shadowcheck_db
       # DB_PASSWORD loaded from AWS Secrets Manager at runtime
+      # DB_ADMIN_PASSWORD loaded from AWS Secrets Manager at runtime
       # Security
       FORCE_HTTPS: "true"
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
