@@ -493,7 +493,7 @@ The system utilizes a sophisticated SQL-based scoring engine (`calculate_threat_
 ### False Positive Filtering
 
 - **Cellular Exclusion**: Cellular networks (G/L/N) are ignored unless they exhibit extreme ranges (>50km).
-- **Temporal Gating**: Observations older than the system's baseline (Jan 1, 2000) are purged.
+- **Temporal Gating**: Observations with invalid timestamps (before Jan 1, 2000) are rejected at import time. This is a data quality gate to prevent broken Kismet exports and device clock bugs (1900/1970 epoch placeholders) from corrupting the dataset. Historical observation data with valid timestamps is retained indefinitely.
 - **Statistical Significance**: Requires at least 2 distinct location sightings to calculate a score.
 
 ## Security Architecture
