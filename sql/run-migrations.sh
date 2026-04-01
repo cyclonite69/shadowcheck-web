@@ -71,20 +71,46 @@ for migration_file in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
 
     echo -n "  Applying: $filename ... "
 
-    # Run migration in a transaction
-    if psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q \
-        -c "BEGIN;" \
-        -f "$migration_file" \
-        -c "INSERT INTO app.schema_migrations (filename) VALUES ('$filename');" \
-        -c "COMMIT;" 2>/tmp/migration_error; then
-        echo -e "${GREEN}OK${NC}"
-        APPLIED=$((APPLIED + 1))
+    # Check if migration contains CREATE INDEX CONCURRENTLY (which cannot run in a transaction)
+    if grep -q "CREATE INDEX CONCURRENTLY" "$migration_file"; then
+        # Run CONCURRENTLY migrations outside any transaction
+        if psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q \
+            -f "$migration_file" 2>/tmp/migration_error; then
+            # Record success
+            if psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q \
+                -c "INSERT INTO app.schema_migrations (filename) VALUES ('$filename');" 2>/tmp/migration_error; then
+                echo -e "${GREEN}OK${NC}"
+                APPLIED=$((APPLIED + 1))
+            else
+                echo -e "${RED}FAILED${NC}"
+                echo -e "${RED}    Error: $(cat /tmp/migration_error)${NC}"
+                FAILED=$((FAILED + 1))
+                echo -e "${RED}Aborting on first failure to avoid partial migration state.${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${RED}FAILED${NC}"
+            echo -e "${RED}    Error: $(cat /tmp/migration_error)${NC}"
+            FAILED=$((FAILED + 1))
+            echo -e "${RED}Aborting on first failure to avoid partial migration state.${NC}"
+            exit 1
+        fi
     else
-        echo -e "${RED}FAILED${NC}"
-        echo -e "${RED}    Error: $(cat /tmp/migration_error)${NC}"
-        FAILED=$((FAILED + 1))
-        echo -e "${RED}Aborting on first failure to avoid partial migration state.${NC}"
-        exit 1
+        # Run normal migrations in a transaction for ACID compliance
+        if psql -U "$MIGRATION_DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q \
+            -c "BEGIN;" \
+            -f "$migration_file" \
+            -c "INSERT INTO app.schema_migrations (filename) VALUES ('$filename');" \
+            -c "COMMIT;" 2>/tmp/migration_error; then
+            echo -e "${GREEN}OK${NC}"
+            APPLIED=$((APPLIED + 1))
+        else
+            echo -e "${RED}FAILED${NC}"
+            echo -e "${RED}    Error: $(cat /tmp/migration_error)${NC}"
+            FAILED=$((FAILED + 1))
+            echo -e "${RED}Aborting on first failure to avoid partial migration state.${NC}"
+            exit 1
+        fi
     fi
 done
 
