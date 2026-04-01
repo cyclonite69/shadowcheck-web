@@ -5,6 +5,17 @@ import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
+import {
+  setupPopupDrag,
+  cleanupPopupDrag,
+  type PopupDragState,
+} from '../../utils/geospatial/setupPopupDrag';
+import {
+  setupPopupTether,
+  updateTetherDuringDrag,
+  cleanupPopupTether,
+  type PopupTetherState,
+} from '../../utils/geospatial/setupPopupTether';
 import { DEFAULT_ZOOM, MAP_STYLES } from '../../constants/network';
 import { mapboxApi } from '../../api/mapboxApi';
 import {
@@ -221,7 +232,7 @@ export const useGeospatialMap = ({
             );
             const anchor = getPopupAnchor(map, e.lngLat, popupHTML);
 
-            new (mapboxgl as any).Popup({
+            const popup = new (mapboxgl as any).Popup({
               anchor,
               offset: 15,
               className: 'sc-popup',
@@ -233,6 +244,31 @@ export const useGeospatialMap = ({
               .setLngLat(e.lngLat)
               .setHTML(popupHTML)
               .addTo(map);
+
+            // Setup drag functionality
+            let dragState: PopupDragState | null = null;
+            let tetherState: PopupTetherState | null = null;
+
+            dragState = setupPopupDrag(popup, (offset) => {
+              if (tetherState && popup.getElement()) {
+                updateTetherDuringDrag(tetherState, popup.getElement()!);
+              }
+            });
+
+            // Setup tether line
+            tetherState = setupPopupTether(popup, map, e.lngLat);
+
+            // Cleanup on popup close
+            const originalRemove = popup.remove.bind(popup);
+            popup.remove = function () {
+              if (dragState) {
+                cleanupPopupDrag(popup, dragState);
+              }
+              if (tetherState) {
+                cleanupPopupTether(tetherState);
+              }
+              return originalRemove();
+            };
           });
 
           // Add hover circle source and layer (added BEFORE observation-points so it renders below)
@@ -273,17 +309,34 @@ export const useGeospatialMap = ({
             } as any);
 
             map.addLayer({
+              id: 'hover-circle-radius-line',
+              type: 'line',
+              source: 'hover-circle',
+              filter: ['==', ['geometry-type'], 'LineString'],
+              slot: 'middle',
+              paint: {
+                'line-color': ['get', 'color'],
+                'line-width': 1.5,
+                'line-dasharray': [2, 2],
+                'line-opacity': 0.7,
+              },
+            } as any);
+
+            map.addLayer({
               id: 'hover-circle-label',
               type: 'symbol',
               source: 'hover-circle',
-              filter: ['==', ['geometry-type'], 'Point'],
+              filter: ['==', ['geometry-type'], 'LineString'],
               slot: 'top',
               layout: {
                 'text-field': ['get', 'label'],
-                'text-size': 13,
+                'text-size': 12,
                 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
                 'text-allow-overlap': true,
                 'text-ignore-placement': true,
+                'symbol-placement': 'line',
+                'text-anchor': 'center',
+                'text-offset': [0, -1.5],
               },
               paint: {
                 'text-color': ['get', 'color'],
@@ -321,17 +374,36 @@ export const useGeospatialMap = ({
               'observation-lines'
             );
 
+            map.addLayer(
+              {
+                id: 'hover-circle-radius-line',
+                type: 'line',
+                source: 'hover-circle',
+                filter: ['==', ['geometry-type'], 'LineString'],
+                paint: {
+                  'line-color': ['get', 'color'],
+                  'line-width': 1.5,
+                  'line-dasharray': [2, 2],
+                  'line-opacity': 0.7,
+                },
+              },
+              'observation-lines'
+            );
+
             map.addLayer({
               id: 'hover-circle-label',
               type: 'symbol',
               source: 'hover-circle',
-              filter: ['==', ['geometry-type'], 'Point'],
+              filter: ['==', ['geometry-type'], 'LineString'],
               layout: {
                 'text-field': ['get', 'label'],
-                'text-size': 13,
+                'text-size': 12,
                 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
                 'text-allow-overlap': true,
                 'text-ignore-placement': true,
+                'symbol-placement': 'line',
+                'text-anchor': 'center',
+                'text-offset': [0, -1.5],
               },
               paint: {
                 'text-color': ['get', 'color'],
@@ -383,6 +455,14 @@ export const useGeospatialMap = ({
 
             const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
             if (hoverCircleSource) {
+              // Calculate radius line coordinates: from center to east cardinal point
+              const radiusKm = signalRadius / 1000;
+              const radiusLng = radiusKm / (111.32 * Math.cos((center[1] * Math.PI) / 180));
+              const radiusLineCoords: [number, number][] = [
+                center,
+                [center[0] + radiusLng, center[1]],
+              ];
+
               hoverCircleSource.setData({
                 type: 'FeatureCollection',
                 features: [
@@ -391,8 +471,8 @@ export const useGeospatialMap = ({
                     properties: { color: bssidColor, strokeColor: bssidColor },
                   },
                   {
-                    type: 'Feature',
-                    geometry: { type: 'Point', coordinates: center },
+                    type: 'Feature' as const,
+                    geometry: { type: 'LineString' as const, coordinates: radiusLineCoords },
                     properties: { label: radiusLabel, color: bssidColor },
                   },
                 ],

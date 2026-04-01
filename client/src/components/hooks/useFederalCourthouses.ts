@@ -3,6 +3,18 @@ import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'ma
 import { agencyApi } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { renderCourthousePopupCard } from '../../utils/geospatial/renderMapPopupCards';
+import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
+import {
+  setupPopupDrag,
+  cleanupPopupDrag,
+  type PopupDragState,
+} from '../../utils/geospatial/setupPopupDrag';
+import {
+  setupPopupTether,
+  updateTetherDuringDrag,
+  cleanupPopupTether,
+  type PopupTetherState,
+} from '../../utils/geospatial/setupPopupTether';
 
 interface CourthouseFeature {
   type: 'Feature';
@@ -247,10 +259,39 @@ export const useFederalCourthouses = (
         address,
       });
 
-      new (window as any).mapboxgl.Popup({ offset: 15, className: 'sc-popup', maxWidth: '360px' })
+      const popup = new (window as any).mapboxgl.Popup({
+        anchor: getPopupAnchor(map, e.lngLat, html),
+        offset: 15,
+        className: 'sc-popup',
+        maxWidth: '360px',
+      })
         .setLngLat(e.lngLat)
         .setHTML(html)
         .addTo(map);
+
+      // Setup drag and tether
+      let dragState: PopupDragState | null = null;
+      let tetherState: PopupTetherState | null = null;
+
+      dragState = setupPopupDrag(popup, (offset) => {
+        if (tetherState && popup.getElement()) {
+          updateTetherDuringDrag(tetherState, popup.getElement()!);
+        }
+      });
+
+      tetherState = setupPopupTether(popup, map, e.lngLat);
+
+      // Cleanup on popup close
+      const originalRemove = popup.remove.bind(popup);
+      popup.remove = function () {
+        if (dragState) {
+          cleanupPopupDrag(popup, dragState);
+        }
+        if (tetherState) {
+          cleanupPopupTether(tetherState);
+        }
+        return originalRemove();
+      };
     };
 
     addSourceAndLayers();

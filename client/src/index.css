@@ -247,6 +247,38 @@ body {
     color: #ef4444;
   }
 
+  /* Popup Drag Styling */
+  .sc-popup-draggable {
+    cursor: grab;
+  }
+
+  .sc-popup-draggable.dragging {
+    cursor: grabbing;
+    z-index: 2000;
+  }
+
+  .popup-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .popup-drag-handle:hover {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .sc-popup-draggable.dragging .popup-drag-handle {
+    cursor: grabbing;
+  }
+
   /* Deck.gl Tooltip Styling (Kepler/WiGLE pages) */
   .deck-tooltip {
     background: transparent !important;

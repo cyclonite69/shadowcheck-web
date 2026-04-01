@@ -3,6 +3,17 @@ import type * as mapboxglType from 'mapbox-gl';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
+import {
+  setupPopupDrag,
+  cleanupPopupDrag,
+  type PopupDragState,
+} from '../../utils/geospatial/setupPopupDrag';
+import {
+  setupPopupTether,
+  updateTetherDuringDrag,
+  cleanupPopupTether,
+  type PopupTetherState,
+} from '../../utils/geospatial/setupPopupTether';
 
 export const attachClickHandlers = (
   map: Map,
@@ -28,7 +39,7 @@ export const attachClickHandlers = (
     );
     const anchor = getPopupAnchor(map, e.lngLat, tooltipHTML);
 
-    new mapboxgl.Popup({
+    const popup = new mapboxgl.Popup({
       anchor,
       offset: 15,
       className: 'sc-popup',
@@ -38,6 +49,30 @@ export const attachClickHandlers = (
       .setLngLat(e.lngLat)
       .setHTML(tooltipHTML)
       .addTo(map);
+
+    // Setup drag and tether
+    let dragState: PopupDragState | null = null;
+    let tetherState: PopupTetherState | null = null;
+
+    dragState = setupPopupDrag(popup, (offset) => {
+      if (tetherState && popup.getElement()) {
+        updateTetherDuringDrag(tetherState, popup.getElement()!);
+      }
+    });
+
+    tetherState = setupPopupTether(popup, map, e.lngLat);
+
+    // Cleanup on popup close
+    const originalRemove = popup.remove.bind(popup);
+    popup.remove = function () {
+      if (dragState) {
+        cleanupPopupDrag(popup, dragState);
+      }
+      if (tetherState) {
+        cleanupPopupTether(tetherState);
+      }
+      return originalRemove();
+    };
   };
 
   const handleClusterClick = (sourceId: string, clusterLayerId: string) => (e: any) => {

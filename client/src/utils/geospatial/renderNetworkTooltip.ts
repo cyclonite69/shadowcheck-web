@@ -338,9 +338,12 @@ export const renderNetworkTooltip = (props: any): string => {
   return `
 <div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:2px solid ${bc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
-    <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:flex;align-items:center;gap:6px;">
-      <div style="flex-shrink:0;">${getRadioSVG(displayRadioType, bc)}</div>
-      <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
+    <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;">
+      <span class="popup-drag-handle" title="Drag to move">⋮⋮</span>
+      <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;display:flex;align-items:center;gap:6px;">
+        <div style="flex-shrink:0;">${getRadioSVG(displayRadioType, bc)}</div>
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
+      </div>
     </div>
     <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>
   </div>
