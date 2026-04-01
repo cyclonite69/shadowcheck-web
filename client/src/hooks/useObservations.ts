@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import type { Observation } from '../types/network';
 import { apiClient } from '../api/client';
@@ -38,6 +38,13 @@ export function useObservations(
   );
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
   const currentPage = useFilterStore((state) => state.currentPage);
+
+  // Create a ref to track if filter state actually changed to avoid spurious refetches
+  const prevFilterStateRef = useRef<string>('');
+  const filterStateChanged = prevFilterStateRef.current !== JSON.stringify(debouncedFilterState);
+  if (filterStateChanged) {
+    prevFilterStateRef.current = JSON.stringify(debouncedFilterState);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -148,7 +155,7 @@ export function useObservations(
 
     fetchObservations();
     return () => controller.abort();
-  }, [selectedNetworks, JSON.stringify(debouncedFilterState), useFilters, currentPage]);
+  }, [selectedNetworks, filterStateChanged, useFilters, currentPage]);
 
   return {
     observationsByBssid,

@@ -31,7 +31,7 @@ interface GeospatialTableContentProps {
   renderBudget: number;
 }
 
-export const GeospatialTableContent: React.FC<GeospatialTableContentProps> = ({
+const GeospatialTableContentComponent: React.FC<GeospatialTableContentProps> = ({
   state,
   networks,
   loadingNetworks,
@@ -104,3 +104,5 @@ export const GeospatialTableContent: React.FC<GeospatialTableContentProps> = ({
     loadingObservations={loadingObservations}
   />
 );
+
+export const GeospatialTableContent = React.memo(GeospatialTableContentComponent);

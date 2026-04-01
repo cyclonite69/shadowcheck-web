@@ -43,7 +43,7 @@ interface GeospatialOverlayContentProps {
   agenciesError: any;
 }
 
-export const GeospatialOverlayContent: React.FC<GeospatialOverlayContentProps> = ({
+const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps> = ({
   state,
   contextMenu,
   tagLoading,
@@ -160,3 +160,5 @@ export const GeospatialOverlayContent: React.FC<GeospatialOverlayContentProps> =
     )}
   </>
 );
+
+export const GeospatialOverlayContent = React.memo(GeospatialOverlayContentComponent);
