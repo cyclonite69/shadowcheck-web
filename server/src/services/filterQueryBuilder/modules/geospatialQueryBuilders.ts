@@ -24,8 +24,8 @@ export function buildGeospatialListQuery(
         SELECT
           ${selectClause}
         FROM filtered_obs o
-        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
-        LEFT JOIN app.network_locations nl ON UPPER(nl.bssid) = UPPER(o.bssid)
+        LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
+        LEFT JOIN app.network_locations nl ON nl.bssid = o.bssid
         ORDER BY o.time DESC
         ${limitClause}
       `,
@@ -42,9 +42,9 @@ export function buildGeospatialListQuery(
       SELECT
         ${selectClause}
       FROM filtered_obs o
-      JOIN rollup r ON UPPER(r.bssid) = UPPER(o.bssid)
-      LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
-      LEFT JOIN app.network_locations nl ON UPPER(nl.bssid) = UPPER(o.bssid)
+      JOIN rollup r ON r.bssid = o.bssid
+      LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
+      LEFT JOIN app.network_locations nl ON nl.bssid = o.bssid
       WHERE ${networkWhere.join(' AND ')}
       ORDER BY o.time DESC
       ${limitClause}
@@ -71,8 +71,8 @@ export function buildGeospatialCountQuery(
       )
       SELECT COUNT(*) as total
       FROM filtered_obs o
-      JOIN rollup r ON UPPER(r.bssid) = UPPER(o.bssid)
-      LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+      JOIN rollup r ON r.bssid = o.bssid
+      LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
       WHERE ${predicates.join('\n        AND ')}
     `,
     ...buildGeospatialMetadata(ctx),

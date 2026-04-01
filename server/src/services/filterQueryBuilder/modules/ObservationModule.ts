@@ -14,9 +14,7 @@ export class ObservationModule {
     const { where, joins } = this.buildObservationFilters();
 
     if (selectedBssids.length > 0) {
-      where.push(
-        `UPPER(o.bssid) = ANY(${this.ctx.addParam(selectedBssids.map((b) => b.toUpperCase()))})`
-      );
+      where.push(`o.bssid = ANY(${this.ctx.addParam(selectedBssids)})`);
     }
 
     const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';

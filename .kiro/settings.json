@@ -1,0 +1,22 @@
+{
+  "kiroAgent.trustedCommands": [
+    "git *",
+    "docker *",
+    "docker compose *",
+    "npm *",
+    "pnpm *",
+    "node *",
+    "cat *",
+    "ls *",
+    "find *",
+    "grep *"
+  ],
+  "kiroAgent.commandDenylist": [
+    "rm -rf",
+    "sudo",
+    "mkfs",
+    "dd if=",
+    "curl | sh",
+    "wget | sh"
+  ]
+}
