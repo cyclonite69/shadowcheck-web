@@ -65,6 +65,17 @@ Comprehensive datasets of federal law enforcement and judicial locations for geo
 - **ML iteration script**: Offline model comparison (logistic regression, random forest, gradient boosting).
 - **Threat analytics**: Quick and detailed threat detection endpoints.
 
+### Threat Score Calculation
+
+| Factor                   | Weight | Condition                                                            |
+| ------------------------ | ------ | -------------------------------------------------------------------- |
+| **Following Pattern**    | 35%    | Multiple clusters >2km from home; max distance spread.               |
+| **Parked Surveillance**  | 20%    | Repeated detections within 100m and 10-minute windows.               |
+| **Location Correlation** | 15%    | Percentage of observations near home vs. distinct clusters.          |
+| **Equipment Profile**    | 10%    | Manufacturer OUI matching (industrial/vehicular) and SSID patterns.  |
+| **Temporal Persistence** | 5%     | Number of distinct days observed.                                    |
+| **Fleet Bonus**          | 15%    | Correlation with other high-score networks (same manufacturer/SSID). |
+
 ## Admin, Auth, & Security
 
 - **Authentication**: Session-based login, logout, and user info endpoints.

@@ -16,6 +16,7 @@ import {
   cleanupPopupTether,
   type PopupTetherState,
 } from '../../utils/geospatial/setupPopupTether';
+import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 import { DEFAULT_ZOOM, MAP_STYLES } from '../../constants/network';
 import { mapboxApi } from '../../api/mapboxApi';
 import {
@@ -248,6 +249,7 @@ export const useGeospatialMap = ({
             // Setup drag functionality
             let dragState: PopupDragState | null = null;
             let tetherState: PopupTetherState | null = null;
+            let pinCleanup: (() => void) | null = null;
 
             dragState = setupPopupDrag(popup, (offset) => {
               if (tetherState && popup.getElement()) {
@@ -258,6 +260,9 @@ export const useGeospatialMap = ({
             // Setup tether line
             tetherState = setupPopupTether(popup, map, e.lngLat);
 
+            // Setup pin to viewport functionality
+            pinCleanup = setupPopupPin(popup, map);
+
             // Cleanup on popup close
             const originalRemove = popup.remove.bind(popup);
             popup.remove = function () {
@@ -266,6 +271,9 @@ export const useGeospatialMap = ({
               }
               if (tetherState) {
                 cleanupPopupTether(tetherState);
+              }
+              if (pinCleanup) {
+                pinCleanup();
               }
               return originalRemove();
             };
