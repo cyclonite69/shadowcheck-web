@@ -20,7 +20,7 @@
   "title": "ShadowCheck \u2014 Coordinated Fleet Detection at Home",
   "description": "Home-location burst and recurrence dashboard for Aumovio, Air Link, WNC, GM, and Sierra patterns.",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "time": {
     "from": "now-1y",
     "to": "now"
@@ -930,12 +930,76 @@
       ]
     },
     {
+      "type": "text",
+      "title": "Anchor Point Presence Verification",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 149
+      },
+      "options": {
+        "content": "## Device Location Verification\n\n**325 HOME anchors** (stationary neighbor routers) and **9 GRANGER_ST anchors** (Detroit corridor routers, including mounted security cameras). Use `app.verify_device_presence('YYYY-MM-DD')` to check where the device was on any date.",
+        "mode": "markdown"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Anchor point inventory",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 153
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "SELECT location_label, COUNT(*) as anchors, SUM(CASE WHEN confidence IN ('high','verified') THEN 1 ELSE 0 END) as high_confidence, SUM(CASE WHEN wigle_confirmed THEN 1 ELSE 0 END) as wigle_confirmed, ROUND(AVG(avg_signal)::numeric, 1) as avg_signal FROM app.anchor_points GROUP BY location_label ORDER BY anchors DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Presence check \u2014 key dates",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 153
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "SELECT d.check_date, v.* FROM (\n  VALUES ('2024-05-23'::date), ('2025-10-11'), ('2025-10-12'), ('2025-01-25'), ('2025-07-23'), ('2025-09-20')\n) d(check_date)\nCROSS JOIN LATERAL app.verify_device_presence(d.check_date) v\nORDER BY d.check_date, v.anchors_detected DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "id": 15,
       "type": "text",
       "title": "Navigate dashboards",
       "gridPos": {
         "x": 0,
-        "y": 149,
+        "y": 161,
         "w": 24,
         "h": 2
       },
