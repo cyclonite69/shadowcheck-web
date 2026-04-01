@@ -99,40 +99,64 @@ const buildFilteredObservationsResponse = async (
   filters: Filters,
   enabled: EnabledFlags,
   limit: number,
-  selectedBssids: string[],
-  pageType: 'geospatial' | 'wigle'
+  offset: number = 0,
+  selectedBssids: string[] = [],
+  pageType: 'geospatial' | 'wigle' = 'geospatial',
+  includeTotalAndTruncation: boolean = false
 ) => {
   const builder = new UniversalFilterQueryBuilder(filters, enabled, {
     pageType,
   });
+
+  // Fetch one extra row to detect truncation
+  const fetchLimit = includeTotalAndTruncation ? limit + 1 : limit;
   const { sql, params, appliedFilters }: FilterQueryResult = builder.buildGeospatialQuery({
-    limit,
+    limit: fetchLimit,
+    offset,
     selectedBssids,
   });
   const start = Date.now();
   const result = await v2Service.executeV2Query(sql, params);
   const durationMs = Date.now() - start;
 
+  // Detect if more results exist beyond this page
+  const isTruncated = includeTotalAndTruncation && (result.rows?.length || 0) > limit;
+  const dataRows =
+    isTruncated && includeTotalAndTruncation
+      ? (result.rows || []).slice(0, limit)
+      : result.rows || [];
+  const rowCount = dataRows.length;
+
   if (DEBUG_GEOSPATIAL || durationMs > ROUTE_CONFIG.slowGeospatialQueryMs) {
     logger.info('[geospatial] filtered/observations query', {
       durationMs,
-      rows: result.rowCount || 0,
+      rows: rowCount,
       limit,
+      offset,
+      truncated: isTruncated,
       selectedBssids: Array.isArray(selectedBssids) ? selectedBssids.length : 0,
       enabledCount: Object.values(enabled).filter(Boolean).length,
       appliedCount: appliedFilters.length,
     });
   }
 
-  return {
+  const response: any = {
     ok: true,
-    data: result.rows || [],
+    data: dataRows,
     meta: {
       queryTime: Date.now(),
       queryDurationMs: durationMs,
-      resultCount: result.rowCount || 0,
+      resultCount: rowCount,
     },
   };
+
+  if (includeTotalAndTruncation) {
+    response.truncated = isTruncated;
+    response.offset = offset;
+    response.limit = limit;
+  }
+
+  return response;
 };
 
 const createHandlers = (deps: HandlerDeps) => {
@@ -377,6 +401,8 @@ const createHandlers = (deps: HandlerDeps) => {
       parseInt(req.query.limit as string, 10) || ROUTE_CONFIG.observationsDefaultLimit,
       ROUTE_CONFIG.observationsMaxLimit
     );
+    const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
+    const includeTotalAndTruncation = parseInt(req.query.include_total as string, 10) === 1;
     const selectedBssids = parseJsonParam<string[]>(
       req.query.bssids as string | undefined,
       [],
@@ -391,8 +417,10 @@ const createHandlers = (deps: HandlerDeps) => {
         filters,
         enabled,
         limit,
+        offset,
         selectedBssids,
-        resolvePageType(req)
+        resolvePageType(req),
+        includeTotalAndTruncation
       )
     );
   };
@@ -416,6 +444,8 @@ const createHandlers = (deps: HandlerDeps) => {
       Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : ROUTE_CONFIG.observationsDefaultLimit,
       ROUTE_CONFIG.observationsMaxLimit
     );
+    const offset = Math.max(0, typeof payload.offset === 'number' ? payload.offset : 0);
+    const includeTotalAndTruncation = payload.include_total === 1;
     const selectedBssids = Array.isArray(payload.bssids)
       ? payload.bssids.filter((v): v is string => typeof v === 'string')
       : [];
@@ -428,8 +458,10 @@ const createHandlers = (deps: HandlerDeps) => {
         filters as Filters,
         enabled as EnabledFlags,
         limit,
+        offset,
         selectedBssids,
-        resolveBodyPageType(req.body)
+        resolveBodyPageType(req.body),
+        includeTotalAndTruncation
       )
     );
   };
