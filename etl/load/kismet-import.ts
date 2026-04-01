@@ -55,7 +55,7 @@ class KismetImporter {
           mapper: (row: any) => ({
             ts_sec: row.ts_sec,
             ts_usec: row.ts_usec,
-            timestamp: new Date(row.ts_sec * 1000),
+            timestamp: row.ts_sec ? new Date(row.ts_sec * 1000) : new Date(0),
             datasource: row.datasource,
             json_data: row.datasource_serialized,
             session_id: this.sessionId,
@@ -76,8 +76,8 @@ class KismetImporter {
             avg_lat: row.avg_lat,
             avg_lon: row.avg_lon,
             bytes_data: row.bytes_data,
-            first_time: new Date(row.first_time * 1000),
-            last_time: new Date(row.last_time * 1000),
+            first_time: row.first_time ? new Date(row.first_time * 1000) : new Date(0),
+            last_time: row.last_time ? new Date(row.last_time * 1000) : new Date(0),
             device_data: row.device_serialized,
             session_id: this.sessionId,
             lat: row.avg_lat,
@@ -90,7 +90,7 @@ class KismetImporter {
           mapper: (row: any) => ({
             ts_sec: row.ts_sec,
             ts_usec: row.ts_usec,
-            timestamp: new Date(row.ts_sec * 1000),
+            timestamp: row.ts_sec ? new Date(row.ts_sec * 1000) : new Date(0),
             phyname: row.phyname,
             sourcemac: row.sourcemac,
             destmac: row.destmac,
@@ -122,7 +122,7 @@ class KismetImporter {
           mapper: (row: any) => ({
             ts_sec: row.ts_sec,
             ts_usec: row.ts_usec,
-            timestamp: new Date(row.ts_sec * 1000),
+            timestamp: row.ts_sec ? new Date(row.ts_sec * 1000) : new Date(0),
             phyname: row.phyname,
             devmac: row.devmac,
             lat: row.lat,
@@ -138,7 +138,7 @@ class KismetImporter {
           mapper: (row: any) => ({
             ts_sec: row.ts_sec,
             ts_usec: row.ts_usec,
-            timestamp: new Date(row.ts_sec * 1000),
+            timestamp: row.ts_sec ? new Date(row.ts_sec * 1000) : new Date(0),
             msgtype: row.msgtype,
             message: row.message,
             session_id: this.sessionId,
@@ -150,7 +150,7 @@ class KismetImporter {
           mapper: (row: any) => ({
             ts_sec: row.ts_sec,
             ts_usec: row.ts_usec,
-            timestamp: new Date(row.ts_sec * 1000),
+            timestamp: row.ts_sec ? new Date(row.ts_sec * 1000) : new Date(0),
             snaptype: row.snaptype,
             json_data: row.snapshot_serialized,
             session_id: this.sessionId,
@@ -162,7 +162,7 @@ class KismetImporter {
           mapper: (row: any) => ({
             ts_sec: row.ts_sec,
             ts_usec: row.ts_usec,
-            timestamp: new Date(row.ts_sec * 1000),
+            timestamp: row.ts_sec ? new Date(row.ts_sec * 1000) : new Date(0),
             phyname: row.phyname,
             devmac: row.devmac,
             data_type: row.dataype,
@@ -209,27 +209,45 @@ class KismetImporter {
   ): Promise<number> {
     console.log(`📦 Processing ${sourceTable}...`);
 
-    return new Promise<number>((resolve, reject) => {
-      db.all(`SELECT * FROM ${sourceTable}`, async (err, rows) => {
-        if (err) {
-          console.warn(`   ⚠️  Source table '${sourceTable}' not found or empty. Skipping.`);
-          return resolve(0);
-        }
-
-        if (rows.length === 0) return resolve(0);
-
-        let totalInserted = 0;
-        const chunks = this.chunkArray(rows, CONFIG.BATCH_SIZE);
-        for (const chunk of chunks) {
-          const mapped = chunk.map(mapper);
-          const result = await this.insertBatch(targetTable, mapped);
-          totalInserted += result;
-        }
-
-        console.log(`   ✔️  Imported ${totalInserted} rows into ${targetTable}`);
-        resolve(totalInserted);
+    const rowCount = await new Promise<number>((resolve) => {
+      db.get(`SELECT COUNT(*) as cnt FROM ${sourceTable}`, (err, row: any) => {
+        if (err) return resolve(0);
+        resolve(row?.cnt || 0);
       });
     });
+
+    if (rowCount === 0) {
+      console.log(`   ⏭️  Empty table, skipping.`);
+      return 0;
+    }
+
+    console.log(`   📊 ${rowCount.toLocaleString()} rows to import`);
+
+    let totalInserted = 0;
+    const pageSize = CONFIG.BATCH_SIZE;
+
+    for (let offset = 0; offset < rowCount; offset += pageSize) {
+      const rows = await new Promise<any[]>((resolve, reject) => {
+        db.all(`SELECT * FROM ${sourceTable} LIMIT ${pageSize} OFFSET ${offset}`, (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        });
+      });
+
+      if (rows.length === 0) break;
+
+      const mapped = rows.map(mapper);
+      const result = await this.insertBatch(targetTable, mapped);
+      totalInserted += result;
+
+      const pct = ((Math.min(offset + pageSize, rowCount) / rowCount) * 100).toFixed(1);
+      process.stdout.write(
+        `\r   ⏳ ${Math.min(offset + pageSize, rowCount).toLocaleString()}/${rowCount.toLocaleString()} (${pct}%) — ${totalInserted.toLocaleString()} inserted`
+      );
+    }
+
+    console.log(`\n   ✔️  Imported ${totalInserted.toLocaleString()} rows into ${targetTable}`);
+    return totalInserted;
   }
 
   private async insertBatch(table: string, records: any[]): Promise<number> {
@@ -238,9 +256,11 @@ class KismetImporter {
     const keys = Object.keys(records[0]).filter((k) => k !== 'lat' && k !== 'lon');
     const hasCoords = 'lat' in records[0] && 'lon' in records[0];
 
+    const paramsPerRow = keys.length + (hasCoords ? 2 : 0);
+
     const placeholders = records
       .map((_, rIdx) => {
-        const rowStart = rIdx * keys.length + 1;
+        const rowStart = rIdx * paramsPerRow + 1;
         let p = `(${keys.map((_, kIdx) => `$${rowStart + kIdx}`).join(', ')}`;
         if (hasCoords) {
           const latIdx = rowStart + keys.length;
