@@ -415,6 +415,7 @@ NODE_ENV=development
 PORT=3001
 DB_HOST=localhost
 DB_USER=shadowcheck_user
+DB_ADMIN_USER=shadowcheck_admin
 DB_NAME=shadowcheck_db
 REDIS_HOST=localhost
 CORS_ORIGINS=http://${PUBLIC_IP},https://${PUBLIC_IP},http://localhost,https://localhost
