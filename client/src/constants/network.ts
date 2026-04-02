@@ -80,7 +80,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   },
   rawLatitude: { label: 'Raw Lat', width: 100, sortable: false, default: false },
   rawLongitude: { label: 'Raw Lon', width: 100, sortable: false, default: false },
-  distanceFromHome: { label: 'Distance (m)', width: 100, sortable: true, default: true },
+  distanceFromHome: { label: 'Distance (km)', width: 100, sortable: true, default: true },
   accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
   stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
   firstSeen: {
@@ -133,7 +133,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
   max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: true, default: false },
   altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: true, default: false },
-  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: true },
+  max_distance_meters: { label: 'Max Dist (km)', width: 110, sortable: true, default: true },
   last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
   // Tag columns (from network_tags JOIN)
   is_ignored: { label: 'Ignored', width: 80, sortable: true, default: false },

@@ -22,6 +22,11 @@ interface NetworkTableRowProps {
   style?: React.CSSProperties;
 }
 
+const formatExplorerDistanceKm = (meters: number | null | undefined) => {
+  if (meters == null || !Number.isFinite(meters)) return '—';
+  return `${(meters / 1000).toFixed(2)} km`;
+};
+
 const NetworkTableRowComponent = ({
   net,
   index: _index,
@@ -224,23 +229,14 @@ const NetworkTableRowComponent = ({
           const conf = value as number | null;
           content = conf !== null && conf !== undefined ? `${(conf * 100).toFixed(0)}%` : 'N/A';
         } else if (col === 'max_distance_meters') {
-          // Format distance in meters or km
           const distValue = value as number | null;
-          if (distValue != null) {
-            content =
-              distValue >= 1000
-                ? `${(distValue / 1000).toFixed(2)} km`
-                : `${distValue.toFixed(0)} m`;
-          } else {
-            content = 'N/A';
-          }
+          content = formatExplorerDistanceKm(distValue);
         } else if (col === 'distanceFromHome') {
           const distValue = value as number | null;
-          if (distValue !== null) {
-            content = `${Math.round(distValue)} m`;
-          } else {
-            content = 'Not computed';
-          }
+          content = formatExplorerDistanceKm(distValue);
+        } else if (col === 'notes_count') {
+          const count = value as number | null;
+          content = count && count > 0 ? count : '—';
         } else if (
           ['threat_rule_score', 'threat_ml_score', 'threat_ml_boost', 'threat_score'].includes(
             col as string

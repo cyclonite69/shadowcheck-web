@@ -16,7 +16,7 @@ export const SecurityBadge = ({ security, networkType }: SecurityBadgeProps) => 
   const isWiFiType = normalizedType === 'W';
   const shouldShowDash =
     !normalizedSecurity ||
-    normalizedSecurity === 'UNKNOWN' ||
+    normalizedSecurity.startsWith('UNKNOWN') ||
     normalizedSecurity === '—' ||
     (!isWiFiType && normalizedSecurity === 'OPEN');
   const label = shouldShowDash ? '—' : normalizedSecurity;
