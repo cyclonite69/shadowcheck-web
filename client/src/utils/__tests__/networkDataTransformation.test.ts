@@ -234,4 +234,22 @@ describe('mapApiRowToNetwork', () => {
     expect(net.altitude_span_m).toBe(0.8);
     expect(net.last_altitude_m).toBe(34.9);
   });
+
+  it('parses centroid and weighted coordinates from numeric strings, including negatives', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        centroid_lat: '43.023400',
+        centroid_lon: '-83.696800',
+        weighted_lat: '43.023250',
+        weighted_lon: '-83.696950',
+      },
+      0
+    );
+
+    expect(net.centroid_lat).toBe(43.0234);
+    expect(net.centroid_lon).toBe(-83.6968);
+    expect(net.weighted_lat).toBe(43.02325);
+    expect(net.weighted_lon).toBe(-83.69695);
+  });
 });

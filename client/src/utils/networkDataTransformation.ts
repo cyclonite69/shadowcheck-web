@@ -167,9 +167,9 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,
     rawLongitude:
       typeof row.raw_lon === 'number' ? row.raw_lon : typeof row.lon === 'number' ? row.lon : null,
-    centroid_lat: typeof row.centroid_lat === 'number' ? row.centroid_lat : null,
-    centroid_lon: typeof row.centroid_lon === 'number' ? row.centroid_lon : null,
-    weighted_lat: typeof row.weighted_lat === 'number' ? row.weighted_lat : null,
-    weighted_lon: typeof row.weighted_lon === 'number' ? row.weighted_lon : null,
+    centroid_lat: parseNumericField(row.centroid_lat),
+    centroid_lon: parseNumericField(row.centroid_lon),
+    weighted_lat: parseNumericField(row.weighted_lat),
+    weighted_lon: parseNumericField(row.weighted_lon),
   };
 };
