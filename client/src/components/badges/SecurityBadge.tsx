@@ -2,13 +2,25 @@ import { SECURITY_TYPE_COLORS } from '../../constants/colors';
 
 interface SecurityBadgeProps {
   security: string | null | undefined;
+  networkType?: string | null | undefined;
 }
 
 /** Canonical security label badge aligned to the analytics color palette. */
-export const SecurityBadge = ({ security }: SecurityBadgeProps) => {
-  const isUnknown = !security || security === 'UNKNOWN' || security === '—';
-  const label = isUnknown ? '—' : security;
-  const color = isUnknown
+export const SecurityBadge = ({ security, networkType }: SecurityBadgeProps) => {
+  const normalizedSecurity = String(security || '')
+    .trim()
+    .toUpperCase();
+  const normalizedType = String(networkType || '')
+    .trim()
+    .toUpperCase();
+  const isBluetoothType = normalizedType === 'B' || normalizedType === 'E';
+  const shouldShowDash =
+    !normalizedSecurity ||
+    normalizedSecurity === 'UNKNOWN' ||
+    normalizedSecurity === '—' ||
+    (isBluetoothType && normalizedSecurity === 'OPEN');
+  const label = shouldShowDash ? '—' : normalizedSecurity;
+  const color = shouldShowDash
     ? SECURITY_TYPE_COLORS['UNKNOWN']
     : (SECURITY_TYPE_COLORS[label as string] ?? SECURITY_TYPE_COLORS['UNKNOWN']);
 

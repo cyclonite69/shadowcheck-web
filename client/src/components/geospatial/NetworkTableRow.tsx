@@ -101,7 +101,7 @@ const NetworkTableRowComponent = ({
             />
           );
         } else if (col === 'security') {
-          content = <SecurityBadge security={value as string | null} />;
+          content = <SecurityBadge security={value as string | null} networkType={net.type} />;
         } else if (col === 'signal') {
           const signalValue = value as number | null;
           content = (
