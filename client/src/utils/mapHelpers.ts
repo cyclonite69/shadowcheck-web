@@ -39,10 +39,6 @@ export const createCirclePolygon = (
 //               5   GHz: 3.1  (moderate attenuation)
 //               6   GHz: 3.5  (highest absorption, worst wall penetration)
 //
-// congestionNeighbors — number of OTHER networks observed on the same channel.
-//   Each co-channel neighbour forces the AP to back off / compete, which effectively
-//   reduces the usable range for any one network.  We apply a modest shrink factor:
-//   radius *= 1 / (1 + neighbours * 0.06)  — 6 % reduction per neighbour, soft cap ~50 %.
 /**
  * Reconcile WiGLE type field with capabilities to determine actual radio technology.
  * Capabilities is the source of truth — type is WiGLE's initial classification which
@@ -133,7 +129,7 @@ export const calculateSignalRange = (
   frequencyMhz?: number | null,
   _zoom: number = 10,
   _latitude: number = 40,
-  congestionNeighbors: number = 0,
+  _congestionNeighbors: number = 0,
   radioType?: string | null,
   capabilities?: string | null
 ): number => {
@@ -165,14 +161,7 @@ export const calculateSignalRange = (
   }
 
   const rawDistance = Math.pow(10, (refRssi - signalDbm) / (10 * pathLoss));
-  const clampedDistance = Math.max(6, Math.min(rawDistance, maxRange));
-
-  // Co-channel congestion only applies to WiFi
-  const congestionFactor = tech.startsWith('wifi')
-    ? 1 / (1 + Math.min(congestionNeighbors, 12) * 0.06)
-    : 1;
-
-  return clampedDistance * congestionFactor;
+  return Math.max(6, Math.min(rawDistance, maxRange));
 };
 
 // BSSID-based color generation for consistent network coloring
