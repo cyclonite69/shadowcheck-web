@@ -13,12 +13,12 @@ export const SecurityBadge = ({ security, networkType }: SecurityBadgeProps) => 
   const normalizedType = String(networkType || '')
     .trim()
     .toUpperCase();
-  const isBluetoothType = normalizedType === 'B' || normalizedType === 'E';
+  const isWiFiType = normalizedType === 'W';
   const shouldShowDash =
     !normalizedSecurity ||
     normalizedSecurity === 'UNKNOWN' ||
     normalizedSecurity === '—' ||
-    (isBluetoothType && normalizedSecurity === 'OPEN');
+    (!isWiFiType && normalizedSecurity === 'OPEN');
   const label = shouldShowDash ? '—' : normalizedSecurity;
   const color = shouldShowDash
     ? SECURITY_TYPE_COLORS['UNKNOWN']
