@@ -2,7 +2,7 @@ import React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
-import { TypeBadge, ThreatBadge } from '../../badges';
+import { TypeBadge, ThreatBadge, SecurityBadge } from '../../badges';
 import { macColor } from '../../../utils/mapHelpers';
 import {
   getSignalColor,
@@ -226,11 +226,32 @@ const renderThreatScore = ({ value }: NetworkTableCellRendererContext) => {
 };
 
 const renderDistanceFromHome = ({ value }: NetworkTableCellRendererContext) => {
-  const km = typeof value === 'number' ? value : null;
-  const label = formatNumber(km, 1);
+  const meters = typeof value === 'number' ? value : null;
+  const label = meters != null ? (meters / 1000).toFixed(2) : null;
   return {
     content: <span>{label ? `${label} km` : '—'}</span>,
-    title: km != null ? `${km.toFixed(1)} km from home` : undefined,
+    title: meters != null ? `${(meters / 1000).toFixed(2)} km from home` : undefined,
+  };
+};
+
+const renderMaxDistance = ({ value }: NetworkTableCellRendererContext) => {
+  const meters = typeof value === 'number' ? value : null;
+  const label = meters != null ? (meters / 1000).toFixed(2) : null;
+  return {
+    content: <span>{label ? `${label} km` : '—'}</span>,
+    title: meters != null ? `${(meters / 1000).toFixed(2)} km max distance` : undefined,
+  };
+};
+
+const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => ({
+  content: <SecurityBadge security={value as string | null} networkType={row.type} />,
+});
+
+const renderNotesCount = ({ value }: NetworkTableCellRendererContext) => {
+  const count = typeof value === 'number' ? value : null;
+  return {
+    content: <span>{count && count > 0 ? count : '—'}</span>,
+    title: count && count > 0 ? `${count} note${count === 1 ? '' : 's'}` : undefined,
   };
 };
 
@@ -381,12 +402,15 @@ const columnRenderers: Partial<
   signal: renderSignal,
   threat_score: renderThreatScore,
   observations: renderObservations,
+  security: renderSecurity,
   channel: renderChannel,
   frequency: renderFrequency,
   timespanDays: renderTimespanDays,
   bssid: renderBssid,
   ssid: renderSsid,
   distanceFromHome: renderDistanceFromHome,
+  max_distance_meters: renderMaxDistance,
+  notes_count: renderNotesCount,
   stationaryConfidence: renderStationaryConfidence,
   accuracy: renderAccuracyCell,
   latitude: renderLatitude,
