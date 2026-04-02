@@ -119,6 +119,9 @@ if [ -S "$SOCKET" ]; then
 fi
 
 run_migrations() {
+  local migration_user=""
+  local migration_password=""
+
   if [ ! -f /app/sql/run-migrations.sh ]; then
     echo "[entrypoint] Migrations script not found, skipping..."
     return 0
@@ -128,13 +131,23 @@ run_migrations() {
     return 0
   fi
   
-  # CRITICAL: Verify database credentials are available before attempting migration
-  if [ -z "${DB_PASSWORD:-}" ] && [ -z "${DB_ADMIN_PASSWORD:-}" ]; then
-    echo "[entrypoint] ERROR: Database credentials (DB_PASSWORD or DB_ADMIN_PASSWORD) not set!"
+  # Keep migration user/password pairing consistent. If an admin user is set,
+  # require the matching admin password; otherwise fall back to the runtime user.
+  if [ -n "${DB_ADMIN_USER:-}" ]; then
+    migration_user="${DB_ADMIN_USER}"
+    migration_password="${DB_ADMIN_PASSWORD:-}"
+  else
+    migration_user="${DB_USER:-shadowcheck_user}"
+    migration_password="${DB_PASSWORD:-}"
+  fi
+
+  if [ -z "$migration_password" ]; then
+    echo "[entrypoint] ERROR: Database credentials for migration user are not set!"
     echo "[entrypoint] Environment variable status:"
     echo "[entrypoint]   DB_HOST=${DB_HOST:-<unset>}"
     echo "[entrypoint]   DB_NAME=${DB_NAME:-<unset>}"
     echo "[entrypoint]   DB_USER=${DB_USER:-<unset>}"
+    echo "[entrypoint]   DB_ADMIN_USER=${DB_ADMIN_USER:-<unset>}"
     echo "[entrypoint]   DB_PASSWORD=${DB_PASSWORD:+<set>}"
     echo "[entrypoint]   DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD:+<set>}"
     echo "[entrypoint]   AWS_REGION=${AWS_REGION:-<unset>}"
@@ -151,11 +164,11 @@ run_migrations() {
   echo "[entrypoint]   DB_HOST=${DB_HOST}"
   echo "[entrypoint]   DB_PORT=${DB_PORT:-5432}"
   echo "[entrypoint]   DB_NAME=${DB_NAME}"
-  echo "[entrypoint]   DB_USER=${DB_USER:-shadowcheck_user}"
+  echo "[entrypoint]   MIGRATION_DB_USER=${migration_user}"
   MIGRATIONS_DIR=/app/sql/migrations \
-  MIGRATION_DB_USER="${DB_ADMIN_USER:-${DB_USER:-shadowcheck_user}}" \
+  MIGRATION_DB_USER="${migration_user}" \
   DB_NAME="${DB_NAME:-shadowcheck_db}" \
-  PGPASSWORD="${DB_ADMIN_PASSWORD:-${DB_PASSWORD:-}}" \
+  PGPASSWORD="${migration_password}" \
   PGHOST="${DB_HOST:-postgres}" \
   PGPORT="${DB_PORT:-5432}" \
     sh /app/sql/run-migrations.sh || {

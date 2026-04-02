@@ -39,4 +39,20 @@ describe('tooltipDataNormalizer', () => {
     expect(html).toContain('HIGH POWER');
     expect(html).toContain('12.0');
   });
+
+  it('preserves BLE radio codes so observation tooltips render BLE iconography', () => {
+    const normalized = normalizeTooltipData({
+      type: 'W',
+      radio_type: 'E',
+      capabilities: 'Headphones;10',
+      ssid: 'BLE Device',
+      bssid: 'AA:BB:CC:DD:EE:FF',
+    });
+
+    expect(normalized.radio_type).toBe('E');
+
+    const html = renderNetworkTooltip(normalized);
+    expect(html).toContain('BLE Device');
+    expect(html).not.toContain('⋮⋮');
+  });
 });

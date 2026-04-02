@@ -128,7 +128,6 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: shadowcheck_grafana
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-grafanaadmin}

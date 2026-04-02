@@ -135,16 +135,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     ssid: pickFirst(raw.ssid, raw.name, 'Hidden'),
     bssid: pickFirst(raw.bssid, raw.netid, 'UNKNOWN'),
     type: pickFirst(raw.type, '?'),
-    radio_type:
-      raw.radio_type === 'W'
-        ? 'WiFi'
-        : raw.radio_type === 'B'
-          ? 'Bluetooth'
-          : raw.radio_type === 'E'
-            ? 'BLE'
-            : ['L', 'G', 'C', 'D', 'N', 'F'].includes(raw.radio_type)
-              ? 'Cellular'
-              : raw.radio_type || 'WiFi',
+    radio_type: pickFirst(raw.radio_type, raw.type, '?'),
     threat_level: pickFirst(raw.threat_level, raw.threat, 'NONE'),
     threat_score: Number(pickFirst(raw.threat_score, 0)),
     signal: toNumberOrNull(
