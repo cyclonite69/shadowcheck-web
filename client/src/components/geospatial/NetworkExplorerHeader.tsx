@@ -15,7 +15,7 @@ interface NetworkExplorerHeaderProps {
   columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
-  onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'up' | 'down') => void;
+  onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
 }
 
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };

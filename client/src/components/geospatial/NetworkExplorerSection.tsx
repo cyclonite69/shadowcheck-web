@@ -19,7 +19,7 @@ interface NetworkExplorerSectionProps {
   columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
-  onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'up' | 'down') => void;
+  onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
   sort: SortState[];
   allSelected: boolean;
   someSelected: boolean;

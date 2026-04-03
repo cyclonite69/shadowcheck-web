@@ -9,12 +9,12 @@ type ColumnVisibilityProps = {
 export const moveVisibleColumn = (
   columns: Array<keyof NetworkRow | 'select'>,
   column: keyof NetworkRow | 'select',
-  direction: 'up' | 'down'
+  direction: 'left' | 'right'
 ): Array<keyof NetworkRow | 'select'> => {
   const index = columns.indexOf(column);
   if (index === -1) return columns;
 
-  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  const targetIndex = direction === 'left' ? index - 1 : index + 1;
   if (targetIndex < 0 || targetIndex >= columns.length) return columns;
 
   const next = [...columns];
@@ -72,7 +72,7 @@ export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
     });
   };
 
-  const moveColumn = (column: keyof NetworkRow | 'select', direction: 'up' | 'down') => {
+  const moveColumn = (column: keyof NetworkRow | 'select', direction: 'left' | 'right') => {
     setVisibleColumns((prev) => moveVisibleColumn(prev, column, direction));
   };
 

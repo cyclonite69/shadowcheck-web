@@ -173,6 +173,10 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
  * scrolling or dragging the map (which updates parent but not individual rows).
  */
 export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, nextProps) => {
+  const sameVisibleColumnOrder =
+    prevProps.visibleColumns.length === nextProps.visibleColumns.length &&
+    prevProps.visibleColumns.every((col, index) => col === nextProps.visibleColumns[index]);
+
   // Return true if props are equal (skip re-render), false if different (re-render)
   const propsEqual =
     // Network data changed?
@@ -192,7 +196,8 @@ export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, 
     prevProps.virtualRow.start === nextProps.virtualRow.start &&
     prevProps.virtualRow.size === nextProps.virtualRow.size &&
     // Layout changed?
-    prevProps.visibleColumns.length === nextProps.visibleColumns.length &&
+    sameVisibleColumnOrder &&
+    prevProps.gridTemplateColumns === nextProps.gridTemplateColumns &&
     prevProps.totalGridWidth === nextProps.totalGridWidth;
 
   return propsEqual; // true = skip re-render, false = do re-render
