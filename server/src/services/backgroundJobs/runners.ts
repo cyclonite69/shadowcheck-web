@@ -15,21 +15,29 @@ const MIN_OBSERVATIONS = 2;
 const runBackupJob = async () => {
   logger.info('[Backup Job] Starting scheduled backup...');
   const result = await runPostgresBackup({ uploadToS3: true });
+  const primaryFile = Array.isArray(result.files)
+    ? result.files.find((file: any) => file.type === 'database') || result.files[0]
+    : null;
+  const uploadedDatabase = Array.isArray(result.s3)
+    ? result.s3.find((file: any) => file.type === 'database') || result.s3[0]
+    : null;
+  const fileName = result.fileName || primaryFile?.name || null;
+  const bytes = result.bytes || primaryFile?.bytes || null;
 
-  if (result.s3) {
+  if (uploadedDatabase) {
     logger.info(
-      `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url}`
+      `[Backup Job] Complete: ${fileName} (${bytes} bytes) uploaded to ${uploadedDatabase.url}`
     );
   } else if (result.s3Error) {
     logger.warn(
-      `[Backup Job] Backup created locally (${result.fileName}) but S3 upload failed: ${result.s3Error}`
+      `[Backup Job] Backup created locally (${fileName}) but S3 upload failed: ${result.s3Error}`
     );
   }
 
   return {
-    fileName: result.fileName,
-    bytes: result.bytes,
-    s3Url: result.s3?.url || null,
+    fileName,
+    bytes,
+    s3Url: uploadedDatabase?.url || null,
     s3Error: result.s3Error || null,
   };
 };

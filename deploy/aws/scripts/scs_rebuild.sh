@@ -474,7 +474,9 @@ if [ -S "$PODMAN_SOCK" ]; then
   DOCKER_OPTS="-v $PODMAN_SOCK:/var/run/docker.sock --group-add $(stat -c '%g' "$PODMAN_SOCK") -e DOCKER_HOST=unix:///var/run/docker.sock"
 fi
 
-docker run -d --name shadowcheck_backend --network host --env-file "$ENV_FILE" -e DB_PASSWORD="$DB_USER_PASSWORD" -e DB_ADMIN_PASSWORD="$DB_ADMIN_PASSWORD" $DOCKER_OPTS --restart unless-stopped shadowcheck/backend:latest
+mkdir -p "$APP_DIR/backups/db" "$APP_DIR/logs"
+
+docker run -d --name shadowcheck_backend --network host --env-file "$ENV_FILE" -e DB_PASSWORD="$DB_USER_PASSWORD" -e DB_ADMIN_PASSWORD="$DB_ADMIN_PASSWORD" -v "$APP_DIR/backups:/app/backups" -v "$APP_DIR/logs:/app/logs" $DOCKER_OPTS --restart unless-stopped shadowcheck/backend:latest
 docker run -d --name shadowcheck_frontend --network host --group-add 999 \
   -v "$CANONICAL_CERT:/etc/nginx/certs/server.crt:ro" \
   -v "$CANONICAL_KEY:/etc/nginx/certs/server.key:ro" \

@@ -6,6 +6,7 @@ import { spawn, execSync } from 'child_process';
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
 import { deleteS3BackupObject, listS3BackupObjects, uploadBackupToS3 } from './backup/awsCli';
+import { resolveBackupScope, verifyBackupFile } from './backup/backupUtils';
 
 const repoRoot = '/app';
 
@@ -19,18 +20,32 @@ const getBackupSource = (): {
   instanceId?: string;
 } => {
   const hostname = os.hostname();
+  const configuredEnvironment = String(process.env.BACKUP_SOURCE_ENV || '').trim();
+  const configuredInstanceId = String(process.env.EC2_INSTANCE_ID || '').trim();
 
-  // Check if running on EC2 by querying IMDS (non-blocking, cached)
+  if (configuredEnvironment) {
+    return {
+      hostname,
+      environment: configuredEnvironment,
+      instanceId: configuredInstanceId || undefined,
+    };
+  }
+
+  // Prefer IMDSv2, then fall back to hostname heuristics when container IMDS access is blocked.
   try {
     const instanceId = execSync(
-      'curl -s --connect-timeout 1 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null',
+      `TOKEN=$(curl -fsS -m 1 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null) && curl -fsS -m 1 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null`,
       { timeout: 2000, encoding: 'utf8' }
     ).trim();
     if (instanceId && instanceId.startsWith('i-')) {
       return { hostname, environment: 'aws-ec2', instanceId };
     }
   } catch {
-    // Not on EC2
+    // Fall through to hostname heuristics.
+  }
+
+  if (hostname.endsWith('.ec2.internal')) {
+    return { hostname, environment: 'aws-ec2' };
   }
 
   return { hostname, environment: 'local' };
@@ -122,16 +137,16 @@ const buildBackupPgEnv = (): NodeJS.ProcessEnv => {
   return env;
 };
 
-const resolvePgDumpPath = async (): Promise<string> => {
+const resolvePgToolPath = async (toolName: string): Promise<string> => {
   const candidates = [
-    process.env.PG_DUMP_PATH,
-    '/usr/bin/pg_dump',
-    '/usr/local/bin/pg_dump',
-    'pg_dump',
+    process.env[`${toolName.toUpperCase()}_PATH` as keyof NodeJS.ProcessEnv] as string | undefined,
+    `/usr/bin/${toolName}`,
+    `/usr/local/bin/${toolName}`,
+    toolName,
   ].filter((c): c is string => Boolean(c));
 
   for (const candidate of candidates) {
-    if (candidate === 'pg_dump') {
+    if (candidate === toolName) {
       return candidate;
     }
     try {
@@ -141,7 +156,7 @@ const resolvePgDumpPath = async (): Promise<string> => {
       // Try next candidate
     }
   }
-  return 'pg_dump';
+  return toolName;
 };
 
 const getConfiguredS3BackupBucket = (): string => {
@@ -170,17 +185,11 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
 
   await fs.mkdir(backupDir, { recursive: true });
 
-  const pgDumpPath = await resolvePgDumpPath();
-  const pgDumpAllPath = pgDumpPath.replace('pg_dump', 'pg_dumpall');
+  const pgDumpPath = await resolvePgToolPath('pg_dump');
+  const pgDumpAllPath = await resolvePgToolPath('pg_dumpall');
+  const pgRestorePath = await resolvePgToolPath('pg_restore');
   const pgEnv = buildBackupPgEnv();
-  const includeAllSchemas = String(process.env.BACKUP_INCLUDE_ALL_SCHEMAS || '')
-    .toLowerCase()
-    .trim();
-  const shouldRestrictSchemas = includeAllSchemas !== 'true' && includeAllSchemas !== '1';
-  const backupSchemas = (process.env.BACKUP_SCHEMAS || 'app,public')
-    .split(',')
-    .map((schema) => schema.trim())
-    .filter(Boolean);
+  const backupScope = resolveBackupScope(process.env);
 
   // 1. Dump Globals (Roles, Users, etc) - OPTIONAL
   let globalsSuccess = false;
@@ -214,13 +223,13 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
       '--file',
       dbFilePath,
     ];
-    if (shouldRestrictSchemas && backupSchemas.length > 0) {
-      backupSchemas.forEach((schema) => {
+    if (backupScope.mode === 'schema_subset' && backupScope.schemas.length > 0) {
+      backupScope.schemas.forEach((schema) => {
         args.push('--schema', schema);
       });
-      logger.info(
-        `[Backup] Using schema-restricted dump for admin backups: ${backupSchemas.join(', ')}`
-      );
+      logger.info(`[Backup] Running schema-scoped backup: ${backupScope.schemas.join(', ')}`);
+    } else {
+      logger.info('[Backup] Running full-database backup');
     }
     const child = spawn(pgDumpPath, args, { env: pgEnv });
     let stderr = '';
@@ -243,13 +252,16 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
 
   await pruneOldBackups(backupDir, retentionDays);
 
-  const dbStat = await fs.stat(dbFilePath);
+  const dbBytes = await verifyBackupFile(dbFilePath, pgRestorePath);
   const source = getBackupSource();
 
-  const files = [{ name: dbFileName, path: dbFilePath, bytes: dbStat.size, type: 'database' }];
+  const files = [{ name: dbFileName, path: dbFilePath, bytes: dbBytes, type: 'database' }];
 
   if (globalsSuccess) {
     const globalsStat = await fs.stat(globalsFilePath);
+    if (globalsStat.size <= 0) {
+      throw new Error(`Globals backup file is empty: ${globalsFilePath}`);
+    }
     files.push({
       name: globalsFileName,
       path: globalsFilePath,
@@ -259,7 +271,7 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
   }
 
   logger.info(
-    `[Backup] Multi-stage backup complete. Data: ${dbStat.size} bytes. Globals: ${globalsSuccess ? 'Success' : 'Skipped'}`
+    `[Backup] Multi-stage backup complete. Data: ${dbBytes} bytes. Globals: ${globalsSuccess ? 'Success' : 'Skipped'}`
   );
 
   const result: any = {
@@ -267,6 +279,10 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
     files,
     source,
     createdAt: new Date().toISOString(),
+    scope: backupScope.mode,
+    schemas: backupScope.schemas,
+    fileName: dbFileName,
+    bytes: dbBytes,
   };
 
   // 3. Upload to S3 if requested
