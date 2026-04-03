@@ -30,7 +30,7 @@ export const FileImportButton: React.FC<FileImportButtonProps> = ({
   multiple = false,
   directory = false,
 }) => (
-  <label className="block">
+  <div className="block">
     <input
       id={id}
       type="file"
@@ -43,13 +43,13 @@ export const FileImportButton: React.FC<FileImportButtonProps> = ({
         ? ({ webkitdirectory: 'true', directory: 'true' } as DirectoryInputProps)
         : {})}
     />
-    <div
+    <label
+      htmlFor={id}
       className={`px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r ${activeColorClass} ${
         !disabled ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
       }`}
-      onClick={() => !disabled && document.getElementById(id)?.click()}
     >
       {isLoading ? loadingText : idleText}
-    </div>
-  </label>
+    </label>
+  </div>
 );

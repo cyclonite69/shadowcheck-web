@@ -46,7 +46,7 @@ const kmlUpload = multer({
       cb(new Error('Only .kml files are allowed'));
     }
   },
-  limits: { fileSize: 200 * 1024 * 1024, files: 1000 },
+  limits: { fileSize: 500 * 1024 * 1024, files: 1000 },
 });
 
 async function validateSQLiteMagic(filePath: string): Promise<boolean> {

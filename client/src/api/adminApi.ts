@@ -203,6 +203,43 @@ export const adminApi = {
     return apiClient.get('/admin/device-sources');
   },
 
+  async parseImportResponse(response: Response, fallbackMessage: string): Promise<any> {
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const payload = isJson
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => '');
+
+    if (response.ok) {
+      return payload;
+    }
+
+    if (response.status === 413) {
+      return {
+        ok: false,
+        error:
+          'Upload too large. Split the import into smaller batches or raise the server upload limit.',
+      };
+    }
+
+    if (payload && typeof payload === 'object') {
+      return {
+        ok: false,
+        error:
+          typeof payload.error === 'string'
+            ? payload.error
+            : payload.error?.message || fallbackMessage,
+        output: payload.output,
+        errorOutput: payload.errorOutput,
+      };
+    }
+
+    return {
+      ok: false,
+      error: typeof payload === 'string' && payload.trim() ? payload.trim() : fallbackMessage,
+    };
+  },
+
   // Data Import — FormData: raw fetch (apiClient forces application/json header)
   async importSQLite(formData: FormData): Promise<{
     ok: boolean;
@@ -216,14 +253,7 @@ export const adminApi = {
       body: formData,
       credentials: 'include',
     });
-    const data = await response.json();
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: typeof data.error === 'string' ? data.error : data.error?.message || 'Import failed',
-      };
-    }
-    return data;
+    return this.parseImportResponse(response, 'Import failed');
   },
 
   async importSQL(formData: FormData): Promise<{
@@ -240,17 +270,7 @@ export const adminApi = {
       body: formData,
       credentials: 'include',
     });
-    const data = await response.json();
-    if (!response.ok) {
-      return {
-        ok: false,
-        error:
-          typeof data.error === 'string' ? data.error : data.error?.message || 'SQL import failed',
-        output: data.output,
-        errorOutput: data.errorOutput,
-      };
-    }
-    return data;
+    return this.parseImportResponse(response, 'SQL import failed');
   },
 
   async importKml(formData: FormData): Promise<{
@@ -269,16 +289,7 @@ export const adminApi = {
       body: formData,
       credentials: 'include',
     });
-    const data = await response.json();
-    if (!response.ok) {
-      return {
-        ok: false,
-        error:
-          typeof data.error === 'string' ? data.error : data.error?.message || 'KML import failed',
-        output: data.output,
-      };
-    }
-    return data;
+    return this.parseImportResponse(response, 'KML import failed');
   },
 
   // PgAdmin
