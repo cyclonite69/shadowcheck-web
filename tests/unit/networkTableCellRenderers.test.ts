@@ -64,12 +64,19 @@ describe('renderNetworkTableCell', () => {
     expect(content).toBe('92.0');
   });
 
-  it('formats distance from home as kilometers', () => {
-    const context = makeContext('distanceFromHome', 5.2);
+  it('converts distance from home from metres to kilometers', () => {
+    const context = makeContext('distanceFromHome', 10953.51892936);
     const result = renderNetworkTableCell(context);
     const content = getText(result.content);
-    expect(content).toBe('5.2 km');
-    expect(result.title).toBe('5.2 km from home');
+    expect(content).toBe('10.95 km');
+    expect(result.title).toBe('10.95 km from home');
+  });
+
+  it('converts max distance from metres to kilometers', () => {
+    const context = makeContext('max_distance_meters', 10739.7370788);
+    const result = renderNetworkTableCell(context);
+    const content = getText(result.content);
+    expect(content).toBe('10.74 km');
   });
 
   it('renders stationary confidence as percent', () => {

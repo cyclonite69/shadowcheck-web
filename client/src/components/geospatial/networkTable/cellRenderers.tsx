@@ -215,6 +215,11 @@ const formatDistanceKm = (km: number | null | undefined) => {
   return parseFloat(km.toFixed(2)).toString();
 };
 
+const metersToKm = (meters: number | null | undefined) => {
+  if (meters == null || !Number.isFinite(meters)) return null;
+  return meters / 1000;
+};
+
 const threatScoreColor = (value: number | null) => {
   if (value == null) return '#94a3b8';
   if (value >= 75) return '#dc2626';
@@ -237,7 +242,7 @@ const renderThreatScore = ({ value }: NetworkTableCellRendererContext) => {
 };
 
 const renderDistanceFromHome = ({ value }: NetworkTableCellRendererContext) => {
-  const km = typeof value === 'number' ? value : null;
+  const km = metersToKm(typeof value === 'number' ? value : null);
   const label = formatDistanceKm(km);
   const distanceContent = <span>{label ? `${label} km` : '—'}</span>;
   const tooltipText = km != null ? `${formatDistanceKm(km)} km from home` : undefined;
@@ -253,7 +258,7 @@ const renderDistanceFromHome = ({ value }: NetworkTableCellRendererContext) => {
 };
 
 const renderMaxDistance = ({ value }: NetworkTableCellRendererContext) => {
-  const km = typeof value === 'number' ? value : null;
+  const km = metersToKm(typeof value === 'number' ? value : null);
   const label = formatDistanceKm(km);
   const maxDistanceContent = <span>{label ? `${label} km` : '—'}</span>;
   const tooltip = km != null ? `Max distance: ${formatDistanceKm(km)} km` : undefined;
