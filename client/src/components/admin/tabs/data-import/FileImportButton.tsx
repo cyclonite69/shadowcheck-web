@@ -45,8 +45,8 @@ export const FileImportButton: React.FC<FileImportButtonProps> = ({
     />
     <label
       htmlFor={id}
-      className={`px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r ${activeColorClass} ${
-        !disabled ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
+      className={`w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r ${activeColorClass} ${
+        !disabled ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed pointer-events-none'
       }`}
     >
       {isLoading ? loadingText : idleText}
