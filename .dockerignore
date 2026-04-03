@@ -43,6 +43,7 @@ __tests__/
 # IDE
 .vscode/
 .idea/
+.codex
 *.swp
 *.swo
 *~

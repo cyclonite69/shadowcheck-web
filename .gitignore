@@ -19,6 +19,7 @@
 .claude/settings.local.json
 .cursor/
 .cursorrules
+.codex
 
 # Build Output
 dist/
