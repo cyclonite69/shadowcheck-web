@@ -109,8 +109,35 @@ const buildExplorerV2Query = (opts: {
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const orderClause = `ORDER BY ${orderByClauses}`;
+  const distanceExpr = `
+    CASE
+      WHEN home.home_geog IS NULL THEN NULL
+      WHEN mv.weighted_lat IS NOT NULL AND mv.weighted_lon IS NOT NULL THEN
+        ST_Distance(
+          ST_SetSRID(ST_MakePoint(mv.weighted_lon, mv.weighted_lat), 4326)::geography,
+          home.home_geog
+        ) / 1000.0
+      WHEN mv.centroid_lat IS NOT NULL AND mv.centroid_lon IS NOT NULL THEN
+        ST_Distance(
+          ST_SetSRID(ST_MakePoint(mv.centroid_lon, mv.centroid_lat), 4326)::geography,
+          home.home_geog
+        ) / 1000.0
+      WHEN mv.lat IS NOT NULL AND mv.lon IS NOT NULL THEN
+        ST_Distance(
+          ST_SetSRID(ST_MakePoint(mv.lon, mv.lat), 4326)::geography,
+          home.home_geog
+        ) / 1000.0
+      ELSE NULL
+    END
+  `;
 
   const sql = `
+    WITH home_location AS (
+      SELECT ST_SetSRID(ST_MakePoint(lm.longitude, lm.latitude), 4326)::geography AS home_geog
+      FROM app.location_markers lm
+      WHERE lm.marker_type = 'home'
+      LIMIT 1
+    )
     SELECT
       mv.bssid,
       mv.ssid,
@@ -128,7 +155,7 @@ const buildExplorerV2Query = (opts: {
       mv.frequency,
       mv.capabilities,
       mv.security,
-      mv.distance_from_home_km,
+      ${distanceExpr} AS distance_from_home_km,
       mv.accuracy_meters,
       mv.manufacturer,
       mv.manufacturer_address,
@@ -148,6 +175,7 @@ const buildExplorerV2Query = (opts: {
       ) AS threat,
       COUNT(*) OVER() AS total
     FROM app.api_network_explorer_mv mv
+    LEFT JOIN home_location home ON TRUE
     LEFT JOIN app.network_threat_scores live_ts ON mv.bssid = live_ts.bssid::text
     ${whereClause}
     ${orderClause}

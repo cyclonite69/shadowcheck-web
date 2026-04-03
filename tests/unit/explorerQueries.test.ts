@@ -39,4 +39,20 @@ describe('explorer query builders', () => {
     expect(sql).toContain('manufacturer ASC NULLS LAST');
     expect(params).toEqual(['%corp%', '%corp%', '%corp%', '%corp%', 10, 0]);
   });
+
+  it('builds v2 explorer query with stable distance-from-home calculation', () => {
+    const { sql } = buildExplorerV2Query({
+      search: '',
+      sort: 'distance',
+      order: 'asc',
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(sql).toContain('WITH home_location AS');
+    expect(sql).toContain('mv.weighted_lat IS NOT NULL AND mv.weighted_lon IS NOT NULL');
+    expect(sql).toContain('mv.centroid_lat IS NOT NULL AND mv.centroid_lon IS NOT NULL');
+    expect(sql).toContain('AS distance_from_home_km');
+    expect(sql).toContain('ORDER BY distance_from_home_km ASC NULLS LAST');
+  });
 });
