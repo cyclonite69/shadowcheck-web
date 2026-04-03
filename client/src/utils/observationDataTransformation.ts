@@ -20,7 +20,7 @@ export function mapObservationApiRow(row: ObservationApiRow): Observation | null
     return null;
   }
 
-  const level = toFiniteNumber(row.level);
+  const signal = toFiniteNumber(row.signal ?? row.level);
   const radioFrequency = toFiniteNumber(row.radio_frequency);
   const altitude = toFiniteNumber(row.altitude);
   const accuracy = toFiniteNumber(row.accuracy);
@@ -30,7 +30,7 @@ export function mapObservationApiRow(row: ObservationApiRow): Observation | null
     bssid,
     lat,
     lon,
-    signal: level,
+    signal,
     time: typeof row.time === 'string' ? row.time : undefined,
     frequency: radioFrequency,
     acc: accuracy,

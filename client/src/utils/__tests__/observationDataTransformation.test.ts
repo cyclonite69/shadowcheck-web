@@ -28,6 +28,20 @@ describe('observationDataTransformation', () => {
     expect(row?.id).toBe(7);
   });
 
+  it('prefers the filtered observations API signal field when level is absent', () => {
+    const row = mapObservationApiRow({
+      bssid: 'aa:bb:cc:dd:ee:11',
+      lat: '42.98',
+      lon: '-83.76',
+      signal: '-72',
+      time: '2026-03-07T00:00:00.000Z',
+      obs_number: 8,
+    });
+
+    expect(row).not.toBeNull();
+    expect(row?.signal).toBe(-72);
+  });
+
   it('returns null for invalid rows', () => {
     expect(mapObservationApiRow({ bssid: '', lat: 1, lon: 1 })).toBeNull();
     expect(mapObservationApiRow({ bssid: 'AA', lat: 'bad', lon: 1 })).toBeNull();
