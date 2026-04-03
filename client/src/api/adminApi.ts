@@ -253,6 +253,34 @@ export const adminApi = {
     return data;
   },
 
+  async importKml(formData: FormData): Promise<{
+    ok: boolean;
+    filesImported?: number;
+    pointsImported?: number;
+    batchId?: string;
+    sourceType?: string;
+    uploadedToS3?: boolean;
+    message?: string;
+    error?: string;
+    output?: string;
+  }> {
+    const response = await fetch('/api/admin/import-kml', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return {
+        ok: false,
+        error:
+          typeof data.error === 'string' ? data.error : data.error?.message || 'KML import failed',
+        output: data.output,
+      };
+    }
+    return data;
+  },
+
   // PgAdmin
   async getPgAdminStatus(): Promise<any> {
     return apiClient.get('/admin/pgadmin/status');
