@@ -77,6 +77,29 @@ describe('renderNetworkTableCell', () => {
     const result = renderNetworkTableCell(context);
     expect(getText(result.content)).toBe('37%');
   });
+
+  it('exposes the full BSSID in the cell title for truncated identifiers', () => {
+    const longId = '310260_12345_67890_ABCDE';
+    const context = makeContext('bssid', longId);
+    context.row = { ...baseRow, bssid: longId, type: 'L' };
+
+    const result = renderNetworkTableCell(context);
+    expect(result.title).toBe(longId);
+    expect(getText(result.content)).toBe(longId);
+  });
+
+  it('exposes full security context from capabilities in the cell title', () => {
+    const context = makeContext('security', 'WPA2');
+    context.row = {
+      ...baseRow,
+      security: 'WPA2',
+      capabilities: '[WPA2-PSK-CCMP][RSN-PSK-CCMP][ESS]',
+    };
+
+    const result = renderNetworkTableCell(context);
+    expect(result.title).toBe('WPA2 | [WPA2-PSK-CCMP][RSN-PSK-CCMP][ESS]');
+    expect(result.content).toBeDefined();
+  });
 });
 
 const getText = (node: React.ReactNode): any => {

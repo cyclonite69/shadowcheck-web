@@ -267,9 +267,31 @@ const renderMaxDistance = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
-const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => ({
-  content: <SecurityBadge security={value as string | null} networkType={row.type} />,
-});
+const getSecurityTooltip = (
+  security: string | null | undefined,
+  capabilities: string | null | undefined
+) => {
+  const normalizedSecurity = typeof security === 'string' ? security.trim() : '';
+  const normalizedCapabilities = typeof capabilities === 'string' ? capabilities.trim() : '';
+
+  if (normalizedSecurity && normalizedCapabilities) {
+    return normalizedSecurity.toUpperCase() === normalizedCapabilities.toUpperCase()
+      ? normalizedCapabilities
+      : `${normalizedSecurity} | ${normalizedCapabilities}`;
+  }
+
+  return normalizedCapabilities || normalizedSecurity || undefined;
+};
+
+const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => {
+  const tooltip = getSecurityTooltip(value as string | null, row.capabilities);
+  const badge = <SecurityBadge security={value as string | null} networkType={row.type} />;
+
+  return {
+    content: tooltip ? <Tooltip content={tooltip}>{badge}</Tooltip> : badge,
+    title: tooltip,
+  };
+};
 
 const renderNotesCount = ({ value }: NetworkTableCellRendererContext) => {
   const count = typeof value === 'number' ? value : null;
@@ -366,6 +388,7 @@ const renderBssid = ({
 
   return {
     content: label === '—' ? bssidContent : <Tooltip content={label}>{bssidContent}</Tooltip>,
+    title: label === '—' ? undefined : label,
   };
 };
 
