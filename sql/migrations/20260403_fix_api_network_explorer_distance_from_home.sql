@@ -1,16 +1,5 @@
--- Migration 012: Add centroid/weighted coordinate fields to api_network_explorer_mv
--- Purpose: Expose precomputed network-level centroids alongside the existing best-observation
---          lat/lon so the geospatial and network-list API paths can return them without
---          a separate JOIN at query time (optional optimisation — the query-time JOIN to
---          app.network_locations is the primary mechanism; this bakes the values into the MV
---          for the explorer fast-path).
---
--- Idempotent: uses DROP + CREATE (MV is already refreshed on every deploy via scs_rebuild.sh).
--- Depends on: migration 011 (network_locations table + refresh function).
-
 BEGIN;
 
--- 1. Recreate the MV with centroid columns from network_locations
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv CASCADE;
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
@@ -51,7 +40,6 @@ SELECT
   n.bestlevel AS signal,
   bo.lat,
   bo.lon,
-  -- New: centroid coordinates from network_locations
   nloc.centroid_lat,
   nloc.centroid_lon,
   nloc.weighted_lat,
@@ -140,7 +128,6 @@ GROUP BY
   rm.manufacturer, bo.lat, bo.lon, osp.stationary_confidence,
   nloc.centroid_lat, nloc.centroid_lon, nloc.weighted_lat, nloc.weighted_lon;
 
--- 2. Recreate all indexes
 CREATE UNIQUE INDEX IF NOT EXISTS idx_api_network_explorer_mv_bssid
   ON app.api_network_explorer_mv (bssid);
 CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type
@@ -160,12 +147,17 @@ CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_ignored
   ON app.api_network_explorer_mv (is_ignored)
   WHERE is_ignored = TRUE;
 
--- 3. Grants
 GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
 GRANT SELECT ON app.api_network_explorer_mv TO grafana_reader;
 GRANT SELECT ON app.api_network_explorer_mv TO PUBLIC;
 
--- 4. Initial refresh
 REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
+
+INSERT INTO app.schema_migrations (filename)
+SELECT '20260403_fix_api_network_explorer_distance_from_home.sql'
+WHERE NOT EXISTS (
+  SELECT 1 FROM app.schema_migrations
+  WHERE filename = '20260403_fix_api_network_explorer_distance_from_home.sql'
+);
 
 COMMIT;

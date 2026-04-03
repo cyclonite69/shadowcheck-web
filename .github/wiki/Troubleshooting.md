@@ -200,4 +200,4 @@ cat logs/combined.log
 - [Development](Development) - Development setup
 - [Installation](Installation) - Complete setup guide
 - [Database](Database) - Database operations
-- [Recent Fixes](https://github.com/cyclonite69/shadowcheck-web/blob/main/alignment_audit_report.md) - Comprehensive code-documentation alignment audit
+- [Reports Index](../../reports/README.md) - Current and historical audit snapshots

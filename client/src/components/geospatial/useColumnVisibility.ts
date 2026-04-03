@@ -6,6 +6,23 @@ type ColumnVisibilityProps = {
   columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
 };
 
+export const moveVisibleColumn = (
+  columns: Array<keyof NetworkRow | 'select'>,
+  column: keyof NetworkRow | 'select',
+  direction: 'up' | 'down'
+): Array<keyof NetworkRow | 'select'> => {
+  const index = columns.indexOf(column);
+  if (index === -1) return columns;
+
+  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= columns.length) return columns;
+
+  const next = [...columns];
+  const [moved] = next.splice(index, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
+};
+
 export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
   const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
     const defaultCols = (Object.keys(columns) as (keyof NetworkRow | 'select')[]).filter(
@@ -55,10 +72,15 @@ export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
     });
   };
 
+  const moveColumn = (column: keyof NetworkRow | 'select', direction: 'up' | 'down') => {
+    setVisibleColumns((prev) => moveVisibleColumn(prev, column, direction));
+  };
+
   return {
     visibleColumns,
     setVisibleColumns,
     toggleColumn,
     reorderColumns,
+    moveColumn,
   };
 };

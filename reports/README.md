@@ -4,6 +4,7 @@ This folder contains both active and historical audit snapshots.
 
 ## Current (Use These First)
 
+- `modularity-audit-2026-04-01.md`
 - `modularity-audit-refresh-2026-03-07.md`
 - `modularity-audit-full-pass-2026-03-04.md`
 - `modularity-audit-addendum-2026-03-04-b.md`
@@ -21,5 +22,6 @@ This folder contains both active and historical audit snapshots.
 
 ## Notes
 
+- Repo-root audit snapshots should be folded into this directory instead of added at the top level.
 - Historical files are useful for traceability but may not reflect current architecture.
 - Prefer the dated "full-pass" and addendum documents for current-state decisions.

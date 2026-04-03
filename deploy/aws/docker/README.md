@@ -9,8 +9,11 @@ This directory contains Dockerfiles and scripts for building and deploying Shado
 - `Dockerfile.backend` - Node.js API server (multi-stage build)
 - `Dockerfile.frontend` - React frontend with nginx
 - `Dockerfile.postgis` - PostgreSQL 18 + PostGIS 3.6 (already built)
-- `nginx.conf` - Nginx configuration for frontend
-- `docker-compose.fullstack.yml` - Orchestration for all services
+- `nginx-entrypoint.sh` - Frontend container startup script
+- `docker-compose.fullstack.yml` - AWS full-stack orchestration
+- `docker-compose.simple.yml` - Reduced compose variant for targeted runs
+
+The frontend nginx config lives in `deploy/aws/configs/nginx.conf`.
 
 ## Building Containers on AWS
 

@@ -222,6 +222,14 @@ export const adminApi = {
       };
     }
 
+    if (response.status === 408) {
+      return {
+        ok: false,
+        error:
+          'Upload timed out before the server finished reading the request. Retry after the frontend/nginx timeout config is redeployed, or split the import into smaller batches.',
+      };
+    }
+
     if (payload && typeof payload === 'object') {
       return {
         ok: false,

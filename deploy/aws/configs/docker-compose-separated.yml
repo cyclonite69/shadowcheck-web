@@ -1,5 +1,3 @@
-version: "3.8"
-
 # AWS Deployment: Separated concerns with security hardening
 # PostgreSQL + Redis always running, API/PgAdmin on-demand
 

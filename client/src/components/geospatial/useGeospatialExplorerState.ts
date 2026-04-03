@@ -110,7 +110,7 @@ export const useGeospatialExplorerState = ({
     setShowTerrain,
   } = useMapPreferences();
 
-  const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
+  const { visibleColumns, toggleColumn, reorderColumns, moveColumn } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
 
@@ -402,6 +402,7 @@ export const useGeospatialExplorerState = ({
     visibleColumns,
     toggleColumn,
     reorderColumns,
+    moveColumn,
     filtersOpen,
     showColumnSelector,
     showAgenciesPanel,

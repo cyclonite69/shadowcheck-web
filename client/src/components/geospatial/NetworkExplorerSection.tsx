@@ -19,6 +19,7 @@ interface NetworkExplorerSectionProps {
   columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
+  onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'up' | 'down') => void;
   sort: SortState[];
   allSelected: boolean;
   someSelected: boolean;
@@ -67,6 +68,7 @@ export const NetworkExplorerSection = ({
   columns,
   onToggleColumnSelector,
   onToggleColumn,
+  onMoveColumn,
   sort,
   allSelected,
   someSelected,
@@ -115,6 +117,7 @@ export const NetworkExplorerSection = ({
         columns={columns}
         onToggleColumnSelector={onToggleColumnSelector}
         onToggleColumn={onToggleColumn}
+        onMoveColumn={onMoveColumn}
       />
 
       <NetworkTableHeaderGrid

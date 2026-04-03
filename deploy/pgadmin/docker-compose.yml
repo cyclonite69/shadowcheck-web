@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Local pgAdmin with AWS Secrets Manager integration
 # Connects to remote EC2 PostgreSQL instance
 

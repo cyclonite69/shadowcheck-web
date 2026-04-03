@@ -71,6 +71,7 @@ const GeospatialTableContentComponent: React.FC<GeospatialTableContentProps> = (
     columns={NETWORK_COLUMNS}
     onToggleColumnSelector={state.toggleColumnSelector}
     onToggleColumn={state.toggleColumn}
+    onMoveColumn={state.moveColumn}
     sort={sort}
     allSelected={allSelected}
     someSelected={someSelected}
