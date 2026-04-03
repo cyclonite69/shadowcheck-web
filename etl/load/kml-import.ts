@@ -195,8 +195,8 @@ class KmlImporter {
     if (lon === null || lat === null) return null;
 
     const fieldMap = parseDescription(description);
-    const networkType = normalizeText(fieldMap.get('Type'));
-    const networkId = normalizeNetworkId(fieldMap.get('Network ID'));
+    const networkType = normalizeText(fieldMap.get('Type') ?? null);
+    const networkId = normalizeNetworkId(fieldMap.get('Network ID') ?? null);
     const bssid = networkType === 'WIFI' ? networkId : null;
 
     return {
@@ -204,11 +204,11 @@ class KmlImporter {
       name: normalizeText(name),
       networkId,
       bssid,
-      encryption: normalizeText(fieldMap.get('Encryption')),
-      attributes: normalizeText(fieldMap.get('Attributes')),
-      observedAt: parseDate(fieldMap.get('Time')),
-      signalDbm: parseNumber(fieldMap.get('Signal')),
-      accuracyM: parseNumber(fieldMap.get('Accuracy')),
+      encryption: normalizeText(fieldMap.get('Encryption') ?? null),
+      attributes: normalizeText(fieldMap.get('Attributes') ?? null),
+      observedAt: parseDate(fieldMap.get('Time') ?? null),
+      signalDbm: parseNumber(fieldMap.get('Signal') ?? null),
+      accuracyM: parseNumber(fieldMap.get('Accuracy') ?? null),
       networkType,
       lon,
       lat,
