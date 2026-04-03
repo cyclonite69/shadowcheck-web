@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDataImport } from '../hooks/useDataImport';
 import { ImportHistory } from './data-import/ImportHistory';
+import { KmlImportCard } from './data-import/KmlImportCard';
 import { LastImportAudit } from './data-import/LastImportAudit';
 import { SQLiteImportCard } from './data-import/SQLiteImportCard';
 import { SqlImportCard } from './data-import/SqlImportCard';
@@ -10,6 +11,7 @@ export const DataImportTab: React.FC = () => {
     isLoading,
     importStatus,
     sqlImportStatus,
+    kmlImportStatus,
     lastResult,
     sourceTag,
     setSourceTag,
@@ -17,12 +19,15 @@ export const DataImportTab: React.FC = () => {
     setBackupEnabled,
     handleFileImport,
     handleSqlFileImport,
+    handleKmlImport,
   } = useDataImport();
   const [historyKey, setHistoryKey] = useState(0);
 
   useEffect(() => {
-    if (!isLoading && (importStatus || sqlImportStatus)) setHistoryKey((k) => k + 1);
-  }, [isLoading, importStatus, sqlImportStatus]);
+    if (!isLoading && (importStatus || sqlImportStatus || kmlImportStatus)) {
+      setHistoryKey((k) => k + 1);
+    }
+  }, [isLoading, importStatus, sqlImportStatus, kmlImportStatus]);
 
   const canImport = !isLoading && sourceTag.trim().length > 0;
 
@@ -40,7 +45,7 @@ export const DataImportTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-4">
         <SQLiteImportCard
           backupEnabled={backupEnabled}
           canImport={canImport}
@@ -58,6 +63,12 @@ export const DataImportTab: React.FC = () => {
           onFileChange={handleSqlFileImport}
           onToggleBackup={setBackupEnabled}
           sqlImportStatus={sqlImportStatus}
+        />
+        <KmlImportCard
+          isLoading={isLoading}
+          kmlImportStatus={kmlImportStatus}
+          onFilesChange={(event) => handleKmlImport(event, 'files')}
+          onFolderChange={(event) => handleKmlImport(event, 'folder')}
         />
       </div>
 

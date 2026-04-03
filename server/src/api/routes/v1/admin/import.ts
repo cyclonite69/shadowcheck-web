@@ -9,6 +9,8 @@
 
 const express = require('express');
 const router = express.Router();
+const os = require('os');
+const path = require('path');
 const fsNative = require('fs');
 const fs = fsNative.promises;
 const { spawn } = require('child_process');
@@ -19,16 +21,31 @@ const {
 } = require('../../../../config/container');
 const { runPostgresBackup } = backupService;
 const logger = require('../../../../logging/logger');
+const { runAwsCliJson } = require('../../../../services/backup/awsCli');
+const {
+  sanitizeRelativePath,
+  parseRelativePathsPayload,
+  getKmlImportHistoryContext,
+  parseKmlImportCounts,
+} = require('./kmlImportUtils');
 const {
   upload,
   sqlUpload,
+  kmlUpload,
   validateSQLiteMagic,
   getImportCommand,
+  getKmlImportCommand,
   getSqlImportCommand,
   PROJECT_ROOT,
 } = require('./importHelpers');
 
 export {};
+
+async function cleanupPaths(paths: string[]) {
+  for (const filePath of paths) {
+    await fs.rm(filePath, { force: true, recursive: true }).catch(() => {});
+  }
+}
 
 // SQLite magic bytes: "SQLite format 3\0" (first 16 bytes)
 
@@ -381,6 +398,173 @@ router.get('/admin/device-sources', async (req: any, res: any, next: any) => {
     res.json({ ok: true, sources });
   } catch (e: any) {
     next(e);
+  }
+});
+
+router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req: any, res: any) => {
+  const uploadedFiles = (req.files || []) as any[];
+  if (uploadedFiles.length === 0) {
+    return res.status(400).json({ ok: false, error: 'No KML files uploaded' });
+  }
+
+  const startedAt = Date.now();
+  const sourceType =
+    String(req.body?.source_type || 'wigle')
+      .trim()
+      .toLowerCase() || 'wigle';
+  const uploadToS3 = req.body?.upload_to_s3 !== 'false';
+  const bucketName = String(process.env.S3_BACKUP_BUCKET || '').trim();
+  const prefix = String(process.env.KML_IMPORT_PREFIX || 'imports/kml/').replace(/^\/+|\/+$/g, '');
+  const batchId = `kml_${Date.now()}`;
+  const rawRelativePaths = req.body?.relative_paths;
+  let historyId = 0;
+
+  let relativePaths: string[] = [];
+  try {
+    relativePaths = parseRelativePathsPayload(rawRelativePaths);
+  } catch (error: any) {
+    return res
+      .status(400)
+      .json({ ok: false, error: error.message || 'Invalid relative_paths payload' });
+  }
+
+  const tempBatchDir = await fs.mkdtemp(path.join(os.tmpdir(), 'kml-import-'));
+  const cleanupTargets = uploadedFiles.map((file) => file.path).concat(tempBatchDir);
+  const s3Uploads: Array<{ fileName: string; key: string; url: string }> = [];
+
+  try {
+    const metricsBefore = await adminImportHistoryService.captureImportMetrics();
+    const historyContext = getKmlImportHistoryContext(sourceType, uploadedFiles, relativePaths);
+    historyId = await adminImportHistoryService.createImportHistoryEntry(
+      historyContext.sourceTag,
+      historyContext.filename,
+      metricsBefore
+    );
+
+    for (let index = 0; index < uploadedFiles.length; index += 1) {
+      const file = uploadedFiles[index];
+      const preferredPath = sanitizeRelativePath(relativePaths[index] || file.originalname);
+      const relativePath = preferredPath || path.basename(file.originalname);
+      const destinationPath = path.join(tempBatchDir, relativePath);
+      await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+      await fs.rename(file.path, destinationPath);
+
+      if (uploadToS3 && bucketName) {
+        const s3Key = `${prefix}/${batchId}/${relativePath}`;
+        await runAwsCliJson(['s3', 'cp', destinationPath, `s3://${bucketName}/${s3Key}`]);
+        s3Uploads.push({
+          fileName: relativePath,
+          key: s3Key,
+          url: `s3://${bucketName}/${s3Key}`,
+        });
+      }
+    }
+
+    if (uploadToS3 && !bucketName) {
+      logger.warn('S3_BACKUP_BUCKET not configured; KML import proceeded without S3 upload');
+    }
+
+    const { cmd, args } = getKmlImportCommand(tempBatchDir, sourceType);
+    const adminPassword: string = secretsManager.get('db_admin_password') || '';
+
+    const importResult = await new Promise<{
+      code: number | null;
+      output: string;
+      errorOutput: string;
+    }>((resolve, reject) => {
+      const importProcess = spawn(cmd, args, {
+        cwd: PROJECT_ROOT,
+        env: {
+          ...process.env,
+          DB_ADMIN_PASSWORD: adminPassword,
+          DB_ADMIN_USER: 'shadowcheck_admin',
+        },
+      });
+
+      let output = '';
+      let errorOutput = '';
+
+      importProcess.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+
+      importProcess.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+
+      importProcess.on('error', reject);
+      importProcess.on('close', (code: number | null) => resolve({ code, output, errorOutput }));
+    });
+
+    const durationSec = ((Date.now() - startedAt) / 1000).toFixed(2);
+
+    if (importResult.code !== 0) {
+      const errMsg =
+        importResult.errorOutput.slice(0, 500) ||
+        importResult.output.slice(0, 500) ||
+        `exit code ${importResult.code}`;
+      if (historyId) {
+        await adminImportHistoryService.failImportHistory(historyId, errMsg, durationSec);
+      }
+      logger.error(`KML import failed with code ${importResult.code}`);
+      return res.status(500).json({
+        ok: false,
+        error: 'KML import failed',
+        code: importResult.code,
+        output: importResult.output,
+        errorOutput: importResult.errorOutput,
+      });
+    }
+
+    const { filesImported, pointsImported } = parseKmlImportCounts(
+      importResult.output,
+      uploadedFiles.length
+    );
+    const metricsAfter = await adminImportHistoryService.captureImportMetrics();
+
+    if (historyId) {
+      await adminImportHistoryService.completeImportSuccess(
+        historyId,
+        pointsImported,
+        Math.max(uploadedFiles.length - filesImported, 0),
+        durationSec,
+        metricsAfter
+      );
+    }
+
+    return res.json({
+      ok: true,
+      importType: 'kml',
+      batchId,
+      filesImported,
+      pointsImported,
+      sourceType,
+      sourceTag: historyContext.sourceTag,
+      source_tag: historyContext.sourceTag,
+      durationSec,
+      uploadedToS3: uploadToS3 && Boolean(bucketName),
+      historyId,
+      metricsBefore,
+      metricsAfter,
+      s3Uploads,
+      output: importResult.output,
+    });
+  } catch (error: any) {
+    const durationSec = ((Date.now() - startedAt) / 1000).toFixed(2);
+    if (historyId) {
+      await adminImportHistoryService.failImportHistory(
+        historyId,
+        error.message || 'KML import failed',
+        durationSec
+      );
+    }
+    logger.error(`KML import failed: ${error.message}`, { error });
+    return res.status(500).json({
+      ok: false,
+      error: error.message || 'KML import failed',
+    });
+  } finally {
+    await cleanupPaths(cleanupTargets);
   }
 });
 

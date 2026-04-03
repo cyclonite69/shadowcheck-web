@@ -157,4 +157,47 @@ router.get('/geojson', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// Export as KML for Google Earth
+router.get('/kml', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { bssids } = req.query;
+
+    if (!bssids || typeof bssids !== 'string') {
+      return res.status(400).json({ error: 'bssids parameter is required' });
+    }
+
+    // Parse comma-separated BSSIDs
+    const bssidArray = bssids
+      .split(',')
+      .map((b) => b.trim().toUpperCase())
+      .filter((b) => /^([0-9A-F]{2}:){5}([0-9A-F]{2})$/.test(b));
+
+    if (bssidArray.length === 0) {
+      return res.status(400).json({ error: 'No valid BSSIDs provided' });
+    }
+
+    const observations = await exportService.getObservationsForKML(bssidArray);
+
+    if (observations.length === 0) {
+      return res.status(404).json({
+        error: 'No observations found for the specified networks',
+      });
+    }
+
+    const kml = exportService.generateKML(observations);
+
+    res.setHeader('Content-Type', 'application/vnd.google-earth.kml+xml');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="shadowcheck_${bssidArray.length}_networks_${new Date().toISOString().split('T')[0]}.kml"`
+    );
+    res.send(kml);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`KML export failed: ${msg}`, { error, stack });
+    res.status(500).json({ error: msg });
+  }
+});
+
 module.exports = router;

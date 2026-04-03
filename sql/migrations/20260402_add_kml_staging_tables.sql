@@ -109,3 +109,11 @@ CREATE INDEX IF NOT EXISTS idx_kml_points_network_type
 CREATE INDEX IF NOT EXISTS idx_kml_points_location
   ON app.kml_points USING gist (location)
   WHERE location IS NOT NULL;
+
+
+-- --------------------------------------------------------------------------
+-- runtime permissions
+-- --------------------------------------------------------------------------
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE app.kml_files TO shadowcheck_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE app.kml_points TO shadowcheck_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA app TO shadowcheck_user;
