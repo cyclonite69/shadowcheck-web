@@ -18,6 +18,7 @@ import * as path from 'path';
 import { createHash } from 'crypto';
 import { Pool } from 'pg';
 import '../loadEnv';
+import { collectKmlFiles, deriveKmlSourceFile } from './kmlImportUtils';
 
 type Nullable<T> = T | null;
 
@@ -124,22 +125,7 @@ class KmlImporter {
   }
 
   private collectInputFiles(): string[] {
-    const resolved = path.resolve(this.inputPath);
-
-    if (!fs.existsSync(resolved)) {
-      throw new Error(`Input path not found: ${resolved}`);
-    }
-
-    const stat = fs.statSync(resolved);
-    if (stat.isFile()) {
-      return resolved.toLowerCase().endsWith('.kml') ? [resolved] : [];
-    }
-
-    return fs
-      .readdirSync(resolved)
-      .filter((name) => name.toLowerCase().endsWith('.kml'))
-      .sort()
-      .map((name) => path.join(resolved, name));
+    return collectKmlFiles(this.inputPath);
   }
 
   private parseKmlFile(filePath: string): ParsedPoint[] {
@@ -221,8 +207,9 @@ class KmlImporter {
   }
 
   private async upsertKmlFile(filePath: string, points: ParsedPoint[]): Promise<number> {
-    const sourceFile = path.resolve(filePath);
-    const xml = fs.readFileSync(sourceFile);
+    const resolvedFilePath = path.resolve(filePath);
+    const sourceFile = deriveKmlSourceFile(this.inputPath, resolvedFilePath);
+    const xml = fs.readFileSync(resolvedFilePath);
     const xmlText = xml.toString('utf8');
     const sourceName = this.extractDocumentName(xmlText);
     const fileHash = createHash('sha256').update(xml).digest('hex');

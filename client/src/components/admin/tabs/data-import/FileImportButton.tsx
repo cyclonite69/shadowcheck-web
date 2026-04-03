@@ -9,7 +9,14 @@ interface FileImportButtonProps {
   loadingText: string;
   idleText: string;
   activeColorClass: string;
+  multiple?: boolean;
+  directory?: boolean;
 }
+
+type DirectoryInputProps = {
+  directory?: string;
+  webkitdirectory?: string;
+};
 
 export const FileImportButton: React.FC<FileImportButtonProps> = ({
   id,
@@ -20,6 +27,8 @@ export const FileImportButton: React.FC<FileImportButtonProps> = ({
   loadingText,
   idleText,
   activeColorClass,
+  multiple = false,
+  directory = false,
 }) => (
   <label className="block">
     <input
@@ -28,7 +37,11 @@ export const FileImportButton: React.FC<FileImportButtonProps> = ({
       accept={accept}
       onChange={onChange}
       disabled={disabled}
+      multiple={multiple}
       className="hidden"
+      {...(directory
+        ? ({ webkitdirectory: 'true', directory: 'true' } as DirectoryInputProps)
+        : {})}
     />
     <div
       className={`px-4 py-2.5 rounded-lg font-medium text-sm text-center transition-all text-white bg-gradient-to-r ${activeColorClass} ${

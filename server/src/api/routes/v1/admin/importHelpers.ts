@@ -36,6 +36,19 @@ const sqlUpload = multer({
   limits: { fileSize: 200 * 1024 * 1024 },
 });
 
+const kmlUpload = multer({
+  dest: '/tmp/',
+  fileFilter: (_req: any, file: any, cb: any) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.kml') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .kml files are allowed'));
+    }
+  },
+  limits: { fileSize: 200 * 1024 * 1024, files: 1000 },
+});
+
 async function validateSQLiteMagic(filePath: string): Promise<boolean> {
   const fd = await fs.open(filePath, 'r');
   try {
@@ -82,6 +95,40 @@ function getImportCommand(sqliteFile: string, sourceTag: string, originalName: s
   throw new Error(`${scriptBase} script not found (checked consolidated tsx and compiled paths)`);
 }
 
+function getKmlImportCommand(inputPath: string, sourceType: string) {
+  const scriptBase = 'kml-import';
+
+  const compiledCandidates = [
+    path.join(PROJECT_ROOT, `dist/server/etl/load/${scriptBase}.js`),
+    path.join(PROJECT_ROOT, `etl/load/${scriptBase}.js`),
+    path.join(`/app/dist/server/etl/load/${scriptBase}.js`),
+  ];
+  const tsxCandidates = [
+    path.join(PROJECT_ROOT, 'node_modules/.bin/tsx'),
+    path.join('/app/node_modules/.bin/tsx'),
+  ];
+  const tsScriptCandidates = [
+    path.join(PROJECT_ROOT, `etl/load/${scriptBase}.ts`),
+    path.join(`/app/etl/load/${scriptBase}.ts`),
+  ];
+
+  const compiledScript = compiledCandidates.find((p) => fsNative.existsSync(p));
+  const tsxBin = tsxCandidates.find((p) => fsNative.existsSync(p));
+  const tsScript = tsScriptCandidates.find((p) => fsNative.existsSync(p));
+
+  if (tsxBin && tsScript && process.env.NODE_ENV !== 'production') {
+    return { cmd: tsxBin, args: [tsScript, inputPath, sourceType] };
+  }
+  if (compiledScript) {
+    return { cmd: 'node', args: [compiledScript, inputPath, sourceType] };
+  }
+  if (tsxBin && tsScript) {
+    return { cmd: tsxBin, args: [tsScript, inputPath, sourceType] };
+  }
+
+  throw new Error(`${scriptBase} script not found (checked consolidated tsx and compiled paths)`);
+}
+
 function getSqlImportCommand(sqlFile: string) {
   const dbHost = process.env.DB_HOST || 'localhost';
   const dbPort = process.env.DB_PORT || '5432';
@@ -118,8 +165,10 @@ function getSqlImportCommand(sqlFile: string) {
 module.exports = {
   upload,
   sqlUpload,
+  kmlUpload,
   validateSQLiteMagic,
   getImportCommand,
+  getKmlImportCommand,
   getSqlImportCommand,
   PROJECT_ROOT,
 };

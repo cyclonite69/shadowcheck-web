@@ -12,6 +12,11 @@ export interface DataImportResult {
   ok: boolean;
   imported?: number;
   failed?: number;
+  filesImported?: number;
+  pointsImported?: number;
+  batchId?: string;
+  sourceType?: string;
+  uploadedToS3?: boolean;
   message?: string;
   error?: string;
   output?: string;
