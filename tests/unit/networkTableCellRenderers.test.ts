@@ -52,8 +52,9 @@ describe('renderNetworkTableCell', () => {
     const value = 123.45;
     const context = makeContext('accuracy', value);
     const result = renderNetworkTableCell(context);
-    expect(result.content).toBe(value);
-    expect(result.title).toBe(String(value));
+    // Accuracy now has a custom renderer with tooltip, so it returns a Tooltip wrapper
+    const content = getText(result.content);
+    expect(content).toBe('123 m'); // formatAccuracy display value
   });
 
   it('renders threat score with formatted badge', () => {
@@ -78,10 +79,32 @@ describe('renderNetworkTableCell', () => {
   });
 });
 
-const getText = (node: React.ReactNode) => {
+const getText = (node: React.ReactNode): any => {
   if (React.isValidElement(node)) {
-    const element = node as React.ReactElement<{ children: React.ReactNode }>;
-    return element.props.children;
+    const element = node as React.ReactElement<any>;
+    const { children } = element.props;
+
+    // If the element is a Tooltip (or any wrapper with display: contents),
+    // recursively extract text from its children
+    if (element.type === 'div' && element.props.style?.display === 'contents') {
+      return getText(children);
+    }
+
+    // For other elements with children, extract from first child
+    if (children) {
+      if (Array.isArray(children)) {
+        // Return the first child that has content
+        for (const child of children) {
+          if (child !== null && child !== undefined) {
+            return getText(child);
+          }
+        }
+      }
+      return getText(children);
+    }
+
+    // For text-only elements (span, div, etc.) without explicit children
+    return element.props.children || node;
   }
   return node;
 };
