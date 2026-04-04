@@ -15,7 +15,7 @@ services:
     container_name: shadowcheck_postgres_local
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-shadowcheck_user}
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
       POSTGRES_DB: ${DB_NAME:-shadowcheck_db}
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
@@ -25,7 +25,7 @@ services:
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${DB_USER:-shadowcheck_user} -d ${DB_NAME:-shadowcheck_db}"]
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-postgres} -d ${DB_NAME:-shadowcheck_db}"]
       interval: 10s
       timeout: 5s
       retries: 8
