@@ -97,10 +97,25 @@ export async function insertNetworkNote(
 
 export async function selectNetworkNotes(bssid: string): Promise<any[]> {
   const result = await query(
-    `SELECT id, content, note_type, user_id, created_at, updated_at
-     FROM app.network_notes
-     WHERE UPPER(bssid) = UPPER($1) AND is_deleted IS NOT TRUE
-     ORDER BY created_at DESC`,
+    `SELECT
+       nn.id,
+       nn.content,
+       nn.note_type,
+       nn.user_id,
+       nn.created_at,
+       nn.updated_at,
+       COALESCE(nm.attachment_count, 0) AS attachment_count,
+       COALESCE(nm.image_count, 0) AS image_count
+     FROM app.network_notes nn
+     LEFT JOIN LATERAL (
+       SELECT
+         COUNT(*)::integer AS attachment_count,
+         COUNT(*) FILTER (WHERE media_type = 'image')::integer AS image_count
+       FROM app.note_media
+       WHERE note_id = nn.id
+     ) nm ON TRUE
+     WHERE UPPER(nn.bssid) = UPPER($1) AND nn.is_deleted IS NOT TRUE
+     ORDER BY nn.created_at DESC`,
     [bssid]
   );
   return result.rows;

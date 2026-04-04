@@ -23,6 +23,8 @@ export interface NetworkNote {
   user_id: string;
   created_at: string;
   updated_at: string;
+  attachment_count?: number;
+  image_count?: number;
 }
 
 export interface NoteMediaItem {
@@ -137,7 +139,19 @@ export const networkApi = {
       body: formData,
       credentials: 'include',
     });
-    if (!response.ok) throw new Error('Failed to upload media');
+    if (!response.ok) {
+      let message = 'Failed to upload media';
+      try {
+        const text = await response.text();
+        if (text) {
+          const parsed = JSON.parse(text);
+          message = parsed?.error || parsed?.details || parsed?.message || text;
+        }
+      } catch {
+        // Keep fallback message.
+      }
+      throw new Error(message);
+    }
     return response.json();
   },
 

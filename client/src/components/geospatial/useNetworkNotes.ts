@@ -75,6 +75,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
       }
 
       // Upload attachments (new note or edit mode)
+      const uploadFailures: string[] = [];
       if (noteAttachments.length > 0) {
         if (!noteId) {
           throw new Error('Unable to resolve note ID for media upload');
@@ -86,13 +87,30 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
 
           try {
             await networkApi.addNoteMedia(noteId, formData);
-          } catch {
-            console.warn(`Failed to upload media: ${file.name}`);
+          } catch (error) {
+            uploadFailures.push(
+              `${file.name}: ${error instanceof Error ? error.message : 'upload failed'}`
+            );
           }
         }
       }
 
-      resetNoteState();
+      if (!noteId) {
+        throw new Error('Unable to resolve saved note');
+      }
+
+      const refreshedMedia = await networkApi.getNoteMedia(noteId);
+      setExistingNoteId(noteId);
+      setExistingNoteMedia(refreshedMedia);
+      setNoteAttachments([]);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      if (uploadFailures.length > 0) {
+        throw new Error(`Some attachments failed to upload: ${uploadFailures.join(', ')}`);
+      }
     } catch (err) {
       logError('Failed to save note', err);
     }

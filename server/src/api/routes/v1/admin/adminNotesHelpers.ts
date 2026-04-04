@@ -8,8 +8,13 @@ const mediaUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (_req: any, file: any, cb: any) => {
-    const allowed = /\.(jpg|jpeg|png|gif|pdf|mp4|mov|avi)$/i;
-    if (allowed.test(file.originalname)) {
+    const allowed = /\.(jpg|jpeg|png|gif|webp|heic|heif|pdf|mp4|mov|avi)$/i;
+    const mimetype = String(file.mimetype || '').toLowerCase();
+    const allowedMime =
+      mimetype.startsWith('image/') ||
+      mimetype.startsWith('video/') ||
+      mimetype === 'application/pdf';
+    if (allowed.test(file.originalname) || allowedMime) {
       cb(null, true);
     } else {
       cb(new Error('File type not allowed'));

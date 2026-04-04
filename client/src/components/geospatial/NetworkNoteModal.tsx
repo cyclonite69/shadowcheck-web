@@ -46,6 +46,8 @@ export const NetworkNoteModal = ({
 }: NetworkNoteModalProps) => {
   if (!open) return null;
 
+  const mediaUrl = (mediaId: number) => `/api/media/${mediaId}`;
+
   return (
     <div
       style={{
@@ -268,9 +270,36 @@ export const NetworkNoteModal = ({
                     gap: '8px',
                   }}
                 >
-                  <span style={{ fontSize: '13px', color: '#e2e8f0', flex: 1 }}>
-                    📎 {media.file_name} ({(media.file_size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                    {media.mime_type?.startsWith('image/') && (
+                      <img
+                        src={mediaUrl(media.id)}
+                        alt={media.file_name}
+                        style={{
+                          width: '52px',
+                          height: '52px',
+                          objectFit: 'cover',
+                          borderRadius: '6px',
+                          border: '1px solid #475569',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                        onClick={() => onOpenExistingMedia(media.id)}
+                      />
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                      <span style={{ fontSize: '13px', color: '#e2e8f0' }}>
+                        📎 {media.file_name} ({(media.file_size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        {media.mime_type?.startsWith('image/')
+                          ? 'Image attached'
+                          : media.media_type === 'video'
+                            ? 'Video attached'
+                            : 'Attachment saved'}
+                      </span>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => onOpenExistingMedia(media.id)}
@@ -341,9 +370,18 @@ export const NetworkNoteModal = ({
                     border: '1px solid #475569',
                   }}
                 >
-                  <span style={{ fontSize: '13px', color: '#e2e8f0' }}>
-                    📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: '13px', color: '#e2e8f0' }}>
+                      📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      {file.type.startsWith('image/')
+                        ? 'Image ready to attach'
+                        : file.type.startsWith('video/')
+                          ? 'Video ready to attach'
+                          : 'Attachment ready to save'}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     aria-label={`Remove attachment ${file.name}`}

@@ -26,6 +26,11 @@ export const NetworkContextNotes = ({
               <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded mb-2">
                 {note.note_type}
               </span>
+              {(note.attachment_count || 0) > 0 && (
+                <span className="ml-2 inline-block px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded mb-2">
+                  {(note.image_count || 0) > 0 ? 'Image attached' : 'Attachment attached'}
+                </span>
+              )}
               <p className="text-xs text-gray-500">{formatShortDate(note.created_at)}</p>
             </div>
             <button

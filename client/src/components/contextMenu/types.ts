@@ -18,6 +18,8 @@ export type NetworkNote = {
   note_type: string;
   created_at: string;
   content: string;
+  attachment_count?: number;
+  image_count?: number;
 };
 
 export type NotesByBssid = Record<string, NetworkNote[]>;
