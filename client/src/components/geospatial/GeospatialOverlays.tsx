@@ -1,5 +1,6 @@
 import React from 'react';
 import type { NetworkRow, NetworkTag } from '../../types/network';
+import type { NoteMediaItem } from '../../api/networkApi';
 import NetworkTimeFrequencyModal from '../modals/NetworkTimeFrequencyModal';
 import { NetworkNoteModal } from './NetworkNoteModal';
 import { NetworkTagMenu } from './NetworkTagMenu';
@@ -38,14 +39,18 @@ interface GeospatialOverlaysProps {
   noteType: string;
   noteContent: string;
   noteAttachments: File[];
+  existingNoteMedia: NoteMediaItem[];
   fileInputRef: React.RefObject<HTMLInputElement>;
   onNoteTypeChange: (value: string) => void;
   onNoteContentChange: (value: string) => void;
   onAddAttachment: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAttachment: (index: number) => void;
+  onOpenExistingMedia: (mediaId: number) => void;
+  onDeleteExistingMedia: (mediaId: number) => void;
   onCloseNoteOverlay: () => void;
   onCloseNote: () => void;
   onCancelNote: () => void;
+  onDeleteNote: () => void;
   onSaveNote: () => void;
   timeFreqModal: { bssid: string; ssid: string } | null;
   onCloseTimeFrequency: () => void;
@@ -71,14 +76,18 @@ export const GeospatialOverlays = ({
   noteType,
   noteContent,
   noteAttachments,
+  existingNoteMedia,
   fileInputRef,
   onNoteTypeChange,
   onNoteContentChange,
   onAddAttachment,
   onRemoveAttachment,
+  onOpenExistingMedia,
+  onDeleteExistingMedia,
   onCloseNoteOverlay,
   onCloseNote,
   onCancelNote,
+  onDeleteNote,
   onSaveNote,
   timeFreqModal,
   onCloseTimeFrequency,
@@ -113,14 +122,18 @@ export const GeospatialOverlays = ({
         noteType={noteType}
         noteContent={noteContent}
         noteAttachments={noteAttachments}
+        existingNoteMedia={existingNoteMedia}
         fileInputRef={fileInputRef}
         onNoteTypeChange={onNoteTypeChange}
         onNoteContentChange={onNoteContentChange}
         onAddAttachment={onAddAttachment}
         onRemoveAttachment={onRemoveAttachment}
+        onOpenExistingMedia={onOpenExistingMedia}
+        onDeleteExistingMedia={onDeleteExistingMedia}
         onOverlayClose={onCloseNoteOverlay}
         onCloseButton={onCloseNote}
         onCancel={onCancelNote}
+        onDeleteNote={onDeleteNote}
         onSave={onSaveNote}
       />
 

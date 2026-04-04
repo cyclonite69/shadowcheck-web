@@ -12,6 +12,8 @@ const {
   updateNetworkNoteContent,
   insertNoteMedia,
   selectNoteMediaById,
+  selectNoteMediaList,
+  deleteNoteMedia,
 } = require('../repositories/adminNetworkMediaRepository');
 
 module.exports = {
@@ -26,4 +28,6 @@ module.exports = {
   updateNetworkNote: updateNetworkNoteContent,
   addNoteMedia: insertNoteMedia,
   getNoteMediaById: selectNoteMediaById,
+  getNoteMediaList: selectNoteMediaList,
+  deleteNoteMedia,
 };

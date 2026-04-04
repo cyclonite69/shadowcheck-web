@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { networkApi } from '../../api/networkApi';
+import { networkApi, type NoteMediaItem } from '../../api/networkApi';
 
 type NetworkNotesProps = {
   logError: (message: string, error?: unknown) => void;
@@ -12,6 +12,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState('general');
   const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
+  const [existingNoteMedia, setExistingNoteMedia] = useState<NoteMediaItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const noteRequestBssidRef = useRef<string>('');
 
@@ -22,6 +23,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     setNoteContent('');
     setNoteType('general');
     setNoteAttachments([]);
+    setExistingNoteMedia([]);
   };
 
   const openNoteModalForBssid = async (bssid: string) => {
@@ -34,6 +36,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     setNoteContent('');
     setNoteType('general');
     setNoteAttachments([]);
+    setExistingNoteMedia([]);
     setShowNoteModal(true);
 
     try {
@@ -41,9 +44,13 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
       if (noteRequestBssidRef.current !== bssid) return;
       const latest = notes[0];
       if (latest) {
-        setExistingNoteId(Number(latest.id));
+        const noteId = Number(latest.id);
+        setExistingNoteId(noteId);
         setNoteContent(latest.content || '');
         setNoteType(latest.note_type || 'general');
+        const media = await networkApi.getNoteMedia(noteId);
+        if (noteRequestBssidRef.current !== bssid) return;
+        setExistingNoteMedia(media);
       }
     } catch (err) {
       logError('Failed to load existing notes', err);
@@ -91,6 +98,30 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     }
   };
 
+  const handleDeleteNote = async () => {
+    if (!selectedBssid || !existingNoteId) return;
+
+    try {
+      await networkApi.deleteNetworkNote(selectedBssid, existingNoteId);
+      resetNoteState();
+    } catch (err) {
+      logError('Failed to delete note', err);
+    }
+  };
+
+  const handleDeleteExistingMedia = async (mediaId: number) => {
+    try {
+      await networkApi.deleteNoteMedia(mediaId);
+      setExistingNoteMedia((prev) => prev.filter((media) => media.id !== mediaId));
+    } catch (err) {
+      logError('Failed to delete note attachment', err);
+    }
+  };
+
+  const openExistingMedia = (mediaId: number) => {
+    window.open(`/api/media/${mediaId}`, '_blank', 'noopener,noreferrer');
+  };
+
   const handleAddAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setNoteAttachments((prev) => [...prev, ...files]);
@@ -116,10 +147,14 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     setNoteType,
     noteAttachments,
     setNoteAttachments,
+    existingNoteMedia,
     fileInputRef,
     openNoteModalForBssid,
     resetNoteState,
     handleSaveNote,
+    handleDeleteNote,
+    handleDeleteExistingMedia,
+    openExistingMedia,
     handleAddAttachment,
     removeAttachment,
   };

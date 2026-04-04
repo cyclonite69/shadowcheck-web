@@ -25,6 +25,19 @@ export interface NetworkNote {
   updated_at: string;
 }
 
+export interface NoteMediaItem {
+  id: number;
+  note_id: number;
+  bssid: string;
+  file_path: string | null;
+  file_name: string;
+  file_size: number;
+  media_type: string;
+  mime_type: string | null;
+  storage_backend: string;
+  created_at: string;
+}
+
 export const networkApi = {
   async getNetworkTags(bssid: string): Promise<NetworkTag> {
     return apiClient.get<NetworkTag>(`/network-tags/${encodeURIComponent(bssid)}`);
@@ -112,6 +125,11 @@ export const networkApi = {
     return apiClient.patch(`/networks/${encodedBssid}/notes/${noteId}`, { content });
   },
 
+  async deleteNetworkNote(bssid: string, noteId: number): Promise<any> {
+    const encodedBssid = encodeURIComponent(bssid);
+    return apiClient.delete(`/networks/${encodedBssid}/notes/${noteId}`);
+  },
+
   // FormData — raw fetch (apiClient forces application/json header)
   async addNoteMedia(noteId: number, formData: FormData): Promise<any> {
     const response = await fetch(`/api/admin/network-notes/${noteId}/media`, {
@@ -121,6 +139,17 @@ export const networkApi = {
     });
     if (!response.ok) throw new Error('Failed to upload media');
     return response.json();
+  },
+
+  async getNoteMedia(noteId: number): Promise<NoteMediaItem[]> {
+    const response = await apiClient.get<any>(`/admin/network-notes/${noteId}/media`);
+    if (Array.isArray(response)) return response as NoteMediaItem[];
+    if (Array.isArray(response?.media)) return response.media as NoteMediaItem[];
+    return [];
+  },
+
+  async deleteNoteMedia(mediaId: number): Promise<any> {
+    return apiClient.delete(`/admin/network-notes/media/${mediaId}`);
   },
 
   async getNetworkObservations(bssid: string): Promise<any> {

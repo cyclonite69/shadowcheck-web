@@ -141,6 +141,52 @@ router.post(
   async (req: any, res: any) => handleNoteMediaUpload(req, res, adminNetworkMediaService, logger)
 );
 
+// GET /api/admin/network-notes/:noteId/media
+router.get('/admin/network-notes/:noteId/media', async (req: any, res: any) => {
+  try {
+    const { noteId } = req.params;
+    const media = await adminNetworkMediaService.getNoteMediaList(noteId);
+    res.json({
+      ok: true,
+      note_id: Number(noteId),
+      media,
+      count: media.length,
+    });
+  } catch (error: any) {
+    logger.error('Get note media failed:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Failed to get note media',
+      details: error.message,
+    });
+  }
+});
+
+// DELETE /api/admin/network-notes/media/:mediaId
+router.delete('/admin/network-notes/media/:mediaId', async (req: any, res: any) => {
+  try {
+    const { mediaId } = req.params;
+    const deleted = await adminNetworkMediaService.deleteNoteMedia(mediaId);
+    if (!deleted) {
+      return res.status(404).json({ ok: false, error: 'Note media not found' });
+    }
+    res.json({
+      ok: true,
+      media_id: Number(mediaId),
+      note_id: deleted.note_id,
+      bssid: deleted.bssid,
+      message: 'Note media deleted',
+    });
+  } catch (error: any) {
+    logger.error('Delete note media failed:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Failed to delete note media',
+      details: error.message,
+    });
+  }
+});
+
 // GET /api/media/:filename
 router.get('/media/:filename', (req: any, res: any) =>
   serveNoteMedia(req, res, adminNetworkMediaService, logger)

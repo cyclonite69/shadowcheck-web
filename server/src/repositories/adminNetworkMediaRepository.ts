@@ -63,12 +63,35 @@ export async function insertNetworkNote(
   noteType: string,
   userId: string
 ): Promise<number> {
-  const result = await adminQuery('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
-    String(bssid).toUpperCase(),
-    content,
-    noteType,
-    userId,
-  ]);
+  const normalizedBssid = String(bssid).toUpperCase();
+  const result = await adminQuery(
+    `WITH latest AS (
+       SELECT id
+       FROM app.network_notes
+       WHERE UPPER(bssid) = UPPER($1)
+         AND is_deleted IS NOT TRUE
+       ORDER BY updated_at DESC NULLS LAST, created_at DESC, id DESC
+       LIMIT 1
+     ), updated AS (
+       UPDATE app.network_notes nn
+       SET content = $2,
+           note_type = $3,
+           user_id = $4,
+           updated_at = NOW()
+       FROM latest
+       WHERE nn.id = latest.id
+       RETURNING nn.id
+     ), inserted AS (
+       INSERT INTO app.network_notes (bssid, user_id, content, note_type)
+       SELECT $1, $4, $2, $3
+       WHERE NOT EXISTS (SELECT 1 FROM updated)
+       RETURNING id
+     )
+     SELECT id AS note_id FROM updated
+     UNION ALL
+     SELECT id AS note_id FROM inserted`,
+    [normalizedBssid, content, noteType, userId]
+  );
   return result.rows[0].note_id;
 }
 
@@ -134,6 +157,30 @@ export async function selectNoteMediaById(mediaId: string): Promise<any | null> 
     `SELECT id, note_id, bssid, file_path, file_name, file_size, media_type, media_data, mime_type, storage_backend, created_at
      FROM app.note_media
      WHERE id = $1`,
+    [mediaId]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+export async function selectNoteMediaList(noteId: string): Promise<any[]> {
+  const result = await query(
+    `SELECT id, note_id, bssid, file_path, file_name, file_size, media_type, mime_type, storage_backend, created_at
+     FROM app.note_media
+     WHERE note_id = $1
+     ORDER BY created_at DESC, id DESC`,
+    [noteId]
+  );
+  return result.rows;
+}
+
+export async function deleteNoteMedia(mediaId: string): Promise<any | null> {
+  const result = await adminQuery(
+    `WITH deleted AS (
+       DELETE FROM app.note_media
+       WHERE id = $1
+       RETURNING id, note_id, bssid, file_name, file_path
+     )
+     SELECT * FROM deleted`,
     [mediaId]
   );
   return result.rows.length > 0 ? result.rows[0] : null;
