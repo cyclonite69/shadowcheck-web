@@ -28,6 +28,13 @@ export const wigleApi = {
     return apiClient.get(`/wigle/search-api/import-runs/${runId}`);
   },
 
+  async getImportCompletenessReport(params: URLSearchParams = new URLSearchParams()): Promise<any> {
+    const suffix = params.toString();
+    return apiClient.get(
+      `/wigle/search-api/import-runs/completeness/summary${suffix ? `?${suffix}` : ''}`
+    );
+  },
+
   async resumeImportRun(runId: number): Promise<any> {
     return apiClient.post(`/wigle/search-api/import-runs/${runId}/resume`, {});
   },

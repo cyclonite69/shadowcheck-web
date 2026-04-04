@@ -250,6 +250,105 @@ const listImportRuns = async (
   return result.rows.map((row: any) => serializeRun(row));
 };
 
+const getImportCompletenessSummary = async (
+  options: {
+    searchTerm?: string;
+    state?: string;
+  } = {}
+) => {
+  const { searchTerm, state } = options;
+  const params: any[] = [];
+  const latestRunWhere = [
+    `source = 'wigle'`,
+    `COALESCE(api_version, 'v2') = 'v2'`,
+    `state IS NOT NULL`,
+  ];
+  const tableCountWhere = [`country = 'US'`, `region IS NOT NULL`, `LENGTH(TRIM(region)) = 2`];
+
+  if (searchTerm) {
+    params.push(`%${searchTerm}%`);
+    latestRunWhere.push(`search_term ILIKE $${params.length}`);
+  }
+  if (state) {
+    params.push(state);
+    latestRunWhere.push(`state = $${params.length}`);
+    tableCountWhere.push(`region = $${params.length}`);
+  }
+
+  const result = await query(
+    `WITH latest_runs AS (
+       SELECT
+         id,
+         state,
+         search_term,
+         status,
+         api_total_results,
+         total_pages,
+         page_size,
+         pages_fetched,
+         rows_returned,
+         rows_inserted,
+         last_successful_page,
+         next_page,
+         api_cursor,
+         last_error,
+         started_at,
+         updated_at,
+         completed_at,
+         ROW_NUMBER() OVER (PARTITION BY state ORDER BY started_at DESC, id DESC) AS rn
+       FROM app.wigle_import_runs
+       WHERE ${latestRunWhere.join(' AND ')}
+     ),
+     table_counts AS (
+       SELECT
+         region AS state,
+         COUNT(*)::integer AS stored_count
+       FROM app.wigle_v2_networks_search
+       WHERE ${tableCountWhere.join(' AND ')}
+       GROUP BY region
+     ),
+     states AS (
+       SELECT state FROM latest_runs
+       UNION
+       SELECT state FROM table_counts
+     )
+     SELECT
+       s.state,
+       COALESCE(tc.stored_count, 0) AS stored_count,
+       lr.id AS run_id,
+       lr.search_term,
+       lr.status,
+       lr.api_total_results,
+       lr.total_pages,
+       lr.page_size,
+       lr.pages_fetched,
+       lr.rows_returned,
+       lr.rows_inserted,
+       lr.last_successful_page,
+       lr.next_page,
+       lr.api_cursor,
+       lr.last_error,
+       lr.started_at,
+       lr.updated_at,
+       lr.completed_at,
+       CASE
+         WHEN lr.api_total_results IS NULL THEN NULL
+         ELSE GREATEST(lr.api_total_results - COALESCE(lr.rows_returned, 0), 0)
+       END AS missing_api_rows,
+       CASE
+         WHEN lr.api_total_results IS NULL THEN NULL
+         ELSE GREATEST(lr.api_total_results - COALESCE(lr.rows_inserted, 0), 0)
+       END AS missing_insert_rows
+     FROM states s
+     LEFT JOIN table_counts tc ON tc.state = s.state
+     LEFT JOIN latest_runs lr ON lr.state = s.state AND lr.rn = 1
+     ORDER BY s.state`,
+    params
+  );
+
+  return result.rows;
+};
+
 const getImportRun = async (runId: number) => {
   const run = await getRunOrThrow(runId);
   const pages = await getRunPages(runId);
@@ -270,6 +369,7 @@ export {
   createImportRun,
   findLatestResumableRun,
   getImportRun,
+  getImportCompletenessSummary,
   getLatestResumableImportRun,
   getRunOrThrow,
   listImportRuns,

@@ -8,6 +8,15 @@ const insertWigleV2SearchResult = async (
   executor: QueryExecutor,
   network: any
 ): Promise<number> => {
+  const trilat = network.trilat ? parseFloat(network.trilat) : null;
+  const trilong = network.trilong ? parseFloat(network.trilong) : null;
+
+  // WiGLE occasionally returns rows without usable coordinates. Skip them
+  // rather than aborting the entire page transaction.
+  if (!Number.isFinite(trilat) || !Number.isFinite(trilong)) {
+    return 0;
+  }
+
   const result = await executor.query(
     `INSERT INTO app.wigle_v2_networks_search (
       bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
@@ -23,9 +32,9 @@ const insertWigleV2SearchResult = async (
     [
       network.netid || network.bssid,
       network.ssid,
-      network.trilat ? parseFloat(network.trilat) : null,
-      network.trilong ? parseFloat(network.trilong) : null,
-      network.trilong ? parseFloat(network.trilong) : null,
+      trilat,
+      trilong,
+      trilong,
       network.firsttime,
       network.lasttime,
       network.lastupdt,

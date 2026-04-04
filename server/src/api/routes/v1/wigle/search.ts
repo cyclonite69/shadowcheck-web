@@ -261,6 +261,19 @@ router.get('/search-api/import-runs', requireAdmin, async (req, res, next) => {
   }
 });
 
+router.get('/search-api/import-runs/completeness/summary', requireAdmin, async (req, res, next) => {
+  try {
+    const report = await wigleImportRunService.getImportCompletenessReport({
+      searchTerm: req.query.searchTerm ? String(req.query.searchTerm) : undefined,
+      state: req.query.state ? String(req.query.state).toUpperCase() : undefined,
+    });
+    return res.json({ ok: true, report });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Completeness report error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
 router.get('/search-api/import-runs/:id', requireAdmin, async (req, res, next) => {
   try {
     const runId = Number.parseInt(String(req.params.id), 10);
