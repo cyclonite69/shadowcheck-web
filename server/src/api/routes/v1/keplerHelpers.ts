@@ -42,6 +42,12 @@ export interface KeplerObsRow {
   threat_level: string | null;
   threat_score: number | null;
   distance_from_home_km: number | null;
+  first_observed_at: unknown;
+  last_observed_at: unknown;
+  observations: number | null;
+  unique_days: number | null;
+  max_distance_meters: number | null;
+  stationary_confidence: number | null;
 }
 
 interface KeplerBssidRow {
@@ -244,6 +250,8 @@ export const buildKeplerObservationsGeoJson = (
       first_seen: row.time,
       last_seen: row.time,
       timestamp: row.time,
+      first_observed_at: row.first_observed_at || row.time,
+      last_observed_at: row.last_observed_at || row.time,
       manufacturer: row.manufacturer || 'Unknown',
       device_type: 'Unknown',
       type: inferRadioType(row.radio_type, row.ssid, row.radio_frequency, row.radio_capabilities),
@@ -255,6 +263,21 @@ export const buildKeplerObservationsGeoJson = (
       source_tag: row.source_tag,
       altitude: row.altitude,
       accuracy: row.accuracy,
+      observation_count: row.observations || 0,
+      observations: row.observations || 0,
+      obs_count: row.observations || 0,
+      unique_days: row.unique_days || null,
+      max_distance_meters: row.max_distance_meters ?? null,
+      max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
+      timespan_days:
+        row.first_observed_at && row.last_observed_at
+          ? Math.ceil(
+              ((new Date(row.last_observed_at as string) as unknown as number) -
+                (new Date(row.first_observed_at as string) as unknown as number)) /
+                86400000
+            )
+          : null,
+      stationary_confidence: row.stationary_confidence ?? null,
       threat_level: row.threat_level || null,
       threat_score: row.threat_score || null,
       distance_from_home: row.distance_from_home_km || null,
