@@ -125,8 +125,10 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     }
   }
 
-  // Health check (no prefix, available at /health)
+  // Health checks are intentionally public and mounted at both /health and
+  // /api/health for backward compatibility with older deploy probes.
   app.use('/', healthRoutes);
+  app.use('/api', healthRoutes);
 
   // Geospatial routes (includes root redirect)
   app.use('/', geospatialRoutes);

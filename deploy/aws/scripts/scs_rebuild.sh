@@ -498,7 +498,7 @@ fi
 # Final
 echo "[final] Verifying deployment..."
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep shadowcheck
-echo "API: $(curl -sf http://localhost:3001/api/health >/dev/null && echo "OK" || echo "WAITING")"
+echo "API: $(curl -sf http://localhost:3001/health >/dev/null && echo "OK" || echo "WAITING")"
 echo "HTTPS: $(curl -sfk https://localhost/health >/dev/null && echo "OK" || echo "WAITING")"
 echo "=== Done ==="
 echo "Disk: $(print_disk_usage)"

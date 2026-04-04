@@ -193,6 +193,26 @@ describe('routeMounts authz smoke', () => {
     expect(analyticsPublic.res.body.route).toBe('analytics-public');
   });
 
+  test('health routes stay public on both / and /api when gate is enabled', () => {
+    process.env.API_GATE_ENABLED = 'true';
+
+    const deps = buildDeps();
+    const mounted: MountedEntry[] = [];
+    const app = {
+      use: (path: string, ...handlers: RequestHandler[]) => {
+        mounted.push({ path, handlers });
+      },
+    };
+
+    mountApiRoutes(app as any, deps);
+
+    const rootHealthHandlers = findMountedHandlers(mounted, '/', deps.healthRoutes);
+    const apiHealthHandlers = findMountedHandlers(mounted, '/api', deps.healthRoutes);
+
+    expect(invokeChain(rootHealthHandlers).res.statusCode).toBe(200);
+    expect(invokeChain(apiHealthHandlers).res.statusCode).toBe(200);
+  });
+
   test('gate disabled: user/admin routes are pass-through (200)', () => {
     process.env.API_GATE_ENABLED = 'false';
 
