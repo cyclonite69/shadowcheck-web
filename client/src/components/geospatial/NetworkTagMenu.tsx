@@ -63,8 +63,7 @@ export const NetworkTagMenu = ({
       ref={contextMenuRef}
       style={{
         position: 'fixed',
-        top: position === 'below' ? y : 'auto',
-        bottom: position === 'above' ? window.innerHeight - y : 'auto',
+        top: y,
         left: x,
         zIndex: 10000,
         background: '#1e293b',
