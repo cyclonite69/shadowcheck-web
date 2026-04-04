@@ -119,7 +119,7 @@ async function scoreAll(): Promise<void> {
       const networkResult = await client.query<NetworkRow>(
         `
         SELECT
-          ap.bssid,
+          n.bssid,
           mv.observations as observation_count,
           mv.unique_days,
           mv.unique_locations,
@@ -129,14 +129,14 @@ async function scoreAll(): Promise<void> {
           (mv.distance_from_home_km < 0.1) as seen_at_home,
           (mv.distance_from_home_km > 0.5) as seen_away_from_home,
           COALESCE(nts.rule_based_score, (mv.threat->>'score')::numeric * 100, 0) AS rule_based_score
-        FROM app.access_points ap
-        LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
-        LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-        WHERE ap.bssid > $1
-          AND ap.bssid IS NOT NULL
-          AND LENGTH(ap.bssid) <= 17
+        FROM app.networks n
+        LEFT JOIN app.api_network_explorer_mv mv ON n.bssid = mv.bssid
+        LEFT JOIN app.network_threat_scores nts ON n.bssid = nts.bssid
+        WHERE n.bssid > $1
+          AND n.bssid IS NOT NULL
+          AND LENGTH(n.bssid) <= 17
           AND mv.observations > 0
-        ORDER BY ap.bssid
+        ORDER BY n.bssid
         LIMIT $2
         `,
         [lastBssid, BATCH_SIZE]

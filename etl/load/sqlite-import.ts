@@ -165,25 +165,22 @@ class IncrementalImporter {
       // 5. Ensure device_source exists (FK constraint)
       await this.ensureDeviceSource();
 
-      // 6. Upsert access_points FIRST (FK constraint)
-      await this.upsertAccessPoints();
-
-      // 7. Upsert networks (rich metadata for MV/UI)
+      // 6. Upsert networks (canonical BSSID parent + rich metadata for MV/UI)
       await this.upsertNetworks();
 
-      // 8. Import new observations
+      // 7. Import new observations
       await this.importNewObservations();
 
-      // 9. Backfill any missing network rows from newly imported observations.
+      // 8. Backfill any missing network rows from newly imported observations.
       await this.backfillMissingNetworksFromObservations();
 
-      // 10. Remove orphan networks (no access_points entry — no coords, no SSID)
+      // 9. Remove networks with no supporting observations.
       await this.pruneOrphanNetworks();
 
-      // 11. Refresh materialized views
+      // 10. Refresh materialized views
       await this.refreshMaterializedViews();
 
-      // 12. Print summary
+      // 11. Print summary
       this.printSummary();
     } catch (error) {
       const err = error as Error;
@@ -514,60 +511,6 @@ class IncrementalImporter {
     console.log(`   Device source '${this.sourceTag}' ready`);
   }
 
-  private async upsertAccessPoints(): Promise<void> {
-    console.log('\n📡 Upserting access points (before observations for FK constraint)...');
-
-    // Get unique BSSIDs from NEW SQLite records
-    const bssids = await new Promise<string[]>((resolve, reject) => {
-      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.all(
-        `SELECT DISTINCT UPPER(bssid) as bssid FROM location WHERE time > ?`,
-        [this.latestTimeMs],
-        (err: Error | null, rows: { bssid: string }[]) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(rows.map((r) => r.bssid));
-        }
-      );
-    });
-
-    console.log(`   Found ${bssids.length.toLocaleString()} unique BSSIDs`);
-
-    // Strip null bytes from strings
-    const cleanString = (s: string | null | undefined): string | null => {
-      if (!s) return null;
-      const cleaned = s.replace(/\x00/g, '').trim();
-      return cleaned || null;
-    };
-
-    let upserted = 0;
-
-    for (const bssid of bssids) {
-      const network = this.networkCache.get(bssid);
-
-      try {
-        await this.pool.query(
-          `
-          INSERT INTO app.access_points (bssid, latest_ssid, first_seen, last_seen, total_observations)
-          VALUES ($1, $2, NOW(), NOW(), 0)
-          ON CONFLICT (bssid) DO UPDATE SET
-            latest_ssid = COALESCE(NULLIF(EXCLUDED.latest_ssid, ''), app.access_points.latest_ssid),
-            last_seen = GREATEST(EXCLUDED.last_seen, app.access_points.last_seen)
-          `,
-          [bssid, cleanString(network?.ssid) || null]
-        );
-        upserted++;
-      } catch (error) {
-        if (CONFIG.DEBUG) {
-          const e = error as Error;
-          console.error(`   Access point upsert failed for ${bssid}: ${e.message}`);
-        }
-      }
-    }
-
-    console.log(`   Upserted ${upserted.toLocaleString()} access points`);
-  }
-
   private async upsertNetworks(): Promise<void> {
     console.log('\n📡 Upserting networks...');
 
@@ -733,7 +676,7 @@ class IncrementalImporter {
       const result = await this.pool.query(
         `DELETE FROM app.networks
          WHERE NOT EXISTS (
-           SELECT 1 FROM app.access_points ap WHERE ap.bssid = networks.bssid
+           SELECT 1 FROM app.observations o WHERE o.bssid = networks.bssid
          )`
       );
       const deleted = result.rowCount ?? 0;

@@ -206,18 +206,6 @@ ALTER TABLE app.networks ADD COLUMN IF NOT EXISTS unique_locations    integer   
 ALTER TABLE app.networks ADD COLUMN IF NOT EXISTS is_sentinel         boolean          DEFAULT false;
 ALTER TABLE app.networks ADD COLUMN IF NOT EXISTS accuracy_meters     double precision DEFAULT 0;
 
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables
-             WHERE table_schema = 'app' AND table_name = 'access_points') THEN
-    UPDATE app.networks n
-    SET is_sentinel = ap.is_sentinel
-    FROM app.access_points ap
-    WHERE n.bssid = ap.bssid;
-  END IF;
-END $$;
-
-
 -- ----------------------------------------------------------------------------
 -- 5. Sibling detection — find_sibling_radios v3
 -- ----------------------------------------------------------------------------

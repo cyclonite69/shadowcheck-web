@@ -194,4 +194,40 @@ router.get(
   })
 );
 
+router.get(
+  '/kml-points',
+  validateWigleNetworksQuery,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { filters, enabled } = req.query;
+    const limit = (req as any).validated?.limit ?? null;
+    const offset = (req as any).validated?.offset ?? null;
+    const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
+    if (!includeTotalValidation.valid) {
+      return res.status(400).json({ error: includeTotalValidation.error });
+    }
+    const includeTotal = includeTotalValidation.value;
+
+    let bssid: string | undefined;
+
+    if (filters && enabled) {
+      try {
+        const filterObj = JSON.parse(filters as string);
+        const enabledObj = JSON.parse(enabled as string);
+        if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
+      } catch (e: any) {
+        logger.warn('Invalid filter parameters for KML points:', e.message);
+      }
+    }
+
+    const { rows, total } = await wigleService.getKmlPointsForMap({
+      bssid,
+      limit,
+      offset,
+      includeTotal,
+    });
+
+    res.json({ ok: true, count: rows.length, total, data: rows });
+  })
+);
+
 export default router;

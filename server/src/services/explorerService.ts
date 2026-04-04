@@ -30,7 +30,7 @@ export async function executeExplorerQuery(sql: string, params: any[]): Promise<
 
 /**
  * Legacy paginated network list with optional search, quality filter and sort.
- * Joins obs_latest CTE with access_points and computes ST_Distance from home.
+ * Joins latest/aggregated observations with networks and computes ST_Distance from home.
  */
 export async function listNetworks(opts: {
   homeLon: number | null;

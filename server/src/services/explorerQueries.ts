@@ -19,7 +19,9 @@ const buildLegacyExplorerQuery = (opts: {
   const where: string[] = [];
   if (search) {
     params.push(`%${search}%`, `%${search}%`);
-    where.push(`(ap.latest_ssid ILIKE $${params.length - 1} OR ap.bssid ILIKE $${params.length})`);
+    where.push(
+      `(COALESCE(NULLIF(obs.ssid, ''), NULLIF(n.ssid, '')) ILIKE $${params.length - 1} OR n.bssid ILIKE $${params.length})`
+    );
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -48,20 +50,32 @@ const buildLegacyExplorerQuery = (opts: {
       FROM app.observations
       WHERE lat IS NOT NULL AND lon IS NOT NULL AND lat != 0 AND lon != 0 ${qualityWhere}
       ORDER BY bssid, time DESC
+    ),
+    obs_stats AS (
+      SELECT
+        bssid,
+        COUNT(*) AS observations,
+        MIN(observed_at) AS first_seen,
+        MAX(observed_at) AS last_seen,
+        BOOL_OR(radio_frequency BETWEEN 5000 AND 5924) AS is_5ghz,
+        BOOL_OR(radio_frequency >= 5925) AS is_6ghz,
+        BOOL_AND(COALESCE(NULLIF(ssid, ''), '') = '') AS is_hidden
+      FROM app.observations
+      GROUP BY bssid
     )
     SELECT
-      ap.bssid,
-      COALESCE(NULLIF(obs.ssid, ''), ap.latest_ssid) AS ssid,
+      n.bssid,
+      COALESCE(NULLIF(obs.ssid, ''), NULLIF(n.ssid, '')) AS ssid,
       obs.observed_at,
       obs.level,
       obs.lat,
       obs.lon,
-      ap.total_observations AS observations,
-      ap.first_seen,
-      ap.last_seen,
-      ap.is_5ghz,
-      ap.is_6ghz,
-      ap.is_hidden,
+      COALESCE(stats.observations, 0) AS observations,
+      stats.first_seen,
+      stats.last_seen,
+      COALESCE(stats.is_5ghz, false) AS is_5ghz,
+      COALESCE(stats.is_6ghz, false) AS is_6ghz,
+      COALESCE(stats.is_hidden, COALESCE(NULLIF(n.ssid, ''), '') = '') AS is_hidden,
       obs.radio_frequency AS frequency,
       obs.radio_capabilities AS capabilities,
       obs.accuracy_meters,
@@ -75,8 +89,9 @@ const buildLegacyExplorerQuery = (opts: {
         ELSE NULL
       END AS distance_from_home_km,
       COUNT(*) OVER() AS total
-    FROM app.access_points ap
-    LEFT JOIN obs_latest obs ON obs.bssid = ap.bssid
+    FROM app.networks n
+    LEFT JOIN obs_latest obs ON obs.bssid = n.bssid
+    LEFT JOIN obs_stats stats ON stats.bssid = n.bssid
     ${whereClause}
     ${orderClause}
     ${limitClause}

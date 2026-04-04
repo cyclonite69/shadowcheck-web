@@ -123,7 +123,10 @@ export const ensureV3Layers = (map: Map, v3FCRef: any) => {
   }
 };
 
-export const applyLayerVisibility = (map: Map, layers: { v2: boolean; v3: boolean }) => {
+export const applyLayerVisibility = (
+  map: Map,
+  layers: { v2: boolean; v3: boolean; kml: boolean }
+) => {
   const setVis = (layerId: string, visible: boolean) => {
     if (map.getLayer(layerId)) {
       map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
@@ -136,4 +139,7 @@ export const applyLayerVisibility = (map: Map, layers: { v2: boolean; v3: boolea
   setVis('wigle-v3-clusters', layers.v3);
   setVis('wigle-v3-cluster-count', layers.v3);
   setVis('wigle-v3-unclustered', layers.v3);
+  setVis('wigle-kml-clusters', layers.kml);
+  setVis('wigle-kml-cluster-count', layers.kml);
+  setVis('wigle-kml-unclustered', layers.kml);
 };

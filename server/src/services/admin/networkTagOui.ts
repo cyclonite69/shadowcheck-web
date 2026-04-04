@@ -22,13 +22,13 @@ async function getOUIGroupDetails(
     query('SELECT * FROM app.mac_randomization_suspects WHERE oui = $1', [oui]),
     query(
       `
-      SELECT ap.bssid, nts.final_threat_score, nts.final_threat_level, ap.ssid,
+      SELECT n.bssid, nts.final_threat_score, nts.final_threat_level, n.ssid,
              COUNT(obs.id) as observation_count
-      FROM app.access_points ap
-      LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-      LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
-      WHERE SUBSTRING(ap.bssid, 1, 8) = $1
-      GROUP BY ap.bssid, nts.final_threat_score, nts.final_threat_level, ap.ssid
+      FROM app.networks n
+      LEFT JOIN app.network_threat_scores nts ON n.bssid = nts.bssid
+      LEFT JOIN app.observations obs ON n.bssid = obs.bssid
+      WHERE SUBSTRING(n.bssid, 1, 8) = $1
+      GROUP BY n.bssid, nts.final_threat_score, nts.final_threat_level, n.ssid
       ORDER BY nts.final_threat_score DESC
     `,
       [oui]

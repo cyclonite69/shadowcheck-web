@@ -1,6 +1,5 @@
 export interface Metrics {
   networks: number;
-  access_points: number;
   observations: number;
   in_explorer_mv: number;
   kismet_devices?: number;

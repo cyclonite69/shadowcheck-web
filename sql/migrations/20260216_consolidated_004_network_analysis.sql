@@ -181,7 +181,7 @@ DO $$ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'note_media_bssid_fkey') THEN
         ALTER TABLE ONLY app.note_media
-            ADD CONSTRAINT note_media_bssid_fkey FOREIGN KEY (bssid) REFERENCES app.access_points(bssid) ON DELETE CASCADE;
+            ADD CONSTRAINT note_media_bssid_fkey FOREIGN KEY (bssid) REFERENCES app.networks(bssid) ON DELETE CASCADE;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'note_media_note_id_fkey') THEN
         ALTER TABLE ONLY app.note_media
@@ -373,7 +373,7 @@ DO $$ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ssid_history_bssid_fkey') THEN
         ALTER TABLE ONLY app.ssid_history
-            ADD CONSTRAINT ssid_history_bssid_fkey FOREIGN KEY (bssid) REFERENCES app.access_points(bssid) DEFERRABLE INITIALLY DEFERRED;
+            ADD CONSTRAINT ssid_history_bssid_fkey FOREIGN KEY (bssid) REFERENCES app.networks(bssid) DEFERRABLE INITIALLY DEFERRED;
     END IF;
 END $$;
 

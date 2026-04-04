@@ -9,6 +9,7 @@ export const LAYER_STORAGE_KEY = 'shadowcheck_wigle_layers';
 export const DEFAULT_LAYERS = {
   v2: true,
   v3: false,
+  kml: false,
   fieldOffices: true,
   residentAgencies: true,
   federalCourthouses: true,

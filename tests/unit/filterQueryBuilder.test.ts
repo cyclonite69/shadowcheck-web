@@ -283,7 +283,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
 
   test('manufacturer sort uses schema-compatible expression', () => {
     const orderBy = buildOrderBy('manufacturer', 'asc');
-    expect(orderBy).toContain("to_jsonb(rm)->>'organization_name'");
+    expect(orderBy).toContain('ne.manufacturer ASC NULLS LAST');
     expect(orderBy).toContain('ASC');
   });
 
@@ -301,7 +301,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
 
   test('all_tags sort uses aggregated all_tags field', () => {
     const orderBy = buildOrderBy('all_tags', 'asc');
-    expect(orderBy).toContain("to_jsonb(nt)->>'all_tags'");
+    expect(orderBy).toContain('ne.tag_type ASC NULLS LAST');
     expect(orderBy).toContain('ASC');
   });
 

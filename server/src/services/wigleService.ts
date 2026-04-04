@@ -241,6 +241,72 @@ export async function getWigleObservations(
   return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
 }
 
+export async function getKmlPointsForMap(params: {
+  bssid?: string;
+  limit?: number | null;
+  offset?: number | null;
+  includeTotal?: boolean;
+}): Promise<{ rows: any[]; total: number | null }> {
+  const { bssid, limit = null, offset = null, includeTotal = false } = params;
+  const queryParams: any[] = [];
+  const whereClauses = ['kp.location IS NOT NULL'];
+
+  if (bssid) {
+    queryParams.push(`${bssid}%`);
+    whereClauses.push(`kp.bssid ILIKE $${queryParams.length}`);
+  }
+
+  const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  let pagingSql = '';
+
+  if (limit !== null) {
+    queryParams.push(limit);
+    pagingSql += ` LIMIT $${queryParams.length}`;
+  }
+  if (offset !== null && offset > 0) {
+    queryParams.push(offset);
+    pagingSql += ` OFFSET $${queryParams.length}`;
+  }
+
+  const { rows } = await query(
+    `
+      SELECT
+        kp.id,
+        kp.bssid,
+        NULLIF(kp.name, '') AS ssid,
+        kp.network_id,
+        kp.name,
+        kp.network_type,
+        kp.observed_at,
+        kp.accuracy_m,
+        kp.signal_dbm,
+        kf.source_file,
+        kp.folder_name,
+        ST_Y(kp.location) AS latitude,
+        ST_X(kp.location) AS longitude
+      FROM app.kml_points kp
+      JOIN app.kml_files kf ON kf.id = kp.kml_file_id
+      ${whereSql}
+      ORDER BY kp.observed_at DESC NULLS LAST, kp.id DESC
+      ${pagingSql}
+    `,
+    queryParams
+  );
+
+  let total: number | null = null;
+  if (includeTotal) {
+    const countResult = await query(
+      `SELECT COUNT(*) AS total
+       FROM app.kml_points kp
+       ${whereSql}`,
+      queryParams.slice(0, bssid ? 1 : 0)
+    );
+    total = parseInt(countResult.rows[0]?.total || '0', 10);
+  }
+
+  return { rows, total };
+}
+
 /**
  * Fetch current user statistics from WiGLE API
  */
@@ -281,5 +347,6 @@ module.exports = {
   getWigleDatabase,
   getWigleDetail,
   getWigleObservations,
+  getKmlPointsForMap,
   getUserStats,
 };

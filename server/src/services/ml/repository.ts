@@ -29,7 +29,7 @@ async function loadNetworksForLegacyScoring(limit: number) {
   const result = await query(
     `
       SELECT
-        ap.bssid,
+        n.bssid,
         mv.observations as observation_count,
         mv.unique_days,
         mv.unique_locations,
@@ -42,12 +42,12 @@ async function loadNetworksForLegacyScoring(limit: number) {
           'score', COALESCE(nts.rule_based_score, 0),
           'flags', COALESCE(nts.rule_based_flags, '{}'::jsonb)
         ) as live_rule_result
-      FROM app.access_points ap
-      LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
-      LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ap.bssid)
-      WHERE ap.bssid IS NOT NULL
+      FROM app.networks n
+      LEFT JOIN app.api_network_explorer_mv mv ON n.bssid = mv.bssid
+      LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)
+      WHERE n.bssid IS NOT NULL
         AND mv.observations > 0
-      ORDER BY ap.bssid
+      ORDER BY n.bssid
       LIMIT $1
     `,
     [limit]
@@ -195,18 +195,18 @@ async function getNetworksForBehavioralScoring(
 ): Promise<any[]> {
   const { rows } = await query(
     `SELECT
-       ap.bssid,
+       n.bssid,
        COUNT(DISTINCT obs.id) as observation_count,
        COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
        COALESCE(MAX(ABS(obs.lon - (-79.3832)) + ABS(obs.lat - 43.6532)) * 111, 0) as max_distance_km
-     FROM app.access_points ap
-     LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
-     WHERE ap.bssid IS NOT NULL
+     FROM app.networks n
+     LEFT JOIN app.observations obs ON n.bssid = obs.bssid
+     WHERE n.bssid IS NOT NULL
        AND obs.id IS NOT NULL
-       AND LENGTH(ap.bssid) <= $1
+       AND LENGTH(n.bssid) <= $1
        AND obs.lon IS NOT NULL
        AND obs.lat IS NOT NULL
-     GROUP BY ap.bssid
+     GROUP BY n.bssid
      HAVING COUNT(DISTINCT obs.id) > $2
      LIMIT $3`,
     [maxBssidLength, minObservations, limit]

@@ -64,7 +64,7 @@ router.get('/kepler/observations', async (req: Request, res: Response) => {
 
 /**
  * GET /api/kepler/networks
- * Returns trilaterated networks from access_points for Kepler.gl.
+ * Returns network summaries for Kepler.gl.
  */
 router.get('/kepler/networks', async (req: Request, res: Response) => {
   try {

@@ -39,7 +39,6 @@ function diff(after: number | undefined, before: number | undefined): React.Reac
 export function MetricsTable({ before, after }: { before: Metrics | null; after: Metrics | null }) {
   const rows: { label: string; key: keyof Metrics }[] = [
     { label: 'Networks', key: 'networks' },
-    { label: 'Access Points', key: 'access_points' },
     { label: 'Observations', key: 'observations' },
     { label: 'Explorer MV', key: 'in_explorer_mv' },
     { label: 'Kismet Devices', key: 'kismet_devices' },

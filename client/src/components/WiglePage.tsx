@@ -15,8 +15,10 @@ import type { AgencyVisibility } from './hooks/useAgencyOffices';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
+import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
 import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
+import { ensureKmlLayers, kmlRowsToGeoJSON, updateKmlLayerData } from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
 import { rowsToGeoJSON, EMPTY_FEATURE_COLLECTION, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
@@ -31,6 +33,7 @@ const WiglePage: React.FC = () => {
   const clusterColorCache = useRef<Record<string, Record<number, string>>>({ v2: {}, v3: {} });
   const v2FCRef = useRef<any>(null);
   const v3FCRef = useRef<any>(null);
+  const kmlFCRef = useRef<any>(null);
   const autoFetchedRef = useRef<{ v2: boolean; v3: boolean }>({ v2: false, v3: false });
   const styleEffectInitRef = useRef(false);
   const [limit] = useState<number | null>(DEFAULT_LIMIT);
@@ -72,6 +75,19 @@ const WiglePage: React.FC = () => {
     adaptedFilters,
     v2Enabled: layers.v2,
     v3Enabled: layers.v3,
+  });
+
+  const {
+    loading: kmlLoading,
+    rows: kmlRows,
+    total: kmlTotal,
+    error: kmlError,
+    fetchPoints: fetchKmlPoints,
+  } = useWigleKmlData({
+    limit,
+    offset,
+    adaptedFilters,
+    enabled: layers.kml,
   });
 
   // Agency offices visibility derived from layer state
@@ -125,10 +141,12 @@ const WiglePage: React.FC = () => {
 
   const v2FeatureCollection = useMemo(() => rowsToGeoJSON(v2Rows), [v2Rows]);
   const v3FeatureCollection = useMemo(() => rowsToGeoJSON(v3Rows), [v3Rows]);
+  const kmlFeatureCollection = useMemo(() => kmlRowsToGeoJSON(kmlRows), [kmlRows]);
 
   // Keep refs updated with latest featureCollections
   v2FCRef.current = v2FeatureCollection;
   v3FCRef.current = v3FeatureCollection;
+  kmlFCRef.current = kmlFeatureCollection;
 
   const ensureV2LayersCallback = useCallback(() => {
     if (!mapRef.current) return;
@@ -143,6 +161,7 @@ const WiglePage: React.FC = () => {
   const ensureAllLayers = useCallback(() => {
     ensureV2LayersCallback();
     ensureV3LayersCallback();
+    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef);
   }, [ensureV2LayersCallback, ensureV3LayersCallback]);
 
   // Apply layer visibility on the map (stable ref — reads current layers from layersRef)
@@ -235,6 +254,26 @@ const WiglePage: React.FC = () => {
     updateClusterColors(map, 'wigle-v3-points', 'v3', clusterColorCache);
   }, [v3FeatureCollection, v3Rows, ensureV3LayersCallback]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    const mapboxgl = mapboxRef.current;
+    if (!map || !mapboxgl) return;
+
+    if (!map.getSource('wigle-kml-points')) {
+      if (map.isStyleLoaded()) {
+        ensureKmlLayers(map, kmlFCRef);
+      } else {
+        map.once('style.load', () => {
+          ensureKmlLayers(map, kmlFCRef);
+          updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
+        });
+        return;
+      }
+    }
+
+    updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
+  }, [kmlFeatureCollection, kmlRows, layers.kml]);
+
   // Fit bounds when new data arrives
   useEffect(() => {
     const map = mapRef.current;
@@ -260,7 +299,7 @@ const WiglePage: React.FC = () => {
   // Apply layer visibility whenever layers toggle
   useEffect(() => {
     applyLayerVisibilityCallback();
-  }, [layers.v2, layers.v3, applyLayerVisibilityCallback]);
+  }, [layers.v2, layers.v3, layers.kml, applyLayerVisibilityCallback]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -279,20 +318,28 @@ const WiglePage: React.FC = () => {
     if (!mapReady) return;
     const needsV2 = layers.v2 && v2Rows.length === 0 && !v2Loading && !autoFetchedRef.current.v2;
     const needsV3 = layers.v3 && v3Rows.length === 0 && !v3Loading && !autoFetchedRef.current.v3;
+    const needsKml = layers.kml && kmlRows.length === 0 && !kmlLoading;
     if (needsV2 || needsV3) {
       if (needsV2) autoFetchedRef.current.v2 = true;
       if (needsV3) autoFetchedRef.current.v3 = true;
       fetchPoints();
     }
+    if (needsKml) {
+      fetchKmlPoints();
+    }
   }, [
     layers.v2,
     layers.v3,
+    layers.kml,
     mapReady,
     v2Rows.length,
     v3Rows.length,
+    kmlRows.length,
     v2Loading,
     v3Loading,
+    kmlLoading,
     fetchPoints,
+    fetchKmlPoints,
   ]);
 
   // Handle map style changes - use ref to get latest featureCollection without causing re-runs
@@ -313,6 +360,8 @@ const WiglePage: React.FC = () => {
       if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
       const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
       if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+      const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
+      if (kmlSrc) kmlSrc.setData((kmlFCRef.current || EMPTY_FEATURE_COLLECTION) as any);
       applyLayerVisibilityCallback();
       updateAllClusterColorsCallback();
     };
@@ -512,8 +561,30 @@ const WiglePage: React.FC = () => {
     }
   }, [showTerrain, mapReady, mapStyle]);
 
-  const loading = v2Loading || v3Loading;
-  const totalLoaded = (layers.v2 ? v2Rows.length : 0) + (layers.v3 ? v3Rows.length : 0);
+  const loading = v2Loading || v3Loading || kmlLoading;
+  const totalLoaded =
+    (layers.v2 ? v2Rows.length : 0) +
+    (layers.v3 ? v3Rows.length : 0) +
+    (layers.kml ? kmlRows.length : 0);
+  const totalRows =
+    (layers.v2 && v2Total !== null) ||
+    (layers.v3 && v3Total !== null) ||
+    (layers.kml && kmlTotal !== null)
+      ? (layers.v2 ? (v2Total ?? 0) : 0) +
+        (layers.v3 ? (v3Total ?? 0) : 0) +
+        (layers.kml ? (kmlTotal ?? 0) : 0)
+      : null;
+
+  const handleLoadPoints = useCallback(() => {
+    const tasks: Promise<unknown>[] = [];
+    if (layers.v2 || layers.v3) {
+      tasks.push(fetchPoints());
+    }
+    if (layers.kml) {
+      tasks.push(fetchKmlPoints());
+    }
+    return Promise.all(tasks);
+  }, [fetchKmlPoints, fetchPoints, layers.kml, layers.v2, layers.v3]);
 
   useEffect(() => {
     const updateViewportMode = () => {
@@ -543,14 +614,12 @@ const WiglePage: React.FC = () => {
         onToggle3dBuildings={() => setShow3dBuildings(!show3dBuildings)}
         showTerrain={showTerrain}
         onToggleTerrain={() => setShowTerrain(!showTerrain)}
-        onLoadPoints={fetchPoints}
+        onLoadPoints={() => {
+          void handleLoadPoints();
+        }}
         loading={loading}
         rowsLoaded={totalLoaded}
-        totalRows={
-          (layers.v2 && v2Total !== null) || (layers.v3 && v3Total !== null)
-            ? (layers.v2 ? (v2Total ?? 0) : 0) + (layers.v3 ? (v3Total ?? 0) : 0)
-            : null
-        }
+        totalRows={totalRows}
         layers={layers}
         onToggleLayer={toggleLayer}
       />
@@ -570,7 +639,7 @@ const WiglePage: React.FC = () => {
 
       <WigleMap
         mapContainerRef={mapContainerRef}
-        error={mapError || dataError}
+        error={mapError || dataError || kmlError}
         mapReady={mapReady}
       />
     </div>

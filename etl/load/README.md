@@ -66,3 +66,5 @@ Legacy FBI supplemental CSV enrichers were removed during ETL consolidation. The
 | `DB_NAME`           | shadowcheck_db   | Database name                     |
 | `DB_USER`           | shadowcheck_user | Database user                     |
 | `DB_PASSWORD`       | (required)       | Database password                 |
+
+KML staging imports are expected to run with `shadowcheck_admin` credentials so the web app runtime role remains read-mostly.

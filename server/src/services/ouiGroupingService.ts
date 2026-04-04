@@ -14,19 +14,19 @@ class OUIGroupingService {
       // Get all networks with threat scores
       const networks = await query(`
         SELECT 
-          ap.bssid,
-          SUBSTRING(ap.bssid, 1, 8) as oui,
+          n.bssid,
+          SUBSTRING(n.bssid, 1, 8) as oui,
           nts.final_threat_score,
           nts.final_threat_level,
           mv.observations,
           mv.unique_days,
           mv.max_distance_meters / 1000.0 as max_distance_km,
           mv.distance_from_home_km
-        FROM app.access_points ap
-        LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-        LEFT JOIN app.api_network_explorer_mv mv ON ap.bssid = mv.bssid
-        WHERE ap.bssid IS NOT NULL
-        ORDER BY SUBSTRING(ap.bssid, 1, 8), nts.final_threat_score DESC
+        FROM app.networks n
+        LEFT JOIN app.network_threat_scores nts ON n.bssid = nts.bssid
+        LEFT JOIN app.api_network_explorer_mv mv ON n.bssid = mv.bssid
+        WHERE n.bssid IS NOT NULL
+        ORDER BY SUBSTRING(n.bssid, 1, 8), nts.final_threat_score DESC
       `);
 
       const ouiGroups: Record<string, any> = {};
@@ -121,21 +121,21 @@ class OUIGroupingService {
       // Get BSSIDs grouped by OUI with temporal/spatial data - simplified approach
       const macSequences = await query(`
         SELECT 
-          SUBSTRING(ap.bssid, 1, 8) as oui,
-          COUNT(DISTINCT ap.bssid) as mac_count,
-          ARRAY_AGG(DISTINCT ap.bssid) as mac_sequence,
+          SUBSTRING(n.bssid, 1, 8) as oui,
+          COUNT(DISTINCT n.bssid) as mac_count,
+          ARRAY_AGG(DISTINCT n.bssid) as mac_sequence,
           AVG(obs.lat) as avg_lat,
           AVG(obs.lon) as avg_lon,
           MIN(obs.observed_at) as first_seen,
           MAX(obs.observed_at) as last_seen
-        FROM app.access_points ap
-        LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
+        FROM app.networks n
+        LEFT JOIN app.observations obs ON n.bssid = obs.bssid
         WHERE obs.id IS NOT NULL
           AND obs.lat IS NOT NULL 
           AND obs.lon IS NOT NULL
-        GROUP BY SUBSTRING(ap.bssid, 1, 8)
-        HAVING COUNT(DISTINCT ap.bssid) >= 3
-        ORDER BY COUNT(DISTINCT ap.bssid) DESC
+        GROUP BY SUBSTRING(n.bssid, 1, 8)
+        HAVING COUNT(DISTINCT n.bssid) >= 3
+        ORDER BY COUNT(DISTINCT n.bssid) DESC
         LIMIT 100
       `);
 

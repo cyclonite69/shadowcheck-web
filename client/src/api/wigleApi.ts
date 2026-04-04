@@ -91,6 +91,11 @@ export const wigleApi = {
     return apiClient.get(`/networks/${encodeURIComponent(bssid)}/wigle-observations`);
   },
 
+  async getKmlPoints(params: URLSearchParams): Promise<any> {
+    const suffix = params.toString();
+    return apiClient.get(`/wigle/kml-points${suffix ? `?${suffix}` : ''}`);
+  },
+
   // Mapbox Token (for WiGLE map)
   async getMapboxToken(): Promise<any> {
     return apiClient.get('/mapbox-token');

@@ -34,7 +34,7 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f api",
-    "db:migrate": "psql -U shadowcheck_user -d shadowcheck -f sql/migrations/00_init_schema.sql",
+    "db:migrate": "bash sql/run-migrations.sh",
     "prepare": "husky install"
   },
   "keywords": [

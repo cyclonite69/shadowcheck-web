@@ -79,6 +79,12 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             color="#8b5cf6"
           />
           <LayerToggle
+            label="KML Points"
+            enabled={layers.kml}
+            onChange={() => onToggleLayer('kml')}
+            color="#f97316"
+          />
+          <LayerToggle
             label="Field Offices"
             enabled={layers.fieldOffices}
             onChange={() => onToggleLayer('fieldOffices')}

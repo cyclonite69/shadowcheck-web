@@ -458,17 +458,23 @@ DECLARE
     end_time timestamp;
 BEGIN
     FOR mv_record IN
-        SELECT schemaname || '.' || matviewname AS full_name
-        FROM pg_matviews WHERE schemaname = 'app' ORDER BY matviewname
+        SELECT schemaname, matviewname
+        FROM pg_matviews
+        WHERE schemaname = 'app'
+        ORDER BY matviewname
     LOOP
         start_time := clock_timestamp();
         BEGIN
-            EXECUTE format('REFRESH MATERIALIZED VIEW %I', mv_record.full_name);
+            EXECUTE format(
+                'REFRESH MATERIALIZED VIEW %I.%I',
+                mv_record.schemaname,
+                mv_record.matviewname
+            );
             end_time := clock_timestamp();
-            RETURN QUERY SELECT mv_record.full_name, 'success'::text, end_time - start_time;
+            RETURN QUERY SELECT mv_record.schemaname || '.' || mv_record.matviewname, 'success'::text, end_time - start_time;
         EXCEPTION WHEN OTHERS THEN
             end_time := clock_timestamp();
-            RETURN QUERY SELECT mv_record.full_name, 'error: ' || SQLERRM, end_time - start_time;
+            RETURN QUERY SELECT mv_record.schemaname || '.' || mv_record.matviewname, 'error: ' || SQLERRM, end_time - start_time;
         END;
     END LOOP;
 END;

@@ -4,6 +4,7 @@ import { LAYER_STORAGE_KEY, DEFAULT_LAYERS } from '../../utils/wigle';
 export interface WigleLayerState {
   v2: boolean;
   v3: boolean;
+  kml: boolean;
   fieldOffices: boolean;
   residentAgencies: boolean;
   federalCourthouses: boolean;

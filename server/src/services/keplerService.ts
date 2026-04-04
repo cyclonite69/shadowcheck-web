@@ -86,7 +86,7 @@ export async function getKeplerObservations(filters: any, enabled: any, limit: n
 }
 
 /**
- * Get trilaterated networks from access_points for Kepler.gl
+ * Get network summaries for Kepler.gl
  */
 export async function getKeplerNetworks(
   filters: any,

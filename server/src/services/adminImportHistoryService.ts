@@ -12,7 +12,6 @@ async function captureImportMetrics(): Promise<Record<string, number>> {
     const { rows } = await adminQuery(`
       SELECT
         (SELECT COUNT(*) FROM app.networks)               AS networks,
-        (SELECT COUNT(*) FROM app.access_points)          AS access_points,
         (SELECT COUNT(*) FROM app.observations)           AS observations,
         (SELECT COUNT(*) FROM app.api_network_explorer_mv) AS in_explorer_mv,
         (SELECT COUNT(*) FROM app.kismet_devices)         AS kismet_devices,
@@ -21,7 +20,6 @@ async function captureImportMetrics(): Promise<Record<string, number>> {
     `);
     return {
       networks: parseInt(rows[0].networks),
-      access_points: parseInt(rows[0].access_points),
       observations: parseInt(rows[0].observations),
       in_explorer_mv: parseInt(rows[0].in_explorer_mv),
       kismet_devices: parseInt(rows[0].kismet_devices),

@@ -90,70 +90,6 @@ DO $$ BEGIN
 END $$;
 
 -- --------------------------------------------------------------------------
--- access_points
--- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS app.access_points (
-    id bigint NOT NULL,
-    bssid text NOT NULL,
-    latest_ssid text,
-    ssid_variants text[],
-    first_seen timestamp with time zone NOT NULL,
-    last_seen timestamp with time zone NOT NULL,
-    total_observations bigint NOT NULL,
-    is_5ghz boolean,
-    is_6ghz boolean,
-    is_hidden boolean,
-    is_sentinel boolean DEFAULT false,
-    CONSTRAINT access_points_v2_bssid_upper CHECK ((bssid = upper(bssid)))
-);
-
-CREATE SEQUENCE IF NOT EXISTS app.access_points_v2_id_seq
-    START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE app.access_points_v2_id_seq OWNED BY app.access_points.id;
-ALTER TABLE ONLY app.access_points ALTER COLUMN id SET DEFAULT nextval('app.access_points_v2_id_seq'::regclass);
-
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'access_points_v2_pkey') THEN
-        ALTER TABLE ONLY app.access_points ADD CONSTRAINT access_points_v2_pkey PRIMARY KEY (id);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'access_points_v2_bssid_key') THEN
-        ALTER TABLE ONLY app.access_points ADD CONSTRAINT access_points_v2_bssid_key UNIQUE (bssid);
-    END IF;
-END $$;
-
--- --------------------------------------------------------------------------
--- access_points_legacy
--- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS app.access_points_legacy (
-    id bigint NOT NULL,
-    bssid text NOT NULL,
-    latest_ssid text,
-    ssid_variants text[] DEFAULT '{}'::text[],
-    first_seen timestamp with time zone NOT NULL,
-    last_seen timestamp with time zone NOT NULL,
-    total_observations bigint DEFAULT 0 NOT NULL,
-    is_5ghz boolean,
-    is_6ghz boolean,
-    is_hidden boolean,
-    vendor text,
-    enriched_json jsonb DEFAULT '{}'::jsonb
-);
-
-CREATE SEQUENCE IF NOT EXISTS app.access_points_id_seq
-    START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE app.access_points_id_seq OWNED BY app.access_points_legacy.id;
-ALTER TABLE ONLY app.access_points_legacy ALTER COLUMN id SET DEFAULT nextval('app.access_points_id_seq'::regclass);
-
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'access_points_pkey') THEN
-        ALTER TABLE ONLY app.access_points_legacy ADD CONSTRAINT access_points_pkey PRIMARY KEY (id);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'access_points_bssid_key') THEN
-        ALTER TABLE ONLY app.access_points_legacy ADD CONSTRAINT access_points_bssid_key UNIQUE (bssid);
-    END IF;
-END $$;
-
--- --------------------------------------------------------------------------
 -- observations
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS app.observations (
@@ -206,7 +142,7 @@ END $$;
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_obs_bssid') THEN
         ALTER TABLE ONLY app.observations
-            ADD CONSTRAINT fk_obs_bssid FOREIGN KEY (bssid) REFERENCES app.access_points(bssid) DEFERRABLE INITIALLY DEFERRED;
+            ADD CONSTRAINT fk_obs_bssid FOREIGN KEY (bssid) REFERENCES app.networks(bssid) DEFERRABLE INITIALLY DEFERRED;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'observations_v2_device_id_fkey') THEN
         ALTER TABLE ONLY app.observations
@@ -386,7 +322,6 @@ END $$;
 -- --------------------------------------------------------------------------
 -- Basic indexes for core tables
 -- --------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_access_points_bssid ON app.access_points USING btree (bssid);
 CREATE INDEX IF NOT EXISTS idx_observations_bssid ON app.observations_legacy USING btree (bssid);
 CREATE INDEX IF NOT EXISTS idx_observations_device_id ON app.observations_legacy USING btree (device_id);
 CREATE INDEX IF NOT EXISTS idx_observations_geom ON app.observations_legacy USING gist (geom);

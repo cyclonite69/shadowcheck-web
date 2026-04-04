@@ -128,14 +128,6 @@ SELECT id, bssid, is_ignored, ignore_reason, threat_tag, threat_confidence,
 FROM app.network_tags nt;
 
 -- --------------------------------------------------------------------------
--- v_real_access_points view
--- --------------------------------------------------------------------------
-CREATE OR REPLACE VIEW app.v_real_access_points AS
-SELECT id, bssid, latest_ssid, ssid_variants, first_seen, last_seen,
-    total_observations, is_5ghz, is_6ghz, is_hidden, is_sentinel
-FROM app.access_points WHERE (NOT is_sentinel);
-
--- --------------------------------------------------------------------------
 -- Materialized Views
 -- --------------------------------------------------------------------------
 

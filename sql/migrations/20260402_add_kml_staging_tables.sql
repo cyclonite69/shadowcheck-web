@@ -114,6 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_kml_points_location
 -- --------------------------------------------------------------------------
 -- runtime permissions
 -- --------------------------------------------------------------------------
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE app.kml_files TO shadowcheck_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE app.kml_points TO shadowcheck_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA app TO shadowcheck_user;
+GRANT SELECT ON TABLE app.kml_files TO shadowcheck_user;
+GRANT SELECT ON TABLE app.kml_points TO shadowcheck_user;
+GRANT USAGE ON SEQUENCE app.kml_files_id_seq TO shadowcheck_user;
+GRANT USAGE ON SEQUENCE app.kml_points_id_seq TO shadowcheck_user;

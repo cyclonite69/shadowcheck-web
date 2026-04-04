@@ -37,7 +37,6 @@ async function getDetailedDatabaseStats(): Promise<any> {
       core: [
         'networks',
         'observations',
-        'access_points',
         'device_sources',
         'radio_manufacturers',
         'network_sibling_pairs',

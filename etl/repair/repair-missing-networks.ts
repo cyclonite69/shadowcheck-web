@@ -1,8 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Repair: populate app.networks from SQLite for BSSIDs that are in
- * access_points but missing from networks (caused by upsertNetworks()
- * not being called during incremental import).
+ * observations but missing from networks.
  *
  * Usage:
  *   DB_ADMIN_PASSWORD=xxx npx tsx etl/repair/repair-missing-networks.ts <sqlite_file>
@@ -29,12 +28,14 @@ async function main() {
   console.log('\n🔧 REPAIR: populate app.networks from SQLite');
   console.log('━'.repeat(60));
 
-  // Find BSSIDs in access_points but missing from networks
+  // Find BSSIDs in observations but missing from networks
   const { rows: missing } = await pool.query<{ bssid: string }>(
-    `SELECT ap.bssid FROM app.access_points ap
-     WHERE NOT EXISTS (SELECT 1 FROM app.networks n WHERE n.bssid = ap.bssid)`
+    `SELECT DISTINCT o.bssid
+     FROM app.observations o
+     WHERE o.bssid IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM app.networks n WHERE n.bssid = o.bssid)`
   );
-  console.log(`Found ${missing.length} BSSIDs in access_points but missing from networks`);
+  console.log(`Found ${missing.length} BSSIDs in observations but missing from networks`);
 
   if (missing.length === 0) {
     console.log('✅ Nothing to repair.');
