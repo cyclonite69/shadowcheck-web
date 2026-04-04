@@ -1,10 +1,12 @@
 export interface Metrics {
-  networks: number;
-  observations: number;
-  in_explorer_mv: number;
-  kismet_devices?: number;
-  kismet_packets?: number;
-  kismet_alerts?: number;
+  networks?: number | null;
+  observations?: number | null;
+  in_explorer_mv?: number | null;
+  kismet_devices?: number | null;
+  kismet_packets?: number | null;
+  kismet_alerts?: number | null;
+  kml_files?: number | null;
+  kml_points?: number | null;
 }
 
 export interface DataImportResult {

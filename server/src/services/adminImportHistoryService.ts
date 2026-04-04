@@ -7,29 +7,44 @@ const logger = require('../logging/logger');
 /**
  * Counts key tables for before/after import metrics snapshots.
  */
-async function captureImportMetrics(): Promise<Record<string, number>> {
-  try {
-    const { rows } = await adminQuery(`
-      SELECT
-        (SELECT COUNT(*) FROM app.networks)               AS networks,
-        (SELECT COUNT(*) FROM app.observations)           AS observations,
-        (SELECT COUNT(*) FROM app.api_network_explorer_mv) AS in_explorer_mv,
-        (SELECT COUNT(*) FROM app.kismet_devices)         AS kismet_devices,
-        (SELECT COUNT(*) FROM app.kismet_packets)         AS kismet_packets,
-        (SELECT COUNT(*) FROM app.kismet_alerts)          AS kismet_alerts
-    `);
-    return {
-      networks: parseInt(rows[0].networks),
-      observations: parseInt(rows[0].observations),
-      in_explorer_mv: parseInt(rows[0].in_explorer_mv),
-      kismet_devices: parseInt(rows[0].kismet_devices),
-      kismet_packets: parseInt(rows[0].kismet_packets),
-      kismet_alerts: parseInt(rows[0].kismet_alerts),
-    };
-  } catch (e: any) {
-    logger.warn(`Failed to capture metrics: ${e.message}`);
-    return {};
+type ImportMetricName =
+  | 'networks'
+  | 'observations'
+  | 'in_explorer_mv'
+  | 'kismet_devices'
+  | 'kismet_packets'
+  | 'kismet_alerts'
+  | 'kml_files'
+  | 'kml_points';
+
+type ImportMetrics = Partial<Record<ImportMetricName, number | null>>;
+
+const IMPORT_METRIC_QUERIES: Record<ImportMetricName, string> = {
+  networks: 'SELECT COUNT(*)::bigint AS value FROM app.networks',
+  observations: 'SELECT COUNT(*)::bigint AS value FROM app.observations',
+  in_explorer_mv: 'SELECT COUNT(*)::bigint AS value FROM app.api_network_explorer_mv',
+  kismet_devices: 'SELECT COUNT(*)::bigint AS value FROM app.kismet_devices',
+  kismet_packets: 'SELECT COUNT(*)::bigint AS value FROM app.kismet_packets',
+  kismet_alerts: 'SELECT COUNT(*)::bigint AS value FROM app.kismet_alerts',
+  kml_files: 'SELECT COUNT(*)::bigint AS value FROM app.kml_files',
+  kml_points: 'SELECT COUNT(*)::bigint AS value FROM app.kml_points',
+};
+
+async function captureImportMetrics(): Promise<ImportMetrics> {
+  const metrics: ImportMetrics = {};
+
+  for (const [name, sql] of Object.entries(IMPORT_METRIC_QUERIES) as [ImportMetricName, string][]) {
+    try {
+      const { rows } = await adminQuery(sql);
+      const rawValue = rows[0]?.value;
+      metrics[name] = rawValue == null ? null : parseInt(String(rawValue), 10);
+    } catch (e: any) {
+      logger.warn(`Failed to capture import metric ${name}: ${e.message}`);
+      metrics[name] = null;
+    }
   }
+
+  return metrics;
 }
 
 /**
@@ -39,7 +54,7 @@ async function captureImportMetrics(): Promise<Record<string, number>> {
 async function createImportHistoryEntry(
   sourceTag: string,
   filename: string,
-  metricsBefore: Record<string, number>
+  metricsBefore: ImportMetrics
 ): Promise<number> {
   try {
     const { rows } = await adminQuery(
@@ -69,7 +84,7 @@ async function completeImportSuccess(
   imported: number,
   failed: number,
   durationS: string,
-  metricsAfter: Record<string, number>
+  metricsAfter: ImportMetrics
 ): Promise<void> {
   await adminQuery(
     `UPDATE app.import_history

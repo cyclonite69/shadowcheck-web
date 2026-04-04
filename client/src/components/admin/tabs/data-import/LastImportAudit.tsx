@@ -9,6 +9,11 @@ interface LastImportAuditProps {
 
 export const LastImportAudit = ({ lastResult, sourceTag }: LastImportAuditProps) => {
   if (!lastResult.metricsBefore || !lastResult.metricsAfter) return null;
+  const metricValues = [
+    ...Object.values(lastResult.metricsBefore),
+    ...Object.values(lastResult.metricsAfter),
+  ];
+  const hasAnyMetric = metricValues.some((value) => value != null);
 
   return (
     <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
@@ -37,6 +42,11 @@ export const LastImportAudit = ({ lastResult, sourceTag }: LastImportAuditProps)
           </>
         ) : null}
       </p>
+      {!hasAnyMetric ? (
+        <p className="text-xs text-amber-300 mb-3">
+          Import metrics were not captured for this run.
+        </p>
+      ) : null}
       <MetricsTable before={lastResult.metricsBefore} after={lastResult.metricsAfter} />
     </div>
   );

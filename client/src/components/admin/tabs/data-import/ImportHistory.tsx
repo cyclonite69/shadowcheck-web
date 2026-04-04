@@ -41,10 +41,21 @@ export function MetricsTable({ before, after }: { before: Metrics | null; after:
     { label: 'Networks', key: 'networks' },
     { label: 'Observations', key: 'observations' },
     { label: 'Explorer MV', key: 'in_explorer_mv' },
+    { label: 'KML Files', key: 'kml_files' },
+    { label: 'KML Points', key: 'kml_points' },
     { label: 'Kismet Devices', key: 'kismet_devices' },
     { label: 'Kismet Packets', key: 'kismet_packets' },
     { label: 'Kismet Alerts', key: 'kismet_alerts' },
   ];
+  const hasAnyMetric = rows.some(({ key }) => before?.[key] != null || after?.[key] != null);
+
+  if (!hasAnyMetric) {
+    return (
+      <div className="mt-2 rounded border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+        Import metrics were not captured for this run.
+      </div>
+    );
+  }
 
   return (
     <table className="text-xs text-slate-300 w-full mt-2">
