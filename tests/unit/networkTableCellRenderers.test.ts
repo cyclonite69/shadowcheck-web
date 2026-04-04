@@ -107,6 +107,22 @@ describe('renderNetworkTableCell', () => {
     expect(result.title).toBe('WPA2 | [WPA2-PSK-CCMP][RSN-PSK-CCMP][ESS]');
     expect(result.content).toBeDefined();
   });
+
+  it('hides non-wifi frequency values in the explorer table', () => {
+    const context = makeContext('frequency', 66586);
+    context.row = { ...baseRow, type: 'G', frequency: 66586 };
+
+    const result = renderNetworkTableCell(context);
+    expect(getText(result.content)).toBe('—');
+  });
+
+  it('formats calculated coordinate columns like raw lat/lon with 4 decimals and 6 on hover', () => {
+    const context = makeContext('centroid_lat', 42.990389);
+    const result = renderNetworkTableCell(context);
+
+    expect(getText(result.content)).toBe('42.9904');
+    expect(result.content).toBeDefined();
+  });
 });
 
 const getText = (node: React.ReactNode): any => {

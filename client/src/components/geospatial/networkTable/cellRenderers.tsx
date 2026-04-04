@@ -160,19 +160,16 @@ const renderChannel = ({ value, row }: NetworkTableCellRendererContext) => {
 
 const renderFrequency = ({ value, row }: NetworkTableCellRendererContext) => {
   const freqValue = value as number | null;
-  if (freqValue && freqValue !== 0) {
-    const isWiFi = row.type === 'W';
+  const isWiFi = row.type === 'W';
+
+  if (isWiFi && freqValue && freqValue !== 0) {
     return {
-      content: (
-        <span style={{ color: isWiFi ? '#10b981' : '#94a3b8', fontWeight: isWiFi ? '600' : '400' }}>
-          {freqValue} MHz
-        </span>
-      ),
+      content: <span style={{ color: '#10b981', fontWeight: '600' }}>{freqValue} MHz</span>,
     };
   }
 
   return {
-    content: <span>N/A</span>,
+    content: <span>—</span>,
     style: { color: '#cbd5e1' },
   };
 };
@@ -342,6 +339,22 @@ const renderLongitude = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
+const renderCoordinate = ({
+  value,
+  column,
+}: Pick<NetworkTableCellRendererContext, 'value' | 'column'>) => {
+  const raw = typeof value === 'number' ? value : null;
+  const axis = String(column).toLowerCase().includes('lon') ? 'Longitude' : 'Latitude';
+  const coordinateContent = (
+    <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{formatCoordOverview(raw)}</span>
+  );
+  const tooltip = raw != null ? `${axis}: ${raw.toFixed(6)}°` : undefined;
+
+  return {
+    content: tooltip ? <Tooltip content={tooltip}>{coordinateContent}</Tooltip> : coordinateContent,
+  };
+};
+
 const renderAltitudeCell = ({ value }: NetworkTableCellRendererContext) => {
   const raw = typeof value === 'number' ? value : null;
   const altitudeContent = <span>{formatAltitude(raw)}</span>;
@@ -483,6 +496,10 @@ const columnRenderers: Partial<
   longitude: renderLongitude,
   rawLatitude: renderLatitude,
   rawLongitude: renderLongitude,
+  centroid_lat: renderCoordinate,
+  centroid_lon: renderCoordinate,
+  weighted_lat: renderCoordinate,
+  weighted_lon: renderCoordinate,
   min_altitude_m: renderAltitudeCell,
   max_altitude_m: renderAltitudeCell,
   altitude_span_m: renderAltitudeCell,
