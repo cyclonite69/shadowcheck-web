@@ -146,6 +146,16 @@ export async function updateNetworkNoteContent(
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
+export async function selectNetworkNoteById(noteId: string): Promise<any | null> {
+  const result = await query(
+    `SELECT id, bssid, content, note_type, user_id, created_at, updated_at
+     FROM app.network_notes
+     WHERE id = $1 AND is_deleted IS NOT TRUE`,
+    [noteId]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
 export async function insertNoteMedia(
   noteId: string,
   bssid: string,

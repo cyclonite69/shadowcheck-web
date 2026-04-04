@@ -26,6 +26,10 @@ const inferMediaType = (mimetype: string | undefined) =>
   mimetype?.startsWith('video/') ? 'video' : mimetype === 'application/pdf' ? 'document' : 'image';
 
 type MediaService = {
+  getNetworkNoteById?: (noteId: string) => Promise<{
+    id: number;
+    bssid?: string;
+  } | null>;
   addNoteMedia: (...args: any[]) => Promise<{
     id: number;
     note_id?: number;
@@ -48,14 +52,17 @@ const handleNoteMediaUpload = async (
 ) => {
   try {
     const { noteId } = req.params;
-    const { bssid } = req.body;
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'No file provided' });
+    }
+    const note = await service.getNetworkNoteById?.(noteId);
+    if (!note?.bssid) {
+      return res.status(404).json({ ok: false, error: 'Note not found' });
     }
     const mediaType = inferMediaType(req.file.mimetype);
     const media = await service.addNoteMedia(
       noteId,
-      bssid,
+      note.bssid,
       null,
       req.file.originalname,
       req.file.size,
