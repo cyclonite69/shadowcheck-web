@@ -1,4 +1,5 @@
 import React from 'react';
+import type { NoteMediaItem } from '../../api/networkApi';
 
 interface NetworkNoteModalProps {
   open: boolean;
@@ -7,14 +8,18 @@ interface NetworkNoteModalProps {
   noteType: string;
   noteContent: string;
   noteAttachments: File[];
+  existingNoteMedia: NoteMediaItem[];
   fileInputRef: React.RefObject<HTMLInputElement>;
   onNoteTypeChange: (value: string) => void;
   onNoteContentChange: (value: string) => void;
   onAddAttachment: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAttachment: (index: number) => void;
+  onOpenExistingMedia: (mediaId: number) => void;
+  onDeleteExistingMedia: (mediaId: number) => void;
   onOverlayClose: () => void;
   onCloseButton: () => void;
   onCancel: () => void;
+  onDeleteNote: () => void;
   onSave: () => void;
 }
 
@@ -25,14 +30,18 @@ export const NetworkNoteModal = ({
   noteType,
   noteContent,
   noteAttachments,
+  existingNoteMedia,
   fileInputRef,
   onNoteTypeChange,
   onNoteContentChange,
   onAddAttachment,
   onRemoveAttachment,
+  onOpenExistingMedia,
+  onDeleteExistingMedia,
   onOverlayClose,
   onCloseButton,
   onCancel,
+  onDeleteNote,
   onSave,
 }: NetworkNoteModalProps) => {
   if (!open) return null;
@@ -225,6 +234,79 @@ export const NetworkNoteModal = ({
           </button>
         </div>
 
+        {existingNoteMedia.length > 0 && (
+          <div
+            style={{
+              marginBottom: '16px',
+              background: '#334155',
+              padding: '12px',
+              borderRadius: '4px',
+            }}
+          >
+            <p
+              style={{
+                margin: '0 0 12px 0',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#94a3b8',
+              }}
+            >
+              Saved Attachments ({existingNoteMedia.length})
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {existingNoteMedia.map((media) => (
+                <div
+                  key={media.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: '#1e293b',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #475569',
+                    gap: '8px',
+                  }}
+                >
+                  <span style={{ fontSize: '13px', color: '#e2e8f0', flex: 1 }}>
+                    📎 {media.file_name} ({(media.file_size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenExistingMedia(media.id)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #475569',
+                      borderRadius: '4px',
+                      color: '#cbd5e1',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      padding: '4px 8px',
+                    }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteExistingMedia(media.id)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #7f1d1d',
+                      borderRadius: '4px',
+                      color: '#f87171',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      padding: '4px 8px',
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Attached Files List */}
         {noteAttachments.length > 0 && (
           <div
@@ -288,7 +370,25 @@ export const NetworkNoteModal = ({
         )}
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {isEditMode && (
+            <button
+              onClick={onDeleteNote}
+              style={{
+                flex: '1 1 100%',
+                padding: '10px 20px',
+                background: '#7f1d1d',
+                border: '1px solid #991b1b',
+                borderRadius: '4px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Delete Note
+            </button>
+          )}
           <button
             onClick={onSave}
             disabled={!noteContent.trim()}

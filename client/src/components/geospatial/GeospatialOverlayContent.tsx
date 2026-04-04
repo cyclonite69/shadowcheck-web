@@ -26,6 +26,7 @@ interface GeospatialOverlayContentProps {
   noteType: string;
   noteContent: string;
   noteAttachments: any[];
+  existingNoteMedia: any[];
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   setNoteType: (type: string) => void;
   setNoteContent: (content: string) => void;
@@ -33,6 +34,9 @@ interface GeospatialOverlayContentProps {
   removeAttachment: (index: number) => void;
   resetNoteState: () => void;
   handleSaveNote: () => void;
+  handleDeleteNote: () => void;
+  handleDeleteExistingMedia: (mediaId: number) => void;
+  openExistingMedia: (mediaId: number) => void;
   closeTimeFrequency: () => void;
   wigleLookupDialog: any;
   handleWigleLookup: (bssid: string) => void;
@@ -65,6 +69,7 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   noteType,
   noteContent,
   noteAttachments,
+  existingNoteMedia,
   fileInputRef,
   setNoteType,
   setNoteContent,
@@ -72,6 +77,9 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   removeAttachment,
   resetNoteState,
   handleSaveNote,
+  handleDeleteNote,
+  handleDeleteExistingMedia,
+  openExistingMedia,
   closeTimeFrequency,
   wigleLookupDialog,
   handleWigleLookup,
@@ -121,14 +129,18 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
       noteType={noteType}
       noteContent={noteContent}
       noteAttachments={noteAttachments}
+      existingNoteMedia={existingNoteMedia}
       fileInputRef={fileInputRef}
       onNoteTypeChange={setNoteType}
       onNoteContentChange={setNoteContent}
       onAddAttachment={handleAddAttachment}
       onRemoveAttachment={removeAttachment}
+      onOpenExistingMedia={openExistingMedia}
+      onDeleteExistingMedia={handleDeleteExistingMedia}
       onCloseNoteOverlay={() => setShowNoteModal(false)}
       onCloseNote={resetNoteState}
       onCancelNote={resetNoteState}
+      onDeleteNote={handleDeleteNote}
       onSaveNote={handleSaveNote}
       timeFreqModal={state.timeFreqModal}
       onCloseTimeFrequency={closeTimeFrequency}

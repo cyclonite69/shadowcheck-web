@@ -140,17 +140,19 @@ export default function GeospatialExplorer() {
     showNoteModal,
     setShowNoteModal,
     selectedBssid,
-    hasExistingNote,
     noteContent,
     setNoteContent,
     noteType,
     setNoteType,
     noteAttachments,
-    setNoteAttachments,
+    existingNoteMedia,
     fileInputRef,
     openNoteModalForBssid,
     resetNoteState,
     handleSaveNote,
+    handleDeleteNote,
+    handleDeleteExistingMedia,
+    openExistingMedia,
     handleAddAttachment,
     removeAttachment,
   } = useNetworkNotes({ logError });
@@ -238,6 +240,7 @@ export default function GeospatialExplorer() {
           noteType={noteType}
           noteContent={noteContent}
           noteAttachments={noteAttachments}
+          existingNoteMedia={existingNoteMedia}
           fileInputRef={fileInputRef}
           setNoteType={setNoteType}
           setNoteContent={setNoteContent}
@@ -245,6 +248,9 @@ export default function GeospatialExplorer() {
           removeAttachment={removeAttachment}
           resetNoteState={resetNoteState}
           handleSaveNote={handleSaveNote}
+          handleDeleteNote={handleDeleteNote}
+          handleDeleteExistingMedia={handleDeleteExistingMedia}
+          openExistingMedia={openExistingMedia}
           closeTimeFrequency={closeTimeFrequency}
           wigleLookupDialog={wigleLookupDialog}
           handleWigleLookup={handleWigleLookup}
