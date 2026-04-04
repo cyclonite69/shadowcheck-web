@@ -3,6 +3,13 @@ import { NetworkData, LayerType } from '../components/kepler/types';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../utils/geospatial/tooltipDataNormalizer';
 
+type TooltipState = {
+  x: number;
+  y: number;
+  html: string;
+  pinned: boolean;
+};
+
 /** Compute center + zoom that fits [[minLon,minLat],[maxLon,maxLat]] into a viewport. */
 function zoomForBounds(
   bounds: [[number, number], [number, number]],
@@ -41,6 +48,24 @@ export function useKeplerDeck({
   const deckRef = useRef<any>(null);
   const navigationControlRef = useRef<any>(null);
   const [zoom, setZoom] = useState<number>(10);
+  const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
+
+  const buildTooltipState = useCallback(
+    (object: NetworkData, x: number, y: number, pinned: boolean) => {
+      const normalized = normalizeTooltipData(object, object.position);
+      return {
+        x,
+        y,
+        pinned,
+        html: renderNetworkTooltip(normalized),
+      };
+    },
+    []
+  );
+
+  const clearTooltip = useCallback(() => {
+    setTooltipState(null);
+  }, []);
 
   const handleFitBounds = useCallback(
     (networkData: NetworkData[]) => {
@@ -168,8 +193,23 @@ export function useKeplerDeck({
               getPosition: (d: NetworkData) => d.position,
               getFillColor: (d: NetworkData) => d.color || [34, 197, 94, 200],
               getRadius: pointSize * 50,
+              radiusMinPixels: 5,
               pickable: true,
               autoHighlight: true,
+              onHover: ({ object, x, y }: any) => {
+                setTooltipState((current) => {
+                  if (current?.pinned) return current;
+                  if (!object) return null;
+                  return buildTooltipState(object, x, y, false);
+                });
+              },
+              onClick: ({ object, x, y }: any) => {
+                if (!object) {
+                  clearTooltip();
+                  return;
+                }
+                setTooltipState(buildTooltipState(object, x, y, true));
+              },
             })
           );
         }
@@ -218,6 +258,20 @@ export function useKeplerDeck({
               getSize: pointSize * 100,
               getColor: (d: NetworkData) => d.color || [0, 255, 65, 200],
               pickable: true,
+              onHover: ({ object, x, y }: any) => {
+                setTooltipState((current) => {
+                  if (current?.pinned) return current;
+                  if (!object) return null;
+                  return buildTooltipState(object, x, y, false);
+                });
+              },
+              onClick: ({ object, x, y }: any) => {
+                if (!object) {
+                  clearTooltip();
+                  return;
+                }
+                setTooltipState(buildTooltipState(object, x, y, true));
+              },
             })
           );
         }
@@ -234,26 +288,17 @@ export function useKeplerDeck({
           mapStyle: 'mapbox://styles/mapbox/dark-v11',
           mapboxApiAccessToken: token,
           layers,
-          getTooltip: ({ object }: any) => {
-            if (!object) return null;
-            const normalized = normalizeTooltipData(object);
-            return {
-              html: renderNetworkTooltip(normalized),
-              style: {
-                backgroundColor: '#0f172a',
-                color: '#f8fafc',
-                padding: '12px',
-                borderRadius: '8px',
-                maxWidth: 'min(340px, 90vw)',
-              },
-            };
+          onClick: ({ object }: any) => {
+            if (!object) {
+              clearTooltip();
+            }
           },
         });
         ensureNavigationControl();
       }
     },
-    [layerType, pointSize, pitch, height3d]
+    [layerType, pointSize, pitch, height3d, buildTooltipState, clearTooltip]
   );
 
-  return { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck };
+  return { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck, tooltipState, clearTooltip };
 }

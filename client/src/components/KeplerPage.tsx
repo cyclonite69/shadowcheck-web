@@ -53,12 +53,13 @@ const KeplerPage: React.FC = () => {
     datasetType
   );
 
-  const { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck } = useKeplerDeck({
-    layerType,
-    pointSize,
-    pitch,
-    height3d,
-  });
+  const { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck, tooltipState, clearTooltip } =
+    useKeplerDeck({
+      layerType,
+      pointSize,
+      pitch,
+      height3d,
+    });
 
   const handleFitBoundsCallback = useCallback(
     () => handleFitBounds(networkData),
@@ -108,6 +109,8 @@ const KeplerPage: React.FC = () => {
         drawMode={drawMode}
         onSelectPoints={setSelectedPoints}
         initDeck={initDeck}
+        tooltipState={tooltipState}
+        onClearTooltip={clearTooltip}
       />
 
       <HamburgerButton isOpen={showMenu} onClick={() => setShowMenu(!showMenu)} />
