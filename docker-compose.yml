@@ -74,8 +74,9 @@ services:
       # Region is safe to default locally; credentials still must come from the shell or mounted ~/.aws.
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
-      AWS_PROFILE: ${AWS_PROFILE:-dbcooper}
+      AWS_PROFILE: ${AWS_PROFILE:-shadowcheck-sso}
       AWS_SDK_LOAD_CONFIG: "1"
+      AWS_EC2_METADATA_DISABLED: "true"
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
@@ -101,7 +102,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 180s
     depends_on:
       postgres:
         condition: service_healthy

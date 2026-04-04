@@ -23,6 +23,8 @@ load_runtime_secrets() {
   
   _AWS_ERROR=$(aws secretsmanager get-secret-value \
     $_REGION_ARG \
+    --cli-connect-timeout 5 \
+    --cli-read-timeout 10 \
     --secret-id "$AWS_SECRET_NAME" \
     --query SecretString \
     --output text 2>&1)
