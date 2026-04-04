@@ -13,7 +13,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { adminDbService } = require('../../../../config/container');
+const { adminNetworkMediaService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
 const { bssidParamMiddleware } = require('../../../../validation/middleware');
@@ -27,7 +27,7 @@ router.use('/:bssid', bssidParamMiddleware);
 router.get('/:bssid/notes', async (req: any, res: any) => {
   try {
     const normalizedBssid = req.params.bssid.toUpperCase();
-    const notes = await adminDbService.getNetworkNotes(normalizedBssid);
+    const notes = await adminNetworkMediaService.getNetworkNotes(normalizedBssid);
     res.json({ ok: true, bssid: normalizedBssid, notes, count: notes.length });
   } catch (error: any) {
     logger.error(`Error fetching notes: ${error.message}`, { error, bssid: req.params.bssid });
@@ -49,7 +49,7 @@ router.post('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
       return res.status(400).json({ error: 'content is required' });
     }
 
-    const noteId = await adminDbService.addNetworkNoteWithFunction(
+    const noteId = await adminNetworkMediaService.addNetworkNoteWithFunction(
       normalizedBssid,
       String(content).trim(),
       'general',
@@ -77,7 +77,10 @@ router.patch('/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) =
       return res.status(400).json({ error: 'content is required' });
     }
 
-    const updated = await adminDbService.updateNetworkNote(noteId, String(content).trim());
+    const updated = await adminNetworkMediaService.updateNetworkNote(
+      noteId,
+      String(content).trim()
+    );
     if (!updated) {
       return res.status(404).json({ error: 'Note not found or already deleted' });
     }
@@ -96,7 +99,7 @@ router.patch('/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) =
 router.delete('/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) => {
   try {
     const { noteId } = req.params;
-    const bssid = await adminDbService.deleteNetworkNote(noteId);
+    const bssid = await adminNetworkMediaService.deleteNetworkNote(noteId);
 
     if (!bssid) {
       return res.status(404).json({ error: 'Note not found' });
