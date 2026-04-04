@@ -39,44 +39,24 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     width: 110,
     sortable: true,
     default: false,
-    render: (value) => {
-      if (value === null || value === undefined) return '—';
-      const num = Number(value);
-      return Number.isFinite(num) ? num.toFixed(6) : '—';
-    },
   },
   centroid_lon: {
     label: 'Centroid Lon',
     width: 110,
     sortable: true,
     default: false,
-    render: (value) => {
-      if (value === null || value === undefined) return '—';
-      const num = Number(value);
-      return Number.isFinite(num) ? num.toFixed(6) : '—';
-    },
   },
   weighted_lat: {
     label: 'Weighted Lat',
     width: 110,
     sortable: true,
     default: false,
-    render: (value) => {
-      if (value === null || value === undefined) return '—';
-      const num = Number(value);
-      return Number.isFinite(num) ? num.toFixed(6) : '—';
-    },
   },
   weighted_lon: {
     label: 'Weighted Lon',
     width: 110,
     sortable: true,
     default: false,
-    render: (value) => {
-      if (value === null || value === undefined) return '—';
-      const num = Number(value);
-      return Number.isFinite(num) ? num.toFixed(6) : '—';
-    },
   },
   rawLatitude: { label: 'Raw Lat', width: 100, sortable: false, default: false },
   rawLongitude: { label: 'Raw Lon', width: 100, sortable: false, default: false },

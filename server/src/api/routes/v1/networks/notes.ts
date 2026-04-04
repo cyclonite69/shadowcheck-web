@@ -18,13 +18,13 @@ const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
 const { bssidParamMiddleware } = require('../../../../validation/middleware');
 
-router.use('/:bssid', bssidParamMiddleware);
+router.use('/networks/:bssid', bssidParamMiddleware);
 
 /**
  * GET /api/networks/:bssid/notes
  * Return all active (non-deleted) notes for a BSSID.
  */
-router.get('/:bssid/notes', async (req: any, res: any) => {
+router.get('/networks/:bssid/notes', async (req: any, res: any) => {
   try {
     const normalizedBssid = req.params.bssid.toUpperCase();
     const notes = await adminNetworkMediaService.getNetworkNotes(normalizedBssid);
@@ -40,7 +40,7 @@ router.get('/:bssid/notes', async (req: any, res: any) => {
  * Create a new note. Requires admin.
  * Body: { content: string }
  */
-router.post('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
+router.post('/networks/:bssid/notes', requireAdmin, async (req: any, res: any) => {
   try {
     const normalizedBssid = req.params.bssid.toUpperCase();
     const { content } = req.body;
@@ -68,7 +68,7 @@ router.post('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
  * Update note content. Requires admin.
  * Body: { content: string }
  */
-router.patch('/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) => {
+router.patch('/networks/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) => {
   try {
     const { noteId } = req.params;
     const { content } = req.body;
@@ -96,7 +96,7 @@ router.patch('/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) =
  * DELETE /api/networks/:bssid/notes/:noteId
  * Soft-delete a note (sets is_deleted = true). Requires admin.
  */
-router.delete('/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) => {
+router.delete('/networks/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) => {
   try {
     const { noteId } = req.params;
     const bssid = await adminNetworkMediaService.deleteNetworkNote(noteId);

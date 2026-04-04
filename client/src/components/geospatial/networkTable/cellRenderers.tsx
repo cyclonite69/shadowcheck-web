@@ -324,6 +324,7 @@ const renderLatitude = ({ value }: NetworkTableCellRendererContext) => {
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{latitudeContent}</Tooltip> : latitudeContent,
+    title: tooltip,
   };
 };
 
@@ -336,6 +337,7 @@ const renderLongitude = ({ value }: NetworkTableCellRendererContext) => {
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{longitudeContent}</Tooltip> : longitudeContent,
+    title: tooltip,
   };
 };
 
@@ -352,6 +354,7 @@ const renderCoordinate = ({
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{coordinateContent}</Tooltip> : coordinateContent,
+    title: tooltip,
   };
 };
 

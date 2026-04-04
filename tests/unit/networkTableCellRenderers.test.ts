@@ -121,7 +121,15 @@ describe('renderNetworkTableCell', () => {
     const result = renderNetworkTableCell(context);
 
     expect(getText(result.content)).toBe('42.9904');
-    expect(result.content).toBeDefined();
+    expect(result.title).toBe('Latitude: 42.990389°');
+  });
+
+  it('applies the same 6-decimal hover fallback to weighted longitude', () => {
+    const context = makeContext('weighted_lon', -83.697534);
+    const result = renderNetworkTableCell(context);
+
+    expect(getText(result.content)).toBe('-83.6975');
+    expect(result.title).toBe('Longitude: -83.697534°');
   });
 });
 

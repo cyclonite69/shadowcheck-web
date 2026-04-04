@@ -67,8 +67,8 @@ describe('network notes routes', () => {
     jest.resetModules();
     jest.clearAllMocks();
     router = require('../../server/src/api/routes/v1/networks/notes');
-    getNotesHandler = getRouteHandler(router, 'get', '/:bssid/notes');
-    patchNoteHandler = getRouteHandler(router, 'patch', '/:bssid/notes/:noteId');
+    getNotesHandler = getRouteHandler(router, 'get', '/networks/:bssid/notes');
+    patchNoteHandler = getRouteHandler(router, 'patch', '/networks/:bssid/notes/:noteId');
   });
 
   test('loads notes via adminNetworkMediaService', async () => {
