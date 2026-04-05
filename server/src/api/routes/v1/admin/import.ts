@@ -17,6 +17,7 @@ const { spawn } = require('child_process');
 const {
   secretsManager,
   adminImportHistoryService,
+  adminOrphanNetworksService,
   backupService,
 } = require('../../../../config/container');
 const { runPostgresBackup } = backupService;
@@ -396,6 +397,19 @@ router.get('/admin/device-sources', async (req: any, res: any, next: any) => {
   try {
     const sources = await adminImportHistoryService.getDeviceSources();
     res.json({ ok: true, sources });
+  } catch (e: any) {
+    next(e);
+  }
+});
+
+// GET /api/admin/orphan-networks — preserved parent-only network rows awaiting reconciliation
+router.get('/admin/orphan-networks', async (req: any, res: any, next: any) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 500);
+    const search = String(req.query.search || '').trim();
+    const rows = await adminOrphanNetworksService.listOrphanNetworks({ search, limit });
+    const counts = await adminOrphanNetworksService.getOrphanNetworkCounts();
+    res.json({ ok: true, total: counts.total, rows });
   } catch (e: any) {
     next(e);
   }

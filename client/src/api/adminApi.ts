@@ -203,6 +203,15 @@ export const adminApi = {
     return apiClient.get('/admin/device-sources');
   },
 
+  async getOrphanNetworks(limit = 50, search = ''): Promise<any> {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (search.trim()) {
+      params.set('search', search.trim());
+    }
+    return apiClient.get(`/admin/orphan-networks?${params.toString()}`);
+  },
+
   async parseImportResponse(response: Response, fallbackMessage: string): Promise<any> {
     const contentType = response.headers.get('content-type') || '';
     const isJson = contentType.includes('application/json');

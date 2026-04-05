@@ -14,6 +14,7 @@ const adminUsersService = require('../services/adminUsersService');
 const adminMaintenanceService = require('../services/adminMaintenanceService');
 const adminDbStatsService = require('../services/adminDbStatsService');
 const adminImportHistoryService = require('../services/adminImportHistoryService');
+const adminOrphanNetworksService = require('../services/adminOrphanNetworksService');
 const adminNetworkMediaService = require('../services/adminNetworkMediaService');
 const adminNetworkTagsService = require('../services/adminNetworkTagsService');
 const networkTagsAdminService = require('../services/admin/networkTagsAdminService');
@@ -66,6 +67,7 @@ const container = {
   adminMaintenanceService,
   adminDbStatsService,
   adminImportHistoryService,
+  adminOrphanNetworksService,
   adminNetworkMediaService,
   adminNetworkTagsService,
   networkTagsAdminService,

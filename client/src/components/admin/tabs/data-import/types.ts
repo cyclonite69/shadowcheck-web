@@ -30,3 +30,25 @@ export interface DataImportResult {
   metricsBefore?: Metrics | null;
   metricsAfter?: Metrics | null;
 }
+
+export interface OrphanNetworkRow {
+  bssid: string;
+  ssid: string;
+  type: string | null;
+  frequency: number | null;
+  capabilities: string | null;
+  source_device: string | null;
+  lasttime_ms: number | null;
+  lastlat: number | null;
+  lastlon: number | null;
+  bestlevel: number | null;
+  bestlat: number | null;
+  bestlon: number | null;
+  unique_days: number | null;
+  unique_locations: number | null;
+  is_sentinel: boolean | null;
+  wigle_v3_observation_count: number | null;
+  wigle_v3_last_import_at: string | null;
+  moved_at: string;
+  move_reason: string;
+}

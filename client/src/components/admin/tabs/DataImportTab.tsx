@@ -3,6 +3,7 @@ import { useDataImport } from '../hooks/useDataImport';
 import { ImportHistory } from './data-import/ImportHistory';
 import { KmlImportCard } from './data-import/KmlImportCard';
 import { LastImportAudit } from './data-import/LastImportAudit';
+import { OrphanNetworksPanel } from './data-import/OrphanNetworksPanel';
 import { SQLiteImportCard } from './data-import/SQLiteImportCard';
 import { SqlImportCard } from './data-import/SqlImportCard';
 
@@ -73,6 +74,8 @@ export const DataImportTab: React.FC = () => {
       </div>
 
       {lastResult && <LastImportAudit lastResult={lastResult} sourceTag={sourceTag} />}
+
+      <OrphanNetworksPanel refreshKey={historyKey} />
 
       {/* Import History */}
       <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
