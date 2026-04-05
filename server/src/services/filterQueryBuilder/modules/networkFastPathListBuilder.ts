@@ -10,6 +10,7 @@ import {
 } from './networkFastPathPredicates';
 
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
+const GEOCODED_SELECT_FIELDS = SqlFragmentLibrary.selectGeocodedFields('ne');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
 
 function sanitizeFastPathOrderBy(orderBy: string): string {
@@ -46,6 +47,7 @@ function buildFastPathListSql(
         ne.first_seen,
         ne.last_seen,
         ${RM_SELECT_FIELDS},
+        ${GEOCODED_SELECT_FIELDS},
         n.min_altitude_m,
         n.max_altitude_m,
         n.altitude_span_m,

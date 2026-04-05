@@ -104,11 +104,12 @@ describe('admin/orphan-networks route', () => {
     container = require('../../server/src/config/container');
   });
 
-  test('returns orphan rows with total count', async () => {
+  test('returns orphan rows with filtered count and pagination metadata', async () => {
     const handler = getOrphanNetworksHandler();
     const req: any = {
       query: {
         limit: '25',
+        offset: '50',
         search: 'testnet',
       },
     };
@@ -130,6 +131,10 @@ describe('admin/orphan-networks route', () => {
     expect(container.adminOrphanNetworksService.listOrphanNetworks).toHaveBeenCalledWith({
       search: 'testnet',
       limit: 25,
+      offset: 50,
+    });
+    expect(container.adminOrphanNetworksService.getOrphanNetworkCounts).toHaveBeenCalledWith({
+      search: 'testnet',
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({
@@ -143,6 +148,11 @@ describe('admin/orphan-networks route', () => {
           move_reason: 'missing_observations',
         },
       ],
+      pagination: {
+        limit: 25,
+        offset: 50,
+        hasMore: true,
+      },
     });
   });
 
