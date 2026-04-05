@@ -5,7 +5,7 @@ import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
 import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
 import { buildObservationTooltipProps } from '../../utils/geospatial/observationTooltipProps';
-import type { WigleObservation, WigleObservationsState } from './useNetworkContextMenu';
+import type { WigleObservationsState } from './useNetworkContextMenu';
 import { renderWigleObservationPopupCard } from '../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 
@@ -100,11 +100,7 @@ export const useObservationLayers = ({
 
     // Pre-calculate jitter offsets to avoid expensive sin/cos calls during rendering
     const jitterOffsets = new Map<string, [number, number]>();
-    const calculateJitterOffset = (
-      seenCount: number,
-      lat: number,
-      lon: number
-    ): [number, number] => {
+    const calculateJitterOffset = (seenCount: number): [number, number] => {
       if (seenCount === 0) return [0, 0];
       const cacheKey = `${seenCount}`;
       if (!jitterOffsets.has(cacheKey)) {
@@ -172,7 +168,7 @@ export const useObservationLayers = ({
         let displayLat = lat;
         let displayLon = lon;
         if (seenCount > 0) {
-          const [sinOffset, cosOffset] = calculateJitterOffset(seenCount, lat, lon);
+          const [sinOffset, cosOffset] = calculateJitterOffset(seenCount);
           const radius = Math.min(0.00015, 0.00002 * Math.sqrt(seenCount));
           displayLat = lat + sinOffset * radius;
           displayLon = lon + cosOffset * radius;

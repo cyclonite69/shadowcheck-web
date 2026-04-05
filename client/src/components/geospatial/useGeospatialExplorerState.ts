@@ -31,11 +31,11 @@ import {
   DEFAULT_CENTER,
   DEFAULT_HOME_RADIUS,
 } from '../../constants/network';
-import { NetworkData, NetworkRow } from '../../types/network';
+import { NetworkRow } from '../../types/network';
 
 interface UseGeospatialExplorerStateProps {
   selectedNetworks: Set<string>;
-  networks: NetworkData[];
+  networks: NetworkRow[];
   observationsByBssid: any;
   resetPagination: () => void;
   setSort: (sort: any) => void;
@@ -48,7 +48,7 @@ interface UseGeospatialExplorerStateProps {
   closeContextMenu: () => void;
   linkedSiblingBssids: Set<string>;
   setLinkedSiblingBssids: React.Dispatch<React.SetStateAction<Set<string>>>;
-  visibleSiblingGroupMap: Map<string, string>;
+  visibleSiblingGroupMap: globalThis.Map<string, string>;
   contextMenuNetwork?: NetworkRow | null;
   onOpenContextMenu: (e: any, network: any) => void;
   locationMode: string;
