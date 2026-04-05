@@ -156,3 +156,4 @@ assets/images/
 /*_setup_*.sh
 telemetry-id
 deploy/monitoring/grafana/provisioning/dashboards/intelligence/__pycache__/
+tsc_output.txt
