@@ -53,6 +53,21 @@
 
 See `docs/FEATURES.md` for the full feature catalog.
 
+## Project Commandments
+
+ShadowCheck’s core engineering constraints live in:
+
+- [AGENTS.md](AGENTS.md) for repository-local automation and coding agents
+- [CONTRIBUTING.md](CONTRIBUTING.md) for human contributors
+
+Those “Ten Commandments” are the canonical short-form rules for:
+
+- secrets handling and AWS Secrets Manager usage
+- canonical core data versus enrichment data boundaries
+- precision preservation and presentation-only rounding
+- refactor cleanliness and test expectations
+- separate validation of bootstrap, restore, import, and upgrade paths
+
 ## Kepler.gl Data Policy
 
 - **No default limits** on Kepler endpoints unless explicitly requested via query params.

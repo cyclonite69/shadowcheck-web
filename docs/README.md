@@ -16,6 +16,7 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 - Do not add new docs unless they replace an existing page.
 - Wiki is the primary source for diagrams; docs are for concise current state.
 - If a diagram asset is missing, prefer updating the wiki Mermaid/source doc instead of linking to a dead binary export.
+- Repository-wide engineering commandments live in [../AGENTS.md](../AGENTS.md) and [../CONTRIBUTING.md](../CONTRIBUTING.md). Prefer referencing those instead of restating policy in multiple docs.
 
 ## Start Here
 
@@ -24,6 +25,7 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 - [Deployment](DEPLOYMENT.md) - Production deployment guidance.
 - [Configuration](CONFIG.md) - Environment variables and configuration.
 - [API Reference](API_REFERENCE.md) - REST endpoints.
+- [TODO](TODO.md) - Shared active backlog and deferred follow-up work.
 - [Wiki Home](../.github/wiki/Home.md) - Diagram-heavy documentation hub.
 - [Wiki Map](WIKI_MAP.md) - Docs ↔ wiki mapping.
 

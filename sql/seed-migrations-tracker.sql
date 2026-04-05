@@ -6,6 +6,11 @@
 -- and the 10 consolidated baselines
 -- so the migration runner skips them all on existing deployments.
 --
+-- Phase 3 note:
+--   The executable assembly files in sql/baseline_phase3 are not active runner inputs yet.
+--   Do not seed those filenames here until the archive/switchover step promotes them into
+--   sql/migrations and retires the fold-candidate source files in the same change.
+--
 -- Usage:
 --   docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
 --     -f /sql/seed-migrations-tracker.sql
