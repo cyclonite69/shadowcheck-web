@@ -226,52 +226,73 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     ELSE NULL
   END`;
 
+  const lowerText = (column: string) => `LOWER(COALESCE(${column}, ''))`;
+  const booleanPresence = (column: string) => `CASE
+    WHEN ${column} IS TRUE THEN 1
+    WHEN ${column} IS FALSE THEN 0
+    ELSE NULL
+  END`;
+
   const map: Record<string, string> = {
-    observed_at: 'l.observed_at',
-    last_observed_at: 'r.last_observed_at',
-    first_observed_at: 'r.first_observed_at',
-    last_seen: 'ne.last_seen',
-    first_seen: 'ne.first_seen',
-    ssid: 'ne.ssid',
-    bssid: 'ne.bssid',
-    signal: 'l.level',
-    observations: 'r.observation_count',
+    observed_at: 'observed_at',
+    last_observed_at: 'last_observed_at',
+    first_observed_at: 'first_observed_at',
+    last_seen: 'last_seen',
+    first_seen: 'first_seen',
+    ssid: lowerText('ssid'),
+    bssid: lowerText('bssid'),
+    signal: 'signal',
+    observations: 'observations',
     threat: threatSeverityOrderExpr,
     threat_level: threatSeverityOrderExpr,
-    threat_score: 'ne.threat_score',
-    threat_rule_score: 'ne.rule_based_score',
-    threat_ml_score: 'ne.ml_threat_score',
-    threat_ml_weight: 'ne.ml_weight',
-    threat_ml_boost: 'ne.ml_boost',
+    threat_score: 'threat_score',
+    threat_rule_score: 'rule_based_score',
+    threat_ml_score: 'ml_threat_score',
+    threat_ml_weight: 'ml_weight',
+    threat_ml_boost: 'ml_boost',
     security: securityFamilyOrderExpr,
-    type: 'ne.type',
-    lat: 'l.lat',
-    lon: 'l.lon',
-    accuracy_meters: 'l.accuracy',
-    distance_from_home_km: 'ne.distance_from_home_km',
-    stationary_confidence: 'ne.stationary_confidence',
-    frequency: 'ne.frequency',
+    type: lowerText('type'),
+    lat: 'lat',
+    lon: 'lon',
+    accuracy_meters: 'accuracy_meters',
+    distance_from_home_km: 'distance_from_home_km',
+    stationary_confidence: 'stationary_confidence',
+    frequency: 'frequency',
     channel: `CASE
-      WHEN ne.frequency BETWEEN 2412 AND 2484 THEN
-        CASE WHEN ne.frequency = 2484 THEN 14 ELSE FLOOR((ne.frequency - 2412) / 5) + 1 END
-      WHEN ne.frequency BETWEEN 5000 AND 5900 THEN FLOOR((ne.frequency - 5000) / 5)
-      WHEN ne.frequency BETWEEN 5925 AND 7125 THEN FLOOR((ne.frequency - 5925) / 5)
+      WHEN frequency BETWEEN 2412 AND 2484 THEN
+        CASE WHEN frequency = 2484 THEN 14 ELSE FLOOR((frequency - 2412) / 5) + 1 END
+      WHEN frequency BETWEEN 5000 AND 5900 THEN FLOOR((frequency - 5000) / 5)
+      WHEN frequency BETWEEN 5925 AND 7125 THEN FLOOR((frequency - 5925) / 5)
       ELSE NULL
     END`,
-    manufacturer: 'ne.manufacturer',
-    threat_tag: 'ne.tag_type',
-    is_ignored: 'ne.is_ignored',
-    all_tags: 'ne.tag_type',
+    manufacturer: lowerText('manufacturer'),
+    geocoded_address: lowerText('geocoded_address'),
+    geocoded_city: lowerText('geocoded_city'),
+    geocoded_state: lowerText('geocoded_state'),
+    geocoded_postal_code: lowerText('geocoded_postal_code'),
+    geocoded_country: lowerText('geocoded_country'),
+    geocoded_poi_name: lowerText('geocoded_poi_name'),
+    geocoded_poi_category: lowerText('geocoded_poi_category'),
+    geocoded_feature_type: lowerText('geocoded_feature_type'),
+    geocoded_provider: lowerText('geocoded_provider'),
+    geocoded_confidence: 'geocoded_confidence',
+    threat_tag: lowerText('threat_tag'),
+    is_ignored: booleanPresence('is_ignored'),
+    all_tags: lowerText('all_tags'),
     notes_count: 'notes_count',
-    min_altitude_m: 'n.min_altitude_m',
-    max_altitude_m: 'n.max_altitude_m',
-    altitude_span_m: 'n.altitude_span_m',
-    last_altitude_m: 'n.last_altitude_m',
-    is_sentinel: 'n.is_sentinel',
-    timespan_days: 'EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400',
-    wigle_v3_observation_count: 'ne.wigle_v3_observation_count',
-    wigle_v3_last_import_at: 'ne.wigle_v3_last_import_at',
-    max_distance_meters: 'ne.max_distance_meters',
+    min_altitude_m: 'min_altitude_m',
+    max_altitude_m: 'max_altitude_m',
+    altitude_span_m: 'altitude_span_m',
+    last_altitude_m: 'last_altitude_m',
+    is_sentinel: booleanPresence('is_sentinel'),
+    timespan_days: 'EXTRACT(EPOCH FROM (last_seen - first_seen)) / 86400',
+    wigle_v3_observation_count: 'wigle_v3_observation_count',
+    wigle_v3_last_import_at: 'wigle_v3_last_import_at',
+    max_distance_meters: 'max_distance_meters',
+    centroid_lat: 'centroid_lat',
+    centroid_lon: 'centroid_lon',
+    weighted_lat: 'weighted_lat',
+    weighted_lon: 'weighted_lon',
   };
 
   const clauses = sortColumns.map((col, idx) => {

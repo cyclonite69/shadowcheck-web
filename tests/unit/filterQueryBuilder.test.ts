@@ -292,7 +292,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
 
   test('manufacturer sort uses schema-compatible expression', () => {
     const orderBy = buildOrderBy('manufacturer', 'asc');
-    expect(orderBy).toContain('ne.manufacturer ASC NULLS LAST');
+    expect(orderBy).toContain("LOWER(COALESCE(manufacturer, '')) ASC NULLS LAST");
     expect(orderBy).toContain('ASC');
   });
 
@@ -306,16 +306,34 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
   });
 
   test('multi-column sort preserves requested order', () => {
-    const orderBy = buildOrderBy('threat_score,last_seen', 'desc,asc');
+    const orderBy = buildOrderBy('threat_score,geocoded_confidence,last_seen', 'desc,asc,asc');
     const clauses = orderBy.split(',').map((v) => v.trim());
-    expect(clauses[0]).toContain('ne.threat_score DESC');
-    expect(clauses[1]).toContain('ne.last_seen ASC');
+    expect(clauses[0]).toContain('threat_score DESC');
+    expect(clauses[1]).toContain('geocoded_confidence ASC');
+    expect(clauses[2]).toContain('last_seen ASC');
   });
 
   test('all_tags sort uses aggregated all_tags field', () => {
     const orderBy = buildOrderBy('all_tags', 'asc');
-    expect(orderBy).toContain('ne.tag_type ASC NULLS LAST');
+    expect(orderBy).toContain("LOWER(COALESCE(all_tags, '')) ASC NULLS LAST");
     expect(orderBy).toContain('ASC');
+  });
+
+  test('first_seen sort honors first_observed_at alias from the frontend sort map', () => {
+    const orderBy = buildOrderBy('first_observed_at', 'asc');
+    expect(orderBy).toContain('first_observed_at ASC NULLS LAST');
+  });
+
+  test('geocoded text fields sort by their selected aliases', () => {
+    const orderBy = buildOrderBy('geocoded_address,geocoded_provider', 'asc,desc');
+    expect(orderBy).toContain("LOWER(COALESCE(geocoded_address, '')) ASC NULLS LAST");
+    expect(orderBy).toContain("LOWER(COALESCE(geocoded_provider, '')) DESC NULLS LAST");
+  });
+
+  test('boolean and tag sort keys use selected alias expressions', () => {
+    const orderBy = buildOrderBy('is_ignored,all_tags', 'desc,asc');
+    expect(orderBy).toContain('WHEN is_ignored IS TRUE THEN 1');
+    expect(orderBy).toContain("LOWER(COALESCE(all_tags, '')) ASC NULLS LAST");
   });
 
   test('network list SQL uses schema-compatible manufacturer projection', () => {
