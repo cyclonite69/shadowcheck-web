@@ -22,15 +22,15 @@ environment, but which is operationally distinct from core schema DDL.
   - not treated as a static SQL seed because the data is curated and refreshed by
     source-specific loaders
 
-### Missing Canonical Source
-
 - `app.radio_manufacturers`
-  - application-critical dataset
-  - schema exists in bootstrap/migrations
-  - canonical population artifact is still missing from the repo
-  - Phase 3 promotion remains blocked until this dataset has either:
-    - a canonical SQL seed/import artifact under `sql/`, or
-    - a canonical ETL loader plus documented mandatory post-bootstrap step
+  - canonical schema normalization:
+    [`20260405_normalize_radio_manufacturers.sql`](/home/dbcooper/repos/shadowcheck-web/sql/migrations/20260405_normalize_radio_manufacturers.sql)
+  - canonical SQL seed entrypoint:
+    [`03_reference_radio_manufacturers.sql`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.sql)
+  - canonical source snapshot:
+    [`03_reference_radio_manufacturers.csv`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.csv)
+  - run via:
+    `psql -f sql/seeds/03_reference_radio_manufacturers.sql`
 
 ## Reference Validation Order
 

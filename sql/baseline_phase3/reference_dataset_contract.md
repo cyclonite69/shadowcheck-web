@@ -31,22 +31,22 @@ Current repo reality:
 - bootstrap creates only a table shell in [`sql/init/00_bootstrap.sql`](/home/dbcooper/repos/shadowcheck-web/sql/init/00_bootstrap.sql)
 - older historical migration [`create_radio_manufacturers.sql`] existed only as schema creation
 - standardization logic exists in `20260323_standardize_radio_manufacturers.sql` (now folded)
-- no canonical row-source file or loader is present in the current repo tree
+- normalized schema contract now lives in
+  [`20260405_normalize_radio_manufacturers.sql`](/home/dbcooper/repos/shadowcheck-web/sql/migrations/20260405_normalize_radio_manufacturers.sql)
+- canonical seed entrypoint now lives in
+  [`03_reference_radio_manufacturers.sql`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.sql)
+  and the source snapshot lives in
+  [`03_reference_radio_manufacturers.csv`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.csv)
 
 Status:
 
 - schema contract exists
-- population contract is missing
+- population contract exists
 
-Required fix:
+Current treatment:
 
-- choose one canonical population path and encode it in repo:
-  - preferred for this dataset: migration-owned seed/import artifact under `sql/`
-  - alternative: explicit ETL loader plus documented mandatory post-bootstrap step
-
-Promotion blocker:
-
-- Phase 3 baseline cannot be considered production-ready until the repo contains a reproducible radio manufacturer population path
+- schema normalization is migration-owned
+- population is SQL-seed-owned under [`sql/seeds`](/home/dbcooper/repos/shadowcheck-web/sql/seeds)
 
 ### `app.agency_offices`
 

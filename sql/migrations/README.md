@@ -33,6 +33,7 @@ Current active path:
 21. `20260404_add_geocoding_to_api_network_explorer_mv.sql`
 22. `20260404_add_networks_orphans_table.sql`
 23. `20260405_add_orphan_network_backfill_tracking.sql`
+24. `20260405_normalize_radio_manufacturers.sql`
 
 ## Baseline Refresh Plan
 
@@ -57,6 +58,7 @@ Keep these additive for now:
 - `20260404_add_geocoding_to_api_network_explorer_mv.sql`
 - `20260404_add_networks_orphans_table.sql`
 - `20260405_add_orphan_network_backfill_tracking.sql`
+- `20260405_normalize_radio_manufacturers.sql`
 
 ### Draft Refreshed Baseline Shape
 
@@ -108,6 +110,10 @@ Reference-data expectation during validation:
   [`sql/seeds/02_reference_federal_courthouses.sql`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/02_reference_federal_courthouses.sql)
 - `app.agency_offices` remains ETL-owned and should be validated separately from schema bootstrap
 - `app.radio_manufacturers` still lacks a canonical repo-owned population artifact and remains a blocker for final promotion
+- `app.radio_manufacturers` should load via
+  [`sql/seeds/03_reference_radio_manufacturers.sql`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.sql)
+  with source snapshot
+  [`sql/seeds/03_reference_radio_manufacturers.csv`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.csv)
 
 ### Phase 2 Preconditions
 
@@ -150,6 +156,7 @@ Current Phase 3 mapping:
    - `20260404_add_geocoding_to_api_network_explorer_mv.sql`
    - `20260404_add_networks_orphans_table.sql`
    - `20260405_add_orphan_network_backfill_tracking.sql`
+   - `20260405_normalize_radio_manufacturers.sql`
 
 This mapping preserves complete fold coverage through the current cut line while
 making the future archive/switchover step explicit.

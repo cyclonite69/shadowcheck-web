@@ -40,6 +40,7 @@ eventual switchover.
    - `20260404_add_geocoding_to_api_network_explorer_mv.sql`
    - `20260404_add_networks_orphans_table.sql`
    - `20260405_add_orphan_network_backfill_tracking.sql`
+   - `20260405_normalize_radio_manufacturers.sql`
 
 ## Important Caveat
 
@@ -81,4 +82,5 @@ schema bootstrap:
 - `app.agency_offices`
   - canonical ETL-owned dataset under [`etl/load/`](/home/dbcooper/repos/shadowcheck-web/etl/load)
 - `app.radio_manufacturers`
-  - still missing a canonical population artifact and therefore still a promotion blocker
+  - canonical seed entrypoint: [`sql/seeds/03_reference_radio_manufacturers.sql`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.sql)
+  - canonical dataset file: [`sql/seeds/03_reference_radio_manufacturers.csv`](/home/dbcooper/repos/shadowcheck-web/sql/seeds/03_reference_radio_manufacturers.csv)
