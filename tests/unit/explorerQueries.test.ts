@@ -35,6 +35,8 @@ describe('explorer query builders', () => {
 
     expect(sql).toContain('FROM app.api_network_explorer_mv mv');
     expect(sql).toContain('jsonb_build_object(');
+    expect(sql).toContain('mv.geocoded_address');
+    expect(sql).toContain('mv.geocoded_provider');
     expect(sql).toContain('LIMIT $5 OFFSET $6');
     expect(sql).toContain('manufacturer ASC NULLS LAST');
     expect(params).toEqual(['%corp%', '%corp%', '%corp%', '%corp%', 10, 0]);

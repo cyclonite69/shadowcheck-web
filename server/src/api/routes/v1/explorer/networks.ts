@@ -29,6 +29,16 @@ interface ExplorerRow {
   accuracy_meters: number | null;
   manufacturer: string | null;
   manufacturer_address: string | null;
+  geocoded_address: string | null;
+  geocoded_city: string | null;
+  geocoded_state: string | null;
+  geocoded_postal_code: string | null;
+  geocoded_country: string | null;
+  geocoded_poi_name: string | null;
+  geocoded_poi_category: string | null;
+  geocoded_feature_type: string | null;
+  geocoded_provider: string | null;
+  geocoded_confidence: number | null;
   min_altitude_m: number | null;
   max_altitude_m: number | null;
   altitude_span_m: number | null;
@@ -199,6 +209,16 @@ router.get('/explorer/networks-v2', async (req: Request, res: Response, next: Ne
         accuracy_meters: row.accuracy_meters,
         manufacturer: row.manufacturer,
         manufacturer_address: row.manufacturer_address,
+        geocoded_address: row.geocoded_address,
+        geocoded_city: row.geocoded_city,
+        geocoded_state: row.geocoded_state,
+        geocoded_postal_code: row.geocoded_postal_code,
+        geocoded_country: row.geocoded_country,
+        geocoded_poi_name: row.geocoded_poi_name,
+        geocoded_poi_category: row.geocoded_poi_category,
+        geocoded_feature_type: row.geocoded_feature_type,
+        geocoded_provider: row.geocoded_provider,
+        geocoded_confidence: row.geocoded_confidence,
         min_altitude_m: row.min_altitude_m,
         max_altitude_m: row.max_altitude_m,
         altitude_span_m: row.altitude_span_m,

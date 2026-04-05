@@ -65,6 +65,16 @@ export type NetworkRow = {
   stationaryConfidence?: number | null;
   // Enrichment fields (networks-v2 API)
   manufacturer?: string | null;
+  geocoded_address?: string | null;
+  geocoded_city?: string | null;
+  geocoded_state?: string | null;
+  geocoded_postal_code?: string | null;
+  geocoded_country?: string | null;
+  geocoded_poi_name?: string | null;
+  geocoded_poi_category?: string | null;
+  geocoded_feature_type?: string | null;
+  geocoded_provider?: string | null;
+  geocoded_confidence?: number | null;
   min_altitude_m?: number | null;
   max_altitude_m?: number | null;
   altitude_span_m?: number | null;

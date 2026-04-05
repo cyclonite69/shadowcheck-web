@@ -235,6 +235,36 @@ describe('mapApiRowToNetwork', () => {
     expect(net.last_altitude_m).toBe(34.9);
   });
 
+  it('maps geocoded enrichment fields from the API row', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        geocoded_address: '123 Main St',
+        geocoded_city: 'Flint',
+        geocoded_state: 'MI',
+        geocoded_postal_code: '48502',
+        geocoded_country: 'US',
+        geocoded_poi_name: 'Coffee Shop',
+        geocoded_poi_category: 'cafe',
+        geocoded_feature_type: 'address',
+        geocoded_provider: 'mapbox',
+        geocoded_confidence: '0.87',
+      },
+      0
+    );
+
+    expect(net.geocoded_address).toBe('123 Main St');
+    expect(net.geocoded_city).toBe('Flint');
+    expect(net.geocoded_state).toBe('MI');
+    expect(net.geocoded_postal_code).toBe('48502');
+    expect(net.geocoded_country).toBe('US');
+    expect(net.geocoded_poi_name).toBe('Coffee Shop');
+    expect(net.geocoded_poi_category).toBe('cafe');
+    expect(net.geocoded_feature_type).toBe('address');
+    expect(net.geocoded_provider).toBe('mapbox');
+    expect(net.geocoded_confidence).toBe(0.87);
+  });
+
   it('parses centroid and weighted coordinates from numeric strings, including negatives', () => {
     const net = mapApiRowToNetwork(
       {
