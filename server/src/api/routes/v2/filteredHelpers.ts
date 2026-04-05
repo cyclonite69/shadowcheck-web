@@ -216,6 +216,16 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     ELSE 0
   END`;
 
+  const securityFamilyOrderExpr = `CASE
+    WHEN UPPER(COALESCE(ne.security, '')) IN ('WPA3-E', 'WPA3-P', 'WPA3', 'OWE') THEN 6
+    WHEN UPPER(COALESCE(ne.security, '')) IN ('WPA2-E', 'WPA2-P', 'WPA2') THEN 5
+    WHEN UPPER(COALESCE(ne.security, '')) = 'WPA' THEN 4
+    WHEN UPPER(COALESCE(ne.security, '')) = 'WEP' THEN 3
+    WHEN UPPER(COALESCE(ne.security, '')) = 'WPS' THEN 2
+    WHEN UPPER(COALESCE(ne.security, '')) = 'OPEN' THEN 1
+    ELSE NULL
+  END`;
+
   const map: Record<string, string> = {
     observed_at: 'l.observed_at',
     last_observed_at: 'r.last_observed_at',
@@ -233,7 +243,7 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     threat_ml_score: 'ne.ml_threat_score',
     threat_ml_weight: 'ne.ml_weight',
     threat_ml_boost: 'ne.ml_boost',
-    security: 'ne.security',
+    security: securityFamilyOrderExpr,
     type: 'ne.type',
     lat: 'l.lat',
     lon: 'l.lon',
