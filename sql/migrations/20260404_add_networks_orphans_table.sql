@@ -5,9 +5,21 @@ CREATE TABLE IF NOT EXISTS app.networks_orphans (
 );
 
 ALTER TABLE app.networks_orphans
-  ADD CONSTRAINT networks_orphans_pkey PRIMARY KEY (bssid),
   ADD COLUMN IF NOT EXISTS moved_at timestamptz NOT NULL DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS move_reason text NOT NULL DEFAULT 'manual_migration';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'networks_orphans_pkey'
+      AND conrelid = 'app.networks_orphans'::regclass
+  ) THEN
+    ALTER TABLE app.networks_orphans
+      ADD CONSTRAINT networks_orphans_pkey PRIMARY KEY (bssid);
+  END IF;
+END $$;
 
 ALTER TABLE app.networks_orphans OWNER TO shadowcheck_admin;
 
