@@ -134,6 +134,15 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
   });
 
+  test('network list query projects geocoded address fields from the explorer MV', () => {
+    const result = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
+
+    expect(result.sql).toContain('ne.geocoded_address');
+    expect(result.sql).toContain('ne.geocoded_city');
+    expect(result.sql).toContain('ne.geocoded_state');
+    expect(result.sql).toContain('AS manufacturer_address');
+  });
+
   test('threatScoreMin filter enabled → value is parameterized and filter is applied', () => {
     const result = new UniversalFilterQueryBuilder(
       { threatScoreMin: 60 },

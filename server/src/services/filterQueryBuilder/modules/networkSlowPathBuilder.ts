@@ -11,6 +11,7 @@ const NE_NOT_IGNORED_EXISTS_CLAUSE = `NOT EXISTS (
 )`;
 const NT_NOT_IGNORED_CLAUSE = 'COALESCE(nt.is_ignored, FALSE) = FALSE';
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
+const GEOCODED_SELECT_FIELDS = SqlFragmentLibrary.selectGeocodedFields('ne');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
 
 export function buildNetworkSlowPathListQuery(
@@ -93,6 +94,7 @@ export function buildNetworkSlowPathListQuery(
       ne.first_seen,
       ne.last_seen,
       ${RM_SELECT_FIELDS},
+      ${GEOCODED_SELECT_FIELDS},
       n.min_altitude_m,
       n.max_altitude_m,
       n.altitude_span_m,
