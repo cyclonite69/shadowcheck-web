@@ -163,7 +163,10 @@ describe('renderNetworkTableCell', () => {
 
     const result = renderNetworkTableCell(context);
     expect(result.title).toBeUndefined();
-    expect(getText(result.content)).toBe('—');
+    const badge = result.content as React.ReactElement<any>;
+    expect(typeof badge.type).toBe('function');
+    expect(badge.props.security).toBe('OPEN');
+    expect(badge.props.networkType).toBe('E');
   });
 
   it('hides non-wifi frequency values in the explorer table', () => {
