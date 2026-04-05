@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { OrphanNetworkRow } from './types';
 import { formatShortDate } from '../../../../utils/formatDate';
+
+const PAGE_SIZE = 100;
 
 const formatCoords = (lat: number | null, lon: number | null) => {
   if (lat == null || lon == null) return '—';
@@ -12,34 +14,110 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [rows, setRows] = useState<OrphanNetworkRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [search, setSearch] = useState('');
   const [draftSearch, setDraftSearch] = useState('');
   const [activeBssid, setActiveBssid] = useState<string | null>(null);
-
-  const loadRows = () => {
-    setLoading(true);
-    adminApi
-      .getOrphanNetworks(50, search)
-      .then((data: any) => {
-        setRows(data?.rows ?? []);
-        setTotal(Number(data?.total ?? 0));
-      })
-      .catch(() => {
-        setRows([]);
-        setTotal(0);
-      })
-      .finally(() => setLoading(false));
-  };
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const requestIdRef = useRef(0);
+  const rowsRef = useRef<OrphanNetworkRow[]>([]);
 
   useEffect(() => {
-    loadRows();
-  }, [refreshKey, search]);
+    rowsRef.current = rows;
+  }, [rows]);
+
+  const loadRows = useCallback(
+    async ({ reset }: { reset: boolean }) => {
+      const requestId = ++requestIdRef.current;
+      const nextOffset = reset ? 0 : rowsRef.current.length;
+
+      if (reset) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      try {
+        const data: any = await adminApi.getOrphanNetworks(PAGE_SIZE, search, nextOffset);
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        const nextRows = Array.isArray(data?.rows) ? data.rows : [];
+        const nextTotal = Number(data?.total ?? 0);
+
+        setRows((prev) => (reset ? nextRows : [...prev, ...nextRows]));
+        setTotal(nextTotal);
+        setHasMore(Boolean(data?.pagination?.hasMore));
+      } catch {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setRows(reset ? [] : rowsRef.current);
+        setTotal(0);
+        setHasMore(false);
+      } finally {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [search]
+  );
+
+  useEffect(() => {
+    setRows([]);
+    setHasMore(false);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+    loadRows({ reset: true });
+  }, [refreshKey, search, loadRows]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const handleScroll = () => {
+      if (loading || isLoadingMore || !hasMore) return;
+
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        if (scrollHeight - scrollTop <= clientHeight + 200) {
+          loadRows({ reset: false });
+        }
+      }, 100);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [hasMore, isLoadingMore, loadRows, loading]);
+
+  const reloadRows = () => {
+    setRows([]);
+    setHasMore(false);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+    loadRows({ reset: true });
+  };
 
   const handleCheckWigle = async (bssid: string) => {
     try {
       setActiveBssid(bssid);
       await adminApi.checkOrphanNetworkWigle(bssid);
-      loadRows();
+      reloadRows();
     } finally {
       setActiveBssid(null);
     }
@@ -75,6 +153,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
             Preserved parent-only rows awaiting reconciliation or WiGLE backfill. Showing{' '}
             <span className="font-mono text-slate-400">{rows.length}</span> of{' '}
             <span className="font-mono text-slate-400">{total}</span>.
+            {hasMore && !loading ? <> Scroll to load more.</> : null}
           </p>
         </div>
         <form
@@ -105,10 +184,14 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       ) : rows.length === 0 ? (
         <p className="text-sm text-slate-500 py-2">No orphan networks found.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div
+          ref={scrollRef}
+          data-testid="orphan-networks-scroll-container"
+          className="max-h-[36rem] overflow-auto"
+        >
           <table className="w-full text-xs text-slate-300">
             <thead>
-              <tr className="text-slate-500 border-b border-slate-700/50">
+              <tr className="text-slate-500 border-b border-slate-700/50 sticky top-0 bg-slate-950/95 backdrop-blur">
                 <th className="text-left py-1.5 pr-3">Moved</th>
                 <th className="text-left py-1.5 pr-3">BSSID</th>
                 <th className="text-left py-1.5 pr-3">SSID</th>
@@ -166,6 +249,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
               ))}
             </tbody>
           </table>
+          {isLoadingMore ? (
+            <p className="px-2 py-3 text-xs text-slate-500">Loading more orphan networks...</p>
+          ) : null}
         </div>
       )}
     </div>

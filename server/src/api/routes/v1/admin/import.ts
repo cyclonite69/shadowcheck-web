@@ -406,10 +406,20 @@ router.get('/admin/device-sources', async (req: any, res: any, next: any) => {
 router.get('/admin/orphan-networks', async (req: any, res: any, next: any) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 500);
+    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
     const search = String(req.query.search || '').trim();
-    const rows = await adminOrphanNetworksService.listOrphanNetworks({ search, limit });
-    const counts = await adminOrphanNetworksService.getOrphanNetworkCounts();
-    res.json({ ok: true, total: counts.total, rows });
+    const rows = await adminOrphanNetworksService.listOrphanNetworks({ search, limit, offset });
+    const counts = await adminOrphanNetworksService.getOrphanNetworkCounts({ search });
+    res.json({
+      ok: true,
+      total: counts.total,
+      rows,
+      pagination: {
+        limit,
+        offset,
+        hasMore: offset + rows.length < counts.total,
+      },
+    });
   } catch (e: any) {
     next(e);
   }
