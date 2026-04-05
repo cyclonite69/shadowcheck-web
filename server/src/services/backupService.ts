@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import { constants, Dirent } from 'fs';
+import { constants, Dirent, createWriteStream } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn, execSync } from 'child_process';
@@ -159,6 +159,93 @@ const resolvePgToolPath = async (toolName: string): Promise<string> => {
   return toolName;
 };
 
+const isLocalComposePostgres = (): boolean =>
+  (process.env.DB_HOST || '').trim() === 'postgres' && process.env.DB_SSL !== 'true';
+
+const getLocalPostgresContainerName = (): string =>
+  process.env.POSTGRES_CONTAINER || 'shadowcheck_postgres_local';
+
+const runDockerizedLocalPgDump = async (options: {
+  dbFilePath: string;
+  globalsFilePath: string;
+  database: string;
+  backupScope: ReturnType<typeof resolveBackupScope>;
+  adminUser: string;
+}): Promise<{ globalsSuccess: boolean }> => {
+  const { dbFilePath, globalsFilePath, database, backupScope, adminUser } = options;
+  const containerName = getLocalPostgresContainerName();
+
+  const streamDockerCommandToFile = async (
+    args: string[],
+    outputPath: string,
+    label: string
+  ): Promise<void> =>
+    await new Promise((resolve, reject) => {
+      const output = createWriteStream(outputPath);
+      const child = spawn('docker', ['exec', containerName, ...args], {
+        env: process.env,
+      });
+      let stderr = '';
+
+      child.stdout.pipe(output);
+      child.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString();
+        logger.debug(`[Backup] ${label} stderr: ${data.toString().trim()}`);
+      });
+      child.on('error', (err: Error) => {
+        output.destroy();
+        reject(err);
+      });
+      child.on('close', (code: number | null) => {
+        output.end();
+        if (code === 0) {
+          resolve(undefined);
+        } else {
+          reject(new Error(`${label} failed (code ${code}): ${stderr}`));
+        }
+      });
+    });
+
+  logger.info(`[Backup] Using local Postgres container tools from ${containerName}`);
+
+  let globalsSuccess = false;
+  logger.info(`[Backup] Starting globals dump to ${globalsFilePath}`);
+  try {
+    await streamDockerCommandToFile(
+      ['pg_dumpall', '--globals-only', '-U', adminUser],
+      globalsFilePath,
+      'pg_dumpall globals'
+    );
+    globalsSuccess = true;
+  } catch (err: any) {
+    logger.warn(`[Backup] Globals dump failed, continuing with data-only backup: ${err.message}`);
+  }
+
+  logger.info(`[Backup] Starting main database dump to ${dbFilePath}`);
+  const args = [
+    'pg_dump',
+    '-U',
+    adminUser,
+    '-d',
+    database,
+    '--format=custom',
+    '--no-owner',
+    '--no-privileges',
+    '--blobs',
+  ];
+  if (backupScope.mode === 'schema_subset' && backupScope.schemas.length > 0) {
+    backupScope.schemas.forEach((schema) => {
+      args.push('--schema', schema);
+    });
+    logger.info(`[Backup] Running schema-scoped backup: ${backupScope.schemas.join(', ')}`);
+  } else {
+    logger.info('[Backup] Running full-database backup');
+  }
+
+  await streamDockerCommandToFile(args, dbFilePath, 'pg_dump');
+  return { globalsSuccess };
+};
+
 const getConfiguredS3BackupBucket = (): string => {
   const bucketName = process.env.S3_BACKUP_BUCKET?.trim();
   if (!bucketName) {
@@ -190,6 +277,79 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
   const pgRestorePath = await resolvePgToolPath('pg_restore');
   const pgEnv = buildBackupPgEnv();
   const backupScope = resolveBackupScope(process.env);
+
+  if (isLocalComposePostgres()) {
+    const adminUser = pgEnv.PGUSER || process.env.DB_ADMIN_USER || 'shadowcheck_admin';
+    const { globalsSuccess } = await runDockerizedLocalPgDump({
+      dbFilePath,
+      globalsFilePath,
+      database,
+      backupScope,
+      adminUser,
+    });
+
+    await pruneOldBackups(backupDir, retentionDays);
+
+    const dbBytes = await verifyBackupFile(dbFilePath, pgRestorePath);
+    const source = getBackupSource();
+    const files = [{ name: dbFileName, path: dbFilePath, bytes: dbBytes, type: 'database' }];
+
+    if (globalsSuccess) {
+      const globalsStat = await fs.stat(globalsFilePath);
+      if (globalsStat.size <= 0) {
+        throw new Error(`Globals backup file is empty: ${globalsFilePath}`);
+      }
+      files.push({
+        name: globalsFileName,
+        path: globalsFilePath,
+        bytes: globalsStat.size,
+        type: 'globals',
+      });
+    }
+
+    logger.info(
+      `[Backup] Multi-stage backup complete. Data: ${dbBytes} bytes. Globals: ${globalsSuccess ? 'Success' : 'Skipped'}`
+    );
+
+    const result: any = {
+      backupDir,
+      files,
+      source,
+      createdAt: new Date().toISOString(),
+      scope: backupScope.mode,
+      schemas: backupScope.schemas,
+      fileName: dbFileName,
+      bytes: dbBytes,
+    };
+
+    if (shouldUploadToS3) {
+      try {
+        result.s3 = [];
+        const dbUpload = (await uploadBackupToS3(
+          getConfiguredS3BackupBucket(),
+          dbFilePath,
+          dbFileName,
+          source
+        )) as any;
+        result.s3.push({ ...dbUpload, type: 'database' });
+
+        if (globalsSuccess) {
+          const globalsUpload = (await uploadBackupToS3(
+            getConfiguredS3BackupBucket(),
+            globalsFilePath,
+            globalsFileName,
+            source
+          )) as any;
+          result.s3.push({ ...globalsUpload, type: 'globals' });
+        }
+      } catch (error: any) {
+        logger.error(`[Backup] S3 upload failed: ${error.message}`);
+        result.s3Error = error.message;
+      }
+    }
+
+    return result;
+  }
 
   // 1. Dump Globals (Roles, Users, etc) - OPTIONAL
   let globalsSuccess = false;
