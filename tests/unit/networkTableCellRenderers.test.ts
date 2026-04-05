@@ -85,6 +85,38 @@ describe('renderNetworkTableCell', () => {
     expect(getText(result.content)).toBe('37%');
   });
 
+  it('renders geocoded confidence as a percent with raw precision in the title', () => {
+    const context = makeContext('geocoded_confidence', 0.87321);
+    const result = renderNetworkTableCell(context);
+
+    expect(getText(result.content)).toBe('87.3%');
+    expect(result.title).toBe('Geocoding confidence: 87.3210%');
+  });
+
+  it('renders ignored as Yes for true and dash for falsey values', () => {
+    const yesResult = renderNetworkTableCell(makeContext('is_ignored', true));
+    const noResult = renderNetworkTableCell(makeContext('is_ignored', false));
+
+    expect(getText(yesResult.content)).toBe('Yes');
+    expect(getText(noResult.content)).toBe('—');
+  });
+
+  it('renders notes as presence rather than count while keeping the tooltip count', () => {
+    const context = makeContext('notes_count', 3);
+    const result = renderNetworkTableCell(context);
+
+    expect(getText(result.content)).toBe('Yes');
+  });
+
+  it('truncation-backed text columns keep the full value in the title', () => {
+    const address = '123 Main Street, Suite 450, Flint, Michigan 48502';
+    const context = makeContext('geocoded_address', address);
+    const result = renderNetworkTableCell(context);
+
+    expect(getText(result.content)).toBe(address);
+    expect(result.title).toBe(address);
+  });
+
   it('exposes the full BSSID in the cell title for truncated identifiers', () => {
     const longId = '310260_12345_67890_ABCDE';
     const context = makeContext('bssid', longId);
@@ -104,8 +136,34 @@ describe('renderNetworkTableCell', () => {
     };
 
     const result = renderNetworkTableCell(context);
-    expect(result.title).toBe('WPA2 | [WPA2-PSK-CCMP][RSN-PSK-CCMP][ESS]');
+    expect(result.title).toBe('WPA2-P | [WPA2-PSK-CCMP][RSN-PSK-CCMP][ESS]');
     expect(result.content).toBeDefined();
+  });
+
+  it('uses the normalized OPEN label in the tooltip instead of malformed raw source text', () => {
+    const context = makeContext('security', 'OPEN');
+    context.row = {
+      ...baseRow,
+      security: 'OPEN',
+      capabilities: 'OOEN',
+    };
+
+    const result = renderNetworkTableCell(context);
+    expect(result.title).toBe('OPEN');
+  });
+
+  it('suppresses the OPEN tooltip when the badge is intentionally dashed for non-wifi rows', () => {
+    const context = makeContext('security', 'OPEN');
+    context.row = {
+      ...baseRow,
+      type: 'E',
+      security: 'OPEN',
+      capabilities: '[ESS]',
+    };
+
+    const result = renderNetworkTableCell(context);
+    expect(result.title).toBeUndefined();
+    expect(getText(result.content)).toBe('—');
   });
 
   it('hides non-wifi frequency values in the explorer table', () => {

@@ -22,7 +22,7 @@
 - Fork the repository
 - Create a feature branch: `git checkout -b feature/amazing-feature`
 - Make your changes
-- Add tests if applicable
+- Add or update regression tests whenever behavior changes or new features are added
 - Ensure code passes linting: `npm run lint`
 - Commit with descriptive messages
 - Push and create a Pull Request
@@ -41,8 +41,8 @@
 git clone https://github.com/cyclonite69/shadowcheck-web.git
 cd shadowcheck-web
 npm install
-# Secrets policy: do not create local .env files with credentials; inject runtime env vars or load from AWS Secrets Manager
-# Edit .env with your database credentials
+# Secrets policy: do not write credentials to disk in local .env files, seed files, or helper scripts.
+# Load secrets from AWS Secrets Manager or approved runtime environment injection paths.
 npm start
 ```
 
@@ -57,9 +57,21 @@ psql -d shadowcheck -c "CREATE EXTENSION postgis;"
 
 - Use ESLint configuration provided
 - Follow existing code patterns
-- Add JSDoc comments for functions
 - Use meaningful variable names
 - Keep functions focused and small
+
+## Ten Commandments
+
+1. Secrets shall never be written to disk.
+2. AWS Secrets Manager shall remain the source of truth for secrets.
+3. Core tables shall remain canonical.
+4. Enrichment data shall live in separate source-owned tables.
+5. Cross-source merging shall happen in views or materialized views, not core tables.
+6. Source precision shall be preserved end-to-end.
+7. Rounding, truncation, and shortening shall remain presentation concerns only.
+8. Refactors shall not leave cruft, duplicate paths, or half-migrated code behind.
+9. Behavior changes require regression tests; new features require test coverage.
+10. Bootstrap, restore, import, and upgrade are separate contracts and must be validated separately.
 
 ## Testing
 
@@ -102,7 +114,7 @@ npm run test:integration # Integration tests only
 ## Pull Request Process
 
 1. **Fork & Branch**: Create a feature branch from `master`
-2. **Develop**: Make your changes with tests
+2. **Develop**: Make your changes with tests and remove any refactor cruft introduced along the way
 3. **Test**: Ensure all tests pass
 4. **Document**: Update README/docs if needed
 5. **Submit**: Create PR with clear description

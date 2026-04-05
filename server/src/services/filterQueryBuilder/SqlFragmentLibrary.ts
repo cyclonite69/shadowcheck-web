@@ -17,6 +17,24 @@ export class SqlFragmentLibrary {
   }
 
   /**
+   * Returns geocoded address projection fields from the explorer MV.
+   */
+  static selectGeocodedFields(mvAlias = 'ne'): string {
+    return `
+      ${mvAlias}.geocoded_address,
+      ${mvAlias}.geocoded_city,
+      ${mvAlias}.geocoded_state,
+      ${mvAlias}.geocoded_postal_code,
+      ${mvAlias}.geocoded_country,
+      ${mvAlias}.geocoded_poi_name,
+      ${mvAlias}.geocoded_poi_category,
+      ${mvAlias}.geocoded_feature_type,
+      ${mvAlias}.geocoded_provider,
+      ${mvAlias}.geocoded_confidence
+    `.trim();
+  }
+
+  /**
    * Returns schema-compatible network tag projection fields.
    */
   static selectThreatTagFields(tagAlias = 'nt'): string {

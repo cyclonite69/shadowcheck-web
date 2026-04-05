@@ -9,6 +9,7 @@ const { withRetry } = require('./externalServiceHandler');
 type ListOrphanNetworksOptions = {
   search?: string;
   limit?: number;
+  offset?: number;
 };
 
 type OrphanBackfillStatus =
@@ -140,6 +141,7 @@ async function fetchWigleDetail(bssid: string, endpoint: 'wifi' | 'bt') {
 
 async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise<any[]> {
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 500);
+  const offset = Math.max(Number(opts.offset) || 0, 0);
   const search = String(opts.search || '').trim();
   const params: any[] = [];
   const where: string[] = [];
@@ -150,6 +152,7 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
   }
 
   params.push(limit);
+  params.push(offset);
 
   const sql = `
     SELECT
@@ -182,15 +185,35 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
     LEFT JOIN app.orphan_network_backfills ob ON ob.bssid = o.bssid
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY o.moved_at DESC, o.bssid ASC
-    LIMIT $${params.length}
+    LIMIT $${params.length - 1}
+    OFFSET $${params.length}
   `;
 
   const { rows } = await adminQuery(sql, params);
   return rows;
 }
 
-async function getOrphanNetworkCounts(): Promise<{ total: number }> {
-  const { rows } = await adminQuery('SELECT COUNT(*)::int AS total FROM app.networks_orphans');
+async function getOrphanNetworkCounts(
+  opts: Pick<ListOrphanNetworksOptions, 'search'> = {}
+): Promise<{
+  total: number;
+}> {
+  const search = String(opts.search || '').trim();
+  const params: any[] = [];
+  const where: string[] = [];
+
+  if (search) {
+    params.push(`%${search}%`, `%${search}%`);
+    where.push(`(bssid ILIKE $${params.length - 1} OR ssid ILIKE $${params.length})`);
+  }
+
+  const sql = `
+    SELECT COUNT(*)::int AS total
+    FROM app.networks_orphans
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+  `;
+
+  const { rows } = await adminQuery(sql, params);
   return { total: rows[0]?.total || 0 };
 }
 

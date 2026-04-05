@@ -1601,59 +1601,95 @@ SELECT 'threat score v4 function snapshot applied successfully' AS status;
 -- ============================================================================
 -- Folded from: 20260316_kismet_unique_constraints.sql
 -- ============================================================================
-DELETE FROM app.kismet_packets
-WHERE id IN (
-    SELECT id FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY hash, ts_sec, ts_usec ORDER BY id) AS row_num
-        FROM app.kismet_packets
-    ) t WHERE row_num > 1
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_packets_forensic_id ON app.kismet_packets (hash, ts_sec, ts_usec);
+DO $$
+BEGIN
+    IF to_regclass('app.kismet_packets') IS NOT NULL THEN
+        DELETE FROM app.kismet_packets
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY hash, ts_sec, ts_usec ORDER BY id) AS row_num
+                FROM app.kismet_packets
+            ) t WHERE row_num > 1
+        );
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_packets_forensic_id ON app.kismet_packets (hash, ts_sec, ts_usec)';
+    END IF;
+END
+$$;
 
-DELETE FROM app.kismet_alerts
-WHERE id IN (
-    SELECT id FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, devmac, header ORDER BY id) AS row_num
-        FROM app.kismet_alerts
-    ) t WHERE row_num > 1
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_alerts_forensic_id ON app.kismet_alerts (ts_sec, ts_usec, devmac, header);
+DO $$
+BEGIN
+    IF to_regclass('app.kismet_alerts') IS NOT NULL THEN
+        DELETE FROM app.kismet_alerts
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, devmac, header ORDER BY id) AS row_num
+                FROM app.kismet_alerts
+            ) t WHERE row_num > 1
+        );
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_alerts_forensic_id ON app.kismet_alerts (ts_sec, ts_usec, devmac, header)';
+    END IF;
+END
+$$;
 
-DELETE FROM app.kismet_messages
-WHERE id IN (
-    SELECT id FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, md5(message) ORDER BY id) AS row_num
-        FROM app.kismet_messages
-    ) t WHERE row_num > 1
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_messages_forensic_id ON app.kismet_messages (ts_sec, ts_usec, md5(message));
+DO $$
+BEGIN
+    IF to_regclass('app.kismet_messages') IS NOT NULL THEN
+        DELETE FROM app.kismet_messages
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, md5(message) ORDER BY id) AS row_num
+                FROM app.kismet_messages
+            ) t WHERE row_num > 1
+        );
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_messages_forensic_id ON app.kismet_messages (ts_sec, ts_usec, md5(message))';
+    END IF;
+END
+$$;
 
-DELETE FROM app.kismet_datasources
-WHERE id IN (
-    SELECT id FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY datasource ORDER BY id) AS row_num
-        FROM app.kismet_datasources
-    ) t WHERE row_num > 1
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_datasources_forensic_id ON app.kismet_datasources (datasource);
+DO $$
+BEGIN
+    IF to_regclass('app.kismet_datasources') IS NOT NULL THEN
+        DELETE FROM app.kismet_datasources
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY datasource ORDER BY id) AS row_num
+                FROM app.kismet_datasources
+            ) t WHERE row_num > 1
+        );
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_datasources_forensic_id ON app.kismet_datasources (datasource)';
+    END IF;
+END
+$$;
 
-DELETE FROM app.kismet_snapshots
-WHERE id IN (
-    SELECT id FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, snaptype ORDER BY id) AS row_num
-        FROM app.kismet_snapshots
-    ) t WHERE row_num > 1
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_snapshots_forensic_id ON app.kismet_snapshots (ts_sec, ts_usec, snaptype);
+DO $$
+BEGIN
+    IF to_regclass('app.kismet_snapshots') IS NOT NULL THEN
+        DELETE FROM app.kismet_snapshots
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, snaptype ORDER BY id) AS row_num
+                FROM app.kismet_snapshots
+            ) t WHERE row_num > 1
+        );
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_snapshots_forensic_id ON app.kismet_snapshots (ts_sec, ts_usec, snaptype)';
+    END IF;
+END
+$$;
 
-DELETE FROM app.kismet_data
-WHERE id IN (
-    SELECT id FROM (
-        SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, devmac, data_type ORDER BY id) AS row_num
-        FROM app.kismet_data
-    ) t WHERE row_num > 1
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_data_forensic_id ON app.kismet_data (ts_sec, ts_usec, devmac, data_type);
+DO $$
+BEGIN
+    IF to_regclass('app.kismet_data') IS NOT NULL THEN
+        DELETE FROM app.kismet_data
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY ts_sec, ts_usec, devmac, data_type ORDER BY id) AS row_num
+                FROM app.kismet_data
+            ) t WHERE row_num > 1
+        );
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_kismet_data_forensic_id ON app.kismet_data (ts_sec, ts_usec, devmac, data_type)';
+    END IF;
+END
+$$;
 
 -- ============================================================================
 -- Folded from: 20260323_standardize_radio_manufacturers.sql
@@ -1718,11 +1754,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-UPDATE app.radio_manufacturers
-SET
-    manufacturer = app.professional_title_case(manufacturer),
-    address = app.professional_title_case(address)
-WHERE manufacturer IS NOT NULL;
+DO $$
+DECLARE
+    manufacturer_is_generated text;
+BEGIN
+    SELECT is_generated
+    INTO manufacturer_is_generated
+    FROM information_schema.columns
+    WHERE table_schema = 'app'
+      AND table_name = 'radio_manufacturers'
+      AND column_name = 'manufacturer';
+
+    IF manufacturer_is_generated = 'ALWAYS' THEN
+        UPDATE app.radio_manufacturers
+        SET
+            organization_name = app.professional_title_case(organization_name),
+            organization_address = app.professional_title_case(organization_address)
+        WHERE organization_name IS NOT NULL;
+    ELSE
+        UPDATE app.radio_manufacturers
+        SET
+            manufacturer = app.professional_title_case(manufacturer),
+            address = app.professional_title_case(address)
+        WHERE manufacturer IS NOT NULL;
+    END IF;
+END
+$$;
 
 DROP FUNCTION app.professional_title_case(TEXT);
 
