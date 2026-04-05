@@ -165,22 +165,25 @@ class IncrementalImporter {
       // 5. Ensure device_source exists (FK constraint)
       await this.ensureDeviceSource();
 
-      // 6. Upsert networks (canonical BSSID parent + rich metadata for MV/UI)
+      // 6. Ensure orphan holding table exists for non-canonical parent rows.
+      await this.ensureNetworksOrphansTable();
+
+      // 7. Upsert networks (canonical BSSID parent + rich metadata for MV/UI)
       await this.upsertNetworks();
 
-      // 7. Import new observations
+      // 8. Import new observations
       await this.importNewObservations();
 
-      // 8. Backfill any missing network rows from newly imported observations.
+      // 9. Backfill any missing network rows from newly imported observations.
       await this.backfillMissingNetworksFromObservations();
 
-      // 9. Remove networks with no supporting observations.
-      await this.pruneOrphanNetworks();
+      // 10. Preserve non-canonical parent rows outside canonical app.networks.
+      await this.moveOrphanNetworksToHoldingTable();
 
-      // 10. Refresh materialized views
+      // 11. Refresh materialized views
       await this.refreshMaterializedViews();
 
-      // 11. Print summary
+      // 12. Print summary
       this.printSummary();
     } catch (error) {
       const err = error as Error;
@@ -347,11 +350,9 @@ class IncrementalImporter {
 
       if (batch.length >= CONFIG.BATCH_SIZE) {
         try {
-          await this.insertBatch(batch);
-          this.imported += batch.length;
+          this.imported += await this.insertBatch(batch);
         } catch (error) {
           const e = error as Error;
-          this.failed += batch.length;
           this.errors.push(`Batch insert error: ${e.message}`);
           if (CONFIG.DEBUG) {
             console.error(`\n   Batch error: ${e.message}`);
@@ -372,11 +373,9 @@ class IncrementalImporter {
     // Insert remaining batch
     if (batch.length > 0) {
       try {
-        await this.insertBatch(batch);
-        this.imported += batch.length;
+        this.imported += await this.insertBatch(batch);
       } catch (error) {
         const e = error as Error;
-        this.failed += batch.length;
         this.errors.push(`Final batch error: ${e.message}`);
       }
     }
@@ -441,8 +440,8 @@ class IncrementalImporter {
     };
   }
 
-  private async insertBatch(records: ValidatedObservation[]): Promise<void> {
-    if (records.length === 0) return;
+  private async insertBatch(records: ValidatedObservation[]): Promise<number> {
+    if (records.length === 0) return 0;
 
     const values: string[] = [];
     const params: unknown[] = [];
@@ -493,7 +492,76 @@ class IncrementalImporter {
       ON CONFLICT (device_id, source_pk, bssid, level, lat, lon, altitude, accuracy, observed_at_ms, external, mfgrid) DO NOTHING
     `;
 
-    await this.pool.query(sql, params);
+    try {
+      const result = await this.pool.query(sql, params);
+      return result.rowCount ?? 0;
+    } catch (error) {
+      const err = error as Error;
+      if (CONFIG.DEBUG) {
+        console.warn(`   Batch insert failed, retrying row-by-row: ${err.message}`);
+      }
+      let inserted = 0;
+      for (const record of records) {
+        try {
+          inserted += await this.insertSingleRecord(record);
+        } catch (rowError) {
+          const rowErr = rowError as Error;
+          this.failed++;
+          this.errors.push(
+            `Row insert error (${record.bssid}/${record.source_pk}): ${rowErr.message}`
+          );
+          if (CONFIG.DEBUG) {
+            console.error(
+              `   Row insert failed for ${record.bssid}/${record.source_pk}: ${rowErr.message}`
+            );
+          }
+        }
+      }
+      return inserted;
+    }
+  }
+
+  private async insertSingleRecord(record: ValidatedObservation): Promise<number> {
+    const sql = `
+      INSERT INTO app.observations (
+        device_id, bssid, ssid, radio_type, radio_frequency, radio_capabilities,
+        radio_service, radio_rcois, radio_lasttime_ms, level, lat, lon, altitude,
+        accuracy, time, observed_at_ms, external, mfgrid, source_tag, source_pk, time_ms, geom
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10, $11, $12, $13,
+        $14, $15, $16, $17, $18, $19, $20, $21,
+        ST_SetSRID(ST_MakePoint($12, $11), 4326)
+      )
+      ON CONFLICT (device_id, source_pk, bssid, level, lat, lon, altitude, accuracy, observed_at_ms, external, mfgrid) DO NOTHING
+    `;
+
+    const result = await this.pool.query(sql, [
+      record.device_id,
+      record.bssid,
+      record.ssid,
+      record.radio_type,
+      record.radio_frequency,
+      record.radio_capabilities,
+      record.radio_service,
+      record.radio_rcois,
+      record.radio_lasttime_ms,
+      record.level,
+      record.lat,
+      record.lon,
+      record.altitude,
+      record.accuracy,
+      record.time,
+      record.observed_at_ms,
+      record.external,
+      record.mfgrid,
+      record.source_tag,
+      record.source_pk,
+      record.time_ms,
+    ]);
+
+    return result.rowCount ?? 0;
   }
 
   private async ensureDeviceSource(): Promise<void> {
@@ -509,6 +577,56 @@ class IncrementalImporter {
     );
 
     console.log(`   Device source '${this.sourceTag}' ready`);
+  }
+
+  private async ensureNetworksOrphansTable(): Promise<void> {
+    console.log('\n🧱 Ensuring orphan holding table exists...');
+
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS app.networks_orphans (
+        LIKE app.networks INCLUDING DEFAULTS INCLUDING GENERATED INCLUDING CONSTRAINTS
+      )
+    `);
+
+    await this.pool.query(`
+      ALTER TABLE app.networks_orphans
+        ADD COLUMN IF NOT EXISTS moved_at timestamptz NOT NULL DEFAULT NOW(),
+        ADD COLUMN IF NOT EXISTS move_reason text NOT NULL DEFAULT 'orphan_after_import'
+    `);
+
+    await this.pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'networks_orphans_pkey'
+            AND conrelid = 'app.networks_orphans'::regclass
+        ) THEN
+          ALTER TABLE app.networks_orphans
+            ADD CONSTRAINT networks_orphans_pkey PRIMARY KEY (bssid);
+        END IF;
+      END $$;
+    `);
+
+    await this.pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_networks_orphans_moved_at
+        ON app.networks_orphans (moved_at DESC)
+    `);
+
+    await this.pool.query(`
+      ALTER TABLE app.networks_orphans OWNER TO shadowcheck_admin
+    `);
+
+    await this.pool.query(`
+      GRANT SELECT ON app.networks_orphans TO shadowcheck_user
+    `);
+
+    await this.pool.query(`
+      GRANT ALL PRIVILEGES ON app.networks_orphans TO shadowcheck_admin
+    `);
+
+    console.log('   Orphan holding table ready');
   }
 
   private async upsertNetworks(): Promise<void> {
@@ -538,15 +656,10 @@ class IncrementalImporter {
     };
 
     let upserted = 0;
-    let skipped = 0;
+    let placeholders = 0;
 
     for (const bssid of bssids) {
       const network = this.networkCache.get(bssid);
-      if (!network) {
-        skipped++;
-        continue;
-      }
-
       try {
         await this.pool.query(
           `
@@ -565,22 +678,25 @@ class IncrementalImporter {
           `,
           [
             bssid,
-            cleanString(network.ssid) || '',
-            network.type || 'W',
-            network.frequency || 0,
-            cleanString(network.capabilities) || '',
-            cleanString(network.service) || '',
-            cleanString(network.rcois) || '',
-            network.mfgrid || 0,
-            network.lasttime || 0,
-            network.lastlat || 0,
-            network.lastlon || 0,
-            network.bestlevel || 0,
-            network.bestlat || 0,
-            network.bestlon || 0,
+            cleanString(network?.ssid) || '',
+            network?.type || 'W',
+            network?.frequency || 0,
+            cleanString(network?.capabilities) || '',
+            cleanString(network?.service) || '',
+            cleanString(network?.rcois) || '',
+            network?.mfgrid || 0,
+            network?.lasttime || 0,
+            network?.lastlat || 0,
+            network?.lastlon || 0,
+            network?.bestlevel || 0,
+            network?.bestlat || 0,
+            network?.bestlon || 0,
           ]
         );
         upserted++;
+        if (!network) {
+          placeholders++;
+        }
       } catch (error) {
         if (CONFIG.DEBUG) {
           const e = error as Error;
@@ -590,7 +706,7 @@ class IncrementalImporter {
     }
 
     console.log(
-      `   Upserted ${upserted.toLocaleString()} networks (${skipped} skipped - no metadata)`
+      `   Upserted ${upserted.toLocaleString()} networks (${placeholders.toLocaleString()} placeholder parent rows)`
     );
   }
 
@@ -670,25 +786,66 @@ class IncrementalImporter {
     console.log(`   Backfilled ${result.rowCount?.toLocaleString() || 0} missing network(s)`);
   }
 
-  private async pruneOrphanNetworks(): Promise<void> {
-    console.log('\n🧹 Pruning orphan networks...');
-    try {
-      const result = await this.pool.query(
-        `DELETE FROM app.networks
-         WHERE NOT EXISTS (
-           SELECT 1 FROM app.observations o WHERE o.bssid = networks.bssid
-         )`
-      );
-      const deleted = result.rowCount ?? 0;
-      if (deleted > 0) {
-        console.log(`   Removed ${deleted.toLocaleString()} orphan network(s) (no observations)`);
-      } else {
-        console.log('   No orphans found');
-      }
-    } catch (error) {
-      const err = error as Error;
-      console.warn(`   ⚠️ Orphan prune failed: ${err.message}`);
-    }
+  private async moveOrphanNetworksToHoldingTable(): Promise<void> {
+    console.log('\n📦 Moving orphan networks into holding table...');
+
+    const insertResult = await this.pool.query(`
+      INSERT INTO app.networks_orphans
+      SELECT n.*, NOW() AS moved_at, 'no_observations_after_import' AS move_reason
+      FROM app.networks n
+      WHERE NOT EXISTS (
+        SELECT 1 FROM app.observations o WHERE o.bssid = n.bssid
+      )
+      ON CONFLICT (bssid) DO UPDATE
+      SET
+        ssid = EXCLUDED.ssid,
+        type = EXCLUDED.type,
+        frequency = EXCLUDED.frequency,
+        capabilities = EXCLUDED.capabilities,
+        service = EXCLUDED.service,
+        rcois = EXCLUDED.rcois,
+        mfgrid = EXCLUDED.mfgrid,
+        lasttime_ms = EXCLUDED.lasttime_ms,
+        lastlat = EXCLUDED.lastlat,
+        lastlon = EXCLUDED.lastlon,
+        bestlevel = EXCLUDED.bestlevel,
+        bestlat = EXCLUDED.bestlat,
+        bestlon = EXCLUDED.bestlon,
+        source_device = EXCLUDED.source_device,
+        threat_score_v2 = EXCLUDED.threat_score_v2,
+        threat_factors = EXCLUDED.threat_factors,
+        threat_level = EXCLUDED.threat_level,
+        threat_updated_at = EXCLUDED.threat_updated_at,
+        ml_threat_score = EXCLUDED.ml_threat_score,
+        wigle_v3_observation_count = EXCLUDED.wigle_v3_observation_count,
+        wigle_v3_last_import_at = EXCLUDED.wigle_v3_last_import_at,
+        min_altitude_m = EXCLUDED.min_altitude_m,
+        max_altitude_m = EXCLUDED.max_altitude_m,
+        altitude_span_m = EXCLUDED.altitude_span_m,
+        last_altitude_m = EXCLUDED.last_altitude_m,
+        altitude_m = EXCLUDED.altitude_m,
+        altitude_accuracy_m = EXCLUDED.altitude_accuracy_m,
+        unique_days = EXCLUDED.unique_days,
+        unique_locations = EXCLUDED.unique_locations,
+        is_sentinel = EXCLUDED.is_sentinel,
+        accuracy_meters = EXCLUDED.accuracy_meters,
+        moved_at = NOW(),
+        move_reason = EXCLUDED.move_reason
+    `);
+
+    const deleteResult = await this.pool.query(`
+      DELETE FROM app.networks n
+      WHERE NOT EXISTS (
+        SELECT 1 FROM app.observations o WHERE o.bssid = n.bssid
+      )
+    `);
+
+    console.log(
+      `   Preserved ${insertResult.rowCount?.toLocaleString() || 0} orphan network(s) in app.networks_orphans`
+    );
+    console.log(
+      `   Removed ${deleteResult.rowCount?.toLocaleString() || 0} orphan network(s) from canonical app.networks`
+    );
   }
 
   private async refreshMaterializedViews(): Promise<void> {

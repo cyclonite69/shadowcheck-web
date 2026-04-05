@@ -1,24 +1,15 @@
--- Bootstrap script for local Docker PostgreSQL initialization
--- This file runs ONCE when the Docker container first starts (via /docker-entrypoint-initdb.d/).
--- It is NOT used for post-restore privilege re-application.
--- See docker/README.md for the complete local restore workflow.
+-- Post-restore privilege re-application for local Docker
+-- This file is run AFTER a database dump is restored (via restore-local-backup.sh).
+-- It ensures shadowcheck_user (read-only) and shadowcheck_admin (admin) roles
+-- have the correct permissions after the restore.
+--
+-- Note: This is NOT the bootstrap file. Bootstrap (01-shadowcheck-local.sql) runs once
+-- when the Docker container first starts. This file ensures post-restore consistency.
 
-DO
-$$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'shadowcheck_user') THEN
-    CREATE ROLE shadowcheck_user LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
-  ELSE
-    ALTER ROLE shadowcheck_user NOSUPERUSER NOCREATEDB NOCREATEROLE;
-  END IF;
+\set ON_ERROR_STOP on
 
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'shadowcheck_admin') THEN
-    CREATE ROLE shadowcheck_admin LOGIN SUPERUSER CREATEDB CREATEROLE;
-  ELSE
-    ALTER ROLE shadowcheck_admin SUPERUSER CREATEDB CREATEROLE;
-  END IF;
-END
-$$;
+ALTER ROLE shadowcheck_user NOSUPERUSER NOCREATEDB NOCREATEROLE;
+ALTER ROLE shadowcheck_admin SUPERUSER CREATEDB CREATEROLE;
 
 CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION shadowcheck_admin;
 ALTER SCHEMA app OWNER TO shadowcheck_admin;
@@ -26,8 +17,8 @@ ALTER SCHEMA app OWNER TO shadowcheck_admin;
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA app;
 
-GRANT CONNECT ON DATABASE shadowcheck_db TO shadowcheck_user;
-GRANT CONNECT ON DATABASE shadowcheck_db TO shadowcheck_admin;
+GRANT CONNECT ON DATABASE :db_name TO shadowcheck_user;
+GRANT CONNECT ON DATABASE :db_name TO shadowcheck_admin;
 GRANT USAGE ON SCHEMA app TO shadowcheck_user;
 GRANT USAGE ON SCHEMA public TO shadowcheck_user;
 GRANT USAGE ON SCHEMA app TO shadowcheck_admin;
@@ -58,6 +49,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
 
 REVOKE CREATE ON SCHEMA app FROM shadowcheck_user;
 REVOKE CREATE ON SCHEMA public FROM shadowcheck_user;
-
-ALTER ROLE shadowcheck_user SET search_path = app, public;
-ALTER ROLE shadowcheck_admin SET search_path = app, public;
