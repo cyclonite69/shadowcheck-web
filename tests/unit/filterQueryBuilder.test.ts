@@ -298,7 +298,11 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
 
   test('security sort uses computed security alias', () => {
     const orderBy = buildOrderBy('security', 'asc');
-    expect(orderBy).toContain('security ASC');
+    expect(orderBy).toContain(
+      "UPPER(COALESCE(ne.security, '')) IN ('WPA3-E', 'WPA3-P', 'WPA3', 'OWE')"
+    );
+    expect(orderBy).toContain('ELSE NULL');
+    expect(orderBy).toContain('ASC NULLS LAST');
   });
 
   test('multi-column sort preserves requested order', () => {

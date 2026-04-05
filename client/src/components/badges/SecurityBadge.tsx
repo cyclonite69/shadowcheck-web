@@ -23,10 +23,12 @@ export const SecurityBadge = ({ security, networkType }: SecurityBadgeProps) => 
   const color = shouldShowDash
     ? SECURITY_TYPE_COLORS['UNKNOWN']
     : (SECURITY_TYPE_COLORS[label as string] ?? SECURITY_TYPE_COLORS['UNKNOWN']);
+  const title = shouldShowDash ? undefined : normalizedSecurity;
 
   return (
     <span
       className="px-1.5 py-0.5 rounded text-xs font-medium inline-block"
+      title={title}
       style={{
         backgroundColor: color + '20',
         color,

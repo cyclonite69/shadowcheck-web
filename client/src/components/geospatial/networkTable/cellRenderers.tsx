@@ -273,16 +273,20 @@ const getSecurityTooltip = (
   security: string | null | undefined,
   capabilities: string | null | undefined
 ) => {
-  const normalizedSecurity = typeof security === 'string' ? security.trim() : '';
+  const normalizedSecurity = typeof security === 'string' ? security.trim().toUpperCase() : '';
   const normalizedCapabilities = typeof capabilities === 'string' ? capabilities.trim() : '';
+  const displaySecurity =
+    normalizedSecurity && !normalizedSecurity.startsWith('UNKNOWN') && normalizedSecurity !== '—'
+      ? normalizedSecurity
+      : '';
 
-  if (normalizedSecurity && normalizedCapabilities) {
-    return normalizedSecurity.toUpperCase() === normalizedCapabilities.toUpperCase()
+  if (displaySecurity && normalizedCapabilities) {
+    return displaySecurity === normalizedCapabilities.toUpperCase()
       ? normalizedCapabilities
-      : `${normalizedSecurity} | ${normalizedCapabilities}`;
+      : `${displaySecurity} | ${normalizedCapabilities}`;
   }
 
-  return normalizedCapabilities || normalizedSecurity || undefined;
+  return normalizedCapabilities || displaySecurity || undefined;
 };
 
 const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => {
