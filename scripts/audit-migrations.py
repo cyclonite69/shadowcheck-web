@@ -129,39 +129,39 @@ def main():
     print("CONSOLIDATION PLAN RECOMMENDATIONS")
     print("=" * 80)
 
-    print("\n1. BASELINE SCHEMA (consolidate all CREATE TABLE):")
+    print("\n1. PHASE 1 ONLY:")
+    print("   Update inventory, choose a cut line, and draft refreshed baselines.")
+    print("   Do NOT archive active migrations yet.")
+
+    print("\n2. RECOMMENDED CUT LINE:")
+    print("   Fold through 20260331_consolidated_012_mv_centroid_fields.sql")
+    print("   Keep 20260401+ additive until local + EC2 verification is complete.")
+
+    print("\n3. DRAFT REFRESHED BASELINE SHAPE:")
     schema_files = by_category.get("SCHEMA", [])
-    print(f"   Merge {len(schema_files)} files -> 001_schema_and_tables.sql")
-
-    print("\n2. BASELINE INDEXES (consolidate all CREATE INDEX):")
     index_files = by_category.get("INDEX", [])
-    print(f"   Merge {len(index_files)} files -> 002_indexes.sql")
-
-    print("\n3. BASELINE VIEWS (keep only latest versions):")
     view_files = by_category.get("VIEW", [])
-    print(f"   Merge {len(view_files)} files -> 003_views_and_materialized.sql")
-
-    print("\n4. BASELINE FUNCTIONS:")
     func_files = by_category.get("FUNCTION", [])
-    print(f"   Merge {len(func_files)} files -> 004_functions.sql")
-
-    print("\n5. SEED DATA:")
     data_files = by_category.get("DATA", [])
-    print(f"   Merge {len(data_files)} files -> 005_seed_data.sql")
-
-    print("\n6. SETTINGS (already in bootstrap):")
     settings_files = by_category.get("SETTINGS", [])
-    print(f"   {len(settings_files)} files - MOVE to bootstrap or docker config")
+    print(f"   baseline_001_extensions_auth_schema.sql        <- extensions/schema/auth")
+    print(f"   baseline_002_core_tables.sql                   <- {len(schema_files)} schema-heavy files")
+    print(f"   baseline_003_external_and_reference.sql        <- WiGLE/reference/agency tables")
+    print(f"   baseline_004_analysis_views_materialized_views.sql <- {len(view_files)} view files")
+    print(f"   baseline_005_functions_and_triggers.sql        <- {len(func_files)} function files")
+    print(f"   baseline_006_indexes_grants_defaults.sql       <- {len(index_files)} index files + grants/settings")
+    print(f"   (settings/grants review: {len(settings_files)} files, data review: {len(data_files)} files)")
 
     print("\n" + "=" * 80)
     print("NEXT STEPS:")
     print("=" * 80)
-    print("1. Review versioned migrations - keep only latest")
-    print("2. Take DB backup before consolidation")
-    print("3. Create consolidated baseline files")
-    print("4. Test on fresh DB")
-    print("5. Update schema_migrations tracking")
-    print("6. Archive old migration files")
+    print("1. Fix sql/migrations/README.md inventory")
+    print("2. Draft refreshed baseline files without deleting anything")
+    print("3. Test on fresh DB")
+    print("4. Test restore + post-restore grants")
+    print("5. Test migration from an existing populated DB")
+    print("6. Update schema_migrations tracking")
+    print("7. Only then archive superseded files")
 
 
 if __name__ == "__main__":
