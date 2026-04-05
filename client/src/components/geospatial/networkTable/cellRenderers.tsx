@@ -272,10 +272,21 @@ const renderMaxDistance = ({ value }: NetworkTableCellRendererContext) => {
 
 const getSecurityTooltip = (
   security: string | null | undefined,
-  capabilities: string | null | undefined
+  capabilities: string | null | undefined,
+  networkType: string | null | undefined
 ) => {
   const displaySecurity = formatSecurity(capabilities, security).trim().toUpperCase();
-  if (!displaySecurity || displaySecurity.startsWith('UNKNOWN') || displaySecurity === '—') {
+  const normalizedType = String(networkType || '')
+    .trim()
+    .toUpperCase();
+  const isWiFiType = normalizedType === 'W';
+  const shouldShowDash =
+    !displaySecurity ||
+    displaySecurity.startsWith('UNKNOWN') ||
+    displaySecurity === '—' ||
+    (!isWiFiType && displaySecurity === 'OPEN');
+
+  if (shouldShowDash) {
     return undefined;
   }
 
@@ -296,7 +307,7 @@ const getSecurityTooltip = (
 };
 
 const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => {
-  const tooltip = getSecurityTooltip(value as string | null, row.capabilities);
+  const tooltip = getSecurityTooltip(value as string | null, row.capabilities, row.type);
   const badge = <SecurityBadge security={value as string | null} networkType={row.type} />;
 
   return {

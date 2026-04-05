@@ -152,6 +152,20 @@ describe('renderNetworkTableCell', () => {
     expect(result.title).toBe('OPEN');
   });
 
+  it('suppresses the OPEN tooltip when the badge is intentionally dashed for non-wifi rows', () => {
+    const context = makeContext('security', 'OPEN');
+    context.row = {
+      ...baseRow,
+      type: 'E',
+      security: 'OPEN',
+      capabilities: '[ESS]',
+    };
+
+    const result = renderNetworkTableCell(context);
+    expect(result.title).toBeUndefined();
+    expect(getText(result.content)).toBe('—');
+  });
+
   it('hides non-wifi frequency values in the explorer table', () => {
     const context = makeContext('frequency', 66586);
     context.row = { ...baseRow, type: 'G', frequency: 66586 };
