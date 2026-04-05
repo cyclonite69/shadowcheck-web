@@ -68,6 +68,7 @@ Use a refreshed baseline set rather than a single mega-file:
 4. `baseline_004_analysis_views_materialized_views.sql`
 5. `baseline_005_functions_and_triggers.sql`
 6. `baseline_006_indexes_grants_defaults.sql`
+7. `baseline_007_runtime_contracts.sql`
 
 ### Fold Candidates
 
@@ -145,6 +146,10 @@ Current Phase 3 mapping:
    - `20260331_consolidated_012_mv_centroid_fields.sql`
 6. `baseline_006_indexes_grants_defaults.sql`
    - `20260216_consolidated_010_performance_indexes.sql`
+7. `baseline_007_runtime_contracts.sql`
+   - `20260404_add_geocoding_to_api_network_explorer_mv.sql`
+   - `20260404_add_networks_orphans_table.sql`
+   - `20260405_add_orphan_network_backfill_tracking.sql`
 
 This mapping preserves complete fold coverage through the current cut line while
 making the future archive/switchover step explicit.

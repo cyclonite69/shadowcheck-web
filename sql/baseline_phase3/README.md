@@ -36,6 +36,10 @@ eventual switchover.
    - `20260331_consolidated_012_mv_centroid_fields.sql`
 6. `baseline_006_indexes_grants_defaults.sql`
    - `20260216_consolidated_010_performance_indexes.sql`
+7. `baseline_007_runtime_contracts.sql`
+   - `20260404_add_geocoding_to_api_network_explorer_mv.sql`
+   - `20260404_add_networks_orphans_table.sql`
+   - `20260405_add_orphan_network_backfill_tracking.sql`
 
 ## Important Caveat
 
@@ -50,6 +54,11 @@ assembly layer, not a fully re-homed statement split yet. For example:
 That is acceptable for the Phase 3 assembly step because the goal here is to create
 concrete baseline files, preserve fold coverage, and make the later archive/switchover
 mechanical instead of ambiguous.
+
+The April 2026 runtime-contract migrations now remain explicit in
+[`baseline_007_runtime_contracts.sql`](/home/dbcooper/repos/shadowcheck-web/sql/baseline_phase3/baseline_007_runtime_contracts.sql)
+instead of being implied by the older consolidated set. Validation must include
+that file so the assembled baseline matches current app behavior.
 
 ## Promotion Rules
 
