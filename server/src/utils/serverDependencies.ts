@@ -44,6 +44,7 @@ interface RouteModules {
   miscRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
+  mobileIngestRoutes: Router;
 }
 
 /**
@@ -91,6 +92,7 @@ function loadRouteModules(): RouteModules {
     miscRoutes: require('../api/routes/v1/misc'),
     claudeRoutes: require('../api/routes/v1/claude'),
     threatReportRoutes: require('../api/routes/v1/threat-report').default,
+    mobileIngestRoutes: require('../api/routes/v1/mobileIngest').default,
   };
 }
 

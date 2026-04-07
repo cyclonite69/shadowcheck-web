@@ -38,6 +38,7 @@ interface ApiRouteDependencies {
   authRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
+  mobileIngestRoutes: Router;
 }
 
 /**
@@ -76,6 +77,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     authRoutes,
     claudeRoutes,
     threatReportRoutes,
+    mobileIngestRoutes,
   } = deps;
   // Fail closed: gate is enabled unless explicitly set to "false".
   const apiGateEnabled =
@@ -117,6 +119,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     authRoutes,
     claudeRoutes,
     threatReportRoutes,
+    mobileIngestRoutes,
   };
 
   for (const [name, route] of Object.entries(routes)) {
@@ -164,6 +167,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api/network-tags', userGate, networkTagsRoutes);
   app.use('/api', userGate, claudeRoutes);
   app.use('/api', userGate, threatReportRoutes);
+  app.use('/api/v1/ingest', userGate, mobileIngestRoutes);
 
   // Network agencies (nearest agencies to network observations)
   const networkAgenciesRoutes = require('../api/routes/v1/network-agencies');

@@ -91,6 +91,14 @@ interface ValidatedObservation {
   source_tag: string;
 }
 
+interface ImportSummary {
+  imported: number;
+  failed: number;
+  durationS: number;
+  speed: number;
+  errors: string[];
+}
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -136,7 +144,7 @@ class IncrementalImporter {
     this.startTime = Date.now();
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<ImportSummary> {
     console.log('\n📦 INCREMENTAL IMPORT - WiGLE SQLite');
     console.log('━'.repeat(60));
     console.log(`📁 Source: ${this.sqliteFile}`);
@@ -156,7 +164,7 @@ class IncrementalImporter {
 
       if (this.toImport === 0) {
         console.log('\n✅ Database is up to date - no new records to import.');
-        return;
+        return this.getSummary();
       }
 
       // 4. Load network metadata cache from SQLite
@@ -185,16 +193,31 @@ class IncrementalImporter {
 
       // 12. Print summary
       this.printSummary();
+
+      return this.getSummary();
     } catch (error) {
       const err = error as Error;
       console.error('\n❌ IMPORT FAILED:', err.message);
       if (CONFIG.DEBUG) {
         console.error('Stack trace:', err.stack);
       }
-      process.exit(1);
+      throw err;
     } finally {
       await this.pool.end();
     }
+  }
+
+  private getSummary(): ImportSummary {
+    const duration = (Date.now() - this.startTime) / 1000;
+    const speed = this.imported > 0 ? Math.round(this.imported / duration) : 0;
+
+    return {
+      imported: this.imported,
+      failed: this.failed,
+      durationS: duration,
+      speed,
+      errors: this.errors,
+    };
   }
 
   private async validateInputs(): Promise<void> {

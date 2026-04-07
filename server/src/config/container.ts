@@ -44,6 +44,7 @@ const geocodingCacheService = require('../services/geocodingCacheService');
 const homeLocationService = require('../services/homeLocationService');
 const keplerService = require('../services/keplerService');
 const miscService = require('../services/miscService');
+const mobileIngestService = require('../services/mobileIngestService');
 const mlScoringService = require('../services/ml/scoringService');
 const mlTrainingLock = require('../services/mlTrainingLock');
 const networkListService = require('../services/networkListService');
@@ -97,6 +98,7 @@ const container = {
   homeLocationService,
   keplerService,
   miscService,
+  mobileIngestService,
   mlScoringService,
   mlTrainingLock,
   networkListService,

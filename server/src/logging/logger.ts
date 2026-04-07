@@ -8,9 +8,9 @@
  * - Request/response logging
  */
 
-import winston from 'winston';
-import path from 'path';
-import fs from 'fs';
+import * as winston from 'winston';
+import * as path from 'path';
+import * as fs from 'fs';
 import type { Request } from 'express';
 
 // Ensure logs directory exists
