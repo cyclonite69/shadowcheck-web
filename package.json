@@ -70,7 +70,7 @@
     "express-rate-limit": "^8.3.1",
     "helmet": "8.1.0",
     "keytar": "^7.9.0",
-    "mapbox-gl": "^3.19.1",
+    "mapbox-gl": "^3.21.0",
     "ml-logistic-regression": "^2.0.0",
     "ml-matrix": "^6.10.4",
     "multer": "2.1.1",
