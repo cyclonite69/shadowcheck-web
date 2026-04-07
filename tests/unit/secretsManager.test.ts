@@ -44,10 +44,12 @@ describe('SecretsManager (AWS SM only)', () => {
   let awsSdk: any;
   let originalDbPassword: string | undefined;
   let originalMapboxToken: string | undefined;
+  let originalNodeEnv: string | undefined;
 
   beforeAll(() => {
     originalDbPassword = process.env.DB_PASSWORD;
     originalMapboxToken = process.env.MAPBOX_TOKEN;
+    originalNodeEnv = process.env.NODE_ENV;
   });
 
   beforeEach(() => {
@@ -55,6 +57,10 @@ describe('SecretsManager (AWS SM only)', () => {
     jest.clearAllMocks();
     delete process.env.DB_PASSWORD;
     delete process.env.MAPBOX_TOKEN;
+    // We need to keep NODE_ENV=test but force AWS SM for these tests
+    process.env.NODE_ENV = 'test';
+    process.env.FORCE_AWS_SM = 'true';
+    
     awsSdk = require('@aws-sdk/client-secrets-manager');
     awsSdk.__setSecretStore({});
     secretsManager = require('../../server/src/services/secretsManager').default;
@@ -68,6 +74,9 @@ describe('SecretsManager (AWS SM only)', () => {
 
     if (originalMapboxToken === undefined) delete process.env.MAPBOX_TOKEN;
     else process.env.MAPBOX_TOKEN = originalMapboxToken;
+    
+    process.env.NODE_ENV = originalNodeEnv;
+    delete process.env.FORCE_AWS_SM;
   });
 
   test('loads secrets from AWS Secrets Manager', async () => {
@@ -82,19 +91,26 @@ describe('SecretsManager (AWS SM only)', () => {
     expect(secretsManager.get('mapbox_token')).toBe('pk.aws_token');
   });
 
-  test('auto-generates db_password if missing and persists to AWS SM', async () => {
+  test('falls back to environment variable if missing from AWS SM', async () => {
     awsSdk.__setSecretStore({
       mapbox_token: 'pk.aws_token',
     });
+    process.env.DB_PASSWORD = 'env_password';
 
     await secretsManager.load();
 
-    const generated = secretsManager.get('db_password');
-    expect(generated).toBeTruthy();
-    expect(generated!.length).toBe(32);
+    expect(secretsManager.get('db_password')).toBe('env_password');
+  });
 
-    const updatedStore = awsSdk.__getSecretStore();
-    expect(updatedStore.db_password).toBe(generated);
+  test('throws if db_password is missing from both AWS and environment', async () => {
+    awsSdk.__setSecretStore({
+      mapbox_token: 'pk.aws_token',
+    });
+    // DB_PASSWORD is deleted in beforeEach
+
+    await expect(secretsManager.load()).rejects.toThrow(
+      /Required secret 'db_password' not found in AWS Secrets Manager/
+    );
   });
 
   test('warns if Mapbox token does not start with pk.', async () => {
