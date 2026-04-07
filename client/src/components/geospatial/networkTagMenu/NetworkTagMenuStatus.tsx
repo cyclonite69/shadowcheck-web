@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NetworkTag } from '../../types/network';
+import type { NetworkTag } from '../../../types/network';
 
 interface NetworkTagMenuStatusProps {
   tag: NetworkTag | null;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NetworkExplorerSection } from './NetworkExplorerSection';
+import { NetworkExplorerSection } from './panels/NetworkExplorerSection';
 import { NETWORK_COLUMNS } from '../../constants/network';
 
 interface GeospatialTableContentProps {

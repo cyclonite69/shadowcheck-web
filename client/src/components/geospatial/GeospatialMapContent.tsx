@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapSection } from './MapSection';
-import { MapToolbarActions } from './MapToolbarActions';
+import { MapToolbarActions } from './toolbar/MapToolbarActions';
 import { MAP_STYLES } from '../../constants/network';
 import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 

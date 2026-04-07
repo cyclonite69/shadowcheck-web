@@ -6,7 +6,7 @@ import type { CteResult, FilteredQueryResult, NetworkListOptions, QueryResult } 
 const NE_NOT_IGNORED_EXISTS_CLAUSE = `NOT EXISTS (
   SELECT 1
   FROM app.network_tags nt_ignored
-  WHERE UPPER(nt_ignored.bssid) = UPPER(ne.bssid)
+  WHERE nt_ignored.bssid = ne.bssid
     AND COALESCE((to_jsonb(nt_ignored)->>'is_ignored')::boolean, FALSE) = TRUE
 )`;
 const NT_NOT_IGNORED_CLAUSE = 'COALESCE(nt.is_ignored, FALSE) = FALSE';
@@ -140,16 +140,16 @@ export function buildNetworkSlowPathListQuery(
       n.bestlon AS raw_lon
     FROM obs_rollup r
     JOIN obs_latest l ON l.bssid = r.bssid
-      LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
-      LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(l.bssid)
-      LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
+      LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = l.bssid
+      LEFT JOIN app.networks n ON n.bssid = l.bssid
+      LEFT JOIN app.network_threat_scores nts ON nts.bssid = l.bssid
       ${SqlFragmentLibrary.joinNetworkLocations('l', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::integer AS notes_count
         FROM app.network_notes nn
-        WHERE UPPER(nn.bssid) = UPPER(l.bssid)
+        WHERE nn.bssid = l.bssid
           AND nn.is_deleted IS NOT TRUE
       ) nn_agg ON TRUE
     ${ctx.requiresHome ? 'CROSS JOIN home' : ''}
@@ -195,7 +195,7 @@ export function buildNetworkSlowPathCountQuery(
     )
     SELECT COUNT(DISTINCT r.bssid) AS total
     FROM obs_rollup r
-    JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+    JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
     ${effectiveWhereClause}
   `;
 
