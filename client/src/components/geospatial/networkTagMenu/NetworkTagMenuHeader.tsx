@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NetworkRow } from '../../types/network';
+import type { NetworkRow } from '../../../types/network';
 
 interface NetworkTagMenuHeaderProps {
   network: NetworkRow;

@@ -5,19 +5,19 @@ import { useObservations } from '../hooks/useObservations';
 import { useAuth } from '../hooks/useAuth';
 import { logError } from '../logging/clientLogger';
 import { GeospatialLayout } from './geospatial/GeospatialLayout';
-import { GeospatialFiltersPanel } from './geospatial/GeospatialFiltersPanel';
-import { useNearestAgencies } from './geospatial/useNearestAgencies';
-import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
-import { useNetworkNotes } from './geospatial/useNetworkNotes';
-import { useNetworkSelection } from './geospatial/useNetworkSelection';
-import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
-import { useSiblingLinks } from './geospatial/useSiblingLinks';
-import { useGeospatialExplorerState } from './geospatial/useGeospatialExplorerState';
+import { GeospatialFiltersPanel } from './geospatial/panels/GeospatialFiltersPanel';
+import { useNearestAgencies } from './geospatial/hooks/useNearestAgencies';
+import { useNetworkContextMenu } from './geospatial/hooks/useNetworkContextMenu';
+import { useNetworkNotes } from './geospatial/hooks/useNetworkNotes';
+import { useNetworkSelection } from './geospatial/hooks/useNetworkSelection';
+import { useTimeFrequencyModal } from './geospatial/hooks/useTimeFrequencyModal';
+import { useSiblingLinks } from './geospatial/hooks/useSiblingLinks';
+import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExplorerState';
 import { useAgencyLayer } from '../hooks/useAgencyLayer';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
-import { GeospatialOverlayContent } from './geospatial/GeospatialOverlayContent';
+import { GeospatialOverlayContent } from './geospatial/overlays/GeospatialOverlayContent';
 
 export default function GeospatialExplorer() {
   usePageFilters('geospatial');
@@ -191,7 +191,7 @@ export default function GeospatialExplorer() {
             loadingNetworks={loadingNetworks}
             isLoadingMore={isLoadingMore}
             error={error}
-            networkTotal={networkTotal}
+            networkTotal={networkTotal ?? 0}
             networkTruncated={networkTruncated}
             expensiveSort={expensiveSort}
             pagination={pagination}
@@ -211,9 +211,9 @@ export default function GeospatialExplorer() {
             filteredNetworks={state.filteredNetworks}
             loadingObservations={loadingObservations}
             observationsTruncated={observationsTruncated}
-            observationsTotal={observationsTotal}
+            observationsTotal={observationsTotal ?? 0}
             renderBudgetExceeded={renderBudgetExceeded}
-            renderBudget={renderBudget}
+            renderBudget={renderBudget ?? 0}
           />
         </>
       }
