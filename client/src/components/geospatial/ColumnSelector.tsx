@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NetworkRow } from '../../types/network';
 import type { NetworkColumnConfig } from '../../constants/network';
+import { useColumnSelectorPosition, type MenuPosition } from './useColumnSelectorPosition';
+import { ColumnItem } from './ColumnItem';
 
 interface ColumnSelectorProps {
   visible: boolean;
@@ -13,14 +15,60 @@ interface ColumnSelectorProps {
   onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
 }
 
-type MenuPosition = {
-  top: number;
-  left: number;
-  width: number;
-  maxHeight: number;
+/**
+ * Encapsulated portal content for the column selector menu
+ */
+const ColumnSelectorPortal: React.FC<{
+  position: MenuPosition;
+  orderedColumns: Array<readonly [keyof NetworkRow | 'select', NetworkColumnConfig]>;
+  visibleColumns: Array<keyof NetworkRow | 'select'>;
+  onToggleColumn: (col: keyof NetworkRow | 'select') => void;
+  onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
+}> = ({ position, orderedColumns, visibleColumns, onToggleColumn, onMoveColumn }) => {
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        background: 'rgba(30, 41, 59, 0.95)',
+        border: '1px solid rgba(71, 85, 105, 0.5)',
+        borderRadius: '6px',
+        zIndex: 10000,
+        minWidth: '240px',
+        width: `${position.width}px`,
+        maxHeight: `${position.maxHeight}px`,
+        overflowY: 'auto',
+        backdropFilter: 'blur(8px)',
+        overscrollBehavior: 'contain',
+        boxShadow: '0 16px 40px rgba(2, 6, 23, 0.55)',
+      }}
+      onWheel={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      {orderedColumns.map(([col, column], index) => {
+        const isVisible = visibleColumns.includes(col);
+        const colIndex = isVisible ? visibleColumns.indexOf(col) : -1;
+
+        return (
+          <ColumnItem
+            key={String(col)}
+            columnKey={col}
+            columnConfig={column}
+            isVisible={isVisible}
+            isFirst={colIndex === 0}
+            isLast={colIndex === visibleColumns.length - 1}
+            onToggle={onToggleColumn}
+            onMove={onMoveColumn}
+          />
+        );
+      })}
+    </div>,
+    document.body
+  );
 };
 
-export const ColumnSelector = ({
+export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
   visible,
   anchorRef,
   visibleColumns,
@@ -28,20 +76,17 @@ export const ColumnSelector = ({
   onToggle,
   onToggleColumn,
   onMoveColumn,
-}: ColumnSelectorProps) => {
-  const [menuPosition, setMenuPosition] = React.useState<MenuPosition>({
-    top: 44,
-    left: 12,
-    width: 280,
-    maxHeight: 400,
-  });
-  const orderedColumns = React.useMemo(() => {
+}) => {
+  const menuPosition = useColumnSelectorPosition(visible, anchorRef);
+
+  const orderedColumns = useMemo(() => {
     const visibleSet = new Set(visibleColumns);
     const visibleEntries = visibleColumns
       .map((col) => [col, columns[col]] as const)
       .filter((entry): entry is readonly [keyof NetworkRow | 'select', NetworkColumnConfig] =>
         Boolean(entry[1])
       );
+
     const hiddenEntries = (
       Object.entries(columns) as Array<
         [keyof NetworkRow | 'select', NetworkColumnConfig | undefined]
@@ -53,47 +98,6 @@ export const ColumnSelector = ({
 
     return [...visibleEntries, ...hiddenEntries];
   }, [columns, visibleColumns]);
-
-  React.useLayoutEffect(() => {
-    if (!visible) return;
-
-    const updatePosition = () => {
-      const anchor = anchorRef.current;
-      if (!anchor) return;
-
-      const rect = anchor.getBoundingClientRect();
-      const margin = 8;
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      const spaceBelow = viewportHeight - rect.bottom - margin;
-      const spaceAbove = rect.top - margin;
-      const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
-      const availableHeight = openAbove ? spaceAbove : spaceBelow;
-      const preferredHeight = Math.min(420, Math.max(220, spaceBelow));
-      const preferredWidth = Math.min(320, Math.max(240, rect.width + 80));
-      const maxLeft = Math.max(margin, viewportWidth - preferredWidth - margin);
-      const left = Math.min(Math.max(margin, rect.right - preferredWidth), maxLeft);
-      const maxHeight = Math.min(420, Math.max(220, availableHeight));
-      const top = openAbove
-        ? Math.max(margin, rect.top - maxHeight - margin)
-        : rect.bottom + margin;
-
-      setMenuPosition({
-        top,
-        left,
-        width: preferredWidth,
-        maxHeight,
-      });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [visible, anchorRef]);
 
   return (
     <div className="relative" ref={anchorRef}>
@@ -107,132 +111,19 @@ export const ColumnSelector = ({
           cursor: 'pointer',
           color: '#cbd5e1',
         }}
+        title="Column Settings"
       >
         ⚙️
       </button>
-      {visible &&
-        createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              background: 'rgba(30, 41, 59, 0.95)',
-              border: '1px solid rgba(71, 85, 105, 0.5)',
-              borderRadius: '6px',
-              zIndex: 10000,
-              minWidth: '240px',
-              width: `${menuPosition.width}px`,
-              maxHeight: `${menuPosition.maxHeight}px`,
-              overflowY: 'auto',
-              backdropFilter: 'blur(8px)',
-              overscrollBehavior: 'contain',
-              boxShadow: '0 16px 40px rgba(2, 6, 23, 0.55)',
-            }}
-            onWheel={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            {orderedColumns.map(([col, column]) => (
-              <div
-                key={String(col)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  fontSize: '12px',
-                  color: '#e2e8f0',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    marginRight: '8px',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onMoveColumn(col, 'left')}
-                    disabled={!visibleColumns.includes(col) || visibleColumns.indexOf(col) <= 0}
-                    title="Move left"
-                    style={{
-                      border: '1px solid rgba(71, 85, 105, 0.6)',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      color: '#e2e8f0',
-                      borderRadius: '4px',
-                      width: '22px',
-                      height: '22px',
-                      cursor:
-                        !visibleColumns.includes(col) || visibleColumns.indexOf(col) <= 0
-                          ? 'not-allowed'
-                          : 'pointer',
-                      opacity:
-                        !visibleColumns.includes(col) || visibleColumns.indexOf(col) <= 0 ? 0.4 : 1,
-                    }}
-                  >
-                    ←
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onMoveColumn(col, 'right')}
-                    disabled={
-                      !visibleColumns.includes(col) ||
-                      visibleColumns.indexOf(col) === visibleColumns.length - 1
-                    }
-                    title="Move right"
-                    style={{
-                      border: '1px solid rgba(71, 85, 105, 0.6)',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      color: '#e2e8f0',
-                      borderRadius: '4px',
-                      width: '22px',
-                      height: '22px',
-                      cursor:
-                        !visibleColumns.includes(col) ||
-                        visibleColumns.indexOf(col) === visibleColumns.length - 1
-                          ? 'not-allowed'
-                          : 'pointer',
-                      opacity:
-                        !visibleColumns.includes(col) ||
-                        visibleColumns.indexOf(col) === visibleColumns.length - 1
-                          ? 0.4
-                          : 1,
-                    }}
-                  >
-                    →
-                  </button>
-                </div>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    flex: 1,
-                    minWidth: 0,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={visibleColumns.includes(col)}
-                    onChange={() => onToggleColumn(col)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  <span
-                    style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {column.label}
-                  </span>
-                </label>
-              </div>
-            ))}
-          </div>,
-          document.body
-        )}
+      {visible && (
+        <ColumnSelectorPortal
+          position={menuPosition}
+          orderedColumns={orderedColumns}
+          visibleColumns={visibleColumns}
+          onToggleColumn={onToggleColumn}
+          onMoveColumn={onMoveColumn}
+        />
+      )}
     </div>
   );
 };

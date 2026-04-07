@@ -1,4 +1,4 @@
-import * as logger from '../logging/logger';
+import logger from '../logging/logger';
 import secretsManager from './secretsManager';
 import {
   buildSearchParams,
