@@ -4,7 +4,7 @@ import {
   resumeImportRun,
   startImportRun,
 } from '../server/src/services/wigleImportRunService';
-import * as logger from '../server/src/logging/logger';
+import logger from '../server/src/logging/logger';
 
 const US_STATES = [
   'AL',

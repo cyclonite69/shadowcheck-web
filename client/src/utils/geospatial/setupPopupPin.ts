@@ -6,7 +6,7 @@ import mapboxgl from 'mapbox-gl';
 interface PopupPinState {
   popup: mapboxgl.Popup;
   isPinned: boolean;
-  originalOffset?: mapboxgl.Offset;
+  originalOffset?: any;
   pinButton?: HTMLElement;
 }
 
@@ -19,7 +19,7 @@ const pinStateMap = new Map<string, PopupPinState>();
  * Setup pin functionality for a popup.
  * Returns a cleanup function.
  */
-export function setupPopupPin(popup: mapboxgl.Popup, map: mapboxgl.Map): () => void {
+export function setupPopupPin(popup: mapboxgl.Popup, _map: mapboxgl.Map): () => void {
   // Get the popup DOM container
   const popupElement = popup.getElement();
   if (!popupElement) return () => {};
@@ -59,6 +59,9 @@ export function setupPopupPin(popup: mapboxgl.Popup, map: mapboxgl.Map): () => v
 
   // Pin/unpin toggle
   const togglePin = () => {
+    const currentPopupElement = popup.getElement();
+    if (!currentPopupElement) return;
+
     if (!pinState.isPinned) {
       // Pin to viewport
       pinState.isPinned = true;
@@ -66,8 +69,7 @@ export function setupPopupPin(popup: mapboxgl.Popup, map: mapboxgl.Map): () => v
       pinButton.classList.add('pinned');
 
       // Get current popup position on screen
-      const popupElement = popup.getElement();
-      const rect = popupElement.getBoundingClientRect();
+      const rect = currentPopupElement.getBoundingClientRect();
 
       // Convert to viewport-fixed positioning
       // Store the current screen coordinates
@@ -75,11 +77,11 @@ export function setupPopupPin(popup: mapboxgl.Popup, map: mapboxgl.Map): () => v
       const screenY = rect.top;
 
       // Remove from Mapbox control and add viewport-fixed positioning
-      popupElement.style.position = 'fixed';
-      popupElement.style.left = `${screenX}px`;
-      popupElement.style.top = `${screenY}px`;
-      popupElement.style.transform = 'none'; // Clear any map-applied transforms
-      popupElement.classList.add('popup-pinned-viewport');
+      currentPopupElement.style.position = 'fixed';
+      currentPopupElement.style.left = `${screenX}px`;
+      currentPopupElement.style.top = `${screenY}px`;
+      currentPopupElement.style.transform = 'none'; // Clear any map-applied transforms
+      currentPopupElement.classList.add('popup-pinned-viewport');
 
       // Hide tether line (popup is no longer at the map point)
       const tetherSVG = document.querySelector(`#tether-svg-${popupId}`);
@@ -95,12 +97,11 @@ export function setupPopupPin(popup: mapboxgl.Popup, map: mapboxgl.Map): () => v
       pinButton.setAttribute('data-pinned', 'false');
       pinButton.classList.remove('pinned');
 
-      const popupElement = popup.getElement();
-      popupElement.style.position = '';
-      popupElement.style.left = '';
-      popupElement.style.top = '';
-      popupElement.style.transform = '';
-      popupElement.classList.remove('popup-pinned-viewport');
+      currentPopupElement.style.position = '';
+      currentPopupElement.style.left = '';
+      currentPopupElement.style.top = '';
+      currentPopupElement.style.transform = '';
+      currentPopupElement.classList.remove('popup-pinned-viewport');
 
       // Show tether line again
       const tetherSVG = document.querySelector(`#tether-svg-${popupId}`);

@@ -36,10 +36,10 @@ const OPTIONAL_SECRETS = [
 const CREDENTIAL_SECRETS = new Set(['db_password', 'db_admin_password']);
 
 // Secrets that should be auto-generated if missing from AWS SM.
-// DO NOT add db_admin_password here — it must always match the PostgreSQL
-// shadowcheck_admin user's actual password (set during bootstrap). Auto-generating
-// it would overwrite AWS SM with a password PostgreSQL doesn't know about.
-const AUTO_GEN_SECRETS = ['db_password'];
+// DO NOT add db_password or db_admin_password here — they must always match
+// the PostgreSQL actual passwords (set during bootstrap). Auto-generating
+// them would overwrite AWS SM with a password PostgreSQL doesn't know about.
+const AUTO_GEN_SECRETS: string[] = [];
 
 class SecretsManager {
   secrets = new Map<string, string>();
@@ -59,6 +59,11 @@ class SecretsManager {
 
   private async loadAwsSecretBlob(): Promise<Record<string, string>> {
     if (this.awsLoaded) return this.awsCache || {};
+    // Skip AWS SM entirely in test environment unless explicitly requested
+    if (process.env.NODE_ENV === 'test' && !process.env.FORCE_AWS_SM) {
+      this.awsLoaded = true;
+      return {};
+    }
     this.awsLoaded = true;
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
@@ -109,23 +114,23 @@ class SecretsManager {
     const generated: Record<string, string> = {};
 
     for (const secret of allSecrets) {
-      // For credential keys, AWS SM is the sole source of truth when reachable.
-      // If SM was unreachable (expired SSO, no IAM role, etc.), fall back to env
-      // vars so local dev and tests still work. SM value always wins when present.
+      // For credential keys, AWS SM is the primary source of truth.
+      // If SM was unreachable OR the secret is missing from the SM blob,
+      // fall back to env vars so local dev and tests still work.
       if (CREDENTIAL_SECRETS.has(secret)) {
         const smValue = blob[secret];
         if (smValue) {
           this.secrets.set(secret, smValue);
           continue;
         }
-        // SM didn't have it — try env fallback only if SM was unreachable
-        if (!this.smReachable) {
-          const envFallback = this.getEnvOverride(secret);
-          if (envFallback) {
-            this.secrets.set(secret, envFallback);
-            continue;
-          }
+
+        // SM didn't have it (or was unreachable) — try env fallback
+        const envFallback = this.getEnvOverride(secret);
+        if (envFallback) {
+          this.secrets.set(secret, envFallback);
+          continue;
         }
+
         // Fall through to auto-gen or error below
       } else {
         // Non-credential keys: env override is fine
@@ -152,15 +157,15 @@ class SecretsManager {
       }
 
       if (REQUIRED_SECRETS.includes(secret)) {
-        // Required but not auto-gennable — shouldn't happen since all required are in AUTO_GEN
+        // Required but not auto-gennable
         throw new Error(
-          `Required secret '${secret}' not found in AWS Secrets Manager (${AWS_SECRET_NAME})`
+          `Required secret '${secret}' not found in AWS Secrets Manager (${AWS_SECRET_NAME}) and no environment fallback found.`
         );
       }
     }
 
-    // Persist any auto-generated secrets back to AWS SM
-    if (Object.keys(generated).length > 0) {
+    // Persist any auto-generated secrets back to AWS SM (never in test mode)
+    if (Object.keys(generated).length > 0 && process.env.NODE_ENV !== 'test') {
       try {
         await this.putSecrets(generated);
         console.log(
@@ -181,7 +186,8 @@ class SecretsManager {
 
     // If AWS SM wasn't reachable (cold-start or expired creds), schedule periodic
     // retries so the app self-heals when credentials are refreshed (e.g. aws sso login).
-    if (!this.awsLoaded && !this.deferredRetryScheduled) {
+    // Never schedule retries in test environment.
+    if (!this.awsLoaded && !this.deferredRetryScheduled && process.env.NODE_ENV !== 'test') {
       this.deferredRetryScheduled = true;
       this.scheduleRetry();
     }
@@ -189,6 +195,8 @@ class SecretsManager {
 
   private scheduleRetry(delayMs = 10_000): void {
     const MAX_RETRY_INTERVAL = 5 * 60_000; // cap at 5 minutes
+    if (process.env.NODE_ENV === 'test') return;
+
     setTimeout(async () => {
       const success = await this.retryAwsLoad();
       if (!success) {
@@ -202,6 +210,7 @@ class SecretsManager {
   }
 
   private async retryAwsLoad(): Promise<boolean> {
+    if (process.env.NODE_ENV === 'test') return false;
     try {
       const blob = await this.loadAwsSecretBlob();
       if (!blob || Object.keys(blob).length === 0) return false;
@@ -226,12 +235,9 @@ class SecretsManager {
 
   get(secret: string): string | null {
     const key = secret.toLowerCase();
-    // Credential keys: SM is source of truth when reachable. If SM was never
-    // reachable, allow env fallback so local dev/tests work.
-    const value =
-      CREDENTIAL_SECRETS.has(key) && this.smReachable
-        ? (this.secrets.get(key) ?? null)
-        : (this.getEnvOverride(key) ?? this.secrets.get(key) ?? null);
+    // Credential keys: SM is source of truth when reachable and secret is present in SM.
+    // If secret is missing from SM or SM is unreachable, use env/cache.
+    const value = this.secrets.get(key) ?? this.getEnvOverride(key) ?? null;
     this.logAccess(key, Boolean(value));
     return value;
   }
@@ -246,10 +252,7 @@ class SecretsManager {
 
   has(secret: string): boolean {
     const key = secret.toLowerCase();
-    if (CREDENTIAL_SECRETS.has(key) && this.smReachable) {
-      return this.secrets.has(key);
-    }
-    return Boolean(this.getEnvOverride(key) || this.secrets.has(key));
+    return Boolean(this.secrets.has(key) || this.getEnvOverride(key));
   }
 
   getAccessLog(): AccessLogEntry[] {
@@ -259,6 +262,8 @@ class SecretsManager {
   async putSecret(key: string, value: string): Promise<void> {
     const normalized = key.toLowerCase();
     this.secrets.set(normalized, value);
+
+    if (process.env.NODE_ENV === 'test') return;
 
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
@@ -287,6 +292,8 @@ class SecretsManager {
       const normalized = key.toLowerCase();
       this.secrets.set(normalized, value);
     }
+
+    if (process.env.NODE_ENV === 'test') return;
 
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
