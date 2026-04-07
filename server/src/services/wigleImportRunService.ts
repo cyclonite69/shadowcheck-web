@@ -1,5 +1,5 @@
-const logger = require('../logging/logger');
-const secretsManager = require('./secretsManager').default;
+import * as logger from '../logging/logger';
+import secretsManager from './secretsManager';
 import {
   buildSearchParams,
   DEFAULT_RESULTS_PER_PAGE,
@@ -311,11 +311,11 @@ const getImportCompletenessReport = async (options: { searchTerm?: string; state
   };
 };
 
-module.exports = {
+export {
   cancelImportRun,
   getImportRun,
   getImportCompletenessReport,
-  getLatestResumableImportRun: getLatestResumableImportRunForQuery,
+  getLatestResumableImportRunForQuery as getLatestResumableImportRun,
   listImportRuns,
   pauseImportRun,
   resumeImportRun,

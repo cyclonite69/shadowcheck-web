@@ -50,6 +50,7 @@ interface RouteModules {
   miscRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
+  mobileIngestRoutes: Router;
 }
 
 interface InitializeRoutesOptions {
@@ -97,6 +98,7 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     authRoutes: routes.authRoutes,
     claudeRoutes: routes.claudeRoutes,
     threatReportRoutes: routes.threatReportRoutes,
+    mobileIngestRoutes: routes.mobileIngestRoutes,
   });
 
   logger.info('All routes mounted successfully');
