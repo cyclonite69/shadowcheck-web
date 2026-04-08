@@ -217,6 +217,7 @@ export const locationIqReverse = async (
   const json = (await response.json()) as {
     display_name?: string;
     address?: Record<string, string>;
+    importance?: number;
   };
   if (!json.display_name) {
     return { ok: false, raw: json };
@@ -230,6 +231,7 @@ export const locationIqReverse = async (
     state: address.state || null,
     postal: address.postcode || null,
     country: address.country || null,
+    confidence: typeof json.importance === 'number' ? json.importance : null,
     raw: json,
   };
 };

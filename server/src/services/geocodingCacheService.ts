@@ -113,8 +113,14 @@ const runGeocodeCacheUpdateInternal = async (
   const flushPendingWrites = async () => {
     if (pendingWrites.length === 0) return;
     const batch = pendingWrites.splice(0, pendingWrites.length);
-    await upsertGeocodeCacheBatch(precision, batch);
-    await syncProgress();
+    try {
+      await upsertGeocodeCacheBatch(precision, batch);
+      await syncProgress();
+    } catch (err) {
+      // Restore the batch so data is not silently dropped on a transient DB error
+      pendingWrites.unshift(...batch);
+      throw err;
+    }
   };
 
   for (const row of rows) {
@@ -164,7 +170,18 @@ const runGeocodeCacheUpdateInternal = async (
         await syncProgress();
         break;
       } else {
-        logger.warn('[Geocoding] Provider error', { error: error.message });
+        logger.warn('[Geocoding] Provider error, recording attempt', { error: error.message });
+        // Push a failed result so address_attempts is incremented in the DB,
+        // preventing endless silent retries of the same coordinates.
+        pendingWrites.push({
+          row,
+          provider: providerLabel,
+          result: { ok: false, error: error.message },
+          mode: options.mode,
+        });
+        if (pendingWrites.length >= GEOCODING_UPSERT_BATCH_SIZE) {
+          await flushPendingWrites();
+        }
       }
     }
 

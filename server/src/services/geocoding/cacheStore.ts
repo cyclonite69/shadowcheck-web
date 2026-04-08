@@ -38,6 +38,7 @@ const providerPriority = (provider?: string | null): number => {
   switch (normalized) {
     case 'mapbox_v5_permanent':
       return 5;
+    case 'mapbox_v5':
     case 'mapbox':
       return 4;
     case 'locationiq':
@@ -158,7 +159,53 @@ const upsertGeocodeCacheBatch = async (
     )
     VALUES ${values.join(', ')}
     ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
-      address = COALESCE(app.geocoding_cache.address, EXCLUDED.address),
+      -- Address fields: fill if empty, or replace when incoming confidence is meaningfully higher
+      address = CASE
+        WHEN app.geocoding_cache.address IS NULL THEN EXCLUDED.address
+        WHEN EXCLUDED.address IS NOT NULL
+         AND COALESCE(EXCLUDED.confidence, 0) > COALESCE(app.geocoding_cache.confidence, 0) + 0.05
+         THEN EXCLUDED.address
+        ELSE app.geocoding_cache.address
+      END,
+      city = CASE
+        WHEN app.geocoding_cache.city IS NULL THEN EXCLUDED.city
+        WHEN EXCLUDED.address IS NOT NULL
+         AND COALESCE(EXCLUDED.confidence, 0) > COALESCE(app.geocoding_cache.confidence, 0) + 0.05
+         THEN EXCLUDED.city
+        ELSE app.geocoding_cache.city
+      END,
+      state = CASE
+        WHEN app.geocoding_cache.state IS NULL THEN EXCLUDED.state
+        WHEN EXCLUDED.address IS NOT NULL
+         AND COALESCE(EXCLUDED.confidence, 0) > COALESCE(app.geocoding_cache.confidence, 0) + 0.05
+         THEN EXCLUDED.state
+        ELSE app.geocoding_cache.state
+      END,
+      postal_code = CASE
+        WHEN app.geocoding_cache.postal_code IS NULL THEN EXCLUDED.postal_code
+        WHEN EXCLUDED.address IS NOT NULL
+         AND COALESCE(EXCLUDED.confidence, 0) > COALESCE(app.geocoding_cache.confidence, 0) + 0.05
+         THEN EXCLUDED.postal_code
+        ELSE app.geocoding_cache.postal_code
+      END,
+      country = COALESCE(app.geocoding_cache.country, EXCLUDED.country),
+      -- Provider and confidence track whichever result we stored the address from
+      provider = CASE
+        WHEN app.geocoding_cache.address IS NULL AND EXCLUDED.address IS NOT NULL
+         THEN EXCLUDED.provider
+        WHEN EXCLUDED.address IS NOT NULL
+         AND COALESCE(EXCLUDED.confidence, 0) > COALESCE(app.geocoding_cache.confidence, 0) + 0.05
+         THEN EXCLUDED.provider
+        ELSE COALESCE(app.geocoding_cache.provider, EXCLUDED.provider)
+      END,
+      confidence = CASE
+        WHEN app.geocoding_cache.address IS NULL AND EXCLUDED.address IS NOT NULL
+         THEN EXCLUDED.confidence
+        WHEN EXCLUDED.address IS NOT NULL
+         AND COALESCE(EXCLUDED.confidence, 0) > COALESCE(app.geocoding_cache.confidence, 0) + 0.05
+         THEN EXCLUDED.confidence
+        ELSE COALESCE(app.geocoding_cache.confidence, EXCLUDED.confidence)
+      END,
       poi_name = COALESCE(app.geocoding_cache.poi_name, EXCLUDED.poi_name),
       poi_category = COALESCE(app.geocoding_cache.poi_category, EXCLUDED.poi_category),
       feature_type = COALESCE(app.geocoding_cache.feature_type, EXCLUDED.feature_type),
@@ -170,12 +217,6 @@ const upsertGeocodeCacheBatch = async (
         app.geocoding_cache.address_attempted_at
       ),
       address_attempts = app.geocoding_cache.address_attempts + EXCLUDED.address_attempts,
-      city = COALESCE(app.geocoding_cache.city, EXCLUDED.city),
-      state = COALESCE(app.geocoding_cache.state, EXCLUDED.state),
-      postal_code = COALESCE(app.geocoding_cache.postal_code, EXCLUDED.postal_code),
-      country = COALESCE(app.geocoding_cache.country, EXCLUDED.country),
-      provider = COALESCE(EXCLUDED.provider, app.geocoding_cache.provider),
-      confidence = COALESCE(EXCLUDED.confidence, app.geocoding_cache.confidence),
       lat = COALESCE(app.geocoding_cache.lat, EXCLUDED.lat),
       lon = COALESCE(app.geocoding_cache.lon, EXCLUDED.lon),
       geocoded_at = NOW(),
