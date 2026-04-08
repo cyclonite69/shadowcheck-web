@@ -175,6 +175,8 @@ Use PostGIS `ST_Distance` (spheroid) for all distance-based SQL logic.
 
 ### Packages
 
+- **Pinning:** All dependencies in `package.json` MUST be pinned to exact versions (no `^` or `~`).
+- **Sequential Upgrades:** Dependencies MUST be upgraded one at a time. Each change must be tested and verified working before any other dependency is modified.
 - NEVER run `npm audit fix --force`
 - NEVER run `npm install <package>` without checking `package.json` first
 - NEVER upgrade a package that causes a test failure without stopping and reporting
