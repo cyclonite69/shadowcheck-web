@@ -46,7 +46,7 @@ const pool = new Pool({
   host: DB_HOST,
   port: DB_PORT,
   database: DB_NAME,
-  max: 5, // Reduced from 20 to avoid overwhelming the connection
+  max: 15, // Increased from 5 to handle concurrent slow queries and prevent pool exhaustion
   idleTimeoutMillis: 30000, // 30 seconds
   connectionTimeoutMillis: 30000, // Increased to 30 seconds
   statement_timeout: 60000, // 60 seconds

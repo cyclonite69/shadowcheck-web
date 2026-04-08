@@ -85,6 +85,7 @@ function buildDeps() {
     authRoutes: makeTerminalHandler('auth'),
     claudeRoutes: makeTerminalHandler('claude'),
     threatReportRoutes: makeTerminalHandler('threat-report'),
+    mobileIngestRoutes: makeTerminalHandler('mobile-ingest'),
   };
 }
 

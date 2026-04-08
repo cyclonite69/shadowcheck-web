@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiltersSidebar } from './FiltersSidebar';
+import { FiltersSidebar } from './panels/FiltersSidebar';
 import { GeospatialContent } from './GeospatialContent';
 import { GeospatialShell } from './GeospatialShell';
 

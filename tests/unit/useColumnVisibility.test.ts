@@ -1,4 +1,4 @@
-import { moveVisibleColumn } from '../../client/src/components/geospatial/useColumnVisibility';
+import { moveVisibleColumn } from '../../client/src/components/geospatial/hooks/useColumnVisibility';
 import type { NetworkRow } from '../../client/src/types/network';
 
 describe('moveVisibleColumn', () => {

@@ -1,0 +1,86 @@
+import { useEffect, useState } from 'react';
+import type { NetworkRow } from '../../../types/network';
+import { NetworkColumnConfig } from '../../../constants/network';
+
+type ColumnVisibilityProps = {
+  columns: Partial<Record<keyof NetworkRow | 'select', NetworkColumnConfig>>;
+};
+
+export const moveVisibleColumn = (
+  columns: Array<keyof NetworkRow | 'select'>,
+  column: keyof NetworkRow | 'select',
+  direction: 'left' | 'right'
+): Array<keyof NetworkRow | 'select'> => {
+  const index = columns.indexOf(column);
+  if (index === -1) return columns;
+
+  const targetIndex = direction === 'left' ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= columns.length) return columns;
+
+  const next = [...columns];
+  const [moved] = next.splice(index, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
+};
+
+export const useColumnVisibility = ({ columns }: ColumnVisibilityProps) => {
+  const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
+    const defaultCols = (Object.keys(columns) as (keyof NetworkRow | 'select')[]).filter(
+      (k) => columns[k]?.default
+    );
+    const saved = localStorage.getItem('shadowcheck_visible_columns');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(
+            (key): key is keyof NetworkRow | 'select' => typeof key === 'string' && key in columns
+          );
+          if (valid.length) {
+            // Append any new default columns added since the last save
+            const newDefaults = defaultCols.filter((k) => !valid.includes(k));
+            return [...valid, ...newDefaults];
+          }
+        }
+      } catch {
+        // Fall through to default
+      }
+    }
+    return defaultCols;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('shadowcheck_visible_columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  const toggleColumn = (col: keyof NetworkRow | 'select') => {
+    setVisibleColumns((v) => (v.includes(col) ? v.filter((c) => c !== col) : [...v, col]));
+  };
+
+  const reorderColumns = (
+    fromCol: keyof NetworkRow | 'select',
+    toCol: keyof NetworkRow | 'select'
+  ) => {
+    setVisibleColumns((prev) => {
+      const fromIndex = prev.indexOf(fromCol);
+      const toIndex = prev.indexOf(toCol);
+      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
+      const next = [...prev];
+      next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, fromCol);
+      return next;
+    });
+  };
+
+  const moveColumn = (column: keyof NetworkRow | 'select', direction: 'left' | 'right') => {
+    setVisibleColumns((prev) => moveVisibleColumn(prev, column, direction));
+  };
+
+  return {
+    visibleColumns,
+    setVisibleColumns,
+    toggleColumn,
+    reorderColumns,
+    moveColumn,
+  };
+};

@@ -25,11 +25,15 @@ services:
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-postgres} -d ${DB_NAME:-shadowcheck_db}"]
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_ADMIN_USER:-shadowcheck_admin} -d ${DB_NAME:-shadowcheck_db}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 8
       start_period: 10s
+    shm_size: 256mb
 
   redis:
     image: redis:7-alpine
