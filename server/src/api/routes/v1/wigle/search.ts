@@ -11,56 +11,11 @@ import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { withRetry } from '../../../../services/externalServiceHandler';
-
-const DEFAULT_RESULTS_PER_PAGE = 100;
-const MAX_RESULTS_PER_PAGE = 1000;
-const IMPORT_ALL_PAGE_DELAY_MS = 1500;
-const IMPORT_ALL_MAX_RETRIES = 4;
-
-function buildSearchParams(query: any): URLSearchParams {
-  const {
-    ssid,
-    bssid,
-    latrange1,
-    latrange2,
-    longrange1,
-    longrange2,
-    country,
-    region,
-    city,
-    resultsPerPage = DEFAULT_RESULTS_PER_PAGE,
-    searchAfter,
-  } = query;
-
-  const params = new URLSearchParams();
-  if (ssid) params.append('ssidlike', ssid as string);
-  if (bssid) params.append('netid', bssid as string);
-  if (latrange1) params.append('latrange1', latrange1 as string);
-  if (latrange2) params.append('latrange2', latrange2 as string);
-  if (longrange1) params.append('longrange1', longrange1 as string);
-  if (longrange2) params.append('longrange2', longrange2 as string);
-  if (country) params.append('country', country as string);
-  if (region) params.append('region', region as string);
-  if (city) params.append('city', city as string);
-  params.append(
-    'resultsPerPage',
-    Math.min(
-      parseInt(resultsPerPage as string) || DEFAULT_RESULTS_PER_PAGE,
-      MAX_RESULTS_PER_PAGE
-    ).toString()
-  );
-  if (searchAfter) params.append('searchAfter', searchAfter as string);
-
-  return params;
-}
-
-function validateSearchQuery(query: any): string | null {
-  const { ssid, bssid, latrange1, country, region, city } = query;
-  if (!ssid && !bssid && !latrange1 && !country && !region && !city) {
-    return 'At least one search parameter required (ssid, bssid, latrange, country, region, or city)';
-  }
-  return null;
-}
+import {
+  buildSearchParams,
+  validateImportQuery as validateSearchQuery,
+  DEFAULT_RESULTS_PER_PAGE,
+} from '../../../../services/wigleImport/params';
 
 async function fetchWiglePage(
   encodedAuth: string,
@@ -166,7 +121,8 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
     }
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-    const params = buildSearchParams(req.query);
+    const searchAfter = req.query.searchAfter ? String(req.query.searchAfter) : null;
+    const params = buildSearchParams(req.query as any, searchAfter);
 
     // Select API version
     const apiVer = version === 'v3' ? 'v3' : 'v2';

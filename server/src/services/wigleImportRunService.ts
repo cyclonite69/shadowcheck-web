@@ -207,7 +207,15 @@ const executeImportLoop = async (runId: number) => {
     } catch (error: any) {
       const errorMessage = error?.details || error?.message || 'WiGLE import page failed';
       await persistPageFailure(runId, pageNumber, requestCursor, errorMessage);
-      run = await markRunFailure(runId, errorMessage);
+      if (error?.status === 429) {
+        run = await markRunControlStatus(runId, 'paused');
+        logger.warn('[WiGLE Import] Daily quota exhausted — run paused for later resumption', {
+          runId,
+          pageNumber,
+        });
+      } else {
+        run = await markRunFailure(runId, errorMessage);
+      }
       return run;
     }
   }
@@ -217,6 +225,15 @@ const startImportRun = async (rawQuery: Record<string, unknown>) => {
   const validationError = validateImportQuery(rawQuery);
   if (validationError) {
     throw new Error(validationError);
+  }
+  const existing = await findLatestResumableRun(rawQuery, RESUMABLE_STATUSES);
+  if (existing) {
+    logger.info('[WiGLE Import] Resuming existing run instead of creating duplicate', {
+      runId: existing.id,
+      status: existing.status,
+      nextPage: existing.next_page,
+    });
+    return resumeImportRun(Number(existing.id));
   }
   const run = await createImportRun(rawQuery);
   logger.info('[WiGLE Import] Created run', {
@@ -249,7 +266,7 @@ const resumeLatestImportRun = async (rawQuery: Record<string, unknown>) => {
   }
   const latest = await findLatestResumableRun(rawQuery, RESUMABLE_STATUSES);
   if (!latest) {
-    throw new Error('No resumable WiGLE import run found for that query');
+    return startImportRun(rawQuery);
   }
   return resumeImportRun(Number(latest.id));
 };
@@ -289,6 +306,8 @@ const getImportCompletenessReport = async (options: { searchTerm?: string; state
       storedCount: Number(row.stored_count || 0),
       runId: row.run_id === null ? null : Number(row.run_id),
       searchTerm: row.search_term || null,
+      requestParams: row.request_params || null,
+      requestFingerprint: row.request_fingerprint || null,
       status: row.status || null,
       apiTotalResults: row.api_total_results === null ? null : Number(row.api_total_results),
       totalPages: row.total_pages === null ? null : Number(row.total_pages),
