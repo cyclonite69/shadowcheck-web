@@ -4,8 +4,8 @@ import type { Map as MapboxMap, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../../types/network';
 import { macColor, frequencyToChannel } from '../../../utils/mapHelpers';
-import { buildObservationTooltipProps } from '../../../../utils/geospatial/observationTooltipProps';
-import { fitBoundsWithZoomInset } from '../../../../utils/geospatial/mapViewUtils';
+import { buildObservationTooltipProps } from '../../../utils/geospatial/observationTooltipProps';
+import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 
 // Format time difference as human-readable string
 const formatTimeSince = (ms: number): string => {

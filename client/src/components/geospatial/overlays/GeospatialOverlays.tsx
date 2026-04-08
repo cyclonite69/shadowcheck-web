@@ -1,9 +1,9 @@
 import React from 'react';
 import type { NetworkRow, NetworkTag } from '../../../types/network';
 import type { NoteMediaItem } from '../../../api/networkApi';
-import NetworkTimeFrequencyModal from '../modals/NetworkTimeFrequencyModal';
-import { NetworkNoteModal } from './NetworkNoteModal';
-import { NetworkTagMenu } from './NetworkTagMenu';
+import NetworkTimeFrequencyModal from '../../modals/NetworkTimeFrequencyModal';
+import { NetworkNoteModal } from '../modals/NetworkNoteModal';
+import { NetworkTagMenu } from '../networkTagMenu/NetworkTagMenu';
 
 interface GeospatialOverlaysProps {
   contextMenu: {

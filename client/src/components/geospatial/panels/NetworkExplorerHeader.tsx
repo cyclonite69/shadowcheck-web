@@ -1,7 +1,7 @@
 import React from 'react';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
-import { ColumnSelector } from './ColumnSelector';
+import { ColumnSelector } from '../table/ColumnSelector';
 
 interface NetworkExplorerHeaderProps {
   expensiveSort: boolean;

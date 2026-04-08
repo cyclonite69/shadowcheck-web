@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useDebouncedFilters, useFilterStore } from '../../stores/filterStore';
+import { useDebouncedFilters, useFilterStore } from '../../../stores/filterStore';
 
 export const useDebouncedFilterState = () => {
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>

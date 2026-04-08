@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { networkApi } from '../../../api/networkApi';
-import { logError } from '../../logging/clientLogger';
+import { logError } from '../../../logging/clientLogger';
 import { NetworkRow } from '../../../types/network';
 
 interface UseSiblingLinksProps {

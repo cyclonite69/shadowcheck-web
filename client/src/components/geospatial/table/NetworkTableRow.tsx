@@ -1,15 +1,15 @@
 import React from 'react';
-import type { NetworkRow } from '../../../../types/network';
-import { NETWORK_COLUMNS } from '../../../../constants/network';
-import { macColor } from '../../../../utils/mapHelpers';
+import type { NetworkRow } from '../../../types/network';
+import { NETWORK_COLUMNS } from '../../../constants/network';
+import { macColor } from '../../../utils/mapHelpers';
 import { TypeBadge, ThreatBadge, SecurityBadge } from '../../badges';
 import {
   getSignalColor,
   getSignalDisplay,
   getTimespanBadgeStyle,
   getTimespanDisplay,
-} from '../../../../utils/networkFormatting';
-import { formatAccuracy, formatAltitude } from '../../../../utils/geospatial/fieldFormatting';
+} from '../../../utils/networkFormatting';
+import { formatAccuracy, formatAltitude } from '../../../utils/geospatial/fieldFormatting';
 
 interface NetworkTableRowProps {
   net: NetworkRow;

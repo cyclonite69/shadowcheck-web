@@ -1,12 +1,12 @@
 import React from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import type { NetworkRow } from '../../../../types/network';
+import type { NetworkRow } from '../../../types/network';
 import {
   NETWORK_TABLE_COLUMN_WIDTHS,
   NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS,
 } from './networkTableGridConfig';
 import { NetworkTableRow } from './NetworkTableRow';
-import { mixBssidColors } from '../../../../utils/wigle/colors';
+import { mixBssidColors } from '../../../utils/wigle/colors';
 
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;

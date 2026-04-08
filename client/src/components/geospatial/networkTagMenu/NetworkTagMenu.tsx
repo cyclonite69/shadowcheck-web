@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import type { NetworkRow, NetworkTag } from '../../../types/network';
-import { NetworkTagMenuAdminActions } from './networkTagMenu/NetworkTagMenuAdminActions';
-import { NetworkTagMenuHeader } from './networkTagMenu/NetworkTagMenuHeader';
-import { NetworkTagMenuLoading } from './networkTagMenu/NetworkTagMenuLoading';
-import { NetworkTagMenuStatus } from './networkTagMenu/NetworkTagMenuStatus';
-import { NetworkTagMenuViewActions } from './networkTagMenu/NetworkTagMenuViewActions';
+import { NetworkTagMenuAdminActions } from './NetworkTagMenuAdminActions';
+import { NetworkTagMenuHeader } from './NetworkTagMenuHeader';
+import { NetworkTagMenuLoading } from './NetworkTagMenuLoading';
+import { NetworkTagMenuStatus } from './NetworkTagMenuStatus';
+import { NetworkTagMenuViewActions } from './NetworkTagMenuViewActions';
 
 interface NetworkTagMenuProps {
   visible: boolean;

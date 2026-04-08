@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { DEFAULT_HOME_RADIUS } from '../../../constants/network';
-import { locationApi } from '../../api/locationApi';
+import { locationApi } from '../../../api/locationApi';
 
 interface UseHomeLocationParams {
   setHomeLocation: Dispatch<

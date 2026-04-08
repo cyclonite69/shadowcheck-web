@@ -1,4 +1,4 @@
-import { FilterPanel } from '../FilterPanel';
+import { FilterPanel } from '../../FilterPanel';
 
 export const GeospatialFiltersPanel = () => {
   return <FilterPanel density="compact" showBoundingBoxViewportLock />;

@@ -3,7 +3,7 @@ import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { MapToolbar } from './MapToolbar';
 import { LocationSearchResult } from '../hooks/useLocationSearch';
-import { MapStyleOption } from '../../../constants/network';
+import { MapStyleOption } from '../../../../constants/network';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 
 interface MapToolbarActionsProps {

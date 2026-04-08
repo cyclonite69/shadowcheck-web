@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { NetworkRow, NetworkTag } from '../../../types/network';
 import { networkApi } from '../../../api/networkApi';
 import { wigleApi } from '../../../api/wigleApi';
-import { calculateContextMenuPlacement, fetchNetworkTagAndNotes } from './contextMenuUtils';
+import { calculateContextMenuPlacement, fetchNetworkTagAndNotes } from '../contextMenuUtils';
 
 type ContextMenuState = {
   visible: boolean;

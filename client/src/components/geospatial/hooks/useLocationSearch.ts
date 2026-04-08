@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Map, Marker } from 'mapbox-gl';
 import { mapboxApi } from '../../../api/mapboxApi';
-import { fitBoundsWithZoomInset } from '../../../../utils/geospatial/mapViewUtils';
+import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 
 export interface LocationSearchResult {
   text: string;
