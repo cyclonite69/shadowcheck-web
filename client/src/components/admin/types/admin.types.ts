@@ -96,6 +96,32 @@ export interface WigleImportRun {
   pages?: WigleImportRunPage[];
 }
 
+export interface WigleImportCompletenessState {
+  state: string;
+  storedCount: number;
+  runId: number | null;
+  searchTerm: string | null;
+  requestParams: Record<string, unknown> | null;
+  requestFingerprint: string | null;
+  status: WigleImportRun['status'] | null;
+  apiTotalResults: number | null;
+  totalPages: number | null;
+  pageSize: number | null;
+  pagesFetched: number | null;
+  rowsReturned: number | null;
+  rowsInserted: number | null;
+  lastSuccessfulPage: number | null;
+  nextPage: number | null;
+  apiCursor: string | null;
+  lastError: string | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+  completedAt: string | null;
+  missingApiRows: number | null;
+  missingInsertRows: number | null;
+  resumable: boolean;
+}
+
 export interface MLStatus {
   modelTrained: boolean;
   trainingEnabled?: boolean;

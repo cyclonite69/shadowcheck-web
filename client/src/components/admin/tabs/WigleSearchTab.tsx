@@ -3,6 +3,7 @@ import { AdminCard } from '../components/AdminCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
 import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
+import type { WigleImportCompletenessState, WigleImportRun } from '../types/admin.types';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -51,6 +52,56 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const fmtNumber = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return '—';
+  return value.toLocaleString();
+};
+
+const statusTone = (status: WigleImportRun['status'] | null | undefined) => {
+  switch (status) {
+    case 'completed':
+      return 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10';
+    case 'running':
+      return 'text-sky-300 border-sky-500/30 bg-sky-500/10';
+    case 'paused':
+      return 'text-amber-300 border-amber-500/30 bg-amber-500/10';
+    case 'failed':
+      return 'text-red-300 border-red-500/30 bg-red-500/10';
+    case 'cancelled':
+      return 'text-slate-300 border-slate-500/30 bg-slate-500/10';
+    default:
+      return 'text-slate-300 border-slate-500/30 bg-slate-500/10';
+  }
+};
+
+const StatusBadge = ({ status }: { status: WigleImportRun['status'] | null | undefined }) => (
+  <span
+    className={
+      'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ' +
+      statusTone(status)
+    }
+  >
+    {status || 'unknown'}
+  </span>
+);
+
+const runSummary = (run: WigleImportRun | null) => {
+  if (!run) return 'No active import run selected.';
+  const parts = [];
+  if (run.state) parts.push(run.state);
+  if (run.searchTerm) parts.push(run.searchTerm);
+  parts.push('page ' + run.nextPage + ' next');
+  return parts.join(' · ');
+};
+
+const operatorCoverageRows = (rows: WigleImportCompletenessState[]) =>
+  [...rows].sort((a, b) => {
+    const aGap = a.missingApiRows ?? Number.MAX_SAFE_INTEGER;
+    const bGap = b.missingApiRows ?? Number.MAX_SAFE_INTEGER;
+    if (aGap !== bGap) return bGap - aGap;
+    return a.state.localeCompare(b.state);
+  });
+
 export const WigleSearchTab: React.FC = () => {
   const {
     apiStatus,
@@ -60,6 +111,7 @@ export const WigleSearchTab: React.FC = () => {
     searchParams,
     setSearchParams,
     loadApiStatus,
+    loadImportOperations,
     runSearch,
     importAllResults,
     loadMoreResults,
@@ -68,15 +120,41 @@ export const WigleSearchTab: React.FC = () => {
     totalPages,
     totalResults,
     loadedCount,
+    lastImportRun,
+    importRuns,
+    importRunsLoading,
+    importRunsError,
+    completenessReport,
+    completenessLoading,
+    completenessError,
+    currentRunActionId,
+    resumeImportRun,
+    pauseImportRun,
+    cancelImportRun,
+    operatorSearchTerm,
   } = useWigleSearch();
 
   useEffect(() => {
     loadApiStatus();
   }, []);
 
+  useEffect(() => {
+    loadImportOperations();
+  }, [
+    searchParams.ssid,
+    searchParams.bssid,
+    searchParams.city,
+    searchParams.region,
+    searchParams.country,
+  ]);
+
+  const coverageRows = operatorCoverageRows(completenessReport);
+  const coverageStates = coverageRows.length;
+  const missingCoverageStates = coverageRows.filter((row) => (row.missingApiRows || 0) > 0).length;
+  const resumableStates = coverageRows.filter((row) => row.resumable).length;
+
   return (
     <div className="space-y-4">
-      {/* Status Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <AdminCard
           icon={SearchIcon}
@@ -196,9 +274,7 @@ export const WigleSearchTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Coordinate Ranges */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Latitude Range */}
         <AdminCard
           icon={DatabaseIcon}
           title="Latitude Range"
@@ -231,7 +307,6 @@ export const WigleSearchTab: React.FC = () => {
           </div>
         </AdminCard>
 
-        {/* Longitude Range */}
         <AdminCard
           icon={DatabaseIcon}
           title="Longitude Range"
@@ -265,9 +340,7 @@ export const WigleSearchTab: React.FC = () => {
         </AdminCard>
       </div>
 
-      {/* Search Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Search Card */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <AdminCard icon={SearchIcon} title="Execute Search" color="from-purple-500 to-purple-600">
           <div className="space-y-4">
             <p className="text-sm text-slate-400">
@@ -312,125 +385,371 @@ export const WigleSearchTab: React.FC = () => {
           </div>
         </AdminCard>
 
-        {/* Results Card - now full width if results exist */}
-        <div className={searchResults ? 'md:col-span-3' : ''}>
-          <AdminCard
-            icon={DownloadIcon}
-            title="Search Results"
-            color="from-emerald-500 to-emerald-600"
-          >
-            <div className="space-y-3">
-              {searchResults ? (
-                <>
-                  <div className="space-y-2 p-3 bg-emerald-900/20 rounded border border-emerald-700/50">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Total in WiGLE:</span>
-                      <span className="font-semibold text-emerald-400">
-                        {totalResults.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Loaded:</span>
-                      <span className="font-semibold text-blue-400">
-                        {loadedCount.toLocaleString()} / {totalResults.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Page:</span>
-                      <span className="font-semibold text-slate-300">
-                        {currentPage} of {totalPages}
-                      </span>
-                    </div>
-                    {searchResults.pagesProcessed && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Pages Processed:</span>
-                        <span className="font-semibold text-slate-300">
-                          {searchResults.pagesProcessed}
-                        </span>
-                      </div>
-                    )}
-                    {searchResults.imported && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Imported:</span>
-                        <span className="font-semibold text-green-400">
-                          {searchResults.imported.count}
-                        </span>
-                      </div>
-                    )}
+        <AdminCard icon={DatabaseIcon} title="Import Recovery" color="from-cyan-500 to-cyan-600">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-700/60 bg-slate-950/40 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Active Context
                   </div>
-
-                  {searchResults.results && searchResults.results.length > 0 && (
-                    <div className="overflow-x-auto mt-4 rounded-lg border border-slate-700">
-                      <table className="w-full text-xs text-left text-slate-300">
-                        <thead className="bg-slate-800 text-slate-400 uppercase">
-                          <tr>
-                            <th className="px-3 py-2">SSID</th>
-                            <th className="px-3 py-2">BSSID</th>
-                            <th className="px-3 py-2">Type</th>
-                            <th className="px-3 py-2">Encryption</th>
-                            <th className="px-3 py-2">Location</th>
-                            <th className="px-3 py-2">Last Seen</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/50">
-                          {searchResults.results.map((net, idx) => (
-                            <tr key={idx} className="hover:bg-slate-700/30">
-                              <td className="px-3 py-2 font-medium text-white">
-                                {net.ssid || '<hidden>'}
-                              </td>
-                              <td className="px-3 py-2 font-mono text-slate-400">
-                                {net.netid || net.bssid}
-                              </td>
-                              <td className="px-3 py-2">{net.type}</td>
-                              <td className="px-3 py-2">{net.encryption}</td>
-                              <td className="px-3 py-2">
-                                {[net.city, net.region, net.country].filter(Boolean).join(', ')}
-                              </td>
-                              <td className="px-3 py-2">
-                                {net.lasttime ? formatShortDate(net.lasttime) : 'N/A'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  <div className="mt-1 text-sm text-white">{runSummary(lastImportRun)}</div>
+                </div>
+                <StatusBadge status={lastImportRun?.status} />
+              </div>
+              {lastImportRun && (
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-400">
+                  <div>
+                    <div className="text-slate-500">Returned</div>
+                    <div className="font-mono text-slate-200">
+                      {fmtNumber(lastImportRun.rowsReturned)}
                     </div>
-                  )}
-
-                  {/* Pagination controls */}
-                  {hasMorePages && (
-                    <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
-                      <button
-                        onClick={() => loadMoreResults(false)}
-                        disabled={searchLoading}
-                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 text-sm transition-all"
-                      >
-                        {searchLoading ? 'Loading...' : `Load Next 100 (Page ${currentPage + 1})`}
-                      </button>
-                      <button
-                        onClick={() => loadMoreResults(true)}
-                        disabled={searchLoading}
-                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
-                      >
-                        {searchLoading ? 'Loading...' : 'Load & Import Next 100'}
-                      </button>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Inserted</div>
+                    <div className="font-mono text-slate-200">
+                      {fmtNumber(lastImportRun.rowsInserted)}
                     </div>
-                  )}
-
-                  <p className="text-xs text-slate-400 mt-2">
-                    {hasMorePages
-                      ? `Showing ${loadedCount.toLocaleString()} of ${totalResults.toLocaleString()} results`
-                      : 'All results loaded'}
-                  </p>
-                </>
-              ) : (
-                <div className="text-center text-slate-500 py-6">
-                  <p className="text-sm">No results yet</p>
-                  <p className="text-xs mt-1">Run a search to see results</p>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Pages</div>
+                    <div className="font-mono text-slate-200">
+                      {fmtNumber(lastImportRun.pagesFetched)} /{' '}
+                      {fmtNumber(lastImportRun.totalPages)}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          </AdminCard>
-        </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  Resumable Runs
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  {operatorSearchTerm
+                    ? 'Filtered to ' + operatorSearchTerm
+                    : 'Showing latest actionable runs'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => loadImportOperations()}
+                disabled={importRunsLoading || completenessLoading}
+                className="px-3 py-1.5 rounded border border-slate-600/60 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {importRunsError && (
+              <div className="rounded border border-red-700/50 bg-red-950/20 px-3 py-2 text-xs text-red-300">
+                {importRunsError}
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-[20rem] overflow-y-auto pr-1">
+              {importRunsLoading ? (
+                <div className="text-sm text-slate-500">Loading import runs...</div>
+              ) : importRuns.length === 0 ? (
+                <div className="rounded border border-slate-700/50 bg-slate-950/30 px-3 py-3 text-sm text-slate-400">
+                  No paused, failed, or running imports match the current filter.
+                </div>
+              ) : (
+                importRuns.map((run) => (
+                  <div
+                    key={run.id}
+                    className="rounded-lg border border-slate-700/50 bg-slate-950/30 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-white">
+                          #{run.id} {run.state || 'all states'}{' '}
+                          {run.searchTerm ? '· ' + run.searchTerm : ''}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          next page {run.nextPage} · {fmtNumber(run.rowsReturned)} returned ·{' '}
+                          {fmtNumber(run.rowsInserted)} inserted
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          updated {run.startedAt ? formatShortDate(run.startedAt) : '—'}
+                        </div>
+                      </div>
+                      <StatusBadge status={run.status} />
+                    </div>
+                    {run.lastError && (
+                      <div className="mt-2 rounded border border-red-700/40 bg-red-950/20 px-2 py-1.5 text-xs text-red-300">
+                        {run.lastError}
+                      </div>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {run.status !== 'completed' && run.status !== 'cancelled' && (
+                        <button
+                          type="button"
+                          onClick={() => resumeImportRun(run.id)}
+                          disabled={currentRunActionId === run.id}
+                          className="px-3 py-1.5 rounded bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-500 disabled:opacity-50"
+                        >
+                          {currentRunActionId === run.id ? 'Working...' : 'Resume'}
+                        </button>
+                      )}
+                      {run.status === 'running' && (
+                        <button
+                          type="button"
+                          onClick={() => pauseImportRun(run.id)}
+                          disabled={currentRunActionId === run.id}
+                          className="px-3 py-1.5 rounded bg-amber-600 text-white text-xs font-medium hover:bg-amber-500 disabled:opacity-50"
+                        >
+                          Pause
+                        </button>
+                      )}
+                      {run.status !== 'completed' && run.status !== 'cancelled' && (
+                        <button
+                          type="button"
+                          onClick={() => cancelImportRun(run.id)}
+                          disabled={currentRunActionId === run.id}
+                          className="px-3 py-1.5 rounded bg-slate-700 text-white text-xs font-medium hover:bg-slate-600 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </AdminCard>
+
+        <AdminCard
+          icon={DownloadIcon}
+          title="State Coverage"
+          color="from-emerald-500 to-emerald-600"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 p-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">States</div>
+                <div className="mt-1 text-xl font-bold text-white">{coverageStates}</div>
+              </div>
+              <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 p-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">Gaps</div>
+                <div className="mt-1 text-xl font-bold text-amber-300">{missingCoverageStates}</div>
+              </div>
+              <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 p-3">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">
+                  Resumable
+                </div>
+                <div className="mt-1 text-xl font-bold text-sky-300">{resumableStates}</div>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-400">
+              {operatorSearchTerm ? (
+                <span>
+                  Coverage view for search term{' '}
+                  <span className="font-mono text-slate-200">{operatorSearchTerm}</span>.
+                </span>
+              ) : (
+                <span>
+                  Coverage view for the current state filter. Add an SSID like{' '}
+                  <span className="font-mono text-slate-200">fbi</span> to see where it still needs
+                  coverage.
+                </span>
+              )}
+            </div>
+
+            {completenessError && (
+              <div className="rounded border border-red-700/50 bg-red-950/20 px-3 py-2 text-xs text-red-300">
+                {completenessError}
+              </div>
+            )}
+
+            {completenessLoading ? (
+              <div className="text-sm text-slate-500">Loading state coverage...</div>
+            ) : coverageRows.length === 0 ? (
+              <div className="rounded border border-slate-700/50 bg-slate-950/30 px-3 py-3 text-sm text-slate-400">
+                No state coverage rows match the current filter.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-slate-700/60">
+                <table className="w-full text-xs text-left text-slate-300">
+                  <thead className="bg-slate-800 text-slate-400 uppercase">
+                    <tr>
+                      <th className="px-3 py-2">State</th>
+                      <th className="px-3 py-2 text-right">Stored</th>
+                      <th className="px-3 py-2 text-right">API</th>
+                      <th className="px-3 py-2 text-right">Gap</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {coverageRows.slice(0, 15).map((row) => (
+                      <tr key={row.state} className="hover:bg-slate-800/30">
+                        <td className="px-3 py-2 font-semibold text-white">{row.state}</td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {fmtNumber(row.storedCount)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {fmtNumber(row.apiTotalResults)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-amber-300">
+                          {fmtNumber(row.missingApiRows)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <StatusBadge status={row.status} />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap gap-2">
+                            {row.resumable && row.runId ? (
+                              <button
+                                type="button"
+                                onClick={() => resumeImportRun(row.runId as number)}
+                                disabled={currentRunActionId === row.runId}
+                                className="px-2.5 py-1 rounded bg-sky-600 text-white text-[11px] font-medium hover:bg-sky-500 disabled:opacity-50"
+                              >
+                                Resume
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSearchParams({ ...searchParams, region: row.state })
+                              }
+                              className="px-2.5 py-1 rounded border border-slate-600/60 text-[11px] text-slate-200 hover:bg-slate-800"
+                            >
+                              Use State
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </AdminCard>
+      </div>
+
+      <div>
+        <AdminCard
+          icon={DownloadIcon}
+          title="Search Results"
+          color="from-emerald-500 to-emerald-600"
+        >
+          <div className="space-y-3">
+            {searchResults ? (
+              <>
+                <div className="space-y-2 p-3 bg-emerald-900/20 rounded border border-emerald-700/50">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Total in WiGLE:</span>
+                    <span className="font-semibold text-emerald-400">
+                      {totalResults.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Loaded:</span>
+                    <span className="font-semibold text-blue-400">
+                      {loadedCount.toLocaleString()} / {totalResults.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Page:</span>
+                    <span className="font-semibold text-slate-300">
+                      {currentPage} of {totalPages}
+                    </span>
+                  </div>
+                  {searchResults.pagesProcessed && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Pages Processed:</span>
+                      <span className="font-semibold text-slate-300">
+                        {searchResults.pagesProcessed}
+                      </span>
+                    </div>
+                  )}
+                  {searchResults.imported && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Imported:</span>
+                      <span className="font-semibold text-green-400">
+                        {searchResults.imported.count}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {searchResults.results && searchResults.results.length > 0 && (
+                  <div className="overflow-x-auto mt-4 rounded-lg border border-slate-700">
+                    <table className="w-full text-xs text-left text-slate-300">
+                      <thead className="bg-slate-800 text-slate-400 uppercase">
+                        <tr>
+                          <th className="px-3 py-2">SSID</th>
+                          <th className="px-3 py-2">BSSID</th>
+                          <th className="px-3 py-2">Type</th>
+                          <th className="px-3 py-2">Encryption</th>
+                          <th className="px-3 py-2">Location</th>
+                          <th className="px-3 py-2">Last Seen</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/50">
+                        {searchResults.results.map((net, idx) => (
+                          <tr key={idx} className="hover:bg-slate-700/30">
+                            <td className="px-3 py-2 font-medium text-white">
+                              {net.ssid || '<hidden>'}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-slate-400">
+                              {net.netid || net.bssid}
+                            </td>
+                            <td className="px-3 py-2">{net.type}</td>
+                            <td className="px-3 py-2">{net.encryption}</td>
+                            <td className="px-3 py-2">
+                              {[net.city, net.region, net.country].filter(Boolean).join(', ')}
+                            </td>
+                            <td className="px-3 py-2">
+                              {net.lasttime ? formatShortDate(net.lasttime) : 'N/A'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {hasMorePages && (
+                  <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
+                    <button
+                      onClick={() => loadMoreResults(false)}
+                      disabled={searchLoading}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 text-sm transition-all"
+                    >
+                      {searchLoading ? 'Loading...' : `Load Next 100 (Page ${currentPage + 1})`}
+                    </button>
+                    <button
+                      onClick={() => loadMoreResults(true)}
+                      disabled={searchLoading}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
+                    >
+                      {searchLoading ? 'Loading...' : 'Load & Import Next 100'}
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-xs text-slate-400 mt-2">
+                  {hasMorePages
+                    ? `Showing ${loadedCount.toLocaleString()} of ${totalResults.toLocaleString()} results`
+                    : 'All results loaded'}
+                </p>
+              </>
+            ) : (
+              <div className="text-center text-slate-500 py-6">
+                <p className="text-sm">No results yet</p>
+                <p className="text-xs mt-1">Run a search to see results</p>
+              </div>
+            )}
+          </div>
+        </AdminCard>
       </div>
     </div>
   );
