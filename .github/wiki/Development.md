@@ -262,6 +262,9 @@ Husky runs automatically for repo checks such as the secret-scan flow.
 
 - ESLint
 - Prettier
+- Secret scanning
+
+CI also runs secret scanning on push / PR and a scheduled full-history scan, so local hooks are not the only enforcement layer.
 
 ### Commit Message Format
 

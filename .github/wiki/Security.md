@@ -14,7 +14,7 @@
 2. **Application Security**: CORS, CSP headers, input validation
 3. **Data Security**: SQL injection prevention, parameterized queries
 4. **Access Control**: RBAC, session-based auth, API keys
-5. **Secrets Management**: AWS Secrets Manager/Docker secrets, never in code
+5. **Secrets Management**: AWS Secrets Manager, never on disk, never in code
 
 ---
 
@@ -33,11 +33,10 @@ Strict-Transport-Security: max-age=31536000
 
 ## Secrets Management
 
-### Priority Order (highest to lowest):
+### Source of Truth
 
-1. AWS Secrets Manager
-2. Docker Secrets (`/run/secrets/*`)
-3. Environment Variables (`.env`, local overrides only)
+1. AWS Secrets Manager (`shadowcheck/config`)
+2. Environment variables only as explicit local overrides when AWS is unavailable
 
 ### Required Secrets
 
@@ -51,7 +50,14 @@ Secrets are resolved at runtime through AWS Secrets Manager; environment variabl
 
 ### Password Rotation
 
-Rotate database passwords every 60-90 days using the workflows in `deploy/aws/docs/PASSWORD_ROTATION.md`.
+Rotate database passwords every 60-90 days using `./scripts/rotate-db-password.sh`.
+If a credential is ever committed, rotate it immediately even if git history was rewritten afterward.
+
+### Secret Scanning
+
+- Husky runs local pre-commit secret scanning
+- CI runs `npm run policy:secrets` and `gitleaks` on push / PR
+- CI also runs a scheduled full-history secret scan
 
 ---
 
@@ -102,7 +108,6 @@ curl -H "x-api-key: your-key" http://localhost:3001/api/admin/backup
 - Use environment variables only for explicit local overrides
 - Rotate secrets regularly
 - Use strong, randomly generated passwords
-- Restrict file permissions on secret files (`chmod 600`)
 - Use parameterized queries for all database access
 - Validate all user input
 - Sanitize output (XSS prevention)

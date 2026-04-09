@@ -3,6 +3,7 @@ name: Sync GitHub Wiki
 on:
   push:
     branches:
+      - master
       - main
     paths:
       - ".github/wiki/**"

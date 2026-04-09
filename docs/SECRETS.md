@@ -34,7 +34,14 @@ Use `aws secretsmanager get-secret-value` with `jq` to parse the `SecretString`.
 
 - **Schedule**: Database and API secrets should be rotated every 90 days.
 - **Automation**: Use `deploy/aws/scripts/rotate-grafana-passwords.sh` for monitoring credentials.
-- **Manual Rotation**: Update the value in AWS Secrets Manager and restart the application services to pick up the change.
+- **Database Rotation**: Use `./scripts/rotate-db-password.sh` for `db_password`, and `--rotate-admin` when `db_admin_password` must change too.
+- **Incident Response**: If a secret is ever committed, treat it as exposed immediately. Rewrite history if needed, but rotate the secret regardless.
+
+## Enforcement
+
+- Husky runs local pre-commit secret scanning.
+- CI runs `npm run policy:secrets` and `gitleaks` on push / pull request.
+- CI also runs a scheduled full-history secret scan.
 
 ## Security Audit
 All data-modifying scripts (`scs_rebuild.sh`, `deploy-postgres.sh`) are audited to ensure they do not log or persist decrypted secret values to the filesystem or terminal history.

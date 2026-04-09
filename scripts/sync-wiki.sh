@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "🚀 ShadowCheck Wiki Sync Script"
 echo "================================"
@@ -24,6 +24,7 @@ fi
 # Clone wiki repo
 echo ""
 echo "📥 Step 2: Cloning wiki repository..."
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd /tmp
 rm -rf shadowcheck-web.wiki
 git clone https://github.com/cyclonite69/shadowcheck-web.wiki.git
@@ -32,7 +33,7 @@ cd shadowcheck-web.wiki
 # Copy wiki files
 echo ""
 echo "📝 Step 3: Copying wiki files..."
-cp /home/cyclonite01/ShadowCheckStatic/.github/wiki/*.md .
+rsync -av --delete --exclude=".git" "$REPO_ROOT/.github/wiki/" .
 echo "✅ Copied $(ls -1 *.md | wc -l) markdown files"
 
 # Commit and push

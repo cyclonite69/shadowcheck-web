@@ -52,7 +52,17 @@ ShadowCheck implements several security measures:
 - Secure session management
 - Data validation on all inputs
 - Immutable policy: secrets are never written to disk at runtime (`.env`, `.pgpass`, `secrets/*.txt`)
-- Enforced by automated guardrail: `npm run policy:secrets` (pre-commit + CI)
+- Enforced by automated guardrails:
+  - local pre-commit secret scanning
+  - `npm run policy:secrets` in CI
+  - `gitleaks` in CI on push / PR
+  - scheduled full-history secret scanning in CI
+
+### Secret Rotation
+
+- Database credential rotation is supported by [scripts/rotate-db-password.sh](/home/dbcooper/repos/shadowcheck-web/scripts/rotate-db-password.sh)
+- Treat any committed credential as burned: rotate it even if repo history was rewritten
+- `db_password` and `db_admin_password` live in AWS Secrets Manager secret `shadowcheck/config`
 
 ### Infrastructure
 
@@ -78,6 +88,7 @@ Security updates are prioritized and released as soon as possible. Users are enc
 - Keep dependencies updated
 - Monitor security advisories
 - Use strong database credentials
+- Rotate exposed credentials immediately
 - Enable HTTPS in production
 - Regularly backup data
 

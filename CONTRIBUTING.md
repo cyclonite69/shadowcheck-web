@@ -42,7 +42,7 @@ git clone https://github.com/cyclonite69/shadowcheck-web.git
 cd shadowcheck-web
 npm install
 # Secrets policy: do not write credentials to disk in local .env files, seed files, or helper scripts.
-# Load secrets from AWS Secrets Manager or approved runtime environment injection paths.
+# Use AWS Secrets Manager as the source of truth; local env vars are explicit temporary overrides only.
 npm start
 ```
 
@@ -80,6 +80,14 @@ npm test                 # Run all tests
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests only
 ```
+
+## Secret Handling
+
+- Pre-commit secret scanning runs automatically through Husky.
+- CI runs `npm run policy:secrets` and `gitleaks` on push and pull requests.
+- CI also runs a scheduled full-history secret scan.
+- If a secret is ever committed, treat it as exposed and rotate it immediately.
+- Use [scripts/rotate-db-password.sh](/home/dbcooper/repos/shadowcheck-web/scripts/rotate-db-password.sh) for database password rotation.
 
 ## Areas Needing Help
 

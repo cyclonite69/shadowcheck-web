@@ -68,6 +68,13 @@ Those “Ten Commandments” are the canonical short-form rules for:
 - refactor cleanliness and test expectations
 - separate validation of bootstrap, restore, import, and upgrade paths
 
+Security enforcement now includes:
+
+- local pre-commit secret scanning
+- CI secret scanning on push and pull request
+- scheduled full-history secret scanning in CI
+- database rotation support via [scripts/rotate-db-password.sh](/home/dbcooper/repos/shadowcheck-web/scripts/rotate-db-password.sh)
+
 ## Kepler.gl Data Policy
 
 - **No default limits** on Kepler endpoints unless explicitly requested via query params.
@@ -614,7 +621,7 @@ For production deployment on AWS EC2 (Graviton/ARM64):
    ```bash
    git clone <repo_url> /home/ssm-user/shadowcheck
    cd /home/ssm-user/shadowcheck
-   cp .env.example .env # And fill in AWS/DB secrets
+   # Do not write secrets to .env. Use AWS Secrets Manager or runtime env injection.
    ```
 
 2. **Bootstrap:**
