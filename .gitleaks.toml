@@ -1,0 +1,37 @@
+title = "ShadowCheck Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-hardcoded-password-assignment"
+description = "Hardcoded password assignment"
+regex = '''(?i)(?:password|db_password|db_admin_password)\s*[:=]\s*["']([^$<"'][^"'\n]{7,})["']'''
+secretGroup = 1
+path = '''(?i)\.(?:js|jsx|ts|tsx|sh|ya?ml|json|env|sql)$'''
+keywords = ["password", "db_password", "db_admin_password"]
+
+[[rules.allowlists]]
+description = "Ignore obvious placeholders and env interpolation"
+regexes = [
+  '''(?i)^(?:test(?:[_-]?password)?|example|placeholder|changeme|dummy|sample|your[_-]?password|your[_-]?db[_-]?password|your[_-]?secure[_-]?password|password|new[_-]?password|admin|dev[_-]?password|dev[_-]?admin[_-]?password|aws[_-]?password|env[_-]?password|local[_-]?dev[_-]?nopass)$''',
+  '''^<[^>]+>$''',
+  '''^\$\{[^}]+\}$''',
+  '''^\$[A-Za-z_][A-Za-z0-9_]*$'''
+]
+
+[[rules]]
+id = "postgres-url-password"
+description = "Postgres connection string with inline password"
+regex = '''(?i)postgres(?:ql)?:\/\/[^:\s"']+:([^$<@\s"'][^@\s"']{7,})@'''
+secretGroup = 1
+path = '''(?i)\.(?:js|jsx|ts|tsx|sh|env|ya?ml|json)$'''
+keywords = ["postgres://", "postgresql://"]
+
+[[rules.allowlists]]
+description = "Ignore placeholder connection strings"
+regexes = [
+  '''(?i)^(?:test(?:[_-]?password)?|example|placeholder|changeme|dummy|sample|your[_-]?password|your[_-]?db[_-]?password|your[_-]?secure[_-]?password|password|new[_-]?password|admin|dev[_-]?password|dev[_-]?admin[_-]?password|aws[_-]?password|env[_-]?password|local[_-]?dev[_-]?nopass)$''',
+  '''^\$\{[^}]+\}$''',
+  '''^\$[A-Za-z_][A-Za-z0-9_]*$'''
+]

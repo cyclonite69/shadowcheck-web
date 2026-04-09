@@ -58,6 +58,7 @@ credentials.json
 *password*
 *secret*
 !server/src/services/secretsManager.ts
+!scripts/security/scan-secrets.sh
 .ssh/
 .gnupg/
 

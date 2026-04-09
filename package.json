@@ -24,7 +24,7 @@
     "test:integration": "RUN_INTEGRATION_TESTS=true npm test",
     "test:bedrock": "curl -s http://localhost:3001/api/claude/test | jq . && echo '---' && curl -s -X POST http://localhost:3001/api/claude/analyze-networks -H 'Content-Type: application/json' -d '{\"networks\":[{\"bssid\":\"AA:BB:CC:DD:EE:FF\",\"ssid\":\"TestNet\",\"type\":\"W\",\"threat_score\":75,\"observation_count\":42,\"unique_days\":7,\"seen_at_home\":true,\"seen_away\":true}],\"question\":\"Is this network a surveillance threat?\"}' | jq .",
     "lint": "eslint .",
-    "policy:secrets": "bash scripts/security/check-no-secret-disk-writes.sh",
+    "policy:secrets": "npm run policy:secret-disk && npm run policy:secret-scan",
     "policy:modularity": "bash scripts/check-doc-line-counts.sh && node scripts/check-modularity.js",
     "lint:fix": "eslint . --fix",
     "lint:boundaries": "tsx scripts/check-client-imports.ts",
@@ -35,7 +35,9 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f api",
     "db:migrate": "bash sql/run-migrations.sh",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "policy:secret-disk": "bash scripts/security/check-no-secret-disk-writes.sh",
+    "policy:secret-scan": "bash scripts/security/scan-secrets.sh --repo"
   },
   "keywords": [
     "sigint",
