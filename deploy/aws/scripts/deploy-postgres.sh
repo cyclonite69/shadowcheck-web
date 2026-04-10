@@ -268,9 +268,13 @@ if [ ! -f "$PROJECT_ROOT/deploy/aws/docker/Dockerfile.postgis" ]; then
   PROJECT_ROOT="/home/ssm-user/shadowcheck"
 fi
 
-docker build -f "$PROJECT_ROOT/deploy/aws/docker/Dockerfile.postgis" \
-  -t shadowcheck/postgres:18-postgis "$PROJECT_ROOT/deploy/aws/docker"
-echo "  Built shadowcheck/postgres:18-postgis"
+if docker image inspect shadowcheck/postgres:18-postgis >/dev/null 2>&1; then
+  echo "  Image shadowcheck/postgres:18-postgis already exists, skipping build"
+else
+  docker build -f "$PROJECT_ROOT/deploy/aws/docker/Dockerfile.postgis" \
+    -t shadowcheck/postgres:18-postgis "$PROJECT_ROOT/deploy/aws/docker"
+  echo "  Built shadowcheck/postgres:18-postgis"
+fi
 
 # ============================================================================
 # 7. Start PostgreSQL container
