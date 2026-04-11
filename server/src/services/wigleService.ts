@@ -312,11 +312,14 @@ export async function getKmlPointsForMap(params: {
  */
 export async function getUserStats(): Promise<any> {
   const secretsManager = require('./secretsManager').default;
-  const encoded = secretsManager.get('wigle_api_encoded');
+  const name = secretsManager.get('wigle_api_name');
+  const token = secretsManager.get('wigle_api_token');
 
-  if (!encoded) {
+  if (!name || !token) {
     throw new Error('WiGLE API credentials not configured');
   }
+
+  const encoded = Buffer.from(`${name}:${token}`).toString('base64');
 
   const response = await fetch('https://api.wigle.net/api/v2/stats/user', {
     headers: {

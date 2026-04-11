@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
+import { useWigleRuns } from '../hooks/useWigleRuns';
+import { formatShortDate } from '../../../utils/formatDate';
 
 const TrophyIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -50,10 +52,67 @@ const BadgeIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const RefreshIcon = ({ size = 16, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M21 2v6h-6" />
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M3 22v-6h6" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+  </svg>
+);
+
+const PlayIcon = ({ size = 16, className = '' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
+
+const PauseIcon = ({ size = 16, className = '' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
+    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+  </svg>
+);
+
+const CancelIcon = ({ size = 16, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+  </svg>
+);
+
 export const WigleStatsTab: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const {
+    runs,
+    report,
+    loading: runsLoading,
+    error: runsError,
+    actionLoading,
+    refresh: refreshRuns,
+    resumeRun,
+    pauseRun,
+    cancelRun,
+  } = useWigleRuns();
 
   const fetchStats = async () => {
     try {
@@ -61,12 +120,12 @@ export const WigleStatsTab: React.FC = () => {
       const response = await apiClient.get('/wigle/user-stats');
       if (response?.success) {
         setStats(response.stats);
-        setError(null);
+        setStatsError(null);
       } else {
-        setError(response?.error || 'Failed to fetch stats');
+        setStatsError(response?.error || 'Failed to fetch stats');
       }
     } catch (err: any) {
-      setError(err.message || 'API request failed');
+      setStatsError(err.message || 'API request failed');
     } finally {
       setLoading(false);
     }
@@ -100,7 +159,7 @@ export const WigleStatsTab: React.FC = () => {
     ? `https://wigle.net${stats.imageBadgeUrl}`
     : `https://wigle.net/bi/${getStat('user')}.png`;
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -108,23 +167,21 @@ export const WigleStatsTab: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-6 bg-red-900/20 border border-red-700/50 rounded-lg text-red-400">
-        <h3 className="font-bold mb-2">WiGLE API Error</h3>
-        <p className="text-sm">{error}</p>
-        <button
-          onClick={fetchStats}
-          className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
-        >
-          RETRY
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {statsError && (
+        <div className="p-6 bg-red-900/20 border border-red-700/50 rounded-lg text-red-400">
+          <h3 className="font-bold mb-2">WiGLE API Error</h3>
+          <p className="text-sm">{statsError}</p>
+          <button
+            onClick={fetchStats}
+            className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
+          >
+            RETRY
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* User Ranking Card */}
         <AdminCard icon={TrophyIcon} title="User Ranking" color="from-yellow-500 to-yellow-600">
@@ -295,6 +352,200 @@ export const WigleStatsTab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* WiGLE Import Runs Section */}
+      <AdminCard
+        icon={RefreshIcon}
+        title="Recent WiGLE Imports & Resumption"
+        color="from-rose-500 to-rose-600"
+      >
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-slate-400">
+              Automated search loops. Resumable via cursor-based pagination.
+            </p>
+            <button
+              onClick={refreshRuns}
+              disabled={runsLoading || actionLoading}
+              className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-30"
+              title="Refresh Runs"
+            >
+              <RefreshIcon className={runsLoading ? 'animate-spin' : ''} size={18} />
+            </button>
+          </div>
+
+          {runsError && (
+            <div className="p-3 bg-red-900/20 border border-red-700/50 rounded text-red-400 text-xs">
+              {runsError}
+            </div>
+          )}
+
+          <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+            <table className="w-full text-[11px] text-left text-slate-300">
+              <thead className="bg-slate-800/50 text-slate-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="px-3 py-2">ID</th>
+                  <th className="px-3 py-2">Target</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Progress</th>
+                  <th className="px-3 py-2">Last Active</th>
+                  <th className="px-3 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {runs.length === 0 && !runsLoading && (
+                  <tr>
+                    <td colSpan={6} className="px-3 py-6 text-center text-slate-500 italic">
+                      No recent import runs found.
+                    </td>
+                  </tr>
+                )}
+                {runs.map((run) => (
+                  <tr key={run.id} className="hover:bg-slate-700/20 group">
+                    <td className="px-3 py-2 font-mono text-slate-500">#{run.id}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-bold text-slate-200">
+                        {run.state || 'Global'} / {run.searchTerm}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full font-bold uppercase text-[9px] border ${
+                          run.status === 'completed'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : run.status === 'running'
+                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              : run.status === 'failed'
+                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                        }`}
+                      >
+                        {run.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-slate-500">
+                            P{run.pagesFetched}/{run.totalPages || '?'}
+                          </span>
+                          <span className="text-slate-400 font-mono">
+                            {run.rowsInserted.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 ${
+                              run.status === 'completed'
+                                ? 'bg-emerald-500'
+                                : run.status === 'failed'
+                                  ? 'bg-red-500'
+                                  : 'bg-blue-500'
+                            }`}
+                            style={{
+                              width: `${
+                                run.totalPages
+                                  ? Math.min(100, (run.pagesFetched / run.totalPages) * 100)
+                                  : 10
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-slate-500 whitespace-nowrap">
+                      {run.lastAttemptedAt
+                        ? formatShortDate(run.lastAttemptedAt)
+                        : formatShortDate(run.startedAt)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-center gap-1">
+                        {(run.status === 'paused' || run.status === 'failed') && (
+                          <button
+                            onClick={() => resumeRun(run.id)}
+                            disabled={actionLoading}
+                            className="p-1.5 text-emerald-500 hover:bg-emerald-500/20 rounded transition-all disabled:opacity-20"
+                            title="Resume Import"
+                          >
+                            <PlayIcon />
+                          </button>
+                        )}
+                        {run.status === 'running' && (
+                          <button
+                            onClick={() => pauseRun(run.id)}
+                            disabled={actionLoading}
+                            className="p-1.5 text-amber-500 hover:bg-amber-500/20 rounded transition-all disabled:opacity-20"
+                            title="Pause Import"
+                          >
+                            <PauseIcon />
+                          </button>
+                        )}
+                        {(run.status === 'running' ||
+                          run.status === 'paused' ||
+                          run.status === 'failed') && (
+                          <button
+                            onClick={() => cancelRun(run.id)}
+                            disabled={actionLoading}
+                            className="p-1.5 text-red-500 hover:bg-red-500/20 rounded transition-all disabled:opacity-20"
+                            title="Cancel/Archive Run"
+                          >
+                            <CancelIcon />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {report && (
+            <div className="mt-6 pt-4 border-t border-slate-700/30">
+              <h4 className="text-xs font-bold text-slate-300 uppercase mb-3 flex items-center justify-between">
+                <span>Coverage Snapshot</span>
+                <span className="text-[10px] text-slate-500 font-normal">
+                  Updated: {new Date(report.generatedAt).toLocaleTimeString()}
+                </span>
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {report.states
+                  .filter((s) => s.storedCount > 0 || s.runId)
+                  .slice(0, 15)
+                  .map((s) => (
+                    <div
+                      key={s.state}
+                      className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs font-black text-white">{s.state}</span>
+                        <span
+                          className={`text-[9px] px-1 rounded ${
+                            s.status === 'completed'
+                              ? 'text-emerald-400 bg-emerald-500/5'
+                              : s.status === 'failed'
+                                ? 'text-red-400 bg-red-500/5'
+                                : s.status === 'running'
+                                  ? 'text-blue-400 bg-blue-500/5'
+                                  : 'text-slate-600'
+                          }`}
+                        >
+                          {s.status === 'completed' ? '✓' : s.status ? '...' : ''}
+                        </span>
+                      </div>
+                      <div className="text-lg font-bold text-slate-100">
+                        {s.storedCount.toLocaleString()}
+                      </div>
+                      <div className="text-[9px] text-slate-500 uppercase font-semibold">
+                        Networks
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </AdminCard>
     </div>
   );
 };

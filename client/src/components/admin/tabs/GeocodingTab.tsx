@@ -37,6 +37,23 @@ export const GeocodingTab: React.FC = () => {
     stopDaemon,
   } = useGeocodingCache(precision);
 
+  const [hasInitialized, setHasInitialized] = React.useState(false);
+
+  React.useEffect(() => {
+    if (daemon?.config && !hasInitialized) {
+      const { config } = daemon;
+      setDaemonLimit(config.limit);
+      setPrecision(config.precision);
+      setDaemonPerMinute(config.perMinute);
+      setDaemonAddressProvider(config.provider as AddressProvider);
+      setDaemonPermanent(Boolean(config.permanent));
+      setLoopDelayMs(config.loopDelayMs);
+      setIdleSleepMs(config.idleSleepMs);
+      setErrorSleepMs(config.errorSleepMs);
+      setHasInitialized(true);
+    }
+  }, [daemon?.config, hasInitialized]);
+
   const runAddressPass = async () => {
     await runGeocoding({
       provider: addressProvider,

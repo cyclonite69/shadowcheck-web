@@ -31,6 +31,7 @@ export const useWigleSearch = () => {
   const [totalResults, setTotalResults] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastImportRun, setLastImportRun] = useState<WigleImportRun | null>(null);
+  const [resumeLoading, setResumeLoading] = useState(false);
 
   const loadApiStatus = async () => {
     try {
@@ -189,7 +190,35 @@ export const useWigleSearch = () => {
     }
   };
 
-  const hasMorePages = searchAfter !== null;
+  const resumeImport = async () => {
+    setSearchError('');
+    setResumeLoading(true);
+    try {
+      const payload: Record<string, string> = {};
+      if (searchParams.ssid) payload.ssid = searchParams.ssid;
+      if (searchParams.bssid) payload.bssid = searchParams.bssid;
+      if (searchParams.latrange1) payload.latrange1 = searchParams.latrange1;
+      if (searchParams.latrange2) payload.latrange2 = searchParams.latrange2;
+      if (searchParams.longrange1) payload.longrange1 = searchParams.longrange1;
+      if (searchParams.longrange2) payload.longrange2 = searchParams.longrange2;
+      if (searchParams.country) payload.country = searchParams.country;
+      if (searchParams.region) payload.region = searchParams.region;
+      if (searchParams.city) payload.city = searchParams.city;
+      if (searchParams.version) payload.version = searchParams.version;
+      const data = await wigleApi.resumeLatestImportRun(payload);
+      const run = data.run || null;
+      setLastImportRun(run);
+      if (run) {
+        setTotalResults(run.apiTotalResults || 0);
+        setCurrentPage(run.pagesFetched || 1);
+      }
+    } catch (err: any) {
+      setSearchError(err?.message || 'Resume failed');
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
   const effectiveLoadedCount =
     searchResults?.run?.rowsReturned ?? searchResults?.loadedCount ?? allResults.length;
   const effectiveTotalResults = searchResults?.run?.apiTotalResults ?? totalResults;
@@ -215,5 +244,7 @@ export const useWigleSearch = () => {
     totalResults: effectiveTotalResults,
     loadedCount: effectiveLoadedCount,
     lastImportRun,
+    resumeImport,
+    resumeLoading,
   };
 };
