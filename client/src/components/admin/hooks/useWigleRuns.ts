@@ -38,8 +38,8 @@ export const useWigleRuns = () => {
         wigleApi.listImportRuns(new URLSearchParams({ limit: '10' })),
         wigleApi.getImportCompletenessReport(),
       ]);
-      setRuns(runsData.runs || []);
-      setReport(reportData);
+      setRuns(runsData?.runs || []);
+      setReport(reportData?.report || null);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch WiGLE runs');

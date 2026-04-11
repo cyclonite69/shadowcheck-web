@@ -510,7 +510,7 @@ export const WigleStatsTab: React.FC = () => {
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
                 {report.states
-                  .filter((s) => s.storedCount > 0 || s.runId)
+                  ?.filter((s) => s.storedCount > 0 || s.runId)
                   .slice(0, 15)
                   .map((s) => (
                     <div
