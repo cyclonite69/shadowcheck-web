@@ -22,16 +22,32 @@ export const attachClickHandlers = (
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const tooltipHTML = renderNetworkTooltip(
-      normalizeTooltipData(
-        {
-          ...props,
-          threat_level: 'NONE',
-          threat_score: 0,
-        },
-        [e.lngLat.lng, e.lngLat.lat]
-      )
+    // Determine type code for normalizer
+    const rawType = String(props.type || '').toLowerCase();
+    const typeCode =
+      rawType === 'wifi'
+        ? 'W'
+        : rawType === 'gsm'
+          ? 'G'
+          : rawType === 'lte'
+            ? 'L'
+            : rawType === 'ble'
+              ? 'E'
+              : rawType === 'bt'
+                ? 'B'
+                : props.type;
+
+    const normalizedData = normalizeTooltipData(
+      {
+        ...props,
+        type: typeCode,
+        threat_level: props.threat_level || 'NONE',
+        threat_score: props.threat_score || 0,
+      },
+      [e.lngLat.lng, e.lngLat.lat]
     );
+
+    const tooltipHTML = renderNetworkTooltip(normalizedData);
     const anchor = getPopupAnchor(map, e.lngLat, tooltipHTML);
 
     const popup = new mapboxgl.Popup({

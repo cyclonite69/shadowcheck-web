@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { renderAgencyPopupCard } from '../../utils/geospatial/renderMapPopupCards';
@@ -46,7 +47,8 @@ export interface AgencyVisibility {
 export const useAgencyOffices = (
   mapRef: React.MutableRefObject<Map | null>,
   mapReady: boolean,
-  visibility: AgencyVisibility = { fieldOffices: true, residentAgencies: true }
+  visibility: AgencyVisibility = { fieldOffices: true, residentAgencies: true },
+  mapboxRef?: React.MutableRefObject<typeof mapboxglType | null>
 ) => {
   const {
     data,
@@ -229,7 +231,7 @@ export const useAgencyOffices = (
         parentOffice: props.parent_office,
       });
 
-      const popup = new (window as any).mapboxgl.Popup({
+      const popup = new (mapboxRef?.current || (window as any).mapboxgl).Popup({
         anchor: getPopupAnchor(map, e.lngLat, html),
         offset: 15,
         className: 'sc-popup',

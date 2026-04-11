@@ -100,10 +100,10 @@ const WiglePage: React.FC = () => {
   );
 
   // Agency offices layer
-  useAgencyOffices(mapRef, mapReady, agencyVisibility);
+  useAgencyOffices(mapRef, mapReady, agencyVisibility, mapboxRef);
 
   // Federal courthouses layer
-  useFederalCourthouses(mapRef, mapReady, layers.federalCourthouses);
+  useFederalCourthouses(mapRef, mapReady, layers.federalCourthouses, mapboxRef);
 
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>

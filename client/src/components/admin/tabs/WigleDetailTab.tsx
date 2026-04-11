@@ -5,6 +5,7 @@ import { useWigleFileUpload } from '../../../hooks/useWigleFileUpload';
 import { useWigleRuns } from '../hooks/useWigleRuns';
 import { wigleApi } from '../../../api/wigleApi';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
+import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 
@@ -260,32 +261,30 @@ export const WigleDetailTab: React.FC = () => {
               <div className="flex justify-center bg-slate-950/50 p-6 rounded-lg border border-slate-800 shadow-inner">
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: renderNetworkTooltip({
-                      ssid: data.ssid || data.name,
-                      bssid: data.networkId,
-                      encryption: data.encryption,
-                      security: data.encryption,
-                      frequency: data.frequency,
-                      channel: data.channel,
-                      lat: data.trilateratedLatitude,
-                      lon: data.trilateratedLongitude,
-                      first_seen: data.firstSeen,
-                      last_seen: data.lastSeen,
-                      type:
-                        data.type?.toLowerCase() === 'wifi'
-                          ? 'W'
-                          : data.type?.toLowerCase() === 'gsm'
-                            ? 'G'
-                            : data.type?.toLowerCase() === 'lte'
-                              ? 'L'
-                              : data.type?.toLowerCase() === 'ble'
-                                ? 'E'
-                                : data.type?.toLowerCase() === 'bt'
-                                  ? 'B'
-                                  : 'W',
-                      observation_count: observations?.length || 0,
-                      accuracy: data.locationClusters?.[0]?.accuracy || null,
-                    }),
+                    __html: renderNetworkTooltip(
+                      normalizeTooltipData({
+                        ...data,
+                        netid: data.networkId,
+                        ssid: data.ssid || data.name,
+                        type:
+                          data.type?.toLowerCase() === 'wifi'
+                            ? 'W'
+                            : data.type?.toLowerCase() === 'gsm'
+                              ? 'G'
+                              : data.type?.toLowerCase() === 'lte'
+                                ? 'L'
+                                : data.type?.toLowerCase() === 'ble'
+                                  ? 'E'
+                                  : data.type?.toLowerCase() === 'bt'
+                                    ? 'B'
+                                    : 'W',
+                        observation_count: observations?.length || 0,
+                        accuracy: data.locationClusters?.[0]?.accuracy || null,
+                        ...data.streetAddress, // Spread street address fields (city, region, road, etc)
+                        qos: data.bestClusterWiGLEQoS,
+                        comment: data.comment,
+                      })
+                    ),
                   }}
                 />
               </div>

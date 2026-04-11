@@ -302,6 +302,8 @@ export const renderNetworkTooltip = (props: any): string => {
           Number.isFinite(altitudeNumber) ? `${altitudeNumber.toFixed(2)} m` : undefined
         )
       : '',
+    !isMissingValue(props.comment) ? fieldRow('Comment', String(props.comment)) : '',
+    !isMissingValue(props.source) ? fieldRow('Source', String(props.source)) : '',
   ]
     .filter(Boolean)
     .join('');

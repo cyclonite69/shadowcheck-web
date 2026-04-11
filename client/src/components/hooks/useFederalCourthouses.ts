@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { renderCourthousePopupCard } from '../../utils/geospatial/renderMapPopupCards';
@@ -39,7 +40,8 @@ interface FederalCourthousesGeoJSON {
 export const useFederalCourthouses = (
   mapRef: React.MutableRefObject<Map | null>,
   mapReady: boolean,
-  isVisible: boolean = true
+  isVisible: boolean = true,
+  mapboxRef?: React.MutableRefObject<typeof mapboxglType | null>
 ) => {
   const [hasBeenVisible, setHasBeenVisible] = useState(isVisible);
 
@@ -254,7 +256,7 @@ export const useFederalCourthouses = (
         address,
       });
 
-      const popup = new (window as any).mapboxgl.Popup({
+      const popup = new (mapboxRef?.current || (window as any).mapboxgl).Popup({
         anchor: getPopupAnchor(map, e.lngLat, html),
         offset: 15,
         className: 'sc-popup',

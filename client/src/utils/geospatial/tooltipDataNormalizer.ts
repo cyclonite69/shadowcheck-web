@@ -114,10 +114,15 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   );
   const accuracy = toNumberOrNull(pickFirst(raw.accuracy, raw.acc));
   const explicitQuality = toNumberOrNull(pickFirst(raw.quality_score, raw.data_quality));
+  const wigleQos = toNumberOrNull(raw.qos);
 
   const calculatedQuality = (() => {
     if (explicitQuality !== null) {
       return explicitQuality;
+    }
+
+    if (wigleQos !== null && wigleQos >= 0 && wigleQos <= 7) {
+      return wigleQos / 7.0;
     }
 
     let score = 0;
@@ -193,5 +198,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     housenumber: raw.housenumber || '',
     road: raw.road || '',
     threat_factors: raw.threat_factors || null,
+    comment: pickFirst(raw.comment, null),
+    source: pickFirst(raw.source, raw.source_file, null),
   };
 };

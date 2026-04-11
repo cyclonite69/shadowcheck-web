@@ -168,7 +168,7 @@ export default function GeospatialExplorer() {
     showAgenciesPanel: state.showAgenciesPanel,
   });
 
-  useFederalCourthouses(state.mapRef, state.mapReady, state.showCourthousesPanel);
+  useFederalCourthouses(state.mapRef, state.mapReady, state.showCourthousesPanel, state.mapboxRef);
 
   return (
     <GeospatialLayout

@@ -43,7 +43,7 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
         },
         properties: {
           bssid: row.bssid || (row as any).netid,
-          ssid: row.ssid || '(hidden)',
+          ssid: row.ssid || (row as any).name || '(hidden)',
           type: row.type || 'wifi',
           encryption: row.encryption || 'Unknown',
           channel: row.channel,
@@ -51,6 +51,16 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           firsttime: row.firsttime,
           lasttime: row.lasttime || (row as any).lastupdt,
           accuracy: row.accuracy,
+          comment: (row as any).comment || null,
+          source: (row as any).source || (row as any).source_file || null,
+          manufacturer: (row as any).manufacturer || null,
+          qos: (row as any).qos || null,
+          observation_count:
+            (row as any).observation_count || (row as any).wigle_v3_observation_count || null,
+          city: (row as any).city || '',
+          region: (row as any).region || '',
+          road: (row as any).road || '',
+          housenumber: (row as any).housenumber || '',
           color: macColor(row.bssid || (row as any).netid),
         },
       };
