@@ -22,6 +22,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [draftSearch, setDraftSearch] = useState('');
   const [activeBssid, setActiveBssid] = useState<string | null>(null);
   const [selectedNetwork, setSelectedNetwork] = useState<OrphanNetworkRow | null>(null);
+  const [promotingBssid, setPromotingBssid] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const rowsRef = useRef<OrphanNetworkRow[]>([]);
@@ -144,6 +145,22 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
     }
   };
 
+  const handlePromote = async (bssid: string) => {
+    if (!window.confirm(`Officially promote ${bssid} to canonical database?`)) return;
+    try {
+      setPromotingBssid(bssid);
+      await adminApi.promoteOrphanNetwork(bssid);
+      // Remove from list on success
+      setRows((prev) => prev.filter((row) => row.bssid !== bssid));
+      if (selectedNetwork?.bssid === bssid) setSelectedNetwork(null);
+    } catch (err: any) {
+      console.error('Failed to promote orphan:', err);
+      alert(`Promotion failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setPromotingBssid(null);
+    }
+  };
+
   const renderStatus = (row: OrphanNetworkRow) => {
     switch (row.backfill_status) {
       case 'wigle_match_imported_v3':
@@ -259,19 +276,43 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                   </td>
                   <td className="py-1.5 pr-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      {renderStatus(row)}
+                      <div className="min-w-[60px]">{renderStatus(row)}</div>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCheckWigle(row.bssid);
                         }}
-                        disabled={activeBssid === row.bssid}
-                        className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
+                        disabled={activeBssid === row.bssid || promotingBssid === row.bssid}
+                        className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
                         title={row.last_attempted_at || undefined}
                       >
                         {activeBssid === row.bssid ? 'Checking...' : 'Check WiGLE'}
                       </button>
+
+                      {row.backfill_status === 'wigle_match_imported_v3' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePromote(row.bssid);
+                            }}
+                            disabled={promotingBssid === row.bssid}
+                            className="rounded border border-green-900/50 bg-green-900/20 px-2 py-1 text-[10px] text-green-400 hover:bg-green-900/40 disabled:opacity-50"
+                          >
+                            {promotingBssid === row.bssid ? 'Promoting...' : 'Promote'}
+                          </button>
+                          <a
+                            href={`/wigle?search=${row.bssid}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-blue-400 hover:underline"
+                            title="View WiGLE observations"
+                          >
+                            View
+                          </a>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td className="py-1.5 text-slate-400">{row.move_reason}</td>

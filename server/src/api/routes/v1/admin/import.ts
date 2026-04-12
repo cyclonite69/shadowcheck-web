@@ -436,6 +436,17 @@ router.post('/admin/orphan-networks/:bssid/check-wigle', async (req: any, res: a
   }
 });
 
+router.post('/admin/orphan-networks/:bssid/promote', async (req: any, res: any, next: any) => {
+  try {
+    const result = await adminOrphanNetworksService.promoteOrphanNetworkToCanonical(
+      req.params.bssid
+    );
+    res.json(result);
+  } catch (e: any) {
+    next(e);
+  }
+});
+
 router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req: any, res: any) => {
   const uploadedFiles = (req.files || []) as any[];
   if (uploadedFiles.length === 0) {

@@ -180,6 +180,7 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
       ob.detail_imported,
       ob.observations_imported,
       ob.last_attempted_at,
+      ob.last_promoted_at,
       ob.last_error
     FROM app.networks_orphans o
     LEFT JOIN app.orphan_network_backfills ob ON ob.bssid = o.bssid
@@ -316,8 +317,84 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
   }
 }
 
+async function promoteOrphanNetworkToCanonical(bssid: string): Promise<any> {
+  const { rows } = await adminQuery(
+    `SELECT o.bssid, o.ssid, o.type, ob.matched_netid, ob.status
+       FROM app.networks_orphans o
+       JOIN app.orphan_network_backfills ob ON ob.bssid = o.bssid
+      WHERE o.bssid = $1
+      LIMIT 1`,
+    [bssid]
+  );
+
+  const orphan = rows[0];
+  if (!orphan) {
+    throw new Error(`Orphan network not found or not checked: ${bssid}`);
+  }
+
+  if (orphan.status !== 'wigle_match_imported_v3') {
+    throw new Error(`Orphan network ${bssid} has no WiGLE match to promote`);
+  }
+
+  // 1. Copy observations from WiGLE v3 to canonical app.observations
+  const copyResult = await adminQuery(
+    `INSERT INTO app.observations (
+       device_id, bssid, ssid, radio_type, radio_frequency, level,
+       lat, lon, accuracy, time, observed_at_ms, external, geom
+     )
+     SELECT
+       'wigle_backfill',
+       $1,
+       ssid,
+       'wifi',
+       2437, -- Default if unknown
+       -70,  -- Default if unknown
+       trilat,
+       trilong,
+       50,   -- Accuracy guess
+       fetched_at,
+       EXTRACT(EPOCH FROM fetched_at) * 1000,
+       true,
+       location
+     FROM app.wigle_v3_observations
+     WHERE bssid = $1
+     ON CONFLICT DO NOTHING`,
+    [orphan.bssid]
+  );
+
+  // 2. Update promotion status
+  await adminQuery(
+    `UPDATE app.orphan_network_backfills
+        SET last_promoted_at = NOW()
+      WHERE bssid = $1`,
+    [orphan.bssid]
+  );
+
+  // 3. Remove from orphan table (it is now in app.networks via triggers/auto-insert)
+  // Actually we need to make sure it exists in app.networks first if not there
+  await adminQuery(
+    `INSERT INTO app.networks (bssid, ssid, type, capabilities, lasttime_ms, lastlat, lastlon)
+     SELECT bssid, ssid, type, capabilities, lasttime_ms, lastlat, lastlon
+     FROM app.networks_orphans
+     WHERE bssid = $1
+     ON CONFLICT (bssid) DO UPDATE SET
+       ssid = EXCLUDED.ssid,
+       lasttime_ms = GREATEST(app.networks.lasttime_ms, EXCLUDED.lasttime_ms)`,
+    [orphan.bssid]
+  );
+
+  await adminQuery(`DELETE FROM app.networks_orphans WHERE bssid = $1`, [orphan.bssid]);
+
+  return {
+    ok: true,
+    bssid: orphan.bssid,
+    observationsPromoted: copyResult.rowCount,
+  };
+}
+
 module.exports = {
   listOrphanNetworks,
   getOrphanNetworkCounts,
   backfillOrphanNetworkFromWigle,
+  promoteOrphanNetworkToCanonical,
 };

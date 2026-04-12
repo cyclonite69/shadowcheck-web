@@ -217,6 +217,10 @@ export const adminApi = {
     return apiClient.post(`/admin/orphan-networks/${encodeURIComponent(bssid)}/check-wigle`, {});
   },
 
+  async promoteOrphanNetwork(bssid: string): Promise<any> {
+    return apiClient.post(`/admin/orphan-networks/${encodeURIComponent(bssid)}/promote`, {});
+  },
+
   async parseImportResponse(response: Response, fallbackMessage: string): Promise<any> {
     const contentType = response.headers.get('content-type') || '';
     const isJson = contentType.includes('application/json');
