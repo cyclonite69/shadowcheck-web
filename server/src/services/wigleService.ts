@@ -157,11 +157,11 @@ export async function getWigleDatabase(
     let idx = 1;
 
     if (ssid) {
-      where.push(`ssid ILIKE $${idx++}`);
+      where.push(`obs.ssid ILIKE $${idx++}`);
       params.push(`%${ssid}%`);
     }
     if (bssid) {
-      where.push(`netid ILIKE $${idx++}`);
+      where.push(`obs.netid ILIKE $${idx++}`);
       params.push(`${bssid}%`);
     }
 

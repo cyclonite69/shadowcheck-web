@@ -110,7 +110,7 @@ const buildWigleV3CountQuery = (
   whereClauses: string[] = [],
   queryParams: any[] = []
 ): { sql: string; queryParams: any[] } => ({
-  sql: `SELECT COUNT(*) as total FROM app.wigle_v3_observations ${buildWhereSql(whereClauses)}`,
+  sql: `SELECT COUNT(*) as total FROM app.wigle_v3_observations obs ${buildWhereSql(whereClauses)}`,
   queryParams,
 });
 
