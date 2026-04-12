@@ -37,7 +37,16 @@ const validateApiKey = (req: Request, res: Response): boolean => {
   const providedKey = authHeader.substring(7); // "Bearer "
   const serverKey = secretsManager.get('shadowcheck_api_key') || process.env.SHADOWCHECK_API_KEY;
 
-  if (!serverKey || providedKey !== serverKey) {
+  if (!serverKey) {
+    logger.error('[Ingest] SHADOWCHECK_API_KEY not found in secrets or env');
+    res.status(401).json({ error: 'Unauthorized' });
+    return false;
+  }
+
+  if (providedKey !== serverKey) {
+    logger.warn(
+      `[Ingest] Invalid API key provided. Length: ${providedKey.length}, Server key length: ${serverKey.length}`
+    );
     res.status(401).json({ error: 'Unauthorized' });
     return false;
   }
