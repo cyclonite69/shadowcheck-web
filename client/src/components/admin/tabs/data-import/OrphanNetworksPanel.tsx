@@ -122,6 +122,10 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       setActiveBssid(bssid);
       const result = await adminApi.checkOrphanNetworkWigle(bssid);
 
+      if (result.status === 'error' && result.message) {
+        alert(`WiGLE Error: ${result.message}`);
+      }
+
       // Update the row in-place to avoid full reload and scroll reset
       setRows((prev) =>
         prev.map((row) => {
@@ -133,6 +137,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
               wigle_v3_observation_count:
                 result.totalObservations ?? row.wigle_v3_observation_count,
               last_attempted_at: new Date().toISOString(),
+              last_error: result.status === 'error' ? result.message : null,
             };
           }
           return row;
@@ -140,6 +145,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       );
     } catch (err: any) {
       console.error('Failed to check WiGLE for orphan:', err);
+      alert(`Request failed: ${err.message || 'Unknown error'}`);
     } finally {
       setActiveBssid(null);
     }
@@ -239,6 +245,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                 <th className="text-left py-1.5 pr-3">Source</th>
                 <th className="text-right py-1.5 pr-3">WiGLE Obs</th>
                 <th className="text-left py-1.5 pr-3">Backfill</th>
+                <th className="text-left py-1.5 pr-3">Promoted</th>
                 <th className="text-left py-1.5">Reason</th>
               </tr>
             </thead>
@@ -314,6 +321,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                         </>
                       )}
                     </div>
+                  </td>
+                  <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
+                    {row.last_promoted_at ? formatShortDate(row.last_promoted_at) : '—'}
                   </td>
                   <td className="py-1.5 text-slate-400">{row.move_reason}</td>
                 </tr>

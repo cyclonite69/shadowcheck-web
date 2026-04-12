@@ -56,5 +56,6 @@ export interface OrphanNetworkRow {
   detail_imported: boolean | null;
   observations_imported: number | null;
   last_attempted_at: string | null;
+  last_promoted_at: string | null;
   last_error: string | null;
 }

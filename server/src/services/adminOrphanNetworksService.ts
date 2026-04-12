@@ -240,25 +240,38 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
 
   try {
     const detailResponse = await fetchWigleDetail(orphan.bssid, endpoint);
-    if (!detailResponse.ok || !detailResponse.data?.networkId) {
+    const data = detailResponse.data;
+
+    // Check if payload explicitly mentions a result or if it's a known 'not found' / 'rate limit'
+    if (!detailResponse.ok || !data || data.success === false || !data.networkId) {
+      const isRateLimit =
+        data?.message?.toLowerCase().includes('too many') || detailResponse.status === 429;
+      const isNotFound =
+        detailResponse.status === 404 || data?.message?.toLowerCase().includes('not found');
+
+      if (isRateLimit) {
+        throw new Error('WiGLE API rate limit reached. Try again later.');
+      }
+
       await recordBackfillAttempt({
         bssid: orphan.bssid,
-        status: 'no_wigle_match',
+        status: isNotFound ? 'no_wigle_match' : 'error',
         matchedNetid: null,
         detailImported: false,
         observationsImported: 0,
-        lastError: null,
+        lastError: isNotFound ? null : data?.message || 'API response missing network data',
       });
+
       return {
         ok: true,
         bssid: orphan.bssid,
-        status: 'no_wigle_match',
+        status: isNotFound ? 'no_wigle_match' : 'error',
         endpoint,
         importedObservations: 0,
+        message: data?.message,
       };
     }
 
-    const data = detailResponse.data;
     await wigleService.importWigleV3NetworkDetail({
       netid: data.networkId,
       name: stripNullBytes(data.name),
