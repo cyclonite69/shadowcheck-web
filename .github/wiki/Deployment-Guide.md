@@ -403,7 +403,7 @@ psql -f sql/migrations/04_create_materialized_views.sql
 
 ```mermaid
 flowchart LR
-    A[Load Balancer] --> B[/health]
+    A[Load Balancer] --> B["/health"]
     B --> C{Check Database}
     C -->|OK| D{Check Redis}
     D -->|OK| E[200 OK]
