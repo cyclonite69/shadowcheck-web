@@ -300,7 +300,7 @@ export const WigleDetailTab: React.FC = () => {
                       Quality Score
                     </span>
                     <span className="text-lg font-black text-white font-mono">
-                      {data.bestClusterWiGLEQoS
+                      {data.bestClusterWiGLEQoS !== null && data.bestClusterWiGLEQoS !== undefined
                         ? `${((data.bestClusterWiGLEQoS / 7) * 100).toFixed(0)}%`
                         : 'N/A'}
                     </span>

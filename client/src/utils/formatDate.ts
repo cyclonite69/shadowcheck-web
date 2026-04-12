@@ -14,9 +14,9 @@
  * Output: "Mar 08 '26 11:14" — fixed-width, 24h, browser local time.
  * Null/undefined/invalid → '—'
  */
-export function formatShortDate(value: string | Date | null | undefined): string {
-  if (!value) return '—';
-  const d = typeof value === 'string' ? new Date(value) : value;
+export function formatShortDate(value: string | number | Date | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const d = value instanceof Date ? value : new Date(value);
   if (isNaN(d.getTime())) return '—';
   const month = d.toLocaleString('en-US', { month: 'short' }); // "Mar"
   const day = String(d.getDate()).padStart(2, '0'); // "08"
@@ -30,9 +30,9 @@ export function formatShortDate(value: string | Date | null | undefined): string
  * Full ISO string for tooltips and hover states.
  * Returns the raw ISO 8601 string, or '—' for invalid input.
  */
-export function formatISODate(value: string | Date | null | undefined): string {
-  if (!value) return '—';
-  const d = typeof value === 'string' ? new Date(value) : value;
+export function formatISODate(value: string | number | Date | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const d = value instanceof Date ? value : new Date(value);
   if (isNaN(d.getTime())) return '—';
   return d.toISOString();
 }
@@ -41,9 +41,9 @@ export function formatISODate(value: string | Date | null | undefined): string {
  * Relative time — secondary display only, never standalone.
  * Examples: "just now", "2h ago", "46d ago", "2y ago"
  */
-export function formatRelativeTime(value: string | Date | null | undefined): string {
-  if (!value) return '—';
-  const d = typeof value === 'string' ? new Date(value) : value;
+export function formatRelativeTime(value: string | number | Date | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const d = value instanceof Date ? value : new Date(value);
   if (isNaN(d.getTime())) return '—';
   const diffMs = Date.now() - d.getTime();
   const diffSec = Math.floor(diffMs / 1000);
