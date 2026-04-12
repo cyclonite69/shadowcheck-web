@@ -133,6 +133,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/', healthRoutes);
   app.use('/api', healthRoutes);
 
+  // Mobile ingest (uses API key auth, must be before gated /api mounts)
+  app.use('/api/v1/ingest', mobileIngestRoutes);
+
   // Geospatial routes (includes root redirect)
   app.use('/', geospatialRoutes);
 
@@ -167,7 +170,6 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api/network-tags', userGate, networkTagsRoutes);
   app.use('/api', userGate, claudeRoutes);
   app.use('/api', userGate, threatReportRoutes);
-  app.use('/api/v1/ingest', mobileIngestRoutes);
 
   // Network agencies (nearest agencies to network observations)
   const networkAgenciesRoutes = require('../api/routes/v1/network-agencies');
