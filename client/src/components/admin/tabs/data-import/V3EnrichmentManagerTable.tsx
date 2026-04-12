@@ -27,6 +27,10 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [processingBssids, setProcessingBssids] = useState<Set<string>>(new Set());
+  const [statusMessage, setStatusMessage] = useState<{
+    type: 'error' | 'info';
+    text: string;
+  } | null>(null);
 
   // Filters
   const [ssidFilter, setSsidFilter] = useState('');
@@ -89,11 +93,23 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
     setProcessingBssids((prev) => new Set([...Array.from(prev), ...toProcess]));
     setSelected(new Set());
+    setStatusMessage(null);
 
     try {
-      await onEnrich(toProcess);
+      const response: any = await onEnrich(toProcess);
+
+      // If the run started but immediately hit a 429, the response run status will be 'paused'
+      if (response?.run?.status === 'paused') {
+        setStatusMessage({
+          type: 'error',
+          text: 'WiGLE Daily Quota Exhausted. Run has been paused and will need to be resumed later.',
+        });
+      }
+
       // Wait a bit then refresh to see updated counts
       setTimeout(() => fetchCatalog(true), 2000);
+    } catch (e: any) {
+      setStatusMessage({ type: 'error', text: e.message || 'Failed to start enrichment' });
     } finally {
       // Keep them marked as processing for a bit to show status
       setTimeout(() => {
@@ -108,6 +124,21 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
   return (
     <div className="space-y-4">
+      {statusMessage && (
+        <div
+          className={`p-3 rounded-lg border text-xs flex justify-between items-center ${
+            statusMessage.type === 'error'
+              ? 'bg-red-900/20 border-red-700/50 text-red-400'
+              : 'bg-blue-900/20 border-blue-700/50 text-blue-400'
+          }`}
+        >
+          <span>{statusMessage.text}</span>
+          <button onClick={() => setStatusMessage(null)} className="opacity-50 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Filters Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <input
