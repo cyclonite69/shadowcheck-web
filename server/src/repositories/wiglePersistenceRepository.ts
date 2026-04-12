@@ -149,7 +149,13 @@ const getWigleDetail = async (executor: QueryExecutor, netid: string): Promise<a
        nd.name, nd.comment, nd.qos,
        obs.latitude  AS last_lat,
        obs.longitude AS last_lon,
-       obs.observed_at AS last_observed_at
+       obs.observed_at AS last_observed_at,
+       ne.threat_score, ne.threat_level, ne.manufacturer,
+       ne.geocoded_address, ne.geocoded_city, ne.geocoded_state, ne.geocoded_poi_name,
+       ne.observations AS local_observations,
+       ne.first_seen AS local_first_seen,
+       ne.last_seen AS local_last_seen,
+       (ne.bssid IS NOT NULL) AS wigle_match
      FROM app.wigle_v3_network_details nd
      LEFT JOIN LATERAL (
        SELECT latitude, longitude, observed_at
@@ -158,6 +164,7 @@ const getWigleDetail = async (executor: QueryExecutor, netid: string): Promise<a
        ORDER BY observed_at DESC
        LIMIT 1
      ) obs ON true
+     LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(nd.netid)
      WHERE nd.netid = $1
      LIMIT 1`,
     [netid]

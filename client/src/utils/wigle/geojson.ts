@@ -53,14 +53,25 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           accuracy: row.accuracy,
           comment: (row as any).comment || null,
           source: (row as any).source || (row as any).source_file || null,
-          manufacturer: (row as any).manufacturer || null,
+          manufacturer: (row as any).manufacturer || (row as any).ne_manufacturer || null,
           qos: (row as any).qos || null,
           observation_count:
-            (row as any).observation_count || (row as any).wigle_v3_observation_count || null,
-          city: (row as any).city || '',
-          region: (row as any).region || '',
+            (row as any).observation_count ||
+            (row as any).wigle_v3_observation_count ||
+            (row as any).local_observations ||
+            null,
+          city: (row as any).geocoded_city || (row as any).city || '',
+          region: (row as any).geocoded_state || (row as any).region || '',
           road: (row as any).road || '',
           housenumber: (row as any).housenumber || '',
+          geocoded_address: (row as any).geocoded_address || null,
+          geocoded_poi_name: (row as any).geocoded_poi_name || null,
+          threat_score: (row as any).threat_score || 0,
+          threat_level: (row as any).threat_level || 'NONE',
+          first_seen: (row as any).local_first_seen || row.firsttime || null,
+          last_seen:
+            (row as any).local_last_seen || (row as any).lasttime || (row as any).lastupdt || null,
+          wigle_match: Boolean((row as any).wigle_match),
           color: macColor(row.bssid || (row as any).netid),
         },
       };
