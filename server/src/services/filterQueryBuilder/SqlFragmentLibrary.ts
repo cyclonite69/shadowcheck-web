@@ -119,7 +119,14 @@ export class SqlFragmentLibrary {
   }
 
   /**
-   * Returns canonical observation coordinate projection with geometry fallback.
+   * Returns canonical join for the explorer materialized view.
+   */
+  static joinExplorerMv(sourceAlias: string, mvAlias = 'ne'): string {
+    return `LEFT JOIN app.api_network_explorer_mv ${mvAlias} ON UPPER(${mvAlias}.bssid) = UPPER(${sourceAlias}.bssid)`;
+  }
+
+  /**
+   * Returns schema-compatible observation coordinate projection with geometry fallback.
    */
   static selectObservationCoordinateFields(observationAlias = 'o'): string {
     return `

@@ -80,6 +80,10 @@ const splitTextFilterTokens = (value: unknown): string[] => {
     .filter(Boolean);
 };
 
+const normalizeWildcards = (value: string): string => {
+  return value.replace(/\*/g, '%').replace(/\?/g, '_');
+};
+
 const normalizeRadioType = (value: string): string | null => {
   const upper = value.trim().toUpperCase();
   const map: Record<string, string> = {
@@ -228,4 +232,11 @@ const coerceOui = (value: unknown): string =>
     .replace(/[^0-9A-Fa-f]/g, '')
     .toUpperCase();
 
-export { normalizeEnabled, normalizeFilters, isOui, coerceOui, splitTextFilterTokens };
+export {
+  normalizeEnabled,
+  normalizeFilters,
+  isOui,
+  coerceOui,
+  splitTextFilterTokens,
+  normalizeWildcards,
+};

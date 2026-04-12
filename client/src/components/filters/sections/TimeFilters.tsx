@@ -60,7 +60,9 @@ export const TimeFilters: React.FC<TimeFiltersProps> = ({
               className={`${controlClass} mt-1`}
             >
               <option value={TemporalScope.OBSERVATION_TIME}>Observation Time</option>
-              <option value={TemporalScope.NETWORK_LIFETIME}>Network Lifetime</option>
+              <option value={TemporalScope.NETWORK_LIFETIME}>Network Lifetime (Any)</option>
+              <option value={TemporalScope.FIRST_SEEN}>First Seen (Arrival)</option>
+              <option value={TemporalScope.LAST_SEEN}>Last Seen (Departure)</option>
               <option value={TemporalScope.THREAT_WINDOW}>Threat Window</option>
             </select>
           </div>
@@ -112,7 +114,7 @@ export const TimeFilters: React.FC<TimeFiltersProps> = ({
             <div className="grid grid-cols-1 gap-2">
               <div>
                 <label htmlFor="timeframe-start-input" className="text-xs text-slate-400">
-                  Start (ISO)
+                  Start Date/Time
                 </label>
                 <input
                   id="timeframe-start-input"
@@ -130,7 +132,7 @@ export const TimeFilters: React.FC<TimeFiltersProps> = ({
               </div>
               <div>
                 <label htmlFor="timeframe-end-input" className="text-xs text-slate-400">
-                  End (ISO)
+                  End Date/Time
                 </label>
                 <input
                   id="timeframe-end-input"

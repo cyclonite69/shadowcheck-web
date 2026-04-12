@@ -42,6 +42,7 @@ export function buildGeospatialQueryContext(
         o.radio_frequency AS frequency,
         ${WIFI_CHANNEL_EXPR('o')} AS channel,
         ${OBS_TYPE_EXPR('o')} AS type,
+        o.time,
         o.time AS last_seen,
         ne.first_seen AS first_observed_at,
         ne.last_seen AS last_observed_at,

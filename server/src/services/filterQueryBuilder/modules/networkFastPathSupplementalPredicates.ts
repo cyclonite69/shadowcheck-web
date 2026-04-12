@@ -107,20 +107,45 @@ export function buildFastPathSupplementalPredicates(
 
   if (e.timeframe && f.timeframe) {
     const scope = f.temporalScope || 'observation_time';
-    if (scope === 'threat_window' && options.addUnsupportedWigleIgnored) {
+    let timeExpr = 'ne.last_seen'; // Default for fast path
+
+    if (scope === 'first_seen') {
+      timeExpr = 'ne.first_seen';
+    } else if (scope === 'last_seen') {
+      timeExpr = 'ne.last_seen';
+    } else if (scope === 'network_lifetime') {
+      // For network_lifetime, we check if ANY part of the lifetime overlaps with the window
+      if (f.timeframe.type === 'absolute') {
+        if (f.timeframe.startTimestamp) {
+          where.push(`ne.last_seen >= ${ctx.addParam(f.timeframe.startTimestamp)}::timestamptz`);
+        }
+        if (f.timeframe.endTimestamp) {
+          where.push(`ne.first_seen <= ${ctx.addParam(f.timeframe.endTimestamp)}::timestamptz`);
+        }
+      } else {
+        const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
+        if (window) {
+          where.push(`ne.last_seen >= NOW() - ${ctx.addParam(window)}::interval`);
+        }
+      }
+      ctx.addApplied('temporal', 'timeframe', f.timeframe);
+      ctx.addApplied('temporal', 'temporalScope', scope);
+      return where;
+    } else if (scope === 'threat_window' && options.addUnsupportedWigleIgnored) {
       ctx.addWarning('Threat window scope mapped to observation_time on fast path.');
     }
+
     if (f.timeframe.type === 'absolute') {
       if (f.timeframe.startTimestamp) {
-        where.push(`ne.last_seen >= ${ctx.addParam(f.timeframe.startTimestamp)}::timestamptz`);
+        where.push(`${timeExpr} >= ${ctx.addParam(f.timeframe.startTimestamp)}::timestamptz`);
       }
       if (f.timeframe.endTimestamp) {
-        where.push(`ne.last_seen <= ${ctx.addParam(f.timeframe.endTimestamp)}::timestamptz`);
+        where.push(`${timeExpr} <= ${ctx.addParam(f.timeframe.endTimestamp)}::timestamptz`);
       }
     } else {
       const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
       if (window) {
-        where.push(`ne.last_seen >= NOW() - ${ctx.addParam(window)}::interval`);
+        where.push(`${timeExpr} >= NOW() - ${ctx.addParam(window)}::interval`);
       }
     }
     ctx.addApplied('temporal', 'timeframe', f.timeframe);

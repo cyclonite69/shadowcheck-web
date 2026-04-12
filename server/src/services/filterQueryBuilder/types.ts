@@ -38,7 +38,12 @@ export interface Filters {
   encryptionTypes?: string[];
   securityFlags?: string[];
   timeframe?: Timeframe;
-  temporalScope?: 'observation_time' | 'network_lifetime' | 'threat_window';
+  temporalScope?:
+    | 'observation_time'
+    | 'network_lifetime'
+    | 'threat_window'
+    | 'first_seen'
+    | 'last_seen';
   observationCountMin?: number;
   observationCountMax?: number;
   has_notes?: boolean;

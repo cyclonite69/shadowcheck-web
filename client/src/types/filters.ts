@@ -113,6 +113,8 @@ export enum TemporalScope {
   OBSERVATION_TIME = 'observation_time', // Default - when observations occurred
   NETWORK_LIFETIME = 'network_lifetime', // first_seen to last_seen
   THREAT_WINDOW = 'threat_window', // When threat was detected
+  FIRST_SEEN = 'first_seen', // Filter by network's first sighting
+  LAST_SEEN = 'last_seen', // Filter by network's last sighting
 }
 
 export const RELATIVE_TIME_WINDOWS = ['24h', '7d', '30d', '90d', 'all'] as const;
