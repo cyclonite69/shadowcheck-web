@@ -22,17 +22,84 @@ const ENRICHMENT_DELAY_MS = 1500;
 const BATCH_SIZE = 100;
 
 /**
- * Find BSSIDs from v2 search results that lack v3 details
+ * Get count of unique BSSIDs in v2 search results
  */
 async function getPendingEnrichmentCount(): Promise<number> {
-  const sql = `
-    SELECT COUNT(DISTINCT v2.bssid)::int AS count
-    FROM app.wigle_v2_networks_search v2
-    LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-    WHERE v3.netid IS NULL
-  `;
+  const sql = `SELECT COUNT(DISTINCT bssid)::int AS count FROM app.wigle_v2_networks_search`;
   const { rows } = await adminQuery(sql);
   return rows[0]?.count || 0;
+}
+
+/**
+ * Get the full enrichment catalog with current v3 stats
+ */
+async function getEnrichmentCatalog(options: {
+  page?: number;
+  limit?: number;
+  region?: string;
+  city?: string;
+  ssid?: string;
+  bssid?: string;
+}) {
+  const page = options.page || 1;
+  const limit = options.limit || 50;
+  const offset = (page - 1) * limit;
+
+  const where: string[] = [];
+  const params: any[] = [limit, offset];
+
+  if (options.region) {
+    where.push(`v2.region ILIKE $${params.push(options.region + '%')}`);
+  }
+  if (options.city) {
+    where.push(`v2.city ILIKE $${params.push(options.city + '%')}`);
+  }
+  if (options.ssid) {
+    where.push(`v2.ssid ILIKE $${params.push('%' + options.ssid + '%')}`);
+  }
+  if (options.bssid) {
+    where.push(`v2.bssid ILIKE $${params.push(options.bssid + '%')}`);
+  }
+
+  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+  const sql = `
+    SELECT 
+      v2.bssid, 
+      v2.ssid, 
+      v2.region, 
+      v2.city, 
+      v2.type,
+      v3.imported_at as last_v3_import,
+      (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) as v3_obs_count
+    FROM (
+      SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, lasttime
+      FROM app.wigle_v2_networks_search
+      ORDER BY bssid, lasttime DESC
+    ) v2
+    LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
+    ${whereClause}
+    ORDER BY v2.lasttime DESC
+    LIMIT $1 OFFSET $2
+  `;
+
+  const countSql = `
+    SELECT COUNT(DISTINCT bssid)::int 
+    FROM app.wigle_v2_networks_search v2
+    ${whereClause}
+  `;
+
+  const [dataResult, countResult] = await Promise.all([
+    adminQuery(sql, params),
+    adminQuery(countSql, params.slice(2)),
+  ]);
+
+  return {
+    data: dataResult.rows,
+    total: countResult.rows[0]?.count || 0,
+    page,
+    limit,
+  };
 }
 
 /**
@@ -40,24 +107,25 @@ async function getPendingEnrichmentCount(): Promise<number> {
  */
 async function getNextEnrichmentBatch(limit = BATCH_SIZE, manualList?: string[]): Promise<any[]> {
   if (manualList && manualList.length > 0) {
-    // For manual runs, we find which of the requested BSSIDs are still missing details
+    // For manual runs, we pull the requested BSSIDs
     const sql = `
-      SELECT DISTINCT v2.bssid, v2.type
-      FROM (SELECT unnest($2::text[]) as bssid) m
-      JOIN app.wigle_v2_networks_search v2 ON v2.bssid = m.bssid
-      LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-      WHERE v3.netid IS NULL
+      SELECT DISTINCT ON (bssid) bssid, type
+      FROM app.wigle_v2_networks_search
+      WHERE bssid = ANY($2::text[])
+      ORDER BY bssid, lasttime DESC
       LIMIT $1
     `;
     const { rows } = await adminQuery(sql, [limit, manualList]);
     return rows;
   }
 
+  // Global batch: pull those missing v3 details first
   const sql = `
-    SELECT DISTINCT v2.bssid, v2.type
+    SELECT DISTINCT ON (v2.bssid) v2.bssid, v2.type
     FROM app.wigle_v2_networks_search v2
     LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
     WHERE v3.netid IS NULL
+    ORDER BY v2.bssid, v2.lasttime DESC
     LIMIT $1
   `;
   const { rows } = await adminQuery(sql, [limit]);
@@ -100,7 +168,8 @@ async function fetchAndImportDetail(bssid: string, type: string) {
   const data = await response.json();
   if (!data?.networkId) return null;
 
-  // Import detail
+  // Import detail (using UPSERT logic inside wigleService if it already handles it,
+  // or relying on ON CONFLICT logic in the DB layer)
   await wigleService.importWigleV3NetworkDetail({
     netid: data.networkId,
     name: data.name,
@@ -118,7 +187,7 @@ async function fetchAndImportDetail(bssid: string, type: string) {
     location_clusters: JSON.stringify(data.locationClusters || []),
   });
 
-  // Import observations if available
+  // Import observations
   let obsCount = 0;
   if (Array.isArray(data.locationClusters)) {
     for (const cluster of data.locationClusters) {
@@ -145,6 +214,9 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
   let run = await getImportRun(runId);
   if (run.status === 'completed' || run.status === 'cancelled') return run;
 
+  // Track processed BSSIDs for manual runs to avoid infinite loops if results aren't clearing
+  const processed = new Set<string>();
+
   logger.info(
     `[v3 Enrichment] Starting batch loop for run #${runId}${manualList ? ` (Manual: ${manualList.length} items)` : ''}`
   );
@@ -161,7 +233,10 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
         return;
       }
 
-      const batch = await getNextEnrichmentBatch(5, manualList);
+      // If manual, filter out what we already did this loop
+      const activeManualList = manualList ? manualList.filter((b) => !processed.has(b)) : undefined;
+
+      const batch = await getNextEnrichmentBatch(5, activeManualList);
       if (batch.length === 0) {
         await completeRun(runId);
         logger.info(`[v3 Enrichment] Completed run #${runId}`);
@@ -171,6 +246,7 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
       for (const item of batch) {
         try {
           await fetchAndImportDetail(item.bssid, item.type);
+          processed.add(item.bssid);
 
           // Update progress in run table
           await adminQuery(
@@ -191,6 +267,7 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
           }
           // Log but continue for other errors
           logger.error(`[v3 Enrichment] Failed item ${item.bssid}: ${err.message}`);
+          processed.add(item.bssid); // Don't retry failed item in this loop pass
         }
       }
     }
@@ -206,9 +283,7 @@ async function startBatchEnrichment(bssids?: string[]) {
 
   if (pending === 0) {
     throw new Error(
-      isManual
-        ? 'All provided BSSIDs already have v3 details'
-        : 'No networks found awaiting v3 enrichment'
+      isManual ? 'No valid BSSIDs provided for enrichment' : 'No networks found in v2 catalog'
     );
   }
 
@@ -216,8 +291,8 @@ async function startBatchEnrichment(bssids?: string[]) {
     version: 'v3',
     source: isManual ? 'v3_manual' : 'v3_batch',
     searchTerm: isManual
-      ? `Manual Enrichment (${pending} items)`
-      : `Batch Enrichment (${pending} items)`,
+      ? `Targeted Enrichment (${pending} items)`
+      : `Full Catalog Enrichment (${pending} items)`,
     resultsPerPage: 1,
   });
 
@@ -246,6 +321,7 @@ async function resumeEnrichment(runId: number) {
 
 module.exports = {
   getPendingEnrichmentCount,
+  getEnrichmentCatalog,
   startBatchEnrichment,
   resumeEnrichment,
 };

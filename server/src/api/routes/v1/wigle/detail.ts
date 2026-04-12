@@ -370,6 +370,27 @@ router.get(
 );
 
 /**
+ * GET /api/v1/wigle/detail/enrichment/catalog
+ * Browse the v2 search catalog with enrichment stats
+ */
+router.get(
+  '/enrichment/catalog',
+  requireAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { page, limit, region, city, ssid, bssid } = req.query;
+    const catalog = await wigleEnrichmentService.getEnrichmentCatalog({
+      page: Number(page) || 1,
+      limit: Number(limit) || 50,
+      region: region as string,
+      city: city as string,
+      ssid: ssid as string,
+      bssid: bssid as string,
+    });
+    res.json({ ok: true, ...catalog });
+  })
+);
+
+/**
  * POST /api/v1/wigle/detail/enrichment/start
  * Start a new batch enrichment run
  */
