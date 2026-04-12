@@ -264,40 +264,86 @@ export const WigleDetailTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Tooltip Preview (Unified Design) */}
-            <div className="bg-slate-900/40 p-4 rounded border border-slate-700/50">
-              <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
-                Forensic Tooltip Preview
-              </h4>
-              <div className="flex justify-center bg-slate-950/50 p-6 rounded-lg border border-slate-800 shadow-inner">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: renderNetworkTooltip(
-                      normalizeTooltipData({
-                        ...data,
-                        netid: data.networkId,
-                        ssid: data.ssid || data.name,
-                        type:
-                          data.type?.toLowerCase() === 'wifi'
-                            ? 'W'
-                            : data.type?.toLowerCase() === 'gsm'
-                              ? 'G'
-                              : data.type?.toLowerCase() === 'lte'
-                                ? 'L'
-                                : data.type?.toLowerCase() === 'ble'
-                                  ? 'E'
-                                  : data.type?.toLowerCase() === 'bt'
-                                    ? 'B'
-                                    : 'W',
-                        observation_count: observations?.length || 0,
-                        accuracy: data.locationClusters?.[0]?.accuracy || null,
-                        ...data.streetAddress, // Spread street address fields (city, region, road, etc)
-                        qos: data.bestClusterWiGLEQoS,
-                        comment: data.comment,
-                      })
-                    ),
-                  }}
-                />
+            {/* Forensic Snapshot Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-slate-900/40 p-4 rounded border border-slate-700/50">
+                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
+                  Forensic Snapshot
+                </h4>
+                <div className="grid grid-cols-2 gap-y-3 gap-x-6">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">
+                      WiGLE Observations
+                    </span>
+                    <span className="text-lg font-black text-cyan-400 font-mono">
+                      {totalObservations.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">
+                      Local Matches
+                    </span>
+                    <span className="text-lg font-black text-emerald-400 font-mono">
+                      {(totalObservations - newObservations).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">
+                      New Records
+                    </span>
+                    <span className="text-lg font-black text-amber-400 font-mono">
+                      {newObservations.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">
+                      Quality Score
+                    </span>
+                    <span className="text-lg font-black text-white font-mono">
+                      {data.bestClusterWiGLEQoS
+                        ? `${((data.bestClusterWiGLEQoS / 7) * 100).toFixed(0)}%`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tooltip Preview (Unified Design) */}
+              <div className="bg-slate-900/40 p-4 rounded border border-slate-700/50">
+                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
+                  Forensic Tooltip Preview
+                </h4>
+                <div className="flex justify-center bg-slate-950/50 p-4 rounded-lg border border-slate-800 shadow-inner overflow-hidden">
+                  <div
+                    className="scale-[0.85] origin-top"
+                    dangerouslySetInnerHTML={{
+                      __html: renderNetworkTooltip(
+                        normalizeTooltipData({
+                          ...data,
+                          netid: data.networkId,
+                          ssid: data.ssid || data.name,
+                          type:
+                            data.type?.toLowerCase() === 'wifi'
+                              ? 'W'
+                              : data.type?.toLowerCase() === 'gsm'
+                                ? 'G'
+                                : data.type?.toLowerCase() === 'lte'
+                                  ? 'L'
+                                  : data.type?.toLowerCase() === 'ble'
+                                    ? 'E'
+                                    : data.type?.toLowerCase() === 'bt'
+                                      ? 'B'
+                                      : 'W',
+                          observation_count: observations?.length || 0,
+                          accuracy: data.locationClusters?.[0]?.accuracy || null,
+                          ...data.streetAddress,
+                          qos: data.bestClusterWiGLEQoS,
+                          comment: data.comment,
+                        })
+                      ),
+                    }}
+                  />
+                </div>
               </div>
             </div>
 

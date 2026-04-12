@@ -258,11 +258,7 @@ const getImportCompletenessSummary = async (
 ) => {
   const { searchTerm, state } = options;
   const params: any[] = [];
-  const latestRunWhere = [
-    `source = 'wigle'`,
-    `COALESCE(api_version, 'v2') = 'v2'`,
-    `state IS NOT NULL`,
-  ];
+  const latestRunWhere = [`source IN ('wigle', 'v3_batch', 'v3_manual')`, `state IS NOT NULL`];
   const tableCountWhere = [`country = 'US'`, `region IS NOT NULL`, `LENGTH(TRIM(region)) = 2`];
 
   if (searchTerm) {
@@ -270,16 +266,16 @@ const getImportCompletenessSummary = async (
     latestRunWhere.push(`search_term ILIKE $${params.length}`);
   }
   if (state) {
-    params.push(state);
-    latestRunWhere.push(`state = $${params.length}`);
-    tableCountWhere.push(`region = $${params.length}`);
+    params.push(state.trim().toUpperCase());
+    latestRunWhere.push(`TRIM(UPPER(state)) = $${params.length}`);
+    tableCountWhere.push(`TRIM(UPPER(region)) = $${params.length}`);
   }
 
   const result = await query(
     `WITH latest_runs AS (
        SELECT
          id,
-         state,
+         TRIM(UPPER(state)) as state,
          search_term,
          request_params,
          request_fingerprint,
@@ -297,17 +293,17 @@ const getImportCompletenessSummary = async (
          started_at,
          updated_at,
          completed_at,
-         ROW_NUMBER() OVER (PARTITION BY state ORDER BY started_at DESC, id DESC) AS rn
+         ROW_NUMBER() OVER (PARTITION BY TRIM(UPPER(state)) ORDER BY started_at DESC, id DESC) AS rn
        FROM app.wigle_import_runs
        WHERE ${latestRunWhere.join(' AND ')}
      ),
      table_counts AS (
        SELECT
-         region AS state,
-         COUNT(*)::integer AS stored_count
+         TRIM(UPPER(region)) AS state,
+         COUNT(DISTINCT bssid)::integer AS stored_count
        FROM app.wigle_v2_networks_search
        WHERE ${tableCountWhere.join(' AND ')}
-       GROUP BY region
+       GROUP BY TRIM(UPPER(region))
      ),
      states AS (
        SELECT state FROM latest_runs
