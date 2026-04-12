@@ -73,7 +73,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
 # Copy application code and built frontend
 COPY --chown=nodejs:nodejs server ./server/
 COPY --chown=nodejs:nodejs scripts ./scripts/
-COPY --chown=nodejs:nodejs scripts/manual-ingest.ts ./scripts/manual-ingest.ts
+COPY --chown=nodejs:nodejs scripts/manual-ingest.js ./scripts/manual-ingest.js
 COPY --chown=nodejs:nodejs sql ./sql/
 COPY --chown=nodejs:nodejs docker/infrastructure ./docker/infrastructure/
 COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
