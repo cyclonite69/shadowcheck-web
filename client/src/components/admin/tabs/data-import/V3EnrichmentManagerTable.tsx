@@ -13,7 +13,7 @@ interface EnrichmentRow {
 }
 
 interface V3EnrichmentManagerTableProps {
-  onEnrich: (bssids: string[]) => void;
+  onEnrich: (bssids: string[]) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -26,6 +26,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [processingBssids, setProcessingBssids] = useState<Set<string>>(new Set());
 
   // Filters
   const [ssidFilter, setSsidFilter] = useState('');
@@ -33,35 +34,39 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const [cityFilter, setCityFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
 
-  const fetchCatalog = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: '50',
-        ssid: ssidFilter,
-        bssid: bssidFilter,
-        city: cityFilter,
-        region: regionFilter,
-      });
-      const response = await wigleApi.getEnrichmentCatalog(params);
-      if (response.ok) {
-        setData(response.data);
-        setTotal(response.total);
+  const fetchCatalog = useCallback(
+    async (isSilent = false) => {
+      if (!isSilent) setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: '50',
+          ssid: ssidFilter,
+          bssid: bssidFilter,
+          city: cityFilter,
+          region: regionFilter,
+        });
+        const response = await wigleApi.getEnrichmentCatalog(params);
+        if (response.ok) {
+          setData(response.data);
+          setTotal(response.total);
+        }
+      } catch (e) {
+        console.error('Failed to fetch enrichment catalog', e);
+      } finally {
+        if (!isSilent) setLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to fetch enrichment catalog', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, ssidFilter, bssidFilter, cityFilter, regionFilter]);
+    },
+    [page, ssidFilter, bssidFilter, cityFilter, regionFilter]
+  );
 
   useEffect(() => {
-    const timeout = setTimeout(fetchCatalog, 300);
+    const timeout = setTimeout(() => fetchCatalog(), 300);
     return () => clearTimeout(timeout);
   }, [fetchCatalog]);
 
   const toggleSelect = (bssid: string) => {
+    if (processingBssids.has(bssid)) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(bssid)) next.delete(bssid);
@@ -78,10 +83,27 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     }
   };
 
-  const handleEnrichSelected = () => {
-    if (selected.size === 0) return;
-    onEnrich(Array.from(selected));
+  const handleEnrichSelected = async () => {
+    const toProcess = Array.from(selected);
+    if (toProcess.length === 0) return;
+
+    setProcessingBssids((prev) => new Set([...Array.from(prev), ...toProcess]));
     setSelected(new Set());
+
+    try {
+      await onEnrich(toProcess);
+      // Wait a bit then refresh to see updated counts
+      setTimeout(() => fetchCatalog(true), 2000);
+    } finally {
+      // Keep them marked as processing for a bit to show status
+      setTimeout(() => {
+        setProcessingBssids((prev) => {
+          const next = new Set(prev);
+          toProcess.forEach((b) => next.delete(b));
+          return next;
+        });
+      }, 5000);
+    }
   };
 
   return (
@@ -96,7 +118,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             setSsidFilter(e.target.value);
             setPage(1);
           }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none"
+          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
         />
         <input
           type="text"
@@ -106,7 +128,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             setBssidFilter(e.target.value);
             setPage(1);
           }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none"
+          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
         />
         <input
           type="text"
@@ -116,7 +138,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             setCityFilter(e.target.value);
             setPage(1);
           }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none"
+          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
         />
         <input
           type="text"
@@ -126,14 +148,22 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             setRegionFilter(e.target.value);
             setPage(1);
           }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none"
+          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
         />
       </div>
 
       {/* Action Bar */}
       <div className="flex justify-between items-center py-1">
-        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-          {total.toLocaleString()} Networks Found
+        <div className="flex items-center gap-3">
+          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            {total.toLocaleString()} Networks Found
+          </div>
+          <button
+            onClick={() => fetchCatalog()}
+            className="text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-tighter"
+          >
+            Refresh List
+          </button>
         </div>
         <button
           onClick={handleEnrichSelected}
@@ -159,7 +189,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
               </th>
               <th className="px-3 py-2">Network (SSID/BSSID)</th>
               <th className="px-3 py-2">Location</th>
-              <th className="px-3 py-2 text-center">v3 Obs</th>
+              <th className="px-3 py-2 text-center">Status</th>
               <th className="px-3 py-2 text-right">Last v3 Import</th>
             </tr>
           </thead>
@@ -182,7 +212,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
               data.map((row) => (
                 <tr
                   key={row.bssid}
-                  className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${selected.has(row.bssid) ? 'bg-blue-500/10' : ''}`}
+                  className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
+                    selected.has(row.bssid) ? 'bg-blue-500/10' : ''
+                  } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
                   onClick={() => toggleSelect(row.bssid)}
                 >
                   <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
@@ -190,6 +222,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                       type="checkbox"
                       checked={selected.has(row.bssid)}
                       onChange={() => toggleSelect(row.bssid)}
+                      disabled={processingBssids.has(row.bssid)}
                       className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
                     />
                   </td>
@@ -206,11 +239,20 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                     </div>
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <span
-                      className={`font-mono font-bold ${row.v3_obs_count > 0 ? 'text-cyan-400' : 'text-slate-600'}`}
-                    >
-                      {row.v3_obs_count}
-                    </span>
+                    {processingBssids.has(row.bssid) ? (
+                      <span className="text-blue-400 animate-pulse font-bold uppercase text-[9px]">
+                        Queuing...
+                      </span>
+                    ) : row.v3_obs_count > 0 ? (
+                      <div className="flex flex-col items-center">
+                        <span className="text-cyan-400 font-bold tabular-nums">
+                          {row.v3_obs_count}
+                        </span>
+                        <span className="text-[8px] text-slate-600 uppercase">Forensics</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600 uppercase text-[9px]">Pending</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">
                     {row.last_v3_import ? formatShortDate(row.last_v3_import) : 'Never'}
