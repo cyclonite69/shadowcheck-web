@@ -59,6 +59,7 @@ WORKDIR /app
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
+COPY --chown=nodejs:nodejs scripts ./scripts/
 COPY --chown=nodejs:nodejs sql ./sql/
 COPY --chown=nodejs:nodejs docker/infrastructure ./docker/infrastructure/
 COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
