@@ -34,7 +34,7 @@ const validateApiKey = (req: Request, res: Response): boolean => {
     return false;
   }
 
-  const providedKey = authHeader.substring(7); // "Bearer "
+  const providedKey = authHeader.substring(7); // \"Bearer \"
   const serverKey = secretsManager.get('shadowcheck_api_key') || process.env.SHADOWCHECK_API_KEY;
 
   if (!serverKey) {
@@ -44,8 +44,12 @@ const validateApiKey = (req: Request, res: Response): boolean => {
   }
 
   if (providedKey !== serverKey) {
+    const maskedProvided =
+      providedKey.substring(0, 4) + '...' + providedKey.substring(providedKey.length - 4);
+    const maskedServer =
+      serverKey.substring(0, 4) + '...' + serverKey.substring(serverKey.length - 4);
     logger.warn(
-      `[Ingest] Invalid API key provided. Length: ${providedKey.length}, Server key length: ${serverKey.length}`
+      `[Ingest] API key mismatch. Provided: ${maskedProvided} (${providedKey.length}), Expected: ${maskedServer} (${serverKey.length})`
     );
     res.status(401).json({ error: 'Unauthorized' });
     return false;
