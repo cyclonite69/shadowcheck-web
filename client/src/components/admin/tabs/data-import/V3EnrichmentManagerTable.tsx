@@ -14,11 +14,13 @@ interface EnrichmentRow {
 
 interface V3EnrichmentManagerTableProps {
   onEnrich: (bssids: string[]) => Promise<void>;
+  onSelect: (bssid: string) => void;
   isLoading: boolean;
 }
 
 export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> = ({
   onEnrich,
+  onSelect,
   isLoading: actionLoading,
 }) => {
   const [data, setData] = useState<EnrichmentRow[]>([]);
@@ -246,13 +248,19 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                   className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
                     selected.has(row.bssid) ? 'bg-blue-500/10' : ''
                   } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
-                  onClick={() => toggleSelect(row.bssid)}
+                  onClick={() => onSelect(row.bssid)}
                 >
-                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                  <td
+                    className="px-3 py-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(row.bssid);
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={selected.has(row.bssid)}
-                      onChange={() => toggleSelect(row.bssid)}
+                      onChange={() => {}}
                       disabled={processingBssids.has(row.bssid)}
                       className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
                     />

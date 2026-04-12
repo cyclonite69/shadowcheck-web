@@ -531,6 +531,11 @@ export const WigleDetailTab: React.FC = () => {
                     void loadEnrichmentStats();
                   }
                 }}
+                onSelect={(bssid) => {
+                  setNetid(bssid);
+                  fetchDetail(bssid, false, detailType);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 isLoading={actionLoading}
               />
             ) : (

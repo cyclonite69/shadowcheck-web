@@ -49,19 +49,19 @@ async function getEnrichmentCatalog(options: {
   const params: any[] = [limit, offset];
 
   if (options.region) {
-    where.push(`v2.region ILIKE $${params.push(options.region + '%')}`);
+    where.push(`TRIM(region) ILIKE $${params.push(options.region.trim() + '%')}`);
   }
   if (options.city) {
-    where.push(`v2.city ILIKE $${params.push(options.city + '%')}`);
+    where.push(`TRIM(city) ILIKE $${params.push(options.city.trim() + '%')}`);
   }
   if (options.ssid) {
-    where.push(`v2.ssid ILIKE $${params.push('%' + options.ssid + '%')}`);
+    where.push(`ssid ILIKE $${params.push('%' + options.ssid.trim() + '%')}`);
   }
   if (options.bssid) {
-    where.push(`v2.bssid ILIKE $${params.push(options.bssid + '%')}`);
+    where.push(`bssid ILIKE $${params.push(options.bssid.trim() + '%')}`);
   }
 
-  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+  const subWhereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
 
   const sql = `
     SELECT 
@@ -70,23 +70,24 @@ async function getEnrichmentCatalog(options: {
       v2.region, 
       v2.city, 
       v2.type,
+      v2.lasttime,
       v3.imported_at as last_v3_import,
       (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) as v3_obs_count
     FROM (
       SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, lasttime
       FROM app.wigle_v2_networks_search
+      ${subWhereClause}
       ORDER BY bssid, lasttime DESC
     ) v2
     LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-    ${whereClause}
-    ORDER BY v2.lasttime DESC
+    ORDER BY v2.lasttime DESC, v2.bssid ASC
     LIMIT $1 OFFSET $2
   `;
 
   const countSql = `
     SELECT COUNT(DISTINCT bssid)::int 
-    FROM app.wigle_v2_networks_search v2
-    ${whereClause}
+    FROM app.wigle_v2_networks_search
+    ${subWhereClause}
   `;
 
   const [dataResult, countResult] = await Promise.all([
