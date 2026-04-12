@@ -151,6 +151,34 @@ function formatThreatFactors(factors: any): string {
     </div>`;
 }
 
+// Calculate WiFi channel number from frequency in MHz
+function frequencyToChannel(freqMhz: number | null | undefined): number | null {
+  if (!freqMhz || freqMhz <= 0) return null;
+  if (freqMhz >= 2412 && freqMhz <= 2484) {
+    if (freqMhz === 2484) return 14;
+    return Math.round((freqMhz - 2407) / 5);
+  }
+  if (freqMhz >= 5170 && freqMhz <= 5825) {
+    return Math.round((freqMhz - 5000) / 5);
+  }
+  if (freqMhz >= 5935 && freqMhz <= 7115) {
+    return Math.round((freqMhz - 5950) / 5) + 1;
+  }
+  return null;
+}
+
+// Calculate WiFi frequency in MHz from channel number
+function channelToFrequency(
+  channel: number | null | undefined,
+  band?: string | null
+): number | null {
+  if (!channel || channel <= 0) return null;
+  if (channel >= 1 && channel <= 14) return 2407 + channel * 5;
+  if (channel >= 32 && channel <= 177) return 5000 + channel * 5;
+  if (channel >= 1 && channel <= 233 && band?.includes('6')) return 5950 + channel * 5;
+  return null;
+}
+
 export const renderNetworkTooltip = (props: any): string => {
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
   const threatConfig =
@@ -235,17 +263,23 @@ export const renderNetworkTooltip = (props: any): string => {
       : null;
   const btDeviceLabel = btInfo?.device || btCoDDevice || null;
 
+  // Reconcile Frequency and Channel
+  let channel = Number(props.channel) || 0;
+  let frequency = Number(props.frequency) || 0;
+  const band = props.band;
+
+  if (isWiFi) {
+    if (channel > 0 && frequency <= 0) {
+      frequency = channelToFrequency(channel, band) || 0;
+    } else if (frequency > 0 && channel <= 0) {
+      channel = frequencyToChannel(frequency) || 0;
+    }
+  }
+
   const channelValue =
-    isWiFi && !isMissingValue(props.channel) && Number(props.channel) !== 0
-      ? `${normalizeDisplay(props.channel)}${hasBand ? ` (${normalizeDisplay(props.band)})` : ''}`
-      : '';
-  const frequencyValue =
-    isWiFi &&
-    !isMissingValue(props.frequency) &&
-    Number.isFinite(frequencyNumber) &&
-    frequencyNumber > 0
-      ? `${frequencyNumber} MHz`
-      : '';
+    channel > 0 ? `${channel}${hasBand ? ` (${normalizeDisplay(band)})` : ''}` : '';
+  const frequencyValue = frequency > 0 ? `${frequency} MHz` : '';
+
   const observationsValue = formatObservationText(props.observation_count, props.timespan_days);
   const siblingValue =
     Number(props.sibling_count) > 0 ? `${Number(props.sibling_count)} radios` : '';
@@ -304,6 +338,10 @@ export const renderNetworkTooltip = (props: any): string => {
       : '',
     !isMissingValue(props.comment) ? fieldRow('Comment', String(props.comment)) : '',
     !isMissingValue(props.source) ? fieldRow('Source', String(props.source)) : '',
+    !isMissingValue(props.first_seen)
+      ? fieldRow('First Seen', formatDateTime(props.first_seen))
+      : '',
+    !isMissingValue(props.last_seen) ? fieldRow('Last Seen', formatDateTime(props.last_seen)) : '',
   ]
     .filter(Boolean)
     .join('');
@@ -379,27 +417,6 @@ export const renderNetworkTooltip = (props: any): string => {
   }
   ${Number.isFinite(lastPointMeters) && lastPointMeters > 0 ? fieldRow('Last Pt', `${Math.round(lastPointMeters)}m`) : ''}
 
-  ${
-    temporalPresent
-      ? `<div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
-    ${!isMissingValue(props.number) ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;">OBS #${normalizeDisplay(props.number)}</div>` : ''}
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-      <div style="text-align:center;">
-        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">First</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.first_seen)}</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">Last</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.last_seen)}</div>
-      </div>
-      <div ${!isMissingValue(props.time) ? `style="padding:4px 6px;background:#eab30820;border:1px solid #eab30840;border-radius:4px;text-align:center;"` : `style="text-align:center;"`}>
-        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.3)'};font-weight:${!isMissingValue(props.time) ? '600' : '400'};margin-bottom:2px;">Seen</div>
-        <div style="font-size:${!isMissingValue(props.time) ? '11px;font-weight:600' : '10px'};color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.85)'};font-family:monospace;line-height:1.3;">${!isMissingValue(props.time) ? formatDateTime(props.time) : '—'}${!isMissingValue(props.time) && !isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:9px;color:rgba(234,179,8,0.6);"> · ${normalizeDisplay(props.time_since_prior)}</span>` : ''}</div>
-      </div>
-    </div>
-  </div>`
-      : ''
-  }
   ${
     !isMissingValue(props.notes)
       ? `<div style="padding:4px 12px 6px;font-size:10px;color:rgba(255,255,255,0.45);font-style:italic;border-top:1px solid rgba(255,255,255,0.05);">${normalizeDisplay(props.notes)}</div>`
