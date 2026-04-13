@@ -371,13 +371,14 @@ module.exports = {
   getEnrichmentCatalog,
   startBatchEnrichment,
   resumeEnrichment,
+  validateWigleApiCredit,
 };
 
 /**
  * Validates that the WiGLE API key has remaining credit.
  * Returns { hasCredit: boolean, message: string }
  */
-export async function validateWigleApiCredit() {
+async function validateWigleApiCredit() {
   try {
     const wigleApiName = secretsManager.get('wigle_api_name');
     const wigleApiToken = secretsManager.get('wigle_api_token');
