@@ -82,7 +82,7 @@
     "pdfkit": "0.18.0",
     "pg": "8.20.0",
     "preact": "10.29.1",
-    "react": "19.2.4",
+    "react": "19.2.5",
     "react-dom": "19.2.4",
     "react-is": "19.2.4",
     "react-router-dom": "7.14.0",
