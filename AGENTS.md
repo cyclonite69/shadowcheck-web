@@ -1,22 +1,90 @@
-# Repository Guidelines
+# AGENTS.md — Repository Guidelines
 
-## Project Structure & Module Organization
+Prior session notes and handoff state. Claude Code reads this at the start of every task.
 
-`client/` contains the React/Vite frontend, with geospatial UI under `client/src/components/geospatial/` and shared utilities under `client/src/utils/`. `server/` contains the Express API and backend services. `etl/` holds import and transformation scripts. Database assets live in `sql/`, especially `sql/migrations/`. Tests are in `tests/` and selected client utility tests also live under `client/src/utils/__tests__/`.
+---
 
-## Build, Test, and Development Commands
+## Project Structure
 
-- `npm run build`: builds frontend and server output into `dist/`.
-- `npm run dev`: builds the server and starts it with `nodemon`.
-- `npm run dev:frontend`: runs the Vite frontend dev server.
-- `npm test`: runs the Jest suite.
-- `npm run test:integration`: runs integration tests when `RUN_INTEGRATION_TESTS=true`.
-- `npm run lint`: runs ESLint across the repo.
-- `docker compose up -d postgres redis api frontend`: starts the local stack.
+- `client/` — React 19/Vite frontend (ES modules, TypeScript)
+- `server/` — Express API backend (CommonJS, TypeScript)
+  - `src/api/` — Route definitions
+  - `src/services/` — Business logic and SQL integration
+  - `src/repositories/` — Data access layer
+- `etl/` — Ingestion, transformation, enrichment pipeline
+- `sql/` — Schema and migrations
+  - `sql/migrations/` — **Live runner path — DO NOT touch without explicit instruction**
+  - `sql/baseline_drafts/` — Phase 2 planning — reference only
+  - `sql/baseline_phase3/` — Phase 3 baseline — validation complete
+- `tests/` — Jest unit and integration tests
+- `client/src/utils/__tests__/` — Client utility tests
+- `deploy/` — AWS, Docker, Homelab configs
+- `reports/` — Audit artifacts — untracked, do not auto-commit
+- `docs/` — Architecture and development documentation
 
-## Coding Style & Naming Conventions
+---
 
-Use TypeScript where already established and keep code ASCII unless the file already uses Unicode. Follow the existing ESLint config in [eslint.config.js](/home/dbcooper/repos/shadowcheck-web/eslint.config.js). Prefer functional React components and keep geospatial logic in focused utilities/hooks. Use descriptive filenames with `camelCase` for utilities, `PascalCase` for React components, and timestamped snake-case SQL migration names such as `20260402_add_kml_staging_tables.sql`.
+## Build & Dev Commands
+
+```bash
+npm run build                        # Frontend + server → dist/
+npm run dev                          # Nodemon backend (port 3001)
+npm run dev:frontend                 # Vite dev server (port 5173)
+npm test                             # Jest suite
+npm run test:integration             # Requires RUN_INTEGRATION_TESTS=true + live DB
+npm run lint                         # ESLint
+npm run lint:fix                     # Auto-fix
+npm run lint:boundaries              # Verify no client→server imports
+docker compose up -d postgres redis api frontend
+```
+
+---
+
+## Coding Conventions
+
+- TypeScript mandatory for all new frontend and backend code
+- Explicit typing; avoid `any` without justification
+- `camelCase` for utilities, `PascalCase` for React components
+- SQL migrations: `YYYYMMDD_description.sql`
+- Conventional commits: `feat:` `fix:` `docs:` `test:` `chore:` `refactor:`
+- All dependencies pinned to exact versions (no `^` or `~`)
+- `npm test` and `npm run lint` must pass before any commit
+- NEVER use `--force` on any git operation
+
+---
+
+## Database Roles
+
+| Role                | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `shadowcheck_admin` | DDL owner — use for all psql operations      |
+| `shadowcheck_user`  | App runtime role — read-only, limited access |
+| `postgres`          | Does NOT exist in this container setup       |
+
+Use `-v ON_ERROR_STOP=1` on every psql execution.
+Live DB DDL requires explicit approval — stop and ask first.
+
+---
+
+## Security
+
+- NEVER write secrets to disk
+- NEVER commit `.env` contents — only `.env.example`
+- No raw SQL string concatenation — parameterized queries only
+- Validate all inputs with Joi or Zod
+
+---
+
+## Git Gates
+
+NEVER without explicit approval in the current prompt:
+
+- `git commit` — show exact diff and message first
+- `git push` — requires explicit "yes"
+- `git stash pop` / `git stash drop` — list contents first
+- `--force` on any git operation — never
+
+---
 
 ## Ten Commandments
 
@@ -31,14 +99,8 @@ Use TypeScript where already established and keep code ASCII unless the file alr
 9. Behavior changes require regression tests; new features require test coverage.
 10. Bootstrap, restore, import, and upgrade are separate contracts and must be validated separately.
 
-## Testing Guidelines
+---
 
-Jest is the primary test framework. Name tests `*.test.ts`, `*.test.tsx`, or place them in `tests/unit/` or `tests/integration/`. Add targeted tests for parsing, transformations, and query builders when changing ETL, map rendering, or explorer table behavior. Run `npm test` before pushing; use `npx jest path/to/test` for focused validation.
+## Session Notes
 
-## Commit & Pull Request Guidelines
-
-Recent history uses short imperative subjects, often `Fix ...` or conventional-style prefixes like `feat(ui): ...`. Keep commits scoped to one concern. PRs should state user-visible impact, list schema or migration changes, note verification steps, and include screenshots for frontend changes when relevant.
-
-## Security & Configuration Tips
-
-Do not commit secrets or `.env` contents. Do not write secrets to disk in repo code, temp helpers, seed files, or debug flows. Secrets are loaded from AWS Secrets Manager or approved runtime configuration paths only. Treat staging imports such as KML or Kismet as non-canonical until reconciled with core observation data.
+_(Append handoff notes here at the end of each session before closing.)_
