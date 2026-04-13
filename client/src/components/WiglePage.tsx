@@ -2,7 +2,7 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
-import { HamburgerButton } from './HamburgerButton';
+import { AppHeader } from './AppHeader';
 import { WigleControlPanel } from './WigleControlPanel';
 import { FilterPanelContainer } from './FilterPanelContainer';
 import { WigleMap } from './WigleMap';
@@ -598,7 +598,47 @@ const WiglePage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
-      <HamburgerButton isOpen={showMenu} onClick={() => setShowMenu(!showMenu)} />
+      <AppHeader
+        pageLabel="WiGLE"
+        rightContent={
+          <button
+            aria-label={showMenu ? 'Close controls' : 'Open controls'}
+            onClick={() => setShowMenu(!showMenu)}
+            title="Map controls"
+            style={
+              showMenu
+                ? {
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '0.5px solid rgba(59,130,246,0.3)',
+                    background: 'rgba(59,130,246,0.10)',
+                    color: '#60a5fa',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                  }
+                : {
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '0.5px solid rgba(255,255,255,0.10)',
+                    background: 'rgba(255,255,255,0.03)',
+                    color: 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                  }
+            }
+          >
+            {showMenu ? '✕' : '⚙'}
+          </button>
+        }
+      />
 
       <WigleControlPanel
         isOpen={showMenu}

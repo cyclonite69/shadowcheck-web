@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { AppHeader } from './AppHeader';
 
 const GRAFANA_DASHBOARD_PATH = '/grafana/d/shadowcheck-overview/shadowcheck-overview?orgId=1';
 const GRAFANA_EMBED_SRC = `${GRAFANA_DASHBOARD_PATH}&kiosk`;
@@ -12,26 +13,30 @@ const MonitoringPage = () => {
 
   return (
     <section className="flex h-full w-full flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-950/95 px-6 py-4 backdrop-blur">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Monitoring</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Embedded Grafana served through the main HTTPS frontend.
-            </p>
-          </div>
+      <AppHeader
+        pageLabel="Monitoring"
+        rightContent={
           <a
             href={GRAFANA_DASHBOARD_PATH}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-500/50 hover:text-blue-200"
+            style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono, monospace)',
+              color: 'rgba(255,255,255,0.45)',
+              textDecoration: 'none',
+              padding: '4px 8px',
+              borderRadius: '5px',
+              border: '0.5px solid rgba(255,255,255,0.10)',
+              whiteSpace: 'nowrap',
+            }}
           >
-            Open Full Grafana
+            Open Full Grafana ↗
           </a>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="min-h-0 flex-1 bg-slate-900 p-4">
+      <div className="min-h-0 flex-1 bg-slate-900 p-4 pt-[60px]">
         <div className="h-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
           <iframe
             title="ShadowCheck Monitoring"

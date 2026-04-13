@@ -3,7 +3,7 @@
 // EXTRACTS: Layout structure from lines 988-1106 in original AnalyticsPage.tsx
 
 import React from 'react';
-import { FilterButton } from '../../FilterButton';
+import { AppHeader } from '../../AppHeader';
 import { FilterPanelContainer } from '../../FilterPanelContainer';
 import { GripHorizontal } from '../utils/chartConstants';
 import { Card } from '../hooks/useCardLayout';
@@ -50,11 +50,101 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
     >
-      {/* Filter Button and Panel - Same as Dashboard */}
-      <FilterButton isOpen={showFilters} onClick={() => setShowFilters(!showFilters)} />
+      <AppHeader
+        pageLabel="Analytics"
+        rightContent={
+          <button
+            aria-label="Toggle filters"
+            onClick={() => setShowFilters(!showFilters)}
+            title="Toggle filters"
+            style={
+              showFilters
+                ? {
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(59,130,246,0.4)',
+                    background: 'rgba(59,130,246,0.16)',
+                    color: '#93c5fd',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 6px 20px rgba(59,130,246,0.08)',
+                  }
+                : {
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.25)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }
+            }
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="0"
+                y="1"
+                width="14"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.9"
+              />
+              <rect
+                x="1"
+                y="4"
+                width="12"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.8"
+              />
+              <rect
+                x="2"
+                y="7"
+                width="10"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.7"
+              />
+              <rect
+                x="3"
+                y="10"
+                width="8"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.6"
+              />
+              <rect
+                x="4"
+                y="12"
+                width="6"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.5"
+              />
+            </svg>
+          </button>
+        }
+      />
       <FilterPanelContainer isOpen={showFilters} adaptedFilters={adaptedFilters} />
 
-      <div className="relative flex-1 overflow-y-auto h-screen">
+      <div className="relative flex-1 overflow-y-auto h-screen pt-[48px]">
         {/* Cards */}
         <div className="relative min-h-[2700px]">
           {cards.map((card) => {

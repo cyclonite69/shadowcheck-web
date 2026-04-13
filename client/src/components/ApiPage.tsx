@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AppHeader } from './AppHeader';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -54,43 +55,10 @@ const ApiPage: React.FC = () => {
 
   return (
     <div className="relative w-full min-h-screen overflow-hidden">
-      {/* Header */}
-      <div className="absolute top-0 left-0 p-6 z-50 pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl">
-          <h1
-            className="text-3xl font-bold tracking-tight"
-            style={{
-              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-              filter:
-                'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-            }}
-          >
-            API Endpoint
-          </h1>
-          <p
-            className="text-lg font-bold tracking-tight"
-            style={{
-              background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-              filter:
-                'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-              marginTop: '4px',
-            }}
-          >
-            Quickly exercise backend endpoints without leaving the app
-          </p>
-        </div>
-      </div>
+      <AppHeader pageLabel="API Test" />
 
       {/* Content */}
-      <div style={{ paddingTop: '200px' }} className="p-6 space-y-4">
+      <div className="p-6 pt-[60px] space-y-4">
         {/* Presets Card */}
         <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
           <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
