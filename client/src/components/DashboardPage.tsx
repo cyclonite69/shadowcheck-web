@@ -18,7 +18,7 @@ import {
   GripHorizontal,
 } from './dashboard/icons';
 import { createInitialCards } from './dashboard/cardDefinitions';
-import { BrandIcon } from './geospatial/toolbar/MapToolbarIcons';
+import { AppHeader } from './AppHeader';
 
 const MOBILE_BREAKPOINT_PX = 960;
 
@@ -285,139 +285,98 @@ export default function DashboardPage() {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* NEW HEADER - identical to geospatial MapHeader/BrandSection styling. Brand + Hamburger + Dashboard label + Filter */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          height: '48px',
-          padding: '0 14px',
-          gap: 0,
-          background: 'var(--nav-bg)',
-          borderBottom: '0.5px solid var(--nav-border)',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          zIndex: 100,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '5px',
-              background: 'rgba(59,130,246,0.12)',
-              border: '0.5px solid rgba(59,130,246,0.32)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <BrandIcon />
-          </div>
-
-          <span
-            style={{
-              fontFamily: 'var(--font-mono, monospace)',
-              fontSize: '14px',
-              fontWeight: 500,
-              color: '#e2e8f0',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Shadow<span style={{ color: '#60a5fa' }}>Check</span>
-          </span>
-
-          {/* Hamburger immediately to the right of ShadowCheck */}
+      <AppHeader
+        pageLabel="Dashboard"
+        rightContent={
           <button
-            aria-label="Open menu"
-            onClick={() => {}}
-            style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '6px',
-              border: 'none',
-              background: 'transparent',
-              color: 'rgba(255,255,255,0.25)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginLeft: '12px',
-            }}
+            aria-label="Toggle filters"
+            onClick={() => setShowFilters(!showFilters)}
+            title="Toggle filters"
+            style={
+              showFilters
+                ? {
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(59,130,246,0.4)',
+                    background: 'rgba(59,130,246,0.16)',
+                    color: '#93c5fd',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 6px 20px rgba(59,130,246,0.08)',
+                  }
+                : {
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.25)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }
+            }
           >
-            ☰
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="0"
+                y="1"
+                width="14"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.9"
+              />
+              <rect
+                x="1"
+                y="4"
+                width="12"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.8"
+              />
+              <rect
+                x="2"
+                y="7"
+                width="10"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.7"
+              />
+              <rect
+                x="3"
+                y="10"
+                width="8"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.6"
+              />
+              <rect
+                x="4"
+                y="12"
+                width="6"
+                height="1.2"
+                rx="0.6"
+                fill="currentColor"
+                opacity="0.5"
+              />
+            </svg>
           </button>
-        </div>
-
-        <div style={{ marginLeft: 'auto' }} />
-
-        {/* Dashboard label on right, matching ShadowCheck style */}
-        <span
-          style={{
-            fontFamily: 'var(--font-mono, monospace)',
-            fontSize: '14px',
-            fontWeight: 500,
-            color: '#e2e8f0',
-            whiteSpace: 'nowrap',
-            marginRight: '12px',
-          }}
-        >
-          Dashboard
-        </span>
-
-        {/* Filter button - stacked-lines icon, subtle styling like MapToolbar */}
-        <button
-          aria-label="Toggle filters"
-          onClick={() => setShowFilters(!showFilters)}
-          title="Toggle filters"
-          style={
-            showFilters
-              ? {
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(59,130,246,0.4)',
-                  background: 'rgba(59,130,246,0.16)',
-                  color: '#93c5fd',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 6px 20px rgba(59,130,246,0.08)',
-                }
-              : {
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'rgba(255,255,255,0.25)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }
-          }
-        >
-          {/* stacked-lines filter icon: five horizontal lines, each shorter */}
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect x="0" y="1" width="14" height="1.2" rx="0.6" fill="currentColor" opacity="0.9" />
-            <rect x="1" y="4" width="12" height="1.2" rx="0.6" fill="currentColor" opacity="0.8" />
-            <rect x="2" y="7" width="10" height="1.2" rx="0.6" fill="currentColor" opacity="0.7" />
-            <rect x="3" y="10" width="8" height="1.2" rx="0.6" fill="currentColor" opacity="0.6" />
-            <rect x="4" y="12" width="6" height="1.2" rx="0.6" fill="currentColor" opacity="0.5" />
-          </svg>
-        </button>
-      </div>
+        }
+      />
 
       {/* Ambient gradient background elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

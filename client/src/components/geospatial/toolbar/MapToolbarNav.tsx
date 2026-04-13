@@ -4,7 +4,7 @@ interface MapToolbarNavProps {
   navOpen: boolean;
   setNavOpen: React.Dispatch<React.SetStateAction<boolean>>;
   navRef: React.RefObject<HTMLDivElement | null>;
-  onGps: () => void;
+  onGps?: () => void;
   onResetBearing?: () => void;
   onResetPitch?: () => void;
 }
@@ -105,50 +105,56 @@ export const MapToolbarNav = ({
               {item.label}
             </a>
           ))}
-          <div
-            style={{
-              height: '1px',
-              background: 'rgba(255,255,255,0.06)',
-              margin: '8px 14px',
-            }}
-          />
-          <div
-            style={{
-              padding: '6px 14px 4px',
-              ...mono,
-              fontSize: '10px',
-              color: 'rgba(255,255,255,0.25)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Map tools
-          </div>
-          <div
-            onClick={() => {
-              onGps();
-              setNavOpen(false);
-            }}
-            style={{
-              padding: '8px 14px',
-              ...mono,
-              fontSize: '12px',
-              color: 'rgba(255,255,255,0.5)',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              margin: '0 6px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-              e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
-            }}
-          >
-            Go to GPS
-          </div>
+          {(onGps || onResetBearing || onResetPitch) && (
+            <>
+              <div
+                style={{
+                  height: '1px',
+                  background: 'rgba(255,255,255,0.06)',
+                  margin: '8px 14px',
+                }}
+              />
+              <div
+                style={{
+                  padding: '6px 14px 4px',
+                  ...mono,
+                  fontSize: '10px',
+                  color: 'rgba(255,255,255,0.25)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Map tools
+              </div>
+            </>
+          )}
+          {onGps && (
+            <div
+              onClick={() => {
+                onGps();
+                setNavOpen(false);
+              }}
+              style={{
+                padding: '8px 14px',
+                ...mono,
+                fontSize: '12px',
+                color: 'rgba(255,255,255,0.5)',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                margin: '0 6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+              }}
+            >
+              Go to GPS
+            </div>
+          )}
           {onResetBearing && (
             <div
               onClick={() => {

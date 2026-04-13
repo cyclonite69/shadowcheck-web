@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { AppHeader } from './AppHeader';
 import { useAuth } from '../hooks/useAuth';
 import { WigleSearchTab } from './admin/tabs/WigleSearchTab';
 import { WigleDetailTab } from './admin/tabs/WigleDetailTab';
@@ -334,6 +335,8 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen overflow-y-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <AppHeader pageLabel="Admin" />
+
       {/* Fixed background accents */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
@@ -341,7 +344,7 @@ const AdminPage: React.FC = () => {
       </div>
 
       {/* Centered Container */}
-      <div className="relative w-full max-w-7xl mx-auto px-6 py-4">
+      <div className="relative w-full max-w-7xl mx-auto px-6 py-4 pt-[60px]">
         {/* Compact Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/20">

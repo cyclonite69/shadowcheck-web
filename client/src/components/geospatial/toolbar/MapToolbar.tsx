@@ -167,6 +167,15 @@ export const MapToolbar = ({
         gap: '8px',
       }}
     >
+      <MapToolbarNav
+        navOpen={navOpen}
+        setNavOpen={setNavOpen}
+        navRef={navRef}
+        onGps={onGps}
+        onResetBearing={onResetBearing}
+        onResetPitch={onResetPitch}
+      />
+
       <BrandSection />
       <Separator />
 
@@ -183,15 +192,6 @@ export const MapToolbar = ({
         searchMode={searchMode}
         onSearchModeToggle={onSearchModeToggle}
         directionsLoading={directionsLoading}
-      />
-
-      <MapToolbarNav
-        navOpen={navOpen}
-        setNavOpen={setNavOpen}
-        navRef={navRef}
-        onGps={onGps}
-        onResetBearing={onResetBearing}
-        onResetPitch={onResetPitch}
       />
 
       <Separator />
