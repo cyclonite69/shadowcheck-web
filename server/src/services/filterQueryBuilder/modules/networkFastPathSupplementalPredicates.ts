@@ -21,17 +21,25 @@ export function buildFastPathSupplementalPredicates(
   }
 
   if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
-    where.push(
-      `ne.wigle_v3_observation_count >= ${ctx.addParam(f.wigle_v3_observation_count_min)}`
-    );
-    ctx.addApplied('quality', 'wigle_v3_observation_count_min', f.wigle_v3_observation_count_min);
+    if (options.addUnsupportedWigleIgnored) {
+      ctx.addIgnored('quality', 'wigle_v3_observation_count_min', 'unsupported_page');
+    } else {
+      where.push(
+        `ne.wigle_v3_observation_count >= ${ctx.addParam(f.wigle_v3_observation_count_min)}`
+      );
+      ctx.addApplied('quality', 'wigle_v3_observation_count_min', f.wigle_v3_observation_count_min);
+    }
   }
 
   if (e.wigle_v3_observation_count_max && f.wigle_v3_observation_count_max !== undefined) {
-    where.push(
-      `ne.wigle_v3_observation_count <= ${ctx.addParam(f.wigle_v3_observation_count_max)}`
-    );
-    ctx.addApplied('quality', 'wigle_v3_observation_count_max', f.wigle_v3_observation_count_max);
+    if (options.addUnsupportedWigleIgnored) {
+      ctx.addIgnored('quality', 'wigle_v3_observation_count_max', 'unsupported_page');
+    } else {
+      where.push(
+        `ne.wigle_v3_observation_count <= ${ctx.addParam(f.wigle_v3_observation_count_max)}`
+      );
+      ctx.addApplied('quality', 'wigle_v3_observation_count_max', f.wigle_v3_observation_count_max);
+    }
   }
 
   if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
@@ -276,16 +284,24 @@ export function buildFastPathSupplementalPredicates(
   }
 
   if (e.wigleV3LastImportBefore && f.wigleV3LastImportBefore) {
-    where.push(
-      `ne.wigle_v3_last_import_at <= ${ctx.addParam(f.wigleV3LastImportBefore)}::timestamptz`
-    );
-    ctx.addApplied('quality', 'wigleV3LastImportBefore', f.wigleV3LastImportBefore);
+    if (options.addUnsupportedWigleIgnored) {
+      ctx.addIgnored('quality', 'wigleV3LastImportBefore', 'unsupported_page');
+    } else {
+      where.push(
+        `ne.wigle_v3_last_import_at <= ${ctx.addParam(f.wigleV3LastImportBefore)}::timestamptz`
+      );
+      ctx.addApplied('quality', 'wigleV3LastImportBefore', f.wigleV3LastImportBefore);
+    }
   }
   if (e.wigleV3LastImportAfter && f.wigleV3LastImportAfter) {
-    where.push(
-      `ne.wigle_v3_last_import_at >= ${ctx.addParam(f.wigleV3LastImportAfter)}::timestamptz`
-    );
-    ctx.addApplied('quality', 'wigleV3LastImportAfter', f.wigleV3LastImportAfter);
+    if (options.addUnsupportedWigleIgnored) {
+      ctx.addIgnored('quality', 'wigleV3LastImportAfter', 'unsupported_page');
+    } else {
+      where.push(
+        `ne.wigle_v3_last_import_at >= ${ctx.addParam(f.wigleV3LastImportAfter)}::timestamptz`
+      );
+      ctx.addApplied('quality', 'wigleV3LastImportAfter', f.wigleV3LastImportAfter);
+    }
   }
 
   return where;

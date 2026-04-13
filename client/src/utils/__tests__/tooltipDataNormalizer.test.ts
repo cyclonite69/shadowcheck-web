@@ -2,6 +2,10 @@ import { normalizeTooltipData } from '../geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../geospatial/renderNetworkTooltip';
 
 describe('tooltipDataNormalizer', () => {
+  const mockTriggerElement = {
+    getBoundingClientRect: () => ({ width: 100, height: 100, top: 0, left: 0 }),
+  };
+
   it('normalizes signal aliases used by geospatial payloads', () => {
     expect(normalizeTooltipData({ signalDbm: -61 }).signal).toBe(-61);
     expect(normalizeTooltipData({ maxSignal: -67 }).signal).toBe(-67);
@@ -14,6 +18,7 @@ describe('tooltipDataNormalizer', () => {
       ssid: 'Test',
       bssid: 'AA:BB:CC:DD:EE:FF',
       signalDbm: -64,
+      triggerElement: mockTriggerElement,
     });
 
     expect(html).toContain('-64 dBm');
@@ -31,6 +36,7 @@ describe('tooltipDataNormalizer', () => {
       bssid: 'DE:AD:BE:EF:00:01',
       capabilities: 'STINGRAY;310410',
       threat_factors: { high_power: 12.0, proximity: 5.2 },
+      triggerElement: mockTriggerElement,
     });
 
     expect(html).toContain('border:2px solid #FF00FF');
@@ -51,7 +57,10 @@ describe('tooltipDataNormalizer', () => {
 
     expect(normalized.radio_type).toBe('E');
 
-    const html = renderNetworkTooltip(normalized);
+    const html = renderNetworkTooltip({
+      ...normalized,
+      triggerElement: mockTriggerElement,
+    });
     expect(html).toContain('BLE Device');
     expect(html).not.toContain('⋮⋮');
   });

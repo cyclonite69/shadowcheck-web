@@ -117,7 +117,7 @@ export function buildNetworkOnlyQueryImpl(
     channelWrapComparisons: true,
     tagLowerExpr: NT_TAG_LOWER_EXPR,
     tagIgnoredExpr: NT_IS_IGNORED_EXPR,
-    addUnsupportedWigleIgnored: true,
+    addUnsupportedWigleIgnored: false,
   });
 
   ctx.params = [...ctx.getParams()];

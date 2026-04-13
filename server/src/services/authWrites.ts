@@ -30,8 +30,8 @@ const updateUserPassword = async (
 ): Promise<void> => {
   const runUpdate = async (sql: string) => {
     try {
-      await query(sql, [passwordHash, userId]);
-      return true;
+      const result = await query(sql, [passwordHash, userId]);
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error: unknown) {
       const err = error as { code?: string };
       if (err.code === '42501' && plainTextPassword) {

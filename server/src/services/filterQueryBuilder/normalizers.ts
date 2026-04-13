@@ -211,6 +211,7 @@ const normalizeFilters = (filters: unknown): Filters => {
   normalized.observationCountMin = toFiniteNumber(source.observationCountMin);
   normalized.observationCountMax = toFiniteNumber(source.observationCountMax);
   normalized.wigle_v3_observation_count_min = toFiniteNumber(source.wigle_v3_observation_count_min);
+  normalized.wigle_v3_observation_count_max = toFiniteNumber(source.wigle_v3_observation_count_max);
   normalized.gpsAccuracyMax = toFiniteNumber(source.gpsAccuracyMax);
   normalized.distanceFromHomeMin = toFiniteNumber(source.distanceFromHomeMin);
   normalized.distanceFromHomeMax = toFiniteNumber(source.distanceFromHomeMax);
@@ -218,6 +219,23 @@ const normalizeFilters = (filters: unknown): Filters => {
   normalized.threatScoreMax = toFiniteNumber(source.threatScoreMax);
   normalized.stationaryConfidenceMin = toFiniteNumber(source.stationaryConfidenceMin);
   normalized.stationaryConfidenceMax = toFiniteNumber(source.stationaryConfidenceMax);
+
+  normalized.geocodedConfidenceMin = toFiniteNumber(source.geocodedConfidenceMin);
+  normalized.geocodedConfidenceMax = toFiniteNumber(source.geocodedConfidenceMax);
+  normalized.uniqueDaysMin = toFiniteNumber(source.uniqueDaysMin);
+  normalized.uniqueDaysMax = toFiniteNumber(source.uniqueDaysMax);
+  normalized.uniqueLocationsMin = toFiniteNumber(source.uniqueLocationsMin);
+  normalized.uniqueLocationsMax = toFiniteNumber(source.uniqueLocationsMax);
+  normalized.ruleBasedScoreMin = toFiniteNumber(source.ruleBasedScoreMin);
+  normalized.ruleBasedScoreMax = toFiniteNumber(source.ruleBasedScoreMax);
+  normalized.mlThreatScoreMin = toFiniteNumber(source.mlThreatScoreMin);
+  normalized.mlThreatScoreMax = toFiniteNumber(source.mlThreatScoreMax);
+  normalized.mlWeightMin = toFiniteNumber(source.mlWeightMin);
+  normalized.mlWeightMax = toFiniteNumber(source.mlWeightMax);
+  normalized.mlBoostMin = toFiniteNumber(source.mlBoostMin);
+  normalized.mlBoostMax = toFiniteNumber(source.mlBoostMax);
+  normalized.maxDistanceMetersMin = toFiniteNumber(source.maxDistanceMetersMin);
+  normalized.maxDistanceMetersMax = toFiniteNumber(source.maxDistanceMetersMax);
 
   normalized.has_notes = toBooleanOrUndefined(source.has_notes);
   normalized.excludeInvalidCoords = toBooleanOrUndefined(source.excludeInvalidCoords);
