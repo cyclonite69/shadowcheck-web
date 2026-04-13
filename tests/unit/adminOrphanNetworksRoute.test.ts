@@ -52,6 +52,10 @@ jest.mock('../../server/src/services/backup/awsCli', () => ({
   runAwsCliJson: jest.fn(),
 }));
 
+jest.mock('../../server/src/services/wigleEnrichmentService', () => ({
+  validateWigleApiCredit: jest.fn().mockResolvedValue({ hasCredit: true, message: 'ok' }),
+}));
+
 function createRes() {
   let resolveJson: (value: any) => void;
   const done = new Promise((resolve) => {
