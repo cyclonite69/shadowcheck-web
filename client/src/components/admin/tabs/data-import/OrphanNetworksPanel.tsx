@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { OrphanNetworkRow } from './types';
 import { formatShortDate } from '../../../../utils/formatDate';
+import { renderNetworkTooltip } from '../../../../utils/geospatial/renderNetworkTooltip';
+import { normalizeTooltipData } from '../../../../utils/geospatial/tooltipDataNormalizer';
 
 const PAGE_SIZE = 100;
 
@@ -19,6 +21,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [search, setSearch] = useState('');
   const [draftSearch, setDraftSearch] = useState('');
   const [activeBssid, setActiveBssid] = useState<string | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{ bssid: string; html: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const rowsRef = useRef<OrphanNetworkRow[]>([]);
@@ -111,6 +114,20 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       scrollRef.current.scrollTop = 0;
     }
     loadRows({ reset: true });
+  };
+
+  const handleRowClick = (row: OrphanNetworkRow, event: React.MouseEvent<HTMLTableRowElement>) => {
+    if (activeTooltip?.bssid === row.bssid) {
+      setActiveTooltip(null);
+      return;
+    }
+    const normalized = normalizeTooltipData({
+      ...row,
+      lat: row.bestlat,
+      lon: row.bestlon,
+    });
+    const html = renderNetworkTooltip({ ...normalized, triggerElement: event.currentTarget });
+    if (html) setActiveTooltip({ bssid: row.bssid, html });
   };
 
   const handleCheckWigle = async (bssid: string) => {
@@ -234,51 +251,83 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.bssid} className="border-b border-slate-800/50">
-                  <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                    {formatShortDate(row.moved_at)}
-                  </td>
-                  <td className="py-1.5 pr-3 font-mono text-slate-200 whitespace-nowrap">
-                    {row.bssid}
-                  </td>
-                  <td className="py-1.5 pr-3 max-w-[16rem] truncate" title={row.ssid || '(hidden)'}>
-                    {row.ssid || '(hidden)'}
-                  </td>
-                  <td className="py-1.5 pr-3">{row.type || '—'}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{row.frequency ?? '—'}</td>
-                  <td
-                    className="py-1.5 pr-3 text-slate-400 whitespace-nowrap"
-                    title={`best=${formatCoords(row.bestlat, row.bestlon)} last=${formatCoords(row.lastlat, row.lastlon)}`}
-                  >
-                    {formatCoords(row.bestlat, row.bestlon)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                    {row.source_device || '—'}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {row.wigle_v3_observation_count ?? 0}
-                  </td>
-                  <td className="py-1.5 pr-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      {renderStatus(row)}
-                      <button
-                        type="button"
-                        onClick={() => handleCheckWigle(row.bssid)}
-                        disabled={activeBssid === row.bssid}
-                        className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
-                        title={row.last_attempted_at || undefined}
+              {rows.map((row) => {
+                const isActive = activeTooltip?.bssid === row.bssid;
+                return (
+                  <React.Fragment key={row.bssid}>
+                    <tr
+                      className={`border-b border-slate-800/50 cursor-pointer transition-colors ${
+                        isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
+                      }`}
+                      onClick={(e) => handleRowClick(row, e)}
+                    >
+                      <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
+                        {formatShortDate(row.moved_at)}
+                      </td>
+                      <td className="py-1.5 pr-3 font-mono text-slate-200 whitespace-nowrap">
+                        {row.bssid}
+                      </td>
+                      <td
+                        className="py-1.5 pr-3 max-w-[16rem] truncate"
+                        title={row.ssid || '(hidden)'}
                       >
-                        {activeBssid === row.bssid ? 'Checking...' : 'Check WiGLE'}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                    {row.last_promoted_at ? formatShortDate(row.last_promoted_at) : '—'}
-                  </td>
-                  <td className="py-1.5 text-slate-400">{row.move_reason}</td>
-                </tr>
-              ))}
+                        {row.ssid || '(hidden)'}
+                      </td>
+                      <td className="py-1.5 pr-3">{row.type || '—'}</td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums">
+                        {row.frequency ?? '—'}
+                      </td>
+                      <td
+                        className="py-1.5 pr-3 text-slate-400 whitespace-nowrap"
+                        title={`best=${formatCoords(row.bestlat, row.bestlon)} last=${formatCoords(row.lastlat, row.lastlon)}`}
+                      >
+                        {formatCoords(row.bestlat, row.bestlon)}
+                      </td>
+                      <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
+                        {row.source_device || '—'}
+                      </td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums">
+                        {row.wigle_v3_observation_count ?? 0}
+                      </td>
+                      <td className="py-1.5 pr-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {renderStatus(row)}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCheckWigle(row.bssid);
+                            }}
+                            disabled={activeBssid === row.bssid}
+                            className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
+                            title={row.last_attempted_at || undefined}
+                          >
+                            {activeBssid === row.bssid ? 'Checking...' : 'Check WiGLE'}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
+                        {row.last_promoted_at ? formatShortDate(row.last_promoted_at) : '—'}
+                      </td>
+                      <td className="py-1.5 text-slate-400">{row.move_reason}</td>
+                    </tr>
+                    {isActive && (
+                      <tr>
+                        <td
+                          colSpan={11}
+                          style={{
+                            padding: '0 12px 12px',
+                            background: 'transparent',
+                            border: 'none',
+                          }}
+                        >
+                          <div dangerouslySetInnerHTML={{ __html: activeTooltip.html }} />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
           {isLoadingMore ? (
