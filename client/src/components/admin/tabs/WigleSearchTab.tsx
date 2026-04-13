@@ -5,6 +5,8 @@ import { useWigleRuns } from '../hooks/useWigleRuns';
 import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
+import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
+import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -97,6 +99,38 @@ export const WigleSearchTab: React.FC = () => {
     pauseRun,
     cancelRun,
   } = useWigleRuns({ limit: 100 });
+
+  const [activeTooltip, setActiveTooltip] = React.useState<{ bssid: string; html: string } | null>(
+    null
+  );
+
+  const handleRowClick = (net: any, event: React.MouseEvent<HTMLTableRowElement>) => {
+    const bssid = net.netid || net.bssid;
+    if (activeTooltip?.bssid === bssid) {
+      setActiveTooltip(null);
+      return;
+    }
+    // Derive frequency from channel when frequency is absent (WiGLE v2 omits it)
+    const ch = net.channel ? Number(net.channel) : null;
+    const derivedFreq = ch
+      ? ch >= 1 && ch <= 13
+        ? 2407 + ch * 5
+        : ch === 14
+          ? 2484
+          : ch >= 36 && ch <= 177
+            ? 5000 + ch * 5
+            : null
+      : null;
+    const normalized = normalizeTooltipData({
+      ...net,
+      bssid,
+      lat: net.trilat ?? net.lat ?? net.latitude,
+      lon: net.trilong ?? net.lon ?? net.longitude,
+      frequency: net.frequency || derivedFreq,
+    });
+    const html = renderNetworkTooltip({ ...normalized, triggerElement: event.currentTarget });
+    if (html) setActiveTooltip({ bssid, html });
+  };
 
   useEffect(() => {
     loadApiStatus();
@@ -448,24 +482,51 @@ export const WigleSearchTab: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
-                          {searchResults.results.map((net, idx) => (
-                            <tr key={idx} className="hover:bg-slate-700/30">
-                              <td className="px-3 py-2 font-medium text-white">
-                                {net.ssid || '<hidden>'}
-                              </td>
-                              <td className="px-3 py-2 font-mono text-slate-400">
-                                {net.netid || net.bssid}
-                              </td>
-                              <td className="px-3 py-2">{net.type}</td>
-                              <td className="px-3 py-2">{net.encryption}</td>
-                              <td className="px-3 py-2">
-                                {[net.city, net.region, net.country].filter(Boolean).join(', ')}
-                              </td>
-                              <td className="px-3 py-2">
-                                {net.lasttime ? formatShortDate(net.lasttime) : 'N/A'}
-                              </td>
-                            </tr>
-                          ))}
+                          {searchResults.results.map((net, idx) => {
+                            const bssid = net.netid || net.bssid;
+                            const isActive = activeTooltip?.bssid === bssid;
+                            return (
+                              <React.Fragment key={idx}>
+                                <tr
+                                  className={`cursor-pointer transition-colors ${
+                                    isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
+                                  }`}
+                                  onClick={(e) => handleRowClick(net, e)}
+                                >
+                                  <td className="px-3 py-2 font-medium text-white">
+                                    {net.ssid || '<hidden>'}
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-slate-400">
+                                    {net.netid || net.bssid}
+                                  </td>
+                                  <td className="px-3 py-2">{net.type}</td>
+                                  <td className="px-3 py-2">{net.encryption}</td>
+                                  <td className="px-3 py-2">
+                                    {[net.city, net.region, net.country].filter(Boolean).join(', ')}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {net.lasttime ? formatShortDate(net.lasttime) : 'N/A'}
+                                  </td>
+                                </tr>
+                                {isActive && (
+                                  <tr>
+                                    <td
+                                      colSpan={6}
+                                      style={{
+                                        padding: '0 12px 12px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                      }}
+                                    >
+                                      <div
+                                        dangerouslySetInnerHTML={{ __html: activeTooltip.html }}
+                                      />
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
