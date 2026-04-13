@@ -2,5 +2,7 @@
 
 bash scripts/security/scan-secrets.sh --staged
 npm run policy:secret-disk
+npm run type-check:server
+npm run type-check:test
 npm run lint
 npx lint-staged
