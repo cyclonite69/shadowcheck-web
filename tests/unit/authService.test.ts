@@ -109,6 +109,18 @@ describe('AuthService', () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
+    it('should return forcePasswordChange true if user has it set', async () => {
+      const mockUser = createMockUser({ password_hash: 'hashed', force_password_change: true });
+      (getUserForLogin as jest.Mock).mockResolvedValue({ rows: [mockUser] });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (createUserSession as jest.Mock).mockResolvedValue({ rowCount: 1 });
+
+      const result = await authService.login('test_user', 'pass');
+
+      expect(result.success).toBe(true);
+      expect(result.forcePasswordChange).toBe(true);
+    });
+
     it('should handle missing username or password', async () => {
       // @ts-ignore
       const result1 = await authService.login('', 'pass');
@@ -122,13 +134,14 @@ describe('AuthService', () => {
 
   describe('validateSession()', () => {
     it('should validate active session', async () => {
-      const mockUser = createMockUser();
+      const mockUser = createMockUser({ force_password_change: true });
       (getSessionUser as jest.Mock).mockResolvedValue({ rows: [mockUser] });
 
       const result = await authService.validateSession('valid-token');
 
       expect(result.valid).toBe(true);
       expect(result.user?.id).toBe(mockUser.id);
+      expect(result.forcePasswordChange).toBe(true);
       expect(getSessionUser).toHaveBeenCalled();
     });
 
@@ -240,7 +253,26 @@ describe('AuthService', () => {
       expect(updateUserPassword).toHaveBeenCalledWith(mockUser.id, 'new_hash', 'new_pass');
     });
 
-    it('should return error for invalid current password', async () => {
+    it('should return error for non-existent user', async () => {
+      (getUserForPasswordChange as jest.Mock).mockResolvedValue({ rows: [] });
+
+      const result = await authService.changePassword('unknown_user', 'old', 'new');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid credentials');
+    });
+
+    it('should return error for disabled account', async () => {
+      const mockUser = createMockUser({ is_active: false });
+      (getUserForPasswordChange as jest.Mock).mockResolvedValue({ rows: [mockUser] });
+
+      const result = await authService.changePassword('test_user', 'old', 'new');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Account is disabled');
+    });
+
+    it('should return error for incorrect current password', async () => {
       const mockUser = createMockUser();
       (getUserForPasswordChange as jest.Mock).mockResolvedValue({ rows: [mockUser] });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
