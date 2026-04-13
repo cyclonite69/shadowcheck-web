@@ -56,7 +56,7 @@
     "@aws-sdk/s3-request-presigner": "3.1024.0",
     "@deck.gl/core": "9.2.11",
     "@deck.gl/layers": "9.2.11",
-    "@deck.gl/react": "9.2.10",
+    "@deck.gl/react": "9.2.11",
     "@deck.gl/widgets": "9.2.11",
     "@tanstack/react-virtual": "3.13.23",
     "@xterm/addon-fit": "0.11.0",
