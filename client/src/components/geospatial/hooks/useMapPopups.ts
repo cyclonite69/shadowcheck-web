@@ -56,29 +56,18 @@ export const useMapPopups = (
           .setHTML(popupHTML)
           .addTo(map);
 
-        // Center the popup within the map container so it is never clipped,
-        // regardless of where in the (resizable) map panel the click occurred.
+        // Cap tooltip height so it never scrolls on a normal viewport.
+        // Do NOT override the popup's position — Mapbox positions it via the
+        // computed anchor so it appears offset from the point, not over it.
         requestAnimationFrame(() => {
           const el = popup.getElement();
           if (!el) return;
           const containerRect = map.getContainer().getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
-          const pad = 12;
-          const maxH = containerRect.height - pad * 2;
-          // Apply max-height so very tall cards scroll rather than overflow
           const content = el.querySelector('.mapboxgl-popup-content') as HTMLElement | null;
           if (content) {
-            content.style.maxHeight = `${maxH}px`;
+            content.style.maxHeight = `${Math.min(containerRect.height - 40, 520)}px`;
             content.style.overflowY = 'auto';
           }
-          // Re-measure after max-height applied
-          const finalH = Math.min(elRect.height, maxH + 40); // +40 for tip/arrow
-          const left = containerRect.left + (containerRect.width - elRect.width) / 2;
-          const top = containerRect.top + (containerRect.height - finalH) / 2;
-          el.style.position = 'fixed';
-          el.style.left = `${Math.max(containerRect.left + pad, Math.min(left, containerRect.right - elRect.width - pad))}px`;
-          el.style.top = `${Math.max(containerRect.top + pad, Math.min(top, containerRect.bottom - finalH - pad))}px`;
-          el.style.transform = 'none';
         });
 
         // Setup drag functionality

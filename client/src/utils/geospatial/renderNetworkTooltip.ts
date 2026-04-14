@@ -368,7 +368,7 @@ export const renderNetworkTooltip = (props: any): any => {
   return `
 <div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:2px solid ${bc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
-    <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
       <span class="popup-drag-handle" title="Drag to move" aria-hidden="true">
         <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
           <circle cx="3" cy="3" r="1" fill="currentColor" />
@@ -407,7 +407,7 @@ export const renderNetworkTooltip = (props: any): any => {
 
   <div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
   ${locationText ? `<div style="padding:1px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}
-  ${hasCoords ? `<div title="${lat.toFixed(6)}, ${lon.toFixed(6)}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}${obsNumber > 0 && obsTotal > 0 ? `<span style="color:rgba(255,255,255,0.3);">#${obsNumber} / ${obsTotal}</span>` : ''}</div>` : ''}
+  ${hasCoords ? `<div title="${locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;${locationText ? 'text-decoration:underline dotted rgba(255,255,255,0.2);' : ''}">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}${obsNumber > 0 && obsTotal > 0 ? `<span style="color:rgba(255,255,255,0.3);">#${obsNumber} / ${obsTotal}</span>` : ''}</div>` : ''}
   ${
     Number.isFinite(homeKm)
       ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
