@@ -27,7 +27,7 @@ const KeplerPage: React.FC = () => {
   const scriptsLoadedRef = React.useRef<boolean>(false);
   const [selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [showMenu, setShowMenu] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 960 : false
@@ -65,6 +65,19 @@ const KeplerPage: React.FC = () => {
     () => handleFitBounds(networkData),
     [handleFitBounds, networkData]
   );
+
+  // Auto-fit viewport once when data first loads. Uses a one-shot ref so
+  // subsequent filter-driven reloads don't override the user's pan/zoom.
+  const hasFitRef = React.useRef(false);
+  useEffect(() => {
+    if (networkData.length === 0 || hasFitRef.current) return;
+    // Give initDeck one tick to finish creating the DeckGL instance
+    const t = setTimeout(() => {
+      handleFitBoundsCallback();
+      hasFitRef.current = true;
+    }, 150);
+    return () => clearTimeout(t);
+  }, [networkData, handleFitBoundsCallback]);
 
   useEffect(() => {
     if (scriptsLoadedRef.current) return;
