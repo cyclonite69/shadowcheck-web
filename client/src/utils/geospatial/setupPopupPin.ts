@@ -33,18 +33,18 @@ export function setupPopupPin(popup: mapboxgl.Popup, _map: mapboxgl.Map): () => 
   pinButton.innerHTML = '📌';
   pinButton.setAttribute('data-pinned', 'false');
 
-  // Find the header flex container and insert pin button
-  const header = popupElement.querySelector(
-    '[style*="display:flex"][style*="align-items:center"][style*="justify-content:space-between"]'
+  // Insert pin button just before the SSID text — left of the label, not crowding it
+  const ssidEl = popupElement.querySelector(
+    '[style*="overflow:hidden"][style*="text-overflow:ellipsis"]'
   );
-  if (header) {
-    // Insert pin button after the threat badge on the right side
-    const threatBadge = header.querySelector('[style*="flex-shrink:0"]');
-    if (threatBadge) {
-      threatBadge.insertAdjacentElement('afterend', pinButton);
-    } else {
-      header.appendChild(pinButton);
-    }
+  if (ssidEl) {
+    ssidEl.insertAdjacentElement('beforebegin', pinButton);
+  } else {
+    // Fallback: append to header if SSID element not found
+    const header = popupElement.querySelector(
+      '[style*="display:flex"][style*="align-items:center"][style*="justify-content:space-between"]'
+    );
+    if (header) header.appendChild(pinButton);
   }
 
   // Store initial state

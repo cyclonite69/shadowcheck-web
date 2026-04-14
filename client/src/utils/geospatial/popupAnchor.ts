@@ -32,9 +32,13 @@ export function getPopupAnchor(map: Map, lngLat: LngLatLike, html: string): Popu
 
   const overflowRight = point.x + gap + tooltipWidth > bounds.width;
   const overflowBottom = point.y + gap + tooltipHeight > bounds.height;
+  const overflowTop = point.y - gap - tooltipHeight < 0;
 
-  if (overflowRight && overflowBottom) return 'bottom-right';
+  // When overflowBottom would open the tooltip upward, verify there is room above.
+  // If not, fall back to opening downward (top anchor) even if it clips the bottom —
+  // that is less disruptive than disappearing off the top of the viewport.
+  if (overflowRight && overflowBottom) return overflowTop ? 'top-right' : 'bottom-right';
   if (overflowRight) return 'top-right';
-  if (overflowBottom) return 'bottom-left';
+  if (overflowBottom) return overflowTop ? 'top-left' : 'bottom-left';
   return 'top-left';
 }
