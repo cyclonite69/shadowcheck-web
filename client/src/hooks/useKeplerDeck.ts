@@ -320,6 +320,8 @@ export function useKeplerDeck({
           mapStyle: 'mapbox://styles/mapbox/dark-v11',
           mapboxApiAccessToken: token,
           layers,
+          getCursor: ({ isHovering }: { isHovering: boolean }) =>
+            isHovering ? 'crosshair' : 'default',
           onClick: ({ object }: any) => {
             if (!object) {
               clearTooltip();

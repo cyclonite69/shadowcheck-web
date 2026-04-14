@@ -117,38 +117,56 @@ const KeplerPage: React.FC = () => {
         pageLabel="Kepler"
         afterLabel={
           <>
-            {(['Filters', 'Layers'] as const).map((label) => {
-              const active = label === 'Filters' ? showFilters : showMenu;
-              const toggle =
-                label === 'Filters'
-                  ? () => setShowFilters(!showFilters)
-                  : () => setShowMenu(!showMenu);
-              return (
-                <button
-                  key={label}
-                  aria-label={
-                    active ? `Close ${label.toLowerCase()}` : `Open ${label.toLowerCase()}`
-                  }
-                  onClick={toggle}
-                  style={{
-                    height: '24px',
-                    padding: '0 8px',
-                    borderRadius: '5px',
-                    border: active
-                      ? '0.5px solid rgba(59,130,246,0.4)'
-                      : '0.5px solid rgba(255,255,255,0.10)',
-                    background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
-                    color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            {(
+              [
+                {
+                  key: 'layers',
+                  active: showMenu,
+                  toggle: () => setShowMenu(!showMenu),
+                  icon: (
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                      <path
+                        d="M8 1l7 3.5-7 3.5L1 4.5 8 1zm0 5.5l7 3.5-7 3.5-7-3.5 7-3.5zm0 5l7 3.5-7 3.5-7-3.5 7-3.5z"
+                        opacity=".85"
+                      />
+                    </svg>
+                  ),
+                },
+                {
+                  key: 'filters',
+                  active: showFilters,
+                  toggle: () => setShowFilters(!showFilters),
+                  icon: (
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                      <path d="M1 2h14l-5 6v5l-4-2V8L1 2z" />
+                    </svg>
+                  ),
+                },
+              ] as const
+            ).map(({ key, active, toggle, icon }) => (
+              <button
+                key={key}
+                aria-label={active ? `Close ${key}` : `Open ${key}`}
+                onClick={toggle}
+                title={key.charAt(0).toUpperCase() + key.slice(1)}
+                style={{
+                  height: '24px',
+                  width: '28px',
+                  borderRadius: '5px',
+                  border: active
+                    ? '0.5px solid rgba(59,130,246,0.4)'
+                    : '0.5px solid rgba(255,255,255,0.10)',
+                  background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+                  color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {icon}
+              </button>
+            ))}
           </>
         }
       />
@@ -183,7 +201,11 @@ const KeplerPage: React.FC = () => {
       <KeplerFilters
         showFilters={showFilters}
         className={
-          isMobile ? '!left-3 !right-3 !top-[4.5rem] !w-auto !max-h-[calc(100vh-100px)]' : ''
+          isMobile
+            ? '!left-3 !right-3 !top-[4.5rem] !w-auto !max-h-[calc(100vh-100px)]'
+            : !showMenu
+              ? '!left-4'
+              : ''
         }
       />
 

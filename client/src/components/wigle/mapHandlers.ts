@@ -139,5 +139,16 @@ export const attachClickHandlers = (
     handleClusterClick('wigle-kml-points', 'wigle-kml-clusters')
   );
 
+  // Crosshair cursor over clickable points so users know exactly where to click
+  const POINT_LAYERS = ['wigle-v2-unclustered', 'wigle-v3-unclustered', 'wigle-kml-unclustered'];
+  POINT_LAYERS.forEach((layerId) => {
+    map.on('mouseenter', layerId, () => {
+      map.getCanvas().style.cursor = 'crosshair';
+    });
+    map.on('mouseleave', layerId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+  });
+
   wigleHandlersAttachedRef.current = true;
 };

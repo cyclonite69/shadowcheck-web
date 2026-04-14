@@ -123,6 +123,13 @@ export const ensureV3Layers = (map: Map, v3FCRef: any) => {
   }
 };
 
+/** Update circle-radius on all unclustered point layers. */
+export const setPointRadius = (map: Map, radius: number) => {
+  ['wigle-v2-unclustered', 'wigle-v3-unclustered', 'wigle-kml-unclustered'].forEach((id) => {
+    if (map.getLayer(id)) map.setPaintProperty(id, 'circle-radius', radius);
+  });
+};
+
 export const applyLayerVisibility = (
   map: Map,
   layers: { v2: boolean; v3: boolean; kml: boolean }
