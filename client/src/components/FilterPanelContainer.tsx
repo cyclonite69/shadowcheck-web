@@ -26,7 +26,7 @@ export const FilterPanelContainer: React.FC<FilterPanelContainerProps> = ({
 
   const positionStyles =
     position === 'overlay'
-      ? 'fixed top-16 right-[336px] w-[440px]'
+      ? 'fixed top-16 left-[352px] w-[440px]'
       : 'fixed top-16 left-3 w-[440px]';
 
   return (
