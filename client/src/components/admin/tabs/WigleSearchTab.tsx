@@ -222,125 +222,92 @@ export const WigleSearchTab: React.FC = () => {
         </AdminCard>
       )}
 
-      {/* Status Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <AdminCard
-          icon={SearchIcon}
-          title="API Status"
-          color="from-orange-500 to-orange-600"
-          compact
-        >
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Status:</span>
-              <span
-                className={`font-semibold ${apiStatus?.configured ? 'text-green-400' : 'text-red-400'}`}
-              >
-                {apiStatus?.configured ? 'Configured' : 'Unconfigured'}
-              </span>
-            </div>
-            {apiStatus?.username && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">User:</span>
-                <span className="text-blue-400 font-semibold text-xs">{apiStatus.username}</span>
-              </div>
-            )}
-            {apiStatus?.error && (
-              <div className="text-xs text-red-400 mt-2 p-2 bg-red-900/20 rounded">
-                {apiStatus.error}
-              </div>
-            )}
+      {/* Search Parameters */}
+      <AdminCard
+        icon={DatabaseIcon}
+        title="Search Parameters"
+        color="from-blue-500 to-blue-600"
+        compact
+      >
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">SSID</label>
+            <input
+              type="text"
+              value={searchParams.ssid}
+              onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
+              placeholder="Network name"
+              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            />
           </div>
-        </AdminCard>
-
-        <div className="md:col-span-2">
-          <AdminCard
-            icon={DatabaseIcon}
-            title="Search Parameters"
-            color="from-blue-500 to-blue-600"
-            compact
-          >
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">SSID</label>
-                <input
-                  type="text"
-                  value={searchParams.ssid}
-                  onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
-                  placeholder="Network name"
-                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">BSSID</label>
-                <input
-                  type="text"
-                  value={searchParams.bssid}
-                  onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
-                  placeholder="AA:BB:CC:DD:EE:FF"
-                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-sm mt-2">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">API Version</label>
-                <div className="flex rounded border border-slate-600/60 overflow-hidden">
-                  {(['v2', 'v3'] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setSearchParams({ ...searchParams, version: v })}
-                      className={`flex-1 py-1.5 text-[10px] font-bold uppercase transition-colors ${
-                        (searchParams.version || 'v2') === v
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Country</label>
-                <input
-                  type="text"
-                  value={searchParams.country}
-                  onChange={(e) => setSearchParams({ ...searchParams, country: e.target.value })}
-                  placeholder="US"
-                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">State</label>
-                <select
-                  value={searchParams.region}
-                  onChange={(e) => setSearchParams({ ...searchParams, region: e.target.value })}
-                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                >
-                  <option value="">Any</option>
-                  {US_STATES.map((s) => (
-                    <option key={s.code} value={s.code}>
-                      {s.code} - {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">City</label>
-                <input
-                  type="text"
-                  value={searchParams.city}
-                  onChange={(e) => setSearchParams({ ...searchParams, city: e.target.value })}
-                  placeholder="City name"
-                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                />
-              </div>
-            </div>
-          </AdminCard>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">BSSID</label>
+            <input
+              type="text"
+              value={searchParams.bssid}
+              onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
+              placeholder="AA:BB:CC:DD:EE:FF"
+              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            />
+          </div>
         </div>
-      </div>
+        <div className="grid grid-cols-3 gap-2 text-sm mt-2">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">API Version</label>
+            <div className="flex rounded border border-slate-600/60 overflow-hidden">
+              {(['v2', 'v3'] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setSearchParams({ ...searchParams, version: v })}
+                  className={`flex-1 py-1.5 text-[10px] font-bold uppercase transition-colors ${
+                    (searchParams.version || 'v2') === v
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Country</label>
+            <input
+              type="text"
+              value={searchParams.country}
+              onChange={(e) => setSearchParams({ ...searchParams, country: e.target.value })}
+              placeholder="US"
+              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">State</label>
+            <select
+              value={searchParams.region}
+              onChange={(e) => setSearchParams({ ...searchParams, region: e.target.value })}
+              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            >
+              <option value="">Any</option>
+              {US_STATES.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.code} - {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">City</label>
+            <input
+              type="text"
+              value={searchParams.city}
+              onChange={(e) => setSearchParams({ ...searchParams, city: e.target.value })}
+              placeholder="City name"
+              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            />
+          </div>
+        </div>
+      </AdminCard>
 
       {/* Coordinate Ranges */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
