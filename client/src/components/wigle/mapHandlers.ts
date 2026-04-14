@@ -47,7 +47,10 @@ export const attachClickHandlers = (
       [e.lngLat.lng, e.lngLat.lat]
     );
 
-    const tooltipHTML = renderNetworkTooltip(normalizedData);
+    const tooltipHTML = renderNetworkTooltip({
+      ...normalizedData,
+      triggerElement: map.getContainer(),
+    });
     const anchor = getPopupAnchor(map, e.lngLat, tooltipHTML);
 
     const popup = new mapboxgl.Popup({

@@ -21,16 +21,17 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const tooltipHTML = renderNetworkTooltip(
-      normalizeTooltipData(
+    const tooltipHTML = renderNetworkTooltip({
+      ...normalizeTooltipData(
         {
           ...props,
           threat_level: 'NONE',
           threat_score: 0,
         },
         [e.lngLat.lng, e.lngLat.lat]
-      )
-    );
+      ),
+      triggerElement: e.target.getContainer(),
+    });
 
     const anchor = getPopupAnchor(e.target, e.lngLat, tooltipHTML);
 
