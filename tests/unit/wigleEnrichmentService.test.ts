@@ -2,6 +2,8 @@
  * WigleEnrichmentService Unit Tests - Exhaustive Non-Loop
  */
 
+export {};
+
 const mockAdminQuery = jest.fn();
 const mockWigleService = {
   importWigleV3NetworkDetail: jest.fn(),
