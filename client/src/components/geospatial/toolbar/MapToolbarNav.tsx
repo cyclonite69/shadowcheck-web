@@ -76,7 +76,6 @@ export const MapToolbarNav = ({
             { href: '/wigle', label: 'WiGLE' },
             { href: '/kepler', label: 'Kepler' },
             { href: '/monitoring', label: 'Monitoring' },
-            { href: '/endpoint-test', label: 'API Test' },
             { href: '/admin', label: 'Admin' },
           ].map((item) => (
             <a
