@@ -183,19 +183,6 @@ function channelToFrequency(
 }
 
 export const renderNetworkTooltip = (props: any): any => {
-  const triggerElement = props?.triggerElement;
-  // Add this at the very top of the main rendering function
-  if (!triggerElement || !triggerElement.getBoundingClientRect) {
-    console.warn('[Tooltip] Trigger element not found or not in DOM. Tooltip positioning skipped.');
-    return null; // Don't render if element isn't ready
-  }
-
-  const rect = triggerElement.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) {
-    console.warn('[Tooltip] Trigger element has zero dimensions. Likely not rendered yet.');
-    return null;
-  }
-
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
   const threatConfig =
     THREAT_LEVEL_CONFIG[threat as keyof typeof THREAT_LEVEL_CONFIG] || THREAT_LEVEL_CONFIG.NONE;
