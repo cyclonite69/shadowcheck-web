@@ -136,6 +136,14 @@ export const WigleSearchTab: React.FC = () => {
     loadApiStatus();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveTooltip(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="space-y-4">
       {report && (
