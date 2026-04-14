@@ -11,7 +11,7 @@ export const WigleMap: React.FC<WigleMapProps> = ({ mapContainerRef, error, mapR
     <div
       className="flex-1"
       style={{
-        minHeight: '100vh',
+        minHeight: 'calc(100vh - 48px)',
         background: '#0b1220',
         position: 'relative',
       }}

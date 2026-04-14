@@ -96,7 +96,7 @@ const KeplerPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative w-full h-screen bg-slate-950 overflow-hidden">
+    <div className="relative w-full h-[calc(100vh-48px)] mt-[48px] bg-slate-950 overflow-hidden">
       <KeplerVisualization
         mapRef={mapRef}
         mapboxToken={mapboxToken}
