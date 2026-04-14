@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
 import { useWigleRuns } from '../hooks/useWigleRuns';

@@ -87,7 +87,7 @@ class ThreatMLModel {
     if (!this.model) {
       throw new Error('Model not trained yet');
     }
-    const prediction = this.model.predict([features])[0];
+    const prediction = this.model.predict(new Matrix([features]))[0];
     return Math.round(prediction * 100);
   }
 

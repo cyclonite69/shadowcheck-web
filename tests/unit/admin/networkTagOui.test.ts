@@ -1,15 +1,14 @@
 /**
  * Network Tag OUI Unit Tests
  */
-export {};
 
-const {
+import {
   addTagToNetwork,
   removeTagFromNetwork,
   getOUIGroups,
-} = require('../../../server/src/services/admin/networkTagOui');
-const { adminQuery } = require('../../../server/src/services/adminDbService');
-const { query } = require('../../../server/src/config/database');
+} from '../../../server/src/services/admin/networkTagOui';
+import { adminQuery } from '../../../server/src/services/adminDbService';
+import { query } from '../../../server/src/config/database';
 
 jest.mock('../../../server/src/services/adminDbService');
 jest.mock('../../../server/src/config/database');
@@ -49,7 +48,7 @@ describe('networkTagOui Service', () => {
       const result = await getOUIGroups();
       expect(result).toHaveLength(1);
       expect(result[0].oui).toBe('00:11:22');
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM app.oui_device_groups'), []);
+      expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM app.oui_device_groups'));
     });
   });
 });

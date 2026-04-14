@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, pool } = require('../config/database');
 const logger = require('../logging/logger');
 
 export {};
@@ -8,11 +8,12 @@ class OUIGroupingService {
    * Group networks by OUI and calculate collective threat
    */
   static async generateOUIGroups() {
+    const client = await pool.connect();
     try {
       logger.info('[OUI Grouping] Starting OUI grouping analysis...');
 
       // Get all networks with threat scores
-      const networks = await query(`
+      const networks = await client.query(`
         SELECT 
           n.bssid,
           SUBSTRING(n.bssid, 1, 8) as oui,
@@ -57,6 +58,8 @@ class OUIGroupingService {
         );
       }
 
+      await client.query('BEGIN');
+
       // Calculate collective threat and insert
       for (const [oui, group] of Object.entries(ouiGroups)) {
         if ((group as any).bssids.length < 2) {
@@ -77,7 +80,7 @@ class OUIGroupingService {
         }
 
         // Insert group
-        await query(
+        await client.query(
           `
           INSERT INTO app.oui_device_groups
             (oui, device_count, collective_threat_score, threat_level, primary_bssid, secondary_bssids)
@@ -99,15 +102,15 @@ class OUIGroupingService {
             (group as any).bssids.slice(1), // Secondary
           ]
         );
-
-        logger.info(
-          `[OUI Grouping] ${oui}: ${(group as any).bssids.length} BSSIDs, threat=${collectiveThreat.toFixed(2)}`
-        );
       }
 
+      await client.query('COMMIT');
       logger.info(`[OUI Grouping] Completed: ${Object.keys(ouiGroups).length} groups`);
     } catch (err) {
+      if (client) await client.query('ROLLBACK');
       logger.error('[OUI Grouping] Failed:', err);
+    } finally {
+      if (client) client.release();
     }
   }
 
@@ -115,11 +118,12 @@ class OUIGroupingService {
    * Detect MAC randomization (walked BSSIDs)
    */
   static async detectMACRandomization() {
+    const client = await pool.connect();
     try {
       logger.info('[MAC Randomization] Starting detection...');
 
       // Get BSSIDs grouped by OUI with temporal/spatial data - simplified approach
-      const macSequences = await query(`
+      const macSequences = await client.query(`
         SELECT 
           SUBSTRING(n.bssid, 1, 8) as oui,
           COUNT(DISTINCT n.bssid) as mac_count,
@@ -138,6 +142,8 @@ class OUIGroupingService {
         ORDER BY COUNT(DISTINCT n.bssid) DESC
         LIMIT 100
       `);
+
+      await client.query('BEGIN');
 
       for (const row of macSequences.rows) {
         const macs = row.mac_sequence || [];
@@ -164,7 +170,7 @@ class OUIGroupingService {
 
         // Only flag if confidence is reasonable
         if (confidenceScore >= 0.5) {
-          await query(
+          await client.query(
             `
             INSERT INTO app.mac_randomization_suspects
               (oui, mac_sequence, avg_distance_km, movement_speed_kmh, confidence_score, status)
@@ -185,16 +191,16 @@ class OUIGroupingService {
               confidenceScore >= 0.7 ? 'confirmed' : 'suspected',
             ]
           );
-
-          logger.info(
-            `[MAC Randomization] ${row.oui}: ${macCount} MACs, confidence=${confidenceScore.toFixed(2)}, speed=${avgSpeed.toFixed(1)}km/h`
-          );
         }
       }
 
+      await client.query('COMMIT');
       logger.info('[MAC Randomization] Detection complete');
     } catch (err) {
+      if (client) await client.query('ROLLBACK');
       logger.error('[MAC Randomization] Failed:', err);
+    } finally {
+      if (client) client.release();
     }
   }
 }

@@ -62,8 +62,8 @@ describe('AdminUsersService', () => {
   });
 
   describe('createAppUser', () => {
-    const pwd = 'plainPassword';
-    const h_pwd = 'hashedPassword';
+    const pwd = 'MOCK_PLAIN_PASSWORD';
+    const h_pwd = 'MOCK_HASHED_PASSWORD';
 
     it('should create a new user', async () => {
       (bcrypt.hash as jest.Mock).mockResolvedValueOnce(h_pwd);
@@ -251,8 +251,8 @@ describe('AdminUsersService', () => {
   });
 
   describe('resetAppUserPassword', () => {
-    const pwd = 'newPassword';
-    const h_pwd = 'newHashedPassword';
+    const pwd = 'MOCK_NEW_PASSWORD';
+    const h_pwd = 'MOCK_NEW_HASHED_PASSWORD';
 
     it('should reset user password', async () => {
       (bcrypt.hash as jest.Mock).mockResolvedValueOnce(h_pwd);
