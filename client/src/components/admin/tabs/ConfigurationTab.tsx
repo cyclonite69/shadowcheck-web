@@ -242,8 +242,9 @@ export const ConfigurationTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-6 max-w-7xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Top row — equal-width 3 columns, cards stretch to match the tallest */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <AdminCard
           icon={ToggleIcon}
           title="Configuration Mutability"
@@ -402,7 +403,9 @@ export const ConfigurationTab: React.FC = () => {
             </div>
           </div>
         </AdminCard>
-
+      </div>
+      {/* API credentials and location config — responsive 3-col grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Home Location - Top Left Priority */}
         <HomeLocationConfig
           lat={homeLocation.lat}
@@ -515,7 +518,8 @@ export const ConfigurationTab: React.FC = () => {
           onSave={saveSmartyCredentials}
           isConfigured={smartyConfigured}
         />
-      </div>
+      </div>{' '}
+      {/* end credentials grid */}
     </div>
   );
 };
