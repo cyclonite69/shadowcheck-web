@@ -90,7 +90,8 @@ export const validateImportQuery = (queryInput: Record<string, unknown>): string
 
 export const buildSearchParams = (
   query: WigleImportParams,
-  searchAfter?: string | null
+  searchAfter?: string | null,
+  apiVer: 'v2' | 'v3' = 'v2'
 ): URLSearchParams => {
   const params = new URLSearchParams();
   if (query.ssid) params.append('ssidlike', query.ssid);
@@ -103,7 +104,15 @@ export const buildSearchParams = (
   if (query.region) params.append('region', query.region);
   if (query.city) params.append('city', query.city);
   params.append('resultsPerPage', String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE));
-  if (searchAfter) params.append('searchAfter', searchAfter);
+  if (searchAfter) {
+    if (apiVer === 'v3') {
+      // v3 uses cursor-based pagination
+      params.append('search_after', searchAfter);
+    } else if (/^\d+$/.test(searchAfter)) {
+      // v2 uses offset-based pagination via the 'first' parameter
+      params.append('first', searchAfter);
+    }
+  }
   return params;
 };
 

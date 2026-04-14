@@ -122,10 +122,15 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
     const searchAfter = req.query.searchAfter ? String(req.query.searchAfter) : null;
-    const params = buildSearchParams(req.query as any, searchAfter);
 
-    // Select API version
+    // Select API version first so we can pass it to buildSearchParams
     const apiVer = version === 'v3' ? 'v3' : 'v2';
+    const resultsPerPage = parseInt(
+      String(req.query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE),
+      10
+    );
+    const params = buildSearchParams(req.query as any, searchAfter, apiVer);
+
     let data;
     try {
       data = await fetchWiglePage(encodedAuth, apiVer, params);
@@ -145,6 +150,21 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
       `[WiGLE] Search returned ${results.length} results (total: ${data.totalResults || 'unknown'})`
     );
 
+    // Compute the next-page cursor.
+    // v3: WiGLE returns search_after directly.
+    // v2: WiGLE uses offset pagination (first=N). We synthesise a numeric cursor so
+    //     the client can drive infinite scroll the same way for both versions.
+    let nextSearchAfter: string | null = null;
+    if (apiVer === 'v3') {
+      nextSearchAfter = data.search_after ?? null;
+    } else {
+      const currentOffset =
+        searchAfter && /^\d+$/.test(searchAfter) ? parseInt(searchAfter, 10) : 0;
+      if (results.length >= resultsPerPage) {
+        nextSearchAfter = String(currentOffset + results.length);
+      }
+    }
+
     let importedCount = 0;
     let importErrors: Array<{ bssid: string; error: string }> = [];
 
@@ -161,7 +181,7 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
       ok: true,
       success: data.success,
       totalResults: data.totalResults,
-      search_after: data.search_after,
+      search_after: nextSearchAfter,
       resultCount: results.length,
       results,
       imported: shouldImport,
