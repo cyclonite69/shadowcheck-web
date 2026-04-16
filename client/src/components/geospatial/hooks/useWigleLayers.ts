@@ -222,10 +222,6 @@ export const useWigleLayers = ({
             'circle-opacity': 0.9,
           },
         });
-        map.on('click', 'wigle-unique-points', handleUniqueClick);
-        map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
-        map.on('mouseenter', 'wigle-unique-points', handleUniqueEnter);
-        map.on('mouseleave', 'wigle-unique-points', handleUniqueLeave);
       }
 
       if (!map.getLayer('wigle-matched-points')) {
@@ -242,11 +238,18 @@ export const useWigleLayers = ({
             'circle-opacity': 0.8,
           },
         });
-        map.on('click', 'wigle-matched-points', handleMatchedClick);
-        map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
-        map.on('mouseenter', 'wigle-matched-points', handleMatchedEnter);
-        map.on('mouseleave', 'wigle-matched-points', handleMatchedLeave);
       }
+
+      // Re-register click and hover handlers every time (cleanup may have unregistered them)
+      map.on('click', 'wigle-unique-points', handleUniqueClick);
+      map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
+      map.on('mouseenter', 'wigle-unique-points', handleUniqueEnter);
+      map.on('mouseleave', 'wigle-unique-points', handleUniqueLeave);
+
+      map.on('click', 'wigle-matched-points', handleMatchedClick);
+      map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
+      map.on('mouseenter', 'wigle-matched-points', handleMatchedEnter);
+      map.on('mouseleave', 'wigle-matched-points', handleMatchedLeave);
 
       // Re-bind context menu for core observation points if they exist
       if (map.getLayer('observation-points')) {
