@@ -16,7 +16,7 @@ function zoomForBounds(
   bounds: [[number, number], [number, number]],
   width: number,
   height: number,
-  padding = 60
+  padding = 150
 ): { longitude: number; latitude: number; zoom: number } {
   const [[w, s], [e, n]] = bounds;
   const lng = (w + e) / 2;
