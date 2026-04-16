@@ -52,6 +52,8 @@ export type NetworkRow = {
   accuracy?: number | null;
   firstSeen?: string | null;
   lastSeen: string | null;
+  first_seen?: string | null;
+  last_seen?: string | null;
   timespanDays?: number | null;
   threat?: ThreatInfo | null;
   threat_score?: number | null;
