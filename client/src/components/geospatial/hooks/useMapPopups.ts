@@ -56,20 +56,6 @@ export const useMapPopups = (
           .setHTML(popupHTML)
           .addTo(map);
 
-        // Cap tooltip height so it never scrolls on a normal viewport.
-        // Do NOT override the popup's position — Mapbox positions it via the
-        // computed anchor so it appears offset from the point, not over it.
-        requestAnimationFrame(() => {
-          const el = popup.getElement();
-          if (!el) return;
-          const containerRect = map.getContainer().getBoundingClientRect();
-          const content = el.querySelector('.mapboxgl-popup-content') as HTMLElement | null;
-          if (content) {
-            content.style.maxHeight = `${Math.min(containerRect.height - 40, 520)}px`;
-            content.style.overflowY = 'auto';
-          }
-        });
-
         // Setup drag functionality
         let dragState: PopupDragState | null = null;
         let pinCleanup: (() => void) | null = null;
