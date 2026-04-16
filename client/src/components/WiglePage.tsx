@@ -605,11 +605,20 @@ const WiglePage: React.FC = () => {
   }, [showTerrain, mapReady, mapStyle]);
 
   const loading = v2Loading || v3Loading || kmlLoading;
+  const agencyCount =
+    (layers.fieldOffices
+      ? (agencyData?.features?.filter((f) => f.properties?.office_type === 'field_office').length ??
+        0)
+      : 0) +
+    (layers.residentAgencies
+      ? (agencyData?.features?.filter((f) => f.properties?.office_type === 'resident_agency')
+          .length ?? 0)
+      : 0);
   const totalLoaded =
     (layers.v2 ? v2Rows.length : 0) +
     (layers.v3 ? v3Rows.length : 0) +
     (layers.kml ? kmlRows.length : 0) +
-    (layers.fieldOffices || layers.residentAgencies ? (agencyData?.features?.length ?? 0) : 0) +
+    agencyCount +
     (layers.federalCourthouses ? (courthouseData?.features?.length ?? 0) : 0);
   const totalRows =
     (layers.v2 && v2Total !== null) ||
