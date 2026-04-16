@@ -92,16 +92,23 @@ export const WigleDetailTab: React.FC = () => {
                   : 'W',
       observation_count: observations?.length || 0,
       accuracy: data.locationClusters?.[0]?.accuracy || null,
-      ...data.streetAddress,
+      // Only include geocoded_address, not the full streetAddress spread to avoid duplication
+      geocoded_address: data.streetAddress?.housenumber
+        ? `${data.streetAddress.housenumber} ${data.streetAddress.road}, ${data.streetAddress.city}, ${data.streetAddress.region} ${data.streetAddress.postalcode}`
+        : undefined,
+      city: data.streetAddress?.city,
+      region: data.streetAddress?.region,
       qos: data.bestClusterWiGLEQoS,
       comment: data.comment,
+      // Always include network-level timestamps; override with observation timestamps if selected
+      first_seen: selectedObs?.observed_at || data.firstSeen,
+      last_seen: selectedObs?.observed_at || data.lastSeen,
       ...(selectedObs && {
         lat: selectedObs.latitude,
         lon: selectedObs.longitude,
         signal: selectedObs.signal,
         altitude: selectedObs.altitude,
-        first_seen: selectedObs.observed_at,
-        last_seen: selectedObs.observed_at,
+        time: selectedObs.observed_at,
       }),
     });
     setTooltipHtml(renderNetworkTooltip({ ...normalized, triggerElement: el }));

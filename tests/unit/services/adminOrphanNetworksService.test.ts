@@ -21,7 +21,11 @@ jest.mock('../../../server/src/logging/logger', () => ({
 }));
 
 jest.mock('../../../server/src/services/externalServiceHandler', () => ({
-  withRetry: jest.fn((fn) => fn()),
+  withRetry: jest.fn(async (fn) => {
+    const res = await fn();
+    console.log('withRetry returning:', res);
+    return res;
+  }),
 }));
 
 const { adminQuery } = require('../../../server/src/services/adminDbService');
@@ -87,7 +91,7 @@ describe('adminOrphanNetworksService', () => {
     it('should handle API 404', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
       secretsManager.get.mockReturnValue('token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 404 });
+      (global.fetch as jest.Mock).mockResolvedValue({ status: 404 });
       adminQuery.mockResolvedValueOnce({ rows: [] }); // record attempt
 
       const res = await backfillOrphanNetworkFromWigle('00:11:22');
