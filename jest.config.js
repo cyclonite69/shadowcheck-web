@@ -59,6 +59,7 @@ module.exports = {
     '/docs/',
     '/scripts/manual/',
     '<rootDir>/client/src/components/',
+    '<rootDir>/.claude/',
     '__tests__',
   ],
 

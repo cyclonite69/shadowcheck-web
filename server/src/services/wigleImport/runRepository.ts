@@ -364,6 +364,53 @@ const getLatestResumableImportRun = async (
   return getImportRun(Number(run.id));
 };
 
+// Returns count of cancelled runs with the same fingerprint created within windowSeconds
+export const countRecentCancelledByFingerprint = async (
+  fingerprint: string,
+  windowSeconds = 60
+): Promise<number> => {
+  const result = await query(
+    `SELECT COUNT(*)::int AS count
+       FROM app.wigle_import_runs
+      WHERE request_fingerprint = $1
+        AND status = 'cancelled'
+        AND started_at > NOW() - ($2 * INTERVAL '1 second')`,
+    [fingerprint, windowSeconds]
+  );
+  return result.rows[0]?.count ?? 0;
+};
+
+// Finds IDs of cancelled Global (state IS NULL) runs that cluster within windowSeconds of each other
+export const findGlobalCancelledClusterIds = async (windowSeconds = 60): Promise<number[]> => {
+  const result = await query(
+    `WITH ranked AS (
+       SELECT id, started_at,
+              FIRST_VALUE(started_at) OVER (ORDER BY started_at) AS earliest
+       FROM app.wigle_import_runs
+       WHERE status = 'cancelled'
+         AND state IS NULL
+     )
+     SELECT id
+       FROM ranked
+      WHERE EXTRACT(EPOCH FROM (started_at - earliest)) <= $1
+      ORDER BY started_at`,
+    [windowSeconds]
+  );
+  return result.rows.map((r: any) => Number(r.id));
+};
+
+// Hard-deletes cancelled runs by ID array; returns count deleted
+export const bulkDeleteCancelledRunsByIds = async (ids: number[]): Promise<number> => {
+  if (ids.length === 0) return 0;
+  const result = await query(
+    `DELETE FROM app.wigle_import_runs
+      WHERE id = ANY($1::bigint[])
+        AND status = 'cancelled'`,
+    [ids]
+  );
+  return result.rowCount ?? 0;
+};
+
 export {
   completeRun,
   createImportRun,

@@ -3,14 +3,18 @@ import secretsManager from './secretsManager';
 import {
   buildSearchParams,
   DEFAULT_RESULTS_PER_PAGE,
+  getRequestFingerprint,
   normalizeImportParams,
   type WigleImportParams,
   validateImportQuery,
 } from './wigleImport/params';
 import { processSuccessfulPage } from './wigleImport/pageProcessor';
 import {
+  bulkDeleteCancelledRunsByIds,
   completeRun,
+  countRecentCancelledByFingerprint,
   createImportRun,
+  findGlobalCancelledClusterIds,
   findLatestResumableRun,
   getImportRun,
   getImportCompletenessSummary,
@@ -239,6 +243,16 @@ const startImportRun = async (rawQuery: Record<string, unknown>) => {
     });
     return resumeImportRun(Number(existing.id));
   }
+  // Cluster guard: if ≥3 identical cancelled runs were created in the last 60s, refuse
+  const normalized = normalizeImportParams(rawQuery);
+  const fingerprint = getRequestFingerprint(normalized);
+  const recentCancelled = await countRecentCancelledByFingerprint(fingerprint, 60);
+  if (recentCancelled >= 3) {
+    throw new Error(
+      `Cluster guard: ${recentCancelled} identical cancelled runs created in the last 60 seconds. ` +
+        `Use the "Clean Up" tool to clear the cluster first.`
+    );
+  }
   const run = await createImportRun(rawQuery);
   logger.info('[WiGLE Import] Created run', {
     runId: run?.id,
@@ -334,7 +348,14 @@ const getImportCompletenessReport = async (options: { searchTerm?: string; state
   };
 };
 
+const bulkDeleteGlobalCancelledCluster = async (): Promise<number> => {
+  const ids = await findGlobalCancelledClusterIds(60);
+  if (ids.length === 0) return 0;
+  return bulkDeleteCancelledRunsByIds(ids);
+};
+
 export {
+  bulkDeleteGlobalCancelledCluster,
   cancelImportRun,
   getImportRun,
   getImportCompletenessReport,
