@@ -8,29 +8,15 @@ import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 import { networkApi } from '../../../api/networkApi';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
+import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
 
-/** Center a Mapbox popup within the map container after it renders. */
-function centerPopupInMap(popup: any, map: MapboxMap) {
-  requestAnimationFrame(() => {
-    const el = popup.getElement();
-    if (!el) return;
-    const containerRect = map.getContainer().getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const pad = 12;
-    const content = el.querySelector('.mapboxgl-popup-content') as HTMLElement | null;
-    if (content) {
-      content.style.maxHeight = `${containerRect.height - pad * 2}px`;
-      content.style.overflowY = 'auto';
-    }
-    const left = containerRect.left + (containerRect.width - elRect.width) / 2;
-    const top =
-      containerRect.top +
-      (containerRect.height - Math.min(elRect.height, containerRect.height - pad * 2)) / 2;
-    el.style.position = 'fixed';
-    el.style.left = `${Math.max(containerRect.left + pad, Math.min(left, containerRect.right - elRect.width - pad))}px`;
-    el.style.top = `${Math.max(containerRect.top + pad, Math.min(top, containerRect.bottom - elRect.height - pad))}px`;
-    el.style.transform = 'none';
-  });
+/** Amber for WiGLE-unique; green for locally correlated WiGLE points. */
+const WIGLE_UNIQUE_COLOR = '#f59e0b';
+const WIGLE_MATCHED_COLOR = '#22c55e';
+
+function wigleBadge(matched: boolean): string {
+  const color = matched ? WIGLE_MATCHED_COLOR : WIGLE_UNIQUE_COLOR;
+  return `<div style="background:${color}1a;border-bottom:1px solid ${color}44;padding:3px 12px;font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${color};">◆ WiGLE ${matched ? 'Correlated' : 'External'}</div>`;
 }
 
 export type WigleObservation = {
@@ -114,15 +100,20 @@ export const useWigleLayers = ({
     };
 
     const makeObsPopup = (props: any, coords: [number, number], matched: boolean) => {
-      const fallbackHtml = renderWigleObservationPopupCard({
-        ssid: props.ssid,
-        time: props.time,
-        signal: props.level,
-        channel: props.channel,
-        distanceFromCenterMeters: matched ? undefined : props.distance_from_our_center_m,
-        matched,
-      });
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      const fallbackHtml =
+        wigleBadge(matched) +
+        renderWigleObservationPopupCard({
+          ssid: props.ssid,
+          time: props.time,
+          signal: props.level,
+          channel: props.channel,
+          distanceFromCenterMeters: matched ? undefined : props.distance_from_our_center_m,
+          matched,
+        });
+      const anchor = getPopupAnchor(map, lngLat, fallbackHtml);
       const popup = new (mapboxgl as any).Popup({
+        anchor,
         maxWidth: 'min(360px, 90vw)',
         className: 'sc-popup',
         offset: 14,
@@ -131,9 +122,8 @@ export const useWigleLayers = ({
         .setLngLat(coords)
         .setHTML(fallbackHtml)
         .addTo(map);
-      centerPopupInMap(popup, map);
 
-      // Upgrade to platinum card if BSSID is in local DB
+      // Upgrade to platinum card if BSSID is in local DB; keep WiGLE badge
       const bssid = props.bssid;
       if (bssid) {
         networkApi.getNetworkByBssid(bssid).then((mvData) => {
@@ -142,13 +132,12 @@ export const useWigleLayers = ({
             coords[0],
             coords[1],
           ]);
-          const fullHtml = renderNetworkTooltip({
+          const cardHtml = renderNetworkTooltip({
             ...normalized,
             triggerElement: map.getContainer(),
           });
-          if (fullHtml) {
-            popup.setHTML(fullHtml);
-            centerPopupInMap(popup, map);
+          if (cardHtml) {
+            popup.setHTML(wigleBadge(matched) + cardHtml);
           }
         });
       }
