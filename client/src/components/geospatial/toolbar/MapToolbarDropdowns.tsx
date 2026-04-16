@@ -84,7 +84,7 @@ export const LayersDropdown = ({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <span>Agencies</span>
+              <span title="Show/hide US federal agency field offices on the map">Agencies</span>
               {showAgenciesPanel && <CheckIcon />}
             </div>
           )}
@@ -112,7 +112,7 @@ export const LayersDropdown = ({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <span>Federal Courthouses</span>
+              <span title="Show/hide US federal courthouse locations on the map">Federal Courthouses</span>
               {showCourthousesPanel && <CheckIcon />}
             </div>
           )}

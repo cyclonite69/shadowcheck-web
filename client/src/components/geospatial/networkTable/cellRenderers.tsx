@@ -99,19 +99,31 @@ const renderThreat = ({ row }: NetworkTableCellRendererContext) => {
   };
 };
 
+const getSignalQualityLabel = (dbm: number | null): string | undefined => {
+  if (dbm == null || dbm === 0) return undefined;
+  if (dbm >= -50) return `${dbm} dBm · Excellent signal`;
+  if (dbm >= -60) return `${dbm} dBm · Good signal`;
+  if (dbm >= -70) return `${dbm} dBm · Fair signal`;
+  if (dbm >= -80) return `${dbm} dBm · Poor signal`;
+  return `${dbm} dBm · Very poor signal`;
+};
+
 const renderSignal = ({ value }: NetworkTableCellRendererContext) => {
   const signalValue = value as number | null;
+  const signalContent = (
+    <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
+      {getSignalDisplay(signalValue)}
+    </span>
+  );
+  const tooltip = getSignalQualityLabel(signalValue);
   return {
-    content: (
-      <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
-        {getSignalDisplay(signalValue)}
-      </span>
-    ),
+    content: tooltip ? <Tooltip content={tooltip}>{signalContent}</Tooltip> : signalContent,
   };
 };
 
-const renderObservations = ({ value }: NetworkTableCellRendererContext) => ({
-  content: (
+const renderObservations = ({ value }: NetworkTableCellRendererContext) => {
+  const count = value as number | null;
+  const obsContent = (
     <span
       style={{
         background: 'rgba(59, 130, 246, 0.2)',
@@ -124,32 +136,53 @@ const renderObservations = ({ value }: NetworkTableCellRendererContext) => ({
         display: 'inline-block',
       }}
     >
-      {value as number}
+      {count}
     </span>
-  ),
-});
+  );
+  const tooltip =
+    count != null && count > 0
+      ? `${count} detection${count === 1 ? '' : 's'} recorded`
+      : undefined;
+  return {
+    content: tooltip ? <Tooltip content={tooltip}>{obsContent}</Tooltip> : obsContent,
+  };
+};
+
+const getChannelBand = (channel: number, freqMhz: number | null): string => {
+  if (freqMhz != null && freqMhz > 0) {
+    if (freqMhz >= 5925) return '6 GHz';
+    if (freqMhz >= 5000) return '5 GHz';
+    return '2.4 GHz';
+  }
+  if (channel >= 36) return '5 GHz';
+  if (channel >= 1 && channel <= 14) return '2.4 GHz';
+  return '';
+};
 
 const renderChannel = ({ value, row }: NetworkTableCellRendererContext) => {
   const channelValue = value as number | null;
   const networkType = row.type;
   if (networkType === 'W' && channelValue && channelValue !== 0) {
+    const band = getChannelBand(channelValue, (row.frequency as number | null) ?? null);
+    const tooltip = band ? `Channel ${channelValue} · ${band}` : `Channel ${channelValue}`;
+    const channelContent = (
+      <span
+        style={{
+          background: 'rgba(16, 185, 129, 0.2)',
+          color: '#10b981',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          fontSize: '11px',
+          fontWeight: '500',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          display: 'inline-block',
+        }}
+      >
+        {channelValue}
+      </span>
+    );
     return {
-      content: (
-        <span
-          style={{
-            background: 'rgba(16, 185, 129, 0.2)',
-            color: '#10b981',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: '500',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            display: 'inline-block',
-          }}
-        >
-          {channelValue}
-        </span>
-      ),
+      content: <Tooltip content={tooltip}>{channelContent}</Tooltip>,
     };
   }
 
