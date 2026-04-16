@@ -102,10 +102,15 @@ const WiglePage: React.FC = () => {
   );
 
   // Agency offices layer
-  useAgencyOffices(mapRef, mapReady, agencyVisibility, mapboxRef);
+  const { data: agencyData } = useAgencyOffices(mapRef, mapReady, agencyVisibility, mapboxRef);
 
   // Federal courthouses layer
-  useFederalCourthouses(mapRef, mapReady, layers.federalCourthouses, mapboxRef);
+  const { data: courthouseData } = useFederalCourthouses(
+    mapRef,
+    mapReady,
+    layers.federalCourthouses,
+    mapboxRef
+  );
 
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
@@ -572,7 +577,9 @@ const WiglePage: React.FC = () => {
   const totalLoaded =
     (layers.v2 ? v2Rows.length : 0) +
     (layers.v3 ? v3Rows.length : 0) +
-    (layers.kml ? kmlRows.length : 0);
+    (layers.kml ? kmlRows.length : 0) +
+    (layers.fieldOffices || layers.residentAgencies ? (agencyData?.features?.length ?? 0) : 0) +
+    (layers.federalCourthouses ? (courthouseData?.features?.length ?? 0) : 0);
   const totalRows =
     (layers.v2 && v2Total !== null) ||
     (layers.v3 && v3Total !== null) ||
