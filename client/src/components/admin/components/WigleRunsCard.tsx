@@ -76,6 +76,7 @@ interface WigleRunsCardProps {
   onResume: (id: number) => void;
   onPause: (id: number) => void;
   onCancel: (id: number) => void;
+  onCleanupCluster?: () => Promise<void>;
   limit?: number;
 }
 
@@ -88,7 +89,49 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   onResume,
   onPause,
   onCancel,
+  onCleanupCluster,
 }) => {
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [page, setPage] = React.useState(0);
+  const PAGE_SIZE = 25;
+
+  // Detect cluster: 3+ CANCELLED runs with null state created within 60s of each other
+  const cancelledGlobal = runs.filter((r) => r.status === 'cancelled' && !r.state);
+  const clusterIds = React.useMemo(() => {
+    if (cancelledGlobal.length < 3) return [];
+    const sorted = [...cancelledGlobal].sort(
+      (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
+    );
+    // Find the largest cluster within 60s window
+    let best: number[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const anchor = new Date(sorted[i].startedAt).getTime();
+      const cluster = sorted
+        .filter((r) => Math.abs(new Date(r.startedAt).getTime() - anchor) <= 60_000)
+        .map((r) => r.id);
+      if (cluster.length >= 3 && cluster.length > best.length) best = cluster;
+    }
+    return best;
+  }, [cancelledGlobal]);
+
+  const filteredRuns = React.useMemo(
+    () =>
+      statusFilter === 'all'
+        ? runs
+        : runs.filter(
+            (r) =>
+              r.status === statusFilter ||
+              (statusFilter === 'completed' && r.status === 'completed')
+          ),
+    [runs, statusFilter]
+  );
+  const totalPages = Math.ceil(filteredRuns.length / PAGE_SIZE);
+  const pagedRuns = filteredRuns.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [statusFilter]);
+
   return (
     <AdminCard
       icon={RefreshIcon}
@@ -100,14 +143,34 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
           <p className="text-xs text-slate-400">
             Automated search loops. Resumable via cursor-based pagination.
           </p>
-          <button
-            onClick={onRefresh}
-            disabled={loading || actionLoading}
-            className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-30"
-            title="Refresh Runs"
-          >
-            <RefreshIcon className={loading ? 'animate-spin' : ''} size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {clusterIds.length >= 3 && (
+              <button
+                onClick={async () => {
+                  if (
+                    !window.confirm(
+                      `Delete ${clusterIds.length} cancelled Global runs from the timestamp cluster? This cannot be undone.`
+                    )
+                  )
+                    return;
+                  if (onCleanupCluster) await onCleanupCluster();
+                }}
+                disabled={loading || actionLoading}
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300 border border-red-500/30 bg-red-500/10 rounded hover:bg-red-500/20 transition-colors disabled:opacity-30"
+                title={`${clusterIds.length} cancelled Global runs in a tight timestamp cluster`}
+              >
+                Clean Up ({clusterIds.length})
+              </button>
+            )}
+            <button
+              onClick={onRefresh}
+              disabled={loading || actionLoading}
+              className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-30"
+              title="Refresh Runs"
+            >
+              <RefreshIcon className={loading ? 'animate-spin' : ''} size={18} />
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -115,6 +178,37 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
             {error}
           </div>
         )}
+
+        {/* Status filter chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(['all', 'completed', 'running', 'paused', 'failed', 'cancelled'] as const).map((s) => {
+            const count = s === 'all' ? runs.length : runs.filter((r) => r.status === s).length;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border transition-colors ${
+                  statusFilter === s
+                    ? s === 'cancelled'
+                      ? 'bg-slate-500/30 text-slate-200 border-slate-500/60'
+                      : s === 'completed'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : s === 'failed'
+                          ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                          : s === 'running'
+                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                            : s === 'paused'
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                              : 'bg-slate-700 text-slate-200 border-slate-600'
+                    : 'bg-transparent text-slate-500 border-slate-700/50 hover:border-slate-600 hover:text-slate-400'
+                }`}
+              >
+                {s} {count > 0 ? `(${count})` : ''}
+              </button>
+            );
+          })}
+        </div>
 
         <div className="overflow-x-auto rounded-lg border border-slate-700/50">
           <table className="w-full text-[11px] text-left text-slate-300">
@@ -129,19 +223,20 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {runs.length === 0 && !loading && (
+              {pagedRuns.length === 0 && !loading && (
                 <tr>
                   <td colSpan={6} className="px-3 py-6 text-center text-slate-500 italic">
                     No recent import runs found.
                   </td>
                 </tr>
               )}
-              {runs.map((run) => (
+              {pagedRuns.map((run) => (
                 <tr key={run.id} className="hover:bg-slate-700/20 group">
                   <td className="px-3 py-2 font-mono text-slate-500">#{run.id}</td>
                   <td className="px-3 py-2">
                     <div className="font-bold text-slate-200">
-                      {run.state || 'Global'} / {run.searchTerm}
+                      {run.state || 'Global'}
+                      {run.searchTerm ? ` / ${run.searchTerm}` : ''}
                     </div>
                   </td>
                   <td className="px-3 py-2">
@@ -246,6 +341,34 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[10px] text-slate-500">
+              Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredRuns.length)}{' '}
+              of {filteredRuns.length}
+            </span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-2 py-0.5 text-[10px] border border-slate-700 rounded text-slate-400 hover:text-white hover:border-slate-500 disabled:opacity-30 transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="px-2 py-0.5 text-[10px] text-slate-500">
+                {page + 1}/{totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-2 py-0.5 text-[10px] border border-slate-700 rounded text-slate-400 hover:text-white hover:border-slate-500 disabled:opacity-30 transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </AdminCard>
   );
