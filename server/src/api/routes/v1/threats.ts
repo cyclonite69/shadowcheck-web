@@ -80,6 +80,7 @@ router.get(
       const minThreatScore = req.validated?.minScore ?? 40;
 
       const { rows, totalCount } = await threatScoringService.getQuickThreats({
+
         limit,
         offset,
         minObservations,

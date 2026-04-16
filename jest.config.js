@@ -53,14 +53,13 @@ module.exports = {
   testTimeout: 10000,
 
   // Ignore patterns
-  // Note: client/src/components tests require jest-environment-jsdom (not installed) and React DOM.
-  // Those tests should run via Vitest or a separate client jest config with jsdom + babel.
   testPathIgnorePatterns: [
     '/node_modules/',
     '/data/',
     '/docs/',
     '/scripts/manual/',
-    '/client/src/components/',
+    '<rootDir>/client/src/components/',
+    '__tests__',
   ],
 
   // Transform - Add TypeScript support
