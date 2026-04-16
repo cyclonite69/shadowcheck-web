@@ -111,7 +111,7 @@ export const buildSearchParams = (
     } else {
       // v2 uses searchAfter for cursors (e.g. from WiGLE search)
       params.append('searchAfter', searchAfter);
-      
+
       // If it's purely numeric, some legacy v2 endpoints might have used 'first'
       if (/^\d+$/.test(searchAfter)) {
         params.append('first', searchAfter);
@@ -122,7 +122,7 @@ export const buildSearchParams = (
 };
 
 export const getSearchTerm = (query: WigleImportParams): string =>
-  query.ssid || query.bssid || query.city || query.country || '';
+  query.ssid || query.bssid || query.city || '';
 
 export const getRequestFingerprint = (query: WigleImportParams): string =>
   crypto.createHash('sha256').update(stableStringify(query)).digest('hex');
