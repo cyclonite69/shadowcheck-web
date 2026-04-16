@@ -168,7 +168,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     manufacturer: pickFirst(raw.manufacturer, raw.ne_manufacturer, 'Unknown'),
     observation_count: obsCount,
     timespan_days: toNumberOrNull(raw.timespan_days),
-    time: pickFirst(raw.time, raw.timestamp, raw.last_seen, raw.lasttime, raw.observed_at),
+    time: pickFirst(raw.time, raw.timestamp, raw.observed_at, raw.lasttime),
     first_seen: pickFirst(
       raw.first_seen,
       raw.firsttime,
