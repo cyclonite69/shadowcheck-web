@@ -16,14 +16,27 @@ export function buildFastPathIdentityPredicates(ctx: FilterBuildContext): string
           : token.substring(4).trim()
         : token;
       const wildcardToken = normalizeWildcards(cleanToken);
-      const operator = isNegated ? 'NOT ILIKE' : 'ILIKE';
       const pattern =
         wildcardToken.includes('%') || wildcardToken.includes('_')
           ? wildcardToken
           : `%${wildcardToken}%`;
-      return `ne.ssid ${operator} ${ctx.addParam(pattern)}`;
+      // Bind the pattern once and reuse the same $N placeholder in both the MV column
+      // check and the EXISTS subquery — PostgreSQL allows multiple references to the same param.
+      const p = ctx.addParam(pattern);
+      if (isNegated) {
+        // Exclude networks where current SSID OR any historical obs SSID matches the term.
+        return `(ne.ssid NOT ILIKE ${p} AND NOT EXISTS (
+          SELECT 1 FROM app.observations o2
+          WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
+        ))`;
+      }
+      // Include networks where current SSID OR any historical obs SSID matches the term.
+      return `(ne.ssid ILIKE ${p} OR EXISTS (
+        SELECT 1 FROM app.observations o2
+        WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
+      ))`;
     });
-    where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
+    where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' AND ')})`);
     ctx.addApplied('identity', 'ssid', f.ssid);
   }
 
