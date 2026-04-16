@@ -101,17 +101,19 @@ export const useWigleLayers = ({
 
     const makeObsPopup = (props: any, coords: [number, number], matched: boolean) => {
       const lngLat = { lng: coords[0], lat: coords[1] };
-      const fallbackHtml =
-        wigleBadge(matched) +
-        renderWigleObservationPopupCard({
-          ssid: props.ssid,
-          time: props.time,
-          signal: props.level,
-          channel: props.channel,
-          distanceFromCenterMeters: matched ? undefined : props.distance_from_our_center_m,
-          matched,
-        });
-      const anchor = getPopupAnchor(map, lngLat, fallbackHtml);
+
+      // Render the same full platinum card as regular observation points immediately.
+      // normalizeTooltipData maps whatever observation fields are available; the card
+      // will show what it has and leave gaps empty — same behaviour as core points.
+      const immediateNormalized = normalizeTooltipData(
+        { ...props, lat: coords[1], lon: coords[0], signal: props.level },
+        [coords[0], coords[1]]
+      );
+      const immediateCard =
+        renderNetworkTooltip({ ...immediateNormalized, triggerElement: map.getContainer() }) ?? '';
+      const initialHtml = wigleBadge(matched) + immediateCard;
+
+      const anchor = getPopupAnchor(map, lngLat, initialHtml);
       const popup = new (mapboxgl as any).Popup({
         anchor,
         maxWidth: 'min(360px, 90vw)',
@@ -120,10 +122,10 @@ export const useWigleLayers = ({
         focusAfterOpen: false,
       })
         .setLngLat(coords)
-        .setHTML(fallbackHtml)
+        .setHTML(initialHtml)
         .addTo(map);
 
-      // Upgrade to platinum card if BSSID is in local DB; keep WiGLE badge
+      // Upgrade with full MV data if this BSSID is in the local DB
       const bssid = props.bssid;
       if (bssid) {
         networkApi.getNetworkByBssid(bssid).then((mvData) => {
@@ -136,9 +138,7 @@ export const useWigleLayers = ({
             ...normalized,
             triggerElement: map.getContainer(),
           });
-          if (cardHtml) {
-            popup.setHTML(wigleBadge(matched) + cardHtml);
-          }
+          if (cardHtml) popup.setHTML(wigleBadge(matched) + cardHtml);
         });
       }
       return popup;
