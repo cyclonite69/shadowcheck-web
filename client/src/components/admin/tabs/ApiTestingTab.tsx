@@ -1,22 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useApiTesting } from '../hooks/useApiTesting';
-
-const DatabaseIcon = ({ size = 24, className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <ellipse cx="12" cy="5" rx="9" ry="3" />
-    <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
-    <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
-  </svg>
-);
 
 const ApiIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -80,64 +64,33 @@ export const ApiTestingTab: React.FC = () => {
     apiLoading,
     apiResult,
     apiError,
-    apiHealth,
-    loadApiHealth,
     runApiRequest,
     API_PRESETS,
   } = useApiTesting();
 
-  const healthStatus = apiHealth?.status || 'Checking...';
-  const healthColorClass =
-    healthStatus === 'OFFLINE'
-      ? 'text-red-400'
-      : healthStatus === 'DEGRADED' || healthStatus === 'UNHEALTHY'
-        ? 'text-amber-400'
-        : 'text-green-400';
-
-  useEffect(() => {
-    loadApiHealth();
-  }, []);
-
   return (
     <div className="space-y-6">
-      {/* Status Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AdminCard icon={DatabaseIcon} title="API Status" color="from-cyan-500 to-cyan-600" compact>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Status:</span>
-              <span className={`font-semibold ${healthColorClass}`}>{healthStatus}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Version:</span>
-              <span className="text-blue-400 font-semibold">{apiHealth?.version || 'N/A'}</span>
-            </div>
-          </div>
-        </AdminCard>
-
-        <div className="md:col-span-2">
-          <AdminCard icon={ApiIcon} title="Quick Presets" color="from-blue-500 to-blue-600" compact>
-            <div className="flex flex-wrap gap-2">
-              {API_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  onClick={() => selectPreset(preset)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs text-white transition-colors font-medium ${
-                    activePreset?.label === preset.label
-                      ? 'bg-blue-600 border-blue-400 shadow-md'
-                      : 'border-slate-600/60 bg-slate-800/50 hover:border-blue-500/60'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </AdminCard>
+      {/* Quick Presets — full width */}
+      <AdminCard icon={ApiIcon} title="Quick Presets" color="from-blue-500 to-blue-600" compact>
+        <div className="flex flex-wrap gap-2">
+          {API_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              onClick={() => selectPreset(preset)}
+              className={`px-3 py-1.5 rounded-lg border text-xs text-white transition-colors font-medium ${
+                activePreset?.label === preset.label
+                  ? 'bg-blue-600 border-blue-400 shadow-md'
+                  : 'border-slate-600/60 bg-slate-800/50 hover:border-blue-500/60'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
-      </div>
+      </AdminCard>
 
-      {/* Request/Response */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Request/Response — equal split */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Request Panel */}
         <AdminCard icon={UploadIcon} title="Request" color="from-purple-500 to-purple-600">
           <div className="space-y-4">
