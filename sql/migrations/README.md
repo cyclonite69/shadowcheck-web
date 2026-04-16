@@ -8,36 +8,41 @@ Fresh installs must use the full active sequence currently present in this
 directory, not just the original consolidated 2026-02-16 baseline files. The
 follow-on migrations are part of the live schema contract.
 
-Current active path:
+Current active path (Phase 3 baseline consolidation applied 2026-04-16):
 
-1. `20260216_consolidated_001_extensions_and_schemas.sql`
-2. `20260216_consolidated_002_core_tables.sql`
-3. `20260216_consolidated_003_auth_and_users.sql`
-4. `20260216_consolidated_004_network_analysis.sql`
-5. `20260216_consolidated_005_ml_and_scoring.sql`
-6. `20260216_consolidated_006_wigle_integration.sql`
-7. `20260216_consolidated_007_agency_offices.sql`
-8. `20260216_consolidated_008_views_and_materialized_views.sql`
-9. `20260216_consolidated_009_functions_and_triggers.sql`
-10. `20260216_consolidated_010_performance_indexes.sql`
-11. `20260331_consolidated_011.sql`
-12. `20260331_consolidated_012_mv_centroid_fields.sql`
-13. `20260401_observations_upper_bssid_index.sql`
-14. `20260402_add_kml_staging_tables.sql`
-15. `20260403_add_anchor_points.sql`
-16. `20260403_fix_api_network_explorer_distance_from_home.sql`
-17. `20260404_align_kml_staging_permissions.sql`
-18. `20260404_backfill_networks_from_child_tables.sql`
-19. `20260404_retarget_bssid_fks_to_networks.sql`
-20. `20260404_drop_access_points.sql`
-21. `20260404_add_geocoding_to_api_network_explorer_mv.sql`
-22. `20260404_add_networks_orphans_table.sql`
-23. `20260405_add_orphan_network_backfill_tracking.sql`
-24. `20260405_normalize_radio_manufacturers.sql`
+**Baseline migrations** (consolidate 28 previous individual migrations):
 
-## Baseline Refresh Plan
+1. `baseline_001_extensions_auth_schema.sql`
+2. `baseline_002_core_tables.sql`
+3. `baseline_003_external_and_reference.sql`
+4. `baseline_004_functions_and_triggers.sql`
+5. `baseline_005_analysis_views_materialized_views.sql`
+6. `baseline_006_indexes_grants_defaults.sql`
+7. `baseline_007_runtime_contracts.sql`
 
-Phase 1 is planning only. Do not archive or delete active migrations yet.
+**Maintenance migrations** (applied after baselines):
+
+8. `20260416_drop_unused_indexes.sql` — Remove 14 unused indexes (92 MB reclamation)
+
+## Archived Migrations
+
+Individual migrations from before Phase 3 consolidation (applied 2026-04-16) are now in `archive/`:
+
+- 12 consolidated base migrations (`20260216_consolidated_001` through `010`)
+- 2 centroid/reference migrations (`20260331_consolidated_011`, `012`)
+- 16 individual follow-on migrations (`20260401` through `20260415`)
+
+These are preserved in version control for:
+
+- Historical audit trail
+- Schema evolution reference
+- Rollback/recovery scenarios
+
+**Do not reapply archived migrations** — they are already recorded in `app.schema_migrations` on all running databases.
+
+## Baseline Refresh Plan (Completed)
+
+Phase 3 consolidation completed 2026-04-16. Baselines are now active.
 
 ### Recommended Cut Line
 
