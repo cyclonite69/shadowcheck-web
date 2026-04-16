@@ -41,8 +41,8 @@ export const buildObservationTooltipProps = ({
     capabilities: obs.capabilities || network?.capabilities || network?.security || null,
     threat_level: threatLevel,
     threat_score: network?.threat_score ?? null,
-    first_seen: network?.firstSeen || null,
-    last_seen: network?.lastSeen || null,
+    first_seen: network?.first_seen || null,
+    last_seen: network?.last_seen || null,
     timespan_days: typeof network?.timespanDays === 'number' ? network.timespanDays : null,
     distance_from_home_km:
       obs.distance_from_home_km ??
