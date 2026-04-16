@@ -328,6 +328,11 @@ const WiglePage: React.FC = () => {
   // Auto-fetch when a data layer is toggled ON and has no data yet
   useEffect(() => {
     if (!mapReady) return;
+
+    // Reset auto-fetch flags when layers are toggled OFF so re-toggling ON triggers fetch
+    if (!layers.v2) autoFetchedRef.current.v2 = false;
+    if (!layers.v3) autoFetchedRef.current.v3 = false;
+
     const needsV2 = layers.v2 && v2Rows.length === 0 && !v2Loading && !autoFetchedRef.current.v2;
     const needsV3 = layers.v3 && v3Rows.length === 0 && !v3Loading && !autoFetchedRef.current.v3;
     const needsKml = layers.kml && kmlRows.length === 0 && !kmlLoading;

@@ -124,6 +124,8 @@ export interface WigleDatabaseFilters {
   version?: 'v2' | 'v3';
   ssid?: string;
   bssid?: string;
+  /** Encryption filter (e.g. 'WPA2', 'Open') */
+  encryption?: string;
   /** Network type filter (v2 only, e.g. 'wifi', 'bt') */
   type?: string;
   limit?: number | null;
@@ -145,6 +147,7 @@ export async function getWigleDatabase(
     version = 'v2',
     ssid,
     bssid,
+    encryption,
     type,
     limit = null,
     offset = null,
@@ -163,6 +166,10 @@ export async function getWigleDatabase(
     if (bssid) {
       where.push(`obs.netid ILIKE $${idx++}`);
       params.push(`${bssid}%`);
+    }
+    if (encryption) {
+      where.push(`obs.encryption ILIKE $${idx++}`);
+      params.push(`%${encryption}%`);
     }
 
     const rows = await getWigleV3Networks({
@@ -191,6 +198,10 @@ export async function getWigleDatabase(
   if (bssid) {
     where.push(`bssid ILIKE $${idx++}`);
     params.push(`${bssid}%`);
+  }
+  if (encryption) {
+    where.push(`encryption ILIKE $${idx++}`);
+    params.push(`%${encryption}%`);
   }
 
   const rows = await getWigleV2Networks({

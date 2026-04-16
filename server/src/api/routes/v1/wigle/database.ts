@@ -54,6 +54,13 @@ const validateWigleNetworksQuery = validateQuery({
     }
     return { valid: true, value: v.value };
   }),
+  encryption: optional((value: any) => {
+    const v = validateString(String(value), 'Encryption');
+    if (!v.valid || (v.value && v.value.length > 128)) {
+      return { valid: false, error: 'Encryption must be 1-128 characters' };
+    }
+    return { valid: true, value: v.value };
+  }),
 });
 
 /**
@@ -106,6 +113,7 @@ router.get(
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
     const typeRaw = (req as any).validated?.type;
+    const encryptionRaw = (req as any).validated?.encryption;
     const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
     if (!includeTotalValidation.valid) {
       return res.status(400).json({ error: includeTotalValidation.error });
@@ -114,6 +122,7 @@ router.get(
 
     let ssid: string | undefined;
     let bssid: string | undefined;
+    let encryption: string | undefined;
 
     if (filters && enabled) {
       try {
@@ -121,15 +130,21 @@ router.get(
         const enabledObj = JSON.parse(enabled as string);
         if (enabledObj.ssid && filterObj.ssid) ssid = String(filterObj.ssid);
         if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
+        if (enabledObj.encryptionTypes && filterObj.encryptionTypes)
+          encryption = String(filterObj.encryptionTypes);
       } catch (e: any) {
         logger.warn('Invalid filter parameters:', e.message);
       }
     }
 
+    // Fallback to query param if not in filter object
+    if (!encryption && encryptionRaw) encryption = String(encryptionRaw);
+
     const { rows, total } = await wigleService.getWigleDatabase({
       version: 'v2',
       ssid,
       bssid,
+      encryption,
       type: typeRaw ? String(typeRaw) : undefined,
       limit,
       offset,
@@ -161,6 +176,7 @@ router.get(
     const { filters, enabled } = req.query;
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
+    const encryptionRaw = (req as any).validated?.encryption;
     const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
     if (!includeTotalValidation.valid) {
       return res.status(400).json({ error: includeTotalValidation.error });
@@ -169,6 +185,7 @@ router.get(
 
     let ssid: string | undefined;
     let bssid: string | undefined;
+    let encryption: string | undefined;
 
     if (filters && enabled) {
       try {
@@ -176,15 +193,21 @@ router.get(
         const enabledObj = JSON.parse(enabled as string);
         if (enabledObj.ssid && filterObj.ssid) ssid = String(filterObj.ssid);
         if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
+        if (enabledObj.encryptionTypes && filterObj.encryptionTypes)
+          encryption = String(filterObj.encryptionTypes);
       } catch (e: any) {
         logger.warn('Invalid filter parameters for v3:', e.message);
       }
     }
 
+    // Fallback to query param if not in filter object
+    if (!encryption && encryptionRaw) encryption = String(encryptionRaw);
+
     const { rows, total } = await wigleService.getWigleDatabase({
       version: 'v3',
       ssid,
       bssid,
+      encryption,
       limit,
       offset,
       includeTotal,
