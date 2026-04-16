@@ -119,6 +119,9 @@ export interface AdminRuntimeFeatureFlags {
   forceHttps: boolean;
   cookieSecure: boolean;
   simpleRuleScoringEnabled: boolean;
+  scoreDebugLogging: boolean;
+  autoGeocodeOnImport: boolean;
+  dedupeOnScan: boolean;
   trackQueryPerformance: boolean;
   debugQueryPerformance: boolean;
   debugGeospatial: boolean;

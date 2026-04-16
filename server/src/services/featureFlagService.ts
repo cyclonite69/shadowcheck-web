@@ -7,7 +7,10 @@ type DbBackedFlagKey =
   | 'admin_allow_ml_scoring'
   | 'enable_background_jobs'
   | 'simple_rule_scoring_enabled'
-  | 'allow_mobile_ingest_auto_process';
+  | 'allow_mobile_ingest_auto_process'
+  | 'score_debug_logging'
+  | 'auto_geocode_on_import'
+  | 'dedupe_on_scan';
 
 const FLAG_DEFAULTS: Record<DbBackedFlagKey, boolean> = {
   admin_allow_docker: String(process.env.ADMIN_ALLOW_DOCKER || '').toLowerCase() === 'true',
@@ -18,6 +21,9 @@ const FLAG_DEFAULTS: Record<DbBackedFlagKey, boolean> = {
   enable_background_jobs: process.env.ENABLE_BACKGROUND_JOBS === 'true',
   simple_rule_scoring_enabled: process.env.SIMPLE_RULE_SCORING_ENABLED === 'true',
   allow_mobile_ingest_auto_process: process.env.ALLOW_MOBILE_INGEST_AUTO_PROCESS === 'true',
+  score_debug_logging: false,
+  auto_geocode_on_import: true,
+  dedupe_on_scan: true,
 };
 
 const DB_BACKED_FLAG_KEYS = Object.keys(FLAG_DEFAULTS) as DbBackedFlagKey[];
