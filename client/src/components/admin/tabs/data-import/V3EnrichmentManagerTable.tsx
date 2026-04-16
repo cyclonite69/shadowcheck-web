@@ -85,7 +85,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       wigle_v3_observation_count: row.v3_obs_count,
     });
     const placeholderHtml =
-      renderNetworkTooltip({ ...placeholderNormalized, triggerElement: null }) ?? '';
+      renderNetworkTooltip({ ...placeholderNormalized, triggerElement: tableRef.current }) ?? '';
     setBasePanelHtml(placeholderHtml);
     setActivePanel({ bssid: row.bssid, html: placeholderHtml, loading: true });
 
@@ -95,7 +95,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       const source = mv ?? { ...row, wigle_v3_observation_count: row.v3_obs_count };
       const normalized = normalizeTooltipData(source);
       const fullHtml =
-        renderNetworkTooltip({ ...normalized, triggerElement: null }) ?? placeholderHtml;
+        renderNetworkTooltip({ ...normalized, triggerElement: tableRef.current }) ?? placeholderHtml;
       setBasePanelHtml(fullHtml);
       setActivePanel((current) => {
         if (!current || current.bssid !== row.bssid) return current;
@@ -129,7 +129,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       first_seen: obs.time,
       last_seen: obs.time,
     });
-    const html = renderNetworkTooltip({ ...normalized, triggerElement: null }) ?? basePanelHtml;
+    const html = renderNetworkTooltip({ ...normalized, triggerElement: tableRef.current }) ?? basePanelHtml;
     setActivePanel((prev) => (prev ? { ...prev, html } : prev));
   };
 
