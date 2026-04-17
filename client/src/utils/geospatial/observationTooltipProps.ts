@@ -41,8 +41,8 @@ export const buildObservationTooltipProps = ({
     capabilities: obs.capabilities || network?.capabilities || network?.security || null,
     threat_level: threatLevel,
     threat_score: network?.threat_score ?? null,
-    first_seen: network?.first_seen || null,
-    last_seen: network?.last_seen || null,
+    first_seen: network?.firstSeen || network?.first_seen || null,
+    last_seen: network?.lastSeen || network?.last_seen || null,
     timespan_days: typeof network?.timespanDays === 'number' ? network.timespanDays : null,
     distance_from_home_km:
       obs.distance_from_home_km ??
@@ -60,5 +60,9 @@ export const buildObservationTooltipProps = ({
     number,
     color,
     co_channel_neighbors: coChannelNeighbors,
+    geocoded_address: network?.geocoded_address || null,
+    geocoded_city: network?.geocoded_city || null,
+    geocoded_state: network?.geocoded_state || null,
+    geocoded_postal_code: network?.geocoded_postal_code || null,
   };
 };

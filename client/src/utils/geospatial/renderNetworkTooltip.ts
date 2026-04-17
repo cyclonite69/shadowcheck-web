@@ -459,7 +459,7 @@ export const renderNetworkTooltip = (props: any): any => {
   ${!displayAddress && locationText ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}`
       : ''
   }
-  ${hasCoords ? `<div title="${displayAddress ? `${displayAddress} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `Location coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;text-decoration:underline dotted rgba(255,255,255,0.2);">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}${obsNumber > 0 && obsTotal > 0 ? `<span style="color:rgba(255,255,255,0.3);">#${obsNumber} / ${obsTotal}</span>` : ''}</div>` : ''}
+  ${hasCoords ? `<div title="${displayAddress ? `${displayAddress} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `Location coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;text-decoration:underline dotted rgba(255,255,255,0.2);">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}</div>` : ''}
   ${
     Number.isFinite(homeKm)
       ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
