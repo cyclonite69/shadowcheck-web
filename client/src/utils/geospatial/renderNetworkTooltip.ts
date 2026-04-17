@@ -349,7 +349,6 @@ export const renderNetworkTooltip = (props: any): any => {
     channelValue ? fieldRow('Channel', channelValue) : '',
     frequencyValue ? fieldRow('Frequency', frequencyValue) : '',
     props.geocoded_poi_name ? fieldRow('POI Name', props.geocoded_poi_name) : '',
-    props.geocoded_address ? fieldRow('Address', props.geocoded_address) : '',
     !isMissingValue(props.manufacturer) && String(props.manufacturer).toUpperCase() !== 'UNKNOWN'
       ? fieldRow('Manufacturer', normalizeDisplay(props.manufacturer))
       : '',
