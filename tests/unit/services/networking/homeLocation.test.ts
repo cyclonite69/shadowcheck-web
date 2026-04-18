@@ -1,7 +1,4 @@
-import {
-  getHomeLocation,
-  setHomeLocation,
-} from '../../../../server/src/services/networking/homeLocation';
+import { getHomeLocation } from '../../../../server/src/services/networking/homeLocation';
 import { query } from '../../../../server/src/config/database';
 import logger from '../../../../server/src/logging/logger';
 
@@ -19,7 +16,7 @@ describe('networking homeLocation service', () => {
   });
 
   it('should return lat and lon when home location exists', async () => {
-    query.mockResolvedValueOnce({
+    (query as jest.Mock).mockResolvedValueOnce({
       rows: [{ latitude: '37.7749', longitude: '-122.4194' }],
     });
 
@@ -30,7 +27,7 @@ describe('networking homeLocation service', () => {
   });
 
   it('should return null when no home location is found', async () => {
-    query.mockResolvedValueOnce({
+    (query as jest.Mock).mockResolvedValueOnce({
       rows: [],
     });
 
@@ -40,14 +37,14 @@ describe('networking homeLocation service', () => {
   });
 
   it('should return null when latitude or longitude is null', async () => {
-    query.mockResolvedValueOnce({
+    (query as jest.Mock).mockResolvedValueOnce({
       rows: [{ latitude: null, longitude: '-122.4194' }],
     });
 
     const result = await getHomeLocation();
     expect(result).toBeNull();
 
-    query.mockResolvedValueOnce({
+    (query as jest.Mock).mockResolvedValueOnce({
       rows: [{ latitude: '37.7749', longitude: null }],
     });
 
@@ -57,7 +54,7 @@ describe('networking homeLocation service', () => {
 
   it('should log warning and return null when query fails', async () => {
     const error = new Error('DB Error');
-    query.mockRejectedValueOnce(error);
+    (query as jest.Mock).mockRejectedValueOnce(error);
 
     const result = await getHomeLocation();
 
