@@ -1,20 +1,20 @@
 # Test Suite Audit Report (UPDATED April 18, 2026)
 
-## Current State (Post-Enhancement Round 3)
+## Current State (Post-Enhancement Round 4)
 
-- **Total Test Files**: 102+
+- **Total Test Files**: 108+
 - **Test Types**:
-  - **Unit Tests**: Majority (approx. 90+ files)
+  - **Unit Tests**: Majority (approx. 100+ files)
   - **Integration Tests**: 9 files in `tests/integration/`
   - **Certification Tests**: 1 file
   - **API Tests**: 2 files
 - **Coverage (Server Code)**:
-  - **Statements**: 52.63%
-  - **Branches**: 43.97%
-  - **Functions**: 47.75%
-  - **Lines**: 54.11%
+  - **Statements**: 53.23%
+  - **Branches**: 44.51%
+  - **Functions**: 48.5%
+  - **Lines**: 54.74%
 - **Pass/Fail Status**:
-  - **Passed**: 2110 (Expanded WiGLE high-level services and Core Infrastructure)
+  - **Passed**: 2119 (Added WiGLE utilities, Ledger, and Query Builder modules)
   - **Failed**: 0
   - **Skipped**: 37 (Integration tests skipped when DB is not available)
 
@@ -22,17 +22,17 @@
 
 ### Tested (Well) -> [EXPANDED]
 
-- **WiGLE High-Level Services**: `wigleImportService.ts` reached 100% coverage.
+- **WiGLE Client & Utilities**: `wigleClient.ts`, `wigleAuditLogger.ts`, `wigleRequestLedger.ts`, `wigleRequestUtils.ts`.
+- **Filter Query Builder**: Reached **100% Statement Coverage** for `universalFilterQueryBuilder.ts` and `SqlFragmentLibrary.ts`.
+- **Infrastructure**: `secretsManager.ts` reached **84.21%** coverage.
 - **Networking Core (homeLocation / sql)**: 100% coverage.
 - **Geocoding Infrastructure**: `jobState.ts` reached 100% statement coverage.
-- **Filter Builders**: Reached >90% branch coverage across all modules.
-- **AuthService / AdminUsersService**: 100% line coverage.
 
 ### Tested (Partially) -> [IMPROVED]
 
+- **NetworkModule.ts**: Increased to **93.33% Line Coverage**.
 - **wigleImportRunService**: 94% statement coverage.
 - **mobileIngestService**: Reached >90% line coverage.
-- **WebSocket Terminal**: Surgically improved to handle concurrency and invalid ID edge cases.
 
 ### Untested (Critical Gaps) -> [ADDRESSED]
 
@@ -48,4 +48,4 @@
 
 1.  **Tight Coupling to Database**: Mitigated using structured mocking of query/adminQuery helpers.
 2.  **Parallel Execution Limits**: Multi-agent orchestration now standard (formalized in `GEMINI.md`).
-3.  **Legacy CommonJS/ESM Mix**: Most critical tests converted to ESM imports for accurate coverage tracking.
+3.  **Complex Retries/Timeouts**: Verified using surgical event-loop flushing and fresh body mocks for streams.

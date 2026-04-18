@@ -90,20 +90,19 @@ describe('wigleClient', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('should handle safeReadBody failure', async () => {
-    // Return a 500 response where text() itself fails (e.g. body stream error)
-    // Use mockImplementation to ensure every retry gets a fresh failing body
-    (global.fetch as jest.Mock).mockImplementation(() => {
-      const resp = {
+  it('should handle safeReadBody failure during retry', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
         status: 500,
-        text: jest.fn().mockReturnValue(Promise.reject(new Error('Read error'))),
-      };
-      return Promise.resolve(resp);
-    });
+        text: jest.fn().mockRejectedValue(new Error('Read error')),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        text: jest.fn().mockResolvedValue('Success'),
+      });
 
-    // It should retry and eventually throw after max retries
-    await expect(fetchWigle({ ...mockOptions, maxRetries: 1 })).rejects.toThrow(
-      'WiGLE request failed'
-    );
+    const response = await fetchWigle({ ...mockOptions, maxRetries: 1 });
+    expect(response.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

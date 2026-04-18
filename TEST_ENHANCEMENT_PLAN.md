@@ -65,4 +65,5 @@
 - [x] **Turn 4: Subagent Expansion (Bonus)**: Expanded coverage for `ouiGroupingService`, ML services, and Core Business Services (`explorerService`, `dashboardService`, `mobileIngestService`) to >90%.
 - [x] **Turn 5: Deep Service Expansion**: Expanded coverage for Networking Core (`homeLocation.ts`, `sql.ts`), WiGLE Import Infrastructure (`runRepository.ts`, `params.ts`), and Networking Filter Builders to >90%.
 - [x] **Turn 6: Deep Infrastructure Expansion**: Expanded coverage for WiGLE High-Level Services (`wigleImportService.ts`, `wigleImportRunService.ts`) and Geocoding State (`jobState.ts`) to 100% Statements. Refined WebSocket terminal tests.
+- [x] **Turn 7: WiGLE Utilities & Query Builders**: Expanded coverage for WiGLE Client/Ledger/AuditLogger and Filter Query Builder modules (`universalFilterQueryBuilder.ts`, `SqlFragmentLibrary.ts`) to 100% Statements. Refined `wigleClient.ts` retry logic tests.
       hresholds.
