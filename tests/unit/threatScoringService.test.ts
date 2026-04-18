@@ -1,88 +1,219 @@
 export {};
 
-const threatScoringService = require('../../server/src/services/threatScoringService') as any;
-const { query } = require('../../server/src/config/database') as any;
-const logger = require('../../server/src/logging/logger') as any;
-
-jest.mock('../../server/src/config/database');
-jest.mock('../../server/src/logging/logger');
+const {
+  createThreatScoringService,
+} = require('../../server/src/services/threatScoringService') as {
+  createThreatScoringService: Function;
+};
 
 describe('ThreatScoringService', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset stats between tests if needed, but since it's a singleton,
-    // we might need a way to reset it.
-    // Looking at the code, stats are private.
+  const createLogger = () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  });
+
+  const createRepository = () => ({
+    upsertRuleBasedThreatScores: jest.fn(),
+    getBehavioralScoringCandidatesByBssids: jest.fn(),
+    upsertBehavioralThreatScores: jest.fn(),
+    getQuickThreats: jest.fn(),
+    getDetailedThreats: jest.fn(),
+  });
+
+  const createNetworkTagService = () => ({
+    getManualThreatTags: jest.fn(),
   });
 
   describe('computeThreatScores', () => {
-    it('should compute threat scores successfully', async () => {
-      query.mockResolvedValueOnce({ rowCount: 5 });
+    it('orchestrates rule-based and behavioral scoring successfully', async () => {
+      const logger = createLogger();
+      const repository = createRepository();
+      const networkTagService = createNetworkTagService();
+      const scoreBehavioralThreats = jest.fn().mockReturnValue({
+        scores: [
+          {
+            bssid: 'B1',
+            ml_threat_score: 42,
+            ml_threat_probability: 0.42,
+            ml_primary_class: 'LEGITIMATE',
+            model_version: '2.0.0',
+          },
+        ],
+      });
 
-      const result = await threatScoringService.computeThreatScores(10, 24);
+      repository.upsertRuleBasedThreatScores.mockResolvedValue({
+        processedBssids: ['B1', 'B2'],
+        processedCount: 2,
+      });
+      repository.getBehavioralScoringCandidatesByBssids.mockResolvedValue([
+        { bssid: 'B1', observationCount: 5, uniqueDays: 4, maxDistanceKm: 2.5 },
+      ]);
+      networkTagService.getManualThreatTags.mockResolvedValue([]);
+      repository.upsertBehavioralThreatScores.mockResolvedValue(1);
+
+      const service = createThreatScoringService({
+        logger,
+        threatRepository: repository,
+        networkTagService,
+        scoreBehavioralThreats,
+      });
+
+      const result = await service.computeThreatScores(10, 24);
 
       expect(result).toEqual({
         success: true,
-        processed: 5,
-        updated: 5,
+        processed: 2,
+        updated: 2,
         executionTimeMs: expect.any(Number),
       });
-
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('WITH targets AS'), [10]);
+      expect(repository.upsertRuleBasedThreatScores).toHaveBeenCalledWith({
+        batchSize: 10,
+        maxAgeHours: 24,
+      });
+      expect(repository.getBehavioralScoringCandidatesByBssids).toHaveBeenCalledWith({
+        bssids: ['B1', 'B2'],
+        minObservations: 2,
+        maxBssidLength: 17,
+      });
+      expect(scoreBehavioralThreats).toHaveBeenCalledWith(
+        [{ bssid: 'B1', observationCount: 5, uniqueDays: 4, maxDistanceKm: 2.5 }],
+        []
+      );
+      expect(repository.upsertBehavioralThreatScores).toHaveBeenCalledWith([
+        {
+          bssid: 'B1',
+          mlThreatScore: 42,
+          mlThreatProbability: 0.42,
+          mlPrimaryClass: 'LEGITIMATE',
+          modelVersion: '2.0.0',
+        },
+      ]);
       expect(logger.info).toHaveBeenCalledWith('Starting unified threat score computation', {
         batchSize: 10,
         maxAgeHours: 24,
       });
+      expect(logger.info).toHaveBeenCalledWith('Unified threat score computation completed', {
+        processed: 2,
+        updated: 2,
+        behavioralUpdated: 1,
+        executionTimeMs: expect.any(Number),
+        totalProcessed: 2,
+      });
     });
 
-    it('should skip if already running', async () => {
-      // We can't easily set isRunning to true from outside,
-      // but we can trigger it by not awaiting a long-running query.
+    it('skips when already running', async () => {
+      const logger = createLogger();
+      const repository = createRepository();
+      const networkTagService = createNetworkTagService();
 
-      let resolveQuery: any;
-      const queryPromise = new Promise((resolve) => {
-        resolveQuery = resolve;
+      let resolveRulePass:
+        | ((value: { processedBssids: string[]; processedCount: number }) => void)
+        | undefined;
+      repository.upsertRuleBasedThreatScores.mockReturnValue(
+        new Promise((resolve) => {
+          resolveRulePass = resolve;
+        })
+      );
+
+      const service = createThreatScoringService({
+        logger,
+        threatRepository: repository,
+        networkTagService,
+        scoreBehavioralThreats: jest.fn(),
       });
-      query.mockReturnValueOnce(queryPromise);
 
-      const firstCall = threatScoringService.computeThreatScores(10, 24);
-      const secondCall = await threatScoringService.computeThreatScores(10, 24);
+      const firstCall = service.computeThreatScores(10, 24);
+      const secondCall = await service.computeThreatScores(10, 24);
 
       expect(secondCall).toEqual({ skipped: true });
       expect(logger.warn).toHaveBeenCalledWith('Threat scoring already running, skipping');
 
-      resolveQuery({ rowCount: 5 });
+      resolveRulePass?.({ processedBssids: [], processedCount: 0 });
+      repository.getBehavioralScoringCandidatesByBssids.mockResolvedValue([]);
       await firstCall;
     });
 
-    it('should handle errors and update stats', async () => {
+    it('records errors in stats', async () => {
+      const logger = createLogger();
+      const repository = createRepository();
       const error = new Error('DB Error');
-      query.mockRejectedValueOnce(error);
+      repository.upsertRuleBasedThreatScores.mockRejectedValue(error);
 
-      await expect(threatScoringService.computeThreatScores()).rejects.toThrow('DB Error');
+      const service = createThreatScoringService({
+        logger,
+        threatRepository: repository,
+        networkTagService: createNetworkTagService(),
+        scoreBehavioralThreats: jest.fn(),
+      });
 
-      const stats = threatScoringService.getStats();
+      await expect(service.computeThreatScores()).rejects.toThrow('DB Error');
+
+      const stats = service.getStats();
       expect(stats.lastError).toBe('DB Error');
       expect(logger.error).toHaveBeenCalledWith('Threat score computation failed', {
         error: 'DB Error',
       });
     });
+
+    it('skips behavioral upsert when no candidates qualify', async () => {
+      const logger = createLogger();
+      const repository = createRepository();
+      repository.upsertRuleBasedThreatScores.mockResolvedValue({
+        processedBssids: ['B1'],
+        processedCount: 1,
+      });
+      repository.getBehavioralScoringCandidatesByBssids.mockResolvedValue([]);
+
+      const service = createThreatScoringService({
+        logger,
+        threatRepository: repository,
+        networkTagService: createNetworkTagService(),
+        scoreBehavioralThreats: jest.fn(),
+      });
+
+      await service.computeThreatScores();
+
+      expect(repository.upsertBehavioralThreatScores).not.toHaveBeenCalled();
+    });
   });
 
   describe('markAllForRecompute', () => {
-    it('should call computeThreatScores with large batch size', async () => {
-      query.mockResolvedValueOnce({ rowCount: 100 });
+    it('reuses computeThreatScores with the full-batch arguments', async () => {
+      const repository = createRepository();
+      repository.upsertRuleBasedThreatScores.mockResolvedValue({
+        processedBssids: ['B1'],
+        processedCount: 1,
+      });
+      repository.getBehavioralScoringCandidatesByBssids.mockResolvedValue([]);
 
-      const result = await threatScoringService.markAllForRecompute();
+      const service = createThreatScoringService({
+        logger: createLogger(),
+        threatRepository: repository,
+        networkTagService: createNetworkTagService(),
+        scoreBehavioralThreats: jest.fn(),
+      });
 
-      expect(result).toEqual({ success: true, rowsAffected: 100 });
-      expect(query).toHaveBeenCalledWith(expect.any(String), [1000000]);
+      const result = await service.markAllForRecompute();
+
+      expect(result).toEqual({ success: true, rowsAffected: 1 });
+      expect(repository.upsertRuleBasedThreatScores).toHaveBeenCalledWith({
+        batchSize: 1000000,
+        maxAgeHours: 0,
+      });
     });
   });
 
   describe('getStats', () => {
-    it('should return service stats', () => {
-      const stats = threatScoringService.getStats();
+    it('returns service stats', () => {
+      const service = createThreatScoringService({
+        logger: createLogger(),
+        threatRepository: createRepository(),
+        networkTagService: createNetworkTagService(),
+        scoreBehavioralThreats: jest.fn(),
+      });
+
+      const stats = service.getStats();
       expect(stats).toHaveProperty('isRunning');
       expect(stats).toHaveProperty('totalProcessed');
       expect(stats).toHaveProperty('totalUpdated');
@@ -90,11 +221,40 @@ describe('ThreatScoringService', () => {
   });
 
   describe('getQuickThreats', () => {
-    it('should fetch quick threats with filters', async () => {
-      const mockRows = [{ bssid: 'B1', threat_score: 90, total_count: '1' }];
-      query.mockResolvedValueOnce({ rows: mockRows });
+    it('maps repository records to the existing API DTO shape', async () => {
+      const repository = createRepository();
+      repository.getQuickThreats.mockResolvedValue({
+        records: [
+          {
+            bssid: 'B1',
+            ssid: null,
+            radioType: null,
+            channel: 6,
+            signalDbm: -55,
+            encryption: 'WPA2',
+            latitude: 45,
+            longitude: -75,
+            firstSeen: '2026-04-01T00:00:00Z',
+            lastSeen: '2026-04-02T00:00:00Z',
+            observations: 8,
+            uniqueDays: 4,
+            uniqueLocations: 3,
+            distanceRangeKm: 1.234,
+            threatScore: 88.8,
+            threatLevel: 'HIGH',
+          },
+        ],
+        totalCount: 1,
+      });
 
-      const params = {
+      const service = createThreatScoringService({
+        logger: createLogger(),
+        threatRepository: repository,
+        networkTagService: createNetworkTagService(),
+        scoreBehavioralThreats: jest.fn(),
+      });
+
+      const result = await service.getQuickThreats({
         limit: 10,
         offset: 0,
         minObservations: 5,
@@ -102,47 +262,98 @@ describe('ThreatScoringService', () => {
         minUniqueLocations: 1,
         minRangeKm: 0.1,
         minThreatScore: 30,
-        minTimestamp: Date.now() - 86400000,
-      };
-
-      const result = await threatScoringService.getQuickThreats(params);
-
-      expect(result.rows).toEqual(mockRows);
-      expect(result.totalCount).toBe(1);
-      expect(query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT'),
-        expect.arrayContaining([params.minTimestamp, params.limit, params.offset])
-      );
-    });
-
-    it('should return zero totalCount if no rows found', async () => {
-      query.mockResolvedValueOnce({ rows: [] });
-
-      const result = await threatScoringService.getQuickThreats({
-        limit: 10,
-        offset: 0,
-        minObservations: 0,
-        minUniqueDays: 0,
-        minUniqueLocations: 0,
-        minRangeKm: 0,
-        minThreatScore: 0,
         minTimestamp: 0,
       });
 
-      expect(result.totalCount).toBe(0);
-      expect(result.rows).toEqual([]);
+      expect(result).toEqual({
+        threats: [
+          {
+            bssid: 'B1',
+            ssid: '<Hidden>',
+            radioType: 'wifi',
+            type: 'wifi',
+            channel: 6,
+            signal: -55,
+            signalDbm: -55,
+            maxSignal: -55,
+            encryption: 'WPA2',
+            latitude: 45,
+            longitude: -75,
+            firstSeen: '2026-04-01T00:00:00Z',
+            lastSeen: '2026-04-02T00:00:00Z',
+            observations: 8,
+            totalObservations: 8,
+            uniqueDays: 4,
+            uniqueLocations: 3,
+            distanceRangeKm: '1.23',
+            threatScore: 88.8,
+            threatLevel: 'high',
+          },
+        ],
+        totalCount: 1,
+      });
     });
   });
 
   describe('getDetailedThreats', () => {
-    it('should fetch detailed threats', async () => {
-      const mockRows = [{ bssid: 'B1', final_threat_score: 95 }];
-      query.mockResolvedValueOnce({ rows: mockRows });
+    it('maps repository records to the detailed API DTO shape', async () => {
+      const repository = createRepository();
+      repository.getDetailedThreats.mockResolvedValue([
+        {
+          bssid: 'B1',
+          ssid: 'ThreatNet',
+          type: 'wifi',
+          encryption: 'WPA2',
+          frequency: 2437,
+          signalDbm: -50,
+          latitude: 45,
+          longitude: -75,
+          totalObservations: 10,
+          finalThreatScore: 85.5,
+          finalThreatLevel: 'HIGH',
+          ruleBasedFlags: {
+            summary: 'High risk detected',
+            confidence: '0.95',
+            metrics: { observations: 10 },
+            factors: { mobility: 'high' },
+            flags: ['MOCK_FLAG'],
+          },
+        },
+      ]);
 
-      const result = await threatScoringService.getDetailedThreats();
+      const service = createThreatScoringService({
+        logger: createLogger(),
+        threatRepository: repository,
+        networkTagService: createNetworkTagService(),
+        scoreBehavioralThreats: jest.fn(),
+      });
 
-      expect(result).toEqual(mockRows);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('SELECT'));
+      const result = await service.getDetailedThreats();
+
+      expect(result).toEqual([
+        {
+          bssid: 'B1',
+          ssid: 'ThreatNet',
+          type: 'wifi',
+          encryption: 'WPA2',
+          channel: 2437,
+          signal: -50,
+          signalDbm: -50,
+          latitude: 45,
+          longitude: -75,
+          totalObservations: 10,
+          observations: 10,
+          threatScore: 85.5,
+          threatType: 'High risk detected',
+          threatLevel: 'high',
+          confidence: '95',
+          patterns: {
+            metrics: { observations: 10 },
+            factors: { mobility: 'high' },
+            flags: ['MOCK_FLAG'],
+          },
+        },
+      ]);
     });
   });
 });

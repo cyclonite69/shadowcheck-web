@@ -10,10 +10,10 @@ import {
   updateUserPassword,
 } from '../../server/src/services/authWrites';
 import { query } from '../../server/src/config/database';
-import { resetAppUserPassword } from '../../server/src/services/adminUsersService';
+import bcrypt from 'bcrypt';
 
 jest.mock('../../server/src/config/database');
-jest.mock('../../server/src/services/adminUsersService');
+jest.mock('bcrypt');
 
 describe('AuthWrites', () => {
   beforeEach(() => {
@@ -95,14 +95,22 @@ describe('AuthWrites', () => {
       );
     });
 
-    it('should call resetAppUserPassword on permission error', async () => {
+    it('should retry locally on permission error using a hashed plaintext password', async () => {
       const error = new Error('permission denied');
       (error as any).code = '42501';
-      (query as jest.Mock).mockRejectedValue(error);
+      (query as jest.Mock)
+        .mockRejectedValueOnce(error) // Initial try fails with permission error
+        .mockResolvedValueOnce({ rowCount: 1 }); // Retry succeeds
+      (bcrypt.hash as jest.Mock).mockResolvedValue('admin-hash');
 
       await updateUserPassword(1, 'hash', 'plain');
 
-      expect(resetAppUserPassword).toHaveBeenCalledWith(1, 'plain', false);
+      expect(bcrypt.hash).toHaveBeenCalledWith('plain', 12);
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2',
+        ['admin-hash', 1]
+      );
     });
 
     it('should throw error if update failed', async () => {

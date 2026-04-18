@@ -3,8 +3,10 @@
  * Administrative operations for network notes and media
  */
 
-const { adminQuery } = require('../adminDbService');
-const { query } = require('../../config/database');
+const adminQuery = (text: string, params: any[] = []) =>
+  require('../../config/container').adminDbService.adminQuery(text, params);
+const query = (text: string, params: unknown[] = []) =>
+  require('../../config/container').databaseService.query(text, params);
 
 export async function addNetworkNote(bssid: string, content: string): Promise<number> {
   const { rows } = await adminQuery(

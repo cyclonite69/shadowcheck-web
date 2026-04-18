@@ -3,7 +3,8 @@
  * Administrative operations for network tagging
  */
 
-const { adminQuery } = require('../adminDbService');
+const adminQuery = (text: string, params: any[] = []) =>
+  require('../../config/container').adminDbService.adminQuery(text, params);
 
 export async function upsertNetworkTag(
   bssid: string,

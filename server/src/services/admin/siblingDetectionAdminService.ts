@@ -1,4 +1,3 @@
-const { adminQuery } = require('../adminDbService');
 const logger = require('../../logging/logger');
 import { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL } from './siblingDetectionQueries';
 import {
@@ -9,6 +8,9 @@ import {
   type SiblingRefreshResult,
   type SiblingRefreshStatus,
 } from './siblingDetectionState';
+
+const adminQuery = (text: string, params: any[] = []) =>
+  require('../../config/container').adminDbService.adminQuery(text, params);
 
 async function runSiblingRefreshJob(
   options: SiblingRefreshOptions = {}

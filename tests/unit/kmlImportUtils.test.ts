@@ -8,7 +8,7 @@ const {
   parseRelativePathsPayload,
   getKmlImportHistoryContext,
   parseKmlImportCounts,
-} = require('../../server/src/api/routes/v1/admin/kmlImportUtils');
+} = require('../../server/src/services/admin/adminHelpers');
 
 describe('KML import utilities', () => {
   describe('collectKmlFiles', () => {

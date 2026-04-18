@@ -1,7 +1,6 @@
 // @ts-ignore
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { createAppUser } from './adminUsersService';
 import { getSessionUser, getUserForLogin, getUserForPasswordChange } from './authQueries';
 import {
   createUserSession,
@@ -36,6 +35,10 @@ class AuthService {
    */
   async login(username: string, password: string, userAgent = '', ipAddress = '') {
     try {
+      if (!username || !password) {
+        return { success: false, error: 'Invalid credentials' };
+      }
+
       // Find user
       const userResult = await getUserForLogin(username);
 
@@ -152,28 +155,14 @@ class AuthService {
   }
 
   /**
-   * Create new user (admin only)
-   */
-  async createUser(username: string, email: string, password: string, role = 'user') {
-    try {
-      const user = await createAppUser(username, email, password, role as 'user' | 'admin', false);
-      return { success: true, user };
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code === '23505') {
-        // Unique violation
-        return { success: false, error: 'Username or email already exists' };
-      }
-      logger.error('Create user error:', error);
-      return { success: false, error: 'Failed to create user' };
-    }
-  }
-
-  /**
    * Change user password (requires current password verification)
    */
   async changePassword(username: string, currentPassword: string, newPassword: string) {
     try {
+      if (!username || !currentPassword || !newPassword) {
+        return { success: false, error: 'Invalid credentials' };
+      }
+
       const userResult = await getUserForPasswordChange(username);
 
       if (userResult.rows.length === 0) {

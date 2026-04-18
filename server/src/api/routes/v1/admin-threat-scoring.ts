@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { threatScoringService } = require('../../../config/container');
-const logger = require('../../logging/logger');
+const logger = require('../../../logging/logger');
 
 export {};
 

@@ -1,5 +1,8 @@
 import { query } from '../config/database';
-import { resetAppUserPassword } from './adminUsersService';
+// @ts-ignore
+import bcrypt from 'bcrypt';
+
+const AUTH_SALT_ROUNDS = 12;
 
 const createUserSession = async (
   userId: number,
@@ -35,7 +38,11 @@ const updateUserPassword = async (
     } catch (error: unknown) {
       const err = error as { code?: string };
       if (err.code === '42501' && plainTextPassword) {
-        await resetAppUserPassword(userId, plainTextPassword, false);
+        const adminPasswordHash = await bcrypt.hash(plainTextPassword, AUTH_SALT_ROUNDS);
+        await query(
+          'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2',
+          [adminPasswordHash, userId]
+        );
         return true;
       }
 

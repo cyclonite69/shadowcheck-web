@@ -23,10 +23,9 @@ export function useWigleFileUpload(): UseWigleFileUploadReturn {
     formData.append('file', file);
 
     try {
-      const res = await wigleApi.importWigleV3(formData);
-      const json = await res.json();
+      const json = await wigleApi.importWigleV3(formData);
 
-      if (!res.ok) {
+      if (!json?.ok) {
         throw new Error(json.error || 'Upload failed');
       }
 

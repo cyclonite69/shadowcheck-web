@@ -30,7 +30,7 @@ jest.mock('../../server/src/config/container', () => ({
   },
 }));
 
-jest.mock('../../server/src/api/routes/v1/admin/importHelpers', () => ({
+jest.mock('../../server/src/services/admin/adminHelpers', () => ({
   upload: {
     single: () => (_req: any, _res: any, next: any) => next(),
   },
@@ -45,6 +45,10 @@ jest.mock('../../server/src/api/routes/v1/admin/importHelpers', () => ({
   getImportCommand: jest.fn(),
   getKmlImportCommand: jest.fn(),
   getSqlImportCommand: jest.fn(),
+  sanitizeRelativePath: jest.fn((value: any) => value),
+  parseRelativePathsPayload: jest.fn(() => []),
+  getKmlImportHistoryContext: jest.fn(() => ({ sourceTag: 'test', filename: 'test.kml' })),
+  parseKmlImportCounts: jest.fn(() => ({ filesImported: 1, pointsImported: 10 })),
   PROJECT_ROOT: '/app',
 }));
 

@@ -302,4 +302,190 @@ describe('ssmTerminal', () => {
       expect.stringContaining('HTTP/1.1 429 Too many active sessions')
     );
   });
+
+  it('should handle cookie parsing edge cases', async () => {
+    // Already initialized in beforeEach, but we need to call it via the upgrade event
+    // to reach the parseCookies usage if we want end-to-end,
+    // but initializeSsmWebSocket is already called.
+
+    // We can't easily test parseCookies in isolation because it's not exported.
+    // But we can trigger it via upgrade events.
+
+    authService.validateSession.mockResolvedValue({ valid: false });
+    initializeSsmWebSocket(mockServer, mockLogger);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+
+    // Test no cookie header
+    const mockRequestNoCookie = {
+      url: '/ws/ssm',
+      headers: { host: 'localhost' },
+    };
+    await mockServer.emit('upgrade', mockRequestNoCookie, mockSocket, Buffer.from(''));
+    expect(mockSocket.write).toHaveBeenCalledWith(expect.stringContaining('401 Unauthorized'));
+
+    // Test malformed cookie (no =)
+    const mockRequestMalformedCookie = {
+      url: '/ws/ssm',
+      headers: { host: 'localhost', cookie: 'malformed' },
+    };
+    await mockServer.emit('upgrade', mockRequestMalformedCookie, mockSocket, Buffer.from(''));
+    expect(mockSocket.write).toHaveBeenCalledWith(expect.stringContaining('401 Unauthorized'));
+  });
+
+  it('should handle AWS config without region', async () => {
+    getAwsConfig.mockResolvedValue({}); // No region
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsmWebSocket(mockServer, mockLogger);
+
+    await mockWss.emit(
+      'connection',
+      mockWs,
+      {},
+      { instanceId: 'i-12345678', user: { username: 'admin' } }
+    );
+
+    expect(spawn).toHaveBeenCalledWith(
+      'aws',
+      expect.anything(),
+      expect.objectContaining({
+        env: expect.not.objectContaining({
+          AWS_DEFAULT_REGION: expect.anything(),
+        }),
+      })
+    );
+  });
+
+  it('should not send messages if WebSocket is not open', async () => {
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsmWebSocket(mockServer, mockLogger);
+    await mockWss.emit(
+      'connection',
+      mockWs,
+      {},
+      { instanceId: 'i-12345678', user: { username: 'admin' } }
+    );
+
+    mockWs.readyState = WebSocket.CLOSED;
+    mockChild.stdout.emit('data', Buffer.from('some data'));
+    expect(mockWs.send).not.toHaveBeenCalledWith(expect.stringContaining('some data'));
+  });
+
+  it('should handle malformed JSON messages from client', async () => {
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsmWebSocket(mockServer, mockLogger);
+    await mockWss.emit(
+      'connection',
+      mockWs,
+      {},
+      { instanceId: 'i-12345678', user: { username: 'admin' } }
+    );
+
+    // Should not crash
+    mockWs.emit('message', 'invalid json');
+    expect(mockChild.stdin.write).not.toHaveBeenCalled();
+  });
+
+  it('should handle child exit with non-zero code after terminal error', async () => {
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsmWebSocket(mockServer, mockLogger);
+    await mockWss.emit(
+      'connection',
+      mockWs,
+      {},
+      { instanceId: 'i-12345678', user: { username: 'admin' } }
+    );
+
+    // Emit terminal error first
+    const accessDeniedMsg = 'AccessDeniedException: ssm:StartSession is not authorized';
+    mockChild.stderr.emit('data', Buffer.from(accessDeniedMsg));
+
+    mockWs.send.mockClear();
+    mockChild.emit('exit', 1);
+
+    // Should NOT send the generic error message because emittedTerminalError is true
+    expect(mockWs.send).not.toHaveBeenCalledWith(
+      expect.stringContaining('SSM session failed. Check the EC2 role')
+    );
+    expect(mockWs.send).toHaveBeenCalledWith(
+      expect.stringContaining('Session ended (exit code: 1)')
+    );
+  });
+
+  it('should handle child exit when WebSocket is already closed', async () => {
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsmWebSocket(mockServer, mockLogger);
+    await mockWss.emit(
+      'connection',
+      mockWs,
+      {},
+      { instanceId: 'i-12345678', user: { username: 'admin' } }
+    );
+
+    mockWs.readyState = WebSocket.CLOSED;
+    mockChild.emit('exit', 0);
+
+    expect(mockWs.close).not.toHaveBeenCalled();
+  });
+
+  it('should handle WebSocket close when child is already gone', async () => {
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsmWebSocket(mockServer, mockLogger);
+    await mockWss.emit(
+      'connection',
+      mockWs,
+      {},
+      { instanceId: 'i-12345678', user: { username: 'admin' } }
+    );
+
+    mockChild.emit('exit', 0);
+    mockChild.kill.mockClear();
+
+    mockWs.emit('close');
+    expect(mockChild.kill).not.toHaveBeenCalled();
+  });
+
+  it('should handle shutdown when not initialized', async () => {
+    // Force wss to be null by calling shutdown first
+    await shutdownSsmWebSocket();
+    // Should resolve without error
+    await expect(shutdownSsmWebSocket()).resolves.toBeUndefined();
+  });
+
+  it('should handle upgrade errors', async () => {
+    initializeSsmWebSocket(mockServer, mockLogger);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = { url: '/ws/ssm', headers: { host: 'localhost' } };
+
+    // Force error in parseCookies or something
+    Object.defineProperty(mockRequest.headers, 'cookie', {
+      get: () => {
+        throw new Error('Cookie error');
+      },
+    });
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockLogger.error).toHaveBeenCalledWith('SSM WebSocket upgrade error', expect.anything());
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 500 Internal Server Error')
+    );
+  });
 });

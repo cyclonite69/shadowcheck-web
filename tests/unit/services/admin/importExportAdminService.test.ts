@@ -1,3 +1,5 @@
+export {};
+
 const { 
   getBackupData, 
   exportMLTrainingData, 
@@ -5,17 +7,16 @@ const {
   truncateAllData 
 } = require('../../../../server/src/services/admin/importExportAdminService');
 
-// Mock dependencies
-jest.mock('../../../../server/src/services/adminDbService', () => ({
-  adminQuery: jest.fn(),
+jest.mock('../../../../server/src/config/container', () => ({
+  adminDbService: {
+    adminQuery: jest.fn(),
+  },
+  databaseService: {
+    query: jest.fn(),
+  },
 }));
 
-jest.mock('../../../../server/src/config/database', () => ({
-  query: jest.fn(),
-}));
-
-const { adminQuery: ieAdminQuery } = require('../../../../server/src/services/adminDbService');
-const { query: ieDbQuery } = require('../../../../server/src/config/database');
+const { adminDbService, databaseService } = require('../../../../server/src/config/container');
 
 describe('importExportAdminService', () => {
   beforeEach(() => {
@@ -24,16 +25,16 @@ describe('importExportAdminService', () => {
 
   describe('getBackupData', () => {
     it('should fetch all related tables', async () => {
-      ieDbQuery.mockResolvedValue({ rows: [] });
+      databaseService.query.mockResolvedValue({ rows: [] });
       const result = await getBackupData();
-      expect(ieDbQuery).toHaveBeenCalledTimes(3);
+      expect(databaseService.query).toHaveBeenCalledTimes(3);
       expect(result).toEqual({ networks: [], observations: [], tags: [] });
     });
   });
 
   describe('exportMLTrainingData', () => {
     it('should fetch training data', async () => {
-      ieDbQuery.mockResolvedValue({ rows: [{ bssid: 'AA' }] });
+      databaseService.query.mockResolvedValue({ rows: [{ bssid: 'AA' }] });
       const result = await exportMLTrainingData();
       expect(result).toEqual([{ bssid: 'AA' }]);
     });
@@ -41,8 +42,9 @@ describe('importExportAdminService', () => {
 
   describe('getCountsImportExport', () => {
     it('should return counts from DB', async () => {
-      ieDbQuery.mockResolvedValueOnce({ rows: [{ count: '10' }] })
-               .mockResolvedValueOnce({ rows: [{ count: '5' }] });
+      databaseService.query
+        .mockResolvedValueOnce({ rows: [{ count: '10' }] })
+        .mockResolvedValueOnce({ rows: [{ count: '5' }] });
       const result = await getCountsImportExport();
       expect(result).toEqual({ observations: 10, networks: 5 });
     });
@@ -50,10 +52,13 @@ describe('importExportAdminService', () => {
 
   describe('truncateAllData', () => {
     it('should call TRUNCATE on tables', async () => {
-      ieAdminQuery.mockResolvedValue({ rows: [] });
+      adminDbService.adminQuery.mockResolvedValue({ rows: [] });
       await truncateAllData();
-      expect(ieAdminQuery).toHaveBeenCalledTimes(3);
-      expect(ieAdminQuery).toHaveBeenCalledWith(expect.stringContaining('TRUNCATE TABLE app.observations'));
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(3);
+      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('TRUNCATE TABLE app.observations'),
+        []
+      );
     });
   });
 });

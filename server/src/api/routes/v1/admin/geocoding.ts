@@ -8,6 +8,7 @@ const {
   startGeocodingDaemon,
   stopGeocodingDaemon,
   getGeocodingDaemonStatus,
+  requeueFailedGeocoding,
 } = geocodingCacheService;
 const {
   parseRunOptions,
@@ -138,6 +139,21 @@ router.post('/admin/geocoding/test', async (req: any, res: any) => {
     res.status(500).json({
       ok: false,
       error: err?.message || 'Provider test failed',
+    });
+  }
+});
+
+router.post('/admin/geocoding/requeue', async (req: any, res: any) => {
+  try {
+    const precision = Number.parseInt(req.body.precision, 10) || 5;
+    const maxAttempts = Number.parseInt(req.body.maxAttempts, 10) || 5;
+    const count = await requeueFailedGeocoding(precision, maxAttempts);
+    res.json({ ok: true, count, precision, maxAttempts });
+  } catch (err: any) {
+    logger.error('[Geocoding] Requeue failed', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Requeue failed',
     });
   }
 });

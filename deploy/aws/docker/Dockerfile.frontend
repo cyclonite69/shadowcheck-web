@@ -7,7 +7,8 @@ ENV HUSKY=0 \
     NODE_ENV=development
 
 COPY package*.json tsconfig*.json ./
-RUN npm ci --include=dev --legacy-peer-deps
+RUN apk add --no-cache python3 py3-setuptools make g++ libsecret-dev && \
+    npm ci --include=dev --legacy-peer-deps
 
 COPY client ./client
 COPY scripts ./scripts

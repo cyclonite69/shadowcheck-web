@@ -14,6 +14,7 @@ import type {
   GeocodeRunSummary,
   GeocodeResult,
   GeocodeRow,
+  GeocodingDaemonProviderConfig,
 } from './geocoding/types';
 import {
   calculateRateLimitBackoffMs,
@@ -52,6 +53,14 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const GEOCODING_UPSERT_BATCH_SIZE = 100;
 let currentRunSnapshot: GeocodingRunSnapshot | null = null;
 let lastRunSnapshot: GeocodingRunSnapshot | null = null;
+const GEOCODE_PROVIDERS: Set<GeocodeProvider> = new Set([
+  'mapbox',
+  'nominatim',
+  'overpass',
+  'opencage',
+  'geocodio',
+  'locationiq',
+]);
 
 const runGeocodeCacheUpdateInternal = async (
   options: GeocodeRunOptions,
@@ -62,6 +71,16 @@ const runGeocodeCacheUpdateInternal = async (
   const limit = Math.max(1, options.limit ?? 1000);
   const perMinute = Math.max(1, options.perMinute ?? 200);
   const delayMs = Math.max(1, Math.floor(60000 / perMinute));
+
+  // Determine fallback chain from geocodeDaemon config if available
+  const { geocodeDaemon } = require('./geocoding/daemonState');
+  const fallbackProviders: GeocodingDaemonProviderConfig[] = (
+    geocodeDaemon.config?.providers || []
+  ).filter(
+    (p: GeocodingDaemonProviderConfig) =>
+      p && p.enabled !== false && p.provider !== options.provider
+  );
+
   if (options.mode !== 'poi-only') {
     const seeded = await seedAddressCandidates(precision, limit * 2);
     if (seeded > 0) {
@@ -125,7 +144,7 @@ const runGeocodeCacheUpdateInternal = async (
 
   for (const row of rows) {
     try {
-      const result: GeocodeResult = await executeProviderLookup(
+      let result: GeocodeResult = await executeProviderLookup(
         options.provider,
         options.mode,
         row.lat_round,
@@ -134,6 +153,40 @@ const runGeocodeCacheUpdateInternal = async (
         credentials
       );
 
+      // FALLBACK CHAIN: If primary provider failed and we have alternatives, try them
+      if (!result.ok && fallbackProviders.length > 0) {
+        for (const fallback of fallbackProviders) {
+          try {
+            const fallbackCreds = await resolveProviderCredentials(fallback.provider);
+            ensureProviderReady(fallback.provider, fallbackCreds);
+
+            const fallbackResult = await executeProviderLookup(
+              fallback.provider,
+              fallback.mode || options.mode,
+              row.lat_round,
+              row.lon_round,
+              fallback.permanent !== undefined
+                ? Boolean(fallback.permanent)
+                : Boolean(options.permanent),
+              fallbackCreds
+            );
+
+            if (fallbackResult.ok) {
+              logger.info('[Geocoding] Fallback successful', {
+                primary: options.provider,
+                fallback: fallback.provider,
+                lat: row.lat_round,
+                lon: row.lon_round,
+              });
+              result = fallbackResult;
+              break;
+            }
+          } catch (fErr) {
+            // Silently continue to next fallback
+          }
+        }
+      }
+
       consecutiveRateLimits = 0;
       if (result.ok) {
         successful++;
@@ -141,9 +194,19 @@ const runGeocodeCacheUpdateInternal = async (
           poiHits++;
         }
       }
+      const rawProvider =
+        result.raw && typeof result.raw === 'object' && 'provider' in result.raw
+          ? (result.raw as { provider?: string }).provider
+          : undefined;
+      const resolvedProvider =
+        rawProvider && GEOCODE_PROVIDERS.has(rawProvider as GeocodeProvider)
+          ? (rawProvider as GeocodeProvider)
+          : options.provider;
       pendingWrites.push({
         row,
-        provider: providerLabel,
+        provider: result.ok
+          ? getProviderLabel(resolvedProvider as GeocodeProvider, Boolean(options.permanent))
+          : providerLabel,
         result,
         mode: options.mode,
       });
@@ -152,7 +215,7 @@ const runGeocodeCacheUpdateInternal = async (
       }
     } catch (err) {
       const error = err as Error;
-      if (error.message === 'rate_limit') {
+      if (error.message === 'rate_limit' || error.message?.includes('rate_limit')) {
         rateLimited++;
         consecutiveRateLimits++;
         const backoffMs = calculateRateLimitBackoffMs(options.provider, consecutiveRateLimits);
@@ -164,7 +227,7 @@ const runGeocodeCacheUpdateInternal = async (
         await flushPendingWrites();
         await syncProgress();
         await sleep(backoffMs);
-      } else if (error.message === 'missing_key') {
+      } else if (error.message === 'missing_key' || error.message?.includes('missing_key')) {
         logger.warn('[Geocoding] Missing API key for provider');
         await flushPendingWrites();
         await syncProgress();
@@ -204,6 +267,34 @@ const runGeocodeCacheUpdateInternal = async (
     rateLimited,
     durationMs,
   };
+};
+
+const requeueFailedGeocoding = async (
+  precision: number,
+  maxAttempts: number = 5
+): Promise<number> => {
+  const result = await query(
+    `
+    UPDATE app.geocoding_cache
+    SET address_attempts = 0,
+        geocoded_at = NOW()
+    WHERE precision = $1
+      AND address IS NULL
+      AND address_attempts > 0
+      AND address_attempts < $2
+  `,
+    [precision, maxAttempts]
+  );
+
+  const count = Number(result.rowCount || 0);
+  if (count > 0) {
+    logger.info('[Geocoding] Re-queued failed geocoding records', {
+      precision,
+      count,
+      maxAttempts,
+    });
+  }
+  return count;
 };
 
 const runGeocodeCacheUpdate = async (options: GeocodeRunOptions) => {
@@ -345,6 +436,7 @@ const testGeocodingProvider = async (probe: GeocodingProviderProbe) => {
 module.exports = {
   runGeocodeCacheUpdate,
   startGeocodeCacheUpdate,
+  requeueFailedGeocoding,
   startGeocodingDaemon: (configInput: Partial<GeocodeDaemonConfig>) =>
     startGeocodingDaemon(configInput, runGeocodeCacheUpdate),
   stopGeocodingDaemon,

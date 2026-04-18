@@ -6,8 +6,10 @@ const mockLogger = {
   error: jest.fn(),
 };
 
-jest.mock('../../server/src/services/adminDbService', () => ({
-  adminQuery: (...args: any[]) => mockAdminQuery(...args),
+jest.mock('../../server/src/config/container', () => ({
+  adminDbService: {
+    adminQuery: (...args: any[]) => mockAdminQuery(...args),
+  },
 }));
 
 jest.mock('../../server/src/logging/logger', () => mockLogger);

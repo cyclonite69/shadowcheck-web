@@ -7,11 +7,7 @@ const { settingsAdminService } = require('../../../../config/container');
 const { backgroundJobsService } = require('../../../../config/container');
 const featureFlagService = require('../../../../services/featureFlagService');
 const logger = require('../../../../logging/logger');
-
-const envFlag = (value: unknown, defaultValue = false) => {
-  if (value === undefined || value === null || value === '') return defaultValue;
-  return String(value).toLowerCase() === 'true';
-};
+const { envFlag } = require('../../../../utils/envFlag');
 
 const repoRoot = process.cwd();
 

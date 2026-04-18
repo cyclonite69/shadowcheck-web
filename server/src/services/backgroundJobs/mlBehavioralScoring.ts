@@ -1,5 +1,11 @@
 export {};
 
+import type {
+  LegacyThreatLevel,
+  ThreatBehavioralCandidate,
+  ThreatManualTag,
+} from '../threatScoring.types';
+
 const MOBILITY_HIGH_KM = 5;
 const MOBILITY_MED_KM = 1;
 const PERSISTENCE_HIGH_DAYS = 7;
@@ -16,20 +22,7 @@ const FEEDBACK_MULTIPLIERS = {
   SUSPECT_BOOST: 0.15,
 };
 
-type ManualThreatTag = {
-  bssid: string;
-  threat_tag: 'FALSE_POSITIVE' | 'THREAT' | 'SUSPECT' | 'INVESTIGATE' | string;
-  threat_confidence?: number;
-  notes?: string | null;
-};
-
-type BehavioralNetwork = {
-  bssid: string;
-  max_distance_km: number;
-  unique_days: number;
-};
-
-const toManualTagMap = (tagRows: ManualThreatTag[]) => {
+const toManualTagMap = (tagRows: ThreatManualTag[]) => {
   const tagMap = new Map<
     string,
     {
@@ -50,7 +43,7 @@ const toManualTagMap = (tagRows: ManualThreatTag[]) => {
   return tagMap;
 };
 
-const toThreatLevel = (finalScore: number): string => {
+const toThreatLevel = (finalScore: number): LegacyThreatLevel => {
   if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) return 'CRITICAL';
   if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) return 'HIGH';
   if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) return 'MED';
@@ -58,16 +51,28 @@ const toThreatLevel = (finalScore: number): string => {
   return 'NONE';
 };
 
-const scoreBehavioralThreats = (networks: BehavioralNetwork[], tagRows: ManualThreatTag[]) => {
+type LegacyBehavioralCandidate = Partial<ThreatBehavioralCandidate> & {
+  bssid: string;
+  max_distance_km?: number;
+  unique_days?: number;
+};
+
+const scoreBehavioralThreats = (
+  networks: LegacyBehavioralCandidate[],
+  tagRows: ThreatManualTag[]
+) => {
   const tagMap = toManualTagMap(tagRows);
 
   const scores = networks.map((net) => {
+    const maxDistanceKm =
+      typeof net.maxDistanceKm === 'number' ? net.maxDistanceKm : net.max_distance_km || 0;
+    const uniqueDays = typeof net.uniqueDays === 'number' ? net.uniqueDays : net.unique_days || 0;
     const mobility =
-      net.max_distance_km > MOBILITY_HIGH_KM ? 80 : net.max_distance_km > MOBILITY_MED_KM ? 40 : 0;
+      maxDistanceKm > MOBILITY_HIGH_KM ? 80 : maxDistanceKm > MOBILITY_MED_KM ? 40 : 0;
     const persistence =
-      net.unique_days > PERSISTENCE_HIGH_DAYS
+      uniqueDays > PERSISTENCE_HIGH_DAYS
         ? 60
-        : net.unique_days > PERSISTENCE_MED_DAYS
+        : uniqueDays > PERSISTENCE_MED_DAYS
           ? 30
           : 0;
     const baseMlScore = mobility * 0.6 + persistence * 0.4;

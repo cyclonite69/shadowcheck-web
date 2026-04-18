@@ -3,7 +3,8 @@
  * Administrative operations for system settings
  */
 
-const { adminQuery } = require('../adminDbService');
+const adminQuery = (text: string, params: any[] = []) =>
+  require('../../config/container').adminDbService.adminQuery(text, params);
 
 export async function getAllSettings(): Promise<any[]> {
   const { rows } = await adminQuery(

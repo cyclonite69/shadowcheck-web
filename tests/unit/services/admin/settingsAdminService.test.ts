@@ -1,7 +1,11 @@
-import { adminQuery } from '../../../../server/src/services/adminDbService';
-import * as settingsAdminService from '../../../../server/src/services/admin/settingsAdminService';
+jest.mock('../../../../server/src/config/container', () => ({
+  adminDbService: {
+    adminQuery: jest.fn(),
+  },
+}));
 
-jest.mock('../../../../server/src/services/adminDbService');
+import * as settingsAdminService from '../../../../server/src/services/admin/settingsAdminService';
+const { adminDbService } = require('../../../../server/src/config/container');
 
 describe('settingsAdminService', () => {
   beforeEach(() => {
@@ -14,28 +18,34 @@ describe('settingsAdminService', () => {
         { key: 'k1', value: 'v1', description: 'd1', updated_at: new Date() },
         { key: 'k2', value: 'v2', description: 'd2', updated_at: new Date() },
       ];
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: mockRows });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: mockRows });
 
       const result = await settingsAdminService.getAllSettings();
 
       expect(result).toEqual(mockRows);
-      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('SELECT key, value, description, updated_at FROM app.settings'));
+      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT key, value, description, updated_at FROM app.settings'),
+        []
+      );
     });
   });
 
   describe('getSettingByKey', () => {
     it('should return setting by key', async () => {
       const mockRow = { key: 'k1', value: 'v1' };
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
 
       const result = await settingsAdminService.getSettingByKey('k1');
 
       expect(result).toEqual(mockRow);
-      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE key = $1'), ['k1']);
+      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE key = $1'),
+        ['k1']
+      );
     });
 
     it('should return null if setting not found', async () => {
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [] });
 
       const result = await settingsAdminService.getSettingByKey('unknown');
 
@@ -46,33 +56,36 @@ describe('settingsAdminService', () => {
   describe('updateSetting', () => {
     it('should update value and return updated row', async () => {
       const mockRow = { key: 'k1', value: 'new_val' };
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
 
       const result = await settingsAdminService.updateSetting('k1', 'new_val');
 
       expect(result).toEqual(mockRow);
-      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('UPDATE app.settings SET value = $1'), ['new_val', 'k1']);
+      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE app.settings SET value = $1'),
+        ['new_val', 'k1']
+      );
     });
   });
 
   describe('toggleMLBlending', () => {
     it('should toggle from true to false', async () => {
       // 1. getSettingByKey returns true
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ value: 'true' }] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ value: 'true' }] });
       // 2. updateSetting
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ value: 'false' }] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ value: 'false' }] });
 
       const result = await settingsAdminService.toggleMLBlending();
 
       expect(result).toBe(false);
-      expect(adminQuery).toHaveBeenCalledTimes(2);
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(2);
     });
 
     it('should toggle from false to true', async () => {
       // 1. getSettingByKey returns false
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ value: 'false' }] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ value: 'false' }] });
       // 2. updateSetting
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ value: 'true' }] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ value: 'true' }] });
 
       const result = await settingsAdminService.toggleMLBlending();
 
@@ -81,9 +94,9 @@ describe('settingsAdminService', () => {
 
     it('should toggle to true if current value is missing', async () => {
       // 1. getSettingByKey returns nothing
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [] });
       // 2. updateSetting
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ value: 'true' }] });
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ value: 'true' }] });
 
       const result = await settingsAdminService.toggleMLBlending();
 
@@ -93,7 +106,7 @@ describe('settingsAdminService', () => {
 
   describe('saveMLModelConfig', () => {
     it('should update all ML model config fields', async () => {
-      (adminQuery as jest.Mock).mockResolvedValue({ rows: [{}] });
+      adminDbService.adminQuery.mockResolvedValue({ rows: [{}] });
 
       const result = await settingsAdminService.saveMLModelConfig('v1.0', 0.95, 0.94, 0.93, 0.92);
 
@@ -104,7 +117,7 @@ describe('settingsAdminService', () => {
         recall: 0.93,
         f1: 0.92,
       });
-      expect(adminQuery).toHaveBeenCalledTimes(5);
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(5);
     });
   });
 });

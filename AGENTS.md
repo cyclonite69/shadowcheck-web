@@ -53,6 +53,19 @@ docker compose up -d postgres redis api frontend
 
 ---
 
+## Sub-Agents
+
+- Use sub-agents when the work can be split into clearly independent tasks and parallel execution will materially reduce turnaround time
+- Good delegation targets: read-only codebase exploration, isolated refactors with disjoint file ownership, independent test investigations, and bounded implementation tasks with clear interfaces
+- Do not delegate immediate critical-path work if the next local step is blocked on that result and it is faster to do directly
+- Assign explicit ownership for files or modules to each sub-agent to avoid overlapping writes and merge conflicts
+- If multiple sub-agents are used, keep one orchestrator in the main thread responsible for integration, validation, and the final user-facing summary
+- Require each sub-agent to report: files changed, what was changed, what was skipped and why, and any remaining risks
+- Prefer local integration after parallel work: review sub-agent output, reconcile conflicts deliberately, and run validation from the main thread before committing
+- Never use sub-agents as a substitute for final verification; type-checking, test execution, and contract validation remain mandatory before completion
+
+---
+
 ## Database Roles
 
 | Role                | Purpose                                      |
