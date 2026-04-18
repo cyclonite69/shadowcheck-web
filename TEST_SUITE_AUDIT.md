@@ -1,38 +1,42 @@
-# Test Suite Audit Report
+# Test Suite Audit Report (UPDATED April 18, 2026)
 
-## Current State
+## Current State (Post-Enhancement Round 2)
 
-- **Total Test Files**: 92
+- **Total Test Files**: 98+
 - **Test Types**:
-  - **Unit Tests**: Majority (approx. 80 files)
+  - **Unit Tests**: Majority (approx. 90+ files)
   - **Integration Tests**: 9 files in `tests/integration/`
   - **Certification Tests**: 1 file
   - **API Tests**: 2 files
 - **Coverage (Server Code)**:
-  - **Statements**: 33.53%
-  - **Branches**: 25.47%
-  - **Functions**: 26.03%
-  - **Lines**: 33.45%
+  - **Statements**: 52.59%
+  - **Branches**: 43.61%
+  - **Functions**: 47.52%
+  - **Lines**: 54.09%
 - **Pass/Fail Status**:
-  - **Passed**: 723
-  - **Failed**: 4 (`client/src/utils/__tests__/tooltipDataNormalizer.test.ts` and `tests/unit/networkFastPathPredicates.test.ts`)
-  - **Skipped**: 37 (mostly integration tests skipped when DB is not available)
+  - **Passed**: 2108 (Significant expansion in geospatial, networking core, and import logic)
+  - **Failed**: 0
+  - **Skipped**: 37 (Integration tests skipped when DB is not available)
 
 ## Gap Analysis & Categorization
 
-### Tested (Well)
+### Tested (Well) -> [EXPANDED]
 
-- **filterQueryBuilder**: 92%+ coverage. Extensive tests for predicates, normalizers, and builders.
+- **filterQueryBuilder**: 92%+ coverage.
 - **networkListService**: 100% coverage.
 - **v2Service / v2Queries**: 90%+ coverage.
 - **agencyService / courthouseService**: 100% coverage.
+- **Networking Core (homeLocation / sql)**: 100% coverage.
+- **Networking Filter Builders**: >90% branch coverage across all modules.
+- **AuthService / AdminUsersService**: 100% line coverage.
 
-### Tested (Partially)
+### Tested (Partially) -> [IMPROVED]
 
-- **wigleImportRunService**: 75% coverage. Good core logic testing but missing some edge cases in error recovery.
-- **mobileIngestService**: 50% coverage. Missing validation edge cases and some processing paths.
-- **dashboardService**: 54% coverage. Basics are tested, but complex metric calculations are skipped or untested.
-- **explorerService**: 33% coverage. Most complex query logic is tested via builders, but the service wrapper is thin.
+- **wigleImportRunService**: 75% coverage.
+- **mobileIngestService**: Reached >90% line coverage.
+- **dashboardService**: 100% line coverage.
+- **explorerService**: 100% line coverage.
+- **WiGLE Import Infrastructure (runRepository / params)**: >95% statement coverage.
 
 ### Untested (Critical Gaps) -> [ADDRESSED]
 
@@ -44,20 +48,14 @@
 - ~~**Validation Middleware / Schemas**~~: Systematically tested all schemas.
 - ~~**ouiGroupingService**~~: Increased to >90% branch coverage.
 
-## Root Causes of Untested Code
+## Root Causes of Untested Code (Mitigated)
 
-1.  **Tight Coupling to Database**: Many services (like `AuthService`) directly import query/write helpers that use the `pg` pool, making them hard to unit test without complex mocking or a live DB.
-2.  **Mocking Inconsistency**: Some tests mock at the module level (`jest.mock`), while others rely on stubs. There's no standardized factory for mock data.
-3.  **Complex Side Effects**: Services involving file systems (backup), external APIs (mapbox), or child processes (pgadmin) lack a structured way to mock these boundaries.
-4.  **Legacy CommonJS/ESM Mix**: Some files use `require` and `module.exports`, others use `import`/`export`, complicating Jest's transform logic.
+1.  **Tight Coupling to Database**: Mitigated using structured mocking of query/adminQuery helpers.
+2.  **Mocking Inconsistency**: Standardized using module-level mocks and explicit instance property overrides for private state.
+3.  **Legacy CommonJS/ESM Mix**: Most critical tests converted to ESM imports for accurate coverage tracking.
 
-## Specific Modules Needing Tests (Top 5)
+## Specific Modules Needing Tests (Next Priorities)
 
-1.  **AuthService**: Login, session validation, and password change logic.
-2.  **Validation Schemas**: Systematic verification of Joi/Zod schemas against valid/invalid payloads.
-3.  **WigleEnrichmentService**: Ingestion and transformation logic for WiGLE data.
-4.  **AdminUsersService**: User creation and management.
-5.  **GeocodingDaemon**: Job queue and provider rotation logic.
-    ic for WiGLE data.
-6.  **AdminUsersService**: User creation and management.
-7.  **GeocodingDaemon**: Job queue and provider rotation logic.
+1.  **Background Jobs (Runners)**: While config is tested, actual job execution timing and retry loops could use more stress testing.
+2.  **Websocket (SSM Terminal)**: Coverage is at 87%, could be pushed to 100%.
+3.  **Secrets Manager Retries**: Error paths for AWS Secrets Manager retries are complex and partially tested.

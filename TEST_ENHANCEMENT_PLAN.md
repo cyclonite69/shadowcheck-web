@@ -63,4 +63,5 @@
 - [x] **Turn 2: Data Integrity**: Implement systematic validation schema tests and `WigleEnrichmentService` tests.
 - [x] **Turn 3: Admin & Infrastructure**: Implement `AdminUsersService` tests and `GeocodingDaemon` tests. Update `jest.config.js` with thresholds.
 - [x] **Turn 4: Subagent Expansion (Bonus)**: Expanded coverage for `ouiGroupingService`, ML services, and Core Business Services (`explorerService`, `dashboardService`, `mobileIngestService`) to >90%.
+- [x] **Turn 5: Deep Service Expansion**: Expanded coverage for Networking Core (`homeLocation.ts`, `sql.ts`), WiGLE Import Infrastructure (`runRepository.ts`, `params.ts`), and Networking Filter Builders to >90%.
       hresholds.
