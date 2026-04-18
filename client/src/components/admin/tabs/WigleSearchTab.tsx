@@ -279,123 +279,139 @@ export const WigleSearchTab: React.FC = () => {
         </AdminCard>
       )}
 
-      {/* Search Parameters */}
-      <AdminCard
-        icon={DatabaseIcon}
-        title="Search Parameters"
-        color="from-blue-500 to-blue-600"
-        compact
-      >
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="relative">
-            <label className="block text-xs text-slate-400 mb-1">SSID</label>
-            <input
-              ref={ssidInputRef}
-              type="text"
-              value={searchParams.ssid}
-              onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
-              onFocus={() => setSsidDropdownOpen(true)}
-              onBlur={() => setTimeout(() => setSsidDropdownOpen(false), 150)}
-              placeholder="Network name"
-              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-            {ssidDropdownOpen && savedTerms.length > 0 && (
-              <div className="absolute z-20 top-full left-0 right-0 mt-0.5 bg-slate-800 border border-slate-600/60 rounded shadow-xl max-h-48 overflow-y-auto">
-                {savedTerms.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between px-2 py-1.5 hover:bg-slate-700/60 cursor-pointer group"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setSearchParams({ ...searchParams, ssid: t.term });
-                      setSsidDropdownOpen(false);
-                    }}
-                  >
-                    <span className="text-xs text-slate-200 truncate">{t.term}</span>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => deleteSavedTerm(t.id, e)}
-                      className="ml-2 text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-[10px] leading-none shrink-0"
-                      title="Remove saved term"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">BSSID</label>
-            <input
-              type="text"
-              value={searchParams.bssid}
-              onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
-              placeholder="AA:BB:CC:DD:EE:FF"
-              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-          </div>
+      {/* Row 1: API Version — compact control bar, not a full card */}
+      <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl border border-slate-700/40 bg-slate-900/50 shadow-lg">
+        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide shrink-0">
+          API Version
+        </span>
+        <div className="flex rounded border border-slate-600/60 overflow-hidden">
+          {(['v2', 'v3'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setSearchParams({ ...searchParams, version: v })}
+              className={`px-5 py-1.5 text-[11px] font-bold uppercase transition-colors ${
+                (searchParams.version || 'v2') === v
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
         </div>
-        <div className="grid grid-cols-3 gap-2 text-sm mt-2">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">API Version</label>
-            <div className="flex rounded border border-slate-600/60 overflow-hidden">
-              {(['v2', 'v3'] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setSearchParams({ ...searchParams, version: v })}
-                  className={`flex-1 py-1.5 text-[10px] font-bold uppercase transition-colors ${
-                    (searchParams.version || 'v2') === v
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
+      </div>
+
+      {/* Row 2: Network Filters | Geographic Filters — 2-column */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AdminCard
+          icon={DatabaseIcon}
+          title="Network Filters"
+          color="from-blue-500 to-blue-600"
+          compact
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <div className="relative">
+              <label className="block text-xs text-slate-400 mb-1">SSID</label>
+              <input
+                ref={ssidInputRef}
+                type="text"
+                value={searchParams.ssid}
+                onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
+                onFocus={() => setSsidDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setSsidDropdownOpen(false), 150)}
+                placeholder="Network name"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              />
+              {ssidDropdownOpen && savedTerms.length > 0 && (
+                <div className="absolute z-20 top-full left-0 right-0 mt-0.5 bg-slate-800 border border-slate-600/60 rounded shadow-xl max-h-48 overflow-y-auto">
+                  {savedTerms.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between px-2 py-1.5 hover:bg-slate-700/60 cursor-pointer group"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSearchParams({ ...searchParams, ssid: t.term });
+                        setSsidDropdownOpen(false);
+                      }}
+                    >
+                      <span className="text-xs text-slate-200 truncate">{t.term}</span>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => deleteSavedTerm(t.id, e)}
+                        className="ml-2 text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-[10px] leading-none shrink-0"
+                        title="Remove saved term"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">BSSID</label>
+              <input
+                type="text"
+                value={searchParams.bssid}
+                onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
+                placeholder="AA:BB:CC:DD:EE:FF"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              />
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Country</label>
-            <input
-              type="text"
-              value={searchParams.country}
-              onChange={(e) => setSearchParams({ ...searchParams, country: e.target.value })}
-              placeholder="US"
-              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">State</label>
-            <select
-              value={searchParams.region}
-              onChange={(e) => setSearchParams({ ...searchParams, region: e.target.value })}
-              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            >
-              <option value="">Any</option>
-              {US_STATES.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.code} - {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">City</label>
-            <input
-              type="text"
-              value={searchParams.city}
-              onChange={(e) => setSearchParams({ ...searchParams, city: e.target.value })}
-              placeholder="City name"
-              className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-          </div>
-        </div>
-      </AdminCard>
+        </AdminCard>
 
-      {/* Coordinate Ranges */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <AdminCard
+          icon={DatabaseIcon}
+          title="Geographic Filters"
+          color="from-indigo-500 to-indigo-600"
+          compact
+        >
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Country</label>
+                <input
+                  type="text"
+                  value={searchParams.country}
+                  onChange={(e) => setSearchParams({ ...searchParams, country: e.target.value })}
+                  placeholder="US"
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">State</label>
+                <select
+                  value={searchParams.region}
+                  onChange={(e) => setSearchParams({ ...searchParams, region: e.target.value })}
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                >
+                  <option value="">Any</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.code} - {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">City</label>
+              <input
+                type="text"
+                value={searchParams.city}
+                onChange={(e) => setSearchParams({ ...searchParams, city: e.target.value })}
+                placeholder="City name"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
+            </div>
+          </div>
+        </AdminCard>
+      </div>
+
+      {/* Row 3: Coordinate Ranges — equal 2-column, Min/Max always side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Latitude Range */}
         <AdminCard
           icon={DatabaseIcon}
@@ -403,28 +419,26 @@ export const WigleSearchTab: React.FC = () => {
           color="from-indigo-500 to-indigo-600"
           compact
         >
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5">Min</label>
-                <input
-                  type="number"
-                  value={searchParams.latrange1}
-                  onChange={(e) => setSearchParams({ ...searchParams, latrange1: e.target.value })}
-                  placeholder="Min latitude"
-                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5">Max</label>
-                <input
-                  type="number"
-                  value={searchParams.latrange2}
-                  onChange={(e) => setSearchParams({ ...searchParams, latrange2: e.target.value })}
-                  placeholder="Max latitude"
-                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Min</label>
+              <input
+                type="number"
+                value={searchParams.latrange1}
+                onChange={(e) => setSearchParams({ ...searchParams, latrange1: e.target.value })}
+                placeholder="Min latitude"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Max</label>
+              <input
+                type="number"
+                value={searchParams.latrange2}
+                onChange={(e) => setSearchParams({ ...searchParams, latrange2: e.target.value })}
+                placeholder="Max latitude"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
             </div>
           </div>
         </AdminCard>
@@ -436,91 +450,91 @@ export const WigleSearchTab: React.FC = () => {
           color="from-teal-500 to-teal-600"
           compact
         >
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5">Min</label>
-                <input
-                  type="number"
-                  value={searchParams.longrange1}
-                  onChange={(e) => setSearchParams({ ...searchParams, longrange1: e.target.value })}
-                  placeholder="Min longitude"
-                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5">Max</label>
-                <input
-                  type="number"
-                  value={searchParams.longrange2}
-                  onChange={(e) => setSearchParams({ ...searchParams, longrange2: e.target.value })}
-                  placeholder="Max longitude"
-                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Min</label>
+              <input
+                type="number"
+                value={searchParams.longrange1}
+                onChange={(e) => setSearchParams({ ...searchParams, longrange1: e.target.value })}
+                placeholder="Min longitude"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Max</label>
+              <input
+                type="number"
+                value={searchParams.longrange2}
+                onChange={(e) => setSearchParams({ ...searchParams, longrange2: e.target.value })}
+                placeholder="Max longitude"
+                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+              />
             </div>
           </div>
         </AdminCard>
       </div>
 
-      {/* Search Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Search Card */}
-        <AdminCard icon={SearchIcon} title="Execute Search" color="from-purple-500 to-purple-600">
-          <div className="space-y-4">
-            <p className="text-sm text-slate-400">
-              Search the WiGLE database using your configured parameters.
-            </p>
-            <div className="flex gap-2">
+      {/* Row 4: Execute Search | Search Results — 40/60 split, always side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {/* Execute Search — 2/5 width */}
+        <div className="md:col-span-2">
+          <AdminCard icon={SearchIcon} title="Execute Search" color="from-purple-500 to-purple-600">
+            <div className="space-y-3">
+              <p className="text-sm text-slate-400">
+                Search the WiGLE database using your configured parameters.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    runSearch(false);
+                    saveCurrentSsid();
+                  }}
+                  disabled={searchLoading || !apiStatus?.configured}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
+                >
+                  {searchLoading ? 'Searching...' : 'Search Only'}
+                </button>
+                <button
+                  onClick={() => {
+                    runSearch(true);
+                    saveCurrentSsid();
+                  }}
+                  disabled={searchLoading || !apiStatus?.configured}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
+                >
+                  {searchLoading ? 'Searching...' : 'Search & Import'}
+                </button>
+              </div>
               <button
                 onClick={() => {
-                  runSearch(false);
+                  importAllResults();
                   saveCurrentSsid();
                 }}
                 disabled={searchLoading || !apiStatus?.configured}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
+                className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-sm transition-all"
               >
-                {searchLoading ? 'Searching...' : 'Search Only'}
+                {searchLoading ? 'Running Import...' : 'Import All Pages'}
               </button>
-              <button
-                onClick={() => {
-                  runSearch(true);
-                  saveCurrentSsid();
-                }}
-                disabled={searchLoading || !apiStatus?.configured}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
-              >
-                {searchLoading ? 'Searching...' : 'Search & Import'}
-              </button>
+              <p className="text-xs text-slate-500">
+                Server walks all pages with paced requests and retry backoff on WiGLE rate limits.
+              </p>
+              {searchError && (
+                <div className="text-red-400 text-sm p-2 bg-red-900/20 rounded border border-red-700/50">
+                  {searchError}
+                </div>
+              )}
+              {!apiStatus?.configured && (
+                <div className="text-yellow-400 text-xs p-2 bg-yellow-900/20 rounded border border-yellow-700/50">
+                  Configure WiGLE API in environment variables
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => {
-                importAllResults();
-                saveCurrentSsid();
-              }}
-              disabled={searchLoading || !apiStatus?.configured}
-              className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-sm transition-all"
-            >
-              {searchLoading ? 'Running Import...' : 'Import All Pages'}
-            </button>
-            <p className="text-xs text-slate-400">
-              Server walks all pages with paced requests and retry backoff on WiGLE rate limits.
-            </p>
-            {searchError && (
-              <div className="text-red-400 text-sm p-2 bg-red-900/20 rounded border border-red-700/50">
-                {searchError}
-              </div>
-            )}
-            {!apiStatus?.configured && (
-              <div className="text-yellow-400 text-xs p-2 bg-yellow-900/20 rounded border border-yellow-700/50">
-                Configure WiGLE API in environment variables
-              </div>
-            )}
-          </div>
-        </AdminCard>
+          </AdminCard>
+        </div>
 
-        {/* Results Card - now full width if results exist */}
-        <div className={searchResults ? 'md:col-span-3' : ''}>
+        {/* Search Results — 3/5 width */}
+        <div className="md:col-span-3">
           <AdminCard
             icon={DownloadIcon}
             title="Search Results"
