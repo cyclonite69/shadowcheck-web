@@ -251,23 +251,6 @@ const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('config');
   const [runtimeConfig, setRuntimeConfig] = useState<AdminRuntimeConfig | null>(null);
 
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] w-full">
-        <div className="text-center p-12 bg-slate-900/50 rounded-2xl border border-red-500/20 backdrop-blur-sm max-w-md mx-auto">
-          <div className="inline-flex items-center justify-center p-4 bg-red-500/10 rounded-full mb-6">
-            <ShieldIcon size={48} className="text-red-500" />
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-3">Access Denied</h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            Administrative privileges are required to access this system. Please contact your system
-            administrator if you believe this is an error.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     let cancelled = false;
     const loadRuntimeConfig = async () => {
@@ -326,6 +309,23 @@ const AdminPage: React.FC = () => {
       setActiveTab('config');
     }
   }, [activeTab, tabs]);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] w-full">
+        <div className="text-center p-12 bg-slate-900/50 rounded-2xl border border-red-500/20 backdrop-blur-sm max-w-md mx-auto">
+          <div className="inline-flex items-center justify-center p-4 bg-red-500/10 rounded-full mb-6">
+            <ShieldIcon size={48} className="text-red-500" />
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-3">Access Denied</h2>
+          <p className="text-slate-400 text-lg leading-relaxed">
+            Administrative privileges are required to access this system. Please contact your system
+            administrator if you believe this is an error.
+          </p>
+        </div>
+      </div>
+    );
+  }
   const tabButtonClass = (tabId: string) =>
     `flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-center font-medium transition-all text-sm ${
       activeTab === tabId
