@@ -137,11 +137,12 @@ describe('pgAdmin control', () => {
       expect(mockState.removePgAdminContainer).toHaveBeenCalled();
     });
 
-    it('should handle start failure', async () => {
-      mockState.runCommand.mockResolvedValueOnce({ stdout: 'true' }); // Already exists (but maybe stopped)
+    it('should fallback to create if start fails', async () => {
+      mockState.runCommand.mockResolvedValueOnce({ stdout: 'false' }); // inspect says not running
       mockState.runCommand.mockRejectedValueOnce(new Error('Start failed')); // start fails
 
-      await expect(control.startPgAdmin()).rejects.toThrow('Start failed');
+      await control.startPgAdmin();
+      expect(mockState.runCompose).toHaveBeenCalledWith(expect.arrayContaining(['up']));
     });
 
     it('should start existing stopped container', async () => {

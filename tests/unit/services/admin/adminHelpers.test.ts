@@ -1,3 +1,5 @@
+export {};
+
 const path = require('path');
 const fsNative = require('fs');
 

@@ -181,7 +181,7 @@ function getKmlImportHistoryContext(
   return {
     sourceTag: `kml_${safeSourceType}`.slice(0, 50),
     filename:
-      uploadedFiles.length === 1 ? filename : `${filename} (+${uploadedFiles.length - 1} more)`,
+      uploadedFiles.length <= 1 ? filename : `${filename} (+${uploadedFiles.length - 1} more)`,
   };
 }
 

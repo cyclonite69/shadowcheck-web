@@ -1,3 +1,5 @@
+export {};
+
 jest.mock('../../../server/src/services/adminDbService', () => ({
   adminQuery: jest.fn(),
 }));

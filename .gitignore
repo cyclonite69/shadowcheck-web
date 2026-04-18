@@ -159,3 +159,7 @@ assets/images/
 telemetry-id
 deploy/monitoring/grafana/provisioning/dashboards/intelligence/__pycache__/
 tsc_output.txt
+
+# Gemini geocoding scripts
+*.py.bak
+update_config*.py
