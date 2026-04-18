@@ -6,7 +6,6 @@ import authService from '../../server/src/services/authService';
 // @ts-ignore
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { createAppUser } from '../../server/src/services/adminUsersService';
 import {
   getSessionUser,
   getUserForLogin,
@@ -24,7 +23,6 @@ import { createMockUser } from '../fixtures/factories';
 
 // Mocks
 jest.mock('bcrypt');
-jest.mock('../../server/src/services/adminUsersService');
 jest.mock('../../server/src/services/authQueries');
 jest.mock('../../server/src/services/authWrites');
 jest.mock('../../server/src/logging/logger');
@@ -196,46 +194,6 @@ describe('AuthService', () => {
       const result = await authService.logout('token');
       expect(result.success).toBe(false);
       expect(result.error).toBe('Logout failed');
-      expect(logger.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('createUser()', () => {
-    it('should create a user successfully', async () => {
-      const mockUser = { id: 1, username: 'newuser' };
-      (createAppUser as jest.Mock).mockResolvedValue(mockUser);
-
-      const result = await authService.createUser('newuser', 'new@example.com', 'password', 'user');
-
-      expect(result.success).toBe(true);
-      expect(result.user).toEqual(mockUser);
-      expect(createAppUser).toHaveBeenCalledWith(
-        'newuser',
-        'new@example.com',
-        'password',
-        'user',
-        false
-      );
-    });
-
-    it('should return error for duplicate username/email', async () => {
-      const error = new Error('Duplicate');
-      (error as any).code = '23505';
-      (createAppUser as jest.Mock).mockRejectedValue(error);
-
-      const result = await authService.createUser('dup', 'dup@example.com', 'password');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Username or email already exists');
-    });
-
-    it('should handle other errors during user creation', async () => {
-      (createAppUser as jest.Mock).mockRejectedValue(new Error('Generic Error'));
-
-      const result = await authService.createUser('user', 'email', 'pass');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to create user');
       expect(logger.error).toHaveBeenCalled();
     });
   });

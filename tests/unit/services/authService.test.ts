@@ -11,13 +11,11 @@ import {
   updateUserPassword,
   deleteExpiredSessions,
 } from '../../../server/src/services/authWrites';
-import { createAppUser } from '../../../server/src/services/adminUsersService';
 import logger from '../../../server/src/logging/logger';
 import bcrypt from 'bcrypt';
 
 jest.mock('../../../server/src/services/authQueries');
 jest.mock('../../../server/src/services/authWrites');
-jest.mock('../../../server/src/services/adminUsersService');
 jest.mock('../../../server/src/logging/logger');
 jest.mock('bcrypt');
 
@@ -169,34 +167,6 @@ describe('authService', () => {
       const result = await authService.logout('token');
       expect(result.success).toBe(false);
       expect(result.error).toBe('Logout failed');
-    });
-  });
-
-  describe('createUser', () => {
-    it('should successfully create user', async () => {
-      const mockUser = { id: 1, username: 'new' };
-      (createAppUser as jest.Mock).mockResolvedValue(mockUser);
-
-      const result = await authService.createUser('new', 'new@test.com', 'pass');
-      expect(result.success).toBe(true);
-      expect(result.user).toBe(mockUser);
-    });
-
-    it('should handle unique violation error', async () => {
-      const error = new Error('Unique violation');
-      (error as any).code = '23505';
-      (createAppUser as jest.Mock).mockRejectedValue(error);
-
-      const result = await authService.createUser('exists', 'email', 'pass');
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Username or email already exists');
-    });
-
-    it('should handle generic error', async () => {
-      (createAppUser as jest.Mock).mockRejectedValue(new Error('fail'));
-      const result = await authService.createUser('new', 'email', 'pass');
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to create user');
     });
   });
 

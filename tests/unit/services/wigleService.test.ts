@@ -12,6 +12,7 @@ import {
   importWigleV2SearchResult,
   getWigleDatabase,
   getWigleDetail,
+  getRecentWigleDetailImport,
   getWigleObservations,
   getKmlPointsForMap,
   getUserStats,
@@ -20,6 +21,7 @@ import { query } from '../../../server/src/config/database';
 import * as wigleQueriesRepo from '../../../server/src/repositories/wigleQueriesRepository';
 import * as wiglePersistenceRepo from '../../../server/src/repositories/wiglePersistenceRepository';
 import secretsManager from '../../../server/src/services/secretsManager';
+import { fetchWigle } from '../../../server/src/services/wigleClient';
 
 jest.mock('../../../server/src/config/database', () => ({
   query: jest.fn(),
@@ -28,26 +30,38 @@ jest.mock('../../../server/src/config/database', () => ({
 jest.mock('../../../server/src/repositories/wigleQueriesRepository');
 jest.mock('../../../server/src/repositories/wiglePersistenceRepository');
 jest.mock('../../../server/src/services/secretsManager');
+jest.mock('../../../server/src/services/wigleClient', () => ({
+  fetchWigle: jest.fn(),
+}));
 
 describe('wigleService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     require('../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
-    // @ts-ignore
-    global.fetch = jest.fn();
   });
 
   describe('getWigleNetworkByBSSID', () => {
     it('should return a network if found', async () => {
       const mockRow = { bssid: 'AA:BB:CC:DD:EE:FF', ssid: 'TestNetwork' };
+      (wigleQueriesRepo.buildWigleNetworkByBssidQuery as jest.Mock).mockReturnValue({
+        sql: 'SELECT * FROM bssid',
+        queryParams: ['AA:BB:CC:DD:EE:FF'],
+      });
       (query as jest.Mock).mockResolvedValue({ rows: [mockRow] });
 
       const result = await getWigleNetworkByBSSID('AA:BB:CC:DD:EE:FF');
       expect(result).toEqual(mockRow);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('SELECT'), ['AA:BB:CC:DD:EE:FF']);
+      expect(wigleQueriesRepo.buildWigleNetworkByBssidQuery).toHaveBeenCalledWith(
+        'AA:BB:CC:DD:EE:FF'
+      );
+      expect(query).toHaveBeenCalledWith('SELECT * FROM bssid', ['AA:BB:CC:DD:EE:FF']);
     });
 
     it('should return null if not found', async () => {
+      (wigleQueriesRepo.buildWigleNetworkByBssidQuery as jest.Mock).mockReturnValue({
+        sql: 'SELECT * FROM bssid',
+        queryParams: ['AA:BB:CC:DD:EE:FF'],
+      });
       (query as jest.Mock).mockResolvedValue({ rows: [] });
       const result = await getWigleNetworkByBSSID('AA:BB:CC:DD:EE:FF');
       expect(result).toBeNull();
@@ -112,13 +126,31 @@ describe('wigleService', () => {
 
   describe('checkWigleV3TableExists', () => {
     it('should return true if table exists', async () => {
+      (wigleQueriesRepo.buildWigleV3TableExistsQuery as jest.Mock).mockReturnValue({
+        sql: 'table exists',
+        queryParams: [],
+      });
       (query as jest.Mock).mockResolvedValue({ rows: [{ exists: true }] });
       const result = await checkWigleV3TableExists();
       expect(result).toBe(true);
     });
 
     it('should return false if table does not exist', async () => {
+      (wigleQueriesRepo.buildWigleV3TableExistsQuery as jest.Mock).mockReturnValue({
+        sql: 'table exists',
+        queryParams: [],
+      });
       (query as jest.Mock).mockResolvedValue({ rows: [{ exists: false }] });
+      const result = await checkWigleV3TableExists();
+      expect(result).toBe(false);
+    });
+
+    it('should handle undefined result', async () => {
+      (wigleQueriesRepo.buildWigleV3TableExistsQuery as jest.Mock).mockReturnValue({
+        sql: 'table exists',
+        queryParams: [],
+      });
+      (query as jest.Mock).mockResolvedValue({ rows: [] });
       const result = await checkWigleV3TableExists();
       expect(result).toBe(false);
     });
@@ -232,11 +264,28 @@ describe('wigleService', () => {
         version: 'v3',
         ssid: 'test',
         bssid: 'aa:bb',
+        encryption: 'WPA2',
         includeTotal: true,
       });
 
       expect(result.rows).toEqual(mockRows);
       expect(result.total).toEqual(1);
+    });
+
+    it('should handle v3 version with NO filters', async () => {
+      const mockRows = [{ id: 1 }];
+      (wigleQueriesRepo.buildWigleV3NetworksQuery as jest.Mock).mockReturnValue({
+        sql: 'sql',
+        queryParams: [],
+      });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: mockRows });
+
+      const result = await getWigleDatabase({
+        version: 'v3',
+        includeTotal: false,
+      });
+
+      expect(result.rows).toEqual(mockRows);
     });
 
     it('should handle v2 version (default)', async () => {
@@ -257,11 +306,28 @@ describe('wigleService', () => {
         type: 'wifi',
         ssid: 'test',
         bssid: 'aa:bb',
+        encryption: 'WPA2',
         includeTotal: true,
       });
 
       expect(result.rows).toEqual(mockRows);
       expect(result.total).toEqual(1);
+    });
+
+    it('should handle v2 version with empty type', async () => {
+      const mockRows = [{ id: 1 }];
+      (wigleQueriesRepo.buildWigleV2NetworksQuery as jest.Mock).mockReturnValue({
+        sql: 'sql',
+        queryParams: [],
+      });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: mockRows });
+
+      const result = await getWigleDatabase({
+        version: 'v2',
+        type: ' ',
+      });
+
+      expect(result.rows).toEqual(mockRows);
     });
   });
 
@@ -277,10 +343,51 @@ describe('wigleService', () => {
     it('should fallback to v2 search if v3 detail not found', async () => {
       (wiglePersistenceRepo.getWigleDetail as jest.Mock).mockResolvedValue([]);
       const mockRow = { bssid: '123' };
+      (wigleQueriesRepo.buildWigleNetworkByBssidQuery as jest.Mock).mockReturnValue({
+        sql: 'SELECT * FROM bssid',
+        queryParams: ['123'],
+      });
       (query as jest.Mock).mockResolvedValue({ rows: [mockRow] });
 
       const result = await getWigleDetail('123');
       expect(result).toEqual(mockRow);
+    });
+  });
+
+  describe('getRecentWigleDetailImport', () => {
+    it('should return a record if imported within time limit', async () => {
+      const mockRow = { netid: '123', imported_at: new Date() };
+      (wigleQueriesRepo.buildRecentWigleDetailImportQuery as jest.Mock).mockReturnValue({
+        sql: 'recent import',
+        queryParams: ['123', 12],
+      });
+      (query as jest.Mock).mockResolvedValue({ rows: [mockRow] });
+
+      const result = await getRecentWigleDetailImport('123', 12);
+      expect(result).toEqual(mockRow);
+      expect(wigleQueriesRepo.buildRecentWigleDetailImportQuery).toHaveBeenCalledWith('123', 12);
+      expect(query).toHaveBeenCalledWith('recent import', ['123', 12]);
+    });
+
+    it('should use default hours if invalid value provided', async () => {
+      (wigleQueriesRepo.buildRecentWigleDetailImportQuery as jest.Mock).mockReturnValue({
+        sql: 'recent import',
+        queryParams: ['123', 24],
+      });
+      (query as jest.Mock).mockResolvedValue({ rows: [] });
+      await getRecentWigleDetailImport('123', -1);
+      expect(wigleQueriesRepo.buildRecentWigleDetailImportQuery).toHaveBeenCalledWith('123', 24);
+      expect(query).toHaveBeenCalledWith('recent import', ['123', 24]);
+    });
+
+    it('should return null if no record found', async () => {
+      (wigleQueriesRepo.buildRecentWigleDetailImportQuery as jest.Mock).mockReturnValue({
+        sql: 'recent import',
+        queryParams: ['123', 12],
+      });
+      (query as jest.Mock).mockResolvedValue({ rows: [] });
+      const result = await getRecentWigleDetailImport('123', 12);
+      expect(result).toBeNull();
     });
   });
 
@@ -290,6 +397,10 @@ describe('wigleService', () => {
         sql: 'sql',
         queryParams: ['123'],
       });
+      (wigleQueriesRepo.buildWigleObservationsCountQuery as jest.Mock).mockReturnValue({
+        sql: 'count-sql',
+        queryParams: ['123'],
+      });
       (query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 1 }] }); // for observations
       (query as jest.Mock).mockResolvedValueOnce({ rows: [{ total: '5' }] }); // for count
 
@@ -297,10 +408,34 @@ describe('wigleService', () => {
       expect(result.rows).toEqual([{ id: 1 }]);
       expect(result.total).toEqual(5);
     });
+
+    it('should handle missing count result', async () => {
+      (wigleQueriesRepo.buildWigleObservationsQuery as jest.Mock).mockReturnValue({
+        sql: 'sql',
+        queryParams: ['123'],
+      });
+      (wigleQueriesRepo.buildWigleObservationsCountQuery as jest.Mock).mockReturnValue({
+        sql: 'count-sql',
+        queryParams: ['123'],
+      });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+      const result = await getWigleObservations('123');
+      expect(result.total).toBe(0);
+    });
   });
 
   describe('getKmlPointsForMap', () => {
     it('should return rows and total when includeTotal is true', async () => {
+      (wigleQueriesRepo.buildKmlPointsQuery as jest.Mock).mockReturnValue({
+        sql: 'kml-sql',
+        queryParams: ['aa:bb%'],
+      });
+      (wigleQueriesRepo.buildKmlPointsCountQuery as jest.Mock).mockReturnValue({
+        sql: 'kml-count-sql',
+        queryParams: ['aa:bb%'],
+      });
       (query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 1 }] }); // for rows
       (query as jest.Mock).mockResolvedValueOnce({ rows: [{ total: '10' }] }); // for count
 
@@ -310,11 +445,31 @@ describe('wigleService', () => {
     });
 
     it('should return rows and null total when includeTotal is false', async () => {
+      (wigleQueriesRepo.buildKmlPointsQuery as jest.Mock).mockReturnValue({
+        sql: 'kml-sql',
+        queryParams: ['aa:bb%', 10],
+      });
       (query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 1 }] }); // for rows
 
-      const result = await getKmlPointsForMap({ bssid: 'aa:bb', includeTotal: false });
+      const result = await getKmlPointsForMap({ bssid: 'aa:bb', includeTotal: false, offset: 10 });
       expect(result.rows).toEqual([{ id: 1 }]);
       expect(result.total).toBeNull();
+    });
+
+    it('should handle no filters', async () => {
+      (wigleQueriesRepo.buildKmlPointsQuery as jest.Mock).mockReturnValue({
+        sql: 'kml-sql',
+        queryParams: [10],
+      });
+      (wigleQueriesRepo.buildKmlPointsCountQuery as jest.Mock).mockReturnValue({
+        sql: 'kml-count-sql',
+        queryParams: [],
+      });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] }); // rows query
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [{ total: '0' }] }); // count query
+      const result = await getKmlPointsForMap({ limit: 10, includeTotal: true });
+      expect(result.rows).toEqual([]);
+      expect(result.total).toBe(0);
     });
   });
 
@@ -332,18 +487,20 @@ describe('wigleService', () => {
       });
 
       const mockStats = { user: 'test_user', rank: 1 };
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (fetchWigle as jest.Mock).mockResolvedValue({
         ok: true,
         json: jest.fn().mockResolvedValue(mockStats),
       });
 
       const result = await getUserStats();
       expect(result).toEqual(mockStats);
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.wigle.net/api/v2/stats/user',
+      expect(fetchWigle).toHaveBeenCalledWith(
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: expect.stringContaining('Basic '),
+          url: 'https://api.wigle.net/api/v2/stats/user',
+          init: expect.objectContaining({
+            headers: expect.objectContaining({
+              Authorization: expect.stringContaining('Basic '),
+            }),
           }),
         })
       );
@@ -356,7 +513,7 @@ describe('wigleService', () => {
         return null;
       });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (fetchWigle as jest.Mock).mockResolvedValue({
         ok: false,
         status: 401,
         json: jest.fn().mockResolvedValue({ message: 'Unauthorized' }),
@@ -372,7 +529,7 @@ describe('wigleService', () => {
         return null;
       });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (fetchWigle as jest.Mock).mockResolvedValue({
         ok: false,
         status: 500,
         json: jest.fn().mockRejectedValue(new Error('JSON Parse Error')),

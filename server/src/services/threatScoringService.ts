@@ -1,46 +1,137 @@
-const { query } = require('../config/database');
 const logger = require('../logging/logger');
+const threatRepository = require('../repositories/threatRepository');
+const networkTagService = require('./networkTagService');
 
-// Type definitions for threat scoring
+import { scoreBehavioralThreats } from './backgroundJobs/mlBehavioralScoring';
 
-type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+import type {
+  ComputeThreatScoresResult,
+  MarkForRecomputeResult,
+  ThreatApiLevel,
+  ThreatDetailedThreatDto,
+  ThreatDetailedThreatRecord,
+  ThreatManualTag,
+  ThreatQuickThreatDto,
+  ThreatQuickThreatPage,
+  ThreatQuickThreatRecord,
+  ThreatQuickThreatsQuery,
+  ThreatScoringBatchRequest,
+  ThreatScoringFullStats,
+  ThreatScoringRepository,
+  ThreatScoringStats,
+} from './threatScoring.types';
 
-interface ThreatScoringStats {
-  totalProcessed: number;
-  totalUpdated: number;
-  averageExecutionTime: number;
-  lastError: string | null;
-}
+type ThreatScoringLogger = {
+  info: (message: string, meta?: unknown) => void;
+  warn: (message: string, meta?: unknown) => void;
+  error: (message: string, meta?: unknown) => void;
+};
 
-interface ComputeThreatScoresResult {
-  success?: boolean;
-  skipped?: boolean;
-  processed?: number;
-  updated?: number;
-  executionTimeMs?: number;
-}
+type ThreatScoringDependencies = {
+  threatRepository: ThreatScoringRepository;
+  networkTagService: {
+    getManualThreatTags: () => Promise<ThreatManualTag[]>;
+  };
+  logger: ThreatScoringLogger;
+  scoreBehavioralThreats: typeof scoreBehavioralThreats;
+};
 
-interface MarkForRecomputeResult {
-  success: boolean;
-  rowsAffected: number;
-}
+const DEFAULT_BEHAVIORAL_MIN_OBSERVATIONS = 2;
+const DEFAULT_MAX_BSSID_LENGTH = 17;
 
-interface FullStats extends ThreatScoringStats {
-  isRunning: boolean;
-  lastRun: Date | null;
-}
+const toApiThreatLevel = (value: string): ThreatApiLevel => {
+  const normalized = value.toLowerCase();
+  if (
+    normalized === 'critical' ||
+    normalized === 'high' ||
+    normalized === 'medium' ||
+    normalized === 'low' ||
+    normalized === 'none'
+  ) {
+    return normalized;
+  }
+  return 'none';
+};
 
-interface QueryResult {
-  rowCount: number | null;
-  rows: unknown[];
-}
+const toQuickThreatDto = (record: ThreatQuickThreatRecord): ThreatQuickThreatDto => ({
+  bssid: record.bssid,
+  ssid: record.ssid || '<Hidden>',
+  radioType: record.radioType || 'wifi',
+  type: record.radioType || 'wifi',
+  channel: record.channel,
+  signal: record.signalDbm,
+  signalDbm: record.signalDbm,
+  maxSignal: record.signalDbm,
+  encryption: record.encryption,
+  latitude: record.latitude,
+  longitude: record.longitude,
+  firstSeen: record.firstSeen,
+  lastSeen: record.lastSeen,
+  observations: record.observations,
+  totalObservations: record.observations,
+  uniqueDays: record.uniqueDays,
+  uniqueLocations: record.uniqueLocations,
+  distanceRangeKm:
+    record.distanceRangeKm !== null ? record.distanceRangeKm.toFixed(2) : null,
+  threatScore: record.threatScore,
+  threatLevel: toApiThreatLevel(record.threatLevel),
+});
+
+const toDetailedThreatDto = (record: ThreatDetailedThreatRecord): ThreatDetailedThreatDto => {
+  const details = record.ruleBasedFlags || {};
+  const metrics =
+    details.metrics && typeof details.metrics === 'object' && !Array.isArray(details.metrics)
+      ? details.metrics
+      : {};
+  const factors =
+    details.factors && typeof details.factors === 'object' && !Array.isArray(details.factors)
+      ? details.factors
+      : {};
+  const flags = Array.isArray(details.flags) ? details.flags : [];
+  const rawConfidence = details.confidence;
+  const confidence =
+    rawConfidence !== undefined && rawConfidence !== null
+      ? (Number.parseFloat(String(rawConfidence)) * 100).toFixed(0)
+      : null;
+
+  return {
+    bssid: record.bssid,
+    ssid: record.ssid,
+    type: record.type,
+    encryption: record.encryption,
+    channel: record.frequency,
+    signal: record.signalDbm,
+    signalDbm: record.signalDbm,
+    latitude: record.latitude,
+    longitude: record.longitude,
+    totalObservations: record.totalObservations,
+    observations: record.totalObservations,
+    threatScore: record.finalThreatScore,
+    threatType: typeof details.summary === 'string' ? details.summary : 'Unified threat score',
+    threatLevel: toApiThreatLevel(record.finalThreatLevel),
+    confidence,
+    patterns: {
+      metrics,
+      factors,
+      flags,
+    },
+  };
+};
 
 class ThreatScoringService {
+  private readonly threatRepository: ThreatScoringRepository;
+  private readonly networkTagService: ThreatScoringDependencies['networkTagService'];
+  private readonly logger: ThreatScoringLogger;
+  private readonly behavioralScorer: typeof scoreBehavioralThreats;
   private isRunning: boolean;
   private lastRun: Date | null;
   private stats: ThreatScoringStats;
 
-  constructor() {
+  constructor(deps: ThreatScoringDependencies) {
+    this.threatRepository = deps.threatRepository;
+    this.networkTagService = deps.networkTagService;
+    this.logger = deps.logger;
+    this.behavioralScorer = deps.scoreBehavioralThreats;
     this.isRunning = false;
     this.lastRun = null;
     this.stats = {
@@ -51,81 +142,80 @@ class ThreatScoringService {
     };
   }
 
+  private async computeBehavioralThreatScores(processedBssids: string[]): Promise<number> {
+    const candidates = await this.threatRepository.getBehavioralScoringCandidatesByBssids({
+      bssids: processedBssids,
+      minObservations: DEFAULT_BEHAVIORAL_MIN_OBSERVATIONS,
+      maxBssidLength: DEFAULT_MAX_BSSID_LENGTH,
+    });
+
+    if (candidates.length === 0) {
+      return 0;
+    }
+
+    const manualTags = await this.networkTagService.getManualThreatTags();
+    const { scores } = this.behavioralScorer(candidates, manualTags);
+
+    return this.threatRepository.upsertBehavioralThreatScores(
+      scores.map((score) => ({
+        bssid: score.bssid,
+        mlThreatScore: score.ml_threat_score,
+        mlThreatProbability: score.ml_threat_probability,
+        mlPrimaryClass: score.ml_primary_class,
+        modelVersion: score.model_version || null,
+      }))
+    );
+  }
+
   async computeThreatScores(
     batchSize: number = 1000,
     maxAgeHours: number = 24
   ): Promise<ComputeThreatScoresResult> {
     if (this.isRunning) {
-      logger.warn('Threat scoring already running, skipping');
+      this.logger.warn('Threat scoring already running, skipping');
       return { skipped: true };
     }
 
     this.isRunning = true;
+
     try {
       const startTime = Date.now();
-      logger.info('Starting unified threat score computation', { batchSize, maxAgeHours });
+      const request: ThreatScoringBatchRequest = { batchSize, maxAgeHours };
+      this.logger.info('Starting unified threat score computation', request);
 
-      const insertQuery = `
-        WITH targets AS (
-          SELECT n.bssid
-          FROM app.networks n
-          WHERE n.bssid IS NOT NULL
-          ORDER BY n.bssid
-          LIMIT $1
-        ),
-        scored AS (
-          SELECT
-            t.bssid,
-            calculate_threat_score_v5(t.bssid) AS details
-          FROM targets t
-        )
-        INSERT INTO app.network_threat_scores
-          (bssid, rule_based_score, rule_based_flags, model_version, scored_at)
-        SELECT
-          bssid,
-          (details->>'total_score')::numeric,
-          details->'components',
-          details->>'model_version',
-          NOW()
-        FROM scored
-        ON CONFLICT (bssid) DO UPDATE SET
-          rule_based_score = EXCLUDED.rule_based_score,
-          rule_based_flags = EXCLUDED.rule_based_flags,
-          model_version = EXCLUDED.model_version,
-          scored_at = NOW(),
-          updated_at = NOW()
-      `;
-
-      const result: QueryResult = await query(insertQuery, [batchSize]);
-      const processed = result.rowCount || 0;
+      const ruleBasedResult = await this.threatRepository.upsertRuleBasedThreatScores(request);
+      const behavioralUpdated = await this.computeBehavioralThreatScores(
+        ruleBasedResult.processedBssids
+      );
       const executionTimeMs = Date.now() - startTime;
 
       this.stats = {
-        totalProcessed: this.stats.totalProcessed + processed,
-        totalUpdated: this.stats.totalUpdated + processed,
+        totalProcessed: this.stats.totalProcessed + ruleBasedResult.processedCount,
+        totalUpdated: this.stats.totalUpdated + ruleBasedResult.processedCount,
         averageExecutionTime: executionTimeMs,
         lastError: null,
       };
 
       this.lastRun = new Date();
 
-      logger.info('Unified threat score computation completed', {
-        processed,
-        updated: processed,
-        executionTimeMs: executionTimeMs,
+      this.logger.info('Unified threat score computation completed', {
+        processed: ruleBasedResult.processedCount,
+        updated: ruleBasedResult.processedCount,
+        behavioralUpdated,
+        executionTimeMs,
         totalProcessed: this.stats.totalProcessed,
       });
 
       return {
         success: true,
-        processed,
-        updated: processed,
-        executionTimeMs: executionTimeMs,
+        processed: ruleBasedResult.processedCount,
+        updated: ruleBasedResult.processedCount,
+        executionTimeMs,
       };
     } catch (error) {
       const err = error as Error;
       this.stats.lastError = err.message;
-      logger.error('Threat score computation failed', { error: err.message });
+      this.logger.error('Threat score computation failed', { error: err.message });
       throw error;
     } finally {
       this.isRunning = false;
@@ -133,17 +223,24 @@ class ThreatScoringService {
   }
 
   async markAllForRecompute(): Promise<MarkForRecomputeResult> {
-    try {
-      const result = await this.computeThreatScores(1000000, 0);
-      return { success: true, rowsAffected: result.processed || 0 };
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Failed to mark networks for recomputation', { error: err.message });
-      throw error;
-    }
+    const result = await this.computeThreatScores(1000000, 0);
+    return { success: true, rowsAffected: result.processed || 0 };
   }
 
-  getStats(): FullStats {
+  async getQuickThreats(params: ThreatQuickThreatsQuery): Promise<ThreatQuickThreatPage> {
+    const result = await this.threatRepository.getQuickThreats(params);
+    return {
+      threats: result.records.map(toQuickThreatDto),
+      totalCount: result.totalCount,
+    };
+  }
+
+  async getDetailedThreats(): Promise<ThreatDetailedThreatDto[]> {
+    const threats = await this.threatRepository.getDetailedThreats();
+    return threats.map(toDetailedThreatDto);
+  }
+
+  getStats(): ThreatScoringFullStats {
     return {
       ...this.stats,
       isRunning: this.isRunning,
@@ -152,117 +249,30 @@ class ThreatScoringService {
   }
 
   startScheduledJobs(): void {
-    logger.info('Threat scoring scheduled jobs disabled (manual-only mode)');
+    this.logger.info('Threat scoring scheduled jobs disabled (manual-only mode)');
   }
 }
 
-module.exports = new ThreatScoringService();
+const createThreatScoringService = (
+  deps: Partial<ThreatScoringDependencies> = {}
+): ThreatScoringService =>
+  new ThreatScoringService({
+    threatRepository: deps.threatRepository || threatRepository,
+    networkTagService: deps.networkTagService || networkTagService,
+    logger: deps.logger || logger,
+    scoreBehavioralThreats: deps.scoreBehavioralThreats || scoreBehavioralThreats,
+  });
 
-// Export types for consumers
+const threatScoringService = createThreatScoringService();
+
+module.exports = threatScoringService;
+module.exports.ThreatScoringService = ThreatScoringService;
+module.exports.createThreatScoringService = createThreatScoringService;
+
+export { ThreatScoringService, createThreatScoringService };
 export type {
-  ThreatLevel,
-  ThreatScoringStats,
   ComputeThreatScoresResult,
   MarkForRecomputeResult,
-  FullStats,
+  ThreatScoringFullStats,
+  ThreatScoringStats,
 };
-
-// Additional threat service methods
-
-const { CONFIG } = require('../config/database');
-
-/**
- * Get quick threat detection results
- */
-export async function getQuickThreats(params: {
-  limit: number;
-  offset: number;
-  minObservations: number;
-  minUniqueDays: number;
-  minUniqueLocations: number;
-  minRangeKm: number;
-  minThreatScore: number;
-  minTimestamp: number;
-}): Promise<{ rows: any[]; totalCount: number }> {
-  const result = await query(
-    `
-    SELECT
-      ne.bssid,
-      ne.ssid,
-      ne.type as radio_type,
-      ne.frequency as channel,
-      ne.signal as signal_dbm,
-      ne.security as encryption,
-      ne.lat as latitude,
-      ne.lon as longitude,
-      ne.observations,
-      ne.unique_days,
-      ne.unique_locations,
-      ne.first_seen,
-      ne.last_seen,
-      (ne.max_distance_meters / 1000.0) as distance_range_km,
-      COALESCE(nts.final_threat_score, 0) as threat_score,
-      COALESCE(nts.final_threat_level, 'NONE') as threat_level,
-      COUNT(*) OVER() as total_count
-    FROM app.api_network_explorer_mv ne
-    LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
-    WHERE ne.last_seen >= to_timestamp($1 / 1000.0)
-      AND ne.observations >= $4
-      AND ne.unique_days >= $5
-      AND ne.unique_locations >= $6
-      AND (ne.max_distance_meters / 1000.0) >= $7
-      AND COALESCE(nts.final_threat_score, 0) >= $8
-      AND (ne.type NOT IN ('L', 'N', 'G') OR ne.max_distance_meters > 50000)
-    ORDER BY COALESCE(nts.final_threat_score, 0) DESC
-    LIMIT $2 OFFSET $3
-  `,
-    [
-      params.minTimestamp,
-      params.limit,
-      params.offset,
-      params.minObservations,
-      params.minUniqueDays,
-      params.minUniqueLocations,
-      params.minRangeKm,
-      params.minThreatScore,
-    ]
-  );
-
-  const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
-  return { rows: result.rows, totalCount };
-}
-
-/**
- * Get detailed threat analysis
- */
-export async function getDetailedThreats(): Promise<any[]> {
-  const { rows } = await query(
-    `
-    SELECT
-      ne.bssid,
-      ne.ssid,
-      ne.type,
-      ne.security as encryption,
-      ne.frequency,
-      ne.signal as signal_dbm,
-      ne.lat as network_latitude,
-      ne.lon as network_longitude,
-      ne.observations as total_observations,
-      nts.final_threat_score,
-      nts.final_threat_level,
-      nts.rule_based_flags
-    FROM app.api_network_explorer_mv ne
-    LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
-    WHERE COALESCE(nts.final_threat_score, 0) >= 30
-      AND (
-        ne.type NOT IN ('G', 'L', 'N')
-        OR ne.max_distance_meters > 5000
-      )
-    ORDER BY COALESCE(nts.final_threat_score, 0) DESC, ne.observations DESC
-  `
-  );
-  return rows;
-}
-
-module.exports.getQuickThreats = getQuickThreats;
-module.exports.getDetailedThreats = getDetailedThreats;

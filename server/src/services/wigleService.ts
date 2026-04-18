@@ -3,12 +3,18 @@
  * Encapsulates database queries for WiGLE operations
  */
 
-const { query } = require('../config/database');
+import { query } from '../config/database';
 import {
+  buildKmlPointsCountQuery,
+  buildKmlPointsQuery,
+  buildRecentWigleDetailImportQuery,
+  buildWigleNetworkByBssidQuery,
   buildWigleObservationsQuery,
+  buildWigleObservationsCountQuery,
   buildWigleSearchQuery,
   buildWigleV2CountQuery,
   buildWigleV2NetworksQuery,
+  buildWigleV3TableExistsQuery,
   buildWigleV3CountQuery,
   buildWigleV3NetworksQuery,
 } from '../repositories/wigleQueriesRepository';
@@ -19,17 +25,19 @@ import {
   importWigleV3Observation as persistWigleV3Observation,
   insertWigleV2SearchResult,
 } from '../repositories/wiglePersistenceRepository';
+import secretsManager from './secretsManager';
+import { fetchWigle } from './wigleClient';
+import { hashRecord } from './wigleRequestUtils';
 
 type QueryExecutor = {
   query: (text: string, params?: any[]) => Promise<any>;
 };
 
+const databaseExecutor: QueryExecutor = { query };
+
 export async function getWigleNetworkByBSSID(bssid: string): Promise<any | null> {
-  const { rows } = await query(
-    `SELECT bssid, ssid, encryption, country, region, city, trilat, trilong, firsttime as first_seen, lasttime as last_seen
-     FROM app.wigle_v2_networks_search WHERE bssid = $1 ORDER BY lasttime DESC LIMIT 1`,
-    [bssid]
-  );
+  const { sql, queryParams } = buildWigleNetworkByBssidQuery(bssid);
+  const { rows } = await query(sql, queryParams);
   return rows.length > 0 ? rows[0] : null;
 }
 
@@ -65,12 +73,8 @@ export async function getWigleV2NetworksCount(
 }
 
 export async function checkWigleV3TableExists(): Promise<boolean> {
-  const tableCheck = await query(
-    `SELECT EXISTS (
-       SELECT FROM information_schema.tables
-       WHERE table_schema = 'app' AND table_name = 'wigle_v3_observations'
-     ) as exists`
-  );
+  const { sql, queryParams } = buildWigleV3TableExistsQuery();
+  const tableCheck = await query(sql, queryParams);
   return tableCheck.rows[0]?.exists || false;
 }
 
@@ -95,7 +99,7 @@ export async function getWigleV3NetworksCount(
 }
 
 export async function importWigleV3NetworkDetail(data: any): Promise<void> {
-  await persistWigleV3NetworkDetail({ query }, data);
+  await persistWigleV3NetworkDetail(databaseExecutor, data);
 }
 
 export async function importWigleV3Observation(
@@ -103,16 +107,16 @@ export async function importWigleV3Observation(
   loc: any,
   ssid: string | null
 ): Promise<number> {
-  return persistWigleV3Observation({ query }, netid, loc, ssid);
+  return persistWigleV3Observation(databaseExecutor, netid, loc, ssid);
 }
 
 export async function getWigleV3Observations(netid: string): Promise<any[]> {
-  return getStoredWigleV3Observations({ query }, netid);
+  return getStoredWigleV3Observations(databaseExecutor, netid);
 }
 
 export async function importWigleV2SearchResult(
   network: any,
-  executor: QueryExecutor = { query }
+  executor: QueryExecutor = databaseExecutor
 ): Promise<number> {
   return insertWigleV2SearchResult(executor, network);
 }
@@ -222,7 +226,7 @@ export async function getWigleDatabase(
  * then falls back to the `wigle_networks_enriched` view for v2-only imports.
  */
 export async function getWigleDetail(netid: string): Promise<any | null> {
-  const rows = await getStoredWigleDetail({ query }, netid);
+  const rows = await getStoredWigleDetail(databaseExecutor, netid);
 
   if (rows.length > 0) return rows[0];
 
@@ -235,15 +239,8 @@ export async function getRecentWigleDetailImport(
   withinHours: number
 ): Promise<any | null> {
   const hours = Number.isFinite(withinHours) && withinHours > 0 ? withinHours : 24;
-  const { rows } = await query(
-    `SELECT *
-       FROM app.wigle_v3_network_details
-      WHERE netid = $1
-        AND imported_at >= NOW() - ($2::int * INTERVAL '1 hour')
-      ORDER BY imported_at DESC
-      LIMIT 1`,
-    [netid, Math.floor(hours)]
-  );
+  const { sql, queryParams } = buildRecentWigleDetailImportQuery(netid, hours);
+  const { rows } = await query(sql, queryParams);
 
   return rows[0] || null;
 }
@@ -260,11 +257,12 @@ export async function getWigleObservations(
   limit?: number | null,
   offset?: number | null
 ): Promise<{ rows: any[]; total: number }> {
-  const { sql, queryParams } = buildWigleObservationsQuery(netid, limit, offset);
+  const observationsQuery = buildWigleObservationsQuery(netid, limit, offset);
+  const countQuery = buildWigleObservationsCountQuery(netid);
 
   const [{ rows }, countResult] = await Promise.all([
-    query(sql, queryParams),
-    query(`SELECT COUNT(*) AS total FROM app.wigle_v3_observations WHERE netid = $1`, [netid]),
+    query(observationsQuery.sql, observationsQuery.queryParams),
+    query(countQuery.sql, countQuery.queryParams),
   ]);
 
   return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
@@ -277,59 +275,13 @@ export async function getKmlPointsForMap(params: {
   includeTotal?: boolean;
 }): Promise<{ rows: any[]; total: number | null }> {
   const { bssid, limit = null, offset = null, includeTotal = false } = params;
-  const queryParams: any[] = [];
-  const whereClauses = ['kp.location IS NOT NULL'];
-
-  if (bssid) {
-    queryParams.push(`${bssid}%`);
-    whereClauses.push(`kp.bssid ILIKE $${queryParams.length}`);
-  }
-
-  const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
-  let pagingSql = '';
-
-  if (limit !== null) {
-    queryParams.push(limit);
-    pagingSql += ` LIMIT $${queryParams.length}`;
-  }
-  if (offset !== null && offset > 0) {
-    queryParams.push(offset);
-    pagingSql += ` OFFSET $${queryParams.length}`;
-  }
-
-  const { rows } = await query(
-    `
-      SELECT
-        kp.id,
-        kp.bssid,
-        NULLIF(kp.name, '') AS ssid,
-        kp.network_id,
-        kp.name,
-        kp.network_type,
-        kp.observed_at,
-        kp.accuracy_m,
-        kp.signal_dbm,
-        kf.source_file,
-        kp.folder_name,
-        ST_Y(kp.location) AS latitude,
-        ST_X(kp.location) AS longitude
-      FROM app.kml_points kp
-      JOIN app.kml_files kf ON kf.id = kp.kml_file_id
-      ${whereSql}
-      ORDER BY kp.observed_at DESC NULLS LAST, kp.id DESC
-      ${pagingSql}
-    `,
-    queryParams
-  );
+  const pointsQuery = buildKmlPointsQuery({ bssid, limit, offset });
+  const { rows } = await query(pointsQuery.sql, pointsQuery.queryParams);
 
   let total: number | null = null;
   if (includeTotal) {
-    const { rows: countRows } = await query(
-      `SELECT COUNT(*) AS total
-       FROM app.kml_points kp
-       ${whereSql}`,
-      bssid ? [`${bssid}%`] : []
-    );
+    const countQuery = buildKmlPointsCountQuery(bssid);
+    const { rows: countRows } = await query(countQuery.sql, countQuery.queryParams);
     total = parseInt(countRows[0]?.total || '0', 10);
   }
 
@@ -340,9 +292,6 @@ export async function getKmlPointsForMap(params: {
  * Fetch current user statistics from WiGLE API
  */
 export async function getUserStats(): Promise<any> {
-  const secretsManager = require('./secretsManager').default;
-  const { fetchWigle } = require('./wigleClient');
-  const { hashRecord } = require('./wigleRequestUtils');
   const name = secretsManager.get('wigle_api_name');
   const token = secretsManager.get('wigle_api_token');
 
@@ -375,23 +324,3 @@ export async function getUserStats(): Promise<any> {
 
   return response.json();
 }
-
-module.exports = {
-  getWigleNetworkByBSSID,
-  searchWigleDatabase,
-  getWigleV2Networks,
-  getWigleV2NetworksCount,
-  checkWigleV3TableExists,
-  getWigleV3Networks,
-  getWigleV3NetworksCount,
-  importWigleV3NetworkDetail,
-  importWigleV3Observation,
-  getWigleV3Observations,
-  importWigleV2SearchResult,
-  getWigleDatabase,
-  getWigleDetail,
-  getRecentWigleDetailImport,
-  getWigleObservations,
-  getKmlPointsForMap,
-  getUserStats,
-};

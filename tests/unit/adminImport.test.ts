@@ -49,7 +49,7 @@ jest.mock('child_process', () => {
 
 const { __mockChildProcessSpawn: mockChildProcessSpawn } = require('child_process');
 
-jest.mock('../../server/src/api/routes/v1/admin/importHelpers', () => {
+jest.mock('../../server/src/services/admin/adminHelpers', () => {
   const multerMock = {
     single: () => (req: any, res: any, next: any) => {
       if (req.body.nofile) {
@@ -76,6 +76,10 @@ jest.mock('../../server/src/api/routes/v1/admin/importHelpers', () => {
     getImportCommand: jest.fn(() => ({ cmd: 'cmd', args: [] })),
     getKmlImportCommand: jest.fn(() => ({ cmd: 'cmd', args: [] })),
     getSqlImportCommand: jest.fn(() => ({ cmd: 'cmd', args: [], env: {} })),
+    sanitizeRelativePath: jest.fn((p) => p),
+    parseRelativePathsPayload: jest.fn(() => []),
+    getKmlImportHistoryContext: jest.fn(() => ({ sourceTag: 'test', filename: 'test.kml' })),
+    parseKmlImportCounts: jest.fn(() => ({ filesImported: 1, pointsImported: 10 })),
     PROJECT_ROOT: '/root',
   };
 });
@@ -92,20 +96,13 @@ const {
   parseRelativePathsPayload,
   getKmlImportHistoryContext,
   parseKmlImportCounts,
-} = require('../../server/src/api/routes/v1/admin/kmlImportUtils');
+} = require('../../server/src/services/admin/adminHelpers');
 const {
   validateSQLiteMagic,
   getImportCommand,
   getKmlImportCommand,
   getSqlImportCommand,
-} = require('../../server/src/api/routes/v1/admin/importHelpers');
-
-jest.mock('../../server/src/api/routes/v1/admin/kmlImportUtils', () => ({
-  sanitizeRelativePath: jest.fn((p) => p),
-  parseRelativePathsPayload: jest.fn(() => []),
-  getKmlImportHistoryContext: jest.fn(() => ({ sourceTag: 'test', filename: 'test.kml' })),
-  parseKmlImportCounts: jest.fn(() => ({ filesImported: 1, pointsImported: 10 })),
-}));
+} = require('../../server/src/services/admin/adminHelpers');
 
 const adminImportRouter = require('../../server/src/api/routes/v1/admin/import');
 

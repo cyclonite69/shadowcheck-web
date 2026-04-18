@@ -8,8 +8,6 @@ jest.mock('../../../../server/src/config/container', () => ({
     validateSession: jest.fn(),
     logout: jest.fn(),
     changePassword: jest.fn(),
-    listUsers: jest.fn(),
-    createUser: jest.fn(),
   },
 }));
 
@@ -71,6 +69,14 @@ describe('Auth API Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.headers['set-cookie'][0]).toContain('session_token=;');
+    });
+  });
+
+  describe('GET /api/v1/admin/users', () => {
+    it('should not be served by the auth router', async () => {
+      const res = await request(app).get('/api/v1/admin/users');
+
+      expect(res.status).toBe(404);
     });
   });
 });

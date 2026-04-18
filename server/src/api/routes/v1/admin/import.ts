@@ -28,8 +28,6 @@ const {
   parseRelativePathsPayload,
   getKmlImportHistoryContext,
   parseKmlImportCounts,
-} = require('./kmlImportUtils');
-const {
   upload,
   sqlUpload,
   kmlUpload,
@@ -38,7 +36,7 @@ const {
   getKmlImportCommand,
   getSqlImportCommand,
   PROJECT_ROOT,
-} = require('./importHelpers');
+} = require('../../../../services/admin/adminHelpers');
 
 export {};
 

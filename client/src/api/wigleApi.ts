@@ -4,6 +4,27 @@
 
 import { apiClient } from './client';
 
+type ApiClientError = Error & {
+  status?: number;
+  data?: any;
+};
+
+const normalizeApiEndpoint = (endpoint: string): string => {
+  if (endpoint.startsWith('/api/')) {
+    return endpoint.slice('/api'.length);
+  }
+
+  return endpoint;
+};
+
+const getErrorPayload = (error: unknown): any | null => {
+  if (error && typeof error === 'object' && 'data' in error) {
+    return (error as ApiClientError).data ?? null;
+  }
+
+  return null;
+};
+
 export const wigleApi = {
   // WiGLE API Status
   async getApiStatus(): Promise<any> {
@@ -82,25 +103,23 @@ export const wigleApi = {
   ): Promise<any> {
     const cleanBssid = bssid.trim().toUpperCase();
     const path = isBluetooth
-      ? `/api/wigle/detail/bt/${encodeURIComponent(cleanBssid)}`
-      : `/api/wigle/detail/${encodeURIComponent(cleanBssid)}`;
-    const res = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ import: importData }),
-    });
-    return res.json();
+      ? `/wigle/detail/bt/${encodeURIComponent(cleanBssid)}`
+      : `/wigle/detail/${encodeURIComponent(cleanBssid)}`;
+
+    try {
+      return await apiClient.post(path, { import: importData });
+    } catch (error) {
+      const payload = getErrorPayload(error);
+      if (payload) {
+        return payload;
+      }
+
+      throw error;
+    }
   },
 
-  // FormData — raw fetch (apiClient forces application/json header)
   async importWigleV3(formData: FormData): Promise<any> {
-    const res = await fetch('/api/wigle/import/v3', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-    return res.json();
+    return apiClient.post('/wigle/import/v3', formData);
   },
 
   // Network WiGLE Observations
@@ -114,13 +133,9 @@ export const wigleApi = {
   },
 
   async cleanupCancelledCluster(): Promise<any> {
-    const res = await fetch('/api/wigle/search-api/import-runs/cluster-cleanup', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    return apiClient.delete('/wigle/search-api/import-runs/cluster-cleanup', {
       body: JSON.stringify({ confirm: true }),
     });
-    return res.json();
   },
 
   async getSavedSsidTerms(): Promise<any> {
@@ -132,11 +147,7 @@ export const wigleApi = {
   },
 
   async deleteSavedSsidTerm(id: number): Promise<any> {
-    const res = await fetch(`/api/wigle/search-api/saved-ssid-terms/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-    return res.json();
+    return apiClient.delete(`/wigle/search-api/saved-ssid-terms/${id}`);
   },
 
   // Mapbox Token (for WiGLE map)
@@ -144,9 +155,9 @@ export const wigleApi = {
     return apiClient.get('/mapbox-token');
   },
 
-  // Arbitrary caller-supplied path — raw fetch (apiClient would double-prefix /api/)
   async searchLocalWigle(endpoint: string, params: URLSearchParams): Promise<any> {
-    const res = await fetch(`${endpoint}?${params.toString()}`, { credentials: 'include' });
-    return res.json();
+    const normalizedEndpoint = normalizeApiEndpoint(endpoint);
+    const suffix = params.toString();
+    return apiClient.get(`${normalizedEndpoint}${suffix ? `?${suffix}` : ''}`);
   },
 };

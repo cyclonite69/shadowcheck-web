@@ -33,14 +33,19 @@ class ApiClient {
     const finalSignal = signal || controller.signal;
 
     try {
+      const isFormData =
+        typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
+      const headers = new Headers(fetchOptions.headers);
+
+      if (fetchOptions.body !== undefined && fetchOptions.body !== null && !isFormData) {
+        headers.set('Content-Type', 'application/json');
+      }
+
       const response = await fetch(url, {
         ...fetchOptions,
         signal: finalSignal,
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...fetchOptions.headers,
-        },
+        headers,
       });
 
       clearTimeout(timeoutId);
@@ -79,26 +84,29 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     });
   }
 
   async put<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return this.request<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     });
   }
 
   async patch<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return this.request<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     });
   }
 

@@ -13,7 +13,7 @@ const { adminNetworkTagsService } = require('../../../config/container');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateTimestamp: validateTimestampMs } = require('../../../validation/schemas');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
-const { buildContextMenuDemoHtml } = require('./admin/adminHelpers');
+const { buildContextMenuDemoHtml } = require('../../../services/admin/adminHelpers');
 
 export {};
 const adminMlRoutes = require('./ml');
