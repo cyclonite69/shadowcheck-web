@@ -13,6 +13,7 @@ const {
   registerWiGLERoutes,
 } = require('./settingsMultiSecretRoutes');
 
+registerProviderSecretRoutes({ router, secretsManager });
 registerWiGLERoutes({ router, secretsManager });
 registerMapboxTokenRoutes({ router, secretsManager });
 registerSmartyRoutes({ router, secretsManager });
