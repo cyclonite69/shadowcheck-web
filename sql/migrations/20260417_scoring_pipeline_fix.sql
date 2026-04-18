@@ -21,7 +21,7 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM app.network_tags
     WHERE bssid = NEW.bssid::text
-      AND (threat_tag = 'FALSE_POSITIVE' OR 'legit' = ANY(tags))
+      AND (threat_tag = 'FALSE_POSITIVE' OR tags @> '["legit"]'::jsonb)
   ) THEN
     NEW.final_threat_score := 0;
     NEW.final_threat_level := 'NONE';
