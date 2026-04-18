@@ -189,12 +189,14 @@ describe('Explorer API', () => {
 
 ## Coverage Requirements
 
-| Type       | Minimum | Target |
-| ---------- | ------- | ------ |
-| Statements | 70%     | 80%    |
-| Branches   | 60%     | 70%    |
-| Functions  | 70%     | 80%    |
-| Lines      | 70%     | 80%    |
+_Note: The global minimums are enforced in `jest.config.js` and were recently raised after a major test enhancement drive (April 2026)._
+
+| Type       | Minimum (Enforced) | Target |
+| ---------- | ------------------ | ------ |
+| Statements | 52%                | 80%    |
+| Branches   | 42%                | 70%    |
+| Functions  | 47%                | 80%    |
+| Lines      | 53%                | 80%    |
 
 Run `npm run test:cov` to generate coverage reports.
 

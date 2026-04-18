@@ -2,14 +2,11 @@
  * AdminUsersService Unit Tests
  */
 
-const bcrypt = require('bcrypt');
+import * as adminUsersService from '../../../server/src/services/adminUsersService';
+import bcrypt from 'bcrypt';
 import { adminQuery } from '../../../server/src/services/adminDbService';
 import { query } from '../../../server/src/config/database';
 import logger from '../../../server/src/logging/logger';
-
-// Note: adminUsersService uses CommonJS require for some dependencies,
-// so we need to be careful with mocking.
-const adminUsersService = require('../../../server/src/services/adminUsersService');
 
 jest.mock('bcrypt');
 jest.mock('../../../server/src/services/adminDbService');

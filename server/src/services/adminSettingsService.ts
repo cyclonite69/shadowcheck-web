@@ -1,7 +1,5 @@
-export {};
-
-const { adminQuery } = require('./adminDbService');
-const { query } = require('../config/database');
+import { adminQuery } from './adminDbService';
+import { query } from '../config/database';
 
 /**
  * Get all settings
@@ -67,11 +65,3 @@ export async function saveMLModelConfig(
   );
   return result.rowCount !== null && result.rowCount > 0;
 }
-
-module.exports = {
-  getAllSettings,
-  getSettingByKey,
-  updateSetting,
-  toggleMLBlending,
-  saveMLModelConfig,
-};

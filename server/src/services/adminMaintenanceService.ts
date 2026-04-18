@@ -1,9 +1,10 @@
-export {};
+import { adminQuery } from './adminDbService';
+import { query } from '../config/database';
 
-const { adminQuery } = require('./adminDbService');
-const { query } = require('../config/database');
-
-async function getDuplicateObservationStats(): Promise<{ total: number; unique_obs: number }> {
+export async function getDuplicateObservationStats(): Promise<{
+  total: number;
+  unique_obs: number;
+}> {
   const result = await query(`
     SELECT COUNT(*) as total,
            COUNT(DISTINCT (bssid, observed_at, latitude, longitude, accuracy_meters)) as unique_obs
@@ -13,7 +14,7 @@ async function getDuplicateObservationStats(): Promise<{ total: number; unique_o
   return result.rows[0] || { total: 0, unique_obs: 0 };
 }
 
-async function deleteDuplicateObservations(): Promise<number> {
+export async function deleteDuplicateObservations(): Promise<number> {
   const result = await adminQuery(`
     DELETE FROM app.observations
     WHERE unified_id IN (
@@ -33,7 +34,7 @@ async function deleteDuplicateObservations(): Promise<number> {
   return result.rowCount || 0;
 }
 
-async function getObservationCount(): Promise<number> {
+export async function getObservationCount(): Promise<number> {
   const result = await query(`
     SELECT COUNT(*) as total
     FROM app.observations
@@ -42,7 +43,7 @@ async function getObservationCount(): Promise<number> {
   return parseInt(result.rows[0]?.total || '0', 10);
 }
 
-async function refreshColocationView(minValidTimestamp: number): Promise<void> {
+export async function refreshColocationView(minValidTimestamp: number): Promise<void> {
   // Guard: prevent SQL injection via numeric literal interpolation
   if (!Number.isFinite(minValidTimestamp) || minValidTimestamp < 0) {
     throw new Error('Invalid minValidTimestamp');
@@ -99,15 +100,7 @@ async function refreshColocationView(minValidTimestamp: number): Promise<void> {
 /**
  * Truncate all data (dangerous admin operation)
  */
-async function truncateAllData(): Promise<void> {
+export async function truncateAllData(): Promise<void> {
   await adminQuery('TRUNCATE TABLE app.observations CASCADE');
   await adminQuery('TRUNCATE TABLE app.networks CASCADE');
 }
-
-module.exports = {
-  getDuplicateObservationStats,
-  deleteDuplicateObservations,
-  getObservationCount,
-  refreshColocationView,
-  truncateAllData,
-};

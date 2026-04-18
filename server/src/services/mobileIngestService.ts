@@ -108,6 +108,8 @@ class MobileIngestService {
    */
   async processUpload(uploadId: number): Promise<void> {
     this.initS3();
+    if (!this.bucketName) throw new Error('S3_BACKUP_BUCKET not configured');
+
     const { rows } = await adminQuery('SELECT * FROM app.mobile_uploads WHERE id = $1', [uploadId]);
 
     if (rows.length === 0) {

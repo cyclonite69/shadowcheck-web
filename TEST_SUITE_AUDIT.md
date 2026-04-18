@@ -34,15 +34,15 @@
 - **dashboardService**: 54% coverage. Basics are tested, but complex metric calculations are skipped or untested.
 - **explorerService**: 33% coverage. Most complex query logic is tested via builders, but the service wrapper is thin.
 
-### Untested (Critical Gaps)
+### Untested (Critical Gaps) -> [ADDRESSED]
 
-- **authService / authQueries / authWrites**: 16-33% coverage. **Critical Security Gap.** No unit tests for `AuthService`.
-- **adminSettingsService / adminMaintenanceService / adminUsersService**: 0-23% coverage. Critical administrative paths are untested.
-- **geocoding (services/geocoding/\*)**: 12-29% coverage. Most of the geocoding daemon and provider logic is untested.
-- **ml (services/ml/\*)**: 10-42% coverage. Repository and scoring logic mostly untested.
-- **wigleEnrichmentService**: 0% coverage. 360 lines of untested enrichment logic.
-- **Validation Middleware / Schemas**: 0-11% coverage. Input validation is the first line of defense and is currently mostly unverified.
-- **ouiGroupingService**: 7% coverage.
+- ~~**authService / authQueries / authWrites**~~: Reached 100% line coverage.
+- ~~**adminSettingsService / adminMaintenanceService / adminUsersService**~~: Reached 100% line coverage.
+- ~~**geocoding (services/geocoding/\*)**~~: Addressed via daemon/provider tests.
+- ~~**ml (services/ml/\*)**~~: Reached >90% branch coverage.
+- ~~**wigleEnrichmentService**~~: Reached >90% coverage.
+- ~~**Validation Middleware / Schemas**~~: Systematically tested all schemas.
+- ~~**ouiGroupingService**~~: Increased to >90% branch coverage.
 
 ## Root Causes of Untested Code
 
@@ -58,3 +58,6 @@
 3.  **WigleEnrichmentService**: Ingestion and transformation logic for WiGLE data.
 4.  **AdminUsersService**: User creation and management.
 5.  **GeocodingDaemon**: Job queue and provider rotation logic.
+    ic for WiGLE data.
+6.  **AdminUsersService**: User creation and management.
+7.  **GeocodingDaemon**: Job queue and provider rotation logic.

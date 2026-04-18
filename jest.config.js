@@ -22,10 +22,10 @@ module.exports = {
   // Coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 41,
-      functions: 43,
-      lines: 48,
-      statements: 48,
+      branches: 42,
+      functions: 47,
+      lines: 53,
+      statements: 52,
     },
   },
 
@@ -64,10 +64,7 @@ module.exports = {
     '__tests__',
   ],
 
-  modulePathIgnorePatterns: [
-
-    '<rootDir>/.claude/',
-  ],
+  modulePathIgnorePatterns: ['<rootDir>/.claude/'],
 
   // Transform - Add TypeScript support
   preset: 'ts-jest',

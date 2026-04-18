@@ -29,6 +29,16 @@ describe('Temporal Validation Schemas', () => {
     it('should fail for invalid date string', () => {
       expect(validateTimestamp('not-a-date').valid).toBe(false);
     });
+
+    it('should fail for null or undefined', () => {
+      expect(validateTimestamp(null as any).valid).toBe(false);
+      expect(validateTimestamp(undefined as any).valid).toBe(false);
+    });
+
+    it('should fail for non-string/non-Date types', () => {
+      expect(validateTimestamp(12345 as any).valid).toBe(false);
+      expect(validateTimestamp({} as any).valid).toBe(false);
+    });
   });
 
   describe('validateDateString()', () => {
@@ -43,6 +53,15 @@ describe('Temporal Validation Schemas', () => {
     it('should fail for invalid format', () => {
       expect(validateDateString('13-04-2026').valid).toBe(false);
     });
+
+    it('should fail for null or non-string', () => {
+      expect(validateDateString(null as any).valid).toBe(false);
+      expect(validateDateString(123 as any).valid).toBe(false);
+    });
+
+    it('should fail for invalid dates like 2026-02-31', () => {
+      expect(validateDateString('2026-02-31').valid).toBe(false);
+    });
   });
 
   describe('validateDateRange()', () => {
@@ -56,6 +75,14 @@ describe('Temporal Validation Schemas', () => {
       const start = '2026-04-10';
       const end = '2026-04-01';
       expect(validateDateRange(start, end).valid).toBe(false);
+    });
+
+    it('should fail if start date is invalid', () => {
+      expect(validateDateRange('invalid', '2026-04-01').valid).toBe(false);
+    });
+
+    it('should fail if end date is invalid', () => {
+      expect(validateDateRange('2026-04-01', 'invalid').valid).toBe(false);
     });
 
     it('should fail if range too long', () => {
@@ -73,12 +100,22 @@ describe('Temporal Validation Schemas', () => {
       expect(validateRelativeRange('6m').valid).toBe(true);
     });
 
+    it('should fail for empty or non-string', () => {
+      expect(validateRelativeRange('').valid).toBe(false);
+      expect(validateRelativeRange(null as any).valid).toBe(false);
+    });
+
     it('should fail for invalid unit', () => {
       expect(validateRelativeRange('10y').valid).toBe(false);
     });
 
     it('should fail for non-numeric value', () => {
       expect(validateRelativeRange('abc-d').valid).toBe(false);
+    });
+
+    it('should fail for zero or negative value', () => {
+      expect(validateRelativeRange('0h').valid).toBe(false);
+      expect(validateRelativeRange('-5d').valid).toBe(false);
     });
   });
 

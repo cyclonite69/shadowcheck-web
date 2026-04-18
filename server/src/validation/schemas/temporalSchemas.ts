@@ -60,6 +60,17 @@ export function validateDateString(dateStr: string): {
     return { valid: false, error: 'Invalid date' };
   }
 
+  // Verify date doesn't roll over (e.g., Feb 31 -> Mar 3)
+  // Date-only ISO strings (YYYY-MM-DD) are parsed as UTC in modern JS.
+  const parts = dateStr.split('T')[0].split('-');
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() + 1 !== m || date.getUTCDate() !== d) {
+    return { valid: false, error: 'Invalid date (day does not exist in month)' };
+  }
+
   return { valid: true, value: dateStr };
 }
 
@@ -167,7 +178,9 @@ export function validateTimeWindow(params: {
     const now = new Date();
     let start: Date;
 
-    if (!rangeVal) throw new Error('Invalid range');
+    if (!rangeVal) {
+      return { valid: false, error: 'Invalid range' };
+    }
     switch (rangeVal.unit) {
       case 'h':
         start = new Date(now.getTime() - rangeVal.value * 60 * 60 * 1000);

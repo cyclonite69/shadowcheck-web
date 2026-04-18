@@ -1,4 +1,4 @@
-const { query, pool } = require('../config/database');
+const { pool } = require('../config/database');
 const logger = require('../logging/logger');
 
 export {};
@@ -8,8 +8,9 @@ class OUIGroupingService {
    * Group networks by OUI and calculate collective threat
    */
   static async generateOUIGroups() {
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       logger.info('[OUI Grouping] Starting OUI grouping analysis...');
 
       // Get all networks with threat scores
@@ -118,8 +119,9 @@ class OUIGroupingService {
    * Detect MAC randomization (walked BSSIDs)
    */
   static async detectMACRandomization() {
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       logger.info('[MAC Randomization] Starting detection...');
 
       // Get BSSIDs grouped by OUI with temporal/spatial data - simplified approach

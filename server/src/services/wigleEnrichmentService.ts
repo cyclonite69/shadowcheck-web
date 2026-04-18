@@ -416,7 +416,7 @@ export async function validateWigleApiCredit() {
     }
 
     if (remaining < 10) {
-      console.warn(`[WiGLE] Low API credit: ${remaining} requests remaining`);
+      logger.warn(`[WiGLE] Low API credit: ${remaining} requests remaining`);
     }
 
     return {
@@ -424,7 +424,7 @@ export async function validateWigleApiCredit() {
       message: `${remaining} requests available`,
     };
   } catch (err) {
-    console.error('[WiGLE] Error checking API credit:', err);
+    logger.error('[WiGLE] Error checking API credit:', err);
     // Fail open: if we can't check credit, don't block the request
     // (but log it for investigation)
     return {

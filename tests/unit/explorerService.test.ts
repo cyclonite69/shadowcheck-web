@@ -158,4 +158,28 @@ describe('Explorer Service', () => {
       expect(result.rows).toEqual([]);
     });
   });
+
+  describe('getNetworkByBssid', () => {
+    it('should fetch network by BSSID', async () => {
+      const mockBssid = 'AA:BB:CC:DD:EE:FF';
+      const mockNetwork = { bssid: mockBssid, ssid: 'TestNet' };
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockNetwork] });
+
+      const result = await require('../../server/src/services/explorerService').getNetworkByBssid(
+        mockBssid
+      );
+      expect(result).toEqual(mockNetwork);
+      expect(query).toHaveBeenCalledWith(expect.stringContaining('UPPER(bssid) = UPPER($1)'), [
+        mockBssid,
+      ]);
+    });
+
+    it('should return null if network not found', async () => {
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      const result = await require('../../server/src/services/explorerService').getNetworkByBssid(
+        'NOT:FOUND'
+      );
+      expect(result).toBeNull();
+    });
+  });
 });

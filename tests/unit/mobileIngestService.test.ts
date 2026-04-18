@@ -260,5 +260,31 @@ describe('MobileIngestService', () => {
         ['S3 Download Failed', 100]
       );
     });
+
+    it('should fail if bucketName is missing', async () => {
+      // Set bucketName to null directly to trigger the error check at the start of processUpload
+      (mobileIngestService as any).bucketName = null;
+      // Also need to mock initS3 to prevent it from resetting bucketName
+      const initS3Spy = jest
+        .spyOn(mobileIngestService as any, 'initS3')
+        .mockImplementation(() => {});
+
+      // The service throws an error that is NOT caught inside the method if it's before the try-catch block
+      await expect(mobileIngestService.processUpload(100)).rejects.toThrow(
+        'S3_BACKUP_BUCKET not configured'
+      );
+
+      initS3Spy.mockRestore();
+    });
+
+    it('should skip S3 client init if already initialized', async () => {
+      (mobileIngestService as any).s3Client = { send: jest.fn() };
+      (mobileIngestService as any).bucketName = 'existing-bucket';
+      const mockUpload = { id: 100, s3_key: 'test.sqlite' };
+      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [mockUpload] }).mockResolvedValue({});
+
+      await mobileIngestService.processUpload(100);
+      expect(S3Client).not.toHaveBeenCalled();
+    });
   });
 });

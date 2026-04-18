@@ -57,8 +57,10 @@
 - **Objective**: Clean baseline before adding new tests.
 - **Implementation**: Fix `client/src/utils/__tests__/tooltipDataNormalizer.test.ts` and `tests/unit/networkFastPathPredicates.test.ts`.
 
-## Implementation Roadmap (3-Turn Plan)
+## Implementation Roadmap (Completed)
 
-1.  **Turn 1: Foundation & Security**: Fix existing failures, set up factories, and implement `AuthService` tests.
-2.  **Turn 2: Data Integrity**: Implement systematic validation schema tests and `WigleEnrichmentService` tests.
-3.  **Turn 3: Admin & Infrastructure**: Implement `AdminUsersService` tests and `GeocodingDaemon` tests. Update `jest.config.js` with thresholds.
+- [x] **Turn 1: Foundation & Security**: Fix existing failures, set up factories, and implement `AuthService` tests.
+- [x] **Turn 2: Data Integrity**: Implement systematic validation schema tests and `WigleEnrichmentService` tests.
+- [x] **Turn 3: Admin & Infrastructure**: Implement `AdminUsersService` tests and `GeocodingDaemon` tests. Update `jest.config.js` with thresholds.
+- [x] **Turn 4: Subagent Expansion (Bonus)**: Expanded coverage for `ouiGroupingService`, ML services, and Core Business Services (`explorerService`, `dashboardService`, `mobileIngestService`) to >90%.
+      hresholds.

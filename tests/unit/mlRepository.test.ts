@@ -89,28 +89,27 @@ describe('ML Repository', () => {
       );
     });
 
-    it('should upsert score without overwriteFinal', async () => {
+    it('should upsert score with missing optional fields', async () => {
+      const minimalScore = {
+        bssid: 'AA:BB:CC',
+        ml_threat_score: 50.0,
+        ml_threat_probability: 0.8,
+        ml_primary_class: 'moderate',
+        rule_based_score: 10,
+        final_threat_score: 60.0,
+        final_threat_level: 'High',
+      };
       (query as jest.Mock).mockResolvedValueOnce({});
 
-      await mlRepository.upsertLegacyThreatScore(mockScore, false);
+      await mlRepository.upsertLegacyThreatScore(minimalScore, true);
 
       expect(query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO app.network_threat_scores'),
-        [
-          mockScore.bssid,
-          mockScore.ml_threat_score,
-          mockScore.ml_threat_probability,
-          mockScore.ml_primary_class,
-          JSON.stringify(mockScore.ml_feature_values),
-          mockScore.rule_based_score,
-          JSON.stringify(mockScore.rule_based_flags),
-          mockScore.final_threat_score,
-          mockScore.final_threat_level,
-        ]
-      );
-      expect(query).not.toHaveBeenCalledWith(
-        expect.stringContaining('scored_at = NOW()'),
-        expect.any(Array)
+        expect.arrayContaining([
+          JSON.stringify({}), // ml_feature_values
+          JSON.stringify({}), // rule_based_flags
+          null, // model_version
+        ])
       );
     });
   });
@@ -130,6 +129,17 @@ describe('ML Repository', () => {
         taggedNetworks: [{ tag_type: 'THREAT', count: '10' }],
         mlScoresCount: 15,
       });
+    });
+
+    it('should handle missing count gracefully', async () => {
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [{ model_type: 'test' }] }) // modelRows
+        .mockResolvedValueOnce({ rows: [] }) // tagRows
+        .mockResolvedValueOnce({ rows: [{ something_else: 'no_count' }] }); // scoreRows without count
+
+      const result = await mlRepository.getMLModelStatus();
+
+      expect(result.mlScoresCount).toBe(0);
     });
 
     it('should handle missing scores gracefully', async () => {

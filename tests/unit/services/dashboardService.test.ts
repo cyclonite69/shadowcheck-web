@@ -70,4 +70,27 @@ describe('DashboardService', () => {
     const result = await dashboardService.getNetworkDistribution();
     expect(result).toEqual({ wifi: 5, ble: 2, bluetooth: 1, lte: 2, total: 10 });
   });
+
+  describe('Error handling', () => {
+    test('getMetrics() should throw and log error', async () => {
+      const error = new Error('Database connection failed');
+      mockRepo.getDashboardMetrics.mockRejectedValue(error);
+
+      await expect(dashboardService.getMetrics()).rejects.toThrow('Database connection failed');
+    });
+
+    test('getThreats() should throw and log error', async () => {
+      const error = new Error('Query timed out');
+      mockRepo.getThreatenedNetworks.mockRejectedValue(error);
+
+      await expect(dashboardService.getThreats()).rejects.toThrow('Query timed out');
+    });
+
+    test('getNetworkDistribution() should throw and log error', async () => {
+      const error = new Error('Invalid query');
+      mockRepo.getDashboardMetrics.mockRejectedValue(error);
+
+      await expect(dashboardService.getNetworkDistribution()).rejects.toThrow('Invalid query');
+    });
+  });
 });
