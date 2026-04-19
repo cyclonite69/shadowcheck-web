@@ -9,6 +9,7 @@ const OUIGroupingService = require('../ouiGroupingService');
 import { scoreBehavioralThreats } from './mlBehavioralScoring';
 
 const ML_SCORING_LIMIT = 10000;
+const ML_RECOMPUTE_LIMIT = 200000;
 const MAX_BSSID_LENGTH = 17;
 const MIN_OBSERVATIONS = 2;
 
@@ -45,14 +46,20 @@ const runBackupJob = async () => {
 const runBehavioralMlScoringJob = async () => {
   logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
 
-  const networks = await mlScoringRepository.getNetworksForBehavioralScoring(
-    ML_SCORING_LIMIT,
-    MIN_OBSERVATIONS,
-    MAX_BSSID_LENGTH
-  );
+  const pendingRecompute = await mlScoringRepository.getNetworksNeedingRecompute(ML_RECOMPUTE_LIMIT);
+  const hasPending = pendingRecompute.length > 0;
+
+  const networks = hasPending
+    ? pendingRecompute
+    : await mlScoringRepository.getNetworksForBehavioralScoring(
+        ML_SCORING_LIMIT,
+        MIN_OBSERVATIONS,
+        MAX_BSSID_LENGTH
+      );
 
   logger.info(
-    `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`
+    `[ML Scoring Job] Analyzing ${networks.length} networks with feedback-aware behavioral model`,
+    { recomputeMode: hasPending }
   );
 
   const tagRows = await networkTagService.getManualThreatTags();
@@ -62,6 +69,12 @@ const runBehavioralMlScoringJob = async () => {
 
   const inserted = await mlScoringRepository.bulkUpsertThreatScores(scores);
   logger.info(`[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0`);
+
+  if (hasPending && scores.length > 0) {
+    const bssids = scores.map((s: { bssid: string }) => s.bssid);
+    await mlScoringRepository.resetNeedsRecompute(bssids);
+    logger.info(`[ML Scoring Job] Reset needs_recompute for ${bssids.length} networks`);
+  }
 
   logger.info('[ML Scoring Job] Running OUI grouping analysis...');
   await OUIGroupingService.generateOUIGroups();

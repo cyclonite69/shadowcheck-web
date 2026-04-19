@@ -438,7 +438,7 @@ module.exports = {
   startGeocodeCacheUpdate,
   requeueFailedGeocoding,
   startGeocodingDaemon: (configInput: Partial<GeocodeDaemonConfig>) =>
-    startGeocodingDaemon(configInput, runGeocodeCacheUpdate),
+    startGeocodingDaemon(configInput, runGeocodeCacheUpdate, runGeocodeCacheUpdateInternal),
   stopGeocodingDaemon,
   getGeocodingDaemonStatus,
   getGeocodingCacheStats,

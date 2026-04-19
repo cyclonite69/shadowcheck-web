@@ -1,6 +1,9 @@
 export {};
 
 const { query } = require('../../config/database');
+const { adminQuery } = require('../adminDbService');
+
+const MAX_BSSID_LENGTH_CONST = 17;
 
 type ThreatScoreRow = {
   bssid: string;
@@ -214,6 +217,37 @@ async function getNetworksForBehavioralScoring(
   return rows;
 }
 
+async function getNetworksNeedingRecompute(limit: number): Promise<any[]> {
+  const { rows } = await query(
+    `SELECT
+       n.bssid,
+       COUNT(DISTINCT obs.id) as observation_count,
+       COUNT(DISTINCT DATE(obs.observed_at)) as unique_days,
+       COALESCE(MAX(ABS(obs.lon - (-79.3832)) + ABS(obs.lat - 43.6532)) * 111, 0) as max_distance_km
+     FROM app.networks n
+     INNER JOIN app.threat_scores_cache tsc ON tsc.bssid = n.bssid AND tsc.needs_recompute = true
+     LEFT JOIN app.observations obs ON n.bssid = obs.bssid
+     WHERE n.bssid IS NOT NULL
+       AND obs.id IS NOT NULL
+       AND LENGTH(n.bssid) <= $1
+       AND obs.lon IS NOT NULL
+       AND obs.lat IS NOT NULL
+     GROUP BY n.bssid
+     HAVING COUNT(DISTINCT obs.id) > 1
+     LIMIT $2`,
+    [MAX_BSSID_LENGTH_CONST, limit]
+  );
+  return rows;
+}
+
+async function resetNeedsRecompute(bssids: string[]): Promise<void> {
+  if (bssids.length === 0) return;
+  await adminQuery(
+    `UPDATE app.threat_scores_cache SET needs_recompute = false WHERE bssid = ANY($1::text[])`,
+    [bssids]
+  );
+}
+
 async function bulkUpsertThreatScores(scores: ThreatScoreRow[]): Promise<number> {
   let inserted = 0;
   for (const score of scores) {
@@ -252,6 +286,8 @@ module.exports = {
   getMLTrainingData,
   getNetworksByThreatLevel,
   getNetworksForBehavioralScoring,
+  getNetworksNeedingRecompute,
+  resetNeedsRecompute,
   loadNetworksForLegacyScoring,
   loadThreatModelConfig,
   upsertLegacyThreatScore,

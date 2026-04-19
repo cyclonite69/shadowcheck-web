@@ -1,6 +1,11 @@
 const logger = require('../../logging/logger');
 
-import type { GeocodeDaemonConfig, GeocodeRunOptions, GeocodeRunSummary } from './types';
+import type {
+  GeocodeDaemonConfig,
+  GeocodeProviderCredentials,
+  GeocodeRunOptions,
+  GeocodeRunSummary,
+} from './types';
 import {
   geocodeDaemon,
   getDaemonProviderRunOptions,
@@ -10,6 +15,12 @@ import {
 } from './daemonState';
 import { createRunSnapshot } from './jobState';
 import { ensureProviderReady, resolveProviderCredentials } from './providerRuntime';
+
+type InternalRunFn = (
+  options: GeocodeRunOptions,
+  credentials: GeocodeProviderCredentials,
+  jobId?: number
+) => Promise<GeocodeRunSummary>;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -57,7 +68,8 @@ const getGeocodingDaemonStatus = async () => {
 };
 
 const runGeocodeDaemonLoop = async (
-  runGeocodeCacheUpdate: (options: GeocodeRunOptions) => Promise<GeocodeRunSummary>
+  runGeocodeCacheUpdate: (options: GeocodeRunOptions) => Promise<GeocodeRunSummary>,
+  runInternal?: InternalRunFn
 ) => {
   if (!geocodeDaemon.config) return;
 
@@ -73,15 +85,49 @@ const runGeocodeDaemonLoop = async (
     if (!config) break;
     geocodeDaemon.lastTickAt = new Date().toISOString();
 
-    try {
-      const runOptions = getDaemonProviderRunOptions(config);
-      await persistDaemonConfig(config);
-      const result = await runGeocodeCacheUpdate(runOptions);
-      geocodeDaemon.lastResult = result;
-      geocodeDaemon.lastError = undefined;
+    const workers = Math.min(4, Math.max(1, Number(config.workers) || 1));
+    const useParallel = workers > 1 && typeof runInternal === 'function';
 
-      const sleepMs = result.processed > 0 ? config.loopDelayMs : config.idleSleepMs;
-      await sleep(sleepMs);
+    try {
+      if (useParallel) {
+        const workerOptions: GeocodeRunOptions[] = [];
+        for (let i = 0; i < workers; i++) {
+          workerOptions.push(getDaemonProviderRunOptions(config));
+        }
+        await persistDaemonConfig(config);
+
+        const workerPromises = workerOptions.map(async (opts, i) => {
+          if (i > 0) {
+            await sleep(100 + Math.floor(Math.random() * 400));
+          }
+          const creds = await resolveProviderCredentials(opts.provider);
+          ensureProviderReady(opts.provider, creds);
+          return runInternal!(opts, creds);
+        });
+
+        const settled = await Promise.allSettled(workerPromises);
+        let totalProcessed = 0;
+        for (const s of settled) {
+          if (s.status === 'fulfilled') {
+            totalProcessed += s.value.processed;
+            geocodeDaemon.lastResult = s.value;
+          } else {
+            logger.warn('[Geocoding] Parallel worker failed', { error: s.reason?.message });
+            geocodeDaemon.lastError = s.reason?.message;
+          }
+        }
+        const sleepMs = totalProcessed > 0 ? config.loopDelayMs : config.idleSleepMs;
+        await sleep(sleepMs);
+      } else {
+        const runOptions = getDaemonProviderRunOptions(config);
+        await persistDaemonConfig(config);
+        const result = await runGeocodeCacheUpdate(runOptions);
+        geocodeDaemon.lastResult = result;
+        geocodeDaemon.lastError = undefined;
+
+        const sleepMs = result.processed > 0 ? config.loopDelayMs : config.idleSleepMs;
+        await sleep(sleepMs);
+      }
     } catch (err) {
       const error = err as Error;
       geocodeDaemon.lastError = error.message;
@@ -97,7 +143,8 @@ const runGeocodeDaemonLoop = async (
 
 const startGeocodingDaemon = async (
   configInput: Partial<GeocodeDaemonConfig>,
-  runGeocodeCacheUpdate: (options: GeocodeRunOptions) => Promise<GeocodeRunSummary>
+  runGeocodeCacheUpdate: (options: GeocodeRunOptions) => Promise<GeocodeRunSummary>,
+  runInternal?: InternalRunFn
 ) => {
   let persisted: GeocodeDaemonConfig | null = null;
   try {
@@ -128,7 +175,7 @@ const startGeocodingDaemon = async (
     return { started: false, status: geocodeDaemon };
   }
 
-  void runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+  void runGeocodeDaemonLoop(runGeocodeCacheUpdate, runInternal);
   return { started: true, status: geocodeDaemon };
 };
 

@@ -11,6 +11,7 @@ jest.mock('../../../../server/src/services/backupService', () => ({
 jest.mock('../../../../server/src/services/ml/repository', () => ({
   getNetworksForBehavioralScoring: jest.fn(),
   bulkUpsertThreatScores: jest.fn(),
+  getNetworksNeedingRecompute: jest.fn(),
 }));
 
 jest.mock('../../../../server/src/services/networkTagService', () => ({
@@ -115,6 +116,7 @@ describe('runners service', () => {
       const mockScores = [{ bssid: '11:22:33:44:55:66', score: 0.8 }];
       const mockTagMap = new Map([['11:22:33:44:55:66', 'threat']]);
 
+      mockMlScoringRepository.getNetworksNeedingRecompute.mockResolvedValue([]);
       mockMlScoringRepository.getNetworksForBehavioralScoring.mockResolvedValue(mockNetworks);
       mockNetworkTagService.getManualThreatTags.mockResolvedValue(mockTags);
       mockMlBehavioralScoring.scoreBehavioralThreats.mockReturnValue({

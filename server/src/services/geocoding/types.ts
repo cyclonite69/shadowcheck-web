@@ -42,6 +42,7 @@ export type GeocodeDaemonConfig = GeocodeRunOptions & {
   errorSleepMs: number;
   providers?: GeocodingDaemonProviderConfig[];
   providerCursor?: number;
+  workers?: number;
 };
 
 export type GeocodeResult = {

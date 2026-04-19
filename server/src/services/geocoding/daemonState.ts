@@ -68,6 +68,7 @@ const normalizeDaemonConfig = (config: Partial<GeocodeDaemonConfig>): GeocodeDae
   const idleSleepMs = Math.max(loopDelayMs, Number(config.idleSleepMs) || 180000);
   const errorSleepMs = Math.max(1000, Number(config.errorSleepMs) || 60000);
   const providers = Array.isArray(config.providers) ? config.providers : [];
+  const workers = Math.min(4, Math.max(1, Number(config.workers) || 1));
 
   return {
     provider,
@@ -81,6 +82,7 @@ const normalizeDaemonConfig = (config: Partial<GeocodeDaemonConfig>): GeocodeDae
     errorSleepMs,
     providers,
     providerCursor: Math.max(0, Number(config.providerCursor) || 0),
+    workers,
   };
 };
 
