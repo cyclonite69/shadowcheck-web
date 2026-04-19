@@ -3,6 +3,7 @@ import express from 'express';
 
 jest.mock('../../server/src/config/container', () => ({
   wigleService: {
+    getWiglePageNetwork: jest.fn(),
     getWigleDetail: jest.fn(),
     searchWigleDatabase: jest.fn(),
     getWigleDatabase: jest.fn(),
@@ -50,6 +51,21 @@ app.use((err: any, req: any, res: any, next: any) => {
 describe('wigle database routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('GET /api/wigle/page/network/:netid', () => {
+    it('should return wiGLE page network detail', async () => {
+      wigleService.getWiglePageNetwork.mockResolvedValueOnce({ netid: '00:11:22:33:44:55' });
+      const res = await request(app).get('/api/wigle/page/network/00:11:22:33:44:55');
+      expect(res.status).toBe(200);
+      expect(res.body.netid).toBe('00:11:22:33:44:55');
+    });
+
+    it('should return 404 if page network is not found', async () => {
+      wigleService.getWiglePageNetwork.mockResolvedValueOnce(null);
+      const res = await request(app).get('/api/wigle/page/network/00:11:22:33:44:55');
+      expect(res.status).toBe(404);
+    });
   });
 
   describe('GET /api/wigle/network/:bssid', () => {

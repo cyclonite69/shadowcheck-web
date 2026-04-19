@@ -70,6 +70,19 @@ const validateWigleNetworksQuery = validateQuery({
  * the wigle_networks_enriched view for v2-only imports.
  */
 router.get(
+  '/page/network/:netid',
+  macParamMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { netid } = req.params;
+    const network = await wigleService.getWiglePageNetwork(netid);
+    if (!network) {
+      return res.status(404).json({ error: 'Network not found in WiGLE database' });
+    }
+    res.json(network);
+  })
+);
+
+router.get(
   '/network/:bssid',
   macParamMiddleware,
   asyncHandler(async (req: Request, res: Response) => {

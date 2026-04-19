@@ -3,6 +3,7 @@
  */
 
 import {
+  getWiglePageNetwork,
   getWigleNetworkByBSSID,
   searchWigleDatabase,
   getWigleV2Networks,
@@ -125,6 +126,94 @@ describe('WiGLE Service', () => {
         expect.stringContaining('COUNT(*)'),
         expect.arrayContaining(['WiFi'])
       );
+    });
+  });
+
+  describe('getWiglePageNetwork', () => {
+    it('prefers v3 detail and adds local match metadata', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              netid: 'AA:BB:CC:DD:EE:FF',
+              ssid: 'DetailNet',
+              type: 'wifi',
+              encryption: 'WPA2',
+              channel: 11,
+              qos: 5,
+              first_seen: '2024-01-01T00:00:00Z',
+              last_seen: '2024-01-02T00:00:00Z',
+              last_update: '2024-01-03T00:00:00Z',
+              trilat: 40.1,
+              trilon: -74.1,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ local_observations: 3 }] });
+
+      const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
+
+      expect(result).toMatchObject({
+        netid: 'AA:BB:CC:DD:EE:FF',
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        ssid: 'DetailNet',
+        firsttime: '2024-01-01T00:00:00Z',
+        lasttime: '2024-01-02T00:00:00Z',
+        lastupdt: '2024-01-03T00:00:00Z',
+        local_observations: 3,
+        wigle_match: true,
+        wigle_source: 'wigle-v3',
+      });
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+    });
+
+    it('falls back to v2 summary when v3 detail is absent', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              bssid: '11:22:33:44:55:66',
+              ssid: 'V2Net',
+              type: 'wifi',
+              encryption: 'WPA3',
+              channel: 36,
+              frequency: 5180,
+              qos: 4,
+              firsttime: '2024-02-01T00:00:00Z',
+              lasttime: '2024-02-02T00:00:00Z',
+              lastupdt: '2024-02-03T00:00:00Z',
+              trilat: 41.1,
+              trilong: -73.9,
+              source: 'wigle_api_search',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [{ local_observations: 0 }] });
+
+      const result = await getWiglePageNetwork('11:22:33:44:55:66');
+
+      expect(result).toMatchObject({
+        netid: '11:22:33:44:55:66',
+        bssid: '11:22:33:44:55:66',
+        ssid: 'V2Net',
+        frequency: 5180,
+        local_observations: null,
+        wigle_match: false,
+        wigle_source: 'wigle-v2',
+      });
+    });
+
+    it('returns null when no WiGLE page record exists', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ local_observations: 0 }] });
+
+      const result = await getWiglePageNetwork('00:00:00:00:00:00');
+
+      expect(result).toBeNull();
     });
   });
 

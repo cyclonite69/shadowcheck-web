@@ -73,10 +73,7 @@ const buildWigleV2NetworksQuery = (params: {
   return { sql, queryParams: allParams };
 };
 
-const buildWigleV2CountQuery = (
-  whereClauses: string[],
-  queryParams: any[]
-): SqlQuery => ({
+const buildWigleV2CountQuery = (whereClauses: string[], queryParams: any[]): SqlQuery => ({
   sql: `SELECT COUNT(*) as total FROM app.wigle_v2_networks_search ${buildWhereSql(whereClauses)}`,
   queryParams,
 });
@@ -96,33 +93,18 @@ const buildWigleV3NetworksQuery = (params: {
 
   const sql = `
     SELECT
-      obs.netid, obs.ssid, obs.encryption, obs.latitude, obs.longitude, obs.observed_at,
-      ne.threat_score, ne.threat_level, ne.manufacturer,
-      CASE WHEN ne.bssid IS NOT NULL
-        THEN ne.geocoded_address
-        ELSE gc.address
-      END as geocoded_address,
-      CASE WHEN ne.bssid IS NOT NULL
-        THEN ne.geocoded_city
-        ELSE gc.city
-      END as geocoded_city,
-      CASE WHEN ne.bssid IS NOT NULL
-        THEN ne.geocoded_state
-        ELSE gc.state
-      END as geocoded_state,
-      CASE WHEN ne.bssid IS NOT NULL
-        THEN ne.geocoded_poi_name
-        ELSE gc.poi_name
-      END as geocoded_poi_name,
-      ne.observations AS local_observations,
-      ne.first_seen AS local_first_seen,
-      ne.last_seen AS local_last_seen,
-      (ne.bssid IS NOT NULL) AS wigle_match
+      obs.netid,
+      obs.ssid,
+      obs.encryption,
+      obs.latitude,
+      obs.longitude,
+      obs.observed_at,
+      obs.frequency,
+      obs.channel,
+      obs.accuracy,
+      obs.last_update,
+      'wigle-v3'::text AS wigle_source
     FROM app.wigle_v3_observations obs
-    LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(obs.netid)
-    LEFT JOIN app.geocoding_cache gc ON gc.precision = 4
-      AND gc.lat_round = ROUND(obs.latitude::numeric, 4)
-      AND gc.lon_round = ROUND(obs.longitude::numeric, 4)
     ${whereSql}
     ORDER BY obs.observed_at DESC
     ${paginationSql}
@@ -177,6 +159,62 @@ const buildWigleNetworkByBssidQuery = (bssid: string): SqlQuery => ({
          ORDER BY lasttime DESC
          LIMIT 1`,
   queryParams: [bssid],
+});
+
+const buildWiglePageV3DetailQuery = (netid: string): SqlQuery => ({
+  sql: `SELECT
+          nd.netid,
+          nd.ssid,
+          nd.name,
+          nd.type,
+          nd.encryption,
+          nd.channel,
+          nd.qos,
+          nd.first_seen,
+          nd.last_seen,
+          nd.last_update,
+          nd.trilat,
+          nd.trilon,
+          nd.comment
+        FROM app.wigle_v3_network_details nd
+        WHERE UPPER(nd.netid) = UPPER($1)
+        LIMIT 1`,
+  queryParams: [netid],
+});
+
+const buildWiglePageV2SummaryQuery = (netid: string): SqlQuery => ({
+  sql: `SELECT
+          v2.bssid,
+          v2.ssid,
+          v2.name,
+          v2.type,
+          v2.encryption,
+          v2.channel,
+          v2.frequency,
+          v2.qos,
+          v2.firsttime,
+          v2.lasttime,
+          v2.lastupdt,
+          v2.trilat,
+          v2.trilong,
+          v2.comment,
+          v2.source,
+          v2.city,
+          v2.region,
+          v2.road,
+          v2.housenumber
+        FROM app.wigle_v2_networks_search v2
+        WHERE UPPER(v2.bssid) = UPPER($1)
+        ORDER BY v2.lasttime DESC NULLS LAST, v2.lastupdt DESC NULLS LAST
+        LIMIT 1`,
+  queryParams: [netid],
+});
+
+const buildWiglePageLocalMatchQuery = (netid: string): SqlQuery => ({
+  sql: `SELECT COUNT(*)::int AS local_observations
+        FROM app.observations
+        WHERE UPPER(bssid) = UPPER($1)`,
+  queryParams: [netid],
 });
 
 const buildWigleV3TableExistsQuery = (): SqlQuery => ({
@@ -263,6 +301,9 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
 };
 
 export {
+  buildWiglePageLocalMatchQuery,
+  buildWiglePageV2SummaryQuery,
+  buildWiglePageV3DetailQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,

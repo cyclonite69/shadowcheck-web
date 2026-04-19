@@ -4,9 +4,53 @@
 
 import { apiClient } from './client';
 
+export interface WiglePageNetwork {
+  bssid?: string | null;
+  netid?: string | null;
+  ssid?: string | null;
+  name?: string | null;
+  type?: string | null;
+  encryption?: string | null;
+  capabilities?: string | null;
+  channel?: number | string | null;
+  frequency?: number | string | null;
+  firsttime?: string | null;
+  lasttime?: string | null;
+  lastupdt?: string | null;
+  trilat?: number | string | null;
+  trilong?: number | string | null;
+  trilon?: number | string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  manufacturer?: string | null;
+  local_observations?: number | string | null;
+  wigle_match?: boolean | string | null;
+  observed_at?: string | null;
+  source?: string | null;
+  comment?: string | null;
+  qos?: number | string | null;
+  accuracy?: number | string | null;
+  city?: string | null;
+  region?: string | null;
+  road?: string | null;
+  housenumber?: string | null;
+  geocoded_address?: string | null;
+  geocoded_city?: string | null;
+  geocoded_state?: string | null;
+  geocoded_poi_name?: string | null;
+  first_seen?: string | null;
+  last_seen?: string | null;
+  local_first_seen?: string | null;
+  local_last_seen?: string | null;
+  localMatchExists?: boolean | null;
+  localObservationCount?: number | null;
+  wigle_source?: 'wigle-v2' | 'wigle-v3' | null;
+  [key: string]: unknown;
+}
+
 type ApiClientError = Error & {
   status?: number;
-  data?: any;
+  data?: unknown;
 };
 
 const normalizeApiEndpoint = (endpoint: string): string => {
@@ -23,6 +67,12 @@ const getErrorPayload = (error: unknown): any | null => {
   }
 
   return null;
+};
+
+// TODO: server endpoint pending.
+export const getWiglePageNetwork = async (netid: string): Promise<WiglePageNetwork> => {
+  const cleanNetid = netid.trim().toUpperCase();
+  return apiClient.get(`/wigle/page/network/${encodeURIComponent(cleanNetid)}`);
 };
 
 export const wigleApi = {
@@ -92,6 +142,10 @@ export const wigleApi = {
   // WiGLE Detail
   async getWigleObservations(netid: string): Promise<any> {
     return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);
+  },
+
+  async getWiglePageNetwork(netid: string): Promise<WiglePageNetwork> {
+    return getWiglePageNetwork(netid);
   },
 
   // raw fetch — server returns { ok: false } on WiGLE errors (4xx) and apiClient would throw

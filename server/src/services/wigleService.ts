@@ -5,6 +5,9 @@
 
 import { query } from '../config/database';
 import {
+  buildWiglePageLocalMatchQuery,
+  buildWiglePageV2SummaryQuery,
+  buildWiglePageV3DetailQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,
@@ -87,6 +90,78 @@ export async function getWigleV3Networks(params: {
   const { sql, queryParams } = buildWigleV3NetworksQuery(params);
   const { rows } = await query(sql, queryParams);
   return rows;
+}
+
+export async function getWiglePageNetwork(netid: string): Promise<any | null> {
+  const normalizedNetid = netid.trim().toUpperCase();
+  const v3DetailQuery = buildWiglePageV3DetailQuery(normalizedNetid);
+  const v2SummaryQuery = buildWiglePageV2SummaryQuery(normalizedNetid);
+  const localMatchQuery = buildWiglePageLocalMatchQuery(normalizedNetid);
+
+  const [v3Result, v2Result, localMatchResult] = await Promise.all([
+    query(v3DetailQuery.sql, v3DetailQuery.queryParams),
+    query(v2SummaryQuery.sql, v2SummaryQuery.queryParams),
+    query(localMatchQuery.sql, localMatchQuery.queryParams),
+  ]);
+
+  const v3 = v3Result.rows[0] ?? null;
+  const v2 = v2Result.rows[0] ?? null;
+  const localObservations = parseInt(localMatchResult.rows[0]?.local_observations || '0', 10);
+
+  if (!v3 && !v2) {
+    return null;
+  }
+
+  if (v3) {
+    return {
+      netid: v3.netid,
+      bssid: v3.netid,
+      ssid: v3.ssid ?? v3.name ?? null,
+      name: v3.name ?? null,
+      type: v3.type ?? null,
+      encryption: v3.encryption ?? null,
+      capabilities: v3.encryption ?? null,
+      channel: v3.channel ?? null,
+      frequency: null,
+      qos: v3.qos ?? null,
+      firsttime: v3.first_seen ?? null,
+      lasttime: v3.last_seen ?? null,
+      lastupdt: v3.last_update ?? null,
+      trilat: v3.trilat ?? null,
+      trilong: v3.trilon ?? null,
+      comment: v3.comment ?? null,
+      local_observations: localObservations > 0 ? localObservations : null,
+      wigle_match: localObservations > 0,
+      wigle_source: 'wigle-v3',
+    };
+  }
+
+  return {
+    netid: v2.bssid,
+    bssid: v2.bssid,
+    ssid: v2.ssid ?? v2.name ?? null,
+    name: v2.name ?? null,
+    type: v2.type ?? null,
+    encryption: v2.encryption ?? null,
+    capabilities: v2.encryption ?? null,
+    channel: v2.channel ?? null,
+    frequency: v2.frequency ?? null,
+    qos: v2.qos ?? null,
+    firsttime: v2.firsttime ?? null,
+    lasttime: v2.lasttime ?? null,
+    lastupdt: v2.lastupdt ?? null,
+    trilat: v2.trilat ?? null,
+    trilong: v2.trilong ?? null,
+    comment: v2.comment ?? null,
+    source: v2.source ?? null,
+    city: v2.city ?? null,
+    region: v2.region ?? null,
+    road: v2.road ?? null,
+    housenumber: v2.housenumber ?? null,
+    local_observations: localObservations > 0 ? localObservations : null,
+    wigle_match: localObservations > 0,
+    wigle_source: 'wigle-v2',
+  };
 }
 
 export async function getWigleV3NetworksCount(

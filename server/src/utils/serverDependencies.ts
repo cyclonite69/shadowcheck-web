@@ -45,6 +45,9 @@ interface RouteModules {
   claudeRoutes: Router;
   threatReportRoutes: Router;
   mobileIngestRoutes: Router;
+  agencyOfficesRoutes: Router;
+  federalCourthousesRoutes: Router;
+  networkAgenciesRoutes: Router;
 }
 
 /**
@@ -93,6 +96,9 @@ function loadRouteModules(): RouteModules {
     claudeRoutes: require('../api/routes/v1/claude'),
     threatReportRoutes: require('../api/routes/v1/threat-report').default,
     mobileIngestRoutes: require('../api/routes/v1/mobileIngest').default,
+    agencyOfficesRoutes: require('../api/routes/v1/agencyOffices').default,
+    federalCourthousesRoutes: require('../api/routes/v1/federalCourthouses').default,
+    networkAgenciesRoutes: require('../api/routes/v1/network-agencies'),
   };
 }
 

@@ -1,9 +1,9 @@
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
-import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
-import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
-import { networkApi } from '../../api/networkApi';
+import { getWiglePageNetwork, type WiglePageNetwork } from '../../api/wigleApi';
+import { normalizeWigleTooltipData } from '../../utils/wigle/wigleTooltipNormalizer';
+import { renderWigleTooltip } from '../../utils/wigle/wigleTooltipRenderer';
 import {
   setupPopupDrag,
   cleanupPopupDrag,
@@ -22,18 +22,18 @@ export const attachClickHandlers = (
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const bssid = String(props.netid || props.bssid || '');
-    const ssid = props.ssid || props.netid || '';
+    const netid = String(props.netid || props.bssid || '');
+    const featureData: WiglePageNetwork = {
+      ...(props as Record<string, unknown>),
+      netid: String(props.netid || props.bssid || ''),
+      bssid: String(props.bssid || props.netid || ''),
+      trilat: props.trilat ?? props.latitude ?? e.lngLat.lat,
+      trilong: props.trilong ?? props.trilon ?? props.longitude ?? e.lngLat.lng,
+      wigle_source: props.wigle_source === 'wigle-v3' ? 'wigle-v3' : 'wigle-v2',
+    };
+    const initialHTML = renderWigleTooltip(normalizeWigleTooltipData(featureData));
 
-    // Placeholder shown immediately while the full MV record loads
-    const placeholderHTML = `
-      <div style="min-width:200px;padding:10px 12px;font:12px/1.5 system-ui,sans-serif;color:#e2e8f0">
-        <div style="font-weight:700;color:#60a5fa;margin-bottom:4px">${ssid || bssid || 'Network'}</div>
-        <div style="color:#94a3b8;font-size:11px">${bssid}</div>
-        <div style="margin-top:8px;color:#64748b;font-size:11px">Loading full data…</div>
-      </div>`;
-
-    const anchor = getPopupAnchor(map, e.lngLat, placeholderHTML);
+    const anchor = getPopupAnchor(map, e.lngLat, initialHTML);
     const popup = new mapboxgl.Popup({
       anchor,
       offset: 15,
@@ -44,44 +44,32 @@ export const attachClickHandlers = (
       closeButton: false,
     })
       .setLngLat(e.lngLat)
-      .setHTML(placeholderHTML)
+      .setHTML(initialHTML)
       .addTo(map);
 
-    // Async fetch full MV record — update popup when ready
-    if (bssid) {
-      networkApi.getNetworkByBssid(bssid).then((mvData) => {
-        if (!popup.isOpen()) return;
-        let source = mvData ?? { ...props, bssid };
+    if (netid) {
+      void getWiglePageNetwork(netid)
+        .then((pageData) => {
+          if (!popup.isOpen() || !pageData) return;
 
-        // The MV geocoded address was reverse-geocoded from local (home) observations.
-        // If this WiGLE point is far from where the network was locally observed, the
-        // home address is wrong for this location — clear it so coordinates show instead.
-        if (mvData?.geocoded_address) {
-          const mvLat = Number(mvData.lat ?? mvData.trilat ?? mvData.latitude ?? NaN);
-          const mvLon = Number(
-            mvData.lon ?? mvData.trilong ?? mvData.trilon ?? mvData.longitude ?? NaN
-          );
-          if (Number.isFinite(mvLat) && Number.isFinite(mvLon)) {
-            const dLat = (e.lngLat.lat - mvLat) * 111;
-            const dLon = (e.lngLat.lng - mvLon) * 111 * Math.cos((e.lngLat.lat * Math.PI) / 180);
-            const distKm = Math.sqrt(dLat * dLat + dLon * dLon);
-            if (distKm > 100) source = { ...source, geocoded_address: null };
-          }
-        }
+          const mergedData: WiglePageNetwork = {
+            ...featureData,
+            ...pageData,
+            netid: String(pageData.netid || pageData.bssid || netid),
+            bssid: String(pageData.bssid || pageData.netid || netid),
+          };
 
-        const normalized = normalizeTooltipData(source, [e.lngLat.lng, e.lngLat.lat]);
-        const fullHTML = renderNetworkTooltip({
-          ...normalized,
-          triggerElement: map.getContainer(),
+          popup.setHTML(renderWigleTooltip(normalizeWigleTooltipData(mergedData)));
+        })
+        .catch(() => {
+          // Server endpoint pending; feature props remain the source of truth for now.
         });
-        popup.setHTML(fullHTML ?? placeholderHTML);
-      });
     }
 
     // Setup drag
     let dragState: PopupDragState | null = null;
 
-    dragState = setupPopupDrag(popup, (offset) => {
+    dragState = setupPopupDrag(popup, (_offset) => {
       // Drag handler (tether line removed)
     });
 

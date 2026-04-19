@@ -45,6 +45,9 @@ describe('routeMounts', () => {
       claudeRoutes: 'claudeRoutes',
       threatReportRoutes: 'threatReportRoutes',
       mobileIngestRoutes: 'mobileIngestRoutes',
+      agencyOfficesRoutes: 'agencyOfficesRoutes',
+      federalCourthousesRoutes: 'federalCourthousesRoutes',
+      networkAgenciesRoutes: 'networkAgenciesRoutes',
     };
   });
 
@@ -69,6 +72,8 @@ describe('routeMounts', () => {
       ['/v1/ingest', '/api/v1/ingest'],
       'mobileIngestRoutes'
     );
+    expect(mockApp.use).toHaveBeenCalledWith('/agency-offices', 'agencyOfficesRoutes');
+    expect(mockApp.use).toHaveBeenCalledWith('/api/networks', authMiddleware.requireAuth, 'networkAgenciesRoutes');
 
     // Verify gated routes use requireAuth
     const gatedNetworksCall = mockApp.use.mock.calls.find(

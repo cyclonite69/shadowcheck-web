@@ -35,15 +35,16 @@ describe('wigle query builders', () => {
     const v3 = buildWigleV3NetworksQuery({
       limit: 20,
       offset: 0,
-      whereClauses: ['ssid ILIKE $1'],
+      whereClauses: ['obs.ssid ILIKE $1'],
       queryParams: ['%corp%'],
     });
     const observations = buildWigleObservationsQuery('net1', 10, 30);
-    const count = buildWigleV3CountQuery(['ssid ILIKE $1'], ['%corp%']);
+    const count = buildWigleV3CountQuery(['obs.ssid ILIKE $1'], ['%corp%']);
 
-    expect(v3.sql).toContain('WHERE ssid ILIKE $1');
+    expect(v3.sql).toContain('WHERE obs.ssid ILIKE $1');
     expect(v3.sql).toContain('LIMIT $2');
     expect(v3.sql).toContain('OFFSET $3');
+    expect(v3.sql).not.toContain('api_network_explorer_mv');
     expect(observations.sql).toContain('WHERE netid = $1');
     expect(observations.sql).toContain('LIMIT $2');
     expect(observations.sql).toContain('OFFSET $3');

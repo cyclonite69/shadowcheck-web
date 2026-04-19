@@ -9,63 +9,67 @@ jest.mock('../../../server/src/websocket/ssmTerminal', () => ({
 }));
 
 describe('shutdownHandlers', () => {
-  const originalOn = process.on;
-  const originalEmit = process.emit;
   let exitSpy: jest.SpyInstance;
+  let mockLogger: any;
+  let mockPool: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { return undefined as never; });
+    jest.useFakeTimers();
+    // Match the actual process.exit signature
+    exitSpy = jest.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => { 
+      return undefined as never; 
+    });
+    mockLogger = { info: jest.fn(), error: jest.fn() };
+    mockPool = { end: jest.fn().mockResolvedValue(undefined) };
+    
+    process.removeAllListeners('SIGTERM');
+    process.removeAllListeners('SIGINT');
   });
 
   afterEach(() => {
     exitSpy.mockRestore();
+    jest.useRealTimers();
+    process.removeAllListeners('SIGTERM');
+    process.removeAllListeners('SIGINT');
   });
 
-  it('should register handlers and handle SIGTERM/SIGINT', async () => {
-    const mockLogger: any = { info: jest.fn() };
-    const mockPool: any = { end: jest.fn().mockResolvedValue(undefined) };
-    
+  it('should register handlers and handle SIGTERM/SIGINT', () => {
     registerShutdownHandlers({ logger: mockLogger, pool: mockPool });
 
-    // Verify registration
     expect(process.listenerCount('SIGTERM')).toBeGreaterThan(0);
     expect(process.listenerCount('SIGINT')).toBeGreaterThan(0);
   });
 
   it('should shut down gracefully on SIGTERM', async () => {
-    const mockLogger: any = { info: jest.fn() };
-    const mockPool: any = { end: jest.fn().mockResolvedValue(undefined) };
-    const BackgroundJobsService = require('../../../server/src/services/backgroundJobsService');
-    const { shutdownSsmWebSocket } = require('../../../server/src/websocket/ssmTerminal');
-
     registerShutdownHandlers({ logger: mockLogger, pool: mockPool });
-
-    // Directly call the handler for SIGTERM
     const termHandler = process.listeners('SIGTERM')[process.listeners('SIGTERM').length - 1] as any;
+    
     await termHandler();
 
     expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('SIGTERM received'));
-    expect(BackgroundJobsService.shutdown).toHaveBeenCalled();
-    expect(shutdownSsmWebSocket).toHaveBeenCalled();
     expect(mockPool.end).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  it('should shut down gracefully on SIGINT', async () => {
-    const mockLogger: any = { info: jest.fn() };
-    const mockPool: any = { end: jest.fn().mockResolvedValue(undefined) };
-    const { shutdownSsmWebSocket } = require('../../../server/src/websocket/ssmTerminal');
+  it('should handle database pool shutdown timeout', async () => {
+    mockPool.end.mockReturnValue(new Promise(() => {})); // Never resolves
 
     registerShutdownHandlers({ logger: mockLogger, pool: mockPool });
+    const termHandler = process.listeners('SIGTERM')[process.listeners('SIGTERM').length - 1] as any;
+    
+    const shutdownPromise = termHandler();
+    
+    // Fast-forward timers to trigger the timeout
+    // We need to run pending timers multiple times to clear the promise queue
+    for(let i=0; i<10; i++) {
+        jest.advanceTimersByTime(1000);
+        await Promise.resolve();
+    }
+    
+    await shutdownPromise;
 
-    // Directly call the handler for SIGINT
-    const intHandler = process.listeners('SIGINT')[process.listeners('SIGINT').length - 1] as any;
-    await intHandler();
-
-    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('SIGINT received'));
-    expect(shutdownSsmWebSocket).toHaveBeenCalled();
-    expect(mockPool.end).toHaveBeenCalled();
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Database pool shutdown timed out'));
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 });

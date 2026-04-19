@@ -131,6 +131,66 @@ describe('Auth Middleware', () => {
       });
       expect(next).not.toHaveBeenCalled();
     });
+
+    it('should return 500 if authService is not configured', async () => {
+      req.app!.locals.authService = undefined;
+      req.cookies = { session_token: 'some-token' };
+
+      await requireAuth(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Authentication service unavailable',
+        code: 'AUTH_UNAVAILABLE',
+      });
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    describe('Stress and Edge Cases', () => {
+      const malformedTokens = [
+        'A'.repeat(10000), // Extremely long token
+        "'; DROP TABLE sessions; --", // SQL injection attempt
+        '\0', // Null byte
+        '{}', // JSON
+        'invalid-bearer-token',
+        '   ', // Whitespace
+      ];
+
+      malformedTokens.forEach((token) => {
+        it(`should handle malformed token: ${token.substring(0, 20)}...`, async () => {
+          req.headers = { authorization: `Bearer ${token}` };
+          authService.validateSession.mockResolvedValueOnce({
+            valid: false,
+            error: 'Invalid token format',
+          });
+
+          await requireAuth(req as Request, res as Response, next);
+
+          expect(res.status).toHaveBeenCalledWith(401);
+          expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+              code: 'INVALID_SESSION',
+            })
+          );
+        });
+      });
+
+      it('should handle session validation for disabled user', async () => {
+        req.cookies = { session_token: 'disabled-user-token' };
+        authService.validateSession.mockResolvedValueOnce({
+          valid: false,
+          error: 'Account is disabled',
+        });
+
+        await requireAuth(req as Request, res as Response, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith({
+          error: 'Account is disabled',
+          code: 'INVALID_SESSION',
+        });
+      });
+    });
   });
 
   describe('requireAdmin', () => {
@@ -157,6 +217,16 @@ describe('Auth Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
+    it('should return 403 if user has no role', async () => {
+      req.cookies = { session_token: 'valid-token' };
+      const mockUser = { id: '1', username: 'test' } as any;
+      authService.validateSession.mockResolvedValueOnce({ valid: true, user: mockUser });
+
+      await requireAdmin(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
     it('should call next if user is authenticated and is admin', async () => {
       req.cookies = { session_token: 'valid-admin-token' };
       const mockUser = { id: '2', username: 'admin', role: 'admin' };
@@ -167,6 +237,16 @@ describe('Auth Middleware', () => {
       expect(req.user).toEqual(mockUser);
       expect(next).toHaveBeenCalledTimes(1);
     });
+
+    it('should abort if requireAuth fails', async () => {
+      // Mock requireAuth to return without calling next (simulating 401 response)
+      req.cookies = {}; // No token
+
+      await requireAdmin(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
+    });
   });
 
   describe('optionalAuth', () => {
@@ -175,6 +255,15 @@ describe('Auth Middleware', () => {
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(req.user).toBeUndefined();
+    });
+
+    it('should call next if authService is missing', () => {
+      req.cookies = { session_token: 'token' };
+      req.app!.locals.authService = undefined;
+
+      optionalAuth(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
     });
 
     it('should call next immediately if token is invalid without setting user', async () => {
@@ -196,6 +285,16 @@ describe('Auth Middleware', () => {
 
       expect(req.user).toEqual(mockUser);
       expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle errors in optionalAuth', async () => {
+      req.cookies = { session_token: 'token' };
+      authService.validateSession.mockRejectedValueOnce(new Error('fail'));
+
+      await optionalAuth(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

@@ -39,6 +39,9 @@ interface ApiRouteDependencies {
   claudeRoutes: Router;
   threatReportRoutes: Router;
   mobileIngestRoutes: Router;
+  agencyOfficesRoutes: Router;
+  federalCourthousesRoutes: Router;
+  networkAgenciesRoutes: Router;
 }
 
 /**
@@ -78,6 +81,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     claudeRoutes,
     threatReportRoutes,
     mobileIngestRoutes,
+    agencyOfficesRoutes,
+    federalCourthousesRoutes,
+    networkAgenciesRoutes,
   } = deps;
   // Fail closed: gate is enabled unless explicitly set to "false".
   const apiGateEnabled =
@@ -128,6 +134,11 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     }
   }
 
+  // Fallback for missing routes during testing or partial boots
+  if (!healthRoutes) {
+    console.error('[ROUTE ERROR] Health routes are missing; critical service failure.');
+  }
+
   // Health checks are intentionally public and mounted at both /health and
   // /api/health for backward compatibility with older deploy probes.
   app.use('/', healthRoutes);
@@ -148,10 +159,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/analytics-public', analyticsPublicRoutes);
 
   // Agency offices (public data - mount outside /api to avoid admin auth middleware)
-  const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;
   app.use('/agency-offices', agencyOfficesRoutes);
-
-  const federalCourthousesRoutes = require('../api/routes/v1/federalCourthouses').default;
   app.use('/federal-courthouses', federalCourthousesRoutes);
 
   // API routes
@@ -173,7 +181,6 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api', userGate, threatReportRoutes);
 
   // Network agencies (nearest agencies to network observations)
-  const networkAgenciesRoutes = require('../api/routes/v1/network-agencies');
   app.use('/api/networks', userGate, networkAgenciesRoutes);
 
   // Admin-page/system routes

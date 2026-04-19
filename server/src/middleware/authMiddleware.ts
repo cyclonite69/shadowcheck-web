@@ -111,11 +111,7 @@ const requireAuth: RequestHandler = (req, res, next) => {
  */
 const requireAdmin: RequestHandler = (req, res, next) => {
   // First check if user is authenticated
-  return requireAuth(req, res, ((err?: unknown) => {
-    if (err) {
-      return;
-    }
-
+  return requireAuth(req, res, (() => {
     // Check if user has admin role
     if (req.user?.role !== 'admin') {
       res.status(403).json({
@@ -146,7 +142,7 @@ const optionalAuth: RequestHandler = (req, res, next) => {
     return;
   }
 
-  authService
+  return authService
     .validateSession(token)
     .then((result: SessionValidationResult) => {
       if (result.valid) {

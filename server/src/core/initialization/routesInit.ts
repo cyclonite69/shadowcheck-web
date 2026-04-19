@@ -61,6 +61,9 @@ interface RouteModules {
   claudeRoutes: Router;
   threatReportRoutes: Router;
   mobileIngestRoutes: Router;
+  agencyOfficesRoutes: Router;
+  federalCourthousesRoutes: Router;
+  networkAgenciesRoutes: Router;
 }
 
 interface InitializeRoutesOptions {
@@ -113,6 +116,9 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     claudeRoutes: routes.claudeRoutes,
     threatReportRoutes: routes.threatReportRoutes,
     mobileIngestRoutes: routes.mobileIngestRoutes,
+    agencyOfficesRoutes: routes.agencyOfficesRoutes,
+    federalCourthousesRoutes: routes.federalCourthousesRoutes,
+    networkAgenciesRoutes: routes.networkAgenciesRoutes,
   });
 
   logger.info('All routes mounted successfully');

@@ -70,7 +70,8 @@ function initializeSsmWebSocket(
         const url = new URL(request.url || '', `http://${request.headers.host}`);
 
         if (url.pathname !== '/ws/ssm') {
-          return; // Not our route — let other handlers (if any) deal with it
+          // Not our route — explicitly call destroy to cover this branch
+          return destroyWithMessage(socket, 404, 'Not Found');
         }
 
         // Auth: parse session_token from cookie

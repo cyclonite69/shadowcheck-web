@@ -95,6 +95,46 @@ describe('authService', () => {
       expect(result.status).toBe(500);
       expect(logger.error).toHaveBeenCalled();
     });
+
+    describe('Concurrency and Stress', () => {
+      it('should handle high-concurrency login attempts', async () => {
+        const mockUser = {
+          id: 1,
+          username: 'test',
+          email: 'test@test.com',
+          role: 'user',
+          password_hash: 'hash',
+          is_active: true,
+        };
+        (getUserForLogin as jest.Mock).mockResolvedValue({ rows: [mockUser] });
+        (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+        const loginAttempts = Array(50).fill(null).map(() => 
+          authService.login('test', 'password')
+        );
+
+        const results = await Promise.all(loginAttempts);
+        results.forEach(result => {
+          expect(result.success).toBe(true);
+        });
+        expect(createUserSession).toHaveBeenCalledTimes(50);
+      });
+
+      it('should handle malformed/malicious inputs in login', async () => {
+        const extremeInputs = [
+          { u: 'A'.repeat(5000), p: 'password' },
+          { u: 'test', p: 'A'.repeat(5000) },
+          { u: "'; DROP TABLE users; --", p: 'password' },
+          { u: 'test', p: '\0' },
+        ];
+
+        for (const input of extremeInputs) {
+          (getUserForLogin as jest.Mock).mockResolvedValue({ rows: [] });
+          const result = await authService.login(input.u, input.p);
+          expect(result.success).toBe(false);
+        }
+      });
+    });
   });
 
   describe('validateSession', () => {
@@ -105,6 +145,7 @@ describe('authService', () => {
         email: 'test@test.com',
         role: 'user',
         is_active: true,
+        force_password_change: true,
       };
       (getSessionUser as jest.Mock).mockResolvedValue({ rows: [mockUser] });
 
@@ -116,6 +157,50 @@ describe('authService', () => {
         email: 'test@test.com',
         role: 'user',
       });
+      expect(result.forcePasswordChange).toBe(true);
+    });
+
+    it('should handle database connection failure during validation', async () => {
+      const dbError = new Error('Connection lost');
+      (getSessionUser as jest.Mock).mockRejectedValue(dbError);
+
+      const result = await authService.validateSession('some-token');
+      
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Session validation failed');
+      expect(logger.error).toHaveBeenCalledWith('Session validation error:', dbError);
+    });
+
+    it('should validate active session without force_password_change', async () => {
+      const mockUser = {
+        id: 1,
+        username: 'test',
+        email: 'test@test.com',
+        role: 'user',
+        is_active: true,
+      };
+      (getSessionUser as jest.Mock).mockResolvedValue({ rows: [mockUser] });
+
+      const result = await authService.validateSession('token');
+      expect(result.valid).toBe(true);
+      expect(result.forcePasswordChange).toBe(false);
+    });
+
+    it('should login with default parameters', async () => {
+      const mockUser = {
+        id: 1,
+        username: 'test',
+        email: 'test@test.com',
+        role: 'user',
+        password_hash: 'hash',
+        is_active: true,
+      };
+      (getUserForLogin as jest.Mock).mockResolvedValue({ rows: [mockUser] });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await authService.login('test', 'password'); // only 2 args
+      expect(result.success).toBe(true);
+      expect(createUserSession).toHaveBeenCalledWith(1, expect.any(String), expect.any(Date), '', '');
     });
 
     it('should return invalid for no token', async () => {

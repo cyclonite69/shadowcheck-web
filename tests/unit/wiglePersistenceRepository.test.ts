@@ -1,6 +1,9 @@
 export {};
 
-import { insertWigleV2SearchResult } from '../../server/src/repositories/wiglePersistenceRepository';
+import {
+  getWigleDetail,
+  insertWigleV2SearchResult,
+} from '../../server/src/repositories/wiglePersistenceRepository';
 
 describe('wiglePersistenceRepository', () => {
   it('skips WiGLE v2 rows without valid coordinates', async () => {
@@ -38,5 +41,16 @@ describe('wiglePersistenceRepository', () => {
 
     expect(rowCount).toBe(1);
     expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches cached WiGLE detail without joining the explorer MV', async () => {
+    const query = jest.fn().mockResolvedValue({ rows: [] });
+
+    await getWigleDetail({ query }, 'AA:BB:CC:DD:EE:FF');
+
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain('FROM app.wigle_v3_network_details nd');
+    expect(sql).not.toContain('app.api_network_explorer_mv');
+    expect(params).toEqual(['AA:BB:CC:DD:EE:FF']);
   });
 });

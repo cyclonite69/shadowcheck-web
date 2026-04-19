@@ -1,6 +1,33 @@
 const { validators } = require('../../../server/src/utils/validators');
 
 describe('validators', () => {
+  describe('json', () => {
+    it('should parse valid JSON objects and arrays', () => {
+      expect(validators.json('{"a": 1}')).toEqual({ a: 1 });
+      expect(validators.json('[1, 2, 3]')).toEqual([1, 2, 3]);
+    });
+
+    it('should handle malformed JSON and return null', () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      expect(validators.json('{a: 1}')).toBeNull();
+      expect(validators.json('{"a": 1')).toBeNull();
+      expect(validators.json('plain text')).toBeNull();
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle partially valid object payloads', () => {
+      // In JSON, there's no such thing as "partially valid" in terms of syntax.
+      // But we can test objects with missing fields if the application expects them.
+      const payload = '{"id": 1}'; // Missing "name"
+      expect(validators.json(payload)).toEqual({ id: 1 });
+    });
+
+    it('should handle null, undefined, and non-string input', () => {
+      expect(validators.json(null)).toBeNull();
+      expect(validators.json(undefined)).toBeNull();
+    });
+  });
+
   describe('limit', () => {
     it('should parse and clamp integer values', () => {
       expect(validators.limit('50', 1, 100, 10)).toBe(50);

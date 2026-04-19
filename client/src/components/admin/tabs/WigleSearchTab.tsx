@@ -606,8 +606,8 @@ export const WigleSearchTab: React.FC = () => {
                                 (selectedNetwork?.netid || selectedNetwork?.bssid) === bssid;
                               const city = net.geocoded_city || net.city || '—';
                               const state = net.geocoded_state || net.region || '—';
-                              const firstSeen = net.local_first_seen || net.firsttime || null;
-                              const lastSeen = net.local_last_seen || net.lasttime || null;
+                              const firstSeen = net.firsttime || null;
+                              const lastSeen = net.lasttime || null;
                               return (
                                 <tr
                                   key={idx}

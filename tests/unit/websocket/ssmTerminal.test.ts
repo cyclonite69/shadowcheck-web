@@ -82,7 +82,10 @@ describe('ssmTerminal', () => {
     await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
 
     expect(mockWss.handleUpgrade).not.toHaveBeenCalled();
-    expect(mockSocket.destroy).not.toHaveBeenCalled();
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 404 Not Found')
+    );
+    expect(mockSocket.destroy).toHaveBeenCalled();
   });
 
   it('should reject unauthorized upgrades (no token)', async () => {
@@ -209,9 +212,6 @@ describe('ssmTerminal', () => {
       JSON.stringify({ type: 'exit', data: 'Session ended (exit code: 0)' })
     );
     expect(mockWs.close).toHaveBeenCalled();
-  });
-
-  it('should handle terminal errors in stderr', async () => {
     authService.validateSession.mockResolvedValue({
       valid: true,
       user: { role: 'admin', username: 'adminuser' },

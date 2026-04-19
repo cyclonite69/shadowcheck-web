@@ -27,15 +27,21 @@ describe('networkNotesAdminService', () => {
     jest.clearAllMocks();
   });
 
+  const VALID_BSSID = 'AA:BB:CC:DD:EE:FF';
+
   describe('addNetworkNote', () => {
     it('should insert a note and return the id', async () => {
       adminDbService.adminQuery.mockResolvedValue({ rows: [{ id: 123 }] });
-      const id = await addNetworkNote('AA:BB', 'content');
+      const id = await addNetworkNote(VALID_BSSID, 'content');
       expect(id).toBe(123);
       expect(adminDbService.adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO app.network_notes'),
-        ['AA:BB', 'content']
+        [VALID_BSSID, 'content']
       );
+    });
+
+    it('should throw error for invalid BSSID', async () => {
+      await expect(addNetworkNote('invalid', 'content')).rejects.toThrow('Invalid BSSID');
     });
   });
 
@@ -43,16 +49,22 @@ describe('networkNotesAdminService', () => {
     it('should return notes for a BSSID', async () => {
       const mockNotes = [{ id: 1, content: 'test' }];
       databaseService.query.mockResolvedValue({ rows: mockNotes });
-      const result = await getNetworkNotes('AA:BB');
+      const result = await getNetworkNotes(VALID_BSSID);
       expect(result).toEqual(mockNotes);
+    });
+
+    it('should return empty array for invalid BSSID', async () => {
+      const result = await getNetworkNotes('invalid');
+      expect(result).toEqual([]);
+      expect(databaseService.query).not.toHaveBeenCalled();
     });
   });
 
   describe('deleteNetworkNote', () => {
     it('should delete a note and return the bssid', async () => {
-      adminDbService.adminQuery.mockResolvedValue({ rows: [{ bssid: 'AA:BB' }] });
+      adminDbService.adminQuery.mockResolvedValue({ rows: [{ bssid: VALID_BSSID }] });
       const bssid = await deleteNetworkNote('note-1');
-      expect(bssid).toBe('AA:BB');
+      expect(bssid).toBe(VALID_BSSID);
     });
 
     it('should return null if note not found', async () => {
@@ -63,14 +75,47 @@ describe('networkNotesAdminService', () => {
   });
 
   describe('uploadNetworkMedia', () => {
+    const JPEG_DATA = Buffer.from([0xff, 0xd8, 0xff, 0x00, 0x11, 0x22]);
+
     it('should insert media and return the new row', async () => {
       const mockMedia = { id: 1, filename: 'test.jpg' };
       adminDbService.adminQuery.mockResolvedValue({ rows: [mockMedia] });
       const result = await uploadNetworkMedia(
-        'AA:BB',
+        VALID_BSSID,
         'test.jpg',
         'image/jpeg',
-        Buffer.from('data')
+        JPEG_DATA
+      );
+      expect(result).toEqual(mockMedia);
+    });
+
+    it('should throw for invalid BSSID', async () => {
+      await expect(
+        uploadNetworkMedia('invalid', 'test.jpg', 'image/jpeg', JPEG_DATA)
+      ).rejects.toThrow('Invalid BSSID');
+    });
+
+    it('should throw for MIME-type mismatch', async () => {
+      const randomData = Buffer.from([0x00, 0x11, 0x22, 0x33]);
+      await expect(
+        uploadNetworkMedia(VALID_BSSID, 'test.jpg', 'image/jpeg', randomData)
+      ).rejects.toThrow('MIME-type mismatch');
+    });
+
+    it('should throw for truncated/empty buffer', async () => {
+      await expect(
+        uploadNetworkMedia(VALID_BSSID, 'test.jpg', 'image/jpeg', Buffer.alloc(0))
+      ).rejects.toThrow('MIME-type mismatch');
+    });
+
+    it('should allow unknown MIME types with caution', async () => {
+      const mockMedia = { id: 2, filename: 'test.unknown' };
+      adminDbService.adminQuery.mockResolvedValue({ rows: [mockMedia] });
+      const result = await uploadNetworkMedia(
+        VALID_BSSID,
+        'test.unknown',
+        'application/octet-stream',
+        Buffer.from([0xDE, 0xAD, 0xBE, 0xEF])
       );
       expect(result).toEqual(mockMedia);
     });
@@ -80,7 +125,7 @@ describe('networkNotesAdminService', () => {
     it('should return media list for a BSSID', async () => {
       const mockList = [{ id: 1 }];
       databaseService.query.mockResolvedValue({ rows: mockList });
-      const result = await getNetworkMediaList('AA:BB');
+      const result = await getNetworkMediaList(VALID_BSSID);
       expect(result).toEqual(mockList);
     });
   });
@@ -104,7 +149,7 @@ describe('networkNotesAdminService', () => {
     it('should insert a notation and return the row', async () => {
       const mockRow = { id: 1, text: 'test' };
       adminDbService.adminQuery.mockResolvedValue({ rows: [mockRow] });
-      const result = await addNetworkNotation('AA:BB', 'test', 'GENERAL');
+      const result = await addNetworkNotation(VALID_BSSID, 'test', 'GENERAL');
       expect(result).toEqual(mockRow);
     });
   });
@@ -113,7 +158,7 @@ describe('networkNotesAdminService', () => {
     it('should return notations list', async () => {
       const mockList = [{ id: 1 }];
       databaseService.query.mockResolvedValue({ rows: mockList });
-      const result = await getNetworkNotations('AA:BB');
+      const result = await getNetworkNotations(VALID_BSSID);
       expect(result).toEqual(mockList);
     });
   });

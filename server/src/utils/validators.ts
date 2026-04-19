@@ -9,7 +9,17 @@ export {};
  * use server/src/validation/parameterParsers.ts instead.
  */
 
+const { safeJsonParse } = require('./safeJsonParse');
+
 const validators = {
+  /**
+   * Parse and validate a JSON string.
+   * Returns null when the input is unparseable or not a valid JSON string.
+   */
+  json(val: string | undefined): any | null {
+    return safeJsonParse(val);
+  },
+
   /**
    * Parse and clamp an integer parameter.
    * Returns `defaultVal` when the input is missing or unparseable.
