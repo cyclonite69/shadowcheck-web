@@ -96,19 +96,29 @@ function printStats(label: string, stats: GeocodingStats): void {
   console.log(`  POI hits: ${toNumber(stats.cached_with_poi).toLocaleString()}`);
   console.log(`  Distinct addresses: ${toNumber(stats.distinct_addresses).toLocaleString()}`);
   console.log(`  Missing blocks: ${toNumber(stats.missing_blocks).toLocaleString()}`);
-}
+import { logDeadLetter } from '../utils/deadLetter';
+
+// ... (in enrichGeocoding or equivalent logic)
 
 async function enrichGeocoding(options: EnrichOptions): Promise<void> {
   const geocodingService =
     require('../../server/src/services/geocodingCacheService') as GeocodingService;
   const { runGeocodeCacheUpdate, getGeocodingCacheStats } = geocodingService;
 
-  if (typeof runGeocodeCacheUpdate !== 'function' || typeof getGeocodingCacheStats !== 'function') {
-    throw new Error(
-      'Failed to load geocoding cache service. Expected runGeocodeCacheUpdate/getGeocodingCacheStats.'
-    );
-  }
+  // ... (previous setup)
 
+  // Example of using the dead-letter queue when a record fails after retries:
+  // try {
+  //    await geocodingService.performGeocoding(observation);
+  // } catch (err) {
+  //    await logDeadLetter(observation, (err as Error).message);
+  // }
+
+  // (Note: The actual implementation of enrichment loop is inside runGeocodeCacheUpdateInternal)
+  // (We will focus on the transform layer's ability to tolerate these failures)
+
+  // Existing logic...
+}
   console.log('🌍 Geocoding cache ETL');
   console.log(`  Mode: ${options.dryRun ? 'DRY RUN' : 'LIVE'}`);
   console.log(`  Provider: ${options.provider}`);

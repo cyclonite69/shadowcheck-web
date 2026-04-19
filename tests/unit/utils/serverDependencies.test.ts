@@ -82,11 +82,10 @@ describe('serverDependencies', () => {
   });
 
   it('should load route modules correctly', () => {
-    // We need to mock all the routes that loadRouteModules requires
-    // This is a bit tedious, but we can mock the entire directory or use a helper
-
-    // For this test, I'll just check if it returns an object with the expected keys
-    // because deep mocking all routes is more about integration than unit testing this helper.
+    // Mock routes that use agencyService or other dependencies
+    jest.mock('../../../server/src/api/routes/v1/agencyOffices', () => ({ default: { get: jest.fn() } }), { virtual: true });
+    jest.mock('../../../server/src/api/routes/v1/federalCourthouses', () => ({ default: { get: jest.fn() } }), { virtual: true });
+    jest.mock('../../../server/src/api/routes/v1/network-agencies', () => ({ get: jest.fn() }), { virtual: true });
 
     const routeModules = loadRouteModules();
 
@@ -95,6 +94,8 @@ describe('serverDependencies', () => {
     expect(routeModules).toHaveProperty('explorerRoutes');
     expect(routeModules).toHaveProperty('threatsRoutes');
     expect(routeModules).toHaveProperty('wigleRoutes');
-    // ... etc
+    expect(routeModules).toHaveProperty('agencyOfficesRoutes');
+    expect(routeModules).toHaveProperty('federalCourthousesRoutes');
+    expect(routeModules).toHaveProperty('networkAgenciesRoutes');
   });
 });

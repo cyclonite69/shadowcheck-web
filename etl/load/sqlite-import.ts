@@ -12,6 +12,7 @@
  *   npx tsx etl/load/sqlite-import.ts ~/Downloads/backup.sqlite s22_new
  */
 
+import { WiGLEObservationSchema } from "../utils/schemas";
 import * as fs from 'fs';
 import { Pool } from 'pg';
 import sqlite3 from 'sqlite3';
@@ -406,27 +407,10 @@ class IncrementalImporter {
     console.log(''); // newline after progress
   }
 
+
+// ... (existing interfaces)
+
   private validateAndEnrich(row: SqliteLocationRow): ValidatedObservation | null {
-    // Validate coordinates
-    if (
-      typeof row.lat !== 'number' ||
-      typeof row.lon !== 'number' ||
-      row.lat < -90 ||
-      row.lat > 90 ||
-      row.lon < -180 ||
-      row.lon > 180 ||
-      !isFinite(row.lat) ||
-      !isFinite(row.lon)
-    ) {
-      return null;
-    }
-
-    // Validate time (after Jan 1, 2000)
-    const MIN_TIMESTAMP = 946684800000;
-    if (typeof row.time !== 'number' || row.time < MIN_TIMESTAMP) {
-      return null;
-    }
-
     // Get network metadata
     const bssid = row.bssid.toUpperCase();
     const network = this.networkCache.get(bssid);
@@ -438,7 +422,7 @@ class IncrementalImporter {
       return cleaned || null;
     };
 
-    return {
+    const observation = {
       source_pk: String(row._id),
       device_id: this.sourceTag, // Use source tag as device ID
       bssid: bssid,
@@ -461,6 +445,13 @@ class IncrementalImporter {
       mfgrid: row.mfgrid || 0,
       source_tag: this.sourceTag,
     };
+
+    const result = WiGLEObservationSchema.safeParse(observation);
+    if (!result.success) {
+      this.errors.push(`Validation failed for ${bssid} (${row._id}): ${result.error.message}`);
+      return null;
+    }
+    return result.data as ValidatedObservation;
   }
 
   private async insertBatch(records: ValidatedObservation[]): Promise<number> {

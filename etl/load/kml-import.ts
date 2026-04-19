@@ -15,6 +15,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { KMLObservationSchema } from "../utils/schemas";
 import { createHash } from 'crypto';
 import { Pool } from 'pg';
 import '../loadEnv';
@@ -157,6 +158,9 @@ class KmlImporter {
     return match ? decodeXml(match[1]).trim() || null : null;
   }
 
+
+// ... (KMLImporter class)
+
   private parsePlacemark(
     placemarkXml: string,
     folderName: Nullable<string>,
@@ -185,7 +189,7 @@ class KmlImporter {
     const networkId = normalizeNetworkId(fieldMap.get('Network ID') ?? null);
     const bssid = networkType === 'WIFI' ? networkId : null;
 
-    return {
+    const point = {
       folderName,
       name: normalizeText(name),
       networkId,
@@ -204,6 +208,14 @@ class KmlImporter {
         folder_name: folderName,
       },
     };
+
+    const result = KMLObservationSchema.safeParse(point);
+    if (!result.success) {
+      console.error(`Validation failed for KML point: ${result.error.message}`);
+      throw new Error(`KML validation error: ${result.error.message}`);
+    }
+
+    return result.data as ParsedPoint;
   }
 
   private async upsertKmlFile(filePath: string, points: ParsedPoint[]): Promise<number> {

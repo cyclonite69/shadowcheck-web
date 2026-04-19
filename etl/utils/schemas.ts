@@ -1,0 +1,42 @@
+import { z } from 'zod';
+
+export const WiGLEObservationSchema = z.object({
+  source_pk: z.string(),
+  device_id: z.string(),
+  bssid: z.string().min(1),
+  ssid: z.string().nullable().optional(),
+  radio_type: z.string().nullable().optional(),
+  radio_frequency: z.number().nullable().optional(),
+  radio_capabilities: z.string().nullable().optional(),
+  radio_service: z.string().nullable().optional(),
+  radio_rcois: z.string().nullable().optional(),
+  radio_lasttime_ms: z.number().nullable().optional(),
+  level: z.number(),
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+  altitude: z.number(),
+  accuracy: z.number(),
+  time: z.date(),
+  time_ms: z.number(),
+  observed_at_ms: z.number(),
+  external: z.boolean(),
+  mfgrid: z.number(),
+  source_tag: z.string(),
+});
+
+export const KMLObservationSchema = z.object({
+  folderName: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  networkId: z.string().nullable().optional(),
+  bssid: z.string().nullable().optional(),
+  encryption: z.string().nullable().optional(),
+  attributes: z.string().nullable().optional(),
+  observedAt: z.date().nullable().optional(),
+  signalDbm: z.number().nullable().optional(),
+  accuracyM: z.number().nullable().optional(),
+  networkType: z.string().nullable().optional(),
+  lon: z.number().min(-180).max(180),
+  lat: z.number().min(-90).max(90),
+  rawDescription: z.string(),
+  rawKml: z.record(z.unknown()),
+});
