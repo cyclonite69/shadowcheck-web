@@ -22,7 +22,7 @@ interface DatabaseConnectionResult {
  */
 async function initializeDatabaseConnection(logger: Logger): Promise<DatabaseConnectionResult> {
   const { pool, query, testConnection } = require('../config/database');
-  const { initializeDatabase } = require('./databaseInit');
+  const { initializeDatabase } = require('../core/initialization/databaseInit');
 
   await initializeDatabase({ pool, testConnection, logger });
 

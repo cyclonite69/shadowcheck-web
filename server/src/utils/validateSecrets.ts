@@ -1,11 +1,29 @@
-import secretsManager from '../services/secretsManager';
-import logger from '../logging/logger';
+interface SecretsManager {
+  load: () => Promise<void>;
+  smReachable?: boolean;
+  smLastError?: string | null;
+}
+
+interface Logger {
+  info: (message: string, meta?: unknown) => void;
+  warn: (message: string, meta?: unknown) => void;
+  error: (message: string, meta?: unknown) => void;
+  debug: (message: string, meta?: unknown) => void;
+}
+
+interface ValidateSecretsOptions {
+  secretsManager: SecretsManager;
+  logger: Logger;
+  exit: (code: number) => never;
+}
 
 /**
  * Loads and validates required secrets for application startup.
  * Exits the process if required secrets are missing.
  */
-async function validateSecrets(): Promise<boolean> {
+async function validateSecrets(options: ValidateSecretsOptions): Promise<boolean> {
+  const { secretsManager, logger, exit } = options;
+
   try {
     await secretsManager.load();
 
@@ -31,8 +49,8 @@ async function validateSecrets(): Promise<boolean> {
     logger.error('SECRETS VALIDATION FAILED');
     logger.error(err.message);
     logger.error('Server cannot start without required secrets.');
-    process.exit(1);
+    return exit(1);
   }
 }
 
-export { validateSecrets };
+export { validateSecrets, ValidateSecretsOptions, Logger, SecretsManager };

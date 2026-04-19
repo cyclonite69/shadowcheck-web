@@ -13,10 +13,15 @@ interface SecretsManager {
  * Validate and initialize credentials manager.
  */
 async function initializeCredentials(): Promise<SecretsManager> {
-  const { validateSecrets } = require('./validateSecrets');
-  const secretsManager = require('../services/secretsManager').default;
+  const { validateSecrets } = require('../../utils/validateSecrets');
+  const secretsManager = require('../../services/secretsManager').default;
+  const logger = require('../../logging/logger');
 
-  await validateSecrets();
+  const exit = (code: number): never => {
+    process.exit(code);
+  };
+
+  await validateSecrets({ secretsManager, logger, exit });
 
   return secretsManager as SecretsManager;
 }

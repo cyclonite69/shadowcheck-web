@@ -16,24 +16,24 @@ jest.mock('../../../server/src/logging/logger', () => ({
 }));
 
 describe('validateSecrets', () => {
-  let exitSpy: jest.SpyInstance;
+  let exitMock: jest.Mock;
 
   beforeEach(() => {
-    exitSpy = jest.spyOn(process, 'exit').mockImplementation((code) => {
+    exitMock = jest.fn((code) => {
       throw new Error(`process.exit called with code ${code}`);
     });
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    exitSpy.mockRestore();
   });
 
   it('should return true when secrets are loaded successfully', async () => {
     (secretsManager.load as jest.Mock).mockResolvedValue(undefined);
     (secretsManager as any).smReachable = true;
 
-    const result = await validateSecrets();
+    const result = await validateSecrets({
+      secretsManager: secretsManager as any,
+      logger,
+      exit: exitMock as any,
+    });
     expect(result).toBe(true);
     expect(secretsManager.load).toHaveBeenCalled();
   });
@@ -43,7 +43,11 @@ describe('validateSecrets', () => {
     (secretsManager as any).smReachable = false;
     (secretsManager as any).smLastError = 'Some error';
 
-    const result = await validateSecrets();
+    const result = await validateSecrets({
+      secretsManager: secretsManager as any,
+      logger,
+      exit: exitMock as any,
+    });
     expect(result).toBe(true);
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('AWS SECRETS MANAGER IS UNREACHABLE'));
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Error: Some error'));
@@ -54,7 +58,11 @@ describe('validateSecrets', () => {
     (secretsManager as any).smReachable = false;
     (secretsManager as any).smLastError = 'Token is expired';
 
-    await validateSecrets();
+    await validateSecrets({
+      secretsManager: secretsManager as any,
+      logger,
+      exit: exitMock as any,
+    });
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Run 'aws sso login"));
   });
 
@@ -62,10 +70,16 @@ describe('validateSecrets', () => {
     const error = new Error('Secret load error');
     (secretsManager.load as jest.Mock).mockRejectedValue(error);
 
-    await expect(validateSecrets()).rejects.toThrow('process.exit called with code 1');
+    await expect(
+      validateSecrets({
+        secretsManager: secretsManager as any,
+        logger,
+        exit: exitMock as any,
+      })
+    ).rejects.toThrow('process.exit called with code 1');
     
     expect(logger.error).toHaveBeenCalledWith('SECRETS VALIDATION FAILED');
     expect(logger.error).toHaveBeenCalledWith('Secret load error');
-    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(exitMock).toHaveBeenCalledWith(1);
   });
 });

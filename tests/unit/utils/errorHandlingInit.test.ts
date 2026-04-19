@@ -1,4 +1,4 @@
-import { registerErrorHandlers } from '../../../server/src/utils/errorHandlingInit';
+import { registerErrorHandlers } from '../../../server/src/core/initialization/errorHandlingInit';
 
 describe('errorHandlingInit', () => {
   it('should register handlers on the app', () => {

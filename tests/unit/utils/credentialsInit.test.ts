@@ -1,4 +1,4 @@
-import { initializeCredentials } from '../../../server/src/utils/credentialsInit';
+import { initializeCredentials } from '../../../server/src/core/initialization/credentialsInit';
 
 jest.mock('../../../server/src/utils/validateSecrets', () => ({
   validateSecrets: jest.fn(),

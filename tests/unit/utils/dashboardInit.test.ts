@@ -1,4 +1,4 @@
-import { initializeDashboardRoutes } from '../../../server/src/utils/dashboardInit';
+import { initializeDashboardRoutes } from '../../../server/src/core/initialization/dashboardInit';
 
 jest.mock('../../../server/src/repositories/networkRepository', () => {
   return jest.fn().mockImplementation(() => ({}));

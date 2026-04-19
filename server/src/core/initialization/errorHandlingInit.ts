@@ -14,7 +14,7 @@ interface Logger {
  * Register 404 and global error handlers.
  */
 function registerErrorHandlers(app: Express, logger: Logger): void {
-  const { createErrorHandler, notFoundHandler } = require('../errors/errorHandler');
+  const { createErrorHandler, notFoundHandler } = require('../../errors/errorHandler');
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger));
 }

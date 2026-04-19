@@ -20,21 +20,22 @@ require('ts-node').register({
     // ============================================================================
     // 2. SECRETS MANAGEMENT
     // ============================================================================
-    const { initializeCredentials } = require('./src/utils/credentialsInit');
+    const { initializeCredentials } = require('./src/core/initialization/credentialsInit');
     const secretsManager = await initializeCredentials();
 
     // ============================================================================
     // 3. UTILITIES & ERROR HANDLING
     // ============================================================================
-    const { registerErrorHandlers } = require('./src/utils/errorHandlingInit');
+    const { registerErrorHandlers } = require('./src/core/initialization/errorHandlingInit');
     const { mountDemoRoutes } = require('./src/utils/routeMounts');
     const { startServer } = require('./src/utils/serverStartup');
-    const { initializeMiddleware } = require('./src/utils/middlewareInit');
+    const { initializeMiddleware } = require('./src/core/initialization/middlewareInit');
     const { initializeDatabaseConnection } = require('./src/utils/databaseSetup');
     const { mountStaticAssets, registerSpaFallback } = require('./src/utils/staticSetup');
-    const { initializeRoutes } = require('./src/utils/routesInit');
+    const { initializeRoutes } = require('./src/core/initialization/routesInit');
     const { initializeLifecycle } = require('./src/utils/serverLifecycle');
-    const { initializeApp } = require('./src/utils/appInit');
+    const { initializeApp } = require('./src/core/initialization/appInit');
+    const { authService, cacheService } = require('./src/config/container');
 
     // ============================================================================
     // 4. APP INITIALIZATION
@@ -45,7 +46,7 @@ require('ts-node').register({
     // 5. SECRETS VALIDATION (must happen before loading routes/database)
     // ============================================================================
     const { validateSecrets } = require('./src/utils/validateSecrets');
-    await validateSecrets();
+    await validateSecrets({ secretsManager, logger, exit: process.exit });
 
     // ============================================================================
     // 6. ROUTE MODULES (after secrets loaded)
@@ -82,6 +83,8 @@ require('ts-node').register({
       routes,
       query,
       secretsManager,
+      authService,
+      cacheService,
       logger,
     });
 
@@ -102,7 +105,6 @@ require('ts-node').register({
     // ============================================================================
     // 12. REDIS CACHE (OPTIONAL)
     // ============================================================================
-    const { cacheService } = require('./src/services/cacheService');
     cacheService.connect().catch((err: Error) => {
       logger.warn('Redis connection failed, caching disabled', { error: err.message });
     });

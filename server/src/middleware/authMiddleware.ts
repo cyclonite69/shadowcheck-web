@@ -3,7 +3,6 @@
  */
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 
-const authService = require('../services/authService');
 const logger = require('../logging/logger');
 
 // Extend Express Request to include user, request ID, and scoped logger
@@ -20,6 +19,26 @@ declare global {
       logger?: any;
     }
   }
+}
+
+type SessionValidationResult = {
+  valid: boolean;
+  error?: string;
+  user?: Request['user'];
+};
+
+type AuthService = {
+  validateSession: (token: string) => Promise<SessionValidationResult>;
+};
+
+function getAuthService(req: Request): AuthService | null {
+  const authService = req.app?.locals?.authService as AuthService | undefined;
+  if (authService) {
+    return authService;
+  }
+
+  logger.error('Auth middleware error: authService not configured on app.locals');
+  return null;
 }
 
 /**
@@ -54,9 +73,18 @@ const requireAuth: RequestHandler = (req, res, next) => {
     return;
   }
 
+  const authService = getAuthService(req);
+  if (!authService) {
+    res.status(500).json({
+      error: 'Authentication service unavailable',
+      code: 'AUTH_UNAVAILABLE',
+    });
+    return;
+  }
+
   return authService
     .validateSession(token)
-    .then((result: { valid: boolean; error?: string; user?: Request['user'] }) => {
+    .then((result: SessionValidationResult) => {
       if (!result.valid) {
         res.status(401).json({
           error: result.error || 'Invalid session',
@@ -112,9 +140,15 @@ const optionalAuth: RequestHandler = (req, res, next) => {
     return;
   }
 
+  const authService = getAuthService(req);
+  if (!authService) {
+    next();
+    return;
+  }
+
   authService
     .validateSession(token)
-    .then((result: { valid: boolean; user?: Request['user'] }) => {
+    .then((result: SessionValidationResult) => {
       if (result.valid) {
         req.user = result.user;
       }

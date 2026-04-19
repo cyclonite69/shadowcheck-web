@@ -24,7 +24,7 @@ async function initializeLifecycle(options: LifecycleOptions): Promise<void> {
   const featureFlagService = require('../services/featureFlagService');
   await featureFlagService.refreshCache();
 
-  const { initializeBackgroundJobs } = require('./backgroundJobsInit');
+  const { initializeBackgroundJobs } = require('../core/initialization/backgroundJobsInit');
   await initializeBackgroundJobs();
 
   const { registerShutdownHandlers } = require('./shutdownHandlers');

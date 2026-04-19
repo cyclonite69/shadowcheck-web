@@ -8,20 +8,23 @@ import {
   extractToken,
 } from '../../../server/src/middleware/authMiddleware';
 
-const authService = require('../../../server/src/services/authService') as any;
 const logger = require('../../../server/src/logging/logger') as any;
 
-jest.mock('../../../server/src/services/authService');
 jest.mock('../../../server/src/logging/logger');
 
 describe('Auth Middleware', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.Mock;
+  const authService = {
+    validateSession: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     req = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      app: { locals: { authService } } as any,
       cookies: {},
       headers: {},
     };

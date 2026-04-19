@@ -1,5 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import { cacheService } from '../services/cacheService';
+
+type CacheService = {
+  isEnabled: () => boolean;
+  get: (key: string) => Promise<unknown>;
+  set: (key: string, value: unknown, ttlSeconds: number) => Promise<unknown>;
+};
+
+const getCacheService = (req: Request): CacheService | null => {
+  const cacheService = req.app?.locals?.cacheService as CacheService | undefined;
+  return cacheService || null;
+};
 
 export const cacheMiddleware = (ttlSeconds = 300) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -8,8 +18,10 @@ export const cacheMiddleware = (ttlSeconds = 300) => {
       return next();
     }
 
+    const cacheService = getCacheService(req);
+
     // Skip if Redis not enabled
-    if (!cacheService.isEnabled()) {
+    if (!cacheService || !cacheService.isEnabled()) {
       return next();
     }
 

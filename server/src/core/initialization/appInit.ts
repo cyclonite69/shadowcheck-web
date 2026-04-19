@@ -25,7 +25,7 @@ function initializeApp(express: () => Express): AppInitResult {
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  const { getServerConfig } = require('./serverConfig');
+  const { getServerConfig } = require('../../utils/serverConfig');
   const config: ServerConfig = getServerConfig();
 
   return {

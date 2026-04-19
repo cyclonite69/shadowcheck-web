@@ -11,8 +11,8 @@ interface DashboardRoutesModule {
  * Initialize dashboard routes with required dependencies.
  */
 function initializeDashboardRoutes(dashboardRoutes: DashboardRoutesModule): void {
-  const NetworkRepository = require('../repositories/networkRepository');
-  const DashboardService = require('../services/dashboardService');
+  const NetworkRepository = require('../../repositories/networkRepository');
+  const DashboardService = require('../../services/dashboardService');
   const networkRepository = new NetworkRepository();
   const dashboardService = new DashboardService(networkRepository);
   dashboardRoutes.initDashboardRoutes({ dashboardService });

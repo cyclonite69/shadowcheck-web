@@ -1,4 +1,4 @@
-import { initializeApp } from '../../../server/src/utils/appInit';
+import { initializeApp } from '../../../server/src/core/initialization/appInit';
 
 jest.mock('../../../server/src/utils/serverConfig', () => ({
   getServerConfig: jest.fn().mockReturnValue({

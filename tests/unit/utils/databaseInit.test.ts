@@ -1,4 +1,4 @@
-import { initializeDatabase } from '../../../server/src/utils/databaseInit';
+import { initializeDatabase } from '../../../server/src/core/initialization/databaseInit';
 
 describe('databaseInit', () => {
   let mockPool: any;

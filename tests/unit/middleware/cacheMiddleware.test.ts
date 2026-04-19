@@ -1,16 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { cacheMiddleware } from '../../../server/src/middleware/cacheMiddleware';
-import { cacheService } from '../../../server/src/services/cacheService';
-
-jest.mock('../../../server/src/services/cacheService');
 
 describe('cacheMiddleware', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: NextFunction;
+  const cacheService = {
+    isEnabled: jest.fn(),
+    get: jest.fn(),
+    set: jest.fn(),
+  };
 
   beforeEach(() => {
     req = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      app: { locals: { cacheService } } as any,
       method: 'GET',
       path: '/test',
       query: {},

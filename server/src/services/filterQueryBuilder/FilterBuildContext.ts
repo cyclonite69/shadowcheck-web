@@ -3,6 +3,7 @@ import { QueryState } from './QueryState';
 import { validateFilterPayload } from './validators';
 import { FILTER_KEYS, NETWORK_ONLY_FILTERS, type FilterKey } from './constants';
 import { buildNetworkWhere } from './networkWhereBuilder';
+import type { NetworkWhereBuildContext } from './NetworkWhereBuildContext';
 import type { Filters, EnabledFlags, AppliedFilter } from './types';
 
 const ENABLE_ONLY_FILTERS = new Set<FilterKey>(['excludeInvalidCoords']);
@@ -161,6 +162,6 @@ export class FilterBuildContext extends FilterPredicateBuilder {
   }
 
   public buildNetworkWhere(): string[] {
-    return buildNetworkWhere(this);
+    return buildNetworkWhere(this as NetworkWhereBuildContext);
   }
 }

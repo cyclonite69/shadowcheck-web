@@ -1,4 +1,4 @@
-import { initializeBackgroundJobs } from '../../../server/src/utils/backgroundJobsInit';
+import { initializeBackgroundJobs } from '../../../server/src/core/initialization/backgroundJobsInit';
 
 jest.mock('../../../server/src/services/featureFlagService', () => ({
   getFlag: jest.fn(),

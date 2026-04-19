@@ -1,4 +1,4 @@
-import { initializeMiddleware } from '../../../server/src/utils/middlewareInit';
+import { initializeMiddleware } from '../../../server/src/core/initialization/middlewareInit';
 
 jest.mock('../../../server/src/middleware/requestId', () => ({
   __esModule: true,

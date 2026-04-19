@@ -1,10 +1,10 @@
 import { RELATIVE_WINDOWS } from './constants';
 import { buildEngagementPredicates } from './engagementPredicates';
 import { splitTextFilterTokens, normalizeWildcards } from './normalizers';
-import type { FilterBuildContext } from './FilterBuildContext';
+import type { NetworkWhereBuildContext } from './NetworkWhereBuildContext';
 import { mapThreatCategoriesToDbLevels } from './threatCategoryLevels';
 
-export function buildNetworkWhere(ctx: FilterBuildContext): string[] {
+export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   const f = ctx.filters;
   const e = ctx.enabled;
   const networkWhere: string[] = [];

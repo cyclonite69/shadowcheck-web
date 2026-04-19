@@ -5,7 +5,7 @@ jest.mock('../../../server/src/services/featureFlagService', () => ({
   refreshCache: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../../../server/src/utils/backgroundJobsInit', () => ({
+jest.mock('../../../server/src/core/initialization/backgroundJobsInit', () => ({
   initializeBackgroundJobs: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -21,7 +21,9 @@ describe('serverLifecycle', () => {
     await initializeLifecycle({ logger: mockLogger, pool: mockPool });
 
     const featureFlagService = require('../../../server/src/services/featureFlagService');
-    const { initializeBackgroundJobs } = require('../../../server/src/utils/backgroundJobsInit');
+    const {
+      initializeBackgroundJobs,
+    } = require('../../../server/src/core/initialization/backgroundJobsInit');
     const { registerShutdownHandlers } = require('../../../server/src/utils/shutdownHandlers');
 
     expect(featureFlagService.refreshCache).toHaveBeenCalled();

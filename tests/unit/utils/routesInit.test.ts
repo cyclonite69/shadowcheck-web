@@ -1,13 +1,15 @@
-import { initializeRoutes } from '../../../server/src/utils/routesInit';
+import { initializeRoutes } from '../../../server/src/core/initialization/routesInit';
 
-jest.mock('../../../server/src/utils/dashboardInit', () => ({
+jest.mock('../../../server/src/core/initialization/dashboardInit', () => ({
   initializeDashboardRoutes: jest.fn(),
 }));
 jest.mock('../../../server/src/utils/routeMounts', () => ({
   mountApiRoutes: jest.fn(),
 }));
 
-const { initializeDashboardRoutes } = require('../../../server/src/utils/dashboardInit');
+const {
+  initializeDashboardRoutes,
+} = require('../../../server/src/core/initialization/dashboardInit');
 const { mountApiRoutes } = require('../../../server/src/utils/routeMounts');
 
 describe('routesInit', () => {
@@ -47,6 +49,8 @@ describe('routesInit', () => {
         mobileIngestRoutes: {},
       },
       secretsManager: {},
+      authService: {},
+      cacheService: {},
       logger: {
         info: jest.fn(),
       },
@@ -58,6 +62,8 @@ describe('routesInit', () => {
     initializeRoutes(mockApp, mockOptions);
 
     expect(mockApp.locals.secretsManager).toBe(mockOptions.secretsManager);
+    expect(mockApp.locals.authService).toBe(mockOptions.authService);
+    expect(mockApp.locals.cacheService).toBe(mockOptions.cacheService);
     expect(initializeDashboardRoutes).toHaveBeenCalledWith(mockOptions.routes.dashboardRoutes);
     expect(mountApiRoutes).toHaveBeenCalledWith(mockApp, expect.any(Object));
     expect(mockOptions.logger.info).toHaveBeenCalledWith('All routes mounted successfully');

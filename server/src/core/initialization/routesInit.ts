@@ -19,6 +19,16 @@ interface SecretsManager {
   has: (key: string) => boolean;
 }
 
+interface AuthService {
+  validateSession: (token: string) => Promise<unknown>;
+}
+
+interface CacheService {
+  isEnabled: () => boolean;
+  get: (key: string) => Promise<unknown>;
+  set: (key: string, value: unknown, ttlSeconds: number) => Promise<unknown>;
+}
+
 interface DashboardRoutesModule {
   router: Router;
   initDashboardRoutes: (deps: { dashboardService: unknown }) => void;
@@ -57,6 +67,8 @@ interface InitializeRoutesOptions {
   routes: RouteModules;
   query?: QueryFunction;
   secretsManager: SecretsManager;
+  authService: AuthService;
+  cacheService: CacheService;
   logger: Logger;
 }
 
@@ -64,15 +76,17 @@ interface InitializeRoutesOptions {
  * Initialize API routes and their dependencies.
  */
 function initializeRoutes(app: Express, options: InitializeRoutesOptions): void {
-  const { routes, secretsManager, logger } = options;
+  const { routes, secretsManager, authService, cacheService, logger } = options;
 
-  // Make secretsManager available to routes
+  // Make shared startup dependencies available to routes and shared middleware.
   app.locals.secretsManager = secretsManager;
+  app.locals.authService = authService;
+  app.locals.cacheService = cacheService;
 
   const { initializeDashboardRoutes } = require('./dashboardInit');
   initializeDashboardRoutes(routes.dashboardRoutes);
 
-  const { mountApiRoutes } = require('./routeMounts');
+  const { mountApiRoutes } = require('../../utils/routeMounts');
   mountApiRoutes(app, {
     healthRoutes: routes.healthRoutes,
     geospatialRoutes: routes.geospatialRoutes,

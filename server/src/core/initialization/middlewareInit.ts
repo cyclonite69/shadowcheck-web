@@ -15,19 +15,19 @@ function initializeMiddleware(app: Express, options: MiddlewareOptions): void {
   const { forceHttps, allowedOrigins } = options;
 
   // Request ID middleware (first, so all requests have IDs)
-  const requestIdMiddleware = require('../middleware/requestId').default;
+  const requestIdMiddleware = require('../../middleware/requestId').default;
   app.use(requestIdMiddleware);
 
   // HTTPS redirect (if enabled)
   if (forceHttps) {
-    const { createHttpsRedirect } = require('../middleware/httpsRedirect');
+    const { createHttpsRedirect } = require('../../middleware/httpsRedirect');
     app.use(createHttpsRedirect());
   }
 
-  const { createSecurityHeaders } = require('../middleware/securityHeaders');
+  const { createSecurityHeaders } = require('../../middleware/securityHeaders');
   app.use(createSecurityHeaders(forceHttps));
 
-  const { mountCommonMiddleware } = require('../middleware/commonMiddleware');
+  const { mountCommonMiddleware } = require('../../middleware/commonMiddleware');
   mountCommonMiddleware(app, { allowedOrigins });
 
   // Cookie parser for session management
