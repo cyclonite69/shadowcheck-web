@@ -14,7 +14,7 @@ INSERT INTO app.network_threat_scores
 SELECT
   n.bssid,
   0,
-  '{"follow_legs":0,"parked_surveillance":0,"location_correlation":0,"equipment_profile":0,"temporal_persistence":0,"fleet_correlation_bonus":0}'::jsonb,
+  '{"follow_legs":0,"public_pattern_bonus":0,"parked_surveillance":0,"location_correlation":0,"equipment_profile":0,"temporal_persistence":0,"fleet_correlation_bonus":0}'::jsonb,
   '5.0',
   NOW()
 FROM app.networks n

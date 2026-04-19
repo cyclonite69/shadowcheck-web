@@ -10,7 +10,7 @@
 --    - Distance bonuses per leg (500m-2km=0, 2-10km=+3, 10-50km=+7, 50km+=+12)
 --    - Temporal spread bonus (same day=0, 2-3 days=10, 4-7=20, 8-30=30, 30+=40)
 --    - Velocity bonus per leg (time<30min AND dist>2km=+8, 30min-4hr AND dist>2km=+4)
---    - WiGLE spread contribution (km/10, capped at 10)
+--    - Public WiGLE spread contribution (km/10, capped at 10)
 --    - All bonuses intelligently capped and combined
 --
 -- 2. Parked Surveillance Detection (20%) - unchanged from v4
@@ -202,7 +202,7 @@ BEGIN
             )::numeric AS bonus
         FROM leg_statistics ls
     ),
-    -- WiGLE spread: bounding box diagonal, O(n) aggregate scan, gated at >= 5 obs
+    -- Public WiGLE spread signal: bounding box diagonal, O(n) aggregate scan, gated at >= 5 obs
     wigle_spread AS (
         SELECT
             COUNT(*) AS obs_count,
@@ -213,7 +213,7 @@ BEGIN
         FROM app.wigle_v3_observations
         WHERE UPPER(netid) = UPPER(p_bssid)
     ),
-    wigle_bonus AS (
+    public_pattern_bonus AS (
         SELECT CASE
             WHEN ws.obs_count >= 5 AND ws.spread_km >= 0.5
                 THEN LEAST(10, ws.spread_km / 10.0)::numeric
@@ -221,21 +221,29 @@ BEGIN
         END AS bonus
         FROM wigle_spread ws
     ),
-    -- Combine all follow-leg components
-    follow_legs_score AS (
+    -- Combine LAN-local follow-leg components only
+    local_follow_legs_score AS (
         SELECT
             LEAST(100,
                 COALESCE(lcs.score, 0) +
                 COALESCE(db.bonus, 0) +
                 COALESCE(tsb.bonus, 0) +
-                COALESCE(vb.bonus, 0) +
-                COALESCE(wb.bonus, 0)
+                COALESCE(vb.bonus, 0)
             )::numeric AS score
         FROM leg_count_score lcs
         CROSS JOIN distance_bonus db
         CROSS JOIN temporal_spread_bonus tsb
         CROSS JOIN velocity_bonus vb
-        CROSS JOIN wigle_bonus wb
+    ),
+    -- Recombine LAN-local follow legs with bounded public-source inference
+    follow_legs_score AS (
+        SELECT
+            LEAST(100,
+                COALESCE(lfls.score, 0) +
+                COALESCE(ppb.bonus, 0)
+            )::numeric AS score
+        FROM local_follow_legs_score lfls
+        CROSS JOIN public_pattern_bonus ppb
     ),
 
     -- Task 3: Parked Surveillance Score — deferred (not yet enabled)
@@ -339,7 +347,8 @@ BEGIN
         'model_version', '5.2',
         'linear_travel_excluded_count', lts.excluded_count,
         'components', jsonb_build_object(
-            'follow_legs', COALESCE(fls.score, 0) * bm.multiplier * cm.multiplier,
+            'follow_legs', COALESCE(lfls.score, 0) * bm.multiplier * cm.multiplier,
+            'public_pattern_bonus', COALESCE(ppb.bonus, 0) * bm.multiplier * cm.multiplier,
             'parked_surveillance', COALESCE(ps.score, 0) * cm.multiplier,
             'location_correlation', COALESCE(cs.score, 0) * cm.multiplier,
             'equipment_profile', COALESCE(es.score, 0) * cm.multiplier,
@@ -350,6 +359,8 @@ BEGIN
         )
     ) INTO v_result
     FROM follow_legs_score fls
+    CROSS JOIN local_follow_legs_score lfls
+    CROSS JOIN public_pattern_bonus ppb
     CROSS JOIN parking_score ps
     CROSS JOIN correlation_score cs
     CROSS JOIN equipment_score es
