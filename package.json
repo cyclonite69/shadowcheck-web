@@ -78,7 +78,7 @@
     "keytar": "7.9.0",
     "mapbox-gl": "3.21.0",
     "ml-logistic-regression": "2.0.0",
-    "ml-matrix": "6.10.4",
+    "ml-matrix": "6.12.2",
     "multer": "2.1.1",
     "node-cron": "4.2.1",
     "node-fetch": "3.3.2",
