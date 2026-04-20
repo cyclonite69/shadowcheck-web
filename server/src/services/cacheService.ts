@@ -79,4 +79,4 @@ class CacheService {
   }
 }
 
-export const cacheService = new CacheService();
+module.exports = { cacheService: new CacheService() };
