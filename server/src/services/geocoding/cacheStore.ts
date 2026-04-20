@@ -413,7 +413,11 @@ const loadCacheStats = async (
           ON c.precision = $1
          AND c.lat_round = round(o.lat::numeric, $1)
          AND c.lon_round = round(o.lon::numeric, $1)
-        WHERE ${GEOCODABLE_OBSERVATION_PREDICATE}
+        WHERE o.lat IS NOT NULL
+          AND o.lon IS NOT NULL
+          AND o.lat BETWEEN -90 AND 90
+          AND o.lon BETWEEN -180 AND 180
+          AND COALESCE(o.is_quality_filtered, false) = false
           AND (c.id IS NULL OR c.address IS NULL)
       ) AS unresolved_observations;
   `,
