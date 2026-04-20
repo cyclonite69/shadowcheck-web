@@ -13,6 +13,7 @@
  */
 
 import { WiGLEObservationSchema } from "../utils/schemas";
+import { logDeadLetter } from '../utils/deadLetter';
 import * as fs from 'fs';
 import { Pool } from 'pg';
 import sqlite3 from 'sqlite3';
@@ -448,7 +449,9 @@ class IncrementalImporter {
 
     const result = WiGLEObservationSchema.safeParse(observation);
     if (!result.success) {
-      this.errors.push(`Validation failed for ${bssid} (${row._id}): ${result.error.message}`);
+      const errorMsg = `Validation failed for ${bssid} (${row._id}): ${result.error.message}`;
+      this.errors.push(errorMsg);
+      void logDeadLetter(observation, errorMsg);
       return null;
     }
     return result.data as ValidatedObservation;
