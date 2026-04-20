@@ -18,7 +18,21 @@ DROP MATERIALIZED VIEW IF EXISTS app.api_wigle_networks_mv;
 
 CREATE MATERIALIZED VIEW app.api_wigle_networks_mv AS
 
-WITH v3_obs_agg AS (
+WITH v3_dedup AS (
+  -- Deduplicate v3 detail rows to one canonical record per BSSID
+  SELECT DISTINCT ON (UPPER(netid)) *
+  FROM app.wigle_v3_network_details
+  ORDER BY UPPER(netid)
+),
+
+v2_dedup AS (
+  -- Deduplicate v2 search rows to one canonical record per BSSID
+  SELECT DISTINCT ON (UPPER(bssid)) *
+  FROM app.wigle_v2_networks_search
+  ORDER BY UPPER(bssid)
+),
+
+v3_obs_agg AS (
   SELECT
     obs.netid,
     COUNT(*)::int                                                        AS wigle_v3_observation_count,
@@ -131,8 +145,8 @@ SELECT
     LIMIT 1
   )                                                                      AS has_local_match
 
-FROM app.wigle_v3_network_details d
-FULL OUTER JOIN app.wigle_v2_networks_search v2
+FROM v3_dedup d
+FULL OUTER JOIN v2_dedup v2
   ON UPPER(d.netid) = UPPER(v2.bssid)
 LEFT JOIN v3_obs_agg agg
   ON agg.netid = d.netid
