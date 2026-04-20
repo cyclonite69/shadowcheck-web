@@ -4,6 +4,10 @@
 
 import { apiClient } from './client';
 
+/**
+ * Flat shape used for initial tooltip render from map GeoJSON feature properties,
+ * and as the merged working object in the click handler after enrichment.
+ */
 export interface WiglePageNetwork {
   bssid?: string | null;
   netid?: string | null;
@@ -45,7 +49,72 @@ export interface WiglePageNetwork {
   localMatchExists?: boolean | null;
   localObservationCount?: number | null;
   wigle_source?: 'wigle-v2' | 'wigle-v3' | null;
+  // v3-derived temporal (from observation aggregation, not summary row)
+  wigle_v3_first_seen?: string | null;
+  wigle_v3_last_seen?: string | null;
+  wigle_v3_observation_count?: number | null;
+  // display coordinate metadata
+  display_lat?: number | null;
+  display_lon?: number | null;
+  display_coordinate_source?: string | null;
+  // public-pattern signals
+  public_nonstationary_flag?: boolean | null;
+  public_ssid_variant_flag?: boolean | null;
+  // provenance caveat
+  wigle_precision_warning?: boolean | null;
   [key: string]: unknown;
+}
+
+/**
+ * Structured response from /wigle/page/network/:netid.
+ * WiGLE-truth fields are isolated in `wigle`; local linkage is in `localLinkage`.
+ */
+export interface WiglePageNetworkResponse {
+  wigle: {
+    bssid: string;
+    ssid: string | null;
+    name: string | null;
+    type: string | null;
+    encryption: string | null;
+    channel: number | null;
+    frequency: number | null;
+    qos: number | null;
+    comment: string | null;
+    wigle_source: 'wigle-v2' | 'wigle-v3';
+    // v2 provenance fields
+    wigle_v2_firsttime: string | null;
+    wigle_v2_lasttime: string | null;
+    wigle_v2_trilat: number | null;
+    wigle_v2_trilong: number | null;
+    wigle_v2_city: string | null;
+    wigle_v2_region: string | null;
+    wigle_v2_road: string | null;
+    wigle_v2_housenumber: string | null;
+    has_wigle_v2_record: boolean;
+    // v3-derived temporal (obs-aggregated)
+    wigle_v3_first_seen: string | null;
+    wigle_v3_last_seen: string | null;
+    wigle_v3_observation_count: number | null;
+    wigle_v3_centroid_lat: number | null;
+    wigle_v3_centroid_lon: number | null;
+    wigle_v3_spread_m: number | null;
+    has_wigle_v3_observations: boolean;
+    // chosen display coordinate
+    display_lat: number | null;
+    display_lon: number | null;
+    display_coordinate_source: 'wigle-v2-trilat' | 'wigle-v3-centroid' | 'wigle-v3-summary' | null;
+    // enrichment
+    manufacturer: string | null;
+    // public-pattern signals
+    public_nonstationary_flag: boolean;
+    public_ssid_variant_flag: boolean;
+    // precision caveat
+    wigle_precision_warning: boolean;
+  };
+  localLinkage: {
+    has_local_match: boolean;
+    local_observation_count: number;
+  };
 }
 
 type ApiClientError = Error & {
@@ -69,8 +138,7 @@ const getErrorPayload = (error: unknown): any | null => {
   return null;
 };
 
-// TODO: server endpoint pending.
-export const getWiglePageNetwork = async (netid: string): Promise<WiglePageNetwork> => {
+export const getWiglePageNetwork = async (netid: string): Promise<WiglePageNetworkResponse> => {
   const cleanNetid = netid.trim().toUpperCase();
   return apiClient.get(`/wigle/page/network/${encodeURIComponent(cleanNetid)}`);
 };
@@ -144,7 +212,7 @@ export const wigleApi = {
     return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);
   },
 
-  async getWiglePageNetwork(netid: string): Promise<WiglePageNetwork> {
+  async getWiglePageNetwork(netid: string): Promise<WiglePageNetworkResponse> {
     return getWiglePageNetwork(netid);
   },
 

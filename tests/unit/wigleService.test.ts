@@ -130,45 +130,56 @@ describe('WiGLE Service', () => {
   });
 
   describe('getWiglePageNetwork', () => {
-    it('prefers v3 detail and adds local match metadata', async () => {
+    // Mock order: v3Detail, v2Summary, localMatch, v3Temporal (Promise.all — 4 queries)
+    const v3DetailRow = {
+      netid: 'AA:BB:CC:DD:EE:FF',
+      ssid: 'DetailNet',
+      type: 'wifi',
+      encryption: 'WPA2',
+      channel: 11,
+      qos: 5,
+      last_update: '2024-01-03T00:00:00Z',
+      trilat: 40.1,
+      trilon: -74.1,
+      oui_manufacturer: 'TestCo',
+    };
+    const v3TemporalRow = {
+      wigle_v3_first_seen: '2024-01-01T00:00:00Z',
+      wigle_v3_last_seen: '2024-01-02T00:00:00Z',
+      wigle_v3_observation_count: 5,
+      wigle_precision_warning: false,
+      wigle_v3_centroid_lat: 40.1,
+      wigle_v3_centroid_lon: -74.1,
+      wigle_v3_ssid_variant_count: 1,
+      wigle_v3_spread_m: 0,
+    };
+
+    it('returns structured { wigle, localLinkage } preferring v3 and obs-derived temporal', async () => {
       mockQuery
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              netid: 'AA:BB:CC:DD:EE:FF',
-              ssid: 'DetailNet',
-              type: 'wifi',
-              encryption: 'WPA2',
-              channel: 11,
-              qos: 5,
-              first_seen: '2024-01-01T00:00:00Z',
-              last_seen: '2024-01-02T00:00:00Z',
-              last_update: '2024-01-03T00:00:00Z',
-              trilat: 40.1,
-              trilon: -74.1,
-            },
-          ],
-        })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ local_observations: 3 }] });
+        .mockResolvedValueOnce({ rows: [v3DetailRow] }) // v3Detail
+        .mockResolvedValueOnce({ rows: [] }) // v2Summary
+        .mockResolvedValueOnce({ rows: [{ has_local_match: true, local_observation_count: 3 }] })
+        .mockResolvedValueOnce({ rows: [v3TemporalRow] }); // v3Temporal
 
       const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
 
-      expect(result).toMatchObject({
-        netid: 'AA:BB:CC:DD:EE:FF',
+      expect(result).not.toBeNull();
+      expect(result!.wigle).toMatchObject({
         bssid: 'AA:BB:CC:DD:EE:FF',
         ssid: 'DetailNet',
-        firsttime: '2024-01-01T00:00:00Z',
-        lasttime: '2024-01-02T00:00:00Z',
-        lastupdt: '2024-01-03T00:00:00Z',
-        local_observations: 3,
-        wigle_match: true,
         wigle_source: 'wigle-v3',
+        wigle_v3_first_seen: '2024-01-01T00:00:00Z',
+        wigle_v3_last_seen: '2024-01-02T00:00:00Z',
+        wigle_v3_observation_count: 5,
+        manufacturer: 'TestCo',
+        has_wigle_v3_observations: true,
+        has_wigle_v2_record: false,
       });
-      expect(mockQuery).toHaveBeenCalledTimes(3);
+      expect(result!.localLinkage).toEqual({ has_local_match: true, local_observation_count: 3 });
+      expect(mockQuery).toHaveBeenCalledTimes(4);
     });
 
-    it('falls back to v2 summary when v3 detail is absent', async () => {
+    it('falls back to v2 summary fields when v3 detail is absent', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({
@@ -187,33 +198,70 @@ describe('WiGLE Service', () => {
               trilat: 41.1,
               trilong: -73.9,
               source: 'wigle_api_search',
+              oui_manufacturer: null,
             },
           ],
         })
-        .mockResolvedValueOnce({ rows: [{ local_observations: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
+        .mockResolvedValueOnce({
+          rows: [{ wigle_v3_observation_count: 0, wigle_precision_warning: true }],
+        });
 
       const result = await getWiglePageNetwork('11:22:33:44:55:66');
 
-      expect(result).toMatchObject({
-        netid: '11:22:33:44:55:66',
+      expect(result).not.toBeNull();
+      expect(result!.wigle).toMatchObject({
         bssid: '11:22:33:44:55:66',
         ssid: 'V2Net',
         frequency: 5180,
-        local_observations: null,
-        wigle_match: false,
         wigle_source: 'wigle-v2',
+        has_wigle_v2_record: true,
+        has_wigle_v3_observations: false,
+        wigle_v2_firsttime: '2024-02-01T00:00:00Z',
       });
+      expect(result!.localLinkage).toEqual({ has_local_match: false, local_observation_count: 0 });
     });
 
-    it('returns null when no WiGLE page record exists', async () => {
+    it('returns null when neither v3 nor v2 record exists', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ local_observations: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
+        .mockResolvedValueOnce({ rows: [{ wigle_v3_observation_count: 0 }] });
 
       const result = await getWiglePageNetwork('00:00:00:00:00:00');
 
       expect(result).toBeNull();
+    });
+
+    it('sets public_nonstationary_flag when v3 spread exceeds 500m', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ ...v3DetailRow }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
+        .mockResolvedValueOnce({
+          rows: [{ ...v3TemporalRow, wigle_v3_spread_m: 1200, wigle_v3_observation_count: 8 }],
+        });
+
+      const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
+
+      expect(result!.wigle.public_nonstationary_flag).toBe(true);
+    });
+
+    it('sets public_ssid_variant_flag when multiple distinct SSIDs observed', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ ...v3DetailRow }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { ...v3TemporalRow, wigle_v3_ssid_variant_count: 3, wigle_v3_observation_count: 6 },
+          ],
+        });
+
+      const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
+
+      expect(result!.wigle.public_ssid_variant_flag).toBe(true);
     });
   });
 

@@ -10,9 +10,16 @@ export interface NormalizedWigleTooltip {
   lastSeen: string | null;
   trilateratedLat: number | null;
   trilateratedLon: number | null;
+  displayCoordinateSource: string | null;
   manufacturer: string | null;
+  city: string | null;
+  region: string | null;
   localMatchExists: boolean;
   localObservationCount: number | null;
+  wigleObservationCount: number | null;
+  publicNonstationaryFlag: boolean;
+  publicSsidVariantFlag: boolean;
+  wiglePrecisionWarning: boolean;
   source: 'wigle-v2' | 'wigle-v3';
 }
 
@@ -59,6 +66,14 @@ export const normalizeWigleTooltipData = (raw: WiglePageNetwork): NormalizedWigl
         ? 'wigle-v3'
         : 'wigle-v2';
 
+  const displayLat = toNumberOrNull(pickFirst(raw.display_lat, raw.trilat, raw.latitude));
+  const displayLon = toNumberOrNull(
+    pickFirst(raw.display_lon, raw.trilong, raw.trilon, raw.longitude)
+  );
+
+  const cityText = normalizeText(pickFirst(raw.city), '');
+  const regionText = normalizeText(pickFirst(raw.region), '');
+
   return {
     ssid: normalizeText(pickFirst(raw.ssid, raw.name), '(hidden)'),
     bssid: normalizeText(pickFirst(raw.bssid, raw.netid), 'UNKNOWN'),
@@ -66,20 +81,29 @@ export const normalizeWigleTooltipData = (raw: WiglePageNetwork): NormalizedWigl
       normalizeText(pickFirst(raw.capabilities, raw.encryption), '').toUpperCase() || null,
     frequency: toNumberOrNull(raw.frequency),
     channel: toNumberOrNull(raw.channel),
-    firstSeen: raw.firsttime ?? null,
-    lastSeen: (pickFirst(raw.lasttime, raw.lastupdt) as string | null) ?? null,
-    trilateratedLat: toNumberOrNull(pickFirst(raw.trilat, raw.latitude)),
-    trilateratedLon: toNumberOrNull(pickFirst(raw.trilong, raw.trilon, raw.longitude)),
+    firstSeen: (pickFirst(raw.firsttime, raw.wigle_v3_first_seen) as string | null) ?? null,
+    lastSeen:
+      (pickFirst(raw.lasttime, raw.wigle_v3_last_seen, raw.lastupdt) as string | null) ?? null,
+    trilateratedLat: displayLat,
+    trilateratedLon: displayLon,
+    displayCoordinateSource:
+      typeof raw.display_coordinate_source === 'string' ? raw.display_coordinate_source : null,
     manufacturer: (() => {
       const value = pickFirst(raw.manufacturer);
       if (value === null || value === undefined) return null;
       const text = String(value).trim();
       return text.length > 0 ? text : null;
     })(),
+    city: cityText.length > 0 ? cityText : null,
+    region: regionText.length > 0 ? regionText : null,
     localMatchExists: toBoolean(pickFirst(raw.localMatchExists, raw.wigle_match)),
     localObservationCount: toNumberOrNull(
       pickFirst(raw.localObservationCount, raw.local_observations)
     ),
+    wigleObservationCount: toNumberOrNull(raw.wigle_v3_observation_count),
+    publicNonstationaryFlag: toBoolean(raw.public_nonstationary_flag),
+    publicSsidVariantFlag: toBoolean(raw.public_ssid_variant_flag),
+    wiglePrecisionWarning: toBoolean(raw.wigle_precision_warning),
     source: inferredSource,
   };
 };

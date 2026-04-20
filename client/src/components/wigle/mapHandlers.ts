@@ -1,7 +1,11 @@
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
-import { getWiglePageNetwork, type WiglePageNetwork } from '../../api/wigleApi';
+import {
+  getWiglePageNetwork,
+  type WiglePageNetwork,
+  type WiglePageNetworkResponse,
+} from '../../api/wigleApi';
 import { normalizeWigleTooltipData } from '../../utils/wigle/wigleTooltipNormalizer';
 import { renderWigleTooltip } from '../../utils/wigle/wigleTooltipRenderer';
 import {
@@ -49,20 +53,59 @@ export const attachClickHandlers = (
 
     if (netid) {
       void getWiglePageNetwork(netid)
-        .then((pageData) => {
-          if (!popup.isOpen() || !pageData) return;
+        .then((pageResponse: WiglePageNetworkResponse) => {
+          if (!popup.isOpen() || !pageResponse) return;
 
+          const { wigle, localLinkage } = pageResponse;
+
+          // Build merged object: WiGLE-truth fields from structured `wigle` section only.
+          // Local linkage maps to the existing flat fields the normalizer already reads.
           const mergedData: WiglePageNetwork = {
             ...featureData,
-            ...pageData,
-            netid: String(pageData.netid || pageData.bssid || netid),
-            bssid: String(pageData.bssid || pageData.netid || netid),
+            bssid: wigle.bssid,
+            netid: wigle.bssid,
+            ssid: wigle.ssid,
+            name: wigle.name,
+            type: wigle.type,
+            encryption: wigle.encryption,
+            capabilities: wigle.encryption,
+            channel: wigle.channel,
+            frequency: wigle.frequency,
+            comment: wigle.comment,
+            wigle_source: wigle.wigle_source,
+            // Temporal: v3-derived from observations when available, else v2 summary
+            firsttime: wigle.wigle_v3_first_seen ?? wigle.wigle_v2_firsttime,
+            lasttime: wigle.wigle_v3_last_seen ?? wigle.wigle_v2_lasttime,
+            // New v3 temporal fields for obs-count display
+            wigle_v3_first_seen: wigle.wigle_v3_first_seen,
+            wigle_v3_last_seen: wigle.wigle_v3_last_seen,
+            wigle_v3_observation_count: wigle.wigle_v3_observation_count,
+            // Chosen display coordinate
+            display_lat: wigle.display_lat,
+            display_lon: wigle.display_lon,
+            display_coordinate_source: wigle.display_coordinate_source,
+            trilat: wigle.display_lat ?? featureData.trilat,
+            trilong: wigle.display_lon ?? featureData.trilong,
+            // v2 location fields
+            city: wigle.wigle_v2_city,
+            region: wigle.wigle_v2_region,
+            road: wigle.wigle_v2_road,
+            housenumber: wigle.wigle_v2_housenumber,
+            // OUI-enriched manufacturer
+            manufacturer: wigle.manufacturer,
+            // Public-pattern signals
+            public_nonstationary_flag: wigle.public_nonstationary_flag,
+            public_ssid_variant_flag: wigle.public_ssid_variant_flag,
+            wigle_precision_warning: wigle.wigle_precision_warning,
+            // Local linkage — ONLY these fields from local data
+            wigle_match: localLinkage.has_local_match,
+            local_observations: localLinkage.local_observation_count,
           };
 
           popup.setHTML(renderWigleTooltip(normalizeWigleTooltipData(mergedData)));
         })
         .catch(() => {
-          // Server endpoint pending; feature props remain the source of truth for now.
+          // Feature props remain the source of truth if enrichment fails.
         });
     }
 

@@ -74,7 +74,12 @@ router.get(
   macParamMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
     const { netid } = req.params;
-    const network = await wigleService.getWiglePageNetwork(netid);
+    // Try MV first (single-row read); fall back to live 4-query fan-out if MV
+    // is unavailable (pre-migration deployment) or returns no row.
+    let network = await wigleService.getWiglePageNetworkFromMv(netid);
+    if (!network) {
+      network = await wigleService.getWiglePageNetwork(netid);
+    }
     if (!network) {
       return res.status(404).json({ error: 'Network not found in WiGLE database' });
     }

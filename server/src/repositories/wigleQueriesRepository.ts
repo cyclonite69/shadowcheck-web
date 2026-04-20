@@ -170,13 +170,15 @@ const buildWiglePageV3DetailQuery = (netid: string): SqlQuery => ({
           nd.encryption,
           nd.channel,
           nd.qos,
-          nd.first_seen,
-          nd.last_seen,
           nd.last_update,
           nd.trilat,
           nd.trilon,
-          nd.comment
+          nd.comment,
+          rm.manufacturer AS oui_manufacturer
         FROM app.wigle_v3_network_details nd
+        LEFT JOIN app.radio_manufacturers rm
+          ON rm.bit_length = 24
+          AND rm.prefix = UPPER(LEFT(REPLACE(nd.netid, ':', ''), 6))
         WHERE UPPER(nd.netid) = UPPER($1)
         LIMIT 1`,
   queryParams: [netid],
@@ -202,8 +204,12 @@ const buildWiglePageV2SummaryQuery = (netid: string): SqlQuery => ({
           v2.city,
           v2.region,
           v2.road,
-          v2.housenumber
+          v2.housenumber,
+          rm.manufacturer AS oui_manufacturer
         FROM app.wigle_v2_networks_search v2
+        LEFT JOIN app.radio_manufacturers rm
+          ON rm.bit_length = 24
+          AND rm.prefix = UPPER(LEFT(REPLACE(v2.bssid, ':', ''), 6))
         WHERE UPPER(v2.bssid) = UPPER($1)
         ORDER BY v2.lasttime DESC NULLS LAST, v2.lastupdt DESC NULLS LAST
         LIMIT 1`,
@@ -211,10 +217,79 @@ const buildWiglePageV2SummaryQuery = (netid: string): SqlQuery => ({
 });
 
 const buildWiglePageLocalMatchQuery = (netid: string): SqlQuery => ({
-  sql: `SELECT COUNT(*)::int AS local_observations
+  sql: `SELECT
+          (COUNT(*) > 0)::boolean AS has_local_match,
+          COUNT(*)::int           AS local_observation_count
         FROM app.observations
         WHERE UPPER(bssid) = UPPER($1)`,
   queryParams: [netid],
+});
+
+const buildWiglePageV3TemporalQuery = (netid: string): SqlQuery => ({
+  sql: `SELECT
+          MIN(observed_at)::text                              AS wigle_v3_first_seen,
+          MAX(observed_at)::text                             AS wigle_v3_last_seen,
+          COUNT(*)::int                                      AS wigle_v3_observation_count,
+          (COUNT(*)::int < 3)::boolean                      AS wigle_precision_warning,
+          AVG(latitude)::float8                              AS wigle_v3_centroid_lat,
+          AVG(longitude)::float8                             AS wigle_v3_centroid_lon,
+          COUNT(DISTINCT NULLIF(TRIM(ssid), ''))::int        AS wigle_v3_ssid_variant_count,
+          CASE
+            WHEN COUNT(*) > 1 THEN
+              ROUND(
+                ST_Distance(
+                  ST_MakePoint(MIN(longitude), MIN(latitude))::geography,
+                  ST_MakePoint(MAX(longitude), MAX(latitude))::geography
+                )::numeric,
+                1
+              )
+            ELSE 0
+          END::float8                                        AS wigle_v3_spread_m
+        FROM app.wigle_v3_observations
+        WHERE netid = $1`,
+  queryParams: [netid],
+});
+
+const buildWigleNetworksMvQuery = (bssid: string): SqlQuery => ({
+  sql: `SELECT
+          bssid,
+          ssid_display,
+          network_name,
+          network_type,
+          encryption,
+          channel,
+          frequency,
+          qos,
+          comment,
+          wigle_source,
+          wigle_v2_firsttime,
+          wigle_v2_lasttime,
+          wigle_v2_trilat_lat,
+          wigle_v2_trilat_lon,
+          wigle_v2_city,
+          wigle_v2_region,
+          wigle_v2_road,
+          wigle_v2_housenumber,
+          has_wigle_v2_record,
+          wigle_v3_first_seen,
+          wigle_v3_last_seen,
+          wigle_v3_observation_count,
+          wigle_v3_ssid_variant_count,
+          has_wigle_v3_observations,
+          wigle_v3_centroid_lat,
+          wigle_v3_centroid_lon,
+          wigle_v3_spread_m,
+          display_lat,
+          display_lon,
+          display_coordinate_source,
+          manufacturer,
+          public_nonstationary_flag,
+          public_ssid_variant_flag,
+          wigle_precision_warning,
+          has_local_match
+        FROM app.api_wigle_networks_mv
+        WHERE bssid = UPPER($1)`,
+  queryParams: [bssid],
 });
 
 const buildWigleV3TableExistsQuery = (): SqlQuery => ({
@@ -301,9 +376,11 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
 };
 
 export {
+  buildWigleNetworksMvQuery,
   buildWiglePageLocalMatchQuery,
   buildWiglePageV2SummaryQuery,
   buildWiglePageV3DetailQuery,
+  buildWiglePageV3TemporalQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,

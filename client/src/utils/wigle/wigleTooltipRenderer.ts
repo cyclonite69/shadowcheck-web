@@ -22,6 +22,13 @@ const formatCoordinate = (value: number | null): string => {
   return value.toFixed(5);
 };
 
+const coordSourceLabel = (source: string | null): string => {
+  if (source === 'wigle-v2-trilat') return 'v2 trilaterated';
+  if (source === 'wigle-v3-centroid') return 'v3 centroid';
+  if (source === 'wigle-v3-summary') return 'v3 summary';
+  return '';
+};
+
 const formatCapabilities = (value: string | null): string => {
   if (!value) return EM_DASH;
   return escapeHtml(value);
@@ -53,6 +60,39 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
 
   const sourceBadge = `<div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.24);color:#93c5fd;white-space:nowrap;">${escapeHtml(data.source.toUpperCase())}</div>`;
 
+  const coordLabel = (() => {
+    const src = coordSourceLabel(data.displayCoordinateSource);
+    return src ? `Coords (${escapeHtml(src)})` : 'Coordinates';
+  })();
+
+  const locationDisplay = [data.city, data.region].filter(Boolean).map(escapeHtml).join(', ');
+
+  const precisionWarning = data.wiglePrecisionWarning
+    ? `<div style="display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+           <span style="font-size:10px;color:#fbbf24;">&#9888;</span>
+           <span style="font-size:10px;color:#fbbf24;">Low-confidence location (&lt;3 WiGLE observations)</span>
+         </div>`
+    : '';
+
+  const activeChips: string[] = [];
+  if (data.publicNonstationaryFlag) {
+    activeChips.push(
+      `<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">Non-stationary</div>`
+    );
+  }
+  if (data.publicSsidVariantFlag) {
+    activeChips.push(
+      `<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">SSID variants</div>`
+    );
+  }
+  const patternChips =
+    activeChips.length > 0
+      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px;border-top:1px solid rgba(255,255,255,0.08);">
+           <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);width:100%;margin-bottom:2px;">Public WiGLE Patterns</div>
+           ${activeChips.join('')}
+         </div>`
+      : '';
+
   const fieldRows = [
     fieldRow('Capabilities', formatCapabilities(data.capabilities), true),
     fieldRow(
@@ -62,10 +102,14 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
     fieldRow('Channel', normalizeDisplay(data.channel)),
     fieldRow('WiGLE First Seen', formatDate(data.firstSeen)),
     fieldRow('WiGLE Last Seen', formatDate(data.lastSeen)),
+    data.wigleObservationCount !== null
+      ? fieldRow('WiGLE Obs Count', escapeHtml(String(data.wigleObservationCount)))
+      : '',
     data.manufacturer ? fieldRow('Manufacturer', normalizeDisplay(data.manufacturer)) : '',
+    locationDisplay ? fieldRow('Location', locationDisplay) : '',
     data.trilateratedLat !== null || data.trilateratedLon !== null
       ? fieldRow(
-          'Coordinates',
+          coordLabel,
           `${formatCoordinate(data.trilateratedLat)}, ${formatCoordinate(data.trilateratedLon)}`
         )
       : '',
@@ -84,5 +128,7 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
     ${sourceBadge}
   </div>
   ${fieldRows}
+  ${precisionWarning}
+  ${patternChips}
 </div>`;
 };
