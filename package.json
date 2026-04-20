@@ -65,7 +65,7 @@
     "@tanstack/react-virtual": "3.13.23",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.1",
     "bcrypt": "6.0.0",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
