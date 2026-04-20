@@ -1,3 +1,4 @@
+import { getSpatialBoundingBoxFragment } from '../spatialHelpers';
 import type { FilterBuildContext } from '../FilterBuildContext';
 
 export function buildObservationSpatialQualityPredicates(ctx: FilterBuildContext): string[] {
@@ -53,8 +54,10 @@ export function buildObservationSpatialQualityPredicates(ctx: FilterBuildContext
   }
 
   if (e.radiusFilter && f.radiusFilter) {
+    const { longitude, latitude, radiusMeters } = f.radiusFilter;
     where.push(
-      `ST_DWithin(o.geom::geography, ST_SetSRID(ST_MakePoint(${ctx.addParam(f.radiusFilter.longitude)}, ${ctx.addParam(f.radiusFilter.latitude)}), 4326)::geography, ${ctx.addParam(f.radiusFilter.radiusMeters)})`
+      getSpatialBoundingBoxFragment(latitude, longitude, radiusMeters),
+      `ST_DWithin(o.geom::geography, ST_SetSRID(ST_MakePoint(${ctx.addParam(longitude)}, ${ctx.addParam(latitude)}), 4326)::geography, ${ctx.addParam(radiusMeters)})`
     );
     ctx.addApplied('spatial', 'radiusFilter', f.radiusFilter);
   }
@@ -62,14 +65,16 @@ export function buildObservationSpatialQualityPredicates(ctx: FilterBuildContext
   if (e.distanceFromHomeMin || e.distanceFromHomeMax) {
     ctx.requiresHome = true;
     if (e.distanceFromHomeMin && f.distanceFromHomeMin !== undefined) {
+      // Home coordinates are DB-resident (resolved via the home CTE at query time),
+      // so bounding-box pre-filtering is not available here — use ST_DWithin only.
       where.push(
-        `ST_Distance(o.geom::geography, home.home_point) >= ${ctx.addParam(f.distanceFromHomeMin * 1000)}`
+        `ST_DWithin(o.geom::geography, home.home_point, ${ctx.addParam(f.distanceFromHomeMin * 1000)})`
       );
       ctx.addApplied('spatial', 'distanceFromHomeMin', f.distanceFromHomeMin);
     }
     if (e.distanceFromHomeMax && f.distanceFromHomeMax !== undefined) {
       where.push(
-        `ST_Distance(o.geom::geography, home.home_point) <= ${ctx.addParam(f.distanceFromHomeMax * 1000)}`
+        `NOT ST_DWithin(o.geom::geography, home.home_point, ${ctx.addParam(f.distanceFromHomeMax * 1000)})`
       );
       ctx.addApplied('spatial', 'distanceFromHomeMax', f.distanceFromHomeMax);
     }

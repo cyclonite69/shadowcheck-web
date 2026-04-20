@@ -318,6 +318,12 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
       if (batch.length === 0) {
         await completeRun(runId);
         logger.info(`[v3 Enrichment] Completed run #${runId}`);
+        try {
+          await adminQuery('SELECT app.refresh_wigle_networks_mv()');
+          logger.info('[v3 Enrichment] Refreshed api_wigle_networks_mv');
+        } catch (mvErr: any) {
+          logger.warn('[v3 Enrichment] MV refresh skipped (not yet applied?):', mvErr.message);
+        }
         return;
       }
 

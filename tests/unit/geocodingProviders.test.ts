@@ -42,6 +42,19 @@ describe('GeocodingProviders', () => {
       await expect(nominatimReverse(0, 0)).rejects.toThrow('rate_limit');
     });
 
+    it('should return error on 401', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: async () => 'Unauthorized',
+      });
+
+      const result = await nominatimReverse(0, 0);
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('HTTP 401');
+    });
+
     it('should return error on non-ok response', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -145,6 +158,19 @@ describe('GeocodingProviders', () => {
       await expect(overpassPoi(0, 0)).rejects.toThrow('rate_limit');
     });
 
+    it('should return error on 401', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: async () => 'Unauthorized',
+      });
+
+      const result = await overpassPoi(0, 0);
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('HTTP 401');
+    });
+
     it('should return error on non-ok response', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -224,17 +250,30 @@ describe('GeocodingProviders', () => {
       await expect(opencageReverse(0, 0, 'key')).rejects.toThrow('rate_limit');
     });
 
-    it('should return error on non-ok response', async () => {
+    it('should return error on 401', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 401,
         statusText: 'Unauthorized',
-        text: async () => 'Invalid Key',
+        text: async () => 'Unauthorized',
       });
 
       const result = await opencageReverse(0, 0, 'key');
       expect(result.ok).toBe(false);
       expect(result.error).toBe('HTTP 401');
+    });
+
+    it('should return error on non-ok response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        text: async () => 'Quota Exceeded',
+      });
+
+      const result = await opencageReverse(0, 0, 'key');
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('HTTP 403');
     });
 
     it('should return ok:false if no results or formatted missing', async () => {
@@ -320,6 +359,19 @@ describe('GeocodingProviders', () => {
     it('should throw rate_limit on 429', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 429 });
       await expect(geocodioReverse(0, 0, 'key')).rejects.toThrow('rate_limit');
+    });
+
+    it('should return error on 401', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: async () => 'Unauthorized',
+      });
+
+      const result = await geocodioReverse(0, 0, 'key');
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('HTTP 401');
     });
 
     it('should return error on non-ok response', async () => {
@@ -409,6 +461,19 @@ describe('GeocodingProviders', () => {
     it('should throw rate_limit on 429', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 429 });
       await expect(locationIqReverse(0, 0, 'key')).rejects.toThrow('rate_limit');
+    });
+
+    it('should return error on 401', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: async () => 'Unauthorized',
+      });
+
+      const result = await locationIqReverse(0, 0, 'key');
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('HTTP 401');
     });
 
     it('should return error on non-ok response', async () => {
