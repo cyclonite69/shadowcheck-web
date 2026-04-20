@@ -36,6 +36,7 @@ export const GeocodingRunsCard: React.FC<{
   runFallbackGeocodio: () => Promise<void>;
   runFallbackLocationIq: () => Promise<void>;
   testSelectedProvider: () => Promise<void>;
+  requeueFailed: () => Promise<void>;
 }> = ({
   stats,
   daemon,
@@ -62,6 +63,7 @@ export const GeocodingRunsCard: React.FC<{
   runFallbackGeocodio,
   runFallbackLocationIq,
   testSelectedProvider,
+  requeueFailed,
 }) => {
   const formatSeconds = (ms?: number) => {
     if (!ms && ms !== 0) return '—';
@@ -199,6 +201,13 @@ export const GeocodingRunsCard: React.FC<{
               className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-sm"
             >
               {actionLoading ? 'Running...' : 'Fallback Addresses (LocationIQ)'}
+            </button>
+            <button
+              onClick={() => void requeueFailed()}
+              disabled={actionLoading}
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-medium hover:from-orange-500 hover:to-orange-600 transition-all disabled:opacity-50 text-sm"
+            >
+              {actionLoading ? 'Running...' : 'Re-queue Failed Records'}
             </button>
           </div>
 

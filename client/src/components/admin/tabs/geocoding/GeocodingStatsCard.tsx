@@ -98,6 +98,15 @@ export const GeocodingStatsCard: React.FC<{
         </div>
         <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
           <MetricLabel
+            label="Unresolved Records"
+            tooltip="Observations with no geocoded address (no resolved cache block)."
+          />
+          <div className="text-lg font-semibold text-orange-400">
+            {stats?.unresolved_observations?.toLocaleString() ?? '—'}
+          </div>
+        </div>
+        <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
+          <MetricLabel
             label="Recent Activity"
             tooltip="Cache rows touched in the last 10 minutes."
           />

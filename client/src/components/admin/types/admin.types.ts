@@ -198,6 +198,7 @@ export interface GeocodingStats {
   missing_blocks: number;
   pending_address_queue: number;
   attempted_without_address: number;
+  unresolved_observations: number;
   recent_activity: number;
   last_activity_at?: string | null;
   providers: Record<string, number>;

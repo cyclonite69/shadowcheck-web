@@ -361,6 +361,10 @@ export const adminApi = {
     return apiClient.get(`/admin/geocoding/stats?precision=${precision}`);
   },
 
+  async requeueGeocodingFailed(precision: string): Promise<any> {
+    return apiClient.post('/admin/geocoding/requeue', { precision });
+  },
+
   // AWS
   async getAwsOverview(): Promise<any> {
     return apiClient.get('/admin/aws/overview');

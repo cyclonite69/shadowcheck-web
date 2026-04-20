@@ -405,7 +405,17 @@ const loadCacheStats = async (
           ON c.lat_round = r.lat_round
          AND c.lon_round = r.lon_round
         WHERE c.id IS NULL
-      ) AS missing_blocks;
+      ) AS missing_blocks,
+      (
+        SELECT count(*)
+        FROM app.observations o
+        LEFT JOIN app.geocoding_cache c
+          ON c.precision = $1
+         AND c.lat_round = round(o.lat::numeric, $1)
+         AND c.lon_round = round(o.lon::numeric, $1)
+        WHERE ${GEOCODABLE_OBSERVATION_PREDICATE}
+          AND (c.id IS NULL OR c.address IS NULL)
+      ) AS unresolved_observations;
   `,
     [precision]
   );
@@ -437,11 +447,27 @@ const loadCacheStats = async (
   };
 };
 
+const resetFailedAddressCandidates = async (precision: number): Promise<number> => {
+  const result = await query(
+    `
+    UPDATE app.geocoding_cache
+    SET address_attempts = 0,
+        geocoded_at = NOW()
+    WHERE precision = $1
+      AND address IS NULL
+      AND address_attempts > 0
+  `,
+    [precision]
+  );
+  return Number(result.rowCount || 0);
+};
+
 export {
   fetchRows,
   GEOCODABLE_OBSERVATION_PREDICATE,
   loadCacheStats,
   providerPriority,
+  resetFailedAddressCandidates,
   seedAddressCandidates,
   shouldReplaceAddressData,
   shouldSkipPoi,

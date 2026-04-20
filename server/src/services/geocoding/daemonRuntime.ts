@@ -22,6 +22,8 @@ type InternalRunFn = (
   jobId?: number
 ) => Promise<GeocodeRunSummary>;
 
+type RequeueFn = (precision: number) => Promise<number>;
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const finalizeSuccessfulRun = (
@@ -69,7 +71,8 @@ const getGeocodingDaemonStatus = async () => {
 
 const runGeocodeDaemonLoop = async (
   runGeocodeCacheUpdate: (options: GeocodeRunOptions) => Promise<GeocodeRunSummary>,
-  runInternal?: InternalRunFn
+  runInternal?: InternalRunFn,
+  requeueFailedFn?: RequeueFn
 ) => {
   if (!geocodeDaemon.config) return;
 
@@ -116,8 +119,18 @@ const runGeocodeDaemonLoop = async (
             geocodeDaemon.lastError = s.reason?.message;
           }
         }
-        const sleepMs = totalProcessed > 0 ? config.loopDelayMs : config.idleSleepMs;
-        await sleep(sleepMs);
+        if (totalProcessed > 0) {
+          await sleep(config.loopDelayMs);
+        } else {
+          const requeued = requeueFailedFn ? await requeueFailedFn(config.precision) : 0;
+          if (requeued > 0) {
+            logger.info('[Geocoding] Daemon auto-re-queued failed records', {
+              precision: config.precision,
+              requeued,
+            });
+          }
+          await sleep(requeued > 0 ? config.loopDelayMs : config.idleSleepMs);
+        }
       } else {
         const runOptions = getDaemonProviderRunOptions(config);
         await persistDaemonConfig(config);
@@ -125,8 +138,18 @@ const runGeocodeDaemonLoop = async (
         geocodeDaemon.lastResult = result;
         geocodeDaemon.lastError = undefined;
 
-        const sleepMs = result.processed > 0 ? config.loopDelayMs : config.idleSleepMs;
-        await sleep(sleepMs);
+        if (result.processed > 0) {
+          await sleep(config.loopDelayMs);
+        } else {
+          const requeued = requeueFailedFn ? await requeueFailedFn(config.precision) : 0;
+          if (requeued > 0) {
+            logger.info('[Geocoding] Daemon auto-re-queued failed records', {
+              precision: config.precision,
+              requeued,
+            });
+          }
+          await sleep(requeued > 0 ? config.loopDelayMs : config.idleSleepMs);
+        }
       }
     } catch (err) {
       const error = err as Error;
@@ -144,7 +167,8 @@ const runGeocodeDaemonLoop = async (
 const startGeocodingDaemon = async (
   configInput: Partial<GeocodeDaemonConfig>,
   runGeocodeCacheUpdate: (options: GeocodeRunOptions) => Promise<GeocodeRunSummary>,
-  runInternal?: InternalRunFn
+  runInternal?: InternalRunFn,
+  requeueFailedFn?: RequeueFn
 ) => {
   let persisted: GeocodeDaemonConfig | null = null;
   try {
@@ -175,7 +199,7 @@ const startGeocodingDaemon = async (
     return { started: false, status: geocodeDaemon };
   }
 
-  void runGeocodeDaemonLoop(runGeocodeCacheUpdate, runInternal);
+  void runGeocodeDaemonLoop(runGeocodeCacheUpdate, runInternal, requeueFailedFn);
   return { started: true, status: geocodeDaemon };
 };
 

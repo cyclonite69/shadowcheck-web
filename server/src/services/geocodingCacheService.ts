@@ -271,7 +271,7 @@ const runGeocodeCacheUpdateInternal = async (
 
 const requeueFailedGeocoding = async (
   precision: number,
-  maxAttempts: number = 5
+  _maxAttempts: number = 5
 ): Promise<number> => {
   const result = await query(
     `
@@ -281,9 +281,8 @@ const requeueFailedGeocoding = async (
     WHERE precision = $1
       AND address IS NULL
       AND address_attempts > 0
-      AND address_attempts < $2
   `,
-    [precision, maxAttempts]
+    [precision]
   );
 
   const count = Number(result.rowCount || 0);
@@ -291,7 +290,6 @@ const requeueFailedGeocoding = async (
     logger.info('[Geocoding] Re-queued failed geocoding records', {
       precision,
       count,
-      maxAttempts,
     });
   }
   return count;
@@ -438,7 +436,12 @@ module.exports = {
   startGeocodeCacheUpdate,
   requeueFailedGeocoding,
   startGeocodingDaemon: (configInput: Partial<GeocodeDaemonConfig>) =>
-    startGeocodingDaemon(configInput, runGeocodeCacheUpdate, runGeocodeCacheUpdateInternal),
+    startGeocodingDaemon(
+      configInput,
+      runGeocodeCacheUpdate,
+      runGeocodeCacheUpdateInternal,
+      (precision) => requeueFailedGeocoding(precision)
+    ),
   stopGeocodingDaemon,
   getGeocodingDaemonStatus,
   getGeocodingCacheStats,
