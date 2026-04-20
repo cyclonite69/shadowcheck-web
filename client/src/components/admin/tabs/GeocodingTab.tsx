@@ -8,7 +8,7 @@ type AddressProvider = 'mapbox' | 'nominatim' | 'opencage' | 'geocodio' | 'locat
 
 export const GeocodingTab: React.FC = () => {
   const [limit, setLimit] = useState(1000);
-  const [precision, setPrecision] = useState(4);
+  const [precision, setPrecision] = useState(5);
   const [perMinute, setPerMinute] = useState(60);
   const [permanent, setPermanent] = useState(false);
   const [addressProvider, setAddressProvider] = useState<AddressProvider>('locationiq');
@@ -35,6 +35,7 @@ export const GeocodingTab: React.FC = () => {
     testProvider,
     startDaemon,
     stopDaemon,
+    requeueFailed,
   } = useGeocodingCache(precision);
 
   const [hasInitialized, setHasInitialized] = React.useState(false);
@@ -227,6 +228,7 @@ export const GeocodingTab: React.FC = () => {
         runFallbackGeocodio={runFallbackGeocodio}
         runFallbackLocationIq={runFallbackLocationIq}
         testSelectedProvider={testSelectedProvider}
+        requeueFailed={requeueFailed}
       />
     </div>
   );

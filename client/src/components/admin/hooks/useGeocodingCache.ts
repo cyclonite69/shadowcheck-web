@@ -138,7 +138,7 @@ export const useGeocodingCache = (precision = 5) => {
 
   useEffect(() => {
     refreshStats();
-  }, [refreshStats]);
+  }, [refreshStats, precision]);
 
   useEffect(() => {
     if (!daemon?.running) return;
@@ -147,6 +147,26 @@ export const useGeocodingCache = (precision = 5) => {
     }, 15000);
     return () => window.clearInterval(intervalId);
   }, [daemon?.running, refreshStats]);
+
+  const requeueFailed = useCallback(async () => {
+    setActionLoading(true);
+    setActionMessage('');
+    setError('');
+    try {
+      const data = await adminApi.requeueGeocodingFailed(String(precisionRef.current));
+      setActionMessage(
+        data.count > 0
+          ? `Re-queued ${data.count} failed records for retry`
+          : 'No failed records to re-queue'
+      );
+      await refreshStats();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Re-queue failed';
+      setError(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [refreshStats]);
 
   return {
     stats,
@@ -163,5 +183,6 @@ export const useGeocodingCache = (precision = 5) => {
     testProvider,
     startDaemon,
     stopDaemon,
+    requeueFailed,
   };
 };
