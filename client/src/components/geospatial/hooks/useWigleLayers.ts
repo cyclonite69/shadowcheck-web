@@ -201,7 +201,7 @@ export const useWigleLayers = ({
 
   // Sync Data Updates
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !wigleObservations) return;
+    if (!mapReady || !mapRef.current || !wigleObservations?.observations) return;
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
     if (!mapboxgl) return;
