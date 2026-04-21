@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import type { NetworkRow, NetworkTag } from '../../../types/network';
 import { NetworkTagMenuAdminActions } from './NetworkTagMenuAdminActions';
@@ -56,15 +57,42 @@ export const NetworkTagMenu = ({
   siblingPairLoading,
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
+  const [menuSize, setMenuSize] = useState({ width: 200, height: 0 });
   if (!visible || !network) return null;
 
-  return (
+  useLayoutEffect(() => {
+    if (!visible || !contextMenuRef.current) return;
+
+    setMenuSize({
+      width: contextMenuRef.current.offsetWidth || 200,
+      height: contextMenuRef.current.offsetHeight || 0,
+    });
+  }, [
+    visible,
+    contextMenuRef,
+    network,
+    tagLoading,
+    wigleObservationsLoading,
+    manualSiblingTarget,
+    siblingPairLoading,
+    hasExistingNote,
+    isAdmin,
+  ]);
+
+  if (typeof document === 'undefined') return null;
+
+  const maxX = Math.max(8, window.innerWidth - menuSize.width - 8);
+  const maxY = Math.max(8, window.innerHeight - menuSize.height - 8);
+  const clampedX = Math.min(Math.max(8, x), maxX);
+  const clampedY = Math.min(Math.max(8, y), maxY);
+
+  return createPortal(
     <div
       ref={contextMenuRef}
       style={{
         position: 'fixed',
-        top: y,
-        left: x,
+        top: clampedY,
+        left: clampedX,
         zIndex: 10000,
         background: '#1e293b',
         border: '1px solid #475569',
@@ -101,6 +129,7 @@ export const NetworkTagMenu = ({
         />
       </div>
       {tagLoading && <NetworkTagMenuLoading />}
-    </div>
+    </div>,
+    document.body
   );
 };

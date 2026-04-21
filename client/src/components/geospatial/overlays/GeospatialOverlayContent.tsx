@@ -104,8 +104,10 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
         closeContextMenu();
       }}
       onOpenNote={() => {
-        void openNoteModalForBssid(contextMenu.network?.bssid || '');
+        const bssid = contextMenu.network?.bssid || '';
+        console.log('openNoteModal bssid:', contextMenu.network?.bssid);
         closeContextMenu();
+        void openNoteModalForBssid(bssid);
       }}
       hasExistingNote={contextMenu.hasExistingNote}
       onGenerateThreatReport={handleGenerateThreatReportPdf}
