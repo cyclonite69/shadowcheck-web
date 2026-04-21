@@ -15,6 +15,12 @@ import {
 } from './daemonState';
 import { createRunSnapshot } from './jobState';
 import { ensureProviderReady, resolveProviderCredentials } from './providerRuntime';
+import { getActivePendingPrecisions } from './cacheStore';
+
+// Precisions the application uses for address lookups that should be kept covered.
+// Blocks at these precisions are seeded and resolved as part of the idle sweep even
+// when they have no rows in geocoding_cache yet (the seed step creates them).
+const APP_LOOKUP_PRECISIONS = [3, 4];
 
 type InternalRunFn = (
   options: GeocodeRunOptions,
@@ -148,7 +154,44 @@ const runGeocodeDaemonLoop = async (
               requeued,
             });
           }
-          await sleep(requeued > 0 ? config.loopDelayMs : config.idleSleepMs);
+
+          // Sweep all other precisions that have pending work or are used by the app
+          // but may have unseeded blocks. This ensures no precision is silently orphaned.
+          const pendingPrecisions = await getActivePendingPrecisions(config.precision);
+          const supplementalPrecisions = Array.from(
+            new Set([
+              ...pendingPrecisions,
+              ...APP_LOOKUP_PRECISIONS.filter((p) => p !== config.precision),
+            ])
+          ).sort((a, b) => b - a);
+
+          let supplementalProcessed = 0;
+          for (const precision of supplementalPrecisions) {
+            if (geocodeDaemon.stopRequested) break;
+            try {
+              const supplementalOptions = { ...getDaemonProviderRunOptions(config), precision };
+              const supplementalResult = await runGeocodeCacheUpdate(supplementalOptions);
+              geocodeDaemon.lastResult = supplementalResult;
+              supplementalProcessed += supplementalResult.processed;
+              if (supplementalResult.processed > 0) {
+                logger.info('[Geocoding] Daemon swept supplemental precision', {
+                  precision,
+                  processed: supplementalResult.processed,
+                  successful: supplementalResult.successful,
+                });
+                await sleep(config.loopDelayMs);
+              }
+            } catch (sweepErr) {
+              logger.warn('[Geocoding] Supplemental precision sweep failed', {
+                precision,
+                error: (sweepErr as Error)?.message,
+              });
+            }
+          }
+
+          await sleep(
+            requeued > 0 || supplementalProcessed > 0 ? config.loopDelayMs : config.idleSleepMs
+          );
         }
       }
     } catch (err) {

@@ -382,13 +382,13 @@ const loadCacheStats = async (
       (SELECT count(DISTINCT address) FROM cache WHERE address IS NOT NULL) AS distinct_addresses,
       (
         SELECT count(*)
-        FROM cache
+        FROM app.geocoding_cache
         WHERE address IS NULL
           AND address_attempts = 0
       ) AS pending_address_queue,
       (
         SELECT count(*)
-        FROM cache
+        FROM app.geocoding_cache
         WHERE address IS NULL
           AND address_attempts > 0
       ) AS attempted_without_address,
@@ -404,7 +404,7 @@ const loadCacheStats = async (
         LEFT JOIN cache c
           ON c.lat_round = r.lat_round
          AND c.lon_round = r.lon_round
-        WHERE c.id IS NULL
+        WHERE c.id IS NULL OR c.address IS NULL
       ) AS missing_blocks,
       (
         SELECT count(*)
@@ -466,8 +466,24 @@ const resetFailedAddressCandidates = async (precision: number): Promise<number> 
   return Number(result.rowCount || 0);
 };
 
+// Returns precisions (other than excludePrecision) that have pending unresolved blocks
+// in geocoding_cache. Used by the daemon to sweep other precisions on idle ticks.
+const getActivePendingPrecisions = async (excludePrecision: number): Promise<number[]> => {
+  const result = await query(
+    `SELECT DISTINCT precision
+     FROM app.geocoding_cache
+     WHERE address IS NULL
+       AND address_attempts = 0
+       AND precision != $1
+     ORDER BY precision DESC`,
+    [excludePrecision]
+  );
+  return result.rows.map((r: { precision: number }) => Number(r.precision));
+};
+
 export {
   fetchRows,
+  getActivePendingPrecisions,
   GEOCODABLE_OBSERVATION_PREDICATE,
   loadCacheStats,
   providerPriority,

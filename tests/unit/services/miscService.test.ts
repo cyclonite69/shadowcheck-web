@@ -1,3 +1,4 @@
+export {};
 const { getDataQualityMetrics } = require('../../../server/src/services/miscService');
 const { pool } = require('../../../server/src/config/database');
 
