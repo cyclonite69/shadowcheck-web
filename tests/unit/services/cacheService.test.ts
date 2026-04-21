@@ -1,4 +1,5 @@
-import { cacheService } from '../../../server/src/services/cacheService';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { cacheService } = require('../../../server/src/services/cacheService');
 import { createClient } from 'redis';
 
 jest.mock('redis');
