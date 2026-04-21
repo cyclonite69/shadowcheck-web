@@ -364,6 +364,29 @@ const buildKmlPointsQuery = (params: {
   };
 };
 
+const buildWiglePageMostRecentObsQuery = (netid: string): SqlQuery => ({
+  sql: `SELECT ssid, channel, frequency, accuracy
+          FROM app.wigle_v3_observations
+         WHERE netid = $1
+         ORDER BY observed_at DESC
+         LIMIT 1`,
+  queryParams: [netid],
+});
+
+const buildWiglePageGeocodedAddressQuery = (
+  lat: number | null,
+  lon: number | null,
+  precision: number
+): SqlQuery => ({
+  sql: `SELECT address
+          FROM app.geocoding_cache
+         WHERE precision = $1
+           AND lat_round = ROUND($2::numeric, $1)
+           AND lon_round = ROUND($3::numeric, $1)
+         LIMIT 1`,
+  queryParams: [precision, lat ?? 0, lon ?? 0],
+});
+
 const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
   const queryParams = bssid ? [`${bssid}%`] : [];
   const whereClauses = ['kp.location IS NOT NULL'];
@@ -382,7 +405,9 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
 
 export {
   buildWigleNetworksMvQuery,
+  buildWiglePageGeocodedAddressQuery,
   buildWiglePageLocalMatchQuery,
+  buildWiglePageMostRecentObsQuery,
   buildWiglePageV2SummaryQuery,
   buildWiglePageV3DetailQuery,
   buildWiglePageV3TemporalQuery,

@@ -6,7 +6,9 @@
 import { query } from '../config/database';
 import {
   buildWigleNetworksMvQuery,
+  buildWiglePageGeocodedAddressQuery,
   buildWiglePageLocalMatchQuery,
+  buildWiglePageMostRecentObsQuery,
   buildWiglePageV2SummaryQuery,
   buildWiglePageV3DetailQuery,
   buildWiglePageV3TemporalQuery,
@@ -108,12 +110,14 @@ export async function getWiglePageNetwork(netid: string): Promise<{
   const v2SummaryQuery = buildWiglePageV2SummaryQuery(normalizedNetid);
   const localMatchQuery = buildWiglePageLocalMatchQuery(normalizedNetid);
   const v3TemporalQuery = buildWiglePageV3TemporalQuery(normalizedNetid);
+  const recentObsQuery = buildWiglePageMostRecentObsQuery(normalizedNetid);
 
-  const [v3Result, v2Result, localMatchResult, v3TemporalResult] = await Promise.all([
+  const [v3Result, v2Result, localMatchResult, v3TemporalResult, recentObsResult] = await Promise.all([
     query(v3DetailQuery.sql, v3DetailQuery.queryParams),
     query(v2SummaryQuery.sql, v2SummaryQuery.queryParams),
     query(localMatchQuery.sql, localMatchQuery.queryParams),
     query(v3TemporalQuery.sql, v3TemporalQuery.queryParams),
+    query(recentObsQuery.sql, recentObsQuery.queryParams).catch(() => ({ rows: [] })),
   ]);
 
   const v3 = v3Result.rows[0] ?? null;
@@ -149,6 +153,18 @@ export async function getWiglePageNetwork(netid: string): Promise<{
   }
 
   const spreadM = t.wigle_v3_spread_m ?? null;
+  const recentObs = recentObsResult.rows[0] ?? null;
+
+  let geocodedAddress: string | null = null;
+  if (displayLat !== null && displayLon !== null) {
+    try {
+      const geocodeQ = buildWiglePageGeocodedAddressQuery(displayLat, displayLon, 3);
+      const geocodeResult = await query(geocodeQ.sql, geocodeQ.queryParams);
+      geocodedAddress = geocodeResult.rows[0]?.address ?? null;
+    } catch {
+      // geocoding_cache may not exist on all deployments
+    }
+  }
 
   return {
     wigle: {
@@ -191,6 +207,13 @@ export async function getWiglePageNetwork(netid: string): Promise<{
       public_ssid_variant_flag: hasV3Obs && (t.wigle_v3_ssid_variant_count ?? 0) > 1,
       // Precision caveat
       wigle_precision_warning: hasV3Obs ? (t.wigle_precision_warning ?? false) : false,
+      // Most-recent observation detail
+      recent_ssid: recentObs?.ssid ?? null,
+      recent_channel: recentObs?.channel ?? null,
+      recent_frequency: recentObs?.frequency ?? null,
+      recent_accuracy: recentObs?.accuracy ?? null,
+      // Geocoded address (from our geocoding_cache at display coordinates)
+      geocoded_address: geocodedAddress,
     },
     localLinkage: {
       has_local_match: lm.has_local_match ?? false,
@@ -227,6 +250,27 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
   }
   if (!row) return null;
 
+  let mvRecentObs: any = null;
+  let mvGeocodedAddress: string | null = null;
+
+  const recentObsQ = buildWiglePageMostRecentObsQuery(normalizedBssid);
+  try {
+    const recentObsResult = await query(recentObsQ.sql, recentObsQ.queryParams);
+    mvRecentObs = recentObsResult.rows[0] ?? null;
+  } catch {
+    // wigle_v3_observations may not exist on older deployments
+  }
+
+  if (row.display_lat != null && row.display_lon != null) {
+    try {
+      const geocodeQ = buildWiglePageGeocodedAddressQuery(row.display_lat, row.display_lon, 3);
+      const geocodeResult = await query(geocodeQ.sql, geocodeQ.queryParams);
+      mvGeocodedAddress = geocodeResult.rows[0]?.address ?? null;
+    } catch {
+      // geocoding_cache may not exist on all deployments
+    }
+  }
+
   return {
     wigle: {
       bssid: row.bssid,
@@ -262,6 +306,13 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
       public_nonstationary_flag: row.public_nonstationary_flag ?? false,
       public_ssid_variant_flag: row.public_ssid_variant_flag ?? false,
       wigle_precision_warning: row.wigle_precision_warning ?? false,
+      // Most-recent observation detail
+      recent_ssid: mvRecentObs?.ssid ?? null,
+      recent_channel: mvRecentObs?.channel ?? null,
+      recent_frequency: mvRecentObs?.frequency ?? null,
+      recent_accuracy: mvRecentObs?.accuracy ?? null,
+      // Geocoded address (from our geocoding_cache at display coordinates)
+      geocoded_address: mvGeocodedAddress,
     },
     localLinkage: {
       has_local_match: row.has_local_match ?? false,
