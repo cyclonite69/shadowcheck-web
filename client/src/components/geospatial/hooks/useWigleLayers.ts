@@ -5,7 +5,6 @@ import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow } from '../../../types/network';
 import { renderWigleObservationPopupCard } from '../../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
-import { networkApi } from '../../../api/networkApi';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
@@ -154,30 +153,6 @@ export const useWigleLayers = ({
         return originalRemove();
       };
 
-      // Upgrade with full MV data if this BSSID is in the local DB
-      const bssid = props.bssid;
-      if (bssid) {
-        networkApi.getNetworkByBssid(bssid).then((mvData) => {
-          if (!popup.isOpen() || !mvData) return;
-
-          // For WiGLE points far from home (>100km), don't use the cached address
-          // because it was geocoded from a different observation location.
-          // Instead, clear the address so coordinates are shown.
-          const distFromHome = Number(props.distance_from_our_center_m);
-          const isDistant = Number.isFinite(distFromHome) && distFromHome > 100000; // 100km in meters
-          const dataToNormalize =
-            isDistant && mvData.geocoded_address
-              ? { ...mvData, lat: coords[1], lon: coords[0], geocoded_address: null }
-              : { ...mvData, lat: coords[1], lon: coords[0] };
-
-          const normalized = normalizeTooltipData(dataToNormalize, [coords[0], coords[1]]);
-          const cardHtml = renderNetworkTooltip({
-            ...normalized,
-            triggerElement: map.getContainer(),
-          });
-          if (cardHtml) popup.setHTML(wigleBadge(matched) + cardHtml);
-        });
-      }
       return popup;
     };
 
