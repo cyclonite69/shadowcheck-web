@@ -635,31 +635,57 @@ const WiglePage: React.FC = () => {
       return;
     }
 
-    const bssidSet = new Set<string>();
-    [...v2Rows, ...v3Rows].forEach((row: any) => {
-      if (row.bssid) bssidSet.add(String(row.bssid).toUpperCase());
-    });
-
-    const bssids = Array.from(bssidSet).slice(0, 50);
-    if (bssids.length === 0) {
-      console.log('[FieldData] bssids to fetch:', bssids);
-      console.warn('[DEBUG] Field Data toggle found no BSSIDs to fetch');
-      return;
-    }
-
     let cancelled = false;
 
-    Promise.allSettled(
-      bssids.map((bssid) =>
-        wigleApi.getLocalObservationsByBSSID(bssid).catch((err) => {
-          console.error(`[DEBUG] Failed to fetch observation for ${bssid}`, err);
-          return null;
-        })
-      )
-    ).then((results) => {
+    const buildSearchParams = () => {
+      const params = new URLSearchParams({ include_total: '1' });
+      if (limit !== null) params.set('limit', String(limit));
+      if (offset > 0) params.set('offset', String(offset));
+      if (typeFilter.trim()) params.set('type', typeFilter.trim());
+      const { filtersForPage, enabledForPage } = adaptedFilters;
+      params.set('filters', JSON.stringify(filtersForPage));
+      params.set('enabled', JSON.stringify(enabledForPage));
+      return params;
+    };
+
+    const normalizeRows = (payload: any) => {
+      const rawRows = payload?.data || payload?.networks || [];
+      return rawRows.map((row: any) => ({
+        ...row,
+        bssid: row.bssid || row.netid,
+      }));
+    };
+
+    const loadFieldData = async () => {
+      let sourceRows: any[] = [...v2Rows, ...v3Rows];
+
+      if (sourceRows.length === 0 && !layers.v2 && !layers.v3) {
+        const params = buildSearchParams();
+        const seedResults = await Promise.allSettled([
+          wigleApi.searchLocalWigle('/api/wigle/networks-v2', new URLSearchParams(params)),
+          wigleApi.searchLocalWigle('/api/wigle/networks-v3', new URLSearchParams(params)),
+        ]);
+
+        if (cancelled) return;
+
+        sourceRows = seedResults.flatMap((result) =>
+          result.status === 'fulfilled' ? normalizeRows(result.value) : []
+        );
+      }
+
+      const bssidSet = new Set<string>();
+      sourceRows.forEach((row: any) => {
+        if (row.bssid) bssidSet.add(String(row.bssid).toUpperCase());
+      });
+
+      const bssids = Array.from(bssidSet).slice(0, 50);
+      if (bssids.length === 0) return;
+
+      const results = await Promise.allSettled(
+        bssids.map((bssid) => wigleApi.getLocalObservationsByBSSID(bssid).catch(() => null))
+      );
       if (cancelled) return;
 
-      console.log('[FieldData] observations returned:', results.length);
       const features: object[] = [];
       results.forEach((result, i) => {
         if (result.status === 'fulfilled' && result.value?.observations) {
@@ -681,12 +707,25 @@ const WiglePage: React.FC = () => {
       if (!map.isStyleLoaded()) return;
       ensureFieldDataLayer(map);
       updateFieldDataSource(map, fc);
-    });
+    };
+
+    void loadFieldData();
 
     return () => {
       cancelled = true;
     };
-  }, [layers.showFieldData, v2Rows, v3Rows, mapReady]);
+  }, [
+    layers.showFieldData,
+    layers.v2,
+    layers.v3,
+    v2Rows,
+    v3Rows,
+    mapReady,
+    limit,
+    offset,
+    typeFilter,
+    adaptedFilters,
+  ]);
 
   // Clustering toggle — remove and re-add sources with updated cluster setting
   useEffect(() => {
