@@ -1,4 +1,3 @@
-import React from 'react';
 import { NetworkExplorerSection } from './panels/NetworkExplorerSection';
 import { NETWORK_COLUMNS } from '../../constants/network';
 
@@ -20,20 +19,22 @@ interface GeospatialTableContentProps {
   linkedSiblingBssids: Set<string>;
   visibleSiblingGroupMap: Map<string, string>;
   selectNetworkExclusive: (bssid: string) => void;
-  onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
+  onOpenContextMenu: (e: any, network: any) => void;
   toggleSelectNetwork: (bssid: string) => void;
   loadMore: () => void;
   filteredNetworks: any[];
   loadingObservations: boolean;
   observationsTruncated: boolean;
   observationsTotal: number;
+  locationMode: string;
+  setLocationMode: (mode: string) => void;
   renderBudgetExceeded: boolean;
   renderBudget: number;
 }
 
-const GeospatialTableContentComponent: React.FC<GeospatialTableContentProps> = ({
+const GeospatialTableContentComponent = ({
   state,
-  networks,
+  networks: _networks,
   loadingNetworks,
   isLoadingMore,
   error,
@@ -53,12 +54,14 @@ const GeospatialTableContentComponent: React.FC<GeospatialTableContentProps> = (
   toggleSelectNetwork,
   loadMore,
   filteredNetworks,
+  locationMode,
+  setLocationMode,
   loadingObservations,
   observationsTruncated,
   observationsTotal,
   renderBudgetExceeded,
   renderBudget,
-}) => (
+}: GeospatialTableContentProps) => (
   <NetworkExplorerSection
     expensiveSort={expensiveSort}
     quickSearch={state.quickSearch}
@@ -106,4 +109,5 @@ const GeospatialTableContentComponent: React.FC<GeospatialTableContentProps> = (
   />
 );
 
-export const GeospatialTableContent = React.memo(GeospatialTableContentComponent);
+import { memo } from 'react';
+export const GeospatialTableContent = memo(GeospatialTableContentComponent);

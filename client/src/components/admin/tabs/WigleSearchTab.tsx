@@ -84,15 +84,15 @@ export const WigleSearchTab: React.FC = () => {
     importAllResults,
     loadMoreResults,
     hasMorePages,
-    currentPage,
-    totalPages,
+    currentPage: _currentPage,
+    totalPages: _totalPages,
     totalResults,
     loadedCount,
   } = useWigleSearch();
 
   const {
     runs,
-    report,
+    report: _report,
     loading: runsLoading,
     error: runsError,
     actionLoading,

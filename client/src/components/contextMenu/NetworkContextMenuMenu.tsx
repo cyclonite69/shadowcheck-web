@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 import { MessageSquare, Paperclip } from './icons';
 import type { ContextMenuState } from './types';
 

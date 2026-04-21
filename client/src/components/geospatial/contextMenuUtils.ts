@@ -1,5 +1,4 @@
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { NetworkRow } from '../../types/network';
 import { networkApi } from '../../api/networkApi';
 
 export type ContextMenuPlacement = {

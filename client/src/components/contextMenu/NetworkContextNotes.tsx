@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 import { Trash2 } from './icons';
 import type { NetworkNote } from './types';
 import { formatShortDate } from '../../utils/formatDate';

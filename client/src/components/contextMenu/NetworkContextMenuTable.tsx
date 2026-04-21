@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 import type { MouseEvent } from 'react';
 import type { Network, NotesByBssid } from './types';
 import { MessageSquare } from './icons';

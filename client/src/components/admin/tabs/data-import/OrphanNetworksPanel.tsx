@@ -107,15 +107,6 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
     };
   }, [hasMore, isLoadingMore, loadRows, loading]);
 
-  const reloadRows = () => {
-    setRows([]);
-    setHasMore(false);
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
-    }
-    loadRows({ reset: true });
-  };
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setActiveTooltip(null);

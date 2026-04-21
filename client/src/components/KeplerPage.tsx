@@ -25,7 +25,7 @@ const KeplerPage: React.FC = () => {
   usePageFilters('kepler');
 
   const scriptsLoadedRef = React.useRef<boolean>(false);
-  const [selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
+  const [_selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
@@ -53,13 +53,21 @@ const KeplerPage: React.FC = () => {
     datasetType
   );
 
-  const { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck, tooltipState, clearTooltip } =
-    useKeplerDeck({
-      layerType,
-      pointSize,
-      pitch,
-      height3d,
-    });
+  const {
+    mapRef,
+    deckRef: _deckRef,
+    zoom: _zoom,
+    setZoom: _setZoom,
+    handleFitBounds,
+    initDeck,
+    tooltipState,
+    clearTooltip,
+  } = useKeplerDeck({
+    layerType,
+    pointSize,
+    pitch,
+    height3d,
+  });
 
   const handleFitBoundsCallback = useCallback(
     () => handleFitBounds(networkData),

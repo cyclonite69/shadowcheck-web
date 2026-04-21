@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const MessageSquare = ({
   size = 24,
   className = '',

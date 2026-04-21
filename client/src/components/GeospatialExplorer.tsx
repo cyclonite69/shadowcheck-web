@@ -76,7 +76,7 @@ export default function GeospatialExplorer() {
         newSelection.size > 0 &&
         Array.from(newSelection)[0] !== Array.from(selectedNetworks)[0]
       ) {
-        if (wigleObservations.observations.length > 0) clearWigleObservations();
+        if (Object.keys(observationsByBssid).length > 0) clearWigleObservations();
       }
     },
   });

@@ -8,13 +8,14 @@ import React, {
   ReactNode,
 } from 'react';
 import { apiClient } from '../api/client';
-import type { LoginResponse } from '../api/authApi';
+import type { AuthUserResponse, LoginResponse } from '../api/authApi';
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
+interface User extends AuthUserResponse {}
+
+interface AuthStatusResponse {
+  authenticated: boolean;
+  user?: AuthUserResponse;
+  forcePasswordChange?: boolean;
 }
 
 interface AuthContextType {
@@ -63,14 +64,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check if user is already logged in on app start
   const checkAuthStatus = useCallback(async () => {
     try {
-      const data = await apiClient.get<any>('/auth/me');
+      const data = await apiClient.get<AuthStatusResponse>('/auth/me');
       if (data.authenticated) {
         if (data.forcePasswordChange) {
           setUser(null);
           setMustChangePassword(true);
           setPendingUsername(data.user?.username || '');
-        } else {
+        } else if (data.user) {
           setUser(data.user);
+          setMustChangePassword(false);
+          setPendingUsername('');
+        } else {
+          setUser(null);
           setMustChangePassword(false);
           setPendingUsername('');
         }
@@ -97,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    setUser(result.user as User);
+    setUser(result.user);
     setMustChangePassword(false);
     setPendingUsername('');
   }, []);

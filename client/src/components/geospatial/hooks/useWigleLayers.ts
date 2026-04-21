@@ -3,7 +3,6 @@ import type { MutableRefObject } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow } from '../../../types/network';
-import { renderWigleObservationPopupCard } from '../../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';

@@ -89,12 +89,12 @@ interface DbStats {
 export const DbStatsTab: React.FC = () => {
   const [stats, setStats] = useState<DbStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/admin/db-stats');
+      const response = await apiClient.get<DbStats>('/admin/db-stats');
       setStats(response);
       setError(null);
     } catch (err: any) {

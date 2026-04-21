@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Map } from 'mapbox-gl';
 import { MapHeader } from './MapHeader';
 import { MapViewport } from './MapViewport';
@@ -17,7 +16,7 @@ interface MapPanelProps {
 
 export const MapPanel = ({
   mapHeight,
-  title,
+  title: _title,
   toolbar,
   mapReady,
   mapError,

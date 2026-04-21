@@ -18,7 +18,7 @@ export interface ApiPreset {
   defaultBody?: string;
 }
 
-export { HttpMethod };
+export type { HttpMethod };
 
 export const API_PRESETS: ApiPreset[] = [
   { group: 'Health & Core', label: 'Health', path: '/health', method: 'GET' },

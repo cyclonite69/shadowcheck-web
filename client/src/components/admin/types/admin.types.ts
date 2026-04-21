@@ -253,6 +253,7 @@ export interface GeocodingRunResult {
 }
 
 export interface GeocodingRunSnapshot {
+  id?: number | null;
   status: 'running' | 'completed' | 'failed';
   startedAt: string;
   finishedAt?: string;

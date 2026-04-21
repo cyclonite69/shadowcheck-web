@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiClient } from '../api/client';
 import { formatShortDate } from '../utils/formatDate';
 

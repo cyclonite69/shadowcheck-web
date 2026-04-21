@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 import {
   DEFAULT_SCHEDULES,
   INTERVAL_OPTIONS,

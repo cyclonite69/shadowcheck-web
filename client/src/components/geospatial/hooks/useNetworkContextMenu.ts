@@ -1,11 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { NetworkRow, NetworkTag } from '../../../types/network';
-import { networkApi } from '../../../api/networkApi';
-import { wigleApi } from '../../../api/wigleApi';
-import { calculateContextMenuPlacement, fetchNetworkTagAndNotes } from '../contextMenuUtils';
+import { useRef, useState } from 'react';
 import { handleTagAction } from './contextMenu/actions';
-import { isBluetoothLookupTarget } from './contextMenu/validators';
 
 export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
   const [contextMenu, setContextMenu] = useState<any>({
@@ -65,7 +59,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     contextMenuRef,
     handleTagAction: handleTagActionWrapper,
     closeContextMenu,
-    openContextMenu: async (e: any, n: any) => {},
+    openContextMenu: async (_e: any, _n: any) => {},
     handleGenerateThreatReportPdf: async () => {},
     wigleLookupDialog: { visible: false },
     setWigleLookupDialog: () => {},

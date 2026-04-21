@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 import { JobConfig, JobKey } from './jobTypes';
 
 export function JobOptionsEditor({

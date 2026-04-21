@@ -1,4 +1,3 @@
-import React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
@@ -140,9 +139,7 @@ const renderObservations = ({ value }: NetworkTableCellRendererContext) => {
     </span>
   );
   const tooltip =
-    count != null && count > 0
-      ? `${count} detection${count === 1 ? '' : 's'} recorded`
-      : undefined;
+    count != null && count > 0 ? `${count} detection${count === 1 ? '' : 's'} recorded` : undefined;
   return {
     content: tooltip ? <Tooltip content={tooltip}>{obsContent}</Tooltip> : obsContent,
   };
@@ -453,9 +450,9 @@ const renderAccuracyCell = ({ value }: NetworkTableCellRendererContext) => {
 
 const renderBssid = ({
   value,
-  row,
-  showSelectedAnchorLink,
-  isLinkedSibling,
+  row: _row,
+  showSelectedAnchorLink: _showSelectedAnchorLink,
+  isLinkedSibling: _isLinkedSibling,
 }: NetworkTableCellRendererContext) => {
   const label = value == null ? '—' : String(value);
   const bssidContent = (
@@ -465,7 +462,7 @@ const renderBssid = ({
         fontSize: '11px',
         fontWeight: 700,
         letterSpacing: '0.02em',
-        color: macColor(row.bssid ?? ''),
+        color: macColor(_row.bssid ?? ''),
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
         overflow: 'hidden',
@@ -488,9 +485,9 @@ const renderBssid = ({
 
 const renderSsid = ({
   value,
-  row,
-  showSelectedAnchorLink,
-  isLinkedSibling,
+  row: _row,
+  showSelectedAnchorLink: _showSelectedAnchorLink,
+  isLinkedSibling: _isLinkedSibling,
 }: NetworkTableCellRendererContext) => {
   const textContent =
     value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
@@ -516,9 +513,9 @@ const renderSsid = ({
       >
         {textContent}
       </div>
-      {(showSelectedAnchorLink || isLinkedSibling) && (
+      {(_showSelectedAnchorLink || _isLinkedSibling) && (
         <span
-          title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
+          title={_showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
           style={{ color: '#38bdf8', flex: '0 0 auto' }}
         >
           🔗

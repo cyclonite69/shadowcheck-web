@@ -21,7 +21,7 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const map = e.target;
+    const map = e.target as Map;
     const bssid = String(props.netid || props.bssid || '');
     const ssid = props.ssid || props.netid || '';
 
@@ -59,7 +59,6 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
     }
 
     // Setup drag
-    const map = e.target as Map;
     let dragState: PopupDragState | null = null;
 
     dragState = setupPopupDrag(popup, (offset) => {

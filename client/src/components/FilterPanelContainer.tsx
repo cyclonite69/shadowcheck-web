@@ -1,6 +1,5 @@
 import React from 'react';
 import { FilterPanel } from './FilterPanel';
-import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 
 interface FilterPanelContainerProps {
   /** Control visibility of the panel */
@@ -17,7 +16,7 @@ interface FilterPanelContainerProps {
 
 export const FilterPanelContainer: React.FC<FilterPanelContainerProps> = ({
   isOpen,
-  adaptedFilters,
+  adaptedFilters: _adaptedFilters,
   className = '',
   position = 'sidebar',
   children,

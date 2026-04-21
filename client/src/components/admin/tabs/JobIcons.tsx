@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 
 export const ClockIcon = ({ size = 24, className = '' }) => (
   <svg

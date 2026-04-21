@@ -1,5 +1,4 @@
 import { networkApi } from '../../../../api/networkApi';
-import { wigleApi } from '../../../../api/wigleApi';
 import type { NetworkRow, NetworkTag } from '../../../../types/network';
 
 export const handleTagAction = async (

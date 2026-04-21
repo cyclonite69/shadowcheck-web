@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 import { JobRunHistoryEntry, JobRuntimeStatus } from './jobTypes';
 import { formatDuration, formatTimestamp } from './jobUtils';
 

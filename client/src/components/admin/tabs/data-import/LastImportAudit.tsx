@@ -1,4 +1,3 @@
-import React from 'react';
 import { MetricsTable } from './ImportHistory';
 import type { DataImportResult } from './types';
 

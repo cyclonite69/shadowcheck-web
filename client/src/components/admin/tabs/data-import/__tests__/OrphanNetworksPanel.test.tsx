@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 
-import React from 'react';
+/* React removed */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { OrphanNetworksPanel } from '../OrphanNetworksPanel';
 import { adminApi } from '../../../../../api/adminApi';

@@ -39,6 +39,7 @@ export type NetworkRow = {
   ssid: string;
   type: 'W' | 'E' | 'B' | 'G' | 'C' | 'D' | 'L' | 'N' | 'F' | '?' | null;
   signal: number | null;
+  bestlevel?: number | null;
   security: string | null;
   capabilities?: string | null;
   frequency: number | null;

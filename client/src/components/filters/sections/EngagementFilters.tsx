@@ -2,9 +2,7 @@
  * Notes, manual tagging, and WiGLE filters.
  */
 
-import React, { useEffect } from 'react';
 import { FilterSection, FilterInput } from '../../filter';
-import { useFilterStore } from '../../../stores/filterStore';
 import { NetworkFilters, TagType } from '../../../types/filters';
 
 interface EngagementFiltersProps {
@@ -16,14 +14,14 @@ interface EngagementFiltersProps {
   onToggleFilter: (key: keyof NetworkFilters) => void;
 }
 
-export const EngagementFilters: React.FC<EngagementFiltersProps> = ({
+export const EngagementFilters = ({
   filters,
   enabled,
   isCompact,
   controlClass,
   onSetFilter,
   onToggleFilter,
-}) => {
+}: EngagementFiltersProps) => {
   return (
     <FilterSection title="Engagement & WiGLE" compact={isCompact}>
       <FilterInput

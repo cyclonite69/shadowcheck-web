@@ -26,7 +26,7 @@ interface ObservationsCardProps {
 
 export const ObservationsCard: React.FC<ObservationsCardProps> = ({ selectedNetwork }) => {
   const [observations, setObservations] = useState<any[]>([]);
-  const [mvData, setMvData] = useState<any | null>(null);
+  const [_mvData, setMvData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);

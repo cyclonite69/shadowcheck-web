@@ -1,6 +1,5 @@
 import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
-import { SavedValueInput } from './SavedValueInput';
 
 const HomeIcon = ({ size = 24, className = '' }) => (
   <svg

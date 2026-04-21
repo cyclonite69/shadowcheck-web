@@ -6,7 +6,7 @@ import { NetworkContextMenuTable } from './contextMenu/NetworkContextMenuTable';
 import { NetworkContextMenuMenu } from './contextMenu/NetworkContextMenuMenu';
 import { NetworkContextNoteModal } from './contextMenu/NetworkContextNoteModal';
 import { NetworkContextNotes } from './contextMenu/NetworkContextNotes';
-import type { NetworkContextMenuProps, ContextMenuState, NotesByBssid } from './contextMenu/types';
+import type { NetworkContextMenuProps, ContextMenuState } from './contextMenu/types';
 
 export default function NetworkContextMenu({ networks = [] }: NetworkContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);

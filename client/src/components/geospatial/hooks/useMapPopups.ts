@@ -11,10 +11,7 @@ import {
   type PopupDragState,
 } from '../../../utils/geospatial/setupPopupDrag';
 
-export const useMapPopups = (
-  mapRef: React.MutableRefObject<MapboxMap | null>,
-  mapboxRef: React.MutableRefObject<typeof mapboxglType | null>
-) => {
+export const useMapPopups = (_mapRef: any, mapboxRef: any) => {
   const dragStateRef = useRef<PopupDragState | null>(null);
 
   const attachPopupHandlers = useCallback(

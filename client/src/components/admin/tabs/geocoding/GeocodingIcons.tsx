@@ -1,4 +1,4 @@
-import React from 'react';
+/* React removed */
 
 export const MapIcon = ({ size = 24, className = '' }) => (
   <svg

@@ -11,7 +11,7 @@ interface GeospatialOverlayContentProps {
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
   handleTagAction: (
     action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
-  ) => void;
+  ) => Promise<void>;
   closeContextMenu: () => void;
   openTimeFrequency: (params: { bssid: string; ssid: string }) => void;
   openNoteModalForBssid: (bssid: string) => void;
