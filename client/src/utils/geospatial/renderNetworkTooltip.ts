@@ -241,7 +241,6 @@ export const renderNetworkTooltip = (props: any): any => {
   const lon = props.lon ?? props.longitude ?? props.trilong;
   const ssid = normalizeDisplay(props.ssid);
   const bssid = normalizeDisplay(props.bssid || props.netid);
-  const obsNumber = Number(props.number) || 0;
   const obsTotal = Number(props.observation_count) || 0;
 
   const signalFill = Number.isFinite(rssi) ? clamp(((rssi - -90) / 60) * 100, 0, 100) : 0;
@@ -404,8 +403,6 @@ export const renderNetworkTooltip = (props: any): any => {
     : hasGeocoded
       ? props.geocoded_address
       : null;
-  const hasAddress = displayAddress !== null || locationText !== '';
-
   const homeKm = Number(props.distance_from_home_km);
   const maxKm = Number(props.max_distance_km);
   const lastPointMeters = Number(props.distance_from_last_point_m);

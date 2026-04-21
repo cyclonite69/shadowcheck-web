@@ -27,7 +27,7 @@ export const KeplerVisualization: React.FC<KeplerVisualizationProps> = ({
   pitch,
   height3d,
   drawMode,
-  onSelectPoints,
+  onSelectPoints: _onSelectPoints,
   initDeck,
   tooltipState,
   onClearTooltip,

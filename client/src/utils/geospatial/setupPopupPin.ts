@@ -1,10 +1,10 @@
-import mapboxgl from 'mapbox-gl';
+import type { Popup as MapboxPopup, Map as MapboxMap } from 'mapbox-gl';
 
 /**
  * Pin state for a popup: tracks whether it's fixed to the viewport or geo-anchored.
  */
 interface PopupPinState {
-  popup: mapboxgl.Popup;
+  popup: MapboxPopup;
   isPinned: boolean;
   originalOffset?: any;
   pinButton?: HTMLElement;
@@ -19,7 +19,7 @@ const pinStateMap = new Map<string, PopupPinState>();
  * Setup pin functionality for a popup.
  * Returns a cleanup function.
  */
-export function setupPopupPin(popup: mapboxgl.Popup, _map: mapboxgl.Map): () => void {
+export function setupPopupPin(popup: MapboxPopup, _map: MapboxMap): () => void {
   // Get the popup DOM container
   const popupElement = popup.getElement();
   if (!popupElement) return () => {};
@@ -128,7 +128,7 @@ export function setupPopupPin(popup: mapboxgl.Popup, _map: mapboxgl.Map): () => 
 /**
  * Get pin state for a popup (for checking if it's pinned)
  */
-export function isPopupPinned(popup: mapboxgl.Popup): boolean {
+export function isPopupPinned(popup: MapboxPopup): boolean {
   const state = Array.from(pinStateMap.values()).find((s) => s.popup === popup);
   return state?.isPinned ?? false;
 }

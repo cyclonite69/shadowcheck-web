@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import type { Map as MapboxMap, MapLayerMouseEvent } from 'mapbox-gl';
-import type * as mapboxglType from 'mapbox-gl';
+
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';

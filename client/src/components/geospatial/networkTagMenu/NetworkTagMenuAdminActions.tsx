@@ -1,4 +1,3 @@
-import type { NetworkTag } from '../../../types/network';
 import type { NetworkTagMenuAdminActionProps } from './types';
 import { NetworkTagMenuActionButton } from './NetworkTagMenuActionButton';
 

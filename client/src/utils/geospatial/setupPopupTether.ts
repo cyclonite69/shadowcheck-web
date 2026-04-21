@@ -118,9 +118,6 @@ function getPopupEdgeCoords(
   let edgeY = popupCenterY;
 
   // Clamp to popup box edges
-  const halfWidth = rect.width / 2;
-  const halfHeight = rect.height / 2;
-
   if (Math.abs(normalizedDx) > Math.abs(normalizedDy)) {
     // Hit left or right edge
     edgeX = normalizedDx > 0 ? rect.left + rect.width : rect.left;
@@ -132,17 +129,6 @@ function getPopupEdgeCoords(
   }
 
   return { x: edgeX, y: edgeY };
-}
-
-/**
- * Get popup center screen coordinates
- */
-function getPopupCenter(popupElement: HTMLElement): { x: number; y: number } {
-  const rect = popupElement.getBoundingClientRect();
-  return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2,
-  };
 }
 
 /**
@@ -184,7 +170,6 @@ export function setupPopupTether(popup: Popup, map: Map, lngLat: LngLatLike): Po
   };
 
   // Update line position initially
-  const popupCenterCoords = { x: 0, y: 0 }; // Temporary, will be recalculated below
   const popupRect = popupElement.getBoundingClientRect();
   const popupCenter = {
     x: popupRect.left + popupRect.width / 2,

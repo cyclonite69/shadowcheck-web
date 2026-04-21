@@ -517,7 +517,9 @@ export const WigleDetailTab: React.FC = () => {
                                   : 'hover:bg-slate-800/30'
                               }`}
                               onClick={() =>
-                                setSelectedObs((prev) => (prev?.id === obs.id ? null : obs))
+                                setSelectedObs((prev: (typeof observations)[0] | null) =>
+                                  prev?.id === obs.id ? null : obs
+                                )
                               }
                             >
                               <td className="px-3 py-2 whitespace-nowrap">

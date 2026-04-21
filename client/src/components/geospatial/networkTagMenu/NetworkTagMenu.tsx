@@ -39,7 +39,7 @@ export const NetworkTagMenu = ({
   visible,
   network,
   tag,
-  position,
+  position: _position,
   x,
   y,
   tagLoading,

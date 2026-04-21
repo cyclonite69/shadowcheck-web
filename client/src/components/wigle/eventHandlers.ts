@@ -61,7 +61,7 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
     // Setup drag
     let dragState: PopupDragState | null = null;
 
-    dragState = setupPopupDrag(popup, (offset) => {
+    dragState = setupPopupDrag(popup, (_offset) => {
       // Drag handler (tether line removed)
     });
 

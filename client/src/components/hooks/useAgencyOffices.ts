@@ -245,7 +245,7 @@ export const useAgencyOffices = (
       let dragState: PopupDragState | null = null;
       let pinCleanup: (() => void) | null = null;
 
-      dragState = setupPopupDrag(popup, (offset) => {
+      dragState = setupPopupDrag(popup, (_offset) => {
         // Drag handler (tether line removed)
       });
 

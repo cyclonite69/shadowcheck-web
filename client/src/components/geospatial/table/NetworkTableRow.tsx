@@ -46,7 +46,7 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
   onSelectExclusive,
   onOpenContextMenu,
   onToggleSelectNetwork,
-  lockedVisibleColumns,
+  lockedVisibleColumns: _lockedVisibleColumns,
   lastLockedVisibleColumn,
   getLockedLeft,
   getLockedZIndex,

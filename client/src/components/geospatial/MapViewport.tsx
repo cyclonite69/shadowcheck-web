@@ -6,6 +6,7 @@ interface MapViewportProps {
   embeddedView: 'street-view' | 'earth' | null;
   mapRef: React.MutableRefObject<any>;
   mapContainerRef: React.RefObject<HTMLDivElement | null>;
+  onOpenContextMenu?: (e: React.MouseEvent, network: any) => void;
 }
 
 export const MapViewport = ({

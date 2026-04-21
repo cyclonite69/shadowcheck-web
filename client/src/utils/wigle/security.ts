@@ -51,9 +51,7 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
   const hasWpa2 = value.includes('WPA2');
   const hasWpa = value.includes('WPA');
   const hasWep = value.includes('WEP');
-  const hasPsk = value.includes('PSK');
   const hasEap = value.includes('EAP') || value.includes('MGT') || value.includes('ENT');
-  const hasSae = value.includes('SAE');
   const hasOwe = value.includes('OWE');
   const hasWps = value.includes('WPS');
 

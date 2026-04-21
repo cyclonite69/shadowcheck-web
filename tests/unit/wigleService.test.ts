@@ -130,7 +130,8 @@ describe('WiGLE Service', () => {
   });
 
   describe('getWiglePageNetwork', () => {
-    // Mock order: v3Detail, v2Summary, localMatch, v3Temporal (Promise.all — 4 queries)
+    // Mock order: v3Detail, v2Summary, localMatch, v3Temporal, recentObs (Promise.all — 5 queries)
+    // A 6th call (geocoding) may fire and fail silently via try/catch.
     const v3DetailRow = {
       netid: 'AA:BB:CC:DD:EE:FF',
       ssid: 'DetailNet',
@@ -158,8 +159,9 @@ describe('WiGLE Service', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [v3DetailRow] }) // v3Detail
         .mockResolvedValueOnce({ rows: [] }) // v2Summary
-        .mockResolvedValueOnce({ rows: [{ has_local_match: true, local_observation_count: 3 }] })
-        .mockResolvedValueOnce({ rows: [v3TemporalRow] }); // v3Temporal
+        .mockResolvedValueOnce({ rows: [{ has_local_match: true, local_observation_count: 3 }] }) // localMatch
+        .mockResolvedValueOnce({ rows: [v3TemporalRow] }) // v3Temporal
+        .mockResolvedValueOnce({ rows: [] }); // recentObs
 
       const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
 
@@ -181,7 +183,7 @@ describe('WiGLE Service', () => {
         local_first_seen: null,
         local_last_seen: null,
       });
-      expect(mockQuery).toHaveBeenCalledTimes(4);
+      expect(mockQuery).toHaveBeenCalledTimes(6); // 5 Promise.all + 1 geocoding attempt
     });
 
     it('falls back to v2 summary fields when v3 detail is absent', async () => {
@@ -210,7 +212,8 @@ describe('WiGLE Service', () => {
         .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
         .mockResolvedValueOnce({
           rows: [{ wigle_v3_observation_count: 0, wigle_precision_warning: true }],
-        });
+        })
+        .mockResolvedValueOnce({ rows: [] }); // recentObs
 
       const result = await getWiglePageNetwork('11:22:33:44:55:66');
 
@@ -237,7 +240,8 @@ describe('WiGLE Service', () => {
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
-        .mockResolvedValueOnce({ rows: [{ wigle_v3_observation_count: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ wigle_v3_observation_count: 0 }] })
+        .mockResolvedValueOnce({ rows: [] }); // recentObs
 
       const result = await getWiglePageNetwork('00:00:00:00:00:00');
 
@@ -251,7 +255,8 @@ describe('WiGLE Service', () => {
         .mockResolvedValueOnce({ rows: [{ has_local_match: false, local_observation_count: 0 }] })
         .mockResolvedValueOnce({
           rows: [{ ...v3TemporalRow, wigle_v3_spread_m: 1200, wigle_v3_observation_count: 8 }],
-        });
+        })
+        .mockResolvedValueOnce({ rows: [] }); // recentObs
 
       const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
 
@@ -267,7 +272,8 @@ describe('WiGLE Service', () => {
           rows: [
             { ...v3TemporalRow, wigle_v3_ssid_variant_count: 3, wigle_v3_observation_count: 6 },
           ],
-        });
+        })
+        .mockResolvedValueOnce({ rows: [] }); // recentObs
 
       const result = await getWiglePageNetwork('AA:BB:CC:DD:EE:FF');
 

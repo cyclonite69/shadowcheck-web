@@ -46,7 +46,7 @@ const ColumnSelectorPortal: React.FC<{
       onWheel={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
     >
-      {orderedColumns.map(([col, column], index) => {
+      {orderedColumns.map(([col, column]) => {
         const isVisible = visibleColumns.includes(col);
         const colIndex = isVisible ? visibleColumns.indexOf(col) : -1;
 

@@ -111,7 +111,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   // Use WiGLE count if available (for WiGLE-correlated points), else local count
   const obsCount = wigleObsCount !== null ? wigleObsCount : localObsCount;
 
-  const wigleSource = raw.wigle_source || (raw.observed_at ? 'wigle-v3' : 'wigle-v2');
+  const wigleSource = raw.wigle_source ? raw.wigle_source : raw.observed_at ? 'wigle-v3' : null;
 
   const accuracy = toNumberOrNull(pickFirst(raw.accuracy, raw.acc));
   const explicitQuality = toNumberOrNull(pickFirst(raw.quality_score, raw.data_quality));

@@ -48,6 +48,9 @@ jest.mock('../../server/src/services/geocoding/daemonState', () => ({
 }));
 jest.mock('../../server/src/services/geocoding/jobState');
 jest.mock('../../server/src/services/geocoding/providerRuntime');
+jest.mock('../../server/src/services/geocoding/cacheStore', () => ({
+  getActivePendingPrecisions: jest.fn().mockResolvedValue([]),
+}));
 
 describe('GeocodingDaemon', () => {
   beforeEach(() => {

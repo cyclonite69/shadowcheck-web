@@ -66,12 +66,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     closeWigleLookupDialog: () => {},
     handleWigleLookup: async () => {},
     wigleObservations: { loading: false, bssid: null, bssids: [], observations: [] },
-    loadWigleObservations: async (network: any) => {
-      console.log('loadWigleObservations called for', network);
-    },
-    loadBatchWigleObservations: async (bssids: string[]) => {
-      console.log('loadBatchWigleObservations called for', bssids);
-    },
+    loadWigleObservations: async () => {},
+    loadBatchWigleObservations: async () => {},
     clearWigleObservations: () => {},
   };
 };

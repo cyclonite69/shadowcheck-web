@@ -1,4 +1,4 @@
-import type { NetworkRow } from '../../../types/network';
+import type { NetworkRow } from '../../../../types/network';
 
 export const isBluetoothLookupTarget = (network: NetworkRow | null): boolean => {
   if (!network) return false;

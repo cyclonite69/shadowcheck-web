@@ -49,7 +49,7 @@ export const adminApi = {
   },
 
   async testGeocodingProvider(options: {
-    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';
     mode: 'address-only' | 'poi-only' | 'both';
     precision: number;
     permanent?: boolean;
@@ -188,7 +188,10 @@ export const adminApi = {
   },
 
   async runLocalStackAction(action: 'recreate-api' | 'rebuild-frontend' | 'rebuild-stack') {
-    return apiClient.post(`/admin/settings/local-stack/${action}`, {});
+    return apiClient.post<{ message?: string; success?: boolean }>(
+      `/admin/settings/local-stack/${action}`,
+      {}
+    );
   },
 
   async updateAdminSetting(key: string, value: unknown): Promise<any> {

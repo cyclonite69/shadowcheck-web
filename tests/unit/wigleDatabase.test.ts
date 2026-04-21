@@ -4,6 +4,7 @@ import express from 'express';
 jest.mock('../../server/src/config/container', () => ({
   wigleService: {
     getWiglePageNetwork: jest.fn(),
+    getWiglePageNetworkFromMv: jest.fn().mockResolvedValue(null),
     getWigleDetail: jest.fn(),
     searchWigleDatabase: jest.fn(),
     getWigleDatabase: jest.fn(),

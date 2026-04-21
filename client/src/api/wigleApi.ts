@@ -117,6 +117,13 @@ export interface WiglePageNetworkResponse {
     public_ssid_variant_flag: boolean;
     // precision caveat
     wigle_precision_warning: boolean;
+    // most-recent observation fields
+    recent_ssid: string | null;
+    recent_channel: number | null;
+    recent_frequency: number | null;
+    recent_accuracy: number | null;
+    // geocoding
+    geocoded_address: string | null;
   };
   localLinkage: {
     has_local_match: boolean;
