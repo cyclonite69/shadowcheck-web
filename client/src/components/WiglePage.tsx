@@ -637,11 +637,8 @@ const WiglePage: React.FC = () => {
     }
 
     const bssidSet = new Set<string>();
-    v2Rows.forEach((row: any) => {
+    [...v2Rows, ...v3Rows].forEach((row: any) => {
       if (row.bssid) bssidSet.add(String(row.bssid).toUpperCase());
-    });
-    v3Rows.forEach((row: any) => {
-      if (row.netid) bssidSet.add(String(row.netid).toUpperCase());
     });
 
     const bssids = Array.from(bssidSet).slice(0, 50);
