@@ -5,6 +5,7 @@ export const handleTagAction = async (
   action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear',
   network: NetworkRow
 ): Promise<{ tag?: NetworkTag; deleted?: string; error?: string }> => {
+  console.log(`[DEBUG] handleTagAction: action=${action}, bssid=${network.bssid}`);
   const bssid = network.bssid;
   let result;
 
