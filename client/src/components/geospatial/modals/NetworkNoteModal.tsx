@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NoteMediaItem } from '../../api/networkApi';
+import type { NoteMediaItem } from '../../../api/networkApi';
 
 interface NetworkNoteModalProps {
   open: boolean;

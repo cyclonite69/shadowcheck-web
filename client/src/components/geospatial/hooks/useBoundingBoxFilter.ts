@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { Map } from 'mapbox-gl';
-import { NetworkFilters } from '../../types/filters';
+import type { NetworkFilters } from '../../../types/filters';
 
 interface UseBoundingBoxFilterParams {
   mapReady: boolean;

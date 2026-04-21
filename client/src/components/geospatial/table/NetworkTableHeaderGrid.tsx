@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { NetworkRow, SortState } from '../../../../types/network';
+import type { NetworkRow, SortState } from '../../../types/network';
 import { API_SORT_MAP, NETWORK_COLUMNS } from '../../../constants/network';
 import {
   NETWORK_TABLE_HEADER_X_OFFSET_PX,

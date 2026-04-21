@@ -1,4 +1,4 @@
-import type { NetworkTag } from '../../types/network';
+import type { NetworkTag } from '../../../types/network';
 
 export interface NetworkTagMenuAdminActionProps {
   tag: NetworkTag | null;

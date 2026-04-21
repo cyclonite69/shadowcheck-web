@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import type { NetworkRow } from '../../../../types/network';
-import type { NetworkColumnConfig } from '../../../../constants/network';
+import type { NetworkRow } from '../../../types/network';
+import type { NetworkColumnConfig } from '../../../constants/network';
 import { useColumnSelectorPosition, type MenuPosition } from '../hooks/useColumnSelectorPosition';
 import { ColumnItem } from './ColumnItem';
 

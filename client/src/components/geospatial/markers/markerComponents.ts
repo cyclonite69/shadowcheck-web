@@ -8,5 +8,5 @@
  *   import { CentroidMarker, WeightedMarker, GeospatialMarkerLegend } from './markerComponents';
  */
 
-export { CentroidMarker, WeightedMarker } from './markers';
+export { CentroidMarker, WeightedMarker } from './index';
 export { GeospatialMarkerLegend } from './GeospatialMarkerLegend';

@@ -1,6 +1,6 @@
 import React from 'react';
-import type { NetworkRow } from '../../../../types/network';
-import type { NetworkColumnConfig } from '../../../../constants/network';
+import type { NetworkRow } from '../../../types/network';
+import type { NetworkColumnConfig } from '../../../constants/network';
 
 interface ColumnItemProps {
   columnKey: keyof NetworkRow | 'select';

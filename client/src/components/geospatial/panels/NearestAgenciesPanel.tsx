@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Agency } from './useNearestAgencies';
+import type { Agency } from '../hooks/useNearestAgencies';
 
 interface NearestAgenciesPanelProps {
   agencies: Agency[];

@@ -1,4 +1,4 @@
-import type { NetworkRow } from '../../types/network';
+import type { NetworkRow } from '../../../types/network';
 
 interface WigleLookupDialogProps {
   visible: boolean;

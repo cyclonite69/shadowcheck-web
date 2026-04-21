@@ -1,5 +1,5 @@
 import React from 'react';
-import { CentroidMarker, WeightedMarker } from './markers';
+import { CentroidMarker, WeightedMarker } from './index';
 
 interface GeospatialMarkerLegendProps {
   className?: string;

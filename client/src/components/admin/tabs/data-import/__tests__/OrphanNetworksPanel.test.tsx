@@ -3,9 +3,9 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { OrphanNetworksPanel } from '../OrphanNetworksPanel';
-import { adminApi } from '../../../../../../api/adminApi';
+import { adminApi } from '../../../../../api/adminApi';
 
-jest.mock('../../../../../../api/adminApi', () => ({
+jest.mock('../../../../../api/adminApi', () => ({
   adminApi: {
     getOrphanNetworks: jest.fn(),
     checkOrphanNetworkWigle: jest.fn(),
