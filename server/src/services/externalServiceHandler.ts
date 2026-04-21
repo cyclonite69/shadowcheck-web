@@ -37,13 +37,24 @@ async function withRetry(serviceFn: any, options: Record<string, unknown> = {}) 
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt += 1) {
     try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`${serviceName} timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      });
+      return await new Promise((resolve, reject) => {
+        let timeoutId: NodeJS.Timeout;
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error(`${serviceName} timed out after ${timeoutMs}ms`));
+          }, timeoutMs);
+        });
 
-      return await Promise.race([serviceFn(), timeoutPromise]);
+        Promise.race([serviceFn(), timeoutPromise])
+          .then((res) => {
+            clearTimeout(timeoutId);
+            resolve(res);
+          })
+          .catch((err) => {
+            clearTimeout(timeoutId);
+            reject(err);
+          });
+      });
     } catch (err) {
       lastError = err;
       if (attempt <= maxRetries) {
