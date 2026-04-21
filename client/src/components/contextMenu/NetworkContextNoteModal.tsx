@@ -8,7 +8,7 @@ interface NetworkContextNoteModalProps {
   noteType: string;
   onNoteTypeChange: (value: string) => void;
   attachedFiles: File[];
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileAttach: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAttachment: (idx: number) => void;
   onClose: () => void;

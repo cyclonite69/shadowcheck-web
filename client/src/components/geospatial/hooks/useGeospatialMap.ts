@@ -56,8 +56,8 @@ export const useGeospatialMap = ({
     if (mapInitRef.current || !mapContainerRef.current) return;
     mapInitRef.current = true;
 
-    let cleanupPopups: (() => void) | null = null;
-    let cleanupHover: (() => void) | null = null;
+    let cleanupPopups: (() => void) | undefined;
+    let cleanupHover: (() => void) | undefined;
 
     const init = async () => {
       const map = await initMap();

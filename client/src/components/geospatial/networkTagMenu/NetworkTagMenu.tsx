@@ -15,7 +15,7 @@ interface NetworkTagMenuProps {
   x: number;
   y: number;
   tagLoading: boolean;
-  contextMenuRef: React.RefObject<HTMLDivElement>;
+  contextMenuRef: React.RefObject<HTMLDivElement | null>;
   onTagAction: (
     action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear',
     notes?: string

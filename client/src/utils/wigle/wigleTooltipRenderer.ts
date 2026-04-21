@@ -65,7 +65,10 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
     return src ? `Coords (${escapeHtml(src)})` : 'Coordinates';
   })();
 
-  const locationDisplay = [data.city, data.region].filter(Boolean).map(escapeHtml).join(', ');
+  const locationDisplay = [data.city, data.region]
+    .filter((value): value is string => Boolean(value))
+    .map(escapeHtml)
+    .join(', ');
 
   const precisionWarning = data.wiglePrecisionWarning
     ? `<div style="display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">

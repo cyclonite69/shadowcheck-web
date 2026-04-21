@@ -9,7 +9,7 @@ interface NetworkNoteModalProps {
   noteContent: string;
   noteAttachments: File[];
   existingNoteMedia: NoteMediaItem[];
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onNoteTypeChange: (value: string) => void;
   onNoteContentChange: (value: string) => void;
   onAddAttachment: (event: React.ChangeEvent<HTMLInputElement>) => void;

@@ -15,7 +15,7 @@ interface GeospatialOverlaysProps {
     y: number;
   };
   tagLoading: boolean;
-  contextMenuRef: React.RefObject<HTMLDivElement>;
+  contextMenuRef: React.RefObject<HTMLDivElement | null>;
   onTagAction: (
     action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
   ) => Promise<void>;
@@ -40,7 +40,7 @@ interface GeospatialOverlaysProps {
   noteContent: string;
   noteAttachments: File[];
   existingNoteMedia: NoteMediaItem[];
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onNoteTypeChange: (value: string) => void;
   onNoteContentChange: (value: string) => void;
   onAddAttachment: (event: React.ChangeEvent<HTMLInputElement>) => void;

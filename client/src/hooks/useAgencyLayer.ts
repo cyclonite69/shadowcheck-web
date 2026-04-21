@@ -5,7 +5,7 @@ import { renderAgencyPopupCard } from '../utils/geospatial/renderMapPopupCards';
 
 interface Agency {
   name: string;
-  office_type: string;
+  office_type?: string;
   latitude: number;
   longitude: number;
   distance_meters?: number;
@@ -48,7 +48,7 @@ export const useAgencyLayer = ({
           geometry: { type: 'Point', coordinates: [a.longitude, a.latitude] },
           properties: {
             name: a.name,
-            type: a.office_type,
+            type: a.office_type ?? 'resident_agency',
             distance: (a.distance_meters || 0) / 1000,
             hasWigleObs: a.has_wigle_obs,
           },
