@@ -80,6 +80,10 @@ export const networkApi = {
     return apiClient.post('/networks/wigle-observations/batch', { bssids });
   },
 
+  async getWigleObservations(bssid: string): Promise<any> {
+    return apiClient.get(`/networks/${encodeURIComponent(bssid)}/wigle-observations`);
+  },
+
   async setNetworkSiblingOverride(
     bssidA: string,
     bssidB: string,

@@ -3,6 +3,16 @@ import { networkApi } from '../../../api/networkApi';
 import { wigleApi } from '../../../api/wigleApi';
 import { handleTagAction } from './contextMenu/actions';
 
+const emptyWigleObservations = {
+  loading: false,
+  bssid: null,
+  bssids: [],
+  observations: [],
+  error: null,
+  stats: null,
+  batchStats: null,
+};
+
 export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
   const [contextMenu, setContextMenu] = useState<any>({
     visible: false,
@@ -12,7 +22,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     tag: null,
     hasExistingNote: false,
     position: 'below',
-    wigleObservations: { loading: false, bssid: null, bssids: [], observations: [] },
+    wigleObservations: emptyWigleObservations,
   });
   const [tagLoading, setTagLoading] = useState(false);
   const [wigleLookupDialog, setWigleLookupDialog] = useState<{
@@ -35,24 +45,123 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
   };
 
   const loadWigleObservations = async (network: any) => {
-    setTagLoading(true);
+    const normalizedBssid = String(network?.bssid || '')
+      .trim()
+      .toUpperCase();
+    if (!normalizedBssid) return;
+
+    setContextMenu((prev: any) => ({
+      ...prev,
+      wigleObservations: {
+        ...emptyWigleObservations,
+        loading: true,
+        bssid: normalizedBssid,
+        bssids: [normalizedBssid],
+      },
+    }));
+
     try {
-      const observations = await networkApi.getWigleObservationsBatch([network.bssid]);
+      const result = await networkApi.getWigleObservations(normalizedBssid);
       setContextMenu((prev: any) => ({
         ...prev,
         wigleObservations: {
           loading: false,
-          bssid: network.bssid,
-          bssids: [network.bssid],
-          observations: observations || [],
+          bssid: result?.bssid || normalizedBssid,
+          bssids: [result?.bssid || normalizedBssid],
+          observations: Array.isArray(result?.observations)
+            ? result.observations.map((observation: any) => ({
+                ...observation,
+                bssid: result?.bssid || normalizedBssid,
+              }))
+            : [],
+          error: null,
+          stats: result?.stats || null,
+          batchStats: null,
         },
       }));
     } catch (err: any) {
       console.error('CRITICAL: WiGLE observation fetch failed', err);
       logError('Failed to load WiGLE observations', err);
-    } finally {
-      setTagLoading(false);
+      setContextMenu((prev: any) => ({
+        ...prev,
+        wigleObservations: {
+          ...emptyWigleObservations,
+          bssid: normalizedBssid,
+          bssids: [normalizedBssid],
+          error: err?.message || 'Failed to load WiGLE observations',
+        },
+      }));
     }
+  };
+
+  const loadBatchWigleObservations = async (bssids: string[]) => {
+    const normalizedBssids = Array.from(
+      new Set(
+        bssids
+          .map((bssid) =>
+            String(bssid || '')
+              .trim()
+              .toUpperCase()
+          )
+          .filter(Boolean)
+      )
+    );
+    if (normalizedBssids.length === 0) return;
+
+    setContextMenu((prev: any) => ({
+      ...prev,
+      wigleObservations: {
+        ...emptyWigleObservations,
+        loading: true,
+        bssid: normalizedBssids.length === 1 ? normalizedBssids[0] : null,
+        bssids: normalizedBssids,
+      },
+    }));
+
+    try {
+      const result = await networkApi.getWigleObservationsBatch(normalizedBssids);
+      const networks = Array.isArray(result?.networks) ? result.networks : [];
+      const observations = networks.flatMap((entry: any) =>
+        Array.isArray(entry?.observations)
+          ? entry.observations.map((observation: any) => ({
+              ...observation,
+              bssid: entry?.bssid || null,
+            }))
+          : []
+      );
+
+      setContextMenu((prev: any) => ({
+        ...prev,
+        wigleObservations: {
+          loading: false,
+          bssid: normalizedBssids.length === 1 ? normalizedBssids[0] : null,
+          bssids: normalizedBssids,
+          observations,
+          error: null,
+          stats: null,
+          batchStats: result?.stats || null,
+        },
+      }));
+    } catch (err: any) {
+      console.error('CRITICAL: WiGLE batch observation fetch failed', err);
+      logError('Failed to load WiGLE batch observations', err);
+      setContextMenu((prev: any) => ({
+        ...prev,
+        wigleObservations: {
+          ...emptyWigleObservations,
+          bssid: normalizedBssids.length === 1 ? normalizedBssids[0] : null,
+          bssids: normalizedBssids,
+          error: err?.message || 'Failed to load WiGLE batch observations',
+        },
+      }));
+    }
+  };
+
+  const clearWigleObservations = () => {
+    setContextMenu((prev: any) => ({
+      ...prev,
+      wigleObservations: emptyWigleObservations,
+    }));
   };
 
   const handleTagActionWrapper = async (
@@ -178,26 +287,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     },
     wigleObservations: contextMenu.wigleObservations,
     loadWigleObservations,
-    loadBatchWigleObservations: async (bssids: string[]) => {
-      setTagLoading(true);
-      try {
-        const observations = await networkApi.getWigleObservationsBatch(bssids);
-        setContextMenu((prev: any) => ({
-          ...prev,
-          wigleObservations: {
-            loading: false,
-            bssid: bssids[0] || null,
-            bssids: bssids,
-            observations: observations || [],
-          },
-        }));
-      } catch (err: any) {
-        console.error('CRITICAL: WiGLE batch observation fetch failed', err);
-        logError('Failed to load WiGLE batch observations', err);
-      } finally {
-        setTagLoading(false);
-      }
-    },
-    clearWigleObservations: () => {},
+    loadBatchWigleObservations,
+    clearWigleObservations,
   };
 };

@@ -58,7 +58,6 @@ export const NetworkTagMenu = ({
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
   const [menuSize, setMenuSize] = useState({ width: 200, height: 0 });
-  if (!visible || !network) return null;
 
   useLayoutEffect(() => {
     if (!visible || !contextMenuRef.current) return;
@@ -79,7 +78,9 @@ export const NetworkTagMenu = ({
     isAdmin,
   ]);
 
-  if (typeof document === 'undefined') return null;
+  if (!visible || !network || typeof document === 'undefined' || typeof window === 'undefined') {
+    return null;
+  }
 
   const maxX = Math.max(8, window.innerWidth - menuSize.width - 8);
   const maxY = Math.max(8, window.innerHeight - menuSize.height - 8);
