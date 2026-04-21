@@ -88,7 +88,9 @@ export const WigleStatsTab: React.FC = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/wigle/user-stats');
+      const response = await apiClient.get<{ success: boolean; stats: any; error?: string }>(
+        '/wigle/user-stats'
+      );
       if (response?.success) {
         setStats(response.stats);
         setStatsError(null);

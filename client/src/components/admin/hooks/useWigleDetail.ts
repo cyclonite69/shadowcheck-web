@@ -14,6 +14,8 @@ export interface WigleDetailData {
   lastUpdate: string;
   trilateratedLatitude: number;
   trilateratedLongitude: number;
+  bestClusterWiGLEQoS?: number | null;
+  comment?: string | null;
   streetAddress?: {
     city?: string;
     region?: string;

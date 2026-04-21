@@ -53,11 +53,10 @@ export const JobsTab: React.FC = () => {
 
   const fetchJobStatus = async () => {
     try {
-      const response = await apiClient.get('/admin/settings/jobs/status');
-      const typedResponse = response as JobsStatusResponse;
+      const response = await apiClient.get<JobsStatusResponse>('/admin/settings/jobs/status');
       if (response?.success) {
-        setJobStatus(typedResponse.jobs || {});
-        setSchedulerEnabled(Boolean(typedResponse.schedulerEnabled));
+        setJobStatus(response.jobs || {});
+        setSchedulerEnabled(Boolean(response.schedulerEnabled));
       }
     } catch (err) {
       console.error('Failed to fetch job status', err);
@@ -66,7 +65,7 @@ export const JobsTab: React.FC = () => {
 
   const fetchConfigs = async () => {
     try {
-      const response = await apiClient.get('/admin/settings');
+      const response = await apiClient.get<any>('/admin/settings');
       if (response?.success) {
         const settings = response.settings;
         const findValue = (key: string) => {
@@ -121,7 +120,7 @@ export const JobsTab: React.FC = () => {
     setRunning(key);
     try {
       const config = configs[key] || DEFAULT_CONFIGS[key];
-      const response = await apiClient.post(`/admin/settings/jobs/${key}/run`, config);
+      const response = await apiClient.post<any>(`/admin/settings/jobs/${key}/run`, config);
       if (!response?.success) {
         throw new Error(response?.error || 'Manual job run failed');
       }
