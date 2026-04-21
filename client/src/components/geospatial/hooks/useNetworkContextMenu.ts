@@ -28,14 +28,15 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
       const observations = await networkApi.getWigleObservationsBatch([network.bssid]);
       setContextMenu((prev: any) => ({
         ...prev,
-        wigleObservations: { 
-          loading: false, 
-          bssid: network.bssid, 
-          bssids: [network.bssid], 
-          observations: observations || [] 
-        }
+        wigleObservations: {
+          loading: false,
+          bssid: network.bssid,
+          bssids: [network.bssid],
+          observations: observations || [],
+        },
       }));
     } catch (err: any) {
+      console.error('CRITICAL: WiGLE observation fetch failed', err);
       logError('Failed to load WiGLE observations', err);
     } finally {
       setTagLoading(false);
