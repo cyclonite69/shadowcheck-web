@@ -642,12 +642,21 @@ const WiglePage: React.FC = () => {
     });
 
     const bssids = Array.from(bssidSet).slice(0, 50);
-    if (bssids.length === 0) return;
+    console.log('[DEBUG] Field Data toggle bssids:', bssids);
+    if (bssids.length === 0) {
+      console.warn('[DEBUG] Field Data toggle found no BSSIDs to fetch');
+      return;
+    }
 
     let cancelled = false;
 
     Promise.allSettled(
-      bssids.map((bssid) => wigleApi.getLocalObservationsByBSSID(bssid).catch(() => null))
+      bssids.map((bssid) =>
+        wigleApi.getLocalObservationsByBSSID(bssid).catch((err) => {
+          console.error(`[DEBUG] Failed to fetch observation for ${bssid}`, err);
+          return null;
+        })
+      )
     ).then((results) => {
       if (cancelled) return;
 
