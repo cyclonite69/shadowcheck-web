@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { networkApi } from '../../../api/networkApi';
 import { handleTagAction } from './contextMenu/actions';
 
 export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
@@ -10,6 +11,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     tag: null,
     hasExistingNote: false,
     position: 'below',
+    wigleObservations: { loading: false, bssid: null, bssids: [], observations: [] },
   });
   const [tagLoading, setTagLoading] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -18,6 +20,26 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
   const closeContextMenu = () => {
     contextMenuRequestIdRef.current++;
     setContextMenu((prev: any) => ({ ...prev, visible: false }));
+  };
+
+  const loadWigleObservations = async (network: any) => {
+    setTagLoading(true);
+    try {
+      const observations = await networkApi.getWigleObservationsBatch([network.bssid]);
+      setContextMenu((prev: any) => ({
+        ...prev,
+        wigleObservations: { 
+          loading: false, 
+          bssid: network.bssid, 
+          bssids: [network.bssid], 
+          observations: observations || [] 
+        }
+      }));
+    } catch (err: any) {
+      logError('Failed to load WiGLE observations', err);
+    } finally {
+      setTagLoading(false);
+    }
   };
 
   const handleTagActionWrapper = async (
@@ -59,14 +81,25 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     contextMenuRef,
     handleTagAction: handleTagActionWrapper,
     closeContextMenu,
-    openContextMenu: async (_e: any, _n: any) => {},
+    openContextMenu: async (e: any, n: any) => {
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        network: n,
+        tag: null,
+        hasExistingNote: false,
+        position: 'below',
+        wigleObservations: contextMenu.wigleObservations,
+      });
+    },
     handleGenerateThreatReportPdf: async () => {},
     wigleLookupDialog: { visible: false },
     setWigleLookupDialog: () => {},
     closeWigleLookupDialog: () => {},
     handleWigleLookup: async () => {},
-    wigleObservations: { loading: false, bssid: null, bssids: [], observations: [] },
-    loadWigleObservations: async () => {},
+    wigleObservations: contextMenu.wigleObservations,
+    loadWigleObservations,
     loadBatchWigleObservations: async () => {},
     clearWigleObservations: () => {},
   };
