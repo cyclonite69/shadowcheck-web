@@ -13,10 +13,14 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   const [noteType, setNoteType] = useState('general');
   const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
   const [existingNoteMedia, setExistingNoteMedia] = useState<NoteMediaItem[]>([]);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteDeleting, setNoteDeleting] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const noteRequestBssidRef = useRef<string>('');
 
   const resetNoteState = () => {
+    noteRequestBssidRef.current = '';
     setShowNoteModal(false);
     setSelectedBssid('');
     setExistingNoteId(null);
@@ -24,6 +28,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     setNoteType('general');
     setNoteAttachments([]);
     setExistingNoteMedia([]);
+    setNoteSaving(false);
+    setNoteDeleting(false);
+    setNoteError(null);
   };
 
   const openNoteModalForBssid = async (bssid: string) => {
@@ -31,6 +38,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
 
     noteRequestBssidRef.current = bssid;
 
+    setNoteError(null);
+    setNoteSaving(false);
+    setNoteDeleting(false);
     setSelectedBssid(bssid);
     setExistingNoteId(null);
     setNoteContent('');
@@ -60,6 +70,8 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   const handleSaveNote = async () => {
     if (!noteContent.trim() || !selectedBssid) return;
 
+    setNoteSaving(true);
+    setNoteError(null);
     try {
       let noteId = existingNoteId;
       if (existingNoteId) {
@@ -112,18 +124,26 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
         throw new Error(`Some attachments failed to upload: ${uploadFailures.join(', ')}`);
       }
     } catch (err) {
+      setNoteError(err instanceof Error ? err.message : 'Failed to save note');
       logError('Failed to save note', err);
+    } finally {
+      setNoteSaving(false);
     }
   };
 
   const handleDeleteNote = async () => {
     if (!selectedBssid || !existingNoteId) return;
 
+    setNoteDeleting(true);
+    setNoteError(null);
     try {
       await networkApi.deleteNetworkNote(selectedBssid, existingNoteId);
       resetNoteState();
     } catch (err) {
+      setNoteError(err instanceof Error ? err.message : 'Failed to delete note');
       logError('Failed to delete note', err);
+    } finally {
+      setNoteDeleting(false);
     }
   };
 
@@ -159,6 +179,10 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
     setSelectedBssid,
     existingNoteId,
     hasExistingNote: existingNoteId !== null,
+    noteSaving,
+    noteDeleting,
+    noteError,
+    clearNoteError: () => setNoteError(null),
     noteContent,
     setNoteContent,
     noteType,

@@ -5,6 +5,9 @@ interface NetworkNoteModalProps {
   open: boolean;
   isEditMode: boolean;
   selectedBssid: string;
+  saving: boolean;
+  deleting: boolean;
+  error: string | null;
   noteType: string;
   noteContent: string;
   noteAttachments: File[];
@@ -27,6 +30,9 @@ export const NetworkNoteModal = ({
   open,
   isEditMode,
   selectedBssid,
+  saving,
+  deleting,
+  error,
   noteType,
   noteContent,
   noteAttachments,
@@ -186,6 +192,22 @@ export const NetworkNoteModal = ({
             }}
           />
         </div>
+
+        {error && (
+          <div
+            style={{
+              marginBottom: '16px',
+              padding: '10px 12px',
+              background: 'rgba(127,0,0,0.28)',
+              border: '1px solid #991b1b',
+              borderRadius: '4px',
+              color: '#fecaca',
+              fontSize: '13px',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         {/* Media Attachments */}
         <div style={{ marginBottom: '16px' }}>
@@ -412,6 +434,7 @@ export const NetworkNoteModal = ({
           {isEditMode && (
             <button
               onClick={onDeleteNote}
+              disabled={saving || deleting}
               style={{
                 flex: '1 1 100%',
                 padding: '10px 20px',
@@ -421,44 +444,47 @@ export const NetworkNoteModal = ({
                 color: 'white',
                 fontSize: '14px',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: saving || deleting ? 'not-allowed' : 'pointer',
+                opacity: saving || deleting ? 0.6 : 1,
               }}
             >
-              Delete Note
+              {deleting ? 'Deleting Note...' : 'Delete Note'}
             </button>
           )}
           <button
             onClick={onSave}
-            disabled={!noteContent.trim()}
+            disabled={!noteContent.trim() || saving || deleting}
             style={{
               flex: 1,
               padding: '10px 20px',
-              background: noteContent.trim() ? '#a78bfa' : '#475569',
+              background: noteContent.trim() && !saving && !deleting ? '#a78bfa' : '#475569',
               border: 'none',
               borderRadius: '4px',
               color: 'white',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: noteContent.trim() ? 'pointer' : 'not-allowed',
+              cursor: noteContent.trim() && !saving && !deleting ? 'pointer' : 'not-allowed',
               transition: 'background 0.2s',
             }}
             onMouseEnter={(e) => {
-              if (noteContent.trim()) {
+              if (noteContent.trim() && !saving && !deleting) {
                 e.currentTarget.style.background = '#c4b5fd';
               }
             }}
             onMouseLeave={(e) => {
-              if (noteContent.trim()) {
+              if (noteContent.trim() && !saving && !deleting) {
                 e.currentTarget.style.background = '#a78bfa';
               }
             }}
           >
-            {isEditMode ? 'Save Changes' : 'Save Note'}{' '}
-            {noteAttachments.length > 0 &&
+            {saving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save Note'}{' '}
+            {!saving &&
+              noteAttachments.length > 0 &&
               `+ ${noteAttachments.length} File${noteAttachments.length !== 1 ? 's' : ''}`}
           </button>
           <button
             onClick={onCancel}
+            disabled={saving || deleting}
             style={{
               flex: 1,
               padding: '10px 20px',
@@ -468,7 +494,8 @@ export const NetworkNoteModal = ({
               color: '#94a3b8',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: 'pointer',
+              cursor: saving || deleting ? 'not-allowed' : 'pointer',
+              opacity: saving || deleting ? 0.6 : 1,
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {

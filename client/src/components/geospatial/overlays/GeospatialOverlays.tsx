@@ -36,6 +36,9 @@ interface GeospatialOverlaysProps {
   showNoteModal: boolean;
   isEditNoteMode: boolean;
   selectedBssid: string;
+  noteSaving: boolean;
+  noteDeleting: boolean;
+  noteError: string | null;
   noteType: string;
   noteContent: string;
   noteAttachments: File[];
@@ -73,6 +76,9 @@ export const GeospatialOverlays = ({
   showNoteModal,
   isEditNoteMode,
   selectedBssid,
+  noteSaving,
+  noteDeleting,
+  noteError,
   noteType,
   noteContent,
   noteAttachments,
@@ -119,6 +125,9 @@ export const GeospatialOverlays = ({
         open={showNoteModal}
         isEditMode={isEditNoteMode}
         selectedBssid={selectedBssid}
+        saving={noteSaving}
+        deleting={noteDeleting}
+        error={noteError}
         noteType={noteType}
         noteContent={noteContent}
         noteAttachments={noteAttachments}

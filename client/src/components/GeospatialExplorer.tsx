@@ -140,6 +140,11 @@ export default function GeospatialExplorer() {
     showNoteModal,
     setShowNoteModal,
     selectedBssid,
+    hasExistingNote,
+    noteSaving,
+    noteDeleting,
+    noteError,
+    clearNoteError,
     noteContent,
     setNoteContent,
     noteType,
@@ -237,6 +242,11 @@ export default function GeospatialExplorer() {
           showNoteModal={showNoteModal}
           setShowNoteModal={setShowNoteModal}
           selectedBssid={selectedBssid}
+          hasExistingNote={hasExistingNote}
+          noteSaving={noteSaving}
+          noteDeleting={noteDeleting}
+          noteError={noteError}
+          clearNoteError={clearNoteError}
           noteType={noteType}
           noteContent={noteContent}
           noteAttachments={noteAttachments}

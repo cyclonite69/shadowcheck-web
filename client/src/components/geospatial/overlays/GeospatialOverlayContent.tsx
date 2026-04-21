@@ -25,6 +25,11 @@ interface GeospatialOverlayContentProps {
   showNoteModal: boolean;
   setShowNoteModal: (show: boolean) => void;
   selectedBssid: string;
+  hasExistingNote: boolean;
+  noteSaving: boolean;
+  noteDeleting: boolean;
+  noteError: string | null;
+  clearNoteError: () => void;
   noteType: string;
   noteContent: string;
   noteAttachments: any[];
@@ -68,6 +73,11 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   showNoteModal,
   setShowNoteModal,
   selectedBssid,
+  hasExistingNote,
+  noteSaving,
+  noteDeleting,
+  noteError,
+  clearNoteError,
   noteType,
   noteContent,
   noteAttachments,
@@ -105,11 +115,10 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
       }}
       onOpenNote={() => {
         const bssid = contextMenu.network?.bssid || '';
-        console.log('openNoteModal bssid:', contextMenu.network?.bssid);
         closeContextMenu();
         void openNoteModalForBssid(bssid);
       }}
-      hasExistingNote={contextMenu.hasExistingNote}
+      hasExistingNote={hasExistingNote && selectedBssid === contextMenu.network?.bssid}
       onGenerateThreatReport={handleGenerateThreatReportPdf}
       onMapWigleObservations={() => {
         const selectedBssids = Array.from(selectedNetworks);
@@ -128,8 +137,11 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
       onMarkSiblingPair={handleMarkSiblingPair}
       siblingPairLoading={siblingPairLoading}
       showNoteModal={showNoteModal}
-      isEditNoteMode={contextMenu.hasExistingNote}
+      isEditNoteMode={hasExistingNote}
       selectedBssid={selectedBssid}
+      noteSaving={noteSaving}
+      noteDeleting={noteDeleting}
+      noteError={noteError}
       noteType={noteType}
       noteContent={noteContent}
       noteAttachments={noteAttachments}
@@ -141,7 +153,10 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
       onRemoveAttachment={removeAttachment}
       onOpenExistingMedia={openExistingMedia}
       onDeleteExistingMedia={handleDeleteExistingMedia}
-      onCloseNoteOverlay={() => setShowNoteModal(false)}
+      onCloseNoteOverlay={() => {
+        clearNoteError();
+        setShowNoteModal(false);
+      }}
       onCloseNote={resetNoteState}
       onCancelNote={resetNoteState}
       onDeleteNote={handleDeleteNote}
