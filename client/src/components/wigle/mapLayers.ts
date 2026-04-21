@@ -1,12 +1,15 @@
-import type { Map } from 'mapbox-gl';
+import type { Map, GeoJSONSource } from 'mapbox-gl';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 
-export const ensureV2Layers = (map: Map, v2FCRef: any) => {
+export const FIELD_DATA_SOURCE = 'wigle-field-data';
+export const FIELD_DATA_LAYER = 'wigle-field-unclustered';
+
+export const ensureV2Layers = (map: Map, v2FCRef: any, cluster = true) => {
   if (!map.getSource('wigle-v2-points')) {
     map.addSource('wigle-v2-points', {
       type: 'geojson',
       data: v2FCRef.current || EMPTY_FEATURE_COLLECTION,
-      cluster: true,
+      cluster,
       clusterMaxZoom: 12,
       clusterRadius: 40,
     });
@@ -62,12 +65,12 @@ export const ensureV2Layers = (map: Map, v2FCRef: any) => {
   }
 };
 
-export const ensureV3Layers = (map: Map, v3FCRef: any) => {
+export const ensureV3Layers = (map: Map, v3FCRef: any, cluster = true) => {
   if (!map.getSource('wigle-v3-points')) {
     map.addSource('wigle-v3-points', {
       type: 'geojson',
       data: v3FCRef.current || EMPTY_FEATURE_COLLECTION,
-      cluster: true,
+      cluster,
       clusterMaxZoom: 12,
       clusterRadius: 40,
     });
@@ -128,6 +131,58 @@ export const setPointRadius = (map: Map, radius: number) => {
   ['wigle-v2-unclustered', 'wigle-v3-unclustered', 'wigle-kml-unclustered'].forEach((id) => {
     if (map.getLayer(id)) map.setPaintProperty(id, 'circle-radius', radius);
   });
+};
+
+/** Remove all v2 layers and source then re-add with the given cluster setting. */
+export const resetV2Layers = (map: Map, v2FCRef: any, cluster: boolean) => {
+  ['wigle-v2-clusters', 'wigle-v2-cluster-count', 'wigle-v2-unclustered'].forEach((id) => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('wigle-v2-points')) map.removeSource('wigle-v2-points');
+  ensureV2Layers(map, v2FCRef, cluster);
+};
+
+/** Remove all v3 layers and source then re-add with the given cluster setting. */
+export const resetV3Layers = (map: Map, v3FCRef: any, cluster: boolean) => {
+  ['wigle-v3-clusters', 'wigle-v3-cluster-count', 'wigle-v3-unclustered'].forEach((id) => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('wigle-v3-points')) map.removeSource('wigle-v3-points');
+  ensureV3Layers(map, v3FCRef, cluster);
+};
+
+/** Add the field-data GeoJSON source and circle layer (orange, non-clustering). */
+export const ensureFieldDataLayer = (map: Map) => {
+  if (!map.getSource(FIELD_DATA_SOURCE)) {
+    map.addSource(FIELD_DATA_SOURCE, {
+      type: 'geojson',
+      data: EMPTY_FEATURE_COLLECTION as any,
+    });
+  }
+  if (!map.getLayer(FIELD_DATA_LAYER)) {
+    map.addLayer({
+      id: FIELD_DATA_LAYER,
+      type: 'circle',
+      source: FIELD_DATA_SOURCE,
+      paint: {
+        'circle-color': '#06b6d4',
+        'circle-opacity': 0.85,
+        'circle-radius': 5,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#0e7490',
+      },
+    });
+  }
+};
+
+export const updateFieldDataSource = (map: Map, data: unknown) => {
+  const src = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
+  if (src) src.setData(data as any);
+};
+
+export const removeFieldDataLayer = (map: Map) => {
+  if (map.getLayer(FIELD_DATA_LAYER)) map.removeLayer(FIELD_DATA_LAYER);
+  if (map.getSource(FIELD_DATA_SOURCE)) map.removeSource(FIELD_DATA_SOURCE);
 };
 
 export const applyLayerVisibility = (

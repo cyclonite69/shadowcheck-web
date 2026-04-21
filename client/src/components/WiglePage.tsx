@@ -17,12 +17,22 @@ import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
-import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
+import {
+  ensureV2Layers,
+  ensureV3Layers,
+  applyLayerVisibility,
+  resetV2Layers,
+  resetV3Layers,
+  ensureFieldDataLayer,
+  updateFieldDataSource,
+  removeFieldDataLayer,
+} from './wigle/mapLayers';
 import { ensureKmlLayers, kmlRowsToGeoJSON, updateKmlLayerData } from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
 import { setPointRadius } from './wigle/mapLayers';
 import { rowsToGeoJSON, EMPTY_FEATURE_COLLECTION, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
+import { wigleApi } from '../api/wigleApi';
 
 const WiglePage: React.FC = () => {
   // Set current page for filter scoping
@@ -140,6 +150,14 @@ const WiglePage: React.FC = () => {
     setShowTerrainState(enabled);
   };
   const wigleHandlersAttachedRef = useRef(false);
+  const [showFieldData, setShowFieldData] = useState(false);
+  const [clusteringEnabled, setClusteringEnabled] = useState(true);
+  const showFieldDataRef = useRef(false);
+  showFieldDataRef.current = showFieldData;
+  const clusteringEnabledRef = useRef(true);
+  clusteringEnabledRef.current = clusteringEnabled;
+  const clusteringChangedRef = useRef(false);
+  const fieldDataFCRef = useRef<any>(null);
 
   const updateAllClusterColorsCallback = useCallback(() => {
     if (!mapRef.current) return;
@@ -157,12 +175,12 @@ const WiglePage: React.FC = () => {
 
   const ensureV2LayersCallback = useCallback(() => {
     if (!mapRef.current) return;
-    ensureV2Layers(mapRef.current, v2FCRef);
+    ensureV2Layers(mapRef.current, v2FCRef, clusteringEnabledRef.current);
   }, []);
 
   const ensureV3LayersCallback = useCallback(() => {
     if (!mapRef.current) return;
-    ensureV3Layers(mapRef.current, v3FCRef);
+    ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
   }, []);
 
   const ensureAllLayers = useCallback(() => {
@@ -405,6 +423,10 @@ const WiglePage: React.FC = () => {
       if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
       const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
       if (kmlSrc) kmlSrc.setData((kmlFCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+      if (showFieldDataRef.current && fieldDataFCRef.current) {
+        ensureFieldDataLayer(map);
+        updateFieldDataSource(map, fieldDataFCRef.current);
+      }
       applyLayerVisibilityCallback();
       updateAllClusterColorsCallback();
     };
@@ -604,6 +626,84 @@ const WiglePage: React.FC = () => {
     }
   }, [showTerrain, mapReady, mapStyle]);
 
+  // Field Data toggle — fetch local observations for all visible BSSIDs and render as overlay
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (!showFieldData) {
+      if (map.isStyleLoaded()) removeFieldDataLayer(map);
+      return;
+    }
+
+    const bssidSet = new Set<string>();
+    v2Rows.forEach((row: any) => {
+      if (row.bssid) bssidSet.add(String(row.bssid).toUpperCase());
+    });
+    v3Rows.forEach((row: any) => {
+      if (row.netid) bssidSet.add(String(row.netid).toUpperCase());
+    });
+
+    const bssids = Array.from(bssidSet).slice(0, 50);
+    if (bssids.length === 0) return;
+
+    let cancelled = false;
+
+    Promise.allSettled(
+      bssids.map((bssid) => wigleApi.getLocalObservationsByBSSID(bssid).catch(() => null))
+    ).then((results) => {
+      if (cancelled) return;
+
+      const features: object[] = [];
+      results.forEach((result, i) => {
+        if (result.status === 'fulfilled' && result.value?.observations) {
+          result.value.observations.forEach((obs: any) => {
+            if (obs.lat != null && obs.lon != null) {
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [obs.lon, obs.lat] },
+                properties: { bssid: bssids[i], signal: obs.signal ?? obs.level ?? null },
+              });
+            }
+          });
+        }
+      });
+
+      const fc = { type: 'FeatureCollection', features };
+      fieldDataFCRef.current = fc;
+
+      if (!map.isStyleLoaded()) return;
+      ensureFieldDataLayer(map);
+      updateFieldDataSource(map, fc);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showFieldData, v2Rows, v3Rows, mapReady]);
+
+  // Clustering toggle — remove and re-add sources with updated cluster setting
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    if (!clusteringChangedRef.current) {
+      clusteringChangedRef.current = true;
+      return;
+    }
+    if (!map.isStyleLoaded()) return;
+
+    resetV2Layers(map, v2FCRef, clusteringEnabled);
+    const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
+    if (v2Src && v2FCRef.current) v2Src.setData(v2FCRef.current);
+
+    resetV3Layers(map, v3FCRef, clusteringEnabled);
+    const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
+    if (v3Src && v3FCRef.current) v3Src.setData(v3FCRef.current);
+
+    applyLayerVisibilityCallback();
+    updateAllClusterColorsCallback();
+  }, [clusteringEnabled, mapReady, applyLayerVisibilityCallback, updateAllClusterColorsCallback]);
+
   const loading = v2Loading || v3Loading || kmlLoading;
   const agencyCount =
     (layers.fieldOffices
@@ -663,6 +763,7 @@ const WiglePage: React.FC = () => {
               [
                 {
                   key: 'layers',
+                  title: 'Layers',
                   active: showMenu,
                   toggle: () => setShowMenu(!showMenu),
                   icon: (
@@ -676,6 +777,7 @@ const WiglePage: React.FC = () => {
                 },
                 {
                   key: 'filters',
+                  title: 'Filters',
                   active: showFilters,
                   toggle: () => setShowFilters(!showFilters),
                   icon: (
@@ -684,13 +786,35 @@ const WiglePage: React.FC = () => {
                     </svg>
                   ),
                 },
+                {
+                  key: 'fieldData',
+                  title: 'Field Data',
+                  active: showFieldData,
+                  toggle: () => setShowFieldData((v) => !v),
+                  icon: (
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                      <path d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  ),
+                },
+                {
+                  key: 'clustering',
+                  title: 'Clustering',
+                  active: clusteringEnabled,
+                  toggle: () => setClusteringEnabled((v) => !v),
+                  icon: (
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                      <path d="M5 8a2 2 0 100-4 2 2 0 000 4zm6 0a2 2 0 100-4 2 2 0 000 4zm-3 4a2 2 0 100-4 2 2 0 000 4z" />
+                    </svg>
+                  ),
+                },
               ] as const
-            ).map(({ key, active, toggle, icon }) => (
+            ).map(({ key, title, active, toggle, icon }) => (
               <button
                 key={key}
-                aria-label={active ? `Close ${key}` : `Open ${key}`}
+                aria-label={active ? `Disable ${title}` : `Enable ${title}`}
                 onClick={toggle}
-                title={key.charAt(0).toUpperCase() + key.slice(1)}
+                title={title}
                 style={{
                   height: '24px',
                   width: '28px',
