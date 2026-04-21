@@ -65,7 +65,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     setWigleLookupDialog: () => {},
     closeWigleLookupDialog: () => {},
     handleWigleLookup: async () => {},
-    wigleObservations: { loading: false },
+    wigleObservations: { loading: false, bssid: null, bssids: [], observations: [] },
     loadWigleObservations: async () => {},
     loadBatchWigleObservations: async () => {},
     clearWigleObservations: () => {},

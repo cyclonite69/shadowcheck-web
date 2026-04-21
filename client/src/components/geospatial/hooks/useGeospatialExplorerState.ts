@@ -23,7 +23,7 @@ import { useMapStyleControls } from './useMapStyleControls';
 import { useResetPaginationOnFilters } from './useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './useDebouncedFilterState';
 import { logError, logDebug } from '../../../logging/clientLogger';
-import { WigleObservationsState } from './useNetworkContextMenu';
+import { WigleObservationsState } from './useWigleLayers';
 import { networkApi } from '../../../api/networkApi';
 import {
   NETWORK_COLUMNS,

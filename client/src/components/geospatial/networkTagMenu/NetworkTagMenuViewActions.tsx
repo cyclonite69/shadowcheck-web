@@ -1,4 +1,3 @@
-import React from 'react';
 import { NetworkTagMenuActionButton } from './NetworkTagMenuActionButton';
 import type { NetworkTagMenuViewActionProps } from './types';
 

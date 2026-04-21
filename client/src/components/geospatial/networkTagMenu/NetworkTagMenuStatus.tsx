@@ -1,4 +1,3 @@
-import React from 'react';
 import type { NetworkTag } from '../../../types/network';
 
 interface NetworkTagMenuStatusProps {

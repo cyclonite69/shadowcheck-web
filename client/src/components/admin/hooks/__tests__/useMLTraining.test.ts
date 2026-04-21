@@ -5,12 +5,18 @@
 import { renderHook, act } from '@testing-library/react';
 import { useMLTraining } from '../useMLTraining';
 
-// Mock global fetch
-global.fetch = jest.fn();
-
 describe('useMLTraining Hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve({
+        json: async () => ({}),
+      } as Response)
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should initialize with default states', () => {
@@ -23,7 +29,7 @@ describe('useMLTraining Hook', () => {
 
   it('should load ML status successfully', async () => {
     const mockStatus = { modelTrained: true, taggedNetworks: [] };
-    global.fetch.mockResolvedValueOnce({
+    (fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => mockStatus,
     });
 
@@ -33,12 +39,12 @@ describe('useMLTraining Hook', () => {
       await result.current.loadMLStatus();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/ml/status');
+    expect(fetch).toHaveBeenCalledWith('/api/ml/status');
     expect(result.current.mlStatus).toEqual(mockStatus);
   });
 
   it('should handle load ML status error', async () => {
-    global.fetch.mockRejectedValueOnce(new Error('API Error'));
+    (fetch as jest.Mock).mockRejectedValueOnce(new Error('API Error'));
 
     const { result } = renderHook(() => useMLTraining());
 
@@ -58,11 +64,11 @@ describe('useMLTraining Hook', () => {
     };
 
     // Mock the training API call
-    global.fetch.mockResolvedValueOnce({
+    (fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => mockTrainResult,
     });
     // Mock the status reload call
-    global.fetch.mockResolvedValueOnce({
+    (fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => ({ modelTrained: true, taggedNetworks: [] }),
     });
 
@@ -72,7 +78,7 @@ describe('useMLTraining Hook', () => {
       await result.current.trainModel();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/ml/train', { method: 'POST' });
+    expect(fetch).toHaveBeenCalledWith('/api/ml/train', { method: 'POST' });
     expect(result.current.mlResult).toEqual({
       success: true,
       data: mockTrainResult,
@@ -86,7 +92,7 @@ describe('useMLTraining Hook', () => {
       error: 'Insufficient training data',
     };
 
-    global.fetch.mockResolvedValueOnce({
+    (fetch as jest.Mock).mockResolvedValueOnce({
       json: async () => mockErrorResult,
     });
 
@@ -104,7 +110,7 @@ describe('useMLTraining Hook', () => {
   });
 
   it('should handle network error during training', async () => {
-    global.fetch.mockRejectedValueOnce(new Error('Network Error'));
+    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network Error'));
 
     const { result } = renderHook(() => useMLTraining());
 
