@@ -354,6 +354,12 @@ export const renderNetworkTooltip = (props: any): any => {
     observationsValue ? fieldRow('Observations', observationsValue, undefined, true) : '',
     siblingValue ? fieldRow('Sibling Radios', siblingValue) : '',
     wigleValue ? fieldRow('WiGLE Match', wigleValue) : '',
+    !isMissingValue((props as any).wigle_first_seen)
+      ? fieldRow('WiGLE First Seen', normalizeDisplay((props as any).wigle_first_seen))
+      : '',
+    !isMissingValue((props as any).wigle_last_seen)
+      ? fieldRow('WiGLE Last Seen', normalizeDisplay((props as any).wigle_last_seen))
+      : '',
     accuracyValue
       ? fieldRow(
           'GPS Accuracy',

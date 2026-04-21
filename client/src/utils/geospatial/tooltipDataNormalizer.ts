@@ -205,5 +205,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     threat_factors: raw.threat_factors || null,
     comment: pickFirst(raw.comment, null),
     source: pickFirst(raw.source, raw.source_file, null),
+    wigle_first_seen: pickFirst(raw.wigle_first_seen, raw.wigle_v3_first_seen, null),
+    wigle_last_seen: pickFirst(raw.wigle_last_seen, raw.wigle_v3_last_seen, null),
   };
 };
