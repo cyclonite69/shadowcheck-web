@@ -178,7 +178,26 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     },
     wigleObservations: contextMenu.wigleObservations,
     loadWigleObservations,
-    loadBatchWigleObservations: async () => {},
+    loadBatchWigleObservations: async (bssids: string[]) => {
+      setTagLoading(true);
+      try {
+        const observations = await networkApi.getWigleObservationsBatch(bssids);
+        setContextMenu((prev: any) => ({
+          ...prev,
+          wigleObservations: {
+            loading: false,
+            bssid: bssids[0] || null,
+            bssids: bssids,
+            observations: observations || [],
+          },
+        }));
+      } catch (err: any) {
+        console.error('CRITICAL: WiGLE batch observation fetch failed', err);
+        logError('Failed to load WiGLE batch observations', err);
+      } finally {
+        setTagLoading(false);
+      }
+    },
     clearWigleObservations: () => {},
   };
 };
