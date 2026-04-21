@@ -3,34 +3,19 @@ import type { MutableRefObject } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow } from '../../../types/network';
-import { renderWigleObservationPopupCard } from '../../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
-import { networkApi } from '../../../api/networkApi';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
+import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
+import { popupStateManager } from '../../../utils/geospatial/popupStateManager';
 
-/** Center a Mapbox popup within the map container after it renders. */
-function centerPopupInMap(popup: any, map: MapboxMap) {
-  requestAnimationFrame(() => {
-    const el = popup.getElement();
-    if (!el) return;
-    const containerRect = map.getContainer().getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const pad = 12;
-    const content = el.querySelector('.mapboxgl-popup-content') as HTMLElement | null;
-    if (content) {
-      content.style.maxHeight = `${containerRect.height - pad * 2}px`;
-      content.style.overflowY = 'auto';
-    }
-    const left = containerRect.left + (containerRect.width - elRect.width) / 2;
-    const top =
-      containerRect.top +
-      (containerRect.height - Math.min(elRect.height, containerRect.height - pad * 2)) / 2;
-    el.style.position = 'fixed';
-    el.style.left = `${Math.max(containerRect.left + pad, Math.min(left, containerRect.right - elRect.width - pad))}px`;
-    el.style.top = `${Math.max(containerRect.top + pad, Math.min(top, containerRect.bottom - elRect.height - pad))}px`;
-    el.style.transform = 'none';
-  });
+/** Amber for WiGLE-unique; green for locally correlated WiGLE points. */
+const WIGLE_UNIQUE_COLOR = '#f59e0b';
+const WIGLE_MATCHED_COLOR = '#22c55e';
+
+function wigleBadge(matched: boolean): string {
+  const color = matched ? WIGLE_MATCHED_COLOR : WIGLE_UNIQUE_COLOR;
+  return `<div style="background:${color}1a;border-bottom:1px solid ${color}44;padding:3px 12px;font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${color};">◆ WiGLE ${matched ? 'Correlated' : 'External'}</div>`;
 }
 
 export type WigleObservation = {
@@ -114,44 +99,59 @@ export const useWigleLayers = ({
     };
 
     const makeObsPopup = (props: any, coords: [number, number], matched: boolean) => {
-      const fallbackHtml = renderWigleObservationPopupCard({
-        ssid: props.ssid,
-        time: props.time,
-        signal: props.level,
-        channel: props.channel,
-        distanceFromCenterMeters: matched ? undefined : props.distance_from_our_center_m,
-        matched,
-      });
+      const lngLat = { lng: coords[0], lat: coords[1] };
+
+      // Render the same full platinum card as regular observation points immediately.
+      // normalizeTooltipData maps whatever observation fields are available; the card
+      // will show what it has and leave gaps empty — same behaviour as core points.
+      const immediateNormalized = normalizeTooltipData(
+        { ...props, lat: coords[1], lon: coords[0], signal: props.level },
+        [coords[0], coords[1]]
+      );
+      let immediateCard =
+        renderNetworkTooltip({ ...immediateNormalized, triggerElement: map.getContainer() }) ?? '';
+
+      // Fallback: if no card rendered (missing fields), show WiGLE-specific tooltip
+      if (!immediateCard) {
+        const ssid = props.ssid || 'Hidden Network';
+        const bssid = props.bssid || 'Unknown';
+        const signal = props.level ? `${props.level} dBm` : 'N/A';
+        const time = props.time ? new Date(Number(props.time)).toLocaleString() : 'Unknown';
+        immediateCard = `
+          <div style="min-width:220px;color:#e2e8f0;font:12px/1.45 system-ui,sans-serif">
+            <div style="font-weight:700;color:#60a5fa;margin-bottom:8px">${ssid}</div>
+            <div><strong>BSSID:</strong> ${bssid}</div>
+            <div><strong>Signal:</strong> ${signal}</div>
+            <div><strong>Observed:</strong> ${time}</div>
+          </div>
+        `;
+      }
+      const initialHtml = wigleBadge(matched) + immediateCard;
+
+      const anchor = getPopupAnchor(map, lngLat, initialHtml);
       const popup = new (mapboxgl as any).Popup({
+        anchor,
         maxWidth: 'min(360px, 90vw)',
         className: 'sc-popup',
         offset: 14,
         focusAfterOpen: false,
+        closeOnClick: true,
+        closeButton: false,
       })
         .setLngLat(coords)
-        .setHTML(fallbackHtml)
+        .setHTML(initialHtml)
         .addTo(map);
-      centerPopupInMap(popup, map);
 
-      // Upgrade to platinum card if BSSID is in local DB
-      const bssid = props.bssid;
-      if (bssid) {
-        networkApi.getNetworkByBssid(bssid).then((mvData) => {
-          if (!popup.isOpen() || !mvData) return;
-          const normalized = normalizeTooltipData({ ...mvData, lat: coords[1], lon: coords[0] }, [
-            coords[0],
-            coords[1],
-          ]);
-          const fullHtml = renderNetworkTooltip({
-            ...normalized,
-            triggerElement: map.getContainer(),
-          });
-          if (fullHtml) {
-            popup.setHTML(fullHtml);
-            centerPopupInMap(popup, map);
-          }
-        });
-      }
+      // Register this popup and close any previous one (single tooltip at a time)
+      popupStateManager.setActive(popup);
+
+      // Cleanup on popup close
+      const originalRemove = popup.remove.bind(popup);
+      popup.remove = function () {
+        popupStateManager.closeIfActive(popup);
+        return originalRemove();
+      };
+
       return popup;
     };
 
@@ -215,10 +215,6 @@ export const useWigleLayers = ({
             'circle-opacity': 0.9,
           },
         });
-        map.on('click', 'wigle-unique-points', handleUniqueClick);
-        map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
-        map.on('mouseenter', 'wigle-unique-points', handleUniqueEnter);
-        map.on('mouseleave', 'wigle-unique-points', handleUniqueLeave);
       }
 
       if (!map.getLayer('wigle-matched-points')) {
@@ -235,11 +231,18 @@ export const useWigleLayers = ({
             'circle-opacity': 0.8,
           },
         });
-        map.on('click', 'wigle-matched-points', handleMatchedClick);
-        map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
-        map.on('mouseenter', 'wigle-matched-points', handleMatchedEnter);
-        map.on('mouseleave', 'wigle-matched-points', handleMatchedLeave);
       }
+
+      // Re-register click and hover handlers every time (cleanup may have unregistered them)
+      map.on('click', 'wigle-unique-points', handleUniqueClick);
+      map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
+      map.on('mouseenter', 'wigle-unique-points', handleUniqueEnter);
+      map.on('mouseleave', 'wigle-unique-points', handleUniqueLeave);
+
+      map.on('click', 'wigle-matched-points', handleMatchedClick);
+      map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
+      map.on('mouseenter', 'wigle-matched-points', handleMatchedEnter);
+      map.on('mouseleave', 'wigle-matched-points', handleMatchedLeave);
 
       // Re-bind context menu for core observation points if they exist
       if (map.getLayer('observation-points')) {
@@ -268,6 +271,9 @@ export const useWigleLayers = ({
             time: obs.time,
             channel: obs.channel,
             frequency: obs.frequency,
+            encryption: obs.encryption ?? null,
+            altitude: obs.altitude ?? null,
+            accuracy: obs.accuracy ?? null,
             source: obs.source,
             distance_from_our_center_m: obs.distance_from_our_center_m,
             number: index + 1,
