@@ -6,7 +6,7 @@ import type {
   GeocodingProviderProbeResult,
   GeocodingRunResult,
   GeocodingStats,
-} from '../types/admin.types';
+} from '../../../types/admin';
 
 type GeocodingRunOptions = {
   provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'geocodio' | 'locationiq';

@@ -1,6 +1,6 @@
 import { adminApi } from '../../../api/adminApi';
 import { useAsyncData } from '../../../hooks/useAsyncData';
-import { AwsOverview } from '../types/admin.types';
+import { AwsOverview } from '../../../types/admin';
 
 export const useAwsOverview = () => {
   const {

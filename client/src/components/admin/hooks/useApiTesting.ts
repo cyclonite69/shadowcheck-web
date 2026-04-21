@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiHealth } from '../types/admin.types';
+import { ApiHealth } from '../../../types/admin';
 import { API_PRESETS, ApiPreset, HttpMethod } from './apiTestingPresets';
 
 export type { ApiInput, ApiPreset } from './apiTestingPresets';

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
-import type { PgAdminStatus } from '../types/admin.types';
+import type { PgAdminStatus } from '../../../types/admin';
 
 export const usePgAdmin = () => {
   const [status, setStatus] = useState<PgAdminStatus | null>(null);

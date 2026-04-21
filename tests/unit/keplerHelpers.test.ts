@@ -1,4 +1,4 @@
-import { buildKeplerObservationsGeoJson } from '../../server/src/api/routes/v1/keplerHelpers';
+import { buildKeplerObservationsGeoJson } from '../../server/src/services/keplerService';
 
 describe('buildKeplerObservationsGeoJson', () => {
   it('includes explorer-style tooltip fields for observation features', () => {

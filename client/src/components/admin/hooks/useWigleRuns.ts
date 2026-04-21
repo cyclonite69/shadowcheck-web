@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { wigleApi } from '../../../api/wigleApi';
-import type { WigleImportRun } from '../types/admin.types';
+import type { WigleImportRun } from '../../../types/admin';
 
 export interface WigleCompletenessState {
   state: string;

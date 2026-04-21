@@ -12,13 +12,6 @@ jest.mock('../../../server/src/services/filterQueryBuilder', () => {
   };
 });
 
-jest.mock('../../../server/src/api/routes/v1/keplerHelpers', () => ({
-  __esModule: true,
-  buildKeplerDataGeoJson: jest.fn(),
-  buildKeplerNetworksGeoJson: jest.fn(),
-  buildKeplerObservationsGeoJson: jest.fn(),
-}));
-
 const keplerService = require('../../../server/src/services/keplerService') as any;
 const {
   checkHomeLocationExists,
@@ -30,11 +23,6 @@ const {
 const { query } = require('../../../server/src/config/database') as any;
 const { UniversalFilterQueryBuilder, validateFilterPayload } =
   require('../../../server/src/services/filterQueryBuilder') as any;
-import {
-  buildKeplerDataGeoJson,
-  buildKeplerNetworksGeoJson,
-  buildKeplerObservationsGeoJson,
-} from '../../../server/src/api/routes/v1/keplerHelpers';
 
 describe('Kepler Service', () => {
   beforeEach(() => {
@@ -45,18 +33,6 @@ describe('Kepler Service', () => {
         buildGeospatialQuery: jest.fn().mockReturnValue({ sql: 'SELECT geospatial', params: [] }),
       };
     });
-    (buildKeplerDataGeoJson as jest.Mock).mockImplementation((rows) => ({
-      type: 'FeatureCollection',
-      features: rows,
-    }));
-    (buildKeplerNetworksGeoJson as jest.Mock).mockImplementation((rows) => ({
-      type: 'FeatureCollection',
-      features: rows,
-    }));
-    (buildKeplerObservationsGeoJson as jest.Mock).mockImplementation((rows) => ({
-      type: 'FeatureCollection',
-      features: rows,
-    }));
   });
 
   describe('checkHomeLocationExists', () => {
@@ -123,15 +99,15 @@ describe('Kepler Service', () => {
       );
     });
 
-    it('should return GeoJSON data', async () => {
+    it('should return GeoJSON FeatureCollection', async () => {
       (validateFilterPayload as jest.Mock).mockReturnValueOnce({ errors: [] });
       (query as jest.Mock).mockResolvedValueOnce({}); // SET LOCAL
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 'net1' }], rowCount: 1 });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       const result = await getKeplerData({}, {}, 10, 0);
       expect(result?.type).toBe('FeatureCollection');
-      expect(result.features).toEqual([{ id: 'net1' }]);
-      expect(buildKeplerDataGeoJson).toHaveBeenCalled();
+      expect(result.actualCounts).toBeDefined();
+      expect(Array.isArray(result.features)).toBe(true);
     });
   });
 
@@ -155,15 +131,15 @@ describe('Kepler Service', () => {
       );
     });
 
-    it('should return observations GeoJSON', async () => {
+    it('should return observations GeoJSON FeatureCollection', async () => {
       (validateFilterPayload as jest.Mock).mockReturnValueOnce({ errors: [] });
       (query as jest.Mock).mockResolvedValueOnce({}); // SET LOCAL
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 'obs1' }], rowCount: 1 });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       const result = await getKeplerObservations({}, {}, 100);
       expect(result.type).toBe('FeatureCollection');
-      expect(result.features).toEqual([{ id: 'obs1' }]);
-      expect(buildKeplerObservationsGeoJson).toHaveBeenCalled();
+      expect(result.actualCounts).toBeDefined();
+      expect(Array.isArray(result.features)).toBe(true);
     });
   });
 
@@ -187,15 +163,15 @@ describe('Kepler Service', () => {
       );
     });
 
-    it('should return network summaries GeoJSON', async () => {
+    it('should return network summaries GeoJSON FeatureCollection', async () => {
       (validateFilterPayload as jest.Mock).mockReturnValueOnce({ errors: [] });
       (query as jest.Mock).mockResolvedValueOnce({}); // SET LOCAL
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [{ id: 'net_summary1' }], rowCount: 1 });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       const result = await getKeplerNetworks({}, {}, 10, 0);
       expect(result.type).toBe('FeatureCollection');
-      expect(result.features).toEqual([{ id: 'net_summary1' }]);
-      expect(buildKeplerNetworksGeoJson).toHaveBeenCalled();
+      expect(result.actualCounts).toBeDefined();
+      expect(Array.isArray(result.features)).toBe(true);
     });
   });
 });

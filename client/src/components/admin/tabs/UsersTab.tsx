@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
 import { useAuth } from '../../../hooks/useAuth';
-import type { AdminUser } from '../types/admin.types';
+import type { AdminUser } from '../../../types/admin';
 import { AdminCard } from '../components/AdminCard';
 import { formatShortDate } from '../../../utils/formatDate';
 

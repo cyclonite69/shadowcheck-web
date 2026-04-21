@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
-import { BackupResult } from '../types/admin.types';
+import { BackupResult } from '../../../types/admin';
 
 export const useBackups = () => {
   const [backupLoading, setBackupLoading] = useState(false);

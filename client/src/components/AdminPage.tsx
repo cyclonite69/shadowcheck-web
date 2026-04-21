@@ -15,7 +15,7 @@ import { JobsTab } from './admin/tabs/JobsTab';
 import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 import { DbStatsTab } from './admin/tabs/DbStatsTab';
 import { adminApi } from '../api/adminApi';
-import type { AdminRuntimeConfig } from './admin/types/admin.types';
+import type { AdminRuntimeConfig } from '../types/admin';
 
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
 const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));

@@ -1,7 +1,7 @@
 import React from 'react';
 import { AdminCard } from './AdminCard';
 import { formatShortDate } from '../../../utils/formatDate';
-import type { WigleImportRun } from '../types/admin.types';
+import type { WigleImportRun } from '../../../types/admin';
 
 const RefreshIcon = ({ size = 24, className = '' }) => (
   <svg

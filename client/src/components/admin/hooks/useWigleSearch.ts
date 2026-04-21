@@ -6,7 +6,7 @@ import {
   WigleApiStatus,
   WigleSearchResults,
   WigleNetworkResult,
-} from '../types/admin.types';
+} from '../../../types/admin';
 
 export const useWigleSearch = () => {
   const [apiStatus, setApiStatus] = useState<WigleApiStatus | null>(null);

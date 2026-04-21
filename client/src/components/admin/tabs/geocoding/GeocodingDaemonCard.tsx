@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
-import type { GeocodingDaemonStatus } from '../../types/admin.types';
+import type { GeocodingDaemonStatus } from '../../../../types/admin';
 import { ClockIcon } from './GeocodingIcons';
 import { formatShortDate } from '../../../../utils/formatDate';
 

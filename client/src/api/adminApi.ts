@@ -3,7 +3,7 @@
  */
 
 import { apiClient } from './client';
-import type { AdminRuntimeConfig, AdminUser } from '../components/admin/types/admin.types';
+import type { AdminRuntimeConfig, AdminUser } from '../types/admin';
 
 export const adminApi = {
   // User management

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MLStatus } from '../types/admin.types';
+import { MLStatus } from '../../../types/admin';
 import { adminApi } from '../../../api/adminApi';
 
 export const useMLTraining = () => {

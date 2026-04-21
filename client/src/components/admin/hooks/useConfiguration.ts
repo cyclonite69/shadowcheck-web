@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
-import type { AdminRuntimeConfig } from '../types/admin.types';
+import type { AdminRuntimeConfig } from '../../../types/admin';
 
 type HomeLocationState = { lat: string; lng: string; radius: string };
 type SavedConfigurationValues = {

@@ -5,7 +5,7 @@ import type {
   GeocodingProviderProbeResult,
   GeocodingRunResult,
   GeocodingStats,
-} from '../../types/admin.types';
+} from '../../../../types/admin';
 import { SparkIcon } from './GeocodingIcons';
 
 type Provider = 'mapbox' | 'nominatim' | 'opencage' | 'geocodio' | 'locationiq';

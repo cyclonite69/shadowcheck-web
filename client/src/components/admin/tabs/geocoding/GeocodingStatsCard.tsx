@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
-import type { GeocodingStats } from '../../types/admin.types';
+import type { GeocodingStats } from '../../../../types/admin';
 import { MapIcon } from './GeocodingIcons';
 
 const MetricLabel: React.FC<{ label: string; tooltip: string }> = ({ label, tooltip }) => (
