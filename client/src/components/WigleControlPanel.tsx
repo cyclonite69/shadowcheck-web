@@ -14,6 +14,8 @@ interface WigleControlPanelProps {
   onToggle3dBuildings: () => void;
   showTerrain: boolean;
   onToggleTerrain: () => void;
+  clusteringEnabled: boolean;
+  onToggleClustering: () => void;
   onLoadPoints: () => void;
   loading: boolean;
   rowsLoaded: number;
@@ -34,6 +36,8 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   onToggle3dBuildings,
   showTerrain,
   onToggleTerrain,
+  clusteringEnabled,
+  onToggleClustering,
   onLoadPoints,
   loading,
   rowsLoaded,
@@ -75,6 +79,18 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             enabled={layers.kml}
             onChange={() => onToggleLayer('kml')}
             color="#f97316"
+          />
+          <LayerToggle
+            label="Field Data"
+            enabled={layers.showFieldData}
+            onChange={() => onToggleLayer('showFieldData')}
+            color="#06b6d4"
+          />
+          <LayerToggle
+            label="Clustering"
+            enabled={clusteringEnabled}
+            onChange={onToggleClustering}
+            color="#60a5fa"
           />
           <LayerToggle
             label="Field Offices"

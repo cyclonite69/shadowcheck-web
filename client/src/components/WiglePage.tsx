@@ -150,10 +150,9 @@ const WiglePage: React.FC = () => {
     setShowTerrainState(enabled);
   };
   const wigleHandlersAttachedRef = useRef(false);
-  const [showFieldData, setShowFieldData] = useState(false);
   const [clusteringEnabled, setClusteringEnabled] = useState(true);
-  const showFieldDataRef = useRef(false);
-  showFieldDataRef.current = showFieldData;
+  const showFieldDataRef = useRef(layers.showFieldData);
+  showFieldDataRef.current = layers.showFieldData;
   const clusteringEnabledRef = useRef(true);
   clusteringEnabledRef.current = clusteringEnabled;
   const clusteringChangedRef = useRef(false);
@@ -631,7 +630,7 @@ const WiglePage: React.FC = () => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    if (!showFieldData) {
+    if (!layers.showFieldData) {
       if (map.isStyleLoaded()) removeFieldDataLayer(map);
       return;
     }
@@ -642,8 +641,8 @@ const WiglePage: React.FC = () => {
     });
 
     const bssids = Array.from(bssidSet).slice(0, 50);
-    console.log('[DEBUG] Field Data toggle bssids:', bssids);
     if (bssids.length === 0) {
+      console.log('[FieldData] bssids to fetch:', bssids);
       console.warn('[DEBUG] Field Data toggle found no BSSIDs to fetch');
       return;
     }
@@ -660,6 +659,7 @@ const WiglePage: React.FC = () => {
     ).then((results) => {
       if (cancelled) return;
 
+      console.log('[FieldData] observations returned:', results.length);
       const features: object[] = [];
       results.forEach((result, i) => {
         if (result.status === 'fulfilled' && result.value?.observations) {
@@ -686,7 +686,7 @@ const WiglePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [showFieldData, v2Rows, v3Rows, mapReady]);
+  }, [layers.showFieldData, v2Rows, v3Rows, mapReady]);
 
   // Clustering toggle — remove and re-add sources with updated cluster setting
   useEffect(() => {
@@ -792,28 +792,6 @@ const WiglePage: React.FC = () => {
                     </svg>
                   ),
                 },
-                {
-                  key: 'fieldData',
-                  title: 'Field Data',
-                  active: showFieldData,
-                  toggle: () => setShowFieldData((v) => !v),
-                  icon: (
-                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                      <path d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  ),
-                },
-                {
-                  key: 'clustering',
-                  title: 'Clustering',
-                  active: clusteringEnabled,
-                  toggle: () => setClusteringEnabled((v) => !v),
-                  icon: (
-                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                      <path d="M5 8a2 2 0 100-4 2 2 0 000 4zm6 0a2 2 0 100-4 2 2 0 000 4zm-3 4a2 2 0 100-4 2 2 0 000 4z" />
-                    </svg>
-                  ),
-                },
               ] as const
             ).map(({ key, title, active, toggle, icon }) => (
               <button
@@ -857,6 +835,8 @@ const WiglePage: React.FC = () => {
         onToggle3dBuildings={() => setShow3dBuildings(!show3dBuildings)}
         showTerrain={showTerrain}
         onToggleTerrain={() => setShowTerrain(!showTerrain)}
+        clusteringEnabled={clusteringEnabled}
+        onToggleClustering={() => setClusteringEnabled((v) => !v)}
         onLoadPoints={() => {
           void handleLoadPoints();
         }}

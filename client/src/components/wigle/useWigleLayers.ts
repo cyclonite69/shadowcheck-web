@@ -5,6 +5,7 @@ export interface WigleLayerState {
   v2: boolean;
   v3: boolean;
   kml: boolean;
+  showFieldData: boolean;
   fieldOffices: boolean;
   residentAgencies: boolean;
   federalCourthouses: boolean;

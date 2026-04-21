@@ -10,6 +10,7 @@ export const DEFAULT_LAYERS = {
   v2: true,
   v3: false,
   kml: false,
+  showFieldData: false,
   fieldOffices: true,
   residentAgencies: true,
   federalCourthouses: true,
