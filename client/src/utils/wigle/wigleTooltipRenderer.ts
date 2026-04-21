@@ -97,9 +97,11 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
     fieldRow('Capabilities', formatCapabilities(data.capabilities), true),
     fieldRow(
       'Frequency',
-      data.frequency !== null ? `${escapeHtml(String(data.frequency))} MHz` : EM_DASH
+      (data.recentFrequency ?? data.frequency) !== null
+        ? `${escapeHtml(String(data.recentFrequency ?? data.frequency))} MHz`
+        : EM_DASH
     ),
-    fieldRow('Channel', normalizeDisplay(data.channel)),
+    fieldRow('Channel', normalizeDisplay(data.recentChannel ?? data.channel)),
     fieldRow('WiGLE First Seen', formatDate(data.firstSeen)),
     fieldRow('WiGLE Last Seen', formatDate(data.lastSeen)),
     data.wigleObservationCount !== null
@@ -107,6 +109,7 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
       : '',
     data.manufacturer ? fieldRow('Manufacturer', normalizeDisplay(data.manufacturer)) : '',
     locationDisplay ? fieldRow('Location', locationDisplay) : '',
+    data.address ? fieldRow('Address', escapeHtml(data.address), true) : '',
     data.trilateratedLat !== null || data.trilateratedLon !== null
       ? fieldRow(
           coordLabel,

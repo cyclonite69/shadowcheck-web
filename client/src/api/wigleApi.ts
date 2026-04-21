@@ -62,6 +62,11 @@ export interface WiglePageNetwork {
   public_ssid_variant_flag?: boolean | null;
   // provenance caveat
   wigle_precision_warning?: boolean | null;
+  // most-recent observation fields
+  recent_ssid?: string | null;
+  recent_channel?: number | string | null;
+  recent_frequency?: number | string | null;
+  recent_accuracy?: number | string | null;
   [key: string]: unknown;
 }
 

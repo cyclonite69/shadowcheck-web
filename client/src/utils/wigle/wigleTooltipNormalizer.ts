@@ -23,6 +23,11 @@ export interface NormalizedWigleTooltip {
   publicSsidVariantFlag: boolean;
   wiglePrecisionWarning: boolean;
   source: 'wigle-v2' | 'wigle-v3';
+  recentSsid: string | null;
+  recentChannel: number | null;
+  recentFrequency: number | null;
+  recentAccuracy: number | null;
+  address: string | null;
 }
 
 const pickFirst = (...values: Array<unknown>): unknown => {
@@ -109,5 +114,16 @@ export const normalizeWigleTooltipData = (raw: WiglePageNetwork): NormalizedWigl
     publicSsidVariantFlag: toBoolean(raw.public_ssid_variant_flag),
     wiglePrecisionWarning: toBoolean(raw.wigle_precision_warning),
     source: inferredSource,
+    recentSsid: (() => {
+      const v = normalizeText(pickFirst(raw.recent_ssid), '');
+      return v.length > 0 ? v : null;
+    })(),
+    recentChannel: toNumberOrNull(raw.recent_channel),
+    recentFrequency: toNumberOrNull(raw.recent_frequency),
+    recentAccuracy: toNumberOrNull(raw.recent_accuracy),
+    address: (() => {
+      const v = normalizeText(pickFirst(raw.geocoded_address), '');
+      return v.length > 0 ? v : null;
+    })(),
   };
 };
