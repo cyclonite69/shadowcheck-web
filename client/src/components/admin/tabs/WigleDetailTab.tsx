@@ -61,7 +61,6 @@ export const WigleDetailTab: React.FC = () => {
   const [pendingEnrichment, setPendingEnrichment] = useState<number | null>(null);
   const [isManualMode, setIsManualMode] = useState(false);
   const [manualBssids, setManualBssids] = useState('');
-  const [manualBssids, setManualBssids] = useState('');
   const [selectedObs, setSelectedObs] = useState<(typeof observations)[0] | null>(null);
   const tooltipContainerRef = useRef<HTMLDivElement>(null);
   const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
