@@ -85,8 +85,8 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     openContextMenu: async (e: any, n: any) => {
       setContextMenu({
         visible: true,
-        x: e.clientX,
-        y: e.clientY,
+        x: e.originalEvent?.clientX ?? e.clientX,
+        y: e.originalEvent?.clientY ?? e.clientY,
         network: n,
         tag: null,
         hasExistingNote: false,
