@@ -191,6 +191,15 @@ export const useWigleLayers = ({
     map.on('click', 'wigle-matched-points', handleMatchedClick);
     map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
 
+    map.on('style.load', () => {
+      if (!map.getSource('wigle-observations')) {
+        map.addSource('wigle-observations', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+      }
+    });
+
     return () => {
       map.off('click', 'wigle-unique-points', handleUniqueClick);
       map.off('contextmenu', 'wigle-unique-points', handleContextMenu);
