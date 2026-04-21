@@ -112,13 +112,14 @@ export async function getWiglePageNetwork(netid: string): Promise<{
   const v3TemporalQuery = buildWiglePageV3TemporalQuery(normalizedNetid);
   const recentObsQuery = buildWiglePageMostRecentObsQuery(normalizedNetid);
 
-  const [v3Result, v2Result, localMatchResult, v3TemporalResult, recentObsResult] = await Promise.all([
-    query(v3DetailQuery.sql, v3DetailQuery.queryParams),
-    query(v2SummaryQuery.sql, v2SummaryQuery.queryParams),
-    query(localMatchQuery.sql, localMatchQuery.queryParams),
-    query(v3TemporalQuery.sql, v3TemporalQuery.queryParams),
-    query(recentObsQuery.sql, recentObsQuery.queryParams).catch(() => ({ rows: [] })),
-  ]);
+  const [v3Result, v2Result, localMatchResult, v3TemporalResult, recentObsResult] =
+    await Promise.all([
+      query(v3DetailQuery.sql, v3DetailQuery.queryParams),
+      query(v2SummaryQuery.sql, v2SummaryQuery.queryParams),
+      query(localMatchQuery.sql, localMatchQuery.queryParams),
+      query(v3TemporalQuery.sql, v3TemporalQuery.queryParams),
+      query(recentObsQuery.sql, recentObsQuery.queryParams).catch(() => ({ rows: [] })),
+    ]);
 
   const v3 = v3Result.rows[0] ?? null;
   const v2 = v2Result.rows[0] ?? null;
@@ -133,19 +134,19 @@ export async function getWiglePageNetwork(netid: string): Promise<{
   const hasV3Obs = (t.wigle_v3_observation_count ?? 0) > 0;
   const manufacturer = v3?.oui_manufacturer ?? v2?.oui_manufacturer ?? null;
 
-  // Display coordinate: v2 trilaterated → v3 centroid (obs-derived) → v3 summary point
+  // Display coordinate: v3 centroid (obs-derived) → v2 trilaterated → v3 summary point
   let displayLat: number | null = null;
   let displayLon: number | null = null;
   let displayCoordinateSource: string | null = null;
 
-  if (v2?.trilat != null && v2?.trilong != null) {
-    displayLat = v2.trilat;
-    displayLon = v2.trilong;
-    displayCoordinateSource = 'wigle-v2-trilat';
-  } else if (hasV3Obs && t.wigle_v3_centroid_lat != null) {
+  if (hasV3Obs && t.wigle_v3_centroid_lat != null) {
     displayLat = t.wigle_v3_centroid_lat;
     displayLon = t.wigle_v3_centroid_lon;
     displayCoordinateSource = 'wigle-v3-centroid';
+  } else if (v2?.trilat != null && v2?.trilong != null) {
+    displayLat = v2.trilat;
+    displayLon = v2.trilong;
+    displayCoordinateSource = 'wigle-v2-trilat';
   } else if (v3?.trilat != null) {
     displayLat = v3.trilat;
     displayLon = v3.trilon;
@@ -181,6 +182,7 @@ export async function getWiglePageNetwork(netid: string): Promise<{
       // v2 provenance
       wigle_v2_firsttime: v2?.firsttime ?? null,
       wigle_v2_lasttime: v2?.lasttime ?? null,
+      wigle_v2_lastupdt: v2?.lastupdt ?? null,
       wigle_v2_trilat: v2?.trilat ?? null,
       wigle_v2_trilong: v2?.trilong ?? null,
       wigle_v2_city: v2?.city ?? null,
@@ -285,6 +287,7 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
       wigle_source: row.wigle_source,
       wigle_v2_firsttime: row.wigle_v2_firsttime,
       wigle_v2_lasttime: row.wigle_v2_lasttime,
+      wigle_v2_lastupdt: row.wigle_v2_lastupdt ?? null,
       wigle_v2_trilat: row.wigle_v2_trilat_lat,
       wigle_v2_trilong: row.wigle_v2_trilat_lon,
       wigle_v2_city: row.wigle_v2_city,

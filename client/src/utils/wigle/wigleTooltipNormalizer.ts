@@ -8,6 +8,7 @@ export interface NormalizedWigleTooltip {
   channel: number | null;
   firstSeen: string | null;
   lastSeen: string | null;
+  lastUpdated: string | null;
   trilateratedLat: number | null;
   trilateratedLon: number | null;
   displayCoordinateSource: string | null;
@@ -88,9 +89,15 @@ export const normalizeWigleTooltipData = (raw: WiglePageNetwork): NormalizedWigl
       normalizeText(pickFirst(raw.capabilities, raw.encryption), '').toUpperCase() || null,
     frequency: toNumberOrNull(raw.frequency),
     channel: toNumberOrNull(raw.channel),
-    firstSeen: (pickFirst(raw.firsttime, raw.wigle_v3_first_seen) as string | null) ?? null,
-    lastSeen:
-      (pickFirst(raw.lasttime, raw.wigle_v3_last_seen, raw.lastupdt) as string | null) ?? null,
+    firstSeen: (inferredSource === 'wigle-v3'
+      ? pickFirst(raw.wigle_v3_first_seen, raw.first_seen, raw.firsttime)
+      : pickFirst(raw.wigle_v2_firsttime, raw.firsttime)) as string | null,
+    lastSeen: (inferredSource === 'wigle-v3'
+      ? pickFirst(raw.wigle_v3_last_seen, raw.last_seen, raw.lasttime)
+      : pickFirst(raw.wigle_v2_lasttime, raw.lasttime)) as string | null,
+    lastUpdated: (inferredSource === 'wigle-v3'
+      ? pickFirst(raw.lastupdt, raw.last_update, raw.observed_at)
+      : pickFirst(raw.wigle_v2_lastupdt, raw.lastupdt)) as string | null,
     trilateratedLat: displayLat,
     trilateratedLon: displayLon,
     displayCoordinateSource:
@@ -104,11 +111,18 @@ export const normalizeWigleTooltipData = (raw: WiglePageNetwork): NormalizedWigl
     city: cityText.length > 0 ? cityText : null,
     region: regionText.length > 0 ? regionText : null,
     localMatchExists: toBoolean(pickFirst(raw.localMatchExists, raw.wigle_match)),
-    localObservationCount: toNumberOrNull(
-      pickFirst(raw.localObservationCount, raw.local_observations)
-    ),
-    localFirstSeen: (pickFirst(raw.local_first_seen) as string | null) ?? null,
-    localLastSeen: (pickFirst(raw.local_last_seen) as string | null) ?? null,
+    localObservationCount:
+      inferredSource === 'wigle-v2'
+        ? null
+        : toNumberOrNull(pickFirst(raw.localObservationCount, raw.local_observations)),
+    localFirstSeen:
+      inferredSource === 'wigle-v2'
+        ? null
+        : ((pickFirst(raw.local_first_seen) as string | null) ?? null),
+    localLastSeen:
+      inferredSource === 'wigle-v2'
+        ? null
+        : ((pickFirst(raw.local_last_seen) as string | null) ?? null),
     wigleObservationCount: toNumberOrNull(raw.wigle_v3_observation_count),
     publicNonstationaryFlag: toBoolean(raw.public_nonstationary_flag),
     publicSsidVariantFlag: toBoolean(raw.public_ssid_variant_flag),

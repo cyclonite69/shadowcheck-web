@@ -360,6 +360,9 @@ export const renderNetworkTooltip = (props: any): any => {
     !isMissingValue((props as any).wigle_last_seen)
       ? fieldRow('WiGLE Last Seen', normalizeDisplay((props as any).wigle_last_seen))
       : '',
+    !isMissingValue((props as any).wigle_last_updated)
+      ? fieldRow('WiGLE Last Updated', normalizeDisplay((props as any).wigle_last_updated))
+      : '',
     accuracyValue
       ? fieldRow(
           'GPS Accuracy',

@@ -73,9 +73,9 @@ export const attachClickHandlers = (
             frequency: wigle.frequency,
             comment: wigle.comment,
             wigle_source: wigle.wigle_source,
-            // Temporal: v3-derived from observations when available, else v2 summary
-            firsttime: wigle.wigle_v3_first_seen ?? wigle.wigle_v2_firsttime,
-            lasttime: wigle.wigle_v3_last_seen ?? wigle.wigle_v2_lasttime,
+            wigle_v2_firsttime: wigle.wigle_v2_firsttime,
+            wigle_v2_lasttime: wigle.wigle_v2_lasttime,
+            wigle_v2_lastupdt: wigle.wigle_v2_lastupdt,
             // New v3 temporal fields for obs-count display
             wigle_v3_first_seen: wigle.wigle_v3_first_seen,
             wigle_v3_last_seen: wigle.wigle_v3_last_seen,
@@ -98,11 +98,11 @@ export const attachClickHandlers = (
             public_ssid_variant_flag: wigle.public_ssid_variant_flag,
             wigle_precision_warning: wigle.wigle_precision_warning,
             // Most-recent WiGLE observation detail
-            recent_ssid: wigle.recent_ssid as string | null ?? null,
-            recent_channel: wigle.recent_channel as number | null ?? null,
-            recent_frequency: wigle.recent_frequency as number | null ?? null,
-            recent_accuracy: wigle.recent_accuracy as number | null ?? null,
-            geocoded_address: wigle.geocoded_address as string | null ?? null,
+            recent_ssid: (wigle.recent_ssid as string | null) ?? null,
+            recent_channel: (wigle.recent_channel as number | null) ?? null,
+            recent_frequency: (wigle.recent_frequency as number | null) ?? null,
+            recent_accuracy: (wigle.recent_accuracy as number | null) ?? null,
+            geocoded_address: (wigle.geocoded_address as string | null) ?? null,
             // Local linkage — ONLY these fields from local data
             wigle_match: localLinkage.has_local_match,
             local_observations: localLinkage.local_observation_count,

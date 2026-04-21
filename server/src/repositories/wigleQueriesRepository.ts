@@ -266,6 +266,7 @@ const buildWigleNetworksMvQuery = (bssid: string): SqlQuery => ({
           wigle_source,
           wigle_v2_firsttime,
           wigle_v2_lasttime,
+          wigle_v2_lastupdt,
           wigle_v2_trilat_lat,
           wigle_v2_trilat_lon,
           wigle_v2_city,

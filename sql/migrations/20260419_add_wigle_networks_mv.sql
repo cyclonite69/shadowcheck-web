@@ -93,6 +93,7 @@ SELECT
   -- ─── v2 provenance fields (kept under prefixed names) ──────────────────────
   v2.firsttime                                                           AS wigle_v2_firsttime,
   v2.lasttime                                                            AS wigle_v2_lasttime,
+  v2.lastupdt                                                            AS wigle_v2_lastupdt,
   v2.trilat                                                              AS wigle_v2_trilat_lat,
   v2.trilong                                                             AS wigle_v2_trilat_lon,
   v2.city                                                                AS wigle_v2_city,

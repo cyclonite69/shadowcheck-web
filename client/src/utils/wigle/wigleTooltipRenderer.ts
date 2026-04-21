@@ -104,6 +104,7 @@ export const renderWigleTooltip = (data: NormalizedWigleTooltip): string => {
     fieldRow('Channel', normalizeDisplay(data.recentChannel ?? data.channel)),
     fieldRow('WiGLE First Seen', formatDate(data.firstSeen)),
     fieldRow('WiGLE Last Seen', formatDate(data.lastSeen)),
+    fieldRow('WiGLE Last Updated', formatDate(data.lastUpdated)),
     data.wigleObservationCount !== null
       ? fieldRow('WiGLE Obs Count', escapeHtml(String(data.wigleObservationCount)))
       : '',

@@ -48,6 +48,7 @@ export interface WiglePageNetwork {
   local_last_seen?: string | null;
   localMatchExists?: boolean | null;
   localObservationCount?: number | null;
+  wigle_v2_lastupdt?: string | null;
   wigle_source?: 'wigle-v2' | 'wigle-v3' | null;
   // v3-derived temporal (from observation aggregation, not summary row)
   wigle_v3_first_seen?: string | null;
@@ -89,6 +90,7 @@ export interface WiglePageNetworkResponse {
     // v2 provenance fields
     wigle_v2_firsttime: string | null;
     wigle_v2_lasttime: string | null;
+    wigle_v2_lastupdt: string | null;
     wigle_v2_trilat: number | null;
     wigle_v2_trilong: number | null;
     wigle_v2_city: string | null;
