@@ -202,6 +202,10 @@ export const adminApi = {
     return apiClient.get(`/admin/import-history?limit=${limit}`);
   },
 
+  async startMobileImport(uploadId: number): Promise<any> {
+    return apiClient.post(`/admin/import/mobile/${uploadId}/start`, {});
+  },
+
   async getDeviceSources(): Promise<any> {
     return apiClient.get('/admin/device-sources');
   },

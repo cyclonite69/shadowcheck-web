@@ -23,6 +23,10 @@ jest.mock('../../server/src/config/container', () => ({
   backupService: {
     runPostgresBackup: jest.fn(),
   },
+  mobileIngestService: {
+    startPendingUpload: jest.fn(),
+    processUpload: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 jest.mock('../../server/src/logging/logger', () => ({
@@ -88,6 +92,7 @@ const {
   adminImportHistoryService,
   adminOrphanNetworksService,
   backupService,
+  mobileIngestService,
 } = require('../../server/src/config/container');
 import fs from 'fs';
 const { spawn } = require('child_process');
@@ -150,6 +155,7 @@ describe('admin/import routes', () => {
 
     adminImportHistoryService.createImportHistoryEntry.mockResolvedValue(1);
     adminImportHistoryService.captureImportMetrics.mockResolvedValue({});
+    mobileIngestService.processUpload.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -333,6 +339,21 @@ describe('admin/import routes', () => {
       adminImportHistoryService.getImportHistory.mockResolvedValueOnce([]);
       const res = await request(app).get('/api/admin/import-history');
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe('POST /api/admin/import/mobile/:uploadId/start', () => {
+    it('starts a pending mobile upload', async () => {
+      mobileIngestService.startPendingUpload.mockResolvedValueOnce({ uploadId: 42, historyId: 7 });
+
+      const res = await request(app).post('/api/admin/import/mobile/42/start').send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, started: true });
+      expect(mobileIngestService.startPendingUpload).toHaveBeenCalledWith(42);
+      expect(mobileIngestService.processUpload).toHaveBeenCalledWith(42, {
+        skipStateTransition: true,
+      });
     });
   });
 

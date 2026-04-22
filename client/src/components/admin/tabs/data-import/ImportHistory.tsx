@@ -6,6 +6,7 @@ import { getImportHistoryStatusMeta, type ImportHistoryStatus } from './importHi
 
 interface ImportRun {
   id: number;
+  upload_id: number | null;
   started_at: string;
   finished_at: string | null;
   source_tag: string;
@@ -99,7 +100,7 @@ function ExpandedRow({ run }: { run: ImportRun }) {
 
   return (
     <tr>
-      <td colSpan={8} className="bg-slate-900/80 border-b border-slate-700/50 px-4 py-3">
+      <td colSpan={9} className="bg-slate-900/80 border-b border-slate-700/50 px-4 py-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-xs font-semibold text-slate-400 mb-1">Before / After</p>
@@ -136,6 +137,11 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
   const [history, setHistory] = useState<ImportRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [reloadKey, setReloadKey] = useState(0);
+  const [startingUploads, setStartingUploads] = useState<Set<number>>(new Set());
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const reloadHistory = () => setReloadKey((prev) => prev + 1);
 
   useEffect(() => {
     setLoading(true);
@@ -144,7 +150,7 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
       .then((data: any) => setHistory(data?.history ?? []))
       .catch(() => setHistory([]))
       .finally(() => setLoading(false));
-  }, [refreshKey]);
+  }, [refreshKey, reloadKey]);
 
   const toggle = (id: number) =>
     setExpanded((prev) => {
@@ -154,12 +160,40 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
       return next;
     });
 
+  const handleStart = async (uploadId: number, runId: number) => {
+    setActionError(null);
+    setStartingUploads((prev) => new Set(prev).add(uploadId));
+
+    try {
+      await adminApi.startMobileImport(uploadId);
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        next.delete(runId);
+        return next;
+      });
+      reloadHistory();
+    } catch (error: any) {
+      setActionError(error?.message || 'Failed to start mobile import');
+    } finally {
+      setStartingUploads((prev) => {
+        const next = new Set(prev);
+        next.delete(uploadId);
+        return next;
+      });
+    }
+  };
+
   if (loading) return <p className="text-sm text-slate-500 py-2">Loading history...</p>;
   if (history.length === 0)
     return <p className="text-sm text-slate-500 py-2">No imports recorded yet.</p>;
 
   return (
     <div className="overflow-x-auto">
+      {actionError && (
+        <div className="mb-3 rounded border border-red-700/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">
+          {actionError}
+        </div>
+      )}
       <table className="w-full text-xs text-slate-300">
         <thead>
           <tr className="text-slate-500 border-b border-slate-700/50">
@@ -170,6 +204,7 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
             <th className="text-right py-1.5 pr-3">Duration</th>
             <th className="text-center py-1.5 pr-3">Backup</th>
             <th className="text-left py-1.5 pr-3">Status</th>
+            <th className="text-left py-1.5 pr-3">Action</th>
             <th className="text-left py-1.5"></th>
           </tr>
         </thead>
@@ -201,6 +236,23 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
                   </td>
                   <td className="py-1.5 pr-3">
                     <span className={statusMeta.className}>{statusMeta.label}</span>
+                  </td>
+                  <td className="py-1.5 pr-3">
+                    {run.status === 'pending' && run.upload_id ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleStart(run.upload_id!, run.id);
+                        }}
+                        disabled={startingUploads.has(run.upload_id)}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                      >
+                        {startingUploads.has(run.upload_id) ? 'Starting…' : '▶ Run'}
+                      </button>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
                   </td>
                   <td className="py-1.5 text-slate-500 text-xs">
                     {expanded.has(run.id) ? '▲' : '▼'}

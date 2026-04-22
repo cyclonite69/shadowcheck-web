@@ -5,7 +5,6 @@ import { randomUUID } from 'crypto';
 import logger from '../../../logging/logger';
 import secretsManager from '../../../services/secretsManager';
 const mobileIngestService = require('../../../services/mobileIngestService');
-const featureFlagService = require('../../../services/featureFlagService');
 
 const router = Router();
 
@@ -113,13 +112,12 @@ router.post('/request-upload', async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/ingest/complete
- * Verifies the upload was successful and queues for ETL.
+ * Verifies the upload was successful and records it for manual ETL.
  */
 router.post('/complete', async (req: Request, res: Response) => {
   if (!validateApiKey(req, res)) return;
 
   const {
-    uploadId,
     s3Key,
     sourceTag,
     deviceModel,
@@ -128,8 +126,6 @@ router.post('/complete', async (req: Request, res: Response) => {
     appVersion,
     batteryLevel,
     storageFreeGb,
-    trustMode,
-    manualBackupConfirmed,
     extraMetadata,
   } = req.body;
 
@@ -139,25 +135,7 @@ router.post('/complete', async (req: Request, res: Response) => {
 
   const { bucket } = getS3Config();
   const tag = sourceTag || deviceId || 'mobile_upload';
-  const normalizedTrustMode =
-    typeof trustMode === 'string' && trustMode.trim().length > 0 ? trustMode.trim() : 'untrusted';
-  const hasManualBackup = manualBackupConfirmed === true;
-
-  // Sync flags with DB before checking
-  await featureFlagService.refreshCache();
-  const autoProcessEnabled = featureFlagService.getFlag('allow_mobile_ingest_auto_process');
-
-  const shouldQueueForProcessing =
-    normalizedTrustMode === 'trusted' && hasManualBackup && autoProcessEnabled;
-  const uploadStatus = shouldQueueForProcessing ? 'queued' : 'quarantined';
-  const metadata = {
-    ...(extraMetadata && typeof extraMetadata === 'object' ? extraMetadata : {}),
-    provenance: {
-      trustMode: normalizedTrustMode,
-      manualBackupConfirmed: hasManualBackup,
-      autoProcessEnabled,
-    },
-  };
+  const metadata = extraMetadata && typeof extraMetadata === 'object' ? extraMetadata : {};
 
   try {
     // Verify object exists in S3
@@ -168,13 +146,14 @@ router.post('/complete', async (req: Request, res: Response) => {
       })
     );
 
-    logger.info(`[Ingest] Upload complete verification successful: ${uploadId}`, { s3Key });
+    logger.info('[Ingest] Upload complete verification successful', { s3Key });
 
     // Record the upload and metadata
     const dbId = await mobileIngestService.recordUpload({
       s3Key,
       sourceTag: tag,
-      status: uploadStatus,
+      status: 'pending',
+      historyStatus: 'pending',
       deviceModel,
       deviceId,
       osVersion,
@@ -184,15 +163,10 @@ router.post('/complete', async (req: Request, res: Response) => {
       extraMetadata: metadata,
     });
 
-    if (shouldQueueForProcessing) {
-      void mobileIngestService.processUpload(dbId);
-    }
-
     res.json({
-      status: uploadStatus,
-      queuedForProcessing: shouldQueueForProcessing,
-      uploadId,
-      dbId,
+      ok: true,
+      status: 'pending',
+      uploadId: dbId,
       s3Key,
       sourceTag: tag,
     });

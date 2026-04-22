@@ -62,8 +62,12 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 // 2. NOW import the router
+const { S3Client } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const mobileIngestModule = require('../../server/src/api/routes/v1/mobileIngest');
 const mobileIngestRouter = mobileIngestModule.default || mobileIngestModule;
+const { adminQuery } = require('../../server/src/services/adminDbService');
+const adminImportHistoryService = require('../../server/src/services/adminImportHistoryService');
 
 type MockRequest = {
   body: Record<string, unknown>;
@@ -132,6 +136,11 @@ describe('Mobile Ingest API - Request Upload', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.SHADOWCHECK_API_KEY = API_KEY;
+    S3Client.mockImplementation(() => ({ send: mockSend }));
+    getSignedUrl.mockResolvedValue('https://mock-presigned-url.com/upload');
+    adminQuery.mockResolvedValue({ rows: [{ id: 123 }] });
+    adminImportHistoryService.captureImportMetrics.mockResolvedValue({ networks: 100 });
+    adminImportHistoryService.createImportHistoryEntry.mockResolvedValue(42);
   });
 
   it('should return 401 if Authorization header is missing', async () => {
@@ -148,5 +157,32 @@ describe('Mobile Ingest API - Request Upload', () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('uploadUrl');
     expect(response.body).toHaveProperty('s3Key');
+  });
+
+  it('records verified uploads as pending for manual start', async () => {
+    mockSend.mockResolvedValueOnce({});
+
+    const response = await invokeRoute('/complete', {
+      authorization: `Bearer ${API_KEY}`,
+      body: {
+        s3Key: 'uploads/default/20260422/test.sqlite',
+        sourceTag: 'android_shadowcheck_test',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ok: true,
+      status: 'pending',
+      uploadId: 123,
+      s3Key: 'uploads/default/20260422/test.sqlite',
+      sourceTag: 'android_shadowcheck_test',
+    });
+    expect(adminImportHistoryService.createImportHistoryEntry).toHaveBeenCalledWith(
+      'android_shadowcheck_test',
+      'test.sqlite',
+      { networks: 100 },
+      'pending'
+    );
   });
 });

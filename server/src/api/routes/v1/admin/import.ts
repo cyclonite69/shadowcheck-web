@@ -19,6 +19,7 @@ const {
   adminImportHistoryService,
   adminOrphanNetworksService,
   backupService,
+  mobileIngestService,
 } = require('../../../../config/container');
 const { runPostgresBackup } = backupService;
 const logger = require('../../../../logging/logger');
@@ -387,6 +388,37 @@ router.get('/admin/import-history', async (req: any, res: any, next: any) => {
     res.json({ ok: true, history });
   } catch (e: any) {
     next(e);
+  }
+});
+
+router.post('/admin/import/mobile/:uploadId/start', async (req: any, res: any, next: any) => {
+  try {
+    const uploadId = Number.parseInt(String(req.params.uploadId), 10);
+    if (!Number.isFinite(uploadId) || uploadId <= 0) {
+      return res.status(400).json({ ok: false, error: 'Invalid uploadId' });
+    }
+
+    await mobileIngestService.startPendingUpload(uploadId);
+    void mobileIngestService
+      .processUpload(uploadId, { skipStateTransition: true })
+      .catch((error: Error) => {
+        logger.error(
+          `[MobileIngest] Manual start failed for upload ${uploadId}: ${error.message}`,
+          {
+            error,
+          }
+        );
+      });
+
+    return res.json({ ok: true, started: true });
+  } catch (e: any) {
+    if (e.message?.includes('not found')) {
+      return res.status(404).json({ ok: false, error: e.message });
+    }
+    if (e.message?.includes('not pending')) {
+      return res.status(409).json({ ok: false, error: e.message });
+    }
+    return next(e);
   }
 });
 
