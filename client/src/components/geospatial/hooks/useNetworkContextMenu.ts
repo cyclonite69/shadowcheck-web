@@ -220,7 +220,17 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
         wigleObservations: contextMenu.wigleObservations,
       });
     },
-    handleGenerateThreatReportPdf: async () => {},
+    handleGenerateThreatReportPdf: async () => {
+      const network = contextMenu.network;
+      if (!network?.bssid) return;
+
+      try {
+        await networkApi.downloadThreatReportPdf(network.bssid);
+      } catch (err: any) {
+        console.error('Threat report PDF download failed', err);
+        logError('Failed to generate threat report PDF', err);
+      }
+    },
     wigleLookupDialog,
     setWigleLookupDialog,
     closeWigleLookupDialog: () =>

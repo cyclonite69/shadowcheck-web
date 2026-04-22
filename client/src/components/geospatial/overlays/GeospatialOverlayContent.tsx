@@ -110,7 +110,12 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
       onCloseContextMenu={closeContextMenu}
       onOpenTimeFrequency={() => {
         const n = contextMenu.network;
-        if (n) openTimeFrequency({ bssid: String(n.bssid || ''), ssid: String(n.ssid || '') });
+        if (n) {
+          openTimeFrequency({
+            bssid: String(n.bssid || ''),
+            ssid: String(n.ssid || ''),
+          });
+        }
         closeContextMenu();
       }}
       onOpenNote={() => {
