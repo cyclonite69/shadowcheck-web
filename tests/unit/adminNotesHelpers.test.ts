@@ -1,5 +1,7 @@
 export {};
 
+const fs = require('fs');
+
 const logger = {
   error: jest.fn(),
 };
@@ -28,11 +30,23 @@ function createRes(): MockRes {
 
 describe('adminNotesHelpers.handleNoteMediaUpload', () => {
   let handleNoteMediaUpload: any;
+  let mkdirSpy: jest.SpyInstance;
+  let writeFileSpy: jest.SpyInstance;
+  let unlinkSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    mkdirSpy = jest.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
+    writeFileSpy = jest.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+    unlinkSpy = jest.spyOn(fs.promises, 'unlink').mockResolvedValue(undefined);
     ({ handleNoteMediaUpload } = require('../../server/src/api/routes/v1/admin/adminNotesHelpers'));
+  });
+
+  afterEach(() => {
+    mkdirSpy.mockRestore();
+    writeFileSpy.mockRestore();
+    unlinkSpy.mockRestore();
   });
 
   test('uses the note bssid instead of client multipart bssid when uploading media', async () => {
@@ -63,19 +77,21 @@ describe('adminNotesHelpers.handleNoteMediaUpload', () => {
     await handleNoteMediaUpload(req, res, service, logger);
 
     expect(service.getNetworkNoteById).toHaveBeenCalledWith('8');
+    expect(writeFileSpy).toHaveBeenCalledTimes(1);
     expect(service.addNoteMedia).toHaveBeenCalledWith(
       '8',
       'AA:BB:CC:DD:EE:FF',
-      null,
+      expect.stringMatching(/^\/api\/media\/.+\.webp$/),
       'LaFimilaSign.webp',
       1234,
       'image',
-      expect.any(Buffer),
+      null,
       'image/webp',
-      'db'
+      'file'
     );
     expect(res.statusCode).toBe(200);
     expect(res.body.ok).toBe(true);
+    expect(res.body.file_path).toMatch(/^\/api\/media\/.+\.webp$/);
   });
 
   test('returns 404 when the note does not exist', async () => {
@@ -130,5 +146,6 @@ describe('adminNotesHelpers.handleNoteMediaUpload', () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.error).toBe('note media insert failed');
     expect(res.body.error).not.toBe('Invalid BSSID: network not found');
+    expect(unlinkSpy).toHaveBeenCalledTimes(1);
   });
 });
