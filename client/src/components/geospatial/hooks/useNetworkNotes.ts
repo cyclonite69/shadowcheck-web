@@ -111,8 +111,19 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
         throw new Error('Unable to resolve saved note');
       }
 
+      const refreshedNotes = await networkApi.getNetworkNotes(selectedBssid);
+      const savedNote =
+        refreshedNotes.find((note) => Number(note.id) === Number(noteId)) || refreshedNotes[0];
       const refreshedMedia = await networkApi.getNoteMedia(noteId);
-      setExistingNoteId(noteId);
+
+      if (savedNote) {
+        setExistingNoteId(Number(savedNote.id));
+        setNoteContent(savedNote.content || '');
+        setNoteType(savedNote.note_type || 'general');
+      } else {
+        setExistingNoteId(noteId);
+      }
+
       setExistingNoteMedia(refreshedMedia);
       setNoteAttachments([]);
 
@@ -124,8 +135,7 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
         throw new Error(`Some attachments failed to upload: ${uploadFailures.join(', ')}`);
       }
 
-      // Success: Close modal and reset state
-      resetNoteState();
+      setShowNoteModal(false);
     } catch (err) {
       setNoteError(err instanceof Error ? err.message : 'Failed to save note');
       logError('Failed to save note', err);

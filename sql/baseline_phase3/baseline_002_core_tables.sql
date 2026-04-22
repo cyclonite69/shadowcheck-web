@@ -621,10 +621,6 @@ DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'note_media_pkey') THEN
         ALTER TABLE ONLY app.note_media ADD CONSTRAINT note_media_pkey PRIMARY KEY (id);
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'note_media_bssid_fkey') THEN
-        ALTER TABLE ONLY app.note_media
-            ADD CONSTRAINT note_media_bssid_fkey FOREIGN KEY (bssid) REFERENCES app.networks(bssid) ON DELETE CASCADE;
-    END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'note_media_note_id_fkey') THEN
         ALTER TABLE ONLY app.note_media
             ADD CONSTRAINT note_media_note_id_fkey FOREIGN KEY (note_id) REFERENCES app.network_notes(id) ON DELETE CASCADE;
@@ -1615,18 +1611,6 @@ BEGIN
         RAISE EXCEPTION 'Cannot retarget observations FK: some bssids are missing from app.networks';
     END IF;
 
-    IF EXISTS (
-        SELECT 1
-        FROM app.note_media nm
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM app.networks n
-            WHERE n.bssid = nm.bssid
-        )
-    ) THEN
-        RAISE EXCEPTION 'Cannot retarget note_media FK: some bssids are missing from app.networks';
-    END IF;
-
     IF to_regclass('app.ssid_history') IS NOT NULL AND EXISTS (
         SELECT 1
         FROM app.ssid_history sh
@@ -1647,14 +1631,6 @@ ALTER TABLE ONLY app.observations
     FOREIGN KEY (bssid)
     REFERENCES app.networks(bssid)
     DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE ONLY app.note_media
-    DROP CONSTRAINT IF EXISTS note_media_bssid_fkey;
-ALTER TABLE ONLY app.note_media
-    ADD CONSTRAINT note_media_bssid_fkey
-    FOREIGN KEY (bssid)
-    REFERENCES app.networks(bssid)
-    ON DELETE CASCADE;
 
 DO $$
 BEGIN

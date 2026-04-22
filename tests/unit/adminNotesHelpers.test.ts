@@ -101,4 +101,34 @@ describe('adminNotesHelpers.handleNoteMediaUpload', () => {
     expect(res.statusCode).toBe(404);
     expect(res.body.error).toBe('Note not found');
   });
+
+  test('does not rewrite storage errors into an invalid bssid response', async () => {
+    const service = {
+      getNetworkNoteById: jest.fn().mockResolvedValue({
+        id: 8,
+        bssid: 'AA:BB:CC:DD:EE:FF',
+      }),
+      addNoteMedia: jest.fn().mockRejectedValue({
+        code: '23502',
+        message: 'note media insert failed',
+      }),
+    };
+    const req = {
+      params: { noteId: '8' },
+      body: {},
+      file: {
+        originalname: 'LaFimilaSign.webp',
+        size: 1234,
+        mimetype: 'image/webp',
+        buffer: Buffer.from('test'),
+      },
+    };
+    const res = createRes();
+
+    await handleNoteMediaUpload(req, res, service, logger);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('note media insert failed');
+    expect(res.body.error).not.toBe('Invalid BSSID: network not found');
+  });
 });

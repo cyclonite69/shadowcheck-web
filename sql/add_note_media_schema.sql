@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS app.note_media (
   file_name VARCHAR(256) NOT NULL,
   file_size INTEGER,
   media_type VARCHAR(50),
-  created_at TIMESTAMP DEFAULT NOW(),
-  FOREIGN KEY (bssid) REFERENCES app.networks(bssid) ON DELETE CASCADE
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_note_media_note_id ON app.note_media(note_id);

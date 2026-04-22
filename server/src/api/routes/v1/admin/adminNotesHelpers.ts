@@ -78,14 +78,10 @@ const handleNoteMediaUpload = async (req: any, res: any, service: MediaService, 
     });
   } catch (error: any) {
     logger.error('Note media upload failed:', error);
-    const statusCode = error.code === '23502' ? 400 : 500; // 23502 = NOT NULL violation
-    const message =
-      error.code === '23502'
-        ? 'Invalid BSSID: network not found'
-        : error.message || 'Failed to upload media';
+    const statusCode = 500;
     res.status(statusCode).json({
       ok: false,
-      error: message,
+      error: error.message || 'Failed to upload media',
       details: error.message,
     });
   }
