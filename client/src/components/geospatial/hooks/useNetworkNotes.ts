@@ -123,6 +123,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
       if (uploadFailures.length > 0) {
         throw new Error(`Some attachments failed to upload: ${uploadFailures.join(', ')}`);
       }
+
+      // Success: Close modal and reset state
+      resetNoteState();
     } catch (err) {
       setNoteError(err instanceof Error ? err.message : 'Failed to save note');
       logError('Failed to save note', err);

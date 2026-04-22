@@ -51,13 +51,13 @@ const handleNoteMediaUpload = async (req: any, res: any, service: MediaService, 
       return res.status(400).json({ ok: false, error: 'No file provided' });
     }
     const note = await service.getNetworkNoteById?.(noteId);
-    if (!note?.bssid) {
+    if (!note) {
       return res.status(404).json({ ok: false, error: 'Note not found' });
     }
     const mediaType = inferMediaType(req.file.mimetype);
     const media = await service.addNoteMedia(
       noteId,
-      note.bssid,
+      note.bssid || 'UNKNOWN',
       null,
       req.file.originalname,
       req.file.size,
