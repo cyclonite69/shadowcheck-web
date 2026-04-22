@@ -19,6 +19,7 @@ export interface MobileUploadData {
   s3Key: string;
   sourceTag: string;
   status?: string;
+  historyStatus?: string;
   deviceModel?: string;
   deviceId?: string;
   osVersion?: string;
@@ -100,7 +101,34 @@ class MobileIngestService {
       });
     }
 
-    return rows.length;
+    const zombieHistoryNote = 'stuck_recovery: linked upload no longer processing';
+    const zombieHistory = await adminQuery(
+      `UPDATE app.import_history ih
+          SET finished_at = NOW(),
+              status = 'failed',
+              error_detail = CASE
+                WHEN ih.error_detail IS NULL OR BTRIM(ih.error_detail) = '' THEN $1
+                WHEN POSITION($1 IN ih.error_detail) > 0 THEN ih.error_detail
+                ELSE ih.error_detail || '; ' || $1
+              END
+        FROM app.mobile_uploads mu
+       WHERE mu.history_id = ih.id
+         AND ih.status = 'running'
+         AND mu.status <> 'processing'
+      RETURNING ih.id, mu.id AS upload_id, mu.status AS upload_status`,
+      [zombieHistoryNote]
+    );
+
+    const zombieRows = Array.isArray(zombieHistory?.rows) ? zombieHistory.rows : [];
+    if (zombieRows.length > 0) {
+      logger.warn('[MobileIngest] Closed zombie import history rows at startup', {
+        count: zombieRows.length,
+        historyIds: zombieRows.map((row: any) => row.id),
+        uploadIds: zombieRows.map((row: any) => row.upload_id),
+      });
+    }
+
+    return rows.length + zombieRows.length;
   }
 
   /**
@@ -135,7 +163,8 @@ class MobileIngestService {
       const historyId = await adminImportHistoryService.createImportHistoryEntry(
         data.sourceTag,
         path.basename(data.s3Key),
-        metricsBefore
+        metricsBefore,
+        data.historyStatus || 'running'
       );
 
       // Link it back
@@ -143,18 +172,6 @@ class MobileIngestService {
         historyId,
         dbId,
       ]);
-
-      // If quarantined, mark history as quarantined immediately
-      if (data.status === 'quarantined') {
-        await adminImportHistoryService.completeImportSuccess(
-          historyId,
-          0,
-          0,
-          '0.00',
-          metricsBefore,
-          'quarantined'
-        );
-      }
     } catch (e: any) {
       logger.warn(`[MobileIngest] Could not create initial import_history entry: ${e.message}`);
     }
@@ -162,10 +179,70 @@ class MobileIngestService {
     return dbId;
   }
 
+  async startPendingUpload(
+    uploadId: number
+  ): Promise<{ uploadId: number; historyId: number | null }> {
+    const result = await adminQuery(
+      `UPDATE app.mobile_uploads
+          SET status = 'processing',
+              updated_at = NOW()
+        WHERE id = $1
+          AND status = 'pending'
+      RETURNING id, history_id, source_tag, s3_key`,
+      [uploadId]
+    );
+
+    if (!Array.isArray(result?.rows) || result.rows.length === 0) {
+      const existing = await adminQuery(
+        'SELECT id, history_id, status FROM app.mobile_uploads WHERE id = $1',
+        [uploadId]
+      );
+
+      if (!Array.isArray(existing?.rows) || existing.rows.length === 0) {
+        throw new Error(`Upload ${uploadId} not found`);
+      }
+
+      throw new Error(`Upload ${uploadId} is not pending`);
+    }
+
+    const upload = result.rows[0];
+    let historyId = upload.history_id ? Number(upload.history_id) : null;
+
+    if (historyId) {
+      await adminQuery(
+        `UPDATE app.import_history
+            SET status = 'running',
+                started_at = NOW()
+          WHERE id = $1`,
+        [historyId]
+      );
+    } else {
+      const metricsBefore = await adminImportHistoryService.captureImportMetrics();
+      historyId = await adminImportHistoryService.createImportHistoryEntry(
+        upload.source_tag,
+        path.basename(upload.s3_key),
+        metricsBefore,
+        'running'
+      );
+
+      if (historyId) {
+        await adminQuery('UPDATE app.mobile_uploads SET history_id = $1 WHERE id = $2', [
+          historyId,
+          uploadId,
+        ]);
+      }
+    }
+
+    return { uploadId, historyId };
+  }
+
   /**
    * Process an upload: Download from S3 and run ETL
    */
-  async processUpload(uploadId: number): Promise<void> {
+  async processUpload(
+    uploadId: number,
+    options: { skipStateTransition?: boolean } = {}
+  ): Promise<void> {
     this.initS3();
     if (!this.bucketName) throw new Error('S3_BACKUP_BUCKET not configured');
 
@@ -183,11 +260,12 @@ class MobileIngestService {
     let historyId: number = 0;
 
     try {
-      // 1. Update status to processing
-      await adminQuery(
-        "UPDATE app.mobile_uploads SET status = 'processing', updated_at = NOW() WHERE id = $1",
-        [uploadId]
-      );
+      if (!options.skipStateTransition) {
+        await adminQuery(
+          "UPDATE app.mobile_uploads SET status = 'processing', updated_at = NOW() WHERE id = $1",
+          [uploadId]
+        );
+      }
 
       // 2. Download from S3
       logger.info(
@@ -210,11 +288,17 @@ class MobileIngestService {
 
       if (upload.history_id) {
         historyId = upload.history_id;
-        // Update existing entry to 'running'
-        await adminQuery(
-          "UPDATE app.import_history SET status = 'running', started_at = NOW(), metrics_before = $1 WHERE id = $2",
-          [JSON.stringify(metricsBefore), historyId]
-        );
+        if (!options.skipStateTransition) {
+          await adminQuery(
+            "UPDATE app.import_history SET status = 'running', started_at = NOW(), metrics_before = $1 WHERE id = $2",
+            [JSON.stringify(metricsBefore), historyId]
+          );
+        } else {
+          await adminQuery('UPDATE app.import_history SET metrics_before = $1 WHERE id = $2', [
+            JSON.stringify(metricsBefore),
+            historyId,
+          ]);
+        }
       } else {
         historyId = await adminImportHistoryService.createImportHistoryEntry(
           upload.source_tag,

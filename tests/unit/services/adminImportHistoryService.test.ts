@@ -1,12 +1,12 @@
-const { 
-  captureImportMetrics, 
-  createImportHistoryEntry, 
-  markImportBackupTaken, 
-  completeImportSuccess, 
-  failImportHistory, 
-  getImportHistory, 
-  getDeviceSources, 
-  getImportCounts: getCountsHistory
+const {
+  captureImportMetrics,
+  createImportHistoryEntry,
+  markImportBackupTaken,
+  completeImportSuccess,
+  failImportHistory,
+  getImportHistory,
+  getDeviceSources,
+  getImportCounts: getCountsHistory,
 } = require('../../../server/src/services/adminImportHistoryService');
 
 // Mock dependencies
@@ -41,12 +41,25 @@ describe('adminImportHistoryService', () => {
       const id = await createImportHistoryEntry('tag', 'file.sqlite', {});
       expect(id).toBe(123);
     });
+
+    it('should honor a custom status when provided', async () => {
+      historyAdminQuery.mockResolvedValue({ rows: [{ id: 456 }] });
+      const id = await createImportHistoryEntry('tag', 'file.sqlite', {}, 'pending');
+      expect(id).toBe(456);
+      expect(historyAdminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('VALUES ($1, $2, $4, $3)'),
+        ['tag', 'file.sqlite', '{}', 'pending']
+      );
+    });
   });
 
   describe('markImportBackupTaken', () => {
     it('should update the row with backup_taken=TRUE', async () => {
       await markImportBackupTaken(123);
-      expect(historyAdminQuery).toHaveBeenCalledWith(expect.stringContaining('backup_taken = TRUE'), [123]);
+      expect(historyAdminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('backup_taken = TRUE'),
+        [123]
+      );
     });
   });
 

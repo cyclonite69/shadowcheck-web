@@ -1,5 +1,3 @@
-import * as path from 'path';
-
 describe('mobileIngestService - Visibility', () => {
   let mobileIngestService: any;
   let mockAdminQuery: any;
@@ -38,6 +36,7 @@ describe('mobileIngestService - Visibility', () => {
       s3Key: 'uploads/test.sqlite',
       sourceTag: 'test_device',
       status: 'pending',
+      historyStatus: 'pending',
     };
 
     await mobileIngestService.recordUpload(uploadData);
@@ -52,7 +51,8 @@ describe('mobileIngestService - Visibility', () => {
     expect(adminImportHistoryService.createImportHistoryEntry).toHaveBeenCalledWith(
       'test_device',
       'test.sqlite',
-      { networks: 100 }
+      { networks: 100 },
+      'pending'
     );
 
     // Verify history_id is linked back to the upload
@@ -62,23 +62,20 @@ describe('mobileIngestService - Visibility', () => {
     );
   });
 
-  test('quarantined uploads are marked as quarantined in import_history immediately', async () => {
+  test('recordUpload defaults history rows to running when no override is provided', async () => {
     const uploadData = {
       s3Key: 'uploads/test.sqlite',
       sourceTag: 'test_device',
-      status: 'quarantined',
     };
 
     await mobileIngestService.recordUpload(uploadData);
 
-    // Verify it was marked as quarantined in history
-    expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalledWith(
-      42,
-      0,
-      0,
-      '0.00',
+    expect(adminImportHistoryService.createImportHistoryEntry).toHaveBeenCalledWith(
+      'test_device',
+      'test.sqlite',
       { networks: 100 },
-      'quarantined'
+      'running'
     );
+    expect(adminImportHistoryService.completeImportSuccess).not.toHaveBeenCalled();
   });
 });

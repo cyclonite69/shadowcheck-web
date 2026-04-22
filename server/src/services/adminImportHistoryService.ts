@@ -48,19 +48,20 @@ export async function captureImportMetrics(): Promise<ImportMetrics> {
 }
 
 /**
- * Opens a new import_history row with status='running'.
+ * Opens a new import_history row with the requested status.
  * Returns the generated id, or 0 on failure.
  */
 export async function createImportHistoryEntry(
   sourceTag: string,
   filename: string,
-  metricsBefore: ImportMetrics
+  metricsBefore: ImportMetrics,
+  status: string = 'running'
 ): Promise<number> {
   try {
     const { rows } = await adminQuery(
       `INSERT INTO app.import_history (source_tag, filename, status, metrics_before)
-       VALUES ($1, $2, 'running', $3) RETURNING id`,
-      [sourceTag, filename, JSON.stringify(metricsBefore)]
+       VALUES ($1, $2, $4, $3) RETURNING id`,
+      [sourceTag, filename, JSON.stringify(metricsBefore), status]
     );
     return rows[0].id;
   } catch (e: any) {
@@ -136,11 +137,24 @@ export async function failImportHistory(
  */
 export async function getImportHistory(limit: number): Promise<any[]> {
   const { rows } = await adminQuery(
-    `SELECT id, started_at, finished_at, source_tag, filename,
-            imported, failed, duration_s, status, error_detail,
-            metrics_before, metrics_after, backup_taken
-       FROM app.import_history
-      ORDER BY started_at DESC
+    `SELECT ih.id,
+            ih.started_at,
+            ih.finished_at,
+            ih.source_tag,
+            ih.filename,
+            ih.imported,
+            ih.failed,
+            ih.duration_s,
+            ih.status,
+            ih.error_detail,
+            ih.metrics_before,
+            ih.metrics_after,
+            ih.backup_taken,
+            mu.id AS upload_id
+       FROM app.import_history ih
+       LEFT JOIN app.mobile_uploads mu
+              ON mu.history_id = ih.id
+      ORDER BY ih.started_at DESC
       LIMIT $1`,
     [limit]
   );

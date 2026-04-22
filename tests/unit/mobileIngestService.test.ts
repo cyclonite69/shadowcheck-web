@@ -45,11 +45,12 @@ describe('MobileIngestService', () => {
             { id: 11, history_id: 211, source_tag: 'processing-device', status: 'processing' },
           ],
         })
-        .mockResolvedValueOnce({ rows: [], rowCount: 2 });
+        .mockResolvedValueOnce({ rows: [], rowCount: 2 })
+        .mockResolvedValueOnce({ rows: [{ id: 310, upload_id: 15, upload_status: 'failed' }] });
 
       const recovered = await mobileIngestService.recoverStuckUploads(45);
 
-      expect(recovered).toBe(2);
+      expect(recovered).toBe(3);
       expect(adminQuery).toHaveBeenNthCalledWith(
         1,
         expect.stringContaining("WHERE status IN ('processing', 'queued')"),
@@ -60,6 +61,11 @@ describe('MobileIngestService', () => {
         expect.stringContaining('SET finished_at = NOW(),'),
         [[210, 211], expect.stringContaining('stuck_recovery')]
       );
+      expect(adminQuery).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining("mu.status <> 'processing'"),
+        [expect.stringContaining('linked upload no longer processing')]
+      );
       expect(logger.warn).toHaveBeenCalledWith(
         '[MobileIngest] Recovered stuck uploads at startup',
         expect.objectContaining({
@@ -68,15 +74,25 @@ describe('MobileIngestService', () => {
           uploadIds: [10, 11],
         })
       );
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[MobileIngest] Closed zombie import history rows at startup',
+        expect.objectContaining({
+          count: 1,
+          historyIds: [310],
+          uploadIds: [15],
+        })
+      );
     });
 
     it('returns zero without logging when no stuck uploads are found', async () => {
-      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (adminQuery as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const recovered = await mobileIngestService.recoverStuckUploads(30);
 
       expect(recovered).toBe(0);
-      expect(adminQuery).toHaveBeenCalledTimes(1);
+      expect(adminQuery).toHaveBeenCalledTimes(2);
       expect(logger.warn).not.toHaveBeenCalled();
     });
   });
@@ -92,6 +108,7 @@ describe('MobileIngestService', () => {
       const uploadData = {
         s3Key: 'test/file.sqlite',
         sourceTag: 'test-device',
+        historyStatus: 'pending',
         deviceModel: 'iPhone 13',
         deviceId: 'device-123',
         osVersion: '15.0',
@@ -124,12 +141,13 @@ describe('MobileIngestService', () => {
       expect(adminImportHistoryService.createImportHistoryEntry).toHaveBeenCalledWith(
         'test-device',
         'file.sqlite',
-        { rows: 10 }
+        { rows: 10 },
+        'pending'
       );
       expect(adminImportHistoryService.completeImportSuccess).not.toHaveBeenCalled();
     });
 
-    it('should handle quarantined status by marking history as complete immediately', async () => {
+    it('should default history rows to running when no override is provided', async () => {
       (adminQuery as jest.Mock)
         .mockResolvedValueOnce({ rows: [{ id: 100 }] })
         .mockResolvedValueOnce({});
@@ -139,17 +157,15 @@ describe('MobileIngestService', () => {
       await mobileIngestService.recordUpload({
         s3Key: 'test/file.sqlite',
         sourceTag: 'test-device',
-        status: 'quarantined',
       });
 
-      expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalledWith(
-        200,
-        0,
-        0,
-        '0.00',
+      expect(adminImportHistoryService.createImportHistoryEntry).toHaveBeenCalledWith(
+        'test-device',
+        'file.sqlite',
         { rows: 10 },
-        'quarantined'
+        'running'
       );
+      expect(adminImportHistoryService.completeImportSuccess).not.toHaveBeenCalled();
     });
 
     it('should ignore errors during history entry creation and still return DB ID', async () => {
@@ -169,6 +185,30 @@ describe('MobileIngestService', () => {
   });
 
   describe('processUpload', () => {
+    it('starts a pending upload and marks it processing before dispatch', async () => {
+      (adminQuery as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [
+            { id: 100, history_id: 200, source_tag: 'test-device', s3_key: 'test/file.sqlite' },
+          ],
+        })
+        .mockResolvedValueOnce({});
+
+      const result = await mobileIngestService.startPendingUpload(100);
+
+      expect(result).toEqual({ uploadId: 100, historyId: 200 });
+      expect(adminQuery).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("SET status = 'processing'"),
+        [100]
+      );
+      expect(adminQuery).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("SET status = 'running'"),
+        [200]
+      );
+    });
+
     it('should throw an error if upload is not found', async () => {
       (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
 

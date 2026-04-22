@@ -380,7 +380,7 @@ CREATE TABLE IF NOT EXISTS app.import_history (
   imported     INTEGER,
   failed       INTEGER,
   duration_s   NUMERIC(10, 2),
-  status       TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'success', 'failed')),
+  status       TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('pending', 'running', 'success', 'failed', 'quarantined')),
   error_detail TEXT,
   metrics_before JSONB,
   metrics_after  JSONB,
