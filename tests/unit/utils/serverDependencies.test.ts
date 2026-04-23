@@ -38,12 +38,16 @@ jest.mock('express', () => {
 // Mock all the route modules that loadRouteModules requires
 const mockRoute = { default: { get: jest.fn(), post: jest.fn(), use: jest.fn() } };
 const mockRouteModule = { get: jest.fn(), post: jest.fn(), use: jest.fn() };
+const mockWigleIndexRoute = {
+  default: { use: jest.fn(), stack: [{ route: { path: '/api-status' } }] },
+};
 
 jest.mock('../../../server/src/api/routes/v1/health', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/networks/index', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/explorer', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/threats', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/wigle', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/wigle/index', () => mockWigleIndexRoute);
 jest.mock('../../../server/src/api/routes/v1/admin', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/ml', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/geospatial', () => mockRouteModule);
@@ -61,10 +65,14 @@ jest.mock('../../../server/src/api/routes/v1/analytics-public', () => mockRouteM
 jest.mock('../../../server/src/api/routes/v1/settings', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/network-tags', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/auth', () => mockRouteModule);
-jest.mock('../../../server/src/api/routes/v1/misc', () => mockRouteModule);
+jest.mock('../../../server/src/api/routes/v1/geocoding', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/dataQuality', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/claude', () => mockRouteModule);
 jest.mock('../../../server/src/api/routes/v1/threat-report', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/mobileIngest', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/agencyOffices', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/federalCourthouses', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/network-agencies', () => mockRouteModule);
 
 describe('serverDependencies', () => {
   it('should load core dependencies correctly', () => {
@@ -82,11 +90,6 @@ describe('serverDependencies', () => {
   });
 
   it('should load route modules correctly', () => {
-    // Mock routes that use agencyService or other dependencies
-    jest.mock('../../../server/src/api/routes/v1/agencyOffices', () => ({ default: { get: jest.fn() } }), { virtual: true });
-    jest.mock('../../../server/src/api/routes/v1/federalCourthouses', () => ({ default: { get: jest.fn() } }), { virtual: true });
-    jest.mock('../../../server/src/api/routes/v1/network-agencies', () => ({ get: jest.fn() }), { virtual: true });
-
     const routeModules = loadRouteModules();
 
     expect(routeModules).toHaveProperty('healthRoutes');
@@ -94,6 +97,9 @@ describe('serverDependencies', () => {
     expect(routeModules).toHaveProperty('explorerRoutes');
     expect(routeModules).toHaveProperty('threatsRoutes');
     expect(routeModules).toHaveProperty('wigleRoutes');
+    expect(routeModules.wigleRoutes).toBe(mockWigleIndexRoute.default);
+    expect(routeModules.wigleImportRoutes).toBe(mockRoute.default);
+    expect(routeModules.wigleRoutes).not.toBe(routeModules.wigleImportRoutes);
     expect(routeModules).toHaveProperty('agencyOfficesRoutes');
     expect(routeModules).toHaveProperty('federalCourthousesRoutes');
     expect(routeModules).toHaveProperty('networkAgenciesRoutes');

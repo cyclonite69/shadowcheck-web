@@ -76,7 +76,10 @@ function loadRouteModules(): RouteModules {
     networksRoutes: require('../api/routes/v1/networks/index'),
     explorerRoutes: require('../api/routes/v1/explorer'),
     threatsRoutes: require('../api/routes/v1/threats'),
-    wigleRoutes: require('../api/routes/v1/wigle').default,
+    // Explicitly load the directory router. A sibling file exists at
+    // routes/v1/wigle.ts for the legacy import endpoint, and Node resolution
+    // would otherwise pick that file instead of the folder index.
+    wigleRoutes: require('../api/routes/v1/wigle/index').default,
     adminRoutes: require('../api/routes/v1/admin'),
     mlRoutes: require('../api/routes/v1/ml'),
     geospatialRoutes: require('../api/routes/v1/geospatial'),

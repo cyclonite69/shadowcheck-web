@@ -99,6 +99,7 @@ const WiglePage: React.FC = () => {
   const {
     loading: kmlLoading,
     rows: kmlRows,
+    total: kmlTotal,
     error: kmlError,
     fetchPoints: fetchKmlPoints,
   } = useWigleKmlData({ limit, offset: 0, adaptedFilters, enabled: layers.kml });

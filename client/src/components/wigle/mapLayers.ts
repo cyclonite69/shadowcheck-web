@@ -209,4 +209,5 @@ export const applyLayerVisibility = (
   setVis('wigle-kml-clusters', layers.kml);
   setVis('wigle-kml-cluster-count', layers.kml);
   setVis('wigle-kml-unclustered', layers.kml);
+  setVis(FIELD_DATA_LAYER, (layers as any).showFieldData);
 };
