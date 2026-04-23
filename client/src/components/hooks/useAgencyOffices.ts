@@ -48,7 +48,8 @@ export const useAgencyOffices = (
   mapRef: React.MutableRefObject<Map | null>,
   mapReady: boolean,
   visibility: AgencyVisibility = { fieldOffices: true, residentAgencies: true },
-  mapboxRef?: React.MutableRefObject<typeof mapboxglType | null>
+  mapboxRef?: React.MutableRefObject<typeof mapboxglType | null>,
+  clusteringEnabled: boolean = true
 ) => {
   const {
     data,
@@ -59,10 +60,12 @@ export const useAgencyOffices = (
 
   const dataRef = useRef<AgencyOfficesGeoJSON | null>(null);
   const visibilityRef = useRef(visibility);
+  const clusteringEnabledRef = useRef(clusteringEnabled);
 
   // Keep refs in sync so the style.load handler always uses current values
   dataRef.current = data;
   visibilityRef.current = visibility;
+  clusteringEnabledRef.current = clusteringEnabled;
 
   // Add/restore layers on map — runs on initial load and after every style reload
   useEffect(() => {
@@ -73,93 +76,7 @@ export const useAgencyOffices = (
       const currentData = dataRef.current;
       if (!map.getStyle() || !currentData) return;
 
-      // Source
-      if (!map.getSource('agency-offices')) {
-        map.addSource('agency-offices', {
-          type: 'geojson',
-          data: currentData,
-          cluster: true,
-          clusterMaxZoom: 10,
-          clusterRadius: 50,
-        });
-      }
-
-      // Cluster circles
-      if (!map.getLayer('agency-clusters')) {
-        map.addLayer({
-          id: 'agency-clusters',
-          type: 'circle',
-          source: 'agency-offices',
-          filter: ['has', 'point_count'],
-          paint: {
-            'circle-color': '#dc2626',
-            'circle-opacity': 0.7,
-            'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 50, 25],
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#fff',
-          },
-        });
-      }
-
-      // Cluster count labels
-      if (!map.getLayer('agency-cluster-count')) {
-        map.addLayer({
-          id: 'agency-cluster-count',
-          type: 'symbol',
-          source: 'agency-offices',
-          filter: ['has', 'point_count'],
-          layout: {
-            'text-field': ['get', 'point_count_abbreviated'],
-            'text-size': 11,
-            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          },
-          paint: {
-            'text-color': '#fff',
-          },
-        });
-      }
-
-      // Field office unclustered points (red)
-      if (!map.getLayer('agency-field-unclustered')) {
-        map.addLayer({
-          id: 'agency-field-unclustered',
-          type: 'circle',
-          source: 'agency-offices',
-          filter: [
-            'all',
-            ['!', ['has', 'point_count']],
-            ['==', ['get', 'office_type'], 'field_office'],
-          ],
-          paint: {
-            'circle-color': '#dc2626',
-            'circle-opacity': 0.8,
-            'circle-radius': 6,
-            'circle-stroke-width': 1.5,
-            'circle-stroke-color': '#fff',
-          },
-        });
-      }
-
-      // Resident agency unclustered points (orange)
-      if (!map.getLayer('agency-resident-unclustered')) {
-        map.addLayer({
-          id: 'agency-resident-unclustered',
-          type: 'circle',
-          source: 'agency-offices',
-          filter: [
-            'all',
-            ['!', ['has', 'point_count']],
-            ['==', ['get', 'office_type'], 'resident_agency'],
-          ],
-          paint: {
-            'circle-color': '#f97316',
-            'circle-opacity': 0.8,
-            'circle-radius': 6,
-            'circle-stroke-width': 1.5,
-            'circle-stroke-color': '#fff',
-          },
-        });
-      }
+      ensureAgencyOfficeLayers(map, currentData, clusteringEnabledRef.current);
 
       // Click handler — field office unclustered points
       map.on('click', 'agency-field-unclustered', handleUnclusteredClick);
@@ -288,6 +205,118 @@ export const useAgencyOffices = (
 
   return { data, loading, error };
 };
+
+export function ensureAgencyOfficeLayers(
+  map: Map,
+  data: AgencyOfficesGeoJSON,
+  clusteringEnabled: boolean
+) {
+  if (!map.getSource('agency-offices')) {
+    map.addSource('agency-offices', {
+      type: 'geojson',
+      data,
+      cluster: clusteringEnabled,
+      clusterMaxZoom: 10,
+      clusterRadius: 50,
+    });
+  } else {
+    const source = map.getSource('agency-offices') as GeoJSONSource;
+    source.setData(data);
+  }
+
+  if (!map.getLayer('agency-clusters')) {
+    map.addLayer({
+      id: 'agency-clusters',
+      type: 'circle',
+      source: 'agency-offices',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#dc2626',
+        'circle-opacity': 0.7,
+        'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 50, 25],
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff',
+      },
+    });
+  }
+
+  if (!map.getLayer('agency-cluster-count')) {
+    map.addLayer({
+      id: 'agency-cluster-count',
+      type: 'symbol',
+      source: 'agency-offices',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-size': 11,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      },
+      paint: {
+        'text-color': '#fff',
+      },
+    });
+  }
+
+  if (!map.getLayer('agency-field-unclustered')) {
+    map.addLayer({
+      id: 'agency-field-unclustered',
+      type: 'circle',
+      source: 'agency-offices',
+      filter: [
+        'all',
+        ['!', ['has', 'point_count']],
+        ['==', ['get', 'office_type'], 'field_office'],
+      ],
+      paint: {
+        'circle-color': '#dc2626',
+        'circle-opacity': 0.8,
+        'circle-radius': 6,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': '#fff',
+      },
+    });
+  }
+
+  if (!map.getLayer('agency-resident-unclustered')) {
+    map.addLayer({
+      id: 'agency-resident-unclustered',
+      type: 'circle',
+      source: 'agency-offices',
+      filter: [
+        'all',
+        ['!', ['has', 'point_count']],
+        ['==', ['get', 'office_type'], 'resident_agency'],
+      ],
+      paint: {
+        'circle-color': '#f97316',
+        'circle-opacity': 0.8,
+        'circle-radius': 6,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': '#fff',
+      },
+    });
+  }
+}
+
+export function resetAgencyOfficeLayers(
+  map: Map,
+  data: AgencyOfficesGeoJSON | null | undefined,
+  visibility: AgencyVisibility,
+  clusteringEnabled: boolean
+) {
+  [
+    'agency-clusters',
+    'agency-cluster-count',
+    'agency-field-unclustered',
+    'agency-resident-unclustered',
+  ].forEach((id) => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('agency-offices')) map.removeSource('agency-offices');
+  if (!data) return;
+  ensureAgencyOfficeLayers(map, data, clusteringEnabled);
+  applyVisibility(map, visibility);
+}
 
 function applyVisibility(map: Map, visibility: AgencyVisibility) {
   const anyVisible = visibility.fieldOffices || visibility.residentAgencies;

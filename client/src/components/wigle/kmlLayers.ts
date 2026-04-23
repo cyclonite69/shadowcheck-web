@@ -29,12 +29,12 @@ export function kmlRowsToGeoJSON(rows: WigleKmlRow[]) {
   };
 }
 
-export function ensureKmlLayers(map: Map, kmlFCRef: any) {
+export function ensureKmlLayers(map: Map, kmlFCRef: any, cluster = true) {
   if (!map.getSource('wigle-kml-points')) {
     map.addSource('wigle-kml-points', {
       type: 'geojson',
       data: kmlFCRef.current || EMPTY_FEATURE_COLLECTION,
-      cluster: true,
+      cluster,
       clusterMaxZoom: 13,
       clusterRadius: 38,
     });
@@ -88,6 +88,14 @@ export function ensureKmlLayers(map: Map, kmlFCRef: any) {
       },
     });
   }
+}
+
+export function resetKmlLayers(map: Map, kmlFCRef: any, cluster: boolean) {
+  ['wigle-kml-clusters', 'wigle-kml-cluster-count', 'wigle-kml-unclustered'].forEach((id) => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('wigle-kml-points')) map.removeSource('wigle-kml-points');
+  ensureKmlLayers(map, kmlFCRef, cluster);
 }
 
 export function updateKmlLayerData(

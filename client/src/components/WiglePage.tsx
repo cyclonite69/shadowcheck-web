@@ -10,9 +10,9 @@ import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug } from '../logging/clientLogger';
-import { useAgencyOffices } from './hooks/useAgencyOffices';
+import { resetAgencyOfficeLayers, useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
-import { useFederalCourthouses } from './hooks/useFederalCourthouses';
+import { resetFederalCourthouseLayers, useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
@@ -27,7 +27,12 @@ import {
   updateFieldDataSource,
   removeFieldDataLayer,
 } from './wigle/mapLayers';
-import { ensureKmlLayers, kmlRowsToGeoJSON, updateKmlLayerData } from './wigle/kmlLayers';
+import {
+  ensureKmlLayers,
+  kmlRowsToGeoJSON,
+  resetKmlLayers,
+  updateKmlLayerData,
+} from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
 import { setPointRadius } from './wigle/mapLayers';
@@ -69,6 +74,27 @@ const WiglePage: React.FC = () => {
 
   // Map initialization error state
   const [mapError, setError] = useState<string | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 960 : false
+  );
+  const [mapStyle, setMapStyleState] = useState(() => {
+    return localStorage.getItem('wigle_map_style') || 'mapbox://styles/mapbox/dark-v11';
+  });
+  const [show3dBuildings, setShow3dBuildingsState] = useState(() => {
+    return localStorage.getItem('wigle_3d_buildings') === 'true';
+  });
+  const [showTerrain, setShowTerrainState] = useState(() => {
+    return localStorage.getItem('wigle_terrain') === 'true';
+  });
+  const wigleHandlersAttachedRef = useRef(false);
+  const [clusteringEnabled, setClusteringEnabled] = useState(true);
+  const showFieldDataRef = useRef(layers.showFieldData);
+  showFieldDataRef.current = layers.showFieldData;
+  const clusteringEnabledRef = useRef(true);
+  clusteringEnabledRef.current = clusteringEnabled;
+  const clusteringChangedRef = useRef(false);
+  const fieldDataFCRef = useRef<any>(null);
 
   // Data fetching
   const {
@@ -112,29 +138,22 @@ const WiglePage: React.FC = () => {
   );
 
   // Agency offices layer
-  const { data: agencyData } = useAgencyOffices(mapRef, mapReady, agencyVisibility, mapboxRef);
+  const { data: agencyData } = useAgencyOffices(
+    mapRef,
+    mapReady,
+    agencyVisibility,
+    mapboxRef,
+    clusteringEnabled
+  );
 
   // Federal courthouses layer
   const { data: courthouseData } = useFederalCourthouses(
     mapRef,
     mapReady,
     layers.federalCourthouses,
-    mapboxRef
+    mapboxRef,
+    clusteringEnabled
   );
-
-  const [showMenu, setShowMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 960 : false
-  );
-  const [mapStyle, setMapStyleState] = useState(() => {
-    return localStorage.getItem('wigle_map_style') || 'mapbox://styles/mapbox/dark-v11';
-  });
-  const [show3dBuildings, setShow3dBuildingsState] = useState(() => {
-    return localStorage.getItem('wigle_3d_buildings') === 'true';
-  });
-  const [showTerrain, setShowTerrainState] = useState(() => {
-    return localStorage.getItem('wigle_terrain') === 'true';
-  });
 
   // Wrappers to persist preferences
   const setMapStyle = (style: string) => {
@@ -149,15 +168,6 @@ const WiglePage: React.FC = () => {
     localStorage.setItem('wigle_terrain', String(enabled));
     setShowTerrainState(enabled);
   };
-  const wigleHandlersAttachedRef = useRef(false);
-  const [clusteringEnabled, setClusteringEnabled] = useState(true);
-  const showFieldDataRef = useRef(layers.showFieldData);
-  showFieldDataRef.current = layers.showFieldData;
-  const clusteringEnabledRef = useRef(true);
-  clusteringEnabledRef.current = clusteringEnabled;
-  const clusteringChangedRef = useRef(false);
-  const fieldDataFCRef = useRef<any>(null);
-
   const updateAllClusterColorsCallback = useCallback(() => {
     if (!mapRef.current) return;
     updateAllClusterColors(mapRef.current, clusterColorCache);
@@ -185,7 +195,7 @@ const WiglePage: React.FC = () => {
   const ensureAllLayers = useCallback(() => {
     ensureV2LayersCallback();
     ensureV3LayersCallback();
-    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef);
+    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
   }, [ensureV2LayersCallback, ensureV3LayersCallback]);
 
   // Apply layer visibility on the map (stable ref — reads current layers from layersRef)
@@ -290,10 +300,10 @@ const WiglePage: React.FC = () => {
 
     if (!map.getSource('wigle-kml-points')) {
       if (map.isStyleLoaded()) {
-        ensureKmlLayers(map, kmlFCRef);
+        ensureKmlLayers(map, kmlFCRef, clusteringEnabledRef.current);
       } else {
         map.once('style.load', () => {
-          ensureKmlLayers(map, kmlFCRef);
+          ensureKmlLayers(map, kmlFCRef, clusteringEnabledRef.current);
           updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
         });
         return;
@@ -762,9 +772,25 @@ const WiglePage: React.FC = () => {
     const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
     if (v3Src && v3FCRef.current) v3Src.setData(v3FCRef.current);
 
+    resetKmlLayers(map, kmlFCRef, clusteringEnabled);
+    const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
+    if (kmlSrc && kmlFCRef.current) kmlSrc.setData(kmlFCRef.current);
+
+    resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clusteringEnabled);
+    resetFederalCourthouseLayers(map, courthouseData, layers.federalCourthouses, clusteringEnabled);
+
     applyLayerVisibilityCallback();
     updateAllClusterColorsCallback();
-  }, [clusteringEnabled, mapReady, applyLayerVisibilityCallback, updateAllClusterColorsCallback]);
+  }, [
+    agencyData,
+    agencyVisibility,
+    clusteringEnabled,
+    courthouseData,
+    layers.federalCourthouses,
+    mapReady,
+    applyLayerVisibilityCallback,
+    updateAllClusterColorsCallback,
+  ]);
 
   const loading = v2Loading || v3Loading || kmlLoading;
   const agencyCount =
