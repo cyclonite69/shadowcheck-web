@@ -16,6 +16,7 @@ import { resetFederalCourthouseLayers, useFederalCourthouses } from './hooks/use
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
+import { useWigleFieldData } from './wigle/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
 import {
   ensureV2Layers,
@@ -25,7 +26,6 @@ import {
   resetV3Layers,
   ensureFieldDataLayer,
   updateFieldDataSource,
-  removeFieldDataLayer,
 } from './wigle/mapLayers';
 import {
   ensureKmlLayers,
@@ -37,7 +37,6 @@ import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
 import { setPointRadius } from './wigle/mapLayers';
 import { rowsToGeoJSON, EMPTY_FEATURE_COLLECTION, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
-import { wigleApi } from '../api/wigleApi';
 
 const WiglePage: React.FC = () => {
   // Set current page for filter scoping
@@ -233,6 +232,14 @@ const WiglePage: React.FC = () => {
     ensureAllLayers,
     attachClickHandlersCallback,
     updateAllClusterColorsCallback,
+  });
+
+  useWigleFieldData({
+    mapRef,
+    mapReady,
+    mapboxRef,
+    showFieldData: layers.showFieldData,
+    fieldDataFCRef,
   });
 
   // Sync v2 data to map
@@ -634,111 +641,6 @@ const WiglePage: React.FC = () => {
       map.once('style.load', toggleTerrainAction);
     }
   }, [showTerrain, mapReady, mapStyle]);
-
-  // Field Data toggle — fetch all local observations in the current viewport.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    if (!layers.showFieldData) {
-      fieldDataFCRef.current = EMPTY_FEATURE_COLLECTION;
-      if (map.isStyleLoaded()) removeFieldDataLayer(map);
-      return;
-    }
-
-    let cancelled = false;
-    let requestId = 0;
-
-    const syncFieldData = (features: object[]) => {
-      const fc = { type: 'FeatureCollection', features };
-      fieldDataFCRef.current = fc;
-
-      if (!map.isStyleLoaded()) return;
-      console.log('[Field Data] ensuring layer');
-      ensureFieldDataLayer(map);
-      console.log('[Field Data] updating source', { featureCount: features.length });
-      updateFieldDataSource(map, fc);
-    };
-
-    const loadFieldData = async () => {
-      const currentRequestId = ++requestId;
-      const bounds = map.getBounds();
-      if (!bounds) {
-        syncFieldData([]);
-        return;
-      }
-      const filters = {
-        boundingBox: {
-          west: bounds.getWest(),
-          south: bounds.getSouth(),
-          east: bounds.getEast(),
-          north: bounds.getNorth(),
-        },
-      };
-      const enabled = { boundingBox: true };
-      const limit = 20000;
-      let offset = 0;
-      const rows: any[] = [];
-
-      console.log('[Field Data] fetching viewport observations', {
-        west: filters.boundingBox.west,
-        south: filters.boundingBox.south,
-        east: filters.boundingBox.east,
-        north: filters.boundingBox.north,
-      });
-
-      while (!cancelled) {
-        const params = new URLSearchParams({
-          filters: JSON.stringify(filters),
-          enabled: JSON.stringify(enabled),
-          limit: String(limit),
-          offset: String(offset),
-          include_total: '1',
-          pageType: 'wigle',
-        });
-        const result = await wigleApi.getLocalObservations(params);
-        if (cancelled || currentRequestId !== requestId) return;
-
-        const pageRows = Array.isArray(result?.data) ? result.data : [];
-        rows.push(...pageRows);
-
-        if (result?.truncated !== true || pageRows.length === 0) {
-          break;
-        }
-
-        offset += limit;
-      }
-
-      const features: object[] = rows
-        .filter((obs: any) => obs.lat != null && obs.lon != null)
-        .map((obs: any) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [obs.lon, obs.lat] },
-          properties: {
-            bssid: obs.bssid ?? null,
-            signal: obs.signal ?? obs.level ?? null,
-            time: obs.time ?? null,
-          },
-        }));
-
-      console.log('[Field Data] fetched observations', {
-        observationCount: rows.length,
-        featureCount: features.length,
-      });
-      syncFieldData(features);
-    };
-
-    void loadFieldData();
-    const handleMoveEnd = () => {
-      void loadFieldData();
-    };
-    map.on('moveend', handleMoveEnd);
-
-    return () => {
-      cancelled = true;
-      map.off('moveend', handleMoveEnd);
-    };
-  }, [layers.showFieldData, mapReady]);
 
   // Clustering toggle — remove and re-add sources with updated cluster setting
   useEffect(() => {
