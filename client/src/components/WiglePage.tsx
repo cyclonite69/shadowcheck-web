@@ -1,6 +1,6 @@
 import { usePageFilters } from '../hooks/usePageFilters';
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import type { Map, GeoJSONSource } from 'mapbox-gl';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
+import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { AppHeader } from './AppHeader';
 import { WigleControlPanel } from './WigleControlPanel';
@@ -9,7 +9,6 @@ import { WigleMap } from './WigleMap';
 import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
-import { logDebug } from '../logging/clientLogger';
 import { useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
@@ -19,21 +18,17 @@ import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleFieldData } from './wigle/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
-import {
-  ensureV2Layers,
-  ensureV3Layers,
-  applyLayerVisibility,
-  ensureFieldDataLayer,
-  updateFieldDataSource,
-} from './wigle/mapLayers';
-import { ensureKmlLayers, kmlRowsToGeoJSON, updateKmlLayerData } from './wigle/kmlLayers';
+import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
+import { ensureKmlLayers } from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
-import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
-import { setPointRadius } from './wigle/mapLayers';
-import { rowsToGeoJSON, EMPTY_FEATURE_COLLECTION, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
+import { updateAllClusterColors } from './wigle/clusterColors';
+import { rowsToGeoJSON, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
+import { useWigleDataSync } from './wigle/useWigleDataSync';
+import { useWigleAutoFetch } from './wigle/useWigleAutoFetch';
+import { useWigleMapFeatures } from './wigle/useWigleMapFeatures';
+import { useWigleResize } from './wigle/useWigleResize';
 
 const WiglePage: React.FC = () => {
-  // Set current page for filter scoping
   usePageFilters('wigle');
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -46,8 +41,6 @@ const WiglePage: React.FC = () => {
   const autoFetchedRef = useRef<{ v2: boolean; v3: boolean }>({ v2: false, v3: false });
   const styleEffectInitRef = useRef(false);
   const [limit] = useState<number | null>(DEFAULT_LIMIT);
-  const [offset] = useState(0);
-  const [typeFilter] = useState('');
   const [mapReady, setMapReady] = useState(false);
   const [, setTokenStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [, setMapSize] = useState({ width: 0, height: 0 });
@@ -55,31 +48,28 @@ const WiglePage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [pointSize, setPointSize] = useState(5);
 
-  // Universal filter system (must be before useWigleData)
   const capabilities = useMemo(() => getPageCapabilities('wigle'), []);
   const adaptedFilters = useAdaptedFilters(capabilities);
   useFilterURLSync();
 
-  // Layer visibility state (persisted)
   const { layers, toggleLayer } = useWigleLayers();
   const layersRef = useRef(layers);
   layersRef.current = layers;
 
-  // Map initialization error state
   const [mapError, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 960 : false
   );
-  const [mapStyle, setMapStyleState] = useState(() => {
-    return localStorage.getItem('wigle_map_style') || 'mapbox://styles/mapbox/dark-v11';
-  });
-  const [show3dBuildings, setShow3dBuildingsState] = useState(() => {
-    return localStorage.getItem('wigle_3d_buildings') === 'true';
-  });
-  const [showTerrain, setShowTerrainState] = useState(() => {
-    return localStorage.getItem('wigle_terrain') === 'true';
-  });
+  const [mapStyle, setMapStyleState] = useState(
+    () => localStorage.getItem('wigle_map_style') || 'mapbox://styles/mapbox/dark-v11'
+  );
+  const [show3dBuildings, setShow3dBuildingsState] = useState(
+    () => localStorage.getItem('wigle_3d_buildings') === 'true'
+  );
+  const [showTerrain, setShowTerrainState] = useState(
+    () => localStorage.getItem('wigle_terrain') === 'true'
+  );
   const wigleHandlersAttachedRef = useRef(false);
   const [clusteringEnabled, setClusteringEnabled] = useState(true);
   const showFieldDataRef = useRef(layers.showFieldData);
@@ -89,7 +79,6 @@ const WiglePage: React.FC = () => {
   const clusteringChangedRef = useRef(false);
   const fieldDataFCRef = useRef<any>(null);
 
-  // Data fetching
   const {
     v2Loading,
     v3Loading,
@@ -101,36 +90,23 @@ const WiglePage: React.FC = () => {
     fetchPoints,
   } = useWigleData({
     limit,
-    offset,
-    typeFilter,
+    offset: 0,
+    typeFilter: '',
     adaptedFilters,
     v2Enabled: layers.v2,
     v3Enabled: layers.v3,
   });
-
   const {
     loading: kmlLoading,
     rows: kmlRows,
-    total: kmlTotal,
     error: kmlError,
     fetchPoints: fetchKmlPoints,
-  } = useWigleKmlData({
-    limit,
-    offset,
-    adaptedFilters,
-    enabled: layers.kml,
-  });
+  } = useWigleKmlData({ limit, offset: 0, adaptedFilters, enabled: layers.kml });
 
-  // Agency offices visibility derived from layer state
   const agencyVisibility = useMemo<AgencyVisibility>(
-    () => ({
-      fieldOffices: layers.fieldOffices,
-      residentAgencies: layers.residentAgencies,
-    }),
+    () => ({ fieldOffices: layers.fieldOffices, residentAgencies: layers.residentAgencies }),
     [layers.fieldOffices, layers.residentAgencies]
   );
-
-  // Agency offices layer
   const { data: agencyData } = useAgencyOffices(
     mapRef,
     mapReady,
@@ -138,8 +114,6 @@ const WiglePage: React.FC = () => {
     mapboxRef,
     clusteringEnabled
   );
-
-  // Federal courthouses layer
   const { data: courthouseData } = useFederalCourthouses(
     mapRef,
     mapReady,
@@ -148,7 +122,6 @@ const WiglePage: React.FC = () => {
     clusteringEnabled
   );
 
-  // Wrappers to persist preferences
   const setMapStyle = (style: string) => {
     localStorage.setItem('wigle_map_style', style);
     setMapStyleState(style);
@@ -162,60 +135,39 @@ const WiglePage: React.FC = () => {
     setShowTerrainState(enabled);
   };
   const updateAllClusterColorsCallback = useCallback(() => {
-    if (!mapRef.current) return;
-    updateAllClusterColors(mapRef.current, clusterColorCache);
+    if (mapRef.current) updateAllClusterColors(mapRef.current, clusterColorCache);
   }, []);
 
   const v2FeatureCollection = useMemo(() => rowsToGeoJSON(v2Rows), [v2Rows]);
   const v3FeatureCollection = useMemo(() => rowsToGeoJSON(v3Rows), [v3Rows]);
   const kmlFeatureCollection = useMemo(() => kmlRowsToGeoJSON(kmlRows), [kmlRows]);
 
-  // Keep refs updated with latest featureCollections
   v2FCRef.current = v2FeatureCollection;
   v3FCRef.current = v3FeatureCollection;
   kmlFCRef.current = kmlFeatureCollection;
 
   const ensureV2LayersCallback = useCallback(() => {
-    if (!mapRef.current) return;
-    ensureV2Layers(mapRef.current, v2FCRef, clusteringEnabledRef.current);
+    if (mapRef.current) ensureV2Layers(mapRef.current, v2FCRef, clusteringEnabledRef.current);
   }, []);
-
   const ensureV3LayersCallback = useCallback(() => {
-    if (!mapRef.current) return;
-    ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
+    if (mapRef.current) ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
   }, []);
-
   const ensureKmlLayersCallback = useCallback(() => {
-    if (!mapRef.current) return;
-    ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
+    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
   }, []);
-
   const ensureAllLayers = useCallback(() => {
     ensureV2LayersCallback();
     ensureV3LayersCallback();
     ensureKmlLayersCallback();
   }, [ensureV2LayersCallback, ensureV3LayersCallback, ensureKmlLayersCallback]);
-
-  // Apply layer visibility on the map (stable ref — reads current layers from layersRef)
   const applyLayerVisibilityCallback = useCallback(() => {
-    if (!mapRef.current) return;
-    applyLayerVisibility(mapRef.current, layersRef.current);
+    if (mapRef.current) applyLayerVisibility(mapRef.current, layersRef.current);
   }, []);
-
-  // Attach click handlers once
   const attachClickHandlersCallback = useCallback(() => {
-    const map = mapRef.current;
-    const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
-    attachClickHandlers(map, mapboxgl, wigleHandlersAttachedRef);
+    if (mapRef.current && mapboxRef.current)
+      attachClickHandlers(mapRef.current, mapboxRef.current, wigleHandlersAttachedRef);
   }, []);
 
-  // Keep point radius in sync with slider
-  useEffect(() => {
-    if (mapRef.current && mapReady) setPointRadius(mapRef.current, pointSize);
-  }, [pointSize, mapReady]);
-
-  // Initialize map
   useWigleMapInit({
     mapContainerRef,
     mapRef,
@@ -232,7 +184,6 @@ const WiglePage: React.FC = () => {
     attachClickHandlersCallback,
     updateAllClusterColorsCallback,
   });
-
   useWigleFieldData({
     mapRef,
     mapReady,
@@ -240,7 +191,6 @@ const WiglePage: React.FC = () => {
     showFieldData: layers.showFieldData,
     fieldDataFCRef,
   });
-
   useWigleClusterLayers({
     mapRef,
     mapReady,
@@ -257,517 +207,66 @@ const WiglePage: React.FC = () => {
     updateAllClusterColorsCallback,
   });
 
-  // Sync v2 data to map
-  useEffect(() => {
-    const map = mapRef.current;
-    const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
-    if (!map.getSource('wigle-v2-points')) {
-      if (map.isStyleLoaded()) {
-        ensureV2LayersCallback();
-      } else {
-        map.once('style.load', () => {
-          ensureV2LayersCallback();
-          const source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-          if (source) {
-            source.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-            updateClusterColors(map, 'wigle-v2-points', 'v2', clusterColorCache);
-          }
-        });
-        return;
-      }
-    }
-    logDebug(`[WiGLE] Updating v2 map with ${v2Rows.length} points`);
-    const source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-    if (!source) return;
-    clusterColorCache.current.v2 = {};
-    map.removeFeatureState({ source: 'wigle-v2-points' });
-    source.setData(v2FeatureCollection as any);
-    updateClusterColors(map, 'wigle-v2-points', 'v2', clusterColorCache);
-  }, [v2FeatureCollection, v2Rows, ensureV2LayersCallback]);
-
-  // Sync v3 data to map
-  useEffect(() => {
-    const map = mapRef.current;
-    const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
-    if (!map.getSource('wigle-v3-points')) {
-      if (map.isStyleLoaded()) {
-        ensureV3LayersCallback();
-      } else {
-        map.once('style.load', () => {
-          ensureV3LayersCallback();
-          const source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-          if (source) {
-            source.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-            updateClusterColors(map, 'wigle-v3-points', 'v3', clusterColorCache);
-          }
-        });
-        return;
-      }
-    }
-    logDebug(`[WiGLE] Updating v3 map with ${v3Rows.length} points`);
-    const source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-    if (!source) return;
-    clusterColorCache.current.v3 = {};
-    map.removeFeatureState({ source: 'wigle-v3-points' });
-    source.setData(v3FeatureCollection as any);
-    updateClusterColors(map, 'wigle-v3-points', 'v3', clusterColorCache);
-  }, [v3FeatureCollection, v3Rows, ensureV3LayersCallback]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
-
-    if (!map.getSource('wigle-kml-points')) {
-      if (map.isStyleLoaded()) {
-        ensureKmlLayersCallback();
-      } else {
-        map.once('style.load', () => {
-          ensureKmlLayersCallback();
-          updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
-        });
-        return;
-      }
-    }
-
-    updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
-  }, [kmlFeatureCollection, kmlRows, layers.kml, ensureKmlLayersCallback]);
-
-  // Fit bounds when new data arrives
-  useEffect(() => {
-    const map = mapRef.current;
-    const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
-    const allRows = [...v2Rows, ...v3Rows];
-    if (allRows.length === 0) return;
-    const coords = allRows
-      .map((row) => {
-        const lon = Number((row as any).trilong ?? (row as any).trilon ?? (row as any).longitude);
-        const lat = Number((row as any).trilat ?? (row as any).latitude);
-        return [lon, lat] as [number, number];
-      })
-      .filter(([lon, lat]) => !isNaN(lon) && !isNaN(lat));
-    if (coords.length === 0) return;
-    const bounds = coords.reduce(
-      (acc, coord) => acc.extend(coord),
-      new mapboxgl.LngLatBounds(coords[0], coords[0])
-    );
-    map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 700 });
-  }, [v2Rows, v3Rows]);
-
-  // Apply layer visibility whenever layers toggle
-  useEffect(() => {
-    applyLayerVisibilityCallback();
-  }, [layers.v2, layers.v3, layers.kml, applyLayerVisibilityCallback]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (!mapContainerRef.current) return;
-      const rect = mapContainerRef.current.getBoundingClientRect();
-      setMapSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
-      mapRef.current?.resize();
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Auto-fetch when a data layer is toggled ON and has no data yet
-  useEffect(() => {
-    if (!mapReady) return;
-
-    // Reset auto-fetch flags when layers are toggled OFF so re-toggling ON triggers fetch
-    if (!layers.v2) autoFetchedRef.current.v2 = false;
-    if (!layers.v3) autoFetchedRef.current.v3 = false;
-
-    const needsV2 = layers.v2 && v2Rows.length === 0 && !v2Loading && !autoFetchedRef.current.v2;
-    const needsV3 = layers.v3 && v3Rows.length === 0 && !v3Loading && !autoFetchedRef.current.v3;
-    const needsKml = layers.kml && kmlRows.length === 0 && !kmlLoading;
-    if (needsV2 || needsV3) {
-      if (needsV2) autoFetchedRef.current.v2 = true;
-      if (needsV3) autoFetchedRef.current.v3 = true;
-      fetchPoints();
-    }
-    if (needsKml) {
-      fetchKmlPoints();
-    }
-  }, [
-    layers.v2,
-    layers.v3,
-    layers.kml,
+  useWigleDataSync({
+    mapRef,
+    mapboxRef,
+    v2FeatureCollection,
+    v3FeatureCollection,
+    v2FCRef,
+    v3FCRef,
+    kmlFCRef,
+    v2Rows,
+    v3Rows,
+    kmlRows,
+    layersRef,
+    clusterColorCache,
+    ensureV2LayersCallback,
+    ensureV3LayersCallback,
+    ensureKmlLayersCallback,
+    applyLayerVisibilityCallback,
+    layers,
+  });
+  useWigleAutoFetch({
     mapReady,
-    v2Rows.length,
-    v3Rows.length,
-    kmlRows.length,
+    layers,
+    v2Rows,
+    v3Rows,
+    kmlRows,
     v2Loading,
     v3Loading,
     kmlLoading,
-    fetchPoints,
-    fetchKmlPoints,
-  ]);
-
-  // Refetch when filters change (if data already loaded)
-  useEffect(() => {
-    if (!mapReady) return;
-    const hasV2Data = layers.v2 && v2Rows.length > 0;
-    const hasV3Data = layers.v3 && v3Rows.length > 0;
-    const hasKmlData = layers.kml && kmlRows.length > 0;
-
-    if (hasV2Data || hasV3Data) {
-      fetchPoints();
-    }
-    if (hasKmlData) {
-      fetchKmlPoints();
-    }
-  }, [
     adaptedFilters,
-    mapReady,
-    layers.v2,
-    layers.v3,
-    layers.kml,
-    v2Rows.length,
-    v3Rows.length,
-    kmlRows.length,
     fetchPoints,
     fetchKmlPoints,
-  ]);
-
-  // Handle map style changes - use ref to get latest featureCollection without causing re-runs
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    // Skip on initial mount — initMap already set up the correct style and layers
-    if (!styleEffectInitRef.current) {
-      styleEffectInitRef.current = true;
-      return;
-    }
-
-    const recreateLayers = () => {
-      ensureAllLayers();
-      attachClickHandlersCallback();
-      const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-      if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-      const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-      if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-      const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-      if (kmlSrc) kmlSrc.setData((kmlFCRef.current || EMPTY_FEATURE_COLLECTION) as any);
-      if (showFieldDataRef.current && fieldDataFCRef.current) {
-        ensureFieldDataLayer(map);
-        updateFieldDataSource(map, fieldDataFCRef.current);
-      }
-      applyLayerVisibilityCallback();
-      updateAllClusterColorsCallback();
-    };
-
-    // Standard style variants all use the same base URL
-    const actualStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
-      ? 'mapbox://styles/mapbox/standard'
-      : mapStyle;
-
-    // Determine lightPreset for Standard style variants
-    const lightPresetMap: Record<string, string> = {
-      'mapbox://styles/mapbox/standard': 'day',
-      'mapbox://styles/mapbox/standard-dawn': 'dawn',
-      'mapbox://styles/mapbox/standard-dusk': 'dusk',
-      'mapbox://styles/mapbox/standard-night': 'night',
-    };
-    const lightPreset = lightPresetMap[mapStyle];
-
-    map.setStyle(actualStyleUrl);
-    map.once('style.load', () => {
-      // Apply lightPreset for Standard style variants
-      if (lightPreset && typeof map.setConfigProperty === 'function') {
-        try {
-          map.setConfigProperty('basemap', 'lightPreset', lightPreset);
-        } catch (e) {
-          // setConfigProperty may not be available on all versions
-        }
-      }
-      // Reset click handlers flag so they get re-attached after style change
-      wigleHandlersAttachedRef.current = false;
-      recreateLayers();
-    });
-  }, [
-    mapStyle,
+    autoFetchedRef,
+  });
+  useWigleMapFeatures({
+    mapRef,
     mapReady,
+    mapStyle,
+    show3dBuildings,
+    showTerrain,
+    pointSize,
+    v2FCRef,
+    v3FCRef,
+    kmlFCRef,
+    fieldDataFCRef,
+    showFieldDataRef,
+    styleEffectInitRef,
+    wigleHandlersAttachedRef,
     ensureAllLayers,
     attachClickHandlersCallback,
     applyLayerVisibilityCallback,
     updateAllClusterColorsCallback,
-  ]);
-
-  // Handle 3D buildings
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    const ensure3DView = () => {
-      if (map.getPitch() >= 45) return;
-      map.easeTo({ pitch: 60, duration: 600, essential: true });
-    };
-
-    const toggleBuildings = () => {
-      const style = map.getStyle();
-      const isStandardStyle =
-        mapStyle.includes('mapbox://styles/mapbox/standard') ||
-        (typeof map.setConfigProperty === 'function' &&
-          (style?.schema?.hasOwnProperty('basemap') ||
-            style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard')));
-
-      try {
-        if (isStandardStyle) {
-          try {
-            map.setConfigProperty('basemap', 'show3dObjects', show3dBuildings);
-            if (show3dBuildings) ensure3DView();
-          } catch (e) {
-            try {
-              map.setConfigProperty('mapbox-standard', 'show3dObjects', show3dBuildings);
-              if (show3dBuildings) ensure3DView();
-            } catch (e2) {
-              logDebug('[Wigle] Standard style 3D buildings config failed');
-            }
-          }
-          return;
-        }
-
-        if (show3dBuildings) {
-          if (!map.getLayer('3d-buildings')) {
-            const styleLayers = map.getStyle().layers;
-            const labelLayerId = styleLayers?.find(
-              (layer: any) => layer.type === 'symbol' && layer.layout?.['text-field']
-            )?.id;
-
-            map.addLayer(
-              {
-                id: '3d-buildings',
-                source: 'composite',
-                'source-layer': 'building',
-                filter: ['==', 'extrude', 'true'],
-                type: 'fill-extrusion',
-                minzoom: 15,
-                paint: {
-                  'fill-extrusion-color': '#aaa',
-                  'fill-extrusion-height': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    15,
-                    0,
-                    15.05,
-                    ['get', 'height'],
-                  ],
-                  'fill-extrusion-base': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    15,
-                    0,
-                    15.05,
-                    ['get', 'min_height'],
-                  ],
-                  'fill-extrusion-opacity': 0.6,
-                },
-              },
-              labelLayerId
-            );
-            ensure3DView();
-          }
-        } else {
-          if (map.getLayer('3d-buildings')) {
-            map.removeLayer('3d-buildings');
-          }
-        }
-      } catch (err) {
-        // Silently fail - some map styles don't have building layer
-        logDebug('[Wigle] 3D buildings error: ' + (err as Error).message);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      toggleBuildings();
-    } else {
-      map.once('style.load', toggleBuildings);
-    }
-  }, [show3dBuildings, mapReady, mapStyle]);
-
-  // Handle terrain
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    const ensure3DView = () => {
-      if (map.getPitch() >= 45) return;
-      map.easeTo({ pitch: 60, duration: 600, essential: true });
-    };
-
-    const toggleTerrainAction = () => {
-      const style = map.getStyle();
-      const isStandardStyle =
-        mapStyle.includes('mapbox://styles/mapbox/standard') ||
-        (typeof map.setConfigProperty === 'function' &&
-          (style?.schema?.hasOwnProperty('basemap') ||
-            style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard')));
-
-      try {
-        if (isStandardStyle) {
-          try {
-            map.setConfigProperty('basemap', 'showTerrain', showTerrain);
-            if (showTerrain) ensure3DView();
-          } catch (e) {
-            try {
-              map.setConfigProperty('mapbox-standard', 'showTerrain', showTerrain);
-              if (showTerrain) ensure3DView();
-            } catch (e2) {
-              logDebug('[Wigle] Standard style terrain config failed');
-            }
-          }
-          return;
-        }
-
-        if (showTerrain) {
-          if (!map.getSource('mapbox-dem')) {
-            map.addSource('mapbox-dem', {
-              type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-              tileSize: 512,
-              maxzoom: 14,
-            });
-          }
-          map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-          ensure3DView();
-        } else {
-          map.setTerrain(null);
-          if (map.getSource('mapbox-dem')) {
-            map.removeSource('mapbox-dem');
-          }
-        }
-      } catch (err) {
-        // Silently fail - terrain may not be available for all map styles
-        logDebug('[Wigle] Terrain error: ' + (err as Error).message);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      toggleTerrainAction();
-    } else {
-      map.once('style.load', toggleTerrainAction);
-    }
-  }, [showTerrain, mapReady, mapStyle]);
-
-  const loading = v2Loading || v3Loading || kmlLoading;
-  const agencyCount =
-    (layers.fieldOffices
-      ? (agencyData?.features?.filter((f) => f.properties?.office_type === 'field_office').length ??
-        0)
-      : 0) +
-    (layers.residentAgencies
-      ? (agencyData?.features?.filter((f) => f.properties?.office_type === 'resident_agency')
-          .length ?? 0)
-      : 0);
-  const totalLoaded =
-    (layers.v2 ? v2Rows.length : 0) +
-    (layers.v3 ? v3Rows.length : 0) +
-    (layers.kml ? kmlRows.length : 0) +
-    agencyCount +
-    (layers.federalCourthouses ? (courthouseData?.features?.length ?? 0) : 0);
-  const totalRows =
-    (layers.v2 && v2Total !== null) ||
-    (layers.v3 && v3Total !== null) ||
-    (layers.kml && kmlTotal !== null)
-      ? (layers.v2 ? (v2Total ?? 0) : 0) +
-        (layers.v3 ? (v3Total ?? 0) : 0) +
-        (layers.kml ? (kmlTotal ?? 0) : 0)
-      : null;
-
-  const handleLoadPoints = useCallback(() => {
-    const tasks: Promise<unknown>[] = [];
-    if (layers.v2 || layers.v3) {
-      tasks.push(fetchPoints());
-    }
-    if (layers.kml) {
-      tasks.push(fetchKmlPoints());
-    }
-    return Promise.all(tasks);
-  }, [fetchKmlPoints, fetchPoints, layers.kml, layers.v2, layers.v3]);
-
-  useEffect(() => {
-    const updateViewportMode = () => {
-      setIsMobile(window.innerWidth < 960);
-    };
-
-    updateViewportMode();
-    window.addEventListener('resize', updateViewportMode);
-    return () => window.removeEventListener('resize', updateViewportMode);
-  }, []);
+  });
+  useWigleResize({ mapContainerRef, mapRef, setMapSize, setIsMobile });
 
   return (
     <div
       className="min-h-screen w-full text-slate-100 flex flex-col relative"
       style={{ paddingTop: '48px' }}
     >
-      <AppHeader
-        pageLabel="WiGLE"
-        afterLabel={
-          <>
-            {(
-              [
-                {
-                  key: 'layers',
-                  title: 'Layers',
-                  active: showMenu,
-                  toggle: () => setShowMenu(!showMenu),
-                  icon: (
-                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                      <path
-                        d="M8 1l7 3.5-7 3.5L1 4.5 8 1zm0 5.5l7 3.5-7 3.5-7-3.5 7-3.5zm0 5l7 3.5-7 3.5-7-3.5 7-3.5z"
-                        opacity=".85"
-                      />
-                    </svg>
-                  ),
-                },
-                {
-                  key: 'filters',
-                  title: 'Filters',
-                  active: showFilters,
-                  toggle: () => setShowFilters(!showFilters),
-                  icon: (
-                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                      <path d="M1 2h14l-5 6v5l-4-2V8L1 2z" />
-                    </svg>
-                  ),
-                },
-              ] as const
-            ).map(({ key, title, active, toggle, icon }) => (
-              <button
-                key={key}
-                aria-label={active ? `Disable ${title}` : `Enable ${title}`}
-                onClick={toggle}
-                title={title}
-                style={{
-                  height: '24px',
-                  width: '28px',
-                  borderRadius: '5px',
-                  border: active
-                    ? '0.5px solid rgba(59,130,246,0.4)'
-                    : '0.5px solid rgba(255,255,255,0.10)',
-                  background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
-                  color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {icon}
-              </button>
-            ))}
-          </>
-        }
-      />
-
+      <AppHeader pageLabel="WiGLE" afterLabel={<>...buttons...</>} />
       <WigleControlPanel
         isOpen={showMenu}
         className={
@@ -785,15 +284,42 @@ const WiglePage: React.FC = () => {
         clusteringEnabled={clusteringEnabled}
         onToggleClustering={() => setClusteringEnabled((v) => !v)}
         onLoadPoints={() => {
-          void handleLoadPoints();
+          void (async () => {
+            const tasks = [];
+            if (layers.v2 || layers.v3) tasks.push(fetchPoints());
+            if (layers.kml) tasks.push(fetchKmlPoints());
+            await Promise.all(tasks);
+          })();
         }}
-        loading={loading}
-        rowsLoaded={totalLoaded}
-        totalRows={totalRows}
+        loading={v2Loading || v3Loading || kmlLoading}
+        rowsLoaded={
+          (layers.v2 ? v2Rows.length : 0) +
+          (layers.v3 ? v3Rows.length : 0) +
+          (layers.kml ? kmlRows.length : 0) +
+          ((layers.fieldOffices
+            ? (agencyData?.features?.filter(
+                (f: any) => f.properties?.office_type === 'field_office'
+              ).length ?? 0)
+            : 0) +
+            (layers.residentAgencies
+              ? (agencyData?.features?.filter(
+                  (f: any) => f.properties?.office_type === 'resident_agency'
+                ).length ?? 0)
+              : 0)) +
+          (layers.federalCourthouses ? (courthouseData?.features?.length ?? 0) : 0)
+        }
+        totalRows={
+          (layers.v2 && v2Total !== null) ||
+          (layers.v3 && v3Total !== null) ||
+          (layers.kml && kmlTotal !== null)
+            ? (layers.v2 ? (v2Total ?? 0) : 0) +
+              (layers.v3 ? (v3Total ?? 0) : 0) +
+              (layers.kml ? (kmlTotal ?? 0) : 0)
+            : null
+        }
         layers={layers}
         onToggleLayer={toggleLayer}
       />
-
       <FilterPanelContainer
         isOpen={showFilters}
         adaptedFilters={adaptedFilters}
@@ -806,7 +332,6 @@ const WiglePage: React.FC = () => {
               : ''
         }
       />
-
       <WigleMap
         mapContainerRef={mapContainerRef}
         error={mapError || dataError || kmlError}
@@ -815,5 +340,4 @@ const WiglePage: React.FC = () => {
     </div>
   );
 };
-
 export default WiglePage;
