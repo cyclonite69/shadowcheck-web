@@ -2,6 +2,7 @@ import { useEffect, type MutableRefObject } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { wigleApi } from '../../api/wigleApi';
+import { buildFilteredRequestParams } from '../../utils/filteredRequestParams';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import { ensureFieldDataLayer, removeFieldDataLayer, updateFieldDataSource } from './mapLayers';
 
@@ -74,13 +75,11 @@ export const useWigleFieldData = ({
       });
 
       while (!cancelled) {
-        const params = new URLSearchParams({
-          filters: JSON.stringify(filters),
-          enabled: JSON.stringify(enabled),
-          limit: String(limit),
-          offset: String(offset),
-          include_total: '1',
-          pageType: 'wigle',
+        const params = buildFilteredRequestParams({
+          payload: { filters, enabled },
+          limit,
+          offset,
+          includeTotal: true,
         });
         const result = await wigleApi.getLocalObservations(params);
         if (cancelled || currentRequestId !== requestId) return;
