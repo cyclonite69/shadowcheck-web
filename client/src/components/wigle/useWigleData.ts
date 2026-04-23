@@ -63,7 +63,7 @@ export const useWigleData = ({
     if (v2Enabled) {
       setV2Loading(true);
       promises.push(
-        doFetch('/api/wigle/networks-v2')
+        doFetch('/wigle/networks-v2')
           .then(({ rows, total }) => {
             setV2Rows(rows);
             setV2Total(total);
@@ -76,7 +76,7 @@ export const useWigleData = ({
     if (v3Enabled) {
       setV3Loading(true);
       promises.push(
-        doFetch('/api/wigle/networks-v3')
+        doFetch('/wigle/networks-v3')
           .then(({ rows, total }) => {
             setV3Rows(rows);
             setV3Total(total);
