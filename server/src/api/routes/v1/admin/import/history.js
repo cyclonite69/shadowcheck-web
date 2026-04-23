@@ -6,7 +6,7 @@ const {
 } = require('../../../../../config/container');
 const logger = require('../../../../../logging/logger');
 
-router.get('/admin/import-history', async (req, res, next) => {
+router.get('/import-history', async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const history = await adminImportHistoryService.getImportHistory(limit);
@@ -16,7 +16,7 @@ router.get('/admin/import-history', async (req, res, next) => {
   }
 });
 
-router.post('/admin/import/mobile/:uploadId/start', async (req, res, next) => {
+router.post('/import/mobile/:uploadId/start', async (req, res, next) => {
   try {
     const uploadId = Number.parseInt(String(req.params.uploadId), 10);
     if (!Number.isFinite(uploadId) || uploadId <= 0) {
@@ -38,7 +38,7 @@ router.post('/admin/import/mobile/:uploadId/start', async (req, res, next) => {
   }
 });
 
-router.get('/admin/device-sources', async (req, res, next) => {
+router.get('/device-sources', async (req, res, next) => {
   try {
     const sources = await adminImportHistoryService.getDeviceSources();
     res.json({ ok: true, sources });

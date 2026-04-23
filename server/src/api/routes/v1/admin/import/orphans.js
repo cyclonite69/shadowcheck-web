@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { adminOrphanNetworksService } = require('../../../../../config/container');
 
-router.get('/admin/orphan-networks', async (req, res, next) => {
+router.get('/orphan-networks', async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 500);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
@@ -20,7 +20,7 @@ router.get('/admin/orphan-networks', async (req, res, next) => {
   }
 });
 
-router.post('/admin/orphan-networks/:bssid/check-wigle', async (req, res, next) => {
+router.post('/orphan-networks/:bssid/check-wigle', async (req, res, next) => {
   try {
     const result = await adminOrphanNetworksService.backfillOrphanNetworkFromWigle(
       req.params.bssid

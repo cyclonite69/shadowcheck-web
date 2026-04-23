@@ -11,7 +11,7 @@ const {
   PROJECT_ROOT,
 } = require('../../../../../services/admin/adminHelpers');
 
-router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) => {
+router.post('/import-sql', sqlUpload.single('sql_file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ ok: false, error: 'No SQL file uploaded' });
   }
