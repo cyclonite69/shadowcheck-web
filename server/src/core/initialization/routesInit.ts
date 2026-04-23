@@ -57,7 +57,9 @@ interface RouteModules {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
-  miscRoutes: Router;
+  geocodingRoutes: Router;
+  wigleImportRoutes: Router;
+  dataQualityRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
   mobileIngestRoutes: Router;
@@ -113,6 +115,9 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     settingsRoutes: routes.settingsRoutes,
     networkTagsRoutes: routes.networkTagsRoutes,
     authRoutes: routes.authRoutes,
+    geocodingRoutes: routes.geocodingRoutes,
+    wigleImportRoutes: routes.wigleImportRoutes,
+    dataQualityRoutes: routes.dataQualityRoutes,
     claudeRoutes: routes.claudeRoutes,
     threatReportRoutes: routes.threatReportRoutes,
     mobileIngestRoutes: routes.mobileIngestRoutes,
