@@ -22,6 +22,7 @@ export const NetworkTagMenuAdminActions = ({
       label={tag?.is_ignored ? '👁️ Unignore (Show)' : '👁️‍🗨️ Ignore (Known/Friendly)'}
       onClick={() => onTagAction('ignore')}
       disabled={tagLoading}
+      hoverBackground="#475569"
     />
     <Divider />
     <NetworkTagMenuActionButton

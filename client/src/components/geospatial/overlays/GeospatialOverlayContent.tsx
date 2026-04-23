@@ -14,6 +14,7 @@ interface GeospatialOverlayContentProps {
   ) => Promise<void>;
   closeContextMenu: () => void;
   openTimeFrequency: (params: { bssid: string; ssid: string }) => void;
+  timeFreqModal: { bssid: string; ssid: string } | null;
   openNoteModalForBssid: (bssid: string) => void;
   handleGenerateThreatReportPdf: () => void;
   toggleWigleForBssids: (bssids: string[]) => void;
@@ -62,6 +63,7 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   handleTagAction,
   closeContextMenu,
   openTimeFrequency,
+  timeFreqModal,
   openNoteModalForBssid,
   handleGenerateThreatReportPdf,
   toggleWigleForBssids,
@@ -166,7 +168,7 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
       onCancelNote={resetNoteState}
       onDeleteNote={handleDeleteNote}
       onSaveNote={handleSaveNote}
-      timeFreqModal={state.timeFreqModal}
+      timeFreqModal={timeFreqModal}
       onCloseTimeFrequency={closeTimeFrequency}
     />
     <WigleLookupDialog

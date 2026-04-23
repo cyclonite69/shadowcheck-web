@@ -16,11 +16,13 @@ export const NetworkTagMenuViewActions = ({
       label="Generate Threat Report (PDF)"
       onClick={onGenerateThreatReport}
       textColor="#22d3ee"
+      hoverBackground="#475569"
     />
     <NetworkTagMenuActionButton
       label="📡 Temporal Heatmap"
       onClick={onTimeFrequency}
       textColor="#06b6d4"
+      hoverBackground="#475569"
     />
     {onMapWigleObservations && (
       <NetworkTagMenuActionButton
@@ -37,6 +39,7 @@ export const NetworkTagMenuViewActions = ({
         onClick={onAddNote}
         textColor="#a78bfa"
         disabled={tagLoading}
+        hoverBackground="#475569"
       />
     )}
   </>

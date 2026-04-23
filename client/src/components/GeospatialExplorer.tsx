@@ -162,7 +162,7 @@ export default function GeospatialExplorer() {
     removeAttachment,
   } = useNetworkNotes({ logError });
 
-  const { openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
+  const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
 
   // Map Layer Integration (Hook-based)
   useAgencyLayer({
@@ -231,6 +231,7 @@ export default function GeospatialExplorer() {
           handleTagAction={handleTagAction}
           closeContextMenu={closeContextMenu}
           openTimeFrequency={openTimeFrequency}
+          timeFreqModal={timeFreqModal}
           openNoteModalForBssid={openNoteModalForBssid}
           handleGenerateThreatReportPdf={handleGenerateThreatReportPdf}
           toggleWigleForBssids={state.toggleWigleForBssids}
