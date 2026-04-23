@@ -68,7 +68,7 @@ require('ts-node').register({
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
     // ============================================================================
-    mountDemoRoutes(app, routes.miscRoutes);
+    mountDemoRoutes(app, routes.dataQualityRoutes);
 
     // ============================================================================
     // 9. STATIC FILES
