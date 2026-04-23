@@ -269,6 +269,11 @@ export const wigleApi = {
     return apiClient.get(`/networks/observations/${encodeURIComponent(bssid)}`);
   },
 
+  async getLocalObservations(params: URLSearchParams): Promise<any> {
+    const suffix = params.toString();
+    return apiClient.get(`/v2/networks/filtered/observations${suffix ? `?${suffix}` : ''}`);
+  },
+
   async getKmlPoints(params: URLSearchParams): Promise<any> {
     const suffix = params.toString();
     return apiClient.get(`/wigle/kml-points${suffix ? `?${suffix}` : ''}`);

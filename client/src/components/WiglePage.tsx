@@ -635,97 +635,21 @@ const WiglePage: React.FC = () => {
     }
   }, [showTerrain, mapReady, mapStyle]);
 
-  // Field Data toggle — fetch local observations for all visible BSSIDs and render as overlay
+  // Field Data toggle — fetch all local observations in the current viewport.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
     if (!layers.showFieldData) {
+      fieldDataFCRef.current = EMPTY_FEATURE_COLLECTION;
       if (map.isStyleLoaded()) removeFieldDataLayer(map);
       return;
     }
 
     let cancelled = false;
+    let requestId = 0;
 
-    const buildSearchParams = () => {
-      const params = new URLSearchParams({ include_total: '1' });
-      if (limit !== null) params.set('limit', String(limit));
-      if (offset > 0) params.set('offset', String(offset));
-      if (typeFilter.trim()) params.set('type', typeFilter.trim());
-      const { filtersForPage, enabledForPage } = adaptedFilters;
-      params.set('filters', JSON.stringify(filtersForPage));
-      params.set('enabled', JSON.stringify(enabledForPage));
-      return params;
-    };
-
-    const normalizeRows = (payload: any) => {
-      const rawRows = payload?.data || payload?.networks || [];
-      return rawRows.map((row: any) => ({
-        ...row,
-        bssid: row.bssid || row.netid,
-      }));
-    };
-
-    const loadFieldData = async () => {
-      let sourceRows: any[] = [...v2Rows, ...v3Rows];
-
-      if (sourceRows.length === 0 && !layers.v2 && !layers.v3) {
-        const params = buildSearchParams();
-        const seedResults = await Promise.allSettled([
-          wigleApi.searchLocalWigle('/api/wigle/networks-v2', new URLSearchParams(params)),
-          wigleApi.searchLocalWigle('/api/wigle/networks-v3', new URLSearchParams(params)),
-        ]);
-
-        if (cancelled) return;
-
-        sourceRows = seedResults.flatMap((result) =>
-          result.status === 'fulfilled' ? normalizeRows(result.value) : []
-        );
-      }
-
-      const bssidSet = new Set<string>();
-      sourceRows.forEach((row: any) => {
-        if (row.bssid) bssidSet.add(String(row.bssid).toUpperCase());
-      });
-
-      const bssids = Array.from(bssidSet).slice(0, 50);
-      console.log('[Field Data] collected bssids', {
-        count: bssids.length,
-        sample: bssids.slice(0, 5),
-      });
-      if (bssids.length === 0) return;
-
-      const results = await Promise.allSettled(
-        bssids.map((bssid) => wigleApi.getLocalObservationsByBSSID(bssid).catch(() => null))
-      );
-      if (cancelled) return;
-
-      const observationCount = results.reduce((total, result) => {
-        if (result.status === 'fulfilled' && Array.isArray(result.value?.observations)) {
-          return total + result.value.observations.length;
-        }
-        return total;
-      }, 0);
-      console.log('[Field Data] fetched observations', {
-        bssidCount: bssids.length,
-        observationCount,
-      });
-
-      const features: object[] = [];
-      results.forEach((result, i) => {
-        if (result.status === 'fulfilled' && result.value?.observations) {
-          result.value.observations.forEach((obs: any) => {
-            if (obs.lat != null && obs.lon != null) {
-              features.push({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [obs.lon, obs.lat] },
-                properties: { bssid: bssids[i], signal: obs.signal ?? obs.level ?? null },
-              });
-            }
-          });
-        }
-      });
-
+    const syncFieldData = (features: object[]) => {
       const fc = { type: 'FeatureCollection', features };
       fieldDataFCRef.current = fc;
 
@@ -736,23 +660,85 @@ const WiglePage: React.FC = () => {
       updateFieldDataSource(map, fc);
     };
 
+    const loadFieldData = async () => {
+      const currentRequestId = ++requestId;
+      const bounds = map.getBounds();
+      if (!bounds) {
+        syncFieldData([]);
+        return;
+      }
+      const filters = {
+        boundingBox: {
+          west: bounds.getWest(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          north: bounds.getNorth(),
+        },
+      };
+      const enabled = { boundingBox: true };
+      const limit = 20000;
+      let offset = 0;
+      const rows: any[] = [];
+
+      console.log('[Field Data] fetching viewport observations', {
+        west: filters.boundingBox.west,
+        south: filters.boundingBox.south,
+        east: filters.boundingBox.east,
+        north: filters.boundingBox.north,
+      });
+
+      while (!cancelled) {
+        const params = new URLSearchParams({
+          filters: JSON.stringify(filters),
+          enabled: JSON.stringify(enabled),
+          limit: String(limit),
+          offset: String(offset),
+          include_total: '1',
+          pageType: 'wigle',
+        });
+        const result = await wigleApi.getLocalObservations(params);
+        if (cancelled || currentRequestId !== requestId) return;
+
+        const pageRows = Array.isArray(result?.data) ? result.data : [];
+        rows.push(...pageRows);
+
+        if (result?.truncated !== true || pageRows.length === 0) {
+          break;
+        }
+
+        offset += limit;
+      }
+
+      const features: object[] = rows
+        .filter((obs: any) => obs.lat != null && obs.lon != null)
+        .map((obs: any) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [obs.lon, obs.lat] },
+          properties: {
+            bssid: obs.bssid ?? null,
+            signal: obs.signal ?? obs.level ?? null,
+            time: obs.time ?? null,
+          },
+        }));
+
+      console.log('[Field Data] fetched observations', {
+        observationCount: rows.length,
+        featureCount: features.length,
+      });
+      syncFieldData(features);
+    };
+
     void loadFieldData();
+    const handleMoveEnd = () => {
+      void loadFieldData();
+    };
+    map.on('moveend', handleMoveEnd);
 
     return () => {
       cancelled = true;
+      map.off('moveend', handleMoveEnd);
     };
-  }, [
-    layers.showFieldData,
-    layers.v2,
-    layers.v3,
-    v2Rows,
-    v3Rows,
-    mapReady,
-    limit,
-    offset,
-    typeFilter,
-    adaptedFilters,
-  ]);
+  }, [layers.showFieldData, mapReady]);
 
   // Clustering toggle — remove and re-add sources with updated cluster setting
   useEffect(() => {
