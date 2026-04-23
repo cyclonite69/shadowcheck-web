@@ -266,7 +266,65 @@ const WiglePage: React.FC = () => {
       className="min-h-screen w-full text-slate-100 flex flex-col relative"
       style={{ paddingTop: '48px' }}
     >
-      <AppHeader pageLabel="WiGLE" afterLabel={<>...buttons...</>} />
+      <AppHeader
+        pageLabel="WiGLE"
+        afterLabel={
+          <>
+            {(
+              [
+                {
+                  key: 'layers',
+                  title: 'Layers',
+                  active: showMenu,
+                  toggle: () => setShowMenu(!showMenu),
+                  icon: (
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                      <path
+                        d="M8 1l7 3.5-7 3.5L1 4.5 8 1zm0 5.5l7 3.5-7 3.5-7-3.5 7-3.5zm0 5l7 3.5-7 3.5-7-3.5 7-3.5z"
+                        opacity=".85"
+                      />
+                    </svg>
+                  ),
+                },
+                {
+                  key: 'filters',
+                  title: 'Filters',
+                  active: showFilters,
+                  toggle: () => setShowFilters(!showFilters),
+                  icon: (
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                      <path d="M1 2h14l-5 6v5l-4-2V8L1 2z" />
+                    </svg>
+                  ),
+                },
+              ] as const
+            ).map(({ key, title, active, toggle, icon }) => (
+              <button
+                key={key}
+                aria-label={active ? `Disable ${title}` : `Enable ${title}`}
+                onClick={toggle}
+                title={title}
+                style={{
+                  height: '24px',
+                  width: '28px',
+                  borderRadius: '5px',
+                  border: active
+                    ? '0.5px solid rgba(59,130,246,0.4)'
+                    : '0.5px solid rgba(255,255,255,0.10)',
+                  background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+                  color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {icon}
+              </button>
+            ))}
+          </>
+        }
+      />
       <WigleControlPanel
         isOpen={showMenu}
         className={
