@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { Map, GeoJSONSource } from 'mapbox-gl';
-import { logDebug } from '../../../logging/clientLogger';
-import { EMPTY_FEATURE_COLLECTION } from '../../../utils/wigle';
+import { logDebug } from '../../logging/clientLogger';
+import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import { ensureFieldDataLayer, updateFieldDataSource, setPointRadius } from './mapLayers';
 
 export function useWigleMapFeatures({
