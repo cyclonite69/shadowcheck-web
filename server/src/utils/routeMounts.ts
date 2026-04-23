@@ -171,8 +171,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/agency-offices', agencyOfficesRoutes);
   app.use('/federal-courthouses', federalCourthousesRoutes);
 
-  // API routes
-  app.use('/api', userGate, authRoutes);
+  // Auth routes define their own session handling. Do not gate the mount or
+  // login/session bootstrap endpoints will 401 before they can run.
+  app.use('/api', authRoutes);
   app.use('/api', userGate, geocodingRoutes);
   app.use('/api', userGate, wigleImportRoutes);
   app.use('/api', userGate, dataQualityRoutes);
