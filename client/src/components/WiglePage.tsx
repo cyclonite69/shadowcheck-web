@@ -185,11 +185,16 @@ const WiglePage: React.FC = () => {
     ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
   }, []);
 
+  const ensureKmlLayersCallback = useCallback(() => {
+    if (!mapRef.current) return;
+    ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
+  }, []);
+
   const ensureAllLayers = useCallback(() => {
     ensureV2LayersCallback();
     ensureV3LayersCallback();
-    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
-  }, [ensureV2LayersCallback, ensureV3LayersCallback]);
+    ensureKmlLayersCallback();
+  }, [ensureV2LayersCallback, ensureV3LayersCallback, ensureKmlLayersCallback]);
 
   // Apply layer visibility on the map (stable ref — reads current layers from layersRef)
   const applyLayerVisibilityCallback = useCallback(() => {
@@ -317,10 +322,10 @@ const WiglePage: React.FC = () => {
 
     if (!map.getSource('wigle-kml-points')) {
       if (map.isStyleLoaded()) {
-        ensureKmlLayers(map, kmlFCRef, clusteringEnabledRef.current);
+        ensureKmlLayersCallback();
       } else {
         map.once('style.load', () => {
-          ensureKmlLayers(map, kmlFCRef, clusteringEnabledRef.current);
+          ensureKmlLayersCallback();
           updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
         });
         return;
@@ -328,7 +333,7 @@ const WiglePage: React.FC = () => {
     }
 
     updateKmlLayerData(map, kmlRows, layers.kml, kmlFCRef);
-  }, [kmlFeatureCollection, kmlRows, layers.kml]);
+  }, [kmlFeatureCollection, kmlRows, layers.kml, ensureKmlLayersCallback]);
 
   // Fit bounds when new data arrives
   useEffect(() => {
