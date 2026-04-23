@@ -36,6 +36,9 @@ interface ApiRouteDependencies {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
+  geocodingRoutes: Router;
+  wigleImportRoutes: Router;
+  dataQualityRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
   mobileIngestRoutes: Router;
@@ -47,8 +50,8 @@ interface ApiRouteDependencies {
 /**
  * Mount demo routes (must run before static asset middleware).
  */
-function mountDemoRoutes(app: Express, miscRoutes: Router): void {
-  app.use('/', miscRoutes);
+function mountDemoRoutes(app: Express, dataQualityRoutes: Router): void {
+  app.use('/', dataQualityRoutes);
 }
 
 /**
@@ -78,6 +81,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     settingsRoutes,
     networkTagsRoutes,
     authRoutes,
+    geocodingRoutes,
+    wigleImportRoutes,
+    dataQualityRoutes,
     claudeRoutes,
     threatReportRoutes,
     mobileIngestRoutes,
@@ -123,6 +129,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     settingsRoutes,
     networkTagsRoutes,
     authRoutes,
+    geocodingRoutes,
+    wigleImportRoutes,
+    dataQualityRoutes,
     claudeRoutes,
     threatReportRoutes,
     mobileIngestRoutes,
@@ -163,7 +172,11 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/federal-courthouses', federalCourthousesRoutes);
 
   // API routes
-  app.use('/api', authRoutes);
+  app.use('/api', userGate, authRoutes);
+  app.use('/api', userGate, geocodingRoutes);
+  app.use('/api', userGate, wigleImportRoutes);
+  app.use('/api', userGate, dataQualityRoutes);
+  app.use('/api', userGate, networksRoutes);
   app.use('/api', userGate, networksRoutes);
   app.use('/api', userGate, threatsRoutes);
   app.use('/api/wigle', userGate, wigleRoutes);

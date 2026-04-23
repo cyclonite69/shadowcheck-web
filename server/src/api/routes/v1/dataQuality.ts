@@ -1,68 +1,48 @@
-import express, { Request, Response } from 'express';
-import { asyncHandler } from '../../../utils/asyncHandler';
-import { requireAdmin } from '../../../middleware/authMiddleware';
-import { DataQualityAdminService } from '../../../services/admin/dataQualityAdminService';
-const container = require('../../../config/container');
+import { Router, Request, Response } from 'express';
+const path = require('path');
+const { miscService, dataQualityFilters } = require('../../../config/container');
+const { DATA_QUALITY_FILTERS } = dataQualityFilters;
+const logger = require('../../../logging/logger');
 
-const router = express.Router();
+const router = Router();
 
-// GET /api/admin/data-quality/stats
-router.get(
-  '/stats',
-  requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const service: DataQualityAdminService = container.dataQualityAdminService;
-    const stats = await service.getQualityStats();
-    res.json({ ok: true, stats });
-  })
-);
+/**
+ * GET /demo/oui-grouping
+ * Serves the OUI grouping demo page.
+ */
+router.get('/demo/oui-grouping', (req: Request, res: Response) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'oui-grouping-demo.html'));
+});
 
-// GET /api/admin/data-quality/config
-router.get(
-  '/config',
-  requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const service: DataQualityAdminService = container.dataQualityAdminService;
-    const config = await service.getQualityConfig();
-    res.json({ ok: true, config });
-  })
-);
+/**
+ * GET /api/data-quality
+ * Returns data quality metrics for observations.
+ */
+router.get('/data-quality', async (req: Request, res: Response) => {
+  try {
+    const filter = (req.query.filter as string) || 'none';
 
-// PUT /api/admin/data-quality/config
-router.put(
-  '/config',
-  requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const service: DataQualityAdminService = container.dataQualityAdminService;
-    await service.updateQualityConfig(req.body);
-    res.json({ ok: true, message: 'Quality filter config updated' });
-  })
-);
+    let whereClause = '';
+    if (filter === 'temporal') {
+      whereClause = DATA_QUALITY_FILTERS.temporal_clusters;
+    } else if (filter === 'extreme') {
+      whereClause = DATA_QUALITY_FILTERS.extreme_signals;
+    } else if (filter === 'duplicate') {
+      whereClause = DATA_QUALITY_FILTERS.duplicate_coords;
+    } else if (filter === 'all') {
+      whereClause = DATA_QUALITY_FILTERS.all();
+    }
 
-// POST /api/admin/data-quality/apply
-router.post(
-  '/apply',
-  requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const service: DataQualityAdminService = container.dataQualityAdminService;
-    const stats = await service.applyQualityFilters();
+    const metrics = await miscService.getDataQualityMetrics(whereClause);
     res.json({
-      ok: true,
-      message: 'Quality filters applied',
-      stats,
+      filter_applied: filter,
+      ...metrics,
     });
-  })
-);
-
-// POST /api/admin/data-quality/clear
-router.post(
-  '/clear',
-  requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const service: DataQualityAdminService = container.dataQualityAdminService;
-    await service.clearQualityFlags();
-    res.json({ ok: true, message: 'Quality flags cleared' });
-  })
-);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`Data quality error: ${msg}`, { error });
+    res.status(500).json({ success: false, error: msg });
+  }
+});
 
 export default router;

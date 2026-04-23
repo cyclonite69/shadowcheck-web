@@ -41,7 +41,9 @@ interface RouteModules {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
-  miscRoutes: Router;
+  geocodingRoutes: Router;
+  wigleImportRoutes: Router;
+  dataQualityRoutes: Router;
   claudeRoutes: Router;
   threatReportRoutes: Router;
   mobileIngestRoutes: Router;
@@ -92,7 +94,9 @@ function loadRouteModules(): RouteModules {
     settingsRoutes: require('../api/routes/v1/settings'),
     networkTagsRoutes: require('../api/routes/v1/network-tags'),
     authRoutes: require('../api/routes/v1/auth'),
-    miscRoutes: require('../api/routes/v1/misc'),
+    geocodingRoutes: require('../api/routes/v1/geocoding').default,
+    wigleImportRoutes: require('../api/routes/v1/wigle').default,
+    dataQualityRoutes: require('../api/routes/v1/dataQuality').default,
     claudeRoutes: require('../api/routes/v1/claude'),
     threatReportRoutes: require('../api/routes/v1/threat-report').default,
     mobileIngestRoutes: require('../api/routes/v1/mobileIngest').default,
