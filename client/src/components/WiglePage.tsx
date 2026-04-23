@@ -10,11 +10,12 @@ import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug } from '../logging/clientLogger';
-import { resetAgencyOfficeLayers, useAgencyOffices } from './hooks/useAgencyOffices';
+import { useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
-import { resetFederalCourthouseLayers, useFederalCourthouses } from './hooks/useFederalCourthouses';
+import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
+import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleFieldData } from './wigle/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
@@ -22,17 +23,10 @@ import {
   ensureV2Layers,
   ensureV3Layers,
   applyLayerVisibility,
-  resetV2Layers,
-  resetV3Layers,
   ensureFieldDataLayer,
   updateFieldDataSource,
 } from './wigle/mapLayers';
-import {
-  ensureKmlLayers,
-  kmlRowsToGeoJSON,
-  resetKmlLayers,
-  updateKmlLayerData,
-} from './wigle/kmlLayers';
+import { ensureKmlLayers, kmlRowsToGeoJSON, updateKmlLayerData } from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateClusterColors, updateAllClusterColors } from './wigle/clusterColors';
 import { setPointRadius } from './wigle/mapLayers';
@@ -240,6 +234,22 @@ const WiglePage: React.FC = () => {
     mapboxRef,
     showFieldData: layers.showFieldData,
     fieldDataFCRef,
+  });
+
+  useWigleClusterLayers({
+    mapRef,
+    mapReady,
+    clusteringEnabled,
+    clusteringChangedRef,
+    v2FCRef,
+    v3FCRef,
+    kmlFCRef,
+    agencyData,
+    agencyVisibility,
+    courthouseData,
+    federalCourthousesVisible: layers.federalCourthouses,
+    applyLayerVisibilityCallback,
+    updateAllClusterColorsCallback,
   });
 
   // Sync v2 data to map
@@ -641,44 +651,6 @@ const WiglePage: React.FC = () => {
       map.once('style.load', toggleTerrainAction);
     }
   }, [showTerrain, mapReady, mapStyle]);
-
-  // Clustering toggle — remove and re-add sources with updated cluster setting
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-    if (!clusteringChangedRef.current) {
-      clusteringChangedRef.current = true;
-      return;
-    }
-    if (!map.isStyleLoaded()) return;
-
-    resetV2Layers(map, v2FCRef, clusteringEnabled);
-    const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-    if (v2Src && v2FCRef.current) v2Src.setData(v2FCRef.current);
-
-    resetV3Layers(map, v3FCRef, clusteringEnabled);
-    const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-    if (v3Src && v3FCRef.current) v3Src.setData(v3FCRef.current);
-
-    resetKmlLayers(map, kmlFCRef, clusteringEnabled);
-    const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-    if (kmlSrc && kmlFCRef.current) kmlSrc.setData(kmlFCRef.current);
-
-    resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clusteringEnabled);
-    resetFederalCourthouseLayers(map, courthouseData, layers.federalCourthouses, clusteringEnabled);
-
-    applyLayerVisibilityCallback();
-    updateAllClusterColorsCallback();
-  }, [
-    agencyData,
-    agencyVisibility,
-    clusteringEnabled,
-    courthouseData,
-    layers.federalCourthouses,
-    mapReady,
-    applyLayerVisibilityCallback,
-    updateAllClusterColorsCallback,
-  ]);
 
   const loading = v2Loading || v3Loading || kmlLoading;
   const agencyCount =
