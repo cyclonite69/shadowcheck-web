@@ -3,8 +3,8 @@ const router = express.Router();
 const {
   adminImportHistoryService,
   mobileIngestService,
-} = require('../../../../../../config/container');
-const logger = require('../../../../../../logging/logger');
+} = require('../../../../../config/container');
+const logger = require('../../../../../logging/logger');
 
 router.get('/admin/import-history', async (req, res, next) => {
   try {

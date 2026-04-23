@@ -4,9 +4,9 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const { secretsManager, adminImportHistoryService } = require('../../../../../../config/container');
-const logger = require('../../../../../../logging/logger');
-const { runAwsCliJson } = require('../../../../../../services/backup/awsCli');
+const { secretsManager, adminImportHistoryService } = require('../../../../../config/container');
+const logger = require('../../../../../logging/logger');
+const { runAwsCliJson } = require('../../../../../services/backup/awsCli');
 const {
   sanitizeRelativePath,
   parseRelativePathsPayload,
@@ -15,7 +15,7 @@ const {
   kmlUpload,
   getKmlImportCommand,
   PROJECT_ROOT,
-} = require('../../../../../../services/admin/adminHelpers');
+} = require('../../../../../services/admin/adminHelpers');
 
 const cleanupPaths = async (paths) => {
   for (const p of paths) {
@@ -85,14 +85,12 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
           durationSec
         );
       }
-      return res
-        .status(500)
-        .json({
-          ok: false,
-          error: 'KML import failed',
-          output: importResult.output,
-          errorOutput: importResult.errorOutput,
-        });
+      return res.status(500).json({
+        ok: false,
+        error: 'KML import failed',
+        output: importResult.output,
+        errorOutput: importResult.errorOutput,
+      });
     }
     const { filesImported, pointsImported } = parseKmlImportCounts(
       importResult.output,

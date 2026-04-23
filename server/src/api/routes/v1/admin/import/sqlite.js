@@ -6,15 +6,15 @@ const {
   secretsManager,
   adminImportHistoryService,
   backupService,
-} = require('../../../../../../config/container');
+} = require('../../../../../config/container');
 const { runPostgresBackup } = backupService;
-const logger = require('../../../../../../logging/logger');
+const logger = require('../../../../../logging/logger');
 const {
   upload,
   validateSQLiteMagic,
   getImportCommand,
   PROJECT_ROOT,
-} = require('../../../../../../services/admin/adminHelpers');
+} = require('../../../../../services/admin/adminHelpers');
 
 router.post('/admin/import-sqlite', upload.single('database'), async (req, res) => {
   if (!req.file) {

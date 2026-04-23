@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { adminOrphanNetworksService } = require('../../../../../../config/container');
+const { adminOrphanNetworksService } = require('../../../../../config/container');
 
 router.get('/admin/orphan-networks', async (req, res, next) => {
   try {

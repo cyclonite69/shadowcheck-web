@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const { adminImportHistoryService, backupService } = require('../../../../../../config/container');
+const { adminImportHistoryService, backupService } = require('../../../../../config/container');
 const { runPostgresBackup } = backupService;
-const logger = require('../../../../../../logging/logger');
+const logger = require('../../../../../logging/logger');
 const {
   sqlUpload,
   getSqlImportCommand,
   PROJECT_ROOT,
-} = require('../../../../../../services/admin/adminHelpers');
+} = require('../../../../../services/admin/adminHelpers');
 
 router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) => {
   if (!req.file) {
@@ -80,15 +80,13 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
           durationS
         );
       }
-      res
-        .status(500)
-        .json({
-          ok: false,
-          error: 'SQL import failed',
-          code,
-          output: output.slice(-10000),
-          errorOutput: errorOutput.slice(-10000),
-        });
+      res.status(500).json({
+        ok: false,
+        error: 'SQL import failed',
+        code,
+        output: output.slice(-10000),
+        errorOutput: errorOutput.slice(-10000),
+      });
     }
   });
 });
