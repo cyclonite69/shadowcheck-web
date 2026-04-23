@@ -19,7 +19,7 @@ import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleFieldData } from './wigle/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
 import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
-import { ensureKmlLayers } from './wigle/kmlLayers';
+import { ensureKmlLayers, kmlRowsToGeoJSON } from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateAllClusterColors } from './wigle/clusterColors';
 import { rowsToGeoJSON, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
