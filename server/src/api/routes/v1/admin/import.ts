@@ -20,6 +20,7 @@ const {
   adminOrphanNetworksService,
   backupService,
   mobileIngestService,
+  importService,
 } = require('../../../../config/container');
 const { runPostgresBackup } = backupService;
 const logger = require('../../../../logging/logger');

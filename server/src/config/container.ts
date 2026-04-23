@@ -60,6 +60,7 @@ const v2Service = require('../services/v2Service');
 const wigleImportService = require('../services/wigleImportService');
 const wigleImportRunService = require('../services/wigleImportRunService');
 const wigleService = require('../services/wigleService');
+const importService = require('../services/admin/importService');
 const databaseService = require('./database');
 
 const container = {
@@ -115,6 +116,7 @@ const container = {
   wigleImportService,
   wigleImportRunService,
   wigleService,
+  importService,
   databaseService,
 };
 
