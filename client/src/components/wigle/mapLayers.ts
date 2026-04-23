@@ -176,6 +176,11 @@ export const ensureFieldDataLayer = (map: Map) => {
 };
 
 export const updateFieldDataSource = (map: Map, data: unknown) => {
+  const firstFeatureCoords = (data as any)?.features?.[0]?.geometry?.coordinates ?? null;
+  console.log('[Field Data] updateFieldDataSource', {
+    featureCount: Array.isArray((data as any)?.features) ? (data as any).features.length : 0,
+    firstFeatureCoords,
+  });
   const src = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
   if (src) src.setData(data as any);
 };

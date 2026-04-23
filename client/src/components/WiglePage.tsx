@@ -679,12 +679,27 @@ const WiglePage: React.FC = () => {
       });
 
       const bssids = Array.from(bssidSet).slice(0, 50);
+      console.log('[Field Data] collected bssids', {
+        count: bssids.length,
+        sample: bssids.slice(0, 5),
+      });
       if (bssids.length === 0) return;
 
       const results = await Promise.allSettled(
         bssids.map((bssid) => wigleApi.getLocalObservationsByBSSID(bssid).catch(() => null))
       );
       if (cancelled) return;
+
+      const observationCount = results.reduce((total, result) => {
+        if (result.status === 'fulfilled' && Array.isArray(result.value?.observations)) {
+          return total + result.value.observations.length;
+        }
+        return total;
+      }, 0);
+      console.log('[Field Data] fetched observations', {
+        bssidCount: bssids.length,
+        observationCount,
+      });
 
       const features: object[] = [];
       results.forEach((result, i) => {
@@ -705,7 +720,9 @@ const WiglePage: React.FC = () => {
       fieldDataFCRef.current = fc;
 
       if (!map.isStyleLoaded()) return;
+      console.log('[Field Data] ensuring layer');
       ensureFieldDataLayer(map);
+      console.log('[Field Data] updating source', { featureCount: features.length });
       updateFieldDataSource(map, fc);
     };
 
