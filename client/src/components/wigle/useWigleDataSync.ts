@@ -9,6 +9,7 @@ export function useWigleDataSync({
   mapboxRef,
   v2FeatureCollection,
   v3FeatureCollection,
+  kmlFeatureCollection,
   v2FCRef,
   v3FCRef,
   kmlFCRef,
@@ -92,12 +93,19 @@ export function useWigleDataSync({
       } else {
         map.once('style.load', () => {
           ensureKmlLayersCallback();
-          // Import updateKmlLayerData here or pass as prop
+          const source = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
+          if (source) {
+            source.setData((kmlFCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+          }
         });
         return;
       }
     }
-  }, [ensureKmlLayersCallback]);
+    const source = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
+    if (!source) return;
+    logDebug(`[WiGLE] Updating KML map with ${kmlRows.length} points`);
+    source.setData(kmlFeatureCollection as any);
+  }, [kmlFeatureCollection, ensureKmlLayersCallback]);
 
   // Fit bounds
   useEffect(() => {
