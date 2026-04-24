@@ -213,6 +213,7 @@ const WiglePage: React.FC = () => {
     mapboxRef,
     v2FeatureCollection,
     v3FeatureCollection,
+    kmlFeatureCollection,
     v2FCRef,
     v3FCRef,
     kmlFCRef,

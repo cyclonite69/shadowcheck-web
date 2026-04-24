@@ -187,7 +187,11 @@ export const updateFieldDataSource = (map: Map, data: unknown) => {
     firstFeatureCoords,
   });
   const src = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
-  if (src) src.setData(data as any);
+  if (!src) {
+    console.warn('[Field Data] updateFieldDataSource: source not found, data dropped');
+    return;
+  }
+  src.setData(data as any);
 };
 
 export const removeFieldDataLayer = (map: Map) => {

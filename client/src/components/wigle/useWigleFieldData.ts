@@ -40,7 +40,17 @@ export const useWigleFieldData = ({
       const fc = { type: 'FeatureCollection', features };
       fieldDataFCRef.current = fc;
 
-      if (!map.isStyleLoaded()) return;
+      if (!map.isStyleLoaded()) {
+        map.once('style.load', () => {
+          if (cancelled) return;
+          ensureFieldDataLayer(map);
+          const latestFc = fieldDataFCRef.current;
+          if (Array.isArray((latestFc as any)?.features)) {
+            updateFieldDataSource(map, latestFc);
+          }
+        });
+        return;
+      }
       console.log('[Field Data] ensuring layer');
       ensureFieldDataLayer(map);
       console.log('[Field Data] updating source', { featureCount: features.length });
