@@ -128,7 +128,12 @@ export const ensureV3Layers = (map: Map, v3FCRef: any, cluster = true) => {
 
 /** Update circle-radius on all unclustered point layers. */
 export const setPointRadius = (map: Map, radius: number) => {
-  ['wigle-v2-unclustered', 'wigle-v3-unclustered', 'wigle-kml-unclustered'].forEach((id) => {
+  [
+    'wigle-v2-unclustered',
+    'wigle-v3-unclustered',
+    'wigle-kml-unclustered',
+    FIELD_DATA_LAYER,
+  ].forEach((id) => {
     if (map.getLayer(id)) map.setPaintProperty(id, 'circle-radius', radius);
   });
 };
@@ -209,5 +214,4 @@ export const applyLayerVisibility = (
   setVis('wigle-kml-clusters', layers.kml);
   setVis('wigle-kml-cluster-count', layers.kml);
   setVis('wigle-kml-unclustered', layers.kml);
-  setVis(FIELD_DATA_LAYER, (layers as any).showFieldData);
 };
