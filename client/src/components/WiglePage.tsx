@@ -190,6 +190,7 @@ const WiglePage: React.FC = () => {
     mapReady,
     mapboxRef,
     showFieldData: layers.showFieldData,
+    clusteringEnabled,
     fieldDataFCRef,
   });
   useWigleClusterLayers({
@@ -200,6 +201,7 @@ const WiglePage: React.FC = () => {
     v2FCRef,
     v3FCRef,
     kmlFCRef,
+    fieldDataFCRef,
     agencyData,
     agencyVisibility,
     courthouseData,

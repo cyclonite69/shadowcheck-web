@@ -11,6 +11,7 @@ interface UseWigleFieldDataProps {
   mapReady: boolean;
   mapboxRef: MutableRefObject<typeof mapboxglType | null>;
   showFieldData: boolean;
+  clusteringEnabled: boolean;
   fieldDataFCRef: MutableRefObject<any>;
 }
 
@@ -19,6 +20,7 @@ export const useWigleFieldData = ({
   mapReady,
   mapboxRef,
   showFieldData,
+  clusteringEnabled,
   fieldDataFCRef,
 }: UseWigleFieldDataProps) => {
   useEffect(() => {
@@ -43,7 +45,7 @@ export const useWigleFieldData = ({
       if (!map.isStyleLoaded()) {
         map.once('style.load', () => {
           if (cancelled) return;
-          ensureFieldDataLayer(map);
+          ensureFieldDataLayer(map, clusteringEnabled);
           const latestFc = fieldDataFCRef.current;
           if (Array.isArray((latestFc as any)?.features)) {
             updateFieldDataSource(map, latestFc);
@@ -52,7 +54,7 @@ export const useWigleFieldData = ({
         return;
       }
       console.log('[Field Data] ensuring layer');
-      ensureFieldDataLayer(map);
+      ensureFieldDataLayer(map, clusteringEnabled);
       console.log('[Field Data] updating source', { featureCount: features.length });
       updateFieldDataSource(map, fc);
     };
@@ -133,5 +135,5 @@ export const useWigleFieldData = ({
       cancelled = true;
       map.off('moveend', handleMoveEnd);
     };
-  }, [fieldDataFCRef, mapReady, mapRef, mapboxRef, showFieldData]);
+  }, [clusteringEnabled, fieldDataFCRef, mapReady, mapRef, mapboxRef, showFieldData]);
 };

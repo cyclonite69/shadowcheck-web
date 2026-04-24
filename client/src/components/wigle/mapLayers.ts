@@ -156,12 +156,46 @@ export const resetV3Layers = (map: Map, v3FCRef: any, cluster: boolean) => {
   ensureV3Layers(map, v3FCRef, cluster);
 };
 
-/** Add the field-data GeoJSON source and circle layer (orange, non-clustering). */
-export const ensureFieldDataLayer = (map: Map) => {
+/** Add the field-data GeoJSON source and cluster/unclustered layers. */
+export const ensureFieldDataLayer = (map: Map, cluster = true) => {
   if (!map.getSource(FIELD_DATA_SOURCE)) {
     map.addSource(FIELD_DATA_SOURCE, {
       type: 'geojson',
       data: EMPTY_FEATURE_COLLECTION as any,
+      cluster,
+      clusterMaxZoom: 14,
+      clusterRadius: 50,
+    });
+  }
+  if (!map.getLayer('wigle-field-clusters')) {
+    map.addLayer({
+      id: 'wigle-field-clusters',
+      type: 'circle',
+      source: FIELD_DATA_SOURCE,
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#06b6d4',
+        'circle-opacity': 0.75,
+        'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40],
+        'circle-stroke-width': 2.5,
+        'circle-stroke-color': '#0f172a',
+      },
+    });
+  }
+  if (!map.getLayer('wigle-field-cluster-count')) {
+    map.addLayer({
+      id: 'wigle-field-cluster-count',
+      type: 'symbol',
+      source: FIELD_DATA_SOURCE,
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-size': 12,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      },
+      paint: {
+        'text-color': '#0f172a',
+      },
     });
   }
   if (!map.getLayer(FIELD_DATA_LAYER)) {
@@ -169,6 +203,7 @@ export const ensureFieldDataLayer = (map: Map) => {
       id: FIELD_DATA_LAYER,
       type: 'circle',
       source: FIELD_DATA_SOURCE,
+      filter: ['!', ['has', 'point_count']],
       paint: {
         'circle-color': '#06b6d4',
         'circle-opacity': 0.85,
@@ -195,8 +230,19 @@ export const updateFieldDataSource = (map: Map, data: unknown) => {
 };
 
 export const removeFieldDataLayer = (map: Map) => {
-  if (map.getLayer(FIELD_DATA_LAYER)) map.removeLayer(FIELD_DATA_LAYER);
+  ['wigle-field-clusters', 'wigle-field-cluster-count', FIELD_DATA_LAYER].forEach((id) => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
   if (map.getSource(FIELD_DATA_SOURCE)) map.removeSource(FIELD_DATA_SOURCE);
+};
+
+/** Remove all field-data layers and source then re-add with the given cluster setting. */
+export const resetFieldDataLayers = (map: Map, fieldDataFCRef: any, cluster: boolean) => {
+  ['wigle-field-clusters', 'wigle-field-cluster-count', FIELD_DATA_LAYER].forEach((id) => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource(FIELD_DATA_SOURCE)) map.removeSource(FIELD_DATA_SOURCE);
+  ensureFieldDataLayer(map, cluster);
 };
 
 export const applyLayerVisibility = (
