@@ -224,6 +224,9 @@ export function ensureAgencyOfficeLayers(
     source.setData(data);
   }
 
+  // TODO: split into agency-field-clusters (#dc2626) and agency-resident-clusters (#f97316)
+  // by office_type. Requires two separate GeoJSON sources — cluster superpoints don't carry
+  // source-feature properties, so a filter on office_type against a single source won't work.
   if (!map.getLayer('agency-clusters')) {
     map.addLayer({
       id: 'agency-clusters',
