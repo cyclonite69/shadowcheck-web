@@ -19,17 +19,15 @@ const isLocalRuntime =
   (process.env.DB_HOST || '').trim() === 'postgres' && process.env.NODE_ENV !== 'production';
 
 router.get('/admin/aws/overview', async (req: Request, res: Response) => {
-  try {
-    const { region } = await getAwsConfig();
-    if (!region) {
-      return res.json({
-        configured: false,
-        credentialsAvailable: false,
-        mode: isLocalRuntime ? 'local' : 'aws',
-        error: 'AWS region not configured',
-      });
-    }
+  const { region } = await getAwsConfig();
+  if (!region) {
+    return res.status(503).json({
+      error: 'AWS integration not configured',
+      code: 'AWS_NOT_CONFIGURED',
+    });
+  }
 
+  try {
     const clientConfig = await buildClientConfig();
     const stsClient = new STSClient(clientConfig);
     const ec2Client = new EC2Client(clientConfig);
@@ -96,7 +94,9 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
       });
     }
     logger.error('[AWS] Failed to load overview', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: error.message || 'Failed to load AWS overview' });
+    res
+      .status(500)
+      .json({ error: error.message || 'Failed to load AWS overview', code: 'INTERNAL_ERROR' });
   }
 });
 
