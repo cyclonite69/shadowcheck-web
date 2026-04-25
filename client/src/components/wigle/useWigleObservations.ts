@@ -5,9 +5,6 @@ import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import type { WigleLayerState } from './useWigleLayers';
 import { ensureAggregatedLayers, updateAggregatedSource } from './aggregatedLayers';
 
-// Minimum zoom before raw-point mode is allowed (cluster toggle guard).
-const RAW_POINT_MIN_ZOOM = 12;
-
 interface UseWigleObservationsProps {
   mapRef: MutableRefObject<Map | null>;
   mapReady: boolean;
@@ -68,9 +65,8 @@ export const useWigleObservations = ({
       const currentRequestId = ++requestId;
       const actualZoom = Math.floor(map.getZoom());
 
-      // When clustering is off, force raw-point zoom — but only if map is
-      // zoomed in enough to avoid a catastrophic point count.
-      const zoom = !clusteringEnabled && actualZoom >= RAW_POINT_MIN_ZOOM ? 14 : actualZoom;
+      // Clustering OFF → force zoom=14 (eps=0.005°) so DBSCAN returns near-raw points.
+      const zoom = !clusteringEnabled ? 14 : actualZoom;
 
       setLoading(true);
       setError(null);

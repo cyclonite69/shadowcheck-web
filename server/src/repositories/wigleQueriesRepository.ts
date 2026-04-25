@@ -404,34 +404,37 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
   };
 };
 
-// Zoom level → grid cell size in degrees.
-// Coarser at low zoom (wide view), finer at high zoom (street level).
-const ZOOM_GRID_SIZES: [number, number][] = [
-  [7, 0.5],
-  [9, 0.2],
-  [11, 0.05],
-  [13, 0.01],
+// Zoom level → DBSCAN eps (cluster radius in degrees).
+// Larger eps at low zoom merges wide areas into organic hotspots;
+// smaller eps at high zoom approaches individual-point resolution.
+const EPS_FOR_ZOOM: [number, number][] = [
+  [4, 1.0],
+  [6, 0.5],
+  [8, 0.2],
+  [10, 0.05],
+  [12, 0.01],
   [Infinity, 0.005],
 ];
 
-const gridSizeForZoom = (zoom: number): number => {
-  for (const [maxZoom, size] of ZOOM_GRID_SIZES) {
-    if (zoom <= maxZoom) return size;
+const epsForZoom = (zoom: number): number => {
+  for (const [maxZoom, eps] of EPS_FOR_ZOOM) {
+    if (zoom <= maxZoom) return eps;
   }
   return 0.005;
 };
 
 /**
  * @route GET /api/wigle/observations/aggregated
- * @description Builds a zoom-aware spatial aggregation query across one or more
- *   observation sources. Each source is snapped to a PostGIS grid whose cell size
- *   is derived from the map zoom level, producing centroid points with a count and
- *   optional average signal strength.
+ * @description Builds a zoom-aware ST_ClusterDBSCAN query across one or more
+ *   observation sources. Points within eps degrees of each other are merged into
+ *   a single cluster whose centroid and count are returned. eps scales with zoom
+ *   so low-zoom views show organic regional hotspots and high-zoom views approach
+ *   individual points.
  * @param params.west - Western bbox longitude (-180..180)
  * @param params.south - Southern bbox latitude (-90..90)
  * @param params.east - Eastern bbox longitude (-180..180)
  * @param params.north - Northern bbox latitude (-90..90)
- * @param params.zoom - Mapbox zoom level (0–22); controls ST_SnapToGrid cell size
+ * @param params.zoom - Mapbox zoom level (0–22); controls DBSCAN eps radius
  * @param params.sources - Active source identifiers: 'field' | 'wigle-v2' | 'wigle-v3' | 'kml'
  * @returns SqlQuery returning rows: { lon, lat, count, avg_signal, source }
  */
@@ -443,51 +446,83 @@ const buildAggregatedObservationsQuery = (params: {
   zoom: number;
   sources: string[];
 }): SqlQuery => {
-  const gridSize = gridSizeForZoom(params.zoom);
-  const queryParams: any[] = [params.west, params.south, params.east, params.north, gridSize];
+  const eps = epsForZoom(params.zoom);
+  const queryParams: any[] = [params.west, params.south, params.east, params.north, eps];
   const bbox = `ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
 
   const branches: string[] = [];
 
   if (params.sources.includes('field')) {
     branches.push(`
-      SELECT ST_SnapToGrid(geom, $5) AS cell, COUNT(*)::integer AS n,
-             AVG(level)::integer AS avg_signal, 'field'::text AS source
-      FROM app.observations
-      WHERE geom && ${bbox}
-      GROUP BY 1`);
+      SELECT
+        ST_X(ST_Centroid(ST_Collect(geom))) AS lon,
+        ST_Y(ST_Centroid(ST_Collect(geom))) AS lat,
+        COUNT(*)::integer AS n,
+        AVG(level)::integer AS avg_signal,
+        'field'::text AS source
+      FROM (
+        SELECT geom, level,
+          ST_ClusterDBSCAN(geom, $5, 1) OVER () AS cid
+        FROM app.observations
+        WHERE geom && ${bbox}
+      ) _c
+      GROUP BY cid`);
   }
 
   if (params.sources.includes('wigle-v2')) {
     branches.push(`
-      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*)::integer AS n,
-             NULL::integer AS avg_signal, 'wigle-v2'::text AS source
-      FROM app.wigle_v2_networks_search
-      WHERE location && ${bbox}
-      GROUP BY 1`);
+      SELECT
+        ST_X(ST_Centroid(ST_Collect(location))) AS lon,
+        ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
+        COUNT(*)::integer AS n,
+        NULL::integer AS avg_signal,
+        'wigle-v2'::text AS source
+      FROM (
+        SELECT location,
+          ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
+        FROM app.wigle_v2_networks_search
+        WHERE location && ${bbox}
+      ) _c
+      GROUP BY cid`);
   }
 
   if (params.sources.includes('wigle-v3')) {
     branches.push(`
-      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*)::integer AS n,
-             AVG(signal)::integer AS avg_signal, 'wigle-v3'::text AS source
-      FROM app.wigle_v3_observations
-      WHERE location && ${bbox}
-      GROUP BY 1`);
+      SELECT
+        ST_X(ST_Centroid(ST_Collect(location))) AS lon,
+        ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
+        COUNT(*)::integer AS n,
+        AVG(signal)::integer AS avg_signal,
+        'wigle-v3'::text AS source
+      FROM (
+        SELECT location, signal,
+          ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
+        FROM app.wigle_v3_observations
+        WHERE location && ${bbox}
+      ) _c
+      GROUP BY cid`);
   }
 
   if (params.sources.includes('kml')) {
     branches.push(`
-      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*)::integer AS n,
-             AVG(signal_dbm)::integer AS avg_signal, 'kml'::text AS source
-      FROM app.kml_points
-      WHERE location && ${bbox}
-        AND location IS NOT NULL
-      GROUP BY 1`);
+      SELECT
+        ST_X(ST_Centroid(ST_Collect(location))) AS lon,
+        ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
+        COUNT(*)::integer AS n,
+        AVG(signal_dbm)::integer AS avg_signal,
+        'kml'::text AS source
+      FROM (
+        SELECT location, signal_dbm,
+          ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
+        FROM app.kml_points
+        WHERE location && ${bbox}
+          AND location IS NOT NULL
+      ) _c
+      GROUP BY cid`);
   }
 
   const sql = `
-    SELECT ST_X(cell) AS lon, ST_Y(cell) AS lat, n AS count, avg_signal, source
+    SELECT lon, lat, n AS count, avg_signal, source
     FROM (
       ${branches.join('\n      UNION ALL\n')}
     ) cells
