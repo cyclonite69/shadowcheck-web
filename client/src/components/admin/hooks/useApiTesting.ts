@@ -49,7 +49,7 @@ export const useApiTesting = () => {
     setEndpoint(preset.path);
 
     const newParams: Record<string, string> = {};
-    preset.inputs?.forEach((input) => {
+    preset.params?.forEach((input) => {
       newParams[input.name] = input.defaultValue || '';
     });
     setParamValues(newParams);
@@ -66,7 +66,7 @@ export const useApiTesting = () => {
     let finalPath = activePreset.path;
     const queryParams = new URLSearchParams();
 
-    activePreset.inputs?.forEach((input) => {
+    activePreset.params?.forEach((input) => {
       const val = paramValues[input.name];
       if (!val) return;
 
@@ -102,7 +102,7 @@ export const useApiTesting = () => {
       if (activePreset?.defaultBody && paramValues) {
         try {
           const bodyObj = JSON.parse(body);
-          activePreset.inputs?.forEach((input) => {
+          activePreset.params?.forEach((input) => {
             if (!Object.prototype.hasOwnProperty.call(bodyObj, input.name)) return;
 
             if (input.name === 'import' || input.name === 'overwrite_final') {

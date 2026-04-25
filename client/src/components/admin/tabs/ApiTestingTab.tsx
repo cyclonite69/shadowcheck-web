@@ -95,12 +95,12 @@ export const ApiTestingTab: React.FC = () => {
         <AdminCard icon={UploadIcon} title="Request" color="from-purple-500 to-purple-600">
           <div className="space-y-4">
             {/* Dynamic Inputs for Preset */}
-            {activePreset && activePreset.inputs && activePreset.inputs.length > 0 && (
+            {activePreset && activePreset.params && activePreset.params.length > 0 && (
               <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50 space-y-3">
                 <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">
                   Parameters
                 </div>
-                {activePreset.inputs.map((input) => (
+                {activePreset.params.map((input) => (
                   <div key={input.name}>
                     <label className="block text-xs text-slate-400 mb-1">
                       {input.label} <span className="text-slate-600 font-mono">({input.name})</span>
