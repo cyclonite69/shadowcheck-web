@@ -421,6 +421,20 @@ const gridSizeForZoom = (zoom: number): number => {
   return 0.005;
 };
 
+/**
+ * @route GET /api/wigle/observations/aggregated
+ * @description Builds a zoom-aware spatial aggregation query across one or more
+ *   observation sources. Each source is snapped to a PostGIS grid whose cell size
+ *   is derived from the map zoom level, producing centroid points with a count and
+ *   optional average signal strength.
+ * @param params.west - Western bbox longitude (-180..180)
+ * @param params.south - Southern bbox latitude (-90..90)
+ * @param params.east - Eastern bbox longitude (-180..180)
+ * @param params.north - Northern bbox latitude (-90..90)
+ * @param params.zoom - Mapbox zoom level (0–22); controls ST_SnapToGrid cell size
+ * @param params.sources - Active source identifiers: 'field' | 'wigle-v2' | 'wigle-v3' | 'kml'
+ * @returns SqlQuery returning rows: { lon, lat, count, avg_signal, source }
+ */
 const buildAggregatedObservationsQuery = (params: {
   west: number;
   south: number;
@@ -482,6 +496,14 @@ const buildAggregatedObservationsQuery = (params: {
   return { sql, queryParams };
 };
 
+/**
+ * @route GET /api/wigle/observations/extent
+ * @description Builds a query that computes the ST_Extent bounding box for each
+ *   active source independently (so spatial indexes are used), then takes the
+ *   MIN/MAX across all source extents to return a single combined bbox.
+ * @param sources - Active source identifiers: 'field' | 'wigle-v2' | 'wigle-v3' | 'kml'
+ * @returns SqlQuery returning a single row: { west, south, east, north } or null if no data
+ */
 const buildObservationsExtentQuery = (sources: string[]): SqlQuery => {
   const branches: string[] = [];
 

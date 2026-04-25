@@ -45,14 +45,17 @@ const validateAggregatedQuery = validateQuery({
 });
 
 /**
- * GET /observations/aggregated
- * Zoom-aware spatial aggregation across all four observation sources.
- * Returns a GeoJSON FeatureCollection of grid-cell centroids.
- *
- * Query params:
- *   west, south, east, north — bounding box (WGS-84 degrees)
- *   zoom                     — map zoom level (0–22), controls grid cell size
- *   sources                  — comma-separated subset of: field,wigle-v2,wigle-v3,kml (default: all)
+ * @route GET /api/wigle/observations/aggregated
+ * @description Zoom-aware spatial aggregation across active observation sources.
+ *   ST_SnapToGrid cell size is derived from the zoom level; each cell becomes
+ *   a GeoJSON Point feature with count and optional avg_signal properties.
+ * @param west - Western bbox longitude, clamped to [-180, 180]
+ * @param south - Southern bbox latitude, clamped to [-90, 90]
+ * @param east - Eastern bbox longitude, clamped to [-180, 180]
+ * @param north - Northern bbox latitude, clamped to [-90, 90]
+ * @param zoom - Map zoom level (0–22); controls ST_SnapToGrid resolution
+ * @param sources - Comma-separated: field,wigle-v2,wigle-v3,kml (default: all)
+ * @returns GeoJSON FeatureCollection of grid-cell centroid Points
  */
 router.get(
   '/observations/aggregated',
@@ -89,12 +92,13 @@ router.get(
 );
 
 /**
- * GET /observations/extent
- * Returns the ST_Extent bounding box across all active sources.
- * Used by the Fit Bounds button to fly the map to where data actually lives.
- *
- * Query params:
- *   sources — comma-separated subset of: field,wigle-v2,wigle-v3,kml (default: all)
+ * @route GET /api/wigle/observations/extent
+ * @description Returns the ST_Extent bounding box across all active sources.
+ *   Each source extent is computed independently (using spatial indexes), then
+ *   the results are unioned into a single bbox. Used by the Fit Bounds button
+ *   to fly the map to where data actually lives.
+ * @param sources - Comma-separated: field,wigle-v2,wigle-v3,kml (default: all)
+ * @returns { extent: { west, south, east, north } | null }
  */
 router.get(
   '/observations/extent',
