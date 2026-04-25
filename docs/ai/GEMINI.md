@@ -41,3 +41,20 @@ Gemini CLI does not auto-read context files. Paste this entire file at the start
 4. Run relevant tests: `npx jest tests/unit/<file>.test.ts --runInBand`.
 5. Report PASS or the exact failure.
 6. Stop for approval before committing.
+
+---
+
+## Standards
+
+### Every new endpoint requires:
+
+1. Entry in `client/src/config/apiTestEndpoints.ts`
+2. JSDoc comment on the route handler
+3. If it touches DB schema: a note in the relevant `docs/schema/` file
+
+### Every new DB query requires:
+
+- JSDoc on the query builder function
+- If schema changes: update `docs/schema/` before the PR
+
+These are non-negotiable. Do not commit a new route without all three.

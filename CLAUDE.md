@@ -314,3 +314,20 @@ cd /home/ssm-user/shadowcheck && ./scs_rebuild.sh
 ```
 
 **This file**: Explicit user approval required before modifying `CLAUDE.md`. Report the proposed change first.
+
+---
+
+## Standards
+
+### Every new endpoint requires:
+
+1. Entry in `client/src/config/apiTestEndpoints.ts`
+2. JSDoc comment on the route handler
+3. If it touches DB schema: a note in the relevant `docs/schema/` file
+
+### Every new DB query requires:
+
+- JSDoc on the query builder function
+- If schema changes: update `docs/schema/` before the PR
+
+These are non-negotiable. Do not commit a new route without all three.

@@ -161,3 +161,20 @@ For every change, in this exact order:
 8. Refactors shall not leave cruft, duplicate paths, or half-migrated code behind.
 9. Behavior changes require regression tests; new features require test coverage.
 10. Bootstrap, restore, import, and upgrade are separate contracts and must be validated separately.
+
+---
+
+## Standards
+
+### Every new endpoint requires:
+
+1. Entry in `client/src/config/apiTestEndpoints.ts`
+2. JSDoc comment on the route handler
+3. If it touches DB schema: a note in the relevant `docs/schema/` file
+
+### Every new DB query requires:
+
+- JSDoc on the query builder function
+- If schema changes: update `docs/schema/` before the PR
+
+These are non-negotiable. Do not commit a new route without all three.
