@@ -436,10 +436,15 @@ const innerLimitForZoom = (zoom: number): string => {
 /**
  * @route GET /api/wigle/observations/aggregated
  * @description Builds a zoom-aware ST_ClusterDBSCAN query across one or more
- *   observation sources. Points within eps degrees of each other are merged into
- *   a single cluster whose centroid and count are returned. eps scales with zoom
- *   so low-zoom views show organic regional hotspots and high-zoom views approach
- *   individual points.
+ *   observation sources. Points within eps degrees are merged into a cluster whose
+ *   centroid and count are returned.
+ *
+ *   At low zoom a row cap limits the DBSCAN sample to prevent full-table scans.
+ *   To avoid returning approximate sample counts, a separate exact COUNT(*) CTE
+ *   runs against the full bbox and the true total is distributed proportionally
+ *   across clusters: n = ROUND(sn / SUM(sn) * tn). At high zoom (no row cap)
+ *   sn == tn so the formula is a no-op and exact per-cluster counts are preserved.
+ *
  * @param params.west - Western bbox longitude (-180..180)
  * @param params.south - Southern bbox latitude (-90..90)
  * @param params.east - Eastern bbox longitude (-180..180)
@@ -461,85 +466,129 @@ const buildAggregatedObservationsQuery = (params: {
   const queryParams: any[] = [params.west, params.south, params.east, params.north, eps];
   const bbox = `ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
 
-  const branches: string[] = [];
+  const ctes: string[] = [];
+  const selects: string[] = [];
 
   if (params.sources.includes('field')) {
-    branches.push(`
-      SELECT
-        ST_X(ST_Centroid(ST_Collect(geom))) AS lon,
-        ST_Y(ST_Centroid(ST_Collect(geom))) AS lat,
-        COUNT(*)::integer AS n,
-        AVG(level)::integer AS avg_signal,
-        'field'::text AS source
-      FROM (
+    ctes.push(`
+      _f_s AS (
         SELECT geom, level,
           ST_ClusterDBSCAN(geom, $5, 1) OVER () AS cid
         FROM app.observations
         WHERE geom && ${bbox}
         ${rowLimit}
-      ) _c
-      GROUP BY cid`);
+      ),
+      _f_g AS (
+        SELECT cid,
+          ST_X(ST_Centroid(ST_Collect(geom))) AS lon,
+          ST_Y(ST_Centroid(ST_Collect(geom))) AS lat,
+          COUNT(*)::float8 AS sn,
+          AVG(level)::integer AS sig
+        FROM _f_s GROUP BY cid
+      ),
+      _f_t AS (
+        SELECT COUNT(*)::float8 AS tn FROM app.observations WHERE geom && ${bbox}
+      )`);
+    selects.push(`
+      SELECT lon, lat,
+        ROUND(sn / SUM(sn) OVER () * tn)::integer AS n,
+        sig AS avg_signal,
+        'field'::text AS source
+      FROM _f_g CROSS JOIN _f_t`);
   }
 
   if (params.sources.includes('wigle-v2')) {
-    branches.push(`
-      SELECT
-        ST_X(ST_Centroid(ST_Collect(location))) AS lon,
-        ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
-        COUNT(*)::integer AS n,
-        NULL::integer AS avg_signal,
-        'wigle-v2'::text AS source
-      FROM (
+    ctes.push(`
+      _v2_s AS (
         SELECT location,
           ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
         FROM app.wigle_v2_networks_search
         WHERE location && ${bbox}
         ${rowLimit}
-      ) _c
-      GROUP BY cid`);
+      ),
+      _v2_g AS (
+        SELECT cid,
+          ST_X(ST_Centroid(ST_Collect(location))) AS lon,
+          ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
+          COUNT(*)::float8 AS sn
+        FROM _v2_s GROUP BY cid
+      ),
+      _v2_t AS (
+        SELECT COUNT(*)::float8 AS tn
+        FROM app.wigle_v2_networks_search WHERE location && ${bbox}
+      )`);
+    selects.push(`
+      SELECT lon, lat,
+        ROUND(sn / SUM(sn) OVER () * tn)::integer AS n,
+        NULL::integer AS avg_signal,
+        'wigle-v2'::text AS source
+      FROM _v2_g CROSS JOIN _v2_t`);
   }
 
   if (params.sources.includes('wigle-v3')) {
-    branches.push(`
-      SELECT
-        ST_X(ST_Centroid(ST_Collect(location))) AS lon,
-        ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
-        COUNT(*)::integer AS n,
-        AVG(signal)::integer AS avg_signal,
-        'wigle-v3'::text AS source
-      FROM (
+    ctes.push(`
+      _v3_s AS (
         SELECT location, signal,
           ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
         FROM app.wigle_v3_observations
         WHERE location && ${bbox}
         ${rowLimit}
-      ) _c
-      GROUP BY cid`);
+      ),
+      _v3_g AS (
+        SELECT cid,
+          ST_X(ST_Centroid(ST_Collect(location))) AS lon,
+          ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
+          COUNT(*)::float8 AS sn,
+          AVG(signal)::integer AS sig
+        FROM _v3_s GROUP BY cid
+      ),
+      _v3_t AS (
+        SELECT COUNT(*)::float8 AS tn
+        FROM app.wigle_v3_observations WHERE location && ${bbox}
+      )`);
+    selects.push(`
+      SELECT lon, lat,
+        ROUND(sn / SUM(sn) OVER () * tn)::integer AS n,
+        sig AS avg_signal,
+        'wigle-v3'::text AS source
+      FROM _v3_g CROSS JOIN _v3_t`);
   }
 
   if (params.sources.includes('kml')) {
-    branches.push(`
-      SELECT
-        ST_X(ST_Centroid(ST_Collect(location))) AS lon,
-        ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
-        COUNT(*)::integer AS n,
-        AVG(signal_dbm)::integer AS avg_signal,
-        'kml'::text AS source
-      FROM (
+    ctes.push(`
+      _k_s AS (
         SELECT location, signal_dbm,
           ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
         FROM app.kml_points
         WHERE location && ${bbox}
           AND location IS NOT NULL
         ${rowLimit}
-      ) _c
-      GROUP BY cid`);
+      ),
+      _k_g AS (
+        SELECT cid,
+          ST_X(ST_Centroid(ST_Collect(location))) AS lon,
+          ST_Y(ST_Centroid(ST_Collect(location))) AS lat,
+          COUNT(*)::float8 AS sn,
+          AVG(signal_dbm)::integer AS sig
+        FROM _k_s GROUP BY cid
+      ),
+      _k_t AS (
+        SELECT COUNT(*)::float8 AS tn
+        FROM app.kml_points WHERE location && ${bbox} AND location IS NOT NULL
+      )`);
+    selects.push(`
+      SELECT lon, lat,
+        ROUND(sn / SUM(sn) OVER () * tn)::integer AS n,
+        sig AS avg_signal,
+        'kml'::text AS source
+      FROM _k_g CROSS JOIN _k_t`);
   }
 
   const sql = `
+    WITH ${ctes.join(',\n')}
     SELECT lon, lat, n AS count, avg_signal, source
     FROM (
-      ${branches.join('\n      UNION ALL\n')}
+      ${selects.join('\n      UNION ALL\n')}
     ) cells
     ORDER BY n DESC`;
 
