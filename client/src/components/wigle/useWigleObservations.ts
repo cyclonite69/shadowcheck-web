@@ -41,6 +41,7 @@ export const useWigleObservations = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[Agg] effect check — mapReady:', mapReady, 'sources:', buildSources(layers));
     const map = mapRef.current;
     if (!map || !mapReady) return;
 

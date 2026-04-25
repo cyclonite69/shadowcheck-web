@@ -451,7 +451,7 @@ const buildAggregatedObservationsQuery = (params: {
 
   if (params.sources.includes('field')) {
     branches.push(`
-      SELECT ST_SnapToGrid(geom, $5) AS cell, COUNT(*) AS n,
+      SELECT ST_SnapToGrid(geom, $5) AS cell, COUNT(*)::integer AS n,
              AVG(level)::integer AS avg_signal, 'field'::text AS source
       FROM app.observations
       WHERE geom && ${bbox}
@@ -460,7 +460,7 @@ const buildAggregatedObservationsQuery = (params: {
 
   if (params.sources.includes('wigle-v2')) {
     branches.push(`
-      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*) AS n,
+      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*)::integer AS n,
              NULL::integer AS avg_signal, 'wigle-v2'::text AS source
       FROM app.wigle_v2_networks_search
       WHERE location && ${bbox}
@@ -469,7 +469,7 @@ const buildAggregatedObservationsQuery = (params: {
 
   if (params.sources.includes('wigle-v3')) {
     branches.push(`
-      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*) AS n,
+      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*)::integer AS n,
              AVG(signal)::integer AS avg_signal, 'wigle-v3'::text AS source
       FROM app.wigle_v3_observations
       WHERE location && ${bbox}
@@ -478,7 +478,7 @@ const buildAggregatedObservationsQuery = (params: {
 
   if (params.sources.includes('kml')) {
     branches.push(`
-      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*) AS n,
+      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*)::integer AS n,
              AVG(signal_dbm)::integer AS avg_signal, 'kml'::text AS source
       FROM app.kml_points
       WHERE location && ${bbox}

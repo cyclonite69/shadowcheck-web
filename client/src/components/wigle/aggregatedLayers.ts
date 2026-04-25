@@ -5,12 +5,14 @@ export const AGGREGATED_SOURCE = 'wigle-aggregated';
 export const AGGREGATED_CIRCLES_LAYER = 'wigle-aggregated-circles';
 export const AGGREGATED_LABELS_LAYER = 'wigle-aggregated-labels';
 
+const COUNT_NUM = ['to-number', ['get', 'count']];
+
 // k-suffix abbreviation: ≥1000 → "Nk", else raw integer string.
 const ABBREVIATED_COUNT_EXPR = [
   'case',
-  ['>=', ['get', 'count'], 1000],
-  ['concat', ['to-string', ['floor', ['/', ['get', 'count'], 1000]]], 'k'],
-  ['to-string', ['get', 'count']],
+  ['>=', COUNT_NUM, 1000],
+  ['concat', ['to-string', ['floor', ['/', COUNT_NUM, 1000]]], 'k'],
+  ['to-string', COUNT_NUM],
 ] as unknown as mapboxgl.Expression;
 
 export function ensureAggregatedLayers(map: Map, aggregatedFCRef: any) {
@@ -43,7 +45,7 @@ export function ensureAggregatedLayers(map: Map, aggregatedFCRef: any) {
         ],
         'circle-radius': [
           'step',
-          ['get', 'count'],
+          COUNT_NUM,
           5, // count < 10
           10,
           12, // 10 – 99
@@ -52,8 +54,8 @@ export function ensureAggregatedLayers(map: Map, aggregatedFCRef: any) {
           750,
           30, // ≥ 750
         ],
-        'circle-opacity': ['case', ['==', ['get', 'count'], 1], 0.85, 0.75],
-        'circle-stroke-width': ['case', ['==', ['get', 'count'], 1], 0.5, 2.5],
+        'circle-opacity': ['case', ['==', COUNT_NUM, 1], 0.85, 0.75],
+        'circle-stroke-width': ['case', ['==', COUNT_NUM, 1], 0.5, 2.5],
         'circle-stroke-color': ['match', ['get', 'source'], 'kml', '#7c2d12', /* else */ '#0f172a'],
       },
     });
@@ -64,7 +66,7 @@ export function ensureAggregatedLayers(map: Map, aggregatedFCRef: any) {
       id: AGGREGATED_LABELS_LAYER,
       type: 'symbol',
       source: AGGREGATED_SOURCE,
-      filter: ['>', ['get', 'count'], 1],
+      filter: ['>', COUNT_NUM, 1],
       layout: {
         'text-field': ABBREVIATED_COUNT_EXPR,
         'text-size': 12,
