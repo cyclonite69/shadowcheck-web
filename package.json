@@ -41,7 +41,8 @@
     "db:migrate": "bash sql/run-migrations.sh",
     "prepare": "husky install",
     "policy:secret-disk": "bash scripts/security/check-no-secret-disk-writes.sh",
-    "policy:secret-scan": "bash scripts/security/scan-secrets.sh --repo"
+    "policy:secret-scan": "bash scripts/security/scan-secrets.sh --repo",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },
   "keywords": [
     "sigint",
@@ -121,6 +122,7 @@
     "@vitejs/plugin-react": "6.0.1",
     "autoprefixer": "10.5.0",
     "better-sqlite3": "^12.9.0",
+    "conventional-changelog-cli": "5.0.0",
     "cssnano": "7.1.5",
     "eslint": "10.2.1",
     "fast-check": "4.7.0",
