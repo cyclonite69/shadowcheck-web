@@ -1,5 +1,6 @@
 import { query } from '../../config/database';
 import {
+  buildAggregatedObservationsQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,
@@ -187,6 +188,21 @@ export async function getWigleObservations(
   ]);
 
   return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
+}
+
+export async function getAggregatedObservations(params: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+  zoom: number;
+  sources: string[];
+}): Promise<
+  { lon: number; lat: number; count: number; avg_signal: number | null; source: string }[]
+> {
+  const { sql, queryParams } = buildAggregatedObservationsQuery(params);
+  const { rows } = await query(sql, queryParams);
+  return rows;
 }
 
 export async function getKmlPointsForMap(params: {

@@ -404,6 +404,84 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
   };
 };
 
+// Zoom level → grid cell size in degrees.
+// Coarser at low zoom (wide view), finer at high zoom (street level).
+const ZOOM_GRID_SIZES: [number, number][] = [
+  [7, 0.5],
+  [9, 0.2],
+  [11, 0.05],
+  [13, 0.01],
+  [Infinity, 0.005],
+];
+
+const gridSizeForZoom = (zoom: number): number => {
+  for (const [maxZoom, size] of ZOOM_GRID_SIZES) {
+    if (zoom <= maxZoom) return size;
+  }
+  return 0.005;
+};
+
+const buildAggregatedObservationsQuery = (params: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+  zoom: number;
+  sources: string[];
+}): SqlQuery => {
+  const gridSize = gridSizeForZoom(params.zoom);
+  const queryParams: any[] = [params.west, params.south, params.east, params.north, gridSize];
+  const bbox = `ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
+
+  const branches: string[] = [];
+
+  if (params.sources.includes('field')) {
+    branches.push(`
+      SELECT ST_SnapToGrid(geom, $5) AS cell, COUNT(*) AS n,
+             AVG(level)::integer AS avg_signal, 'field'::text AS source
+      FROM app.observations
+      WHERE geom && ${bbox}
+      GROUP BY 1`);
+  }
+
+  if (params.sources.includes('wigle-v2')) {
+    branches.push(`
+      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*) AS n,
+             NULL::integer AS avg_signal, 'wigle-v2'::text AS source
+      FROM app.wigle_v2_networks_search
+      WHERE location && ${bbox}
+      GROUP BY 1`);
+  }
+
+  if (params.sources.includes('wigle-v3')) {
+    branches.push(`
+      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*) AS n,
+             AVG(signal)::integer AS avg_signal, 'wigle-v3'::text AS source
+      FROM app.wigle_v3_observations
+      WHERE location && ${bbox}
+      GROUP BY 1`);
+  }
+
+  if (params.sources.includes('kml')) {
+    branches.push(`
+      SELECT ST_SnapToGrid(location, $5) AS cell, COUNT(*) AS n,
+             AVG(signal_dbm)::integer AS avg_signal, 'kml'::text AS source
+      FROM app.kml_points
+      WHERE location && ${bbox}
+        AND location IS NOT NULL
+      GROUP BY 1`);
+  }
+
+  const sql = `
+    SELECT ST_X(cell) AS lon, ST_Y(cell) AS lat, n AS count, avg_signal, source
+    FROM (
+      ${branches.join('\n      UNION ALL\n')}
+    ) cells
+    ORDER BY n DESC`;
+
+  return { sql, queryParams };
+};
+
 export {
   buildWigleNetworksMvQuery,
   buildWiglePageGeocodedAddressQuery,
@@ -424,4 +502,5 @@ export {
   buildWigleV3TableExistsQuery,
   buildWigleV3CountQuery,
   buildWigleV3NetworksQuery,
+  buildAggregatedObservationsQuery,
 };

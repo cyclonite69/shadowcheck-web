@@ -13,6 +13,7 @@ import databaseRoutes from './database';
 import searchRoutes from './search';
 import detailRoutes from './detail';
 import observationsRoutes from './observations';
+import aggregatedRoutes from './aggregated';
 import statsRoutes from './stats';
 
 // Mount routes
@@ -22,6 +23,7 @@ router.use('/', databaseRoutes);
 router.use('/', searchRoutes);
 router.use('/', detailRoutes);
 router.use('/', observationsRoutes);
+router.use('/', aggregatedRoutes);
 router.use('/', statsRoutes);
 
 export default router;
