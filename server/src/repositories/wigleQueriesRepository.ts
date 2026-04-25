@@ -423,6 +423,16 @@ const epsForZoom = (zoom: number): number => {
   return 0.005;
 };
 
+// Row cap for DBSCAN inner subquery — prevents full-table scans at low zoom
+// where the bbox covers the entire globe. At high zoom the spatial filter
+// already constrains row count. Values are per-source-branch.
+const innerLimitForZoom = (zoom: number): string => {
+  if (zoom <= 3) return 'LIMIT 5000';
+  if (zoom <= 5) return 'LIMIT 20000';
+  if (zoom <= 7) return 'LIMIT 75000';
+  return '';
+};
+
 /**
  * @route GET /api/wigle/observations/aggregated
  * @description Builds a zoom-aware ST_ClusterDBSCAN query across one or more
@@ -447,6 +457,7 @@ const buildAggregatedObservationsQuery = (params: {
   sources: string[];
 }): SqlQuery => {
   const eps = epsForZoom(params.zoom);
+  const rowLimit = innerLimitForZoom(params.zoom);
   const queryParams: any[] = [params.west, params.south, params.east, params.north, eps];
   const bbox = `ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
 
@@ -465,6 +476,7 @@ const buildAggregatedObservationsQuery = (params: {
           ST_ClusterDBSCAN(geom, $5, 1) OVER () AS cid
         FROM app.observations
         WHERE geom && ${bbox}
+        ${rowLimit}
       ) _c
       GROUP BY cid`);
   }
@@ -482,6 +494,7 @@ const buildAggregatedObservationsQuery = (params: {
           ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
         FROM app.wigle_v2_networks_search
         WHERE location && ${bbox}
+        ${rowLimit}
       ) _c
       GROUP BY cid`);
   }
@@ -499,6 +512,7 @@ const buildAggregatedObservationsQuery = (params: {
           ST_ClusterDBSCAN(location, $5, 1) OVER () AS cid
         FROM app.wigle_v3_observations
         WHERE location && ${bbox}
+        ${rowLimit}
       ) _c
       GROUP BY cid`);
   }
@@ -517,6 +531,7 @@ const buildAggregatedObservationsQuery = (params: {
         FROM app.kml_points
         WHERE location && ${bbox}
           AND location IS NOT NULL
+        ${rowLimit}
       ) _c
       GROUP BY cid`);
   }
