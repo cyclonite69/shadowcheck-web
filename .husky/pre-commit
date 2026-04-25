@@ -6,3 +6,7 @@ npm run type-check:server
 npm run type-check:test
 npm run lint
 npx lint-staged
+
+if git diff --cached --name-only | grep -q "routes/v1/"; then
+  echo "⚠️  Route file changed — did you update client/src/config/apiTestEndpoints.ts?"
+fi
