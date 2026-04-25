@@ -307,4 +307,23 @@ export const wigleApi = {
     const suffix = params.toString();
     return apiClient.get(`${normalizedEndpoint}${suffix ? `?${suffix}` : ''}`);
   },
+
+  async getAggregatedObservations(params: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+    zoom: number;
+    sources: string[];
+  }): Promise<any> {
+    const qs = new URLSearchParams({
+      west: String(params.west),
+      south: String(params.south),
+      east: String(params.east),
+      north: String(params.north),
+      zoom: String(params.zoom),
+      sources: params.sources.join(','),
+    });
+    return apiClient.get(`/wigle/observations/aggregated?${qs.toString()}`);
+  },
 };
