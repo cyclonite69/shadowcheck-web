@@ -126,14 +126,13 @@ export const ensureV3Layers = (map: Map, v3FCRef: any, cluster = true) => {
   }
 };
 
-/** Update circle-radius on all unclustered point layers. */
+/** Update circle-radius on raw unclustered point layers (not the aggregated layer). */
 export const setPointRadius = (map: Map, radius: number) => {
   [
     'wigle-v2-unclustered',
     'wigle-v3-unclustered',
     'wigle-kml-unclustered',
     FIELD_DATA_LAYER,
-    'wigle-aggregated-circles',
   ].forEach((id) => {
     if (map.getLayer(id)) map.setPaintProperty(id, 'circle-radius', radius);
   });
