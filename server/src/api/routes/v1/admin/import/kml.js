@@ -127,6 +127,7 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
       );
     }
     res.status(500).json({ ok: false, error: err.message });
+    logger.error(`KML import failed (batch: ${batchId}): ${err.message}`, { error: err, batchId });
   } finally {
     await cleanupPaths(cleanupTargets);
   }
