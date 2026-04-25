@@ -16,7 +16,7 @@ const {
   PROJECT_ROOT,
 } = require('../../../../../services/admin/adminHelpers');
 
-router.post('/import-sqlite', upload.single('database'), async (req, res) => {
+router.post('/admin/import-sqlite', upload.single('database'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ ok: false, error: 'No SQLite file uploaded' });
   }

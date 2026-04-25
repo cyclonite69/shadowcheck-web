@@ -23,7 +23,7 @@ const cleanupPaths = async (paths) => {
   }
 };
 
-router.post('/import-kml', kmlUpload.array('files', 1000), async (req, res) => {
+router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res) => {
   const uploadedFiles = req.files || [];
   if (uploadedFiles.length === 0) {
     return res.status(400).json({ ok: false, error: 'No KML files' });
