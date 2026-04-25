@@ -16,10 +16,11 @@ import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
-import { useWigleFieldData } from './wigle/useWigleFieldData';
+import { useWigleObservations } from './wigle/useWigleObservations';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
 import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
 import { ensureKmlLayers, kmlRowsToGeoJSON } from './wigle/kmlLayers';
+import { ensureAggregatedLayers } from './wigle/aggregatedLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateAllClusterColors } from './wigle/clusterColors';
 import { rowsToGeoJSON, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
@@ -78,6 +79,7 @@ const WiglePage: React.FC = () => {
   clusteringEnabledRef.current = clusteringEnabled;
   const clusteringChangedRef = useRef(false);
   const fieldDataFCRef = useRef<any>(null);
+  const aggregatedFCRef = useRef<any>(null);
 
   const {
     v2Loading,
@@ -156,11 +158,20 @@ const WiglePage: React.FC = () => {
   const ensureKmlLayersCallback = useCallback(() => {
     if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
   }, []);
+  const ensureAggregatedLayersCallback = useCallback(() => {
+    if (mapRef.current) ensureAggregatedLayers(mapRef.current, aggregatedFCRef);
+  }, []);
   const ensureAllLayers = useCallback(() => {
     ensureV2LayersCallback();
     ensureV3LayersCallback();
     ensureKmlLayersCallback();
-  }, [ensureV2LayersCallback, ensureV3LayersCallback, ensureKmlLayersCallback]);
+    ensureAggregatedLayersCallback();
+  }, [
+    ensureV2LayersCallback,
+    ensureV3LayersCallback,
+    ensureKmlLayersCallback,
+    ensureAggregatedLayersCallback,
+  ]);
   const applyLayerVisibilityCallback = useCallback(() => {
     if (mapRef.current) applyLayerVisibility(mapRef.current, layersRef.current);
   }, []);
@@ -185,13 +196,12 @@ const WiglePage: React.FC = () => {
     attachClickHandlersCallback,
     updateAllClusterColorsCallback,
   });
-  useWigleFieldData({
+  useWigleObservations({
     mapRef,
     mapReady,
-    mapboxRef,
-    showFieldData: layers.showFieldData,
+    layers,
     clusteringEnabled,
-    fieldDataFCRef,
+    aggregatedFCRef,
   });
   useWigleClusterLayers({
     mapRef,
@@ -256,6 +266,7 @@ const WiglePage: React.FC = () => {
     kmlFCRef,
     fieldDataFCRef,
     showFieldDataRef,
+    aggregatedFCRef,
     styleEffectInitRef,
     wigleHandlersAttachedRef,
     ensureAllLayers,

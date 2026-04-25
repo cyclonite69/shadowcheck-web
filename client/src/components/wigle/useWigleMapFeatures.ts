@@ -16,6 +16,7 @@ export function useWigleMapFeatures({
   kmlFCRef,
   fieldDataFCRef,
   showFieldDataRef,
+  aggregatedFCRef,
   styleEffectInitRef,
   wigleHandlersAttachedRef,
   ensureAllLayers,
@@ -51,6 +52,9 @@ export function useWigleMapFeatures({
         ensureFieldDataLayer(map);
         updateFieldDataSource(map, fieldDataFCRef.current);
       }
+      const aggregatedSrc = map.getSource('wigle-aggregated') as GeoJSONSource | undefined;
+      if (aggregatedSrc)
+        aggregatedSrc.setData((aggregatedFCRef.current || EMPTY_FEATURE_COLLECTION) as any);
       applyLayerVisibilityCallback();
       updateAllClusterColorsCallback();
     };

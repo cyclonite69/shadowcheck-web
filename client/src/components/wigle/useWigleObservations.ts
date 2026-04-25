@@ -3,6 +3,7 @@ import type { Map } from 'mapbox-gl';
 import { wigleApi } from '../../api/wigleApi';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import type { WigleLayerState } from './useWigleLayers';
+import { ensureAggregatedLayers, updateAggregatedSource } from './aggregatedLayers';
 
 // Minimum zoom before raw-point mode is allowed (cluster toggle guard).
 const RAW_POINT_MIN_ZOOM = 12;
@@ -43,10 +44,16 @@ export const useWigleObservations = ({
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
+    const syncToMap = (fc: any) => {
+      aggregatedFCRef.current = fc;
+      ensureAggregatedLayers(map, aggregatedFCRef);
+      updateAggregatedSource(map, fc);
+    };
+
     const sources = buildSources(layers);
 
     if (sources.length === 0) {
-      aggregatedFCRef.current = EMPTY_FEATURE_COLLECTION;
+      syncToMap(EMPTY_FEATURE_COLLECTION);
       return;
     }
 
@@ -80,14 +87,14 @@ export const useWigleObservations = ({
         if (cancelled || currentRequestId !== requestId) return;
 
         if (result?.type === 'FeatureCollection') {
-          aggregatedFCRef.current = result;
+          syncToMap(result);
         } else {
-          aggregatedFCRef.current = EMPTY_FEATURE_COLLECTION;
+          syncToMap(EMPTY_FEATURE_COLLECTION);
         }
       } catch (err: any) {
         if (cancelled || currentRequestId !== requestId) return;
         setError(err?.message ?? 'Failed to fetch aggregated observations');
-        aggregatedFCRef.current = EMPTY_FEATURE_COLLECTION;
+        syncToMap(EMPTY_FEATURE_COLLECTION);
       } finally {
         if (!cancelled && currentRequestId === requestId) {
           setLoading(false);
