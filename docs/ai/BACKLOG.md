@@ -16,9 +16,9 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks �
 ## Database / Performance
 
 - [ ] `wigle_v3_observations` uses btree index on `(trilat, trilon)` — should be a GIST index on a geometry column for PostGIS spatial queries. Migration needed.
-- [ ] `materialized-views.md` schema doc not yet created — agents must SSM-query MV structure before writing refresh logic.
-- [ ] `network-tables.md` schema doc not yet created — wigle_v2/v3 and kml_points column reference missing.
-- [ ] `indexes.md` schema doc not yet created — critical spatial indexes and what queries they serve.
+- [x] `materialized-views.md` schema doc created.
+- [x] `network-tables.md` schema doc created.
+- [x] `indexes.md` schema doc created.
 
 ## Style / Map
 
