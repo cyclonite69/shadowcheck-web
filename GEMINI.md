@@ -1,5 +1,7 @@
 # ShadowCheck — Gemini CLI Project Config
 
+Full session primer: `docs/ai/GEMINI.md` — read this next.
+
 ---
 
 ## Project Overview
@@ -187,6 +189,7 @@ parallel execution by spawning multiple `generalist` subagents.
 - NEVER run DDL against `shadowcheck_db` without explicit approval
 - Always use `-v ON_ERROR_STOP=1` on every psql execution
 - Always connect as `shadowcheck_admin` — not `postgres`
+- **SQL**: Only in `server/src/repositories/`. Never in routes or services. Parameterized queries only — no string concatenation.
 
 ### Packages
 
@@ -222,9 +225,11 @@ Stop, show the plan, wait for explicit "yes" before:
 When starting any task, read these before doing anything else:
 
 1. `package.json` — check existing deps before suggesting new ones
-2. `AGENTS.md` — prior session notes and handoff state
+2. `docs/ai/sessions/ACTIVE.md` — active workstreams; do not touch in-progress areas
 3. `sql/migrations/README.md` — current migration state
-4. Any file explicitly referenced in the prompt via `@filepath`
+4. `docs/schema/observations-sources.md` — before any query touching observation/wigle data
+5. `docs/ai/decisions/` — scan ADRs before any architectural decision
+6. Any file explicitly referenced in the prompt via `@filepath`
 
 ---
 
