@@ -1,7 +1,5 @@
 import { query } from '../../config/database';
 import {
-  buildAggregatedObservationsQuery,
-  buildObservationsExtentQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,
@@ -189,37 +187,6 @@ export async function getWigleObservations(
   ]);
 
   return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
-}
-
-export async function getAggregatedObservations(params: {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-  zoom: number;
-  sources: string[];
-}): Promise<
-  { lon: number; lat: number; count: number; avg_signal: number | null; source: string }[]
-> {
-  const { sql, queryParams } = buildAggregatedObservationsQuery(params);
-  const { rows } = await query(sql, queryParams);
-  return rows;
-}
-
-export async function getObservationsExtent(
-  sources: string[]
-): Promise<{ west: number; south: number; east: number; north: number } | null> {
-  if (sources.length === 0) return null;
-  const { sql, queryParams } = buildObservationsExtentQuery(sources);
-  const { rows } = await query(sql, queryParams);
-  const row = rows[0];
-  if (!row || row.west == null) return null;
-  return {
-    west: parseFloat(row.west),
-    south: parseFloat(row.south),
-    east: parseFloat(row.east),
-    north: parseFloat(row.north),
-  };
 }
 
 export async function getKmlPointsForMap(params: {

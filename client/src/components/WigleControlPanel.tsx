@@ -17,7 +17,6 @@ interface WigleControlPanelProps {
   clusteringEnabled: boolean;
   onToggleClustering: () => void;
   onLoadPoints: () => void;
-  onFitBounds: () => void;
   loading: boolean;
   rowsLoaded: number;
   totalRows: number | null;
@@ -40,7 +39,6 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   clusteringEnabled,
   onToggleClustering,
   onLoadPoints,
-  onFitBounds,
   loading,
   rowsLoaded,
   totalRows,
@@ -175,27 +173,19 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
         </button>
       </div>
 
-      {/* Load Points + Fit Bounds buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={onLoadPoints}
-          className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold shadow-lg transition-all hover:shadow-xl"
-          style={{
-            background: loading
-              ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
-              : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-          }}
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : '📍 Load'}
-        </button>
-        <button
-          onClick={onFitBounds}
-          className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
-        >
-          ⬜ Fit Bounds
-        </button>
-      </div>
+      {/* Load Points button */}
+      <button
+        onClick={onLoadPoints}
+        className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
+        style={{
+          background: loading
+            ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+            : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+        }}
+        disabled={loading}
+      >
+        {loading ? 'Loading...' : '📍 Load Points'}
+      </button>
 
       {/* Stats footer */}
       <div className="pt-3 mt-2 border-t border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent p-3 -mx-5 -mb-5 rounded-b-xl text-xs">

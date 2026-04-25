@@ -126,7 +126,7 @@ export const ensureV3Layers = (map: Map, v3FCRef: any, cluster = true) => {
   }
 };
 
-/** Update circle-radius on raw unclustered point layers (not the aggregated layer). */
+/** Update circle-radius on all unclustered point layers. */
 export const setPointRadius = (map: Map, radius: number) => {
   [
     'wigle-v2-unclustered',
@@ -247,26 +247,21 @@ export const resetFieldDataLayers = (map: Map, fieldDataFCRef: any, cluster: boo
 
 export const applyLayerVisibility = (
   map: Map,
-  _layers: { v2: boolean; v3: boolean; kml: boolean }
+  layers: { v2: boolean; v3: boolean; kml: boolean }
 ) => {
-  // Backend aggregated layer owns all density display.
-  // Always hide Mapbox client-side cluster and unclustered point layers to
-  // prevent dual rendering and the associated performance overhead.
-  const HIDE_ALWAYS = [
-    'wigle-v2-clusters',
-    'wigle-v2-cluster-count',
-    'wigle-v2-unclustered',
-    'wigle-v3-clusters',
-    'wigle-v3-cluster-count',
-    'wigle-v3-unclustered',
-    'wigle-kml-clusters',
-    'wigle-kml-cluster-count',
-    'wigle-kml-unclustered',
-    'wigle-field-clusters',
-    'wigle-field-cluster-count',
-    'wigle-field-unclustered',
-  ];
-  HIDE_ALWAYS.forEach((id) => {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
-  });
+  const setVis = (layerId: string, visible: boolean) => {
+    if (map.getLayer(layerId)) {
+      map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+    }
+  };
+
+  setVis('wigle-v2-clusters', layers.v2);
+  setVis('wigle-v2-cluster-count', layers.v2);
+  setVis('wigle-v2-unclustered', layers.v2);
+  setVis('wigle-v3-clusters', layers.v3);
+  setVis('wigle-v3-cluster-count', layers.v3);
+  setVis('wigle-v3-unclustered', layers.v3);
+  setVis('wigle-kml-clusters', layers.kml);
+  setVis('wigle-kml-cluster-count', layers.kml);
+  setVis('wigle-kml-unclustered', layers.kml);
 };
