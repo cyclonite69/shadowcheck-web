@@ -482,6 +482,44 @@ const buildAggregatedObservationsQuery = (params: {
   return { sql, queryParams };
 };
 
+const buildObservationsExtentQuery = (sources: string[]): SqlQuery => {
+  const branches: string[] = [];
+
+  if (sources.includes('field')) {
+    branches.push(`
+      SELECT ST_XMin(ST_Extent(geom)) AS west, ST_YMin(ST_Extent(geom)) AS south,
+             ST_XMax(ST_Extent(geom)) AS east, ST_YMax(ST_Extent(geom)) AS north
+      FROM app.observations`);
+  }
+  if (sources.includes('wigle-v2')) {
+    branches.push(`
+      SELECT ST_XMin(ST_Extent(location)) AS west, ST_YMin(ST_Extent(location)) AS south,
+             ST_XMax(ST_Extent(location)) AS east, ST_YMax(ST_Extent(location)) AS north
+      FROM app.wigle_v2_networks_search WHERE location IS NOT NULL`);
+  }
+  if (sources.includes('wigle-v3')) {
+    branches.push(`
+      SELECT ST_XMin(ST_Extent(location)) AS west, ST_YMin(ST_Extent(location)) AS south,
+             ST_XMax(ST_Extent(location)) AS east, ST_YMax(ST_Extent(location)) AS north
+      FROM app.wigle_v3_observations WHERE location IS NOT NULL`);
+  }
+  if (sources.includes('kml')) {
+    branches.push(`
+      SELECT ST_XMin(ST_Extent(location)) AS west, ST_YMin(ST_Extent(location)) AS south,
+             ST_XMax(ST_Extent(location)) AS east, ST_YMax(ST_Extent(location)) AS north
+      FROM app.kml_points WHERE location IS NOT NULL`);
+  }
+
+  const sql = `
+    SELECT MIN(west) AS west, MIN(south) AS south, MAX(east) AS east, MAX(north) AS north
+    FROM (
+      ${branches.join('\n      UNION ALL\n')}
+    ) extents
+    WHERE west IS NOT NULL`;
+
+  return { sql, queryParams: [] };
+};
+
 export {
   buildWigleNetworksMvQuery,
   buildWiglePageGeocodedAddressQuery,
@@ -503,4 +541,5 @@ export {
   buildWigleV3CountQuery,
   buildWigleV3NetworksQuery,
   buildAggregatedObservationsQuery,
+  buildObservationsExtentQuery,
 };

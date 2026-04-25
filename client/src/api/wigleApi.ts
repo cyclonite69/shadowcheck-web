@@ -308,6 +308,14 @@ export const wigleApi = {
     return apiClient.get(`${normalizedEndpoint}${suffix ? `?${suffix}` : ''}`);
   },
 
+  async getObservationsExtent(
+    sources: string[]
+  ): Promise<{ west: number; south: number; east: number; north: number } | null> {
+    const qs = new URLSearchParams({ sources: sources.join(',') });
+    const res = await apiClient.get(`/wigle/observations/extent?${qs.toString()}`);
+    return res?.extent ?? null;
+  },
+
   async getAggregatedObservations(params: {
     west: number;
     south: number;

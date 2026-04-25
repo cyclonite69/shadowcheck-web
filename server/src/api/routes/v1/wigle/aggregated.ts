@@ -8,12 +8,7 @@ import { validateNumberRange, validateIntegerRange } from '../../../../validatio
 
 const ALL_SOURCES = ['field', 'wigle-v2', 'wigle-v3', 'kml'];
 
-const validateAggregatedQuery = validateQuery({
-  west: (value: any) => validateNumberRange(value, -180, 180, 'west'),
-  south: (value: any) => validateNumberRange(value, -90, 90, 'south'),
-  east: (value: any) => validateNumberRange(value, -180, 180, 'east'),
-  north: (value: any) => validateNumberRange(value, -90, 90, 'north'),
-  zoom: (value: any) => validateIntegerRange(value, 0, 22, 'zoom'),
+const validateSourcesQuery = validateQuery({
   sources: optional((value: any) => {
     const raw = String(value).trim();
     if (!raw) return { valid: true, value: ALL_SOURCES };
@@ -25,6 +20,26 @@ const validateAggregatedQuery = validateQuery({
         error: `Unknown sources: ${invalid.join(', ')}. Valid: ${ALL_SOURCES.join(', ')}`,
       };
     }
+    return { valid: true, value: parts };
+  }),
+});
+
+const validateAggregatedQuery = validateQuery({
+  west: (value: any) => validateNumberRange(value, -180, 180, 'west'),
+  south: (value: any) => validateNumberRange(value, -90, 90, 'south'),
+  east: (value: any) => validateNumberRange(value, -180, 180, 'east'),
+  north: (value: any) => validateNumberRange(value, -90, 90, 'north'),
+  zoom: (value: any) => validateIntegerRange(value, 0, 22, 'zoom'),
+  sources: optional((value: any) => {
+    const raw = String(value).trim();
+    if (!raw) return { valid: true, value: ALL_SOURCES };
+    const parts = raw.split(',').map((s: string) => s.trim());
+    const invalid = parts.filter((p: string) => !ALL_SOURCES.includes(p));
+    if (invalid.length > 0)
+      return {
+        valid: false,
+        error: `Unknown sources: ${invalid.join(', ')}. Valid: ${ALL_SOURCES.join(', ')}`,
+      };
     return { valid: true, value: parts };
   }),
 });
@@ -70,6 +85,25 @@ router.get(
     }));
 
     return res.json({ ok: true, type: 'FeatureCollection', features });
+  })
+);
+
+/**
+ * GET /observations/extent
+ * Returns the ST_Extent bounding box across all active sources.
+ * Used by the Fit Bounds button to fly the map to where data actually lives.
+ *
+ * Query params:
+ *   sources — comma-separated subset of: field,wigle-v2,wigle-v3,kml (default: all)
+ */
+router.get(
+  '/observations/extent',
+  validateSourcesQuery,
+  asyncHandler(async (req: Request, res: Response) => {
+    const v = (req as any).validated;
+    const sources: string[] = v.sources ?? ALL_SOURCES;
+    const extent = await wigleService.getObservationsExtent(sources);
+    return res.json({ ok: true, extent });
   })
 );
 
