@@ -37,7 +37,6 @@ export const useWigleObservations = ({
   clusteringEnabled,
   aggregatedFCRef,
 }: UseWigleObservationsProps): UseWigleObservationsResult => {
-  console.log('[Aggregated] mapReady check:', mapReady, 'fieldDataToggle:', layers.showFieldData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,14 +45,12 @@ export const useWigleObservations = ({
     if (!map || !mapReady) return;
 
     const syncToMap = (fc: any) => {
-      console.log('[Aggregated] syncToMap features:', fc?.features?.length ?? 0);
       aggregatedFCRef.current = fc;
       ensureAggregatedLayers(map, aggregatedFCRef);
       updateAggregatedSource(map, fc);
     };
 
     const sources = buildSources(layers);
-    console.log('[Aggregated] effect fired — sources:', sources, 'mapReady:', mapReady);
 
     if (sources.length === 0) {
       syncToMap(EMPTY_FEATURE_COLLECTION);
@@ -66,17 +63,6 @@ export const useWigleObservations = ({
     const fetchAggregated = async () => {
       const bounds = map.getBounds();
       if (!bounds) return;
-      console.log(
-        '[Aggregated] fetching — bbox:',
-        {
-          west: bounds.getWest().toFixed(4),
-          south: bounds.getSouth().toFixed(4),
-          east: bounds.getEast().toFixed(4),
-          north: bounds.getNorth().toFixed(4),
-        },
-        'sources:',
-        sources
-      );
 
       const currentRequestId = ++requestId;
       const actualZoom = Math.floor(map.getZoom());
@@ -90,10 +76,10 @@ export const useWigleObservations = ({
 
       try {
         const result = await wigleApi.getAggregatedObservations({
-          west: bounds.getWest(),
-          south: bounds.getSouth(),
-          east: bounds.getEast(),
-          north: bounds.getNorth(),
+          west: Math.max(-180, bounds.getWest()),
+          south: Math.max(-90, bounds.getSouth()),
+          east: Math.min(180, bounds.getEast()),
+          north: Math.min(90, bounds.getNorth()),
           zoom,
           sources,
         });
