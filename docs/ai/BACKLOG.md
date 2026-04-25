@@ -22,7 +22,8 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks â
 
 ## Style / Map
 
-- [ ] `useWigleMapFeatures` style-reload path: field data layer restore still references `fieldDataFCRef` even though field data is now handled by the aggregated layer. Low risk (null ref is safe) but should be cleaned up.
+- [ ] Backend observation aggregation: ST_ClusterDBSCAN approach is architecturally correct but requires either (a) a materialized view pre-computed at standard zoom levels and refreshed on import, or (b) a dedicated tile server (pg_tileserv/Martin). Live DBSCAN on full-table window functions times out (504) at continent-scale bbox. Do not re-attempt as a live query. ADR: `docs/ai/decisions/20260425_server_side_observation_aggregation.md`.
+- [ ] Field data rendering: needs its own Mapbox GeoJSON source with `cluster: true`, identical to the v2/v3/KML pattern. `useWigleFieldData` hook exists; wire it into `ensureFieldDataLayer` with a cluster source in `mapLayers.ts`.
 
 ## Admin
 
