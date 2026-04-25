@@ -152,15 +152,17 @@ export const attachClickHandlers = (
 
     const observedAt = props.observed_at ? new Date(props.observed_at).toLocaleString() : 'Unknown';
     const html = `
-      <div style="min-width:220px;color:#e2e8f0;font:12px/1.45 system-ui,sans-serif">
-        <div style="font-weight:700;color:#fb923c;margin-bottom:8px">KML Point</div>
-        <div><strong>BSSID:</strong> ${props.bssid || 'Unknown'}</div>
-        <div><strong>Name:</strong> ${props.ssid || 'Unknown'}</div>
-        <div><strong>Type:</strong> ${props.type || 'Unknown'}</div>
-        <div><strong>Observed:</strong> ${observedAt}</div>
-        <div><strong>Signal:</strong> ${props.signal_dbm ?? 'Unknown'}</div>
-        <div><strong>Accuracy:</strong> ${props.accuracy ?? 'Unknown'}</div>
-        <div style="margin-top:6px;color:#94a3b8;word-break:break-all"><strong>Source:</strong> ${props.source_file || 'Unknown'}</div>
+      <div style="width:288px;max-width:min(340px,90vw);background:#1a1d23;border:2px solid #60a5fa;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;">
+        <div style="font-weight:700;font-size:13px;color:#fb923c;margin-bottom:8px;">KML Point</div>
+        <div style="font-size:11px;display:flex;flex-direction:column;gap:4px;">
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">BSSID</span><br><span style="font-family:monospace;color:#60a5fa;">${props.bssid || '&mdash;'}</span></div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Name</span><br>${props.ssid || '&mdash;'}</div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Type</span><br>${props.type || '&mdash;'}</div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Observed</span><br>${observedAt}</div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Signal</span><br>${props.signal_dbm ?? '&mdash;'}</div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Accuracy</span><br>${props.accuracy ?? '&mdash;'}</div>
+          <div style="margin-top:4px;color:#94a3b8;word-break:break-all;"><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Source</span><br>${props.source_file || '&mdash;'}</div>
+        </div>
       </div>
     `;
 
