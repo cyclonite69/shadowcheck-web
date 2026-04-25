@@ -19,14 +19,6 @@ const isLocalRuntime =
   (process.env.DB_HOST || '').trim() === 'postgres' && process.env.NODE_ENV !== 'production';
 
 router.get('/admin/aws/overview', async (req: Request, res: Response) => {
-  if (!process.env.AWS_REGION) {
-    return res.status(503).json({
-      ok: false,
-      error: 'AWS integration not configured',
-      code: 'AWS_NOT_CONFIGURED',
-    });
-  }
-
   try {
     const { region } = await getAwsConfig();
     if (!region) {
