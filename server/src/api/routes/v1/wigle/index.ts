@@ -22,8 +22,8 @@ router.use('/', statusRoutes);
 router.use('/', databaseRoutes);
 router.use('/', searchRoutes);
 router.use('/', detailRoutes);
-router.use('/', observationsRoutes);
 router.use('/', aggregatedRoutes);
+router.use('/', observationsRoutes);
 router.use('/', statsRoutes);
 
 export default router;
