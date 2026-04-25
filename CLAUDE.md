@@ -1,7 +1,6 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code when working with this repository.
-Extended guidance: `docs/ai/CLAUDE.md` and `.github/copilot-instructions.md`.
 
 ---
 
@@ -10,9 +9,11 @@ Extended guidance: `docs/ai/CLAUDE.md` and `.github/copilot-instructions.md`.
 Read these before doing anything else on any task:
 
 1. `package.json` — check existing deps before suggesting new ones
-2. `AGENTS.md` — prior session notes and handoff state
+2. `docs/ai/sessions/ACTIVE.md` — check active workstreams; do not touch in-progress areas
 3. `sql/migrations/README.md` — current migration state
-4. Any file explicitly referenced in the prompt via `@filepath`
+4. `docs/schema/observations-sources.md` — before any query touching observation/wigle data
+5. `docs/ai/decisions/` — scan ADRs before any architectural decision
+6. Any file explicitly referenced in the prompt via `@filepath`
 
 ---
 
@@ -291,3 +292,25 @@ updating, report what change you would make and why. Wait for explicit approval.
 8. Refactors shall not leave cruft, duplicate paths, or half-migrated code behind.
 9. Behavior changes require regression tests; new features require test coverage.
 10. Bootstrap, restore, import, and upgrade are separate contracts and must be validated separately.
+
+---
+
+## Claude Code Specifics
+
+**EC2 access**: SSM only — instance `i-06380d0c9c99f6124`, profile `shadowcheck`. Never SSH, never open port 22. Secrets from `shadowcheck/config` in Secrets Manager.
+
+**Tool patterns**:
+
+- `Read` before `Edit` — always
+- Parallel `Bash` calls for independent operations (lint + tsc + tests can run simultaneously)
+- `Agent` tool for broad codebase exploration spanning >3 searches
+- Never spawn agents for single-file reads or targeted edits
+
+**Approved rebuild pattern** (after backend changes):
+
+```bash
+# On EC2 via SSM:
+cd /home/ssm-user/shadowcheck && ./scs_rebuild.sh
+```
+
+**This file**: Explicit user approval required before modifying `CLAUDE.md`. Report the proposed change first.
