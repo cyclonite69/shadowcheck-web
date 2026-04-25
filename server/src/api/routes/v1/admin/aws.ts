@@ -19,15 +19,24 @@ const isLocalRuntime =
   (process.env.DB_HOST || '').trim() === 'postgres' && process.env.NODE_ENV !== 'production';
 
 router.get('/admin/aws/overview', async (req: Request, res: Response) => {
-  const { region } = await getAwsConfig();
-  if (!region) {
+  if (!process.env.AWS_REGION) {
     return res.status(503).json({
+      ok: false,
       error: 'AWS integration not configured',
       code: 'AWS_NOT_CONFIGURED',
     });
   }
 
   try {
+    const { region } = await getAwsConfig();
+    if (!region) {
+      return res.status(503).json({
+        ok: false,
+        error: 'AWS integration not configured',
+        code: 'AWS_NOT_CONFIGURED',
+      });
+    }
+
     const clientConfig = await buildClientConfig();
     const stsClient = new STSClient(clientConfig);
     const ec2Client = new EC2Client(clientConfig);
@@ -58,17 +67,16 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
         warning =
           'Missing permission ec2:DescribeInstances for current role; showing identity and region only.';
         logger.warn('[AWS] Missing DescribeInstances permission', { error: error.message });
-      } else if (isCredentialError(error)) {
+      } else {
         warning = isLocalRuntime
           ? 'Local runtime has no AWS credentials loaded; showing region only.'
           : 'AWS credentials unavailable; showing region only.';
-        logger.warn('[AWS] Missing or stale AWS credentials', { error: error.message });
-      } else {
-        throw error;
+        logger.warn('[AWS] AWS SDK error listing instances', { error: error.message });
       }
     }
 
     res.json({
+      ok: true,
       configured: Boolean(identity),
       credentialsAvailable,
       mode: isLocalRuntime ? 'local' : 'aws',
@@ -79,24 +87,8 @@ router.get('/admin/aws/overview', async (req: Request, res: Response) => {
       warning,
     });
   } catch (error: any) {
-    if (process.env.NODE_ENV !== 'production' && isCredentialError(error)) {
-      return res.json({
-        configured: false,
-        credentialsAvailable: false,
-        mode: isLocalRuntime ? 'local' : 'aws',
-        region: (await getAwsConfig()).region || null,
-        identity: null,
-        counts: { total: 0, states: {} },
-        instances: [],
-        warning: isLocalRuntime
-          ? 'Local runtime has no AWS credentials loaded.'
-          : 'AWS credentials unavailable.',
-      });
-    }
     logger.error('[AWS] Failed to load overview', { error: error.message, stack: error.stack });
-    res
-      .status(500)
-      .json({ error: error.message || 'Failed to load AWS overview', code: 'INTERNAL_ERROR' });
+    return res.status(500).json({ ok: false, error: error.message, code: 'AWS_ERROR' });
   }
 });
 
