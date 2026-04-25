@@ -13,6 +13,7 @@ import {
   cleanupPopupDrag,
   type PopupDragState,
 } from '../../utils/geospatial/setupPopupDrag';
+import { AGGREGATED_CIRCLES_LAYER } from './aggregatedLayers';
 
 export const attachClickHandlers = (
   map: Map,
@@ -134,6 +135,57 @@ export const attachClickHandlers = (
     };
   };
 
+  const handleAggregatedClick = (e: any) => {
+    const feature = e.features && e.features[0];
+    const props = feature?.properties;
+    if (!props || !e.lngLat) return;
+
+    const SOURCE_COLORS: Record<string, string> = {
+      field: '#06b6d4',
+      'wigle-v2': '#3b82f6',
+      'wigle-v3': '#8b5cf6',
+      kml: '#f97316',
+    };
+    const SOURCE_LABELS: Record<string, string> = {
+      field: 'Field',
+      'wigle-v2': 'WiGLE v2',
+      'wigle-v3': 'WiGLE v3',
+      kml: 'KML',
+    };
+    const src = String(props.source ?? '');
+    const color = SOURCE_COLORS[src] ?? '#94a3b8';
+    const label = SOURCE_LABELS[src] ?? src;
+    const count = Number(props.count ?? 0).toLocaleString();
+    const avgSignal =
+      props.avg_signal != null ? `${Number(props.avg_signal).toFixed(1)} dBm` : '&mdash;';
+    const lat = e.lngLat.lat.toFixed(5);
+    const lng = e.lngLat.lng.toFixed(5);
+
+    const html = `
+      <div style="width:240px;max-width:min(280px,90vw);background:#1a1d23;border:2px solid ${color};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;">
+        <div style="font-weight:700;font-size:13px;color:${color};margin-bottom:8px;">${label} Cluster</div>
+        <div style="font-size:11px;display:flex;flex-direction:column;gap:4px;">
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Count</span><br><span style="font-family:monospace;">${count}</span></div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Avg Signal</span><br>${avgSignal}</div>
+          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Location</span><br><span style="font-family:monospace;font-size:10px;">${lat}, ${lng}</span></div>
+        </div>
+      </div>
+    `;
+
+    new mapboxgl.Popup({
+      anchor: getPopupAnchor(map, e.lngLat, html),
+      offset: 15,
+      className: 'sc-popup',
+      maxWidth: 'min(280px, 90vw)',
+      focusAfterOpen: false,
+      closeOnClick: true,
+      closeButton: false,
+    })
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map);
+  };
+
   const handleClusterClick = (sourceId: string, clusterLayerId: string) => (e: any) => {
     const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
     const clusterId = features[0]?.properties?.cluster_id;
@@ -183,6 +235,7 @@ export const attachClickHandlers = (
   map.on('click', 'wigle-v2-unclustered', handleUnclustered);
   map.on('click', 'wigle-v3-unclustered', handleUnclustered);
   map.on('click', 'wigle-kml-unclustered', handleKmlClick);
+  map.on('click', AGGREGATED_CIRCLES_LAYER, handleAggregatedClick);
   map.on('click', 'wigle-v2-clusters', handleClusterClick('wigle-v2-points', 'wigle-v2-clusters'));
   map.on('click', 'wigle-v3-clusters', handleClusterClick('wigle-v3-points', 'wigle-v3-clusters'));
   map.on(
@@ -192,7 +245,12 @@ export const attachClickHandlers = (
   );
 
   // Crosshair cursor over clickable points so users know exactly where to click
-  const POINT_LAYERS = ['wigle-v2-unclustered', 'wigle-v3-unclustered', 'wigle-kml-unclustered'];
+  const POINT_LAYERS = [
+    'wigle-v2-unclustered',
+    'wigle-v3-unclustered',
+    'wigle-kml-unclustered',
+    AGGREGATED_CIRCLES_LAYER,
+  ];
   POINT_LAYERS.forEach((layerId) => {
     map.on('mouseenter', layerId, () => {
       map.getCanvas().style.cursor = 'crosshair';
