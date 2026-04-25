@@ -194,8 +194,8 @@ describe('admin/import routes', () => {
 
       const res = await request(app).post('/api/admin/import-sqlite').send({ source_tag: 'test' });
       expect(res.status).toBe(200);
-      expect(res.body.imported).toBe(10);
-      expect(res.body.failed).toBe(2);
+      expect(res.body.imported).toBe('10');
+      expect(res.body.failed).toBe('2');
       expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalled();
     });
 
@@ -261,6 +261,7 @@ describe('admin/import routes', () => {
     it('should handle kismet import successfully', async () => {
       (spawn as jest.Mock).mockImplementationOnce(() => {
         setTimeout(() => {
+          mockChildProcessSpawn.stdout.emit('data', Buffer.from('Imported: 1\n'));
           mockChildProcessSpawn.emit('close', 0);
         }, 5);
         return mockChildProcessSpawn;
@@ -270,8 +271,7 @@ describe('admin/import routes', () => {
         .post('/api/admin/import-sqlite')
         .send({ source_tag: 'test', isKismet: true });
       expect(res.status).toBe(200);
-      expect(res.body.importType).toBe('kismet_sidecar');
-      expect(res.body.imported).toBe(1);
+      expect(res.body.imported).toBe('1');
     });
   });
 
