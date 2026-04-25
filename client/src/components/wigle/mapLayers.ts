@@ -248,21 +248,26 @@ export const resetFieldDataLayers = (map: Map, fieldDataFCRef: any, cluster: boo
 
 export const applyLayerVisibility = (
   map: Map,
-  layers: { v2: boolean; v3: boolean; kml: boolean }
+  _layers: { v2: boolean; v3: boolean; kml: boolean }
 ) => {
-  const setVis = (layerId: string, visible: boolean) => {
-    if (map.getLayer(layerId)) {
-      map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
-    }
-  };
-
-  setVis('wigle-v2-clusters', layers.v2);
-  setVis('wigle-v2-cluster-count', layers.v2);
-  setVis('wigle-v2-unclustered', layers.v2);
-  setVis('wigle-v3-clusters', layers.v3);
-  setVis('wigle-v3-cluster-count', layers.v3);
-  setVis('wigle-v3-unclustered', layers.v3);
-  setVis('wigle-kml-clusters', layers.kml);
-  setVis('wigle-kml-cluster-count', layers.kml);
-  setVis('wigle-kml-unclustered', layers.kml);
+  // Backend aggregated layer owns all density display.
+  // Always hide Mapbox client-side cluster and unclustered point layers to
+  // prevent dual rendering and the associated performance overhead.
+  const HIDE_ALWAYS = [
+    'wigle-v2-clusters',
+    'wigle-v2-cluster-count',
+    'wigle-v2-unclustered',
+    'wigle-v3-clusters',
+    'wigle-v3-cluster-count',
+    'wigle-v3-unclustered',
+    'wigle-kml-clusters',
+    'wigle-kml-cluster-count',
+    'wigle-kml-unclustered',
+    'wigle-field-clusters',
+    'wigle-field-cluster-count',
+    'wigle-field-unclustered',
+  ];
+  HIDE_ALWAYS.forEach((id) => {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+  });
 };
