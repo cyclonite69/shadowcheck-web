@@ -133,6 +133,7 @@ export const setPointRadius = (map: Map, radius: number) => {
     'wigle-v3-unclustered',
     'wigle-kml-unclustered',
     FIELD_DATA_LAYER,
+    'wigle-aggregated-circles',
   ].forEach((id) => {
     if (map.getLayer(id)) map.setPaintProperty(id, 'circle-radius', radius);
   });
