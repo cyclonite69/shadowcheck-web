@@ -1,4 +1,5 @@
 import { UniversalFilterQueryBuilder } from './filterQueryBuilder/universalFilterQueryBuilder';
+import { SqlFragmentLibrary } from './filterQueryBuilder/SqlFragmentLibrary';
 import {
   buildListNetworksQuery,
   buildThreatMapQueries,
@@ -322,6 +323,116 @@ export async function checkHomeExists(): Promise<boolean> {
   return (result.rowCount ?? 0) > 0;
 }
 
+/**
+ * Given BSSIDs already in the result set, finds any active manual sibling links
+ * from app.network_sibling_overrides and returns full explorer rows for siblings
+ * not yet included. Allows sibling networks to travel with search results.
+ */
+export async function fetchMissingSiblingRows(
+  matchedBssids: string[],
+  locationMode: string = 'latest_observation'
+): Promise<any[]> {
+  if (matchedBssids.length === 0) return [];
+
+  const upperBssids = matchedBssids.map((b) => b.toUpperCase());
+
+  const siblingResult = await query(
+    `SELECT DISTINCT
+       CASE
+         WHEN UPPER(bssid1) = ANY($1::text[]) THEN UPPER(bssid2)
+         ELSE UPPER(bssid1)
+       END AS sibling_bssid
+     FROM app.network_sibling_overrides
+     WHERE is_active IS TRUE
+       AND relation = 'sibling'
+       AND (UPPER(bssid1) = ANY($1::text[]) OR UPPER(bssid2) = ANY($1::text[]))`,
+    [upperBssids]
+  );
+
+  const allSiblingBssids: string[] = (siblingResult.rows as any[]).map(
+    (r) => r.sibling_bssid as string
+  );
+  const missingSiblings = allSiblingBssids.filter((b) => !upperBssids.includes(b));
+
+  if (missingSiblings.length === 0) return [];
+
+  const locationJoin = SqlFragmentLibrary.joinNetworkLocations('ne', locationMode);
+  const locationCols = SqlFragmentLibrary.selectLocationCoords('ne', locationMode);
+  const tagsLateral = SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt');
+  const rmJoin = SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm');
+  const rmFields = SqlFragmentLibrary.selectManufacturerFields('rm');
+  const geocodedFields = SqlFragmentLibrary.selectGeocodedFields('ne');
+  const tagFields = SqlFragmentLibrary.selectThreatTagFields('nt');
+
+  const networkResult = await query(
+    `SELECT
+       ne.bssid,
+       ne.ssid AS ssid,
+       ne.type AS type,
+       ne.security AS security,
+       ne.frequency AS frequency,
+       ne.capabilities AS capabilities,
+       (ne.frequency BETWEEN 5000 AND 5900) AS is_5ghz,
+       (ne.frequency BETWEEN 5925 AND 7125) AS is_6ghz,
+       (COALESCE(ne.ssid, '') = '') AS is_hidden,
+       ne.first_seen,
+       ne.last_seen,
+       ${rmFields},
+       ${geocodedFields},
+       n.min_altitude_m,
+       n.max_altitude_m,
+       n.altitude_span_m,
+       ne.max_distance_meters,
+       n.last_altitude_m,
+       COALESCE(n.is_sentinel, FALSE) AS is_sentinel,
+       ne.distance_from_home_km,
+       ne.observations AS observations,
+       ne.wigle_v3_observation_count,
+       ne.wigle_v3_last_import_at,
+       ne.first_seen AS first_observed_at,
+       ne.last_seen AS last_observed_at,
+       NULL::integer AS unique_days,
+       NULL::integer AS unique_locations,
+       NULL::numeric AS avg_signal,
+       NULL::numeric AS min_signal,
+       NULL::numeric AS max_signal,
+       ne.observed_at AS observed_at,
+       ne.signal AS signal,
+       ${locationCols},
+       ne.centroid_lat,
+       ne.centroid_lon,
+       ne.weighted_lat,
+       ne.weighted_lon,
+       ne.accuracy_meters AS accuracy_meters,
+       ne.stationary_confidence AS stationary_confidence,
+       ${tagFields},
+       COALESCE(nn_agg.notes_count, 0)::integer AS notes_count,
+       JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
+       ne.rule_based_score,
+       ne.ml_threat_score,
+       ne.ml_weight,
+       ne.ml_boost,
+       NULL::text AS network_id,
+       n.bestlat AS raw_lat,
+       n.bestlon AS raw_lon
+     FROM app.api_network_explorer_mv ne
+     LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
+     ${locationJoin}
+     ${tagsLateral}
+     ${rmJoin}
+     LEFT JOIN LATERAL (
+       SELECT COUNT(*)::integer AS notes_count
+       FROM app.network_notes nn
+       WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
+         AND nn.is_deleted IS NOT TRUE
+     ) nn_agg ON TRUE
+     WHERE UPPER(ne.bssid) = ANY($1::text[])`,
+    [missingSiblings]
+  );
+
+  return networkResult.rows as any[];
+}
+
 module.exports = {
   executeV2Query,
   listNetworks,
@@ -330,4 +441,5 @@ module.exports = {
   getThreatMapData,
   getThreatSeverityCounts,
   checkHomeExists,
+  fetchMissingSiblingRows,
 };

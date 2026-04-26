@@ -74,6 +74,7 @@ type HandlerDeps = {
   };
   v2Service: {
     executeV2Query: (sql: string, params: any[]) => Promise<{ rows?: any[]; rowCount?: number }>;
+    fetchMissingSiblingRows: (matchedBssids: string[], locationMode: string) => Promise<any[]>;
   };
   filteredAnalyticsService: {
     getFilteredAnalytics: (
@@ -220,6 +221,23 @@ const createHandlers = (deps: HandlerDeps) => {
       };
     });
 
+    const siblingRows = await v2Service.fetchMissingSiblingRows(
+      rows.map((r: NetworkRow) => r.bssid),
+      locationMode
+    );
+    const enrichedSiblings = siblingRows.map((row: NetworkRow) => {
+      const effectiveRow = applyEffectiveThreat(row);
+      const transparency = normalizeThreatTransparency(effectiveRow.threat);
+      return {
+        ...effectiveRow,
+        threatReasons: transparency.threatReasons,
+        threatEvidence: transparency.threatEvidence,
+        threatTransparencyError: transparency.transparencyError,
+        _siblingSupplemented: true,
+      };
+    });
+    const allEnriched = enrichedSiblings.length > 0 ? [...enriched, ...enrichedSiblings] : enriched;
+
     let total: number | null = null;
     if (includeTotal) {
       const countBuilder = new UniversalFilterQueryBuilder(filters, enabled, {
@@ -232,7 +250,7 @@ const createHandlers = (deps: HandlerDeps) => {
     }
 
     const enabledCount = Object.values(enabled).filter(Boolean).length;
-    const threatIssues = enriched.filter((r) => r.threatTransparencyError).length;
+    const threatIssues = allEnriched.filter((r) => r.threatTransparencyError).length;
     const totalTime = Date.now() - startTime;
 
     if (
@@ -244,6 +262,7 @@ const createHandlers = (deps: HandlerDeps) => {
         buildTime,
         queryTime,
         resultCount: rows.length,
+        siblingCount: enrichedSiblings.length,
         filterCount: appliedFilters.length,
         enabledCount,
         warnings: warnings.length,
@@ -252,7 +271,7 @@ const createHandlers = (deps: HandlerDeps) => {
 
     res.json({
       ok: true,
-      data: enriched,
+      data: allEnriched,
       pagination: {
         total,
         limit,
@@ -267,7 +286,7 @@ const createHandlers = (deps: HandlerDeps) => {
         enabledCount,
         validation: {
           threatsWithoutReasons: threatIssues,
-          totalThreats: enriched.filter(
+          totalThreats: allEnriched.filter(
             (r) => r.threat && r.threat.level && r.threat.level !== 'NONE'
           ).length,
         },
@@ -281,7 +300,7 @@ const createHandlers = (deps: HandlerDeps) => {
         : undefined,
       forensicIntegrity: {
         queryTime: new Date().toISOString(),
-        resultCount: enriched.length,
+        resultCount: allEnriched.length,
         noImplicitFiltering: enabledCount === appliedFilters.length,
         explicitFiltersOnly: true,
       },
