@@ -53,9 +53,7 @@ export const useWigleFieldData = ({
         });
         return;
       }
-      console.log('[Field Data] ensuring layer');
       ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
-      console.log('[Field Data] updating source', { featureCount: features.length });
       updateFieldDataSource(map, fc);
     };
 
@@ -75,16 +73,9 @@ export const useWigleFieldData = ({
         },
       };
       const enabled = { boundingBox: true };
-      const limit = 20000;
+      const limit = 50000;
       let offset = 0;
       const rows: any[] = [];
-
-      console.log('[Field Data] fetching viewport observations', {
-        west: filters.boundingBox.west,
-        south: filters.boundingBox.south,
-        east: filters.boundingBox.east,
-        north: filters.boundingBox.north,
-      });
 
       while (!cancelled) {
         const params = buildFilteredRequestParams({
@@ -118,10 +109,6 @@ export const useWigleFieldData = ({
           },
         }));
 
-      console.log('[Field Data] fetched observations', {
-        observationCount: rows.length,
-        featureCount: features.length,
-      });
       syncFieldData(features);
     };
 

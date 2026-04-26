@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type { GeoJSONSource } from 'mapbox-gl';
 import { logDebug } from '../../logging/clientLogger';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import { ensureFieldDataLayer, updateFieldDataSource, setPointRadius } from './mapLayers';
@@ -94,12 +94,7 @@ export function useWigleMapFeatures({
       if (map.getPitch() < 45) map.easeTo({ pitch: 60, duration: 600, essential: true });
     };
     const toggleBuildings = () => {
-      const style = map.getStyle();
-      const isStandardStyle =
-        mapStyle.includes('mapbox://styles/mapbox/standard') ||
-        (typeof map.setConfigProperty === 'function' &&
-          (style?.schema?.hasOwnProperty('basemap') ||
-            style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard')));
+      const isStandardStyle = mapStyle.includes('mapbox://styles/mapbox/standard');
 
       try {
         if (isStandardStyle) {
@@ -177,12 +172,7 @@ export function useWigleMapFeatures({
     };
 
     const toggleTerrainAction = () => {
-      const style = map.getStyle();
-      const isStandardStyle =
-        mapStyle.includes('mapbox://styles/mapbox/standard') ||
-        (typeof map.setConfigProperty === 'function' &&
-          (style?.schema?.hasOwnProperty('basemap') ||
-            style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard')));
+      const isStandardStyle = mapStyle.includes('mapbox://styles/mapbox/standard');
 
       try {
         if (isStandardStyle) {

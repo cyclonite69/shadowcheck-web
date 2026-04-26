@@ -421,7 +421,7 @@ const createHandlers = (deps: HandlerDeps) => {
       ROUTE_CONFIG.observationsMaxLimit
     );
     const offset = Math.max(0, parseInt(req.query.offset as string, 10) || 0);
-    const includeTotalAndTruncation = parseInt(req.query.include_total as string, 10) === 1;
+    const includeTotalAndTruncation = parseInt(req.query.includeTotal as string, 10) === 1;
     const selectedBssids = parseJsonParam<string[]>(
       req.query.bssids as string | undefined,
       [],

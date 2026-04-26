@@ -216,16 +216,8 @@ export const ensureFieldDataLayer = (map: Map, fieldDataFCRef: any, cluster = tr
 };
 
 export const updateFieldDataSource = (map: Map, data: unknown) => {
-  const firstFeatureCoords = (data as any)?.features?.[0]?.geometry?.coordinates ?? null;
-  console.log('[Field Data] updateFieldDataSource', {
-    featureCount: Array.isArray((data as any)?.features) ? (data as any).features.length : 0,
-    firstFeatureCoords,
-  });
   const src = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
-  if (!src) {
-    console.warn('[Field Data] updateFieldDataSource: source not found, data dropped');
-    return;
-  }
+  if (!src) return;
   src.setData(data as any);
 };
 

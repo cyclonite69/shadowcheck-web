@@ -222,7 +222,6 @@ const WiglePage: React.FC = () => {
     v2Rows,
     v3Rows,
     kmlRows,
-    layersRef,
     clusterColorCache,
     ensureV2LayersCallback,
     ensureV3LayersCallback,

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type { GeoJSONSource } from 'mapbox-gl';
 import { logDebug } from '../../logging/clientLogger';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import { updateClusterColors } from './clusterColors';
@@ -16,7 +16,6 @@ export function useWigleDataSync({
   v2Rows,
   v3Rows,
   kmlRows,
-  layersRef,
   clusterColorCache,
   ensureV2LayersCallback,
   ensureV3LayersCallback,

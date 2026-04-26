@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdminCard } from '../components/AdminCard';
+import { AdminCard } from '../../components/AdminCard';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
