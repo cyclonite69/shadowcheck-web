@@ -1,5 +1,7 @@
 export {};
 import type { Request, Response } from 'express';
+import { fetchWigle } from '../../../services/wigleClient';
+import { hashRecord } from '../../../services/wigleRequestUtils';
 
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const {
@@ -60,8 +62,16 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
 
       let testResult;
       try {
-        const response = await fetch('https://api.wigle.net/api/v2/profile/user', {
-          headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` },
+        const response = await fetchWigle({
+          kind: 'stats',
+          url: 'https://api.wigle.net/api/v2/profile/user',
+          timeoutMs: 15000,
+          maxRetries: 0,
+          label: 'WiGLE Credential Test',
+          entrypoint: 'settings/wigle/save',
+          paramsHash: hashRecord({ endpoint: 'v2/profile/user' }),
+          endpointType: 'v2/profile/user',
+          init: { headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` } },
         });
         if (response.ok) {
           const data = await response.json();
@@ -89,8 +99,16 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
       if (!encoded) {
         return res.json({ success: false, error: 'No credentials stored' });
       }
-      const response = await fetch('https://api.wigle.net/api/v2/profile/user', {
-        headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` },
+      const response = await fetchWigle({
+        kind: 'stats',
+        url: 'https://api.wigle.net/api/v2/profile/user',
+        timeoutMs: 15000,
+        maxRetries: 0,
+        label: 'WiGLE Credential Test',
+        entrypoint: 'settings/wigle/test',
+        paramsHash: hashRecord({ endpoint: 'v2/profile/user' }),
+        endpointType: 'v2/profile/user',
+        init: { headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` } },
       });
       if (response.ok) {
         const data = await response.json();

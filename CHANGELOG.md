@@ -211,6 +211,7 @@
 - enable manufacturer and max_distance_meters sorting in network filter ([0cc9633](https://github.com/cyclonite69/shadowcheck-web/commit/0cc96334dc33eaf3a9624f062caef362db0f2822))
 - enable PgAdmin Docker controls and mount Podman socket in backend ([7c71eae](https://github.com/cyclonite69/shadowcheck-web/commit/7c71eae173542e7f0d81854f8e4ca74ee0bb9d89))
 - enforce strict SSL key permissions in deploy-postgres.sh ([7d64561](https://github.com/cyclonite69/shadowcheck-web/commit/7d645616012800f4c08b0241419980aa09d31117))
+- **enrichment:** add DB-based concurrency guard to prevent overlapping enrichment loops ([a6cf990](https://github.com/cyclonite69/shadowcheck-web/commit/a6cf99051e8e1bd6921c5af0c3117a51aed5e29d))
 - Ensure all tooltip sections display properly ([9e0868d](https://github.com/cyclonite69/shadowcheck-web/commit/9e0868d34822b3697b20ef608bc285303be20a51))
 - ensure security labels always use extended versions (WPA2-P, WPA3-P) and update tests ([4147bda](https://github.com/cyclonite69/shadowcheck-web/commit/4147bda09efa4dbaa46955b506d47c22054c4213))
 - **etl:** call upsertNetworks() in incremental import, add network repair script ([180bce0](https://github.com/cyclonite69/shadowcheck-web/commit/180bce0ced722c9a066d70a1b7e980f769de67b0))
