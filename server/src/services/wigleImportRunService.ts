@@ -113,12 +113,14 @@ const executeImportLoop = async (runId: number) => {
       data = await fetchWiglePage(encodedAuth, requestParams, requestCursor);
 
       const results = Array.isArray(data?.results) ? data.results : [];
-      const totalResults =
+      // liveTotal is null when the API response omits totalResults — used for DB writes only.
+      // totalResults falls back to the DB value so loop termination logic always has a total.
+      const liveTotal =
         data?.totalResults !== undefined && data?.totalResults !== null
           ? Number(data.totalResults)
-          : run.api_total_results !== null
-            ? Number(run.api_total_results)
-            : null;
+          : null;
+      const totalResults =
+        liveTotal ?? (run.api_total_results !== null ? Number(run.api_total_results) : null);
       const nextCursor =
         data?.search_after !== undefined && data?.search_after !== null
           ? String(data.search_after)
@@ -170,7 +172,7 @@ const executeImportLoop = async (runId: number) => {
         requestCursor,
         nextCursor,
         results,
-        totalResults,
+        liveTotal,
         requestParams.resultsPerPage || DEFAULT_RESULTS_PER_PAGE,
         isComplete
       );
