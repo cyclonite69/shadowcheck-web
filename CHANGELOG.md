@@ -571,6 +571,7 @@
 - **scripts:** use admin creds for migrations ([f9df8ab](https://github.com/cyclonite69/shadowcheck-web/commit/f9df8abf40b3d19d4939609b9fc88498014ce78e))
 - **script:** use correct secrets manager key (db_password) ([41eacd4](https://github.com/cyclonite69/shadowcheck-web/commit/41eacd44ce002f75be8270b9bc89a6cacb4337f3))
 - scs_rebuild deploy errors (psql variable name, missing /sql dir) ([1e912c4](https://github.com/cyclonite69/shadowcheck-web/commit/1e912c426fb5a9df03beeefcc79ca49fcd4de2b3))
+- **search:** include manually linked sibling networks in search results ([54679f4](https://github.com/cyclonite69/shadowcheck-web/commit/54679f4d3e035f6f143d47956135cae20c19fff5))
 - **secrets:** disable db_password auto-gen and allow environment fallbacks ([eb38881](https://github.com/cyclonite69/shadowcheck-web/commit/eb388818402786f08f6feb8e3f89648baf31db7e))
 - **security+filters:** restore capabilities + scope wigle_v3 filter ([3815501](https://github.com/cyclonite69/shadowcheck-web/commit/38155016cf23fcefc6da9820ed8a34e429884136))
 - **security:** autofix Path traversal attack possible via Express.js sendFile() ([1151383](https://github.com/cyclonite69/shadowcheck-web/commit/1151383cdf43d7af26048e48f9f4b7111aaf6b5f))
