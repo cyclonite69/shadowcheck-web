@@ -1,4 +1,5 @@
 import logger from '../logging/logger';
+import { adminQuery } from './adminDbService';
 
 export {};
 
@@ -94,6 +95,16 @@ function assertCanRequest(kind: WigleRequestKind, entrypoint: string) {
 function recordRequest(kind: WigleRequestKind) {
   prune(kind);
   requestLedger[kind].push(Date.now());
+
+  // Fire-and-forget — do not await; ledger performance must not degrade
+  void adminQuery('INSERT INTO app.wigle_ledger_events (kind) VALUES ($1)', [kind]).catch(
+    (err: any) => {
+      logger.warn('[WiGLE Ledger] DB write failed — in-memory state is still accurate', {
+        kind,
+        error: err?.message || String(err),
+      });
+    }
+  );
 }
 
 function resetQuotaLedger() {
@@ -101,5 +112,40 @@ function resetQuotaLedger() {
   requestLedger.detail = [];
   requestLedger.stats = [];
 }
+
+async function hydrateLedger() {
+  try {
+    // Keep the table lean: prune events older than the 24h window plus 1h grace
+    await adminQuery(
+      `DELETE FROM app.wigle_ledger_events WHERE requested_at < NOW() - INTERVAL '25 hours'`
+    );
+
+    const { rows } = await adminQuery(
+      `SELECT kind, (EXTRACT(EPOCH FROM requested_at) * 1000)::bigint AS ts_ms
+       FROM app.wigle_ledger_events
+       WHERE requested_at > NOW() - INTERVAL '24 hours'
+       ORDER BY requested_at ASC`
+    );
+
+    for (const row of rows) {
+      const kind = row.kind as WigleRequestKind;
+      if (requestLedger[kind] !== undefined) {
+        requestLedger[kind].push(Number(row.ts_ms));
+      }
+    }
+
+    logger.info('[WiGLE Ledger] Hydrated from DB', {
+      search: requestLedger.search.length,
+      detail: requestLedger.detail.length,
+      stats: requestLedger.stats.length,
+    });
+  } catch (err: any) {
+    logger.warn('[WiGLE Ledger] Hydration failed — starting with empty ledger', {
+      error: err?.message || String(err),
+    });
+  }
+}
+
+void hydrateLedger();
 
 export { assertCanRequest, getQuotaStatus, recordRequest, resetQuotaLedger };
