@@ -1,5 +1,11 @@
 # ShadowCheck Architecture
 
+ShadowCheck is a **defensive, evidentiary network intelligence platform**.
+It is not an offensive tool and is not designed or intended for nefarious,
+harmful, or unauthorized use. This documentation describes the high-level
+architecture of the platform, used by operators to analyze their own legally
+collected wardriving observations.
+
 **Wiki version (diagrams):** [Architecture](../.github/wiki/Architecture.md)
 
 This document describes the high-level architecture of the ShadowCheck-Web platform.

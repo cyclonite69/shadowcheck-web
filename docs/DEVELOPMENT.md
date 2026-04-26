@@ -520,9 +520,9 @@ Local restore behavior:
 - recreates `shadowcheck_db`
 - restores with `shadowcheck_admin`
 - reinstalls required extensions
-- reapplies privileges via [`docker/initdb/02-shadowcheck-local-post-restore.sql`](/home/dbcooper/repos/shadowcheck-web/docker/initdb/02-shadowcheck-local-post-restore.sql)
+- reapplies privileges via [`docker/initdb/02-shadowcheck-local-post-restore.sql`](<your-repo-path>/docker/initdb/02-shadowcheck-local-post-restore.sql)
 
-Do not use [`docker/initdb/01-shadowcheck-local.sql`](/home/dbcooper/repos/shadowcheck-web/docker/initdb/01-shadowcheck-local.sql) as a post-restore replay file. It is the bootstrap/init file for first container start.
+Do not use [`docker/initdb/01-shadowcheck-local.sql`](<your-repo-path>/docker/initdb/01-shadowcheck-local.sql) as a post-restore replay file. It is the bootstrap/init file for first container start.
 
 #### SQLite Import
 

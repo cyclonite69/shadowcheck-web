@@ -6,15 +6,8 @@ import type { NetworkRow } from '../../../types/network';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
 import { popupStateManager } from '../../../utils/geospatial/popupStateManager';
-
-/** Amber for WiGLE-unique; green for locally correlated WiGLE points. */
-const WIGLE_UNIQUE_COLOR = '#f59e0b';
-const WIGLE_MATCHED_COLOR = '#22c55e';
-
-function wigleBadge(matched: boolean): string {
-  const color = matched ? WIGLE_MATCHED_COLOR : WIGLE_UNIQUE_COLOR;
-  return `<div style="background:${color}1a;border-bottom:1px solid ${color}44;padding:3px 12px;font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${color};">◆ WiGLE ${matched ? 'Correlated' : 'External'}</div>`;
-}
+import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
+import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 
 export type WigleObservation = {
   lat: number;
@@ -99,137 +92,44 @@ export const useWigleLayers = ({
     const makeObsPopup = (props: any, coords: [number, number], matched: boolean) => {
       const lngLat = { lng: coords[0], lat: coords[1] };
 
-      let immediateCard: string;
+      const bssidKey = (props.bssid as string) || wigleObservations.bssid || '';
+      const bssidObs = bssidKey
+        ? wigleObservations.observations.filter(
+            (o) => (o.bssid || wigleObservations.bssid || '') === bssidKey
+          )
+        : wigleObservations.observations;
 
-      if (matched) {
-        const bssidKey = (props.bssid as string) || wigleObservations.bssid || '';
-        const bssidObs = bssidKey
-          ? wigleObservations.observations.filter(
-              (o) => (o.bssid || wigleObservations.bssid || '') === bssidKey
-            )
-          : wigleObservations.observations;
+      const times = bssidObs.map((o) => o.time).filter((t) => Number.isFinite(t));
+      const minTime = times.length > 0 ? Math.min(...times) : null;
+      const maxTime = times.length > 0 ? Math.max(...times) : null;
+      const obsCount = bssidObs.length > 0 ? bssidObs.length : null;
+      const timespanDays =
+        minTime !== null && maxTime !== null && maxTime > minTime
+          ? (maxTime - minTime) / 86400000
+          : null;
 
-        const times = bssidObs.map((o) => o.time).filter((t) => Number.isFinite(t));
-        const minTime = times.length > 0 ? Math.min(...times) : null;
-        const maxTime = times.length > 0 ? Math.max(...times) : null;
-        const obsCount = bssidObs.length > 0 ? bssidObs.length : null;
-        const timespanDays =
-          minTime !== null && maxTime !== null && maxTime > minTime
-            ? Math.round((maxTime - minTime) / 86400000)
-            : null;
+      const rawProps: Record<string, any> = {
+        bssid: props.bssid ?? null,
+        ssid: props.ssid ?? null,
+        signal: props.level ?? null,
+        time: props.time ?? null,
+        first_seen: minTime,
+        last_seen: maxTime,
+        observation_count: obsCount,
+        timespan_days: timespanDays,
+        channel: props.channel ?? null,
+        frequency: props.frequency ?? null,
+        encryption: props.encryption ?? null,
+        altitude: props.altitude ?? null,
+        accuracy: props.accuracy ?? null,
+        distance_from_home_meters: props.distance_from_our_center_m ?? null,
+        number: props.number ?? null,
+        threat_score: matched ? (props.threat_score ?? null) : null,
+        threat_level: matched ? (props.threat_level ?? null) : null,
+        manufacturer: matched ? (props.manufacturer ?? null) : null,
+      };
 
-        const bssid = props.bssid || '';
-        const ssid = props.ssid || 'Hidden Network';
-        const signal =
-          props.level != null && Number.isFinite(Number(props.level))
-            ? `${Number(props.level)} dBm`
-            : null;
-        const observedAt = props.time ? new Date(Number(props.time)).toLocaleString() : null;
-        const firstSeen = minTime !== null ? new Date(minTime).toLocaleDateString() : null;
-        const lastSeen = maxTime !== null ? new Date(maxTime).toLocaleDateString() : null;
-        const obsCountStr =
-          obsCount !== null
-            ? `${obsCount}${timespanDays !== null && timespanDays > 0 ? ` over ${timespanDays} days` : ''}`
-            : null;
-        const channel = Number(props.channel) > 0 ? String(props.channel) : null;
-        const frequency = Number(props.frequency) > 0 ? `${props.frequency} MHz` : null;
-        const encRaw = String(props.encryption || '').trim();
-        const encryption = encRaw && encRaw.toUpperCase() !== 'UNKNOWN' ? encRaw : null;
-        const altitude =
-          Math.abs(Number(props.altitude)) > 0.5 ? `${Number(props.altitude).toFixed(1)} m` : null;
-        const accuracy =
-          Number(props.accuracy) > 0 ? `±${Number(props.accuracy).toFixed(1)} m` : null;
-        const distRaw =
-          props.distance_from_our_center_m != null ? Number(props.distance_from_our_center_m) : NaN;
-        const dist = Number.isFinite(distRaw) ? `${Math.round(distRaw)} m` : null;
-
-        const lbl = (t: string) =>
-          `<span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">${t}</span>`;
-
-        const rows = [
-          `<div>${lbl('BSSID')}<br><span style="font-family:monospace;color:#60a5fa;">${bssid || '&mdash;'}</span></div>`,
-          signal ? `<div>${lbl('Signal')}<br>${signal}</div>` : '',
-          observedAt ? `<div>${lbl('Observed')}<br>${observedAt}</div>` : '',
-          obsCountStr ? `<div>${lbl('WiGLE Observations')}<br>${obsCountStr}</div>` : '',
-          firstSeen ? `<div>${lbl('First Seen')}<br>${firstSeen}</div>` : '',
-          lastSeen ? `<div>${lbl('Last Seen')}<br>${lastSeen}</div>` : '',
-          channel ? `<div>${lbl('Channel')}<br>${channel}</div>` : '',
-          frequency ? `<div>${lbl('Frequency')}<br>${frequency}</div>` : '',
-          encryption ? `<div>${lbl('Encryption')}<br>${encryption}</div>` : '',
-          altitude ? `<div>${lbl('Altitude')}<br>${altitude}</div>` : '',
-          accuracy ? `<div>${lbl('GPS Accuracy')}<br>${accuracy}</div>` : '',
-          dist ? `<div>${lbl('Distance from Our Obs')}<br>${dist}</div>` : '',
-        ]
-          .filter(Boolean)
-          .join('');
-
-        immediateCard = `<div style="width:288px;max-width:min(340px,90vw);background:#1a1d23;border:2px solid ${WIGLE_MATCHED_COLOR};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;"><div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ssid}</div><div style="font-size:11px;display:flex;flex-direction:column;gap:4px;margin-top:6px;">${rows}</div></div>`;
-      } else {
-        const bssidKey = (props.bssid as string) || wigleObservations.bssid || '';
-        const bssidObs = bssidKey
-          ? wigleObservations.observations.filter(
-              (o) => (o.bssid || wigleObservations.bssid || '') === bssidKey
-            )
-          : wigleObservations.observations;
-
-        const times = bssidObs.map((o) => o.time).filter((t) => Number.isFinite(t));
-        const minTime = times.length > 0 ? Math.min(...times) : null;
-        const maxTime = times.length > 0 ? Math.max(...times) : null;
-        const obsCount = bssidObs.length > 0 ? bssidObs.length : null;
-        const timespanDays =
-          minTime !== null && maxTime !== null && maxTime > minTime
-            ? Math.round((maxTime - minTime) / 86400000)
-            : null;
-
-        const bssid = props.bssid || '';
-        const ssid = props.ssid || 'Hidden Network';
-        const signal =
-          props.level != null && Number.isFinite(Number(props.level))
-            ? `${Number(props.level)} dBm`
-            : null;
-        const observedAt = props.time ? new Date(Number(props.time)).toLocaleString() : null;
-        const firstSeen = minTime !== null ? new Date(minTime).toLocaleDateString() : null;
-        const lastSeen = maxTime !== null ? new Date(maxTime).toLocaleDateString() : null;
-        const obsCountStr =
-          obsCount !== null
-            ? `${obsCount}${timespanDays !== null && timespanDays > 0 ? ` over ${timespanDays} days` : ''}`
-            : null;
-        const channel = Number(props.channel) > 0 ? String(props.channel) : null;
-        const frequency = Number(props.frequency) > 0 ? `${props.frequency} MHz` : null;
-        const encRaw = String(props.encryption || '').trim();
-        const encryption = encRaw && encRaw.toUpperCase() !== 'UNKNOWN' ? encRaw : null;
-        const altitude =
-          Math.abs(Number(props.altitude)) > 0.5 ? `${Number(props.altitude).toFixed(1)} m` : null;
-        const accuracy =
-          Number(props.accuracy) > 0 ? `±${Number(props.accuracy).toFixed(1)} m` : null;
-        const distRaw =
-          props.distance_from_our_center_m != null ? Number(props.distance_from_our_center_m) : NaN;
-        const dist = Number.isFinite(distRaw) ? `${Math.round(distRaw)} m` : null;
-
-        const lbl = (t: string) =>
-          `<span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">${t}</span>`;
-
-        const rows = [
-          `<div>${lbl('BSSID')}<br><span style="font-family:monospace;color:#60a5fa;">${bssid || '&mdash;'}</span></div>`,
-          signal ? `<div>${lbl('Signal')}<br>${signal}</div>` : '',
-          observedAt ? `<div>${lbl('Observed')}<br>${observedAt}</div>` : '',
-          obsCountStr ? `<div>${lbl('WiGLE Observations')}<br>${obsCountStr}</div>` : '',
-          firstSeen ? `<div>${lbl('First Seen')}<br>${firstSeen}</div>` : '',
-          lastSeen ? `<div>${lbl('Last Seen')}<br>${lastSeen}</div>` : '',
-          channel ? `<div>${lbl('Channel')}<br>${channel}</div>` : '',
-          frequency ? `<div>${lbl('Frequency')}<br>${frequency}</div>` : '',
-          encryption ? `<div>${lbl('Encryption')}<br>${encryption}</div>` : '',
-          altitude ? `<div>${lbl('Altitude')}<br>${altitude}</div>` : '',
-          accuracy ? `<div>${lbl('GPS Accuracy')}<br>${accuracy}</div>` : '',
-          dist ? `<div>${lbl('Distance from Our Obs')}<br>${dist}</div>` : '',
-        ]
-          .filter(Boolean)
-          .join('');
-
-        immediateCard = `<div style="width:288px;max-width:min(340px,90vw);background:#1a1d23;border:2px solid ${WIGLE_UNIQUE_COLOR};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;"><div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ssid}</div><div style="font-size:11px;display:flex;flex-direction:column;gap:4px;margin-top:6px;">${rows}</div></div>`;
-      }
-
-      const initialHtml = wigleBadge(matched) + immediateCard;
+      const initialHtml = renderNetworkTooltip(normalizeTooltipData(rawProps, coords));
 
       const anchor = getPopupAnchor(map, lngLat, initialHtml);
       const popup = new (mapboxgl as any).Popup({

@@ -1041,6 +1041,7 @@
 - **ui:** simplify network tooltip and reconcile frequency/channel fields ([40c376e](https://github.com/cyclonite69/shadowcheck-web/commit/40c376e9ec97765731f07604f1454a06e9092f47))
 - unify network tooltip BSSID and SSID colors ([216e518](https://github.com/cyclonite69/shadowcheck-web/commit/216e5186ec30ff0b2da2bb534a7b8919855e08f0))
 - unify network tooltip BSSID and SSID colors ([713b110](https://github.com/cyclonite69/shadowcheck-web/commit/713b110df02b3f88e1ca6126705078b721f6bf3a))
+- unify tooltip rendering across KML, WiGLE V2/V3, and Geospatial ([ccbafab](https://github.com/cyclonite69/shadowcheck-web/commit/ccbafab208af8d4b6c8f828ef1afe48415b374c6))
 - update geospatial explorer UI styling ([584720b](https://github.com/cyclonite69/shadowcheck-web/commit/584720b269eb224e9d9d41c404a79f957ceb6928)), closes [#1a2a3a](https://github.com/cyclonite69/shadowcheck-web/issues/1a2a3a)
 - upgrade Jest 29 → 30 ([d244ac5](https://github.com/cyclonite69/shadowcheck-web/commit/d244ac57898128da52b479eed46585794b07ef2c))
 - upgrade Node.js to v22 (LTS) ([1b0bde6](https://github.com/cyclonite69/shadowcheck-web/commit/1b0bde617c7e2ff35eaae7fcff2d341aca8e46f6))
