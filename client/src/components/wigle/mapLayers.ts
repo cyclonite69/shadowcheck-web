@@ -157,11 +157,11 @@ export const resetV3Layers = (map: Map, v3FCRef: any, cluster: boolean) => {
 };
 
 /** Add the field-data GeoJSON source and cluster/unclustered layers. */
-export const ensureFieldDataLayer = (map: Map, cluster = true) => {
+export const ensureFieldDataLayer = (map: Map, fieldDataFCRef: any, cluster = true) => {
   if (!map.getSource(FIELD_DATA_SOURCE)) {
     map.addSource(FIELD_DATA_SOURCE, {
       type: 'geojson',
-      data: EMPTY_FEATURE_COLLECTION as any,
+      data: (fieldDataFCRef?.current || EMPTY_FEATURE_COLLECTION) as any,
       cluster,
       clusterMaxZoom: 14,
       clusterRadius: 50,
@@ -242,7 +242,7 @@ export const resetFieldDataLayers = (map: Map, fieldDataFCRef: any, cluster: boo
     if (map.getLayer(id)) map.removeLayer(id);
   });
   if (map.getSource(FIELD_DATA_SOURCE)) map.removeSource(FIELD_DATA_SOURCE);
-  ensureFieldDataLayer(map, cluster);
+  ensureFieldDataLayer(map, fieldDataFCRef, cluster);
 };
 
 export const applyLayerVisibility = (

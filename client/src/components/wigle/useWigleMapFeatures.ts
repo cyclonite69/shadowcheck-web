@@ -48,7 +48,7 @@ export function useWigleMapFeatures({
       const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
       if (kmlSrc) kmlSrc.setData((kmlFCRef.current || EMPTY_FEATURE_COLLECTION) as any);
       if (showFieldDataRef.current && fieldDataFCRef.current) {
-        ensureFieldDataLayer(map);
+        ensureFieldDataLayer(map, fieldDataFCRef);
         updateFieldDataSource(map, fieldDataFCRef.current);
       }
       applyLayerVisibilityCallback();

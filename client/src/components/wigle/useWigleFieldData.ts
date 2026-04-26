@@ -45,7 +45,7 @@ export const useWigleFieldData = ({
       if (!map.isStyleLoaded()) {
         map.once('style.load', () => {
           if (cancelled) return;
-          ensureFieldDataLayer(map, clusteringEnabled);
+          ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
           const latestFc = fieldDataFCRef.current;
           if (Array.isArray((latestFc as any)?.features)) {
             updateFieldDataSource(map, latestFc);
@@ -54,7 +54,7 @@ export const useWigleFieldData = ({
         return;
       }
       console.log('[Field Data] ensuring layer');
-      ensureFieldDataLayer(map, clusteringEnabled);
+      ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
       console.log('[Field Data] updating source', { featureCount: features.length });
       updateFieldDataSource(map, fc);
     };

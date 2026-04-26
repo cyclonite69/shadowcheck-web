@@ -190,6 +190,7 @@
 - **deps:** align react-dom and react-is to 19.2.5 ([08df20a](https://github.com/cyclonite69/shadowcheck-web/commit/08df20aab5574d78d24c25553328832c81520119))
 - **deps:** bump axios to 1.15.0 ([494b337](https://github.com/cyclonite69/shadowcheck-web/commit/494b3376f5326ae01500b4288153429a5f507b1d))
 - **deps:** downgrade @vitejs/plugin-react to 5.0.3 to fix Node 22 build failure ([a539ad9](https://github.com/cyclonite69/shadowcheck-web/commit/a539ad9af823c8467e16e9227523ce0d57612d81))
+- **deps:** pin fast-xml-parser to 5.5.8 to restore AWS SDK XML parsing ([0942fac](https://github.com/cyclonite69/shadowcheck-web/commit/0942fac65022e0929fc37a047d44b26d153fbd08)), closes [#xD](https://github.com/cyclonite69/shadowcheck-web/issues/xD)
 - disable weather routes to unblock server startup ([c853217](https://github.com/cyclonite69/shadowcheck-web/commit/c85321793ed0af677410ac260dbdf9cd1fa00d89))
 - distance_from_home_km shows farthest observation, not bestlat point ([2aa75c0](https://github.com/cyclonite69/shadowcheck-web/commit/2aa75c022c3e03597026ecb431dfb93e2baabbe3))
 - **docker:** add py3-setuptools for Python 3.12 compatibility ([27683aa](https://github.com/cyclonite69/shadowcheck-web/commit/27683aa1f7c451e1cab0beaf38acdafad1ceaf46))
