@@ -386,6 +386,7 @@
 - hide observations count on analytics dashboard card ([cf8ab79](https://github.com/cyclonite69/shadowcheck-web/commit/cf8ab799c9fa5a2024010cee33750be0554f4603))
 - implement missing manufacturer filter and optimize performance with indexed joins ([92901da](https://github.com/cyclonite69/shadowcheck-web/commit/92901da8ddfc590ab8e3eaf29a5eb5a16a1bdd47))
 - **import:** harden large upload flow ([e78c559](https://github.com/cyclonite69/shadowcheck-web/commit/e78c559c2491c7a34a8eb9cddc21826b254cfffb))
+- **import:** prefer live API total for DB writes; fall back to cached total for loop termination ([5e55e8f](https://github.com/cyclonite69/shadowcheck-web/commit/5e55e8ffc1366d51f1060ec6687704ea6659c54e))
 - **import:** repair device-source audit query and backfill missing networks from new observations ([151ac48](https://github.com/cyclonite69/shadowcheck-web/commit/151ac4869e63ce4e0029d019c992c452df5aa93f))
 - **imports:** harden KML timeouts and explorer distance ([8cb8682](https://github.com/cyclonite69/shadowcheck-web/commit/8cb86822223237dd16564d53603ef13db5ee00e1))
 - improve Analytics page filter visibility and positioning ([59ada78](https://github.com/cyclonite69/shadowcheck-web/commit/59ada783c0e8238668d8cc9483ac7e280d93f67d))

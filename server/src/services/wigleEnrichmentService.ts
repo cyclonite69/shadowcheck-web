@@ -307,7 +307,7 @@ async function fetchAndImportDetail(bssid: string, type: string) {
   return { bssid, obsCount };
 }
 
-async function runEnrichmentLoop(runId: number, manualList?: string[]) {
+export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
   let run = await getImportRun(runId);
   if (run.status === 'completed' || run.status === 'cancelled') return run;
 
@@ -368,7 +368,9 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
             [runId]
           );
 
-          await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_DELAY_MS));
+          if (process.env.NODE_ENV !== 'test') {
+            await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_DELAY_MS));
+          }
         } catch (err: any) {
           if (
             err.status === 429 ||

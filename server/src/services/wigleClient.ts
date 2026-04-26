@@ -188,4 +188,9 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
   throw new Error(`${label} failed without returning a response`);
 }
 
-export { fetchWigle };
+function resetWigleClientState() {
+  wigleQueue = Promise.resolve();
+  lastStartedAt = 0;
+}
+
+export { fetchWigle, resetWigleClientState };
