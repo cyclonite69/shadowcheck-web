@@ -160,7 +160,7 @@ export const useGeospatialExplorerState = ({
         if (prefix === 'b') target = 'bssid';
         if (prefix === 'm') target = 'manufacturer';
       } else {
-        if (/^([0-9a-f]{2}([:-]?)){2,6}[0-9a-f]{0,2}$/i.test(raw)) target = 'bssid';
+        if (/^([0-9A-Fa-f*]{1,2}:){5}[0-9A-Fa-f*]{1,2}$/.test(raw)) target = 'bssid';
         else if (/^[0-9a-f]{6}$/i.test(raw)) target = 'manufacturer';
       }
 
