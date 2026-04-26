@@ -204,6 +204,25 @@ async function getNextEnrichmentBatch(limit = BATCH_SIZE, manualList?: string[])
   return rows;
 }
 
+/**
+ * Returns the id of any v3 enrichment run currently in 'running' state, or null
+ * if none exist. Pass excludeRunId to ignore a specific run (used by resumeEnrichment
+ * to avoid blocking itself).
+ */
+async function getActiveEnrichmentRunId(excludeRunId?: number): Promise<number | null> {
+  const { rows } = await adminQuery(
+    excludeRunId != null
+      ? `SELECT id FROM app.wigle_import_runs
+         WHERE status = 'running' AND source IN ('v3_manual', 'v3_batch') AND id != $1
+         LIMIT 1`
+      : `SELECT id FROM app.wigle_import_runs
+         WHERE status = 'running' AND source IN ('v3_manual', 'v3_batch')
+         LIMIT 1`,
+    excludeRunId != null ? [excludeRunId] : []
+  );
+  return rows[0]?.id ?? null;
+}
+
 const inferWigleEndpoint = (networkType: string | null | undefined): 'wifi' | 'bt' => {
   const normalized = String(networkType || '')
     .trim()
@@ -379,6 +398,20 @@ export async function startBatchEnrichment(bssids?: string[]) {
     );
   }
 
+  const conflictId = await getActiveEnrichmentRunId();
+  if (conflictId !== null) {
+    logger.warn(
+      `[v3 Enrichment] Concurrency guard: run #${conflictId} is already active. Rejecting new start.`,
+      { conflictId }
+    );
+    throw Object.assign(
+      new Error(
+        `An enrichment run (#${conflictId}) is already active. Pause or wait for it to complete.`
+      ),
+      { status: 409 }
+    );
+  }
+
   const run = await createImportRun({
     version: 'v3',
     source: isManual ? 'v3_manual' : 'v3_batch',
@@ -401,6 +434,20 @@ export async function startBatchEnrichment(bssids?: string[]) {
 }
 
 export async function resumeEnrichment(runId: number) {
+  const conflictId = await getActiveEnrichmentRunId(runId);
+  if (conflictId !== null) {
+    logger.warn(
+      `[v3 Enrichment] Concurrency guard: run #${conflictId} is already active. Skipping resume of run #${runId}.`,
+      { conflictId, runId }
+    );
+    throw Object.assign(
+      new Error(
+        `Enrichment run #${conflictId} is already active. Pause it before resuming run #${runId}.`
+      ),
+      { status: 409 }
+    );
+  }
+
   const { rows } = await adminQuery(
     "UPDATE app.wigle_import_runs SET status = 'running', last_error = NULL WHERE id = $1 RETURNING *",
     [runId]
