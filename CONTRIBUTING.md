@@ -87,13 +87,13 @@ npm run test:integration # Integration tests only
 - CI runs `npm run policy:secrets` and `gitleaks` on push and pull requests.
 - CI also runs a scheduled full-history secret scan.
 - If a secret is ever committed, treat it as exposed and rotate it immediately.
-- Use [scripts/rotate-db-password.sh](/home/dbcooper/repos/shadowcheck-web/scripts/rotate-db-password.sh) for database password rotation.
+- Use [scripts/rotate-db-password.sh](<your-repo-path>/scripts/rotate-db-password.sh) for database password rotation.
 
 ## Areas Needing Help
 
 ### 🔥 High Priority
 
-- **Performance optimization** for large datasets (1M+ networks)
+- **Performance optimization** for large datasets (demonstrated up to 1M+ networks in the operator's case study)
 - **Machine learning models** for threat detection
 - **Mobile app** integration
 - **Real-time streaming** from hardware sensors

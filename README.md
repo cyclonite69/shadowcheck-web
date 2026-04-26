@@ -12,6 +12,34 @@
 
 🛡️ **Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
+## Purpose & Ethical Use
+
+ShadowCheck is a **defensive, evidentiary network intelligence platform**.
+It is not an offensive tool and is not designed or intended for nefarious,
+harmful, or unauthorized use.
+
+**Data:** This platform is designed for operators to analyze their own
+legally collected wardriving observations. You bring your own data.
+The system does not collect data on your behalf.
+
+**Case study:** The demonstration dataset included in documentation and
+screenshots reflects the primary operator's personally collected wardriving
+data gathered legally in accordance with applicable law. This data is used
+solely to demonstrate system capabilities at scale.
+
+**Intended use:**
+
+- Personal network intelligence and RF environment awareness
+- Defensive security research using operator-collected data
+- Evidentiary documentation of observed RF activity
+- Academic and hobbyist wardriving analysis
+
+**Not intended for:**
+
+- Unauthorized network access or surveillance
+- Targeting individuals or organizations without consent
+- Any activity that violates local, state, or federal law
+
 ## Current System Status
 
 - **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-explorer`, `/analytics`, `/wigle`, `/kepler`)
@@ -31,7 +59,7 @@
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
 - **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
 - **Geospatial Explorer:** Unified map-based exploration with integrated network table, forensic overlays, and timeline views.
-- **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation.
+- **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation. In the operator's case study dataset, 566,400+ location records across 173,326+ unique networks are present — demonstrating the system's capability to handle large-scale wardriving datasets at production volume. Your dataset will vary based on your own collected observations.
 - **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms and automated scoring boosts.
 - **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations.
 - **Address Enrichment:** Multi-API venue and geocoded address identification (OpenCage, LocationIQ, Abstract, Overpass).
@@ -73,7 +101,7 @@ Security enforcement now includes:
 - local pre-commit secret scanning
 - CI secret scanning on push and pull request
 - scheduled full-history secret scanning in CI
-- database rotation support via [scripts/rotate-db-password.sh](/home/dbcooper/repos/shadowcheck-web/scripts/rotate-db-password.sh)
+- database rotation support via [scripts/rotate-db-password.sh](<your-repo-path>/scripts/rotate-db-password.sh)
 
 ## Kepler.gl Data Policy
 
@@ -132,7 +160,7 @@ Security enforcement now includes:
 
 **Backend:** Node.js/Express REST API with PostgreSQL + PostGIS + Redis (Modular architecture with Repositories and Services)
 **Frontend:** React 19 + Vite 7 with TypeScript (explorers and dashboards)
-**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
+**Database:** PostgreSQL 18 with PostGIS extension. In the operator's case study dataset, 566,400+ location records across 173,326+ unique networks are present — demonstrating the system's capability to handle large-scale wardriving datasets at production volume. Your dataset will vary based on your own collected observations.
 **Cache:** Redis v7 for sessions, rate limiting, and analytics
 **Development:** DevContainer support with VS Code integration
 **Deployment:** Production builds are served via the integrated asset handler in `server/server.ts`.
@@ -310,7 +338,7 @@ Production/deployed environments can keep an explicit `.env` with the deployed
 database host, for example:
 
 ```bash
-DB_HOST=34.204.161.164
+DB_HOST=<your-ec2-ip>
 ```
 
 Production keeps Secrets Manager as the source of truth for `db_password`,
@@ -330,7 +358,7 @@ it into the local Docker PostgreSQL container:
 docker compose up -d postgres redis api
 export AWS_PROFILE=shadowcheck-sso
 export AWS_REGION=us-east-1
-export S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
+export S3_BACKUP_BUCKET=<your-s3-bucket>
 ./scripts/fetch-latest-s3-backup.sh
 ./scripts/restore-local-backup.sh ./backups/s3/<latest-backup>.dump
 ```

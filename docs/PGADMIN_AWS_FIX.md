@@ -13,7 +13,7 @@ Your local pgAdmin can't connect because:
 ### Step 1: Run Audit Script
 
 ```bash
-cd /home/dbcooper/repos/shadowcheck-web
+cd <your-repo-path>
 ./scripts/audit-aws-connection.sh
 ```
 
