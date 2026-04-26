@@ -15,7 +15,7 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks �
 
 ## Database / Performance
 
-- [ ] `wigle_v3_observations` uses btree index on `(trilat, trilon)` — should be a GIST index on a geometry column for PostGIS spatial queries. Migration needed.
+- [x] `wigle_v3_observations` GIST index — `idx_wigle_v3_obs_location USING gist (location)` already exists via baseline consolidation applied 2026-04-16. `wigle_v2_networks_search` likewise has `idx_wigle_v2_location USING gist (location)`. Backlog entry was stale (table has no `trilat`/`trilon` columns; those are on `wigle_v2_networks_search`).
 - [x] `materialized-views.md` schema doc created.
 - [x] `network-tables.md` schema doc created.
 - [x] `indexes.md` schema doc created.
@@ -23,8 +23,8 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks �
 ## Style / Map
 
 - [ ] Backend observation aggregation: ST_ClusterDBSCAN approach is architecturally correct but requires either (a) a materialized view pre-computed at standard zoom levels and refreshed on import, or (b) a dedicated tile server (pg_tileserv/Martin). Live DBSCAN on full-table window functions times out (504) at continent-scale bbox. Do not re-attempt as a live query. ADR: `docs/ai/decisions/20260425_server_side_observation_aggregation.md`.
-- [ ] Field data rendering: needs its own Mapbox GeoJSON source with `cluster: true`, identical to the v2/v3/KML pattern. `useWigleFieldData` hook exists; wire it into `ensureFieldDataLayer` with a cluster source in `mapLayers.ts`.
+- [x] Field data rendering: `ensureFieldDataLayer` with `cluster: true` wired into `useWigleFieldData`. Pagination bug fixed (`386eeeab` — `includeTotal` param mismatch); page limit raised to 50K.
 
 ## Admin
 
-- [ ] `import/kml.js`: unused `logger` variable (pre-existing lint warning). Rename to `_logger` or remove.
+- [x] `import/kml.js`: unused `logger` variable — fixed in `233c0732` by adding `logger.error(...)` in the catch block. Lint is clean.
