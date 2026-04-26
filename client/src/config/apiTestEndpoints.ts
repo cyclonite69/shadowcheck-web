@@ -379,6 +379,16 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     ],
   },
 
+  {
+    category: 'WiGLE',
+    label: 'KML BSSID Summary',
+    description:
+      'Aggregate kml_points stats for a single BSSID — observation count, first/last seen, timespan days.',
+    path: '/api/wigle/kml-bssid-summary',
+    method: 'GET',
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+  },
+
   // ── Machine Learning ──────────────────────────────────────────────────────
   { category: 'Machine Learning', label: 'ML Status', path: '/api/ml/status', method: 'GET' },
   {

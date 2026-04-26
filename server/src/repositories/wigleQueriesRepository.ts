@@ -404,6 +404,17 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
   };
 };
 
+const buildKmlBssidSummaryQuery = (bssid: string): SqlQuery => ({
+  sql: `SELECT
+          COUNT(*)::int                                                      AS observation_count,
+          MIN(observed_at)::text                                             AS first_seen,
+          MAX(observed_at)::text                                             AS last_seen,
+          EXTRACT(EPOCH FROM (MAX(observed_at) - MIN(observed_at))) / 86400 AS timespan_days
+        FROM app.kml_points
+        WHERE bssid = $1`,
+  queryParams: [bssid],
+});
+
 export {
   buildWigleNetworksMvQuery,
   buildWiglePageGeocodedAddressQuery,
@@ -412,6 +423,7 @@ export {
   buildWiglePageV2SummaryQuery,
   buildWiglePageV3DetailQuery,
   buildWiglePageV3TemporalQuery,
+  buildKmlBssidSummaryQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,

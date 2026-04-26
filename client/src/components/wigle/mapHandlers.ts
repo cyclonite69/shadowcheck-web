@@ -166,7 +166,7 @@ export const attachClickHandlers = (
       </div>
     `;
 
-    new mapboxgl.Popup({
+    const popup = new mapboxgl.Popup({
       anchor: getPopupAnchor(map, e.lngLat, html),
       offset: 15,
       className: 'sc-popup',
@@ -178,6 +178,69 @@ export const attachClickHandlers = (
       .setLngLat(e.lngLat)
       .setHTML(html)
       .addTo(map);
+
+    if (props.bssid) {
+      void fetch(`/api/wigle/kml-bssid-summary?bssid=${encodeURIComponent(String(props.bssid))}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then(
+          (
+            data: {
+              observation_count: number;
+              first_seen: string | null;
+              last_seen: string | null;
+              timespan_days: number | null;
+            } | null
+          ) => {
+            if (!popup.isOpen() || !data) return;
+
+            const lbl = (t: string) =>
+              `<span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">${t}</span>`;
+
+            const enrichRows: string[] = [
+              `<div>${lbl('KML Records')}<br>${data.observation_count}</div>`,
+            ];
+
+            if (data.first_seen) {
+              enrichRows.push(
+                `<div>${lbl('First Seen')}<br>${new Date(data.first_seen).toLocaleDateString()}</div>`
+              );
+            }
+            if (data.last_seen) {
+              enrichRows.push(
+                `<div>${lbl('Last Seen')}<br>${new Date(data.last_seen).toLocaleDateString()}</div>`
+              );
+            }
+            if (data.timespan_days != null) {
+              enrichRows.push(
+                `<div>${lbl('Timespan')}<br>${Math.round(data.timespan_days)} days</div>`
+              );
+            }
+
+            const enrichedHtml = `
+              <div style="width:288px;max-width:min(340px,90vw);background:#1a1d23;border:2px solid #60a5fa;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;">
+                <div style="font-weight:700;font-size:13px;color:#fb923c;margin-bottom:8px;">KML Point</div>
+                <div style="font-size:11px;display:flex;flex-direction:column;gap:4px;">
+                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">BSSID</span><br><span style="font-family:monospace;color:#60a5fa;">${props.bssid || '&mdash;'}</span></div>
+                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Name</span><br>${props.ssid || '&mdash;'}</div>
+                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Type</span><br>${props.type || '&mdash;'}</div>
+                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Observed</span><br>${observedAt}</div>
+                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Signal</span><br>${props.signal_dbm ?? '&mdash;'}</div>
+                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Accuracy</span><br>${props.accuracy ?? '&mdash;'}</div>
+                  <div style="margin-top:4px;color:#94a3b8;word-break:break-all;"><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Source</span><br>${props.source_file || '&mdash;'}</div>
+                  <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:4px;">
+                    ${enrichRows.join('')}
+                  </div>
+                </div>
+              </div>
+            `;
+
+            popup.setHTML(enrichedHtml);
+          }
+        )
+        .catch(() => {
+          // Leave original content on failure.
+        });
+    }
   };
 
   map.on('click', 'wigle-v2-unclustered', handleUnclustered);

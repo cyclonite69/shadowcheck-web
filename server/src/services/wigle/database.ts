@@ -1,5 +1,6 @@
 import { query } from '../../config/database';
 import {
+  buildKmlBssidSummaryQuery,
   buildKmlPointsCountQuery,
   buildKmlPointsQuery,
   buildRecentWigleDetailImportQuery,
@@ -187,6 +188,24 @@ export async function getWigleObservations(
   ]);
 
   return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
+}
+
+export async function getKmlBssidSummary(bssid: string): Promise<{
+  observation_count: number;
+  first_seen: string | null;
+  last_seen: string | null;
+  timespan_days: number | null;
+} | null> {
+  const { sql, queryParams } = buildKmlBssidSummaryQuery(bssid);
+  const { rows } = await query(sql, queryParams);
+  const row = rows[0];
+  if (!row || Number(row.observation_count) === 0) return null;
+  return {
+    observation_count: Number(row.observation_count),
+    first_seen: row.first_seen ?? null,
+    last_seen: row.last_seen ?? null,
+    timespan_days: row.timespan_days != null ? Number(row.timespan_days) : null,
+  };
 }
 
 export async function getKmlPointsForMap(params: {

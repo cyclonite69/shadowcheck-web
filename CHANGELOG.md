@@ -1012,6 +1012,7 @@
 - surveillance.html uses base-components ([9eb1255](https://github.com/cyclonite69/shadowcheck-web/commit/9eb1255ba3886070e88f7821fc7693d0eceacd7e))
 - **table:** pin key columns during horizontal scroll ([af9f9a5](https://github.com/cyclonite69/shadowcheck-web/commit/af9f9a52038a6a0331b5934aab92b5d5f2f16f84))
 - **tagging:** expose network tag fields end-to-end (Priority 1 fixes) ([69c21e0](https://github.com/cyclonite69/shadowcheck-web/commit/69c21e0edc52d6bf571009782a87c08b40a568cb))
+- **test:** add and stabilize unit tests for wigle enrichment service and client ([ad3c69b](https://github.com/cyclonite69/shadowcheck-web/commit/ad3c69b6ab8735ca1e1175eca0ff11b39065cf2e))
 - **test:** add expanded unit test coverage for threat report service ([72bb0da](https://github.com/cyclonite69/shadowcheck-web/commit/72bb0da6adf3f472a5988f16d811961f4f38ff94))
 - threat model v4.1 with co-occurrence detection ([fcd0139](https://github.com/cyclonite69/shadowcheck-web/commit/fcd01398bfbdcbca0c49a875ff9f4eec74dd61d9))
 - **threat:** expand fleet vehicle manufacturer heuristics ([80a1205](https://github.com/cyclonite69/shadowcheck-web/commit/80a1205762d3f5d8863b4794e1de95e2e0d89583))

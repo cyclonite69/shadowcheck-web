@@ -235,6 +235,27 @@ router.get(
   })
 );
 
+/**
+ * GET /kml-bssid-summary - Aggregate kml_points stats for a single BSSID
+ *
+ * Returns observation_count, first_seen, last_seen, and timespan_days
+ * computed directly from app.kml_points with no foreign table joins.
+ */
+router.get(
+  '/kml-bssid-summary',
+  asyncHandler(async (req: Request, res: Response) => {
+    const bssid = req.query.bssid ? String(req.query.bssid).trim() : '';
+    if (!bssid) {
+      return res.status(400).json({ error: 'bssid query parameter is required' });
+    }
+    const summary = await wigleService.getKmlBssidSummary(bssid);
+    if (!summary) {
+      return res.status(404).json({ error: 'No KML records found for this BSSID' });
+    }
+    res.json(summary);
+  })
+);
+
 router.get(
   '/kml-points',
   validateWigleNetworksQuery,
