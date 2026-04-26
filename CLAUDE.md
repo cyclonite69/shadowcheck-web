@@ -299,6 +299,8 @@ updating, report what change you would make and why. Wait for explicit approval.
 
 **EC2 access**: SSM only — instance `i-06380d0c9c99f6124`, profile `shadowcheck`. Never SSH, never open port 22. Secrets from `shadowcheck/config` in Secrets Manager.
 
+**NEVER run `docker` commands locally.** Local containers are not running and starting them causes resource instability. All container/DB operations go through SSM to EC2 only.
+
 **Tool patterns**:
 
 - `Read` before `Edit` — always

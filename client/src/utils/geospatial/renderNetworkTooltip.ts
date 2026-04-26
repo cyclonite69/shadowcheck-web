@@ -231,7 +231,8 @@ export const renderNetworkTooltip = (props: any): any => {
     props.max_signal;
   const rssi = typeof rssiValue === 'number' ? rssiValue : Number(rssiValue);
   const scoreValue = props.threat_score;
-  const score = typeof scoreValue === 'number' ? scoreValue : Number(scoreValue);
+  const score =
+    scoreValue != null ? (typeof scoreValue === 'number' ? scoreValue : Number(scoreValue)) : NaN;
   const qualitySource = props.quality_score;
   const qualityRaw = typeof qualitySource === 'number' ? qualitySource : Number(qualitySource);
   const quality = Number.isFinite(qualityRaw)
@@ -263,7 +264,7 @@ export const renderNetworkTooltip = (props: any): any => {
         ? '#facc15'
         : '#f87171';
   const scoreText = Number.isFinite(score) ? score.toFixed(1) : EM_DASH;
-  const hasThreatScore = Number.isFinite(score);
+  const hasThreatScore = Number.isFinite(score) && score > 0;
 
   const qualityFill = Number.isFinite(quality) ? clamp(quality, 0, 100) : 0;
   const qualityText = Number.isFinite(quality) ? formatConfidence(quality, true) : EM_DASH;
@@ -423,7 +424,7 @@ export const renderNetworkTooltip = (props: any): any => {
         <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
       </div>
     </div>
-    <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>
+    ${hasThreatScore ? `<div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>` : ''}
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;">
     <div style="font-size:11px;font-family:monospace;color:${bc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>

@@ -1,13 +1,9 @@
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
-import {
-  getWiglePageNetwork,
-  type WiglePageNetwork,
-  type WiglePageNetworkResponse,
-} from '../../api/wigleApi';
-import { normalizeWigleTooltipData } from '../../utils/wigle/wigleTooltipNormalizer';
-import { renderWigleTooltip } from '../../utils/wigle/wigleTooltipRenderer';
+import { getWiglePageNetwork, type WiglePageNetworkResponse } from '../../api/wigleApi';
+import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
+import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import {
   setupPopupDrag,
   cleanupPopupDrag,
@@ -27,15 +23,17 @@ export const attachClickHandlers = (
     if (!props || !e.lngLat) return;
 
     const netid = String(props.netid || props.bssid || '');
-    const featureData: WiglePageNetwork = {
-      ...(props as Record<string, unknown>),
+    const featureData: Record<string, any> = {
+      ...(props as Record<string, any>),
       netid: String(props.netid || props.bssid || ''),
       bssid: String(props.bssid || props.netid || ''),
       trilat: props.trilat ?? props.latitude ?? e.lngLat.lat,
       trilong: props.trilong ?? props.trilon ?? props.longitude ?? e.lngLat.lng,
       wigle_source: props.wigle_source === 'wigle-v3' ? 'wigle-v3' : 'wigle-v2',
     };
-    const initialHTML = renderWigleTooltip(normalizeWigleTooltipData(featureData));
+    const initialHTML = renderNetworkTooltip(
+      normalizeTooltipData(featureData, [e.lngLat.lng, e.lngLat.lat])
+    );
 
     const anchor = getPopupAnchor(map, e.lngLat, initialHTML);
     const popup = new mapboxgl.Popup({
@@ -60,7 +58,7 @@ export const attachClickHandlers = (
 
           // Build merged object: WiGLE-truth fields from structured `wigle` section only.
           // Local linkage maps to the existing flat fields the normalizer already reads.
-          const mergedData: WiglePageNetwork = {
+          const mergedData: Record<string, any> = {
             ...featureData,
             bssid: wigle.bssid,
             netid: wigle.bssid,
@@ -110,7 +108,7 @@ export const attachClickHandlers = (
             local_last_seen: localLinkage.local_last_seen,
           };
 
-          popup.setHTML(renderWigleTooltip(normalizeWigleTooltipData(mergedData)));
+          popup.setHTML(renderNetworkTooltip(normalizeTooltipData(mergedData)));
         })
         .catch(() => {
           // Feature props remain the source of truth if enrichment fails.
@@ -150,21 +148,24 @@ export const attachClickHandlers = (
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const observedAt = props.observed_at ? new Date(props.observed_at).toLocaleString() : 'Unknown';
-    const html = `
-      <div style="width:288px;max-width:min(340px,90vw);background:#1a1d23;border:2px solid #60a5fa;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;">
-        <div style="font-weight:700;font-size:13px;color:#fb923c;margin-bottom:8px;">KML Point</div>
-        <div style="font-size:11px;display:flex;flex-direction:column;gap:4px;">
-          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">BSSID</span><br><span style="font-family:monospace;color:#60a5fa;">${props.bssid || '&mdash;'}</span></div>
-          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Name</span><br>${props.ssid || '&mdash;'}</div>
-          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Type</span><br>${props.type || '&mdash;'}</div>
-          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Observed</span><br>${observedAt}</div>
-          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Signal</span><br>${props.signal_dbm ?? '&mdash;'}</div>
-          <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Accuracy</span><br>${props.accuracy ?? '&mdash;'}</div>
-          <div style="margin-top:4px;color:#94a3b8;word-break:break-all;"><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Source</span><br>${props.source_file || '&mdash;'}</div>
-        </div>
-      </div>
-    `;
+    const kmlProps = {
+      bssid: props.bssid,
+      ssid: props.ssid || props.name,
+      signal: props.signal_dbm,
+      time: props.observed_at,
+      channel: props.channel,
+      frequency: props.frequency,
+      source: props.source_file,
+      lat: props.latitude,
+      lon: props.longitude,
+      accuracy: props.accuracy_m,
+      network_type: props.network_type,
+      folder_name: props.folder_name,
+    };
+
+    const html = renderNetworkTooltip(
+      normalizeTooltipData(kmlProps, [props.longitude, props.latitude])
+    );
 
     const popup = new mapboxgl.Popup({
       anchor: getPopupAnchor(map, e.lngLat, html),
@@ -193,48 +194,20 @@ export const attachClickHandlers = (
           ) => {
             if (!popup.isOpen() || !data) return;
 
-            const lbl = (t: string) =>
-              `<span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">${t}</span>`;
-
-            const enrichRows: string[] = [
-              `<div>${lbl('KML Records')}<br>${data.observation_count}</div>`,
-            ];
-
-            if (data.first_seen) {
-              enrichRows.push(
-                `<div>${lbl('First Seen')}<br>${new Date(data.first_seen).toLocaleDateString()}</div>`
-              );
-            }
-            if (data.last_seen) {
-              enrichRows.push(
-                `<div>${lbl('Last Seen')}<br>${new Date(data.last_seen).toLocaleDateString()}</div>`
-              );
-            }
-            if (data.timespan_days != null) {
-              enrichRows.push(
-                `<div>${lbl('Timespan')}<br>${Math.round(data.timespan_days)} days</div>`
-              );
-            }
-
-            const enrichedHtml = `
-              <div style="width:288px;max-width:min(340px,90vw);background:#1a1d23;border:2px solid #60a5fa;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#e2e8f0;box-sizing:border-box;padding:10px 12px;">
-                <div style="font-weight:700;font-size:13px;color:#fb923c;margin-bottom:8px;">KML Point</div>
-                <div style="font-size:11px;display:flex;flex-direction:column;gap:4px;">
-                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">BSSID</span><br><span style="font-family:monospace;color:#60a5fa;">${props.bssid || '&mdash;'}</span></div>
-                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Name</span><br>${props.ssid || '&mdash;'}</div>
-                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Type</span><br>${props.type || '&mdash;'}</div>
-                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Observed</span><br>${observedAt}</div>
-                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Signal</span><br>${props.signal_dbm ?? '&mdash;'}</div>
-                  <div><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Accuracy</span><br>${props.accuracy ?? '&mdash;'}</div>
-                  <div style="margin-top:4px;color:#94a3b8;word-break:break-all;"><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);">Source</span><br>${props.source_file || '&mdash;'}</div>
-                  <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:4px;">
-                    ${enrichRows.join('')}
-                  </div>
-                </div>
-              </div>
-            `;
-
-            popup.setHTML(enrichedHtml);
+            popup.setHTML(
+              renderNetworkTooltip(
+                normalizeTooltipData(
+                  {
+                    ...kmlProps,
+                    observation_count: data.observation_count,
+                    first_seen: data.first_seen,
+                    last_seen: data.last_seen,
+                    timespan_days: data.timespan_days,
+                  },
+                  [props.longitude, props.latitude]
+                )
+              )
+            );
           }
         )
         .catch(() => {

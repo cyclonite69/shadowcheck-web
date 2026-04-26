@@ -1049,6 +1049,7 @@
 - **wigle:** add aggregatedLayers.ts unified layer set (Phase 3) ([09ec8e2](https://github.com/cyclonite69/shadowcheck-web/commit/09ec8e224898987e3eb28a8421e3c356baf7da1a))
 - **wigle:** add Field Data and Clustering toggles to WiGLE map toolbar ([78e2c67](https://github.com/cyclonite69/shadowcheck-web/commit/78e2c67c380aea10c25b963b3654c8a9dee48ee4))
 - **wigle:** add GET /api/wigle/observations/aggregated endpoint (Phase 1) ([0b43249](https://github.com/cyclonite69/shadowcheck-web/commit/0b43249fc62b099660eadb7837f067c2fe934e1e))
+- **wigle:** add KML self-enrichment endpoint and wire tooltip async update ([2f80845](https://github.com/cyclonite69/shadowcheck-web/commit/2f8084588824b6e3978a9f615ebf2a7c0ed7b9df))
 - **wigle:** add manual BSSID selection to v3 enrichment feature ([605c11d](https://github.com/cyclonite69/shadowcheck-web/commit/605c11dfffe880525e707a3a6e96b38d7c473a8a))
 - **wigle:** add observations/extent endpoint and Fit Bounds button ([35fdddc](https://github.com/cyclonite69/shadowcheck-web/commit/35fdddcc93b7a78d768b68c7ed2eac5ad96bd6a7))
 - **wigle:** add useWigleObservations unified fetch hook (Phase 2) ([7527963](https://github.com/cyclonite69/shadowcheck-web/commit/7527963224502fff1f7e7797cdf322911660a02a))

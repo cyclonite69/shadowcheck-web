@@ -43,11 +43,11 @@ function parseCapabilities(caps: string): { encryption: string; wps: boolean; mf
   };
 }
 
-function freqToChannel(freq: number): number {
+function freqToChannel(freq: number): number | null {
   if (freq >= 2412 && freq <= 2484) return Math.round((freq - 2407) / 5);
   if (freq >= 5180 && freq <= 5825) return Math.round((freq - 5000) / 5);
   if (freq >= 5955) return Math.round((freq - 5955) / 5) + 1;
-  return 0;
+  return null;
 }
 
 function freqToBand(freq: number): string {
@@ -95,17 +95,17 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     pickFirst(raw.radio_capabilities, raw.capabilities, raw.security, raw.encryption) || ''
   );
   const caps = parseCapabilities(rawCaps);
-  const freq = toNumberOrNull(pickFirst(raw.frequency, raw.radio_frequency)) || 0;
+  const freq = toNumberOrNull(pickFirst(raw.frequency, raw.radio_frequency));
   const rawChan = toNumberOrNull(pickFirst(raw.channel, raw.chan));
-  const chan = rawChan || (freq > 0 ? freqToChannel(freq) : 0);
+  const chan = rawChan ?? (freq !== null && freq > 0 ? freqToChannel(freq) : null);
   const canonicalSecurity = formatSecurity(rawCaps, 'Unknown');
 
   // Calculate quality score if not provided
   // Factor 1: Observation count (up to 20 obs for full points)
   // Factor 2: GPS accuracy (under 10m for full points)
   // Separate local and WiGLE observation counts
-  const localObsCount = Number(
-    pickFirst(raw.observation_count, raw.obs_count, raw.observations, 0)
+  const localObsCount = toNumberOrNull(
+    pickFirst(raw.observation_count, raw.obs_count, raw.observations)
   );
   const wigleObsCount = toNumberOrNull(raw.wigle_v3_observation_count) || null;
   // Use WiGLE count if available (for WiGLE-correlated points), else local count
@@ -128,7 +128,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
 
     let score = 0;
     // Observations: 0 to 0.6 weight
-    score += Math.min(0.6, (obsCount / 20) * 0.6);
+    score += Math.min(0.6, ((obsCount ?? 0) / 20) * 0.6);
     // Accuracy: 0 to 0.4 weight
     if (accuracy !== null) {
       const accBonus = Math.max(0, 0.4 * (1 - accuracy / 50));
@@ -140,12 +140,12 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   const isWigleV2 = wigleSource === 'wigle-v2';
 
   return {
-    ssid: pickFirst(raw.ssid, raw.name, 'Hidden'),
-    bssid: pickFirst(raw.bssid, raw.netid, 'UNKNOWN'),
-    type: pickFirst(raw.type, '?'),
-    radio_type: pickFirst(raw.radio_type, raw.type, '?'),
-    threat_level: pickFirst(raw.threat_level, raw.threat, 'NONE'),
-    threat_score: Number(pickFirst(raw.threat_score, 0)),
+    ssid: pickFirst(raw.ssid, raw.name),
+    bssid: pickFirst(raw.bssid, raw.netid),
+    type: pickFirst(raw.type),
+    radio_type: pickFirst(raw.radio_type, raw.type),
+    threat_level: pickFirst(raw.threat_level, raw.threat),
+    threat_score: toNumberOrNull(raw.threat_score),
     signal: toNumberOrNull(
       pickFirst(
         raw.signal,
@@ -164,11 +164,15 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     mfpc: caps.mfpc,
     frequency: freq,
     channel: chan,
-    band: pickFirst(raw.frequency_band, raw.band) || freqToBand(freq),
+    band: pickFirst(
+      raw.frequency_band,
+      raw.band,
+      freq !== null && freq > 0 ? freqToBand(freq) : ''
+    ),
     lat,
     lon,
     altitude: toNumberOrNull(raw.altitude),
-    manufacturer: pickFirst(raw.manufacturer, raw.ne_manufacturer, 'Unknown'),
+    manufacturer: pickFirst(raw.manufacturer, raw.ne_manufacturer),
     observation_count: isWigleV2 ? null : obsCount,
     local_observation_count: isWigleV2 ? null : localObsCount,
     wigle_observation_count: isWigleV2 ? null : wigleObsCount,
@@ -207,7 +211,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     number: toNumberOrNull(raw.number),
     time_since_prior: pickFirst(raw.time_since_prior, null),
     distance_from_last_point_m: toNumberOrNull(raw.distance_from_last_point_m),
-    sibling_count: toNumberOrNull(raw.sibling_count) || 0,
+    sibling_count: toNumberOrNull(raw.sibling_count),
     wigle_match: Boolean(raw.wigle_match),
     is_mobile: Boolean(raw.is_mobile),
     quality_score: calculatedQuality,
@@ -216,10 +220,10 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     geocoded_city: pickFirst(raw.geocoded_city, raw.city, null),
     geocoded_state: pickFirst(raw.geocoded_state, raw.region, raw.state, null),
     geocoded_poi_name: pickFirst(raw.geocoded_poi_name, raw.poi_name, null),
-    city: raw.city || '',
-    region: raw.region || '',
-    housenumber: raw.housenumber || '',
-    road: raw.road || '',
+    city: raw.city || null,
+    region: raw.region || null,
+    housenumber: raw.housenumber || null,
+    road: raw.road || null,
     threat_factors: raw.threat_factors || null,
     comment: pickFirst(raw.comment, null),
     source: pickFirst(raw.source, raw.source_file, null),
