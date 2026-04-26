@@ -42,7 +42,8 @@
     "prepare": "husky",
     "policy:secret-disk": "bash scripts/security/check-no-secret-disk-writes.sh",
     "policy:secret-scan": "bash scripts/security/scan-secrets.sh --repo",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "metrics": "echo '# LOC Metrics\\n_Generated: '$(date)' | SHA: '$(git rev-parse --short HEAD)'_\\n' > docs/metrics/lines-of-code.md && cloc . --exclude-dir=node_modules,dist,.git,.claude,coverage --include-lang=TypeScript,JavaScript,SQL,CSS --md >> docs/metrics/lines-of-code.md"
   },
   "keywords": [
     "sigint",
@@ -124,6 +125,7 @@
     "@vitejs/plugin-react": "6.0.1",
     "autoprefixer": "10.5.0",
     "better-sqlite3": "^12.9.0",
+    "cloc": "2.6.0-cloc",
     "conventional-changelog-cli": "5.0.0",
     "cssnano": "7.1.5",
     "eslint": "10.2.1",

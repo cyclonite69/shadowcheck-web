@@ -46,6 +46,11 @@ Gemini CLI does not auto-read context files. Paste this entire file at the start
 
 ## Standards
 
+### LOC Metrics
+
+`docs/metrics/lines-of-code.md` — auto-updated on every push via husky pre-push hook.
+Run `npm run metrics` manually anytime to refresh.
+
 ### Every new endpoint requires:
 
 1. Entry in `client/src/config/apiTestEndpoints.ts`
