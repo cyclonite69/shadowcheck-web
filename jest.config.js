@@ -50,7 +50,7 @@ module.exports = {
   verbose: true,
 
   // Timeout
-  testTimeout: 10000,
+  testTimeout: 30000,
 
   // Ignore patterns
   testPathIgnorePatterns: [

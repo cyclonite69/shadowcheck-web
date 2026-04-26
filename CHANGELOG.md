@@ -770,6 +770,7 @@
 - **wigle:** use bssid field for v3 rows in field data fetch ([5acc4aa](https://github.com/cyclonite69/shadowcheck-web/commit/5acc4aa81920fdd423ad5f673a4cde2f77486682))
 - **wigle:** use CTE proportional count distribution for exact totals with DBSCAN sampling ([1c3a906](https://github.com/cyclonite69/shadowcheck-web/commit/1c3a906886822373560cdf8a3be3ff49bad8c88f))
 - **wigle:** validate API credit before making orphan lookup requests ([3bfb952](https://github.com/cyclonite69/shadowcheck-web/commit/3bfb9524d35ef4522cc15ae7a3ca9e216042505a))
+- **wigle:** wire field data into Mapbox cluster source ([87facec](https://github.com/cyclonite69/shadowcheck-web/commit/87facec08bda30aba20931d2a0efed3423e79b09))
 - **wigle:** wire field data source into cluster toggle ([f75f30d](https://github.com/cyclonite69/shadowcheck-web/commit/f75f30dbf2e31c7e8c87e8dcde627f9939ce8f0e))
 - **wigle:** wire kmlFeatureCollection to source.setData in KML sync effect ([e9168e8](https://github.com/cyclonite69/shadowcheck-web/commit/e9168e833ca08ab15724228ec5ff25485013125c))
 - wire mapbox proxy stream helper ([26e42ad](https://github.com/cyclonite69/shadowcheck-web/commit/26e42ad3a3da444908eb9935c927129d3083861d))

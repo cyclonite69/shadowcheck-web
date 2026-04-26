@@ -9,7 +9,7 @@ const observationService = require('./observationService');
 const { toNumber, formatTimestamp } = require('./reports/threatReportUtils');
 const { renderMarkdown, renderHtml, renderPdfBuffer } = require('./reports/threatReportRenderers');
 
-async function getThreatReportData(bssid: string) {
+export async function getThreatReportData(bssid: string) {
   const normalizedBssid = String(bssid || '')
     .trim()
     .toUpperCase();
