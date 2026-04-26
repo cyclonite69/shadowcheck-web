@@ -311,7 +311,14 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
   let run = await getImportRun(runId);
   if (run.status === 'completed' || run.status === 'cancelled') return run;
 
-  // Track processed BSSIDs for manual runs to avoid infinite loops if results aren't clearing
+  /**
+   * In-memory guard against tight re-fetch loops within a single run.
+   *
+   * Intentionally NOT persisted: on resume, the Set is empty and any BSSID that
+   * failed non-fatally in a prior run is eligible to be retried. This is correct —
+   * the Set only prevents the same BSSID from being re-queued within one continuous
+   * execution, not permanently skipped.
+   */
   const processed = new Set<string>();
 
   logger.info(
@@ -375,7 +382,9 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
           }
           // Log but continue for other errors
           logger.error(`[v3 Enrichment] Failed item ${item.bssid}: ${err.message}`);
-          processed.add(item.bssid); // Don't retry failed item in this loop pass
+          // Suppress re-fetch this run only; the Set is not persisted, so the BSSID
+          // will be retried on the next resume.
+          processed.add(item.bssid);
         }
       }
     }
