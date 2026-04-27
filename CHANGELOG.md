@@ -1,4 +1,4 @@
-# 1.0.0 (2026-04-26)
+# 1.0.0 (2026-04-27)
 
 ### Bug Fixes
 
@@ -976,6 +976,7 @@
 - **monitoring:** add standalone Grafana monitoring stack ([770b6af](https://github.com/cyclonite69/shadowcheck-web/commit/770b6af925acdf0bb863749b13f1ad6e4d194720))
 - **monitoring:** gate grafana behind embed cookie ([07cd75a](https://github.com/cyclonite69/shadowcheck-web/commit/07cd75a3597da02dec4469b9607a4afd27de7266))
 - networks.html uses base-components ([f934168](https://github.com/cyclonite69/shadowcheck-web/commit/f934168ec9f3967821fa6a7f5a4078446e0651ba))
+- **networks:** pattern-based sibling grouping in Networks Explorer table ([b8f7ae6](https://github.com/cyclonite69/shadowcheck-web/commit/b8f7ae62d81b1b3b99f20611698b773d0b47aef8)), closes [#378ADD](https://github.com/cyclonite69/shadowcheck-web/issues/378ADD) [#E6F1FB18](https://github.com/cyclonite69/shadowcheck-web/issues/E6F1FB18)
 - **notes:** store note attachments in postgres bytea ([fbfd557](https://github.com/cyclonite69/shadowcheck-web/commit/fbfd557695a1f6a82724d640f922acc6636aee0c))
 - **observability:** add query performance tracking and diagnostics ([2e67c0d](https://github.com/cyclonite69/shadowcheck-web/commit/2e67c0dfc711ad929d6ad584766e742cbf74c704))
 - **orphan:** implement 'Promote to Canonical' and optimize orphan SSID search ([27b5d49](https://github.com/cyclonite69/shadowcheck-web/commit/27b5d4986ef001e2ced13eea2e0b29f18815728b))
