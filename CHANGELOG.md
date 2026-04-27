@@ -1,4 +1,4 @@
-# 1.0.0 (2026-04-26)
+# 1.0.0 (2026-04-27)
 
 ### Bug Fixes
 
@@ -592,6 +592,7 @@
 - **server:** convert health routes to ES6 modules ([ea2b620](https://github.com/cyclonite69/shadowcheck-web/commit/ea2b620df4f113af8390632f0c302d5ba216399b))
 - **server:** convert validateSecrets to ES6 imports ([011eb4a](https://github.com/cyclonite69/shadowcheck-web/commit/011eb4ab37745f1e099eb1b9e07943c177fcc4ad))
 - **server:** correct admin import route paths ([ccbf049](https://github.com/cyclonite69/shadowcheck-web/commit/ccbf0493ecfd88176dc0422d37fe963cd765f0cf))
+- **server:** destructure cacheService from CommonJS module export ([ceb1ec5](https://github.com/cyclonite69/shadowcheck-web/commit/ceb1ec5c89836451fef1572d17df7d8e0ec0e6d0))
 - **server:** resolve networks routes circular dependency ([b32d495](https://github.com/cyclonite69/shadowcheck-web/commit/b32d4954fb619bde2ccc046336d4efa99b437389))
 - **server:** revert cacheService export to CommonJS for runtime compatibility ([e32b50e](https://github.com/cyclonite69/shadowcheck-web/commit/e32b50e291fe3f5d6fad96533966a225b74af771))
 - **server:** revert networks routes to load from networks.ts ([bb72257](https://github.com/cyclonite69/shadowcheck-web/commit/bb722572c4a8d9a176c55bb5d3891a9c8185efdd))
@@ -646,6 +647,7 @@
 - **tooltip:** SEEN timestamp shows observation-specific time, not network aggregate ([0f83f6b](https://github.com/cyclonite69/shadowcheck-web/commit/0f83f6b02b6ce2c69bb33bcfbabdc9b74eb5e80d))
 - **tooltips:** full audit — add missing tooltips and fix broken ones ([e353a60](https://github.com/cyclonite69/shadowcheck-web/commit/e353a60a472dcbe7541c1174636c6f352d394e3f))
 - **tooltip:** show WiGLE observation count for WiGLE-correlated points ([13faeca](https://github.com/cyclonite69/shadowcheck-web/commit/13faeca76e475a2342ccb614752811f5fa0ca373))
+- **tooltip:** unify WiGLE observation popup to shared renderNetworkTooltip pipeline ([4f88b3d](https://github.com/cyclonite69/shadowcheck-web/commit/4f88b3dd81b889952827eb537cac38beaef5cb4f))
 - **tooltip:** use network fallbacks for observation popups ([1d42660](https://github.com/cyclonite69/shadowcheck-web/commit/1d426604373a5381ce95dbf638bd4e643f3d9aa1))
 - **tooltip:** V3EnrichmentManagerTable - type A - add click handler and tooltip render ([5002d39](https://github.com/cyclonite69/shadowcheck-web/commit/5002d3987d51828c8153de316889d734dd1a5611))
 - **tooltip:** WigleSearchTab - add Escape key dismiss ([85acc24](https://github.com/cyclonite69/shadowcheck-web/commit/85acc24925f31512472f9035221784b80a15d23c))
@@ -975,6 +977,7 @@
 - **monitoring:** add standalone Grafana monitoring stack ([770b6af](https://github.com/cyclonite69/shadowcheck-web/commit/770b6af925acdf0bb863749b13f1ad6e4d194720))
 - **monitoring:** gate grafana behind embed cookie ([07cd75a](https://github.com/cyclonite69/shadowcheck-web/commit/07cd75a3597da02dec4469b9607a4afd27de7266))
 - networks.html uses base-components ([f934168](https://github.com/cyclonite69/shadowcheck-web/commit/f934168ec9f3967821fa6a7f5a4078446e0651ba))
+- **networks:** pattern-based sibling grouping in Networks Explorer table ([b8f7ae6](https://github.com/cyclonite69/shadowcheck-web/commit/b8f7ae62d81b1b3b99f20611698b773d0b47aef8)), closes [#378ADD](https://github.com/cyclonite69/shadowcheck-web/issues/378ADD) [#E6F1FB18](https://github.com/cyclonite69/shadowcheck-web/issues/E6F1FB18)
 - **notes:** store note attachments in postgres bytea ([fbfd557](https://github.com/cyclonite69/shadowcheck-web/commit/fbfd557695a1f6a82724d640f922acc6636aee0c))
 - **observability:** add query performance tracking and diagnostics ([2e67c0d](https://github.com/cyclonite69/shadowcheck-web/commit/2e67c0dfc711ad929d6ad584766e742cbf74c704))
 - **orphan:** implement 'Promote to Canonical' and optimize orphan SSID search ([27b5d49](https://github.com/cyclonite69/shadowcheck-web/commit/27b5d4986ef001e2ced13eea2e0b29f18815728b))

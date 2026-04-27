@@ -27,6 +27,12 @@ interface NetworkTableRowProps {
   lastLockedVisibleColumn: keyof NetworkRow | 'select' | null;
   getLockedLeft: (col: keyof NetworkRow | 'select') => number;
   getLockedZIndex: (col: keyof NetworkRow | 'select') => number;
+  isPatternParent: boolean;
+  isPatternSibling: boolean;
+  patternGroupId: string | null;
+  patternSiblingCount: number;
+  isPatternGroupCollapsed: boolean;
+  onTogglePatternGroup: (groupId: string) => void;
 }
 
 const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
@@ -50,6 +56,12 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
   lastLockedVisibleColumn,
   getLockedLeft,
   getLockedZIndex,
+  isPatternParent,
+  isPatternSibling,
+  patternGroupId,
+  patternSiblingCount,
+  isPatternGroupCollapsed,
+  onTogglePatternGroup,
 }) => {
   const isSelected = net.bssid ? selectedNetworks.has(net.bssid) : false;
   const isLinkedSibling = net.bssid ? linkedSiblingBssids.has(net.bssid) : false;
@@ -57,20 +69,26 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
     net.bssid === selectedAnchorBssid && selectedAnchorHasLinkedSiblings;
   const isSiblingLinkedRow = Boolean(siblingGroupId) || showSelectedAnchorLink || isLinkedSibling;
   const siblingColor = siblingGroupColor || macColor(net.bssid ?? '');
+  const isPatternGroup = isPatternParent || isPatternSibling;
+  const PATTERN_BLUE = '#378ADD';
   const rowBackground = isSelected
     ? 'rgba(59, 130, 246, 0.1)'
+    : isPatternGroup
+      ? '#E6F1FB18'
+      : isSiblingLinkedRow
+        ? `${siblingColor}0a`
+        : 'rgba(15, 23, 42, 0.45)';
+  const rowAccent = isPatternGroup
+    ? `inset 3px 0 0 ${PATTERN_BLUE}`
     : isSiblingLinkedRow
-      ? `${siblingColor}0a`
-      : 'rgba(15, 23, 42, 0.45)';
-  const rowAccent = isSiblingLinkedRow
-    ? [
-        `inset 3px 0 0 ${siblingColor}cc`,
-        isSiblingGroupStart ? `inset 0 1px 0 ${siblingColor}55` : '',
-        isSiblingGroupEnd ? `inset 0 -1px 0 ${siblingColor}55` : '',
-      ]
-        .filter(Boolean)
-        .join(', ')
-    : undefined;
+      ? [
+          `inset 3px 0 0 ${siblingColor}cc`,
+          isSiblingGroupStart ? `inset 0 1px 0 ${siblingColor}55` : '',
+          isSiblingGroupEnd ? `inset 0 -1px 0 ${siblingColor}55` : '',
+        ]
+          .filter(Boolean)
+          .join(', ')
+      : undefined;
 
   const getStickyCellStyle = (col: keyof NetworkRow | 'select'): React.CSSProperties => {
     const isLocked = NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col));
@@ -105,6 +123,60 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
       onToggleSelectNetwork,
     });
 
+    let displayContent = content;
+    if (col === 'ssid') {
+      if (isPatternSibling) {
+        displayContent = (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              paddingLeft: '20px',
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <span style={{ color: PATTERN_BLUE, flexShrink: 0, marginRight: '4px' }}>↳</span>
+            <div style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>{content}</div>
+          </div>
+        );
+      } else if (isPatternParent && patternGroupId) {
+        displayContent = (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>{content}</div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePatternGroup(patternGroupId);
+              }}
+              style={{
+                flexShrink: 0,
+                background: `${PATTERN_BLUE}22`,
+                border: `1px solid ${PATTERN_BLUE}55`,
+                borderRadius: '3px',
+                color: PATTERN_BLUE,
+                fontSize: '9px',
+                fontWeight: 700,
+                padding: '1px 4px',
+                cursor: 'pointer',
+                lineHeight: '1.2',
+              }}
+            >
+              {isPatternGroupCollapsed ? '▸' : '▾'} {patternSiblingCount}
+            </button>
+          </div>
+        );
+      }
+    }
+
     return (
       <div
         key={col}
@@ -115,7 +187,7 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
         }}
         title={title}
       >
-        {content}
+        {displayContent}
       </div>
     );
   };
@@ -151,16 +223,20 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
       onMouseEnter={(event) => {
         event.currentTarget.style.background = isSelected
           ? 'rgba(59, 130, 246, 0.15)'
-          : isSiblingLinkedRow
-            ? `${siblingColor}12`
-            : 'rgba(71, 85, 105, 0.1)';
+          : isPatternGroup
+            ? '#E6F1FB28'
+            : isSiblingLinkedRow
+              ? `${siblingColor}12`
+              : 'rgba(71, 85, 105, 0.1)';
       }}
       onMouseLeave={(event) => {
         event.currentTarget.style.background = isSelected
           ? 'rgba(59, 130, 246, 0.1)'
-          : isSiblingLinkedRow
-            ? `${siblingColor}0a`
-            : 'rgba(15, 23, 42, 0.45)';
+          : isPatternGroup
+            ? '#E6F1FB18'
+            : isSiblingLinkedRow
+              ? `${siblingColor}0a`
+              : 'rgba(15, 23, 42, 0.45)';
       }}
     >
       {visibleColumns.map(renderCell)}
@@ -195,6 +271,11 @@ export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, 
     prevProps.lockedVisibleColumns.every(
       (col, index) => col === nextProps.lockedVisibleColumns[index]
     ) &&
-    prevProps.lastLockedVisibleColumn === nextProps.lastLockedVisibleColumn
+    prevProps.lastLockedVisibleColumn === nextProps.lastLockedVisibleColumn &&
+    prevProps.isPatternParent === nextProps.isPatternParent &&
+    prevProps.isPatternSibling === nextProps.isPatternSibling &&
+    prevProps.patternGroupId === nextProps.patternGroupId &&
+    prevProps.patternSiblingCount === nextProps.patternSiblingCount &&
+    prevProps.isPatternGroupCollapsed === nextProps.isPatternGroupCollapsed
   );
 });
