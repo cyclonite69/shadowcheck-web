@@ -63,86 +63,6 @@ export const NetworkTableBodyGrid = ({
   onLoadMore,
   onHorizontalScroll,
 }: NetworkTableBodyGridProps) => {
-  // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
-  // This significantly reduces DOM nodes and render work during scrolling
-  const virtualizer = useVirtualizer({
-    count: displayNetworks.length,
-    getScrollElement: () => tableContainerRef.current,
-    getItemKey: (index) => displayNetworks[index]?.bssid ?? index,
-    estimateSize: () => 32,
-    overscan: 5,
-  });
-
-  // Infinite scroll: load more when scrolled near bottom
-  const handleScroll = () => {
-    if (!tableContainerRef.current) return;
-
-    const { scrollTop, scrollHeight, clientHeight, scrollLeft } = tableContainerRef.current;
-    onHorizontalScroll?.(scrollLeft);
-    if (isLoadingMore || !hasMore) return;
-    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-
-    // Load more when 80% scrolled
-    if (scrollPercentage > 0.8) {
-      onLoadMore();
-    }
-  };
-
-  // Memoize expensive grid calculations - these should only recompute when visibleColumns changes
-  const { gridTemplateColumns, totalGridWidth, lockedVisibleColumns, lastLockedVisibleColumn } =
-    React.useMemo(() => {
-      const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
-        (NETWORK_TABLE_COLUMN_WIDTHS as any)[String(col)] ?? 100;
-      const gridTemplateCols = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
-      const totalWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
-      const lockedCols = visibleColumns.filter((col) =>
-        NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
-      );
-      const lastLockedCol = lockedCols[lockedCols.length - 1] ?? null;
-
-      return {
-        gridTemplateColumns: gridTemplateCols,
-        totalGridWidth: totalWidth,
-        lockedVisibleColumns: lockedCols,
-        lastLockedVisibleColumn: lastLockedCol,
-      };
-    }, [visibleColumns]);
-
-  // Memoize column helper functions
-  const getLockedLeft = React.useCallback(
-    (col: keyof NetworkRow | 'select'): number =>
-      visibleColumns
-        .slice(0, visibleColumns.indexOf(col))
-        .filter((candidate) => NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
-        .reduce(
-          (sum, candidate) =>
-            sum + ((NETWORK_TABLE_COLUMN_WIDTHS as any)[String(candidate)] ?? 100),
-          0
-        ),
-    [visibleColumns]
-  );
-
-  const getLockedZIndex = React.useCallback(
-    (col: keyof NetworkRow | 'select'): number => {
-      const idx = lockedVisibleColumns.indexOf(col);
-      return idx >= 0 ? 12 - idx : 4;
-    },
-    [lockedVisibleColumns]
-  );
-
-  // Compute mixed BSSID color per sibling group
-  const siblingGroupColors = React.useMemo(() => {
-    const groups = new Map<string, string[]>();
-    siblingGroupMap.forEach((groupId, bssid) => {
-      const arr = groups.get(groupId);
-      if (arr) arr.push(bssid);
-      else groups.set(groupId, [bssid]);
-    });
-    const colors = new Map<string, string>();
-    groups.forEach((bssids, groupId) => colors.set(groupId, mixBssidColors(bssids)));
-    return colors;
-  }, [siblingGroupMap]);
-
   // Pattern-based sibling detection: same SSID + BSSIDs differ only in last octet by ≤ 2
   const patternGroups = React.useMemo(() => {
     const groupMap = new Map<string, string>(); // bssid (upper) → groupId
@@ -254,6 +174,86 @@ export const NetworkTableBodyGrid = ({
       return bssid === members[0];
     });
   }, [sortedDisplayNetworks, patternGroups, collapsedGroups]);
+
+  // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
+  // This significantly reduces DOM nodes and render work during scrolling
+  const virtualizer = useVirtualizer({
+    count: displayNetworks.length,
+    getScrollElement: () => tableContainerRef.current,
+    getItemKey: (index) => displayNetworks[index]?.bssid ?? index,
+    estimateSize: () => 32,
+    overscan: 5,
+  });
+
+  // Infinite scroll: load more when scrolled near bottom
+  const handleScroll = () => {
+    if (!tableContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight, scrollLeft } = tableContainerRef.current;
+    onHorizontalScroll?.(scrollLeft);
+    if (isLoadingMore || !hasMore) return;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // Load more when 80% scrolled
+    if (scrollPercentage > 0.8) {
+      onLoadMore();
+    }
+  };
+
+  // Memoize expensive grid calculations - these should only recompute when visibleColumns changes
+  const { gridTemplateColumns, totalGridWidth, lockedVisibleColumns, lastLockedVisibleColumn } =
+    React.useMemo(() => {
+      const getColumnWidth = (col: keyof NetworkRow | 'select'): number =>
+        (NETWORK_TABLE_COLUMN_WIDTHS as any)[String(col)] ?? 100;
+      const gridTemplateCols = visibleColumns.map((col) => `${getColumnWidth(col)}px`).join(' ');
+      const totalWidth = visibleColumns.reduce((sum, col) => sum + getColumnWidth(col), 0);
+      const lockedCols = visibleColumns.filter((col) =>
+        NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(col))
+      );
+      const lastLockedCol = lockedCols[lockedCols.length - 1] ?? null;
+
+      return {
+        gridTemplateColumns: gridTemplateCols,
+        totalGridWidth: totalWidth,
+        lockedVisibleColumns: lockedCols,
+        lastLockedVisibleColumn: lastLockedCol,
+      };
+    }, [visibleColumns]);
+
+  // Memoize column helper functions
+  const getLockedLeft = React.useCallback(
+    (col: keyof NetworkRow | 'select'): number =>
+      visibleColumns
+        .slice(0, visibleColumns.indexOf(col))
+        .filter((candidate) => NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS.includes(String(candidate)))
+        .reduce(
+          (sum, candidate) =>
+            sum + ((NETWORK_TABLE_COLUMN_WIDTHS as any)[String(candidate)] ?? 100),
+          0
+        ),
+    [visibleColumns]
+  );
+
+  const getLockedZIndex = React.useCallback(
+    (col: keyof NetworkRow | 'select'): number => {
+      const idx = lockedVisibleColumns.indexOf(col);
+      return idx >= 0 ? 12 - idx : 4;
+    },
+    [lockedVisibleColumns]
+  );
+
+  // Compute mixed BSSID color per sibling group
+  const siblingGroupColors = React.useMemo(() => {
+    const groups = new Map<string, string[]>();
+    siblingGroupMap.forEach((groupId, bssid) => {
+      const arr = groups.get(groupId);
+      if (arr) arr.push(bssid);
+      else groups.set(groupId, [bssid]);
+    });
+    const colors = new Map<string, string>();
+    groups.forEach((bssids, groupId) => colors.set(groupId, mixBssidColors(bssids)));
+    return colors;
+  }, [siblingGroupMap]);
 
   // Show initial loading / empty / error states only when we have no rows yet.
   if (

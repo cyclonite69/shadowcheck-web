@@ -592,6 +592,7 @@
 - **server:** convert health routes to ES6 modules ([ea2b620](https://github.com/cyclonite69/shadowcheck-web/commit/ea2b620df4f113af8390632f0c302d5ba216399b))
 - **server:** convert validateSecrets to ES6 imports ([011eb4a](https://github.com/cyclonite69/shadowcheck-web/commit/011eb4ab37745f1e099eb1b9e07943c177fcc4ad))
 - **server:** correct admin import route paths ([ccbf049](https://github.com/cyclonite69/shadowcheck-web/commit/ccbf0493ecfd88176dc0422d37fe963cd765f0cf))
+- **server:** destructure cacheService from CommonJS module export ([ceb1ec5](https://github.com/cyclonite69/shadowcheck-web/commit/ceb1ec5c89836451fef1572d17df7d8e0ec0e6d0))
 - **server:** resolve networks routes circular dependency ([b32d495](https://github.com/cyclonite69/shadowcheck-web/commit/b32d4954fb619bde2ccc046336d4efa99b437389))
 - **server:** revert cacheService export to CommonJS for runtime compatibility ([e32b50e](https://github.com/cyclonite69/shadowcheck-web/commit/e32b50e291fe3f5d6fad96533966a225b74af771))
 - **server:** revert networks routes to load from networks.ts ([bb72257](https://github.com/cyclonite69/shadowcheck-web/commit/bb722572c4a8d9a176c55bb5d3891a9c8185efdd))
