@@ -646,6 +646,7 @@
 - **tooltip:** SEEN timestamp shows observation-specific time, not network aggregate ([0f83f6b](https://github.com/cyclonite69/shadowcheck-web/commit/0f83f6b02b6ce2c69bb33bcfbabdc9b74eb5e80d))
 - **tooltips:** full audit — add missing tooltips and fix broken ones ([e353a60](https://github.com/cyclonite69/shadowcheck-web/commit/e353a60a472dcbe7541c1174636c6f352d394e3f))
 - **tooltip:** show WiGLE observation count for WiGLE-correlated points ([13faeca](https://github.com/cyclonite69/shadowcheck-web/commit/13faeca76e475a2342ccb614752811f5fa0ca373))
+- **tooltip:** unify WiGLE observation popup to shared renderNetworkTooltip pipeline ([4f88b3d](https://github.com/cyclonite69/shadowcheck-web/commit/4f88b3dd81b889952827eb537cac38beaef5cb4f))
 - **tooltip:** use network fallbacks for observation popups ([1d42660](https://github.com/cyclonite69/shadowcheck-web/commit/1d426604373a5381ce95dbf638bd4e643f3d9aa1))
 - **tooltip:** V3EnrichmentManagerTable - type A - add click handler and tooltip render ([5002d39](https://github.com/cyclonite69/shadowcheck-web/commit/5002d3987d51828c8153de316889d734dd1a5611))
 - **tooltip:** WigleSearchTab - add Escape key dismiss ([85acc24](https://github.com/cyclonite69/shadowcheck-web/commit/85acc24925f31512472f9035221784b80a15d23c))

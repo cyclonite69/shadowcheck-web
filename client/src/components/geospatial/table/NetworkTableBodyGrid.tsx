@@ -8,6 +8,22 @@ import {
 import { NetworkTableRow } from './NetworkTableRow';
 import { mixBssidColors } from '../../../utils/wigle/colors';
 
+function getLastOctet(bssid: string): number {
+  const parts = bssid.split(':');
+  return parseInt(parts[parts.length - 1] ?? '00', 16);
+}
+
+function areBssidSiblings(a: string, b: string): boolean {
+  const pa = a.toUpperCase().split(':');
+  const pb = b.toUpperCase().split(':');
+  if (pa.length !== 6 || pb.length !== 6) return false;
+  for (let i = 0; i < 5; i++) {
+    if (pa[i] !== pb[i]) return false;
+  }
+  const diff = Math.abs(parseInt(pa[5], 16) - parseInt(pb[5], 16));
+  return diff >= 1 && diff <= 2;
+}
+
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
@@ -50,9 +66,9 @@ export const NetworkTableBodyGrid = ({
   // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
   // This significantly reduces DOM nodes and render work during scrolling
   const virtualizer = useVirtualizer({
-    count: filteredNetworks.length,
+    count: displayNetworks.length,
     getScrollElement: () => tableContainerRef.current,
-    getItemKey: (index) => filteredNetworks[index]?.bssid ?? index,
+    getItemKey: (index) => displayNetworks[index]?.bssid ?? index,
     estimateSize: () => 32,
     overscan: 5,
   });
@@ -127,6 +143,118 @@ export const NetworkTableBodyGrid = ({
     return colors;
   }, [siblingGroupMap]);
 
+  // Pattern-based sibling detection: same SSID + BSSIDs differ only in last octet by ≤ 2
+  const patternGroups = React.useMemo(() => {
+    const groupMap = new Map<string, string>(); // bssid (upper) → groupId
+    const groupMembers = new Map<string, string[]>(); // groupId → sorted bssids (upper)
+
+    const bySsid = new Map<string, NetworkRow[]>();
+    for (const net of filteredNetworks) {
+      if (!net.bssid || !net.ssid || net.ssid.trim().length === 0) continue;
+      const arr = bySsid.get(net.ssid) ?? [];
+      arr.push(net);
+      bySsid.set(net.ssid, arr);
+    }
+
+    const adjacency = new Map<string, Set<string>>();
+    bySsid.forEach((nets) => {
+      if (nets.length < 2) return;
+      for (let i = 0; i < nets.length; i++) {
+        for (let j = i + 1; j < nets.length; j++) {
+          const a = (nets[i].bssid ?? '').toUpperCase();
+          const b = (nets[j].bssid ?? '').toUpperCase();
+          if (!a || !b || !areBssidSiblings(a, b)) continue;
+          if (!adjacency.has(a)) adjacency.set(a, new Set());
+          if (!adjacency.has(b)) adjacency.set(b, new Set());
+          adjacency.get(a)!.add(b);
+          adjacency.get(b)!.add(a);
+        }
+      }
+    });
+
+    const visited = new Set<string>();
+    let counter = 0;
+    for (const [start] of adjacency) {
+      if (visited.has(start)) continue;
+      const component: string[] = [];
+      const stack = [start];
+      while (stack.length > 0) {
+        const curr = stack.pop()!;
+        if (visited.has(curr)) continue;
+        visited.add(curr);
+        component.push(curr);
+        for (const next of adjacency.get(curr) ?? []) {
+          if (!visited.has(next)) stack.push(next);
+        }
+      }
+      if (component.length < 2) continue;
+      component.sort((x, y) => getLastOctet(x) - getLastOctet(y));
+      const groupId = `PG${++counter}`;
+      groupMembers.set(groupId, component);
+      for (const bssid of component) groupMap.set(bssid, groupId);
+    }
+
+    return { groupMap, groupMembers };
+  }, [filteredNetworks]);
+
+  // Re-order filteredNetworks so siblings are consecutive (lowest octet = parent, first)
+  const sortedDisplayNetworks = React.useMemo(() => {
+    const { groupMap, groupMembers } = patternGroups;
+    if (groupMap.size === 0) return filteredNetworks;
+
+    const netByBssid = new Map<string, NetworkRow>();
+    for (const net of filteredNetworks) {
+      if (net.bssid) netByBssid.set(net.bssid.toUpperCase(), net);
+    }
+
+    const placed = new Set<string>();
+    const result: NetworkRow[] = [];
+
+    for (const net of filteredNetworks) {
+      const bssid = (net.bssid ?? '').toUpperCase();
+      if (placed.has(bssid)) continue;
+      const groupId = groupMap.get(bssid);
+      if (groupId) {
+        for (const memberBssid of groupMembers.get(groupId) ?? []) {
+          if (placed.has(memberBssid)) continue;
+          const member = netByBssid.get(memberBssid);
+          if (member) {
+            result.push(member);
+            placed.add(memberBssid);
+          }
+        }
+      } else {
+        result.push(net);
+        placed.add(bssid);
+      }
+    }
+
+    return result;
+  }, [filteredNetworks, patternGroups]);
+
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
+
+  const toggleCollapse = React.useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
+  // Filter out collapsed sibling rows (keep parent)
+  const displayNetworks = React.useMemo(() => {
+    if (patternGroups.groupMap.size === 0) return sortedDisplayNetworks;
+    return sortedDisplayNetworks.filter((net) => {
+      const bssid = (net.bssid ?? '').toUpperCase();
+      const groupId = patternGroups.groupMap.get(bssid);
+      if (!groupId || !collapsedGroups.has(groupId)) return true;
+      const members = patternGroups.groupMembers.get(groupId) ?? [];
+      return bssid === members[0];
+    });
+  }, [sortedDisplayNetworks, patternGroups, collapsedGroups]);
+
   // Show initial loading / empty / error states only when we have no rows yet.
   if (
     (loadingNetworks && filteredNetworks.length === 0) ||
@@ -162,20 +290,31 @@ export const NetworkTableBodyGrid = ({
         }}
       >
         {items.map((virtualRow) => {
-          const net = filteredNetworks[virtualRow.index];
+          const net = displayNetworks[virtualRow.index];
           const siblingGroupId = siblingGroupMap.get(net.bssid) || null;
           const prevSiblingGroupId =
             virtualRow.index > 0
-              ? siblingGroupMap.get(filteredNetworks[virtualRow.index - 1]?.bssid) || null
+              ? siblingGroupMap.get(displayNetworks[virtualRow.index - 1]?.bssid) || null
               : null;
           const nextSiblingGroupId =
-            virtualRow.index < filteredNetworks.length - 1
-              ? siblingGroupMap.get(filteredNetworks[virtualRow.index + 1]?.bssid) || null
+            virtualRow.index < displayNetworks.length - 1
+              ? siblingGroupMap.get(displayNetworks[virtualRow.index + 1]?.bssid) || null
               : null;
           const isSiblingGroupStart =
             Boolean(siblingGroupId) && prevSiblingGroupId !== siblingGroupId;
           const isSiblingGroupEnd =
             Boolean(siblingGroupId) && nextSiblingGroupId !== siblingGroupId;
+
+          const bssidUpper = (net.bssid ?? '').toUpperCase();
+          const patternGroupId = patternGroups.groupMap.get(bssidUpper) ?? null;
+          const patternMembers = patternGroupId
+            ? (patternGroups.groupMembers.get(patternGroupId) ?? [])
+            : [];
+          const isPatternParent = patternGroupId !== null && patternMembers[0] === bssidUpper;
+          const isPatternSibling = patternGroupId !== null && !isPatternParent;
+          const patternSiblingCount = patternGroupId !== null ? patternMembers.length - 1 : 0;
+          const isPatternGroupCollapsed =
+            patternGroupId !== null && collapsedGroups.has(patternGroupId);
 
           return (
             <NetworkTableRow
@@ -202,6 +341,12 @@ export const NetworkTableBodyGrid = ({
               lastLockedVisibleColumn={lastLockedVisibleColumn}
               getLockedLeft={getLockedLeft}
               getLockedZIndex={getLockedZIndex}
+              isPatternParent={isPatternParent}
+              isPatternSibling={isPatternSibling}
+              patternGroupId={patternGroupId}
+              patternSiblingCount={patternSiblingCount}
+              isPatternGroupCollapsed={isPatternGroupCollapsed}
+              onTogglePatternGroup={toggleCollapse}
             />
           );
         })}
