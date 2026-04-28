@@ -1,5 +1,116 @@
 const logger = require('../../logging/logger');
 import { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL } from './siblingDetectionQueries';
+
+// Three additional rule classes derived from manual ground truth analysis.
+// Run once per refresh after the chunked REFRESH_CHUNK_SQL loop, as a single
+// full-table pass. ON CONFLICT only upgrades confidence, never downgrades.
+const EXTRA_RULES_SQL = `
+  WITH upper_rotation AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, quality_scope, computed_at
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'upper_octet_rotation',
+      0.95,
+      'default',
+      now()
+    FROM app.networks a
+    JOIN app.networks b
+      ON SUBSTRING(b.bssid, 7) = SUBSTRING(a.bssid, 7)
+     AND SUBSTRING(b.bssid, 1, 5) <> SUBSTRING(a.bssid, 1, 5)
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  ),
+  ssid_anchor AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, quality_scope, computed_at
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'ssid_anchor',
+      0.97,
+      a.ssid,
+      b.ssid,
+      'default',
+      now()
+    FROM app.networks a
+    JOIN app.networks b
+      ON b.ssid = a.ssid
+     AND SUBSTRING(b.bssid, 1, 8) = SUBSTRING(a.bssid, 1, 8)
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND a.ssid IS NOT NULL AND a.ssid <> ''
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          ssid1       = EXCLUDED.ssid1,
+          ssid2       = EXCLUDED.ssid2,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  ),
+  cross_oui_ssid AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, quality_scope, computed_at
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'cross_oui_ssid_exact',
+      0.88,
+      a.ssid,
+      b.ssid,
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
+      'default',
+      now()
+    FROM app.networks a
+    JOIN app.networks b
+      ON b.ssid = a.ssid
+     AND SUBSTRING(b.bssid, 1, 8) <> SUBSTRING(a.bssid, 1, 8)
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND a.ssid IS NOT NULL AND a.ssid <> ''
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) < 200
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          ssid1       = EXCLUDED.ssid1,
+          ssid2       = EXCLUDED.ssid2,
+          distance_m  = EXCLUDED.distance_m,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  )
+  SELECT
+    (SELECT COUNT(*)::int FROM upper_rotation) AS upper_rotation_count,
+    (SELECT COUNT(*)::int FROM ssid_anchor)    AS ssid_anchor_count,
+    (SELECT COUNT(*)::int FROM cross_oui_ssid) AS cross_oui_count
+`;
 import {
   getSiblingRefreshStatus,
   normalizeOptions,
@@ -67,6 +178,14 @@ async function runSiblingRefreshJob(
       });
     }
   }
+
+  const extraResult: any = await adminQuery(EXTRA_RULES_SQL, []);
+  const extraRow = extraResult.rows[0] || {};
+  logger.info('[Siblings] Extra rules complete', {
+    upper_rotation: extraRow.upper_rotation_count,
+    ssid_anchor: extraRow.ssid_anchor_count,
+    cross_oui: extraRow.cross_oui_count,
+  });
 
   return {
     success: true,

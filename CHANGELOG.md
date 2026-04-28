@@ -450,6 +450,7 @@
 - network summary markers not rendering due to layer initialization bug ([f8ecc30](https://github.com/cyclonite69/shadowcheck-web/commit/f8ecc300cf0a0b8410d6df2c97e401a278410dd6))
 - Networks explorer - add checkboxes, type icons, fix fields ([7f679dc](https://github.com/cyclonite69/shadowcheck-web/commit/7f679dc4ed1e7993e58854f24750603ab874232d))
 - Networks Explorer field mapping + view aggregates + schema cleanup ([aaec682](https://github.com/cyclonite69/shadowcheck-web/commit/aaec68212258270a5ea8960fc2cc0151e64854fd))
+- **networks:** move pattern group hooks before useVirtualizer to fix TDZ error ([eabece0](https://github.com/cyclonite69/shadowcheck-web/commit/eabece0a65195f62b47c4a8bdedafe7a537a8146))
 - **networks:** sort max_distance_meters from mv not ne ([f234c7b](https://github.com/cyclonite69/shadowcheck-web/commit/f234c7b1e099ac112b981580968bc12aa8daed1c))
 - **nginx:** preserve grafana subpath for static assets ([b04df62](https://github.com/cyclonite69/shadowcheck-web/commit/b04df62e18393b7d432ffd5db3d6fb63bd957eba))
 - **nginx:** prioritize grafana asset proxy routes ([5b0761d](https://github.com/cyclonite69/shadowcheck-web/commit/5b0761dd430e82bbd4a0ed8b8bac21540d38b877))
