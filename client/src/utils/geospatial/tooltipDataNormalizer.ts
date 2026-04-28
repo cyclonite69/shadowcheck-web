@@ -105,7 +105,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   // Factor 2: GPS accuracy (under 10m for full points)
   // Separate local and WiGLE observation counts
   const localObsCount = toNumberOrNull(
-    pickFirst(raw.observation_count, raw.obs_count, raw.observations)
+    pickFirst(raw.local_observations, raw.observation_count, raw.obs_count, raw.observations)
   );
   const wigleObsCount = toNumberOrNull(raw.wigle_v3_observation_count) || null;
   // Use WiGLE count if available (for WiGLE-correlated points), else local count
@@ -229,5 +229,9 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     source: pickFirst(raw.source, raw.source_file, null),
     wigle_first_seen: pickFirst(raw.wigle_first_seen, raw.wigle_v3_first_seen, null),
     wigle_last_seen: pickFirst(raw.wigle_last_seen, raw.wigle_v3_last_seen, null),
+    wigle_source: wigleSource,
+    wigle_precision_warning: Boolean(raw.wigle_precision_warning),
+    public_nonstationary_flag: Boolean(raw.public_nonstationary_flag),
+    public_ssid_variant_flag: Boolean(raw.public_ssid_variant_flag),
   };
 };

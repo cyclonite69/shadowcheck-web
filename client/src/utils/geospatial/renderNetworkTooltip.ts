@@ -203,6 +203,12 @@ function channelToFrequency(
 }
 
 export const renderNetworkTooltip = (props: any): any => {
+  const wigleSource = (props.wigle_source as string | null) ?? null;
+  const isWigleOrigin = Boolean(wigleSource);
+  const wiglePrecisionWarning = isWigleOrigin && Boolean(props.wigle_precision_warning);
+  const publicNonstationaryFlag = isWigleOrigin && Boolean(props.public_nonstationary_flag);
+  const publicSsidVariantFlag = isWigleOrigin && Boolean(props.public_ssid_variant_flag);
+
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
   const threatConfig =
     THREAT_LEVEL_CONFIG[threat as keyof typeof THREAT_LEVEL_CONFIG] || THREAT_LEVEL_CONFIG.NONE;
@@ -353,7 +359,7 @@ export const renderNetworkTooltip = (props: any): any => {
     frequencyValue ? fieldRow('Frequency', frequencyValue) : '',
     observationsValue ? fieldRow('Observations', observationsValue, undefined, true) : '',
     siblingValue ? fieldRow('Sibling Radios', siblingValue) : '',
-    wigleValue ? fieldRow('WiGLE Match', wigleValue) : '',
+    !isWigleOrigin && wigleValue ? fieldRow('WiGLE Match', wigleValue) : '',
     !isMissingValue((props as any).wigle_first_seen)
       ? fieldRow('WiGLE First Seen', normalizeDisplay((props as any).wigle_first_seen))
       : '',
@@ -426,9 +432,17 @@ export const renderNetworkTooltip = (props: any): any => {
     </div>
     ${hasThreatScore ? `<div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;background:${threatBg};border:1px solid ${threatBorder};color:${tc};display:inline-block;white-space:nowrap;">${threat}</div>` : ''}
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px ${isWigleOrigin ? '4px' : '8px'};">
     <div style="font-size:11px;font-family:monospace;color:${bc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>
   </div>
+  ${
+    isWigleOrigin
+      ? `<div style="display:flex;align-items:center;gap:6px;padding:0 12px 8px;flex-wrap:wrap;">
+    <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.24);color:#93c5fd;white-space:nowrap;">${wigleSource!.toUpperCase()}</div>
+    ${Boolean(props.wigle_match) ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.28);color:#86efac;font-size:10px;font-weight:600;white-space:nowrap;">Seen locally${Number(props.local_observation_count) > 0 ? ` &middot; ${Number(props.local_observation_count)} obs` : ''}</div>` : ''}
+  </div>`
+      : ''
+  }
 
   ${
     statCellCount > 0
@@ -457,6 +471,21 @@ export const renderNetworkTooltip = (props: any): any => {
   }
 
   ${fieldRows}
+  ${wiglePrecisionWarning ? `<div style="display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="font-size:10px;color:#fbbf24;">&#9888;</span><span style="font-size:10px;color:#fbbf24;">Low-confidence location (&lt;3 WiGLE observations)</span></div>` : ''}
+  ${(() => {
+    const chips: string[] = [];
+    if (publicNonstationaryFlag)
+      chips.push(
+        `<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">Non-stationary</div>`
+      );
+    if (publicSsidVariantFlag)
+      chips.push(
+        `<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">SSID variants</div>`
+      );
+    return chips.length === 0
+      ? ''
+      : `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px;border-top:1px solid rgba(255,255,255,0.08);"><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);width:100%;margin-bottom:2px;">Public WiGLE Patterns</div>${chips.join('')}</div>`;
+  })()}
   ${formatThreatFactors(props.threat_factors)}
 
   ${
