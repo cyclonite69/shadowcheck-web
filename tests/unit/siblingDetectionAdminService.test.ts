@@ -43,6 +43,16 @@ describe('siblingDetectionAdminService', () => {
       })
       .mockResolvedValueOnce({
         rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            upper_rotation_count: 0,
+            ssid_anchor_count: 0,
+            cross_oui_count: 0,
+            same_oui_proximity_count: 0,
+          },
+        ],
       });
 
     const result = await service.runSiblingRefreshJob({ batchSize: 100 });
@@ -53,11 +63,20 @@ describe('siblingDetectionAdminService', () => {
     expect(result.seedsProcessed).toBe(5);
     expect(result.rowsUpserted).toBe(5);
     expect(result.lastCursor).toBe('AA:AA:AA:AA:AA:05');
-    expect(mockAdminQuery).toHaveBeenCalledTimes(3);
+    expect(mockAdminQuery).toHaveBeenCalledTimes(4);
   });
 
   it('handles missing row in result', async () => {
-    mockAdminQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdminQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({
+      rows: [
+        {
+          upper_rotation_count: 0,
+          ssid_anchor_count: 0,
+          cross_oui_count: 0,
+          same_oui_proximity_count: 0,
+        },
+      ],
+    });
     const result = await service.runSiblingRefreshJob();
     expect(result.seedsProcessed).toBe(0);
   });
@@ -74,7 +93,7 @@ describe('siblingDetectionAdminService', () => {
     expect(result.batchesRun).toBe(1);
     expect(result.seedsProcessed).toBe(3);
     expect(result.rowsUpserted).toBe(2);
-    expect(mockAdminQuery).toHaveBeenCalledTimes(1);
+    expect(mockAdminQuery).toHaveBeenCalledTimes(2);
   });
 
   it('returns sibling stats from network_sibling_pairs', async () => {

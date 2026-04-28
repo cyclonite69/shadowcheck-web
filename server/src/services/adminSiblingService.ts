@@ -36,14 +36,12 @@ async function getNetworkSiblingLinks(bssid: string): Promise<
           WHEN bssid1 = $1 THEN bssid2
           ELSE bssid1
         END AS sibling_bssid,
-        'manual'::text AS source,
-        'manual_override'::text AS rule,
-        'manual'::text AS pair_strength,
+        source,
+        rule,
+        pair_strength,
         confidence
-      FROM app.network_sibling_overrides
-      WHERE is_active IS TRUE
-        AND relation = 'sibling'
-        AND (bssid1 = $1 OR bssid2 = $1)
+      FROM app.network_siblings_effective
+      WHERE bssid1 = $1 OR bssid2 = $1
       ORDER BY
         confidence DESC NULLS LAST,
         sibling_bssid ASC
@@ -85,17 +83,13 @@ async function getNetworkSiblingLinksBatch(bssids: string[]): Promise<
       SELECT
         bssid1 AS bssid_a,
         bssid2 AS bssid_b,
-        'manual'::text AS source,
-        'manual_override'::text AS rule,
-        'manual'::text AS pair_strength,
+        source,
+        rule,
+        pair_strength,
         confidence
-      FROM app.network_sibling_overrides
-      WHERE is_active IS TRUE
-        AND relation = 'sibling'
-        AND (
-          bssid1 = ANY($1::text[])
-          OR bssid2 = ANY($1::text[])
-        )
+      FROM app.network_siblings_effective
+      WHERE bssid1 = ANY($1::text[])
+         OR bssid2 = ANY($1::text[])
       ORDER BY
         confidence DESC NULLS LAST,
         bssid1 ASC,

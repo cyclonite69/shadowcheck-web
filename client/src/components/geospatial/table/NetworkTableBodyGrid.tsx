@@ -13,17 +13,6 @@ function getLastOctet(bssid: string): number {
   return parseInt(parts[parts.length - 1] ?? '00', 16);
 }
 
-function areBssidSiblings(a: string, b: string): boolean {
-  const pa = a.toUpperCase().split(':');
-  const pb = b.toUpperCase().split(':');
-  if (pa.length !== 6 || pb.length !== 6) return false;
-  for (let i = 0; i < 5; i++) {
-    if (pa[i] !== pb[i]) return false;
-  }
-  const diff = Math.abs(parseInt(pa[5], 16) - parseInt(pb[5], 16));
-  return diff >= 1 && diff <= 2;
-}
-
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
@@ -63,59 +52,44 @@ export const NetworkTableBodyGrid = ({
   onLoadMore,
   onHorizontalScroll,
 }: NetworkTableBodyGridProps) => {
-  // Pattern-based sibling detection: same SSID + BSSIDs differ only in last octet by ≤ 2
+  // Sibling grouping driven by DB results from network_siblings_effective (via siblingGroupMap prop).
+  // Only includes networks visible in the current page; singletons (one visible member) are dropped.
   const patternGroups = React.useMemo(() => {
     const groupMap = new Map<string, string>(); // bssid (upper) → groupId
     const groupMembers = new Map<string, string[]>(); // groupId → sorted bssids (upper)
 
-    const bySsid = new Map<string, NetworkRow[]>();
+    if (siblingGroupMap.size === 0) return { groupMap, groupMembers };
+
+    const visibleBssids = new Set<string>();
     for (const net of filteredNetworks) {
-      if (!net.bssid || !net.ssid || net.ssid.trim().length === 0) continue;
-      const arr = bySsid.get(net.ssid) ?? [];
-      arr.push(net);
-      bySsid.set(net.ssid, arr);
+      if (net.bssid) visibleBssids.add(net.bssid.toUpperCase());
     }
 
-    const adjacency = new Map<string, Set<string>>();
-    bySsid.forEach((nets) => {
-      if (nets.length < 2) return;
-      for (let i = 0; i < nets.length; i++) {
-        for (let j = i + 1; j < nets.length; j++) {
-          const a = (nets[i].bssid ?? '').toUpperCase();
-          const b = (nets[j].bssid ?? '').toUpperCase();
-          if (!a || !b || !areBssidSiblings(a, b)) continue;
-          if (!adjacency.has(a)) adjacency.set(a, new Set());
-          if (!adjacency.has(b)) adjacency.set(b, new Set());
-          adjacency.get(a)!.add(b);
-          adjacency.get(b)!.add(a);
-        }
-      }
+    siblingGroupMap.forEach((groupId, bssid) => {
+      const bssidUpper = bssid.toUpperCase();
+      if (!visibleBssids.has(bssidUpper)) return;
+      groupMap.set(bssidUpper, groupId);
+      const arr = groupMembers.get(groupId) ?? [];
+      arr.push(bssidUpper);
+      groupMembers.set(groupId, arr);
     });
 
-    const visited = new Set<string>();
-    let counter = 0;
-    for (const [start] of adjacency) {
-      if (visited.has(start)) continue;
-      const component: string[] = [];
-      const stack = [start];
-      while (stack.length > 0) {
-        const curr = stack.pop()!;
-        if (visited.has(curr)) continue;
-        visited.add(curr);
-        component.push(curr);
-        for (const next of adjacency.get(curr) ?? []) {
-          if (!visited.has(next)) stack.push(next);
-        }
+    const singletons: string[] = [];
+    groupMembers.forEach((members, groupId) => {
+      if (members.length < 2) {
+        singletons.push(groupId);
+      } else {
+        members.sort((a, b) => getLastOctet(a) - getLastOctet(b));
       }
-      if (component.length < 2) continue;
-      component.sort((x, y) => getLastOctet(x) - getLastOctet(y));
-      const groupId = `PG${++counter}`;
-      groupMembers.set(groupId, component);
-      for (const bssid of component) groupMap.set(bssid, groupId);
+    });
+    for (const groupId of singletons) {
+      const members = groupMembers.get(groupId)!;
+      groupMap.delete(members[0]);
+      groupMembers.delete(groupId);
     }
 
     return { groupMap, groupMembers };
-  }, [filteredNetworks]);
+  }, [filteredNetworks, siblingGroupMap]);
 
   // Re-order filteredNetworks so siblings are consecutive (lowest octet = parent, first)
   const sortedDisplayNetworks = React.useMemo(() => {

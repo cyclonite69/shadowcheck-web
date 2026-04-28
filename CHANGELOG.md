@@ -1,4 +1,4 @@
-# 1.0.0 (2026-04-27)
+# 1.0.0 (2026-04-28)
 
 ### Bug Fixes
 
@@ -450,6 +450,7 @@
 - network summary markers not rendering due to layer initialization bug ([f8ecc30](https://github.com/cyclonite69/shadowcheck-web/commit/f8ecc300cf0a0b8410d6df2c97e401a278410dd6))
 - Networks explorer - add checkboxes, type icons, fix fields ([7f679dc](https://github.com/cyclonite69/shadowcheck-web/commit/7f679dc4ed1e7993e58854f24750603ab874232d))
 - Networks Explorer field mapping + view aggregates + schema cleanup ([aaec682](https://github.com/cyclonite69/shadowcheck-web/commit/aaec68212258270a5ea8960fc2cc0151e64854fd))
+- **networks:** move pattern group hooks before useVirtualizer to fix TDZ error ([eabece0](https://github.com/cyclonite69/shadowcheck-web/commit/eabece0a65195f62b47c4a8bdedafe7a537a8146))
 - **networks:** sort max_distance_meters from mv not ne ([f234c7b](https://github.com/cyclonite69/shadowcheck-web/commit/f234c7b1e099ac112b981580968bc12aa8daed1c))
 - **nginx:** preserve grafana subpath for static assets ([b04df62](https://github.com/cyclonite69/shadowcheck-web/commit/b04df62e18393b7d432ffd5db3d6fb63bd957eba))
 - **nginx:** prioritize grafana asset proxy routes ([5b0761d](https://github.com/cyclonite69/shadowcheck-web/commit/5b0761dd430e82bbd4a0ed8b8bac21540d38b877))
@@ -1002,6 +1003,8 @@
 - server TS migration batches 6-7 (utils, middleware, errors) ([2b11ce0](https://github.com/cyclonite69/shadowcheck-web/commit/2b11ce04aa7b31f3af6963d1fc12ee75cc0b6a5d))
 - show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
 - **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
+- **siblings:** add same_oui_proximity rule for multi-SSID co-located APs ([0373b1b](https://github.com/cyclonite69/shadowcheck-web/commit/0373b1bc4898b67d82da6ebb32a6551c496e77d9))
+- **siblings:** remove areBssidSiblings, wire siblingGroupMap through explorer chain ([992d754](https://github.com/cyclonite69/shadowcheck-web/commit/992d7542f4d081d5b205eedca3ab74fbb4ebec99))
 - **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))
 - SM-only secrets, fix networks API, scheduled backups, migration cleanup ([7d5403b](https://github.com/cyclonite69/shadowcheck-web/commit/7d5403b60aef8c08541eb7c00dcd23666d27826f))
 - smart radio-type-aware tooltips and signal range estimation ([7504f5e](https://github.com/cyclonite69/shadowcheck-web/commit/7504f5eb3b2dc60281fea7bb59000e3b217fcf9c))
