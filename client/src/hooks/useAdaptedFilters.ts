@@ -59,19 +59,3 @@ export function useDebouncedAdaptedFilters(capabilities: PageFilterCapabilities,
     [debouncedState.enabled, debouncedState.filters, capabilities]
   );
 }
-
-/**
- * Get filter payload for API requests
- * Returns the standard { filters, enabled } shape with only supported filters
- */
-export function useFilterPayload(capabilities: PageFilterCapabilities) {
-  const adapted = useAdaptedFilters(capabilities);
-
-  return useMemo(
-    () => ({
-      filters: adapted.filtersForPage,
-      enabled: adapted.enabledForPage,
-    }),
-    [adapted]
-  );
-}

@@ -91,15 +91,3 @@ export function formatChartDate(value: string | Date, rangeMs: number): string {
   const year = String(d.getFullYear()).slice(-2);
   return `${month} '${year}`;
 }
-
-/**
- * Export-safe formatter — always full ISO 8601.
- * Use this wherever data goes to CSV, JSON, or clipboard export.
- * Never use formatShortDate for exports.
- */
-export function formatExportDate(value: string | Date | null | undefined): string {
-  if (!value) return '';
-  const d = typeof value === 'string' ? new Date(value) : value;
-  if (isNaN(d.getTime())) return '';
-  return d.toISOString();
-}
