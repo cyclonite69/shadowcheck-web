@@ -35,6 +35,8 @@ This means distances, threat scores, and all metrics are calculated on **clean d
 
 ## Admin API
 
+> **Note:** The endpoints in this section are defined in `dataQualityAdminService.ts` but are **not currently exposed via API routes**. This service is not wired into any Express router. The documented endpoints do not exist in the running application. This section is preserved for reference if the admin API is implemented in the future.
+
 ### GET /api/admin/data-quality/stats
 
 Get current quality filter statistics:
@@ -160,6 +162,8 @@ The query-time `qualityFilter` has been removed from:
 - `NETWORK_ONLY_FILTERS` constant
 - `universalFilterQueryBuilder.ts` logic
 - Frontend filter UI (recommended)
+
+> **Clarification:** As of the current codebase, `qualityFilter` is commented out of the `NETWORK_ONLY_FILTERS` Set in `server/src/services/filterQueryBuilder/constants.ts` (line 109) but the key itself remains in `FILTER_KEYS`, the frontend filter store (`filterStore.ts`), `client/src/types/filters.ts`, and the `QualityFilters.tsx` UI component. The filter is no longer applied at query time via the universal filter builder, but it has not been fully removed from the frontend or type definitions.
 
 ### Database Changes
 

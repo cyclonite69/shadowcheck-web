@@ -660,7 +660,7 @@ Individual network observations with geospatial data.
 **Constraints:**
 
 - `observations_v2_bssid_upper` - CHECK (bssid = upper(bssid))
-- `fk_obs_bssid` - FOREIGN KEY (bssid) REFERENCES access_points(bssid) DEFERRABLE INITIALLY DEFERRED
+- `fk_obs_bssid` - FOREIGN KEY (bssid) REFERENCES networks(bssid) DEFERRABLE INITIALLY DEFERRED
 - `observations_v2_device_id_fkey` - FOREIGN KEY (device_id) REFERENCES device_sources(code)
 
 **Triggers:**

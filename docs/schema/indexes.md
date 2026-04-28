@@ -44,11 +44,31 @@ To ensure fast frontend lookups, MVs have their own unique and non-unique indexe
 
 ### `app.api_network_explorer_mv`
 
-- `idx_api_network_explorer_mv_bssid` (UNIQUE): Primary key lookup for network details.
-- `idx_api_network_explorer_mv_threat`: Range scans for threat-based filtering.
-- `idx_api_network_explorer_mv_observed_at`: Time-based sorting.
+- `idx_api_network_explorer_mv_bssid` (UNIQUE, btree): Primary key lookup for network details.
+- `idx_api_network_explorer_mv_type` (btree): Filter by network type (W/E/B/L/N/G).
+- `idx_api_network_explorer_mv_observed_at` (btree, DESC): Time-based sorting for the network list.
+- `idx_api_network_explorer_mv_threat` (btree, DESC): Range scans for threat-score filtering and ordering.
+- `idx_api_network_explorer_mv_rule_score` (btree, DESC): Range scans on the rule-based sub-score.
+- `idx_api_network_explorer_mv_ml_score` (btree, DESC): Range scans on the ML threat sub-score.
+- `idx_api_network_explorer_mv_stationary` (btree, partial `WHERE stationary_confidence IS NOT NULL`): Filters and sorts on pre-computed stationary confidence.
+- `idx_api_network_explorer_mv_ignored` (btree, partial `WHERE is_ignored = TRUE`): Fast exclusion of analyst-ignored networks.
+- `idx_api_network_explorer_mv_manufacturer` (btree): Equality lookups by manufacturer name.
+- `idx_api_network_explorer_mv_manufacturer_gin` (GIN, `gin_trgm_ops`): Fast `ILIKE` pattern matching on manufacturer.
+- `idx_api_network_explorer_mv_ssid_trgm` (GIN, `gin_trgm_ops`): Fast `ILIKE` pattern matching on SSID.
+- `idx_api_network_explorer_mv_frequency` (btree): Filter by channel frequency.
+- `idx_api_network_explorer_mv_signal` (btree): Filter by signal strength.
+- `idx_api_network_explorer_mv_first_seen` (btree, DESC): Sort by first observation timestamp.
+- `idx_api_network_explorer_mv_last_seen` (btree, DESC): Sort by most-recent observation timestamp.
+- `idx_api_network_explorer_mv_observations` (btree): Filter/sort by observation count.
+- `idx_api_network_explorer_mv_type_freq` (btree, composite): Combined network-type + frequency filter.
+- `idx_api_network_explorer_mv_threat_type` (btree, composite): Combined threat-score + type filter for threat-dashboard queries.
+- `idx_api_network_explorer_mv_security` (btree): Filter by security/encryption classification.
+- `idx_api_network_explorer_mv_geom` (GIST, functional): Spatial index on `ST_SetSRID(ST_MakePoint(lon, lat), 4326)` for geographic queries.
 
 ### `app.api_wigle_networks_mv`
 
-- `idx_wigle_networks_mv_bssid` (UNIQUE): Primary lookup.
-- `idx_wigle_networks_mv_display_coords`: Spatial filtering for WiGLE networks.
+- `idx_wigle_networks_mv_bssid` (UNIQUE, btree): Primary lookup by BSSID.
+- `idx_wigle_networks_mv_display_coords` (btree, partial `WHERE display_lat IS NOT NULL AND display_lon IS NOT NULL`): Spatial filtering for the WiGLE map layer.
+- `idx_wigle_networks_mv_nonstationary` (btree, partial `WHERE public_nonstationary_flag = TRUE`): Fast access to networks flagged as non-stationary.
+- `idx_wigle_networks_mv_has_v3` (btree, composite on `has_wigle_v3_observations, wigle_v3_observation_count`): Filter by WiGLE v3 observation presence and count.
+- `idx_wigle_networks_mv_has_local_match` (btree, partial `WHERE has_local_match = TRUE`): Fast access to WiGLE networks that have a local observation match.

@@ -4,7 +4,7 @@ This document provides actionable guidance for AI coding agents (Claude, Copilot
 
 ## Quick Reference
 
-**Tech Stack**: Node.js 22+, Express.js, PostgreSQL 18 + PostGIS, React 19, Vite 7, Tailwind CSS v4, TypeScript 5+
+**Tech Stack**: Node.js 22+, Express.js, PostgreSQL 18 + PostGIS, React 19, Vite 8, Tailwind CSS v4, TypeScript 5+
 
 **Critical Constraint**: PostgreSQL runs in Docker. Never use local system PostgreSQL. If running API locally, stop it: `sudo systemctl stop postgresql`
 
@@ -101,7 +101,7 @@ const result = await networkService.getNetworks();
 
   ```javascript
   const { query } = require('../../config/database');
-  const result = await query('SELECT * FROM public.networks WHERE bssid = $1', [bssid]);
+  const result = await query('SELECT * FROM app.networks WHERE bssid = $1', [bssid]);
   ```
 
 - **Write operations**: Use `adminDbService` (connects as `shadowcheck_admin`)
@@ -213,8 +213,8 @@ The filter system powers filtering across all pages (Dashboard, Geospatial, Kepl
 
 **Key Tables**:
 
-- `public.networks` - Network metadata (bssid, ssid, type, frequency, bestlevel, bestlat/bestlon, lasttime_ms)
-- `public.observations` - Observation records with location data (linked to networks)
+- `app.networks` - Network metadata (bssid, ssid, type, frequency, bestlevel, bestlat/bestlon, lasttime_ms)
+- `app.observations` - Observation records with location data (linked to networks)
 - `app.location_markers` - Home/work locations for threat analysis
 - `app.network_tags` - Manual network classifications (threat, false_positive, known_safe)
 - `app.materialized_views` - Aggregated data for performance

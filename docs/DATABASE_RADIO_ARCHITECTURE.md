@@ -1,3 +1,13 @@
+> **WARNING: HISTORICAL DESIGN DOCUMENT — NOT IMPLEMENTED**
+>
+> This document describes a proposed architecture ("Option C Hybrid") that was evaluated but not adopted. The actual schema uses:
+>
+> - `radio_type` as a `text` column on `app.observations` (not an ENUM)
+> - No type-specific views (`app.wifi_observations` etc. do not exist)
+> - No table partitioning
+>
+> For the current schema, see `docs/schema/observations-sources.md` and `docs/schema/network-tables.md`.
+
 # Radio-Specific Table Architecture Decision
 
 **Wiki versions (diagrams):** [Database](../.github/wiki/Database.md), [Database Schema](../.github/wiki/Database-Schema.md)

@@ -100,11 +100,13 @@ sequenceDiagram
 - `POST /api/ml/train`
 - `POST /api/admin/*`
 
-**API Key Required** (Alternative to session):
+**Bearer Token** (Alternative to session cookie):
 
 ```bash
-curl -H "x-api-key: your-key" http://localhost:3001/api/admin/backup
+curl -H "Authorization: Bearer <token>" http://localhost:3001/api/admin/backup
 ```
+
+> **Note:** `x-api-key` header authentication is **not** implemented. Only the `session_token` cookie and `Authorization: Bearer` header are supported.
 
 ---
 
@@ -446,7 +448,7 @@ flowchart LR
 POST /api/ml/train
 ```
 
-**Headers:** `x-api-key: your-key` or valid admin session
+**Headers:** `Authorization: Bearer <token>` or valid admin session cookie
 
 **Response:**
 

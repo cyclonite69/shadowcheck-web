@@ -12,17 +12,11 @@ http://localhost:3001/api
 
 ## Authentication
 
-Protected endpoints require authentication via session cookie or API key:
+Protected endpoints require authentication. Two methods are supported:
 
 ### Session-Based (Browser)
 
-Sessions are managed via HTTP-only cookies. Client uses `credentials: 'include'`.
-
-### API Key
-
-```http
-x-api-key: your-api-key-here
-```
+Sessions are managed via HTTP-only cookies. After a successful `POST /api/auth/login` the server sets an HTTP-only `session_token` cookie. The client must pass `credentials: 'include'` on every subsequent request.
 
 ### Bearer Token
 
@@ -30,7 +24,9 @@ x-api-key: your-api-key-here
 Authorization: Bearer <token>
 ```
 
-Set via: `API_KEY=your-secret-key` in `.env`
+Pass the token returned by `POST /api/auth/login` in the `Authorization` header for non-browser clients.
+
+> **Note:** `x-api-key` header authentication is **not** implemented. The middleware (`authMiddleware.ts`) accepts only the `session_token` cookie and `Authorization: Bearer` header.
 
 ## Rate Limiting
 
@@ -678,7 +674,50 @@ Import WiGLE v3 data into local tables (`app.wigle_v3_observations`, `app.wigle_
 
 Get WiGLE observations for network.
 
+**Parameters:**
+
+- `limit` (int, optional, max: 100000) — Number of observations to return
+- `offset` (int, optional, max: 10000000) — Pagination offset
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "count": 15,
+  "total": 42,
+  "observations": [...]
+}
+```
+
 **Note:** WiGLE observations now use the correct 'app' schema namespace instead of 'public'.
+
+### GET /api/wigle/quota-status 🔒
+
+Return the current WiGLE request-ledger quota status (daily call counts, remaining budget, reset time). Requires admin role.
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "quota": {
+    "used": 42,
+    "limit": 500,
+    "resetAt": "2026-04-29T00:00:00.000Z"
+  }
+}
+```
+
+### GET /api/wigle/page/network/:netid
+
+Local database lookup returning the full enriched network record used by the WiGLE page detail panel. Tries the materialized view first, falls back to a live four-query fan-out if the MV is unavailable or returns no row.
+
+**Parameters:**
+
+- `:netid` (path, required) — BSSID / network ID (MAC address format validated by `macParamMiddleware`)
+
+**Response:** Enriched network object, or `404` if not found in the local WiGLE database.
 
 ---
 
@@ -834,6 +873,126 @@ Test admin routes.
 ### GET /api/admin/simple-test
 
 Simple test route.
+
+---
+
+## Network Siblings Admin
+
+### POST /api/admin/siblings/override 🔒
+
+Set or override the sibling relationship between two networks.
+
+**Request:**
+
+```json
+{
+  "bssidA": "AA:BB:CC:DD:EE:FF",
+  "bssidB": "11:22:33:44:55:66",
+  "relation": "sibling",
+  "notes": "Same AP, sequential MACs"
+}
+```
+
+- `bssidA`, `bssidB` (string, required) — MAC addresses to pair; must be different
+- `relation` (string) — `"sibling"` (default) or `"not_sibling"`
+- `notes` (string, optional) — Free-text annotation
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "pair": {
+    "bssidA": "AA:BB:CC:DD:EE:FF",
+    "bssidB": "11:22:33:44:55:66",
+    "relation": "sibling"
+  }
+}
+```
+
+### GET /api/admin/siblings/linked/:bssid 🔒
+
+Retrieve all known sibling links for a single BSSID.
+
+**Parameters:**
+
+- `:bssid` (path, required) — MAC address to look up
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "bssid": "AA:BB:CC:DD:EE:FF",
+  "links": [...]
+}
+```
+
+### POST /api/admin/siblings/linked-batch 🔒
+
+Retrieve sibling links for multiple BSSIDs in a single request.
+
+**Request:**
+
+```json
+{
+  "bssids": ["AA:BB:CC:DD:EE:FF", "11:22:33:44:55:66"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "links": [...]
+}
+```
+
+### POST /api/admin/siblings/refresh 🔒
+
+Start a background sibling-detection refresh job.
+
+**Request (all fields optional):**
+
+```json
+{
+  "batchSize": 500,
+  "maxOctetDelta": 3,
+  "maxDistanceM": 200,
+  "minCandidateConf": 0.5,
+  "minStrongConf": 0.85,
+  "maxBatches": 100
+}
+```
+
+**Response:** `202 Accepted` when the job starts; `409 Conflict` if already running.
+
+### GET /api/admin/siblings/refresh/status 🔒
+
+Poll the running sibling refresh job status.
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "status": { ... }
+}
+```
+
+### GET /api/admin/siblings/stats 🔒
+
+Aggregate statistics for the sibling detection dataset.
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "stats": { ... }
+}
+```
 
 ---
 
@@ -1139,6 +1298,112 @@ Export observations + networks as JSON (full dataset).
 Export observations as GeoJSON (full dataset).
 
 > Note: Backups/exports are currently unauthenticated and intended for trusted environments only.
+
+---
+
+## Claude AI
+
+AWS Bedrock-backed analysis endpoints. No authentication is required by the route handlers themselves, but `req.user` (if present) is used to scope insight history.
+
+### POST /api/claude/analyze-networks
+
+Submit a list of networks for AI threat analysis. Calls AWS Bedrock (Claude Haiku), persists the result, and returns analysis + recent history.
+
+**Request:**
+
+```json
+{
+  "networks": [
+    {
+      "bssid": "AA:BB:CC:DD:EE:FF",
+      "ssid": "TestNet",
+      "type": "W",
+      "threat_score": 75,
+      "observation_count": 42,
+      "unique_days": 7,
+      "seen_at_home": true,
+      "seen_away": true
+    }
+  ],
+  "question": "Is this network a surveillance threat?"
+}
+```
+
+- `networks` (array, required) — Non-empty array of network objects
+- `question` (string, optional) — Analysis question; defaults to a standard threat-identification prompt
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "analysis": "...",
+  "suggestions": [...],
+  "insightId": 42,
+  "history": [...],
+  "meta": {
+    "networksAnalyzed": 1,
+    "model": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  }
+}
+```
+
+### GET /api/claude/insights
+
+Retrieve AI analysis history for the current user (or anonymous session).
+
+**Parameters:**
+
+- `limit` (int, default: 20, max: 100) — Number of history records to return
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "history": [...],
+  "count": 5
+}
+```
+
+### PATCH /api/claude/insights/:id/useful
+
+Record user feedback on an AI insight.
+
+**Parameters:**
+
+- `:id` (path, required) — Insight ID (positive integer)
+
+**Request:**
+
+```json
+{
+  "useful": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "id": 42,
+  "useful": true
+}
+```
+
+### GET /api/claude/test
+
+Connectivity check for the AWS Bedrock integration.
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "connected": true
+}
+```
 
 ---
 

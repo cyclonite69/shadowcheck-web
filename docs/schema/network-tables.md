@@ -95,17 +95,29 @@ This file provides a detailed reference for the primary tables containing wirele
 **Row count:** ~316,445  
 **PK:** `id bigint`
 
-| Column         | Type                 | Notes                     |
-| -------------- | -------------------- | ------------------------- |
-| `id`           | bigint               | PK                        |
-| `kml_file_id`  | bigint               | FK → `kml_files`          |
-| `bssid`        | text                 | **network identifier**    |
-| `observed_at`  | timestamptz          |                           |
-| `signal_dbm`   | double precision     | **signal strength (dBm)** |
-| `location`     | geometry(Point,4326) | **spatial column**        |
-| `network_type` | text                 |                           |
+| Column            | Type                 | Notes                                                        |
+| ----------------- | -------------------- | ------------------------------------------------------------ |
+| `id`              | bigint               | PK (identity)                                                |
+| `kml_file_id`     | bigint               | FK → `kml_files` (CASCADE DELETE)                            |
+| `folder_name`     | text                 | KML folder label (e.g. "Wifi Networks", "Cellular Networks") |
+| `name`            | text                 | Placemark name from the source KML                           |
+| `network_id`      | text                 | Identifier parsed from KML description (Network ID field)    |
+| `bssid`           | text                 | **WiFi BSSID**; null for non-WiFi rows                       |
+| `encryption`      | text                 | Encryption type as parsed from KML                           |
+| `attributes`      | text                 | Raw attribute string from the KML Placemark description      |
+| `observed_at`     | timestamptz          |                                                              |
+| `signal_dbm`      | double precision     | **signal strength (dBm)**                                    |
+| `accuracy_m`      | double precision     | GPS accuracy in metres                                       |
+| `network_type`    | text                 | e.g. WIFI, BLE, LTE                                          |
+| `location`        | geometry(Point,4326) | **spatial column** from KML coordinates                      |
+| `raw_description` | text                 | Original KML Placemark description before field parsing      |
+| `raw_kml`         | jsonb                | Raw parsed KML payload; defaults to `{}`                     |
 
 **Key indexes:**
 
-- `idx_kml_points_location` — GIST on `location`
-- `idx_kml_points_bssid` — btree on `bssid`
+- `idx_kml_points_location` — GIST on `location` (partial: `WHERE location IS NOT NULL`)
+- `idx_kml_points_bssid` — btree on `bssid` (partial: `WHERE bssid IS NOT NULL`)
+- `idx_kml_points_kml_file_id` — btree on `kml_file_id`; join performance with `kml_files`
+- `idx_kml_points_network_id` — btree on `network_id` (partial: `WHERE network_id IS NOT NULL`)
+- `idx_kml_points_observed_at` — btree on `observed_at DESC` (partial: `WHERE observed_at IS NOT NULL`); time-range queries
+- `idx_kml_points_network_type` — btree on `network_type` (partial: `WHERE network_type IS NOT NULL`); filter by radio type

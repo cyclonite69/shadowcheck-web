@@ -48,6 +48,56 @@ Materialized views are used to pre-aggregate and enrich network data for the fro
 
 ---
 
+## `app.api_network_latest_mv`
+
+**Purpose:** Lightweight snapshot of networks active within the last 24 hours, used for quick "recently seen" lookups without querying the full `api_network_explorer_mv`.
+
+**Source Tables:**
+
+- `app.networks`
+
+**Refresh Cadence:** On-demand / as needed.
+
+**Indexes:**
+
+- `idx_api_network_latest_mv_bssid` (btree): Lookup by BSSID.
+
+---
+
+## `app.mv_network_timeline`
+
+**Purpose:** Hourly bucketed aggregation of observation counts and signal statistics per network, used for timeline charts and temporal analysis.
+
+**Source Tables:**
+
+- `app.networks`
+- `app.observations`
+
+**Refresh Cadence:** On-demand.
+
+**Indexes:**
+
+- `idx_mv_network_timeline_bssid` (btree): Filter timeline rows by BSSID.
+- `idx_mv_network_timeline_hour` (btree): Filter/sort by hour bucket.
+
+---
+
+## `app.agency_offices_summary`
+
+**Purpose:** Per-`office_type` summary counts (total offices, coordinate coverage, ZIP+4 completeness, phone and website presence) for reference-data quality dashboards.
+
+**Source Tables:**
+
+- `app.agency_offices`
+
+**Refresh Cadence:** On-demand (after reference data imports).
+
+**Indexes:**
+
+- `idx_agency_offices_summary_type` (UNIQUE, btree): One row per office type.
+
+---
+
 ## Refresh State Tracker
 
 The table `app.api_mv_refresh_state` tracks the last successful refresh for the MVs.

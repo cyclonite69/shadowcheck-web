@@ -140,7 +140,7 @@ The following rules are immutable constraints of the system architecture:
 5.  **Authentication**: Authentication is session-based using Redis. OAuth and stateless JWTs are not supported.
 6.  **API Format**: All API responses use JSON. XML, CSV (except for exports), or other formats are not supported.
 7.  **Database**: The system requires PostgreSQL 18+ with PostGIS. Migration to other relational or NoSQL databases is not supported.
-8.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7. No other frameworks (Angular, Vue, Next.js) are supported.
+8.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 8. No other frameworks (Angular, Vue, Next.js) are supported.
 9.  **Threat Scoring**: Threat scoring utilizes multi-factor analysis. The weights are immutable for each algorithm version to ensure consistency.
 
 ## Agency Offices Constraints
@@ -686,7 +686,7 @@ The monitoring stack runs as a separate container (`shadowcheck_grafana`) using 
 **Frontend:**
 
 - React 19 (TypeScript)
-- Vite 7 (Build Tool)
+- Vite 8 (Build Tool)
 - Tailwind CSS (utility-first CSS)
 - Recharts / Chart.js (visualizations)
 - Mapbox GL JS / Deck.gl (mapping)

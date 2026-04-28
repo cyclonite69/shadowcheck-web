@@ -167,7 +167,7 @@ shadowcheck-web/
 │   │   ├── stores/         # Zustand state management
 │   │   ├── utils/          # Data layer & UI utilities
 │   │   └── types/          # TypeScript definitions
-│   └── vite.config.ts      # Vite 7 configuration
+│   └── vite.config.ts      # Vite 8 configuration
 │
 ├── 📁 server/              # Express backend
 │   ├── server.ts           # Main server entry (serves client)
@@ -262,7 +262,7 @@ User Request
 **Frontend:**
 
 - React 19 (TypeScript)
-- Vite 7 build system
+- Vite 8 build system
 - Tailwind CSS v4
 - Mapbox GL JS 3.x / Deck.gl 9.x
 - Zustand state management

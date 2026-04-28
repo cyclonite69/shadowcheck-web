@@ -12,7 +12,7 @@ geospatial correlation via PostGIS, and interactive analysis dashboards.
 
 **Primary Technologies:**
 
-- React 19, Vite 7, TypeScript
+- React 19, Vite 8, TypeScript
 - Node.js 22+, Express
 - PostgreSQL 18 + PostGIS
 - Redis 7.0 (session management, rate limiting, caching)

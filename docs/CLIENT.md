@@ -103,11 +103,15 @@ client/
 | [`ConfigurationTab`](../client/src/components/admin/tabs/ConfigurationTab.tsx) | `src/components/admin/tabs/ConfigurationTab.tsx` | System configuration       |
 | [`DataExportTab`](../client/src/components/admin/tabs/DataExportTab.tsx)       | `src/components/admin/tabs/DataExportTab.tsx`    | Data export tools          |
 | [`DataImportTab`](../client/src/components/admin/tabs/DataImportTab.tsx)       | `src/components/admin/tabs/DataImportTab.tsx`    | Data import tools          |
+| [`DbStatsTab`](../client/src/components/admin/tabs/DbStatsTab.tsx)             | `src/components/admin/tabs/DbStatsTab.tsx`       | Database statistics        |
 | [`GeocodingTab`](../client/src/components/admin/tabs/GeocodingTab.tsx)         | `src/components/admin/tabs/GeocodingTab.tsx`     | Geocoding cache management |
+| [`JobsTab`](../client/src/components/admin/tabs/JobsTab.tsx)                   | `src/components/admin/tabs/JobsTab.tsx`          | Job management             |
 | [`MLTrainingTab`](../client/src/components/admin/tabs/MLTrainingTab.tsx)       | `src/components/admin/tabs/MLTrainingTab.tsx`    | ML model training          |
 | [`PgAdminTab`](../client/src/components/admin/tabs/PgAdminTab.tsx)             | `src/components/admin/tabs/PgAdminTab.tsx`       | pgAdmin integration        |
+| [`UsersTab`](../client/src/components/admin/tabs/UsersTab.tsx)                 | `src/components/admin/tabs/UsersTab.tsx`         | User management            |
 | [`WigleDetailTab`](../client/src/components/admin/tabs/WigleDetailTab.tsx)     | `src/components/admin/tabs/WigleDetailTab.tsx`   | Wigle detail view          |
 | [`WigleSearchTab`](../client/src/components/admin/tabs/WigleSearchTab.tsx)     | `src/components/admin/tabs/WigleSearchTab.tsx`   | Wigle search interface     |
+| [`WigleStatsTab`](../client/src/components/admin/tabs/WigleStatsTab.tsx)       | `src/components/admin/tabs/WigleStatsTab.tsx`    | WiGLE statistics           |
 
 ### Geospatial Sub-Components
 
@@ -270,7 +274,7 @@ client/
 
 The following components have been modularized to reduce complexity and improve maintainability:
 
-### GeospatialExplorer.tsx (~471 lines) → Sub-component extraction
+### GeospatialExplorer.tsx (~290 lines) → Sub-component extraction
 
 - **Status:** Completed (March 2026)
 - **Outcome:** Orchestration logic moved to `useGeospatialExplorerState.ts` and `useSiblingLinks.ts`.

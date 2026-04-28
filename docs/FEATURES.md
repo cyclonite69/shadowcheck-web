@@ -18,7 +18,7 @@ This catalog summarizes the features implemented in the current ShadowCheck code
 
 - **25+ filter types** spanning time (`FIRST_SEEN`, `LAST_SEEN`, `NETWORK_LIFETIME`), signal, radio, security, distance, geography, tags, and device attributes.
 - **BSSID Wildcards**: Support for `*` and `?` in BSSID filters.
-- **SSID Exclusion**: Support for `-` and `NOT` prefixes to exclude specific SSIDs.
+- **SSID Exclusion**: Support for `-` and `NOT` prefixes to exclude specific SSIDs. Supports `|` OR syntax (`fbi|surveillance` matches either term) and comma AND syntax (`fbi,surveillance` requires both).
 - **WiGLE Persistence Filters**: Universally available filters for WiGLE observation counts and last import dates.
 - **Page-scoped filters** with URL sync and debounced application across Geospatial, Analytics, and Kepler views.
 

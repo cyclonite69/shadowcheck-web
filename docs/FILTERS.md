@@ -12,6 +12,31 @@ The Universal Filter system provides a standardized way to query wireless networ
 | `bssid`        | `string` | BSSID match. Supports `*` and `?` wildcards (e.g. `00:11:22:*`).               |
 | `manufacturer` | `string` | Manufacturer name or OUI prefix.                                               |
 
+### SSID Search Syntax
+
+The `ssid` filter supports a rich search syntax for precise inclusion/exclusion matching.
+
+**Tokenization**: Commas split the input into independent AND-ed terms (`splitTextFilterTokens`). Each comma-separated term is evaluated separately and all must match.
+
+**Pipe OR within a term**: Within a single term, `|` separates alternatives. A positive OR-group matches if any alternative matches; a negated OR-group applies De Morgan's law (NOT A AND NOT B).
+
+**Negation prefixes**: A term beginning with `-` or `NOT ` (case-insensitive with trailing space) inverts the match, excluding networks whose SSID (current or any historical observation SSID) contains that value.
+
+**Wildcards**: `*` expands to `%` (any sequence) and `?` expands to `_` (any single character) via `normalizeWildcards`. Without wildcards, the term is wrapped as a substring match (`%term%`).
+
+| Example              | Behavior                                                                                         |
+| :------------------- | :----------------------------------------------------------------------------------------------- |
+| `fbi`                | Matches SSIDs containing "fbi"                                                                   |
+| `fbi,surveillance`   | SSID must match both "fbi" AND "surveillance"                                                    |
+| `fbi\|surveillance`  | SSID matches "fbi" OR "surveillance"                                                             |
+| `-fbi`               | Excludes SSIDs containing "fbi"                                                                  |
+| `NOT fbi`            | Excludes SSIDs containing "fbi" (alternate prefix)                                               |
+| `-fbi\|surveillance` | Excludes SSIDs matching either "fbi" OR "surveillance" (De Morgan: NOT fbi AND NOT surveillance) |
+| `fbi*`               | Prefix match — SSIDs starting with "fbi"                                                         |
+| `-fbi,surveillance`  | Excludes "fbi" AND SSID must also contain "surveillance"                                         |
+
+The SSID match covers both the network's current SSID and any SSID observed historically in `app.observations` for the same BSSID.
+
 ### B. Radio / Physical Layer
 
 | Key              | Type              | Description                                              |
@@ -39,14 +64,14 @@ The Universal Filter system provides a standardized way to query wireless networ
 
 ### E. Observation Quality & Metadata
 
-| Key                    | Type        | Description                                                       |
-| :--------------------- | :---------- | :---------------------------------------------------------------- |
-| `observationCountMin`  | `number`    | Minimum number of observations recorded.                          |
-| `observationCountMax`  | `number`    | Maximum number of observations recorded.                          |
-| `has_notes`            | `boolean`   | Only networks with manual analyst notes.                          |
-| `tag_type`             | `TagType[]` | Manual tags: `threat`, `investigate`, `false_positive`, `ignore`. |
-| `gpsAccuracyMax`       | `number`    | Maximum GPS error in meters for underlying observations.          |
-| `excludeInvalidCoords` | `boolean`   | Hide networks without valid lat/lon.                              |
+| Key                    | Type        | Description                                                                  |
+| :--------------------- | :---------- | :--------------------------------------------------------------------------- |
+| `observationCountMin`  | `number`    | Minimum number of observations recorded.                                     |
+| `observationCountMax`  | `number`    | Maximum number of observations recorded.                                     |
+| `has_notes`            | `boolean`   | Only networks with manual analyst notes.                                     |
+| `tag_type`             | `TagType[]` | Manual tags: `threat`, `suspect`, `investigate`, `false_positive`, `ignore`. |
+| `gpsAccuracyMax`       | `number`    | Maximum GPS error in meters for underlying observations.                     |
+| `excludeInvalidCoords` | `boolean`   | Hide networks without valid lat/lon.                                         |
 
 ### F. Spatial & Proximity
 
