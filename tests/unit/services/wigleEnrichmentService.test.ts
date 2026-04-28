@@ -18,6 +18,9 @@ jest.mock('../../../server/src/services/wigleImport/runRepository', () => ({
 jest.mock('../../../server/src/services/wigleBulkPolicy', () => ({
   assertBulkWigleAllowed: jest.fn(),
 }));
+jest.mock('../../../server/src/services/wigleRequestLedger', () => ({
+  recordRequest: jest.fn().mockResolvedValue({}),
+}));
 jest.mock('../../../server/src/logging/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
@@ -26,13 +29,14 @@ jest.mock('../../../server/src/logging/logger', () => ({
 }));
 
 const mockAdminQuery = jest.fn();
+const mockSecretsGet = jest.fn((key: string) => 'test');
 jest.mock('../../../server/src/config/container', () => ({
   adminDbService: { adminQuery: mockAdminQuery },
   wigleService: {
     importWigleV3NetworkDetail: jest.fn(),
     importWigleV3Observation: jest.fn(),
   },
-  secretsManager: { get: jest.fn((key) => 'test') },
+  secretsManager: { get: mockSecretsGet },
 }));
 
 // MUST require after mocks
@@ -46,6 +50,7 @@ describe('wigleEnrichmentService (Pure Unit)', () => {
     jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
     mockAdminQuery.mockResolvedValue({ rows: [] });
+    mockSecretsGet.mockImplementation((key: string) => 'test');
   });
 
   describe('runEnrichmentLoop', () => {

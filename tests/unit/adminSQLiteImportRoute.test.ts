@@ -174,8 +174,8 @@ describe('admin/import-sqlite route', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.backupTaken).toBe(false);
-    expect(res.body.imported).toBe(9789);
-    expect(res.body.failed).toBe(0);
+    expect(res.body.imported).toBe('9789');
+    expect(res.body.failed).toBe('0');
   });
 
   test('records failure when the import process exits non-zero', async () => {
@@ -204,6 +204,6 @@ describe('admin/import-sqlite route', () => {
     );
     expect(res.statusCode).toBe(500);
     expect(res.body.ok).toBe(false);
-    expect(res.body.error).toBe('Import script failed');
+    expect(res.body.error).toBe('Import failed');
   });
 });

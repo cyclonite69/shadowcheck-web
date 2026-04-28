@@ -28,6 +28,17 @@ jest.mock('../../../../server/src/config/container', () => ({
   adminImportHistoryService: {},
   adminOrphanNetworksService: {},
   v2Service: {},
+  miscService: {
+    getDataQualityMetrics: jest.fn(),
+  },
+  dataQualityFilters: {
+    DATA_QUALITY_FILTERS: {
+      temporal_clusters: '',
+      extreme_signals: '',
+      duplicate_coords: '',
+      all: () => '',
+    },
+  },
 }));
 
 // Mock auth middleware
@@ -47,19 +58,28 @@ describe('Admin API Integration Tests', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    container.adminNetworkTagsService.checkDuplicateObservations.mockResolvedValue({ total_observations: 5 });
-    container.adminNetworkTagsService.getNetworkSummary.mockResolvedValue({ bssid: 'AA:BB:CC:DD:EE:FF', name: 'Test Network' });
+    container.adminNetworkTagsService.checkDuplicateObservations.mockResolvedValue({
+      total_observations: 5,
+    });
+    container.adminNetworkTagsService.getNetworkSummary.mockResolvedValue({
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      name: 'Test Network',
+    });
   });
 
   describe('GET /api/v1/observations/check-duplicates/:bssid', () => {
     it('should return 400 if BSSID is invalid', async () => {
       // Use a BSSID with characters that fail the validation regex
-      const res = await request(app).get('/api/v1/observations/check-duplicates/invalid!bssid?time=' + new Date().toISOString());
+      const res = await request(app).get(
+        '/api/v1/observations/check-duplicates/invalid!bssid?time=' + new Date().toISOString()
+      );
       expect(res.status).toBe(400);
     });
 
     it('should return 200 and duplicate data for valid BSSID', async () => {
-      const res = await request(app).get('/api/v1/observations/check-duplicates/AA:BB:CC:DD:EE:FF?time=' + new Date().toISOString());
+      const res = await request(app).get(
+        '/api/v1/observations/check-duplicates/AA:BB:CC:DD:EE:FF?time=' + new Date().toISOString()
+      );
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(res.body.data.total_observations).toBe(5);

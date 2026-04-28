@@ -38,5 +38,5 @@ export const KMLObservationSchema = z.object({
   lon: z.number().min(-180).max(180),
   lat: z.number().min(-90).max(90),
   rawDescription: z.string(),
-  rawKml: z.record(z.unknown()),
+  rawKml: z.record(z.string(), z.unknown()),
 });

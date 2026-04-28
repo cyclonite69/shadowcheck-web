@@ -34,6 +34,9 @@ const {
 describe('adminOrphanNetworksService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Ensure adminQuery always returns a Promise so wigleRequestLedger.recordRequest
+    // can call .catch on it (resetMocks: true strips the implementation between tests)
+    adminQuery.mockResolvedValue({ rows: [] });
     global.fetch = jest.fn();
     require('../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
   });
