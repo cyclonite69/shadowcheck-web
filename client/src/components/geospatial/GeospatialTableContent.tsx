@@ -19,6 +19,7 @@ interface GeospatialTableContentProps {
   linkedSiblingBssids: Set<string>;
   visibleSiblingGroupMap: Map<string, string>;
   selectNetworkExclusive: (bssid: string) => void;
+  onSelectGroup?: (bssids: string[]) => void;
   onOpenContextMenu: (e: any, network: any) => void;
   toggleSelectNetwork: (bssid: string) => void;
   loadMore: () => void;
@@ -50,6 +51,7 @@ const GeospatialTableContentComponent = ({
   linkedSiblingBssids,
   visibleSiblingGroupMap,
   selectNetworkExclusive,
+  onSelectGroup,
   onOpenContextMenu,
   toggleSelectNetwork,
   loadMore,
@@ -91,6 +93,7 @@ const GeospatialTableContentComponent = ({
     selectedAnchorBssid={selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null}
     selectedAnchorHasLinkedSiblings={linkedSiblingBssids.size > 0}
     onSelectExclusive={selectNetworkExclusive}
+    onSelectGroup={onSelectGroup}
     onOpenContextMenu={onOpenContextMenu}
     onToggleSelectNetwork={toggleSelectNetwork}
     isLoadingMore={isLoadingMore}

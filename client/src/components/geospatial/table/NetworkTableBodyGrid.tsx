@@ -25,8 +25,11 @@ interface NetworkTableBodyGridProps {
   selectedAnchorBssid?: string | null;
   selectedAnchorHasLinkedSiblings?: boolean;
   onSelectExclusive: (bssid: string) => void;
+  onSelectGroup?: (bssids: string[]) => void;
   onOpenContextMenu: (event: React.MouseEvent<HTMLDivElement>, net: NetworkRow) => void;
   onToggleSelectNetwork: (bssid: string) => void;
+  collapsedGroups: Set<string>;
+  onToggleCollapse: (groupId: string) => void;
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
@@ -45,8 +48,11 @@ export const NetworkTableBodyGrid = ({
   selectedAnchorBssid = null,
   selectedAnchorHasLinkedSiblings = false,
   onSelectExclusive,
+  onSelectGroup,
   onOpenContextMenu,
   onToggleSelectNetwork,
+  collapsedGroups,
+  onToggleCollapse,
   isLoadingMore,
   hasMore,
   onLoadMore,
@@ -126,16 +132,30 @@ export const NetworkTableBodyGrid = ({
     return result;
   }, [filteredNetworks, patternGroups]);
 
-  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
-
-  const toggleCollapse = React.useCallback((groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-  }, []);
+  const handleSelectExclusive = React.useCallback(
+    (bssid: string) => {
+      if (bssid && onSelectGroup) {
+        const bssidUpper = bssid.toUpperCase();
+        const groupId = patternGroups.groupMap.get(bssidUpper);
+        if (groupId) {
+          const members = patternGroups.groupMembers.get(groupId) ?? [];
+          if (members[0] === bssidUpper && members.length > 1) {
+            const actualBssids: string[] = [];
+            for (const m of members) {
+              const net = filteredNetworks.find((n) => n.bssid?.toUpperCase() === m);
+              if (net?.bssid) actualBssids.push(net.bssid);
+            }
+            if (actualBssids.length > 0) {
+              onSelectGroup(actualBssids);
+              return;
+            }
+          }
+        }
+      }
+      onSelectExclusive(bssid);
+    },
+    [patternGroups, onSelectGroup, onSelectExclusive, filteredNetworks]
+  );
 
   // Filter out collapsed sibling rows (keep parent)
   const displayNetworks = React.useMemo(() => {
@@ -308,7 +328,7 @@ export const NetworkTableBodyGrid = ({
               isSiblingGroupEnd={isSiblingGroupEnd}
               selectedAnchorBssid={selectedAnchorBssid}
               selectedAnchorHasLinkedSiblings={selectedAnchorHasLinkedSiblings}
-              onSelectExclusive={onSelectExclusive}
+              onSelectExclusive={handleSelectExclusive}
               onOpenContextMenu={onOpenContextMenu}
               onToggleSelectNetwork={onToggleSelectNetwork}
               lockedVisibleColumns={lockedVisibleColumns}
@@ -320,7 +340,7 @@ export const NetworkTableBodyGrid = ({
               patternGroupId={patternGroupId}
               patternSiblingCount={patternSiblingCount}
               isPatternGroupCollapsed={isPatternGroupCollapsed}
-              onTogglePatternGroup={toggleCollapse}
+              onTogglePatternGroup={onToggleCollapse}
             />
           );
         })}

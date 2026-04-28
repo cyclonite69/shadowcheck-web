@@ -16,6 +16,9 @@ interface NetworkExplorerHeaderProps {
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
   onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
+  siblingGroupCount?: number;
+  allCollapsed?: boolean;
+  onToggleSiblingGroups?: () => void;
 }
 
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
@@ -33,6 +36,9 @@ export const NetworkExplorerHeader = ({
   onToggleColumnSelector,
   onToggleColumn,
   onMoveColumn,
+  siblingGroupCount = 0,
+  allCollapsed = false,
+  onToggleSiblingGroups,
 }: NetworkExplorerHeaderProps) => {
   return (
     <div
@@ -136,6 +142,27 @@ export const NetworkExplorerHeader = ({
 
       {/* Right controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {siblingGroupCount > 0 && onToggleSiblingGroups && (
+          <button
+            onClick={onToggleSiblingGroups}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: '28px',
+              padding: '0 10px',
+              borderRadius: '6px',
+              border: '0.5px solid rgba(55,138,221,0.25)',
+              background: 'rgba(55,138,221,0.08)',
+              color: '#60a5fa',
+              ...mono,
+              fontSize: '11px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {allCollapsed ? 'Expand All' : 'Collapse All'}
+          </button>
+        )}
         {/* Quick search */}
         <div
           style={{

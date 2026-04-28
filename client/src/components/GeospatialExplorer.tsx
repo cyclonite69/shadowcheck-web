@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
@@ -69,6 +69,7 @@ export default function GeospatialExplorer() {
     toggleSelectAll,
     allSelected,
     someSelected,
+    setSelectedNetworks,
   } = useNetworkSelection({
     networks,
     onSelectionChange: (newSelection) => {
@@ -80,6 +81,13 @@ export default function GeospatialExplorer() {
       }
     },
   });
+
+  const selectNetworkGroup = useCallback(
+    (bssids: string[]) => {
+      setSelectedNetworks(new Set(bssids));
+    },
+    [setSelectedNetworks]
+  );
 
   // Observations
   const {
@@ -210,6 +218,7 @@ export default function GeospatialExplorer() {
             linkedSiblingBssids={linkedSiblingBssids}
             visibleSiblingGroupMap={visibleSiblingGroupMap}
             selectNetworkExclusive={selectNetworkExclusive}
+            onSelectGroup={selectNetworkGroup}
             onOpenContextMenu={openContextMenu}
             toggleSelectNetwork={toggleSelectNetwork}
             loadMore={loadMore}

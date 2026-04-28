@@ -621,6 +621,7 @@
 - **test:** correct relative paths and remove redundant WiGLE enrichment tests ([b757322](https://github.com/cyclonite69/shadowcheck-web/commit/b7573229d9eba59ee72b2a92bbe0ad03ac23c20a))
 - **tests:** resolve all TypeScript compilation errors in test suite ([f08b3f4](https://github.com/cyclonite69/shadowcheck-web/commit/f08b3f40dd3c35900bf7b32a49239b2cdbedd67d))
 - **tests:** resolve implicit any[] and null safety errors in wigleImportRunRepository.test.ts ([ad67ba2](https://github.com/cyclonite69/shadowcheck-web/commit/ad67ba2d6125b5de6b1d9a87ba39c058537120df))
+- **tests:** resolve pre-existing test failures, fix schemas.ts zod record type ([db60e05](https://github.com/cyclonite69/shadowcheck-web/commit/db60e053702e2e942ac6abfda39398a71d65b4dc))
 - **tests:** update filterQueryBuilder test expectation for buildOrderBy ([74cbae9](https://github.com/cyclonite69/shadowcheck-web/commit/74cbae980c34f225c6715caf1eb3b8293d785e53))
 - **test:** use require() for CommonJS cacheService import ([c66777c](https://github.com/cyclonite69/shadowcheck-web/commit/c66777c36fab4e6ca376789e07d5fed8bb2c8c1f))
 - **threat-scoring:** exclude is_ignored networks from threat calculations ([68b2035](https://github.com/cyclonite69/shadowcheck-web/commit/68b2035afbc0abd99d84923aae5f37185c996678))

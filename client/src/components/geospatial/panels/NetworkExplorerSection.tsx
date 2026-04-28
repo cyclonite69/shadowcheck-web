@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { NetworkRow, SortState } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
 import { MapStatusBar } from '../MapStatusBar';
@@ -36,6 +36,7 @@ interface NetworkExplorerSectionProps {
   selectedAnchorBssid?: string | null;
   selectedAnchorHasLinkedSiblings?: boolean;
   onSelectExclusive: (bssid: string) => void;
+  onSelectGroup?: (bssids: string[]) => void;
   onOpenContextMenu: (
     event: React.MouseEvent<HTMLDivElement | HTMLTableRowElement>,
     net: NetworkRow
@@ -85,6 +86,7 @@ export const NetworkExplorerSection = ({
   selectedAnchorBssid,
   selectedAnchorHasLinkedSiblings,
   onSelectExclusive,
+  onSelectGroup,
   onOpenContextMenu,
   onToggleSelectNetwork,
   isLoadingMore,
@@ -103,6 +105,25 @@ export const NetworkExplorerSection = ({
 }: NetworkExplorerSectionProps) => {
   const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
 
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const allGroupIds = useMemo(() => new Set(siblingGroupMap?.values() ?? []), [siblingGroupMap]);
+
+  const toggleCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSiblingGroups = useCallback(() => {
+    setCollapsedGroups((prev) =>
+      prev.size === 0 ? new Set(siblingGroupMap?.values() ?? []) : new Set()
+    );
+  }, [siblingGroupMap]);
+
   return (
     <NetworkExplorerCard>
       <NetworkExplorerHeader
@@ -118,6 +139,9 @@ export const NetworkExplorerSection = ({
         onToggleColumnSelector={onToggleColumnSelector}
         onToggleColumn={onToggleColumn}
         onMoveColumn={onMoveColumn}
+        siblingGroupCount={allGroupIds.size}
+        allCollapsed={collapsedGroups.size > 0}
+        onToggleSiblingGroups={handleToggleSiblingGroups}
       />
 
       <NetworkTableHeaderGrid
@@ -142,8 +166,11 @@ export const NetworkExplorerSection = ({
         selectedAnchorBssid={selectedAnchorBssid}
         selectedAnchorHasLinkedSiblings={selectedAnchorHasLinkedSiblings}
         onSelectExclusive={onSelectExclusive}
+        onSelectGroup={onSelectGroup}
         onOpenContextMenu={onOpenContextMenu}
         onToggleSelectNetwork={onToggleSelectNetwork}
+        collapsedGroups={collapsedGroups}
+        onToggleCollapse={toggleCollapse}
         isLoadingMore={isLoadingMore}
         hasMore={hasMore}
         onLoadMore={onLoadMore}
