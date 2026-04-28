@@ -28,6 +28,7 @@ interface NetworkTableBodyGridProps {
   onSelectGroup?: (bssids: string[]) => void;
   onOpenContextMenu: (event: React.MouseEvent<HTMLDivElement>, net: NetworkRow) => void;
   onToggleSelectNetwork: (bssid: string) => void;
+  collapseAllActive: boolean;
   collapsedGroups: Set<string>;
   onToggleCollapse: (groupId: string) => void;
   isLoadingMore: boolean;
@@ -51,6 +52,7 @@ export const NetworkTableBodyGrid = ({
   onSelectGroup,
   onOpenContextMenu,
   onToggleSelectNetwork,
+  collapseAllActive,
   collapsedGroups,
   onToggleCollapse,
   isLoadingMore,
@@ -163,11 +165,15 @@ export const NetworkTableBodyGrid = ({
     return sortedDisplayNetworks.filter((net) => {
       const bssid = (net.bssid ?? '').toUpperCase();
       const groupId = patternGroups.groupMap.get(bssid);
-      if (!groupId || !collapsedGroups.has(groupId)) return true;
+      if (!groupId) return true;
+      const isCollapsed = collapseAllActive
+        ? !collapsedGroups.has(groupId)
+        : collapsedGroups.has(groupId);
+      if (!isCollapsed) return true;
       const members = patternGroups.groupMembers.get(groupId) ?? [];
       return bssid === members[0];
     });
-  }, [sortedDisplayNetworks, patternGroups, collapsedGroups]);
+  }, [sortedDisplayNetworks, patternGroups, collapseAllActive, collapsedGroups]);
 
   // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
   // This significantly reduces DOM nodes and render work during scrolling
@@ -308,7 +314,10 @@ export const NetworkTableBodyGrid = ({
           const isPatternSibling = patternGroupId !== null && !isPatternParent;
           const patternSiblingCount = patternGroupId !== null ? patternMembers.length - 1 : 0;
           const isPatternGroupCollapsed =
-            patternGroupId !== null && collapsedGroups.has(patternGroupId);
+            patternGroupId !== null &&
+            (collapseAllActive
+              ? !collapsedGroups.has(patternGroupId)
+              : collapsedGroups.has(patternGroupId));
 
           return (
             <NetworkTableRow

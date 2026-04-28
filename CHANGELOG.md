@@ -665,6 +665,7 @@
 - **types:** widen SchemaCompat function signatures to accept string aliases ([87ee284](https://github.com/cyclonite69/shadowcheck-web/commit/87ee2844da5cc1f1f49eb32f374e27db4f22fea9))
 - **ui:** align coordinate hovers and note routes ([0bb6cfb](https://github.com/cyclonite69/shadowcheck-web/commit/0bb6cfbea5495a3d5299b799d891cecada5b86a4))
 - **ui:** collapse all-tags cell into single hoverable badge ([12ca1b4](https://github.com/cyclonite69/shadowcheck-web/commit/12ca1b42f96283f3d213a24ffabf85204e96a2e6))
+- **ui:** context menu closes on outside click and Escape key ([fdda24f](https://github.com/cyclonite69/shadowcheck-web/commit/fdda24f9a24878cda32a1f2f68873cf608a5632a))
 - **ui:** correct explorer distance units ([9bae5cd](https://github.com/cyclonite69/shadowcheck-web/commit/9bae5cd35276e1456335ff80ca557fd0077e609b))
 - **ui:** ensure frequency, channel and canonical security are populated in observation tooltips ([25ececc](https://github.com/cyclonite69/shadowcheck-web/commit/25ececc1446909a25ec037e77fca68b4d206f547))
 - **ui:** improve column menu and clean docker docs ([dd8c478](https://github.com/cyclonite69/shadowcheck-web/commit/dd8c47838cbdffa27fc23f3c440fec4bfc4897bb))

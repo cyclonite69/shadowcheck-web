@@ -105,6 +105,7 @@ export const NetworkExplorerSection = ({
 }: NetworkExplorerSectionProps) => {
   const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
 
+  const [collapseAllActive, setCollapseAllActive] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const allGroupIds = useMemo(() => new Set(siblingGroupMap?.values() ?? []), [siblingGroupMap]);
@@ -119,10 +120,9 @@ export const NetworkExplorerSection = ({
   }, []);
 
   const handleToggleSiblingGroups = useCallback(() => {
-    setCollapsedGroups((prev) =>
-      prev.size === 0 ? new Set(siblingGroupMap?.values() ?? []) : new Set()
-    );
-  }, [siblingGroupMap]);
+    setCollapseAllActive((prev) => !prev);
+    setCollapsedGroups(new Set());
+  }, []);
 
   return (
     <NetworkExplorerCard>
@@ -140,7 +140,7 @@ export const NetworkExplorerSection = ({
         onToggleColumn={onToggleColumn}
         onMoveColumn={onMoveColumn}
         siblingGroupCount={allGroupIds.size}
-        allCollapsed={collapsedGroups.size > 0}
+        allCollapsed={collapseAllActive}
         onToggleSiblingGroups={handleToggleSiblingGroups}
       />
 
@@ -169,6 +169,7 @@ export const NetworkExplorerSection = ({
         onSelectGroup={onSelectGroup}
         onOpenContextMenu={onOpenContextMenu}
         onToggleSelectNetwork={onToggleSelectNetwork}
+        collapseAllActive={collapseAllActive}
         collapsedGroups={collapsedGroups}
         onToggleCollapse={toggleCollapse}
         isLoadingMore={isLoadingMore}
