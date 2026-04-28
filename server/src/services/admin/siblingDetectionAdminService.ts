@@ -1,7 +1,7 @@
 const logger = require('../../logging/logger');
 import { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL } from './siblingDetectionQueries';
 
-// Three additional rule classes derived from manual ground truth analysis.
+// Four additional rule classes derived from manual ground truth analysis.
 // Run once per refresh after the chunked REFRESH_CHUNK_SQL loop, as a single
 // full-table pass. ON CONFLICT only upgrades confidence, never downgrades.
 const EXTRA_RULES_SQL = `
@@ -105,11 +105,58 @@ const EXTRA_RULES_SQL = `
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
+  ),
+  same_oui_proximity AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, distance_m, quality_scope, computed_at
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'same_oui_proximity',
+      0.93,
+      CASE
+        WHEN COALESCE(a.bestlat, a.lastlat) IS NULL OR COALESCE(b.bestlat, b.lastlat) IS NULL
+        THEN NULL
+        ELSE ST_Distance(
+          ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+        )
+      END,
+      'default',
+      now()
+    FROM app.networks a
+    JOIN app.networks b
+      ON SUBSTRING(b.bssid, 1, 8) = SUBSTRING(a.bssid, 1, 8)
+     AND ABS(
+           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
+           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
+         ) BETWEEN 1 AND 6
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND (
+        COALESCE(a.bestlat, a.lastlat) IS NULL
+        OR COALESCE(b.bestlat, b.lastlat) IS NULL
+        OR ST_Distance(
+          ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+        ) < 100
+      )
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
   )
   SELECT
-    (SELECT COUNT(*)::int FROM upper_rotation) AS upper_rotation_count,
-    (SELECT COUNT(*)::int FROM ssid_anchor)    AS ssid_anchor_count,
-    (SELECT COUNT(*)::int FROM cross_oui_ssid) AS cross_oui_count
+    (SELECT COUNT(*)::int FROM upper_rotation)     AS upper_rotation_count,
+    (SELECT COUNT(*)::int FROM ssid_anchor)        AS ssid_anchor_count,
+    (SELECT COUNT(*)::int FROM cross_oui_ssid)     AS cross_oui_count,
+    (SELECT COUNT(*)::int FROM same_oui_proximity) AS same_oui_proximity_count
 `;
 import {
   getSiblingRefreshStatus,
@@ -185,6 +232,7 @@ async function runSiblingRefreshJob(
     upper_rotation: extraRow.upper_rotation_count,
     ssid_anchor: extraRow.ssid_anchor_count,
     cross_oui: extraRow.cross_oui_count,
+    same_oui_proximity: extraRow.same_oui_proximity_count,
   });
 
   return {
