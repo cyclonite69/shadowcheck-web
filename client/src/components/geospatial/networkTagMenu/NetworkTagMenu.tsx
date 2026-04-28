@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import type { NetworkRow, NetworkTag } from '../../../types/network';
@@ -34,6 +34,7 @@ interface NetworkTagMenuProps {
   } | null;
   onMarkSiblingPair?: () => void;
   siblingPairLoading?: boolean;
+  onClose?: () => void;
 }
 
 export const NetworkTagMenu = ({
@@ -55,6 +56,7 @@ export const NetworkTagMenu = ({
   manualSiblingTarget,
   onMarkSiblingPair,
   siblingPairLoading,
+  onClose,
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
   const [menuSize, setMenuSize] = useState({ width: 200, height: 0 });
@@ -77,6 +79,26 @@ export const NetworkTagMenu = ({
     hasExistingNote,
     isAdmin,
   ]);
+
+  useEffect(() => {
+    if (!visible || !onClose) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [visible, onClose, contextMenuRef]);
 
   if (!visible || !network || typeof document === 'undefined' || typeof window === 'undefined') {
     return null;

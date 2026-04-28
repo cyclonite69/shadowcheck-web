@@ -64,6 +64,7 @@ export const GeospatialOverlays = ({
   tagLoading,
   contextMenuRef,
   onTagAction,
+  onCloseContextMenu,
   onOpenTimeFrequency,
   onOpenNote,
   hasExistingNote,
@@ -119,6 +120,7 @@ export const GeospatialOverlays = ({
         manualSiblingTarget={manualSiblingTarget}
         onMarkSiblingPair={onMarkSiblingPair}
         siblingPairLoading={siblingPairLoading}
+        onClose={onCloseContextMenu}
       />
 
       <NetworkNoteModal

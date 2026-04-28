@@ -570,6 +570,7 @@
 - robust Mapbox Standard 3D building and terrain support ([10e636f](https://github.com/cyclonite69/shadowcheck-web/commit/10e636fcd2667dd380292c872b9519adc8ac7900))
 - robust Podman socket detection and explicit DOCKER_HOST propagation ([7f9c12a](https://github.com/cyclonite69/shadowcheck-web/commit/7f9c12ada5b8178ea4bcba002efb46480a9473e5))
 - robust Podman socket detection with dynamic UID resolution ([6b479b6](https://github.com/cyclonite69/shadowcheck-web/commit/6b479b6ba41a1867594784906f499a813418f37f))
+- **routes:** add spawn error handlers to sqlite/sql/kml import routes ([d06aae5](https://github.com/cyclonite69/shadowcheck-web/commit/d06aae5ac61e67389d4e1fbb8438c5fb7cbe8468))
 - run migrations before backend starts to prevent DB_INITIALIZING 503 ([3a27d2f](https://github.com/cyclonite69/shadowcheck-web/commit/3a27d2f12b61ce7c5f74297fd626b18cef4eeca7))
 - **script:** match scs_rebuild password passing pattern ([30d66b6](https://github.com/cyclonite69/shadowcheck-web/commit/30d66b65f53a87dc71eea550a4ee55729ac98d33))
 - **scripts:** use admin creds for migrations ([f9df8ab](https://github.com/cyclonite69/shadowcheck-web/commit/f9df8abf40b3d19d4939609b9fc88498014ce78e))
