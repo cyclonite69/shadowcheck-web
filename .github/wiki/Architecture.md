@@ -653,9 +653,9 @@ graph LR
 
 ```mermaid
 graph TB
-    A[docker-compose up] --> B[shadowcheck-app<br/>Container]
+    A[docker-compose up] --> B[api<br/>Container]
     A --> C[postgres<br/>Container]
-    A --> D[shadowcheck-redis<br/>Container]
+    A --> D[redis<br/>Container]
     A --> E[pgadmin<br/>Container]
 
     B --> C
@@ -702,7 +702,7 @@ graph TB
 | ------------ | ------- | ---------------- |
 | React        | 19.x    | UI framework     |
 | TypeScript   | 5.x     | Type safety      |
-| Vite         | 7.x     | Build tool       |
+| Vite         | 8.x     | Build tool       |
 | Tailwind CSS | 4.x     | Styling          |
 | Mapbox GL JS | 3.x     | Mapping          |
 | Zustand      | 5.x     | State management |

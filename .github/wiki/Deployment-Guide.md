@@ -113,11 +113,11 @@ npm run dev
 ```mermaid
 graph TB
     subgraph "Docker Network: shadowcheck-network"
-        A[shadowcheck-app<br/>Node.js App<br/>Port 3001]
+        A[api<br/>Node.js App<br/>Port 3001]
         B[postgres<br/>PostgreSQL 18<br/>Port 5432]
-        C[shadowcheck-redis<br/>Redis 7<br/>Port 6379]
+        C[redis<br/>Redis 7<br/>Port 6379]
         D[pgadmin<br/>pgAdmin 4<br/>Port 5050]
-        I[shadowcheck-grafana<br/>Grafana<br/>Port 3002]
+        I[grafana<br/>Grafana<br/>Port 3002]
     end
 
     E[Host Machine] --> A
@@ -331,17 +331,17 @@ flowchart LR
 
 ### Required Variables
 
-| Variable      | Development      | Docker            | AWS               |
-| ------------- | ---------------- | ----------------- | ----------------- |
-| `DB_HOST`     | `postgres`       | `postgres`        | `postgres`        |
-| `DB_PORT`     | 5432             | 5432              | 5432              |
-| `DB_NAME`     | shadowcheck_db   | shadowcheck_db    | shadowcheck_db    |
-| `DB_USER`     | shadowcheck_user | shadowcheck_user  | shadowcheck_user  |
-| `DB_PASSWORD` | ⚠️ Required      | ⚠️ Required       | ⚠️ Required       |
-| `REDIS_HOST`  | localhost        | shadowcheck-redis | shadowcheck-redis |
-| `REDIS_PORT`  | 6379             | 6379              | 6379              |
-| `PORT`        | 3001             | 3001              | 3001              |
-| `NODE_ENV`    | development      | production        | production        |
+| Variable      | Development      | Docker           | AWS              |
+| ------------- | ---------------- | ---------------- | ---------------- |
+| `DB_HOST`     | `postgres`       | `postgres`       | `postgres`       |
+| `DB_PORT`     | 5432             | 5432             | 5432             |
+| `DB_NAME`     | shadowcheck_db   | shadowcheck_db   | shadowcheck_db   |
+| `DB_USER`     | shadowcheck_user | shadowcheck_user | shadowcheck_user |
+| `DB_PASSWORD` | ⚠️ Required      | ⚠️ Required      | ⚠️ Required      |
+| `REDIS_HOST`  | localhost        | redis            | redis            |
+| `REDIS_PORT`  | 6379             | 6379             | 6379             |
+| `PORT`        | 3001             | 3001             | 3001             |
+| `NODE_ENV`    | development      | production       | production       |
 
 ---
 
