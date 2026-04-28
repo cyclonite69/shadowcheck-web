@@ -71,6 +71,12 @@ router.post('/admin/import-sqlite', upload.single('database'), async (req, res) 
     errorOutput = '';
   importProcess.stdout.on('data', (d) => (output += d));
   importProcess.stderr.on('data', (d) => (errorOutput += d));
+  importProcess.on('error', async (err) => {
+    if (historyId) {
+      await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
+    }
+    res.status(500).json({ ok: false, error: err.message });
+  });
   importProcess.on('close', async (code) => {
     await fs.unlink(sqliteFile).catch(() => {});
     const durationS = ((Date.now() - startedAt.getTime()) / 1000).toFixed(2);

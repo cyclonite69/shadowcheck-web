@@ -911,6 +911,7 @@
 - exclude ignored networks from threat scoring ([e5d3754](https://github.com/cyclonite69/shadowcheck-web/commit/e5d3754643d1372e32a8fea286a0d0e107dde6b5))
 - expose sibling detection tuning via admin UI ([c0aa347](https://github.com/cyclonite69/shadowcheck-web/commit/c0aa347266fe4208ae27b28f28960c7fd582eefa))
 - extend DB stats with Materialized View health and Unused Index report ([847aebd](https://github.com/cyclonite69/shadowcheck-web/commit/847aebd00653f97b88a331f6cfd371c7bd8929d3))
+- **filter:** add pipe OR syntax to SSID filter (fbi|surveillance) ([fb44b56](https://github.com/cyclonite69/shadowcheck-web/commit/fb44b56d032ba0fb68b638c5c61910f492eea08e))
 - **filter:** enable WiGLE observation and import date filters universally across all pages ([11c3109](https://github.com/cyclonite69/shadowcheck-web/commit/11c3109b7feaff4165212975507113dbb734b901))
 - **filters:** add first/last seen scopes, bssid wildcards, and ssid exclusions ([aaa405b](https://github.com/cyclonite69/shadowcheck-web/commit/aaa405be421e706061eafd00ee4307077f1f842c))
 - **filters:** comprehensive universal filter expansion for MV columns and geocoding ([248ad05](https://github.com/cyclonite69/shadowcheck-web/commit/248ad0528f7de86b73d42151c29eca99cbd87ed1))

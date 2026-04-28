@@ -48,6 +48,12 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
     errorOutput = '';
   p.stdout.on('data', (d) => (output += d));
   p.stderr.on('data', (d) => (errorOutput += d));
+  p.on('error', async (err) => {
+    if (historyId) {
+      await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
+    }
+    res.status(500).json({ ok: false, error: err.message });
+  });
   p.on('close', async (code) => {
     await fs.unlink(sqlFile).catch(() => {});
     const durationS = ((Date.now() - startedAt) / 1000).toFixed(2);

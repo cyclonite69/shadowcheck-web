@@ -37,7 +37,12 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
   const bucketName = String(process.env.S3_BACKUP_BUCKET || '').trim();
   const prefix = String(process.env.KML_IMPORT_PREFIX || 'imports/kml/').replace(/^\/+|\/+$/g, '');
   const batchId = `kml_${Date.now()}`;
-  const relativePaths = parseRelativePathsPayload(req.body?.relative_paths);
+  let relativePaths;
+  try {
+    relativePaths = parseRelativePathsPayload(req.body?.relative_paths);
+  } catch (parseErr) {
+    return res.status(400).json({ ok: false, error: parseErr.message });
+  }
   const tempBatchDir = await fs.mkdtemp(path.join(os.tmpdir(), 'kml-import-'));
   const cleanupTargets = uploadedFiles.map((f) => f.path).concat(tempBatchDir);
   let historyId = 0;
@@ -61,7 +66,7 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
       }
     }
     const { cmd, args } = getKmlImportCommand(tempBatchDir, sourceType);
-    const importResult = await new Promise((resolve) => {
+    const importResult = await new Promise((resolve, reject) => {
       const p = spawn(cmd, args, {
         cwd: PROJECT_ROOT,
         env: {
@@ -75,6 +80,7 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
       p.stdout.on('data', (d) => (output += d));
       p.stderr.on('data', (d) => (errorOutput += d));
       p.on('close', (code) => resolve({ code, output, errorOutput }));
+      p.on('error', reject);
     });
     const durationSec = ((Date.now() - startedAt) / 1000).toFixed(2);
     if (importResult.code !== 0) {
