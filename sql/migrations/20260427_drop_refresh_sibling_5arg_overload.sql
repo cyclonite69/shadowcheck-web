@@ -1,0 +1,12 @@
+-- Drop the 5-arg overload of app.refresh_network_sibling_pairs introduced in
+-- 20260216_consolidated_009_functions_and_triggers.sql.
+--
+-- The 6-arg overload (with p_incremental boolean, from 20260331_consolidated_011.sql)
+-- is the only active caller path. runners.ts:102 passes 6 args:
+--   SELECT app.refresh_network_sibling_pairs($1, $2, $3, 0.92, $4, $5)
+--   [maxOctetDelta, maxDistanceM, minCandidateConf, seedLimit, incremental]
+-- which resolves unambiguously to the 6-arg signature.
+--
+-- The 5-arg overload (no p_incremental) receives zero calls. Dropping it
+-- eliminates the ambiguity and dead weight.
+DROP FUNCTION IF EXISTS app.refresh_network_sibling_pairs(integer, numeric, numeric, numeric, integer);

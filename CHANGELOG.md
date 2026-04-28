@@ -1,4 +1,4 @@
-# 1.0.0 (2026-04-27)
+# 1.0.0 (2026-04-28)
 
 ### Bug Fixes
 
@@ -1003,6 +1003,7 @@
 - server TS migration batches 6-7 (utils, middleware, errors) ([2b11ce0](https://github.com/cyclonite69/shadowcheck-web/commit/2b11ce04aa7b31f3af6963d1fc12ee75cc0b6a5d))
 - show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
 - **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
+- **siblings:** remove areBssidSiblings, wire siblingGroupMap through explorer chain ([992d754](https://github.com/cyclonite69/shadowcheck-web/commit/992d7542f4d081d5b205eedca3ab74fbb4ebec99))
 - **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))
 - SM-only secrets, fix networks API, scheduled backups, migration cleanup ([7d5403b](https://github.com/cyclonite69/shadowcheck-web/commit/7d5403b60aef8c08541eb7c00dcd23666d27826f))
 - smart radio-type-aware tooltips and signal range estimation ([7504f5e](https://github.com/cyclonite69/shadowcheck-web/commit/7504f5eb3b2dc60281fea7bb59000e3b217fcf9c))
