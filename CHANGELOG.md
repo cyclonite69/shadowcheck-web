@@ -1035,6 +1035,7 @@
 - **ui/api:** implement network tooltip enhancements, geocoding display, and mobile ingest visibility improvements ([4e55d5e](https://github.com/cyclonite69/shadowcheck-web/commit/4e55d5e50bebb04b11fb86aaf96de78d6b8c10d4))
 - **ui:** add hover tooltips for truncated fields in networks explorer ([10c010e](https://github.com/cyclonite69/shadowcheck-web/commit/10c010eb1f2bc8055f2bb1343438ab42f9180d12))
 - **ui:** add live-metrics start page aligned with dashboard aesthetic ([d59df7d](https://github.com/cyclonite69/shadowcheck-web/commit/d59df7dd678d8400e8d4fa2871c596d2b59f8448))
+- **ui:** collapse-all toggle + parent-selects-group on sibling rows ([c0f5013](https://github.com/cyclonite69/shadowcheck-web/commit/c0f5013123b3a28ba2504c5488a99f21dcbd4df1))
 - **ui:** enhance map tooltips with specific observation data and calculated quality metrics ([5e7cc73](https://github.com/cyclonite69/shadowcheck-web/commit/5e7cc73cd02d44e7ec8b703b93f81c5ac48bce21))
 - **ui:** ensure map tooltips are visible within viewport and responsive ([3596bb9](https://github.com/cyclonite69/shadowcheck-web/commit/3596bb9f61dcbf059f7b5137899ea46b8f8cc7d5))
 - **ui:** gate start page behind VITE_DEMO_MODE ([615cba8](https://github.com/cyclonite69/shadowcheck-web/commit/615cba81b5d00e8a9253a741dcf65cebcd5c6cdc))

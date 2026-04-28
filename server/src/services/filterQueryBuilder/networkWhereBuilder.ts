@@ -19,22 +19,36 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
           ? token.substring(1).trim()
           : token.substring(4).trim()
         : token;
-      const wildcardToken = normalizeWildcards(cleanToken);
-      const pattern =
-        wildcardToken.includes('%') || wildcardToken.includes('_')
-          ? wildcardToken
-          : `%${wildcardToken}%`;
-      const p = ctx.addParam(pattern);
-      if (isNegated) {
-        return `(ne.ssid NOT ILIKE ${p} AND NOT EXISTS (
+
+      const buildAlt = (alt: string): string => {
+        const wildcardToken = normalizeWildcards(alt);
+        const pattern =
+          wildcardToken.includes('%') || wildcardToken.includes('_')
+            ? wildcardToken
+            : `%${wildcardToken}%`;
+        const p = ctx.addParam(pattern);
+        if (isNegated) {
+          return `(ne.ssid NOT ILIKE ${p} AND NOT EXISTS (
           SELECT 1 FROM app.observations o2
           WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
         ))`;
-      }
-      return `(ne.ssid ILIKE ${p} OR EXISTS (
+        }
+        return `(ne.ssid ILIKE ${p} OR EXISTS (
         SELECT 1 FROM app.observations o2
         WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
       ))`;
+      };
+
+      const alternatives = cleanToken
+        .split('|')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (alternatives.length <= 1) {
+        return buildAlt(alternatives[0] ?? cleanToken);
+      }
+      const altClauses = alternatives.map(buildAlt);
+      // Positive OR-group: (A OR B). Negated OR-group: NOT A AND NOT B (De Morgan).
+      return isNegated ? `(${altClauses.join(' AND ')})` : `(${altClauses.join(' OR ')})`;
     });
     networkWhere.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' AND ')})`);
     ctx.addApplied('identity', 'ssid', f.ssid);
