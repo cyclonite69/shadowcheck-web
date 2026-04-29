@@ -1,6 +1,7 @@
 /**
  * WiGLE v3 Enrichment Service
- * Batches v3 detail lookups for existing v2 search results.
+ * Slim orchestrator — delegates data access to wigleEnrichmentRepository
+ * and per-item fetching to wigleEnrichmentFetcher.
  */
 
 import * as container from '../config/container';
@@ -8,6 +9,18 @@ import logger from '../logging/logger';
 import { assertBulkWigleAllowed } from './wigleBulkPolicy';
 import { fetchWigle } from './wigleClient';
 import { hashRecord } from './wigleRequestUtils';
+import { fetchAndImportDetail } from './wigleEnrichmentFetcher';
+import {
+  getPendingEnrichmentCount,
+  getEnrichmentCatalog,
+  getNextEnrichmentBatch,
+  getActiveEnrichmentRunId,
+  setRunTotalItems,
+  incrementRunProgress,
+  getRunStatus,
+  resetRunForResume,
+  refreshWigleNetworksMv,
+} from '../repositories/wigleEnrichmentRepository';
 import {
   createImportRun,
   getImportRun,
@@ -16,308 +29,20 @@ import {
   completeRun,
 } from './wigleImport/runRepository';
 
-const { adminDbService, wigleService, secretsManager } = container as any;
-const { adminQuery } = adminDbService;
+export { getPendingEnrichmentCount, getEnrichmentCatalog };
 
-interface WigleV3LocationCluster {
-  clusterSsid?: string;
-  locations?: Array<{ ssid?: string; [key: string]: unknown }>;
-  [key: string]: unknown;
-}
-
-interface WigleV3DetailResponse {
-  networkId: string;
-  name?: string;
-  type?: string;
-  comment?: string;
-  locationClusters?: WigleV3LocationCluster[];
-  trilateratedLatitude?: number;
-  trilateratedLongitude?: number;
-  encryption?: string;
-  channel?: number;
-  firstSeen?: string;
-  lastSeen?: string;
-  lastUpdate?: string;
-  streetAddress?: unknown;
-  [key: string]: unknown;
-}
+const { secretsManager } = container as any;
 
 const ENRICHMENT_DELAY_MS = 20_000;
-const BATCH_SIZE = 100;
-
-/**
- * Get count of unique BSSIDs in v2 search results
- */
-export async function getPendingEnrichmentCount(): Promise<number> {
-  const sql = `SELECT COUNT(DISTINCT bssid)::int AS count FROM app.wigle_v2_networks_search`;
-  const { rows } = await adminQuery(sql);
-  return rows[0]?.count || 0;
-}
-
-/**
- * Get the full enrichment catalog with current v3 stats
- */
-export async function getEnrichmentCatalog(options: {
-  page?: number;
-  limit?: number;
-  region?: string;
-  city?: string;
-  ssid?: string;
-  bssid?: string;
-}) {
-  const page = options.page || 1;
-  const limit = options.limit || 50;
-  const offset = (page - 1) * limit;
-
-  const where: string[] = [];
-  const filterParams: any[] = [];
-
-  if (options.region) {
-    where.push(`TRIM(region) ILIKE $${filterParams.push(options.region.trim() + '%')}`);
-  }
-  if (options.city) {
-    where.push(`TRIM(city) ILIKE $${filterParams.push(options.city.trim() + '%')}`);
-  }
-  if (options.ssid) {
-    where.push(`ssid ILIKE $${filterParams.push('%' + options.ssid.trim() + '%')}`);
-  }
-  if (options.bssid) {
-    where.push(`bssid ILIKE $${filterParams.push(options.bssid.trim() + '%')}`);
-  }
-
-  const subWhereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
-
-  // Main query parameters: [limit, offset, ...filters]
-  const queryParams = [limit, offset, ...filterParams];
-
-  const sql = `
-    SELECT 
-      v2.bssid, 
-      v2.ssid, 
-      v2.region, 
-      v2.city, 
-      v2.type,
-      v2.lasttime,
-      v3.imported_at as last_v3_import,
-      (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) as v3_obs_count
-    FROM (
-      SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, lasttime
-      FROM app.wigle_v2_networks_search
-      ${subWhereClause}
-      ORDER BY bssid, lasttime DESC
-    ) v2
-    LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-    ORDER BY v2.lasttime DESC, v2.bssid ASC
-    LIMIT $1 OFFSET $2
-  `;
-
-  // For the main query, filters start at $3
-  let mainSql = sql;
-  filterParams.forEach((_, i) => {
-    // Replace the $N in subWhereClause which were $1, $2... with $3, $4...
-    // We do this by calculating the offset.
-    // Actually, it's easier to just build the WHERE clause with the correct numbers.
-  });
-
-  // Re-build where with correct numbering for each query
-  const getWhere = (startIndex: number) => {
-    const w: string[] = [];
-    let idx = startIndex;
-    if (options.region) w.push(`TRIM(region) ILIKE $${idx++}`);
-    if (options.city) w.push(`TRIM(city) ILIKE $${idx++}`);
-    if (options.ssid) w.push(`ssid ILIKE $${idx++}`);
-    if (options.bssid) w.push(`bssid ILIKE $${idx++}`);
-    return w.length > 0 ? `WHERE ${w.join(' AND ')}` : '';
-  };
-
-  const mainWhere = getWhere(3);
-  const countWhere = getWhere(1);
-
-  const finalSql = `
-    SELECT
-      v2.bssid,
-      v2.ssid,
-      v2.region,
-      v2.city,
-      v2.type,
-      v2.firsttime,
-      v2.lasttime,
-      v3.imported_at as last_v3_import,
-      (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) as v3_obs_count
-    FROM (
-      SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, firsttime, lasttime
-      FROM app.wigle_v2_networks_search
-      ${mainWhere}
-      ORDER BY bssid, lasttime DESC
-    ) v2
-    LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-    ORDER BY v2.lasttime DESC, v2.bssid ASC
-    LIMIT $1 OFFSET $2
-  `;
-
-  const countSql = `
-    SELECT COUNT(DISTINCT bssid)::int 
-    FROM app.wigle_v2_networks_search
-    ${countWhere}
-  `;
-
-  const [dataResult, countResult] = await Promise.all([
-    adminQuery(finalSql, queryParams),
-    adminQuery(countSql, filterParams),
-  ]);
-
-  return {
-    data: dataResult.rows,
-    total: countResult.rows[0]?.count || 0,
-    page,
-    limit,
-  };
-}
-
-/**
- * Get next batch of BSSIDs to enrich
- */
-async function getNextEnrichmentBatch(limit = BATCH_SIZE, manualList?: string[]): Promise<any[]> {
-  if (manualList && manualList.length > 0) {
-    // For manual runs, we pull the requested BSSIDs
-    const sql = `
-      SELECT DISTINCT ON (bssid) bssid, type
-      FROM app.wigle_v2_networks_search
-      WHERE bssid = ANY($2::text[])
-      ORDER BY bssid, lasttime DESC
-      LIMIT $1
-    `;
-    const { rows } = await adminQuery(sql, [limit, manualList]);
-    return rows;
-  }
-
-  // Global batch: pull those missing v3 details first
-  const sql = `
-    SELECT DISTINCT ON (v2.bssid) v2.bssid, v2.type
-    FROM app.wigle_v2_networks_search v2
-    LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-    WHERE v3.netid IS NULL
-    ORDER BY v2.bssid, v2.lasttime DESC
-    LIMIT $1
-  `;
-  const { rows } = await adminQuery(sql, [limit]);
-  return rows;
-}
-
-/**
- * Returns the id of any v3 enrichment run currently in 'running' state, or null
- * if none exist. Pass excludeRunId to ignore a specific run (used by resumeEnrichment
- * to avoid blocking itself).
- */
-async function getActiveEnrichmentRunId(excludeRunId?: number): Promise<number | null> {
-  const { rows } = await adminQuery(
-    excludeRunId != null
-      ? `SELECT id FROM app.wigle_import_runs
-         WHERE status = 'running' AND source IN ('v3_manual', 'v3_batch') AND id != $1
-         LIMIT 1`
-      : `SELECT id FROM app.wigle_import_runs
-         WHERE status = 'running' AND source IN ('v3_manual', 'v3_batch')
-         LIMIT 1`,
-    excludeRunId != null ? [excludeRunId] : []
-  );
-  return rows[0]?.id ?? null;
-}
-
-const inferWigleEndpoint = (networkType: string | null | undefined): 'wifi' | 'bt' => {
-  const normalized = String(networkType || '')
-    .trim()
-    .toUpperCase();
-  if (normalized === 'B' || normalized === 'E') return 'bt';
-  return 'wifi';
-};
-
-async function fetchAndImportDetail(bssid: string, type: string) {
-  const wigleApiName = secretsManager.get('wigle_api_name');
-  const wigleApiToken = secretsManager.get('wigle_api_token');
-  if (!wigleApiName || !wigleApiToken) throw new Error('WiGLE API credentials not configured');
-
-  const endpoint = inferWigleEndpoint(type);
-  const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-
-  const response = await fetchWigle({
-    kind: 'detail',
-    url: `https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`,
-    timeoutMs: 15000,
-    maxRetries: 1,
-    label: 'WiGLE Batch Enrichment',
-    entrypoint: 'enrichment',
-    paramsHash: hashRecord({ endpoint, bssid }),
-    endpointType: `v3/detail/${endpoint}`,
-    init: {
-      headers: {
-        Authorization: `Basic ${encodedAuth}`,
-        Accept: 'application/json',
-      },
-    },
-  });
-
-  if (response.status === 404) return null;
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`WiGLE API failed (${response.status}): ${errorText}`);
-  }
-
-  const data = (await response.json()) as any;
-  if (!data?.networkId) return null;
-
-  // Import detail (using UPSERT logic inside wigleService if it already handles it,
-  // or relying on ON CONFLICT logic in the DB layer)
-  await wigleService.importWigleV3NetworkDetail({
-    netid: data.networkId,
-    name: data.name,
-    type: data.type,
-    comment: data.comment,
-    ssid: data.locationClusters?.[0]?.clusterSsid || data.name,
-    trilat: data.trilateratedLatitude,
-    trilon: data.trilateratedLongitude,
-    encryption: data.encryption,
-    channel: data.channel,
-    first_seen: data.firstSeen,
-    last_seen: data.lastSeen,
-    last_update: data.lastUpdate,
-    street_address: JSON.stringify(data.streetAddress || null),
-    location_clusters: JSON.stringify(data.locationClusters || []),
-  });
-
-  // Import observations
-  let obsCount = 0;
-  if (Array.isArray(data.locationClusters)) {
-    for (const cluster of data.locationClusters) {
-      if (!Array.isArray(cluster.locations)) continue;
-      for (const loc of cluster.locations) {
-        try {
-          const inserted = await wigleService.importWigleV3Observation(
-            data.networkId,
-            loc,
-            loc.ssid || cluster.clusterSsid || data.name
-          );
-          obsCount += inserted;
-        } catch (e) {
-          // Continue on individual obs failure
-        }
-      }
-    }
-  }
-
-  return { bssid, obsCount };
-}
 
 export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
-  let run = await getImportRun(runId);
+  const run = await getImportRun(runId);
   if (run.status === 'completed' || run.status === 'cancelled') return run;
 
   /**
    * In-memory guard against tight re-fetch loops within a single run.
-   *
-   * Intentionally NOT persisted: on resume, the Set is empty and any BSSID that
-   * failed non-fatally in a prior run is eligible to be retried. This is correct —
-   * the Set only prevents the same BSSID from being re-queued within one continuous
-   * execution, not permanently skipped.
+   * Not persisted: on resume the Set is empty so any previously-failed BSSID
+   * is eligible for retry. This is intentional.
    */
   const processed = new Set<string>();
 
@@ -327,25 +52,20 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
 
   try {
     for (;;) {
-      // Re-fetch run to check for pause/cancel
-      const { rows } = await adminQuery('SELECT status FROM app.wigle_import_runs WHERE id = $1', [
-        runId,
-      ]);
-      const currentStatus = rows[0]?.status;
+      const currentStatus = await getRunStatus(runId);
       if (currentStatus === 'paused' || currentStatus === 'cancelled') {
         logger.info(`[v3 Enrichment] Loop stopped: ${currentStatus}`);
         return;
       }
 
-      // If manual, filter out what we already did this loop
       const activeManualList = manualList ? manualList.filter((b) => !processed.has(b)) : undefined;
-
       const batch = await getNextEnrichmentBatch(5, activeManualList);
+
       if (batch.length === 0) {
         await completeRun(runId);
         logger.info(`[v3 Enrichment] Completed run #${runId}`);
         try {
-          await adminQuery('SELECT app.refresh_wigle_networks_mv()');
+          await refreshWigleNetworksMv();
           logger.info('[v3 Enrichment] Refreshed api_wigle_networks_mv');
         } catch (mvErr: any) {
           logger.warn('[v3 Enrichment] MV refresh skipped (not yet applied?):', mvErr.message);
@@ -357,16 +77,7 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
         try {
           await fetchAndImportDetail(item.bssid, item.type);
           processed.add(item.bssid);
-
-          // Update progress in run table
-          await adminQuery(
-            `UPDATE app.wigle_import_runs
-             SET rows_inserted = rows_inserted + 1,
-                 pages_fetched = pages_fetched + 1,
-                 updated_at = NOW()
-             WHERE id = $1`,
-            [runId]
-          );
+          await incrementRunProgress(runId);
 
           if (process.env.NODE_ENV !== 'test') {
             await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_DELAY_MS));
@@ -379,13 +90,10 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
             err.message?.includes('403')
           ) {
             await markRunControlStatus(runId, 'paused');
-            logger.warn(`[v3 Enrichment] WiGLE blocked/throttled request. Pausing run #${runId}`);
+            logger.warn(`[v3 Enrichment] WiGLE blocked/throttled. Pausing run #${runId}`);
             return;
           }
-          // Log but continue for other errors
           logger.error(`[v3 Enrichment] Failed item ${item.bssid}: ${err.message}`);
-          // Suppress re-fetch this run only; the Set is not persisted, so the BSSID
-          // will be retried on the next resume.
           processed.add(item.bssid);
         }
       }
@@ -398,11 +106,9 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
 
 export async function startBatchEnrichment(bssids?: string[]) {
   const isManual = Array.isArray(bssids) && bssids.length > 0;
-  if (!isManual) {
-    assertBulkWigleAllowed('Start Batch Enrichment (Full Backlog)');
-  }
-  const pending = isManual ? bssids!.length : await getPendingEnrichmentCount();
+  if (!isManual) assertBulkWigleAllowed('Start Batch Enrichment (Full Backlog)');
 
+  const pending = isManual ? bssids!.length : await getPendingEnrichmentCount();
   if (pending === 0) {
     throw new Error(
       isManual ? 'No valid BSSIDs provided for enrichment' : 'No networks found in v2 catalog'
@@ -411,10 +117,9 @@ export async function startBatchEnrichment(bssids?: string[]) {
 
   const conflictId = await getActiveEnrichmentRunId();
   if (conflictId !== null) {
-    logger.warn(
-      `[v3 Enrichment] Concurrency guard: run #${conflictId} is already active. Rejecting new start.`,
-      { conflictId }
-    );
+    logger.warn(`[v3 Enrichment] Concurrency guard: run #${conflictId} already active.`, {
+      conflictId,
+    });
     throw Object.assign(
       new Error(
         `An enrichment run (#${conflictId}) is already active. Pause or wait for it to complete.`
@@ -432,15 +137,8 @@ export async function startBatchEnrichment(bssids?: string[]) {
     resultsPerPage: 1,
   });
 
-  // Set total items in api_total_results for progress bar
-  await adminQuery('UPDATE app.wigle_import_runs SET api_total_results = $1 WHERE id = $2', [
-    pending,
-    run.id,
-  ]);
-
-  // Start background loop
+  await setRunTotalItems(run.id, pending);
   void runEnrichmentLoop(run.id, bssids);
-
   return run;
 }
 
@@ -448,7 +146,7 @@ export async function resumeEnrichment(runId: number) {
   const conflictId = await getActiveEnrichmentRunId(runId);
   if (conflictId !== null) {
     logger.warn(
-      `[v3 Enrichment] Concurrency guard: run #${conflictId} is already active. Skipping resume of run #${runId}.`,
+      `[v3 Enrichment] Concurrency guard: run #${conflictId} active, skipping resume of #${runId}.`,
       { conflictId, runId }
     );
     throw Object.assign(
@@ -459,19 +157,15 @@ export async function resumeEnrichment(runId: number) {
     );
   }
 
-  const { rows } = await adminQuery(
-    "UPDATE app.wigle_import_runs SET status = 'running', last_error = NULL WHERE id = $1 RETURNING *",
-    [runId]
-  );
-  if (rows.length === 0) throw new Error('Run not found');
+  const row = await resetRunForResume(runId);
+  if (!row) throw new Error('Run not found');
 
   void runEnrichmentLoop(runId);
-  return rows[0];
+  return row;
 }
 
 /**
  * Validates that the WiGLE API key has remaining credit.
- * Returns { hasCredit: boolean, message: string }
  */
 export async function validateWigleApiCredit() {
   try {
@@ -483,9 +177,6 @@ export async function validateWigleApiCredit() {
     }
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-
-    // WiGLE API: GET /api/v2/stats
-    // Returns { estimatedApiQuotaRemaining: number }
     const response = await fetchWigle({
       kind: 'stats',
       url: 'https://api.wigle.net/api/v2/stats',
@@ -495,45 +186,21 @@ export async function validateWigleApiCredit() {
       entrypoint: 'stats',
       paramsHash: hashRecord({ endpoint: 'v2/stats' }),
       endpointType: 'v2/stats',
-      init: {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-        },
-      },
+      init: { headers: { Authorization: `Basic ${encodedAuth}` } },
     });
 
-    if (response.status === 401) {
-      return {
-        hasCredit: false,
-        message: 'Invalid WiGLE API key',
-      };
-    }
+    if (response.status === 401) return { hasCredit: false, message: 'Invalid WiGLE API key' };
 
     const data = (await response.json()) as any;
     const remaining = data?.estimatedApiQuotaRemaining || 0;
 
-    if (remaining === 0) {
-      return {
-        hasCredit: false,
-        message: `No API credit remaining (0 requests)`,
-      };
-    }
+    if (remaining === 0)
+      return { hasCredit: false, message: 'No API credit remaining (0 requests)' };
+    if (remaining < 10) logger.warn(`[WiGLE] Low API credit: ${remaining} requests remaining`);
 
-    if (remaining < 10) {
-      logger.warn(`[WiGLE] Low API credit: ${remaining} requests remaining`);
-    }
-
-    return {
-      hasCredit: true,
-      message: `${remaining} requests available`,
-    };
+    return { hasCredit: true, message: `${remaining} requests available` };
   } catch (err) {
     logger.error('[WiGLE] Error checking API credit:', err);
-    // Fail open: if we can't check credit, don't block the request
-    // (but log it for investigation)
-    return {
-      hasCredit: true,
-      message: 'Credit check unavailable (proceeding with request)',
-    };
+    return { hasCredit: true, message: 'Credit check unavailable (proceeding with request)' };
   }
 }

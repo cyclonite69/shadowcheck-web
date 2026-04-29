@@ -12,6 +12,7 @@ import statusRoutes from './status';
 import databaseRoutes from './database';
 import searchRoutes from './search';
 import detailRoutes from './detail';
+import enrichmentRoutes from './enrichment';
 import observationsRoutes from './observations';
 import statsRoutes from './stats';
 
@@ -21,6 +22,7 @@ router.use('/', statusRoutes);
 router.use('/', databaseRoutes);
 router.use('/', searchRoutes);
 router.use('/', detailRoutes);
+router.use('/', enrichmentRoutes);
 router.use('/', observationsRoutes);
 router.use('/', statsRoutes);
 

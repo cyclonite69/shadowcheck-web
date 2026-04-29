@@ -1,95 +1,39 @@
 import logger from '../logging/logger';
-import secretsManager from './secretsManager';
-import { assertBulkWigleAllowed } from './wigleBulkPolicy';
 import {
-  buildSearchParams,
-  DEFAULT_RESULTS_PER_PAGE,
-  getRequestFingerprint,
-  normalizeImportParams,
-  type WigleImportParams,
-  validateImportQuery,
-} from './wigleImport/params';
-import { processSuccessfulPage } from './wigleImport/pageProcessor';
-import { fetchWigleSearchPage } from './wigleSearchApiService';
-import {
-  bulkDeleteCancelledRunsByIds,
   completeRun,
-  countRecentCancelledByFingerprint,
-  createImportRun,
-  findGlobalCancelledClusterIds,
-  findLatestResumableRun,
-  getImportRun,
   getImportCompletenessSummary,
-  getLatestResumableImportRun,
+  getImportRun,
   getRunOrThrow,
   listImportRuns,
   markRunControlStatus,
   markRunFailure,
   persistPageFailure,
   reconcileRunProgress,
-  resumeRunState,
+  bulkDeleteCancelledRunsByIds,
+  findGlobalCancelledClusterIds,
 } from './wigleImport/runRepository';
+import { DEFAULT_RESULTS_PER_PAGE } from './wigleImport/params';
+import { processSuccessfulPage } from './wigleImport/pageProcessor';
+import { getEncodedWigleAuth } from './wigleImport/authProvider';
+import { getAdaptiveDelay, sleep } from './wigleImport/rateLimitingStrategy';
+import { fetchWiglePage, type WiglePageResponse } from './wigleImport/wigleApiClient';
+import {
+  initializeImportRun,
+  prepareRunForResumption,
+  pauseRun,
+  cancelRun,
+  findLatestResumable,
+  type WigleImportRunStatus,
+} from './wigleImport/runStateManager';
+import { normalizeImportParams, type WigleImportParams } from './wigleImport/params';
+import { validateImportQuery } from './wigleImport/params';
 
-export {};
-
-type WigleImportRunStatus = 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
-
-type WiglePageResponse = {
-  success?: boolean;
-  totalResults?: number;
-  search_after?: string | null;
-  results?: any[];
-};
-
-import { getQuotaStatus } from './wigleRequestLedger';
-
-const getAdaptiveDelay = () => {
-  const status = getQuotaStatus();
-  const searchLoad = status.counts.search / status.softLimits.search;
-  const baseDelay = 1500;
-  const multiplier = 1 + Math.pow(searchLoad, 2);
-  return baseDelay * multiplier + Math.floor(Math.random() * 1000);
-};
-
-const RESUMABLE_STATUSES: WigleImportRunStatus[] = ['running', 'paused', 'failed'];
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const getEncodedAuth = (): string => {
-  const wigleApiName = secretsManager.get('wigle_api_name');
-  const wigleApiToken = secretsManager.get('wigle_api_token');
-  if (!wigleApiName || !wigleApiToken) {
-    throw new Error(
-      'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.'
-    );
-  }
-  return Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-};
-
-const fetchWiglePage = async (
-  encodedAuth: string,
-  requestParams: WigleImportParams,
-  searchAfter: string | null
-): Promise<WiglePageResponse> => {
-  const params = buildSearchParams(requestParams, searchAfter);
-  logger.info('[WiGLE Import] Fetch page request', {
-    searchAfter: searchAfter || null,
-  });
-
-  const data = await fetchWigleSearchPage({
-    encodedAuth,
-    apiVer: 'v2',
-    params,
-    entrypoint: 'import-run',
-  });
-  if (!data || typeof data !== 'object') {
-    throw new Error('WiGLE API returned a malformed response');
-  }
-  return data;
-};
-
+/**
+ * Execute the main import loop for a WiGLE run
+ * Fetches pages iteratively, processes results, handles errors and quota limits
+ */
 const executeImportLoop = async (runId: number) => {
-  const encodedAuth = getEncodedAuth();
+  const encodedAuth = getEncodedWigleAuth();
   let run = await reconcileRunProgress(runId);
 
   if (run.status === 'completed' || run.status === 'cancelled') {
@@ -208,96 +152,63 @@ const executeImportLoop = async (runId: number) => {
   }
 };
 
-const startImportRun = async (rawQuery: Record<string, unknown>) => {
-  assertBulkWigleAllowed('Import All Pages');
-  const validationError = validateImportQuery(rawQuery);
-  if (validationError) {
-    throw new Error(validationError);
-  }
-  const existing = await findLatestResumableRun(rawQuery, RESUMABLE_STATUSES);
-  if (existing) {
-    logger.info('[WiGLE Import] Resuming existing run instead of creating duplicate', {
-      runId: existing.id,
-      status: existing.status,
-      nextPage: existing.next_page,
-    });
-    return resumeImportRun(Number(existing.id));
-  }
-  // Cluster guard: if ≥3 identical cancelled runs were created in the last 60s, refuse
-  const normalized = normalizeImportParams(rawQuery);
-  const fingerprint = getRequestFingerprint(normalized);
-  const recentCancelled = await countRecentCancelledByFingerprint(fingerprint, 60);
-  if (recentCancelled >= 3) {
-    throw new Error(
-      `Cluster guard: ${recentCancelled} identical cancelled runs created in the last 60 seconds. ` +
-        `Use the "Clean Up" tool to clear the cluster first.`
-    );
-  }
-  const run = await createImportRun(rawQuery);
-  logger.info('[WiGLE Import] Created run', {
-    runId: run?.id,
-    state: run?.state,
-    searchTerm: run?.search_term,
-  });
+/**
+ * Start a new WiGLE import run or resume existing if query matches
+ */
+export const startImportRun = async (rawQuery: Record<string, unknown>) => {
+  const run = await initializeImportRun(rawQuery);
   const finalRun = await executeImportLoop(Number(run.id));
   return getImportRun(Number(finalRun.id));
 };
 
-const resumeImportRun = async (runId: number) => {
-  assertBulkWigleAllowed('Resume Import All Pages');
-  const run = await getRunOrThrow(runId);
-  if (run.status === 'completed') {
-    return getImportRun(runId);
-  }
-  if (run.status === 'cancelled') {
-    throw new Error('Cannot resume a cancelled WiGLE import run');
-  }
-  await reconcileRunProgress(runId);
-  await resumeRunState(runId);
+/**
+ * Resume an existing WiGLE import run
+ */
+export const resumeImportRun = async (runId: number) => {
+  await prepareRunForResumption(runId);
   const finalRun = await executeImportLoop(runId);
   return getImportRun(Number(finalRun.id));
 };
 
-const resumeLatestImportRun = async (rawQuery: Record<string, unknown>) => {
-  assertBulkWigleAllowed('Resume Import All Pages');
-  const validationError = validateImportQuery(rawQuery);
-  if (validationError) {
-    throw new Error(validationError);
-  }
-  const latest = await findLatestResumableRun(rawQuery, RESUMABLE_STATUSES);
+/**
+ * Resume the latest resumable run matching a query, or start new if none exists
+ */
+export const resumeLatestImportRun = async (rawQuery: Record<string, unknown>) => {
+  const latest = await findLatestResumable(rawQuery);
   if (!latest) {
     return startImportRun(rawQuery);
   }
   return resumeImportRun(Number(latest.id));
 };
 
-const getLatestResumableImportRunForQuery = async (rawQuery: Record<string, unknown>) => {
-  const validationError = validateImportQuery(rawQuery);
-  if (validationError) {
-    throw new Error(validationError);
-  }
-  return getLatestResumableImportRun(rawQuery, RESUMABLE_STATUSES);
+/**
+ * Find latest resumable run for a query
+ */
+export const getLatestResumableImportRun = async (rawQuery: Record<string, unknown>) => {
+  return findLatestResumable(rawQuery);
 };
 
-const pauseImportRun = async (runId: number) => {
-  const run = await markRunControlStatus(runId, 'paused');
-  if (!run) {
-    throw new Error(`WiGLE import run ${runId} not found or not pausable`);
-  }
-  logger.info('[WiGLE Import] Run paused', { runId });
-  return getImportRun(runId);
+/**
+ * Pause an import run
+ */
+export const pauseImportRun = async (runId: number) => {
+  return pauseRun(runId);
 };
 
-const cancelImportRun = async (runId: number) => {
-  const run = await markRunControlStatus(runId, 'cancelled');
-  if (!run) {
-    throw new Error(`WiGLE import run ${runId} not found or not cancellable`);
-  }
-  logger.info('[WiGLE Import] Run cancelled', { runId });
-  return getImportRun(runId);
+/**
+ * Cancel an import run
+ */
+export const cancelImportRun = async (runId: number) => {
+  return cancelRun(runId);
 };
 
-const getImportCompletenessReport = async (options: { searchTerm?: string; state?: string }) => {
+/**
+ * Get completeness report for import runs
+ */
+export const getImportCompletenessReport = async (options: {
+  searchTerm?: string;
+  state?: string;
+}) => {
   const rows = await getImportCompletenessSummary(options);
   return {
     generatedAt: new Date().toISOString(),
@@ -330,22 +241,13 @@ const getImportCompletenessReport = async (options: { searchTerm?: string; state
   };
 };
 
-const bulkDeleteGlobalCancelledCluster = async (): Promise<number> => {
+/**
+ * Bulk delete globally cancelled runs (cluster cleanup)
+ */
+export const bulkDeleteGlobalCancelledCluster = async (): Promise<number> => {
   const ids = await findGlobalCancelledClusterIds();
   if (ids.length === 0) return 0;
   return bulkDeleteCancelledRunsByIds(ids);
 };
 
-export {
-  bulkDeleteGlobalCancelledCluster,
-  cancelImportRun,
-  getImportRun,
-  getImportCompletenessReport,
-  getLatestResumableImportRunForQuery as getLatestResumableImportRun,
-  listImportRuns,
-  pauseImportRun,
-  resumeImportRun,
-  resumeLatestImportRun,
-  startImportRun,
-  validateImportQuery,
-};
+export { getImportRun, listImportRuns, validateImportQuery };
