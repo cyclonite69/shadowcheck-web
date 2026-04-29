@@ -107,6 +107,10 @@ const EXTRA_RULES_SQL = `
     RETURNING 1
   ),
   same_oui_proximity AS (
+    -- BUG 2 FIX: OUI-only match requires actual spatial corroboration.
+    -- Both networks must have location data AND be within 100m.
+    -- Removed the NULL-location escape hatch that allowed OUI-only matches
+    -- with no corroborating signal to score 0.93.
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, quality_scope, computed_at
     )
@@ -115,14 +119,10 @@ const EXTRA_RULES_SQL = `
       GREATEST(a.bssid, b.bssid),
       'same_oui_proximity',
       0.93,
-      CASE
-        WHEN COALESCE(a.bestlat, a.lastlat) IS NULL OR COALESCE(b.bestlat, b.lastlat) IS NULL
-        THEN NULL
-        ELSE ST_Distance(
-          ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-          ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-        )
-      END,
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
       'default',
       now()
     FROM app.networks a
@@ -135,14 +135,14 @@ const EXTRA_RULES_SQL = `
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
-      AND (
-        COALESCE(a.bestlat, a.lastlat) IS NULL
-        OR COALESCE(b.bestlat, b.lastlat) IS NULL
-        OR ST_Distance(
-          ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-          ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-        ) < 100
-      )
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) < 100
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,

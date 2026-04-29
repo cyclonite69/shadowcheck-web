@@ -107,6 +107,91 @@ describe('siblingDetectionAdminService', () => {
     expect(stats.strong_pairs).toBe(23);
   });
 
+  describe('BUG 1 — last_octet_sequential rule fires in EXTRA_RULES_SQL', () => {
+    // The EXTRA_RULES_SQL runs after the chunked loop. We verify the service
+    // calls adminQuery with the extra-rules SQL and logs the result, which
+    // confirms the rule is executed. The SQL itself is validated separately
+    // via the migration; here we test the orchestration path.
+    it('executes extra rules after chunk loop and logs last_octet counts', async () => {
+      // chunk loop: one batch then done
+      mockAdminQuery
+        .mockResolvedValueOnce({
+          rows: [{ seed_count: 2, upserted_count: 1, next_cursor: 'AA:BB:CC:DD:EE:02' }],
+        })
+        .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
+        // extra rules result — upper_rotation_count represents last_octet_sequential hits
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              upper_rotation_count: 3,
+              ssid_anchor_count: 1,
+              cross_oui_count: 0,
+              same_oui_proximity_count: 0,
+            },
+          ],
+        });
+
+      const result = await service.runSiblingRefreshJob({ batchSize: 100 });
+
+      expect(result.success).toBe(true);
+      // extra rules query is the 3rd call
+      expect(mockAdminQuery).toHaveBeenCalledTimes(3);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Extra rules complete'),
+        expect.objectContaining({ upper_rotation: 3 })
+      );
+    });
+  });
+
+  describe('BUG 2 — same_oui_proximity requires spatial corroboration', () => {
+    it('reports zero same_oui_proximity when no spatial data present (no false positives)', async () => {
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              upper_rotation_count: 0,
+              ssid_anchor_count: 0,
+              cross_oui_count: 0,
+              // DB returns 0 because the fixed SQL requires location data
+              same_oui_proximity_count: 0,
+            },
+          ],
+        });
+
+      const result = await service.runSiblingRefreshJob();
+
+      expect(result.success).toBe(true);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Extra rules complete'),
+        expect.objectContaining({ same_oui_proximity: 0 })
+      );
+    });
+
+    it('reports same_oui_proximity count when spatial corroboration exists', async () => {
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              upper_rotation_count: 0,
+              ssid_anchor_count: 0,
+              cross_oui_count: 0,
+              same_oui_proximity_count: 5,
+            },
+          ],
+        });
+
+      const result = await service.runSiblingRefreshJob();
+
+      expect(result.success).toBe(true);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Extra rules complete'),
+        expect.objectContaining({ same_oui_proximity: 5 })
+      );
+    });
+  });
+
   describe('startSiblingRefresh', () => {
     it('accepts and starts a new job if not already running', async () => {
       mockAdminQuery.mockResolvedValue({

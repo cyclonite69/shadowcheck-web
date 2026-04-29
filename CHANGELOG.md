@@ -733,6 +733,7 @@
 - **wigle:** always hide Mapbox cluster layers — aggregated layer owns display ([e2f2018](https://github.com/cyclonite69/shadowcheck-web/commit/e2f2018bbb0f3d3c38ac8b241b272f85692b4b63))
 - **wigle:** apply clustering toggle to KML and agency layers ([45c5812](https://github.com/cyclonite69/shadowcheck-web/commit/45c5812a446617371992ab2c8b0bd7081cfe6b56))
 - **wigle:** cast COUNT(\*) to integer and guard Mapbox expressions with to-number ([01561f5](https://github.com/cyclonite69/shadowcheck-web/commit/01561f5946dd2ac66630f3f545efb335ae49d5a6))
+- **wigle:** catch quota/circuit-breaker throws in fetchUpstream, return 429/503 instead of 500 ([68200af](https://github.com/cyclonite69/shadowcheck-web/commit/68200af060ae3106b5a7b79a2c76e2dee61651cd))
 - **wigle:** clamp bbox to [-180,180]/[-90,90] before aggregated fetch ([b16467f](https://github.com/cyclonite69/shadowcheck-web/commit/b16467f9fa45f751fff16e0725d838bc9507dc2d))
 - **wigle:** clarify farthest WiGLE-only tooltip wording ([f6d74e1](https://github.com/cyclonite69/shadowcheck-web/commit/f6d74e1624568a93fbc2c287637304ced865ce8f))
 - **wigle:** compute farthest distance from WiGLE-only sightings ([705262e](https://github.com/cyclonite69/shadowcheck-web/commit/705262e329c1fe65ab73bbb92c12aaf74710cccb))
