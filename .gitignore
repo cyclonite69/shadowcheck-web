@@ -163,3 +163,9 @@ tsc_output.txt
 # Gemini geocoding scripts
 *.py.bak
 update_config*.py
+
+# Generated audit/scratch artifacts
+all_files.txt
+coverage_summary.txt
+doc_keys.txt
+env_keys.txt

@@ -601,6 +601,7 @@
 - **settings:** route WiGLE credential test calls through fetchWigle to enforce rate limiting ([6ed2c3c](https://github.com/cyclonite69/shadowcheck-web/commit/6ed2c3c0b0e2456e9c72a005eff212e268727b8a))
 - **settings:** wire registerProviderSecretRoutes into settings router ([dfd00d2](https://github.com/cyclonite69/shadowcheck-web/commit/dfd00d2df70ded25441531eb907de56b745d9495))
 - Show header buttons on all pages, not just dashboard ([12048aa](https://github.com/cyclonite69/shadowcheck-web/commit/12048aa669816fcf68c61eff1e9f97511f5fdac9))
+- **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
 - **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
 - **siblings:** penalize common SSID long-distance false positives ([5bb903e](https://github.com/cyclonite69/shadowcheck-web/commit/5bb903e97fa0639f4fc980878eebf791c3d0749f))
 - **siblings:** support legacy sibling table schema without pair_strength ([a51b918](https://github.com/cyclonite69/shadowcheck-web/commit/a51b9186c4ed831cb930ac0f908e74fac39a8a6e))
