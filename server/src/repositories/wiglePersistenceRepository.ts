@@ -77,7 +77,7 @@ const importWigleV3NetworkDetail = async (executor: QueryExecutor, data: any): P
       encryption = EXCLUDED.encryption, channel = EXCLUDED.channel,
       bcninterval = EXCLUDED.bcninterval, freenet = EXCLUDED.freenet,
       dhcp = EXCLUDED.dhcp, paynet = EXCLUDED.paynet, qos = EXCLUDED.qos,
-      first_seen = LEAST(EXCLUDED.first_seen, first_seen), last_seen = GREATEST(EXCLUDED.last_seen, last_seen),
+      first_seen = LEAST(EXCLUDED.first_seen, app.wigle_v3_network_details.first_seen), last_seen = GREATEST(EXCLUDED.last_seen, app.wigle_v3_network_details.last_seen),
       last_update = EXCLUDED.last_update, street_address = EXCLUDED.street_address,
       location_clusters = EXCLUDED.location_clusters, imported_at = NOW()`,
     [

@@ -753,6 +753,7 @@
 - **wigle:** implement stubbed wigle observation loading ([be30c95](https://github.com/cyclonite69/shadowcheck-web/commit/be30c95e9cfeb2ae7905fa38e0c561475ccb5251))
 - **wigle:** include field data layer in setPointRadius ([4cb4004](https://github.com/cyclonite69/shadowcheck-web/commit/4cb40044663e21b0c81f3480d298ac222137452f))
 - **wigle:** mount aggregated route before observations/:netid wildcard ([2d97f06](https://github.com/cyclonite69/shadowcheck-web/commit/2d97f06eda64dc188ea42c294e2d76ee1ff01589))
+- **wigle:** move assertCanRequest pre-loop, document conservative quota policy ([83a95d7](https://github.com/cyclonite69/shadowcheck-web/commit/83a95d7518b3d00b66b8b210e5fbdbdc6f982c39))
 - **wigle:** move Field Data and Clustering to control panel, fix Field Data render ([9cdfa8c](https://github.com/cyclonite69/shadowcheck-web/commit/9cdfa8c83d905f0e15d4a2b256ba98ba8390c460))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
