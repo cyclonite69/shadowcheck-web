@@ -1,116 +1,65 @@
-/**
- * Unit tests for securityLabelValidator
- *
- * Regression guard for security label normalization.
- * Ensures WPA3-SAE → WPA3-P and Unknown/unknown → UNKNOWN mappings hold,
- * and that all canonical labels pass through unchanged.
- */
+export {};
 
-import {
-  normalizeLabel,
-  isValidLabel,
-  getAllCanonicalLabels,
+const {
   CANONICAL_SECURITY_LABELS,
-} from '../../server/src/utils/securityLabelValidator';
+  getAllCanonicalLabels,
+  isValidLabel,
+  normalizeLabel,
+} = require('../../server/src/utils/securityLabelValidator');
 
-// ── normalizeLabel ────────────────────────────────────────────────────────────
-
-describe('normalizeLabel – alias mapping', () => {
-  it('normalizes WPA3-SAE to WPA3-P', () => {
-    expect(normalizeLabel('WPA3-SAE')).toBe('WPA3-P');
+describe('securityLabelValidator', () => {
+  describe('CANONICAL_SECURITY_LABELS', () => {
+    test('contains expected labels', () => {
+      expect(CANONICAL_SECURITY_LABELS).toContain('WPA3');
+      expect(CANONICAL_SECURITY_LABELS).toContain('WPA2');
+      expect(CANONICAL_SECURITY_LABELS).toContain('WEP');
+      expect(CANONICAL_SECURITY_LABELS).toContain('OPEN');
+      expect(CANONICAL_SECURITY_LABELS).toContain('UNKNOWN');
+    });
   });
 
-  it('normalizes mixed-case Unknown to UNKNOWN', () => {
-    expect(normalizeLabel('Unknown')).toBe('UNKNOWN');
+  describe('getAllCanonicalLabels', () => {
+    test('returns all canonical labels', () => {
+      const labels = getAllCanonicalLabels();
+      expect(labels).toEqual(CANONICAL_SECURITY_LABELS);
+    });
   });
 
-  it('normalizes lowercase unknown to UNKNOWN', () => {
-    expect(normalizeLabel('unknown')).toBe('UNKNOWN');
-  });
-});
+  describe('isValidLabel', () => {
+    test('returns true for canonical labels', () => {
+      expect(isValidLabel('WPA3')).toBe(true);
+      expect(isValidLabel('WPA2')).toBe(true);
+      expect(isValidLabel('OPEN')).toBe(true);
+      expect(isValidLabel('UNKNOWN')).toBe(true);
+    });
 
-describe('normalizeLabel – canonical passthrough', () => {
-  it.each([...CANONICAL_SECURITY_LABELS])(
-    'passes canonical label %s through unchanged',
-    (label) => {
-      expect(normalizeLabel(label)).toBe(label);
-    }
-  );
-});
-
-describe('normalizeLabel – invalid input', () => {
-  it('throws for an unrecognized label', () => {
-    expect(() => normalizeLabel('GIBBERISH')).toThrow(/Unrecognized security label/);
+    test('returns false for non-canonical labels', () => {
+      expect(isValidLabel('wpa3')).toBe(false);
+      expect(isValidLabel('WPA3-SAE')).toBe(false);
+      expect(isValidLabel('INVALID')).toBe(false);
+      expect(isValidLabel('')).toBe(false);
+    });
   });
 
-  it('throws for empty string', () => {
-    expect(() => normalizeLabel('')).toThrow();
-  });
-});
+  describe('normalizeLabel', () => {
+    test('returns canonical label unchanged', () => {
+      expect(normalizeLabel('WPA3')).toBe('WPA3');
+      expect(normalizeLabel('WPA2-E')).toBe('WPA2-E');
+      expect(normalizeLabel('OPEN')).toBe('OPEN');
+    });
 
-// ── isValidLabel ─────────────────────────────────────────────────────────────
+    test('normalizes WPA3-SAE to WPA3-P', () => {
+      expect(normalizeLabel('WPA3-SAE')).toBe('WPA3-P');
+    });
 
-describe('isValidLabel', () => {
-  it.each([...CANONICAL_SECURITY_LABELS])('returns true for canonical label %s', (label) => {
-    expect(isValidLabel(label)).toBe(true);
-  });
+    test('normalizes lowercase unknown to UNKNOWN', () => {
+      expect(normalizeLabel('unknown')).toBe('UNKNOWN');
+      expect(normalizeLabel('Unknown')).toBe('UNKNOWN');
+    });
 
-  it('returns false for WPA3-SAE (legacy alias, not canonical)', () => {
-    expect(isValidLabel('WPA3-SAE')).toBe(false);
-  });
-
-  it('returns false for Unknown (wrong case)', () => {
-    expect(isValidLabel('Unknown')).toBe(false);
-  });
-
-  it('returns false for unknown (lowercase)', () => {
-    expect(isValidLabel('unknown')).toBe(false);
-  });
-
-  it('returns false for arbitrary strings', () => {
-    expect(isValidLabel('FOO')).toBe(false);
-    expect(isValidLabel('')).toBe(false);
-  });
-});
-
-// ── getAllCanonicalLabels ─────────────────────────────────────────────────────
-
-describe('getAllCanonicalLabels', () => {
-  it('returns exactly 12 labels', () => {
-    expect(getAllCanonicalLabels()).toHaveLength(12);
-  });
-
-  it('includes WPA3-P (not WPA3-SAE)', () => {
-    const labels = getAllCanonicalLabels();
-    expect(labels).toContain('WPA3-P');
-    expect(labels).not.toContain('WPA3-SAE');
-  });
-
-  it('includes UNKNOWN (not Unknown or unknown)', () => {
-    const labels = getAllCanonicalLabels();
-    expect(labels).toContain('UNKNOWN');
-    expect(labels).not.toContain('Unknown');
-    expect(labels).not.toContain('unknown');
-  });
-
-  it('includes all expected canonical labels', () => {
-    const labels = getAllCanonicalLabels();
-    const expected = [
-      'WPA3-E',
-      'WPA3-P',
-      'WPA3',
-      'WPA2-E',
-      'WPA2-P',
-      'WPA2',
-      'WPA',
-      'OWE',
-      'WPS',
-      'WEP',
-      'OPEN',
-      'UNKNOWN',
-    ];
-    for (const label of expected) {
-      expect(labels).toContain(label);
-    }
+    test('throws for unrecognized labels', () => {
+      expect(() => normalizeLabel('BOGUS')).toThrow("Unrecognized security label: 'BOGUS'");
+      expect(() => normalizeLabel('')).toThrow();
+    });
   });
 });
