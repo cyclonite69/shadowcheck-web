@@ -264,7 +264,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
         let message = 'Network tagged as Investigate.';
 
         if (withLookup) {
-          const detailResult = await wigleApi.getWigleDetail(bssid, false, true);
+          const radioType = (network.radio_type || network.type || '').toUpperCase();
+          const isBluetooth = ['B', 'E', 'BLE', 'BT'].includes(radioType);
+          const detailResult = await wigleApi.getWigleDetail(bssid, isBluetooth, true);
           if (!detailResult?.ok) {
             throw new Error(detailResult?.details || detailResult?.error || 'WiGLE lookup failed');
           }

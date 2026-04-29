@@ -84,6 +84,17 @@ export async function fetchUpstream(
 
   if (!response.ok) {
     const errorText = await response.text();
+    if (response.status === 404) {
+      logger.info(
+        `[WiGLE] Network not found in WiGLE (likely randomized/locally-administered MAC): ${netid}`
+      );
+      return {
+        ok: false,
+        status: 404,
+        error:
+          'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+      };
+    }
     logger.error(`[WiGLE] Detail API error ${response.status}: ${errorText}`);
     return {
       ok: false,
