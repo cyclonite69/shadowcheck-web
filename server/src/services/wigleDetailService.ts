@@ -57,22 +57,29 @@ export async function fetchUpstream(
 
   logger.info(`[WiGLE] Fetching ${endpoint} detail for: ${netid}`);
 
-  const response = await fetchWigle({
-    kind: 'detail',
-    url: apiUrl,
-    timeoutMs: 15000,
-    maxRetries: 1,
-    label: 'WiGLE Detail API',
-    entrypoint: 'manual-detail',
-    paramsHash: hashRecord({ endpoint, netid }),
-    endpointType: `v3/detail/${endpoint}`,
-    init: {
-      headers: {
-        Authorization: `Basic ${encodedAuth}`,
-        Accept: 'application/json',
+  let response: Response;
+  try {
+    response = await fetchWigle({
+      kind: 'detail',
+      url: apiUrl,
+      timeoutMs: 15000,
+      maxRetries: 1,
+      label: 'WiGLE Detail API',
+      entrypoint: 'manual-detail',
+      paramsHash: hashRecord({ endpoint, netid }),
+      endpointType: `v3/detail/${endpoint}`,
+      init: {
+        headers: {
+          Authorization: `Basic ${encodedAuth}`,
+          Accept: 'application/json',
+        },
       },
-    },
-  });
+    });
+  } catch (err: any) {
+    const status = err?.status ?? 500;
+    logger.error(`[WiGLE] Detail fetch error (${status}): ${err.message}`);
+    return { ok: false, status, error: err.message };
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
