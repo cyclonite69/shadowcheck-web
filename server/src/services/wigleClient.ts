@@ -1,6 +1,5 @@
 import logger from '../logging/logger';
-import { logWigleAuditEvent } from './wigleAuditLogger';
-import { assertCanRequest, recordRequest } from './wigleRequestLedger';
+import { assertCanRequest, recordRequest, recordConsecutive429 } from './wigleRequestLedger';
 import { hashRecord } from './wigleRequestUtils';
 
 export {};
@@ -14,87 +13,47 @@ type WigleFetchOptions = {
   timeoutMs?: number;
   maxRetries?: number;
   label?: string;
+  priority?: 'interactive' | 'background';
   entrypoint?: string;
   paramsHash?: string;
   endpointType?: string;
 };
 
-const MIN_INTERVAL_MS: Record<WigleRequestKind, number> = {
-  search: 10_000,
-  detail: 20_000,
-  stats: 30_000,
-};
-
-let wigleQueue: Promise<void> = Promise.resolve();
-let lastStartedAt = 0;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// Single-slot mutex: each request captures the current tail and appends a new slot.
+// `finally { releaseSlot() }` guarantees the queue always advances, even on throw.
+let queue: Promise<void> = Promise.resolve();
+const flightMap = new Map<string, Promise<Response>>();
 
 function isTestEnv() {
   return process.env.NODE_ENV === 'test';
 }
 
-function jitterMs() {
-  if (isTestEnv()) {
-    return 0;
-  }
-  return 500 + Math.floor(Math.random() * 1500);
+function jitter(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-async function reserveSlot(kind: WigleRequestKind) {
-  let release!: () => void;
-  const previous = wigleQueue;
-  wigleQueue = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-
-  await previous;
-
-  if (isTestEnv()) {
-    lastStartedAt = Date.now();
-    return release;
-  }
-
-  const waitMs = Math.max(0, lastStartedAt + MIN_INTERVAL_MS[kind] - Date.now()) + jitterMs();
-  if (waitMs > 0) {
-    logger.info('[WiGLE] Waiting before outbound request', { kind, waitMs });
-    await sleep(waitMs);
-  }
-
-  lastStartedAt = Date.now();
-  return release;
+async function sleep(ms: number) {
+  if (isTestEnv()) return;
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit | undefined, timeoutMs: number) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-    });
+    return await fetch(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timeoutId);
   }
 }
 
-async function safeReadBody(response: Response) {
-  try {
-    return await response.text();
-  } catch {
-    return '';
+async function backoff(attempt: number, response: Response | null = null) {
+  let delay = 1000 * 2 ** attempt + jitter(0, 500);
+  if (response?.headers.has('Retry-After')) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '0', 10);
+    if (!isNaN(retryAfter)) delay = Math.max(delay, retryAfter * 1000);
   }
-}
-
-async function backoff(attempt: number) {
-  if (isTestEnv()) {
-    return;
-  }
-  const waitMs = Math.min(60_000, 5_000 * 2 ** attempt) + jitterMs();
-  await sleep(waitMs);
+  await sleep(delay);
 }
 
 async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
@@ -103,94 +62,77 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
     url,
     init,
     timeoutMs = kind === 'search' ? 30_000 : 15_000,
-    maxRetries = 1,
-    label = 'WiGLE request',
-    entrypoint = 'unspecified',
-    paramsHash = hashRecord({ kind, url }),
-    endpointType = kind,
+    maxRetries = 3,
+    label = 'WiGLE',
+    priority = 'background',
   } = options;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    assertCanRequest(kind, entrypoint);
-    const release = await reserveSlot(kind);
-    const startedAt = Date.now();
+  const bodyKey = typeof init?.body === 'string' ? init.body : JSON.stringify(init?.body ?? null);
+  const requestKey = `${kind}:${hashRecord({ url, body: bodyKey })}`;
 
-    try {
-      recordRequest(kind);
-      const response = await fetchWithTimeout(url, init, timeoutMs);
-      const latencyMs = Date.now() - startedAt;
-
-      logger.info('[WiGLE] Outbound response received', {
-        label,
-        kind,
-        status: response.status,
-        latencyMs,
-        attempt: attempt + 1,
-        entrypoint,
-        paramsHash,
-      });
-
-      logWigleAuditEvent({
-        entrypoint,
-        endpointType,
-        paramsHash,
-        status: response.status,
-        latencyMs,
-        servedFromCache: false,
-        retryCount: attempt,
-        kind,
-      });
-
-      if ((response.status === 403 || response.status === 429) && attempt < maxRetries) {
-        logger.warn('[WiGLE] Refusing to retry blocked/throttled response', {
-          label,
-          kind,
-          status: response.status,
-        });
-      }
-
-      if (response.status >= 500 && response.status < 600 && attempt < maxRetries) {
-        const body = await safeReadBody(response);
-        logger.warn('[WiGLE] Retrying server-side failure', {
-          label,
-          kind,
-          status: response.status,
-          attempt: attempt + 1,
-          body: body.slice(0, 200),
-        });
-        await backoff(attempt);
-        continue;
-      }
-
-      return response;
-    } catch (error: any) {
-      const latencyMs = Date.now() - startedAt;
-      logger.warn('[WiGLE] Outbound request failed', {
-        label,
-        kind,
-        attempt: attempt + 1,
-        latencyMs,
-        error: error?.message || String(error),
-        entrypoint,
-        paramsHash,
-      });
-
-      if (attempt >= maxRetries) {
-        throw error;
-      }
-
-      await backoff(attempt);
-    } finally {
-      release();
-    }
+  if (flightMap.has(requestKey)) {
+    logger.debug('[WiGLE] Deduplicating request', { requestKey });
+    return flightMap.get(requestKey)!;
   }
 
-  throw new Error(`${label} failed without returning a response`);
+  const previous = queue;
+  let releaseSlot!: () => void;
+  queue = new Promise<void>((res) => {
+    releaseSlot = res;
+  });
+
+  const request = (async () => {
+    await previous.catch(() => {});
+    try {
+      if (!isTestEnv()) await sleep(jitter(150, 300));
+
+      for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        assertCanRequest(kind, priority);
+        const startedAt = Date.now();
+
+        try {
+          recordRequest(kind);
+          const response = await fetchWithTimeout(url, init, timeoutMs);
+
+          if (response.status === 429) {
+            recordConsecutive429();
+            if (attempt < maxRetries) {
+              await backoff(attempt, response);
+              continue;
+            }
+          }
+
+          logger.info('[WiGLE] Response received', {
+            label,
+            kind,
+            status: response.status,
+            latencyMs: Date.now() - startedAt,
+            attempt: attempt + 1,
+          });
+          return response;
+        } catch (e: any) {
+          if (attempt >= maxRetries) throw e;
+          await backoff(attempt);
+        }
+      }
+
+      throw new Error(`${label}: exhausted ${maxRetries} retries`);
+    } finally {
+      releaseSlot();
+    }
+  })();
+
+  flightMap.set(requestKey, request);
+  // .finally() propagates the original rejection; .then(fn, fn) always resolves
+  // the returned promise so no unhandled rejection escapes the map cleanup.
+  const cleanup = () => flightMap.delete(requestKey);
+  request.then(cleanup, cleanup);
+  return request;
 }
 
-function resetWigleClientState() {
-  wigleQueue = Promise.resolve();
-  lastStartedAt = 0;
+function resetState() {
+  flightMap.clear();
+  queue = Promise.resolve();
 }
 
-export { fetchWigle, resetWigleClientState };
+export { fetchWigle, resetState };

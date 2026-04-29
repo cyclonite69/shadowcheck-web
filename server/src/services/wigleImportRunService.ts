@@ -41,7 +41,16 @@ type WiglePageResponse = {
   results?: any[];
 };
 
-const IMPORT_ALL_PAGE_DELAY_MS = 1500;
+import { getQuotaStatus } from './wigleRequestLedger';
+
+const getAdaptiveDelay = () => {
+  const status = getQuotaStatus();
+  const searchLoad = status.counts.search / status.softLimits.search;
+  const baseDelay = 1500;
+  const multiplier = 1 + Math.pow(searchLoad, 2);
+  return baseDelay * multiplier + Math.floor(Math.random() * 1000);
+};
+
 const RESUMABLE_STATUSES: WigleImportRunStatus[] = ['running', 'paused', 'failed'];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -181,7 +190,7 @@ const executeImportLoop = async (runId: number) => {
         return run;
       }
 
-      await sleep(IMPORT_ALL_PAGE_DELAY_MS);
+      await sleep(getAdaptiveDelay());
     } catch (error: any) {
       const errorMessage = error?.details || error?.message || 'WiGLE import page failed';
       await persistPageFailure(runId, pageNumber, requestCursor, errorMessage);

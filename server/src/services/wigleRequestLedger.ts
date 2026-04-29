@@ -66,28 +66,32 @@ function getQuotaStatus() {
   };
 }
 
-function assertCanRequest(kind: WigleRequestKind, entrypoint: string) {
+let consecutive429 = 0;
+let breakerOpenUntil = 0;
+
+function recordConsecutive429() {
+  consecutive429 += 1;
+  if (consecutive429 >= 5) {
+    breakerOpenUntil = Date.now() + 600000; // 10 mins
+    consecutive429 = 0;
+  }
+}
+
+function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'background') {
+  if (Date.now() < breakerOpenUntil && priority === 'background') {
+    const error: any = new Error('Global circuit breaker is OPEN for background tasks');
+    error.status = 503;
+    throw error;
+  }
+
   const count = getCount(kind);
   const softLimit = getSoftLimit(kind);
   const hardLimit = getHardLimit(kind);
 
   if (count >= softLimit) {
-    const error: any = new Error(
-      `WiGLE ${kind} soft limit reached for the rolling 24-hour window (${count}/${softLimit}).`
-    );
+    const error: any = new Error(`WiGLE ${kind} soft limit reached (${count}/${softLimit}).`);
     error.status = 429;
-    error.code = count >= hardLimit ? 'WIGLE_HARD_LIMIT' : 'WIGLE_SOFT_LIMIT';
     error.kind = kind;
-
-    logger.warn('[WiGLE] Request blocked by in-process quota ledger', {
-      entrypoint,
-      kind,
-      count,
-      softLimit,
-      hardLimit,
-      code: error.code,
-    });
-
     throw error;
   }
 }
@@ -107,10 +111,16 @@ function recordRequest(kind: WigleRequestKind) {
   );
 }
 
+function resetCircuitBreaker() {
+  consecutive429 = 0;
+  breakerOpenUntil = 0;
+}
+
 function resetQuotaLedger() {
   requestLedger.search = [];
   requestLedger.detail = [];
   requestLedger.stats = [];
+  resetCircuitBreaker();
 }
 
 async function hydrateLedger() {
@@ -146,6 +156,20 @@ async function hydrateLedger() {
   }
 }
 
-void hydrateLedger();
+if (process.env.NODE_ENV !== 'test') {
+  void hydrateLedger();
+}
 
-export { assertCanRequest, getQuotaStatus, recordRequest, resetQuotaLedger };
+function getCircuitBreakerStatus() {
+  return { isOpen: Date.now() < breakerOpenUntil };
+}
+
+export {
+  assertCanRequest,
+  getQuotaStatus,
+  recordRequest,
+  resetQuotaLedger,
+  resetCircuitBreaker,
+  recordConsecutive429,
+  getCircuitBreakerStatus,
+};

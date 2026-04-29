@@ -3,6 +3,8 @@ import {
   recordRequest,
   getQuotaStatus,
   resetQuotaLedger,
+  recordConsecutive429,
+  getCircuitBreakerStatus,
 } from '../../../server/src/services/wigleRequestLedger';
 import { adminQuery } from '../../../server/src/services/adminDbService';
 import logger from '../../../server/src/logging/logger';
@@ -31,7 +33,7 @@ describe('wigleRequestLedger', () => {
         recordRequest('search');
       }
 
-      expect(() => assertCanRequest('search', 'test')).not.toThrow();
+      expect(() => assertCanRequest('search', 'interactive')).not.toThrow();
     });
 
     it('throws 429 when soft limit is reached', () => {
@@ -40,27 +42,24 @@ describe('wigleRequestLedger', () => {
       }
 
       try {
-        assertCanRequest('search', 'test');
+        assertCanRequest('search', 'interactive');
         fail('Should have thrown');
       } catch (error: any) {
         expect(error.status).toBe(429);
-        expect(error.code).toBe('WIGLE_SOFT_LIMIT');
         expect(error.message).toContain('soft limit reached');
       }
     });
 
-    it('identifies hard limit when count >= 2 * soft limit', () => {
-      // We need to bypass assertCanRequest to fill up to hard limit
-      // Or just recordRequest multiple times
+    it('denies requests beyond soft limit', () => {
       for (let i = 0; i < 100; i++) {
         recordRequest('search');
       }
 
       try {
-        assertCanRequest('search', 'test');
+        assertCanRequest('search', 'interactive');
         fail('Should have thrown');
       } catch (error: any) {
-        expect(error.code).toBe('WIGLE_HARD_LIMIT');
+        expect(error.status).toBe(429);
       }
     });
   });
@@ -114,6 +113,54 @@ describe('wigleRequestLedger', () => {
       expect(status.counts.search).toBe(2);
       expect(status.counts.detail).toBe(1);
       expect(status.counts.stats).toBe(0);
+    });
+  });
+
+  describe('circuit breaker', () => {
+    it('opens after 5 consecutive 429s', () => {
+      for (let i = 0; i < 5; i++) recordConsecutive429();
+      expect(getCircuitBreakerStatus().isOpen).toBe(true);
+    });
+
+    it('does not open before 5 consecutive 429s', () => {
+      for (let i = 0; i < 4; i++) recordConsecutive429();
+      expect(getCircuitBreakerStatus().isOpen).toBe(false);
+    });
+
+    it('blocks background requests when open', () => {
+      for (let i = 0; i < 5; i++) recordConsecutive429();
+
+      expect(() => assertCanRequest('search', 'background')).toThrow('circuit breaker');
+      expect(() => assertCanRequest('detail', 'background')).toThrow('circuit breaker');
+      expect(() => assertCanRequest('stats', 'background')).toThrow('circuit breaker');
+    });
+
+    it('does not block interactive requests when open', () => {
+      for (let i = 0; i < 5; i++) recordConsecutive429();
+
+      // interactive is never blocked by the circuit breaker
+      expect(() => assertCanRequest('search', 'interactive')).not.toThrow();
+    });
+
+    it('resets cleanly via resetQuotaLedger', () => {
+      for (let i = 0; i < 5; i++) recordConsecutive429();
+      expect(getCircuitBreakerStatus().isOpen).toBe(true);
+
+      resetQuotaLedger();
+      expect(getCircuitBreakerStatus().isOpen).toBe(false);
+    });
+
+    it('consecutive429 counter resets after the breaker opens', () => {
+      // After the 5th 429 opens the breaker, the counter resets to 0.
+      // Another 4 429s should NOT re-open immediately.
+      for (let i = 0; i < 5; i++) recordConsecutive429();
+
+      // Advance past breaker window so we can observe the counter state
+      jest.advanceTimersByTime(601_000); // 10 min + 1s
+      expect(getCircuitBreakerStatus().isOpen).toBe(false);
+
+      for (let i = 0; i < 4; i++) recordConsecutive429();
+      expect(getCircuitBreakerStatus().isOpen).toBe(false);
     });
   });
 });

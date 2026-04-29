@@ -1,0 +1,13 @@
+
+AWS Infrastructure
+'DB_HOST', 'DB_NAME', 'DB_USER'
+Deployment Guide
+Development Guide
+Installation
+key
+Secrets
+Secrets Management
+SECRETS.md
+Security Guidelines
+`server/src/config/database.ts`
+`server/src/utils/serverConfig.ts`

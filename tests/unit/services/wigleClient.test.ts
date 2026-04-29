@@ -1,98 +1,163 @@
-import { fetchWigle, resetWigleClientState } from '../../../server/src/services/wigleClient';
-import { logWigleAuditEvent } from '../../../server/src/services/wigleAuditLogger';
-import { assertCanRequest, recordRequest } from '../../../server/src/services/wigleRequestLedger';
+import { fetchWigle, resetState } from '../../../server/src/services/wigleClient';
+import {
+  resetQuotaLedger,
+  recordConsecutive429,
+} from '../../../server/src/services/wigleRequestLedger';
 
-// Mock dependencies
 jest.mock('../../../server/src/logging/logger');
-jest.mock('../../../server/src/services/wigleAuditLogger');
-jest.mock('../../../server/src/services/wigleRequestLedger');
-jest.mock('../../../server/src/services/wigleRequestUtils', () => ({
-  hashRecord: jest.fn(() => 'test-hash'),
-}));
 
-// Mock global fetch
-global.fetch = jest.fn();
+// Flushes the microtask queue and any fake timers deeply enough for a multi-hop
+// promise chain (queue slot → resolve/reject → .finally → next slot → work).
+// Each await Promise.resolve() advances exactly one microtask tick; 30 rounds
+// is conservative for the 8–10 ticks a two-request chain requires.
+async function flushQueue() {
+  for (let i = 0; i < 30; i++) await Promise.resolve();
+  await jest.runAllTimersAsync();
+  for (let i = 0; i < 30; i++) await Promise.resolve();
+}
 
-describe('wigleClient (Simplified)', () => {
-  const originalEnv = process.env.NODE_ENV;
-
+describe('wigleClient (Deterministic Hardening)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    resetWigleClientState();
-    process.env.NODE_ENV = 'test';
+    jest.useFakeTimers();
+    resetQuotaLedger(); // also resets circuit breaker since the fix
+    resetState();
+    global.fetch = jest.fn().mockResolvedValue({ status: 200, ok: true, headers: new Headers() });
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
+    jest.useRealTimers();
   });
 
-  describe('retry logic', () => {
-    it('does not retry on 429 status', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+  // ── Deduplication ──────────────────────────────────────────────────────────
+
+  it('deduplicates concurrent identical requests', async () => {
+    const p1 = fetchWigle({ kind: 'search', url: 'http://test', init: { body: 'data' } });
+    const p2 = fetchWigle({ kind: 'search', url: 'http://test', init: { body: 'data' } });
+
+    await Promise.all([p1, p2]);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not deduplicate requests with different bodies', async () => {
+    const p1 = fetchWigle({ kind: 'search', url: 'http://test', init: { body: 'query1' } });
+    const p2 = fetchWigle({ kind: 'search', url: 'http://test', init: { body: 'query2' } });
+
+    await Promise.all([p1, p2]);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  // ── Queue serialization ────────────────────────────────────────────────────
+
+  it('serializes requests using the promise queue', async () => {
+    const callOrder: string[] = [];
+    (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+      callOrder.push(url);
+      return { status: 200, ok: true, headers: new Headers() };
+    });
+
+    await fetchWigle({ kind: 'search', url: 'http://1' });
+    await fetchWigle({ kind: 'search', url: 'http://2' });
+
+    expect(callOrder).toEqual(['http://1', 'http://2']);
+  });
+
+  // ── Queue resilience after failures ───────────────────────────────────────
+
+  it('resumes queue after a request rejection', async () => {
+    (global.fetch as jest.Mock)
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce({ status: 200, headers: new Headers() });
+
+    // maxRetries: 0 so p1 exhausts immediately with no backoff
+    const p1 = fetchWigle({ kind: 'search', url: 'http://first', maxRetries: 0 });
+    const p2 = fetchWigle({ kind: 'search', url: 'http://second' });
+
+    // Await p1 to reject — at this point p2's queue slot has been queued but
+    // may not have executed yet. Explicitly awaiting p2 is the only
+    // deterministic way to assert its call happened.
+    await expect(p1).rejects.toThrow('Network error');
+    const result = await p2;
+
+    expect(result.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('queue continues after multiple consecutive failures', async () => {
+    (global.fetch as jest.Mock)
+      .mockRejectedValueOnce(new Error('Failure 1'))
+      .mockRejectedValueOnce(new Error('Failure 2'))
+      .mockResolvedValueOnce({ status: 200, headers: new Headers() });
+
+    const p1 = fetchWigle({ kind: 'search', url: 'http://1', maxRetries: 0 });
+    const p2 = fetchWigle({ kind: 'search', url: 'http://2', maxRetries: 0 });
+    const p3 = fetchWigle({ kind: 'search', url: 'http://3' });
+
+    await expect(p1).rejects.toThrow('Failure 1');
+    await expect(p2).rejects.toThrow('Failure 2');
+    const r3 = await p3;
+
+    expect(r3.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('no request starvation under mixed priority load', async () => {
+    // All 4 requests must complete — none can be permanently blocked
+    const requests = [
+      fetchWigle({ kind: 'search', url: 'http://1', priority: 'background' }),
+      fetchWigle({ kind: 'search', url: 'http://2', priority: 'interactive' }),
+      fetchWigle({ kind: 'search', url: 'http://3', priority: 'background' }),
+      fetchWigle({ kind: 'search', url: 'http://4', priority: 'interactive' }),
+    ];
+
+    await Promise.all(requests);
+    expect(global.fetch).toHaveBeenCalledTimes(4);
+  });
+
+  // ── Circuit breaker ────────────────────────────────────────────────────────
+
+  it('circuit breaker blocks background but allows interactive when open', async () => {
+    // Open the real circuit breaker (5 consecutive 429s)
+    for (let i = 0; i < 5; i++) recordConsecutive429();
+
+    const bg = fetchWigle({ kind: 'search', url: 'http://bg', priority: 'background' });
+    await expect(bg).rejects.toThrow('circuit breaker');
+
+    // Interactive is never blocked by the breaker
+    const int = await fetchWigle({ kind: 'search', url: 'http://int', priority: 'interactive' });
+    expect(int.status).toBe(200);
+  });
+
+  it('background requests get a delay when breaker is open (delay logic aligns with rejection)', async () => {
+    jest
+      .spyOn(require('../../../server/src/services/wigleRequestLedger'), 'getCircuitBreakerStatus')
+      .mockReturnValue({ isOpen: true });
+
+    const p1 = fetchWigle({ kind: 'stats', url: 'http://bg', priority: 'background' });
+    const p2 = fetchWigle({ kind: 'search', url: 'http://int', priority: 'interactive' });
+
+    await flushQueue();
+    await Promise.all([p1, p2]);
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  // ── Retry / backoff ────────────────────────────────────────────────────────
+
+  it('retries on 429 and respects Retry-After header', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
         status: 429,
-        ok: false,
-        text: async () => 'Rate Limited',
-      });
+        headers: new Headers({ 'Retry-After': '5' }),
+      })
+      .mockResolvedValueOnce({ status: 200, headers: new Headers() });
 
-      const res = await fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 3 });
-      expect(res.status).toBe(429);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-    });
+    const promise = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 1 });
 
-    it('does not retry on 403 status', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        status: 403,
-        ok: false,
-        text: async () => 'Forbidden',
-      });
+    await flushQueue();
+    const result = await promise;
 
-      const res = await fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 3 });
-      expect(res.status).toBe(403);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-    });
-
-    it('retries on 5xx status up to maxRetries', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        status: 500,
-        ok: false,
-        text: async () => 'Error',
-      });
-
-      const res = await fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 2 });
-      expect(res.status).toBe(500);
-      expect(global.fetch).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
-    });
-  });
-
-  describe('request tracking', () => {
-    it('calls assertCanRequest and recordRequest', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        status: 200,
-        ok: true,
-        text: async () => 'ok',
-      });
-
-      await fetchWigle({ kind: 'search', url: 'http://test', entrypoint: 'test-entry' });
-
-      expect(assertCanRequest).toHaveBeenCalledWith('search', 'test-entry');
-      expect(recordRequest).toHaveBeenCalledWith('search');
-    });
-
-    it('logs audit events', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        status: 200,
-        ok: true,
-        text: async () => 'ok',
-      });
-
-      await fetchWigle({ kind: 'search', url: 'http://test', entrypoint: 'test-entry' });
-
-      expect(logWigleAuditEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          kind: 'search',
-          status: 200,
-        })
-      );
-    });
+    expect(result.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

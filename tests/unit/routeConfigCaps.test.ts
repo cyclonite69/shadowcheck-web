@@ -30,7 +30,9 @@ describe('route cap config drift guards', () => {
     const search = read('server/src/api/routes/v1/networks/search.ts');
     const manufacturer = read('server/src/api/routes/v1/networks/manufacturer.ts');
     const tags = read('server/src/api/routes/v1/networks/tags.ts');
-    const list = read('server/src/api/routes/v1/networks/list.ts');
+    // list.ts is now a barrel; caps live in the modular parsers
+    const listPagination = read('server/src/api/routes/v1/networks/list/parsers/pagination.ts');
+    const listSignal = read('server/src/api/routes/v1/networks/list/parsers/signalFilters.ts');
 
     expect(search).toContain('ROUTE_CONFIG.explorer.maxLimit');
     expect(search).toContain('ROUTE_CONFIG.networks.maxOffset');
@@ -38,9 +40,9 @@ describe('route cap config drift guards', () => {
     expect(manufacturer).toContain('ROUTE_CONFIG.networks.maxOffset');
     expect(tags).toContain('ROUTE_CONFIG.networks.maxLimit');
     expect(tags).toContain('ROUTE_CONFIG.networks.maxBulkBssids');
-    expect(list).toContain('ROUTE_CONFIG.networks.maxLimit');
-    expect(list).toContain('ROUTE_CONFIG.networks.maxOffset');
-    expect(list).toContain('ROUTE_CONFIG.networks.maxObservationCount');
+    expect(listPagination).toContain('ROUTE_CONFIG.networks.maxLimit');
+    expect(listPagination).toContain('ROUTE_CONFIG.networks.maxOffset');
+    expect(listSignal).toContain('ROUTE_CONFIG.networks.maxObservationCount');
   });
 
   test('legacy hardcoded cap literals are not used in migrated routes', () => {
