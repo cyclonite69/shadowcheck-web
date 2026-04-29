@@ -239,13 +239,23 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                       title={
                         run.status === 'completed' && run.rowsInserted === 0
                           ? 'Completed with 0 records — API quota may have been exhausted'
-                          : undefined
+                          : run.status === 'failed' && run.lastError
+                            ? run.lastError
+                            : undefined
                       }
                     >
                       {run.status === 'completed' && run.rowsInserted === 0
                         ? 'completed (0)'
                         : run.status}
                     </span>
+                    {run.status === 'failed' && run.lastError && (
+                      <div
+                        className="mt-1 text-[9px] text-red-400/70 max-w-[160px] truncate"
+                        title={run.lastError}
+                      >
+                        {run.lastError}
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     <div className="space-y-1">

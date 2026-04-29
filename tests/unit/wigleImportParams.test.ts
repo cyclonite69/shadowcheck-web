@@ -82,10 +82,10 @@ describe('wigleImport params helpers', () => {
     expect(params.has('searchAfter')).toBe(false);
   });
 
-  it('adds "first" parameter for numeric searchAfter in v2', () => {
+  it('does NOT add "first" parameter alongside searchAfter in v2 (prevents WiGLE from+search_after conflict)', () => {
     const params = buildSearchParams({ ssid: 'test' }, '100', 'v2');
     expect(params.get('searchAfter')).toBe('100');
-    expect(params.get('first')).toBe('100');
+    expect(params.get('first')).toBeNull();
   });
 
   it('uses stable fingerprints for equivalent queries', () => {

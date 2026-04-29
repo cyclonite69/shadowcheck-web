@@ -89,6 +89,14 @@ export const useWigleRuns = (options: { limit?: number } = {}) => {
     fetchRuns();
   }, [fetchRuns]);
 
+  // Auto-poll every 5s while any run is actively running
+  useEffect(() => {
+    const hasRunning = runs.some((r) => r.status === 'running');
+    if (!hasRunning) return;
+    const interval = setInterval(fetchRuns, 5000);
+    return () => clearInterval(interval);
+  }, [runs, fetchRuns]);
+
   return {
     runs,
     report,

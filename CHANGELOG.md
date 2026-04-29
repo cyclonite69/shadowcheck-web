@@ -155,6 +155,7 @@
 - correct radio_manufacturers column name (manufacturer not organization_name) ([e30cac7](https://github.com/cyclonite69/shadowcheck-web/commit/e30cac718995b5d6e8282d4797247e013a60401a))
 - correct relative import paths in new geospatial hooks ([c68c6fe](https://github.com/cyclonite69/shadowcheck-web/commit/c68c6fe893c68e7f07fe4f6346872cfee6af9445))
 - correct threat score column mappings in sort ([eea1ede](https://github.com/cyclonite69/shadowcheck-web/commit/eea1edeb238c10e877c50a3cecc3244aa2cb9a00))
+- correct WiGLE endpoint selection for BLE/Bluetooth networks ([fd63fd4](https://github.com/cyclonite69/shadowcheck-web/commit/fd63fd4c9325ebc59f30eb46d0c4df5e9f9bfeac))
 - **courthouses:** show full address in map tooltip ([203ce51](https://github.com/cyclonite69/shadowcheck-web/commit/203ce51ab30384b088a92780d64b87690739bccb))
 - darker blue UI, right-shift zone 4 buttons, add marker fields ([f05d625](https://github.com/cyclonite69/shadowcheck-web/commit/f05d6256a57b4e9ece41f469a039f252eaa18bf8)), closes [#0d1f2d](https://github.com/cyclonite69/shadowcheck-web/issues/0d1f2d)
 - dashboard threat level filter not working properly ([f8e863f](https://github.com/cyclonite69/shadowcheck-web/commit/f8e863f790dc6bf6a8a1995a1444cf29779e8cb5))

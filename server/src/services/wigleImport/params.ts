@@ -109,13 +109,10 @@ export const buildSearchParams = (
       // v3 uses cursor-based pagination
       params.append('search_after', searchAfter);
     } else {
-      // v2 uses searchAfter for cursors (e.g. from WiGLE search)
+      // v2 uses searchAfter for cursor-based pagination
       params.append('searchAfter', searchAfter);
-
-      // If it's purely numeric, some legacy v2 endpoints might have used 'first'
-      if (/^\d+$/.test(searchAfter)) {
-        params.append('first', searchAfter);
-      }
+      // NOTE: do NOT also append 'first' — WiGLE rejects requests that send
+      // both a cursor (searchAfter) and an offset (first/from) simultaneously.
     }
   }
   return params;
