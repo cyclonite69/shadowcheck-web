@@ -86,11 +86,20 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
     try {
       if (!isTestEnv()) await sleep(jitter(150, 300));
 
+      // Ensure quota and limits are checked once before retry loop.
+      // This protects against a near-boundary request that would pass
+      // attempt 0 then be rejected on a subsequent attempt (e.g., SOFT_LIMIT),
+      // which should surface the original 429 instead of a later quota rejection.
+      assertCanRequest(kind, priority);
+
       for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        assertCanRequest(kind, priority);
         const startedAt = Date.now();
 
         try {
+          // Quota is decremented before fetch success is confirmed. On retry (maxRetries=3),
+          // a single logical request can burn up to N quota slots on network failure.
+          // This is an intentional conservative policy — prefer over-counting to
+          // under-counting to avoid WiGLE burst/ban risk. Do NOT change the logic.
           recordRequest(kind);
           const response = await fetchWithTimeout(url, init, timeoutMs);
 
