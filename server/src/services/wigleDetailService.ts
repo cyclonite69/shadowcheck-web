@@ -13,8 +13,9 @@ import {
   stripNullBytesDeep,
   mapCachedDetailToApiShape,
 } from './wigleDetailTransforms';
-
-const { wigleService } = require('../config/container');
+import { getRecentWigleDetailImport, getWigleObservations } from './wigle/database';
+import { getWigleDetail } from './wigle/detail';
+import { importWigleV3NetworkDetail, importWigleV3Observation } from './wigle/persistence';
 
 export interface DetailResult {
   ok: true;
@@ -116,11 +117,7 @@ export async function importObservations(
           loc.ssid && loc.ssid !== '?' && loc.ssid !== ''
             ? loc.ssid
             : cluster.clusterSsid || loc.ssid;
-        const inserted = await wigleService.importWigleV3Observation(
-          netid,
-          loc,
-          stripNullBytes(ssidToUse)
-        );
+        const inserted = await importWigleV3Observation(netid, loc, stripNullBytes(ssidToUse));
         newCount += inserted;
       } catch (err: any) {
         failedCount++;
@@ -145,7 +142,7 @@ export async function fetchOrImportDetail(
 
   // Cache-only path (no import requested)
   if (!shouldImport) {
-    const cached = await wigleService.getWigleDetail(netid);
+    const cached = await getWigleDetail(netid);
     if (cached) {
       logger.info(`[WiGLE] Serving cached ${endpoint} detail for: ${netid}`);
       return {
@@ -163,9 +160,9 @@ export async function fetchOrImportDetail(
 
   // Dedup check for import path
   if (shouldImport) {
-    const recentImport = await wigleService.getRecentWigleDetailImport(netid, recentImportHours);
+    const recentImport = await getRecentWigleDetailImport(netid, recentImportHours);
     if (recentImport) {
-      const snapshot = await wigleService.getWigleObservations(netid, 1, 0);
+      const snapshot = await getWigleObservations(netid, 1, 0);
       logger.info('[WiGLE] Skipping upstream detail call — recent import exists', {
         endpoint,
         netid,
@@ -208,7 +205,7 @@ export async function fetchOrImportDetail(
   if (shouldImport && data.networkId) {
     logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
 
-    await wigleService.importWigleV3NetworkDetail({
+    await importWigleV3NetworkDetail({
       netid: data.networkId,
       name: stripNullBytes(data.name),
       type: data.type,
@@ -234,7 +231,7 @@ export async function fetchOrImportDetail(
     newObservations = counts.newCount;
     attemptedObservations = counts.totalCount;
     failedObservations = counts.failedCount;
-    const snapshot = await wigleService.getWigleObservations(data.networkId, 1, 0);
+    const snapshot = await getWigleObservations(data.networkId, 1, 0);
     totalObservations = snapshot.total;
 
     logger.info(
@@ -262,7 +259,7 @@ export async function importDetailFromJson(
 ): Promise<Omit<DetailResult, 'imported' | 'cached'>> {
   logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
 
-  await wigleService.importWigleV3NetworkDetail({
+  await importWigleV3NetworkDetail({
     netid: data.networkId,
     name: stripNullBytes(data.name),
     type: data.type,
@@ -285,7 +282,7 @@ export async function importDetailFromJson(
   });
 
   const counts = await importObservations(data.networkId, data.locationClusters);
-  const snapshot = await wigleService.getWigleObservations(data.networkId, 1, 0);
+  const snapshot = await getWigleObservations(data.networkId, 1, 0);
 
   logger.info(
     `[WiGLE] Imported ${counts.newCount} new observations (${snapshot.total} total, ${counts.totalCount} attempted, ${counts.failedCount} failed) for ${data.networkId}`
