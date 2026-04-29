@@ -11,7 +11,10 @@ const fs = require('fs').promises;
 const { spawn } = require('child_process');
 const { adminNetworkTagsService } = require('../../../config/container');
 const logger = require('../../../logging/logger');
-const { validateBSSID, validateTimestamp: validateTimestampMs } = require('../../../validation/schemas');
+const {
+  validateBSSID,
+  validateTimestamp: validateTimestampMs,
+} = require('../../../validation/schemas');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
 const { buildContextMenuDemoHtml } = require('../../../services/admin/adminHelpers');
 
@@ -20,7 +23,7 @@ const adminMlRoutes = require('./ml');
 const adminTagsRoutes = require('./admin/tags');
 const adminNotesRoutes = require('./admin/notes');
 const adminMediaRoutes = require('./admin/media');
-const adminOuiRoutes = require('./admin/oui');
+const adminOuiRoutes = require('./admin/oui').default;
 const adminBackupRoutes = require('./admin/backup');
 const adminPgAdminRoutes = require('./admin/pgadmin');
 const adminSettingsRoutes = require('./admin/settings');
