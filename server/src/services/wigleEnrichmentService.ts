@@ -6,7 +6,6 @@
 
 import * as container from '../config/container';
 import logger from '../logging/logger';
-import { assertBulkWigleAllowed } from './wigleBulkPolicy';
 import { fetchWigle } from './wigleClient';
 import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
 import { fetchAndImportDetail } from './wigleEnrichmentFetcher';
@@ -106,7 +105,6 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
 
 export async function startBatchEnrichment(bssids?: string[]) {
   const isManual = Array.isArray(bssids) && bssids.length > 0;
-  if (!isManual) assertBulkWigleAllowed('Start Batch Enrichment (Full Backlog)');
 
   const pending = isManual ? bssids!.length : await getPendingEnrichmentCount();
   if (pending === 0) {

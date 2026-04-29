@@ -335,7 +335,6 @@ const executeSql = async (sql: string, params: any[] = []) => {
 };
 
 beforeEach(() => {
-  process.env.WIGLE_ALLOW_BULK = 'I_UNDERSTAND';
   dbState.runs = [];
   dbState.pages = [];
   dbState.nextRunId = 1;

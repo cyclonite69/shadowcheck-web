@@ -1,5 +1,4 @@
 import logger from '../../logging/logger';
-import { assertBulkWigleAllowed } from '../wigleBulkPolicy';
 import {
   countRecentCancelledByFingerprint,
   createImportRun,
@@ -24,7 +23,6 @@ const RESUMABLE_STATUSES: WigleImportRunStatus[] = ['running', 'paused', 'failed
  * Initiate a new WiGLE import run or resume existing
  */
 export const initializeImportRun = async (rawQuery: Record<string, unknown>) => {
-  assertBulkWigleAllowed('Import All Pages');
   const validationError = validateImportQuery(rawQuery);
   if (validationError) {
     throw new Error(validationError);
@@ -66,7 +64,6 @@ export const initializeImportRun = async (rawQuery: Record<string, unknown>) => 
  * Prepare a run for resumption from checkpoint
  */
 export const prepareRunForResumption = async (runId: number) => {
-  assertBulkWigleAllowed('Resume Import All Pages');
   const run = await getRunOrThrow(runId);
 
   if (run.status === 'completed') {

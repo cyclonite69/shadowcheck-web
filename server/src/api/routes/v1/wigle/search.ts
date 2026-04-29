@@ -9,7 +9,6 @@ const router = express.Router();
 const { wigleImportRunService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
-import { assertBulkWigleAllowed } from '../../../../services/wigleBulkPolicy';
 import { validateImportQuery as validateSearchQuery } from '../../../../services/wigleImport/params';
 import {
   searchWigle,
@@ -51,7 +50,6 @@ router.post(
   requireAdmin,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      assertBulkWigleAllowed('Import All Pages');
       const query = { ...req.query, ...req.body };
       const validationError = wigleImportRunService.validateImportQuery(query);
       if (validationError) return res.status(400).json({ ok: false, error: validationError });

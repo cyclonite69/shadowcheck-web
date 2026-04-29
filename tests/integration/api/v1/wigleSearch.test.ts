@@ -65,7 +65,6 @@ global.fetch = mockFetch as any;
 describe('WiGLE Search API v1', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    delete process.env.WIGLE_ALLOW_BULK;
     require('../../../../server/src/services/wigleSearchCache').resetSearchCache();
     require('../../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
     const secretsManager = require('../../../../server/src/services/secretsManager').default;
@@ -131,7 +130,6 @@ describe('WiGLE Search API v1', () => {
 
   describe('POST /search-api/import-all', () => {
     it('should start an import run', async () => {
-      process.env.WIGLE_ALLOW_BULK = 'I_UNDERSTAND';
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
       mockContainer.wigleImportRunService.startImportRun.mockResolvedValue({
         id: 123,

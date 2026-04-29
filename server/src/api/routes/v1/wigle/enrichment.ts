@@ -6,7 +6,6 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
-import { assertBulkWigleAllowed } from '../../../../services/wigleBulkPolicy';
 
 const router = express.Router();
 const { asyncHandler } = require('../../../../utils/asyncHandler');
@@ -56,9 +55,6 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { bssids } = req.body;
-      if (!Array.isArray(bssids) || bssids.length === 0) {
-        assertBulkWigleAllowed('Start Batch Enrichment (Full Backlog)');
-      }
       const run = await wigleEnrichmentService.startBatchEnrichment(bssids);
       res.json({ ok: true, run });
     } catch (err: any) {

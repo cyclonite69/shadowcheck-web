@@ -15,9 +15,6 @@ jest.mock('../../../server/src/services/wigleImport/runRepository', () => ({
   markRunFailure: mockMarkRunFailure,
 }));
 
-jest.mock('../../../server/src/services/wigleBulkPolicy', () => ({
-  assertBulkWigleAllowed: jest.fn(),
-}));
 jest.mock('../../../server/src/services/wigleRequestLedger', () => ({
   recordRequest: jest.fn().mockResolvedValue({}),
 }));
