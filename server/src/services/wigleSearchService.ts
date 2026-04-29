@@ -97,3 +97,42 @@ export async function searchWigle(
     importErrors: importErrors.length > 0 ? importErrors : undefined,
   };
 }
+
+const { query: dbQuery } = require('../config/database');
+
+/**
+ * Fetch all saved SSID search terms, most-recently-used first.
+ */
+export async function getSavedSsidTerms(): Promise<any[]> {
+  const { rows } = await dbQuery(
+    `SELECT id, term, last_used_at FROM app.wigle_saved_ssid_terms ORDER BY last_used_at DESC, term ASC`
+  );
+  return rows;
+}
+
+/**
+ * Insert or update a saved SSID term. Returns the upserted row.
+ */
+export async function upsertSavedSsidTerm(raw: string): Promise<any> {
+  const normalized = raw.toLowerCase();
+  const { rows } = await dbQuery(
+    `INSERT INTO app.wigle_saved_ssid_terms (term, term_normalized)
+     VALUES ($1, $2)
+     ON CONFLICT (term_normalized)
+     DO UPDATE SET last_used_at = now(), term = EXCLUDED.term
+     RETURNING id, term, last_used_at`,
+    [raw, normalized]
+  );
+  return rows[0];
+}
+
+/**
+ * Delete a saved SSID term by id. Returns true if a row was deleted.
+ */
+export async function deleteSavedSsidTerm(id: number): Promise<boolean> {
+  const result = await dbQuery(
+    `DELETE FROM app.wigle_saved_ssid_terms WHERE id = $1 RETURNING id`,
+    [id]
+  );
+  return result.rowCount > 0;
+}

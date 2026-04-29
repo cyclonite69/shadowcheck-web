@@ -13,14 +13,9 @@ interface ErrorJSON {
     stack?: string;
     name?: string;
     details?: unknown;
-    retryAfter?: number;
     database?: {
       query: string | null;
       detail: string | null;
-      code: string;
-    };
-    originalError?: {
-      message: string;
       code: string;
     };
   };
@@ -128,71 +123,6 @@ class NotFoundError extends AppError {
 }
 
 /**
- * Unauthorized Error (401)
- * Thrown when authentication fails
- */
-class UnauthorizedError extends AppError {
-  constructor(message: string = 'Authentication required') {
-    super(message, 401, 'UNAUTHORIZED');
-  }
-
-  getUserMessage(): string {
-    return 'You must be authenticated to access this resource.';
-  }
-}
-
-/**
- * Forbidden Error (403)
- * Thrown when user lacks permissions
- */
-class ForbiddenError extends AppError {
-  constructor(message: string = 'Access denied') {
-    super(message, 403, 'FORBIDDEN');
-  }
-
-  getUserMessage(): string {
-    return 'You do not have permission to access this resource.';
-  }
-}
-
-/**
- * Conflict Error (409)
- * Thrown when request conflicts with current state
- */
-class ConflictError extends AppError {
-  constructor(message: string) {
-    super(message, 409, 'CONFLICT');
-  }
-
-  getUserMessage(): string {
-    return 'The requested action conflicts with current data. Please try again.';
-  }
-}
-
-/**
- * Rate Limit Error (429)
- * Thrown when rate limits are exceeded
- */
-class RateLimitError extends AppError {
-  public readonly retryAfter: number;
-
-  constructor(retryAfter: number = 60) {
-    super('Rate limit exceeded', 429, 'RATE_LIMIT_EXCEEDED');
-    this.retryAfter = retryAfter;
-  }
-
-  toJSON(includeStack: boolean = false): ErrorJSON {
-    const json = super.toJSON(includeStack);
-    json.error.retryAfter = this.retryAfter;
-    return json;
-  }
-
-  getUserMessage(): string {
-    return `Too many requests. Please try again after ${this.retryAfter} seconds.`;
-  }
-}
-
-/**
  * Database Error (500)
  * Thrown when database operations fail
  * Never exposes database details to users
@@ -228,122 +158,6 @@ class DatabaseError extends AppError {
 }
 
 /**
- * External Service Error (502/503)
- * Thrown when external APIs or services fail
- */
-class ExternalServiceError extends AppError {
-  public readonly service: string;
-  public readonly originalError: Error | null;
-
-  constructor(service: string, statusCode: number = 502, originalError: Error | null = null) {
-    super(`${service} service error`, statusCode, 'EXTERNAL_SERVICE_ERROR');
-    this.service = service;
-    this.originalError = originalError;
-  }
-
-  getUserMessage(): string {
-    return `External service (${this.service}) is temporarily unavailable. Please try again later.`;
-  }
-}
-
-/**
- * Operation Timeout Error (504)
- * Thrown when operations take too long
- */
-class TimeoutError extends AppError {
-  public readonly operation: string;
-  public readonly timeoutMs: number;
-
-  constructor(operation: string, timeoutMs: number) {
-    super(`${operation} timed out after ${timeoutMs}ms`, 504, 'TIMEOUT');
-    this.operation = operation;
-    this.timeoutMs = timeoutMs;
-  }
-
-  getUserMessage(): string {
-    return 'The operation took too long to complete. Please try again.';
-  }
-}
-
-/**
- * Duplicate Entry Error (409)
- * Thrown when attempting to create duplicate resource
- */
-class DuplicateError extends AppError {
-  public readonly resource: string;
-  public readonly identifier: string;
-
-  constructor(resource: string, identifier: string) {
-    super(`${resource} with identifier '${identifier}' already exists`, 409, 'DUPLICATE_ENTRY');
-    this.resource = resource;
-    this.identifier = identifier;
-  }
-
-  getUserMessage(): string {
-    return `A ${this.resource.toLowerCase()} with this identifier already exists.`;
-  }
-}
-
-/**
- * Invalid State Error (409)
- * Thrown when operation cannot be performed in current state
- */
-class InvalidStateError extends AppError {
-  public readonly currentState: unknown;
-
-  constructor(message: string, currentState: unknown = null) {
-    super(message, 409, 'INVALID_STATE');
-    this.currentState = currentState;
-  }
-
-  getUserMessage(): string {
-    return 'The requested operation cannot be performed in the current state.';
-  }
-}
-
-/**
- * Business Logic Error (422)
- * Thrown when business logic constraints are violated
- */
-class BusinessLogicError extends AppError {
-  constructor(message: string) {
-    super(message, 422, 'BUSINESS_LOGIC_ERROR');
-  }
-
-  getUserMessage(): string {
-    return 'The requested operation violates business rules.';
-  }
-}
-
-/**
- * Query Error (500)
- * Thrown when SQL query construction or execution fails
- */
-class QueryError extends AppError {
-  public readonly originalError: Error | null;
-
-  constructor(message: string, originalError: Error | null = null) {
-    super(message, 500, 'QUERY_ERROR');
-    this.originalError = originalError;
-  }
-
-  toJSON(includeStack: boolean = false): ErrorJSON {
-    const json = super.toJSON(includeStack);
-    if (process.env.NODE_ENV === 'development' && this.originalError) {
-      json.error.originalError = {
-        message: this.originalError.message,
-        code: (this.originalError as any).code || '',
-      };
-    }
-    return json;
-  }
-
-  getUserMessage(): string {
-    return 'A query execution error occurred. Please try again later.';
-  }
-}
-
-/**
  * Helper function to check if error is AppError
  */
 function isAppError(error: unknown): error is AppError {
@@ -361,7 +175,7 @@ function toAppError(error: unknown): AppError {
   // Handle specific error types
   const err = error as any; // Escape hatch for unknown error shapes
   if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-    return new ExternalServiceError('Database', 503, err);
+    return new AppError('External service temporarily unavailable', 503, 'EXTERNAL_SERVICE_ERROR');
   }
 
   if (err.code && err.code.startsWith('POSTGRES')) {
@@ -369,7 +183,7 @@ function toAppError(error: unknown): AppError {
   }
 
   if (err.message && err.message.includes('timeout')) {
-    return new TimeoutError('Operation', 60000);
+    return new AppError('Operation timed out', 504, 'TIMEOUT');
   }
 
   if (err.message && err.message.includes('has not been populated')) {
@@ -397,21 +211,4 @@ function toAppError(error: unknown): AppError {
   );
 }
 
-export {
-  AppError,
-  ValidationError,
-  NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-  ConflictError,
-  RateLimitError,
-  DatabaseError,
-  ExternalServiceError,
-  TimeoutError,
-  DuplicateError,
-  InvalidStateError,
-  BusinessLogicError,
-  QueryError,
-  isAppError,
-  toAppError,
-};
+export { AppError, ValidationError, NotFoundError, DatabaseError, isAppError, toAppError };

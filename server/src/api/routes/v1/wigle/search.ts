@@ -11,9 +11,13 @@ import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { assertBulkWigleAllowed } from '../../../../services/wigleBulkPolicy';
 import { validateImportQuery as validateSearchQuery } from '../../../../services/wigleImport/params';
-import { searchWigle } from '../../../../services/wigleSearchService';
+import {
+  searchWigle,
+  getSavedSsidTerms,
+  upsertSavedSsidTerm,
+  deleteSavedSsidTerm,
+} from '../../../../services/wigleSearchService';
 import { buildRunImportResponse } from '../../../../services/wigleSearchTransforms';
-const { query: dbQuery } = require('../../../../config/database');
 
 /**
  * POST/GET /search-api - Search WiGLE API with optional import
@@ -222,10 +226,8 @@ router.get(
   requireAdmin,
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      const { rows } = await dbQuery(
-        `SELECT id, term, last_used_at FROM app.wigle_saved_ssid_terms ORDER BY last_used_at DESC, term ASC`
-      );
-      return res.json({ ok: true, terms: rows });
+      const terms = await getSavedSsidTerms();
+      return res.json({ ok: true, terms });
     } catch (err: any) {
       logger.error(`[WiGLE] Saved terms fetch error: ${err.message}`);
       next(err);
@@ -250,15 +252,8 @@ router.post(
       ) {
         return res.status(400).json({ ok: false, error: 'Term too short or invalid' });
       }
-      const { rows } = await dbQuery(
-        `INSERT INTO app.wigle_saved_ssid_terms (term, term_normalized)
-       VALUES ($1, $2)
-       ON CONFLICT (term_normalized)
-       DO UPDATE SET last_used_at = now(), term = EXCLUDED.term
-       RETURNING id, term, last_used_at`,
-        [raw, normalized]
-      );
-      return res.json({ ok: true, term: rows[0] });
+      const term = await upsertSavedSsidTerm(raw);
+      return res.json({ ok: true, term });
     } catch (err: any) {
       logger.error(`[WiGLE] Saved term upsert error: ${err.message}`);
       next(err);
@@ -276,12 +271,8 @@ router.delete(
     try {
       const id = Number.parseInt(String(req.params.id), 10);
       if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'Invalid id' });
-      const result = await dbQuery(
-        `DELETE FROM app.wigle_saved_ssid_terms WHERE id = $1 RETURNING id`,
-        [id]
-      );
-      if (result.rowCount === 0)
-        return res.status(404).json({ ok: false, error: 'Term not found' });
+      const deleted = await deleteSavedSsidTerm(id);
+      if (!deleted) return res.status(404).json({ ok: false, error: 'Term not found' });
       return res.json({ ok: true, deleted: id });
     } catch (err: any) {
       logger.error(`[WiGLE] Saved term delete error: ${err.message}`);

@@ -1,9 +1,9 @@
-import { 
-  parseIncludeTotalFlag, 
-  stripNullBytes, 
-  stripNullBytesKeepEmpty, 
-  stripNullBytesDeep 
-} from '../../server/src/api/routes/v1/wigle/utils';
+import {
+  parseIncludeTotalFlag,
+  stripNullBytes,
+  stripNullBytesKeepEmpty,
+  stripNullBytesDeep,
+} from '../../server/src/services/wigleDetailTransforms';
 
 describe('wigleUtils', () => {
   describe('parseIncludeTotalFlag', () => {

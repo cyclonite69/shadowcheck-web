@@ -65,3 +65,18 @@ export async function saveMLModelConfig(
   );
   return result.rowCount !== null && result.rowCount > 0;
 }
+
+/**
+ * Persist the AWS region to app.settings.
+ */
+export async function setAwsRegion(region: string): Promise<void> {
+  await adminQuery(
+    `INSERT INTO app.settings (key, value, description)
+     VALUES ($1, $2::jsonb, $3)
+     ON CONFLICT (key) DO UPDATE
+       SET value = EXCLUDED.value,
+           description = EXCLUDED.description,
+           updated_at = NOW()`,
+    ['aws_region', JSON.stringify(region), 'AWS region for runtime provider chain integrations']
+  );
+}

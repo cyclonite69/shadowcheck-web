@@ -1,31 +1,22 @@
 /**
  * Export Service Layer
- * Encapsulates database queries for data export operations
+ * Data shaping and formatting logic for export operations.
+ * All database access is delegated to exportRepository.
  */
 
-const db = require('../config/database');
-const { adminQuery } = require('./adminDbService');
-
-const quoteIdent = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
+const {
+  queryObservationsForCSV,
+  queryObservationsForJSON,
+  queryNetworksForJSON,
+  queryObservationsForGeoJSON,
+  queryAppTableNames,
+  queryTableRowCount,
+  queryTableRows,
+  queryObservationsForKML,
+} = require('../repositories/exportRepository');
 
 export async function getObservationsForCSV(): Promise<any[]> {
-  const result = await db.query(`
-    SELECT
-      bssid,
-      ssid,
-      lat as latitude,
-      lon as longitude,
-      level as signal_dbm,
-      time as observed_at,
-      radio_type,
-      radio_frequency as frequency,
-      radio_capabilities as capabilities,
-      accuracy
-    FROM app.observations
-    ORDER BY time DESC
-    LIMIT 50000
-  `);
-  return result.rows;
+  return queryObservationsForCSV();
 }
 
 export async function getObservationsAndNetworksForJSON(): Promise<{
@@ -33,66 +24,14 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
   networks: any[];
 }> {
   const [observations, networks] = await Promise.all([
-    db.query(`
-      SELECT
-        bssid,
-        ssid,
-        lat,
-        lon,
-        level,
-        time,
-        radio_type,
-        radio_frequency,
-        radio_capabilities,
-        accuracy,
-        altitude
-      FROM app.observations
-      ORDER BY time DESC
-      LIMIT 20000
-    `),
-    db.query(`
-      SELECT
-        bssid,
-        ssid,
-        type,
-        lasttime_ms,
-        bestlat,
-        bestlon,
-        frequency,
-        capabilities,
-        threat_score_v2 as threat_score,
-        threat_level
-      FROM app.networks
-      ORDER BY lasttime_ms DESC NULLS LAST
-      LIMIT 10000
-    `),
+    queryObservationsForJSON(),
+    queryNetworksForJSON(),
   ]);
-
-  return {
-    observations: observations.rows,
-    networks: networks.rows,
-  };
+  return { observations, networks };
 }
 
 export async function getObservationsForGeoJSON(): Promise<any[]> {
-  const result = await db.query(`
-    SELECT
-      bssid,
-      ssid,
-      lat as latitude,
-      lon as longitude,
-      level as signal_dbm,
-      time as observed_at,
-      radio_type,
-      radio_frequency as frequency,
-      radio_capabilities as capabilities,
-      accuracy
-    FROM app.observations
-    WHERE lat IS NOT NULL AND lon IS NOT NULL
-    ORDER BY time DESC
-    LIMIT 50000
-  `);
-  return result.rows;
+  return queryObservationsForGeoJSON();
 }
 
 export async function getFullDatabaseSnapshot(): Promise<{
@@ -113,14 +52,8 @@ export async function getFullDatabaseSnapshot(): Promise<{
     10
   );
   const maxRowsTotal = Number.parseInt(process.env.FULL_EXPORT_MAX_ROWS_TOTAL || '100000', 10);
-  const tableList = await adminQuery(
-    `
-      SELECT tablename
-      FROM pg_tables
-      WHERE schemaname = 'app'
-      ORDER BY tablename
-    `
-  );
+
+  const tableNames: string[] = await queryAppTableNames();
 
   const tables: Record<
     string,
@@ -129,79 +62,32 @@ export async function getFullDatabaseSnapshot(): Promise<{
   let totalExportedRows = 0;
   let snapshotTruncated = false;
 
-  for (const row of tableList.rows) {
-    const tableName = String(row.tablename);
-    const qualifiedTable = `${quoteIdent('app')}.${quoteIdent(tableName)}`;
-    const countResult = await adminQuery(`SELECT COUNT(*)::bigint AS count FROM ${qualifiedTable}`);
-    const rowCount = Number(countResult.rows[0]?.count || 0);
+  for (const tableName of tableNames) {
+    const rowCount = await queryTableRowCount(tableName);
     const remainingBudget = Math.max(0, maxRowsTotal - totalExportedRows);
-    const exportLimit = Math.max(0, Math.min(maxRowsPerTable, remainingBudget));
-    const result =
-      exportLimit > 0
-        ? await adminQuery(`SELECT * FROM ${qualifiedTable} LIMIT ${exportLimit}`)
-        : { rows: [] };
-    const exportedRowCount = Array.isArray(result.rows) ? result.rows.length : 0;
+    const exportLimit = Math.min(maxRowsPerTable, remainingBudget);
+    const rows = await queryTableRows(tableName, exportLimit);
+    const exportedRowCount = rows.length;
     const tableTruncated = exportedRowCount < rowCount;
 
-    if (tableTruncated) {
-      snapshotTruncated = true;
-    }
-
+    if (tableTruncated) snapshotTruncated = true;
     totalExportedRows += exportedRowCount;
 
-    tables[tableName] = {
-      rowCount,
-      exportedRowCount,
-      truncated: tableTruncated,
-      rows: result.rows,
-    };
+    tables[tableName] = { rowCount, exportedRowCount, truncated: tableTruncated, rows };
   }
 
   return {
     schema: 'app',
     exported_at: new Date().toISOString(),
     truncated: snapshotTruncated,
-    limits: {
-      maxRowsPerTable,
-      maxRowsTotal,
-    },
+    limits: { maxRowsPerTable, maxRowsTotal },
     tables,
   };
 }
 
 export async function getObservationsForKML(bssids: string[]): Promise<any[]> {
-  if (!bssids || bssids.length === 0) {
-    return [];
-  }
-
-  // Escape BSSIDs for SQL - they should be in AA:BB:CC:DD:EE:FF format
-  const placeholders = bssids.map((_, i) => `$${i + 1}`).join(',');
-
-  const result = await db.query(
-    `
-    SELECT
-      bssid,
-      ssid,
-      lat,
-      lon,
-      level as signal_dbm,
-      time as observed_at,
-      radio_type,
-      radio_frequency as frequency,
-      radio_capabilities as capabilities,
-      accuracy,
-      altitude
-    FROM app.observations
-    WHERE bssid IN (${placeholders})
-      AND lat IS NOT NULL
-      AND lon IS NOT NULL
-    ORDER BY time DESC
-    LIMIT 10000
-  `,
-    bssids
-  );
-
-  return result.rows;
+  if (!bssids || bssids.length === 0) return [];
+  return queryObservationsForKML(bssids);
 }
 
 export function generateKML(observations: any[]): string {
@@ -215,12 +101,9 @@ export function generateKML(observations: any[]): string {
 </kml>`;
   }
 
-  // Group observations by BSSID for folder organization
   const byBSSID: Record<string, any[]> = {};
   observations.forEach((obs) => {
-    if (!byBSSID[obs.bssid]) {
-      byBSSID[obs.bssid] = [];
-    }
+    if (!byBSSID[obs.bssid]) byBSSID[obs.bssid] = [];
     byBSSID[obs.bssid].push(obs);
   });
 

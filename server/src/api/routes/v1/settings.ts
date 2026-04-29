@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { secretsManager } = require('../../../config/container');
-const { adminQuery } = require('../../../services/adminDbService');
+const { setAwsRegion } = require('../../../services/adminSettingsService');
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const { registerProviderSecretRoutes } = require('./settingsSecretRoutes');
 const {
@@ -45,21 +45,7 @@ router.post('/settings/aws', requireAuth, async (req: Request, res: Response) =>
       return res.status(400).json({ error: regionValidation.error });
     }
 
-    await adminQuery(
-      `
-      INSERT INTO app.settings (key, value, description)
-      VALUES ($1, $2::jsonb, $3)
-      ON CONFLICT (key) DO UPDATE
-        SET value = EXCLUDED.value,
-            description = EXCLUDED.description,
-            updated_at = NOW()
-    `,
-      [
-        'aws_region',
-        JSON.stringify(regionValidation.value),
-        'AWS region for runtime provider chain integrations',
-      ]
-    );
+    await setAwsRegion(regionValidation.value);
 
     res.json({ success: true, mode: 'runtime_provider_chain' });
   } catch (error) {

@@ -73,3 +73,14 @@ export const inferWigleEndpoint = (networkType: string | null | undefined): 'wif
     .toUpperCase();
   return normalized === 'B' || normalized === 'E' ? 'bt' : 'wifi';
 };
+
+export function parseIncludeTotalFlag(value: any): {
+  valid: boolean;
+  value?: boolean;
+  error?: string;
+} {
+  if (value === undefined || value === null || value === '') return { valid: true, value: false };
+  if (value === '1' || value === 'true') return { valid: true, value: true };
+  if (value === '0' || value === 'false') return { valid: true, value: false };
+  return { valid: false, error: `Invalid include_total value: ${value}` };
+}

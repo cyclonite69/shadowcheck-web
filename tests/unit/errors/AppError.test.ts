@@ -2,17 +2,7 @@ import {
   AppError,
   ValidationError,
   NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-  ConflictError,
-  RateLimitError,
   DatabaseError,
-  ExternalServiceError,
-  TimeoutError,
-  DuplicateError,
-  InvalidStateError,
-  BusinessLogicError,
-  QueryError,
   isAppError,
   toAppError,
 } from '../../../server/src/errors/AppError';
@@ -71,14 +61,16 @@ describe('AppError classes and utilities', () => {
       expect(error.statusCode).toBe(400);
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.details).toBe(details);
-      
+
       const json = error.toJSON();
       expect(json.error.details).toBe(details);
     });
 
     it('should have a specific user message', () => {
       const error = new ValidationError('Bad request');
-      expect(error.getUserMessage()).toBe('Request validation failed. Please check your input and try again.');
+      expect(error.getUserMessage()).toBe(
+        'Request validation failed. Please check your input and try again.'
+      );
     });
   });
 
@@ -92,51 +84,16 @@ describe('AppError classes and utilities', () => {
     });
   });
 
-  describe('UnauthorizedError', () => {
-    it('should create an unauthorized error', () => {
-      const error = new UnauthorizedError();
-      expect(error.statusCode).toBe(401);
-      expect(error.code).toBe('UNAUTHORIZED');
-      expect(error.getUserMessage()).toBe('You must be authenticated to access this resource.');
-    });
-  });
-
-  describe('ForbiddenError', () => {
-    it('should create a forbidden error', () => {
-      const error = new ForbiddenError();
-      expect(error.statusCode).toBe(403);
-      expect(error.code).toBe('FORBIDDEN');
-      expect(error.getUserMessage()).toBe('You do not have permission to access this resource.');
-    });
-  });
-
-  describe('ConflictError', () => {
-    it('should create a conflict error', () => {
-      const error = new ConflictError('State conflict');
-      expect(error.statusCode).toBe(409);
-      expect(error.code).toBe('CONFLICT');
-      expect(error.getUserMessage()).toBe('The requested action conflicts with current data. Please try again.');
-    });
-  });
-
-  describe('RateLimitError', () => {
-    it('should create a rate limit error', () => {
-      const error = new RateLimitError(120);
-      expect(error.statusCode).toBe(429);
-      expect(error.code).toBe('RATE_LIMIT_EXCEEDED');
-      expect(error.retryAfter).toBe(120);
-      
-      const json = error.toJSON();
-      expect(json.error.retryAfter).toBe(120);
-      expect(error.getUserMessage()).toBe('Too many requests. Please try again after 120 seconds.');
-    });
-  });
-
   describe('DatabaseError', () => {
     it('should create a database error', () => {
-      const originalError = { message: 'db fail', query: 'SELECT *', detail: 'syntax', code: '42601' };
+      const originalError = {
+        message: 'db fail',
+        query: 'SELECT *',
+        detail: 'syntax',
+        code: '42601',
+      };
       const error = new DatabaseError(originalError);
-      
+
       expect(error.statusCode).toBe(500);
       expect(error.code).toBe('DATABASE_ERROR');
       expect(error.query).toBe('SELECT *');
@@ -145,9 +102,14 @@ describe('AppError classes and utilities', () => {
     });
 
     it('should include db details in JSON only in development', () => {
-      const originalError = { message: 'db fail', query: 'SELECT *', detail: 'syntax', code: '42601' };
+      const originalError = {
+        message: 'db fail',
+        query: 'SELECT *',
+        detail: 'syntax',
+        code: '42601',
+      };
       const error = new DatabaseError(originalError);
-      
+
       process.env.NODE_ENV = 'development';
       let json = error.toJSON();
       expect(json.error.database).toBeDefined();
@@ -156,85 +118,6 @@ describe('AppError classes and utilities', () => {
       process.env.NODE_ENV = 'production';
       json = error.toJSON();
       expect(json.error.database).toBeUndefined();
-    });
-  });
-
-  describe('ExternalServiceError', () => {
-    it('should create an external service error', () => {
-      const original = new Error('net fail');
-      const error = new ExternalServiceError('Auth', 503, original);
-      expect(error.statusCode).toBe(503);
-      expect(error.code).toBe('EXTERNAL_SERVICE_ERROR');
-      expect(error.service).toBe('Auth');
-      expect(error.originalError).toBe(original);
-      expect(error.getUserMessage()).toBe('External service (Auth) is temporarily unavailable. Please try again later.');
-    });
-  });
-
-  describe('TimeoutError', () => {
-    it('should create a timeout error', () => {
-      const error = new TimeoutError('DB Query', 5000);
-      expect(error.statusCode).toBe(504);
-      expect(error.code).toBe('TIMEOUT');
-      expect(error.operation).toBe('DB Query');
-      expect(error.timeoutMs).toBe(5000);
-      expect(error.getUserMessage()).toBe('The operation took too long to complete. Please try again.');
-    });
-  });
-
-  describe('DuplicateError', () => {
-    it('should create a duplicate error', () => {
-      const error = new DuplicateError('User', 'user@example.com');
-      expect(error.statusCode).toBe(409);
-      expect(error.code).toBe('DUPLICATE_ENTRY');
-      expect(error.resource).toBe('User');
-      expect(error.identifier).toBe('user@example.com');
-      expect(error.getUserMessage()).toBe('A user with this identifier already exists.');
-    });
-  });
-
-  describe('InvalidStateError', () => {
-    it('should create an invalid state error', () => {
-      const error = new InvalidStateError('Cannot process', { status: 'PENDING' });
-      expect(error.statusCode).toBe(409);
-      expect(error.code).toBe('INVALID_STATE');
-      expect(error.currentState).toEqual({ status: 'PENDING' });
-      expect(error.getUserMessage()).toBe('The requested operation cannot be performed in the current state.');
-    });
-  });
-
-  describe('BusinessLogicError', () => {
-    it('should create a business logic error', () => {
-      const error = new BusinessLogicError('Rule failed');
-      expect(error.statusCode).toBe(422);
-      expect(error.code).toBe('BUSINESS_LOGIC_ERROR');
-      expect(error.getUserMessage()).toBe('The requested operation violates business rules.');
-    });
-  });
-
-  describe('QueryError', () => {
-    it('should create a query error', () => {
-      const original = new Error('bad query');
-      (original as any).code = 'XYZ';
-      const error = new QueryError('Query failed', original);
-      expect(error.statusCode).toBe(500);
-      expect(error.code).toBe('QUERY_ERROR');
-      expect(error.getUserMessage()).toBe('A query execution error occurred. Please try again later.');
-    });
-
-    it('should include original error details in dev mode', () => {
-      process.env.NODE_ENV = 'development';
-      const original = new Error('bad query');
-      (original as any).code = 'XYZ';
-      const error = new QueryError('Query failed', original);
-      const json = error.toJSON();
-      expect(json.error.originalError).toBeDefined();
-      expect(json.error.originalError?.message).toBe('bad query');
-      expect(json.error.originalError?.code).toBe('XYZ');
-
-      process.env.NODE_ENV = 'production';
-      const jsonProd = error.toJSON();
-      expect(jsonProd.error.originalError).toBeUndefined();
     });
   });
 
@@ -262,20 +145,22 @@ describe('AppError classes and utilities', () => {
       expect(toAppError(err)).toBe(err);
     });
 
-    it('should convert ECONNREFUSED to ExternalServiceError', () => {
+    it('should convert ECONNREFUSED to AppError with 503', () => {
       const err = new Error('conn refused');
       (err as any).code = 'ECONNREFUSED';
       const result = toAppError(err);
-      expect(result).toBeInstanceOf(ExternalServiceError);
+      expect(result).toBeInstanceOf(AppError);
       expect(result.statusCode).toBe(503);
-      expect((result as ExternalServiceError).service).toBe('Database');
+      expect(result.code).toBe('EXTERNAL_SERVICE_ERROR');
     });
 
-    it('should convert ENOTFOUND to ExternalServiceError', () => {
+    it('should convert ENOTFOUND to AppError with 503', () => {
       const err = new Error('not found');
       (err as any).code = 'ENOTFOUND';
       const result = toAppError(err);
-      expect(result).toBeInstanceOf(ExternalServiceError);
+      expect(result).toBeInstanceOf(AppError);
+      expect(result.statusCode).toBe(503);
+      expect(result.code).toBe('EXTERNAL_SERVICE_ERROR');
     });
 
     it('should convert POSTGRES error to DatabaseError', () => {
@@ -285,11 +170,12 @@ describe('AppError classes and utilities', () => {
       expect(result).toBeInstanceOf(DatabaseError);
     });
 
-    it('should convert timeout message to TimeoutError', () => {
+    it('should convert timeout message to AppError with 504', () => {
       const err = new Error('request timeout occurred');
       const result = toAppError(err);
-      expect(result).toBeInstanceOf(TimeoutError);
+      expect(result).toBeInstanceOf(AppError);
       expect(result.statusCode).toBe(504);
+      expect(result.code).toBe('TIMEOUT');
     });
 
     it('should convert unpopulated db message to special AppError', () => {

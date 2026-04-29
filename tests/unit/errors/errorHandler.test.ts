@@ -9,7 +9,7 @@ import {
   handleDatabaseError,
   handleRateLimitError,
 } from '../../../server/src/errors/errorHandler';
-import { AppError, ValidationError, DatabaseError, RateLimitError } from '../../../server/src/errors/AppError';
+import { AppError, ValidationError, DatabaseError } from '../../../server/src/errors/AppError';
 
 describe('errorHandler middleware and utilities', () => {
   const originalEnv = process.env.NODE_ENV;
@@ -26,7 +26,7 @@ describe('errorHandler middleware and utilities', () => {
         error: jest.fn(),
         debug: jest.fn(),
       };
-      
+
       const handler = createErrorHandler(mockLogger as any);
       const req = {
         path: '/test',
@@ -35,14 +35,14 @@ describe('errorHandler middleware and utilities', () => {
         user: { id: 'u1' },
         headers: { 'x-request-id': 'req-id' },
       } as unknown as Request;
-      
+
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
       } as unknown as Response;
-      
+
       const next = jest.fn() as NextFunction;
-      
+
       // 500 error
       const error500 = new AppError('Server boom');
       handler(error500, req, res, next);
@@ -92,15 +92,17 @@ describe('errorHandler middleware and utilities', () => {
         debug: jest.fn(),
       };
       const req = {
-        headers: { 'x-request-id': 'req-123' }
+        headers: { 'x-request-id': 'req-123' },
       } as unknown as Request;
       const error = new AppError('test');
 
       logError(error as any, req, mockLogger);
-      expect(mockLogger.error).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 'anonymous',
-        requestId: 'req-123',
-      }));
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'anonymous',
+          requestId: 'req-123',
+        })
+      );
     });
   });
 
@@ -109,7 +111,7 @@ describe('errorHandler middleware and utilities', () => {
       const error = new Error('Async boom');
       const handler = jest.fn().mockRejectedValue(error);
       const wrapped = asyncHandler(handler);
-      
+
       const req = { headers: {} } as Request;
       const res = {} as Response;
       const next = jest.fn() as NextFunction;
@@ -121,7 +123,7 @@ describe('errorHandler middleware and utilities', () => {
     it('should pass if no error', async () => {
       const handler = jest.fn().mockResolvedValue('ok');
       const wrapped = asyncHandler(handler);
-      
+
       const req = { headers: {} } as Request;
       const res = {} as Response;
       const next = jest.fn() as NextFunction;
@@ -138,10 +140,12 @@ describe('errorHandler middleware and utilities', () => {
       const next = jest.fn() as NextFunction;
 
       notFoundHandler(req, res, next);
-      expect(next).toHaveBeenCalledWith(expect.objectContaining({
-        statusCode: 404,
-        message: 'Route POST /unknown not found',
-      }));
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 404,
+          message: 'Route POST /unknown not found',
+        })
+      );
     });
   });
 
@@ -149,11 +153,8 @@ describe('errorHandler middleware and utilities', () => {
     it('should build response with custom message and data', () => {
       const error = new AppError('Original msg');
       const builder = new ErrorResponseBuilder(error);
-      
-      const result = builder
-        .withMessage('Custom msg')
-        .withData({ foo: 'bar' })
-        .build();
+
+      const result = builder.withMessage('Custom msg').withData({ foo: 'bar' }).build();
 
       expect(result.error.message).toBe('Custom msg');
       expect(result.error.data).toEqual({ foo: 'bar' });
@@ -170,12 +171,14 @@ describe('errorHandler middleware and utilities', () => {
 
       handleValidationError(error as any, {} as Request, res);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        ok: false,
-        error: expect.objectContaining({
-          details: ['field1'],
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ok: false,
+          error: expect.objectContaining({
+            details: ['field1'],
+          }),
         })
-      }));
+      );
     });
   });
 
@@ -184,7 +187,7 @@ describe('errorHandler middleware and utilities', () => {
       process.env.NODE_ENV = 'development';
       const originalError = { code: '123', message: 'db msg' };
       const error = new DatabaseError(originalError);
-      
+
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
@@ -192,18 +195,20 @@ describe('errorHandler middleware and utilities', () => {
 
       handleDatabaseError(error as any, {} as Request, res);
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: expect.objectContaining({
-          database: { code: '123', message: 'db msg' }
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            database: { code: '123', message: 'db msg' },
+          }),
         })
-      }));
+      );
     });
 
     it('should format database error in production', () => {
       process.env.NODE_ENV = 'production';
       const originalError = { code: '123', message: 'db msg' };
       const error = new DatabaseError(originalError);
-      
+
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
@@ -211,17 +216,21 @@ describe('errorHandler middleware and utilities', () => {
 
       handleDatabaseError(error as any, {} as Request, res);
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: expect.not.objectContaining({
-          database: expect.anything()
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.not.objectContaining({
+            database: expect.anything(),
+          }),
         })
-      }));
+      );
     });
   });
 
   describe('handleRateLimitError', () => {
     it('should format rate limit error and set header', () => {
-      const error = new RateLimitError(30);
+      const error = Object.assign(new AppError('Rate limit exceeded', 429, 'RATE_LIMIT_EXCEEDED'), {
+        retryAfter: 30,
+      });
       const res = {
         set: jest.fn(),
         status: jest.fn().mockReturnThis(),
@@ -231,11 +240,13 @@ describe('errorHandler middleware and utilities', () => {
       handleRateLimitError(error as any, {} as Request, res);
       expect(res.set).toHaveBeenCalledWith('Retry-After', '30');
       expect(res.status).toHaveBeenCalledWith(429);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: expect.objectContaining({
-          retryAfter: 30,
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            retryAfter: 30,
+          }),
         })
-      }));
+      );
     });
   });
 });
