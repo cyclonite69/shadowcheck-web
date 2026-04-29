@@ -439,7 +439,7 @@ export const renderNetworkTooltip = (props: any): any => {
     isWigleOrigin
       ? `<div style="display:flex;align-items:center;gap:6px;padding:0 12px 8px;flex-wrap:wrap;">
     <div style="flex-shrink:0;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.24);color:#93c5fd;white-space:nowrap;">${wigleSource!.toUpperCase()}</div>
-    ${Boolean(props.wigle_match) ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.28);color:#86efac;font-size:10px;font-weight:600;white-space:nowrap;">Seen locally${Number(props.local_observation_count) > 0 ? ` &middot; ${Number(props.local_observation_count)} obs` : ''}</div>` : ''}
+    ${Boolean(props.wigle_match) ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.28);color:#86efac;font-size:10px;font-weight:600;white-space:nowrap;">Seen locally${Number(props.local_observation_count) > 0 ? ` &middot; ${Number(props.local_observation_count)} obs` : ''}</div>` : `<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.28);color:#fdba74;font-size:10px;font-weight:600;white-space:nowrap;">WiGLE only</div>`}
   </div>`
       : ''
   }

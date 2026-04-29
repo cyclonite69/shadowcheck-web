@@ -48,7 +48,19 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
     if (bssid) {
       networkApi.getNetworkByBssid(bssid).then((mvData) => {
         if (!popup.isOpen()) return;
-        const source = mvData ?? { ...props, bssid };
+        // Preserve WiGLE feature properties (wigle_match, wigle_source, local_observations, etc.)
+        // so badges survive even when a local MV record is found for the same BSSID.
+        const wigleProps = {
+          wigle_match: props.wigle_match,
+          wigle_source: props.wigle_source,
+          local_observations: props.local_observations,
+          localMatchExists: props.localMatchExists,
+          localObservationCount: props.localObservationCount,
+          wigle_precision_warning: props.wigle_precision_warning,
+          public_nonstationary_flag: props.public_nonstationary_flag,
+          public_ssid_variant_flag: props.public_ssid_variant_flag,
+        };
+        const source = mvData ? { ...mvData, ...wigleProps } : { ...props, bssid };
         const normalized = normalizeTooltipData(source, [e.lngLat.lng, e.lngLat.lat]);
         const fullHTML = renderNetworkTooltip({
           ...normalized,
