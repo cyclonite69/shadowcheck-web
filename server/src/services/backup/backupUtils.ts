@@ -1,9 +1,7 @@
 import fs from 'fs/promises';
 import { spawn } from 'child_process';
 
-export {};
-
-type BackupScope = {
+export type BackupScope = {
   mode: 'full_database' | 'schema_subset';
   schemas: string[];
   explicit: boolean;
