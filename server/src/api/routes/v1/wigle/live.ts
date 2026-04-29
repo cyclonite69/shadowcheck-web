@@ -8,7 +8,7 @@ const router = express.Router();
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { fetchWigle } from '../../../../services/wigleClient';
-import { hashRecord } from '../../../../services/wigleRequestUtils';
+import { hashRecord, getEncodedWigleAuth } from '../../../../services/wigleRequestUtils';
 import { macParamMiddleware } from '../../../../validation/middleware';
 
 import type { Request, Response, NextFunction } from 'express';
@@ -30,7 +30,7 @@ router.get(
         return res.status(503).json({ error: 'WiGLE API credentials not configured' });
       }
 
-      const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+      const encodedAuth = getEncodedWigleAuth();
       logger.info(`[WiGLE] Querying for BSSID: ${bssidStr}`);
 
       const response = await fetchWigle({

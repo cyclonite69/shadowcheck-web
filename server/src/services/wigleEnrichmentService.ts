@@ -8,7 +8,7 @@ import * as container from '../config/container';
 import logger from '../logging/logger';
 import { assertBulkWigleAllowed } from './wigleBulkPolicy';
 import { fetchWigle } from './wigleClient';
-import { hashRecord } from './wigleRequestUtils';
+import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
 import { fetchAndImportDetail } from './wigleEnrichmentFetcher';
 import {
   getPendingEnrichmentCount,
@@ -176,7 +176,7 @@ export async function validateWigleApiCredit() {
       return { hasCredit: false, message: 'WiGLE API credentials not configured' };
     }
 
-    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+    const encodedAuth = getEncodedWigleAuth();
     const response = await fetchWigle({
       kind: 'stats',
       url: 'https://api.wigle.net/api/v2/stats',

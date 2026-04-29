@@ -5,6 +5,7 @@
 
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
+import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { buildSearchParams, DEFAULT_RESULTS_PER_PAGE } from './wigleImport/params';
 import { fetchWigleSearchPage } from './wigleSearchApiService';
 import { computeNextCursor, importSearchResults } from './wigleSearchTransforms';
@@ -47,7 +48,7 @@ export async function searchWigle(
     };
   }
 
-  const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+  const encodedAuth = getEncodedWigleAuth();
   const apiVer: 'v2' | 'v3' = query.version === 'v3' ? 'v3' : 'v2';
   const searchAfter = query.searchAfter ? String(query.searchAfter) : null;
   const resultsPerPage = parseInt(String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE), 10);

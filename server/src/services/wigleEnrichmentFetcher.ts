@@ -5,7 +5,7 @@
 
 import * as container from '../config/container';
 import { fetchWigle } from './wigleClient';
-import { hashRecord } from './wigleRequestUtils';
+import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
 import { inferWigleEndpoint } from './wigleDetailTransforms';
 
 const { wigleService, secretsManager } = container as any;
@@ -24,7 +24,7 @@ export async function fetchAndImportDetail(
   if (!wigleApiName || !wigleApiToken) throw new Error('WiGLE API credentials not configured');
 
   const endpoint = inferWigleEndpoint(type);
-  const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+  const encodedAuth = getEncodedWigleAuth();
 
   const response = await fetchWigle({
     kind: 'detail',

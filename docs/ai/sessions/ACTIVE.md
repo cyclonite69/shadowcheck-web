@@ -39,3 +39,20 @@ _Nothing currently locked._
 | `b056d6af` | docs(agents): add endpoint and query documentation standards to all three agent files                                                                                                        |
 | `28c8136a` | docs(wigle): JSDoc on aggregated and extent route handlers + query builders                                                                                                                  |
 | `c459fbfa` | feat(admin): API test tab data-driven via `client/src/config/apiTestEndpoints.ts`                                                                                                            |
+
+---
+
+## Refactor Backlog (Audit 2026-04-29)
+
+| Priority | File                                             | Issue                             | Proposed Action                                                                           |
+| -------- | ------------------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1        | client/src/components/admin/types/admin.types.ts | DEAD CODE                         | Delete — zero importers, exact duplicate of client/src/types/admin.ts                     |
+| 2        | server/src/api/routes/v1/wigle/utils.ts          | DEAD CODE + DUPLICATION           | Delete — no importers, all three functions live in wigleDetailTransforms.ts               |
+| 3        | server/src/errors/AppError.ts                    | DEAD CODE                         | Remove 10 unused subclasses; keep AppError, ValidationError, NotFoundError, DatabaseError |
+| 4        | 5 wigle service files                            | DUPLICATION (credential encoding) | Move getEncodedWigleAuth() to wigleRequestUtils.ts; replace 5 inline Buffer.from calls    |
+| 5        | server/src/services/v2Service.ts                 | ORCHESTRATOR CANDIDATE            | Extract types → v2Types.ts, SQL → v2Repository.ts, leave orchestration                    |
+| 6        | server/src/services/exportService.ts             | REPOSITORY VIOLATION              | Extract all query()/adminQuery() calls to exportRepository.ts                             |
+| 7        | server/src/services/mobileIngestService.ts       | REPOSITORY VIOLATION              | Extract 20+ adminQuery() calls to mobileIngestRepository.ts                               |
+| 8        | server/src/services/keplerService.ts             | ORCHESTRATOR CANDIDATE            | Split into keplerTransforms.ts, keplerRepository.ts, thin service                         |
+| 9        | server/src/api/routes/v1/wigle/search.ts         | THIN ROUTER VIOLATION             | Move saved-terms query to wigleSearchService.getSavedSsidTerms()                          |
+| 10       | server/src/api/routes/v1/settings.ts             | THIN ROUTER VIOLATION             | Move AWS region upsert to adminSettingsService.setAwsRegion()                             |

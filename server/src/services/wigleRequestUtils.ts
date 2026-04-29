@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import secretsManager from './secretsManager';
 
 export {};
 
@@ -73,4 +74,15 @@ function hashRecord(record: Record<string, unknown>): string {
   return sha256(JSON.stringify(normalized));
 }
 
-export { hashParams, hashRecord, normalizeParams };
+function getEncodedWigleAuth(): string {
+  const wigleApiName = secretsManager.get('wigle_api_name');
+  const wigleApiToken = secretsManager.get('wigle_api_token');
+  if (!wigleApiName || !wigleApiToken) {
+    throw new Error(
+      'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.'
+    );
+  }
+  return Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+}
+
+export { hashParams, hashRecord, normalizeParams, getEncodedWigleAuth };

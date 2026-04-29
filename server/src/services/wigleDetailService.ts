@@ -6,7 +6,7 @@
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
 import { fetchWigle } from './wigleClient';
-import { hashRecord } from './wigleRequestUtils';
+import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
 import { logWigleAuditEvent } from './wigleAuditLogger';
 import {
   stripNullBytes,
@@ -50,7 +50,7 @@ export async function fetchUpstream(
     return { ok: false, status: 503, error: 'WiGLE API credentials not configured' };
   }
 
-  const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+  const encodedAuth = getEncodedWigleAuth();
   // MAC addresses only contain hex digits and colons — both URL-safe in path segments.
   // encodeURIComponent turns ':' into '%3A' which breaks WiGLE's btNetworkId regex.
   const apiUrl = `https://api.wigle.net/api/v3/detail/${endpoint}/${netid}`;

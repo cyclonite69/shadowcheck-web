@@ -44,6 +44,7 @@
 - **admin-users:** support user writes on schemas without force_password_change ([8632628](https://github.com/cyclonite69/shadowcheck-web/commit/8632628638c49514ad96eb237a758fdbb6a88da4))
 - **admin/geocoding:** prevent double stats fetch on tab load ([c759984](https://github.com/cyclonite69/shadowcheck-web/commit/c759984a0562a7968a51f8757381ebbd1c682da0))
 - **admin/v3-enrichment:** replace broken side panel with full-width forensic card ([0bf31ca](https://github.com/cyclonite69/shadowcheck-web/commit/0bf31ca012204eeb48e36959670d9bbdbf152d11))
+- **admin:** add .default to adminOuiRoutes require — fatal server startup error ([3b900f2](https://github.com/cyclonite69/shadowcheck-web/commit/3b900f2d935d1e784e393cf8e3ab75f5ea1ce9a4))
 - **admin:** add before-after audit metrics and history for SQL imports ([20b1e10](https://github.com/cyclonite69/shadowcheck-web/commit/20b1e1027c8943504945de3df61c3ffe8a6a0b61))
 - **admin:** correct api testing health detection ([a6afd58](https://github.com/cyclonite69/shadowcheck-web/commit/a6afd5854288df21ecd163e37638e7d32504f074))
 - **admin:** guard aws/overview against missing credentials and SDK errors ([49e7694](https://github.com/cyclonite69/shadowcheck-web/commit/49e7694b210610c8573fab570731cd6753958501))
