@@ -34,6 +34,7 @@
 - Add proper grid layout and height for map panel ([3186d2e](https://github.com/cyclonite69/shadowcheck-web/commit/3186d2ef4085b61787e30e16bb6e067f6515f3bd))
 - Add status indicator to index.html header ([5eb32b8](https://github.com/cyclonite69/shadowcheck-web/commit/5eb32b8530bf4dd53f7aa88cd3bd95f5c3c0cf67))
 - add wigle page server contract and purge remaining app-side mv joins ([9e64c66](https://github.com/cyclonite69/shadowcheck-web/commit/9e64c66673450dd842bf924228a34e9ae11a06bb))
+- add wigle_match and local_observations to v2/v3 WiGLE list queries ([3a920f8](https://github.com/cyclonite69/shadowcheck-web/commit/3a920f876dcb14e79a1025cfaaebfbd569dbd453))
 - address REAL_BUG API contracts and fix type noise ([832e30b](https://github.com/cyclonite69/shadowcheck-web/commit/832e30bf68ff8ef1e809bb6823184839fce188fc))
 - adjust map bounds fitting to prevent cutting off outer observations ([660749f](https://github.com/cyclonite69/shadowcheck-web/commit/660749f7e2aa9320e1861de5cb8476c1b3165c14))
 - **admin-db:** prevent auto-generated admin password from overwriting AWS SM ([7726625](https://github.com/cyclonite69/shadowcheck-web/commit/7726625c90e54cf32abbc644926797da7be2fa24))
