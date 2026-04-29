@@ -68,8 +68,14 @@ const buildWigleV2NetworksQuery = (params: {
   );
 
   const sql = `SELECT bssid, ssid, encryption, trilat, trilong, firsttime, lasttime, type,
-                      channel, frequency, qos, comment, source, region, city, road, housenumber
-               FROM app.wigle_v2_networks_search ${whereSql} ORDER BY lasttime DESC ${paginationSql}`;
+                      channel, frequency, qos, comment, source, region, city, road, housenumber,
+                      EXISTS(
+                        SELECT 1 FROM app.observations o WHERE o.bssid = w.bssid
+                      ) AS wigle_match,
+                      (
+                        SELECT COUNT(*)::int FROM app.observations o WHERE o.bssid = w.bssid
+                      ) AS local_observations
+               FROM app.wigle_v2_networks_search w ${whereSql} ORDER BY lasttime DESC ${paginationSql}`;
   return { sql, queryParams: allParams };
 };
 
@@ -103,7 +109,13 @@ const buildWigleV3NetworksQuery = (params: {
       obs.channel,
       obs.accuracy,
       obs.last_update,
-      'wigle-v3'::text AS wigle_source
+      'wigle-v3'::text AS wigle_source,
+      EXISTS(
+        SELECT 1 FROM app.observations o WHERE o.bssid = obs.netid
+      ) AS wigle_match,
+      (
+        SELECT COUNT(*)::int FROM app.observations o WHERE o.bssid = obs.netid
+      ) AS local_observations
     FROM app.wigle_v3_observations obs
     ${whereSql}
     ORDER BY obs.observed_at DESC

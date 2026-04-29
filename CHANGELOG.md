@@ -523,6 +523,7 @@
 - resolve 9000km distance error, missing channel/freq, and WPA2-P label ([d860491](https://github.com/cyclonite69/shadowcheck-web/commit/d860491048b047bed6643cc3eb67b58173ca7eaf))
 - resolve add3DBuildings reference error in GeospatialExplorer ([0ac22a2](https://github.com/cyclonite69/shadowcheck-web/commit/0ac22a24244864c80f622b2b3a8860f2f461d01a))
 - resolve build issues and import paths ([78ae05f](https://github.com/cyclonite69/shadowcheck-web/commit/78ae05fe0f04ef65a877146cf71e7ef9829d93f3))
+- resolve circular dependency in wigleDetailService ([562a88b](https://github.com/cyclonite69/shadowcheck-web/commit/562a88b1c03f6d1428f4bd4e27eb3f59bb1a5491))
 - resolve CREATE INDEX CONCURRENTLY transaction conflict in migrations ([b5284bc](https://github.com/cyclonite69/shadowcheck-web/commit/b5284bcff949f5d28232636fc8af0dea83799e3a))
 - resolve deploy config from AWS runtime settings ([da68cb0](https://github.com/cyclonite69/shadowcheck-web/commit/da68cb041474629ae4b27a9c37e5dc315a0c47ba))
 - resolve Docker container restart loop with transpile-only mode ([749f87e](https://github.com/cyclonite69/shadowcheck-web/commit/749f87ea8ec1f9bb6a13fece71fd867e981edd81))
