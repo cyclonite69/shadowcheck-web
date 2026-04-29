@@ -66,3 +66,10 @@ export function mapCachedDetailToApiShape(cached: any): any {
     bestClusterWiGLEQoS: cached.qos ?? null,
   };
 }
+
+export const inferWigleEndpoint = (networkType: string | null | undefined): 'wifi' | 'bt' => {
+  const normalized = String(networkType || '')
+    .trim()
+    .toUpperCase();
+  return normalized === 'B' || normalized === 'E' ? 'bt' : 'wifi';
+};

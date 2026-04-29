@@ -6,15 +6,9 @@
 import * as container from '../config/container';
 import { fetchWigle } from './wigleClient';
 import { hashRecord } from './wigleRequestUtils';
+import { inferWigleEndpoint } from './wigleDetailTransforms';
 
 const { wigleService, secretsManager } = container as any;
-
-const inferWigleEndpoint = (networkType: string | null | undefined): 'wifi' | 'bt' => {
-  const normalized = String(networkType || '')
-    .trim()
-    .toUpperCase();
-  return normalized === 'B' || normalized === 'E' ? 'bt' : 'wifi';
-};
 
 /**
  * Fetch v3 detail for a single BSSID from the WiGLE API and import it into the DB.

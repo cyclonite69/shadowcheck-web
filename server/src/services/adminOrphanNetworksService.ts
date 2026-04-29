@@ -2,10 +2,9 @@ export {};
 
 const { adminQuery } = require('./adminDbService');
 const wigleService = require('./wigleService');
-const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
-const { fetchWigle } = require('./wigleClient');
-const { hashRecord } = require('./wigleRequestUtils');
+import { stripNullBytes, inferWigleEndpoint } from './wigleDetailTransforms';
+import { fetchUpstream, importObservations } from './wigleDetailService';
 
 type ListOrphanNetworksOptions = {
   search?: string;
@@ -18,20 +17,6 @@ type OrphanBackfillStatus =
   | 'wigle_match_imported_v3'
   | 'no_wigle_match'
   | 'error';
-
-const stripNullBytes = (value: any): string | null => {
-  if (value === undefined || value === null) return null;
-  const cleaned = String(value).replace(/\u0000/g, '');
-  return cleaned === '' ? null : cleaned;
-};
-
-const inferWigleEndpoint = (networkType: string | null | undefined): 'wifi' | 'bt' => {
-  const normalized = String(networkType || '')
-    .trim()
-    .toUpperCase();
-  if (normalized === 'B' || normalized === 'E') return 'bt';
-  return 'wifi';
-};
 
 async function recordBackfillAttempt(input: {
   bssid: string;
@@ -69,85 +54,6 @@ async function recordBackfillAttempt(input: {
       input.lastError || null,
     ]
   );
-}
-
-async function importWigleV3Observations(
-  netid: string,
-  locationClusters: any[]
-): Promise<{ newCount: number; totalCount: number; failedCount: number }> {
-  if (!Array.isArray(locationClusters)) {
-    return { newCount: 0, totalCount: 0, failedCount: 0 };
-  }
-
-  let newCount = 0;
-  let totalCount = 0;
-  let failedCount = 0;
-
-  for (const cluster of locationClusters) {
-    if (!Array.isArray(cluster?.locations)) continue;
-    for (const loc of cluster.locations) {
-      totalCount += 1;
-      try {
-        const ssidToUse =
-          loc.ssid && loc.ssid !== '?' && loc.ssid !== ''
-            ? loc.ssid
-            : cluster.clusterSsid || loc.ssid;
-        const inserted = await wigleService.importWigleV3Observation(
-          netid,
-          loc,
-          stripNullBytes(ssidToUse)
-        );
-        newCount += inserted;
-      } catch (error: any) {
-        failedCount += 1;
-        logger.warn(`[Orphan Backfill] Observation import failed for ${netid}: ${error.message}`);
-      }
-    }
-  }
-
-  return { newCount, totalCount, failedCount };
-}
-
-async function fetchWigleDetail(bssid: string, endpoint: 'wifi' | 'bt') {
-  const wigleApiName = secretsManager.get('wigle_api_name');
-  const wigleApiToken = secretsManager.get('wigle_api_token');
-
-  if (!wigleApiName || !wigleApiToken) {
-    throw new Error('WiGLE API credentials not configured');
-  }
-
-  const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-  const response = await fetchWigle({
-    kind: 'detail',
-    url: `https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`,
-    timeoutMs: 15000,
-    maxRetries: 1,
-    label: 'WiGLE Orphan Backfill',
-    entrypoint: 'orphan-backfill',
-    paramsHash: hashRecord({ endpoint, bssid }),
-    endpointType: `v3/detail/${endpoint}`,
-    init: {
-      headers: {
-        Authorization: `Basic ${encodedAuth}`,
-        Accept: 'application/json',
-      },
-    },
-  });
-
-  if (!response) {
-    throw new Error('WiGLE detail request returned no response');
-  }
-
-  if (response.status === 404) {
-    return { ok: false, status: 404, data: null };
-  }
-
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`WiGLE detail request failed (${response.status}): ${details}`);
-  }
-
-  return { ok: true, status: response.status, data: await response.json() };
 }
 
 async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise<any[]> {
@@ -250,8 +156,9 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
   const endpoint = inferWigleEndpoint(orphan.type);
 
   try {
-    const detailResponse = await fetchWigleDetail(orphan.bssid, endpoint);
-    const data = detailResponse.data;
+    const detailResponse = await fetchUpstream(orphan.bssid, endpoint);
+    const data = detailResponse.ok ? detailResponse.data : null;
+    const detailStatus: number = detailResponse.ok ? 200 : detailResponse.status;
 
     // Check if payload has actual observation data. networkId alone is not sufficient —
     // WiGLE echoes the queried ID back even when it has no location data for the network.
@@ -270,10 +177,9 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
       !data.networkId ||
       !hasObservations
     ) {
-      const isRateLimit =
-        data?.message?.toLowerCase().includes('too many') || detailResponse.status === 429;
+      const isRateLimit = data?.message?.toLowerCase().includes('too many') || detailStatus === 429;
       const isNotFound =
-        detailResponse.status === 404 ||
+        detailStatus === 404 ||
         data?.message?.toLowerCase().includes('not found') ||
         (detailResponse.ok && data?.networkId && !hasObservations);
 
@@ -322,7 +228,7 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
       location_clusters: JSON.stringify(data.locationClusters || []),
     });
 
-    const counts = await importWigleV3Observations(data.networkId, data.locationClusters);
+    const counts = await importObservations(data.networkId, data.locationClusters);
     const importedSnapshot = await wigleService.getWigleObservations(data.networkId, 1, 0);
 
     await recordBackfillAttempt({

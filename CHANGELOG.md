@@ -774,6 +774,7 @@
 - **wigle:** restore original tooltip, remap fields to current MV schema ([fe70edc](https://github.com/cyclonite69/shadowcheck-web/commit/fe70edc94fd146acc8f99aebbdf0c99cf5d22c72))
 - **wigle:** restore tooltip on WiGLE v2 and v3 map point click ([fe66827](https://github.com/cyclonite69/shadowcheck-web/commit/fe66827c63b4a1b01d3d7c65fee45881c8163bb2))
 - **wigle:** restore v2/v3 toggle refresh and add encryption filtering ([8016359](https://github.com/cyclonite69/shadowcheck-web/commit/801635931a8d15d215c505de16192552248a4b10))
+- **wigle:** restore WiGLE-only and local-match badges on map tooltips ([4b84f0d](https://github.com/cyclonite69/shadowcheck-web/commit/4b84f0d54d2e941b9d2e3cfcc1d09f24b4080060))
 - **wigle:** seed field data bssids when wigle datasets are off ([3e33420](https://github.com/cyclonite69/shadowcheck-web/commit/3e33420b848c91033d5c7008f51b2b1e648eadbf))
 - **wigle:** serve cached detail before live lookup ([e86cb52](https://github.com/cyclonite69/shadowcheck-web/commit/e86cb52ef3506ab988727f67e7d9fe8d349bdb1c))
 - **wigle:** stabilize map layer rendering and event binding ([1ce43ce](https://github.com/cyclonite69/shadowcheck-web/commit/1ce43ce462bc4c33e07d59e1370263ff519a27d8))

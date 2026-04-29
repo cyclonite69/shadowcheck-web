@@ -35,7 +35,11 @@ export interface DetailError {
   details?: string;
 }
 
-async function fetchUpstream(
+/**
+ * Fetch raw WiGLE v3 detail response without importing.
+ * Returns { ok: true, data } on success or { ok: false, status, error } on failure.
+ */
+export async function fetchUpstream(
   netid: string,
   endpoint: string
 ): Promise<{ ok: true; data: any } | DetailError> {
@@ -85,7 +89,8 @@ async function fetchUpstream(
   return { ok: true, data };
 }
 
-async function importObservations(
+/** Import v3 observation points from locationClusters into the local DB. */
+export async function importObservations(
   netid: string,
   locationClusters: any[]
 ): Promise<{ newCount: number; totalCount: number; failedCount: number }> {
