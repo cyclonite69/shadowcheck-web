@@ -91,8 +91,7 @@ export const validateImportQuery = (queryInput: Record<string, unknown>): string
 
 export const buildSearchParams = (
   query: WigleImportParams,
-  searchAfter?: string | null,
-  _apiVer?: 'v2' | 'v3'
+  searchAfter?: string | null
 ): URLSearchParams => {
   // WiGLE has no v3 network search endpoint per spec. All network search uses v2 only.
   // The 'version' parameter in query is ignored; network search is strictly v2 per WiGLE API.

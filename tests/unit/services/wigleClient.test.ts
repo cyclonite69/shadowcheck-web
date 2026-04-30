@@ -16,13 +16,31 @@ async function flushQueue() {
   for (let i = 0; i < 30; i++) await Promise.resolve();
 }
 
+function makeResponse(
+  body: any,
+  ok: boolean,
+  status: number,
+  headers?: Record<string, string>
+): any {
+  const headerBag = new Headers(headers || {});
+  const response: any = {
+    ok,
+    status,
+    headers: headerBag,
+    json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
+  };
+  response.clone = () => response;
+  return response;
+}
+
 describe('wigleClient (Deterministic Hardening)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     resetQuotaLedger(); // also resets circuit breaker since the fix
     resetState();
-    global.fetch = jest.fn().mockResolvedValue({ status: 200, ok: true, headers: new Headers() });
+    global.fetch = jest.fn().mockResolvedValue(makeResponse({}, true, 200));
   });
 
   afterEach(() => {
@@ -53,7 +71,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
     const callOrder: string[] = [];
     (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
       callOrder.push(url);
-      return { status: 200, ok: true, headers: new Headers() };
+      return makeResponse({}, true, 200);
     });
 
     await fetchWigle({ kind: 'search', url: 'http://1' });
@@ -67,7 +85,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
   it('resumes queue after a request rejection', async () => {
     (global.fetch as jest.Mock)
       .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({ status: 200, headers: new Headers() });
+      .mockResolvedValueOnce(makeResponse({}, true, 200));
 
     // maxRetries: 0 so p1 exhausts immediately with no backoff
     const p1 = fetchWigle({ kind: 'search', url: 'http://first', maxRetries: 0 });
@@ -87,7 +105,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
     (global.fetch as jest.Mock)
       .mockRejectedValueOnce(new Error('Failure 1'))
       .mockRejectedValueOnce(new Error('Failure 2'))
-      .mockResolvedValueOnce({ status: 200, headers: new Headers() });
+      .mockResolvedValueOnce(makeResponse({}, true, 200));
 
     const p1 = fetchWigle({ kind: 'search', url: 'http://1', maxRetries: 0 });
     const p2 = fetchWigle({ kind: 'search', url: 'http://2', maxRetries: 0 });
@@ -146,11 +164,10 @@ describe('wigleClient (Deterministic Hardening)', () => {
 
   it('retries on 429 and respects Retry-After header', async () => {
     (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        status: 429,
-        headers: new Headers({ 'Retry-After': '5' }),
-      })
-      .mockResolvedValueOnce({ status: 200, headers: new Headers() });
+      .mockResolvedValueOnce(
+        makeResponse({ message: 'rate limited' }, false, 429, { 'Retry-After': '5' })
+      )
+      .mockResolvedValueOnce(makeResponse({}, true, 200));
 
     const promise = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 1 });
 

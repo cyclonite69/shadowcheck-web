@@ -76,14 +76,14 @@ describe('wigleImport params helpers', () => {
     expect(str).toContain('resultsPerPage=50');
   });
 
-  it('builds search params for v3 API', () => {
-    const params = buildSearchParams({ ssid: 'test' }, 'cursor123', 'v3');
-    expect(params.get('search_after')).toBe('cursor123');
-    expect(params.has('searchAfter')).toBe(false);
+  it('builds search params with cursor using v2 searchAfter param (v2-only)', () => {
+    const params = buildSearchParams({ ssid: 'test' }, 'cursor123');
+    expect(params.get('searchAfter')).toBe('cursor123');
+    expect(params.has('search_after')).toBe(false);
   });
 
-  it('does NOT add "first" parameter alongside searchAfter in v2 (prevents WiGLE from+search_after conflict)', () => {
-    const params = buildSearchParams({ ssid: 'test' }, '100', 'v2');
+  it('does NOT add "first" parameter alongside searchAfter in v2', () => {
+    const params = buildSearchParams({ ssid: 'test' }, '100');
     expect(params.get('searchAfter')).toBe('100');
     expect(params.get('first')).toBeNull();
   });

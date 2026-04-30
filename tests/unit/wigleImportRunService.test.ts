@@ -62,6 +62,11 @@ const mockPoolConnect = jest.fn();
 const mockSecretGet = jest.fn();
 const mockImportWigleV2SearchResult = jest.fn();
 
+jest.mock('../../server/src/services/wigleImport/rateLimitingStrategy', () => ({
+  getAdaptiveDelay: () => 0,
+  sleep: async () => {},
+}));
+
 jest.mock('../../server/src/config/database', () => ({
   query: (...args: any[]) => mockQuery(...args),
   pool: {
@@ -366,10 +371,18 @@ beforeEach(() => {
   });
 });
 
-const makeResponse = (body: Record<string, unknown>) => ({
-  ok: true,
-  json: async () => body,
-});
+const makeResponse = (body: any, ok = true, status = 200, headers?: Record<string, string>) => {
+  const headerBag = new Headers(headers || {});
+  const response: any = {
+    ok,
+    status,
+    headers: headerBag,
+    json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
+  };
+  response.clone = () => response;
+  return response;
+};
 
 describe('wigleImportRunService', () => {
   it('creates a new run, persists page progress, and completes the import', async () => {
@@ -469,7 +482,6 @@ describe('wigleImportRunService', () => {
         })
       )
       .mockRejectedValueOnce(new Error('network down'))
-      .mockRejectedValueOnce(new Error('network down'))
       .mockResolvedValueOnce(
         makeResponse({
           totalResults: 3,
@@ -536,7 +548,6 @@ describe('wigleImportRunService', () => {
           ],
         })
       )
-      .mockRejectedValueOnce(new Error('timeout'))
       .mockRejectedValueOnce(new Error('timeout'))
       .mockResolvedValueOnce(
         makeResponse({

@@ -2,6 +2,11 @@
 const mockFetchWigle = jest.fn();
 jest.mock('../../../server/src/services/wigleClient', () => ({ fetchWigle: mockFetchWigle }));
 
+const mockFetchAndImportDetail = jest.fn();
+jest.mock('../../../server/src/services/wigleEnrichmentFetcher', () => ({
+  fetchAndImportDetail: (...args: any[]) => mockFetchAndImportDetail(...args),
+}));
+
 const mockCreateImportRun = jest.fn();
 const mockGetImportRun = jest.fn();
 const mockMarkRunControlStatus = jest.fn();
@@ -58,11 +63,9 @@ describe('wigleEnrichmentService (Pure Unit)', () => {
         .mockResolvedValueOnce({ rows: [{ status: 'running' }] }) // Loop start status check
         .mockResolvedValueOnce({ rows: [{ bssid: 'B1', type: 'WIFI' }] }); // getNextEnrichmentBatch
 
-      mockFetchWigle.mockResolvedValueOnce({
-        status: 429,
-        ok: false,
-        text: jest.fn().mockResolvedValue('Too many requests'),
-      });
+      mockFetchAndImportDetail.mockRejectedValueOnce(
+        Object.assign(new Error('Too many requests'), { status: 429 })
+      );
 
       await runEnrichmentLoop(1);
 

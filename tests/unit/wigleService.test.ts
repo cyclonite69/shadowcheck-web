@@ -111,7 +111,11 @@ describe('WiGLE Service', () => {
       });
 
       const [sql] = mockQuery.mock.calls[0];
-      expect(sql).not.toContain('WHERE');
+      // The SELECT includes correlated subqueries that contain "WHERE";
+      // we only care that the main query does not add a WHERE clause.
+      expect(String(sql).replace(/\s+/g, ' ')).not.toContain(
+        'FROM app.wigle_v2_networks_search w WHERE'
+      );
     });
   });
 

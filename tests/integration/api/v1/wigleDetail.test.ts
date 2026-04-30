@@ -1,6 +1,9 @@
 import request from 'supertest';
 import express from 'express';
 
+const mockFetchOrImportDetail = jest.fn();
+const mockImportDetailFromJson = jest.fn();
+
 // Mock container
 const mockContainer = {
   wigleService: {
@@ -27,6 +30,11 @@ jest.mock(
   () => mockWigleEnrichmentService
 );
 
+jest.mock('../../../../server/src/services/wigleDetailService', () => ({
+  fetchOrImportDetail: (...args: any[]) => mockFetchOrImportDetail(...args),
+  importDetailFromJson: (...args: any[]) => mockImportDetailFromJson(...args),
+}));
+
 jest.mock('../../../../server/src/services/secretsManager', () => ({
   __esModule: true,
   default: {
@@ -34,6 +42,12 @@ jest.mock('../../../../server/src/services/secretsManager', () => ({
       if (key === 'wigle_api_name') return 'test_user';
       if (key === 'wigle_api_token') return 'test_token';
       return null;
+    }),
+    getOrThrow: jest.fn((key: string) => {
+      if (key === 'wigle_api_name') return 'test_user';
+      if (key === 'wigle_api_token') return 'test_token';
+      // Integration router tests shouldn't depend on DB secrets.
+      return 'test';
     }),
   },
 }));
@@ -54,35 +68,29 @@ jest.mock('../../../../server/src/middleware/authMiddleware', () => ({
 
 // Import router after mocks
 const detailRouter = require('../../../../server/src/api/routes/v1/wigle/detail').default;
+const enrichmentRouter = require('../../../../server/src/api/routes/v1/wigle/enrichment').default;
 
 const app = express();
 app.use(express.json());
 app.use('/api/v1/wigle', detailRouter);
-
-// Mock global fetch
-const mockFetch = jest.fn();
-global.fetch = mockFetch as any;
+app.use('/api/v1/wigle', enrichmentRouter);
 
 describe('WiGLE Detail API v1', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    require('../../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
-    mockContainer.wigleService.getRecentWigleDetailImport.mockResolvedValue(null);
-    const secretsManager = require('../../../../server/src/services/secretsManager').default;
-    secretsManager.get.mockImplementation((key: string) => {
-      if (key === 'wigle_api_name') return 'test_user';
-      if (key === 'wigle_api_token') return 'test_token';
-      return null;
-    });
   });
 
   describe('POST /detail/:netid', () => {
     it('should return cached results if available and not importing', async () => {
-      mockContainer.wigleService.getWigleDetail.mockResolvedValue({
-        netid: '00:11:22:33:44:55',
-        ssid: 'TestNet',
-        trilat: 1.23,
-        trilon: 4.56,
+      mockFetchOrImportDetail.mockResolvedValueOnce({
+        ok: true,
+        data: { networkId: '00:11:22:33:44:55' },
+        imported: false,
+        cached: true,
+        importedObservations: 0,
+        totalObservations: 0,
+        attemptedObservations: 0,
+        failedObservations: 0,
       });
 
       const res = await request(app).post('/api/v1/wigle/detail/00:11:22:33:44:55').send({
@@ -93,29 +101,20 @@ describe('WiGLE Detail API v1', () => {
       expect(res.body.ok).toBe(true);
       expect(res.body.cached).toBe(true);
       expect(res.body.data.networkId).toBe('00:11:22:33:44:55');
-      expect(mockContainer.wigleService.getWigleDetail).toHaveBeenCalledWith('00:11:22:33:44:55');
+      expect(mockFetchOrImportDetail).toHaveBeenCalledWith('00:11:22:33:44:55', 'wifi', false);
     });
 
     it('should fetch from WiGLE API and import if requested', async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetchOrImportDetail.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          networkId: '00:11:22:33:44:55',
-          name: 'TestNet',
-          trilateratedLatitude: 1.23,
-          trilateratedLongitude: 4.56,
-          locationClusters: [
-            {
-              clusterSsid: 'TestNet',
-              locations: [{ lat: 1.23, lon: 4.56 }],
-            },
-          ],
-        }),
+        data: { networkId: '00:11:22:33:44:55' },
+        imported: true,
+        cached: false,
+        importedObservations: 1,
+        totalObservations: 1,
+        attemptedObservations: 1,
+        failedObservations: 0,
       });
-
-      mockContainer.wigleService.importWigleV3NetworkDetail.mockResolvedValue(undefined);
-      mockContainer.wigleService.importWigleV3Observation.mockResolvedValue(1);
-      mockContainer.wigleService.getWigleObservations.mockResolvedValue({ total: 1 });
 
       const res = await request(app).post('/api/v1/wigle/detail/00:11:22:33:44:55').send({
         import: true,
@@ -124,8 +123,7 @@ describe('WiGLE Detail API v1', () => {
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(res.body.imported).toBe(true);
-      expect(mockFetch).toHaveBeenCalled();
-      expect(mockContainer.wigleService.importWigleV3NetworkDetail).toHaveBeenCalled();
+      expect(mockFetchOrImportDetail).toHaveBeenCalledWith('00:11:22:33:44:55', 'wifi', true);
     });
   });
 
@@ -136,6 +134,7 @@ describe('WiGLE Detail API v1', () => {
       const res = await request(app).get('/api/v1/wigle/enrichment/stats');
 
       expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
       expect(res.body.pendingCount).toBe(42);
     });
 
@@ -152,6 +151,7 @@ describe('WiGLE Detail API v1', () => {
         });
 
       expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
       expect(res.body.run.id).toBe(1);
     });
   });

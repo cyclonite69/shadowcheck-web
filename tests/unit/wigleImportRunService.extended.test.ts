@@ -9,6 +9,11 @@ import {
 
 export {};
 
+jest.mock('../../server/src/services/wigleImport/rateLimitingStrategy', () => ({
+  getAdaptiveDelay: () => 0,
+  sleep: async () => {},
+}));
+
 type RunRow = {
   id: number;
   source: string;
@@ -441,12 +446,18 @@ beforeEach(() => {
   });
 });
 
-const makeResponse = (body: Record<string, unknown>, ok = true, status = 200) => ({
-  ok,
-  status,
-  json: async () => body,
-  text: async () => JSON.stringify(body),
-});
+const makeResponse = (body: any, ok = true, status = 200, headers?: Record<string, string>) => {
+  const headerBag = new Headers(headers || {});
+  const response: any = {
+    ok,
+    status,
+    headers: headerBag,
+    json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
+  };
+  response.clone = () => response;
+  return response;
+};
 
 describe('wigleImportRunService - Extended', () => {
   const getService = () => require('../../server/src/services/wigleImportRunService');
@@ -514,7 +525,9 @@ describe('wigleImportRunService - Extended', () => {
       const service = getService();
       const result = await service.startImportRun({ ssid: 'res-test', country: 'US' });
       expect(result.id).toBe(10);
-      expect(result.status).toBe('completed');
+      // startImportRun does not auto-resume paused runs; resumeImportRun must be used explicitly.
+      expect(result.status).toBe('paused');
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('returns completed run immediately in resumeImportRun', async () => {
