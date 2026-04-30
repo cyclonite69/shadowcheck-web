@@ -264,8 +264,17 @@ CREATE INDEX IF NOT EXISTS idx_mv_network_timeline_hour ON app.mv_network_timeli
 -- Post-consolidation updates (2026-02-22 through 2026-02-27)
 -- --------------------------------------------------------------------------
 
+-- Drop dependent materialized views before modifying base view schema
+DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS app.api_network_latest_mv CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS app.analytics_summary_mv CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS app.mv_network_timeline CASCADE;
+
 -- Keep network_entries aligned with capabilities + WiGLE v3 fields.
-CREATE OR REPLACE VIEW app.network_entries AS
+-- Using DROP VIEW + CREATE (not CREATE OR REPLACE) since schema is changing
+DROP VIEW IF EXISTS app.api_network_explorer CASCADE;
+DROP VIEW IF EXISTS app.network_entries CASCADE;
+CREATE VIEW app.network_entries AS
 SELECT n.bssid,
     n.ssid,
     n.type,
@@ -325,6 +334,26 @@ GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.capabilities,
 -- Recreate api_network_explorer_mv to include quality filtering, manufacturer,
 -- security parsing, and WiGLE v3 rollups.
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv;
+
+-- Recreate api_network_explorer view (needed by materialized view)
+CREATE VIEW app.api_network_explorer AS
+SELECT n.bssid,
+    n.ssid,
+    n.type,
+    n.frequency,
+    n.bestlevel AS signal,
+    n.bestlat AS lat,
+    n.bestlon AS lon,
+    n.lasttime_ms AS observed_at,
+    n.capabilities AS security,
+    COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
+    t.updated_at AS tagged_at,
+    nt.notes_count,
+    nm.media_count
+FROM (((app.networks n
+    LEFT JOIN app.network_tags t ON ((n.bssid = (t.bssid)::text)))
+    LEFT JOIN (SELECT network_notes.bssid, count(*) AS notes_count FROM app.network_notes GROUP BY network_notes.bssid) nt ON ((n.bssid = (nt.bssid)::text)))
+    LEFT JOIN (SELECT network_media.bssid, count(*) AS media_count FROM app.network_media GROUP BY network_media.bssid) nm ON ((n.bssid = (nm.bssid)::text)));
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
 SELECT n.bssid,

@@ -487,6 +487,7 @@
 - **pwa:** reduce workbox dev noise and force faster service worker updates ([4162888](https://github.com/cyclonite69/shadowcheck-web/commit/4162888942126843627a64dda77d4c7324fa3ab6))
 - recover stuck wigle and mobile import states ([8f5487a](https://github.com/cyclonite69/shadowcheck-web/commit/8f5487afdf9c71068199bb5c7078529dc35d06b4))
 - reference error in getSecurityDisplay() - use tech not undefined type ([d9866f6](https://github.com/cyclonite69/shadowcheck-web/commit/d9866f6edb8fc6b0a20df7fba2191ac6154a316d))
+- remove 'first' param from WiGLE v2 cursor pagination ([6da83ee](https://github.com/cyclonite69/shadowcheck-web/commit/6da83ee508db0bb3dd36401b326c7c262ccba2cf))
 - remove 'Test' from WiGLE navigation link ([261a458](https://github.com/cyclonite69/shadowcheck-web/commit/261a458a2a054756fe0ed5d4ce43b25610030f8a))
 - Remove all map layers including clusters before removing source ([8f9e3bf](https://github.com/cyclonite69/shadowcheck-web/commit/8f9e3bf411d621f041bcb40c61e156bb57c01e97))
 - remove artificial limits on kepler endpoints to support millions of points ([8733e04](https://github.com/cyclonite69/shadowcheck-web/commit/8733e0420d60ea30b45642c043cfe1cd3bec807d))

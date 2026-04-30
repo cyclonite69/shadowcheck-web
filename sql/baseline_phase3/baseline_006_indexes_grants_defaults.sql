@@ -954,7 +954,7 @@ LEFT JOIN LATERAL (
     SELECT r.manufacturer
     FROM app.radio_manufacturers r
     WHERE UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', ''))
-          IN (r.oui, r.oui_assignment_hex, r.prefix_24bit)
+          = r.oui
     LIMIT 1
 ) rm ON true
 LEFT JOIN stationary_analysis s ON n.bssid = s.bssid
