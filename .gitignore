@@ -169,3 +169,19 @@ all_files.txt
 coverage_summary.txt
 doc_keys.txt
 env_keys.txt
+
+# --- Local tool workspaces & AI agent directories ---
+.grok/
+.kiro/
+.sixth/
+
+# --- Local models and large asset directories ---
+Real-ESRGAN/
+
+# --- Temporary & reconnaissance scripts ---
+/recon_ec2*.sh
+/exec_on_ec2.sh
+typecheck-current.log
+
+# --- Audit artifacts (Project Policy) ---
+docs/ai/audits/
