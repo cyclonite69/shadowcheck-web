@@ -49,10 +49,17 @@ export async function searchWigle(
   }
 
   const encodedAuth = getEncodedWigleAuth();
-  const apiVer: 'v2' | 'v3' = query.version === 'v3' ? 'v3' : 'v2';
+  // WiGLE v3 network search does not exist — v2 only per spec
+  // If user requests v3 network search, log warning and force to v2
+  if (query.version === 'v3') {
+    logger.warn(
+      '[WiGLE] User requested WiGLE v3 network search which is not supported; downgrading to v2'
+    );
+  }
+  const apiVer: 'v2' = 'v2';
   const searchAfter = query.searchAfter ? String(query.searchAfter) : null;
   const resultsPerPage = parseInt(String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE), 10);
-  const params = buildSearchParams(query, searchAfter, apiVer);
+  const params = buildSearchParams(query, searchAfter);
 
   let data: any;
   try {

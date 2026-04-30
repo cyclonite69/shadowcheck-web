@@ -56,7 +56,12 @@ export async function fetchUpstream(
   // encodeURIComponent turns ':' into '%3A' which breaks WiGLE's btNetworkId regex.
   const apiUrl = `https://api.wigle.net/api/v3/detail/${endpoint}/${netid}`;
 
-  logger.info(`[WiGLE] Fetching ${endpoint} detail for: ${netid}`);
+  logger.info(
+    `[WiGLE][v3/detail/${endpoint}][PRE] sending request | url=${apiUrl} | params=${JSON.stringify({
+      netid,
+      endpoint,
+    })}`
+  );
 
   let response: Response;
   try {
@@ -78,7 +83,12 @@ export async function fetchUpstream(
     });
   } catch (err: any) {
     const status = err?.status ?? 500;
-    logger.error(`[WiGLE] Detail fetch error (${status}): ${err.message}`);
+    logger.error(`[WiGLE][v3/detail/${endpoint}][ERROR] Detail fetch exception: ${err.message}`, {
+      url: apiUrl,
+      netid,
+      endpoint,
+      error: err.message,
+    });
     return { ok: false, status, error: err.message };
   }
 
@@ -86,7 +96,10 @@ export async function fetchUpstream(
     const errorText = await response.text();
     if (response.status === 404) {
       logger.info(
-        `[WiGLE] Network not found in WiGLE (likely randomized/locally-administered MAC): ${netid}`
+        `[WiGLE][v3/detail/${endpoint}][404] Network not found (likely randomized/local MAC)`,
+        {
+          netid,
+        }
       );
       return {
         ok: false,
@@ -95,7 +108,11 @@ export async function fetchUpstream(
           'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
       };
     }
-    logger.error(`[WiGLE] Detail API error ${response.status}: ${errorText}`);
+    logger.error(
+      `[WiGLE][v3/detail/${endpoint}][${response.status}] request failed | url=${apiUrl} | params=${JSON.stringify(
+        { netid, endpoint }
+      )} | body=${errorText.substring(0, 500)}`
+    );
     return {
       ok: false,
       status: response.status,
@@ -104,7 +121,13 @@ export async function fetchUpstream(
     };
   }
 
-  const data = await response.json();
+  const data: any = await response.json();
+  const clusterCount = Array.isArray(data?.locationClusters) ? data.locationClusters.length : null;
+  logger.info(
+    `[WiGLE][v3/detail/${endpoint}][${response.status}] request succeeded | url=${apiUrl} | params=${JSON.stringify(
+      { netid, endpoint }
+    )}${clusterCount !== null ? ` | clusters=${clusterCount}` : ''}`
+  );
   return { ok: true, data };
 }
 

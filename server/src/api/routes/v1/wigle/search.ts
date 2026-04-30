@@ -10,6 +10,7 @@ const { wigleImportRunService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { validateImportQuery as validateSearchQuery } from '../../../../services/wigleImport/params';
+import { WigleValidationError } from '../../../../services/wigleImport/wigleApiSpec';
 import {
   searchWigle,
   getSavedSsidTerms,
@@ -37,6 +38,15 @@ router.all('/search-api', requireAdmin, async (req: Request, res: Response, next
     if (!result.ok) return res.status(result.status).json(result);
     res.json(result);
   } catch (err: any) {
+    if (err instanceof WigleValidationError) {
+      logger.error(`[WiGLE] VALIDATION_BLOCKED ${err.message}`, {
+        invalidKey: err.invalidKey,
+        invalidValue: err.invalidValue,
+      });
+      return res
+        .status(400)
+        .json({ ok: false, status: 400, error: `Invalid search parameter: ${err.message}` });
+    }
     logger.error(`[WiGLE] Search error: ${err.message}`, { error: err });
     next(err);
   }

@@ -42,6 +42,15 @@ const executeImportLoop = async (runId: number) => {
 
   const requestParams = normalizeImportParams(run.request_params || {});
 
+  const computeRetryDelayMs = (retryAfterRaw: unknown): number => {
+    const fallbackMs = 60_000;
+    const raw = typeof retryAfterRaw === 'string' ? retryAfterRaw.trim() : '';
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    const baseMs = Number.isFinite(parsed) && parsed > 0 ? parsed * 1000 : fallbackMs;
+    const jitterMs = Math.floor(baseMs * (Math.random() * 0.1));
+    return baseMs + jitterMs;
+  };
+
   for (;;) {
     run = await getRunOrThrow(runId);
 
@@ -63,7 +72,46 @@ const executeImportLoop = async (runId: number) => {
 
     let data: WiglePageResponse | null = null;
     try {
-      data = await fetchWiglePage(encodedAuth, requestParams, requestCursor);
+      try {
+        data = await fetchWiglePage(encodedAuth, requestParams, requestCursor);
+      } catch (error: any) {
+        if (error?.status === 401 || error?.status === 403) {
+          logger.error('[WiGLE Import] AUTH ERROR — halting pipeline, do not retry', {
+            runId,
+            pageNumber,
+            status: error?.status,
+            details: String(error?.details || error?.message || '').slice(0, 500),
+          });
+          throw error;
+        }
+
+        if (error?.status === 429) {
+          const delayMs = computeRetryDelayMs(error?.retryAfter);
+          logger.warn('[WiGLE Import] Rate limited (429) — waiting then retrying once', {
+            runId,
+            pageNumber,
+            delayMs,
+            retryAfter: error?.retryAfter ?? null,
+          });
+          await sleep(delayMs);
+
+          try {
+            data = await fetchWiglePage(encodedAuth, requestParams, requestCursor);
+          } catch (retryError: any) {
+            if (retryError?.status === 429) {
+              logger.error('[WiGLE Import] Rate limited again after single retry — halting run', {
+                runId,
+                pageNumber,
+                retryAfter: retryError?.retryAfter ?? null,
+                details: String(retryError?.details || retryError?.message || '').slice(0, 500),
+              });
+            }
+            throw retryError;
+          }
+        } else {
+          throw error;
+        }
+      }
 
       const results = Array.isArray(data?.results) ? data.results : [];
       // liveTotal is null when the API response omits totalResults — used for DB writes only.
@@ -138,7 +186,9 @@ const executeImportLoop = async (runId: number) => {
     } catch (error: any) {
       const errorMessage = error?.details || error?.message || 'WiGLE import page failed';
       await persistPageFailure(runId, pageNumber, requestCursor, errorMessage);
-      if (error?.status === 429) {
+      if (error?.status === 401 || error?.status === 403) {
+        run = await markRunFailure(runId, errorMessage);
+      } else if (error?.status === 429) {
         run = await markRunControlStatus(runId, 'paused');
         logger.warn('[WiGLE Import] Daily quota exhausted — run paused for later resumption', {
           runId,

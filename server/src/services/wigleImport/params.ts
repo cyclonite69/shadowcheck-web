@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+import { validateWigleSearchParams } from './wigleApiSpec';
 
 export type WigleImportParams = {
   ssid?: string;
@@ -91,8 +92,10 @@ export const validateImportQuery = (queryInput: Record<string, unknown>): string
 export const buildSearchParams = (
   query: WigleImportParams,
   searchAfter?: string | null,
-  apiVer: 'v2' | 'v3' = 'v2'
+  _apiVer?: 'v2' | 'v3'
 ): URLSearchParams => {
+  // WiGLE has no v3 network search endpoint per spec. All network search uses v2 only.
+  // The 'version' parameter in query is ignored; network search is strictly v2 per WiGLE API.
   const params = new URLSearchParams();
   if (query.ssid) params.append('ssidlike', query.ssid);
   if (query.bssid) params.append('netid', query.bssid);
@@ -105,16 +108,13 @@ export const buildSearchParams = (
   if (query.city) params.append('city', query.city);
   params.append('resultsPerPage', String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE));
   if (searchAfter) {
-    if (apiVer === 'v3') {
-      // v3 uses cursor-based pagination
-      params.append('search_after', searchAfter);
-    } else {
-      // v2 uses searchAfter for cursor-based pagination
-      params.append('searchAfter', searchAfter);
-      // NOTE: do NOT also append 'first' — WiGLE rejects requests that send
-      // both a cursor (searchAfter) and an offset (first/from) simultaneously.
-    }
+    // v2/network/search uses 'searchAfter' for cursor-based pagination
+    params.append('searchAfter', searchAfter);
   }
+
+  // Validate all parameters against WiGLE spec before returning
+  validateWigleSearchParams(params);
+
   return params;
 };
 

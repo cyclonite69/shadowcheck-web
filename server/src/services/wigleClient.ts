@@ -32,6 +32,32 @@ function jitter(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
+function describeEndpoint(url: string, endpointType?: string) {
+  if (endpointType) return endpointType;
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.replace(/^\/+/, '');
+  } catch {
+    return 'unknown';
+  }
+}
+
+function extractParams(url: string): Record<string, string> | null {
+  try {
+    const parsed = new URL(url);
+    return Object.fromEntries(parsed.searchParams.entries());
+  } catch {
+    return null;
+  }
+}
+
+function redactInit(init?: RequestInit): RequestInit | undefined {
+  if (!init || !init.headers) return init;
+  const headers = new Headers(init.headers as any);
+  if (headers.has('Authorization')) headers.set('Authorization', '***');
+  return { ...init, headers };
+}
+
 async function sleep(ms: number) {
   if (isTestEnv()) return;
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -65,10 +91,13 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
     maxRetries = 3,
     label = 'WiGLE',
     priority = 'background',
+    endpointType,
   } = options;
 
   const bodyKey = typeof init?.body === 'string' ? init.body : JSON.stringify(init?.body ?? null);
   const requestKey = `${kind}:${hashRecord({ url, body: bodyKey })}`;
+  const endpoint = describeEndpoint(url, endpointType);
+  const params = extractParams(url);
 
   if (flightMap.has(requestKey)) {
     logger.debug('[WiGLE] Deduplicating request', { requestKey });
@@ -96,31 +125,67 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
         const startedAt = Date.now();
 
         try {
+          if (attempt === 0) {
+            logger.info(
+              `[WiGLE][${endpoint}][PRE] sending request | url=${url} | params=${JSON.stringify(
+                params ?? {}
+              )}`
+            );
+          }
+
           // Quota is decremented before fetch success is confirmed. On retry (maxRetries=3),
           // a single logical request can burn up to N quota slots on network failure.
           // This is an intentional conservative policy — prefer over-counting to
           // under-counting to avoid WiGLE burst/ban risk. Do NOT change the logic.
           recordRequest(kind);
-          const response = await fetchWithTimeout(url, init, timeoutMs);
+          const response = await fetchWithTimeout(url, redactInit(init), timeoutMs);
 
           if (response.status === 429) {
             recordConsecutive429();
+            logger.warn(
+              `[WiGLE][${endpoint}][429] rate limited | url=${url} | params=${JSON.stringify(
+                params ?? {}
+              )}`
+            );
             if (attempt < maxRetries) {
               await backoff(attempt, response);
               continue;
             }
           }
 
-          logger.info('[WiGLE] Response received', {
-            label,
-            kind,
-            status: response.status,
-            latencyMs: Date.now() - startedAt,
-            attempt: attempt + 1,
-          });
+          if (!response.ok) {
+            const bodyText = await response
+              .clone()
+              .text()
+              .then((text) => text.substring(0, 500))
+              .catch(() => '');
+            logger.error(
+              `[WiGLE][${endpoint}][${response.status}] request failed | url=${url} | params=${JSON.stringify(
+                params ?? {}
+              )} | body=${bodyText}`
+            );
+          } else {
+            logger.info(
+              `[WiGLE][${endpoint}][${response.status}] request succeeded | url=${url} | params=${JSON.stringify(
+                params ?? {}
+              )}`
+            );
+          }
           return response;
         } catch (e: any) {
-          if (attempt >= maxRetries) throw e;
+          if (attempt >= maxRetries) {
+            logger.error(
+              `[WiGLE][${endpoint}][ERROR] request failed after retries exhausted | url=${url} | params=${JSON.stringify(
+                params ?? {}
+              )} | error=${String(e?.message || e).slice(0, 500)}`
+            );
+            throw e;
+          }
+          logger.warn(
+            `[WiGLE][${endpoint}][RETRY] attempt failed, retrying | url=${url} | params=${JSON.stringify(
+              params ?? {}
+            )} | error=${String(e?.message || e).slice(0, 500)}`
+          );
           await backoff(attempt);
         }
       }
