@@ -89,7 +89,7 @@
     "ml-logistic-regression": "2.0.0",
     "ml-matrix": "6.12.2",
     "multer": "^2.2.0",
-    "node-cron": "4.2.1",
+    "node-cron": "4.6.0",
     "node-fetch": "3.3.2",
     "node-schedule": "2.1.1",
     "pdfkit": "0.19.1",
