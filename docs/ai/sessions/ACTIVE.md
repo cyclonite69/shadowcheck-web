@@ -346,3 +346,23 @@ scope (migration 058 + view dependency fix). Flagging per audit discipline
 — not reverting, just recording that scope expanded mid-session.
 
 ---
+
+---
+
+## Dependency Merge Ledger — 2026-09-05
+
+| Package                         | From     | To       | Source Branch                                                     | PR   | Status      | Validation               | Notes                                                                                             |
+| ------------------------------- | -------- | -------- | ----------------------------------------------------------------- | ---- | ----------- | ------------------------ | ------------------------------------------------------------------------------------------------- |
+| actions/setup-node              | 4        | 7        | `dependabot/github_actions/actions/setup-node-7`                  | #385 | Merged      | tsc ✓ lint ✓             | CI-only, `.github/workflows/ci.yml` only                                                          |
+| @aws-sdk/client-s3              | 3.1068.0 | 3.1085.0 | `dependabot/npm_and_yarn/aws-sdk/client-s3-3.1085.0`              | #381 | Merged      | tsc ✓ lint ✓ 278 tests ✓ | Clean                                                                                             |
+| @aws-sdk/client-sts             | 3.1068.0 | 3.1085.0 | `dependabot/npm_and_yarn/aws-sdk/client-sts-3.1085.0`             | #379 | Merged      | tsc ✓ lint ✓ 278 tests ✓ | Clean                                                                                             |
+| @aws-sdk/client-secrets-manager | 3.1048.0 | 3.1085.0 | `dependabot/npm_and_yarn/aws-sdk/client-secrets-manager-3.1085.0` | #376 | Merged      | tsc ✓ lint ✓ 278 tests ✓ | package.json conflict: kept 3.1085.0 for all three SDK packages; npm install regenerated lockfile |
+| @deck.gl/core                   | 9.3.1    | 9.3.6    | `dependabot/npm_and_yarn/deck.gl/core-9.3.6`                      | #384 | Merged      | tsc ✓ lint ✓             | Clean                                                                                             |
+| @deck.gl/layers                 | 9.3.2    | 9.3.6    | `dependabot/npm_and_yarn/deck.gl/layers-9.3.6`                    | #383 | Merged      | tsc ✓ lint ✓             | package.json conflict resolved: kept 9.3.6 for core+layers                                        |
+| @deck.gl/react                  | 9.3.2    | 9.3.6    | `dependabot/npm_and_yarn/deck.gl/react-9.3.6`                     | #382 | Merged      | tsc ✓ lint ✓             | package.json conflict resolved: all three deck.gl at 9.3.6                                        |
+| axios                           | 1.16.1   | 1.18.1   | `dependabot/npm_and_yarn/axios-1.18.1`                            | #378 | Merged      | tsc ✓ lint ✓ 979 tests ✓ | lockfile conflict resolved via npm install                                                        |
+| node-cron                       | 4.2.1    | 4.6.0    | `dependabot/npm_and_yarn/node-cron-4.6.0`                         | #377 | Merged      | tsc ✓ lint ✓ 170 tests ✓ | Clean                                                                                             |
+| axios (security-updates group)  | 1.16.1   | 1.18.0   | `dependabot/npm_and_yarn/security-updates-c42958dede`             | #388 | **Skipped** | —                        | Superseded by #378 (1.18.1)                                                                       |
+| development-dependencies bundle | —        | —        | `dependabot/npm_and_yarn/development-dependencies-2016dcf779`     | #387 | **Skipped** | —                        | Policy: never merge dev-dep bundles after individual PRs merged                                   |
+
+Full suite after all merges: **531/531 suites, 5020/5020 tests, 0 failures**
