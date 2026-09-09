@@ -189,21 +189,23 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 - Mounted at `/api` & `/api/v2` (Gated by `userGate`).
 - Source: `server/src/api/routes/v2/`
 
-| Method | Full Path                                | Source File           | Classification  | Documented | Notes                   |
-| ------ | ---------------------------------------- | --------------------- | --------------- | ---------- | ----------------------- |
-| GET    | `/api/v2/networks`                       | `networks.ts` (L12)   | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/networks/:bssid`                | `networks.ts` (L26)   | Stable Public   | Yes        | Details + timeline + ML |
-| GET    | `/api/dashboard/metrics`                 | `dashboard.ts` (L124) | Stable Public   | Yes        | Canonical v1 metrics    |
-| GET    | `/api/v2/dashboard/metrics`              | `networks.ts` (L35)   | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/threats/map`                    | `networks.ts` (L43)   | Stable Public   | Yes        |                         |
-| POST   | `/api/v2/networks/batch`                 | `networks.ts` (L53)   | Stable Public   | No         | Batch lookup            |
-| GET    | `/api/v2/networks/filtered`              | `filtered.ts` (L32)   | Stable Public   | Yes        | Universal filters list  |
-| GET    | `/api/v2/networks/filtered/geospatial`   | `filtered.ts` (L33)   | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/networks/filtered/observations` | `filtered.ts` (L34)   | Stable Public   | Yes        |                         |
-| POST   | `/api/v2/networks/filtered/observations` | `filtered.ts` (L35)   | Stable Public   | Yes        | POST-body filter        |
-| GET    | `/api/v2/networks/filtered/analytics`    | `filtered.ts` (L36)   | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/networks/filtered/debug`        | `filtered.ts` (L37)   | Internal Detail | No         | SQL debugging output    |
-| GET    | `/api/v2/threats/severity-counts`        | `threats.ts` (L19)    | Stable Public   | Yes        |                         |
+| Method | Full Path                                   | Source File           | Classification  | Documented | Notes                                |
+| ------ | ------------------------------------------- | --------------------- | --------------- | ---------- | ------------------------------------ |
+| GET    | `/api/v2/networks`                          | `networks.ts` (L12)   | Stable Public   | Yes        |                                      |
+| GET    | `/api/v2/networks/:bssid`                   | `networks.ts` (L26)   | Stable Public   | Yes        | Details + timeline + ML              |
+| GET    | `/api/dashboard/metrics`                    | `dashboard.ts` (L124) | Stable Public   | Yes        | Canonical v1 metrics                 |
+| GET    | `/api/v2/dashboard/metrics`                 | `networks.ts` (L35)   | Stable Public   | Yes        |                                      |
+| GET    | `/api/v2/threats/map`                       | `networks.ts` (L43)   | Stable Public   | Yes        |                                      |
+| POST   | `/api/v2/networks/batch`                    | `networks.ts` (L53)   | Stable Public   | No         | Batch lookup                         |
+| GET    | `/api/v2/networks/filtered`                 | `filtered.ts` (L32)   | Stable Public   | Yes        | Universal filters list               |
+| GET    | `/api/v2/networks/filtered/geospatial`      | `filtered.ts` (L33)   | Stable Public   | Yes        |                                      |
+| GET    | `/api/v2/networks/filtered/unmatched-media` | `filtered.ts` (L34)   | Stable Public   | Yes        | Networks with unmatched VISINT media |
+| GET    | `/api/v2/networks/filtered/matched-media`   | `filtered.ts` (L35)   | Stable Public   | Yes        | Networks with matched VISINT media   |
+| GET    | `/api/v2/networks/filtered/observations`    | `filtered.ts` (L36)   | Stable Public   | Yes        |                                      |
+| POST   | `/api/v2/networks/filtered/observations`    | `filtered.ts` (L37)   | Stable Public   | Yes        | POST-body filter                     |
+| GET    | `/api/v2/networks/filtered/analytics`       | `filtered.ts` (L38)   | Stable Public   | Yes        |                                      |
+| GET    | `/api/v2/networks/filtered/debug`           | `filtered.ts` (L39)   | Internal Detail | No         | SQL debugging output                 |
+| GET    | `/api/v2/threats/severity-counts`           | `threats.ts` (L19)    | Stable Public   | Yes        |                                      |
 
 ---
 

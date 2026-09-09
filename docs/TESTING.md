@@ -189,16 +189,16 @@ describe('Explorer API', () => {
 
 ## Coverage Requirements
 
-_Note: The global minimums are enforced in `jest.config.js` and were recently raised after a major test enhancement drive (April 2026)._
+_The global minimums are enforced in `jest.config.js` (see lines 23–29):_
 
-| Type       | Minimum (Enforced) | Target |
-| ---------- | ------------------ | ------ |
-| Statements | 60%                | 80%    |
-| Branches   | 60%                | 70%    |
-| Functions  | 60%                | 80%    |
-| Lines      | 60%                | 80%    |
+| Metric     | Enforced Threshold |
+| ---------- | ------------------ |
+| Statements | 60%                |
+| Branches   | 60%                |
+| Functions  | 60%                |
+| Lines      | 60%                |
 
-Run `npm run test:cov` to generate coverage reports.
+Run `npm run test:cov` to generate full coverage reports. Strict pre-commit gates also require `npm test` passing with zero test failures across all 531 suites. See [docs/workflow/TESTING_STANDARDS.md](workflow/TESTING_STANDARDS.md).
 
 ## Client-Side Tests
 

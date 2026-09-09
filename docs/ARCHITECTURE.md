@@ -65,7 +65,7 @@ Diagrams currently live in the wiki Mermaid blocks and this document. No version
 │  │  API Layer (Modern Modular Architecture)              │   │
 │  │  • All routes organized in server/src/api/ structure      │   │
 │  │  • Modern routes in server/src/api/ (v2 API)               │   │
-│  │  • /api/dashboard-metrics                            │   │
+│  │  • /api/dashboard/metrics                            │   │
 │  │  • /api/threats/quick (paginated)                    │   │
 │  │  • /api/networks/* (CRUD operations)                 │   │
 │  │  • /api/analytics/* (temporal, signal, security)     │   │
@@ -77,11 +77,11 @@ Diagrams currently live in the wiki Mermaid blocks and this document. No version
   │  • AdminDbService (privileged database operations)     │   │
   │  • Threat scoring algorithms                         │   │
 │  │  • ML training & prediction services                 │   │
-│  │  • Filter query builder with 20+ filter types       │   │
+│  │  • Filter query builder with 64 filter keys          │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Middleware Stack                                     │   │
-│  │  • CORS + Rate Limiting (50000 req/15min via Redis)    │   │
+│  │  • CORS + Rate Limiting (50,000 req/15min express-rate-limit) │   │
 │  │  • Security Headers (CSP, X-Frame-Options)           │   │
 │  │  • HTTPS Redirect (configurable)                     │   │
 │  │  • Request Body Size Limiting (10MB)                 │   │

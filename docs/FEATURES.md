@@ -2,84 +2,66 @@
 
 **Wiki version (diagrams):** [Features](../.github/wiki/Features.md)
 
-This catalog summarizes the features implemented in the current ShadowCheck codebase (UI routes, API modules, services, and data pipelines). It complements the deeper feature docs under `docs/features/`.
+This catalog summarizes the capabilities implemented across the ShadowCheck codebase (UI pages, administrative console tabs, REST API modules, backend services, and forensic data pipelines). It complements the deeper architectural documents under `docs/features/`.
 
-## Core UI & Exploration
+---
 
-- **Dashboard**: Real-time metrics cards, threat indicators, and filter-aware summaries.
-- **Geospatial Explorer**: Unified interactive map view with network selection, forensic tooltips, integrated network table, and timeline views.
-- **Analytics**: Temporal activity, radio-type trends, and threat score charts with advanced filtering support.
-- **WiGLE Page**: Local WiGLE database search (v2/v3) with optional live API lookups and forensic enrichment.
-- **Kepler Page**: Kepler.gl-ready GeoJSON feeds with universal filter support and **lazy-loaded tooltips** for high-performance visualization.
-- **Monitoring**: Real-time system health and performance monitoring metrics.
-- **Admin Panel**: Comprehensive configuration workflows, operational controls, and data management.
+## 1. Core UI Navigation & Pages
 
-## Universal Filter System
+- **Dashboard (`/dashboard` or `/`)**: Real-time signals intelligence overview, high-threat detections, radio distribution breakdowns, and activity telemetry.
+- **Geospatial Explorer (`/geospatial-explorer`)**: Mapbox GL JS + Deck.gl interactive map with synchronized data table, radius/pin-drop spatial filtering, sibling topology links, and nearest law enforcement/courthouse overlays.
+- **Analytics (`/analytics`)**: Temporal RF activity heatmaps, radio type trends, signal strength distributions, and network lifetime statistics.
+- **WiGLE Interface (`/wigle`)**: WiGLE V2 search coordinator, V3 forensic detail inspection, enrichment queue monitoring, and Kepler GeoJSON export.
+- **Kepler Visualizer (`/kepler`)**: High-performance GeoJSON spatial visualizer powered by Kepler.gl with lazy-loaded tooltips.
+- **System Monitoring (`/monitoring`)**: Background daemon runtime status, job execution history, and ingestion queue statistics.
+- **Administrative Console (`/admin`)**: 18 specialized management and forensic tooling tabs.
 
-- **25+ filter types** spanning time (`FIRST_SEEN`, `LAST_SEEN`, `NETWORK_LIFETIME`), signal, radio, security, distance, geography, tags, and device attributes.
-- **BSSID Wildcards**: Support for `*` and `?` in BSSID filters.
-- **SSID Exclusion**: Support for `-` and `NOT` prefixes to exclude specific SSIDs. Supports `|` OR syntax (`fbi|surveillance` matches either term) and comma AND syntax (`fbi,surveillance` requires both).
-- **WiGLE Persistence Filters**: Universally available filters for WiGLE observation counts and last import dates.
-- **Page-scoped filters** with URL sync and debounced application across Geospatial, Analytics, and Kepler views.
+---
 
-## Geospatial & Mapping
+## 2. Administrative Console (18 Tabs)
 
-- **Mapbox integration**: Token management, style proxying, and request proxy for client egress safety.
-- **Google Maps tiles**: Server-side tile proxy with key management.
-- **Heatmaps, routes, and timelines**: Geospatial overlays for movement and activity patterns.
-- **Location markers & home location**: CRUD for saved markers plus radius-based home zone distance filtering.
-- **Unified Forensic Tooltips**: High-fidelity tooltips powered by a unified normalizer, featuring lazy-loading in Kepler for thousands of points.
+1. **Configuration (`config`)**: Runtime feature flag controls, API rate limits, environment diagnostics.
+2. **Automation (`jobs`)**: Background job scheduling (Materialized view refresh, ML behavioral scoring, surveillance scoring).
+3. **DB Stats (`db-stats`)**: PostgreSQL table sizes, index utilization metrics, materialized view health, sibling pair counts.
+4. **WiGLE Stats (`wigle-stats`)**: Daily WiGLE API quota metrics, ledger request history, and bounding box coverage stats.
+5. **API Testing (`api`)**: Interactive client-side test suite executing queries against registered backend REST endpoints.
+6. **ML Training (`ml`)**: _(Feature-gated)_ Dataset preparation, training, and evaluation of logistic regression threat models.
+7. **WiGLE Search (v2) (`wigle`)**: Multi-filter V2 search interface with geographic bounding boxes and import run management.
+8. **WiGLE Detail (v3) (`wigle-detail`)**: Deep forensic network lookup (Wi-Fi & Bluetooth), trilaterated centroids, and batch v3 enrichment.
+9. **Data Import (`imports`)**: Ingest pipelines for KML, CSV, JSON, and WiGLE archive files with row-level transaction savepoints.
+10. **VisINT Uploader (`visint`)**: Field image upload, EXIF extraction, and spatial-temporal observation correlation with explicit commit gating.
+11. **Backups (`backups`)**: PostgreSQL database backup creation, S3 archiving, and restoration tooling.
+12. **Data Export (`exports`)**: Filter-aware export engine streaming GeoJSON, KML, CSV, and SQLite datasets.
+13. **Geocoding (`geocoding`)**: Geocoding daemon controls, cache hit statistics, and address enrichment backlog processing.
+14. **AWS (`aws`)**: AWS Secrets Manager, Bedrock AI integration, and S3 connectivity verification.
+15. **PgAdmin (`pgadmin`)**: _(Feature-gated)_ Embedded Dockerized pgAdmin management interface.
+16. **Users (`users`)**: User account provisioning, role-based access control (`admin`/`user`), and active session revocation.
+17. **SIGINT Library (`sigint-library`)**: Surveillance device signature catalog, OUI database, bodycam (BWC) signatures, and manufacturer reference guides.
+18. **Badge Studio (`badge-studio`)**: _(Feature-gated)_ Visual customizer for network badge styling in the Explorer table.
 
-## Data & Enrichment
+---
 
-- **Geocoded Address Intelligence**: Automated background reverse geocoding via multiple providers (Mapbox, OpenCage, etc.) stored in a persistent cache.
-- **Radio Manufacturer Standardization**: High-fidelity cleanup of 74,000+ records with integrated OUI resolution.
-- **Network tagging**: Manual classification, forensic note-taking, and media attachments (images/video).
-- **Trilateration**: Estimated access point locations derived from weighted observation centroids and signal clustering.
-- **Export tooling**: Streamed CSV, JSON, and GeoJSON exports.
+## 3. Universal Filter Engine
 
-## Threat Detection & ML
+- **30+ Filter Parameters**: Temporal scopes (`FIRST_SEEN`, `LAST_SEEN`, `NETWORK_LIFETIME`), signal thresholds (RSSI), radio types (`W`, `E`, `B`, `L`, `N`, `G`), encryption standards, and geofences.
+- **SSID Query Syntax**: Full support for pipe-OR syntax (`fbi|surveillance` matches either term) and comma-AND syntax (`fbi,surveillance` requires both).
+- **BSSID Wildcards**: Pattern matching supporting `*` and `?` in BSSID filters.
+- **WiGLE Persistence Filters**: Universally available filters for observation counts, QoS quality scores, and import dates.
 
-- **Threat scoring**: Rule-based scoring with ML-assisted boosts and automated behavioral analysis.
-- **ML training tab**: Admin-gated logistic regression model training and scoring pipeline.
-- **ML iteration script**: Offline model comparison (logistic regression, random forest, gradient boosting).
-- **Threat analytics**: Quick and detailed movement-based forensic detection endpoints.
+---
 
-## Admin & Operations
+## 4. Geospatial & Forensic Analysis
 
-- **Automation (Jobs)**: Scheduled background tasks for geocoding, database maintenance, and WiGLE enrichment.
-- **Data Import**: High-performance SQLite, SQL, and KML import pipelines with automated orphan preservation.
-- **Orphan Management**: Specialized interface for tracking and backfilling parent-only network rows.
-- **Geocoding Daemon**: Continuous background enrichment of the geocoding cache.
-- **Infrastructure Monitoring**: Standalone Grafana stack with tactical dashboards.
-- **Secrets management**: AWS Secrets Manager-backed runtime loading.
+- **Materialized View Caching**: Core spatial queries accelerated via `app.api_network_explorer_mv` and PostGIS geography indexing.
+- **VISINT Correlation**: Spatio-temporal correlation linking field photographs to wireless observations via EXIF coordinates, time windows, and signature levels (0–4).
+- **Sibling Detection Engine**: Undirected graph inference linking multi-radio access points based on MAC octet arithmetic (`MAX_OCTET_DELTA: 6`, `MAX_DISTANCE_M: 1500`) and 148 fleet SSID exclusion rules.
+- **Reference Surveillance Layers**: Automated matching against DeFlock ALPR camera datasets, ShotSpotter acoustic gunshot sensors, and Federal facility overlays.
 
-### Threat Score Calculation
+---
 
-| Factor                   | Weight | Condition                                                            |
-| ------------------------ | ------ | -------------------------------------------------------------------- |
-| **Following Pattern**    | 35%    | Multiple clusters >2km from home; max distance spread.               |
-| **Parked Surveillance**  | 20%    | Repeated detections within 100m and 10-minute windows.               |
-| **Location Correlation** | 15%    | Percentage of observations near home vs. distinct clusters.          |
-| **Equipment Profile**    | 10%    | Manufacturer OUI matching (industrial/vehicular) and SSID patterns.  |
-| **Temporal Persistence** | 5%     | Number of distinct days observed.                                    |
-| **Fleet Bonus**          | 15%    | Correlation with other high-score networks (same manufacturer/SSID). |
+## 5. Security & Authentication
 
-## Admin, Auth, & Security
-
-- **Authentication**: Session-based login, logout, and user info endpoints.
-- **Role-based gating**: Admin-only routes for sensitive actions.
-- **Settings management**: AWS Secrets Manager-backed Mapbox tokens, WiGLE credentials, and Google Maps keys.
-- **Security headers**: CSP and hardened response headers for production.
-- **Secrets handling**: AWS Secrets Manager with runtime loading (no secrets on disk).
-- **Security policy note**: AWS Secrets Manager is the canonical store; see `docs/SECURITY_POLICY.md` and `docs/SECRETS.md` for the operational workflow and no-disk rule.
-
-## Platform & Operations
-
-- **Monitoring & Observability**: Standalone Grafana stack with pre-configured "Tactical Overview" dashboards.
-- **Automated Provisioning**: Pre-wired PostgreSQL datasources and automated dashboard discovery.
-- **Least-Privilege Access**: Dedicated `grafana_reader` database role for secure, read-only dashboard access.
-- **API versioning**: v1 and v2 endpoints with filtered network support.
-- **Modular backend**: Services and repositories with validation middleware.
-- **ETL pipeline**: Load/transform/promote steps feeding materialized views.
-- **Static server**: Production-ready static hosting with security headers.
+- **Role-Based Access Control**: Strict role separation (`admin` vs `user`) enforced by API middleware (`requireAuth`, `requireAdmin`).
+- **Session Management**: Secure HttpOnly cookie sessions backed by Redis 7 and SHA-256 session token hashing.
+- **Password Security**: Bcrypt password hashing (12 rounds) with forced first-login password rotation.
+- **Runtime Secret Injection**: Zero credentials on disk; production secrets dynamically retrieved from AWS Secrets Manager (`shadowcheck/config`).

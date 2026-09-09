@@ -28,8 +28,8 @@ You'll have an interactive shell on the EC2 instance:
 # Check running containers
 docker ps
 
-# Rebuild backend
-cd /home/ssm-user/shadowcheck && ./scs_rebuild.sh
+# Rebuild backend (ONLY approved method — protects SSL certs, EBS, and permissions)
+export HOME=/home/ssm-user && cd /home/ssm-user/shadowcheck && bash deploy/aws/scripts/scs_rebuild.sh
 
 # Access database with secrets from AWS Secrets Manager
 DB_PASS=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config \
@@ -40,10 +40,7 @@ docker exec -e PGPASSWORD=$DB_PASS shadowcheck_postgres psql \
   -U shadowcheck_admin -d shadowcheck_db -v ON_ERROR_STOP=1 -c "SELECT 1;"
 
 # View logs
-tail -f /var/log/shadowcheck/api.log
-
-# Check systemd status
-systemctl status shadowcheck
+docker logs shadowcheck_api --tail 100 -f
 ```
 
 ## Important

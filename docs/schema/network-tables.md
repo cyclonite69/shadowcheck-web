@@ -130,8 +130,9 @@ Stores candidate sibling relationships detected via background jobs.
 
 - **PK:** `(bssid1, bssid2)` where `bssid1 < bssid2` (lexicographically)
 - **Key Columns**:
-  - `bssid1`, `bssid2` (text, foreign key to `app.networks`)
-  - `confidence` (numeric, 0.0 to 1.0)
+  - `bssid1`, `bssid2` (varchar(17), foreign key to `app.networks`)
+  - `confidence` (numeric(6,3), CHECK constraint `network_sibling_pairs_conf_chk` allows `0.000` to `2.000`; heuristic generator clamps to `<= 1.000`)
+  - `pair_strength` (text: `'candidate'`, `'strong'`, `'verified'`)
   - `rule` (text, e.g., `last_octet_sequential`, `Mist Systems VAP (Class A)`)
   - `source` (text, e.g., `detection_pipeline_v2`)
 - **Key References**: [siblingDetectionQueries.ts](../../server/src/services/admin/siblingDetectionQueries.ts) for query construction and confidence demotions.
@@ -144,10 +145,12 @@ User-declared overrides that supersede heuristic matching results.
 
 - **PK:** `(bssid1, bssid2)` where `bssid1 < bssid2`
 - **Key Columns**:
-  - `bssid1`, `bssid2` (text)
+  - `bssid1`, `bssid2` (varchar(17))
   - `relation` (text: `'sibling'` to confirm, `'not_sibling'` to suppress)
+  - `confidence` (numeric(6,3), CHECK constraint `network_sibling_overrides_conf_chk` allows `0.000` to `2.000`, default `1.000`)
   - `is_active` (boolean)
-- **Function**: `app.set_network_sibling_override(bssid_a, bssid_b, relation)` normalizes input order using `LEAST`/`GREATEST` before upserting.
+  - `updated_by` (text, default `'analyst'`)
+- **Function**: `app.set_network_sibling_override(p_bssid_a, p_bssid_b, p_relation, p_updated_by, p_notes, p_confidence)` normalizes input order using `LEAST`/`GREATEST` before upserting.
 
 ---
 
@@ -182,11 +185,12 @@ Stores identified surveillance gear signatures (cameras, body-worn sensors, guns
 
 Static lookup mapping MAC prefix (OUI) allocations to device threat categories.
 
-- **PK:** `id`
+- **PK:** `id` (integer)
 - **Key Columns**:
   - `oui` (varchar(8), e.g., `'00:14:3E'`)
-  - `surveillance_type` (text)
-  - `surveillance_confidence` (numeric)
+  - `vendor_name` (varchar(256))
+  - `surveillance_type` (varchar(50), e.g., `'FLOCK_SAFETY_CAMERA'`, `'AXON_BODY_CAMERA'`)
+  - `surveillance_confidence` (varchar(20), e.g., `'HIGH'`, `'MEDIUM'`)
 
 ---
 
@@ -222,12 +226,15 @@ the `VISINT_UNMATCHED` sentinel are excluded.
 Reference datasets mapping public Flock cameras and WIRED-leaked ShotSpotter coordinates.
 
 - **`app.deflock_cameras`**:
-  - `id` (PK)
-  - `location` (geometry(Point,4326))
-  - `camera_type`, `agency` (metadata)
+  - `id` (PK, serial)
+  - `lat`, `lon` (numeric)
+  - `geom` (geometry(Point,4326))
+  - `camera_type`, `agency`, `city`, `state`, `source` (metadata)
 - **`app.shotspotter_sensors`**:
-  - `id` (PK)
-  - `location` (geometry(Point,4326))
+  - `id` (PK, serial)
+  - `lat`, `lon` (double precision)
+  - `geom` (geometry(Point,4326))
+  - `sensor_id`, `city`, `state`, `country`, `status`, `source` (metadata)
 - **Matching Views**:
   - `app.surveillance_deflock_matches`: Matches detections within 100m of a camera.
   - `app.surveillance_shotspotter_sensor_matches`: Matches detections within 200m of a sensor.

@@ -53,7 +53,7 @@ graph TB
 
     subgraph "API Gateway"
         B[Express Server<br/>Node.js 22+]
-        B1[Rate Limiter<br/>1000 req/15min]
+        B1[Rate Limiter<br/>50,000 req/15min]
         B2[Auth Middleware]
         B3[Security Headers]
         B --> B1
@@ -77,7 +77,7 @@ graph TB
     end
 
     subgraph "Data Layer"
-        E[(PostgreSQL 18<br/>+ PostGIS 3.5)]
+        E[(PostgreSQL 18<br/>+ PostGIS 3.6)]
         F[(Redis 7.0<br/>Cache & Sessions)]
         G[ETL Pipeline]
     end
@@ -265,7 +265,7 @@ User Request
 
 - Node.js 22+ (TypeScript)
 - Express.js REST API
-- PostgreSQL 18 + PostGIS 3.5
+- PostgreSQL 18 + PostGIS 3.6
 - Redis 7.0 (Caching, Sessions)
 - Winston structured logging
 
@@ -280,7 +280,7 @@ User Request
 **Infrastructure:**
 
 - Docker + Docker Compose
-- Jest 29.x testing framework
+- Jest 30.x testing framework
 - GitHub Actions CI/CD
 
 ---
@@ -322,6 +322,7 @@ User Request
 - [Database](Database) - Schema and query reference
 - [Security](Security) - Security architecture and best practices
 
+```mermaid
 sequenceDiagram
 participant U as User Browser
 participant F as Frontend
@@ -349,8 +350,7 @@ participant Cache as Redis
 
     API-->>F: JSON response
     F-->>U: Render dashboard
-
-````
+```
 
 ---
 
@@ -379,7 +379,7 @@ flowchart TD
     style O fill:#48bb78,stroke:#2f855a,color:#fff
     style C fill:#f56565,stroke:#c53030,color:#fff
     style F fill:#f56565,stroke:#c53030,color:#fff
-````
+```
 
 ---
 
@@ -724,11 +724,11 @@ graph TB
 | Node.js    | 22+     | Runtime          |
 | Express    | 4.x     | Web framework    |
 | PostgreSQL | 18+     | Database         |
-| PostGIS    | 3.5+    | Geospatial       |
+| PostGIS    | 3.6+    | Geospatial       |
 | Redis      | 7+      | Cache & sessions |
 | Grafana    | Latest  | Observability    |
 | Winston    | 3.x     | Logging          |
-| Jest       | 29.x    | Testing          |
+| Jest       | 30.x    | Testing          |
 
 ---
 

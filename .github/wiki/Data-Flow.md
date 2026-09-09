@@ -100,7 +100,7 @@ flowchart TB
 
 ## Network Data Flow
 
-````mermaid
+```mermaid
 sequenceDiagram
     participant Import as Import Script
     participant Staging as Staging Tables
@@ -129,14 +129,14 @@ sequenceDiagram
     API->>Prod: SELECT with filters
     Prod-->>API: Result set
     API-->>Client: JSON response
-    ```
+```
 
-    ---
+---
 
-    ## Threat Detection Flow
+## Threat Detection Flow
 
-    ...
-    _Last Updated: 2026-03-14_
+```mermaid
+flowchart TD
     A[Network Observation] --> B[Calculate Features]
 
     B --> C1[Observation Count]
@@ -172,7 +172,7 @@ sequenceDiagram
     style K fill:#f56565,stroke:#c53030,color:#fff
     style M fill:#ed8936,stroke:#c05621,color:#fff
     style N fill:#48bb78,stroke:#2f855a,color:#fff
-````
+```
 
 ---
 

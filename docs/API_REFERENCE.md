@@ -34,7 +34,7 @@ Pass the token returned by `POST /api/auth/login` in the `Authorization` header 
 
 ## Rate Limiting
 
-- **1000 requests per 15 minutes** per IP
+- **50,000 requests per 15 minutes** per IP (localhost and private IPs are exempt)
 - Returns `429 Too Many Requests` when exceeded
 
 ---
@@ -553,7 +553,7 @@ Top networks by observation count.
 
 **Parameters:**
 
-- `limit` (int, default: 10, max: 100) - Number of results
+- `limit` (int, default: 100, max: 500) - Number of results
 
 **Response:**
 
@@ -2074,6 +2074,14 @@ Batch fetch multiple v2 networks by BSSID list. Use for large multi-BSSID querie
 ### GET /api/v2/networks/filtered/debug
 
 Debug endpoint returning additional diagnostic metadata (SQL/explain) for filtered v2 queries. Developer/admin use only.
+
+### GET /api/v2/networks/filtered/unmatched-media
+
+Returns networks that have unmatched VISINT media (images not yet correlated to an observation).
+
+### GET /api/v2/networks/filtered/matched-media
+
+Returns networks that have matched VISINT media (images correlated to an observation).
 
 ### POST /api/v2/networks/filtered/observations
 
