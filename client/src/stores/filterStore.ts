@@ -86,7 +86,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   rssiMax: false,
   encryptionTypes: false,
   securityFlags: false,
-  timeframe: false,
+  timeframe: true, // default: last 30 days — prevents unfiltered full-dataset load on initial mount
   temporalScope: false,
   observationCountMin: false,
   observationCountMax: false,
