@@ -366,3 +366,24 @@ scope (migration 058 + view dependency fix). Flagging per audit discipline
 | development-dependencies bundle | —        | —        | `dependabot/npm_and_yarn/development-dependencies-2016dcf779`     | #387 | **Skipped** | —                        | Policy: never merge dev-dep bundles after individual PRs merged                                   |
 
 Full suite after all merges: **531/531 suites, 5020/5020 tests, 0 failures**
+
+---
+
+## Deferred TODO — 2026-09-10
+
+**ESLint has no configuration covering `tests/`.**
+
+Surfaced during the sibling refresh / poll-cap work this session. When eslint is run against
+`tests/unit/*.test.ts`, the output is `ignored because no matching configuration was supplied`
+— not the client-file ignore pattern, a separate gap: no ESLint config targets the `tests/`
+directory at all. Consequence: unused vars, `any` leaks, and whatever the project's standard
+rules normally catch go unenforced in all test files.
+
+Not blocking — `tsc --noEmit` still covers type correctness. But the gap is real and should
+be closed in a dedicated maintenance lane pass:
+
+1. Extend `.eslintrc.json` (or add an `tests/.eslintrc.json` override) to cover `tests/**/*.ts`.
+2. Run `npm run lint` against the full test suite and fix any violations found.
+3. Confirm the `no matching configuration` warning is gone from eslint output on test files.
+
+Do not let this disappear — it was explicitly flagged to track.

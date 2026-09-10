@@ -21,16 +21,25 @@ export interface UseSiblingStatsReturn {
   siblingStats: SiblingStats | null;
   siblingByRule: SiblingByRule[];
   purgingSiblings: boolean;
+  runningSiblings: boolean;
   loadingSiblings: boolean;
+  /** Non-null when runRefresh() aborts due to a poll timeout or unexpected error. */
+  refreshError: string | null;
   fetchSiblingStats: () => Promise<void>;
   purgeSiblings: () => Promise<void>;
+  runRefresh: (incremental?: boolean) => Promise<void>;
 }
+
+/** Maximum number of 3-second poll ticks before declaring a timeout (~60 s). */
+const POLL_MAX_ATTEMPTS = 20;
 
 export const useSiblingStats = (onPurgeComplete?: () => Promise<void>): UseSiblingStatsReturn => {
   const [siblingStats, setSiblingStats] = useState<SiblingStats | null>(null);
   const [siblingByRule, setSiblingByRule] = useState<SiblingByRule[]>([]);
   const [purgingSiblings, setPurgingSiblings] = useState<boolean>(false);
+  const [runningSiblings, setRunningSiblings] = useState<boolean>(false);
   const [loadingSiblings, setLoadingSiblings] = useState<boolean>(true);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const fetchSiblingStats = useCallback(async () => {
     try {
@@ -75,12 +84,58 @@ export const useSiblingStats = (onPurgeComplete?: () => Promise<void>): UseSibli
     }
   };
 
+  const runRefresh = async (incremental = false) => {
+    setRunningSiblings(true);
+    setRefreshError(null);
+    try {
+      await apiClient.post('/admin/siblings/refresh', { incremental });
+
+      // Job is fire-and-forget (202). Poll status until running===false,
+      // then refetch stats so the panel shows the actual result.
+      // Bails out after POLL_MAX_ATTEMPTS ticks (~60 s) to avoid hanging
+      // indefinitely if the backend job crashes without clearing the running flag.
+      const poll = async (attempt: number): Promise<void> => {
+        if (attempt >= POLL_MAX_ATTEMPTS) {
+          setRefreshError(
+            'Sibling refresh timed out — the job may still be running in the background. ' +
+              'Check the monitoring panel or reload to see the latest status.'
+          );
+          setRunningSiblings(false);
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        try {
+          const status = await apiClient.get<{ status: { running: boolean } }>(
+            '/admin/siblings/refresh/status'
+          );
+          if (status?.status?.running) {
+            return poll(attempt + 1);
+          }
+        } catch {
+          // Status fetch failed — stop polling, don't crash
+        }
+        await fetchSiblingStats();
+        setRunningSiblings(false);
+      };
+
+      poll(0);
+      // Don't await poll() — it runs in the background while the button
+      // re-enables. runningSiblings stays true until poll resolves.
+    } catch (err: any) {
+      window.alert(`Failed to start sibling refresh: ${err?.message || 'Unknown error'}`);
+      setRunningSiblings(false);
+    }
+  };
+
   return {
     siblingStats,
     siblingByRule,
     purgingSiblings,
+    runningSiblings,
     loadingSiblings,
+    refreshError,
     fetchSiblingStats,
     purgeSiblings,
+    runRefresh,
   };
 };

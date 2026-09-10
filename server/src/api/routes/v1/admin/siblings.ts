@@ -162,8 +162,15 @@ router.post('/admin/siblings/linked-batch', async (req: any, res: any) => {
 
 router.post('/admin/siblings/refresh', async (req: any, res: any) => {
   try {
-    const { batchSize, maxOctetDelta, maxDistanceM, minCandidateConf, minStrongConf, maxBatches } =
-      req.body || {};
+    const {
+      batchSize,
+      maxOctetDelta,
+      maxDistanceM,
+      minCandidateConf,
+      minStrongConf,
+      maxBatches,
+      incremental,
+    } = req.body || {};
 
     const result = await siblingDetectionAdminService.startSiblingRefresh({
       batchSize,
@@ -172,6 +179,7 @@ router.post('/admin/siblings/refresh', async (req: any, res: any) => {
       minCandidateConf,
       minStrongConf,
       maxBatches,
+      incremental,
     });
 
     res.status(result.accepted ? 202 : 409).json({

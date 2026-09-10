@@ -61,8 +61,15 @@ const TrendingUpIcon = ({ size = 20, className = '' }) => (
 
 export const DbStatsTab: React.FC = () => {
   const { stats, loading, error, fetchStats } = useDbStats();
-  const { siblingStats, siblingByRule, purgingSiblings, purgeSiblings } =
-    useSiblingStats(fetchStats);
+  const {
+    siblingStats,
+    siblingByRule,
+    purgingSiblings,
+    purgeSiblings,
+    runningSiblings,
+    runRefresh,
+    refreshError,
+  } = useSiblingStats(fetchStats);
   const { coreAndInfra, wigle, kismet, uncategorized } = useTableCategories(stats);
 
   if (loading && !stats) {
@@ -257,6 +264,9 @@ export const DbStatsTab: React.FC = () => {
             siblingByRule={siblingByRule}
             purgingSiblings={purgingSiblings}
             purgeSiblings={purgeSiblings}
+            runningSiblings={runningSiblings}
+            runRefresh={runRefresh}
+            refreshError={refreshError}
           />
         </AdminCard>
       </div>

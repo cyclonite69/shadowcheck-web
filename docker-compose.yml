@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=2048}
+      NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=4096}
       PORT: ${PORT:-3001}
       API_GATE_ENABLED: "true"
       DB_HOST: postgres

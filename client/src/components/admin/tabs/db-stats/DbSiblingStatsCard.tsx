@@ -7,6 +7,10 @@ export interface DbSiblingStatsCardProps {
   siblingByRule: SiblingRuleStat[];
   purgingSiblings: boolean;
   purgeSiblings: () => void;
+  runningSiblings: boolean;
+  runRefresh: (incremental?: boolean) => void;
+  /** Non-null when the last runRefresh() poll timed out waiting for job completion. */
+  refreshError: string | null;
 }
 
 export const DbSiblingStatsCard: React.FC<DbSiblingStatsCardProps> = ({
@@ -14,6 +18,9 @@ export const DbSiblingStatsCard: React.FC<DbSiblingStatsCardProps> = ({
   siblingByRule,
   purgingSiblings,
   purgeSiblings,
+  runningSiblings,
+  runRefresh,
+  refreshError,
 }) => {
   return siblingStats ? (
     <div className="space-y-4">
@@ -96,16 +103,25 @@ export const DbSiblingStatsCard: React.FC<DbSiblingStatsCardProps> = ({
           </table>
         </div>
       )}
-      {/* Purge button — always visible */}
-      <div className="pt-3 border-t border-slate-800/50 flex justify-end">
+      {/* Action buttons */}
+      <div className="pt-3 border-t border-slate-800/50 flex justify-end gap-2">
+        <button
+          onClick={() => runRefresh(true)}
+          disabled={runningSiblings || purgingSiblings}
+          className="px-3 py-1.5 text-xs font-semibold rounded bg-blue-900/60 hover:bg-blue-800/80 text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {runningSiblings ? 'Starting…' : 'Run Incremental'}
+        </button>
         <button
           onClick={purgeSiblings}
-          disabled={purgingSiblings}
+          disabled={purgingSiblings || runningSiblings}
           className="px-3 py-1.5 text-xs font-semibold rounded bg-red-900/60 hover:bg-red-800/80 text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {purgingSiblings ? 'Purging…' : 'Purge & Full Redetect'}
         </button>
       </div>
+      {/* Refresh timeout/error feedback — only shown when the poll bails out */}
+      {refreshError && <p className="text-xs text-amber-400 mt-2">{refreshError}</p>}
     </div>
   ) : (
     <div className="text-xs text-slate-600 italic py-4 text-center">No sibling data available.</div>

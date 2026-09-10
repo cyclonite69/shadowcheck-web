@@ -137,8 +137,41 @@ describe('admin sibling routes', () => {
       minCandidateConf: undefined,
       minStrongConf: undefined,
       maxBatches: undefined,
+      incremental: undefined,
     });
     expect(duplicate.status).toBe(409);
+  });
+
+  it('forwards incremental=true to startSiblingRefresh when set in body', async () => {
+    siblingDetectionAdminService.startSiblingRefresh.mockResolvedValueOnce({
+      accepted: true,
+      status: { running: true },
+    });
+
+    const response = await request(app)
+      .post('/api/admin/siblings/refresh')
+      .send({ incremental: true });
+
+    expect(response.status).toBe(202);
+    expect(siblingDetectionAdminService.startSiblingRefresh).toHaveBeenCalledWith(
+      expect.objectContaining({ incremental: true })
+    );
+  });
+
+  it('forwards incremental=false to startSiblingRefresh when explicitly set', async () => {
+    siblingDetectionAdminService.startSiblingRefresh.mockResolvedValueOnce({
+      accepted: true,
+      status: { running: true },
+    });
+
+    const response = await request(app)
+      .post('/api/admin/siblings/refresh')
+      .send({ incremental: false });
+
+    expect(response.status).toBe(202);
+    expect(siblingDetectionAdminService.startSiblingRefresh).toHaveBeenCalledWith(
+      expect.objectContaining({ incremental: false })
+    );
   });
 
   it('cancels a refresh and reports a rejected cancellation', async () => {
