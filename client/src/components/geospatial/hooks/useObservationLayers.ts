@@ -3,6 +3,7 @@ import type { Map as MapboxMap } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../../types/network';
 import { useCoreObservationLayers } from './useCoreObservationLayers';
+import { useObservationPointContextMenu } from './useObservationPointContextMenu';
 import { useWigleLayers, type WigleObservationsState } from './useWigleLayers';
 import { useSummaryLayers } from './useSummaryLayers';
 import { useMediaLocationLayers } from './useMediaLocationLayers';
@@ -42,6 +43,14 @@ export const useObservationLayers = (props: ObservationLayerProps) => {
     activeObservationSets: props.activeObservationSets,
     networkLookup: props.networkLookup,
     isViewportLocked: props.isViewportLocked,
+  });
+
+  useObservationPointContextMenu({
+    mapReady: props.mapReady,
+    mapRef: props.mapRef,
+    mapStyle: props.mapStyle,
+    networkLookup: props.networkLookup,
+    onOpenContextMenu: props.onOpenContextMenu,
   });
 
   // 2. WiGLE observation points and popups

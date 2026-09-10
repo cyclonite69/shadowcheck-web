@@ -279,12 +279,6 @@ export const useWigleLayers = ({
       map.on('mouseenter', 'wigle-matched-points', handleMatchedEnter);
       map.on('mouseleave', 'wigle-matched-points', handleMatchedLeave);
 
-      // Re-bind context menu for core observation points if they exist
-      if (map.getLayer('observation-points')) {
-        map.off('contextmenu', 'observation-points', handleContextMenu);
-        map.on('contextmenu', 'observation-points', handleContextMenu);
-      }
-
       return true;
     };
 
@@ -347,7 +341,6 @@ export const useWigleLayers = ({
       return () => {
         map.off('click', 'wigle-unique-points', handleUniqueClick);
         map.off('click', 'wigle-matched-points', handleMatchedClick);
-        map.off('contextmenu', 'observation-points', handleContextMenu);
         map.off('contextmenu', 'wigle-unique-points', handleContextMenu);
         map.off('contextmenu', 'wigle-matched-points', handleContextMenu);
         map.off('mouseenter', 'wigle-unique-points', handleUniqueEnter);
@@ -366,7 +359,6 @@ export const useWigleLayers = ({
       map.off('style.load', handleStyleLoad);
       map.off('click', 'wigle-unique-points', handleUniqueClick);
       map.off('click', 'wigle-matched-points', handleMatchedClick);
-      map.off('contextmenu', 'observation-points', handleContextMenu);
       map.off('contextmenu', 'wigle-unique-points', handleContextMenu);
       map.off('contextmenu', 'wigle-matched-points', handleContextMenu);
       map.off('mouseenter', 'wigle-unique-points', handleUniqueEnter);
