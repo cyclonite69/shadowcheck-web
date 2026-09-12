@@ -508,24 +508,42 @@ const renderBssid = ({
   };
 };
 
-const renderSsid = ({
-  value,
-  row: _row,
-  showSelectedAnchorLink: _showSelectedAnchorLink,
-  isLinkedSibling: _isLinkedSibling,
-}: NetworkTableCellRendererContext) => {
-  const textContent =
-    value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
-  const fullValue = typeof value === 'string' && value.length > 0 ? value : null;
+interface SsidCellProps {
+  label: string;
+  showSelectedAnchorLink: boolean;
+  isLinkedSibling: boolean;
+}
 
-  const ssidContent = (
+const SsidCell: React.FC<SsidCellProps> = ({ label, showSelectedAnchorLink, isLinkedSibling }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(label).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    },
+    [label]
+  );
+
+  return (
     <div
+      className="ssid-cell-group"
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
+        minWidth: 0,
+        overflow: 'hidden',
+        position: 'relative',
       }}
     >
+      <style>{`
+        .ssid-cell-group .ssid-copy-btn { opacity: 0; transition: opacity 0.15s; }
+        .ssid-cell-group:hover .ssid-copy-btn { opacity: 1; }
+      `}</style>
       <div
         style={{
           color: '#f1f5f9',
@@ -536,21 +554,63 @@ const renderSsid = ({
           whiteSpace: 'nowrap',
         }}
       >
-        {textContent}
+        {label}
       </div>
-      {(_showSelectedAnchorLink || _isLinkedSibling) && (
+      {(showSelectedAnchorLink || isLinkedSibling) && (
         <span
-          title={_showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
+          title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
           style={{ color: '#38bdf8', flex: '0 0 auto' }}
         >
           🔗
         </span>
       )}
+      <button
+        type="button"
+        className="ssid-copy-btn"
+        onClick={handleCopy}
+        aria-label={copied ? 'Copied!' : `Copy ${label}`}
+        title={copied ? 'Copied!' : 'Copy SSID'}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '16px',
+          height: '16px',
+          padding: 0,
+          border: 'none',
+          borderRadius: '3px',
+          background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
+          color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+          cursor: 'pointer',
+          flexShrink: 0,
+          transition: 'background 0.15s, color 0.15s',
+        }}
+      >
+        {copied ? <CheckIcon /> : <ClipboardIcon />}
+      </button>
     </div>
+  );
+};
+
+const renderSsid = ({
+  value,
+  row: _row,
+  showSelectedAnchorLink: _showSelectedAnchorLink,
+  isLinkedSibling: _isLinkedSibling,
+}: NetworkTableCellRendererContext) => {
+  const textContent =
+    value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
+
+  const ssidContent = (
+    <SsidCell
+      label={textContent}
+      showSelectedAnchorLink={_showSelectedAnchorLink}
+      isLinkedSibling={_isLinkedSibling}
+    />
   );
 
   return {
-    content: fullValue ? <Tooltip content={fullValue}>{ssidContent}</Tooltip> : ssidContent,
+    content: value ? <Tooltip content={String(value)}>{ssidContent}</Tooltip> : ssidContent,
   };
 };
 
