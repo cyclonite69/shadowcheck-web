@@ -15,6 +15,8 @@ const IMPACT_FACTORS: Record<string, number> = {
   AXON_SIGNAL_PERIPHERAL: 1.1,
   BT_IMAGING_DEVICE: 0.9,
   DEI_BWC: 1.0,
+  DASHCAM: 1.0,
+  RESIDENTIAL_CAMERA: 0.8,
 };
 
 // --- Match quality bonuses (§5.2) ---
@@ -45,6 +47,9 @@ const AUTO_FP_PATTERNS: Array<{ pattern: RegExp; reason: string; ouiRestrict?: s
   { pattern: /^Insignia-/i, reason: 'Insignia consumer electronics (Best Buy brand)' },
   { pattern: /^DIRECT-/i, reason: 'WiFi Direct consumer device' },
   { pattern: /^HP-Print/i, reason: 'HP printer' },
+  { pattern: /^Fanvil(?:\s|$)/i, reason: 'Fanvil VoIP phone' },
+  { pattern: /^Yealink(?:\s|$)/i, reason: 'Yealink VoIP phone' },
+  { pattern: /^Canon(?:\s|[-_])/i, reason: 'Canon printer' },
   { pattern: /^Chromecast/i, reason: 'Google Chromecast' },
 ];
 
@@ -173,6 +178,7 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
     const { isFP, reason: fpReason } = checkAutoFalsePositive(best.ssid, oui);
     let falsePositive = false;
     let fpReasonFinal: string | null = null;
+    const deviceType = best.device_type;
 
     if (isFP) {
       adjustments.push({ factor: 'false_positive_pattern', value: -0.5 });
@@ -186,13 +192,18 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
       adjustments.push({ factor: 'ambiguous_pattern', value: penalty });
     }
 
+    const isStationary =
+      Number(best.unique_positions) === 1 && (obsCount > 3 || durationSec > 300);
+    if (isStationary && deviceType !== 'RESIDENTIAL_CAMERA') {
+      adjustments.push({ factor: 'stationary_signature_penalty', value: -0.6 });
+    }
+
     // --- Compute final confidence ---
     const totalAdj = adjustments.reduce((sum, a) => sum + a.value, 0);
     const confidence = Math.max(0.1, Math.min(1.0, baseConfidence + totalAdj));
     const roundedConfidence = Math.round(confidence * 100) / 100;
 
     // --- Impact factor (§5.3) ---
-    const deviceType = best.device_type;
     const impactFactor = IMPACT_FACTORS[deviceType] ?? 1.0;
 
     // --- Cross-domain multiplier (§6.5) ---

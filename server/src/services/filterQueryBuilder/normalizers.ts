@@ -243,6 +243,12 @@ const normalizeFilters = (filters: unknown): Filters => {
 
   normalized.has_notes = toBooleanOrUndefined(source.has_notes);
   normalized.excludeInvalidCoords = toBooleanOrUndefined(source.excludeInvalidCoords);
+  normalized.surveillance = toBooleanOrUndefined(source.surveillance);
+  normalized.shotspotter = toBooleanOrUndefined(source.shotspotter);
+  normalized.bwc = toBooleanOrUndefined(source.bwc);
+  normalized.dashcam = toBooleanOrUndefined(source.dashcam);
+  normalized.residential_cam = toBooleanOrUndefined(source.residential_cam);
+  normalized.flock = toBooleanOrUndefined(source.flock);
 
   return normalized;
 };

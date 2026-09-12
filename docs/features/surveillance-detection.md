@@ -78,6 +78,13 @@ The following universal query parameters are accepted by the backend query build
 
 - `surveillance` (`boolean`) — Matches any positive surveillance classification in `app.surveillance_detections`.
 - `bwc` (`boolean`) — Filters specifically for body-worn camera device types: `AXON_BODY_CAMERA`, `MOTOROLA_BWC`, `AXON_SIGNAL_PERIPHERAL`, `DEI_BWC`, or `BT_IMAGING_DEVICE`.
+- `deviceClass` (`string[]`) — Selects other surveillance classifications, including `DASHCAM` and `RESIDENTIAL_CAMERA`; these are intentionally excluded from `bwc`.
+
+Shared component-vendor OUIs are not sufficient evidence for an Axon body camera.
+The Ampak OUIs `70:F7:54`, `B8:13:32`, `54:78:C9`, and `08:FB:EA` are excluded from
+the Axon OUI tier, while independent Axon signals such as the officer-assignment
+SSID pattern remain active. Fanvil and other VoIP/printer identity patterns are
+marked false-positive during scoring.
 
 ---
 

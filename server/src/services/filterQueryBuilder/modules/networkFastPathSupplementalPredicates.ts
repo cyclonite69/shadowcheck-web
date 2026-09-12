@@ -130,6 +130,22 @@ export function buildFastPathSupplementalPredicates(
     ctx.addApplied('threat', 'bwc', true);
   }
 
+  if (e.dashcam && f.dashcam === true) {
+    where.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'DASHCAM' AND sd.false_positive = FALSE)`
+    );
+    ctx.addApplied('threat', 'dashcam', true);
+  }
+
+  if (e.residential_cam && f.residential_cam === true) {
+    where.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'RESIDENTIAL_CAMERA' AND sd.false_positive = FALSE)`
+    );
+    ctx.addApplied('threat', 'residential_cam', true);
+  }
+
   if (e.flock && f.flock === true) {
     where.push(
       // eslint-disable-next-line quotes

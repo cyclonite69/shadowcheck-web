@@ -63,6 +63,32 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
                 <span className={`${listItemTextClass} text-slate-300`}>Body Worn Camera</span>
               </label>
 
+              {filters.bwc && (
+                <div className="ml-6 space-y-1.5 border-l border-slate-700/50 pl-3">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.dashcam ?? false}
+                      onChange={(e) => onSetFilter('dashcam', e.target.checked)}
+                      className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                    />
+                    <span className={`${listItemTextClass} text-slate-400`}>Dashcam</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.residential_cam ?? false}
+                      onChange={(e) => onSetFilter('residential_cam', e.target.checked)}
+                      className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                    />
+                    <span className={`${listItemTextClass} text-slate-400`}>
+                      Residential Camera
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"

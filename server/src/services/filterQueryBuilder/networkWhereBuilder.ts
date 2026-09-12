@@ -191,7 +191,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.surveillance && f.surveillance === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid)`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.false_positive = FALSE)`
     );
     ctx.addApplied('threat', 'surveillance', true);
   }
@@ -199,7 +199,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.shotspotter && f.shotspotter === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'SHOTSPOTTER_SENSOR')`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'SHOTSPOTTER_SENSOR' AND sd.false_positive = FALSE)`
     );
     ctx.addApplied('threat', 'shotspotter', true);
   }
@@ -207,15 +207,31 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.bwc && f.bwc === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('AXON_BODY_CAMERA', 'MOTOROLA_BWC', 'AXON_SIGNAL_PERIPHERAL', 'DEI_BWC', 'BT_IMAGING_DEVICE'))`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('AXON_BODY_CAMERA', 'MOTOROLA_BWC', 'AXON_SIGNAL_PERIPHERAL', 'DEI_BWC', 'BT_IMAGING_DEVICE') AND sd.false_positive = FALSE)`
     );
     ctx.addApplied('threat', 'bwc', true);
+  }
+
+  if (e.dashcam && f.dashcam === true) {
+    networkWhere.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'DASHCAM' AND sd.false_positive = FALSE)`
+    );
+    ctx.addApplied('threat', 'dashcam', true);
+  }
+
+  if (e.residential_cam && f.residential_cam === true) {
+    networkWhere.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'RESIDENTIAL_CAMERA' AND sd.false_positive = FALSE)`
+    );
+    ctx.addApplied('threat', 'residential_cam', true);
   }
 
   if (e.flock && f.flock === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY'))`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY') AND sd.false_positive = FALSE)`
     );
     ctx.addApplied('threat', 'flock', true);
   }

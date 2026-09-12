@@ -69,6 +69,8 @@ export const FILTER_KEYS = [
   'surveillance',
   'shotspotter',
   'bwc',
+  'dashcam',
+  'residential_cam',
   'flock',
   'deviceClass',
 ] as const;

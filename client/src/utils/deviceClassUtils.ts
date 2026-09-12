@@ -12,6 +12,8 @@ const DEVICE_CLASS_LABELS: Record<string, string> = {
   AXON_SIGNAL_PERIPHERAL: 'Axon Signal Peripheral',
   DEI_BWC: 'Body Worn Camera (DEI)',
   BT_IMAGING_DEVICE: 'BT Imaging Device',
+  DASHCAM: 'Dashcam',
+  RESIDENTIAL_CAMERA: 'Residential Camera',
   RAVEN_GUNSHOT_DETECTOR: 'Raven Gunshot Detector',
   L3HARRIS_STINGRAY: 'L3Harris StingRay',
   RAYTHEON_ESYSTEMS: 'Raytheon E-Systems',

@@ -37,6 +37,11 @@ router.get('/admin/networks/:bssid/detection-evidence', async (req: any, res: an
           sd.confidence,
           sd.threat_score,
           sd.detected_at,
+          (
+            SELECT MAX(wv.lastupdt)
+            FROM app.wigle_v2_networks_search wv
+            WHERE wv.bssid = sd.bssid
+          ) AS lastupdt,
           sd.detection_method,
           sd.matched_signals,
           sd.false_positive,

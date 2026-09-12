@@ -93,6 +93,8 @@ export interface Filters {
   surveillance?: boolean;
   shotspotter?: boolean;
   bwc?: boolean;
+  dashcam?: boolean;
+  residential_cam?: boolean;
   flock?: boolean;
   /** Multi-value enum matching COALESCE(surveillance_detections.device_type, oui_device_groups.surveillance_type) */
   deviceClass?: string[];

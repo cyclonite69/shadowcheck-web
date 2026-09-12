@@ -154,6 +154,7 @@ export const ENRICHED_CANDIDATES_SQL = `
       JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
       WHERE odg.surveillance_type = 'AXON_BODY_CAMERA'
         AND odg.surveillance_confidence = 'HIGH'
+        AND LEFT(n.bssid, 8) NOT IN ('70:F7:54', 'B8:13:32', '54:78:C9', '08:FB:EA')
 
       UNION ALL
 
@@ -257,6 +258,7 @@ export const ENRICHED_CANDIDATES_SQL = `
       WHERE n.type IN ('E', 'B')
         AND odg.surveillance_type = 'AXON_BODY_CAMERA'
         AND odg.surveillance_confidence = 'HIGH'
+        AND LEFT(n.bssid, 8) NOT IN ('70:F7:54', 'B8:13:32', '54:78:C9', '08:FB:EA')
         AND (n.ssid IS NULL OR n.ssid !~ '^X_[A-Za-z][A-Za-z]+$')
 
       UNION ALL
@@ -310,6 +312,33 @@ export const ENRICHED_CANDIDATES_SQL = `
       WHERE n.type IN ('E', 'B')
         AND n.service = 'b4520100-a308-4e56-8a52-536c2ad07147'
         AND (n.ssid IS NULL OR n.ssid !~ '^DEI-[0-9]+$')
+
+      UNION ALL
+
+      -- 19. Dashcam SSID patterns. These remain surveillance-relevant but are
+      -- intentionally outside the body-worn-camera filter.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'DASHCAM', 72, 'STRONG', 'ssid_pattern',
+        jsonb_build_object('ssid', n.ssid, 'pattern',
+          '^(Vantrue|Nextbase|Viofo|BlackVue|70mai)'), 19
+      FROM app.networks n
+      WHERE n.ssid ~* '^(Vantrue|Nextbase|Viofo|BlackVue|70mai)'
+
+      UNION ALL
+
+      -- 20. Residential/consumer camera OUI match. Manufacturer reference
+      -- data is used as identity context; this is not a BWC classification.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'RESIDENTIAL_CAMERA', 72, 'STRONG', 'manufacturer_oui_match',
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'manufacturer', rm.manufacturer), 20
+      FROM app.networks n
+      JOIN app.radio_manufacturers rm
+        ON UPPER(rm.oui) = REPLACE(LEFT(UPPER(n.bssid), 8), ':', '')
+      WHERE rm.manufacturer ILIKE ANY (ARRAY[
+        '%Ring%', '%Amazon Technologies%', '%Nest%', '%Google%',
+        '%Arlo%', '%Netgear%', '%Wyze%', '%Eufy%', '%Anker Innovations%',
+        '%SimpliSafe%'
+      ])
 
     ),
     obs_stats AS (

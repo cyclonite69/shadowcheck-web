@@ -73,6 +73,25 @@ describe('buildNetworkWhere — surveillance sub-filters', () => {
     expect(where.some((w) => w.includes('network_tags'))).toBe(false);
   });
 
+  test('bwc filter excludes false-positive detections', () => {
+    const ctx = new FilterBuildContext({ bwc: true }, { bwc: true });
+    const where = buildNetworkWhere(ctx);
+    const clause = where.find((w) => w.includes('surveillance_detections'));
+    expect(clause).toContain('sd.false_positive = FALSE');
+  });
+
+  test.each([
+    ['dashcam', 'DASHCAM'],
+    ['residential_cam', 'RESIDENTIAL_CAMERA'],
+  ])('%s filter targets only its device type and excludes false positives', (filter, deviceType) => {
+    const ctx = new FilterBuildContext({ [filter]: true }, { [filter]: true });
+    const where = buildNetworkWhere(ctx);
+    const clause = where.find((w) => w.includes('surveillance_detections'));
+    expect(clause).toContain(`sd.device_type = '${deviceType}'`);
+    expect(clause).toContain('sd.false_positive = FALSE');
+    expect(ctx.getAppliedFilters().map((f) => f.field)).toContain(filter);
+  });
+
   test('shotspotter filter does not query network_tags', () => {
     const ctx = new FilterBuildContext({ shotspotter: true }, { shotspotter: true });
     const where = buildNetworkWhere(ctx);
@@ -126,6 +145,18 @@ describe('buildFastPathSupplementalPredicates — surveillance sub-filters', () 
     expect(clause).toContain('DEI_BWC');
     expect(clause).toContain('BT_IMAGING_DEVICE');
     expect(ctx.getAppliedFilters().map((f) => f.field)).toContain('bwc');
+  });
+
+  test.each([
+    ['dashcam', 'DASHCAM'],
+    ['residential_cam', 'RESIDENTIAL_CAMERA'],
+  ])('fast path %s filter targets only its device type', (filter, deviceType) => {
+    const ctx = new FilterBuildContext({ [filter]: true }, { [filter]: true });
+    const where = buildFastPathSupplementalPredicates(ctx, {});
+    const clause = where.find((w) => w.includes('surveillance_detections'));
+    expect(clause).toContain(`sd.device_type = '${deviceType}'`);
+    expect(clause).toContain('sd.false_positive = FALSE');
+    expect(ctx.getAppliedFilters().map((f) => f.field)).toContain(filter);
   });
 
   test('shotspotter filter generates EXISTS subquery against surveillance_detections with SHOTSPOTTER_SENSOR', () => {

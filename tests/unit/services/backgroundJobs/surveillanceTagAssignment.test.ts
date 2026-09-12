@@ -91,6 +91,24 @@ describe('runSurveillanceScanJob — tag CASE assignment', () => {
     expect(sql).toContain('"surveillance"');
   });
 
+  test('DASHCAM → tags include "dashcam" without "bwc"', async () => {
+    mockScoreSurveillanceCandidates.mockReturnValue(makeScored('DASHCAM'));
+    await runSurveillanceScanJob();
+    const sql = await getTagSql();
+    expect(sql).toContain('["surveillance","dashcam"]');
+    expect(sql).toMatch(/WHEN dt = 'DASHCAM' THEN '\["surveillance","dashcam"\]'/);
+  });
+
+  test('RESIDENTIAL_CAMERA → tags include "residential_cam" without "bwc"', async () => {
+    mockScoreSurveillanceCandidates.mockReturnValue(makeScored('RESIDENTIAL_CAMERA'));
+    await runSurveillanceScanJob();
+    const sql = await getTagSql();
+    expect(sql).toContain('["surveillance","residential_cam"]');
+    expect(sql).toMatch(
+      /WHEN dt = 'RESIDENTIAL_CAMERA' THEN '\["surveillance","residential_cam"\]'/
+    );
+  });
+
   test('SQL CASE covers all three branches (flock, bwc, shotspotter)', async () => {
     mockScoreSurveillanceCandidates.mockReturnValue(makeScored('FLOCK_SAFETY_CAMERA'));
     await runSurveillanceScanJob();

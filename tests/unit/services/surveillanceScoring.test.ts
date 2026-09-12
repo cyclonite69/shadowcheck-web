@@ -240,6 +240,8 @@ describe('scoreSurveillanceCandidates', () => {
     expect(IMPACT_FACTORS).toHaveProperty('AXON_BODY_CAMERA', 1.0);
     expect(IMPACT_FACTORS).toHaveProperty('DEI_BWC', 1.0);
     expect(IMPACT_FACTORS).toHaveProperty('BT_IMAGING_DEVICE', 0.9);
+    expect(IMPACT_FACTORS).toHaveProperty('DASHCAM', 1.0);
+    expect(IMPACT_FACTORS).toHaveProperty('RESIDENTIAL_CAMERA', 0.8);
   });
 
   test('unknown device_type defaults to impact factor 1.0', () => {
@@ -249,5 +251,81 @@ describe('scoreSurveillanceCandidates', () => {
     const [unknownResult] = scoreSurveillanceCandidates([unknown]);
     // Same base, same adjustments — Flock should score higher due to 1.2 impact
     expect(knownResult.threat_score).toBeGreaterThan(unknownResult.threat_score);
+  });
+
+  test('penalizes (does not exclude) AXON_BODY_CAMERA candidate with a stationary signature', () => {
+    const rows: CandidateRow[] = [
+      {
+        bssid: 'AA:BB:CC:DD:EE:01',
+        ssid: 'X_HPprint',
+        type: 'B',
+        bestlevel: null,
+        service: null,
+        mfgrid: 0,
+        device_type: 'AXON_BODY_CAMERA',
+        base_likelihood: 82,
+        match_quality: 'STRONG',
+        detection_method: 'ssid_pattern',
+        matched_signals: {},
+        priority: 13,
+        tier_hit_count: 1,
+        obs_count: 40,
+        unique_days: 12,
+        min_rssi: -60,
+        max_rssi: -50,
+        avg_rssi: -55,
+        first_seen: '2026-08-01T00:00:00Z',
+        last_seen: '2026-08-13T00:00:00Z',
+        duration_seconds: 1036800,
+        unique_positions: 1,
+      },
+    ];
+
+    const [result] = scoreSurveillanceCandidates(rows);
+
+    // still detected — not silently dropped
+    expect(result.device_type).toBe('AXON_BODY_CAMERA');
+    expect(result.false_positive).toBe(false);
+
+    // but no longer allowed to coast to near-max confidence off one SSID regex
+    expect(result.confidence).toBeLessThan(0.6);
+    expect(result.matched_signals.confidence_adjustments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          factor: 'stationary_signature_penalty',
+          value: expect.any(Number),
+        }),
+      ])
+    );
+  });
+
+  test('does not penalize stationary residential cameras', () => {
+    const [result] = scoreSurveillanceCandidates([
+      makeRow({
+        device_type: 'RESIDENTIAL_CAMERA',
+        base_likelihood: 72,
+        unique_positions: 1,
+      }),
+    ]);
+
+    expect(result.device_type).toBe('RESIDENTIAL_CAMERA');
+    expect(result.matched_signals.confidence_adjustments).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ factor: 'stationary_signature_penalty' }),
+      ])
+    );
+  });
+
+  test.each([
+    ['Fanvil V64', 'Fanvil VoIP phone'],
+    ['Yealink T46U', 'Yealink VoIP phone'],
+    ['HP-Print-1234', 'HP printer'],
+  ])('marks %s as an automatic false positive', (ssid, reason) => {
+    const [result] = scoreSurveillanceCandidates([
+      makeRow({ ssid, device_type: 'AXON_BODY_CAMERA' }),
+    ]);
+
+    expect(result.false_positive).toBe(true);
+    expect(result.fp_reason).toBe(reason);
   });
 });

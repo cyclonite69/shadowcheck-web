@@ -27,6 +27,8 @@ describe('surveillanceDetectionRepository characterization', () => {
       'Bluetooth imaging device: CoD major class 0x06 (Imaging), minor 0x20 (Camera).',
       'Unknown vendor body cam SSID pattern: DEI-[digits]',
       'DEI- body cam service UUID (confirmed exclusive to DEI- devices in dataset).',
+      'Dashcam SSID patterns. These remain surveillance-relevant but are',
+      'Residential/consumer camera OUI match. Manufacturer reference',
     ];
 
     test('preserves the tier sequence and enriched candidate SQL contract', async () => {
@@ -44,7 +46,7 @@ describe('surveillanceDetectionRepository characterization', () => {
 
       expect(params).toBeUndefined();
       expect(tiers.map((match) => Number(match[1]))).toEqual(
-        Array.from({ length: 18 }, (_, index) => index + 1)
+        Array.from({ length: 20 }, (_, index) => index + 1)
       );
       expect(tiers.map((match) => match[2].trim())).toEqual(tierLabels);
 

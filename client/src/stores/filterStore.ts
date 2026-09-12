@@ -137,6 +137,8 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   surveillance: false,
   shotspotter: false,
   bwc: false,
+  dashcam: false,
+  residential_cam: false,
   flock: false,
 };
 

@@ -111,6 +111,8 @@ export function createFullCapabilities(): PageFilterCapabilities {
       surveillance: true,
       shotspotter: true,
       bwc: true,
+      dashcam: true,
+      residential_cam: true,
     },
   };
 }

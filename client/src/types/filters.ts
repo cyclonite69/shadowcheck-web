@@ -89,6 +89,8 @@ export interface NetworkFilters {
   surveillance?: boolean;
   shotspotter?: boolean;
   bwc?: boolean;
+  dashcam?: boolean;
+  residential_cam?: boolean;
   flock?: boolean;
 }
 

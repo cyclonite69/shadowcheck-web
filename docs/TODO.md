@@ -64,3 +64,15 @@ Do not use it for:
 
 - Prefer checking items off here rather than deleting context abruptly.
 - Add new items when they are real follow-up work, not passing thoughts.
+
+## Winston console transport — structured fields silently dropped
+
+`[v2/filtered] Slow query detected` is logged with structured fields
+(`totalTime`, `queryTime`, `resultCount`, `siblingCount`, `filterCount`)
+passed to `logger.warn()` in `server/src/api/routes/v2/filtered/handlers/list.ts:105`,
+but the console transport format doesn't render them — only the message
+string appears in `docker logs` output. Fields are present in the Winston
+call but swallowed before reaching stdout. Fix: update the console
+transport format in `server/src/logging/logger.ts` to include metadata
+fields, or switch to JSON transport for structured output.
+Found: 2026-09-10 during OOM/502 incident investigation.
