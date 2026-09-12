@@ -1,9 +1,9 @@
 import React from 'react';
 import type { SsidDisplaySummary } from '../../../../utils/wigleDetailUtils';
-import type { WigleNetworkDetailResponse } from '../../../../types';
+import type { WigleDetailData } from '../../hooks/useWigleDetail';
 
 export interface WigleDetailOverviewCardProps {
-  data: WigleNetworkDetailResponse;
+  data: WigleDetailData;
   ssidSummary: SsidDisplaySummary | null;
   totalObservations: number;
   newObservations: number;

@@ -25,7 +25,7 @@ export interface UseWigleDetailLookupResult {
   fetchDetail: FetchDetail;
   uploadError: string | null;
   uploadSuccess: string | null;
-  handleSearch: (shouldImport: boolean) => void;
+  handleSearch: (shouldImport: boolean) => Promise<void>;
   handleFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
@@ -45,9 +45,9 @@ export const useWigleDetailLookup = (): UseWigleDetailLookupResult => {
   const { uploadError, uploadSuccess, uploadFile, reset } = useWigleFileUpload();
 
   const handleSearch = useCallback(
-    (shouldImport: boolean) => {
+    async (shouldImport: boolean): Promise<void> => {
       reset();
-      void fetchDetail(netid, shouldImport, detailType);
+      await fetchDetail(netid, shouldImport, detailType);
     },
     [detailType, fetchDetail, netid, reset]
   );

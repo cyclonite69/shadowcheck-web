@@ -12,7 +12,10 @@ export interface WigleDetailBatchSectionProps {
   setIsManualMode: (val: boolean) => void;
   runsLoading: boolean;
   handleStartEnrichment: () => Promise<void>;
-  handleManualEnrich: (netid: string) => Promise<void>;
+  handleManualEnrich: (bssids: string[]) => Promise<void | {
+    ok?: boolean;
+    run?: { id?: number; status?: string; lastError?: string | null };
+  }>;
   handleManualSelect: (netid: string) => void;
 }
 

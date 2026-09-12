@@ -1,7 +1,7 @@
 import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
 import { SearchIcon } from './WigleSearchIcons';
-import type { WigleApiStatus } from '../../../../types';
+import type { WigleApiStatus } from '../../../../types/admin';
 
 export interface WigleExecuteSearchCardProps {
   searchType: 'wifi' | 'bluetooth';

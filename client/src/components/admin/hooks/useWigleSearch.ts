@@ -53,7 +53,7 @@ export const useWigleSearch = () => {
     }
   };
 
-  const runSearch = async (importResults = false, loadMore = false) => {
+  const runSearch = async (importResults = false, loadMore = false): Promise<void> => {
     setSearchError('');
     setSearchLoading(true);
 
@@ -130,9 +130,9 @@ export const useWigleSearch = () => {
     }
   };
 
-  const loadMoreResults = (importResults = false) => {
+  const loadMoreResults = async (importResults = false): Promise<void> => {
     if (searchAfter && !searchLoading) {
-      runSearch(importResults, true);
+      await runSearch(importResults, true);
     }
   };
 

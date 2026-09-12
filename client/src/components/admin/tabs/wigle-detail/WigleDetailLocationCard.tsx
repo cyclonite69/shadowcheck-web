@@ -1,8 +1,8 @@
 import React from 'react';
-import type { WigleNetworkDetailResponse } from '../../../../types';
+import type { WigleDetailData } from '../../hooks/useWigleDetail';
 
 export interface WigleDetailLocationCardProps {
-  data: WigleNetworkDetailResponse;
+  data: WigleDetailData;
 }
 
 export const WigleDetailLocationCard: React.FC<WigleDetailLocationCardProps> = ({ data }) => {

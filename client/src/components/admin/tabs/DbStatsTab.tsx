@@ -223,7 +223,7 @@ export const DbStatsTab: React.FC = () => {
             <UnusedIndexReportCard
               unusedIndexes={stats.unused_indexes}
               summary={stats.unused_indexes_summary}
-              statsReset={stats.stats_reset}
+              statsReset={stats.stats_reset || undefined}
             />
           )}
         </AdminCard>
@@ -235,7 +235,10 @@ export const DbStatsTab: React.FC = () => {
           color="from-emerald-600 to-teal-700"
         >
           {stats && (
-            <UsedIndexReportCard usedIndexes={stats.used_indexes} statsReset={stats.stats_reset} />
+            <UsedIndexReportCard
+              usedIndexes={stats.used_indexes}
+              statsReset={stats.stats_reset || undefined}
+            />
           )}
         </AdminCard>
 

@@ -11,7 +11,7 @@ import { WigleNetworkFiltersCard } from './wigle-search/WigleNetworkFiltersCard'
 import { WigleExecuteSearchCard } from './wigle-search/WigleExecuteSearchCard';
 import { WigleSearchResultsCard } from './wigle-search/WigleSearchResultsCard';
 import { WigleImportRunsSection } from './wigle-search/WigleImportRunsSection';
-import type { WigleSearchResult } from '../../../types';
+import type { WigleNetworkResult } from '../../../types/admin';
 
 export const WigleSearchTab: React.FC = () => {
   const {
@@ -70,7 +70,7 @@ export const WigleSearchTab: React.FC = () => {
 
   const ssidInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleRowClick = (net: WigleSearchResult) => {
+  const handleRowClick = (net: WigleNetworkResult) => {
     const bssid = (net as any).netid || (net as any).bssid;
     setSelectedNetwork((prev: any) => (prev && (prev.netid || prev.bssid) === bssid ? null : net));
   };

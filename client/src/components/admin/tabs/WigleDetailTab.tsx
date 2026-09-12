@@ -38,7 +38,7 @@ export const WigleDetailTab: React.FC = () => {
     handleFileUpload,
   } = useWigleDetailLookup();
 
-  const { selectedObs, setSelectedObs, detectionEvidence, detectionLoading } =
+  const { selectedObs, setSelectedObs, detectionEvidence, detectionLoading, detectionError } =
     useWigleDetectionEvidence(data);
 
   const { tooltipContainerRef, tooltipHtml } = useWigleTooltipPreview({
@@ -127,6 +127,7 @@ export const WigleDetailTab: React.FC = () => {
             <WigleDetailEvidencePanel
               detectionEvidence={detectionEvidence}
               detectionLoading={detectionLoading}
+              detectionError={detectionError}
             />
 
             {/* Import Status Banner */}

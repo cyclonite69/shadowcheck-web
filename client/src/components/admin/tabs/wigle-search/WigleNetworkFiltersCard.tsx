@@ -2,9 +2,9 @@ import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
 import { US_STATES } from '../../../../constants/network';
 import { DatabaseIcon } from './WigleSearchIcons';
-import type { WigleSearchParams } from '../../../../types';
-import type { WigleBtParams } from '../../hooks/useWigleBluetooth';
-import type { WigleSavedTerm } from '../../hooks/useWigleSavedTerms';
+import type { WigleSearchParams } from '../../../../types/admin';
+import type { BtSearchParams } from '../../hooks/useWigleBluetooth';
+import type { SavedTerm } from '../../hooks/useWigleSavedTerms';
 
 export const SURVEILLANCE_MFGR_PRESETS = [
   { label: 'Raven / SoundThinking (2504)', min: 2504, max: 2504 },
@@ -17,9 +17,9 @@ export interface WigleNetworkFiltersCardProps {
   searchType: 'wifi' | 'bluetooth';
   searchParams: WigleSearchParams;
   setSearchParams: React.Dispatch<React.SetStateAction<WigleSearchParams>>;
-  btParams: WigleBtParams;
-  setBtParams: React.Dispatch<React.SetStateAction<WigleBtParams>>;
-  savedTerms: WigleSavedTerm[];
+  btParams: BtSearchParams;
+  setBtParams: React.Dispatch<React.SetStateAction<BtSearchParams>>;
+  savedTerms: SavedTerm[];
   ssidDropdownOpen: boolean;
   setSsidDropdownOpen: (open: boolean) => void;
   deleteSavedTerm: (id: number, e: React.MouseEvent) => void;

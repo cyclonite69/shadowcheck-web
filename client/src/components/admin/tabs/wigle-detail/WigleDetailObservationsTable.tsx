@@ -1,14 +1,14 @@
 import React from 'react';
 import { formatShortDate } from '../../../../utils/formatDate';
 import type { ObservationTemporalSummary } from '../../../../utils/wigleDetailUtils';
-import type { WigleObservationRecord } from '../../../../types';
+import type { WigleObservation } from '../../hooks/useWigleDetectionEvidence';
 
 export interface WigleDetailObservationsTableProps {
   temporal: ObservationTemporalSummary | null;
   channel: number | null | undefined;
-  selectedObs: WigleObservationRecord | null;
-  setSelectedObs: React.Dispatch<React.SetStateAction<WigleObservationRecord | null>>;
-  observations: WigleObservationRecord[];
+  selectedObs: WigleObservation | null;
+  setSelectedObs: React.Dispatch<React.SetStateAction<WigleObservation | null>>;
+  observations: WigleObservation[];
 }
 
 export const WigleDetailObservationsTable: React.FC<WigleDetailObservationsTableProps> = ({

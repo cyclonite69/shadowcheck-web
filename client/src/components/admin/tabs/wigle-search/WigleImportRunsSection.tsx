@@ -1,21 +1,21 @@
 import React from 'react';
 import { WigleRunsCard } from '../../components/WigleRunsCard';
 import { wigleApi } from '../../../../api/wigleApi';
-import type { WigleRun } from '../../../../types';
-import type { SortState } from '../../hooks/useWigleRuns';
+import type { WigleImportRun } from '../../../../types/admin';
+import type { SortEntry } from '../../hooks/useWigleRuns';
 
 export interface WigleImportRunsSectionProps {
-  runs: WigleRun[];
+  runs: WigleImportRun[];
   runsLoading: boolean;
-  actionLoading: string | null;
+  actionLoading: boolean;
   runsError: string | null;
-  runsSortCols: SortState[];
-  setRunsSortCols: React.Dispatch<React.SetStateAction<SortState[]>>;
+  runsSortCols: SortEntry[];
+  setRunsSortCols: React.Dispatch<React.SetStateAction<SortEntry[]>>;
   refreshRuns: () => Promise<void>;
-  resumeRun: (runId: string) => Promise<void>;
-  pauseRun: (runId: string) => Promise<void>;
-  cancelRun: (runId: string) => Promise<void>;
-  deleteRun: (runId: string) => Promise<void>;
+  resumeRun: (runId: number) => Promise<void>;
+  pauseRun: (runId: number) => Promise<void>;
+  cancelRun: (runId: number) => Promise<void>;
+  deleteRun: (runId: number) => Promise<void>;
 }
 
 export const WigleImportRunsSection: React.FC<WigleImportRunsSectionProps> = ({

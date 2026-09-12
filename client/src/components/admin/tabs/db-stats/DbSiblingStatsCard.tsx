@@ -1,10 +1,10 @@
 import React from 'react';
-import type { SiblingSummaryStats, SiblingRuleStat } from '../../hooks/useSiblingStats';
+import type { SiblingStats, SiblingByRule } from '../../hooks/useSiblingStats';
 import { formatShortDate } from '../../../../utils/formatDate';
 
 export interface DbSiblingStatsCardProps {
-  siblingStats: SiblingSummaryStats | null;
-  siblingByRule: SiblingRuleStat[];
+  siblingStats: SiblingStats | null;
+  siblingByRule: SiblingByRule[];
   purgingSiblings: boolean;
   purgeSiblings: () => void;
   runningSiblings: boolean;

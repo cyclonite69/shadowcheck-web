@@ -1,9 +1,9 @@
 import React, { RefObject } from 'react';
 import { formatShortDate } from '../../../../utils/formatDate';
-import type { WigleObservationRecord } from '../../../../types';
+import type { WigleObservation } from '../../hooks/useWigleDetectionEvidence';
 
 export interface WigleDetailTooltipPreviewProps {
-  selectedObs: WigleObservationRecord | null;
+  selectedObs: WigleObservation | null;
   tooltipContainerRef: RefObject<HTMLDivElement | null>;
   tooltipHtml: string | null;
   hasData: boolean;

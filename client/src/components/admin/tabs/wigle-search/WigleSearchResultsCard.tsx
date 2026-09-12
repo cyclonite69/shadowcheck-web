@@ -2,15 +2,15 @@ import React from 'react';
 import { AdminCard } from '../../components/AdminCard';
 import { formatShortDate } from '../../../../utils/formatDate';
 import { DownloadIcon } from './WigleSearchIcons';
-import type { WigleSearchResult, WigleSearchResponse } from '../../../../types';
+import type { WigleNetworkResult, WigleSearchResults } from '../../../../types/admin';
 
 export interface WigleSearchResultsCardProps {
-  searchResults: WigleSearchResponse | null;
+  searchResults: WigleSearchResults | null;
   totalResults: number;
   loadedCount: number;
   scrollRef: React.RefObject<HTMLDivElement | null>;
-  selectedNetwork: WigleSearchResult | null;
-  handleRowClick: (net: WigleSearchResult) => void;
+  selectedNetwork: WigleNetworkResult | null;
+  handleRowClick: (net: WigleNetworkResult) => void;
   searchLoading: boolean;
   hasMorePages: boolean;
   loadMoreResults: (autoImport?: boolean) => Promise<void>;

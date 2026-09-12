@@ -15,7 +15,8 @@ export interface WigleObservation {
 
 export interface WigleDetectionEvidence {
   device_type: string;
-  detected_at: string;
+  detected_at?: string | null;
+  lastupdt?: string | null;
   threat_score: number;
   confidence: number;
   detection_method?: string | null;
@@ -35,6 +36,7 @@ export interface UseWigleDetectionEvidenceResult {
   setSelectedObs: React.Dispatch<React.SetStateAction<WigleObservation | null>>;
   detectionEvidence: WigleDetectionEvidence[];
   detectionLoading: boolean;
+  detectionError: string | null;
 }
 
 export const useWigleDetectionEvidence = (
@@ -43,24 +45,28 @@ export const useWigleDetectionEvidence = (
   const [selectedObs, setSelectedObs] = useState<WigleObservation | null>(null);
   const [detectionEvidence, setDetectionEvidence] = useState<WigleDetectionEvidence[]>([]);
   const [detectionLoading, setDetectionLoading] = useState(false);
+  const [detectionError, setDetectionError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedObs(null);
 
     if (!data?.networkId) {
       setDetectionEvidence([]);
+      setDetectionError(null);
       return;
     }
 
     const bssid = data.networkId.toUpperCase();
     setDetectionLoading(true);
+    setDetectionError(null);
     apiClient
       .get<DetectionEvidenceResponse>(`/admin/networks/${bssid}/detection-evidence`)
       .then((response) => {
         setDetectionEvidence(response?.evidence || []);
       })
-      .catch(() => {
+      .catch((error: Error) => {
         setDetectionEvidence([]);
+        setDetectionError(error.message || 'Failed to load detection evidence');
       })
       .finally(() => {
         setDetectionLoading(false);
@@ -72,5 +78,6 @@ export const useWigleDetectionEvidence = (
     setSelectedObs,
     detectionEvidence,
     detectionLoading,
+    detectionError,
   };
 };

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
 import { WigleLedgerPanel } from '../../wigle/WigleLedgerPanel';
-import { WigleStatsBadge } from './WigleStatsBadge';
 
 const TrophyIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -255,10 +254,13 @@ export const WigleStatsTab: React.FC = () => {
         {/* WiGLE Badge */}
         <AdminCard icon={BadgeIcon} title="Stats Badge" color="from-purple-500 to-purple-600">
           <div className="flex flex-col items-center justify-center h-full py-4">
-            <WigleStatsBadge stats={stats} />
-            <p className="text-[10px] text-slate-500 mt-4 text-center italic">
-              Rendered from live WiGLE stats API data
-            </p>
+            <a href="https://wigle.net" target="_blank" rel="noreferrer">
+              <img
+                className="border-0"
+                src="https://wigle.net/bi/teG4Mi5LO7mwijRkpnYTSQ.png"
+                alt="WiGLE stats badge"
+              />
+            </a>
             <a
               href={`https://wigle.net/user/${getStat('user')}`}
               target="_blank"
