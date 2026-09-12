@@ -86,7 +86,12 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   rssiMax: false,
   encryptionTypes: false,
   securityFlags: false,
-  timeframe: true, // default: last 30 days — prevents unfiltered full-dataset load on initial mount
+  timeframe: false, // default OFF - network-list path is now bounded via
+  // networkNoFilterBuilder/api_network_explorer_mv regardless of this flag.
+  // NOTE: the per-device observations query has no independent temporal bound,
+  // so with this off, selecting an old/heavily-observed device will scan its
+  // full history by default. See docs/ai/decisions/ (timeframe audit,
+  // 2026-09-12) if this needs revisiting.
   temporalScope: false,
   observationCountMin: false,
   observationCountMax: false,
