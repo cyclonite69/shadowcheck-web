@@ -31,6 +31,8 @@ const volumeName =
   (localMode ? 'shadowcheck_pgadmin_local_data' : 'shadowcheck_pgadmin_data');
 const port = Number.parseInt(process.env.PGADMIN_PORT || '5050', 10) || 5050;
 const url = process.env.PGADMIN_URL || `${localMode ? 'http' : 'https'}://localhost:${port}`;
+const localDatabaseNetwork =
+  process.env.PGADMIN_LOCAL_DATABASE_NETWORK || 'shadowcheck-web_default';
 const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
 const pgAdminEmail = process.env.PGADMIN_EMAIL || 'admin@example.com';
 const pgAdminPassword = process.env.PGADMIN_PASSWORD || 'admin';
@@ -181,6 +183,44 @@ const removePgAdminContainer = async () => {
   await runCommand('docker', ['rm', '-f', containerName], { allowFail: true });
 };
 
+const repairSavedServerHost = async () => {
+  const targetHost = localMode ? 'host.containers.internal' : '127.0.0.1';
+  const repairScript = [
+    'import os, sqlite3',
+    "db = sqlite3.connect('/var/lib/pgadmin/pgadmin4.db')",
+    'db.execute("PRAGMA busy_timeout = 5000")',
+    'try:',
+    "    cursor = db.execute(\"UPDATE server SET host = ? WHERE host IN ('shadowcheck_postgres_local', 'shadowcheck_postgres', 'postgres')\", (os.environ['TARGET_HOST'],))",
+    'except sqlite3.OperationalError as error:',
+    "    if 'no such table' not in str(error): raise",
+    '    cursor = None',
+    'db.commit()',
+    'print(cursor.rowcount if cursor else 0)',
+    'db.close()',
+  ].join('\n');
+
+  const result = await runCommand('docker', [
+    'exec',
+    '-e',
+    `TARGET_HOST=${targetHost}`,
+    containerName,
+    'python3',
+    '-c',
+    repairScript,
+  ]);
+
+  return Number.parseInt(result.stdout.trim(), 10) || 0;
+};
+
+const ensureLocalDatabaseNetwork = async () => {
+  if (!localMode) return;
+  await runCommand(
+    'docker',
+    ['network', 'connect', localDatabaseNetwork, containerName],
+    { allowFail: true }
+  );
+};
+
 export {
   composeFile,
   composeFileExists,
@@ -188,12 +228,15 @@ export {
   dockerHost,
   enforceRestartPolicy,
   localMode,
+  localDatabaseNetwork,
   parseDockerStatus,
   pgAdminEmail,
   pgAdminPassword,
   port,
   probePgAdminReachable,
   removePgAdminContainer,
+  ensureLocalDatabaseNetwork,
+  repairSavedServerHost,
   runCommand,
   runCompose,
   serviceName,

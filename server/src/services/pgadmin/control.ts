@@ -5,6 +5,8 @@ import {
   composeFileExists,
   containerName,
   dockerHost,
+  ensureLocalDatabaseNetwork,
+  localDatabaseNetwork,
   enforceRestartPolicy,
   localMode,
   parseDockerStatus,
@@ -13,6 +15,7 @@ import {
   port,
   probePgAdminReachable,
   removePgAdminContainer,
+  repairSavedServerHost,
   runCommand,
   runCompose,
   serviceName,
@@ -105,6 +108,8 @@ export const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
     if (inspectResult.stdout.trim() === 'false') {
       logger.info('[PgAdmin] Container exists but stopped, starting it');
       const startResult = await runCommand('docker', ['start', containerName]);
+      await ensureLocalDatabaseNetwork();
+      await repairSavedServerHost();
       await enforceRestartPolicy();
       return {
         output: startResult.stdout,
@@ -125,6 +130,8 @@ export const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
       '-d',
       '--name',
       containerName,
+      '--network',
+      localDatabaseNetwork,
       '--restart',
       'unless-stopped',
       '-p',
@@ -147,6 +154,8 @@ export const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
       `${volumeName}:/var/lib/pgadmin`,
       'dpage/pgadmin4:latest',
     ]);
+    await ensureLocalDatabaseNetwork();
+    await repairSavedServerHost();
 
     return {
       output: runResult.stdout,
@@ -158,6 +167,8 @@ export const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
 
   logger.info('[PgAdmin] Starting PgAdmin via docker-compose');
   const result = await runCompose(['up', '-d', '--no-deps', serviceName]);
+  await ensureLocalDatabaseNetwork();
+  await repairSavedServerHost();
   await enforceRestartPolicy();
 
   return {

@@ -7,6 +7,8 @@ const mockState = {
   runCommand: jest.fn(),
   runCompose: jest.fn(),
   enforceRestartPolicy: jest.fn(),
+  repairSavedServerHost: jest.fn(),
+  ensureLocalDatabaseNetwork: jest.fn(),
 };
 
 jest.mock('../../../../server/src/services/pgadmin/runtime', () => {
@@ -33,6 +35,12 @@ jest.mock('../../../../server/src/services/pgadmin/runtime', () => {
     },
     get enforceRestartPolicy() {
       return mockState.enforceRestartPolicy;
+    },
+    get repairSavedServerHost() {
+      return mockState.repairSavedServerHost;
+    },
+    get ensureLocalDatabaseNetwork() {
+      return mockState.ensureLocalDatabaseNetwork;
     },
   };
 });
@@ -61,6 +69,8 @@ describe('pgAdmin control', () => {
     mockState.runCommand.mockResolvedValue({ stdout: '', stderr: '' });
     mockState.runCompose.mockResolvedValue({ stdout: '', stderr: '' });
     mockState.enforceRestartPolicy.mockResolvedValue(undefined);
+    mockState.repairSavedServerHost.mockResolvedValue(0);
+    mockState.ensureLocalDatabaseNetwork.mockResolvedValue(undefined);
   });
 
   describe('getPgAdminStatus', () => {
