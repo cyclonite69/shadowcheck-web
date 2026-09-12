@@ -2,7 +2,7 @@ export const NETWORK_TABLE_COLUMN_WIDTHS: Record<string, number> = {
   select: 40,
   type: 60,
   ssid: 150,
-  bssid: 140,
+  bssid: 155,
   threat: 80,
   signal: 90,
   security: 100,
