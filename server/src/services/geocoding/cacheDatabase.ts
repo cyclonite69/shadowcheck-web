@@ -4,7 +4,155 @@ import { GEOCODABLE_OBSERVATION_PREDICATE } from './cacheUtils';
 
 const upsertGeocodeCacheBatch = async (precision: number, entries: any[]): Promise<void> => {
   if (entries.length === 0) return;
-  // TODO: Implement logic
+
+  if (entries.some((entry) => entry.mode === 'both')) {
+    throw new Error('Geocode mode "both" is not supported for cache writes');
+  }
+
+  for (const entry of entries) {
+    const { row, provider, result, mode } = entry;
+    const baseValues = [precision, row.lat_round, row.lon_round, provider, result.raw ?? null];
+
+    if (mode === 'address-only') {
+      if (result.ok) {
+        await query(
+          `
+            INSERT INTO app.geocoding_cache (
+              precision,
+              lat_round,
+              lon_round,
+              lat,
+              lon,
+              provider,
+              raw_response,
+              address_attempted_at,
+              address_attempts,
+              address,
+              city,
+              state,
+              postal_code,
+              country,
+              confidence,
+              geocoded_at
+            )
+            VALUES (
+              $1, $2, $3, $2, $3, $4, $5, NOW(), 1,
+              $6, $7, $8, $9, $10, $11, NOW()
+            )
+            ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
+              provider = EXCLUDED.provider,
+              raw_response = EXCLUDED.raw_response,
+              address_attempted_at = NOW(),
+              address_attempts = app.geocoding_cache.address_attempts + 1,
+              address = EXCLUDED.address,
+              city = EXCLUDED.city,
+              state = EXCLUDED.state,
+              postal_code = EXCLUDED.postal_code,
+              country = EXCLUDED.country,
+              confidence = EXCLUDED.confidence,
+              geocoded_at = NOW()
+          `,
+          [
+            ...baseValues,
+            result.address ?? null,
+            result.city ?? null,
+            result.state ?? null,
+            result.postal ?? null,
+            result.country ?? null,
+            result.confidence ?? null,
+          ]
+        );
+      } else {
+        await query(
+          `
+            INSERT INTO app.geocoding_cache (
+              precision,
+              lat_round,
+              lon_round,
+              lat,
+              lon,
+              provider,
+              raw_response,
+              address_attempted_at,
+              address_attempts
+            )
+            VALUES ($1, $2, $3, $2, $3, $4, $5, NOW(), 1)
+            ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
+              provider = EXCLUDED.provider,
+              raw_response = EXCLUDED.raw_response,
+              address_attempted_at = NOW(),
+              address_attempts = app.geocoding_cache.address_attempts + 1
+          `,
+          baseValues
+        );
+      }
+      continue;
+    }
+
+    if (mode === 'poi-only') {
+      if (result.ok) {
+        await query(
+          `
+            INSERT INTO app.geocoding_cache (
+              precision,
+              lat_round,
+              lon_round,
+              lat,
+              lon,
+              provider,
+              raw_response,
+              poi_attempted_at,
+              poi_attempts,
+              poi_name,
+              poi_category,
+              feature_type
+            )
+            VALUES ($1, $2, $3, $2, $3, $4, $5, NOW(), 1, $6, $7, $8)
+            ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
+              provider = EXCLUDED.provider,
+              raw_response = EXCLUDED.raw_response,
+              poi_attempted_at = NOW(),
+              poi_attempts = app.geocoding_cache.poi_attempts + 1,
+              poi_name = EXCLUDED.poi_name,
+              poi_category = EXCLUDED.poi_category,
+              feature_type = EXCLUDED.feature_type
+          `,
+          [
+            ...baseValues,
+            result.poiName ?? null,
+            result.poiCategory ?? null,
+            result.featureType ?? null,
+          ]
+        );
+      } else {
+        await query(
+          `
+            INSERT INTO app.geocoding_cache (
+              precision,
+              lat_round,
+              lon_round,
+              lat,
+              lon,
+              provider,
+              raw_response,
+              poi_attempted_at,
+              poi_attempts
+            )
+            VALUES ($1, $2, $3, $2, $3, $4, $5, NOW(), 1)
+            ON CONFLICT (precision, lat_round, lon_round) DO UPDATE SET
+              provider = EXCLUDED.provider,
+              raw_response = EXCLUDED.raw_response,
+              poi_attempted_at = NOW(),
+              poi_attempts = app.geocoding_cache.poi_attempts + 1
+          `,
+          baseValues
+        );
+      }
+      continue;
+    }
+
+    throw new Error(`Unsupported geocode mode: ${mode}`);
+  }
 };
 
 const seedNetworkRepresentativeCandidates = async (targetCount: number): Promise<number> => {

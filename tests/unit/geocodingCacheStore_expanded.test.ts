@@ -81,8 +81,7 @@ describe('geocodingCacheStore', () => {
 
       await Promise.all(promises);
 
-      // upsertGeocodeCacheBatch is a stub; no query calls expected
-      expect(query).not.toHaveBeenCalled();
+      expect(query).toHaveBeenCalledTimes(concurrentRequests);
     });
   });
 });

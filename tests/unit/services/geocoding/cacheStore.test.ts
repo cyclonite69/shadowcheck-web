@@ -107,7 +107,7 @@ describe('cacheStore', () => {
       expect(query).not.toHaveBeenCalled();
     });
 
-    it('should not call query (implementation is a stub)', async () => {
+    it('should dispatch non-empty address writes to the database', async () => {
       const entries = [
         {
           row: { lat_round: 1.23456, lon_round: 2.34567, address: null },
@@ -127,7 +127,7 @@ describe('cacheStore', () => {
       ];
 
       await upsertGeocodeCacheBatch(5, entries);
-      expect(query).not.toHaveBeenCalled();
+      expect(query).toHaveBeenCalled();
     });
   });
 
