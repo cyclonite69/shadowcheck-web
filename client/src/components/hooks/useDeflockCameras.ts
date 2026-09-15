@@ -33,13 +33,16 @@ function escapeHtml(value: string): string {
   );
 }
 
-function renderDeflockPopupCard(props: DeflockCameraFeature['properties']): string {
+function renderDeflockPopupCard(
+  props: DeflockCameraFeature['properties'],
+  coordinates: DeflockCameraFeature['geometry']['coordinates']
+): string {
   const location =
     [props.address, props.street && [props.housenumber, props.street].filter(Boolean).join(' ')]
       .filter(Boolean)
-      .join(', ') ||
-    [props.city, props.state, props.country].filter(Boolean).join(', ') ||
-    'Unknown location';
+      .join(', ') || [props.city, props.state, props.country].filter(Boolean).join(', ');
+  const fallbackLocation = `${coordinates[1]}, ${coordinates[0]}`;
+  const locationHeadline = location || (!props.operator && !props.agency ? fallbackLocation : null);
   const detailRows: PopupDetail[] = [
     ['Type', props.camera_type],
     ['Operator', props.operator || props.agency],
@@ -59,7 +62,7 @@ function renderDeflockPopupCard(props: DeflockCameraFeature['properties']): stri
         `<div style="font-size:12px;color:#cbd5e1;margin-top:4px;"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>`
     )
     .join('');
-  const safeLocation = escapeHtml(location);
+  const safeLocation = locationHeadline ? escapeHtml(locationHeadline) : '';
   const safeSource = escapeHtml(props.source);
   return `
     <div style="background:#1e293b;border:1px solid ${DEFLOCK_COLOR}44;border-radius:10px;padding:14px 16px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
@@ -67,7 +70,7 @@ function renderDeflockPopupCard(props: DeflockCameraFeature['properties']): stri
         <div style="width:10px;height:10px;border-radius:50%;background:${DEFLOCK_COLOR};"></div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:${DEFLOCK_COLOR};">Flock Camera (DeFlock)</div>
       </div>
-      <div style="font-size:14px;font-weight:600;color:#f8fafc;margin-bottom:6px;">${safeLocation}</div>
+      ${safeLocation ? `<div style="font-size:14px;font-weight:600;color:#f8fafc;margin-bottom:6px;">${safeLocation}</div>` : ''}
       ${details}
       <div style="font-size:12px;color:#94a3b8;">Source: ${safeSource}</div>
     </div>
@@ -159,7 +162,11 @@ export const useDeflockCameras = (
       if (!feature || !e.lngLat) return;
 
       const props = feature.properties as DeflockCameraFeature['properties'];
-      const html = renderDeflockPopupCard(props);
+      const coordinates: DeflockCameraFeature['geometry']['coordinates'] =
+        feature.geometry.type === 'Point' && feature.geometry.coordinates.length >= 2
+          ? [Number(feature.geometry.coordinates[0]), Number(feature.geometry.coordinates[1])]
+          : [e.lngLat.lng, e.lngLat.lat];
+      const html = renderDeflockPopupCard(props, coordinates);
 
       const popup = new (mapboxRef?.current || (window as any).mapboxgl).Popup({
         anchor: getPopupAnchor(map, e.lngLat, html),
