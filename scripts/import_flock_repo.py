@@ -5,6 +5,8 @@ into app.deflock_cameras.
 
 The FLOCK GeoJSON is treated as an authoritative snapshot. Exact (lat, lon)
 conflicts refresh source-owned metadata while preserving the existing primary key.
+Rows owned by FLOCK_REPO that are absent from the validated snapshot are removed
+in the same transaction. Other source rows are never deleted.
 
 Usage:
   python3 scripts/import_flock_repo.py
@@ -102,13 +104,28 @@ def load_features(path: str) -> list[dict[str, Any]]:
     return features
 
 
+def merge_source_properties(
+    existing: dict[str, Any], incoming: dict[str, Any]
+) -> dict[str, Any]:
+    """Merge properties; first non-empty value wins conflicts deterministically."""
+    merged = dict(existing)
+    for key, value in incoming.items():
+        if key not in merged or merged[key] in (None, ""):
+            if value not in (None, ""):
+                merged[key] = value
+        elif merged[key] in (None, "") and value not in (None, ""):
+            merged[key] = value
+    return merged
+
+
 def build_rows(
     features: Iterable[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], int, int]:
-    """Validate points and retain the last feature for each exact coordinate."""
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Validate points and merge exact-coordinate duplicates without data loss."""
     rows_by_coordinate: dict[tuple[Decimal, Decimal], dict[str, Any]] = {}
     skipped = 0
     duplicate_coordinates = 0
+    merged_groups: set[tuple[Decimal, Decimal]] = set()
 
     for feature in features:
         geometry = feature.get("geometry") or {}
@@ -130,13 +147,41 @@ def build_rows(
         coordinate = (lat, lon)
         if coordinate in rows_by_coordinate:
             duplicate_coordinates += 1
-        rows_by_coordinate[coordinate] = {
-            "lat": lat,
-            "lon": lon,
-            **extract_metadata(props),
-        }
+            merged_groups.add(coordinate)
+            row = rows_by_coordinate[coordinate]
+            row["source_properties"] = merge_source_properties(
+                row["source_properties"], props
+            )
+            row.update(extract_metadata(row["source_properties"]))
+        else:
+            rows_by_coordinate[coordinate] = {
+                "lat": lat,
+                "lon": lon,
+                **extract_metadata(props),
+            }
 
-    return list(rows_by_coordinate.values()), skipped, duplicate_coordinates
+    return list(rows_by_coordinate.values()), {
+        "skipped": skipped,
+        "duplicate_coordinates": duplicate_coordinates,
+        "merged_groups": len(merged_groups),
+    }
+
+
+def delete_stale_rows(cur: Any) -> int:
+    """Delete only FLOCK_REPO rows absent from the validated exact-coordinate snapshot."""
+    cur.execute(
+        """
+        DELETE FROM app.deflock_cameras AS dc
+        WHERE dc.source = %s
+          AND NOT EXISTS (
+            SELECT 1
+            FROM flock_import_coordinates AS fic
+            WHERE fic.lat = dc.lat AND fic.lon = dc.lon
+          )
+        """,
+        (SOURCE,),
+    )
+    return cur.rowcount
 
 
 def run_import(rows: list[dict[str, Any]], dry_run: bool) -> dict[str, int]:
@@ -151,7 +196,7 @@ def run_import(rows: list[dict[str, Any]], dry_run: bool) -> dict[str, int]:
         return {"inserted": 0, "updated": 0}
 
     import psycopg2  # type: ignore
-    from psycopg2.extras import Json  # type: ignore
+    from psycopg2.extras import Json, execute_values  # type: ignore
 
     conn = psycopg2.connect(
         host=os.environ.get("DB_HOST", "localhost"),
@@ -163,10 +208,26 @@ def run_import(rows: list[dict[str, Any]], dry_run: bool) -> dict[str, int]:
 
     inserted = 0
     updated = 0
+    skipped_conflicts = 0
+    deleted = 0
     total = len(rows)
     try:
         with conn:
             with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    CREATE TEMP TABLE flock_import_coordinates (
+                      lat numeric NOT NULL,
+                      lon numeric NOT NULL,
+                      PRIMARY KEY (lat, lon)
+                    ) ON COMMIT DROP
+                    """
+                )
+                execute_values(
+                    cur,
+                    "INSERT INTO flock_import_coordinates (lat, lon) VALUES %s",
+                    [(row["lat"], row["lon"]) for row in rows],
+                )
                 for start in range(0, total, BATCH_SIZE):
                     batch = rows[start : start + BATCH_SIZE]
                     for row in batch:
@@ -221,11 +282,15 @@ def run_import(rows: list[dict[str, Any]], dry_run: bool) -> dict[str, int]:
                               source_properties = EXCLUDED.source_properties,
                               source = EXCLUDED.source,
                               imported_at = NOW()
+                            WHERE deflock_cameras.source = EXCLUDED.source
                             RETURNING (xmax = 0) AS inserted
                             """,
                             params,
                         )
-                        if cur.fetchone()[0]:
+                        result = cur.fetchone()
+                        if result is None:
+                            skipped_conflicts += 1
+                        elif result[0]:
                             inserted += 1
                         else:
                             updated += 1
@@ -234,12 +299,19 @@ def run_import(rows: list[dict[str, Any]], dry_run: bool) -> dict[str, int]:
                     if done % 5000 < BATCH_SIZE or done == total:
                         print(
                             f"[FLOCK Import] Progress: {done}/{total} processed, "
-                            f"{inserted} inserted, {updated} updated"
+                            f"{inserted} inserted, {updated} updated, "
+                            f"{skipped_conflicts} skipped"
                         )
+                deleted = delete_stale_rows(cur)
     finally:
         conn.close()
 
-    return {"inserted": inserted, "updated": updated}
+    return {
+        "inserted": inserted,
+        "updated": updated,
+        "skipped_conflicts": skipped_conflicts,
+        "deleted": deleted,
+    }
 
 
 def main() -> None:
@@ -251,17 +323,21 @@ def main() -> None:
     args = parser.parse_args()
 
     features = load_features(args.input)
-    rows, skipped, duplicate_coordinates = build_rows(features)
+    rows, stats = build_rows(features)
     print(
         f"[FLOCK Import] {len(rows)} distinct valid rows to import "
-        f"({skipped} skipped, {duplicate_coordinates} duplicate exact coordinates)"
+        f"({stats['skipped']} skipped, "
+        f"{stats['duplicate_coordinates']} duplicate exact coordinates, "
+        f"{stats['merged_groups']} groups merged)"
     )
 
     counts = run_import(rows, dry_run=args.dry_run)
     if not args.dry_run:
         print(
             f"[FLOCK Import] Done. Inserted {counts['inserted']} new rows and "
-            f"updated {counts['updated']} existing rows in app.deflock_cameras"
+            f"updated {counts['updated']} existing rows, skipped "
+            f"{counts['skipped_conflicts']} conflicting-source rows, and deleted "
+            f"{counts['deleted']} stale FLOCK_REPO rows"
         )
 
 

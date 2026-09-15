@@ -83,7 +83,8 @@ camera locations. Each feature includes lightweight promoted source metadata whe
 `source_id`, `camera_type`, `agency`, `operator`, `name`, address components,
 `manufacturer`, `direction`, `camera_mount`, surveillance fields, `electricity`, and
 `website`. The complete original FLOCK/OSM property object is retained in the database
-for provenance but is not included in this map payload.
+for provenance but is not included in this map payload. Imports use exact full-precision
+coordinates and treat `FLOCK_REPO` as an authoritative source snapshot.
 
 ---
 

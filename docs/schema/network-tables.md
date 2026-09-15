@@ -235,6 +235,10 @@ Reference datasets mapping public Flock cameras and WIRED-leaked ShotSpotter coo
     `surveillance_zone`, `electricity`, `website`, `source_id`, `source` (promoted metadata)
   - `source_properties` (JSONB containing the complete original FLOCK/OSM feature
     properties for provenance and future queries)
+  - FLOCK snapshot imports use exact full-precision `(lat, lon)` identity, merge
+    duplicate coordinates with first-non-empty-value precedence, refresh existing
+    `FLOCK_REPO` rows, and remove stale `FLOCK_REPO` rows absent from a fully
+    validated snapshot. Rows from other sources are not deleted.
 - **`app.shotspotter_sensors`**:
   - `id` (PK, serial)
   - `lat`, `lon` (double precision)

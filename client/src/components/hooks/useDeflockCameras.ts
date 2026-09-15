@@ -16,6 +16,8 @@ import {
 import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 
 const DEFLOCK_COLOR = '#FF6B00';
+type PopupDetail = readonly [label: string, value: string | null];
+type PopulatedPopupDetail = readonly [label: string, value: string];
 
 function escapeHtml(value: string): string {
   return value.replace(
@@ -38,7 +40,7 @@ function renderDeflockPopupCard(props: DeflockCameraFeature['properties']): stri
       .join(', ') ||
     [props.city, props.state, props.country].filter(Boolean).join(', ') ||
     'Unknown location';
-  const details = [
+  const detailRows: PopupDetail[] = [
     ['Type', props.camera_type],
     ['Operator', props.operator || props.agency],
     ['Manufacturer', props.manufacturer],
@@ -49,8 +51,9 @@ function renderDeflockPopupCard(props: DeflockCameraFeature['properties']): stri
       [props.surveillance_type, props.surveillance_zone].filter(Boolean).join(' / '),
     ],
     ['Source ID', props.source_id],
-  ]
-    .filter(([, value]) => value)
+  ];
+  const details = detailRows
+    .filter((detail): detail is PopulatedPopupDetail => Boolean(detail[1]))
     .map(
       ([label, value]) =>
         `<div style="font-size:12px;color:#cbd5e1;margin-top:4px;"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>`
