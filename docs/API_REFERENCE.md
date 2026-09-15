@@ -78,7 +78,12 @@ Returns a GeoJSON FeatureCollection of all Federal Courthouses.
 
 ### GET /api/v1/surveillance/deflock-cameras 🔒
 
-Returns a GeoJSON FeatureCollection of Flock Safety ALPR (Automatic License Plate Reader) camera locations.
+Returns a GeoJSON FeatureCollection of Flock Safety ALPR (Automatic License Plate Reader)
+camera locations. Each feature includes lightweight promoted source metadata when present:
+`source_id`, `camera_type`, `agency`, `operator`, `name`, address components,
+`manufacturer`, `direction`, `camera_mount`, surveillance fields, `electricity`, and
+`website`. The complete original FLOCK/OSM property object is retained in the database
+for provenance but is not included in this map payload.
 
 ---
 

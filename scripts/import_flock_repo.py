@@ -3,19 +3,12 @@
 Import surveillance camera locations from FLOCK/CAMERAS_WITH_NETWORK_DATA.geojson
 into app.deflock_cameras.
 
-Source: OpenStreetMap-derived general surveillance camera dataset.
-Idempotent: ON CONFLICT (lat, lon) DO NOTHING.
+The FLOCK GeoJSON is treated as an authoritative snapshot. Exact (lat, lon)
+conflicts refresh source-owned metadata while preserving the existing primary key.
 
-Usage (run on EC2 via SSM):
-  export DB_HOST=localhost DB_PORT=5432 DB_NAME=shadowcheck_db
-  export DB_USER=shadowcheck_admin DB_PASSWORD=<secret>
+Usage:
   python3 scripts/import_flock_repo.py
-
-  # EC2 usage: copy GeoJSON to /tmp/ first via S3 or scp, then:
-  # python3 /app/scripts/import_flock_repo.py \
-  #   --input /tmp/CAMERAS_WITH_NETWORK_DATA.geojson
-
-  # Dry run (print first 5 rows, skip insert):
+  python3 scripts/import_flock_repo.py --input /path/to/source.geojson
   python3 scripts/import_flock_repo.py --dry-run
 """
 
@@ -24,78 +17,141 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
+import re
+from collections.abc import Iterable
+from decimal import Decimal
+from typing import Any
 
 GEOJSON_PATH = os.path.join(
     os.path.dirname(__file__),
-    "../../FLOCK/CAMERAS_WITH_NETWORK_DATA.geojson"
+    "../../FLOCK/CAMERAS_WITH_NETWORK_DATA.geojson",
 )
-# On EC2, override with: --input /path/to/CAMERAS_WITH_NETWORK_DATA.geojson
 BATCH_SIZE = 1000
 SOURCE = "FLOCK_REPO"
 
 
-def extract_location(props: dict) -> tuple[str | None, str | None, str | None]:
-    city = (
-        props.get("addr:city")
-        or props.get("city")
-        or props.get("is_in:city")
-        or None
+def json_dumps_preserving_decimals(value: Any) -> str:
+    """Serialize Decimal values as JSON numbers instead of losing source precision."""
+    marker_prefix = "__DECIMAL_VALUE__"
+    encoded = json.dumps(
+        value,
+        default=lambda item: f"{marker_prefix}{item}__",
+        separators=(",", ":"),
     )
-    state = (
-        props.get("addr:state")
-        or props.get("is_in:state_code")
-        or props.get("is_in:state")
-        or None
+    return re.sub(
+        rf'"{re.escape(marker_prefix)}([^"]+)__"',
+        lambda match: match.group(1),
+        encoded,
     )
-    agency = props.get("operator") or None
+
+
+def first_value(props: dict[str, Any], *keys: str) -> Any:
+    """Return the first non-empty source value using the declared precedence."""
+    for key in keys:
+        value = props.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def extract_location(props: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    """Extract legacy location fields while retaining all source properties separately."""
+    city = first_value(props, "addr:city", "city", "is_in:city")
+    state = first_value(props, "addr:state", "is_in:state_code", "is_in:state")
+    agency = first_value(props, "operator")
     return city, state, agency
 
 
-def load_features(path: str) -> list:
+def extract_metadata(props: dict[str, Any]) -> dict[str, Any]:
+    """Map useful fields to typed columns and retain the complete source property object."""
+    city, state, agency = extract_location(props)
+    return {
+        "source_id": str(first_value(props, "osm_id", "id", "ref") or "") or None,
+        "camera_type": first_value(props, "camera:type", "surveillance:type"),
+        "agency": agency,
+        "operator": agency,
+        "name": first_value(props, "name"),
+        "address": first_value(props, "addr:full", "address"),
+        "street": first_value(props, "addr:street"),
+        "housenumber": first_value(props, "addr:housenumber"),
+        "postcode": first_value(props, "addr:postcode"),
+        "city": city,
+        "state": state,
+        "country": first_value(props, "addr:country", "country"),
+        "manufacturer": first_value(props, "manufacturer", "camera:manufacturer"),
+        "manufacturer_wikidata": first_value(
+            props, "manufacturer:wikidata", "camera:manufacturer:wikidata"
+        ),
+        "direction": first_value(props, "direction", "camera:direction"),
+        "camera_mount": first_value(props, "camera:mount", "mount"),
+        "surveillance": first_value(props, "surveillance"),
+        "surveillance_type": first_value(props, "surveillance:type"),
+        "surveillance_zone": first_value(props, "surveillance:zone"),
+        "electricity": first_value(props, "electricity"),
+        "website": first_value(props, "website", "contact:website"),
+        "source_properties": props,
+    }
+
+
+def load_features(path: str) -> list[dict[str, Any]]:
     print(f"[FLOCK Import] Loading {path} ...")
-    with open(path) as f:
-        data = json.load(f)
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle, parse_float=Decimal)
     features = data.get("features", [])
     print(f"[FLOCK Import] Loaded {len(features)} features")
     return features
 
 
-def build_rows(features: list) -> list[tuple]:
-    rows = []
+def build_rows(
+    features: Iterable[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int, int]:
+    """Validate points and retain the last feature for each exact coordinate."""
+    rows_by_coordinate: dict[tuple[Decimal, Decimal], dict[str, Any]] = {}
     skipped = 0
-    for feat in features:
-        geom = feat.get("geometry") or {}
-        if geom.get("type") != "Point":
+    duplicate_coordinates = 0
+
+    for feature in features:
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") != "Point":
             skipped += 1
             continue
-        coords = geom.get("coordinates", [])
-        if len(coords) < 2:
+
+        coordinates = geometry.get("coordinates", [])
+        if len(coordinates) < 2:
             skipped += 1
             continue
-        lon, lat = coords[0], coords[1]
+
+        lon, lat = coordinates[0], coordinates[1]
         if lat is None or lon is None:
             skipped += 1
             continue
-        props = feat.get("properties") or {}
-        source_id = str(props.get("osm_id") or props.get("id") or props.get("ref") or "")
-        camera_type = props.get("camera:type") or props.get("surveillance:type") or None
-        city, state, agency = extract_location(props)
-        rows.append((lat, lon, source_id or None, camera_type, city, state, agency))
-    if skipped:
-        print(f"[FLOCK Import] Skipped {skipped} non-Point or invalid features")
-    return rows
+
+        props = feature.get("properties") or {}
+        coordinate = (lat, lon)
+        if coordinate in rows_by_coordinate:
+            duplicate_coordinates += 1
+        rows_by_coordinate[coordinate] = {
+            "lat": lat,
+            "lon": lon,
+            **extract_metadata(props),
+        }
+
+    return list(rows_by_coordinate.values()), skipped, duplicate_coordinates
 
 
-def run_import(rows: list[tuple], dry_run: bool) -> int:
+def run_import(rows: list[dict[str, Any]], dry_run: bool) -> dict[str, int]:
     if dry_run:
-        print(f"[FLOCK Import] DRY RUN — first 5 rows:")
-        for r in rows[:5]:
-            lat, lon, source_id, camera_type, city, state, agency = r
-            print(f"  lat={lat} lon={lon} source_id={source_id!r} camera_type={camera_type!r} city={city!r} state={state!r} agency={agency!r}")
-        return 0
+        print("[FLOCK Import] DRY RUN — first 5 rows:")
+        for row in rows[:5]:
+            print(
+                f"  lat={row['lat']} lon={row['lon']} "
+                f"source_id={row['source_id']!r} camera_type={row['camera_type']!r} "
+                f"city={row['city']!r} state={row['state']!r} agency={row['agency']!r}"
+            )
+        return {"inserted": 0, "updated": 0}
 
     import psycopg2  # type: ignore
+    from psycopg2.extras import Json  # type: ignore
 
     conn = psycopg2.connect(
         host=os.environ.get("DB_HOST", "localhost"),
@@ -106,46 +162,107 @@ def run_import(rows: list[tuple], dry_run: bool) -> int:
     )
 
     inserted = 0
+    updated = 0
     total = len(rows)
     try:
         with conn:
             with conn.cursor() as cur:
-                for i in range(0, total, BATCH_SIZE):
-                    batch = rows[i : i + BATCH_SIZE]
-                    for lat, lon, source_id, camera_type, city, state, agency in batch:
+                for start in range(0, total, BATCH_SIZE):
+                    batch = rows[start : start + BATCH_SIZE]
+                    for row in batch:
+                        params = {
+                            **row,
+                            "source": SOURCE,
+                            "source_properties": Json(
+                                row["source_properties"],
+                                dumps=json_dumps_preserving_decimals,
+                            ),
+                        }
                         cur.execute(
                             """
-                            INSERT INTO app.deflock_cameras
-                              (lat, lon, source_id, camera_type, city, state, agency, source)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                            ON CONFLICT (lat, lon) DO NOTHING
+                            INSERT INTO app.deflock_cameras (
+                              lat, lon, source_id, camera_type, agency, operator, name,
+                              address, street, housenumber, postcode, city, state, country,
+                              manufacturer, manufacturer_wikidata, direction, camera_mount,
+                              surveillance, surveillance_type, surveillance_zone, electricity,
+                              website, source_properties, source, imported_at
+                            )
+                            VALUES (
+                              %(lat)s, %(lon)s, %(source_id)s, %(camera_type)s, %(agency)s,
+                              %(operator)s, %(name)s, %(address)s, %(street)s, %(housenumber)s,
+                              %(postcode)s, %(city)s, %(state)s, %(country)s, %(manufacturer)s,
+                              %(manufacturer_wikidata)s, %(direction)s, %(camera_mount)s,
+                              %(surveillance)s, %(surveillance_type)s, %(surveillance_zone)s,
+                              %(electricity)s, %(website)s, %(source_properties)s, %(source)s,
+                              NOW()
+                            )
+                            ON CONFLICT (lat, lon) DO UPDATE SET
+                              source_id = EXCLUDED.source_id,
+                              camera_type = EXCLUDED.camera_type,
+                              agency = EXCLUDED.agency,
+                              operator = EXCLUDED.operator,
+                              name = EXCLUDED.name,
+                              address = EXCLUDED.address,
+                              street = EXCLUDED.street,
+                              housenumber = EXCLUDED.housenumber,
+                              postcode = EXCLUDED.postcode,
+                              city = EXCLUDED.city,
+                              state = EXCLUDED.state,
+                              country = EXCLUDED.country,
+                              manufacturer = EXCLUDED.manufacturer,
+                              manufacturer_wikidata = EXCLUDED.manufacturer_wikidata,
+                              direction = EXCLUDED.direction,
+                              camera_mount = EXCLUDED.camera_mount,
+                              surveillance = EXCLUDED.surveillance,
+                              surveillance_type = EXCLUDED.surveillance_type,
+                              surveillance_zone = EXCLUDED.surveillance_zone,
+                              electricity = EXCLUDED.electricity,
+                              website = EXCLUDED.website,
+                              source_properties = EXCLUDED.source_properties,
+                              source = EXCLUDED.source,
+                              imported_at = NOW()
+                            RETURNING (xmax = 0) AS inserted
                             """,
-                            (lat, lon, source_id, camera_type, city, state, agency, SOURCE),
+                            params,
                         )
-                        inserted += cur.rowcount
-                    done = min(i + BATCH_SIZE, total)
+                        if cur.fetchone()[0]:
+                            inserted += 1
+                        else:
+                            updated += 1
+
+                    done = min(start + BATCH_SIZE, total)
                     if done % 5000 < BATCH_SIZE or done == total:
-                        print(f"[FLOCK Import] Progress: {done}/{total} processed, {inserted} inserted")
+                        print(
+                            f"[FLOCK Import] Progress: {done}/{total} processed, "
+                            f"{inserted} inserted, {updated} updated"
+                        )
     finally:
         conn.close()
 
-    return inserted
+    return {"inserted": inserted, "updated": updated}
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Import FLOCK repo camera GeoJSON into app.deflock_cameras")
-    parser.add_argument("--dry-run", action="store_true", help="Print first 5 rows, skip insert")
-    parser.add_argument("--input", default=GEOJSON_PATH, help="Path to GeoJSON file")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Import FLOCK repo camera GeoJSON into app.deflock_cameras"
+    )
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--input", default=GEOJSON_PATH)
     args = parser.parse_args()
 
     features = load_features(args.input)
-    rows = build_rows(features)
-    print(f"[FLOCK Import] {len(rows)} valid rows to import")
+    rows, skipped, duplicate_coordinates = build_rows(features)
+    print(
+        f"[FLOCK Import] {len(rows)} distinct valid rows to import "
+        f"({skipped} skipped, {duplicate_coordinates} duplicate exact coordinates)"
+    )
 
-    inserted = run_import(rows, dry_run=args.dry_run)
-
+    counts = run_import(rows, dry_run=args.dry_run)
     if not args.dry_run:
-        print(f"[FLOCK Import] Done. Inserted {inserted} new rows into app.deflock_cameras")
+        print(
+            f"[FLOCK Import] Done. Inserted {counts['inserted']} new rows and "
+            f"updated {counts['updated']} existing rows in app.deflock_cameras"
+        )
 
 
 if __name__ == "__main__":

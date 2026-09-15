@@ -17,7 +17,26 @@ export async function fetchDeflockCamerasGeoJSON(): Promise<any> {
               'id', id,
               'city', city,
               'state', state,
-              'source', source
+              'source', source,
+              'source_id', source_id,
+              'camera_type', camera_type,
+              'agency', agency,
+              'operator', operator,
+              'name', name,
+              'address', address,
+              'street', street,
+              'housenumber', housenumber,
+              'postcode', postcode,
+              'country', country,
+              'manufacturer', manufacturer,
+              'manufacturer_wikidata', manufacturer_wikidata,
+              'direction', direction,
+              'camera_mount', camera_mount,
+              'surveillance', surveillance,
+              'surveillance_type', surveillance_type,
+              'surveillance_zone', surveillance_zone,
+              'electricity', electricity,
+              'website', website
             )
           )
         ), '[]'::jsonb)

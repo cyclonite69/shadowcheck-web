@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-12)
+# 1.0.0 (2026-09-15)
 
 ### Bug Fixes
 
@@ -562,7 +562,7 @@
 - **monitoring:** fix grafana embed cookie and nginx courthouses proxy ([50e184c](https://github.com/cyclonite69/shadowcheck-web/commit/50e184c656a4ccd9f43f7a107c035a129cc1723f))
 - **monitoring:** restrict grafana reader to app schema and grant mv access ([43749c9](https://github.com/cyclonite69/shadowcheck-web/commit/43749c9b9ffb5b08f35d6db6cd2b81d1a5be7179))
 - **monitoring:** source grafana db password from aws env ([d455890](https://github.com/cyclonite69/shadowcheck-web/commit/d45589062d22e57819e0e7b95e410ea5ea00b009))
-- **monitoring:** use Grafana-native env var syntax for postgres datasource URL ([b22af06](https://github.com/cyclonite69/shadowcheck-web/commit/b22af064c174f6fc9d9017251914d30b9e262f45))
+- **monitoring:** use Grafana-native env var syntax for postgres datasource URL ([439de8b](https://github.com/cyclonite69/shadowcheck-web/commit/439de8b89b5107a0cdfd71d5e8dcd2a1ecab5e3d))
 - mount nginx.conf in frontend to enable API proxying ([366c20d](https://github.com/cyclonite69/shadowcheck-web/commit/366c20d4ff9323784f8446b446924704ebc9bad9))
 - mount writable backups volume in AWS API containers ([c90396d](https://github.com/cyclonite69/shadowcheck-web/commit/c90396d6556f06d670ce629cd5ea462853a5ead3))
 - move secretsManager destructuring inside all affected functions ([ce1700e](https://github.com/cyclonite69/shadowcheck-web/commit/ce1700e2ad4b041a937e9baf2979637db0353130))
@@ -1178,6 +1178,7 @@
 - **db:** schedule daily materialized view refresh ([c1e936d](https://github.com/cyclonite69/shadowcheck-web/commit/c1e936d93ac16001b049fcf3ce2a79f4f4ea2181))
 - **db:** seed SIGINT surveillance OUI classifications ([44d1bd5](https://github.com/cyclonite69/shadowcheck-web/commit/44d1bd5245ed329be53e0327a5b992ebe0dfe770))
 - **db:** standardize radio manufacturers and addresses ([04e6ff8](https://github.com/cyclonite69/shadowcheck-web/commit/04e6ff83509592479a8c0ab8ebf5b44ec6759a89)), closes [hi#fidelity](https://github.com/hi/issues/fidelity)
+- **deflock:** import and expose rich FLOCK camera metadata ([4140495](https://github.com/cyclonite69/shadowcheck-web/commit/4140495a0212e50a9db54da08c7c678340e1f75c))
 - **deploy:** align grafana health check detection with other containers ([651cf90](https://github.com/cyclonite69/shadowcheck-web/commit/651cf90c30e7437a9673278fee705aa7c5256664))
 - **deploy:** self-install scs_rebuild as system-wide command on first run ([544d6e2](https://github.com/cyclonite69/shadowcheck-web/commit/544d6e2a4ba574744cf889b7e599546290e412d6))
 - **dev:** add healthcheck to api_dev container in docker-compose.dev.yml ([e17640f](https://github.com/cyclonite69/shadowcheck-web/commit/e17640f9fcc1796afa215d509e3644d7c701c8b5))

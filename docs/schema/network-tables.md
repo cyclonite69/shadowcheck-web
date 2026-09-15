@@ -229,7 +229,12 @@ Reference datasets mapping public Flock cameras and WIRED-leaked ShotSpotter coo
   - `id` (PK, serial)
   - `lat`, `lon` (numeric)
   - `geom` (geometry(Point,4326))
-  - `camera_type`, `agency`, `city`, `state`, `source` (metadata)
+  - `camera_type`, `agency`, `operator`, `name`, `address`, `street`, `housenumber`,
+    `postcode`, `city`, `state`, `country`, `manufacturer`, `manufacturer_wikidata`,
+    `direction`, `camera_mount`, `surveillance`, `surveillance_type`,
+    `surveillance_zone`, `electricity`, `website`, `source_id`, `source` (promoted metadata)
+  - `source_properties` (JSONB containing the complete original FLOCK/OSM feature
+    properties for provenance and future queries)
 - **`app.shotspotter_sensors`**:
   - `id` (PK, serial)
   - `lat`, `lon` (double precision)

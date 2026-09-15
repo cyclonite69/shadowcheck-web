@@ -13,7 +13,9 @@ describe('deflockRepository — fetchDeflockCamerasGeoJSON', () => {
     jest.clearAllMocks();
     jest.resetModules();
     jest.mock('../../../server/src/config/database', () => ({ query: mockQuery }));
-    ({ fetchDeflockCamerasGeoJSON } = require('../../../server/src/repositories/deflockRepository'));
+    ({
+      fetchDeflockCamerasGeoJSON,
+    } = require('../../../server/src/repositories/deflockRepository'));
   });
 
   it('returns the geojson from the first row', async () => {
@@ -24,7 +26,31 @@ describe('deflockRepository — fetchDeflockCamerasGeoJSON', () => {
           type: 'Feature',
           id: 1,
           geometry: { type: 'Point', coordinates: [-87.6, 41.8] },
-          properties: { id: 1, city: 'Chicago', state: 'IL', source: 'test' },
+          properties: {
+            id: 1,
+            city: 'Chicago',
+            state: 'IL',
+            source: 'test',
+            source_id: null,
+            camera_type: null,
+            agency: null,
+            operator: null,
+            name: null,
+            address: null,
+            street: null,
+            housenumber: null,
+            postcode: null,
+            country: null,
+            manufacturer: null,
+            manufacturer_wikidata: null,
+            direction: null,
+            camera_mount: null,
+            surveillance: null,
+            surveillance_type: null,
+            surveillance_zone: null,
+            electricity: null,
+            website: null,
+          },
         },
       ],
     };
@@ -61,7 +87,9 @@ describe('deflockRepository — fetchDeflockCamerasGeoJSON', () => {
   });
 
   it('uses a parameterless SQL query (no injection surface)', async () => {
-    mockQuery.mockResolvedValue({ rows: [{ geojson: { type: 'FeatureCollection', features: [] } }] });
+    mockQuery.mockResolvedValue({
+      rows: [{ geojson: { type: 'FeatureCollection', features: [] } }],
+    });
 
     await fetchDeflockCamerasGeoJSON();
 

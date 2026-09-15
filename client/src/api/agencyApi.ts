@@ -25,6 +25,47 @@ interface NearestAgenciesResponse {
   radius_km: number;
 }
 
+export interface DeflockCameraProperties {
+  id: number;
+  city: string | null;
+  state: string | null;
+  source: string;
+  source_id: string | null;
+  camera_type: string | null;
+  agency: string | null;
+  operator: string | null;
+  name: string | null;
+  address: string | null;
+  street: string | null;
+  housenumber: string | null;
+  postcode: string | null;
+  country: string | null;
+  manufacturer: string | null;
+  manufacturer_wikidata: string | null;
+  direction: string | null;
+  camera_mount: string | null;
+  surveillance: string | null;
+  surveillance_type: string | null;
+  surveillance_zone: string | null;
+  electricity: string | null;
+  website: string | null;
+}
+
+export interface DeflockCameraFeature {
+  type: 'Feature';
+  id: number;
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  properties: DeflockCameraProperties;
+}
+
+export interface DeflockCamerasGeoJSON {
+  type: 'FeatureCollection';
+  features: DeflockCameraFeature[];
+}
+
 /** Single agency row returned from the batch nearest-agencies endpoint. */
 export interface AgencyMatch {
   cluster_id?: number;
@@ -110,7 +151,7 @@ export const agencyApi = {
     return response.json();
   },
 
-  async getDeflockCameras(): Promise<any> {
+  async getDeflockCameras(): Promise<DeflockCamerasGeoJSON> {
     const response = await fetch('/api/v1/surveillance/deflock-cameras', {
       credentials: 'include',
     });
