@@ -9,6 +9,12 @@ import {
   releaseAlprLock,
 } from './alpr/alprSync';
 import { nextRotation } from './alpr/alprCursor';
+import {
+  ALPR_DEFAULT_CHUNK_COUNT,
+  markRegionSyncFailed,
+  markRegionSyncRunning,
+  markRegionSyncSuccess,
+} from './alpr/alprRegionState';
 
 function createPool(): Pool {
   return new Pool({
@@ -64,21 +70,35 @@ async function runRegion(pool: PoolClient, region: AlprRegion, prune: boolean): 
   const bbox: Bbox = { west, south, east, north };
   console.log(`[${region.id}] fetching...`);
 
+  await markRegionSyncRunning(pool, region);
+
   let elements;
   try {
     elements = await fetchAlprElements(bbox);
   } catch (error) {
+    await markRegionSyncFailed(pool, region.id);
     console.error(`[${region.id}] fetch failed, skipping (no writes, no prune):`, error);
     return;
   }
 
-  const records = elementsToRecords(elements);
-  const upserted = await upsertAlprBatch(pool, records, runStartedAt);
-  console.log(`[${region.id}] upserted ${upserted} of ${records.length} candidate records`);
+  try {
+    const records = elementsToRecords(elements);
+    const upserted = await upsertAlprBatch(pool, records, runStartedAt);
+    console.log(`[${region.id}] upserted ${upserted} of ${records.length} candidate records`);
 
-  if (prune && records.length > 0) {
-    const deleted = await pruneStaleInBbox(pool, bbox, runStartedAt);
-    if (deleted > 0) console.log(`[${region.id}] pruned ${deleted} stale rows inside region bbox`);
+    if (prune && records.length > 0) {
+      const deleted = await pruneStaleInBbox(pool, bbox, runStartedAt);
+      if (deleted > 0)
+        console.log(`[${region.id}] pruned ${deleted} stale rows inside region bbox`);
+    }
+
+    await markRegionSyncSuccess(pool, region.id, {
+      chunkCount: ALPR_DEFAULT_CHUNK_COUNT,
+      elementCount: records.length,
+    });
+  } catch (error) {
+    await markRegionSyncFailed(pool, region.id);
+    throw error;
   }
 }
 

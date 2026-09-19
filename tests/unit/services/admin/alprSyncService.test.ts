@@ -7,6 +7,7 @@ import {
 } from '../../../../server/src/services/admin/alprSyncService';
 import * as overpassClient from '../../../../src/alpr/overpassClient';
 import * as alprSync from '../../../../src/alpr/alprSync';
+import * as alprRegionState from '../../../../src/alpr/alprRegionState';
 
 jest.mock('../../../../src/alpr/overpassClient', () => ({
   fetchAlprElements: jest.fn(),
@@ -17,6 +18,13 @@ jest.mock('../../../../src/alpr/alprSync', () => ({
   ...jest.requireActual('../../../../src/alpr/alprSync'),
   upsertAlprBatch: jest.fn(),
   pruneStaleInBbox: jest.fn(),
+}));
+
+jest.mock('../../../../src/alpr/alprRegionState', () => ({
+  ALPR_DEFAULT_CHUNK_COUNT: 4,
+  markRegionSyncRunning: jest.fn().mockResolvedValue(undefined),
+  markRegionSyncSuccess: jest.fn().mockResolvedValue(undefined),
+  markRegionSyncFailed: jest.fn().mockResolvedValue(undefined),
 }));
 
 const adminPoolGetter = jest.fn();
@@ -75,6 +83,7 @@ describe('alprSyncService', () => {
       'ALPR synchronization is already in progress'
     );
     expect(mockClient.release).toHaveBeenCalledTimes(1);
+    expect(alprRegionState.markRegionSyncRunning).not.toHaveBeenCalled();
     // Did not attempt to unlock since it wasn't acquired
     expect(mockClient.query).not.toHaveBeenCalledWith(
       expect.stringContaining('pg_advisory_unlock'),
@@ -98,6 +107,16 @@ describe('alprSyncService', () => {
     expect(result.prunedCount).toBe(0);
     expect(result.candidateCount).toBe(1);
     expect(typeof result.durationMs).toBe('number');
+
+    expect(alprRegionState.markRegionSyncRunning).toHaveBeenCalledWith(
+      mockClient,
+      expect.objectContaining({ id: 'seattle' })
+    );
+    expect(alprRegionState.markRegionSyncSuccess).toHaveBeenCalledWith(mockClient, 'seattle', {
+      chunkCount: 4,
+      elementCount: 1,
+    });
+    expect(alprRegionState.markRegionSyncFailed).not.toHaveBeenCalled();
 
     expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_try_advisory_lock($1) AS acquired', [
       ALPR_SYNC_LOCK_KEY,
@@ -146,6 +165,9 @@ describe('alprSyncService', () => {
       'Overpass endpoint timed out'
     );
     expect(alprSync.upsertAlprBatch).not.toHaveBeenCalled();
+    expect(alprRegionState.markRegionSyncRunning).toHaveBeenCalled();
+    expect(alprRegionState.markRegionSyncFailed).toHaveBeenCalledWith(mockClient, 'seattle');
+    expect(alprRegionState.markRegionSyncSuccess).not.toHaveBeenCalled();
     expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_advisory_unlock($1)', [
       ALPR_SYNC_LOCK_KEY,
     ]);
@@ -162,6 +184,7 @@ describe('alprSyncService', () => {
     (alprSync.upsertAlprBatch as jest.Mock).mockRejectedValue(new Error('database write failed'));
 
     await expect(syncAlprRegion(mockPool, 'seattle')).rejects.toThrow('database write failed');
+    expect(alprRegionState.markRegionSyncFailed).toHaveBeenCalledWith(mockClient, 'seattle');
     expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_advisory_unlock($1)', [
       ALPR_SYNC_LOCK_KEY,
     ]);

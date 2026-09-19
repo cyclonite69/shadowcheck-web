@@ -31,6 +31,12 @@ import {
   releaseAlprLock,
   upsertAlprBatch,
 } from '../../../../src/alpr/alprSync';
+import {
+  ALPR_DEFAULT_CHUNK_COUNT,
+  markRegionSyncFailed,
+  markRegionSyncRunning,
+  markRegionSyncSuccess,
+} from '../../../../src/alpr/alprRegionState';
 
 const logger = require('../../logging/logger');
 
@@ -129,30 +135,42 @@ export async function syncAlprRegion(
     const [west, south, east, north] = region.bbox;
     const bbox: Bbox = { west, south, east, north };
 
-    // Fetch elements from Overpass API (may throw on timeout/network failure)
-    const elements = await fetchAlprElements(bbox);
-    const records = elementsToRecords(elements);
+    await markRegionSyncRunning(client, region);
 
-    // Upsert batch via UNNEST in single round-trip
-    const upsertedCount = await upsertAlprBatch(client, records, runStartedAt);
+    try {
+      // Fetch elements from Overpass API (may throw on timeout/network failure)
+      const elements = await fetchAlprElements(bbox);
+      const records = elementsToRecords(elements);
 
-    // Prune safety guard: only prune if Overpass returned candidate records.
-    // If Overpass returned 0 elements, skip prune to prevent wiping existing cameras.
-    let prunedCount = 0;
-    if (prune) {
-      if (records.length > 0) {
-        prunedCount = await pruneStaleInBbox(client, bbox, runStartedAt);
+      // Upsert batch via UNNEST in single round-trip
+      const upsertedCount = await upsertAlprBatch(client, records, runStartedAt);
+
+      // Prune safety guard: only prune if Overpass returned candidate records.
+      // If Overpass returned 0 elements, skip prune to prevent wiping existing cameras.
+      let prunedCount = 0;
+      if (prune) {
+        if (records.length > 0) {
+          prunedCount = await pruneStaleInBbox(client, bbox, runStartedAt);
+        }
       }
-    }
 
-    return {
-      regionId: region.id,
-      regionLabel: region.label,
-      upsertedCount,
-      prunedCount,
-      candidateCount: records.length,
-      durationMs: Date.now() - started,
-    };
+      await markRegionSyncSuccess(client, region.id, {
+        chunkCount: ALPR_DEFAULT_CHUNK_COUNT,
+        elementCount: records.length,
+      });
+
+      return {
+        regionId: region.id,
+        regionLabel: region.label,
+        upsertedCount,
+        prunedCount,
+        candidateCount: records.length,
+        durationMs: Date.now() - started,
+      };
+    } catch (error) {
+      await markRegionSyncFailed(client, region.id);
+      throw error;
+    }
   } finally {
     if (lockAcquired) {
       await releaseAlprLock(client);
