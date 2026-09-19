@@ -1,17 +1,17 @@
+# VERIFY: WorkingDirectory/EnvironmentFile paths and the absence of a
+# dedicated service account below are placeholders — confirm against
+# the actual deploy target before installing.
 [Unit]
-Description=ShadowCheck ALPR camera sync daemon
+Description=ShadowCheck ALPR camera sync (rotating regional batch)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/shadowcheck-web
-Environment=NODE_ENV=production
-EnvironmentFile=/etc/shadowcheck/alpr-sync.env
-ExecStart=/usr/bin/env node /opt/shadowcheck-web/dist/alpr/src/alpr-sync-daemon.js --once
+WorkingDirectory=REPLACE_WITH_REPO_PATH
+EnvironmentFile=REPLACE_WITH_ENV_FILE_PATH
+ExecStart=/usr/bin/env npx tsx src/alpr-sync-daemon.ts --rotate=4
 Restart=no
-User=shadowcheck
-Group=shadowcheck
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

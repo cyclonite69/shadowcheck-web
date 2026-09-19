@@ -2402,5 +2402,26 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     manualOnly: true,
   },
 
+  // ── ALPR Sync ──────────────────────────────────────────────────────────────
+  {
+    category: 'ALPR Sync',
+    label: 'ALPR Region List',
+    path: '/api/admin/alpr/regions',
+    method: 'GET',
+    requiresAuth: true,
+    description: 'Returns all 30 known ALPR metro region ids, labels, and state codes.',
+  },
+  {
+    category: 'ALPR Sync',
+    label: 'Trigger ALPR Sync',
+    path: '/api/admin/alpr/sync',
+    method: 'POST',
+    requiresAuth: true,
+    description:
+      'Triggers an in-process Overpass API sync for the specified region and upserts results into app.alpr_cameras.',
+    defaultBody: '{\n  "region": "seattle",\n  "prune": false\n}',
+    manualOnly: true,
+  },
+
   // ── Sibling Detection ──────────────────────────────────────────────────────
 ];

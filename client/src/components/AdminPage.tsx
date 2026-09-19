@@ -16,6 +16,7 @@ import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 import { DbStatsTab } from './admin/tabs/DbStatsTab';
 import { SigintLibraryTab } from './admin/tabs/SigintLibraryTab';
 import { BadgeStudioTab } from './admin/tabs/BadgeStudioTab';
+import { ALPRSyncManagerTab } from './admin/tabs/alpr/ALPRSyncManagerTab';
 import { useAdminRuntimeConfig } from '../hooks/useAdminRuntimeConfig';
 
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
@@ -303,6 +304,7 @@ const AdminPage: React.FC = () => {
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
     { id: 'geocoding', label: 'Geocoding', icon: MapIcon },
+    { id: 'alpr-sync', label: 'ALPR Sync', icon: DatabaseIcon },
     { id: 'aws', label: 'AWS', icon: CloudIcon },
     ...(showPgAdminTab ? [{ id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon }] : []),
     { id: 'users', label: 'Users', icon: UsersIcon },
@@ -396,6 +398,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'backups' && <BackupsTab />}
           {activeTab === 'exports' && <DataExportTab />}
           {activeTab === 'geocoding' && <GeocodingTab />}
+          {activeTab === 'alpr-sync' && <ALPRSyncManagerTab />}
           {activeTab === 'aws' && <AwsTab />}
           {activeTab === 'pgadmin' && <PgAdminTab />}
           {activeTab === 'users' && <UsersTab />}

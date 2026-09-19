@@ -38,6 +38,7 @@ const adminSiblingsRoutes = require('./admin/siblings');
 const adminDetectionEvidenceRoutes = require('./admin/detectionEvidence');
 const adminDataQualityRoutes = require('./dataQuality').default;
 const adminDbStatsRoutes = require('./admin/dbStats').default;
+const adminAlprRoutes = require('./admin/alpr');
 
 // Protect all admin routes
 router.use(requireAdmin);
@@ -78,6 +79,7 @@ router.use(adminSiblingsRoutes);
 router.use(adminDetectionEvidenceRoutes);
 router.use(adminDataQualityRoutes);
 router.use('/admin/db-stats', adminDbStatsRoutes);
+router.use(adminAlprRoutes);
 
 // GET /api/observations/check-duplicates/:bssid - Check for duplicate observations
 router.get('/observations/check-duplicates/:bssid', async (req: any, res: any, next: any) => {

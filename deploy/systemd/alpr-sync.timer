@@ -1,12 +1,10 @@
 [Unit]
-Description=Run ShadowCheck ALPR sync hourly
+Description=Run ShadowCheck ALPR rotating batch hourly
 
 [Timer]
-OnCalendar=*-*-* *:00:00
+OnCalendar=hourly
 Persistent=true
-AccuracySec=1s
-RandomizedDelaySec=0
-Unit=alpr-sync.service
+AccuracySec=5m
 
 [Install]
 WantedBy=timers.target

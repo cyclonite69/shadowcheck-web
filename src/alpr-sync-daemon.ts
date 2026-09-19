@@ -1,401 +1,165 @@
 import 'dotenv/config';
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
+import { ALPR_REGIONS, findRegion, regionsByState, type AlprRegion } from './alpr/regions';
+import { fetchAlprElements, elementsToRecords, type Bbox } from './alpr/overpassClient';
+import {
+  upsertAlprBatch,
+  pruneStaleInBbox,
+  acquireAlprLock,
+  releaseAlprLock,
+} from './alpr/alprSync';
+import { nextRotation } from './alpr/alprCursor';
 
-const OVERPASS_ENDPOINTS = [
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass-api.de/api/interpreter',
-];
-
-const DEFAULT_BOUNDARY = {
-  west: -125.0,
-  south: 24.0,
-  east: -66.5,
-  north: 49.5,
-} as const;
-
-const DEFAULT_RETRY_LIMIT = 4;
-const DEFAULT_TIMEOUT_MS = 60000;
-
-interface BBox {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-}
-
-interface OverpassElement {
-  type: 'node' | 'way' | 'relation';
-  id: number;
-  lat?: number;
-  lon?: number;
-  center?: {
-    lat: number;
-    lon: number;
-  };
-  tags?: Record<string, string | undefined>;
-}
-
-interface OverpassResponse {
-  elements?: OverpassElement[];
-}
-
-interface CameraRecord {
-  osmId: number;
-  lat: number;
-  lon: number;
-  sourceProperties: Record<string, unknown>;
-  lastSeen: Date;
-}
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
-const buildUsBoundingBoxes = (): BBox[] => {
-  const { west, south, east, north } = DEFAULT_BOUNDARY;
-  const latCount = 8;
-  const lonCount = 16;
-
-  const latStep = (north - south) / latCount;
-  const lonStep = (east - west) / lonCount;
-  const boxes: BBox[] = [];
-
-  for (let row = 0; row < latCount; row += 1) {
-    for (let col = 0; col < lonCount; col += 1) {
-      const segmentWest = west + col * lonStep;
-      const segmentEast = west + (col + 1) * lonStep;
-      const segmentSouth = south + row * latStep;
-      const segmentNorth = south + (row + 1) * latStep;
-
-      boxes.push({
-        west: Number(segmentWest.toFixed(6)),
-        south: Number(segmentSouth.toFixed(6)),
-        east: Number(segmentEast.toFixed(6)),
-        north: Number(segmentNorth.toFixed(6)),
-      });
-    }
-  }
-
-  return boxes;
-};
-
-const parseBBoxArg = (value?: string): BBox | null => {
-  if (!value) {
-    return null;
-  }
-
-  const parts = value.split(',').map((part) => Number(part.trim()));
-  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
-    return null;
-  }
-
-  const [west, south, east, north] = parts;
-  return {
-    west,
-    south,
-    east,
-    north,
-  };
-};
-
-const createPool = (): Pool =>
-  new Pool({
+function createPool(): Pool {
+  return new Pool({
     user: process.env.DB_ADMIN_USER || process.env.DB_USER || 'shadowcheck_admin',
     host: process.env.DB_HOST || '127.0.0.1',
     database: process.env.DB_NAME || 'shadowcheck_db',
     password: process.env.DB_ADMIN_PASSWORD || process.env.DB_PASSWORD || '',
     port: Number(process.env.DB_PORT || '5432'),
     max: 5,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000,
-    statement_timeout: 60000,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 30_000,
+    statement_timeout: 60_000,
     application_name: 'shadowcheck-alpr-sync',
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   });
+}
 
-const normalizeSourceProperties = (
-  tags: Record<string, string | undefined>
-): Record<string, unknown> => {
-  const cleaned: Record<string, unknown> = {};
+function parseBboxArg(value?: string): Bbox | null {
+  if (!value) return null;
+  const parts = value.split(',').map((p) => Number(p.trim()));
+  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return null;
+  const [west, south, east, north] = parts;
+  return { west, south, east, north };
+}
 
-  for (const [key, value] of Object.entries(tags)) {
-    if (value === undefined || value === null || value === '') {
-      continue;
-    }
+interface CliArgs {
+  bbox: Bbox | null;
+  regionIds: string[];
+  state: string | null;
+  rotate: number | null;
+  allRegions: boolean;
+  prune: boolean;
+}
 
-    cleaned[key] = value;
-  }
-
-  return cleaned;
-};
-
-const buildOverpassQuery = (bbox: BBox): string => {
-  const [minLat, minLon, maxLat, maxLon] = [bbox.south, bbox.west, bbox.north, bbox.east];
-
-  return `
-    [out:json][timeout:60];
-    (
-      node["surveillance"~"camera|alpr|yes|license_plate|license-plate"](${minLat}, ${minLon}, ${maxLat}, ${maxLon});
-      node["camera"~"yes|alpr|surveillance"](${minLat}, ${minLon}, ${maxLat}, ${maxLon});
-      node["man_made"="surveillance"](${minLat}, ${minLon}, ${maxLat}, ${maxLon});
-    );
-    out body qt;
-  `;
-};
-
-const fetchJson = async <T>(url: string, query: string, timeoutMs: number): Promise<T> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'ShadowCheck-Web/1.0 (local ALPR synchronization daemon)',
-      },
-      body: `data=${encodeURIComponent(query)}`,
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const status = response.status;
-      const error = new Error(`Overpass request failed with status ${status}`) as Error & {
-        status?: number;
-      };
-      error.status = status;
-      throw error;
-    }
-
-    const payload = (await response.json()) as T;
-    return payload;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
-const isRetryableError = (error: unknown): boolean => {
-  if (error instanceof Error && 'status' in error) {
-    const status = Number((error as Error & { status?: number }).status);
-    if (status === 429 || status === 500 || status === 502 || status === 503 || status === 504) {
-      return true;
-    }
-  }
-
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    const errorWithCause = error as Error & {
-      cause?: unknown;
-      code?: unknown;
-    };
-    const cause =
-      errorWithCause.cause && typeof errorWithCause.cause === 'object'
-        ? (errorWithCause.cause as { code?: unknown })
-        : undefined;
-    const code =
-      typeof cause?.code === 'string'
-        ? cause.code
-        : typeof errorWithCause.code === 'string'
-          ? errorWithCause.code
-          : undefined;
-
-    return (
-      error.name === 'AbortError' ||
-      code === 'ECONNREFUSED' ||
-      message.includes('timeout') ||
-      message.includes('429') ||
-      message.includes('rate limit')
-    );
-  }
-
-  return false;
-};
-
-const fetchOverpassForBBox = async (bbox: BBox): Promise<CameraRecord[]> => {
-  const query = buildOverpassQuery(bbox);
-  const endpoints = [...OVERPASS_ENDPOINTS];
-
-  for (let attempt = 0; attempt < DEFAULT_RETRY_LIMIT; attempt += 1) {
-    for (const endpoint of endpoints) {
-      try {
-        const payload = await fetchJson<OverpassResponse>(endpoint, query, DEFAULT_TIMEOUT_MS);
-        const elements = payload.elements ?? [];
-
-        const records: CameraRecord[] = [];
-        for (const element of elements) {
-          const tags = element.tags ?? {};
-          const tagKeys = Object.keys(tags);
-          if (tagKeys.length === 0) {
-            continue;
-          }
-
-          const lat = element.lat ?? element.center?.lat;
-          const lon = element.lon ?? element.center?.lon;
-          if (lat === undefined || lon === undefined) {
-            continue;
-          }
-
-          const surveillanceLike =
-            tags.surveillance ||
-            tags.camera ||
-            tags.man_made ||
-            tags.amenity ||
-            tags.operator ||
-            tags['security:camera'] ||
-            tags['surveillance:type'];
-
-          if (!surveillanceLike) {
-            continue;
-          }
-
-          const sourceProperties = normalizeSourceProperties(tags);
-          records.push({
-            osmId: Number(element.id),
-            lat: Number(lat),
-            lon: Number(lon),
-            sourceProperties,
-            lastSeen: new Date(),
-          });
-        }
-
-        return records;
-      } catch (error: unknown) {
-        if (!isRetryableError(error)) {
-          throw error;
-        }
-
-        await sleep(Math.min(5000, 250 * (attempt + 1)));
-      }
-    }
-
-    const backoffMs = 2000 * (attempt + 1);
-    await sleep(backoffMs);
-  }
-
-  throw new Error(`Overpass exhausted all retries for bbox ${JSON.stringify(bbox)}`);
-};
-
-const refreshCameraTable = async (pool: Pool, records: CameraRecord[]): Promise<number> => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(`
-      CREATE TEMP TABLE alpr_sync_records (
-        osm_id BIGINT PRIMARY KEY,
-        lat DOUBLE PRECISION NOT NULL,
-        lon DOUBLE PRECISION NOT NULL,
-        source_properties JSONB NOT NULL,
-        last_seen TIMESTAMPTZ NOT NULL
-      ) ON COMMIT DROP
-    `);
-
-    for (const record of records) {
-      await client.query(
-        `
-          INSERT INTO alpr_sync_records (osm_id, lat, lon, source_properties, last_seen)
-          VALUES ($1, $2, $3, $4::jsonb, $5)
-        `,
-        [
-          record.osmId,
-          record.lat,
-          record.lon,
-          JSON.stringify(record.sourceProperties),
-          record.lastSeen,
-        ]
-      );
-    }
-
-    const upsertResult = await client.query(`
-      INSERT INTO app.alpr_cameras (osm_id, geom, source_properties, last_seen)
-      SELECT
-        osm_id,
-        ST_SetSRID(ST_MakePoint(lon, lat), 4326),
-        source_properties,
-        last_seen
-      FROM alpr_sync_records
-      ON CONFLICT (osm_id) DO UPDATE
-      SET geom = EXCLUDED.geom,
-          source_properties = EXCLUDED.source_properties,
-          last_seen = EXCLUDED.last_seen
-    `);
-
-    await client.query(`
-      DELETE FROM app.alpr_cameras cameras
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM alpr_sync_records records
-        WHERE records.osm_id = cameras.osm_id
-      )
-    `);
-
-    await client.query('COMMIT');
-    return upsertResult.rowCount ?? 0;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
-const syncAll = async (pool: Pool, bboxList: BBox[]): Promise<number> => {
-  const recordsByOsmId = new Map<number, CameraRecord>();
-  for (const [index, bbox] of bboxList.entries()) {
-    if (index > 0) {
-      await sleep(5000);
-    }
-
-    const records = await fetchOverpassForBBox(bbox);
-    for (const record of records) {
-      recordsByOsmId.set(record.osmId, record);
-    }
-  }
-
-  return refreshCameraTable(pool, [...recordsByOsmId.values()]);
-};
-
-const parseArgs = (): { once: boolean; continuous: boolean; customBBox: BBox | null } => {
-  const args = new Set(process.argv.slice(2));
-  const customBBox = parseBBoxArg(
-    process.argv.find((value) => value.startsWith('--bbox='))?.split('=')[1]
-  );
-
+function parseArgs(argv: string[]): CliArgs {
+  const get = (prefix: string): string | undefined =>
+    argv.find((a) => a.startsWith(prefix))?.slice(prefix.length);
+  const regionsArg = get('--regions=') ?? get('--region=');
+  const rotateArg = get('--rotate=');
   return {
-    once: args.has('--once'),
-    continuous: args.has('--continuous'),
-    customBBox,
+    bbox: parseBboxArg(get('--bbox=')),
+    regionIds: regionsArg ? regionsArg.split(',').map((s) => s.trim()) : [],
+    state: get('--state=') ?? null,
+    rotate: rotateArg ? Number(rotateArg) : null,
+    allRegions: argv.includes('--all-regions'),
+    prune: argv.includes('--prune'),
   };
-};
+}
 
-const run = async (): Promise<void> => {
-  const pool = createPool();
+async function runRegion(pool: PoolClient, region: AlprRegion, prune: boolean): Promise<void> {
+  const runStartedAt = new Date();
+  const [west, south, east, north] = region.bbox;
+  const bbox: Bbox = { west, south, east, north };
+  console.log(`[${region.id}] fetching...`);
+
+  let elements;
   try {
-    const { once, continuous, customBBox } = parseArgs();
-    const boxes = customBBox ? [customBBox] : buildUsBoundingBoxes();
+    elements = await fetchAlprElements(bbox);
+  } catch (error) {
+    console.error(`[${region.id}] fetch failed, skipping (no writes, no prune):`, error);
+    return;
+  }
 
-    while (true) {
-      const totalRows = await syncAll(pool, boxes);
-      console.log(`ALPR sync complete. Refreshed ${totalRows} camera records.`);
+  const records = elementsToRecords(elements);
+  const upserted = await upsertAlprBatch(pool, records, runStartedAt);
+  console.log(`[${region.id}] upserted ${upserted} of ${records.length} candidate records`);
 
-      if (once || !continuous) {
-        break;
+  if (prune && records.length > 0) {
+    const deleted = await pruneStaleInBbox(pool, bbox, runStartedAt);
+    if (deleted > 0) console.log(`[${region.id}] pruned ${deleted} stale rows inside region bbox`);
+  }
+}
+
+async function runCustomBbox(pool: PoolClient, bbox: Bbox, prune: boolean): Promise<void> {
+  const runStartedAt = new Date();
+  console.log(`[custom-bbox] fetching ${JSON.stringify(bbox)}...`);
+  const elements = await fetchAlprElements(bbox);
+  const records = elementsToRecords(elements);
+  const upserted = await upsertAlprBatch(pool, records, runStartedAt);
+  console.log(`[custom-bbox] upserted ${upserted} of ${records.length} candidate records`);
+
+  if (prune && records.length > 0) {
+    const deleted = await pruneStaleInBbox(pool, bbox, runStartedAt);
+    if (deleted > 0) console.log(`[custom-bbox] pruned ${deleted} stale rows inside bbox`);
+  }
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+  const pool = createPool();
+  let client: PoolClient | null = null;
+
+  try {
+    client = await pool.connect();
+    const locked = await acquireAlprLock(client);
+    if (!locked) {
+      console.warn(
+        '[alpr-sync-daemon] Another ALPR sync is currently in progress (advisory lock held). Skipping this cycle.'
+      );
+      return;
+    }
+
+    try {
+      if (args.bbox) {
+        await runCustomBbox(client, args.bbox, args.prune);
+        return;
       }
 
-      await sleep(60 * 60 * 1000);
+      let regions: AlprRegion[] = [];
+      if (args.allRegions) {
+        regions = ALPR_REGIONS;
+      } else if (args.rotate) {
+        regions = await nextRotation(client, ALPR_REGIONS, args.rotate);
+      } else if (args.state) {
+        regions = regionsByState(args.state);
+      } else if (args.regionIds.length > 0) {
+        regions = args.regionIds
+          .map((id) => findRegion(id))
+          .filter((r): r is AlprRegion => Boolean(r));
+      }
+
+      if (regions.length === 0) {
+        console.error(
+          'No target specified. Use --bbox=W,S,E,N, --region=<id>, --regions=<id,id>, --state=<XX>, --rotate=<N>, or --all-regions.'
+        );
+        process.exitCode = 1;
+        return;
+      }
+
+      /** 5 s between regions to avoid Overpass IP rate-limit bans. */
+      const INTER_REGION_DELAY_MS = 5_000;
+      for (let i = 0; i < regions.length; i += 1) {
+        if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, INTER_REGION_DELAY_MS));
+        await runRegion(client, regions[i], args.prune);
+      }
+    } finally {
+      await releaseAlprLock(client);
+      client.release();
+      client = null;
     }
   } finally {
+    client?.release();
     await pool.end();
   }
-};
+}
 
 if (require.main === module) {
-  void run().catch((error: unknown) => {
+  void main().catch((error) => {
     console.error('ALPR sync failed:', error);
     process.exitCode = 1;
   });
 }
 
-export { buildUsBoundingBoxes, syncAll, run, parseBBoxArg };
+export { main, parseBboxArg };
