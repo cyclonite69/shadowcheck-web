@@ -36,6 +36,7 @@ const localDatabaseNetwork =
 const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
 const pgAdminEmail = process.env.PGADMIN_EMAIL || 'admin@example.com';
 const pgAdminPassword = process.env.PGADMIN_PASSWORD || 'admin';
+const databaseHost = (process.env.DB_HOST || '').trim() || (localMode ? 'postgres' : '127.0.0.1');
 
 const runCommand = (
   command: string,
@@ -150,8 +151,7 @@ const parseDockerStatus = (stdout: string) => {
 
 const probePgAdminReachable = async () => {
   const probeUrl =
-    process.env.PGADMIN_STATUS_PROBE_URL ||
-    (localMode ? `http://host.containers.internal:${port}/` : url);
+    process.env.PGADMIN_STATUS_PROBE_URL || (localMode ? `http://${containerName}:${port}/` : url);
 
   try {
     const result = await runCommand('curl', ['-sSI', '--max-time', '3', probeUrl], {
@@ -184,13 +184,13 @@ const removePgAdminContainer = async () => {
 };
 
 const repairSavedServerHost = async () => {
-  const targetHost = localMode ? 'host.containers.internal' : '127.0.0.1';
+  const targetHost = databaseHost;
   const repairScript = [
     'import os, sqlite3',
     "db = sqlite3.connect('/var/lib/pgadmin/pgadmin4.db')",
     'db.execute("PRAGMA busy_timeout = 5000")',
     'try:',
-    "    cursor = db.execute(\"UPDATE server SET host = ? WHERE host IN ('shadowcheck_postgres_local', 'shadowcheck_postgres', 'postgres')\", (os.environ['TARGET_HOST'],))",
+    "    cursor = db.execute(\"UPDATE server SET host = ? WHERE host != ? AND host IN ('host.containers.internal', '169.254.1.2', 'shadowcheck_postgres_local', 'shadowcheck_postgres', 'postgres', '127.0.0.1', 'localhost')\", (os.environ['TARGET_HOST'], os.environ['TARGET_HOST']))",
     'except sqlite3.OperationalError as error:',
     "    if 'no such table' not in str(error): raise",
     '    cursor = None',
@@ -214,17 +214,16 @@ const repairSavedServerHost = async () => {
 
 const ensureLocalDatabaseNetwork = async () => {
   if (!localMode) return;
-  await runCommand(
-    'docker',
-    ['network', 'connect', localDatabaseNetwork, containerName],
-    { allowFail: true }
-  );
+  await runCommand('docker', ['network', 'connect', localDatabaseNetwork, containerName], {
+    allowFail: true,
+  });
 };
 
 export {
   composeFile,
   composeFileExists,
   containerName,
+  databaseHost,
   dockerHost,
   enforceRestartPolicy,
   localMode,

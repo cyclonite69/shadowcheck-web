@@ -1,6 +1,7 @@
 // We'll use a shared object to control the mock behavior
 const mockState = {
   localMode: false,
+  databaseHost: '127.0.0.1',
   composeFileExists: jest.fn(),
   probePgAdminReachable: jest.fn(),
   removePgAdminContainer: jest.fn(),
@@ -17,6 +18,9 @@ jest.mock('../../../../server/src/services/pgadmin/runtime', () => {
     ...original,
     get localMode() {
       return mockState.localMode;
+    },
+    get databaseHost() {
+      return mockState.databaseHost;
     },
     get composeFileExists() {
       return mockState.composeFileExists;
@@ -63,6 +67,7 @@ describe('pgAdmin control', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockState.localMode = false;
+    mockState.databaseHost = '127.0.0.1';
     mockState.composeFileExists.mockResolvedValue(true);
     mockState.probePgAdminReachable.mockResolvedValue(false);
     mockState.removePgAdminContainer.mockResolvedValue(undefined);
@@ -173,6 +178,7 @@ describe('pgAdmin control', () => {
 
     it('should use docker run in local mode', async () => {
       mockState.localMode = true;
+      mockState.databaseHost = 'postgres';
       mockState.runCommand.mockRejectedValueOnce(new Error('not found')); // inspect fails
       mockState.runCommand.mockResolvedValue({ stdout: 'run success', stderr: '' });
 
@@ -180,7 +186,14 @@ describe('pgAdmin control', () => {
 
       expect(mockState.runCommand).toHaveBeenCalledWith(
         'docker',
-        expect.arrayContaining(['run', '-d', '--name', containerName])
+        expect.arrayContaining([
+          'run',
+          '-d',
+          '--name',
+          containerName,
+          '-e',
+          'PGADMIN_DEFAULT_SERVER_HOST=postgres',
+        ])
       );
       expect(result.composeFile).toBe('local-docker-run');
     });
