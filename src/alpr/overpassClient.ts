@@ -1,17 +1,26 @@
 /**
- * Overpass client: endpoint rotation, retry/backoff, ALPR-specific query.
+ * Overpass client: endpoint rotation, retry/backoff, ALPR-specific query,
+ * and bbox grid chunking with capped concurrency.
  * Public Overpass instances rate-limit per IP and will temp-ban abusive
- * clients — keep MIN_REQUEST_INTERVAL_MS conservative, concurrency 1.
+ * clients — keep MIN_REQUEST_INTERVAL_MS conservative, chunk concurrency ≤ 2.
  */
 
-const OVERPASS_ENDPOINTS = [
-  'https://overpass.kumi.systems/api/interpreter',
+import { subdivideBBox } from './regions';
+
+const DEFAULT_OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.nchc.org.tw/api/interpreter',
 ];
 
 const REQUEST_TIMEOUT_MS = 60_000;
 const MAX_ATTEMPTS = 4;
 const MIN_REQUEST_INTERVAL_MS = 5_000;
+const CHUNK_ROWS = 2;
+const CHUNK_COLS = 2;
+/** Hard cap on concurrent Overpass chunk requests (public mirror IP limits). */
+export const CHUNK_CONCURRENCY = 2;
 const USER_AGENT = 'ShadowCheck-ALPR-Sync/1.0 (local research use)';
 
 export interface Bbox {
@@ -37,13 +46,71 @@ interface OverpassResponse {
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 let lastRequestAt = 0;
+/** Serializes throttle so concurrent chunk workers cannot skip the inter-request gap. */
+let throttleTail: Promise<void> = Promise.resolve();
 
 async function throttle(): Promise<void> {
-  const elapsed = Date.now() - lastRequestAt;
-  if (elapsed < MIN_REQUEST_INTERVAL_MS) {
-    await sleep(MIN_REQUEST_INTERVAL_MS - elapsed);
+  const run = async (): Promise<void> => {
+    const elapsed = Date.now() - lastRequestAt;
+    if (elapsed < MIN_REQUEST_INTERVAL_MS) {
+      await sleep(MIN_REQUEST_INTERVAL_MS - elapsed);
+    }
+    lastRequestAt = Date.now();
+  };
+  const wait = throttleTail.then(run, run);
+  throttleTail = wait.catch(() => {});
+  await wait;
+}
+
+/**
+ * Resolve the Overpass endpoint pool.
+ * `OVERPASS_ENDPOINT` (when set and non-empty) replaces the failover array entirely.
+ */
+export function getOverpassEndpoints(): string[] {
+  const override = process.env.OVERPASS_ENDPOINT?.trim();
+  if (override) return [override];
+  return [...DEFAULT_OVERPASS_ENDPOINTS];
+}
+
+/**
+ * Run async work over `items` with at most `concurrency` in-flight tasks.
+ * Results preserve input order.
+ */
+export async function runWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function pump(): Promise<void> {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
   }
-  lastRequestAt = Date.now();
+
+  await Promise.all(Array.from({ length: limit }, () => pump()));
+  return results;
+}
+
+/**
+ * Keep first occurrence of each OSM element id (chunk-boundary duplicates).
+ * Matches `app.alpr_cameras.osm_id` primary key / upsert conflict target.
+ */
+export function dedupeElementsByOsmId(elements: OverpassElement[]): OverpassElement[] {
+  const seen = new Map<number, OverpassElement>();
+  for (const element of elements) {
+    if (!seen.has(element.id)) {
+      seen.set(element.id, element);
+    }
+  }
+  return [...seen.values()];
 }
 
 /**
@@ -143,12 +210,17 @@ async function requestOnce(endpoint: string, query: string): Promise<OverpassRes
   }
 }
 
-export async function fetchAlprElements(bbox: Bbox): Promise<OverpassElement[]> {
+/**
+ * Fetch one bbox chunk with endpoint rotation / exponential backoff.
+ * Does not further subdivide.
+ */
+export async function fetchAlprElementsSingleChunk(bbox: Bbox): Promise<OverpassElement[]> {
   const query = buildAlprQuery(bbox);
+  const endpoints = getOverpassEndpoints();
   let lastError: unknown;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const endpoint = OVERPASS_ENDPOINTS[attempt % OVERPASS_ENDPOINTS.length];
+    const endpoint = endpoints[attempt % endpoints.length];
     try {
       const payload = await requestOnce(endpoint, query);
       return payload.elements ?? [];
@@ -165,6 +237,38 @@ export async function fetchAlprElements(bbox: Bbox): Promise<OverpassElement[]> 
   throw lastError instanceof Error
     ? lastError
     : new Error('Overpass request failed after all retries');
+}
+
+export interface FetchAlprElementsOptions {
+  /** Override grid rows (default 2). */
+  rows?: number;
+  /** Override grid cols (default 2). */
+  cols?: number;
+  /** Cap concurrent chunk requests (clamped to ≤ {@link CHUNK_CONCURRENCY}). */
+  concurrency?: number;
+  /** Injectable chunk fetcher (tests); defaults to live Overpass single-chunk fetch. */
+  fetchChunk?: (bbox: Bbox) => Promise<OverpassElement[]>;
+}
+
+/**
+ * Fetch ALPR elements for a region by subdividing into a grid and querying
+ * chunks with concurrency ≤ {@link CHUNK_CONCURRENCY}. Boundary duplicates
+ * are removed by osm id before return.
+ */
+export async function fetchAlprElements(
+  bbox: Bbox,
+  options: FetchAlprElementsOptions = {}
+): Promise<OverpassElement[]> {
+  const rows = options.rows ?? CHUNK_ROWS;
+  const cols = options.cols ?? CHUNK_COLS;
+  const concurrency = Math.min(
+    CHUNK_CONCURRENCY,
+    Math.max(1, options.concurrency ?? CHUNK_CONCURRENCY)
+  );
+  const fetchChunk = options.fetchChunk ?? fetchAlprElementsSingleChunk;
+  const chunks = subdivideBBox(bbox, rows, cols);
+  const chunkResults = await runWithConcurrency(chunks, concurrency, (chunk) => fetchChunk(chunk));
+  return dedupeElementsByOsmId(chunkResults.flat());
 }
 
 export function elementsToRecords(

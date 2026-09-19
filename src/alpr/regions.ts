@@ -12,6 +12,46 @@ export interface AlprRegion {
   bbox: [number, number, number, number];
 }
 
+/** Axis-aligned bbox as west/south/east/north (matches Overpass client). */
+export interface BBoxWsen {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+/**
+ * Subdivide a bounding box into a uniform grid of smaller boxes.
+ * Chunks share edges (closed on both sides) so Overpass boundary hits
+ * may duplicate — callers must dedupe by osm id after merge.
+ *
+ * @param bbox - Parent west/south/east/north box
+ * @param rows - Latitude subdivisions (default 2)
+ * @param cols - Longitude subdivisions (default 2)
+ */
+export function subdivideBBox(bbox: BBoxWsen, rows = 2, cols = 2): BBoxWsen[] {
+  if (!Number.isInteger(rows) || !Number.isInteger(cols) || rows < 1 || cols < 1) {
+    throw new Error('subdivideBBox: rows and cols must be integers >= 1');
+  }
+
+  const latStep = (bbox.north - bbox.south) / rows;
+  const lonStep = (bbox.east - bbox.west) / cols;
+  const chunks: BBoxWsen[] = [];
+
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      chunks.push({
+        south: bbox.south + r * latStep,
+        north: bbox.south + (r + 1) * latStep,
+        west: bbox.west + c * lonStep,
+        east: bbox.west + (c + 1) * lonStep,
+      });
+    }
+  }
+
+  return chunks;
+}
+
 export const ALPR_REGIONS: AlprRegion[] = [
   { id: 'nyc', label: 'New York City Metro', state: 'NY', bbox: [-74.3, 40.5, -73.65, 41.0] },
   { id: 'la', label: 'Los Angeles Metro', state: 'CA', bbox: [-118.9, 33.6, -117.6, 34.4] },
