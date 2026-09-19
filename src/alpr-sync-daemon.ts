@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Pool } from 'pg';
 
 const OVERPASS_ENDPOINTS = [
-  'https://kumi.systems/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
   'https://overpass-api.de/api/interpreter',
 ];
 
@@ -144,17 +144,20 @@ const buildOverpassQuery = (bbox: BBox): string => {
   `;
 };
 
-const fetchJson = async <T>(url: string, timeoutMs: number): Promise<T> => {
+const fetchJson = async <T>(url: string, query: string, timeoutMs: number): Promise<T> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'POST',
       redirect: 'follow',
       headers: {
         Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'ShadowCheck-Web/1.0 (local ALPR synchronization daemon)',
       },
+      body: `data=${encodeURIComponent(query)}`,
       signal: controller.signal,
     });
 
@@ -184,7 +187,28 @@ const isRetryableError = (error: unknown): boolean => {
 
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    return message.includes('timeout') || message.includes('429') || message.includes('rate limit');
+    const errorWithCause = error as Error & {
+      cause?: unknown;
+      code?: unknown;
+    };
+    const cause =
+      errorWithCause.cause && typeof errorWithCause.cause === 'object'
+        ? (errorWithCause.cause as { code?: unknown })
+        : undefined;
+    const code =
+      typeof cause?.code === 'string'
+        ? cause.code
+        : typeof errorWithCause.code === 'string'
+          ? errorWithCause.code
+          : undefined;
+
+    return (
+      error.name === 'AbortError' ||
+      code === 'ECONNREFUSED' ||
+      message.includes('timeout') ||
+      message.includes('429') ||
+      message.includes('rate limit')
+    );
   }
 
   return false;
@@ -196,10 +220,8 @@ const fetchOverpassForBBox = async (bbox: BBox): Promise<CameraRecord[]> => {
 
   for (let attempt = 0; attempt < DEFAULT_RETRY_LIMIT; attempt += 1) {
     for (const endpoint of endpoints) {
-      const url = `${endpoint}?data=${encodeURIComponent(query)}`;
-
       try {
-        const payload = await fetchJson<OverpassResponse>(url, DEFAULT_TIMEOUT_MS);
+        const payload = await fetchJson<OverpassResponse>(endpoint, query, DEFAULT_TIMEOUT_MS);
         const elements = payload.elements ?? [];
 
         const records: CameraRecord[] = [];
@@ -321,7 +343,11 @@ const refreshCameraTable = async (pool: Pool, records: CameraRecord[]): Promise<
 
 const syncAll = async (pool: Pool, bboxList: BBox[]): Promise<number> => {
   const recordsByOsmId = new Map<number, CameraRecord>();
-  for (const bbox of bboxList) {
+  for (const [index, bbox] of bboxList.entries()) {
+    if (index > 0) {
+      await sleep(5000);
+    }
+
     const records = await fetchOverpassForBBox(bbox);
     for (const record of records) {
       recordsByOsmId.set(record.osmId, record);
