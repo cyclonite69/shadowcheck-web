@@ -1,0 +1,21 @@
+[Unit]
+Description=ShadowCheck ALPR camera sync daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/shadowcheck-web
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/shadowcheck/alpr-sync.env
+ExecStart=/usr/bin/env node /opt/shadowcheck-web/dist/alpr/src/alpr-sync-daemon.js --once
+Restart=no
+User=shadowcheck
+Group=shadowcheck
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

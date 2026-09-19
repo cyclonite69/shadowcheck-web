@@ -7,7 +7,7 @@
     "sourceMap": false,
     "types": ["node"]
   },
-  "include": ["server/**/*", "etl/**/*"],
+  "include": ["server/**/*", "etl/**/*", "src/**/*"],
   "exclude": [
     "node_modules",
     "dist",

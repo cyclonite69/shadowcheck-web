@@ -17,6 +17,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["server/**/*", "scripts/**/*", "etl/**/*"],
+  "include": ["server/**/*", "scripts/**/*", "etl/**/*", "src/**/*"],
   "exclude": ["node_modules", "dist", "client", ".claude"]
 }

@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-15)
+# 1.0.0 (2026-09-19)
 
 ### Bug Fixes
 
@@ -212,7 +212,8 @@
 - **db:** repair sibling pipeline legacy schema and overrides bootstrap ([01e5470](https://github.com/cyclonite69/shadowcheck-web/commit/01e5470ccc78ca8e9df93531ccc32c3df434be56))
 - default to shadowcheck-sso profile in launch-shadowcheck-spot.sh ([c5ee70c](https://github.com/cyclonite69/shadowcheck-web/commit/c5ee70ceb64c3f535bac6ae9acdcceca919e3c8d))
 - defer container destructuring in wigleEnrichmentFetcher to call time ([e788283](https://github.com/cyclonite69/shadowcheck-web/commit/e788283224b58f12c7b25f7e0bcca8e46efa509c))
-- **deflock:** harden rich metadata import semantics ([5acb5d0](https://github.com/cyclonite69/shadowcheck-web/commit/5acb5d08be63fc3c7994e5ebd3b6ac4dfb5bef5c))
+- **deflock:** harden rich metadata import semantics ([b301a75](https://github.com/cyclonite69/shadowcheck-web/commit/b301a75f784d3bed6b84bf730509ede603946b11))
+- **deflock:** improve popup location fallback ([2fa89a6](https://github.com/cyclonite69/shadowcheck-web/commit/2fa89a65504949bfd0846ecbe1916dcaa7fbfe5d))
 - **deploy:** add DB_ADMIN_USER to backend env so entrypoint migrations use shadowcheck_admin ([be01e1b](https://github.com/cyclonite69/shadowcheck-web/commit/be01e1bfa12fd0ecbcdde6ca3f9d1e21d0acda62))
 - **deploy:** align public health checks ([698dec0](https://github.com/cyclonite69/shadowcheck-web/commit/698dec0fe66c7a048b05be494c820bb28afb0585))
 - **deploy:** copy scripts directory to backend production image ([3e15909](https://github.com/cyclonite69/shadowcheck-web/commit/3e15909c5082eda5fb1f65c3f1e012a2873c79ab))
@@ -346,6 +347,7 @@
 - **geocoding:** fix MV join to use precision-4 observation coords ([d12d7e5](https://github.com/cyclonite69/shadowcheck-web/commit/d12d7e5b3d2b1ab3735df9c459fafb9b244aa291))
 - **geocoding:** fix pending queue stat and add multi-precision idle sweep ([11d504d](https://github.com/cyclonite69/shadowcheck-web/commit/11d504d8a5065f888054d251c47588840c7fce88))
 - **geocoding:** fix silent failures, dead confidence logic, and provider priority ([ceb3d60](https://github.com/cyclonite69/shadowcheck-web/commit/ceb3d60490e487c31d00425e20694a8a045435f2))
+- **geocoding:** implement upsertGeocodeCacheBatch persistence ([2825420](https://github.com/cyclonite69/shadowcheck-web/commit/282542064dce51bc33abb66a2e1811594cb83222))
 - **geocoding:** load live stats on mount, remove stale cache behavior ([eb3cc7a](https://github.com/cyclonite69/shadowcheck-web/commit/eb3cc7a633e53133d9050823525e08ce76b94b65))
 - **geocoding:** pass run options and surface mapbox errors ([8837a7b](https://github.com/cyclonite69/shadowcheck-web/commit/8837a7be7a20298ac1014bfc1d2975f0b691d25e))
 - **geocoding:** qualify unresolved_observations predicate with table alias ([8eae140](https://github.com/cyclonite69/shadowcheck-web/commit/8eae140bb226e991d30cb0452f751a42e63a9c30))
@@ -1136,6 +1138,7 @@
 - **admin:** simplify job scheduling ui ([b0ce3ff](https://github.com/cyclonite69/shadowcheck-web/commit/b0ce3ffc09fcab8bb93706fdc935264d292ed5e8))
 - **admin:** V3 enrichment table tooltip moves to sticky side panel ([0978e70](https://github.com/cyclonite69/shadowcheck-web/commit/0978e70bad38f9df8dccc3c3ed2da432c5d0c49c))
 - align database stats and optimize sibling detection ([cf1bdb2](https://github.com/cyclonite69/shadowcheck-web/commit/cf1bdb2606368383317564a308839c0a22a04272))
+- **alpr:** implement overpass sync daemon and postgis schema ([46c9a6f](https://github.com/cyclonite69/shadowcheck-web/commit/46c9a6f0415341b22e5d0166b6f3c9312fd7a3fa))
 - analytics.html uses base-components - ALL PAGES UNIFIED ([bf5fcc1](https://github.com/cyclonite69/shadowcheck-web/commit/bf5fcc158438aea2175f0087700e9384029146b8))
 - anchor point system for device location verification ([d950d73](https://github.com/cyclonite69/shadowcheck-web/commit/d950d73b5f1c27101e9bb1ae2127326badcdeb0b))
 - **api:** add GET/POST/PATCH/DELETE /api/networks/:bssid/notes endpoint ([5bbfb39](https://github.com/cyclonite69/shadowcheck-web/commit/5bbfb39616891468316a1e6f7d6bafd1b3c8ff3d))
