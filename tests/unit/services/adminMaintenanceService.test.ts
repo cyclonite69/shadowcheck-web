@@ -2,7 +2,7 @@
  * AdminMaintenanceService Unit Tests
  */
 
-import { adminQuery } from '../../../server/src/services/adminDbService';
+import { adminQuery, getAdminPool } from '../../../server/src/services/adminDbService';
 import { query } from '../../../server/src/config/database';
 import {
   getDuplicateObservationStats,
@@ -125,17 +125,46 @@ describe('AdminMaintenanceService', () => {
   });
 
   describe('truncateAllData', () => {
-    it('should truncate observations and networks tables', async () => {
+    it('should preserve the VISINT_UNMATCHED sentinel while clearing other networks', async () => {
+      const client = {
+        query: jest.fn().mockResolvedValue({}),
+        release: jest.fn(),
+      };
+      (getAdminPool as jest.Mock).mockReturnValue({
+        connect: jest.fn().mockResolvedValue(client),
+      });
+
       await truncateAllData();
 
-      expect(adminQuery).toHaveBeenCalledTimes(2);
-      expect(adminQuery).toHaveBeenNthCalledWith(1, 'TRUNCATE TABLE app.observations CASCADE');
-      expect(adminQuery).toHaveBeenNthCalledWith(2, 'TRUNCATE TABLE app.networks CASCADE');
+      expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+      expect(client.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('DELETE FROM app.observations')
+      );
+      expect(client.query).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining('DELETE FROM app.ssid_history')
+      );
+      expect(client.query).toHaveBeenNthCalledWith(
+        4,
+        expect.stringContaining('DELETE FROM app.networks')
+      );
+      expect(client.query).toHaveBeenNthCalledWith(5, 'COMMIT');
+      expect(client.release).toHaveBeenCalledTimes(1);
     });
 
     it('should propagate database error', async () => {
-      (adminQuery as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
+      const client = {
+        query: jest.fn().mockRejectedValueOnce(new Error('DB Error')),
+        release: jest.fn(),
+      };
+      (getAdminPool as jest.Mock).mockReturnValue({
+        connect: jest.fn().mockResolvedValue(client),
+      });
+
       await expect(truncateAllData()).rejects.toThrow('DB Error');
+      expect(client.query).toHaveBeenNthCalledWith(2, 'ROLLBACK');
+      expect(client.release).toHaveBeenCalledTimes(1);
     });
   });
 });

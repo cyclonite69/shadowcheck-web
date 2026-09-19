@@ -1,4 +1,4 @@
-import { adminQuery } from './adminDbService';
+import { adminQuery, getAdminPool } from './adminDbService';
 import { query } from '../config/database';
 import logger from '../logging/logger';
 
@@ -56,9 +56,43 @@ export async function refreshColocationView(_minValidTimestamp?: number): Promis
 }
 
 /**
- * Truncate all data (dangerous admin operation)
+ * Delete non-sentinel network data (dangerous admin operation).
+ * Keep sentinel networks and their dependent rows alive so fallback associations remain valid.
  */
 export async function truncateAllData(): Promise<void> {
-  await adminQuery('TRUNCATE TABLE app.observations CASCADE');
-  await adminQuery('TRUNCATE TABLE app.networks CASCADE');
+  const pool = getAdminPool();
+  if (!pool) {
+    throw new Error('Admin database pool not initialized (check DB_ADMIN_PASSWORD)');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`
+      DELETE FROM app.observations
+      WHERE bssid IN (
+        SELECT bssid
+        FROM app.networks
+        WHERE COALESCE(is_sentinel, false) IS NOT TRUE
+      )
+    `);
+    await client.query(`
+      DELETE FROM app.ssid_history
+      WHERE bssid IN (
+        SELECT bssid
+        FROM app.networks
+        WHERE COALESCE(is_sentinel, false) IS NOT TRUE
+      )
+    `);
+    await client.query(`
+      DELETE FROM app.networks
+      WHERE COALESCE(is_sentinel, false) IS NOT TRUE
+    `);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
