@@ -1,21 +1,18 @@
 import request from 'supertest';
 import express from 'express';
 
-const mockSyncAlprRegion = jest.fn();
+const mockDispatchRegionSync = jest.fn();
+const mockGetSyncStatus = jest.fn();
 
 jest.mock('../../../../../../server/src/services/admin/alprSyncService', () => {
   const actual = jest.requireActual('../../../../../../server/src/services/admin/alprSyncService');
   return {
     ...actual,
-    syncAlprRegion: mockSyncAlprRegion,
-  };
-});
-
-jest.mock('../../../../../../server/src/config/database', () => {
-  const actual = jest.requireActual('../../../../../../server/src/config/database');
-  return {
-    ...actual,
-    longRunningPool: {},
+    alprSyncService: {
+      ...actual.alprSyncService,
+      dispatchRegionSync: mockDispatchRegionSync,
+      getSyncStatus: mockGetSyncStatus,
+    },
   };
 });
 
@@ -78,35 +75,35 @@ describe('ALPR Routes Real Router Mounting & Authentication Contract', () => {
     mockUser = null;
   });
 
-  describe('Authentication Gates on /api/admin/alpr/*', () => {
-    it('rejects unauthenticated requests to GET /api/admin/alpr/regions with 401', async () => {
+  describe('Authentication Gates on /api/v1/admin/alpr/*', () => {
+    it('rejects unauthenticated requests to GET /api/v1/admin/alpr/regions with 401', async () => {
       mockUser = null;
-      const res = await request(app).get('/api/admin/alpr/regions');
+      const res = await request(app).get('/api/v1/admin/alpr/regions');
       expect(res.status).toBe(401);
       expect(res.body.error).toBe('Authentication required');
     });
 
-    it('rejects non-admin requests to GET /api/admin/alpr/regions with 403', async () => {
+    it('rejects non-admin requests to GET /api/v1/admin/alpr/regions with 403', async () => {
       mockUser = { username: 'analyst', role: 'user' };
-      const res = await request(app).get('/api/admin/alpr/regions');
+      const res = await request(app).get('/api/v1/admin/alpr/regions');
       expect(res.status).toBe(403);
       expect(res.body.error).toBe('Admin privileges required');
     });
 
-    it('rejects unauthenticated requests to POST /api/admin/alpr/sync with 401', async () => {
+    it('rejects unauthenticated requests to POST /api/v1/admin/alpr/sync with 401', async () => {
       mockUser = null;
-      const res = await request(app).post('/api/admin/alpr/sync').send({ region: 'seattle' });
+      const res = await request(app).post('/api/v1/admin/alpr/sync').send({ regionId: 'seattle' });
       expect(res.status).toBe(401);
     });
   });
 
-  describe('Mounted Router Execution on /api/admin/alpr/*', () => {
+  describe('Mounted Router Execution on /api/v1/admin/alpr/*', () => {
     beforeEach(() => {
       mockUser = { username: 'admin', role: 'admin' };
     });
 
-    it('successfully routes GET /api/admin/alpr/regions through real admin router', async () => {
-      const res = await request(app).get('/api/admin/alpr/regions');
+    it('successfully routes GET /api/v1/admin/alpr/regions through real admin router', async () => {
+      const res = await request(app).get('/api/v1/admin/alpr/regions');
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(Array.isArray(res.body.regions)).toBe(true);
@@ -114,38 +111,34 @@ describe('ALPR Routes Real Router Mounting & Authentication Contract', () => {
       expect(res.body.regions.some((r: any) => r.id === 'seattle')).toBe(true);
     });
 
-    it('successfully routes POST /api/admin/alpr/sync through real admin router to service', async () => {
-      const mockResult = {
+    it('successfully routes POST /api/v1/admin/alpr/sync through real admin router to service', async () => {
+      mockDispatchRegionSync.mockReturnValue({
+        jobId: 'job-1',
         regionId: 'seattle',
-        regionLabel: 'Seattle',
-        upsertedCount: 120,
-        prunedCount: 0,
-        candidateCount: 120,
-        durationMs: 450,
-      };
-      mockSyncAlprRegion.mockResolvedValue(mockResult);
+        status: 'dispatched',
+      });
 
       const res = await request(app)
-        .post('/api/admin/alpr/sync')
-        .send({ region: 'seattle', prune: false });
+        .post('/api/v1/admin/alpr/sync')
+        .send({ regionId: 'seattle', prune: false });
 
-      expect(res.status).toBe(200);
-      expect(res.body.ok).toBe(true);
-      expect(res.body.upserts).toBe(120);
-      expect(res.body.result).toEqual(mockResult);
-      expect(mockSyncAlprRegion).toHaveBeenCalledWith(expect.anything(), 'seattle', false);
+      expect(res.status).toBe(202);
+      expect(res.body.success).toBe(true);
+      expect(res.body.status).toBe('dispatched');
+      expect(mockDispatchRegionSync).toHaveBeenCalledWith('seattle', false);
     });
 
     it('returns 409 when concurrent ALPR sync is active', async () => {
-      mockSyncAlprRegion.mockRejectedValue(
-        new Error('ALPR synchronization is already in progress')
-      );
+      mockDispatchRegionSync.mockReturnValue({
+        jobId: 'existing-job',
+        regionId: 'seattle',
+        status: 'already_running',
+      });
 
-      const res = await request(app).post('/api/admin/alpr/sync').send({ region: 'seattle' });
+      const res = await request(app).post('/api/v1/admin/alpr/sync').send({ regionId: 'seattle' });
 
       expect(res.status).toBe(409);
-      expect(res.body.ok).toBe(false);
-      expect(res.body.error).toBe('ALPR synchronization is already in progress');
+      expect(res.body.status).toBe('already_running');
     });
 
     it('rejects old /api/alpr/* non-admin paths with 404', async () => {

@@ -2,39 +2,37 @@
  * Admin ALPR Sync Routes
  *
  * Canonical Admin Endpoints:
- *   GET  /api/admin/alpr/regions - List curated US metro regions for ALPR sync
- *   POST /api/admin/alpr/sync    - Trigger in-process Overpass sync for a region
+ *   GET  /api/v1/admin/alpr/regions - List curated US metro regions for ALPR sync
+ *   POST /api/v1/admin/alpr/sync    - Dispatch an asynchronous region sync
+ *   GET  /api/v1/admin/alpr/sync/status - Get sync job status
  *
  * Protected by parent admin router's `requireAdmin` middleware.
  */
 
 const express = require('express');
 const logger = require('../../../../logging/logger');
-const { longRunningPool } = require('../../../../config/database');
-import { syncAlprRegion, ALPR_REGIONS } from '../../../../services/admin/alprSyncService';
+import { alprSyncService, ALPR_REGIONS } from '../../../../services/admin/alprSyncService';
 
 const router = express.Router();
 
 /**
- * POST /admin/alpr/sync
+ * POST /v1/admin/alpr/sync
  *
- * Canonical body: { region: string, prune?: boolean }
+ * Canonical body: { regionId: string, prune?: boolean }
  *
  * Status codes:
- *   200 - Sync completed successfully
+ *   202 - Sync dispatched
  *   400 - Missing or invalid region ID
  *   409 - Sync already in progress (advisory lock held)
- *   502 - Overpass API network/gateway error
- *   500 - Unexpected database or server error
  */
-router.post('/admin/alpr/sync', async (req: any, res: any) => {
-  const region = req.body?.region;
+router.post('/v1/admin/alpr/sync', async (req: any, res: any) => {
+  const region = req.body?.regionId;
   const prune = req.body?.prune ?? false;
 
   if (!region || typeof region !== 'string') {
     return res.status(400).json({
       ok: false,
-      error: 'Region identifier is required',
+      error: 'regionId is required',
     });
   }
   if (typeof prune !== 'boolean') {
@@ -44,60 +42,46 @@ router.post('/admin/alpr/sync', async (req: any, res: any) => {
     });
   }
 
-  logger.info(`[ALPR Sync] Starting sync for region '${region}'`, { prune });
-
   try {
-    const result = await syncAlprRegion(longRunningPool, region, Boolean(prune));
-
-    logger.info(`[ALPR Sync] Completed '${region}'`, {
-      upserted: result.upsertedCount,
-      pruned: result.prunedCount,
-      durationMs: result.durationMs,
-    });
-
-    return res.json({
-      ok: true,
-      upserts: result.upsertedCount,
-      result,
-    });
+    const dispatch = alprSyncService.dispatchRegionSync(region, prune);
+    if (dispatch.status === 'already_running') {
+      return res.status(409).json({ success: false, ...dispatch });
+    }
+    return res.status(202).json({ success: true, ...dispatch });
   } catch (err: any) {
     const msg: string = err?.message ?? 'Unknown error';
 
     if (msg.startsWith('Unknown ALPR region id')) {
       return res.status(400).json({
-        ok: false,
+        success: false,
         error: msg,
       });
     }
-
-    if (msg === 'ALPR synchronization is already in progress') {
-      return res.status(409).json({
-        ok: false,
-        error: msg,
-      });
-    }
-
-    const isNetworkError =
-      msg.includes('fetch') ||
-      msg.includes('ECONNREFUSED') ||
-      msg.includes('ETIMEDOUT') ||
-      msg.includes('HTTP') ||
-      msg.includes('Overpass');
-
-    logger.error(`[ALPR Sync] Failed for region '${region}'`, { error: msg });
-    return res.status(isNetworkError ? 502 : 500).json({
-      ok: false,
-      error: msg,
-    });
+    logger.error(`[ALPR Sync] Dispatch failed for region '${region}'`, { error: msg });
+    return res.status(500).json({ success: false, error: msg });
   }
 });
 
 /**
- * GET /admin/alpr/regions
+ * GET /v1/admin/alpr/sync/status
+ */
+router.get('/v1/admin/alpr/sync/status', (req: any, res: any) => {
+  const regionId = req.query?.regionId;
+  if (regionId !== undefined && typeof regionId !== 'string') {
+    return res.status(400).json({ success: false, error: 'regionId must be a string' });
+  }
+  return res.json({
+    success: true,
+    jobs: alprSyncService.getSyncStatus(regionId),
+  });
+});
+
+/**
+ * GET /v1/admin/alpr/regions
  *
  * Returns curated list of 30 metro regions with bounding boxes.
  */
-router.get('/admin/alpr/regions', (_req: any, res: any) => {
+router.get('/v1/admin/alpr/regions', (_req: any, res: any) => {
   const regions = ALPR_REGIONS.map((r) => ({
     id: r.id,
     name: r.label,

@@ -2406,7 +2406,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   {
     category: 'ALPR Sync',
     label: 'ALPR Region List',
-    path: '/api/admin/alpr/regions',
+    path: '/api/v1/admin/alpr/regions',
     method: 'GET',
     requiresAuth: true,
     description: 'Returns all 30 known ALPR metro region ids, labels, and state codes.',
@@ -2414,13 +2414,22 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   {
     category: 'ALPR Sync',
     label: 'Trigger ALPR Sync',
-    path: '/api/admin/alpr/sync',
+    path: '/api/v1/admin/alpr/sync',
     method: 'POST',
     requiresAuth: true,
     description:
       'Triggers an in-process Overpass API sync for the specified region and upserts results into app.alpr_cameras.',
-    defaultBody: '{\n  "region": "seattle",\n  "prune": false\n}',
+    defaultBody: '{\n  "regionId": "seattle",\n  "prune": false\n}',
     manualOnly: true,
+  },
+  {
+    category: 'ALPR Sync',
+    label: 'ALPR Sync Status',
+    path: '/api/v1/admin/alpr/sync/status',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'regionId', label: 'Region ID', placeholder: 'seattle' }],
+    description: 'Returns active and recent asynchronous ALPR sync jobs.',
   },
 
   // ── Sibling Detection ──────────────────────────────────────────────────────

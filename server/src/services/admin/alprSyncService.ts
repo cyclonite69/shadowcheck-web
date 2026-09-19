@@ -17,6 +17,7 @@
  */
 
 import { Pool, PoolClient } from 'pg';
+import { randomUUID } from 'crypto';
 import { findRegion, ALPR_REGIONS } from '../../../../src/alpr/regions';
 import {
   fetchAlprElements,
@@ -31,6 +32,8 @@ import {
   upsertAlprBatch,
 } from '../../../../src/alpr/alprSync';
 
+const logger = require('../../logging/logger');
+
 export { ALPR_REGIONS };
 export { ALPR_SYNC_LOCK_KEY };
 
@@ -41,6 +44,52 @@ export interface AlprSyncResult {
   prunedCount: number;
   candidateCount: number;
   durationMs: number;
+}
+
+export type SyncJobStatus = 'dispatched' | 'running' | 'completed' | 'failed';
+
+export interface SyncJobState {
+  jobId: string;
+  regionId: string;
+  status: SyncJobStatus;
+  startTime: string;
+  endTime?: string;
+  error?: string;
+  result?: AlprSyncResult;
+}
+
+export type SyncDispatchResult =
+  | { jobId: string; regionId: string; status: 'dispatched' }
+  | { jobId: string; regionId: string; status: 'already_running' };
+
+const JOB_TTL_MS = 15 * 60 * 1000;
+const syncJobs = new Map<string, SyncJobState>();
+
+function purgeExpiredJobs(now = Date.now()): void {
+  for (const [jobId, job] of syncJobs) {
+    if (
+      (job.status === 'completed' || job.status === 'failed') &&
+      now - Date.parse(job.endTime ?? job.startTime) >= JOB_TTL_MS
+    ) {
+      syncJobs.delete(jobId);
+    }
+  }
+}
+
+function findRunningJob(regionId: string): SyncJobState | undefined {
+  for (const job of syncJobs.values()) {
+    if (job.regionId === regionId && (job.status === 'dispatched' || job.status === 'running')) {
+      return job;
+    }
+  }
+  return undefined;
+}
+
+export function getSyncStatus(regionId?: string): SyncJobState[] {
+  purgeExpiredJobs();
+  return [...syncJobs.values()]
+    .filter((job) => !regionId || job.regionId === regionId)
+    .sort((a, b) => Date.parse(b.startTime) - Date.parse(a.startTime));
 }
 
 /**
@@ -112,6 +161,55 @@ export async function syncAlprRegion(
   }
 }
 
+export async function runAlprSync(regionId: string, prune = false): Promise<AlprSyncResult> {
+  const { getLongRunningAdminPool } = require('../adminDbService');
+  const adminPool = getLongRunningAdminPool();
+  if (!adminPool) {
+    throw new Error('Long-running admin database pool not initialized (check DB_ADMIN_PASSWORD)');
+  }
+  return syncAlprRegion(adminPool, regionId, prune);
+}
+
+export function dispatchRegionSync(regionId: string, prune = false): SyncDispatchResult {
+  purgeExpiredJobs();
+  if (!findRegion(regionId)) {
+    throw new Error(`Unknown ALPR region id: '${regionId}'`);
+  }
+
+  const active = findRunningJob(regionId);
+  if (active) {
+    return { jobId: active.jobId, regionId, status: 'already_running' };
+  }
+
+  const job: SyncJobState = {
+    jobId: randomUUID(),
+    regionId,
+    status: 'running',
+    startTime: new Date().toISOString(),
+  };
+  syncJobs.set(job.jobId, job);
+
+  void Promise.resolve()
+    .then(() => runAlprSync(regionId, prune))
+    .then((result) => {
+      job.status = 'completed';
+      job.endTime = new Date().toISOString();
+      job.result = result;
+    })
+    .catch((error: unknown) => {
+      job.status = 'failed';
+      job.endTime = new Date().toISOString();
+      job.error = error instanceof Error ? error.message : String(error);
+      logger.error('ALPR background sync failed', {
+        jobId: job.jobId,
+        regionId,
+        error: job.error,
+      });
+    });
+
+  return { jobId: job.jobId, regionId, status: 'dispatched' };
+}
+
 export const alprSyncService = {
   getRegions: async () =>
     ALPR_REGIONS.map((r) => ({
@@ -122,8 +220,10 @@ export const alprSyncService = {
       bbox: r.bbox,
     })),
   syncRegion: async ({ region, prune = false }: { region: string; prune?: boolean }) => {
-    const { longRunningPool } = require('../../config/database');
-    return syncAlprRegion(longRunningPool, region, prune);
+    return runAlprSync(region, prune);
   },
+  dispatchRegionSync,
+  getSyncStatus,
+  runAlprSync,
   syncAlprRegion,
 };

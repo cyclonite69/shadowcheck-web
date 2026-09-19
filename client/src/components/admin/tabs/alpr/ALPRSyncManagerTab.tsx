@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Database, CheckCircle, AlertTriangle, Globe, Terminal } from 'lucide-react';
 
 interface AlprRegion {
@@ -18,14 +18,30 @@ interface SyncResult {
   durationMs: number;
 }
 
+type SyncStatus = 'dispatched' | 'running' | 'completed' | 'failed';
+
+interface SyncJob {
+  jobId: string;
+  regionId: string;
+  status: SyncStatus;
+  startTime: string;
+  endTime?: string;
+  error?: string;
+  result?: SyncResult;
+}
+
 export function AlprSyncTab() {
   const [regions, setRegions] = useState<AlprRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [pruneStale, setPruneStale] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const appendLog = (msg: string) => {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
@@ -33,12 +49,18 @@ export function AlprSyncTab() {
   };
 
   useEffect(() => {
-    fetchRegions();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    void fetchRegions(controller.signal);
+    return () => {
+      controller.abort();
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
   }, []);
 
-  const fetchRegions = async () => {
+  const fetchRegions = async (signal: AbortSignal) => {
     try {
-      const res = await fetch('/api/admin/alpr/regions');
+      const res = await fetch('/api/v1/admin/alpr/regions', { signal });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error || `Failed to load regions: ${res.statusText}`);
@@ -51,10 +73,59 @@ export function AlprSyncTab() {
       }
       appendLog(`Loaded ${regionList.length} ALPR sync regions.`);
     } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       setError(err.message);
       appendLog(`Error loading regions: ${err.message}`);
     }
   };
+
+  const pollStatus = async (regionId: string, signal: AbortSignal) => {
+    const res = await fetch(
+      `/api/v1/admin/alpr/sync/status?regionId=${encodeURIComponent(regionId)}`,
+      { signal }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Status check failed with status ${res.status}`);
+
+    const job = (data.jobs as SyncJob[]).find((candidate) => candidate.jobId === activeJobId) as
+      | SyncJob
+      | undefined;
+    if (!job) return;
+
+    setSyncStatus(job.status);
+    if (job.status === 'running') {
+      appendLog(`Sync ${job.jobId} is running.`);
+    } else if (job.status === 'completed') {
+      setSyncResult(job.result ?? null);
+      setLoading(false);
+      appendLog(`Sync ${job.jobId} completed.`);
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    } else if (job.status === 'failed') {
+      setError(job.error || 'ALPR sync failed.');
+      setLoading(false);
+      appendLog(`Sync ${job.jobId} failed: ${job.error || 'unknown error'}`);
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeJobId || !selectedRegion || !loading) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const runPoll = () => {
+      void pollStatus(selectedRegion, controller.signal).catch((err: any) => {
+        if (err?.name === 'AbortError') return;
+        setError(err.message);
+        setLoading(false);
+        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      });
+    };
+    pollTimerRef.current = setInterval(runPoll, 3000);
+    return () => {
+      controller.abort();
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, [activeJobId, selectedRegion, loading]);
 
   const handleSync = async () => {
     if (!selectedRegion) {
@@ -65,13 +136,19 @@ export function AlprSyncTab() {
     setLoading(true);
     setError(null);
     setSyncResult(null);
+    setSyncStatus('dispatched');
+    setActiveJobId(null);
     appendLog(`Initiating ALPR sync for region: ${selectedRegion} (Prune: ${pruneStale})`);
 
     try {
-      const res = await fetch('/api/admin/alpr/sync', {
+      const controller = new AbortController();
+      abortRef.current?.abort();
+      abortRef.current = controller;
+      const res = await fetch('/api/v1/admin/alpr/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ region: selectedRegion, prune: pruneStale }),
+        body: JSON.stringify({ regionId: selectedRegion, prune: pruneStale }),
+        signal: controller.signal,
       });
 
       const data = await res.json().catch(() => ({}));
@@ -79,16 +156,13 @@ export function AlprSyncTab() {
         throw new Error(data.error || `Sync failed with status ${res.status}`);
       }
 
-      const result: SyncResult = data.result;
-      setSyncResult(result);
-      appendLog(
-        `Sync completed: ${result.upsertedCount} of ${result.candidateCount} upserted, ${result.prunedCount} pruned in ${result.durationMs}ms.`
-      );
+      setActiveJobId(data.jobId);
+      appendLog(`Sync ${data.jobId} dispatched; polling for completion.`);
     } catch (err: any) {
+      if (err?.name === 'AbortError') return;
+      setLoading(false);
       setError(err.message);
       appendLog(`Sync error: ${err.message}`);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -114,7 +188,11 @@ export function AlprSyncTab() {
           className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-cyan-950/50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Synchronizing...' : 'Execute Sync'}
+          {loading
+            ? syncStatus === 'dispatched'
+              ? 'Dispatched...'
+              : 'Synchronizing...'
+            : 'Execute Sync'}
         </button>
       </div>
 
@@ -142,6 +220,7 @@ export function AlprSyncTab() {
                 <select
                   value={selectedRegion}
                   onChange={(e) => setSelectedRegion(e.target.value)}
+                  disabled={loading}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
                 >
                   {regions.map((reg) => {
@@ -225,7 +304,9 @@ export function AlprSyncTab() {
           <div className="mt-4 text-[11px] text-slate-500">
             {syncResult
               ? `Region: ${syncResult.regionLabel} (${syncResult.regionId})`
-              : 'Awaiting synchronization run...'}
+              : syncStatus
+                ? `Status: ${syncStatus}`
+                : 'Awaiting synchronization run...'}
           </div>
         </div>
 

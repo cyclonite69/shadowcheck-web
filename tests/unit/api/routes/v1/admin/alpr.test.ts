@@ -1,10 +1,14 @@
 import express from 'express';
 import request from 'supertest';
 
-const mockSyncAlprRegion = jest.fn();
+const mockDispatchRegionSync = jest.fn();
+const mockGetSyncStatus = jest.fn();
 
 jest.mock('../../../../../../server/src/services/admin/alprSyncService', () => ({
-  syncAlprRegion: mockSyncAlprRegion,
+  alprSyncService: {
+    dispatchRegionSync: mockDispatchRegionSync,
+    getSyncStatus: mockGetSyncStatus,
+  },
   ALPR_REGIONS: [
     { id: 'seattle', label: 'Seattle', state: 'WA', bbox: [-122.6, 47.3, -121.9, 47.8] },
     { id: 'denver', label: 'Denver', state: 'CO', bbox: [-105.3, 39.5, -104.6, 40.0] },
@@ -18,10 +22,6 @@ jest.mock('../../../../../../server/src/logging/logger', () => ({
   debug: jest.fn(),
 }));
 
-jest.mock('../../../../../../server/src/config/database', () => ({
-  longRunningPool: {},
-}));
-
 const app = express();
 app.use(express.json());
 app.use('/', require('../../../../../../server/src/api/routes/v1/admin/alpr'));
@@ -31,9 +31,9 @@ describe('admin ALPR routes (canonical paths)', () => {
     jest.clearAllMocks();
   });
 
-  describe('GET /admin/alpr/regions', () => {
-    it('returns the list of ALPR regions on /admin/alpr/regions', async () => {
-      const res = await request(app).get('/admin/alpr/regions');
+  describe('GET /v1/admin/alpr/regions', () => {
+    it('returns the list of ALPR regions on /v1/admin/alpr/regions', async () => {
+      const res = await request(app).get('/v1/admin/alpr/regions');
 
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
@@ -56,16 +56,16 @@ describe('admin ALPR routes (canonical paths)', () => {
     });
   });
 
-  describe('POST /admin/alpr/sync', () => {
+  describe('POST /v1/admin/alpr/sync', () => {
     it('requires the canonical region payload field', async () => {
-      const res = await request(app).post('/admin/alpr/sync').send({});
+      const res = await request(app).post('/v1/admin/alpr/sync').send({});
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({
         ok: false,
-        error: 'Region identifier is required',
+        error: 'regionId is required',
       });
-      expect(mockSyncAlprRegion).not.toHaveBeenCalled();
+      expect(mockDispatchRegionSync).not.toHaveBeenCalled();
     });
 
     it('passes explicit region and prune flag', async () => {
@@ -77,77 +77,80 @@ describe('admin ALPR routes (canonical paths)', () => {
         candidateCount: 15,
         durationMs: 800,
       };
-      mockSyncAlprRegion.mockResolvedValue(syncResult);
+      mockDispatchRegionSync.mockReturnValue({
+        jobId: 'job-1',
+        regionId: 'denver',
+        status: 'dispatched',
+      });
 
       const res = await request(app)
-        .post('/admin/alpr/sync')
-        .send({ region: 'denver', prune: true });
+        .post('/v1/admin/alpr/sync')
+        .send({ regionId: 'denver', prune: true });
 
-      expect(res.status).toBe(200);
-      expect(res.body.ok).toBe(true);
-      expect(res.body.result).toEqual(syncResult);
-      expect(mockSyncAlprRegion).toHaveBeenCalledWith(expect.anything(), 'denver', true);
+      expect(res.status).toBe(202);
+      expect(res.body).toEqual({
+        success: true,
+        jobId: 'job-1',
+        regionId: 'denver',
+        status: 'dispatched',
+      });
+      expect(mockDispatchRegionSync).toHaveBeenCalledWith('denver', true);
     });
 
     it('rejects non-boolean prune values', async () => {
       const res = await request(app)
-        .post('/admin/alpr/sync')
-        .send({ region: 'seattle', prune: 'true' });
+        .post('/v1/admin/alpr/sync')
+        .send({ regionId: 'seattle', prune: 'true' });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({
         ok: false,
         error: 'prune must be a boolean',
       });
-      expect(mockSyncAlprRegion).not.toHaveBeenCalled();
+      expect(mockDispatchRegionSync).not.toHaveBeenCalled();
     });
 
     it('returns 400 when region id is unknown', async () => {
-      mockSyncAlprRegion.mockRejectedValue(new Error("Unknown ALPR region id: 'invalid_region'"));
+      mockDispatchRegionSync.mockImplementation(() => {
+        throw new Error("Unknown ALPR region id: 'invalid_region'");
+      });
 
-      const res = await request(app).post('/admin/alpr/sync').send({ region: 'invalid_region' });
+      const res = await request(app)
+        .post('/v1/admin/alpr/sync')
+        .send({ regionId: 'invalid_region' });
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({
-        ok: false,
+        success: false,
         error: "Unknown ALPR region id: 'invalid_region'",
       });
     });
 
     it('returns 409 when sync is already in progress (advisory lock held)', async () => {
-      mockSyncAlprRegion.mockRejectedValue(
-        new Error('ALPR synchronization is already in progress')
-      );
+      mockDispatchRegionSync.mockReturnValue({
+        jobId: 'existing-job',
+        regionId: 'seattle',
+        status: 'already_running',
+      });
 
-      const res = await request(app).post('/admin/alpr/sync').send({ region: 'seattle' });
+      const res = await request(app).post('/v1/admin/alpr/sync').send({ regionId: 'seattle' });
 
       expect(res.status).toBe(409);
       expect(res.body).toEqual({
-        ok: false,
-        error: 'ALPR synchronization is already in progress',
+        success: false,
+        jobId: 'existing-job',
+        regionId: 'seattle',
+        status: 'already_running',
       });
     });
 
-    it('returns 502 when Overpass API network error occurs', async () => {
-      mockSyncAlprRegion.mockRejectedValue(new Error('Overpass fetch failed with ETIMEDOUT'));
+    it('returns active and recent jobs from the status endpoint', async () => {
+      mockGetSyncStatus.mockReturnValue([]);
+      const res = await request(app).get('/v1/admin/alpr/sync/status?regionId=seattle');
 
-      const res = await request(app).post('/admin/alpr/sync').send({ region: 'seattle' });
-
-      expect(res.status).toBe(502);
-      expect(res.body.ok).toBe(false);
-      expect(res.body.error).toContain('ETIMEDOUT');
-    });
-
-    it('returns 500 when an unexpected internal error occurs', async () => {
-      mockSyncAlprRegion.mockRejectedValue(new Error('Database connection crashed'));
-
-      const res = await request(app).post('/admin/alpr/sync').send({ region: 'seattle' });
-
-      expect(res.status).toBe(500);
-      expect(res.body).toEqual({
-        ok: false,
-        error: 'Database connection crashed',
-      });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, jobs: [] });
+      expect(mockGetSyncStatus).toHaveBeenCalledWith('seattle');
     });
   });
 });

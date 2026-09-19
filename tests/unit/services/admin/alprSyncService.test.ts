@@ -2,6 +2,8 @@ import {
   syncAlprRegion,
   ALPR_REGIONS,
   ALPR_SYNC_LOCK_KEY,
+  dispatchRegionSync,
+  getSyncStatus,
 } from '../../../../server/src/services/admin/alprSyncService';
 import * as overpassClient from '../../../../src/alpr/overpassClient';
 import * as alprSync from '../../../../src/alpr/alprSync';
@@ -15,6 +17,11 @@ jest.mock('../../../../src/alpr/alprSync', () => ({
   ...jest.requireActual('../../../../src/alpr/alprSync'),
   upsertAlprBatch: jest.fn(),
   pruneStaleInBbox: jest.fn(),
+}));
+
+const adminPoolGetter = jest.fn();
+jest.mock('../../../../server/src/services/adminDbService', () => ({
+  getLongRunningAdminPool: () => adminPoolGetter(),
 }));
 
 describe('alprSyncService', () => {
@@ -40,6 +47,7 @@ describe('alprSyncService', () => {
     mockPool = {
       connect: jest.fn().mockResolvedValue(mockClient),
     };
+    adminPoolGetter.mockReturnValue(mockPool);
   });
 
   it('exports the ALPR_REGIONS array with 30 curated regions', () => {
@@ -175,5 +183,83 @@ describe('alprSyncService', () => {
     const queryClients = mockClient.query.mock.instances;
     expect(queryClients).toHaveLength(2);
     expect(ALPR_SYNC_LOCK_KEY).toBe(9191001);
+  });
+
+  it('dispatches a job and records completion without blocking the caller', async () => {
+    (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue([]);
+    (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);
+    (alprSync.upsertAlprBatch as jest.Mock).mockResolvedValue(0);
+
+    const dispatch = dispatchRegionSync('seattle');
+    expect(dispatch.status).toBe('dispatched');
+    expect(getSyncStatus('seattle')[0]).toMatchObject({
+      jobId: dispatch.jobId,
+      status: 'running',
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(getSyncStatus('seattle')[0]).toMatchObject({
+      jobId: dispatch.jobId,
+      status: 'completed',
+    });
+  });
+
+  it('rejects a duplicate dispatch while the first job is active', async () => {
+    let resolveFetch!: (value: unknown[]) => void;
+    (overpassClient.fetchAlprElements as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+    (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);
+
+    const first = dispatchRegionSync('seattle');
+    const duplicate = dispatchRegionSync('seattle');
+
+    expect(duplicate).toEqual({
+      jobId: first.jobId,
+      regionId: 'seattle',
+      status: 'already_running',
+    });
+
+    resolveFetch([]);
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+
+  it('records failed background jobs and does not leak the rejection', async () => {
+    (overpassClient.fetchAlprElements as jest.Mock).mockRejectedValue(
+      new Error('Overpass unavailable')
+    );
+
+    const dispatch = dispatchRegionSync('seattle');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(getSyncStatus('seattle')[0]).toMatchObject({
+      jobId: dispatch.jobId,
+      status: 'failed',
+      error: 'Overpass unavailable',
+    });
+    expect(mockClient.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('purges completed jobs after the retention TTL', async () => {
+    (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue([]);
+    (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);
+    (alprSync.upsertAlprBatch as jest.Mock).mockResolvedValue(0);
+
+    const dispatch = dispatchRegionSync('seattle');
+    await new Promise((resolve) => setImmediate(resolve));
+    const completed = getSyncStatus('seattle').find((job) => job.jobId === dispatch.jobId);
+    expect(completed?.status).toBe('completed');
+
+    const nowSpy = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(Date.parse(completed!.endTime!) + 15 * 60 * 1000);
+    try {
+      expect(getSyncStatus('seattle').some((job) => job.jobId === dispatch.jobId)).toBe(false);
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 });
