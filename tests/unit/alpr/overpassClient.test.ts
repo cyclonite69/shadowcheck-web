@@ -165,6 +165,7 @@ describe('getOverpassEndpoints', () => {
     const endpoints = getOverpassEndpoints();
     expect(endpoints.length).toBeGreaterThanOrEqual(2);
     expect(endpoints[0]).toContain('overpass');
+    expect(endpoints.some((url) => url.includes('nchc.org.tw'))).toBe(false);
   });
 
   it('replaces the failover pool entirely when OVERPASS_ENDPOINT is set', () => {

@@ -11,7 +11,8 @@ const DEFAULT_OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
-  'https://overpass.nchc.org.tw/api/interpreter',
+  // overpass.nchc.org.tw removed 2026-09-19: host does not resolve (ENOTFOUND);
+  // it burned a retry slot on every chunk with a useless "fetch failed" TypeError.
 ];
 
 const REQUEST_TIMEOUT_MS = 60_000;

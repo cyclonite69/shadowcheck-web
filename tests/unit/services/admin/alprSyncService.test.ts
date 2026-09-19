@@ -266,6 +266,23 @@ describe('alprSyncService', () => {
     expect(mockClient.release).toHaveBeenCalledTimes(1);
   });
 
+  it('records fetch TypeError with Error.cause detail on failed jobs', async () => {
+    const cause = new Error('getaddrinfo ENOTFOUND overpass.example') as NodeJS.ErrnoException;
+    cause.code = 'ENOTFOUND';
+    const err = new TypeError('fetch failed');
+    (err as Error & { cause?: unknown }).cause = cause;
+    (overpassClient.fetchAlprElements as jest.Mock).mockRejectedValue(err);
+
+    const dispatch = dispatchRegionSync('austin');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(getSyncStatus('austin')[0]).toMatchObject({
+      jobId: dispatch.jobId,
+      status: 'failed',
+      error: 'fetch failed (cause: getaddrinfo ENOTFOUND overpass.example [ENOTFOUND])',
+    });
+  });
+
   it('purges completed jobs after the retention TTL', async () => {
     (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue([]);
     (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);

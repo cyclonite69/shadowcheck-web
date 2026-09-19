@@ -37,6 +37,7 @@ import {
   markRegionSyncRunning,
   markRegionSyncSuccess,
 } from '../../../../src/alpr/alprRegionState';
+import { formatErrorWithCause } from '../../utils/formatErrorWithCause';
 
 const logger = require('../../logging/logger');
 
@@ -217,7 +218,7 @@ export function dispatchRegionSync(regionId: string, prune = false): SyncDispatc
     .catch((error: unknown) => {
       job.status = 'failed';
       job.endTime = new Date().toISOString();
-      job.error = error instanceof Error ? error.message : String(error);
+      job.error = formatErrorWithCause(error);
       logger.error('ALPR background sync failed', {
         jobId: job.jobId,
         regionId,

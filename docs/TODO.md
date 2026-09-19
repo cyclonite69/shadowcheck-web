@@ -76,3 +76,32 @@ call but swallowed before reaching stdout. Fix: update the console
 transport format in `server/src/logging/logger.ts` to include metadata
 fields, or switch to JSON transport for structured output.
 Found: 2026-09-10 during OOM/502 incident investigation.
+
+Confirmed again 2026-09-19 during ALPR Austin sync (`jobId`/`regionId`/`error`
+meta on `ALPR background sync failed` present in `server/data/logs/error.log`
+JSON, absent from `docker logs`). Intentionally **not** fixed in the same
+patch as `formatErrorWithCause` — console printf is global and out of scope
+for the ALPR cause-truncation fix. Use the Winston JSON file log as the
+real debugging surface until this item is closed.
+
+## ESLint flat config — many TypeScript paths never linted
+
+Surfaced 2026-09-19 during ALPR cause-serialization work. Running
+`npx eslint` on `server/src/utils/formatErrorWithCause.ts`,
+`server/src/services/admin/alprSyncService.ts`, and `src/alpr/overpassClient.ts`
+returns `File ignored because no matching configuration was supplied` —
+0 errors means eslint never looked, not that the files are clean.
+
+Root cause: `eslint.config.js` only applies TypeScript rules to a narrow
+allowlist (`server/src/services/filterQueryBuilder/**` plus a handful of
+unit tests). Broader paths including `src/alpr/`, `server/src/services/admin/`,
+`server/src/utils/`, and most of `tests/` are outside that allowlist.
+
+Consequence: every "eslint — PASS" claim on ALPR work (chunking, regions
+table, cause fix) has been checking nothing for those files.
+
+Not fixed in the cause/nchc patch (same treatment as the console-transport
+item). Follow-up: expand `files` globs in `eslint.config.js` (or add an
+override) so `src/alpr/**`, `server/src/services/admin/**`,
+`server/src/utils/**`, and `tests/**` are actually linted, then clear the
+backlog of violations.
