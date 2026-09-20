@@ -19,6 +19,22 @@ const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 let adminPool: Pool | null = null;
 let longRunningAdminPool: Pool | null = null;
 
+function guardPool(pool: Pool): Pool {
+  if (typeof pool.connect === 'function') {
+    const originalConnect = pool.connect.bind(pool);
+    pool.connect = ((callback?: Parameters<Pool['connect']>[0]) => {
+      if (typeof callback === 'function') {
+        return originalConnect((err, client, release) => {
+          callback(err, client, release);
+        });
+      }
+
+      return originalConnect();
+    }) as Pool['connect'];
+  }
+  return pool;
+}
+
 /**
  * Initialize the admin connection pool
  */
@@ -42,26 +58,28 @@ function getAdminPool(): Pool | null {
     );
   }
 
-  adminPool = new Pool({
-    user: DB_ADMIN_USER,
-    password: adminPassword || '',
-    host: DB_HOST,
-    port: DB_PORT,
-    database: DB_NAME,
-    max: 2, // Keep admin connections low
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000,
-    statement_timeout: 300000, // 5 minutes for heavy admin tasks
-    application_name: DB_APP_NAME,
-    options: `-c search_path=${DB_SEARCH_PATH}`,
-    ssl:
-      process.env.DB_SSL === 'true'
-        ? {
-            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
-            ca: process.env.DB_SSL_CA || undefined,
-          }
-        : false,
-  });
+  adminPool = guardPool(
+    new Pool({
+      user: DB_ADMIN_USER,
+      password: adminPassword || '',
+      host: DB_HOST,
+      port: DB_PORT,
+      database: DB_NAME,
+      max: 2, // Keep admin connections low
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000,
+      statement_timeout: 300000, // 5 minutes for heavy admin tasks
+      application_name: DB_APP_NAME,
+      options: `-c search_path=${DB_SEARCH_PATH}`,
+      ssl:
+        process.env.DB_SSL === 'true'
+          ? {
+              rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+              ca: process.env.DB_SSL_CA || undefined,
+            }
+          : false,
+    })
+  );
 
   if (typeof (adminPool as any).on === 'function') {
     adminPool.on('error', (err: Error) => {
@@ -90,26 +108,28 @@ function getLongRunningAdminPool(): Pool | null {
     return null;
   }
 
-  longRunningAdminPool = new Pool({
-    user: DB_ADMIN_USER,
-    password: adminPassword || '',
-    host: DB_HOST,
-    port: DB_PORT,
-    database: DB_NAME,
-    max: 3, // Low concurrency for long-running jobs
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000,
-    statement_timeout: 0, // No timeout — for long-running admin batch jobs only
-    application_name: `${DB_APP_NAME}_long_running`,
-    options: `-c search_path=${DB_SEARCH_PATH}`,
-    ssl:
-      process.env.DB_SSL === 'true'
-        ? {
-            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
-            ca: process.env.DB_SSL_CA || undefined,
-          }
-        : false,
-  });
+  longRunningAdminPool = guardPool(
+    new Pool({
+      user: DB_ADMIN_USER,
+      password: adminPassword || '',
+      host: DB_HOST,
+      port: DB_PORT,
+      database: DB_NAME,
+      max: 3, // Low concurrency for long-running jobs
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000,
+      statement_timeout: 0, // No timeout — for long-running admin batch jobs only
+      application_name: `${DB_APP_NAME}_long_running`,
+      options: `-c search_path=${DB_SEARCH_PATH}`,
+      ssl:
+        process.env.DB_SSL === 'true'
+          ? {
+              rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+              ca: process.env.DB_SSL_CA || undefined,
+            }
+          : false,
+    })
+  );
 
   if (typeof (longRunningAdminPool as any).on === 'function') {
     longRunningAdminPool.on('error', (err: Error) => {

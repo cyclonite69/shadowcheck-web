@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-19)
+# 1.0.0 (2026-09-20)
 
 ### Bug Fixes
 
@@ -40,10 +40,11 @@
 - add wigle_match and local_observations to v2/v3 WiGLE list queries ([3a920f8](https://github.com/cyclonite69/shadowcheck-web/commit/3a920f876dcb14e79a1025cfaaebfbd569dbd453))
 - address REAL_BUG API contracts and fix type noise ([832e30b](https://github.com/cyclonite69/shadowcheck-web/commit/832e30bf68ff8ef1e809bb6823184839fce188fc))
 - adjust map bounds fitting to prevent cutting off outer observations ([660749f](https://github.com/cyclonite69/shadowcheck-web/commit/660749f7e2aa9320e1861de5cb8476c1b3165c14))
+- **admin-db:** preserve pg pool connect contract for query() callback form ([f81d9b8](https://github.com/cyclonite69/shadowcheck-web/commit/f81d9b88b0be25dbac72727d1e9804820d999bff))
 - **admin-db:** prevent auto-generated admin password from overwriting AWS SM ([7726625](https://github.com/cyclonite69/shadowcheck-web/commit/7726625c90e54cf32abbc644926797da7be2fa24))
 - **admin-import:** fallback to compiled importer when tsx binary missing ([9aae64e](https://github.com/cyclonite69/shadowcheck-web/commit/9aae64e72e1056787854ce0d997750694a953a6a))
 - **admin-import:** resolve runtime script paths and prevent double response on spawn error ([f9a9450](https://github.com/cyclonite69/shadowcheck-web/commit/f9a94505ae91b1d4705dd634633d7bdf63965d1a))
-- **admin-maintenance:** preserve FK integrity during network reset ([02002d1](https://github.com/cyclonite69/shadowcheck-web/commit/02002d11f3b9b1b9ada0eca25a9a041b2b6f44ea))
+- **admin-maintenance:** preserve FK integrity during network reset ([6c5a8ce](https://github.com/cyclonite69/shadowcheck-web/commit/6c5a8ce6ff156f5fc88c3901be84a978b40f902f))
 - **admin-ui:** display SQL import before-after audit metrics ([273affe](https://github.com/cyclonite69/shadowcheck-web/commit/273affe14ea84a4dc269ce4dcd64336b01861149))
 - **admin-users:** make user list resilient to admin credential and schema drift ([eda7d01](https://github.com/cyclonite69/shadowcheck-web/commit/eda7d015811f234b34de8f50c76df3f86ff26fae))
 - **admin-users:** support user writes on schemas without force_password_change ([8632628](https://github.com/cyclonite69/shadowcheck-web/commit/8632628638c49514ad96eb237a758fdbb6a88da4))

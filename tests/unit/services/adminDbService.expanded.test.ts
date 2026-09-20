@@ -1,6 +1,7 @@
 export {};
 
 const mockPoolQuery = jest.fn();
+const mockPoolConnect = jest.fn();
 const mockPoolOn = jest.fn();
 const mockPoolEnd = jest.fn();
 
@@ -8,12 +9,14 @@ jest.mock('pg', () => ({
   __esModule: true,
   Pool: jest.fn().mockImplementation(() => ({
     query: mockPoolQuery,
+    connect: mockPoolConnect,
     on: mockPoolOn,
     end: mockPoolEnd,
   })),
   default: {
     Pool: jest.fn().mockImplementation(() => ({
       query: mockPoolQuery,
+      connect: mockPoolConnect,
       on: mockPoolOn,
       end: mockPoolEnd,
     })),
@@ -152,6 +155,24 @@ describe('adminDbService — adminQuery', () => {
     expect(mockPoolQuery).toHaveBeenCalledWith('SELECT 1', []);
     expect(result.rows).toEqual([{ result: 1 }]);
     delete process.env.DB_ADMIN_PASSWORD;
+  });
+
+  test('preserves the callback connect contract and release callback', async () => {
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
+    const clientQuery = jest.fn();
+    const release = jest.fn();
+    const client = { query: clientQuery };
+    mockPoolConnect.mockImplementationOnce((callback) => {
+      callback(undefined, client, release);
+      return undefined;
+    });
+
+    const { getAdminPool } = loadFresh();
+    const callback = jest.fn();
+    getAdminPool()!.connect(callback);
+
+    expect(callback).toHaveBeenCalledWith(undefined, client, release);
+    expect(client.query).toBe(clientQuery);
   });
 });
 
