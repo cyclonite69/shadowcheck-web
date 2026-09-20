@@ -19,17 +19,60 @@ const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 let adminPool: Pool | null = null;
 let longRunningAdminPool: Pool | null = null;
 
+const DESTRUCTIVE_QUERY_PATTERNS = [
+  /^\s*TRUNCATE\b/i,
+  /^\s*DROP\b/i,
+  /^\s*DELETE\s+FROM\s+\S+\s*;?\s*$/i,
+];
+
+function getResolvedDatabaseName(): string {
+  return process.env.PGDATABASE || process.env.DB_NAME || DB_NAME;
+}
+
+function assertDestructiveQueryAllowed(text: unknown): void {
+  const sql = typeof text === 'string' ? text : '';
+  const databaseName = getResolvedDatabaseName();
+  const isDestructive = DESTRUCTIVE_QUERY_PATTERNS.some((pattern) => pattern.test(sql));
+
+  if (isDestructive && !databaseName.toLowerCase().includes('test')) {
+    if (process.env.ALLOW_UNSAFE_DATA_RESET !== 'true') {
+      throw new Error(
+        `Refusing destructive SQL against database '${databaseName}'. ` +
+          'Use a database name containing "test" or set ALLOW_UNSAFE_DATA_RESET=true explicitly.'
+      );
+    }
+  }
+}
+
+function guardQuery<T extends (...args: any[]) => any>(query: T): T {
+  return ((text: unknown, ...args: unknown[]) => {
+    assertDestructiveQueryAllowed(text);
+    return query(text, ...args);
+  }) as T;
+}
+
 function guardPool(pool: Pool): Pool {
+  if (typeof pool.query === 'function') {
+    pool.query = guardQuery(pool.query.bind(pool));
+  }
   if (typeof pool.connect === 'function') {
     const originalConnect = pool.connect.bind(pool);
     pool.connect = ((callback?: Parameters<Pool['connect']>[0]) => {
       if (typeof callback === 'function') {
         return originalConnect((err, client, release) => {
+          if (!err && client && typeof client.query === 'function') {
+            client.query = guardQuery(client.query.bind(client));
+          }
           callback(err, client, release);
         });
       }
 
-      return originalConnect();
+      return originalConnect().then((client) => {
+        if (typeof client.query === 'function') {
+          client.query = guardQuery(client.query.bind(client));
+        }
+        return client;
+      });
     }) as Pool['connect'];
   }
   return pool;

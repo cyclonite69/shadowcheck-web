@@ -157,6 +157,79 @@ describe('adminDbService — adminQuery', () => {
     delete process.env.DB_ADMIN_PASSWORD;
   });
 
+  test.each([
+    ['TRUNCATE app.observations', 'TRUNCATE'],
+    ['  \nTruncate app.observations', 'TRUNCATE'],
+    ['DROP TABLE app.observations', 'DROP'],
+    ['DELETE FROM app.observations', 'DELETE'],
+  ])('blocks %s against a non-test database', async (sql) => {
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
+    process.env.DB_NAME = 'shadowcheck_db';
+    delete process.env.PGDATABASE;
+    delete process.env.ALLOW_UNSAFE_DATA_RESET;
+
+    const { adminQuery } = loadFresh();
+    await expect(adminQuery(sql)).rejects.toThrow('Refusing destructive SQL');
+    expect(mockPoolQuery).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    'TRUNCATE app.observations',
+    'DROP TABLE app.observations',
+    'DELETE FROM app.observations',
+  ])('allows %s against a test database', async (sql) => {
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
+    process.env.DB_NAME = 'shadowcheck_test';
+    mockPoolQuery.mockResolvedValue({ rows: [] });
+
+    const { adminQuery } = loadFresh();
+    await expect(adminQuery(sql)).resolves.toEqual({ rows: [] });
+  });
+
+  test('allows destructive SQL with the explicit override', async () => {
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
+    process.env.DB_NAME = 'shadowcheck_db';
+    process.env.ALLOW_UNSAFE_DATA_RESET = 'true';
+    mockPoolQuery.mockResolvedValue({ rows: [] });
+
+    const { adminQuery } = loadFresh();
+    await expect(adminQuery('DROP TABLE app.observations')).resolves.toEqual({ rows: [] });
+  });
+
+  test('allows conditional DELETE against a non-test database', async () => {
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
+    process.env.DB_NAME = 'shadowcheck_db';
+    mockPoolQuery.mockResolvedValue({ rows: [] });
+
+    const { adminQuery } = loadFresh();
+    await expect(
+      adminQuery('DELETE FROM app.observations WHERE bssid = $1', ['test'])
+    ).resolves.toEqual({
+      rows: [],
+    });
+  });
+
+  test('guards queries issued through a connected client', async () => {
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
+    process.env.DB_NAME = 'shadowcheck_db';
+    delete process.env.ALLOW_UNSAFE_DATA_RESET;
+    const clientQuery = jest.fn().mockResolvedValue({ rows: [] });
+    mockPoolConnect.mockResolvedValue({ query: clientQuery, release: jest.fn() });
+
+    const { getAdminPool } = loadFresh();
+    const client = await getAdminPool()!.connect();
+
+    expect(() => client.query('TRUNCATE app.observations')).toThrow('Refusing destructive SQL');
+    await expect(
+      client.query('DELETE FROM app.observations WHERE bssid = $1', ['test'])
+    ).resolves.toEqual({
+      rows: [],
+    });
+    expect(clientQuery).toHaveBeenCalledWith('DELETE FROM app.observations WHERE bssid = $1', [
+      'test',
+    ]);
+  });
+
   test('preserves the callback connect contract and release callback', async () => {
     process.env.DB_ADMIN_PASSWORD = 'test-pass';
     const clientQuery = jest.fn();
@@ -172,7 +245,8 @@ describe('adminDbService — adminQuery', () => {
     getAdminPool()!.connect(callback);
 
     expect(callback).toHaveBeenCalledWith(undefined, client, release);
-    expect(client.query).toBe(clientQuery);
+    expect(client.query).not.toBe(clientQuery);
+    expect(typeof client.query).toBe('function');
   });
 });
 
