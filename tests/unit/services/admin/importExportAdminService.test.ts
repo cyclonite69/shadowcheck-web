@@ -104,7 +104,42 @@ describe('importExportAdminService', () => {
   });
 
   describe('truncateAllData', () => {
+    const originalDbName = process.env.DB_NAME;
+    const originalPgDatabase = process.env.PGDATABASE;
+    const originalUnsafeOverride = process.env.ALLOW_UNSAFE_DATA_RESET;
+
+    afterEach(() => {
+      if (originalDbName === undefined) delete process.env.DB_NAME;
+      else process.env.DB_NAME = originalDbName;
+      if (originalPgDatabase === undefined) delete process.env.PGDATABASE;
+      else process.env.PGDATABASE = originalPgDatabase;
+      if (originalUnsafeOverride === undefined) delete process.env.ALLOW_UNSAFE_DATA_RESET;
+      else process.env.ALLOW_UNSAFE_DATA_RESET = originalUnsafeOverride;
+    });
+
+    it('refuses destructive resets against non-test databases', async () => {
+      process.env.DB_NAME = 'shadowcheck_db';
+      delete process.env.PGDATABASE;
+      delete process.env.ALLOW_UNSAFE_DATA_RESET;
+
+      await expect(truncateAllData()).rejects.toThrow(
+        'Refusing destructive network reset against database'
+      );
+      expect(adminDbService.adminQuery).not.toHaveBeenCalled();
+    });
+
+    it('allows an explicit unsafe override for non-test databases', async () => {
+      process.env.DB_NAME = 'shadowcheck_db';
+      delete process.env.PGDATABASE;
+      process.env.ALLOW_UNSAFE_DATA_RESET = 'true';
+      adminDbService.adminQuery.mockResolvedValue({ rows: [] });
+
+      await expect(truncateAllData()).resolves.toBeUndefined();
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(3);
+    });
+
     it('should call TRUNCATE on tables', async () => {
+      process.env.DB_NAME = 'shadowcheck_test';
       adminDbService.adminQuery.mockResolvedValue({ rows: [] });
       await truncateAllData();
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(3);

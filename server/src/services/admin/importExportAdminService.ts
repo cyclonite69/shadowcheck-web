@@ -55,6 +55,15 @@ export async function getImportCounts(): Promise<{ observations: number; network
 }
 
 export async function truncateAllData(): Promise<void> {
+  const databaseName = process.env.PGDATABASE || process.env.DB_NAME || 'shadowcheck_db';
+  const unsafeOverride = process.env.ALLOW_UNSAFE_DATA_RESET === 'true';
+  if (!databaseName.toLowerCase().includes('test') && !unsafeOverride) {
+    throw new Error(
+      `Refusing destructive network reset against database '${databaseName}'. ` +
+        'Use a database name containing "test" or set ALLOW_UNSAFE_DATA_RESET=true explicitly.'
+    );
+  }
+
   await adminQuery('TRUNCATE TABLE app.observations CASCADE');
   await adminQuery('TRUNCATE TABLE app.network_entries CASCADE');
   await adminQuery('TRUNCATE TABLE app.network_tags CASCADE');
