@@ -13,10 +13,9 @@ type MaterializedViewFailure = {
 const CRITICAL_VIEWS = new Set(['app.api_network_explorer_mv']);
 const MATERIALIZED_VIEWS = [
   { name: 'app.api_network_explorer_mv', concurrent: true },
-  { name: 'app.api_network_latest_mv', concurrent: false },
   { name: 'app.analytics_summary_mv', concurrent: false },
-  { name: 'app.mv_network_timeline', concurrent: false },
   { name: 'app.mv_sibling_groups', concurrent: true },
+  { name: 'app.surveillance_density_zones', concurrent: true },
 ];
 
 const loadExistingViews = async (runAdminQuery: AdminQuery): Promise<Set<string>> => {

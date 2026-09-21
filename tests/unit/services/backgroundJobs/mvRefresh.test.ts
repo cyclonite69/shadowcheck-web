@@ -22,10 +22,9 @@ describe('mvRefresh service', () => {
     runAdminQuery.mockResolvedValueOnce({
       rows: [
         { full_name: 'app.api_network_explorer_mv' },
-        { full_name: 'app.api_network_latest_mv' },
         { full_name: 'app.analytics_summary_mv' },
-        { full_name: 'app.mv_network_timeline' },
         { full_name: 'app.mv_sibling_groups' },
+        { full_name: 'app.surveillance_density_zones' },
       ],
     });
     runAdminQuery.mockResolvedValue({ rows: [] }); // refresh calls
@@ -34,17 +33,19 @@ describe('mvRefresh service', () => {
 
     expect(result.refreshedViews).toEqual([
       'app.api_network_explorer_mv',
-      'app.api_network_latest_mv',
       'app.analytics_summary_mv',
-      'app.mv_network_timeline',
       'app.mv_sibling_groups',
+      'app.surveillance_density_zones',
     ]);
     expect(runAdminQuery).toHaveBeenCalledWith('SELECT app.refresh_network_locations()');
     expect(runAdminQuery).toHaveBeenCalledWith(
       'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
     );
     expect(runAdminQuery).toHaveBeenCalledWith(
-      'REFRESH MATERIALIZED VIEW app.api_network_latest_mv'
+      'REFRESH MATERIALIZED VIEW app.analytics_summary_mv'
+    );
+    expect(runAdminQuery).toHaveBeenCalledWith(
+      'REFRESH MATERIALIZED VIEW CONCURRENTLY app.surveillance_density_zones'
     );
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.stringContaining('Starting materialized view refresh')
@@ -64,7 +65,7 @@ describe('mvRefresh service', () => {
       'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
     );
     expect(runAdminQuery).not.toHaveBeenCalledWith(
-      'REFRESH MATERIALIZED VIEW app.api_network_latest_mv'
+      'REFRESH MATERIALIZED VIEW app.analytics_summary_mv'
     );
     expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Skipping non-existent materialized views')
@@ -76,25 +77,25 @@ describe('mvRefresh service', () => {
     runAdminQuery.mockResolvedValueOnce({
       rows: [
         { full_name: 'app.api_network_explorer_mv' },
-        { full_name: 'app.api_network_latest_mv' },
+        { full_name: 'app.analytics_summary_mv' },
       ],
     });
 
     // First refresh (explorer_mv) succeeds
     runAdminQuery.mockResolvedValueOnce({ rows: [] });
-    // Second refresh (latest_mv) fails
+    // Second refresh (analytics_summary_mv) fails
     runAdminQuery.mockRejectedValueOnce(new Error('Refresh failed'));
 
     // We expect it to throw at the end because one failed
     await expect(refreshMaterializedViews(runAdminQuery)).rejects.toThrow(
-      'app.api_network_latest_mv: Refresh failed'
+      'app.analytics_summary_mv: Refresh failed'
     );
 
     expect(runAdminQuery).toHaveBeenCalledWith(
       'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
     );
     expect(runAdminQuery).toHaveBeenCalledWith(
-      'REFRESH MATERIALIZED VIEW app.api_network_latest_mv'
+      'REFRESH MATERIALIZED VIEW app.analytics_summary_mv'
     );
   });
 
