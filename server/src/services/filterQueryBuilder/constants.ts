@@ -151,6 +151,11 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'wigleV3LastImportBefore',
   'wigleV3LastImportAfter',
   'surveillance',
+  'shotspotter',
+  'bwc',
+  'dashcam',
+  'residential_cam',
+  'flock',
   // deviceClass is network-only: filter uses EXISTS subqueries against
   // surveillance_detections + oui_device_groups, both joinable from ne.bssid
   'deviceClass',

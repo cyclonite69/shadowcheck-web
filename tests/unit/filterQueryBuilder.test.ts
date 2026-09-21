@@ -202,6 +202,38 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.appliedFilters.some((f: any) => f.field === 'threatCategories')).toBe(true);
   });
 
+  test('surveillance plus BWC uses the MV fast path and keeps the BWC predicate', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { surveillance: true, bwc: true },
+      { surveillance: true, bwc: true }
+    ).buildNetworkListQuery({ limit: 500, offset: 0 });
+
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
+    expect(result.sql).not.toContain('WITH filtered_obs AS');
+    expect(result.sql).toContain('sd.device_type IN');
+    expect(result.sql).toContain('AXON_BODY_CAMERA');
+    expect(result.appliedFilters.map((f: { field: string }) => f.field)).toEqual(
+      expect.arrayContaining(['surveillance', 'bwc'])
+    );
+  });
+
+  test.each([
+    ['shotspotter', 'SHOTSPOTTER_SENSOR'],
+    ['dashcam', 'DASHCAM'],
+    ['residential_cam', 'RESIDENTIAL_CAMERA'],
+    ['flock', 'FLOCK_SAFETY_CAMERA'],
+  ])('%s uses the MV fast path and keeps its detection predicate', (filter, deviceType) => {
+    const result = new UniversalFilterQueryBuilder(
+      { surveillance: true, [filter]: true },
+      { surveillance: true, [filter]: true }
+    ).buildNetworkListQuery({ limit: 500, offset: 0 });
+
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
+    expect(result.sql).not.toContain('WITH filtered_obs AS');
+    expect(result.sql).toContain(deviceType);
+    expect(result.sql).toContain('sd.false_positive = FALSE');
+  });
+
   test('tag_type=ignore query includes ignored networks in list results', () => {
     const result = new UniversalFilterQueryBuilder(
       { tag_type: ['ignore'] },
