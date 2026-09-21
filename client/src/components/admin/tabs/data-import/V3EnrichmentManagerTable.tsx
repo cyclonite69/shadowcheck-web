@@ -453,63 +453,68 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
           {total.toLocaleString()} Networks Found
         </span>
 
-        {/* Right: action buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => loadPage(1, false)}
-            className="text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-tighter"
-          >
-            Refresh List
-          </button>
-
-          {/* Column Chooser */}
-          <div className="relative" ref={chooserRef}>
-            <button
-              onClick={() => setChooserOpen((o) => !o)}
-              title="Choose columns"
-              className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${
-                chooserOpen ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              ⊞ Columns
-            </button>
-            {chooserOpen && (
-              <div className="absolute left-0 top-full mt-1 z-50 w-44 rounded-lg border border-slate-700/60 bg-slate-900 shadow-xl py-1">
-                {COLUMNS.map((col) => (
-                  <label
-                    key={col.id}
-                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800/60 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.has(col.id)}
-                      onChange={() => {
-                        setVisibleCols((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(col.id)) next.delete(col.id);
-                          else next.add(col.id);
-                          return next;
-                        });
-                      }}
-                      className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
-                    />
-                    <span className="text-[11px] text-slate-300">{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
+        {/* Right: Refresh + Columns + Enrich Selected */}
         <div className="flex flex-col items-end gap-1">
-          <button
-            onClick={handleEnrichSelected}
-            disabled={selected.size === 0 || actionLoading}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-          >
-            Enrich Selected ({selected.size})
-          </button>
-          <span className="text-[9px] text-slate-500 max-w-[220px] text-right leading-tight">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => loadPage(1, false)}
+              className="h-7 px-3 rounded border border-slate-700 bg-slate-900/50 text-slate-300 text-[10px] font-black uppercase tracking-tighter transition-all hover:border-slate-500 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 active:scale-95"
+            >
+              Refresh List
+            </button>
+
+            {/* Column Chooser */}
+            <div className="relative" ref={chooserRef}>
+              <button
+                type="button"
+                onClick={() => setChooserOpen((o) => !o)}
+                title="Choose columns"
+                className={`h-7 px-3 rounded border text-[10px] font-black uppercase tracking-tighter transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 active:scale-95 ${
+                  chooserOpen
+                    ? 'border-cyan-500/60 bg-slate-800 text-cyan-300'
+                    : 'border-slate-700 bg-slate-900/50 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                ⊞ Columns
+              </button>
+              {chooserOpen && (
+                <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-slate-700/60 bg-slate-900 shadow-xl py-1">
+                  {COLUMNS.map((col) => (
+                    <label
+                      key={col.id}
+                      className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800/60 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleCols.has(col.id)}
+                        onChange={() => {
+                          setVisibleCols((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(col.id)) next.delete(col.id);
+                            else next.add(col.id);
+                            return next;
+                          });
+                        }}
+                        className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
+                      />
+                      <span className="text-[11px] text-slate-300">{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleEnrichSelected}
+              disabled={selected.size === 0 || actionLoading}
+              className="h-7 px-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 active:scale-95 shadow-lg shadow-blue-500/20"
+            >
+              Enrich Selected ({selected.size})
+            </button>
+          </div>
+          <span className="w-full text-[9px] text-slate-500 max-w-[220px] text-right leading-tight">
             Check multiple rows, or use the header box to select all loaded (max{' '}
             {MAX_TARGETED_SELECTION} per run).
           </span>

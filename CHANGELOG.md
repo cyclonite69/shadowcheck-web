@@ -56,6 +56,7 @@
 - **admin:** add before-after audit metrics and history for SQL imports ([20b1e10](https://github.com/cyclonite69/shadowcheck-web/commit/20b1e1027c8943504945de3df61c3ffe8a6a0b61))
 - **admin:** add referrerPolicy and correct badge fallback in WigleStatsTab ([33b8a0c](https://github.com/cyclonite69/shadowcheck-web/commit/33b8a0c1fe44b9f3c52946a4904ad58df7983a75))
 - **admin:** align action bar in V3EnrichmentManagerTable ([945898e](https://github.com/cyclonite69/shadowcheck-web/commit/945898e89dac2d39cffa9e4eb33b09d6c942ea70))
+- **admin:** align V3 enrichment action bar ([c01c11b](https://github.com/cyclonite69/shadowcheck-web/commit/c01c11b0aabfd13a4637330172b814aaec4dffbb))
 - **admin:** clarify WiGLE KML sync status labels ([3b85ef1](https://github.com/cyclonite69/shadowcheck-web/commit/3b85ef111092c36f644e7fe159de745894a29058))
 - **admin:** correct api testing health detection ([a6afd58](https://github.com/cyclonite69/shadowcheck-web/commit/a6afd5854288df21ecd163e37638e7d32504f074))
 - **admin:** display status tip when all sync transactions are skipped ([dd59253](https://github.com/cyclonite69/shadowcheck-web/commit/dd59253a25fe9e81449bf695ad9989fca05865fe))
