@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-20)
+# 1.0.0 (2026-09-21)
 
 ### Bug Fixes
 
@@ -43,7 +43,7 @@
 - **admin-db:** preserve pg pool connect contract for query() callback form ([3a78d2b](https://github.com/cyclonite69/shadowcheck-web/commit/3a78d2b419e73dce25c04d015ceb20cabd3a47af))
 - **admin-db:** prevent auto-generated admin password from overwriting AWS SM ([7726625](https://github.com/cyclonite69/shadowcheck-web/commit/7726625c90e54cf32abbc644926797da7be2fa24))
 - **admin-import:** fallback to compiled importer when tsx binary missing ([9aae64e](https://github.com/cyclonite69/shadowcheck-web/commit/9aae64e72e1056787854ce0d997750694a953a6a))
-- **admin-import:** guard full data reset by database name ([34f1058](https://github.com/cyclonite69/shadowcheck-web/commit/34f10580572ea6c881ab56381762f25cf016ec8e))
+- **admin-import:** guard full data reset by database name ([3bce1c1](https://github.com/cyclonite69/shadowcheck-web/commit/3bce1c14cdfa1634c68228555818edcd4b0afaac))
 - **admin-import:** resolve runtime script paths and prevent double response on spawn error ([f9a9450](https://github.com/cyclonite69/shadowcheck-web/commit/f9a94505ae91b1d4705dd634633d7bdf63965d1a))
 - **admin-maintenance:** preserve FK integrity during network reset ([6c5a8ce](https://github.com/cyclonite69/shadowcheck-web/commit/6c5a8ce6ff156f5fc88c3901be84a978b40f902f))
 - **admin-ui:** display SQL import before-after audit metrics ([273affe](https://github.com/cyclonite69/shadowcheck-web/commit/273affe14ea84a4dc269ce4dcd64336b01861149))
