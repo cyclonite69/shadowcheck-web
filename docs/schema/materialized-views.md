@@ -57,37 +57,12 @@ Materialized views are used to pre-aggregate and enrich network data for the fro
 
 ---
 
-## `app.api_network_latest_mv`
+## Removed materialized views
 
-**Purpose:** Lightweight snapshot of networks active within the last 24 hours, used for quick "recently seen" lookups without querying the full `api_network_explorer_mv`.
-
-**Source Tables:**
-
-- `app.networks`
-
-**Refresh Cadence:** On-demand / as needed.
-
-**Indexes:**
-
-- `idx_api_network_latest_mv_bssid` (btree): Lookup by BSSID.
-
----
-
-## `app.mv_network_timeline`
-
-**Purpose:** Hourly bucketed aggregation of observation counts and signal statistics per network, used for timeline charts and temporal analysis.
-
-**Source Tables:**
-
-- `app.networks`
-- `app.observations`
-
-**Refresh Cadence:** On-demand.
-
-**Indexes:**
-
-- `idx_mv_network_timeline_bssid` (btree): Filter timeline rows by BSSID.
-- `idx_mv_network_timeline_hour` (btree): Filter/sort by hour bucket.
+`app.api_network_latest_mv` and `app.mv_network_timeline` were dropped with
+`CASCADE` in `baseline_005_analysis_views_materialized_views.sql` and are no
+longer current schema objects. Network timeline data is provided by
+`GET /api/v2/networks/:bssid` from `app.observations`.
 
 ---
 

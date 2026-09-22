@@ -21,7 +21,9 @@ This document captures the current database storage model for WiGLE + geospatial
 
 - `app.api_network_explorer_mv`: primary query surface for explorer/kepler-style aggregated rows. It joins `networks` + observation aggregates and exposes movement, distance, threat, and denormalized WiGLE fields.
 - `app.network_entries`: network list style view used by API/network listing workflows.
-- Additional analytical MVs (e.g., `app.mv_network_timeline`) support timeline/aggregation use cases.
+- Timeline/aggregation data is provided by `GET /api/v2/networks/:bssid` from
+  `app.observations`; the former `app.mv_network_timeline` view was dropped in
+  `baseline_005_analysis_views_materialized_views.sql`.
 
 ### Indexes and performance objects relevant to this work
 

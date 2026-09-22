@@ -47,19 +47,22 @@
 
 ### 🟡 LEGACY/DORMANT - Low Usage, Investigate (6)
 
-| Schema   | Table                  | Size   | Scans   | Status                                                                                     | Recommendation                                     |
-| -------- | ---------------------- | ------ | ------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| `public` | `mv_network_timeline`  | 44 MB  | 2 seq   | **ACTIVE API** (`/api/explorer/timeline/:bssid`) - low usage due to specific BSSID queries | **KEEP** - Refresh materialized view               |
-| `public` | `mv_heatmap_tiles`     | 40 KB  | 2 seq   | **ACTIVE API** (`/api/explorer/heatmap`) - low usage, small size                           | **KEEP** - Refresh materialized view               |
-| `public` | `mv_device_routes`     | 6 MB   | 5 seq   | **ACTIVE API** (`/api/explorer/routes`) - low usage                                        | **KEEP** - Refresh materialized view               |
-| `public` | `ssid_history`         | 4.4 MB | 6 total | Historical SSID tracking - low usage                                                       | **INVESTIGATE** - Check if used by any ETL/reports |
-| `public` | `staging_routes`       | 7.5 MB | 7 seq   | ETL staging table - may be used by batch jobs                                              | **INVESTIGATE** - Check ETL scripts                |
-| `public` | `access_points_legacy` | 29 MB  | 9 total | Legacy schema - replaced by `access_points`                                                | **CANDIDATE FOR DROP** - Verify no references      |
+| Schema   | Table                  | Size   | Scans   | Status                                                           | Recommendation                                     |
+| -------- | ---------------------- | ------ | ------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| `public` | `mv_heatmap_tiles`     | 40 KB  | 2 seq   | **ACTIVE API** (`/api/explorer/heatmap`) - low usage, small size | **KEEP** - Refresh materialized view               |
+| `public` | `mv_device_routes`     | 6 MB   | 5 seq   | **ACTIVE API** (`/api/explorer/routes`) - low usage              | **KEEP** - Refresh materialized view               |
+| `public` | `ssid_history`         | 4.4 MB | 6 total | Historical SSID tracking - low usage                             | **INVESTIGATE** - Check if used by any ETL/reports |
+| `public` | `staging_routes`       | 7.5 MB | 7 seq   | ETL staging table - may be used by batch jobs                    | **INVESTIGATE** - Check ETL scripts                |
+| `public` | `access_points_legacy` | 29 MB  | 9 total | Legacy schema - replaced by `access_points`                      | **CANDIDATE FOR DROP** - Verify no references      |
 
-**NOTE**: `mv_network_timeline`, `mv_heatmap_tiles`, `mv_device_routes` appear in low-usage list BUT are actively used by API endpoints. Low scan count is due to:
+The former `mv_network_timeline` materialized view was dropped by
+`baseline_005_analysis_views_materialized_views.sql`; timeline data is now
+provided by `GET /api/v2/networks/:bssid` from `app.observations`.
+
+**NOTE**: `mv_heatmap_tiles` and `mv_device_routes` appear in low-usage list BUT are actively used by API endpoints. Low scan count is due to:
 
 - Materialized views queried infrequently
-- Specific use cases (timeline by BSSID, heatmap tiles)
+- Specific use cases (heatmap tiles and routes)
 - **THESE ARE LIVE APIs - DO NOT DROP**
 
 ---
@@ -68,19 +71,18 @@
 
 ### 🔴 SAFE TO DROP - Never Used, High Impact (11 indexes, 290+ MB total)
 
-| Index                                  | Table                       | Size       | Reason                                            | Risk Level                               |
-| -------------------------------------- | --------------------------- | ---------- | ------------------------------------------------- | ---------------------------------------- |
-| `idx_raw_locations_natural_key`        | `staging_locations_all_raw` | **115 MB** | Staging table - may use sequential scans          | **LOW** - Staging table                  |
-| `idx_observations_geom`                | `observations_legacy`       | **45 MB**  | **LEGACY TABLE** - entire table is legacy         | **LOW** - Legacy table                   |
-| `idx_obs_geom_gist`                    | `observations`              | **22 MB**  | **DUPLICATE** - `idx_observations_v2_geom` exists | **MEDIUM** - Verify queries use v2 index |
-| `idx_observations_v2_geom`             | `observations`              | **22 MB**  | Never used - **but geom queries are critical**    | **HIGH** - Verify before dropping        |
-| `idx_observations_bssid`               | `observations_legacy`       | **20 MB**  | **LEGACY TABLE**                                  | **LOW**                                  |
-| `idx_mv_network_timeline_bssid_bucket` | `mv_network_timeline`       | **16 MB**  | Matview - queries may use seq scan                | **MEDIUM** - Check query plans           |
-| `idx_observations_time`                | `observations_legacy`       | **16 MB**  | **LEGACY TABLE**                                  | **LOW**                                  |
-| `idx_mv_network_latest_geom`           | `mv_network_latest`         | 6.8 MB     | Unused materialized view index                    | **MEDIUM**                               |
-| `routes_natural_uniq`                  | `routes`                    | 6 MB       | Unique constraint - never queried                 | **HIGH** - May be for integrity          |
-| `idx_mv_network_latest_observed_at`    | `mv_network_latest`         | 3 MB       | Unused matview index                              | **MEDIUM**                               |
-| `idx_observations_time_brin`           | `observations_legacy`       | 32 KB      | **LEGACY TABLE** - BRIN index                     | **LOW**                                  |
+| Index                               | Table                       | Size       | Reason                                            | Risk Level                               |
+| ----------------------------------- | --------------------------- | ---------- | ------------------------------------------------- | ---------------------------------------- |
+| `idx_raw_locations_natural_key`     | `staging_locations_all_raw` | **115 MB** | Staging table - may use sequential scans          | **LOW** - Staging table                  |
+| `idx_observations_geom`             | `observations_legacy`       | **45 MB**  | **LEGACY TABLE** - entire table is legacy         | **LOW** - Legacy table                   |
+| `idx_obs_geom_gist`                 | `observations`              | **22 MB**  | **DUPLICATE** - `idx_observations_v2_geom` exists | **MEDIUM** - Verify queries use v2 index |
+| `idx_observations_v2_geom`          | `observations`              | **22 MB**  | Never used - **but geom queries are critical**    | **HIGH** - Verify before dropping        |
+| `idx_observations_bssid`            | `observations_legacy`       | **20 MB**  | **LEGACY TABLE**                                  | **LOW**                                  |
+| `idx_observations_time`             | `observations_legacy`       | **16 MB**  | **LEGACY TABLE**                                  | **LOW**                                  |
+| `idx_mv_network_latest_geom`        | `mv_network_latest`         | 6.8 MB     | Unused materialized view index                    | **MEDIUM**                               |
+| `routes_natural_uniq`               | `routes`                    | 6 MB       | Unique constraint - never queried                 | **HIGH** - May be for integrity          |
+| `idx_mv_network_latest_observed_at` | `mv_network_latest`         | 3 MB       | Unused matview index                              | **MEDIUM**                               |
+| `idx_observations_time_brin`        | `observations_legacy`       | 32 KB      | **LEGACY TABLE** - BRIN index                     | **LOW**                                  |
 
 **RECOMMENDATION**: Drop all `observations_legacy` indexes first (81 MB total) - table is confirmed legacy
 
@@ -132,11 +134,10 @@ All indexes with `idx_scan > 0` should be kept. Key active indexes:
 
 ### 🟢 KEEP - Active API Endpoints (3)
 
-| Matview               | Size  | Scans | Used By                         | Status         |
-| --------------------- | ----- | ----- | ------------------------------- | -------------- |
-| `mv_network_timeline` | 44 MB | 2     | `/api/explorer/timeline/:bssid` | **ACTIVE API** |
-| `mv_heatmap_tiles`    | 40 KB | 2     | `/api/explorer/heatmap`         | **ACTIVE API** |
-| `mv_device_routes`    | 6 MB  | 5     | `/api/explorer/routes`          | **ACTIVE API** |
+| Matview            | Size  | Scans | Used By                 | Status         |
+| ------------------ | ----- | ----- | ----------------------- | -------------- |
+| `mv_heatmap_tiles` | 40 KB | 2     | `/api/explorer/heatmap` | **ACTIVE API** |
+| `mv_device_routes` | 6 MB  | 5     | `/api/explorer/routes`  | **ACTIVE API** |
 
 **NOTE**: These appear in "low usage" list but are LIVE API endpoints - DO NOT DROP
 
@@ -235,7 +236,7 @@ DROP INDEX IF EXISTS public.idx_raw_locations_natural_key;  -- 115 MB
 **Critical Infrastructure** (Referenced by active APIs):
 
 - ✅ `api_network_explorer` view
-- ✅ `mv_network_timeline`, `mv_heatmap_tiles`, `mv_device_routes` (materialized views)
+- ✅ `mv_heatmap_tiles`, `mv_device_routes` (materialized views)
 - ✅ `observations`, `access_points`, `radio_manufacturers` (tables)
 - ✅ `app.networks`, `app.network_tags`, `app.location_markers` (threat APIs)
 - ✅ All primary key indexes (`*_pkey`)
@@ -267,7 +268,7 @@ DROP INDEX IF EXISTS public.idx_raw_locations_natural_key;  -- 115 MB
    - **Action**: Run EXPLAIN ANALYZE on geospatial queries before dropping
 
 2. **Materialized view indexes**:
-   - Indexes on `mv_network_timeline`, `mv_heatmap_tiles`, `mv_device_routes` show zero usage
+   - Indexes on `mv_heatmap_tiles`, `mv_device_routes` show zero usage
    - These matviews are **ACTIVE API endpoints**
    - May indicate:
      - Matviews are small enough for seq scans

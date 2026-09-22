@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-21)
+# 1.0.0 (2026-09-22)
 
 ### Bug Fixes
 
@@ -149,7 +149,7 @@
 - **aws:** preserve postgres cert permissions on rebuild ([b29aa4c](https://github.com/cyclonite69/shadowcheck-web/commit/b29aa4cad86e1ee28bbe9b0af782d43069d1872c))
 - **aws:** restore nginx health checks and cert mounts ([175b75c](https://github.com/cyclonite69/shadowcheck-web/commit/175b75c1b4d9502e95bb6b382cf8dd4d5b38c51d))
 - **aws:** use https apt mirrors for postgis build ([34d1040](https://github.com/cyclonite69/shadowcheck-web/commit/34d10400caac997013f7a8321722ee8795e8a59b))
-- **background-jobs:** refresh current materialized views ([c655dab](https://github.com/cyclonite69/shadowcheck-web/commit/c655dab3b977f538dbef997bbce4883650343af1))
+- **background-jobs:** refresh current materialized views ([92ee884](https://github.com/cyclonite69/shadowcheck-web/commit/92ee8843df83e37c042b5ed6f27f3279132b7ea5))
 - **backup:** make ec2 backups full and durable ([11ee746](https://github.com/cyclonite69/shadowcheck-web/commit/11ee746b543c7fdaccc167cdb32f0e2aa9e6cd96))
 - **backup:** restrict admin pg_dump to app/public schemas by default ([8a18d26](https://github.com/cyclonite69/shadowcheck-web/commit/8a18d261682b10c7e08ad63b8263016e069d90cf))
 - **backup:** run admin UI backups with DB admin credentials ([102ae23](https://github.com/cyclonite69/shadowcheck-web/commit/102ae2385195ae52ed8b49553c59a098c60d4a94))

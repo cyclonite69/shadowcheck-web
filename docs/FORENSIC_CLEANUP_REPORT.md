@@ -60,9 +60,8 @@ GET /api/explorer/networks-v2
 #### Secondary Active Endpoints
 
 ```
-GET /api/explorer/timeline/:bssid
-  └─> MATERIALIZED VIEW: mv_network_timeline
-       └─> TABLE: public.observations
+GET /api/v2/networks/:bssid
+  └─> TABLE: app.observations (hourly timeline data)
 
 GET /api/explorer/heatmap
   └─> MATERIALIZED VIEW: mv_heatmap_tiles
@@ -82,7 +81,7 @@ GET /api/threats/*
 **Dependency Map**:
 
 - **1 critical view**: `api_network_explorer` (networks-v2 endpoint)
-- **3 active materialized views**: timeline, heatmap, routes
+- **2 active materialized views documented here**: heatmap, routes
 - **7 core tables**: observations, access_points, radio_manufacturers, networks, network_tags, location_markers, observations (app schema)
 - **Zero orphaned views** - All views are either in use or PostGIS system views
 
@@ -130,7 +129,7 @@ GET /api/threats/*
 - 14 core tables (observations, access_points, networks, etc.)
 - 22 active indexes (all with idx_scan > 0)
 - 1 critical view (`api_network_explorer`)
-- 3 active materialized views (timeline, heatmap, routes)
+- 2 active materialized views (heatmap, routes)
 
 #### 🟡 INVESTIGATE - Low Usage (20 objects)
 
@@ -202,7 +201,7 @@ DROP INDEX IF EXISTS public.idx_raw_locations_natural_key;  -- 115 MB
 
 - `/api/explorer/networks-v2` (PRIMARY) → `api_network_explorer` view
   - Dependencies: `observations`, `access_points`, `radio_manufacturers`
-- `/api/explorer/timeline/:bssid` → `mv_network_timeline`
+- `/api/v2/networks/:bssid` → `app.observations` (hourly timeline data)
 - `/api/explorer/heatmap` → `mv_heatmap_tiles`
 - `/api/explorer/routes` → `mv_device_routes`
 - `/api/threats/*` → `app.networks`, `app.network_tags`, `app.location_markers`
@@ -241,7 +240,7 @@ DROP INDEX IF EXISTS public.idx_raw_locations_natural_key;  -- 115 MB
 **NEVER DROP**:
 
 - ❌ `api_network_explorer` view (critical)
-- ❌ `mv_network_timeline`, `mv_heatmap_tiles`, `mv_device_routes` (active APIs)
+- ❌ `mv_heatmap_tiles`, `mv_device_routes` (active APIs)
 - ❌ `observations`, `access_points`, `radio_manufacturers` (core data)
 - ❌ All primary keys and unique constraints (data integrity)
 
@@ -271,8 +270,7 @@ DROP INDEX IF EXISTS public.idx_raw_locations_natural_key;  -- 115 MB
 3. `idx_obs_geom_gist` - 22 MB (potential duplicate)
 4. `idx_observations_v2_geom` - 22 MB (potential duplicate)
 5. `idx_observations_bssid` - 20 MB (legacy table)
-6. `idx_mv_network_timeline_bssid_bucket` - 16 MB
-7. `idx_observations_time` - 16 MB (legacy table)
+6. `idx_observations_time` - 16 MB (legacy table)
 
 **Low-Impact Unused** (<10 MB each):
 
@@ -317,24 +315,26 @@ LIMIT 100;
 
 **Risk**: Dropping both indexes could degrade geospatial query performance.
 
-**Recommendation**: Keep both until query plan analysis confirms which is used.
+**Recommendation**: The former `mv_network_timeline` view was dropped by
+`baseline_005_analysis_views_materialized_views.sql`. Timeline data is now
+returned by `GET /api/v2/networks/:bssid` from `app.observations`.
 
 #### 2. Materialized View "Low Usage" False Positive
 
-**Issue**: `mv_network_timeline`, `mv_heatmap_tiles`, `mv_device_routes` appear in "low usage" list (2-5 scans).
+**Issue**: `mv_heatmap_tiles` and `mv_device_routes` appear in "low usage" list (2-5 scans).
 
 **Root Cause**: These are ACTIVE API endpoints, but:
 
-- Specific use cases (timeline by BSSID = low query volume)
+- Specific use cases (heatmap and routes = low query volume)
 - Materialized views queried infrequently
 - API endpoints not heavily used yet
 
 **Evidence**:
 
 ```javascript
-// src/api/routes/v1/explorer.js
-router.get('/explorer/timeline/:bssid', ...)  // Line 408
-  -> SELECT * FROM mv_network_timeline WHERE bssid = $1
+// Current routes
+GET /api/v2/networks/:bssid
+  -> SELECT hourly timeline data FROM app.observations WHERE bssid = $1
 
 router.get('/explorer/heatmap', ...)  // Line 427
   -> SELECT * FROM mv_heatmap_tiles
@@ -343,12 +343,12 @@ router.get('/explorer/routes', ...)  // Line 449
   -> SELECT * FROM mv_device_routes
 ```
 
-**Status**: ✅ CONFIRMED ACTIVE - DO NOT DROP
+**Status**: `mv_network_timeline` was dropped by the baseline; the current
+timeline endpoint reads `app.observations`.
 
 **Recommendation**: Refresh materialized views to ensure data is current:
 
 ```sql
-REFRESH MATERIALIZED VIEW CONCURRENTLY mv_network_timeline;
 REFRESH MATERIALIZED VIEW CONCURRENTLY mv_heatmap_tiles;
 REFRESH MATERIALIZED VIEW CONCURRENTLY mv_device_routes;
 ```
@@ -434,8 +434,8 @@ Total space reclaimed: ~196 MB
 curl "http://localhost:3001/api/explorer/networks-v2?limit=10" | jq '.total'
 # Expected: {"total": 167705, "rows": [...]}
 
-# 2. Test timeline endpoint
-curl "http://localhost:3001/api/explorer/timeline/AA:BB:CC:DD:EE:FF" | jq '.'
+# 2. Test network detail and timeline endpoint
+curl "http://localhost:3001/api/v2/networks/AA:BB:CC:DD:EE:FF" | jq '.timeline'
 # Expected: [{"bucket": "...", "obs_count": ...}]
 
 # 3. Test heatmap endpoint
@@ -498,7 +498,6 @@ VACUUM (VERBOSE, ANALYZE) public.access_points;
 ANALYZE;
 
 -- 3. Refresh materialized views
-REFRESH MATERIALIZED VIEW CONCURRENTLY mv_network_timeline;
 REFRESH MATERIALIZED VIEW CONCURRENTLY mv_heatmap_tiles;
 REFRESH MATERIALIZED VIEW CONCURRENTLY mv_device_routes;
 
