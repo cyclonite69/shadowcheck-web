@@ -8,7 +8,7 @@
 # Stage 1: shared-builder
 # ============================================================================
 # Runs once, produces both /app/dist (frontend) and /app/dist/server (backend)
-FROM node:26.8.1-alpine AS shared-builder
+FROM node:26.9.0-alpine AS shared-builder
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # ============================================================================
 # Stage 2: api (Node.js production runtime)
 # ============================================================================
-FROM node:26.8.1-alpine AS api
+FROM node:26.9.0-alpine AS api
 
 # Install runtime utilities only (no build tools)
 RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl exiftool
@@ -128,7 +128,7 @@ CMD ["nginx", "-g", "daemon off;"]
 # Builds the frontend with VITE_E2E=true (loaded from client/.env.e2e via
 # --mode e2e). Kept separate so the production `shared-builder` stage is
 # never tainted with test seams.
-FROM node:26.8.1-alpine AS frontend-e2e-builder
+FROM node:26.9.0-alpine AS frontend-e2e-builder
 
 WORKDIR /app
 
