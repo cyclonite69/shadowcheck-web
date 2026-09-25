@@ -436,11 +436,11 @@ describe('Observation Service', () => {
       expect(result.tags_applied).toEqual(['FLOCK_CANDIDATE', 'VISINT_PENDING']);
     });
 
-    it('should fallback to UNMATCHED when query returns no rows', async () => {
+    it('should fallback to UNMATCHED when query returns no rows and confirm_fallback=true', async () => {
       (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true);
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true, 50, 2, 5, true);
 
       expect(result).toEqual({
         status: 'UNMATCHED',
@@ -546,6 +546,29 @@ describe('Observation Service', () => {
       expect(insertNetworkMedia).not.toHaveBeenCalled();
       expect(insertNetworkTagWithNotes).not.toHaveBeenCalled();
       expect(addTagToNetwork).not.toHaveBeenCalled();
+    });
+
+    it('rejects writing to VISINT_UNMATCHED during commit without explicit confirm_fallback', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        const cmdStr = args.join(' ');
+        if (cmdStr.includes('$GPSLatitude')) {
+          callback(null, { stdout: '43.023\n' });
+        } else if (cmdStr.includes('$GPSLongitude')) {
+          callback(null, { stdout: '-83.696\n' });
+        } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '2026-05-06 20:29:10\n' });
+        } else {
+          callback(new Error('Unknown command'));
+        }
+      });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+      await expect(
+        correlateVisINT(Buffer.from('dummy'), 'test.jpg', true, 50, 2, 5, false)
+      ).rejects.toThrow(
+        'Correlating to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.'
+      );
+      expect(insertNetworkMedia).not.toHaveBeenCalled();
     });
 
     it('persists media/tags only when correlateVisINT commit=true is explicit', async () => {

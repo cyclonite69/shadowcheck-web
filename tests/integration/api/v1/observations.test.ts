@@ -333,7 +333,7 @@ describe('Observations API v1', () => {
       const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
       expect(Buffer.isBuffer(call[0])).toBe(true);
       expect(call[0].equals(image)).toBe(true);
-      expect(call.slice(1)).toEqual(['visint.jpg', false, 75, 3, 7]);
+      expect(call.slice(1)).toEqual(['visint.jpg', false, 75, 3, 7, false]);
     });
 
     it('defaults commit to false when commit field is omitted — does not write media', async () => {
@@ -359,6 +359,23 @@ describe('Observations API v1', () => {
       expect(call[2]).toBe(false);
       // saveVisINTAttachment must never be called on a correlate request
       expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects commit=true on the unmatched fallback without confirm_fallback', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockRejectedValue({
+        name: 'VISINTFallbackRequiresConfirmationError',
+        message:
+          'Correlating to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.',
+      });
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('commit', 'true');
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VISINT_FALLBACK_REQUIRES_CONFIRMATION');
     });
 
     it('passes commit=true to service when explicitly requested', async () => {

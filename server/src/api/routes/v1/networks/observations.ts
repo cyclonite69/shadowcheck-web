@@ -374,6 +374,7 @@ router.post(
     const filename =
       req.body.filename || req.body.original_filename || uploadedFile?.originalname || 'image.jpg';
     const commit = parseBooleanField(req.body.commit, false);
+    const confirmFallback = parseBooleanField(req.body.confirm_fallback, false);
     if (
       isProvidedAndInvalid(req.body.radius_meters) ||
       isProvidedAndInvalid(req.body.window_hours) ||
@@ -401,7 +402,8 @@ router.post(
         commit,
         radiusMeters,
         windowHours,
-        limit
+        limit,
+        confirmFallback
       );
       res.json({ ok: true, ...result });
     } catch (error: any) {
@@ -413,6 +415,12 @@ router.post(
           error: error.message,
           type: 'ExifToolUnavailableError',
           code: 'VISINT_EXIF_TOOL_UNAVAILABLE',
+        });
+      }
+      if (error.name === 'VISINTFallbackRequiresConfirmationError') {
+        return res.status(400).json({
+          error: error.message,
+          code: 'VISINT_FALLBACK_REQUIRES_CONFIRMATION',
         });
       }
       logger.error(`VisINT correlation failed: ${error.message}`);

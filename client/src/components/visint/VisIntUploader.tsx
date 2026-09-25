@@ -201,6 +201,9 @@ export default function VisIntUploader() {
       if (candidate?.device_type) {
         formData.append('device_type', candidate.device_type);
       }
+      if (isUnmatched) {
+        formData.append('confirm_fallback', 'true');
+      }
       if (!isUnmatched) {
         formData.append('dist_meters', String(Number(candidate?.dist_meters || 0)));
         formData.append('delta_minutes', String(Number(candidate?.delta_minutes || 0)));

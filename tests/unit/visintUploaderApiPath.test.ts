@@ -62,8 +62,12 @@ describe('VisIntUploader API paths', () => {
     );
 
     expect(source).toContain("formData.append('observation_id', selectedCandidateId)");
+    expect(source).toContain("formData.append('confirm_fallback', 'true')");
     expect(source).toMatch(
       /if \(!isUnmatched\) \{[\s\S]*?formData\.append\('observation_id', selectedCandidateId\);[\s\S]*?\}/
+    );
+    expect(source).toMatch(
+      /if \(isUnmatched\) \{[\s\S]*?formData\.append\('confirm_fallback', 'true'\);[\s\S]*?\}/
     );
   });
 });

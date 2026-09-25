@@ -217,7 +217,8 @@ export async function correlateVisINT(
   commit = false,
   radiusMeters = 50,
   windowHours = 2,
-  limit = 5
+  limit = 5,
+  confirmFallback = false
 ): Promise<{
   status: 'MATCHED' | 'UNMATCHED';
   observation_id: string | null;
@@ -277,6 +278,14 @@ export async function correlateVisINT(
     deltaMinutes = parseFloat(bestMatch.delta_minutes);
     targetBssid = String(bestMatch.bssid).toUpperCase();
     deviceType = bestMatch.device_type || null;
+  }
+
+  if (commit && targetBssid === 'VISINT_UNMATCHED' && !confirmFallback) {
+    const error = new Error(
+      'Correlating to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.'
+    );
+    (error as Error & { name: string }).name = 'VISINTFallbackRequiresConfirmationError';
+    throw error;
   }
 
   if (commit) {
