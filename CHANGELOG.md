@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-22)
+# 1.0.0 (2026-09-25)
 
 ### Bug Fixes
 
@@ -247,6 +247,7 @@
 - **deps:** downgrade @vitejs/plugin-react to 5.0.3 to fix Node 22 build failure ([a539ad9](https://github.com/cyclonite69/shadowcheck-web/commit/a539ad9af823c8467e16e9227523ce0d57612d81))
 - **deps:** npm audit fix for postcss path traversal and svgo removeScripts ([e96fea9](https://github.com/cyclonite69/shadowcheck-web/commit/e96fea9b864a2c04e55335a2320da0820828f937))
 - **deps:** pin fast-xml-parser to 5.5.8 to restore AWS SDK XML parsing ([0942fac](https://github.com/cyclonite69/shadowcheck-web/commit/0942fac65022e0929fc37a047d44b26d153fbd08)), closes [#xD](https://github.com/cyclonite69/shadowcheck-web/issues/xD)
+- **deps:** remediate Dependabot vulnerabilities and update sharp ([97d83eb](https://github.com/cyclonite69/shadowcheck-web/commit/97d83ebdd568e7b9c51c761e03af0280b04c6819)), closes [#136](https://github.com/cyclonite69/shadowcheck-web/issues/136) [#135](https://github.com/cyclonite69/shadowcheck-web/issues/135) [#134](https://github.com/cyclonite69/shadowcheck-web/issues/134) [#130](https://github.com/cyclonite69/shadowcheck-web/issues/130) [#118](https://github.com/cyclonite69/shadowcheck-web/issues/118) [#102](https://github.com/cyclonite69/shadowcheck-web/issues/102) [#101](https://github.com/cyclonite69/shadowcheck-web/issues/101) [#97](https://github.com/cyclonite69/shadowcheck-web/issues/97) [#107](https://github.com/cyclonite69/shadowcheck-web/issues/107) [#123](https://github.com/cyclonite69/shadowcheck-web/issues/123) [#129](https://github.com/cyclonite69/shadowcheck-web/issues/129) [#125](https://github.com/cyclonite69/shadowcheck-web/issues/125) [#132](https://github.com/cyclonite69/shadowcheck-web/issues/132) [#127](https://github.com/cyclonite69/shadowcheck-web/issues/127) [#133](https://github.com/cyclonite69/shadowcheck-web/issues/133) [#126](https://github.com/cyclonite69/shadowcheck-web/issues/126)
 - **deps:** restore @playwright/test (lost during react-dom merge conflict resolution) ([aa983f6](https://github.com/cyclonite69/shadowcheck-web/commit/aa983f68dbd30f337017d9b65de17ba50cfef857))
 - **dev:** add docker-cli, aws-cli, postgresql-client, curl to Dockerfile builder stage ([23b0399](https://github.com/cyclonite69/shadowcheck-web/commit/23b03991276bafe870e0870fa1a5380b7c549a01))
 - **dev:** set REDIS_HOST=redis in dev compose to fix api_dev DNS resolution ([cc631ab](https://github.com/cyclonite69/shadowcheck-web/commit/cc631abe0b824c4becff04c34a4df10c337d69b1))
