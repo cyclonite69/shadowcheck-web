@@ -160,3 +160,37 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   // surveillance_detections + oui_device_groups, both joinable from ne.bssid
   'deviceClass',
 ]);
+
+export interface SurveillanceCategoryDefinition {
+  key: 'shotspotter' | 'bwc' | 'dashcam' | 'residential_cam' | 'flock';
+  types: readonly string[];
+}
+
+export const SURVEILLANCE_CATEGORIES: readonly SurveillanceCategoryDefinition[] = [
+  {
+    key: 'shotspotter',
+    types: ['SHOTSPOTTER_SENSOR'],
+  },
+  {
+    key: 'bwc',
+    types: [
+      'AXON_BODY_CAMERA',
+      'MOTOROLA_BWC',
+      'AXON_SIGNAL_PERIPHERAL',
+      'DEI_BWC',
+      'BT_IMAGING_DEVICE',
+    ],
+  },
+  {
+    key: 'dashcam',
+    types: ['DASHCAM'],
+  },
+  {
+    key: 'residential_cam',
+    types: ['RESIDENTIAL_CAMERA'],
+  },
+  {
+    key: 'flock',
+    types: ['FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY'],
+  },
+] as const;

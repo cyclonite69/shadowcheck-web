@@ -201,6 +201,21 @@ export class SqlFragmentLibrary {
   }
 
   /**
+   * Returns a SQL EXISTS predicate matching non-false-positive surveillance detections
+   * for either a specific set of device types or any surveillance detection.
+   */
+  static surveillanceDetectionPredicate(
+    sourceBssidAlias: string,
+    deviceTypes?: readonly string[]
+  ): string {
+    if (deviceTypes && deviceTypes.length > 0) {
+      const inList = deviceTypes.map((t) => `'${t}'`).join(', ');
+      return `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ${sourceBssidAlias}.bssid AND sd.device_type IN (${inList}) AND sd.false_positive = FALSE)`;
+    }
+    return `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ${sourceBssidAlias}.bssid AND sd.false_positive = FALSE)`;
+  }
+
+  /**
    * Returns canonical join for the explorer materialized view.
    */
   static joinExplorerMv(sourceAlias: string, mvAlias = 'ne'): string {

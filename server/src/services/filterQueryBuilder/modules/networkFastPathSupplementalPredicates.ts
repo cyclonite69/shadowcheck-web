@@ -1,4 +1,4 @@
-import { RELATIVE_WINDOWS } from '../constants';
+import { RELATIVE_WINDOWS, SURVEILLANCE_CATEGORIES } from '../constants';
 import type { FilterBuildContext } from '../FilterBuildContext';
 import { SqlFragmentLibrary } from '../SqlFragmentLibrary';
 import { mapThreatCategoriesToDbLevels } from '../threatCategoryLevels';
@@ -107,51 +107,24 @@ export function buildFastPathSupplementalPredicates(
   }
 
   if (e.surveillance && f.surveillance === true) {
-    where.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.false_positive = FALSE)`
-    );
     ctx.addApplied('threat', 'surveillance', true);
   }
 
-  if (e.shotspotter && f.shotspotter === true) {
-    where.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'SHOTSPOTTER_SENSOR' AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'shotspotter', true);
+  const activeSurveillanceCategories = SURVEILLANCE_CATEGORIES.filter(
+    (cat) => e[cat.key] && f[cat.key] === true
+  );
+
+  for (const cat of activeSurveillanceCategories) {
+    ctx.addApplied('threat', cat.key, true);
   }
 
-  if (e.bwc && f.bwc === true) {
-    where.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('AXON_BODY_CAMERA', 'MOTOROLA_BWC', 'AXON_SIGNAL_PERIPHERAL', 'DEI_BWC', 'BT_IMAGING_DEVICE') AND sd.false_positive = FALSE)`
+  if (activeSurveillanceCategories.length > 0) {
+    const selectedTypes = Array.from(
+      new Set(activeSurveillanceCategories.flatMap((cat) => cat.types))
     );
-    ctx.addApplied('threat', 'bwc', true);
-  }
-
-  if (e.dashcam && f.dashcam === true) {
-    where.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'DASHCAM' AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'dashcam', true);
-  }
-
-  if (e.residential_cam && f.residential_cam === true) {
-    where.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'RESIDENTIAL_CAMERA' AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'residential_cam', true);
-  }
-
-  if (e.flock && f.flock === true) {
-    where.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY') AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'flock', true);
+    where.push(SqlFragmentLibrary.surveillanceDetectionPredicate('ne', selectedTypes));
+  } else if (e.surveillance && f.surveillance === true) {
+    where.push(SqlFragmentLibrary.surveillanceDetectionPredicate('ne'));
   }
 
   if (e.deviceClass && Array.isArray(f.deviceClass) && f.deviceClass.length > 0) {

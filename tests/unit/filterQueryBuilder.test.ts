@@ -234,6 +234,43 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql).toContain('sd.false_positive = FALSE');
   });
 
+  test('surveillance with multiple categories (flock + bwc) combines device types into a single IN union', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { surveillance: true, flock: true, bwc: true },
+      { surveillance: true, flock: true, bwc: true }
+    ).buildNetworkListQuery({ limit: 500, offset: 0 });
+
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
+    expect(result.sql).not.toContain('WITH filtered_obs AS');
+    expect(result.sql).toContain('FLOCK_SAFETY_CAMERA');
+    expect(result.sql).toContain('AXON_BODY_CAMERA');
+    // Ensure only one EXISTS clause is added for surveillance detections rather than an impossible AND intersection
+    const existsMatches = result.sql.match(
+      /EXISTS\s*\(\s*SELECT 1 FROM app\.surveillance_detections/g
+    );
+    expect(existsMatches).toHaveLength(1);
+    expect(result.appliedFilters.map((f: { field: string }) => f.field)).toEqual(
+      expect.arrayContaining(['surveillance', 'flock', 'bwc'])
+    );
+  });
+
+  test('slow-path network query with multiple surveillance categories combines device types into a single IN union', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { minSignal: -70, flock: true, bwc: true },
+      { minSignal: true, flock: true, bwc: true }
+    ).buildNetworkListQuery({ limit: 500, offset: 0 });
+
+    expect(result.sql).toContain('FLOCK_SAFETY_CAMERA');
+    expect(result.sql).toContain('AXON_BODY_CAMERA');
+    const existsMatches = result.sql.match(
+      /EXISTS\s*\(\s*SELECT 1 FROM app\.surveillance_detections/g
+    );
+    expect(existsMatches).toHaveLength(1);
+    expect(result.appliedFilters.map((f: { field: string }) => f.field)).toEqual(
+      expect.arrayContaining(['flock', 'bwc'])
+    );
+  });
+
   test('tag_type=ignore query includes ignored networks in list results', () => {
     const result = new UniversalFilterQueryBuilder(
       { tag_type: ['ignore'] },

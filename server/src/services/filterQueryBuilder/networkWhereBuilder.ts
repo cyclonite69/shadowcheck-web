@@ -1,4 +1,4 @@
-import { RELATIVE_WINDOWS } from './constants';
+import { RELATIVE_WINDOWS, SURVEILLANCE_CATEGORIES } from './constants';
 import { buildEngagementPredicates } from './engagementPredicates';
 import { splitTextFilterTokens, normalizeWildcards } from './normalizers';
 import type { NetworkWhereBuildContext } from './NetworkWhereBuildContext';
@@ -189,51 +189,24 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   }
 
   if (e.surveillance && f.surveillance === true) {
-    networkWhere.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.false_positive = FALSE)`
-    );
     ctx.addApplied('threat', 'surveillance', true);
   }
 
-  if (e.shotspotter && f.shotspotter === true) {
-    networkWhere.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'SHOTSPOTTER_SENSOR' AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'shotspotter', true);
+  const activeSurveillanceCategories = SURVEILLANCE_CATEGORIES.filter(
+    (cat) => e[cat.key] && f[cat.key] === true
+  );
+
+  for (const cat of activeSurveillanceCategories) {
+    ctx.addApplied('threat', cat.key, true);
   }
 
-  if (e.bwc && f.bwc === true) {
-    networkWhere.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('AXON_BODY_CAMERA', 'MOTOROLA_BWC', 'AXON_SIGNAL_PERIPHERAL', 'DEI_BWC', 'BT_IMAGING_DEVICE') AND sd.false_positive = FALSE)`
+  if (activeSurveillanceCategories.length > 0) {
+    const selectedTypes = Array.from(
+      new Set(activeSurveillanceCategories.flatMap((cat) => cat.types))
     );
-    ctx.addApplied('threat', 'bwc', true);
-  }
-
-  if (e.dashcam && f.dashcam === true) {
-    networkWhere.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'DASHCAM' AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'dashcam', true);
-  }
-
-  if (e.residential_cam && f.residential_cam === true) {
-    networkWhere.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'RESIDENTIAL_CAMERA' AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'residential_cam', true);
-  }
-
-  if (e.flock && f.flock === true) {
-    networkWhere.push(
-      // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY') AND sd.false_positive = FALSE)`
-    );
-    ctx.addApplied('threat', 'flock', true);
+    networkWhere.push(SqlFragmentLibrary.surveillanceDetectionPredicate('ne', selectedTypes));
+  } else if (e.surveillance && f.surveillance === true) {
+    networkWhere.push(SqlFragmentLibrary.surveillanceDetectionPredicate('ne'));
   }
 
   if (e.deviceClass && Array.isArray(f.deviceClass) && f.deviceClass.length > 0) {
