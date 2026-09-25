@@ -3,16 +3,14 @@ import request from 'supertest';
 
 const mockDispatchRegionSync = jest.fn();
 const mockGetSyncStatus = jest.fn();
+const mockGetRegions = jest.fn();
 
 jest.mock('../../../../../../server/src/services/admin/alprSyncService', () => ({
   alprSyncService: {
     dispatchRegionSync: mockDispatchRegionSync,
     getSyncStatus: mockGetSyncStatus,
+    getRegions: mockGetRegions,
   },
-  ALPR_REGIONS: [
-    { id: 'seattle', label: 'Seattle', state: 'WA', bbox: [-122.6, 47.3, -121.9, 47.8] },
-    { id: 'denver', label: 'Denver', state: 'CO', bbox: [-105.3, 39.5, -104.6, 40.0] },
-  ],
 }));
 
 jest.mock('../../../../../../server/src/logging/logger', () => ({
@@ -32,18 +30,19 @@ describe('admin ALPR routes (canonical paths)', () => {
   });
 
   describe('GET /v1/admin/alpr/regions', () => {
-    it('returns the list of ALPR regions on /v1/admin/alpr/regions', async () => {
-      const res = await request(app).get('/v1/admin/alpr/regions');
-
-      expect(res.status).toBe(200);
-      expect(res.body.ok).toBe(true);
-      expect(res.body.regions).toEqual([
+    it('returns regions with durable sync outcome fields', async () => {
+      mockGetRegions.mockResolvedValue([
         {
           id: 'seattle',
           name: 'Seattle',
           label: 'Seattle',
           state: 'WA',
           bbox: [-122.6, 47.3, -121.9, 47.8],
+          syncStatus: 'success',
+          lastSyncAt: '2026-09-19T15:09:36.825Z',
+          lastChunkCount: 4,
+          lastElementCount: 724,
+          cooldownUntil: '2026-09-19T16:09:36.825Z',
         },
         {
           id: 'denver',
@@ -51,8 +50,25 @@ describe('admin ALPR routes (canonical paths)', () => {
           label: 'Denver',
           state: 'CO',
           bbox: [-105.3, 39.5, -104.6, 40.0],
+          syncStatus: 'idle',
+          lastSyncAt: null,
+          lastChunkCount: null,
+          lastElementCount: null,
+          cooldownUntil: null,
         },
       ]);
+
+      const res = await request(app).get('/v1/admin/alpr/regions');
+
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(res.body.regions).toHaveLength(2);
+      expect(res.body.regions[0]).toMatchObject({
+        id: 'seattle',
+        syncStatus: 'success',
+        lastElementCount: 724,
+      });
+      expect(mockGetRegions).toHaveBeenCalled();
     });
   });
 

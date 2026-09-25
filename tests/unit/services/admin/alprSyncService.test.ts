@@ -1,10 +1,3 @@
-import {
-  syncAlprRegion,
-  ALPR_REGIONS,
-  ALPR_SYNC_LOCK_KEY,
-  dispatchRegionSync,
-  getSyncStatus,
-} from '../../../../server/src/services/admin/alprSyncService';
 import * as overpassClient from '../../../../src/alpr/overpassClient';
 import * as alprSync from '../../../../src/alpr/alprSync';
 import * as alprRegionState from '../../../../src/alpr/alprRegionState';
@@ -25,12 +18,26 @@ jest.mock('../../../../src/alpr/alprRegionState', () => ({
   markRegionSyncRunning: jest.fn().mockResolvedValue(undefined),
   markRegionSyncSuccess: jest.fn().mockResolvedValue(undefined),
   markRegionSyncFailed: jest.fn().mockResolvedValue(undefined),
+  listRegionOutcomes: jest.fn().mockResolvedValue(new Map()),
 }));
 
 const adminPoolGetter = jest.fn();
 jest.mock('../../../../server/src/services/adminDbService', () => ({
   getLongRunningAdminPool: () => adminPoolGetter(),
 }));
+
+jest.mock('../../../../server/src/config/database', () => ({
+  query: jest.fn(),
+}));
+
+import {
+  syncAlprRegion,
+  ALPR_REGIONS,
+  ALPR_SYNC_LOCK_KEY,
+  dispatchRegionSync,
+  getSyncStatus,
+  listRegionsWithStatus,
+} from '../../../../server/src/services/admin/alprSyncService';
 
 describe('alprSyncService', () => {
   let mockClient: any;
@@ -62,6 +69,35 @@ describe('alprSyncService', () => {
     expect(Array.isArray(ALPR_REGIONS)).toBe(true);
     expect(ALPR_REGIONS.length).toBe(30);
     expect(ALPR_REGIONS.some((r) => r.id === 'seattle')).toBe(true);
+  });
+
+  it('listRegionsWithStatus overlays durable outcomes onto code regions', async () => {
+    (alprRegionState.listRegionOutcomes as jest.Mock).mockResolvedValue(
+      new Map([
+        [
+          'austin',
+          {
+            syncStatus: 'success',
+            lastSyncAt: '2026-09-19T15:09:36.825Z',
+            lastChunkCount: 4,
+            lastElementCount: 724,
+            cooldownUntil: '2026-09-19T16:09:36.825Z',
+          },
+        ],
+      ])
+    );
+
+    const regions = await listRegionsWithStatus();
+    expect(regions).toHaveLength(30);
+    const austin = regions.find((r) => r.id === 'austin');
+    expect(austin).toMatchObject({
+      syncStatus: 'success',
+      lastElementCount: 724,
+      name: 'Austin',
+    });
+    const idle = regions.find((r) => r.id === 'seattle');
+    expect(idle?.syncStatus).toBe('idle');
+    expect(idle?.lastSyncAt).toBeNull();
   });
 
   it('throws an error for an unknown region ID before acquiring lock', async () => {

@@ -18,5 +18,8 @@ pipeline. Region identity and bounding boxes are seeded from the
 | `updated_at`         | `TIMESTAMPTZ` | Last row mutation                                                     |
 
 Writers: `src/alpr/alprRegionState.ts`, called from web `syncAlprRegion` and
-daemon `runRegion`. The global rotation cursor in `app.settings`
-(`alpr_sync_region_cursor`) is separate and unchanged.
+daemon `runRegion`. Readers: `listRegionOutcomes` →
+`alprSyncService.getRegions` / `GET /api/v1/admin/alpr/regions` (code
+`ALPR_REGIONS` identity overlaid with durable outcome columns). The global
+rotation cursor in `app.settings` (`alpr_sync_region_cursor`) is separate
+and unchanged.

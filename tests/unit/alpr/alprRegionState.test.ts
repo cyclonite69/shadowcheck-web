@@ -5,6 +5,7 @@ import {
   ALPR_DEFAULT_CHUNK_COUNT,
   ALPR_FAILURE_COOLDOWN_SQL,
   ALPR_SUCCESS_COOLDOWN_SQL,
+  listRegionOutcomes,
   markRegionSyncFailed,
   markRegionSyncRunning,
   markRegionSyncSuccess,
@@ -47,6 +48,31 @@ describe('alprRegionState writers', () => {
     expect(sql).toMatch(/sync_status = 'failed'/);
     expect(sql).toContain(ALPR_FAILURE_COOLDOWN_SQL);
     expect(params).toEqual(['atlanta']);
+  });
+
+  it('listRegionOutcomes maps DB rows into a region_id keyed map', async () => {
+    client.query.mockResolvedValue({
+      rows: [
+        {
+          region_id: 'austin',
+          sync_status: 'success',
+          last_sync_at: new Date('2026-09-19T15:09:36.825Z'),
+          last_chunk_count: 4,
+          last_element_count: 724,
+          cooldown_until: new Date('2026-09-19T16:09:36.825Z'),
+        },
+      ],
+    });
+
+    const outcomes = await listRegionOutcomes(client);
+    expect(client.query.mock.calls[0][0]).toMatch(/FROM app\.alpr_regions/);
+    expect(outcomes.get('austin')).toEqual({
+      syncStatus: 'success',
+      lastSyncAt: '2026-09-19T15:09:36.825Z',
+      lastChunkCount: 4,
+      lastElementCount: 724,
+      cooldownUntil: '2026-09-19T16:09:36.825Z',
+    });
   });
 });
 

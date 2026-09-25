@@ -11,7 +11,8 @@
 
 const express = require('express');
 const logger = require('../../../../logging/logger');
-import { alprSyncService, ALPR_REGIONS } from '../../../../services/admin/alprSyncService';
+import { alprSyncService } from '../../../../services/admin/alprSyncService';
+import { formatErrorWithCause } from '../../../../utils/formatErrorWithCause';
 
 const router = express.Router();
 
@@ -79,21 +80,18 @@ router.get('/v1/admin/alpr/sync/status', (req: any, res: any) => {
 /**
  * GET /v1/admin/alpr/regions
  *
- * Returns curated list of 30 metro regions with bounding boxes.
+ * Returns curated metro regions with bounding boxes and durable sync
+ * outcome fields from app.alpr_regions (idle defaults when no row yet).
  */
-router.get('/v1/admin/alpr/regions', (_req: any, res: any) => {
-  const regions = ALPR_REGIONS.map((r) => ({
-    id: r.id,
-    name: r.label,
-    label: r.label,
-    state: r.state,
-    bbox: r.bbox,
-  }));
-
-  res.json({
-    ok: true,
-    regions,
-  });
+router.get('/v1/admin/alpr/regions', async (_req: any, res: any) => {
+  try {
+    const regions = await alprSyncService.getRegions();
+    return res.json({ ok: true, regions });
+  } catch (err: unknown) {
+    const msg = formatErrorWithCause(err);
+    logger.error('[ALPR] Failed to list regions', { error: msg });
+    return res.status(500).json({ ok: false, error: msg });
+  }
 });
 
 module.exports = router;

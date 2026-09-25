@@ -39,6 +39,27 @@ Do not use it for:
 - [ ] Bring the API Tests tab into alignment with the actual mounted route surface.
 - [ ] Refactor API test presets into modular grouped ownership so the tab can grow without another cleanup pass.
 
+## Priority Follow-ups
+
+### High Priority
+
+- [ ] Restore the geocoding cache pipeline, non-functional since approximately 2026-04-23: implement `upsertGeocodeCacheBatch` in `server/src/services/geocoding/cacheDatabase.ts` so it writes `app.geocoding_cache` using the completed column-by-column address-only and POI-only specification with `ON CONFLICT (precision, lat_round, lon_round)`. Before implementation, explicitly decide `mode='both'` behavior (recommended: throw rather than infer undefined semantics), confirm Geocodio `accuracy` fits the `numeric(5,4)` confidence column, then add the four red tests for address success/failure and POI success/failure against the stub before implementing.
+- [ ] Resolve surveillance device-class fallback behavior: `L3HARRIS_STINGRAY`, `GENERAL_DYNAMICS_C4ISR`, and `TADIRAN_COMMS` currently surface through the `device_class` COALESCE fallback in `SqlFragmentLibrary.ts` from a bare OUI match without corroboration or scoring. No captured devices currently match, so no live mislabeling was found in audit, but the mechanism is live. Decide whether to split a weak “defense-vendor OUI” label from specific product labels, which should remain unpopulated without corroborating evidence, and demote badge severity out of the critical/red tier.
+
+### Medium Priority / Process Debt
+
+- [ ] Decide whether to retroactively split scoring-policy files from commit `5da1ee7c` (`feat(surveillance): camera detection and evidence filters`); they were intended as a separate commit in the original plan but remain merged without a final decision.
+- [ ] Populate `render_budget` and `render_budget_exceeded` in the server response builder; the client observations path checks these fields, but the server never populates them. Low urgency and unrelated to the timeframe default change; identified during the 2026-09-12 audit.
+- [ ] Re-approve or close out the remaining Stage 2 hook-extraction plan in `client/src/components/geospatial/hooks/`: `useObservationPointContextMenu` was extracted and committed, while the original Batch D plan also listed `useCoreObservationLayers`, `useMapLayers`, `useMapLayersToggle`, `useMapStyleControls`, `useNetworkContextMenu`, `useSiblingLinks`, and `useWigleLayers`.
+
+### Open Question
+
+- [ ] Determine the target usage for a low-cost bulk-search integration for ShadowCheck—SSID/device identity lookups, address enrichment, or vendor-document scraping—before selecting a tool.
+
+### Standing Reminder
+
+- [ ] No commits from the current session (client remediation, surveillance filters/scoring, pgAdmin fix, timeframe default, camera-filter independence, and BSSID width fix) have been pushed to `origin/master`; pushing requires explicit approval and is not implied by commits landing.
+
 ## Backlog
 
 ### Data & Analysis

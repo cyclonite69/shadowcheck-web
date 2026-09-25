@@ -1,29 +1,67 @@
 /**
- * Overpass client: endpoint rotation, retry/backoff, ALPR-specific query,
- * and bbox grid chunking with capped concurrency.
+ * Overpass client: endpoint rotation with in-process cooldown, retry/backoff,
+ * ALPR-specific query, and bbox grid chunking with capped concurrency.
  * Public Overpass instances rate-limit per IP and will temp-ban abusive
- * clients — keep MIN_REQUEST_INTERVAL_MS conservative, chunk concurrency ≤ 2.
+ * clients — keep MIN_REQUEST_INTERVAL_MS conservative, chunk concurrency = 1.
+ *
+ * Endpoint cool-downs are process-local only (shared across chunks
+ * in this Node process). Daemon ↔ web mutual exclusion remains the Postgres
+ * advisory lock — cool-down state is never shared across processes.
+ *
+ * kumi.systems / private.coffee are last-resort only (used when the primary
+ * overpass-api.de mirror is cooling). Abort budget matches the Overpass
+ * query timeout so a slow-but-alive mirror is not misclassified as dead.
  */
 
 import { subdivideBBox } from './regions';
 
-const DEFAULT_OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
+const PRIMARY_OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
+const LAST_RESORT_OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
+] as const;
+
+const DEFAULT_OVERPASS_ENDPOINTS = [
+  PRIMARY_OVERPASS_ENDPOINT,
+  ...LAST_RESORT_OVERPASS_ENDPOINTS,
   // overpass.nchc.org.tw removed 2026-09-19: host does not resolve (ENOTFOUND);
   // it burned a retry slot on every chunk with a useless "fetch failed" TypeError.
 ];
 
 const REQUEST_TIMEOUT_MS = 60_000;
+/**
+ * Client abort for last-resort mirrors (kumi / private.coffee).
+ * Must cover a slow-but-alive mirror: private.coffee returned HTTP 200 for a
+ * tiny ALPR bbox in ~47s while a 15s abort classified it as dead and exhausted
+ * the pool under primary ECONNREFUSED. 90s leaves ~2× margin over that
+ * measured duration (55s was only ~8s of headroom).
+ */
+const LAST_RESORT_REQUEST_TIMEOUT_MS = 90_000;
 const MAX_ATTEMPTS = 4;
 const MIN_REQUEST_INTERVAL_MS = 5_000;
+/**
+ * Cool-down after a retryable failure on one mirror (in-process only).
+ * MUST stay ≤ {@link DEFAULT_MAX_COOLDOWN_WAIT_MS}: selectEndpoint only waits
+ * up to that bound, so a longer cool-until can never be waited out mid-fetch
+ * and subsequent chunks fail with "refusing to hammer mirrors" even while
+ * overpass-api.de is healthy for new tiny queries.
+ */
+const DEFAULT_ENDPOINT_COOLDOWN_MS = 25_000;
+/** DNS failures use the same bound so the wait path can unblock. */
+const DEFAULT_DNS_COOLDOWN_MS = 25_000;
+/**
+ * Max time to wait for the earliest cool endpoint when the whole pool is
+ * temporarily unhealthy. Must be ≥ endpoint cool-down TTL or recovery is
+ * unreachable within a multi-chunk region fetch.
+ */
+const DEFAULT_MAX_COOLDOWN_WAIT_MS = 30_000;
 const CHUNK_ROWS = 2;
 const CHUNK_COLS = 2;
 /** Hard cap on concurrent Overpass chunk requests (public mirror IP limits). */
-export const CHUNK_CONCURRENCY = 2;
+export const CHUNK_CONCURRENCY = 1;
 const USER_AGENT = 'ShadowCheck-ALPR-Sync/1.0 (local research use)';
 
+export { LAST_RESORT_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS, PRIMARY_OVERPASS_ENDPOINT };
 export interface Bbox {
   west: number;
   south: number;
@@ -44,17 +82,50 @@ interface OverpassResponse {
   elements?: OverpassElement[];
 }
 
+interface OverpassClientRuntimeConfig {
+  cooldownMs: number;
+  dnsCooldownMs: number;
+  maxCooldownWaitMs: number;
+  minRequestIntervalMs: number;
+  maxAttempts: number;
+  requestTimeoutMs: number;
+  lastResortTimeoutMs: number;
+  backoffBaseMs: number;
+  backoffJitterMs: number;
+}
+
+const RUNTIME_DEFAULTS: OverpassClientRuntimeConfig = {
+  cooldownMs: DEFAULT_ENDPOINT_COOLDOWN_MS,
+  dnsCooldownMs: DEFAULT_DNS_COOLDOWN_MS,
+  maxCooldownWaitMs: DEFAULT_MAX_COOLDOWN_WAIT_MS,
+  minRequestIntervalMs: MIN_REQUEST_INTERVAL_MS,
+  maxAttempts: MAX_ATTEMPTS,
+  requestTimeoutMs: REQUEST_TIMEOUT_MS,
+  lastResortTimeoutMs: LAST_RESORT_REQUEST_TIMEOUT_MS,
+  backoffBaseMs: 1_000,
+  backoffJitterMs: 500,
+};
+
+const runtimeConfig: OverpassClientRuntimeConfig = { ...RUNTIME_DEFAULTS };
+
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 let lastRequestAt = 0;
 /** Serializes throttle so concurrent chunk workers cannot skip the inter-request gap. */
 let throttleTail: Promise<void> = Promise.resolve();
 
+/**
+ * In-process cool-until timestamps (epoch ms) per endpoint URL.
+ * Not shared with other processes; concurrent chunks in this process share it.
+ */
+const endpointCoolUntilMs = new Map<string, number>();
+
 async function throttle(): Promise<void> {
   const run = async (): Promise<void> => {
     const elapsed = Date.now() - lastRequestAt;
-    if (elapsed < MIN_REQUEST_INTERVAL_MS) {
-      await sleep(MIN_REQUEST_INTERVAL_MS - elapsed);
+    const minInterval = runtimeConfig.minRequestIntervalMs;
+    if (elapsed < minInterval) {
+      await sleep(minInterval - elapsed);
     }
     lastRequestAt = Date.now();
   };
@@ -71,6 +142,31 @@ export function getOverpassEndpoints(): string[] {
   const override = process.env.OVERPASS_ENDPOINT?.trim();
   if (override) return [override];
   return [...DEFAULT_OVERPASS_ENDPOINTS];
+}
+
+/**
+ * Test hook: override timing knobs so retry/cooldown logic can be asserted
+ * without multi-second sleeps.
+ */
+export function configureOverpassClientForTests(
+  partial: Partial<OverpassClientRuntimeConfig>
+): void {
+  Object.assign(runtimeConfig, partial);
+}
+
+/**
+ * Test hook: clear in-process cool-downs, throttle state, and restore defaults.
+ */
+export function resetOverpassClientStateForTests(): void {
+  endpointCoolUntilMs.clear();
+  lastRequestAt = 0;
+  throttleTail = Promise.resolve();
+  Object.assign(runtimeConfig, RUNTIME_DEFAULTS);
+}
+
+/** Test/observability: cool-until map snapshot (epoch ms). */
+export function getEndpointCoolUntilForTests(): ReadonlyMap<string, number> {
+  return new Map(endpointCoolUntilMs);
 }
 
 /**
@@ -148,13 +244,14 @@ interface HttpError extends Error {
  * on errors[0].code.
  */
 interface NestedSocketError extends Error {
-  cause?: { code?: string };
+  cause?: unknown;
   code?: string;
   errors?: Array<{ code?: string; cause?: { code?: string } }>;
 }
 
 function extractCode(err: NestedSocketError): string | undefined {
-  if (err.cause?.code) return err.cause.code;
+  const cause = err.cause as { code?: string } | undefined;
+  if (cause?.code) return cause.code;
   if (err.code) return err.code;
   if (Array.isArray(err.errors) && err.errors.length > 0) {
     const inner = err.errors[0];
@@ -165,7 +262,7 @@ function extractCode(err: NestedSocketError): string | undefined {
 
 function isRetryable(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const err = error as HttpError & { cause?: { code?: string }; code?: string };
+  const err = error as HttpError & NestedSocketError;
   if (err.name === 'AbortError') return true;
   if (typeof err.status === 'number') {
     return [429, 500, 502, 503, 504].includes(err.status);
@@ -175,24 +272,175 @@ function isRetryable(error: unknown): boolean {
     return true;
   }
   const msg = err.message.toLowerCase();
-  return msg.includes('timeout') || msg.includes('econnrefused');
+  return msg.includes('timeout') || msg.includes('econnrefused') || msg.includes('enotfound');
+}
+
+function cooldownMsForError(error: unknown): number {
+  const httpError = error as HttpError;
+  let coolMs = runtimeConfig.cooldownMs;
+  if (typeof httpError.retryAfterMs === 'number' && httpError.retryAfterMs > 0) {
+    coolMs = Math.max(runtimeConfig.cooldownMs, httpError.retryAfterMs);
+  } else {
+    const code = extractCode(error as NestedSocketError);
+    if (code === 'ENOTFOUND') coolMs = runtimeConfig.dnsCooldownMs;
+  }
+  // Never cool longer than the wait bound — otherwise selectEndpoint throws
+  // "refusing to hammer" instead of waiting out the TTL.
+  return Math.min(coolMs, runtimeConfig.maxCooldownWaitMs);
+}
+
+function markEndpointUnhealthy(endpoint: string, error: unknown, now = Date.now()): void {
+  endpointCoolUntilMs.set(endpoint, now + cooldownMsForError(error));
+}
+
+function clearEndpointCooldown(endpoint: string): void {
+  endpointCoolUntilMs.delete(endpoint);
+}
+
+interface EndpointPick {
+  endpoint: string;
+  /** Time slept waiting for a cool-down to expire (0 if immediately eligible). */
+  waitedMs: number;
+}
+
+function isLastResortEndpoint(endpoint: string): boolean {
+  return (LAST_RESORT_OVERPASS_ENDPOINTS as readonly string[]).includes(endpoint);
+}
+
+/** Request abort budget for a given mirror (primary 60s, last-resort 90s). */
+export function getRequestTimeoutMsForEndpoint(endpoint: string): number {
+  return isLastResortEndpoint(endpoint)
+    ? runtimeConfig.lastResortTimeoutMs
+    : runtimeConfig.requestTimeoutMs;
+}
+
+function isEndpointEligible(endpoint: string, now: number): boolean {
+  return now >= (endpointCoolUntilMs.get(endpoint) ?? 0);
+}
+
+/**
+ * Prefer primary mirrors while eligible. Last-resort mirrors (kumi /
+ * private.coffee) are only selected when every primary URL in the active
+ * pool is cooling (or the pool has no primary, e.g. OVERPASS_ENDPOINT override).
+ */
+function pickPreferredEligible(
+  endpoints: readonly string[],
+  startIndex: number,
+  now: number
+): string | null {
+  const hasPrimary = endpoints.some((ep) => !isLastResortEndpoint(ep));
+  const primaryCooling =
+    hasPrimary &&
+    endpoints.filter((ep) => !isLastResortEndpoint(ep)).every((ep) => !isEndpointEligible(ep, now));
+
+  for (let i = 0; i < endpoints.length; i += 1) {
+    const endpoint = endpoints[(startIndex + i) % endpoints.length];
+    if (!isEndpointEligible(endpoint, now)) continue;
+    if (isLastResortEndpoint(endpoint)) {
+      if (!hasPrimary || primaryCooling) return endpoint;
+      continue;
+    }
+    return endpoint;
+  }
+  return null;
+}
+
+/**
+ * Pick the next eligible endpoint starting at `startIndex`, skipping URLs
+ * still inside their in-process cool-down. Last-resort mirrors are demoted
+ * until the primary is cooling. When every endpoint is cooling, waits up to
+ * maxCooldownWaitMs for the earliest to become eligible.
+ */
+async function selectEndpoint(
+  endpoints: readonly string[],
+  startIndex: number,
+  now = Date.now()
+): Promise<EndpointPick> {
+  const immediate = pickPreferredEligible(endpoints, startIndex, now);
+  if (immediate) {
+    return { endpoint: immediate, waitedMs: 0 };
+  }
+
+  let earliest = Infinity;
+  for (const endpoint of endpoints) {
+    earliest = Math.min(earliest, endpointCoolUntilMs.get(endpoint) ?? 0);
+  }
+  const waitMs = Math.max(0, earliest - now);
+  if (waitMs > runtimeConfig.maxCooldownWaitMs) {
+    const err = new Error(
+      `All Overpass endpoints are cooling down for at least ${waitMs}ms ` +
+        `(max wait ${runtimeConfig.maxCooldownWaitMs}ms); refusing to hammer mirrors`
+    );
+    throw err;
+  }
+
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+
+  const afterWait = Date.now();
+  const after = pickPreferredEligible(endpoints, startIndex, afterWait);
+  if (after) {
+    return { endpoint: after, waitedMs: waitMs };
+  }
+
+  throw new Error(
+    'All Overpass endpoints remained cooling after bounded wait; refusing to hammer mirrors'
+  );
+}
+
+function wrapAbortAsTimeout(endpoint: string, cause: unknown, timeoutMs: number): Error {
+  const err = new Error(`Overpass ${endpoint} timed out after ${timeoutMs}ms`) as Error & {
+    cause?: unknown;
+  };
+  err.name = 'AbortError';
+  err.cause = cause;
+  return err;
+}
+
+function preserveFetchCause(endpoint: string, error: unknown): Error {
+  if (!(error instanceof Error)) {
+    return new Error(`Overpass ${endpoint} fetch failed: ${String(error)}`);
+  }
+  if (error.name === 'AbortError') {
+    return wrapAbortAsTimeout(endpoint, error, getRequestTimeoutMsForEndpoint(endpoint));
+  }
+  // Node fetch TypeError("fetch failed") — keep message but ensure endpoint is visible.
+  if (error.message === 'fetch failed' || error.message.toLowerCase().includes('fetch failed')) {
+    const nested = error as NestedSocketError;
+    const wrapped = new Error(`Overpass ${endpoint} fetch failed`) as NestedSocketError;
+    wrapped.cause = nested.cause ?? error;
+    const code = extractCode(nested);
+    if (code) wrapped.code = code;
+    if (Array.isArray(nested.errors)) {
+      wrapped.errors = nested.errors;
+    }
+    return wrapped;
+  }
+  return error;
 }
 
 async function requestOnce(endpoint: string, query: string): Promise<OverpassResponse> {
   await throttle();
+  const timeoutMs = getRequestTimeoutMsForEndpoint(endpoint);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': USER_AGENT,
-      },
-      signal: controller.signal,
-    });
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        body: `data=${encodeURIComponent(query)}`,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': USER_AGENT,
+        },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      throw preserveFetchCause(endpoint, error);
+    }
 
     if (!response.ok) {
       const err: HttpError = new Error(`Overpass ${endpoint} returned HTTP ${response.status}`);
@@ -211,33 +459,78 @@ async function requestOnce(endpoint: string, query: string): Promise<OverpassRes
   }
 }
 
+function formatExhaustedError(lastError: unknown, endpoints: readonly string[]): Error {
+  const coolSummary = endpoints
+    .map((ep) => {
+      const until = endpointCoolUntilMs.get(ep);
+      return until ? `${ep} (cool until ${new Date(until).toISOString()})` : `${ep} (eligible)`;
+    })
+    .join('; ');
+
+  if (lastError instanceof Error) {
+    const prior = lastError as NestedSocketError & HttpError;
+    const exhausted = new Error(
+      `${lastError.message} (exhausted ${runtimeConfig.maxAttempts} attempts across endpoints: ${coolSummary})`
+    ) as NestedSocketError & HttpError;
+    exhausted.cause = prior.cause ?? lastError;
+    if (typeof prior.status === 'number') exhausted.status = prior.status;
+    return exhausted;
+  }
+  return new Error(`Overpass request failed after all retries (endpoints: ${coolSummary})`);
+}
+
 /**
- * Fetch one bbox chunk with endpoint rotation / exponential backoff.
+ * Fetch one bbox chunk with cooldown-aware endpoint selection and backoff.
  * Does not further subdivide.
  */
 export async function fetchAlprElementsSingleChunk(bbox: Bbox): Promise<OverpassElement[]> {
   const query = buildAlprQuery(bbox);
   const endpoints = getOverpassEndpoints();
-  let lastError: unknown;
+  if (endpoints.length === 0) {
+    throw new Error('No Overpass endpoints configured');
+  }
 
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const endpoint = endpoints[attempt % endpoints.length];
+  let lastError: unknown;
+  let nextIndex = 0;
+
+  for (let attempt = 0; attempt < runtimeConfig.maxAttempts; attempt += 1) {
+    let pick: EndpointPick;
+    try {
+      pick = await selectEndpoint(endpoints, nextIndex);
+    } catch (selectionError) {
+      if (lastError instanceof Error) {
+        const combined = selectionError as Error & { cause?: unknown };
+        combined.cause = lastError;
+        throw combined;
+      }
+      throw selectionError;
+    }
+
+    const { endpoint, waitedMs } = pick;
+    nextIndex = (endpoints.indexOf(endpoint) + 1) % endpoints.length;
+
     try {
       const payload = await requestOnce(endpoint, query);
+      clearEndpointCooldown(endpoint);
       return payload.elements ?? [];
     } catch (error) {
       lastError = error;
       if (!isRetryable(error)) throw error;
+      markEndpointUnhealthy(endpoint, error);
+
       const httpError = error as HttpError;
+      // If we already waited for a cool-down, skip extra backoff to avoid stacking delays.
+      if (waitedMs > 0) continue;
+
       const backoffMs =
-        httpError.retryAfterMs ?? Math.min(30_000, 1_000 * 2 ** attempt) + Math.random() * 500;
-      await sleep(backoffMs);
+        httpError.retryAfterMs ??
+        Math.min(30_000, runtimeConfig.backoffBaseMs * 2 ** attempt) +
+          Math.random() * runtimeConfig.backoffJitterMs;
+      if (backoffMs > 0) await sleep(backoffMs);
     }
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Overpass request failed after all retries');
+  throw formatExhaustedError(lastError, endpoints);
 }
 
 export interface FetchAlprElementsOptions {

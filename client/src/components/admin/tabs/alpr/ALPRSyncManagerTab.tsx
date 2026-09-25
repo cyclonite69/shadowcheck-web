@@ -1,12 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, Database, CheckCircle, AlertTriangle, Globe, Terminal } from 'lucide-react';
+
+type DurableSyncStatus = 'idle' | 'running' | 'success' | 'failed';
 
 interface AlprRegion {
   id: string;
   name: string;
   label?: string;
+  state?: string;
   bbox?: number[];
   cameraCount?: number;
+  syncStatus?: DurableSyncStatus;
+  lastSyncAt?: string | null;
+  lastChunkCount?: number | null;
+  lastElementCount?: number | null;
+  cooldownUntil?: string | null;
 }
 
 interface SyncResult {
@@ -18,35 +26,128 @@ interface SyncResult {
   durationMs: number;
 }
 
-type SyncStatus = 'dispatched' | 'running' | 'completed' | 'failed';
+type InMemoryJobStatus = 'dispatched' | 'running' | 'completed' | 'failed';
 
 interface SyncJob {
   jobId: string;
   regionId: string;
-  status: SyncStatus;
+  status: InMemoryJobStatus;
   startTime: string;
   endTime?: string;
   error?: string;
   result?: SyncResult;
 }
 
+/** Clear tracked job id only on terminal statuses — not dispatched/running. */
+export function shouldClearActiveJobId(status: InMemoryJobStatus): boolean {
+  return status === 'completed' || status === 'failed';
+}
+
+function statusBadgeClass(status: DurableSyncStatus): string {
+  switch (status) {
+    case 'success':
+      return 'text-emerald-300 bg-emerald-950/50 border-emerald-800/60';
+    case 'failed':
+      return 'text-rose-300 bg-rose-950/50 border-rose-800/60';
+    case 'running':
+      return 'text-cyan-300 bg-cyan-950/50 border-cyan-800/60 animate-pulse';
+    case 'idle':
+    default:
+      return 'text-slate-400 bg-slate-950/60 border-slate-800/60';
+  }
+}
+
+function formatSyncTime(iso: string | null | undefined): string {
+  if (iso == null || iso === '') return 'Never';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+
+function elementCountDisplay(count: number | null | undefined): number {
+  return count == null ? 0 : count;
+}
+
+function durableStatusOf(region: AlprRegion | undefined): DurableSyncStatus {
+  return region?.syncStatus ?? 'idle';
+}
+
 export function AlprSyncTab() {
   const [regions, setRegions] = useState<AlprRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [pruneStale, setPruneStale] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [dispatching, setDispatching] = useState<boolean>(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const appendLog = (msg: string) => {
+  const appendLog = useCallback((msg: string) => {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
     setLogs((prev) => [`[${timestamp}] ${msg}`, ...prev.slice(0, 49)]);
-  };
+  }, []);
+
+  const applyRegionList = useCallback(
+    (regionList: AlprRegion[], options?: { preserveOptimisticRunningFor?: string | null }) => {
+      const preserveId = options?.preserveOptimisticRunningFor;
+      setRegions((prev) => {
+        const merged = regionList.map((incoming) => {
+          if (!preserveId || incoming.id !== preserveId) return incoming;
+          const prior = prev.find((r) => r.id === preserveId);
+          // Quiet poll can return durable idle before markRegionSyncRunning commits;
+          // do not clobber optimistic 'running' with that stale idle snapshot.
+          if (
+            prior?.syncStatus === 'running' &&
+            (incoming.syncStatus === 'idle' || incoming.syncStatus == null)
+          ) {
+            return { ...incoming, syncStatus: 'running' as const };
+          }
+          return incoming;
+        });
+        return merged;
+      });
+      setSelectedRegion((prev) => {
+        if (prev && regionList.some((r) => r.id === prev)) return prev;
+        return regionList[0]?.id ?? '';
+      });
+    },
+    []
+  );
+
+  const fetchRegions = useCallback(
+    async (
+      signal?: AbortSignal,
+      options?: { quiet?: boolean; preserveOptimisticRunningFor?: string | null }
+    ) => {
+      const quiet = options?.quiet === true;
+      try {
+        const res = await fetch('/api/v1/admin/alpr/regions', { signal });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            (body as { error?: string })?.error || `Failed to load regions: ${res.statusText}`
+          );
+        }
+        const data = (await res.json()) as { regions?: AlprRegion[] };
+        const regionList = data.regions ?? [];
+        applyRegionList(regionList, {
+          preserveOptimisticRunningFor: options?.preserveOptimisticRunningFor,
+        });
+        if (!quiet) {
+          appendLog(`Loaded ${regionList.length} ALPR sync regions.`);
+        }
+        return regionList;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return null;
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        if (!quiet) appendLog(`Error loading regions: ${message}`);
+        return null;
+      }
+    },
+    [appendLog, applyRegionList]
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -54,78 +155,96 @@ export function AlprSyncTab() {
     void fetchRegions(controller.signal);
     return () => {
       controller.abort();
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
     };
-  }, []);
+  }, [fetchRegions]);
 
-  const fetchRegions = async (signal: AbortSignal) => {
-    try {
-      const res = await fetch('/api/v1/admin/alpr/regions', { signal });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Failed to load regions: ${res.statusText}`);
-      }
-      const data = await res.json();
-      const regionList: AlprRegion[] = data.regions || [];
-      setRegions(regionList);
-      if (regionList.length > 0 && !selectedRegion) {
-        setSelectedRegion(regionList[0].id);
-      }
-      appendLog(`Loaded ${regionList.length} ALPR sync regions.`);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-      setError(err.message);
-      appendLog(`Error loading regions: ${err.message}`);
-    }
-  };
+  const hasRunningRegion = regions.some((r) => durableStatusOf(r) === 'running');
+  // Keep polling while a job we dispatched is still tracked — durable status can
+  // briefly regress to idle (stale GET overlapping optimistic 'running') and the
+  // job may finish faster than one poll interval.
+  const shouldPollRegions = hasRunningRegion || activeJobId != null || dispatching;
 
-  const pollStatus = async (regionId: string, signal: AbortSignal) => {
-    const res = await fetch(
-      `/api/v1/admin/alpr/sync/status?regionId=${encodeURIComponent(regionId)}`,
-      { signal }
-    );
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `Status check failed with status ${res.status}`);
-
-    const job = (data.jobs as SyncJob[]).find((candidate) => candidate.jobId === activeJobId) as
-      | SyncJob
-      | undefined;
-    if (!job) return;
-
-    setSyncStatus(job.status);
-    if (job.status === 'running') {
-      appendLog(`Sync ${job.jobId} is running.`);
-    } else if (job.status === 'completed') {
-      setSyncResult(job.result ?? null);
-      setLoading(false);
-      appendLog(`Sync ${job.jobId} completed.`);
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    } else if (job.status === 'failed') {
-      setError(job.error || 'ALPR sync failed.');
-      setLoading(false);
-      appendLog(`Sync ${job.jobId} failed: ${job.error || 'unknown error'}`);
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    }
-  };
-
+  // Conditional short-polling: reconcile local UI with durable Postgres state
+  // while a sync is in flight (durable running and/or tracked job id).
   useEffect(() => {
-    if (!activeJobId || !selectedRegion || !loading) return;
+    if (!shouldPollRegions) {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      return;
+    }
+
     const controller = new AbortController();
-    abortRef.current = controller;
-    const runPoll = () => {
-      void pollStatus(selectedRegion, controller.signal).catch((err: any) => {
-        if (err?.name === 'AbortError') return;
-        setError(err.message);
-        setLoading(false);
-        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    const preserveId =
+      activeJobId != null || dispatching || hasRunningRegion ? selectedRegion : null;
+    const tick = () => {
+      void fetchRegions(controller.signal, {
+        quiet: true,
+        preserveOptimisticRunningFor: preserveId,
       });
     };
-    pollTimerRef.current = setInterval(runPoll, 3000);
+
+    tick();
+    pollTimerRef.current = setInterval(tick, 3000);
+
     return () => {
       controller.abort();
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
     };
-  }, [activeJobId, selectedRegion, loading]);
+  }, [shouldPollRegions, fetchRegions, activeJobId, selectedRegion, dispatching, hasRunningRegion]);
+
+  // When durable state leaves 'running', pull in-memory job telemetry for the panel.
+  useEffect(() => {
+    if (!activeJobId || !selectedRegion) return;
+    const selected = regions.find((r) => r.id === selectedRegion);
+    const status = durableStatusOf(selected);
+    if (status === 'running') return;
+
+    const controller = new AbortController();
+    const jobId = activeJobId;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/v1/admin/alpr/sync/status?regionId=${encodeURIComponent(selectedRegion)}`,
+          { signal: controller.signal }
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          jobs?: SyncJob[];
+          error?: string;
+        };
+        if (!res.ok) return;
+        const job = data.jobs?.find((candidate) => candidate.jobId === jobId);
+        if (!job) return;
+        // Only clear the tracked job once it reaches a terminal state. Clearing
+        // on dispatched/running drops the poll loop and leaves the button stuck
+        // when a quiet regions GET overwrote optimistic 'running' with idle.
+        if (!shouldClearActiveJobId(job.status)) return;
+        if (job.status === 'completed') {
+          setSyncResult(job.result ?? null);
+          appendLog(`Sync ${job.jobId} completed.`);
+          setActiveJobId(null);
+          void fetchRegions(undefined, { quiet: true });
+        } else if (job.status === 'failed') {
+          setError(job.error || 'ALPR sync failed.');
+          appendLog(`Sync ${job.jobId} failed: ${job.error || 'unknown error'}`);
+          setActiveJobId(null);
+          void fetchRegions(undefined, { quiet: true });
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+      }
+    })();
+
+    return () => controller.abort();
+  }, [activeJobId, selectedRegion, regions, appendLog, fetchRegions]);
 
   const handleSync = async () => {
     if (!selectedRegion) {
@@ -133,12 +252,23 @@ export function AlprSyncTab() {
       return;
     }
 
-    setLoading(true);
+    const regionId = selectedRegion;
+    const previous = regions.find((r) => r.id === regionId);
+    if (!previous) {
+      setError('Selected region is not loaded.');
+      return;
+    }
+
+    setDispatching(true);
     setError(null);
     setSyncResult(null);
-    setSyncStatus('dispatched');
     setActiveJobId(null);
-    appendLog(`Initiating ALPR sync for region: ${selectedRegion} (Prune: ${pruneStale})`);
+    appendLog(`Initiating ALPR sync for region: ${regionId} (Prune: ${pruneStale})`);
+
+    // Optimistic UI: mark durable status running before the POST resolves.
+    setRegions((prev) =>
+      prev.map((r) => (r.id === regionId ? { ...r, syncStatus: 'running' as const } : r))
+    );
 
     try {
       const controller = new AbortController();
@@ -147,30 +277,42 @@ export function AlprSyncTab() {
       const res = await fetch('/api/v1/admin/alpr/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regionId: selectedRegion, prune: pruneStale }),
+        body: JSON.stringify({ regionId, prune: pruneStale }),
         signal: controller.signal,
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = (await res.json().catch(() => ({}))) as {
+        jobId?: string;
+        error?: string;
+      };
       if (!res.ok) {
         throw new Error(data.error || `Sync failed with status ${res.status}`);
       }
 
-      setActiveJobId(data.jobId);
-      appendLog(`Sync ${data.jobId} dispatched; polling for completion.`);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-      setLoading(false);
-      setError(err.message);
-      appendLog(`Sync error: ${err.message}`);
+      if (data.jobId) {
+        setActiveJobId(data.jobId);
+        appendLog(`Sync ${data.jobId} dispatched; reconciling via region status polling.`);
+      } else {
+        appendLog('Sync dispatched; reconciling via region status polling.');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      // Revert to last known durable snapshot for this region.
+      setRegions((prev) => prev.map((r) => (r.id === regionId ? previous : r)));
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      appendLog(`Sync error: ${message}`);
+    } finally {
+      setDispatching(false);
     }
   };
 
   const selectedRegionObj = regions.find((r) => r.id === selectedRegion);
+  const durableStatus = durableStatusOf(selectedRegionObj);
+  const isSyncing = durableStatus === 'running' || dispatching;
 
   return (
     <div className="space-y-6 text-slate-100">
-      {/* Header Banner Card */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 backdrop-blur-md">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
@@ -183,16 +325,13 @@ export function AlprSyncTab() {
           </p>
         </div>
         <button
-          onClick={handleSync}
-          disabled={loading}
+          type="button"
+          onClick={() => void handleSync()}
+          disabled={isSyncing || !selectedRegion}
           className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-cyan-950/50"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading
-            ? syncStatus === 'dispatched'
-              ? 'Dispatched...'
-              : 'Synchronizing...'
-            : 'Execute Sync'}
+          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          {isSyncing ? 'Syncing...' : 'Execute Sync'}
         </button>
       </div>
 
@@ -203,9 +342,7 @@ export function AlprSyncTab() {
         </div>
       )}
 
-      {/* 3-Column Configuration & Telemetry Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Target Configuration Card */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
@@ -220,18 +357,41 @@ export function AlprSyncTab() {
                 <select
                   value={selectedRegion}
                   onChange={(e) => setSelectedRegion(e.target.value)}
-                  disabled={loading}
+                  disabled={isSyncing}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
                 >
                   {regions.map((reg) => {
                     const displayName = reg.name || reg.label || reg.id;
+                    const status = durableStatusOf(reg);
+                    const count = elementCountDisplay(reg.lastElementCount);
                     return (
                       <option key={reg.id} value={reg.id}>
-                        {displayName}
+                        {displayName} — {status} · {count}
                       </option>
                     );
                   })}
                 </select>
+              </div>
+
+              <div
+                className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-xs font-medium ${statusBadgeClass(durableStatus)}`}
+              >
+                Durable status: {durableStatus}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="block text-slate-500 mb-0.5">Last sync</span>
+                  <span className="font-mono text-slate-300">
+                    {formatSyncTime(selectedRegionObj?.lastSyncAt)}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 mb-0.5">Last elements</span>
+                  <span className="font-mono text-slate-300">
+                    {elementCountDisplay(selectedRegionObj?.lastElementCount)}
+                  </span>
+                </div>
               </div>
 
               <div className="pt-2">
@@ -248,6 +408,7 @@ export function AlprSyncTab() {
                     type="checkbox"
                     checked={pruneStale}
                     onChange={(e) => setPruneStale(e.target.checked)}
+                    disabled={isSyncing}
                     className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
                   />
                 </div>
@@ -269,7 +430,6 @@ export function AlprSyncTab() {
           )}
         </div>
 
-        {/* Telemetry Stats Card */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
@@ -296,7 +456,7 @@ export function AlprSyncTab() {
                   Duration
                 </span>
                 <span className="text-lg font-bold font-mono text-slate-200">
-                  {syncResult?.durationMs ? `${syncResult.durationMs}ms` : '—'}
+                  {syncResult?.durationMs != null ? `${syncResult.durationMs}ms` : '—'}
                 </span>
               </div>
             </div>
@@ -304,13 +464,12 @@ export function AlprSyncTab() {
           <div className="mt-4 text-[11px] text-slate-500">
             {syncResult
               ? `Region: ${syncResult.regionLabel} (${syncResult.regionId})`
-              : syncStatus
-                ? `Status: ${syncStatus}`
+              : isSyncing
+                ? 'Synchronization in progress…'
                 : 'Awaiting synchronization run...'}
           </div>
         </div>
 
-        {/* Execution Log Card */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
             <Terminal className="w-4 h-4 text-purple-400" />

@@ -33,13 +33,17 @@ import {
 } from '../../../../src/alpr/alprSync';
 import {
   ALPR_DEFAULT_CHUNK_COUNT,
+  listRegionOutcomes,
   markRegionSyncFailed,
   markRegionSyncRunning,
   markRegionSyncSuccess,
+  type AlprRegionOutcome,
+  type AlprRegionSyncStatus,
 } from '../../../../src/alpr/alprRegionState';
 import { formatErrorWithCause } from '../../utils/formatErrorWithCause';
 
 const logger = require('../../logging/logger');
+const { query } = require('../../config/database');
 
 export { ALPR_REGIONS };
 export { ALPR_SYNC_LOCK_KEY };
@@ -229,15 +233,60 @@ export function dispatchRegionSync(regionId: string, prune = false): SyncDispatc
   return { jobId: job.jobId, regionId, status: 'dispatched' };
 }
 
-export const alprSyncService = {
-  getRegions: async () =>
-    ALPR_REGIONS.map((r) => ({
+export interface AlprRegionListItem {
+  id: string;
+  name: string;
+  label: string;
+  state: string;
+  bbox: [number, number, number, number];
+  syncStatus: AlprRegionSyncStatus;
+  lastSyncAt: string | null;
+  lastChunkCount: number | null;
+  lastElementCount: number | null;
+  cooldownUntil: string | null;
+}
+
+const IDLE_OUTCOME: AlprRegionOutcome = {
+  syncStatus: 'idle',
+  lastSyncAt: null,
+  lastChunkCount: null,
+  lastElementCount: null,
+  cooldownUntil: null,
+};
+
+/**
+ * Code-constant regions overlaid with durable outcomes from app.alpr_regions.
+ * Identity always comes from ALPR_REGIONS; missing DB rows default to idle.
+ */
+export async function listRegionsWithStatus(): Promise<AlprRegionListItem[]> {
+  let outcomes = new Map<string, AlprRegionOutcome>();
+  try {
+    outcomes = await listRegionOutcomes({ query });
+  } catch (error: unknown) {
+    logger.warn('ALPR region outcome read failed; returning idle defaults', {
+      error: formatErrorWithCause(error),
+    });
+  }
+
+  return ALPR_REGIONS.map((r) => {
+    const outcome = outcomes.get(r.id) ?? IDLE_OUTCOME;
+    return {
       id: r.id,
       name: r.label,
       label: r.label,
       state: r.state,
       bbox: r.bbox,
-    })),
+      syncStatus: outcome.syncStatus,
+      lastSyncAt: outcome.lastSyncAt,
+      lastChunkCount: outcome.lastChunkCount,
+      lastElementCount: outcome.lastElementCount,
+      cooldownUntil: outcome.cooldownUntil,
+    };
+  });
+}
+
+export const alprSyncService = {
+  getRegions: listRegionsWithStatus,
   syncRegion: async ({ region, prune = false }: { region: string; prune?: boolean }) => {
     return runAlprSync(region, prune);
   },

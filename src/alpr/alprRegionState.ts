@@ -81,3 +81,45 @@ export async function markRegionSyncFailed(client: AlprDbClient, regionId: strin
     [regionId]
   );
 }
+
+export interface AlprRegionOutcome {
+  syncStatus: AlprRegionSyncStatus;
+  lastSyncAt: string | null;
+  lastChunkCount: number | null;
+  lastElementCount: number | null;
+  cooldownUntil: string | null;
+}
+
+function toIsoOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value.toISOString();
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+/**
+ * Read durable sync outcomes for all seeded regions.
+ * Missing rows are omitted from the map (callers default to idle).
+ */
+export async function listRegionOutcomes(
+  client: AlprDbClient
+): Promise<Map<string, AlprRegionOutcome>> {
+  const result = await client.query(
+    `
+      SELECT region_id, sync_status, last_sync_at, last_chunk_count,
+             last_element_count, cooldown_until
+      FROM app.alpr_regions
+    `
+  );
+  const map = new Map<string, AlprRegionOutcome>();
+  for (const row of result.rows ?? []) {
+    map.set(String(row.region_id), {
+      syncStatus: row.sync_status as AlprRegionSyncStatus,
+      lastSyncAt: toIsoOrNull(row.last_sync_at),
+      lastChunkCount: row.last_chunk_count == null ? null : Number(row.last_chunk_count),
+      lastElementCount: row.last_element_count == null ? null : Number(row.last_element_count),
+      cooldownUntil: toIsoOrNull(row.cooldown_until),
+    });
+  }
+  return map;
+}

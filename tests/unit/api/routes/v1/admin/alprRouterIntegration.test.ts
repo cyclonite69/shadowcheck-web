@@ -3,6 +3,7 @@ import express from 'express';
 
 const mockDispatchRegionSync = jest.fn();
 const mockGetSyncStatus = jest.fn();
+const mockGetRegions = jest.fn();
 
 jest.mock('../../../../../../server/src/services/admin/alprSyncService', () => {
   const actual = jest.requireActual('../../../../../../server/src/services/admin/alprSyncService');
@@ -12,6 +13,7 @@ jest.mock('../../../../../../server/src/services/admin/alprSyncService', () => {
       ...actual.alprSyncService,
       dispatchRegionSync: mockDispatchRegionSync,
       getSyncStatus: mockGetSyncStatus,
+      getRegions: mockGetRegions,
     },
   };
 });
@@ -103,12 +105,28 @@ describe('ALPR Routes Real Router Mounting & Authentication Contract', () => {
     });
 
     it('successfully routes GET /api/v1/admin/alpr/regions through real admin router', async () => {
+      mockGetRegions.mockResolvedValue(
+        Array.from({ length: 30 }, (_, i) => ({
+          id: i === 0 ? 'seattle' : `region-${i}`,
+          name: i === 0 ? 'Seattle' : `Region ${i}`,
+          label: i === 0 ? 'Seattle' : `Region ${i}`,
+          state: 'XX',
+          bbox: [0, 0, 1, 1],
+          syncStatus: 'idle',
+          lastSyncAt: null,
+          lastChunkCount: null,
+          lastElementCount: null,
+          cooldownUntil: null,
+        }))
+      );
+
       const res = await request(app).get('/api/v1/admin/alpr/regions');
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(Array.isArray(res.body.regions)).toBe(true);
       expect(res.body.regions.length).toBe(30);
       expect(res.body.regions.some((r: any) => r.id === 'seattle')).toBe(true);
+      expect(res.body.regions[0]).toHaveProperty('syncStatus');
     });
 
     it('successfully routes POST /api/v1/admin/alpr/sync through real admin router to service', async () => {
