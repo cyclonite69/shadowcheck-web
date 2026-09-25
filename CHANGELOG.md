@@ -1144,7 +1144,7 @@
 - **admin:** infinite scroll + column redesign on WiGLE Search results table ([125abe3](https://github.com/cyclonite69/shadowcheck-web/commit/125abe39f795eae162c6f52b8af2fe1243cf5e68))
 - **admin:** make API test tab data-driven via config ([c459fbf](https://github.com/cyclonite69/shadowcheck-web/commit/c459fbfadcac2308393cb9c90c203dd36d1a1731))
 - **admin:** per-search-term coverage dropdown + V3 state filter as dropdown ([a67ff55](https://github.com/cyclonite69/shadowcheck-web/commit/a67ff5527e2bde5cda17023683d50f038fa43ec0))
-- **admin:** protect non-test databases from destructive data truncation ([2a4a62d](https://github.com/cyclonite69/shadowcheck-web/commit/2a4a62dc277b9bf74657f72cb5478a4130a565a2))
+- **admin:** protect non-test databases from destructive data truncation ([894b5c5](https://github.com/cyclonite69/shadowcheck-web/commit/894b5c52a1ef40443905fd99ffadeac4d415e619))
 - **admin:** remove redundant API Status card from WiGLE Search tab ([e384d0d](https://github.com/cyclonite69/shadowcheck-web/commit/e384d0d4caaa1c7c8fa225c29a142c93755f5fa2))
 - **admin:** restore WiGLE import resumption UI and improve geocoding/WiGLE service reliability ([ab45092](https://github.com/cyclonite69/shadowcheck-web/commit/ab45092d119f217e19924972b7f351a217b5ec9a))
 - **admin:** sibling stats on DB Stats tab; tests; housekeeping ([861efee](https://github.com/cyclonite69/shadowcheck-web/commit/861efee2f5f6659d794372525915d4ccaf53c063))
