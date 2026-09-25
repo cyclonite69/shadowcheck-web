@@ -8,7 +8,9 @@
 
 // ── formatRadius (mirrors useRadiusFilterLayer.ts) ──────────────────────────
 const formatRadius = (meters: number): string => {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+  if (meters >= 1000) {
+    return `${(meters / 1000).toFixed(1)} km`;
+  }
   return `${Math.round(meters).toLocaleString()} m`;
 };
 
@@ -89,7 +91,9 @@ describe('radius line geometry', () => {
 // ── buildPopupHTML (mirrors useRadiusFilterPopup.ts) ────────────────────────
 function buildPopupHTML(radiusMeters: number): string {
   const fmtRadius = (m: number): string => {
-    if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+    if (m >= 1000) {
+      return `${(m / 1000).toFixed(1)} km`;
+    }
     return `${Math.round(m).toLocaleString()} m`;
   };
   return `
@@ -163,9 +167,9 @@ describe('useRadiusFilterLayer source decisions', () => {
   ): boolean {
     return (
       isEnabled &&
-      !!radiusFilter?.latitude &&
-      !!radiusFilter?.longitude &&
-      !!radiusFilter?.radiusMeters
+      Boolean(radiusFilter?.latitude) &&
+      Boolean(radiusFilter?.longitude) &&
+      Boolean(radiusFilter?.radiusMeters)
     );
   }
 

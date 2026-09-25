@@ -161,7 +161,9 @@ function relative(file: string): string {
 
 function readSource(file: string): ts.SourceFile {
   const cached = sourceCache.get(file);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const text = fs.readFileSync(file, 'utf8');
   const source = ts.createSourceFile(
@@ -180,7 +182,9 @@ function lineOf(source: ts.SourceFile, node: ts.Node): number {
 }
 
 function propertyName(node: ts.PropertyName | undefined): string | undefined {
-  if (!node) return undefined;
+  if (!node) {
+    return undefined;
+  }
   if (ts.isIdentifier(node) || ts.isStringLiteral(node) || ts.isNumericLiteral(node)) {
     return node.text;
   }
@@ -188,7 +192,9 @@ function propertyName(node: ts.PropertyName | undefined): string | undefined {
 }
 
 function stringValues(node: ts.Expression | undefined): string[] {
-  if (!node) return [];
+  if (!node) {
+    return [];
+  }
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     return [node.text];
   }
@@ -201,18 +207,28 @@ function stringValues(node: ts.Expression | undefined): string[] {
 }
 
 function booleanValue(node: ts.Expression | undefined): boolean | undefined {
-  if (!node) return undefined;
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
+  if (!node) {
+    return undefined;
+  }
+  if (node.kind === ts.SyntaxKind.TrueKeyword) {
+    return true;
+  }
+  if (node.kind === ts.SyntaxKind.FalseKeyword) {
+    return false;
+  }
   return undefined;
 }
 
 function objectProperties(node: ts.ObjectLiteralExpression): Map<string, ts.Expression> {
   const result = new Map<string, ts.Expression>();
   for (const property of node.properties) {
-    if (!ts.isPropertyAssignment(property)) continue;
+    if (!ts.isPropertyAssignment(property)) {
+      continue;
+    }
     const name = propertyName(property.name);
-    if (name) result.set(name, property.initializer);
+    if (name) {
+      result.set(name, property.initializer);
+    }
   }
   return result;
 }
@@ -222,14 +238,22 @@ function normalizePath(value: string): string {
   result = result.replace(/\{([A-Za-z0-9_]+)\}/g, ':$1');
   result = result.replace(/:([A-Za-z0-9_]+)\(\*\)/g, ':$1');
   result = result.replace(/\/+/g, '/');
-  if (!result.startsWith('/')) result = `/${result}`;
-  if (result.length > 1) result = result.replace(/\/+$/, '');
+  if (!result.startsWith('/')) {
+    result = `/${result}`;
+  }
+  if (result.length > 1) {
+    result = result.replace(/\/+$/, '');
+  }
   return result || '/';
 }
 
 function joinPaths(prefix: string, fragment: string): string {
-  if (prefix === '/') return normalizePath(fragment);
-  if (fragment === '/') return normalizePath(prefix);
+  if (prefix === '/') {
+    return normalizePath(fragment);
+  }
+  if (fragment === '/') {
+    return normalizePath(prefix);
+  }
   return normalizePath(`${prefix}/${fragment}`);
 }
 
@@ -240,7 +264,9 @@ function routeKey(method: HttpMethod, routePath: string): string {
 function findRequireSpecifier(node: ts.Node): string | undefined {
   let result: string | undefined;
   const visit = (current: ts.Node): void => {
-    if (result) return;
+    if (result) {
+      return;
+    }
     if (
       ts.isCallExpression(current) &&
       ts.isIdentifier(current.expression) &&
@@ -256,7 +282,9 @@ function findRequireSpecifier(node: ts.Node): string | undefined {
 }
 
 function resolveLocalModule(fromFile: string, specifier: string): string | undefined {
-  if (!specifier.startsWith('.')) return undefined;
+  if (!specifier.startsWith('.')) {
+    return undefined;
+  }
   const base = path.resolve(path.dirname(fromFile), specifier);
   const candidates = [
     base,
@@ -277,7 +305,9 @@ function collectImportedBindings(source: ts.SourceFile): Map<string, ImportedBin
     if (ts.isImportDeclaration(statement)) {
       const specifier = stringValues(statement.moduleSpecifier as ts.Expression)[0];
       const resolved = specifier ? resolveLocalModule(source.fileName, specifier) : undefined;
-      if (!resolved || !statement.importClause) continue;
+      if (!resolved || !statement.importClause) {
+        continue;
+      }
 
       if (statement.importClause.name) {
         bindings.set(statement.importClause.name.text, { file: resolved, importedName: 'default' });
@@ -294,18 +324,26 @@ function collectImportedBindings(source: ts.SourceFile): Map<string, ImportedBin
       continue;
     }
 
-    if (!ts.isVariableStatement(statement)) continue;
+    if (!ts.isVariableStatement(statement)) {
+      continue;
+    }
     for (const declaration of statement.declarationList.declarations) {
-      if (!declaration.initializer) continue;
+      if (!declaration.initializer) {
+        continue;
+      }
       const specifier = findRequireSpecifier(declaration.initializer);
       const resolved = specifier ? resolveLocalModule(source.fileName, specifier) : undefined;
-      if (!resolved) continue;
+      if (!resolved) {
+        continue;
+      }
 
       if (ts.isIdentifier(declaration.name)) {
         bindings.set(declaration.name.text, { file: resolved });
       } else if (ts.isObjectBindingPattern(declaration.name)) {
         for (const element of declaration.name.elements) {
-          if (!ts.isIdentifier(element.name)) continue;
+          if (!ts.isIdentifier(element.name)) {
+            continue;
+          }
           bindings.set(element.name.text, {
             file: resolved,
             importedName: element.propertyName
@@ -321,17 +359,27 @@ function collectImportedBindings(source: ts.SourceFile): Map<string, ImportedBin
 }
 
 function authFromText(text: string): AuthGate | undefined {
-  if (/\brequireAdmin\b/.test(text)) return 'admin-only';
-  if (/\bvalidateApiKey\b/.test(text)) return 'api-key';
-  if (/\brequireAuth\b/.test(text)) return 'authenticated-user';
-  if (/\bvalidateSession\s*\(/.test(text)) return 'authenticated-user';
+  if (/\brequireAdmin\b/.test(text)) {
+    return 'admin-only';
+  }
+  if (/\bvalidateApiKey\b/.test(text)) {
+    return 'api-key';
+  }
+  if (/\brequireAuth\b/.test(text)) {
+    return 'authenticated-user';
+  }
+  if (/\bvalidateSession\s*\(/.test(text)) {
+    return 'authenticated-user';
+  }
   return undefined;
 }
 
 function enclosingFunctionName(node: ts.Node): string | undefined {
   let current: ts.Node | undefined = node.parent;
   while (current) {
-    if (ts.isFunctionDeclaration(current) && current.name) return current.name.text;
+    if (ts.isFunctionDeclaration(current) && current.name) {
+      return current.name.text;
+    }
     if (
       (ts.isArrowFunction(current) || ts.isFunctionExpression(current)) &&
       current.parent &&
@@ -347,9 +395,15 @@ function enclosingFunctionName(node: ts.Node): string | undefined {
 
 function combineAuth(...values: Array<AuthGate | undefined>): AuthGate {
   const defined = values.filter((value): value is AuthGate => Boolean(value));
-  if (defined.includes('admin-only')) return 'admin-only';
-  if (defined.includes('api-key')) return 'api-key';
-  if (defined.includes('authenticated-user')) return 'authenticated-user';
+  if (defined.includes('admin-only')) {
+    return 'admin-only';
+  }
+  if (defined.includes('api-key')) {
+    return 'api-key';
+  }
+  if (defined.includes('authenticated-user')) {
+    return 'authenticated-user';
+  }
   return 'public';
 }
 
@@ -358,7 +412,9 @@ function effectiveAuth(values: AuthGate[]): AuthGate {
 }
 
 function methodValues(method: string, callText: string): HttpMethod[] {
-  if (method !== 'all') return [method.toUpperCase() as HttpMethod];
+  if (method !== 'all') {
+    return [method.toUpperCase() as HttpMethod];
+  }
   const explicit = [
     ...callText.matchAll(/req\.method\s*!==?\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/g),
   ]
@@ -414,7 +470,9 @@ function parseDynamicRouteFactories(source: ts.SourceFile): DeclaredRoute[] {
 
 function parseRouteModule(file: string): ModuleInfo {
   const cached = moduleCache.get(file);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const source = readSource(file);
   const bindings = collectImportedBindings(source);
@@ -430,7 +488,9 @@ function parseRouteModule(file: string): ModuleInfo {
     description: string,
     selectedFunction?: string
   ): void => {
-    if (!binding.file.startsWith(routeRoot)) return;
+    if (!binding.file.startsWith(routeRoot)) {
+      return;
+    }
     children.push({
       prefixes,
       childFile: binding.file,
@@ -500,7 +560,9 @@ function parseRouteModule(file: string): ModuleInfo {
 
         if (prefixes.length === 0 && middlewareText.length === 1) {
           const gate = authFromText(middlewareText[0]);
-          if (gate) moduleAuth = combineAuth(moduleAuth, gate);
+          if (gate) {
+            moduleAuth = combineAuth(moduleAuth, gate);
+          }
         }
 
         for (const argument of node.arguments.slice(childStart)) {
@@ -510,8 +572,9 @@ function parseRouteModule(file: string): ModuleInfo {
               ? argument.expression.text
               : undefined;
           const binding = bindingName ? bindings.get(bindingName) : undefined;
-          if (binding)
+          if (binding) {
             addChild(prefixes.length > 0 ? prefixes : ['/'], binding, node, 'router.use');
+          }
         }
       }
     }
@@ -533,7 +596,9 @@ function parseRouteModule(file: string): ModuleInfo {
         const argument = node.arguments[0];
         const binding =
           argument && ts.isIdentifier(argument) ? bindings.get(argument.text) : undefined;
-        if (binding) addChild(['/'], binding, node, `${callee} stack composition`);
+        if (binding) {
+          addChild(['/'], binding, node, `${callee} stack composition`);
+        }
       }
     }
 
@@ -557,7 +622,9 @@ function parseRouteDependencies(): Map<string, string> {
       const name = propertyName(node.name);
       const specifier = findRequireSpecifier(node.initializer);
       const resolved = specifier ? resolveLocalModule(file, specifier) : undefined;
-      if (name && resolved?.startsWith(routeRoot)) result.set(name, resolved);
+      if (name && resolved?.startsWith(routeRoot)) {
+        result.set(name, resolved);
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -599,7 +666,9 @@ function parseRootMounts(dependencies: Map<string, string>): RootMount[] {
           break;
         }
       }
-      if (!dependencyName) return;
+      if (!dependencyName) {
+        return;
+      }
 
       const middlewareText = node.arguments
         .slice(1, -1)
@@ -611,7 +680,9 @@ function parseRootMounts(dependencies: Map<string, string>): RootMount[] {
           ? 'authenticated-user'
           : 'public';
       const moduleFile = dependencies.get(dependencyName);
-      if (!moduleFile) return;
+      if (!moduleFile) {
+        return;
+      }
 
       mounts.push({
         prefixes,
@@ -648,7 +719,9 @@ function resolveRuntimeRoutes(rootMounts: RootMount[]): ResolvedRouteOccurrence[
     const module = parseRouteModule(file);
     const moduleAuth = combineAuth(inheritedAuth, module.moduleAuth);
     for (const route of module.routes) {
-      if (selectedFunction && route.ownerFunction !== selectedFunction) continue;
+      if (selectedFunction && route.ownerFunction !== selectedFunction) {
+        continue;
+      }
       occurrences.push({
         method: route.method,
         fullPath: joinPaths(prefix, route.routePath),
@@ -715,13 +788,17 @@ function parseRegistry(): RegistryEntry[] {
       ts.isArrayLiteralExpression(node.initializer)
     ) {
       for (const element of node.initializer.elements) {
-        if (!ts.isObjectLiteralExpression(element)) continue;
+        if (!ts.isObjectLiteralExpression(element)) {
+          continue;
+        }
         const properties = objectProperties(element);
         const method = stringValues(properties.get('method'))[0]?.toUpperCase() as
           | HttpMethod
           | undefined;
         const routePath = stringValues(properties.get('path'))[0];
-        if (!method || !routePath) continue;
+        if (!method || !routePath) {
+          continue;
+        }
         entries.push({
           method,
           path: routePath,
@@ -749,7 +826,9 @@ function parseDocs(fileName: string): DocsEntry[] {
     const heading = raw.match(/^#{2,6}\s+(GET|POST|PUT|PATCH|DELETE)\s+`?([^`\s]+)`?/i);
     const table = raw.match(/^\|\s*(GET|POST|PUT|PATCH|DELETE)\s*\|\s*`([^`]+)`\s*\|/i);
     const match = heading ?? table;
-    if (!match) return;
+    if (!match) {
+      return;
+    }
 
     const method = match[1].toUpperCase() as HttpMethod;
     const routePath = normalizePath(match[2]);
@@ -970,7 +1049,9 @@ function markdownCell(value: string): string {
 }
 
 function routeTable(routes: RuntimeRoute[]): string {
-  if (routes.length === 0) return '_None._\n';
+  if (routes.length === 0) {
+    return '_None._\n';
+  }
   const lines = [
     '| Method | Production Path | Source | Mount Source | Gate | Risk | Registry |',
     '| --- | --- | --- | --- | --- | --- | --- |',
@@ -989,7 +1070,9 @@ function routeTable(routes: RuntimeRoute[]): string {
 }
 
 function registryTable(entries: RegistryEntry[]): string {
-  if (entries.length === 0) return '_None._\n';
+  if (entries.length === 0) {
+    return '_None._\n';
+  }
   const lines = [
     '| Method | Registry Path | Label | Category | Manual Only | Destructive | Source |',
     '| --- | --- | --- | --- | --- | --- | --- |',
@@ -1003,7 +1086,9 @@ function registryTable(entries: RegistryEntry[]): string {
 }
 
 function docsTable(entries: DocsEntry[], fileName: string): string {
-  if (entries.length === 0) return '_None._\n';
+  if (entries.length === 0) {
+    return '_None._\n';
+  }
   const lines = [
     '| Method | Documented Path | Source |',
     '| --- | --- | --- |',
@@ -1104,7 +1189,9 @@ ${report.limitations.map((limitation) => `- ${limitation}`).join('\n')}
 }
 
 function writeOutput(fileName: string | undefined, content: string): void {
-  if (!fileName) return;
+  if (!fileName) {
+    return;
+  }
   fs.writeFileSync(path.resolve(fileName), content);
 }
 

@@ -61,7 +61,9 @@ async function bulkUpsertDetections(
   adminQuery: (sql: string, params?: any[]) => Promise<any>,
   detections: ScoredDetection[]
 ): Promise<number> {
-  if (detections.length === 0) return 0;
+  if (detections.length === 0) {
+    return 0;
+  }
 
   const result = await adminQuery(
     BULK_UPSERT_DETECTIONS_SQL,

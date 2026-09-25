@@ -49,14 +49,18 @@ const listFiles = (entry: string): string[] => {
 };
 
 const checkFile = (filePath: string): void => {
-  if (excludeFiles.has(filePath)) return;
+  if (excludeFiles.has(filePath)) {
+    return;
+  }
 
   const content = fs.readFileSync(filePath, 'utf8');
   let match: RegExpExecArray | null;
 
   while ((match = importRegex.exec(content)) !== null) {
     const specifier = match[1];
-    if (!isRelative(specifier)) continue;
+    if (!isRelative(specifier)) {
+      continue;
+    }
 
     const resolvedPath = path.resolve(path.dirname(filePath), specifier);
 
@@ -65,7 +69,7 @@ const checkFile = (filePath: string): void => {
       if (resolvedPath.startsWith(restrictedRoot)) {
         console.error(`❌ VIOLATION: ${path.relative(repoRoot, filePath)}`);
         console.error(`   Imports: ${specifier} → ${path.relative(repoRoot, resolvedPath)}`);
-        console.error(`   Client code cannot import from server paths\n`);
+        console.error('   Client code cannot import from server paths\n');
         process.exit(1);
       }
     }

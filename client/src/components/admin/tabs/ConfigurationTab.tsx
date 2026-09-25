@@ -136,12 +136,15 @@ export const ConfigurationTab: React.FC = () => {
             savedLocationIqApiKey={config.savedValues.locationIqApiKey}
             isSaving={config.isLoading}
             onSave={() => {
-              if (config.opencageApiKey !== config.savedValues.opencageApiKey)
+              if (config.opencageApiKey !== config.savedValues.opencageApiKey) {
                 config.saveOpencageApiKey();
-              if (config.geocodioApiKey !== config.savedValues.geocodioApiKey)
+              }
+              if (config.geocodioApiKey !== config.savedValues.geocodioApiKey) {
                 config.saveGeocodioApiKey();
-              if (config.locationIqApiKey !== config.savedValues.locationIqApiKey)
+              }
+              if (config.locationIqApiKey !== config.savedValues.locationIqApiKey) {
                 config.saveLocationIqApiKey();
+              }
             }}
             hasChanges={
               config.opencageApiKey !== config.savedValues.opencageApiKey ||

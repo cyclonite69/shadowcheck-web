@@ -111,8 +111,16 @@ export function applyDirectionsRoute(map: Map, data: RouteDisplayData): void {
  * Remove the route line and info label from the map.
  */
 export function clearDirectionsRoute(map: Map): void {
-  if (map.getLayer(INFO_LAYER_ID)) map.removeLayer(INFO_LAYER_ID);
-  if (map.getSource(INFO_LAYER_ID)) map.removeSource(INFO_LAYER_ID);
-  if (map.getLayer(LINE_LAYER_ID)) map.removeLayer(LINE_LAYER_ID);
-  if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+  if (map.getLayer(INFO_LAYER_ID)) {
+    map.removeLayer(INFO_LAYER_ID);
+  }
+  if (map.getSource(INFO_LAYER_ID)) {
+    map.removeSource(INFO_LAYER_ID);
+  }
+  if (map.getLayer(LINE_LAYER_ID)) {
+    map.removeLayer(LINE_LAYER_ID);
+  }
+  if (map.getSource(SOURCE_ID)) {
+    map.removeSource(SOURCE_ID);
+  }
 }

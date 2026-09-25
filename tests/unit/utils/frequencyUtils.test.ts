@@ -47,13 +47,13 @@ describe('frequencyToChannel', () => {
     });
 
     it('should convert 5935 MHz to channel 1 if it matches logic', () => {
-        // (5935 - 5950) / 5 + 1 = -15 / 5 + 1 = -3 + 1 = -2. Wait.
-        // Let's re-read the code logic.
-        // if (freqMhz >= 5935 && freqMhz <= 7115) {
-        //   return Math.round((freqMhz - 5950) / 5) + 1;
-        // }
-        expect(frequencyToChannel(5945)).toBe(0); // (5945-5950)/5 + 1 = -1 + 1 = 0
-        expect(frequencyToChannel(5950)).toBe(1); // (5950-5950)/5 + 1 = 0 + 1 = 1
+      // (5935 - 5950) / 5 + 1 = -15 / 5 + 1 = -3 + 1 = -2. Wait.
+      // Let's re-read the code logic.
+      // if (freqMhz >= 5935 && freqMhz <= 7115) {
+      //   return Math.round((freqMhz - 5950) / 5) + 1;
+      // }
+      expect(frequencyToChannel(5945)).toBe(0); // (5945-5950)/5 + 1 = -1 + 1 = 0
+      expect(frequencyToChannel(5950)).toBe(1); // (5950-5950)/5 + 1 = 0 + 1 = 1
     });
 
     it('should convert 7115 MHz to channel 234', () => {

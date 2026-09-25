@@ -362,9 +362,15 @@ const WiglePage: React.FC = () => {
         onLoadPoints={() => {
           void (async () => {
             const tasks: Promise<unknown>[] = [];
-            if (layers.v2 || layers.v3) tasks.push(fetchPoints());
-            if (layers.kml) tasks.push(fetchKmlPoints());
-            if (layers.showFieldData) tasks.push(fetchFieldData());
+            if (layers.v2 || layers.v3) {
+              tasks.push(fetchPoints());
+            }
+            if (layers.kml) {
+              tasks.push(fetchKmlPoints());
+            }
+            if (layers.showFieldData) {
+              tasks.push(fetchFieldData());
+            }
             await Promise.all(tasks);
             applyEnabledWigleOverlays('load-points');
           })();

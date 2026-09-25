@@ -30,11 +30,18 @@ function isPasMdtEvent(ev: AuditEvent): boolean {
 
 function classify(ev: AuditEvent): string[] {
   const tags: string[] = [];
-  if (ev.would_downgrade_confidence) tags.push('A_overwrite_downgrade');
-  if (ev.would_replace_deterministic_with_probabilistic)
+  if (ev.would_downgrade_confidence) {
+    tags.push('A_overwrite_downgrade');
+  }
+  if (ev.would_replace_deterministic_with_probabilistic) {
     tags.push('A_deterministic_to_probabilistic');
-  if (ev.top_two_hits_confidence_tie) tags.push('B_dedup_tie');
-  if (ev.would_hide_from_effective_view_cutoff) tags.push('C_effective_view_hiding');
+  }
+  if (ev.top_two_hits_confidence_tie) {
+    tags.push('B_dedup_tie');
+  }
+  if (ev.would_hide_from_effective_view_cutoff) {
+    tags.push('C_effective_view_hiding');
+  }
   return tags;
 }
 
@@ -74,7 +81,7 @@ async function main(): Promise<void> {
   process.env.DB_HOST = process.env.DB_HOST || '127.0.0.1';
   await secretsManager.load();
 
-  console.log(`[FORENSIC_START] Audit mode enabled, enforcing READ ONLY transaction safety`);
+  console.log('[FORENSIC_START] Audit mode enabled, enforcing READ ONLY transaction safety');
 
   const refreshChunkSql = buildRefreshChunkSql({
     pairAudit: true,

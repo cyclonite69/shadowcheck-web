@@ -69,7 +69,9 @@ export const PgAdminTab: React.FC = () => {
     const confirmed = window.confirm(
       'Resetting PgAdmin will delete the pgadmin data volume and remove saved connections. Continue?'
     );
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
     await startPgAdmin(true);
   };
 
@@ -82,7 +84,9 @@ export const PgAdminTab: React.FC = () => {
       ? 'Destroying PgAdmin with data will remove the container and delete the pgadmin data volume. Continue?'
       : 'Destroy the PgAdmin container? Saved data volume will be kept.';
     const confirmed = window.confirm(warning);
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
     await destroyPgAdmin(removeVolume);
   };
 

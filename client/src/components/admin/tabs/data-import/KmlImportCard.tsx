@@ -23,9 +23,13 @@ interface KmlImportCardProps {
 const formatNumber = (value: number | null | undefined) => Number(value || 0).toLocaleString();
 
 const formatDate = (value: string | null | undefined) => {
-  if (!value) return 'None';
+  if (!value) {
+    return 'None';
+  }
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
   return date.toLocaleString();
 };
 
@@ -286,7 +290,9 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
       if (res && Array.isArray(res.results)) {
         setTxs(
           res.results.filter((tx: any) => {
-            if (!tx.transid) return false;
+            if (!tx.transid) {
+              return false;
+            }
             const statusStr = String(tx.status || '').toUpperCase();
             return statusStr === 'SUCCESS' || statusStr === 'D' || tx.percentDone === 100;
           })
@@ -322,11 +328,13 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
   };
 
   const formatBytes = (bytes: number) => {
-    if (!bytes) return '0 B';
+    if (!bytes) {
+      return '0 B';
+    }
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   };
 
   return (

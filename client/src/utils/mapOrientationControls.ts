@@ -123,7 +123,9 @@ export function useMapOrientationControls(
 ) {
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map) {
+      return;
+    }
 
     let cleanup: (() => void) | undefined;
 
@@ -132,7 +134,9 @@ export function useMapOrientationControls(
     });
 
     return () => {
-      if (cleanup) cleanup();
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, [mapRef, options]);
 }

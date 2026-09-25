@@ -111,7 +111,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    if (loggingOutRef.current) return;
+    if (loggingOutRef.current) {
+      return;
+    }
     loggingOutRef.current = true;
     try {
       await apiClient.post('/auth/logout');
@@ -133,7 +135,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [logout]);
 
   const resetIdleTimer = useCallback(() => {
-    if (!user || loading) return;
+    if (!user || loading) {
+      return;
+    }
 
     clearIdleTimer();
     idleTimerRef.current = setTimeout(() => {
@@ -164,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     isAdmin: user?.role === 'admin',
-    isAuthenticated: !!user,
+    isAuthenticated: Boolean(user),
     mustChangePassword,
     pendingUsername,
     refreshAuth: checkAuthStatus,

@@ -12,35 +12,49 @@ type KeplerGeoJsonLike = {
 };
 
 const toNumber = (value: unknown, fallback: number): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
   if (typeof value === 'string') {
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
   }
   return fallback;
 };
 
 const toOptionalNumber = (value: unknown): number | undefined => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
   if (typeof value === 'string') {
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
   }
   return undefined;
 };
 
 const toPosition = (feature: GeoFeature): [number, number] | null => {
   const coords = feature.geometry?.coordinates;
-  if (!Array.isArray(coords) || coords.length < 2) return null;
+  if (!Array.isArray(coords) || coords.length < 2) {
+    return null;
+  }
   const lon = toNumber(coords[0], NaN);
   const lat = toNumber(coords[1], NaN);
-  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+    return null;
+  }
   return [lon, lat];
 };
 
 export function mapKeplerFeatureToNetworkData(feature: GeoFeature): NetworkData | null {
   const position = toPosition(feature);
-  if (!position) return null;
+  if (!position) {
+    return null;
+  }
   const props = feature.properties || {};
   const [lon, lat] = position;
 

@@ -42,7 +42,9 @@ export const SsmTerminal: React.FC<SsmTerminalProps> = ({ instanceId, onClose })
   }, []);
 
   useEffect(() => {
-    if (!termRef.current) return;
+    if (!termRef.current) {
+      return;
+    }
 
     const terminal = new Terminal({
       cursorBlink: true,

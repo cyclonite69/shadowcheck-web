@@ -4,20 +4,30 @@
  */
 
 export const stripNullBytes = (value: any): string | null => {
-  if (value === undefined || value === null) return null;
-  const cleaned = String(value).replace(/\u0000/g, '');
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const cleaned = String(value).split('\0').join('');
   return cleaned === '' ? null : cleaned;
 };
 
 export const stripNullBytesKeepEmpty = (value: any): any => {
-  if (value === undefined || value === null) return value;
-  return String(value).replace(/\u0000/g, '');
+  if (value === undefined || value === null) {
+    return value;
+  }
+  return String(value).split('\0').join('');
 };
 
 export const stripNullBytesDeep = (value: any): any => {
-  if (value === undefined || value === null) return value;
-  if (typeof value === 'string') return stripNullBytesKeepEmpty(value);
-  if (Array.isArray(value)) return value.map((item) => stripNullBytesDeep(item));
+  if (value === undefined || value === null) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return stripNullBytesKeepEmpty(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => stripNullBytesDeep(item));
+  }
   if (typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value).map(([key, val]) => [key, stripNullBytesDeep(val)])
@@ -27,8 +37,12 @@ export const stripNullBytesDeep = (value: any): any => {
 };
 
 export const parseJsonObject = (value: any): any | undefined => {
-  if (!value) return undefined;
-  if (typeof value === 'object') return value;
+  if (!value) {
+    return undefined;
+  }
+  if (typeof value === 'object') {
+    return value;
+  }
   try {
     return JSON.parse(value);
   } catch {
@@ -37,8 +51,12 @@ export const parseJsonObject = (value: any): any | undefined => {
 };
 
 export const parseJsonArray = (value: any): any[] | undefined => {
-  if (!value) return undefined;
-  if (Array.isArray(value)) return value;
+  if (!value) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value;
+  }
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : undefined;
@@ -79,8 +97,14 @@ export function parseIncludeTotalFlag(value: any): {
   value?: boolean;
   error?: string;
 } {
-  if (value === undefined || value === null || value === '') return { valid: true, value: false };
-  if (value === '1' || value === 'true') return { valid: true, value: true };
-  if (value === '0' || value === 'false') return { valid: true, value: false };
+  if (value === undefined || value === null || value === '') {
+    return { valid: true, value: false };
+  }
+  if (value === '1' || value === 'true') {
+    return { valid: true, value: true };
+  }
+  if (value === '0' || value === 'false') {
+    return { valid: true, value: false };
+  }
   return { valid: false, error: `Invalid include_total value: ${value}` };
 }

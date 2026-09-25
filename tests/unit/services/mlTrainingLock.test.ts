@@ -7,7 +7,7 @@ describe('mlTrainingLock', () => {
 
   it('should acquire and release the lock', () => {
     expect(lock.status().locked).toBe(false);
-    
+
     const acquired = lock.acquire();
     expect(acquired).toBe(true);
     expect(lock.status().locked).toBe(true);

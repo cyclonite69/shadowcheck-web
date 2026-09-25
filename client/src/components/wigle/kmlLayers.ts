@@ -92,9 +92,13 @@ export function ensureKmlLayers(map: Map, kmlFCRef: any, cluster = true) {
 
 export function resetKmlLayers(map: Map, kmlFCRef: any, cluster: boolean) {
   ['wigle-kml-clusters', 'wigle-kml-cluster-count', 'wigle-kml-unclustered'].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource('wigle-kml-points')) map.removeSource('wigle-kml-points');
+  if (map.getSource('wigle-kml-points')) {
+    map.removeSource('wigle-kml-points');
+  }
   ensureKmlLayers(map, kmlFCRef, cluster);
 }
 
@@ -104,9 +108,13 @@ export function updateKmlLayerData(
   enabled: boolean,
   kmlFCRef: any
 ) {
-  if (!map) return;
+  if (!map) {
+    return;
+  }
   const source = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-  if (!source) return;
+  if (!source) {
+    return;
+  }
 
   const fc = enabled && rows.length > 0 ? kmlRowsToGeoJSON(rows) : EMPTY_FEATURE_COLLECTION;
   kmlFCRef.current = fc;

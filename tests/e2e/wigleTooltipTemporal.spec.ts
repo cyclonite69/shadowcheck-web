@@ -106,7 +106,7 @@ async function setupAndFireHandler(page: import('@playwright/test').Page) {
   await page.goto('/wigle');
 
   // Wait for Mapbox map instance
-  await page.waitForFunction(() => !!(window as any).__wigleMapInstance, { timeout: 15000 });
+  await page.waitForFunction(() => Boolean((window as any).__wigleMapInstance), { timeout: 15000 });
 
   // Wait for map style to finish loading (needed for the map to be interactive,
   // not needed for handler invocation but avoids noise in other map events)

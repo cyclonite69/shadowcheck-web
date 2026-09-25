@@ -14,7 +14,9 @@ const fetchText = async (url: string, options: RequestInit = {}): Promise<string
       ...options,
       signal: AbortSignal.timeout(IMDS_TIMEOUT_MS),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      return null;
+    }
     return await response.text();
   } catch {
     return null;
@@ -63,7 +65,9 @@ const getConfiguredAwsRegion = async (): Promise<string | null> => {
     AWS_REGION_SETTING_KEY,
   ]);
   const raw = result.rows[0]?.value;
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   return typeof raw === 'string' ? raw : String(raw);
 };
 

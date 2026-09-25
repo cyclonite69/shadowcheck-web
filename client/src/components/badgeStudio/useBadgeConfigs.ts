@@ -16,7 +16,9 @@ function getBrowserStorage(): BadgeStorage | null {
 function readLocalStorage<T>(key: string): T | null {
   try {
     const storage = getBrowserStorage();
-    if (!storage) return null;
+    if (!storage) {
+      return null;
+    }
     const raw = storage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
@@ -27,7 +29,9 @@ function readLocalStorage<T>(key: string): T | null {
 function writeLocalStorage(key: string, value: unknown): void {
   try {
     const storage = getBrowserStorage();
-    if (!storage) return;
+    if (!storage) {
+      return;
+    }
     storage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore quota errors
@@ -38,12 +42,18 @@ export function readStoredColumnBadgeConfigs(
   storage: BadgeStorage | null = getBrowserStorage()
 ): Record<string, ColumnBadgeConfig> {
   try {
-    if (!storage) return {};
+    if (!storage) {
+      return {};
+    }
     const raw = storage.getItem(BADGE_COLUMN_CONFIGS_STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Record<string, ColumnBadgeConfig>;
+    if (raw) {
+      return JSON.parse(raw) as Record<string, ColumnBadgeConfig>;
+    }
 
     const legacyRaw = storage.getItem(LEGACY_LS_KEY_CONFIGS);
-    if (!legacyRaw) return {};
+    if (!legacyRaw) {
+      return {};
+    }
 
     const migrated = JSON.parse(legacyRaw) as Record<string, ColumnBadgeConfig>;
     storage.setItem(BADGE_COLUMN_CONFIGS_STORAGE_KEY, JSON.stringify(migrated));
@@ -58,7 +68,9 @@ export function writeStoredColumnBadgeConfigs(
   configs: Record<string, ColumnBadgeConfig>,
   storage: Pick<Storage, 'setItem'> | null = getBrowserStorage()
 ): void {
-  if (!storage) return;
+  if (!storage) {
+    return;
+  }
   storage.setItem(BADGE_COLUMN_CONFIGS_STORAGE_KEY, JSON.stringify(configs));
 }
 

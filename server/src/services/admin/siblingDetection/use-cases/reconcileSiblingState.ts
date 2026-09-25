@@ -8,7 +8,7 @@ import { adminQuery } from '../adminQueryAdapter';
 async function reconcileSiblingState(): Promise<void> {
   if (!state.running) {
     const bgResult = await adminQuery(
-      `SELECT id FROM app.background_job_runs WHERE job_name = $1 AND status = $2 ORDER BY id DESC LIMIT 1`,
+      'SELECT id FROM app.background_job_runs WHERE job_name = $1 AND status = $2 ORDER BY id DESC LIMIT 1',
       ['siblingDetection', 'running']
     );
     if (bgResult.rows.length > 0) {
@@ -16,13 +16,13 @@ async function reconcileSiblingState(): Promise<void> {
         id: bgResult.rows[0].id,
       });
       await adminQuery(
-        `UPDATE app.background_job_runs SET status = $1, finished_at = now(), error = $2 WHERE job_name = $3 AND status = $4`,
+        'UPDATE app.background_job_runs SET status = $1, finished_at = now(), error = $2 WHERE job_name = $3 AND status = $4',
         ['failed', 'Interrupted by container restart', 'siblingDetection', 'running']
       );
     }
 
     const siblingResult = await adminQuery(
-      `SELECT id FROM app.sibling_runs WHERE status = $1 ORDER BY id DESC LIMIT 1`,
+      'SELECT id FROM app.sibling_runs WHERE status = $1 ORDER BY id DESC LIMIT 1',
       ['running']
     );
     if (siblingResult.rows.length > 0) {
@@ -30,7 +30,7 @@ async function reconcileSiblingState(): Promise<void> {
         id: siblingResult.rows[0].id,
       });
       await adminQuery(
-        `UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE status = $2`,
+        'UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE status = $2',
         ['failed', 'running']
       );
     }

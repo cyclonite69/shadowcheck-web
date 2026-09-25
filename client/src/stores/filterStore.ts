@@ -542,7 +542,9 @@ export const useFilterStore = create<HardenedFilterStore>()(
         presets: state.presets,
       }),
       migrate: (persistedState: any) => {
-        if (!persistedState || typeof persistedState !== 'object') return persistedState;
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState;
+        }
 
         const nextPageStates = Object.fromEntries(
           Object.entries((persistedState.pageStates as Record<string, PageFilterState>) || {}).map(

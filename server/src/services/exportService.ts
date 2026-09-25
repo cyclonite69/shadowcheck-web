@@ -70,7 +70,9 @@ export async function getFullDatabaseSnapshot(): Promise<{
     const exportedRowCount = rows.length;
     const tableTruncated = exportedRowCount < rowCount;
 
-    if (tableTruncated) snapshotTruncated = true;
+    if (tableTruncated) {
+      snapshotTruncated = true;
+    }
     totalExportedRows += exportedRowCount;
 
     tables[tableName] = { rowCount, exportedRowCount, truncated: tableTruncated, rows };
@@ -86,7 +88,9 @@ export async function getFullDatabaseSnapshot(): Promise<{
 }
 
 export async function getObservationsForKML(bssids: string[]): Promise<any[]> {
-  if (!bssids || bssids.length === 0) return [];
+  if (!bssids || bssids.length === 0) {
+    return [];
+  }
   return queryObservationsForKML(bssids);
 }
 
@@ -103,7 +107,9 @@ export function generateKML(observations: any[]): string {
 
   const byBSSID: Record<string, any[]> = {};
   observations.forEach((obs) => {
-    if (!byBSSID[obs.bssid]) byBSSID[obs.bssid] = [];
+    if (!byBSSID[obs.bssid]) {
+      byBSSID[obs.bssid] = [];
+    }
     byBSSID[obs.bssid].push(obs);
   });
 
@@ -124,7 +130,7 @@ First Seen: ${new Date(obs[obs.length - 1].observed_at).toISOString()}
 Last Seen: ${new Date(obs[0].observed_at).toISOString()}
         </description>
         <Point>
-          <coordinates>${obs[0].lon},${obs[0].lat}${obs[0].altitude ? ',' + obs[0].altitude : ''}</coordinates>
+          <coordinates>${obs[0].lon},${obs[0].lat}${obs[0].altitude ? `,${obs[0].altitude}` : ''}</coordinates>
         </Point>
       </Placemark>
       ${obs
@@ -135,7 +141,7 @@ Last Seen: ${new Date(obs[0].observed_at).toISOString()}
         <name>Observation - ${new Date(o.observed_at).toLocaleString()}</name>
         <description>Signal: ${o.signal_dbm}dBm | Accuracy: ${o.accuracy ? o.accuracy.toFixed(2) : 'N/A'}m</description>
         <Point>
-          <coordinates>${o.lon},${o.lat}${o.altitude ? ',' + o.altitude : ''}</coordinates>
+          <coordinates>${o.lon},${o.lat}${o.altitude ? `,${o.altitude}` : ''}</coordinates>
         </Point>
       </Placemark>`
         )
@@ -169,7 +175,9 @@ Last Seen: ${new Date(obs[0].observed_at).toISOString()}
 }
 
 function escapeXml(str: string): string {
-  if (!str) return '';
+  if (!str) {
+    return '';
+  }
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

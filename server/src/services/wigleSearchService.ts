@@ -199,7 +199,7 @@ const { query: dbQuery } = require('../config/database');
  */
 export async function getSavedSsidTerms(): Promise<any[]> {
   const { rows } = await dbQuery(
-    `SELECT id, term, last_used_at FROM app.wigle_saved_ssid_terms ORDER BY last_used_at DESC, term ASC`
+    'SELECT id, term, last_used_at FROM app.wigle_saved_ssid_terms ORDER BY last_used_at DESC, term ASC'
   );
   return rows;
 }
@@ -225,7 +225,7 @@ export async function upsertSavedSsidTerm(raw: string): Promise<any> {
  */
 export async function deleteSavedSsidTerm(id: number): Promise<boolean> {
   const result = await dbQuery(
-    `DELETE FROM app.wigle_saved_ssid_terms WHERE id = $1 RETURNING id`,
+    'DELETE FROM app.wigle_saved_ssid_terms WHERE id = $1 RETURNING id',
     [id]
   );
   return result.rowCount > 0;

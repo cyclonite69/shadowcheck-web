@@ -44,10 +44,18 @@ const toManualTagMap = (tagRows: ThreatManualTag[]) => {
 };
 
 const toThreatLevel = (finalScore: number): LegacyThreatLevel => {
-  if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) return 'CRITICAL';
-  if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) return 'HIGH';
-  if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) return 'MED';
-  if (finalScore >= THREAT_LEVEL_THRESHOLDS.LOW) return 'LOW';
+  if (finalScore >= THREAT_LEVEL_THRESHOLDS.CRITICAL) {
+    return 'CRITICAL';
+  }
+  if (finalScore >= THREAT_LEVEL_THRESHOLDS.HIGH) {
+    return 'HIGH';
+  }
+  if (finalScore >= THREAT_LEVEL_THRESHOLDS.MED) {
+    return 'MED';
+  }
+  if (finalScore >= THREAT_LEVEL_THRESHOLDS.LOW) {
+    return 'LOW';
+  }
   return 'NONE';
 };
 
@@ -70,11 +78,7 @@ const scoreBehavioralThreats = (
     const mobility =
       maxDistanceKm > MOBILITY_HIGH_KM ? 80 : maxDistanceKm > MOBILITY_MED_KM ? 40 : 0;
     const persistence =
-      uniqueDays > PERSISTENCE_HIGH_DAYS
-        ? 60
-        : uniqueDays > PERSISTENCE_MED_DAYS
-          ? 30
-          : 0;
+      uniqueDays > PERSISTENCE_HIGH_DAYS ? 60 : uniqueDays > PERSISTENCE_MED_DAYS ? 30 : 0;
     const baseMlScore = mobility * 0.6 + persistence * 0.4;
 
     let finalScore = baseMlScore;

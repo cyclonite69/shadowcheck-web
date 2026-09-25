@@ -51,7 +51,9 @@ export function isValidLabel(label: string): boolean {
  * @throws {Error} if the label is not recognized (not canonical and no known alias).
  */
 export function normalizeLabel(label: string): CanonicalSecurityLabel {
-  if (CANONICAL_SET.has(label)) return label as CanonicalSecurityLabel;
+  if (CANONICAL_SET.has(label)) {
+    return label as CanonicalSecurityLabel;
+  }
 
   switch (label.toUpperCase()) {
     case 'WPA3-SAE':

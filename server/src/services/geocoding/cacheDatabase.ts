@@ -3,7 +3,9 @@ import type { GeocodeMode, GeocodeProvider, GeocodeRow } from './types';
 import { GEOCODABLE_OBSERVATION_PREDICATE } from './cacheUtils';
 
 const upsertGeocodeCacheBatch = async (precision: number, entries: any[]): Promise<void> => {
-  if (entries.length === 0) return;
+  if (entries.length === 0) {
+    return;
+  }
 
   if (entries.some((entry) => entry.mode === 'both')) {
     throw new Error('Geocode mode "both" is not supported for cache writes');
@@ -280,7 +282,9 @@ const seedAddressCandidates = async (precision: number, targetCount: number): Pr
   );
 
   const observationInserted = Number(observationResult.rows[0]?.inserted_count || 0);
-  if (precision !== 5) return observationInserted;
+  if (precision !== 5) {
+    return observationInserted;
+  }
 
   const networkInserted = await seedNetworkRepresentativeCandidates(targetCount);
   return observationInserted + networkInserted;

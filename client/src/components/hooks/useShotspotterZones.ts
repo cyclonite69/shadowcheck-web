@@ -53,7 +53,9 @@ async function fetchShotspotterZones(): Promise<ShotspotterZonesGeoJSON> {
   const response = await fetch('/api/v1/surveillance/shotspotter-zones', {
     credentials: 'include',
   });
-  if (!response.ok) throw new Error('Failed to fetch ShotSpotter zones');
+  if (!response.ok) {
+    throw new Error('Failed to fetch ShotSpotter zones');
+  }
   return response.json();
 }
 
@@ -93,11 +95,15 @@ export const useShotspotterZones = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !data || data.features.length === 0) return;
+    if (!map || !mapReady || !data || data.features.length === 0) {
+      return;
+    }
 
     const handleClick = (e: MapMouseEvent & { features?: MapboxGeoJSONFeature[] }) => {
       const feature = e.features?.[0];
-      if (!feature || !e.lngLat) return;
+      if (!feature || !e.lngLat) {
+        return;
+      }
 
       const props = feature.properties as ShotspotterZoneProperties;
       const html = renderShotspotterPopupCard(props);
@@ -120,15 +126,21 @@ export const useShotspotterZones = (
 
       const originalRemove = popup.remove.bind(popup);
       popup.remove = function () {
-        if (dragState) cleanupPopupDrag(popup, dragState);
-        if (pinCleanup) pinCleanup();
+        if (dragState) {
+          cleanupPopupDrag(popup, dragState);
+        }
+        if (pinCleanup) {
+          pinCleanup();
+        }
         return originalRemove();
       };
     };
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle() || !currentData || currentData.features.length === 0) return;
+      if (!map.getStyle() || !currentData || currentData.features.length === 0) {
+        return;
+      }
 
       ensureShotspotterLayers(map, currentData);
 
@@ -153,7 +165,9 @@ export const useShotspotterZones = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
     applyShotspotterVisibility(map, isVisible);
   }, [isVisible, mapRef, mapReady]);
 
@@ -165,7 +179,9 @@ export function ensureShotspotterLayers(map: Map, data: ShotspotterZonesGeoJSON)
     map.addSource('shotspotter-zones', { type: 'geojson', data: data as any });
   } else {
     const source = map.getSource('shotspotter-zones') as any;
-    if (source.setData) source.setData(data as any);
+    if (source.setData) {
+      source.setData(data as any);
+    }
   }
 
   if (!map.getLayer('shotspotter-fill')) {
@@ -196,6 +212,8 @@ export function ensureShotspotterLayers(map: Map, data: ShotspotterZonesGeoJSON)
 function applyShotspotterVisibility(map: Map, isVisible: boolean) {
   const vis = isVisible ? 'visible' : 'none';
   ['shotspotter-fill', 'shotspotter-outline'].forEach((id) => {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', vis);
+    }
   });
 }

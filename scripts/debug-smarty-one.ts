@@ -19,15 +19,18 @@ type SecretsManager = {
 
 function getArg(argv: string[], prefix: string): string | null {
   const raw = argv.find((a) => a.startsWith(prefix));
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   const v = raw.slice(prefix.length).trim();
   return v.length ? v : null;
 }
 
 async function loadSecretsManager(): Promise<SecretsManager> {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const sm = require('../server/src/services/secretsManager') as SecretsManager;
-  if (!sm?.getSecret) throw new Error('Failed to load secretsManager (missing getSecret).');
+  if (!sm?.getSecret) {
+    throw new Error('Failed to load secretsManager (missing getSecret).');
+  }
   return sm;
 }
 
@@ -45,7 +48,9 @@ async function main(): Promise<void> {
   const secrets = await loadSecretsManager();
   const authId = (await secrets.getSecret('smarty_auth_id')) || process.env.SMARTY_AUTH_ID;
   const authToken = (await secrets.getSecret('smarty_auth_token')) || process.env.SMARTY_AUTH_TOKEN;
-  if (!authId || !authToken) throw new Error('Smarty creds not configured.');
+  if (!authId || !authToken) {
+    throw new Error('Smarty creds not configured.');
+  }
 
   const url = new URL('https://us-street.api.smarty.com/street-address');
   url.searchParams.set('auth-id', authId);
@@ -58,7 +63,9 @@ async function main(): Promise<void> {
     state,
     candidates: 3,
   };
-  if (zip) payload.zipcode = zip;
+  if (zip) {
+    payload.zipcode = zip;
+  }
 
   const res = await fetch(url.toString(), {
     method: 'POST',
@@ -74,16 +81,14 @@ async function main(): Promise<void> {
   // Pretty-print JSON (small payload).
   try {
     const json = JSON.parse(text);
-    // eslint-disable-next-line no-console
+
     logger.info(JSON.stringify(json, null, 2));
   } catch {
-    // eslint-disable-next-line no-console
     logger.info(text);
   }
 }
 
 main().catch((e) => {
-  // eslint-disable-next-line no-console
   logger.error(String(e?.stack || e));
   process.exit(1);
 });

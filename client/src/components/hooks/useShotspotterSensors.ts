@@ -88,11 +88,15 @@ export const useShotspotterSensors = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !data || data.features.length === 0) return;
+    if (!map || !mapReady || !data || data.features.length === 0) {
+      return;
+    }
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle() || !currentData || currentData.features.length === 0) return;
+      if (!map.getStyle() || !currentData || currentData.features.length === 0) {
+        return;
+      }
 
       ensureShotspotterSensorLayers(map, currentData);
 
@@ -109,7 +113,9 @@ export const useShotspotterSensors = (
 
     const handleClick = (e: MapMouseEvent & { features?: MapboxGeoJSONFeature[] }) => {
       const feature = e.features?.[0];
-      if (!feature || !e.lngLat) return;
+      if (!feature || !e.lngLat) {
+        return;
+      }
 
       const props = feature.properties as ShotspotterSensorFeature['properties'];
       const html = renderSensorPopupCard(props);
@@ -132,8 +138,12 @@ export const useShotspotterSensors = (
 
       const originalRemove = popup.remove.bind(popup);
       popup.remove = function () {
-        if (dragState) cleanupPopupDrag(popup, dragState);
-        if (pinCleanup) pinCleanup();
+        if (dragState) {
+          cleanupPopupDrag(popup, dragState);
+        }
+        if (pinCleanup) {
+          pinCleanup();
+        }
         return originalRemove();
       };
     };
@@ -148,7 +158,9 @@ export const useShotspotterSensors = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
     applyShotspotterSensorsVisibility(map, isVisible);
   }, [isVisible, mapRef, mapReady]);
 

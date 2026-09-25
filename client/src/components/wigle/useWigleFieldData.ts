@@ -40,7 +40,9 @@ export const useWigleFieldData = ({
       setFeatureCount(features.length);
 
       return runWhenStyleReady(map, 'field-data', () => {
-        if (!showFieldDataRef.current) return;
+        if (!showFieldDataRef.current) {
+          return;
+        }
         ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
         const latestFc = fieldDataFCRef.current;
         if (Array.isArray((latestFc as any)?.features)) {
@@ -55,9 +57,13 @@ export const useWigleFieldData = ({
     void mapboxRef;
 
     const map = mapRef.current;
-    if (!map || !mapReady || !showFieldDataRef.current) return;
+    if (!map || !mapReady || !showFieldDataRef.current) {
+      return;
+    }
 
-    if (loadingRef.current) return;
+    if (loadingRef.current) {
+      return;
+    }
 
     const currentRequestId = ++requestIdRef.current;
     loadingRef.current = true;
@@ -91,7 +97,9 @@ export const useWigleFieldData = ({
           includeTotal: true,
         });
         const result = await wigleApi.getLocalObservations(params);
-        if (currentRequestId !== requestIdRef.current || !showFieldDataRef.current) return;
+        if (currentRequestId !== requestIdRef.current || !showFieldDataRef.current) {
+          return;
+        }
 
         const pageRows = Array.isArray(result?.data) ? result.data : [];
         rows.push(...pageRows);
@@ -104,7 +112,10 @@ export const useWigleFieldData = ({
       }
 
       const features: object[] = rows
-        .filter((obs: any) => obs.lat != null && obs.lon != null)
+        .filter(
+          (obs: any) =>
+            obs.lat !== null && obs.lat !== undefined && obs.lon !== null && obs.lon !== undefined
+        )
         .map((obs: any) => ({
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [obs.lon, obs.lat] },
@@ -132,7 +143,9 @@ export const useWigleFieldData = ({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
 
     if (!showFieldData) {
       requestIdRef.current += 1;
@@ -141,7 +154,9 @@ export const useWigleFieldData = ({
       setError(null);
       setFeatureCount(0);
       fieldDataFCRef.current = EMPTY_FEATURE_COLLECTION;
-      if (map.isStyleLoaded()) removeFieldDataLayer(map);
+      if (map.isStyleLoaded()) {
+        removeFieldDataLayer(map);
+      }
       return;
     }
 

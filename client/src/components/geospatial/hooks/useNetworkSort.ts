@@ -10,7 +10,9 @@ type NetworkSortProps = {
 export const useNetworkSort = ({ setSort, setError, sortMap, columnConfig }: NetworkSortProps) => {
   const handleColumnSort = (column: keyof NetworkRow, _shiftKey: boolean) => {
     const colConfig = columnConfig[column as keyof typeof columnConfig];
-    if (!colConfig || !colConfig.sortable) return;
+    if (!colConfig || !colConfig.sortable) {
+      return;
+    }
     if (!sortMap[column]) {
       setError(`Sort not supported for ${String(column)}`);
       return;

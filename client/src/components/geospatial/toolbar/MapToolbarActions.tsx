@@ -129,12 +129,16 @@ export const MapToolbarActions = ({
       canFit={canFit}
       onFit={() => {
         const mapboxgl = mapboxRef.current;
-        if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
+        if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) {
+          return;
+        }
         setFitButtonActive(true);
         const allCoords = activeObservationSets.flatMap((set) =>
           set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
         );
-        if (allCoords.length === 0) return;
+        if (allCoords.length === 0) {
+          return;
+        }
         const bounds = allCoords.reduce(
           (bounds, coord) => bounds.extend(coord),
           new (mapboxgl as any).LngLatBounds(allCoords[0], allCoords[0])
@@ -144,13 +148,17 @@ export const MapToolbarActions = ({
       }}
       homeButtonActive={homeButtonActive}
       onHome={() => {
-        if (!mapRef.current) return;
+        if (!mapRef.current) {
+          return;
+        }
         setHomeButtonActive(true);
         mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
         setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
       }}
       onGps={() => {
-        if (!mapRef.current) return;
+        if (!mapRef.current) {
+          return;
+        }
         navigator.geolocation.getCurrentPosition(
           (position) => {
             mapRef.current?.flyTo({

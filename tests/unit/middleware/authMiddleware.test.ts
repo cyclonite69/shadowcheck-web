@@ -23,7 +23,6 @@ describe('Auth Middleware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     req = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       app: { locals: { authService } } as any,
       cookies: {},
       headers: {},

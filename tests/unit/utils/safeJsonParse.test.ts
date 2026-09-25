@@ -44,20 +44,24 @@ describe('safeJsonParse', () => {
 
   it('should fix incomplete \\u sequences and parse successfully', () => {
     // Mock JSON.parse to throw the specific error message expected by the catch block on first try
-    JSON.parse = jest.fn()
+    JSON.parse = jest
+      .fn()
       .mockImplementationOnce(() => {
         throw new Error('Unicode escape sequence error');
       })
       .mockImplementationOnce(originalJsonParse);
-    
+
     // The string has a malformed \u that safeJsonParse fixes to \\u
     const result = safeJsonParse('{"a": "\\u"}');
-    expect(result).toEqual({ a: "\\u" });
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Unicode escape error in JSON'));
+    expect(result).toEqual({ a: '\\u' });
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Unicode escape error in JSON')
+    );
   });
 
   it('should fix unescaped backslashes and parse successfully', () => {
-    JSON.parse = jest.fn()
+    JSON.parse = jest
+      .fn()
       .mockImplementationOnce(() => {
         throw new Error('escape sequence error');
       })
@@ -65,11 +69,12 @@ describe('safeJsonParse', () => {
 
     // The string has a malformed \x that safeJsonParse fixes to \\x
     const result = safeJsonParse('{"a": "\\x"}');
-    expect(result).toEqual({ a: "\\x" });
+    expect(result).toEqual({ a: '\\x' });
   });
 
   it('should return null if fixing the JSON fails', () => {
-    JSON.parse = jest.fn()
+    JSON.parse = jest
+      .fn()
       .mockImplementationOnce(() => {
         throw new Error('escape sequence error');
       })

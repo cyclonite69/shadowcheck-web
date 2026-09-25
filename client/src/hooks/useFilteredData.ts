@@ -135,7 +135,9 @@ export function useFilteredData<T = unknown>(
 
   const loadMore = useCallback(() => {
     const newOffset = getNextPageOffset(currentOffset, limit, total, loading);
-    if (newOffset === null) return;
+    if (newOffset === null) {
+      return;
+    }
     setCurrentOffset(newOffset);
 
     const filters = useFilterStore.getState().getAPIFilters();
@@ -144,7 +146,9 @@ export function useFilteredData<T = unknown>(
 
   // Auto-refresh
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh) {
+      return;
+    }
 
     const interval = setInterval(refresh, refreshInterval);
     return () => clearInterval(interval);

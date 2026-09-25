@@ -28,20 +28,33 @@ export const useAgencyLayer = ({
   showAgenciesPanel,
 }: UseAgencyLayerProps) => {
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !mapboxRef.current) return;
+    if (!mapReady || !mapRef.current || !mapboxRef.current) {
+      return;
+    }
     const map = mapRef.current;
     const layerId = 'nearest-agencies-layer';
     const sourceId = 'nearest-agencies';
 
     // Cleanup existing first
-    if (map.getLayer(layerId)) map.removeLayer(layerId);
-    if (map.getSource(sourceId)) map.removeSource(sourceId);
+    if (map.getLayer(layerId)) {
+      map.removeLayer(layerId);
+    }
+    if (map.getSource(sourceId)) {
+      map.removeSource(sourceId);
+    }
 
     const agencyMatches = agencies.filter(
-      (agency) => agency.name && agency.latitude != null && agency.longitude != null
+      (agency) =>
+        agency.name &&
+        agency.latitude !== null &&
+        agency.latitude !== undefined &&
+        agency.longitude !== null &&
+        agency.longitude !== undefined
     );
 
-    if (agencyMatches.length === 0 || !showAgenciesPanel) return;
+    if (agencyMatches.length === 0 || !showAgenciesPanel) {
+      return;
+    }
 
     map.addSource(sourceId, {
       type: 'geojson',
@@ -73,7 +86,9 @@ export const useAgencyLayer = ({
     });
 
     const clickHandler = (e: any) => {
-      if (!e.features?.length || !mapboxRef.current) return;
+      if (!e.features?.length || !mapboxRef.current) {
+        return;
+      }
       const p = e.features[0].properties;
       new mapboxRef.current.Popup({ className: 'sc-popup', maxWidth: '360px', offset: 14 })
         .setLngLat(e.lngLat)
@@ -91,8 +106,12 @@ export const useAgencyLayer = ({
     map.on('click', layerId, clickHandler);
     return () => {
       map.off('click', layerId, clickHandler);
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+      }
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
     };
   }, [mapReady, mapRef, mapboxRef, agencies, showAgenciesPanel]);
 };

@@ -16,7 +16,9 @@ const getLedgerStatus = (row: any, knownRemoteAvailable: number | null): LedgerS
     row.ledger_status !== null && row.ledger_status !== undefined
       ? true
       : httpStatus !== null || Boolean(row.ledger_requested_at);
-  if (row.ledger_status === 'rate_limited' || httpStatus === 429) return 'rate_limited';
+  if (row.ledger_status === 'rate_limited' || httpStatus === 429) {
+    return 'rate_limited';
+  }
   if (
     row.ledger_status === 'error' ||
     (httpStatus !== null && httpStatus >= 400) ||

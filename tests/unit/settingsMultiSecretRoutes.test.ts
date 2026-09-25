@@ -8,10 +8,10 @@ jest.mock('../../server/src/middleware/authMiddleware', () => ({
 jest.mock('../../server/src/api/routes/v1/settingsHelpers', () => ({
   getErrorMessage: (err: any) => err.message,
   getIncomingValue: (body: any, key: string) => body[key] || body.token || body.value,
-  validateGenericKey: (val: any, key: string) => ({ valid: !!val, value: val }),
+  validateGenericKey: (val: any, key: string) => ({ valid: Boolean(val), value: val }),
   validateLabel: (val: any) => ({ valid: true, value: val || 'default' }),
-  validateMapboxToken: (val: any) => ({ valid: !!val, value: val }),
-  validateString: (val: any, min: number, max: number, key: string) => ({ valid: !!val && val.length >= min, value: val }),
+  validateMapboxToken: (val: any) => ({ valid: Boolean(val), value: val }),
+  validateString: (val: any, min: number, max: number, key: string) => ({ valid: Boolean(val) && val.length >= min, value: val }),
 }));
 
 const {
@@ -93,8 +93,8 @@ describe('settingsMultiSecretRoutes', () => {
 
     it('should test wigle connection using name+token (same encoding as runtime)', async () => {
       mockSecretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'n';
-        if (key === 'wigle_api_token') return 't';
+        if (key === 'wigle_api_name') {return 'n';}
+        if (key === 'wigle_api_token') {return 't';}
         return null;
       });
       (global.fetch as jest.Mock).mockResolvedValueOnce({

@@ -43,7 +43,7 @@ const getBaseSelectColumns = (channelExpr: string): string[] => [
 
 const withDistanceColumn = (columns: string[], includeDistance: boolean): string[] =>
   includeDistance
-    ? [...columns, `(ne.distance_from_home_km)::numeric(10,4) AS distance_from_home_km`]
+    ? [...columns, '(ne.distance_from_home_km)::numeric(10,4) AS distance_from_home_km']
     : columns;
 
 const getBaseJoins = (): string[] => [

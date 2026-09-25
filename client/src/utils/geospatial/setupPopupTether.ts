@@ -114,19 +114,18 @@ function getPopupEdgeCoords(
   const normalizedDx = dx / distance;
   const normalizedDy = dy / distance;
 
-  let edgeX = popupCenterX;
-  let edgeY = popupCenterY;
-
   // Clamp to popup box edges
-  if (Math.abs(normalizedDx) > Math.abs(normalizedDy)) {
-    // Hit left or right edge
-    edgeX = normalizedDx > 0 ? rect.left + rect.width : rect.left;
-    edgeY = popupCenterY;
-  } else {
-    // Hit top or bottom edge
-    edgeX = popupCenterX;
-    edgeY = normalizedDy > 0 ? rect.top + rect.height : rect.top;
-  }
+  const hitHorizontalEdge = Math.abs(normalizedDx) > Math.abs(normalizedDy);
+  const edgeX = hitHorizontalEdge
+    ? normalizedDx > 0
+      ? rect.left + rect.width
+      : rect.left
+    : popupCenterX;
+  const edgeY = hitHorizontalEdge
+    ? popupCenterY
+    : normalizedDy > 0
+      ? rect.top + rect.height
+      : rect.top;
 
   return { x: edgeX, y: edgeY };
 }

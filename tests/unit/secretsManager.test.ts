@@ -5,7 +5,7 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 
 let secretStore: Record<string, string> = {};
-let sendMock = jest.fn();
+const sendMock = jest.fn();
 
 jest.mock('@aws-sdk/client-secrets-manager', () => {
   return {
@@ -35,7 +35,7 @@ describe('SecretsManager', () => {
     jest.clearAllMocks();
     secretStore = {};
     sendMock.mockReset();
-    
+
     // Default mock behavior
     sendMock.mockImplementation(async (cmd: any) => {
       if (cmd.input && cmd.input.SecretId === 'shadowcheck/config') {
@@ -55,7 +55,7 @@ describe('SecretsManager', () => {
     delete process.env.MAPBOX_TOKEN;
     process.env.NODE_ENV = 'test';
     process.env.FORCE_AWS_SM = 'true';
-    
+
     secretsManager = require('../../server/src/services/secretsManager').default;
     // Reset internal state
     secretsManager.secrets.clear();
@@ -71,8 +71,8 @@ describe('SecretsManager', () => {
   afterAll(() => {
     process.env.NODE_ENV = originalNodeEnv;
     delete process.env.FORCE_AWS_SM;
-    if (originalDbPassword !== undefined) process.env.DB_PASSWORD = originalDbPassword;
-    if (originalMapboxToken !== undefined) process.env.MAPBOX_TOKEN = originalMapboxToken;
+    if (originalDbPassword !== undefined) {process.env.DB_PASSWORD = originalDbPassword;}
+    if (originalMapboxToken !== undefined) {process.env.MAPBOX_TOKEN = originalMapboxToken;}
     jest.useRealTimers();
   });
 
@@ -192,27 +192,27 @@ describe('SecretsManager', () => {
     secretStore = { db_password: 'aws_password' };
     // Clear secrets to trigger load
     secretsManager.secrets.clear();
-    
+
     const val = await secretsManager.getSecret('db_password');
-    
+
     expect(val).toBe('aws_password');
   });
 
   test('has() checks both memory and environment', () => {
     secretsManager.secrets.set('mem_key', 'val');
     process.env.ENV_KEY = 'val';
-    
+
     expect(secretsManager.has('mem_key')).toBe(true);
     expect(secretsManager.has('env_key')).toBe(true);
     expect(secretsManager.has('nonexistent')).toBe(false);
-    
+
     delete process.env.ENV_KEY;
   });
 
   test('handles AWS SM errors during load', async () => {
     sendMock.mockRejectedValue(new Error('Error'));
     process.env.DB_PASSWORD = 'env_fallback';
-    
+
     await secretsManager.load();
     expect(secretsManager.smReachable).toBe(false);
     expect(secretsManager.smLastError).toBe('Error');
@@ -221,25 +221,25 @@ describe('SecretsManager', () => {
   test('retries AWS load periodically if it failed initially', async () => {
     process.env.NODE_ENV = 'production';
     process.env.DB_PASSWORD = 'env_fallback';
-    
+
     sendMock
       .mockRejectedValueOnce(new Error('First Fail'))
       .mockResolvedValueOnce({ SecretString: JSON.stringify({ db_password: 'recovered' }) });
 
     // Initial load fails SM but continues due to env fallback
     await secretsManager.load();
-    
+
     expect(secretsManager.get('db_password')).toBe('env_fallback');
     expect(secretsManager.smReachable).toBe(false);
     expect(secretsManager['deferredRetryScheduled']).toBe(true);
-    
+
     // Fast forward time
     await jest.advanceTimersByTimeAsync(10000);
-    
+
     expect(secretsManager.get('db_password')).toBe('recovered');
     expect(secretsManager.smReachable).toBe(true);
     expect(secretsManager['deferredRetryScheduled']).toBe(false);
-    
+
     process.env.NODE_ENV = 'test';
   });
 
@@ -249,18 +249,18 @@ describe('SecretsManager', () => {
     sendMock.mockRejectedValue(new Error('Persistent Fail'));
 
     await secretsManager.load();
-    
+
     const scheduleRetrySpy = jest.spyOn(secretsManager as any, 'scheduleRetry');
-    
+
     // First retry happens after 10s
     await jest.advanceTimersByTimeAsync(10000);
     // It should have called scheduleRetry(20000)
     expect(scheduleRetrySpy).toHaveBeenCalledWith(20000);
-    
+
     // Second retry happens after 20s
     await jest.advanceTimersByTimeAsync(20000);
     expect(scheduleRetrySpy).toHaveBeenCalledWith(40000);
-    
+
     process.env.NODE_ENV = 'test';
   });
 
@@ -269,13 +269,13 @@ describe('SecretsManager', () => {
     (err as any).name = 'ResourceNotFoundException';
     sendMock.mockRejectedValue(err);
     process.env.DB_PASSWORD = 'env_fallback';
-    
+
     const logSpy = jest.spyOn(console, 'log').mockImplementation();
-    
+
     await secretsManager.load();
-    
+
     expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('AWS Secrets Manager unavailable'));
-    
+
     logSpy.mockRestore();
   });
 
@@ -287,7 +287,7 @@ describe('SecretsManager', () => {
 
   test('loadAwsSecretBlob handles missing SecretString', async () => {
     sendMock.mockResolvedValue({}); // No SecretString
-    
+
     const result = await (secretsManager as any).loadAwsSecretBlob();
     expect(result).toEqual({});
   });
@@ -333,10 +333,10 @@ describe('SecretsManager', () => {
     sendMock
       .mockResolvedValueOnce({ SecretString: JSON.stringify({}) })
       .mockRejectedValueOnce(new Error('Write failed'));
-    
+
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     await secretsManager.putSecret('key', 'val');
-    
+
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining("Failed to write 'key' to AWS SM: Write failed")
     );
@@ -349,7 +349,7 @@ describe('SecretsManager', () => {
     sendMock
       .mockResolvedValueOnce({ SecretString: JSON.stringify({}) })
       .mockRejectedValueOnce(new Error('Bulk write failed'));
-    
+
     await expect(secretsManager.putSecrets({ key: 'val' })).rejects.toThrow(
       'Failed to write secrets to AWS SM: Bulk write failed'
     );
@@ -360,10 +360,10 @@ describe('SecretsManager', () => {
     sendMock
       .mockResolvedValueOnce({ SecretString: JSON.stringify({ key: 'val' }) })
       .mockRejectedValueOnce(new Error('Delete failed'));
-    
+
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     await secretsManager.deleteSecret('key');
-    
+
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining("Failed to delete 'key' from AWS SM: Delete failed")
     );
@@ -382,10 +382,10 @@ describe('SecretsManager', () => {
     process.env.NODE_ENV = 'production';
     secretsManager.secrets.set('db_password', 'same');
     sendMock.mockResolvedValue({ SecretString: JSON.stringify({ db_password: 'same' }) });
-    
+
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     const result = await (secretsManager as any).retryAwsLoad();
-    
+
     expect(result).toBe(true);
     expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('refreshed'));
     consoleSpy.mockRestore();

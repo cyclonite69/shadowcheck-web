@@ -16,9 +16,13 @@ jest.mock('../../../server/src/services/adminDbService', () => ({
 // Each await Promise.resolve() advances exactly one microtask tick; 30 rounds
 // is conservative for the 8–10 ticks a two-request chain requires.
 async function flushQueue() {
-  for (let i = 0; i < 30; i++) await Promise.resolve();
+  for (let i = 0; i < 30; i++) {
+    await Promise.resolve();
+  }
   await jest.runAllTimersAsync();
-  for (let i = 0; i < 30; i++) await Promise.resolve();
+  for (let i = 0; i < 30; i++) {
+    await Promise.resolve();
+  }
 }
 
 function makeResponse(
@@ -160,7 +164,9 @@ describe('wigleClient (Deterministic Hardening)', () => {
 
   it('circuit breaker blocks background but allows interactive when open', async () => {
     // Open the real circuit breaker (5 consecutive 429s)
-    for (let i = 0; i < 5; i++) recordConsecutive429();
+    for (let i = 0; i < 5; i++) {
+      recordConsecutive429();
+    }
 
     const bg = fetchWigle({ kind: 'search', url: 'http://bg', priority: 'background' });
     await expect(bg).rejects.toThrow('circuit breaker');

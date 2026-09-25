@@ -241,9 +241,11 @@ async function getNetworksNeedingRecompute(limit: number): Promise<any[]> {
 }
 
 async function resetNeedsRecompute(bssids: string[]): Promise<void> {
-  if (bssids.length === 0) return;
+  if (bssids.length === 0) {
+    return;
+  }
   await adminQuery(
-    `UPDATE app.threat_scores_cache SET needs_recompute = false WHERE bssid = ANY($1::text[])`,
+    'UPDATE app.threat_scores_cache SET needs_recompute = false WHERE bssid = ANY($1::text[])',
     [bssids]
   );
 }

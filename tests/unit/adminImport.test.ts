@@ -610,7 +610,9 @@ describe('admin/import routes', () => {
   describe('GET /api/admin/wigle-kml-sync/status', () => {
     it('returns credentials_missing when no WiGLE credentials are configured', async () => {
       (secretsManager.get as jest.Mock).mockImplementation((key: string) => {
-        if (key === 'wigle_api_name' || key === 'wigle_api_token') return null;
+        if (key === 'wigle_api_name' || key === 'wigle_api_token') {
+          return null;
+        }
         return null;
       });
 
@@ -646,8 +648,12 @@ describe('admin/import routes', () => {
 
     it('returns supported status when WiGLE credentials are configured', async () => {
       (secretsManager.get as jest.Mock).mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'test-name';
-        if (key === 'wigle_api_token') return 'test-token';
+        if (key === 'wigle_api_name') {
+          return 'test-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'test-token';
+        }
         return null;
       });
 

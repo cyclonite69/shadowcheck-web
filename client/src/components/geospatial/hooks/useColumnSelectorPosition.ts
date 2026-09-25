@@ -19,11 +19,15 @@ export const useColumnSelectorPosition = (
   });
 
   useLayoutEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      return;
+    }
 
     const updatePosition = () => {
       const anchor = anchorRef.current;
-      if (!anchor) return;
+      if (!anchor) {
+        return;
+      }
 
       const rect = anchor.getBoundingClientRect();
       const margin = 8;

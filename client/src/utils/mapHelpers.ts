@@ -66,13 +66,23 @@ export const resolveRadioTech = (
   const t = (type || '').toUpperCase();
 
   // Special detection for SIGINT assets
-  if (caps.includes('STINGRAY') || caps.includes('HAILSTORM') || t === 'S') return 'stingray';
+  if (caps.includes('STINGRAY') || caps.includes('HAILSTORM') || t === 'S') {
+    return 'stingray';
+  }
 
   // Capabilities-first: check what the device actually advertised
-  if (caps.startsWith('NR')) return 'nr';
-  if (caps.startsWith('LTE')) return 'lte';
-  if (caps.startsWith('GSM')) return 'gsm';
-  if (caps.startsWith('IWLAN')) return 'iwlan';
+  if (caps.startsWith('NR')) {
+    return 'nr';
+  }
+  if (caps.startsWith('LTE')) {
+    return 'lte';
+  }
+  if (caps.startsWith('GSM')) {
+    return 'gsm';
+  }
+  if (caps.startsWith('IWLAN')) {
+    return 'iwlan';
+  }
 
   // WiFi capabilities (bracket format like [WPA2-PSK-CCMP])
   if (
@@ -82,27 +92,48 @@ export const resolveRadioTech = (
     caps.includes('ESS')
   ) {
     const freq = frequencyMhz ?? 0;
-    if (freq >= 5925) return 'wifi_6g';
-    if (freq >= 5000) return 'wifi_5g';
+    if (freq >= 5925) {
+      return 'wifi_6g';
+    }
+    if (freq >= 5000) {
+      return 'wifi_5g';
+    }
     return 'wifi_2g';
   }
 
   // BT/BLE: capabilities contain device class (e.g. "Headphones;10", "Misc")
-  if (t === 'E') return 'ble';
-  if (t === 'B') return 'bt_classic';
+  if (t === 'E') {
+    return 'ble';
+  }
+  if (t === 'B') {
+    return 'bt_classic';
+  }
 
   // Fall back to type field
-  if (t === 'N') return 'nr';
-  if (t === 'L') return 'lte';
-  if (t === 'G') return 'gsm';
-  if (t === 'C' || t === 'D' || t === 'F') return 'lte'; // CDMA/generic → treat as LTE-era
+  if (t === 'N') {
+    return 'nr';
+  }
+  if (t === 'L') {
+    return 'lte';
+  }
+  if (t === 'G') {
+    return 'gsm';
+  }
+  if (t === 'C' || t === 'D' || t === 'F') {
+    return 'lte';
+  } // CDMA/generic → treat as LTE-era
   if (t === 'W') {
     const freq = frequencyMhz ?? 0;
     // Detect BLE misclassified as WiFi: freq 7936 = CoD Uncategorized, or BT-style caps
-    if (freq === 7936 || caps.includes('UNCATEGORIZED') || (caps === 'MISC' && freq === 0))
+    if (freq === 7936 || caps.includes('UNCATEGORIZED') || (caps === 'MISC' && freq === 0)) {
       return 'ble';
-    if (freq >= 5925) return 'wifi_6g';
-    if (freq >= 5000) return 'wifi_5g';
+    }
+    if (freq >= 5925) {
+      return 'wifi_6g';
+    }
+    if (freq >= 5000) {
+      return 'wifi_5g';
+    }
     return 'wifi_2g';
   }
 
@@ -141,7 +172,9 @@ export const calculateSignalRange = (
   if (typeof freq === 'string') {
     freq = parseFloat((freq as any).replace(' GHz', '')) * 1000;
   }
-  if (!freq || freq <= 0) freq = null;
+  if (!freq || freq <= 0) {
+    freq = null;
+  }
 
   const tech = resolveRadioTech(radioType, capabilities, freq);
   const params = RADIO_PARAMS[tech];
@@ -166,7 +199,9 @@ export const calculateSignalRange = (
 
 // BSSID-based color generation for consistent network coloring
 export const macColor = (mac: string): string => {
-  if (!mac || mac.length < 6) return '#999999';
+  if (!mac || mac.length < 6) {
+    return '#999999';
+  }
 
   const BASE_HUES = [0, 60, 120, 180, 240, 270, 300, 330];
   const stringToHash = (str: string): number => {
@@ -179,14 +214,16 @@ export const macColor = (mac: string): string => {
   };
 
   const cleanedMac = mac.replace(/[^0-9A-F]/gi, '');
-  if (cleanedMac.length < 6) return '#999999';
+  if (cleanedMac.length < 6) {
+    return '#999999';
+  }
 
   const oui = cleanedMac.substring(0, 6); // Manufacturer part
   const devicePart = cleanedMac.substring(6); // Device-specific part
 
   const hue = BASE_HUES[stringToHash(oui) % BASE_HUES.length];
-  let saturation = 50 + (stringToHash(devicePart) % 41); // 50-90%
-  let lightness = 40 + (stringToHash(devicePart) % 31); // 40-70%
+  const saturation = 50 + (stringToHash(devicePart) % 41); // 50-90%
+  const lightness = 40 + (stringToHash(devicePart) % 31); // 40-70%
 
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
@@ -218,10 +255,14 @@ export const createGoogleStyle = (type: string) => ({
  * Supports 2.4 GHz (ch 1–14), 5 GHz, and 6 GHz (WiFi 6E) bands.
  */
 export const frequencyToChannel = (freqMhz: number | null | undefined): number | null => {
-  if (!freqMhz) return null;
+  if (!freqMhz) {
+    return null;
+  }
   // 2.4 GHz band (channels 1-14)
   if (freqMhz >= 2412 && freqMhz <= 2484) {
-    if (freqMhz === 2484) return 14; // Japan only
+    if (freqMhz === 2484) {
+      return 14;
+    } // Japan only
     return Math.round((freqMhz - 2407) / 5);
   }
   // 5 GHz band
@@ -244,7 +285,9 @@ export const ensureHomeLocationLayers = (
   homeLocation: { center: [number, number]; radius: number },
   visible: boolean = true
 ) => {
-  if (!map) return;
+  if (!map) {
+    return;
+  }
 
   const visibility = visible ? 'visible' : 'none';
 

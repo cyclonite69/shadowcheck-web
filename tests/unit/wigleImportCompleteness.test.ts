@@ -76,7 +76,6 @@ describe('wigleImportRunService completeness report', () => {
       },
     ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const service = require('../../server/src/services/wigleImportRunService');
     const report = await service.getImportCompletenessReport({ searchTerm: 'fbi' });
 
@@ -122,7 +121,6 @@ describe('wigleImportRunService completeness report', () => {
       },
     ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const service = require('../../server/src/services/wigleImportRunService');
     const report = await service.getImportCompletenessReport({
       searchTerm: 'fbi surveillance van',
@@ -169,7 +167,6 @@ describe('wigleImportRunService completeness report', () => {
       },
     ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const service = require('../../server/src/services/wigleImportRunService');
     const report = await service.getImportCompletenessReport({ searchTerm: 'fbi' });
 

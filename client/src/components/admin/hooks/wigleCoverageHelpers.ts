@@ -55,7 +55,9 @@ export function buildCoverageTerms(runs: WigleImportRun[]): string[] {
   const termsMap = new Map<string, { term: string; startedAtTime: number }>();
   for (const r of runs) {
     const term = r.searchTerm;
-    if (!term) continue;
+    if (!term) {
+      continue;
+    }
     const lower = term.toLowerCase();
     const startedAtTime = r.startedAt ? new Date(r.startedAt).getTime() : 0;
     const existing = termsMap.get(lower);
@@ -96,7 +98,10 @@ export function mergeCoverageStates(
     const localRows = matched?.localRows ?? 0;
     const localUniqueBssids = matched?.localUniqueBssids ?? matched?.storedCount ?? 0;
     const isQueried = Boolean(
-      matched && (matched.runId != null || matched.status != null || matched.rowsInserted != null)
+      matched &&
+      ((matched.runId !== null && matched.runId !== undefined) ||
+        (matched.status !== null && matched.status !== undefined) ||
+        (matched.rowsInserted !== null && matched.rowsInserted !== undefined))
     );
     return {
       state: stateObj.code,

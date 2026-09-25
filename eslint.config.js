@@ -4,6 +4,7 @@ const { FlatCompat } = require('@eslint/eslintrc');
 const eslintJs = require('@eslint/js');
 const tsEslintPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
+const globals = require('globals');
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -24,6 +25,7 @@ const ignores = [
   '*.temp',
   'client/public/assets/',
   'test-*.js',
+  'scratch/**',
 ];
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
@@ -34,27 +36,22 @@ module.exports = [
   },
   ...compat.config(require('./.eslintrc.json')),
   {
-    files: [
-      'server/src/services/filterQueryBuilder/**/*.ts',
-      'tests/unit/filterQueryBuilder*.ts',
-      'tests/unit/radioFilterParity.test.ts',
-      'tests/unit/networkFastPathPredicates.test.ts',
-      'tests/unit/networkWhereBuilder.test.ts',
-      'tests/unit/threatCategoryLevels.test.ts',
-      'tests/unit/analyticsQueryBuilders.test.ts',
-      'tests/unit/geospatialQueryBuilders.test.ts',
-      'tests/unit/observationFilterBuilder.test.ts',
-      'tests/unit/builders/*.ts',
-    ],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2021,
       sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
     },
     plugins: {
       '@typescript-eslint': tsEslintPlugin,
     },
     rules: {
+      'no-undef': 'off',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -63,6 +60,22 @@ module.exports = [
           varsIgnorePattern: '^_',
         },
       ],
+      // Disable base indent rule for TS files — it mis-fires on TypeScript syntax
+      // (type annotations, generics, decorators). Applied via compat-loaded .eslintrc.json.
+      indent: 'off',
+      // Disable base space-before-function-paren for TS files — misfires on generic
+      // function declarations e.g. `function fn<T>(...)`. Applied via compat.
+      'space-before-function-paren': 'off',
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': 'error',
+    },
+  },
+  {
+    files: ['client/**/*.{ts,tsx,js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
     },
   },
 ];

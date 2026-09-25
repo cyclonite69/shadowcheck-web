@@ -28,7 +28,9 @@ export const useMediaLocationLayers = ({
   const [status, setStatus] = useState<MediaLocationStatus>('idle');
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
 
@@ -73,10 +75,14 @@ export const useMediaLocationLayers = ({
 
     // Unmatched media popup handler (HTML/DOM template)
     const handleUnmatchedMediaClick = (e: any) => {
-      if (!e.features || e.features.length === 0) return;
+      if (!e.features || e.features.length === 0) {
+        return;
+      }
       const feature = e.features[0];
       const props = feature.properties;
-      if (!props) return;
+      if (!props) {
+        return;
+      }
 
       const html = `
         <div style="padding: 10px; font-family: monospace; font-size: 11px; color: #e2e8f0; background: #0f172a; border-radius: 6px;">
@@ -122,10 +128,14 @@ export const useMediaLocationLayers = ({
 
     // Matched media popup handler (React component rendering via React.createElement to support raw TS files)
     const handleMatchedMediaClick = (e: any) => {
-      if (!e.features || e.features.length === 0) return;
+      if (!e.features || e.features.length === 0) {
+        return;
+      }
       const feature = e.features[0];
       const props = feature.properties;
-      if (!props) return;
+      if (!props) {
+        return;
+      }
 
       // Extract props and parse arrays if they were stringified in GeoJSON attributes
       let memberBssids: string[] = [];
@@ -198,7 +208,9 @@ export const useMediaLocationLayers = ({
           networkApi.getMatchedMediaGeoJson(),
         ]);
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         // 1. Setup Unmatched Media Layers
         if (!map.getSource('media-locations')) {
@@ -307,7 +319,9 @@ export const useMediaLocationLayers = ({
         const matchedCount = matchedData.features?.length || 0;
         setStatus(unmatchedCount > 0 || matchedCount > 0 ? 'active' : 'empty');
       } catch (err) {
-        if (!active) return;
+        if (!active) {
+          return;
+        }
         console.error('Failed to load media locations', err);
         setStatus('error');
       }

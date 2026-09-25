@@ -184,11 +184,21 @@ export const normalizeThreatTransparency = (threat: unknown): ThreatTransparency
         : (signalEvidence ?? null);
 
     let threshold: unknown = null;
-    if (rule === 'EXCESSIVE_MOVEMENT') threshold = 0.2;
-    if (rule === 'SPEED_PATTERN') threshold = 20;
-    if (rule === 'TEMPORAL_PATTERN') threshold = 2;
-    if (rule === 'HIGH_OBSERVATION_COUNT') threshold = 20;
-    if (rule === 'HOME_AND_AWAY') threshold = 'home & away';
+    if (rule === 'EXCESSIVE_MOVEMENT') {
+      threshold = 0.2;
+    }
+    if (rule === 'SPEED_PATTERN') {
+      threshold = 20;
+    }
+    if (rule === 'TEMPORAL_PATTERN') {
+      threshold = 2;
+    }
+    if (rule === 'HIGH_OBSERVATION_COUNT') {
+      threshold = 20;
+    }
+    if (rule === 'HOME_AND_AWAY') {
+      threshold = 'home & away';
+    }
 
     return { rule, observedValue, threshold };
   });

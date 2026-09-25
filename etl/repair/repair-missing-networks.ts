@@ -13,14 +13,17 @@ import { createPool } from '../utils/db';
 
 const sqliteFile = process.argv[2];
 if (!sqliteFile || !fs.existsSync(sqliteFile)) {
-  console.error(`Usage: tsx repair-missing-networks.ts <sqlite_file>`);
+  console.error('Usage: tsx repair-missing-networks.ts <sqlite_file>');
   process.exit(1);
 }
 
 const pool = createPool();
 
 const cleanStr = (s: string | null | undefined) => {
-  if (!s) return '';
+  if (!s) {
+    return '';
+  }
+  // eslint-disable-next-line no-control-regex
   return s.replace(/\x00/g, '').trim();
 };
 
@@ -55,8 +58,11 @@ async function main() {
        FROM network`,
       (err: Error | null, rows: any[]) => {
         db.close();
-        if (err) reject(err);
-        else resolve(rows || []);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
       }
     );
   });
@@ -98,7 +104,9 @@ async function main() {
       ok++;
     } catch (e: any) {
       fail++;
-      if (process.env.DEBUG === 'true') console.error(`  Failed ${n.bssid}: ${e.message}`);
+      if (process.env.DEBUG === 'true') {
+        console.error(`  Failed ${n.bssid}: ${e.message}`);
+      }
     }
   }
 

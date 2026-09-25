@@ -55,7 +55,9 @@ export const useWigleDetailLookup = (): UseWigleDetailLookupResult => {
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        return;
+      }
 
       const networkId = await uploadFile(file);
       if (networkId) {

@@ -149,7 +149,9 @@ const renderObservations = ({ value }: NetworkTableCellRendererContext) => {
     </span>
   );
   const tooltip =
-    count != null && count > 0 ? `${count} detection${count === 1 ? '' : 's'} recorded` : undefined;
+    count !== null && count > 0
+      ? `${count} detection${count === 1 ? '' : 's'} recorded`
+      : undefined;
   return {
     content: tooltip ? <Tooltip content={tooltip}>{obsContent}</Tooltip> : obsContent,
   };
@@ -240,7 +242,7 @@ const renderThreatScore = ({ value }: NetworkTableCellRendererContext) => {
   const scoreContent = (
     <span style={{ color: threatScoreColor(score), fontWeight: 600 }}>{label}</span>
   );
-  const tooltip = score != null ? `Threat score: ${score.toFixed(1)}/100` : undefined;
+  const tooltip = score !== null ? `Threat score: ${score.toFixed(1)}/100` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{scoreContent}</Tooltip> : scoreContent,
@@ -251,7 +253,7 @@ const renderDistanceFromHome = ({ value }: NetworkTableCellRendererContext) => {
   const km = metersToKm(typeof value === 'number' ? value : null);
   const label = formatDistanceKm(km);
   const distanceContent = <span>{label ? `${label} km` : '—'}</span>;
-  const tooltipText = km != null ? `${formatDistanceKm(km)} km from home` : undefined;
+  const tooltipText = km !== null ? `${formatDistanceKm(km)} km from home` : undefined;
 
   return {
     content: tooltipText ? (
@@ -267,7 +269,7 @@ const renderMaxDistance = ({ value }: NetworkTableCellRendererContext) => {
   const km = metersToKm(typeof value === 'number' ? value : null);
   const label = formatDistanceKm(km);
   const maxDistanceContent = <span>{label ? `${label} km` : '—'}</span>;
-  const tooltip = km != null ? `Max distance: ${formatDistanceKm(km)} km` : undefined;
+  const tooltip = km !== null ? `Max distance: ${formatDistanceKm(km)} km` : undefined;
 
   return {
     content: tooltip ? (
@@ -302,7 +304,7 @@ const renderStationaryConfidence = ({ value }: NetworkTableCellRendererContext) 
   const raw = typeof value === 'number' ? value : null;
   const label = formatPercentLabel(raw);
   const confidenceContent = <span>{label ?? '—'}</span>;
-  const tooltip = raw != null ? `Stationary confidence: ${(raw * 100).toFixed(4)}%` : undefined;
+  const tooltip = raw !== null ? `Stationary confidence: ${(raw * 100).toFixed(4)}%` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{confidenceContent}</Tooltip> : confidenceContent,
@@ -313,7 +315,7 @@ const renderGeocodedConfidence = ({ value }: NetworkTableCellRendererContext) =>
   const raw = typeof value === 'number' ? value : null;
   const label = formatPercentLabel(raw);
   const confidenceContent = <span>{label ?? '—'}</span>;
-  const tooltip = raw != null ? `Geocoding confidence: ${(raw * 100).toFixed(4)}%` : undefined;
+  const tooltip = raw !== null ? `Geocoding confidence: ${(raw * 100).toFixed(4)}%` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{confidenceContent}</Tooltip> : confidenceContent,
@@ -326,7 +328,7 @@ const renderLatitude = ({ value }: NetworkTableCellRendererContext) => {
   const latitudeContent = (
     <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{formatCoordOverview(raw)}</span>
   );
-  const tooltip = raw != null ? `Latitude: ${raw.toFixed(6)}°` : undefined;
+  const tooltip = raw !== null ? `Latitude: ${raw.toFixed(6)}°` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{latitudeContent}</Tooltip> : latitudeContent,
@@ -339,7 +341,7 @@ const renderLongitude = ({ value }: NetworkTableCellRendererContext) => {
   const longitudeContent = (
     <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{formatCoordOverview(raw)}</span>
   );
-  const tooltip = raw != null ? `Longitude: ${raw.toFixed(6)}°` : undefined;
+  const tooltip = raw !== null ? `Longitude: ${raw.toFixed(6)}°` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{longitudeContent}</Tooltip> : longitudeContent,
@@ -356,7 +358,7 @@ const renderCoordinate = ({
   const coordinateContent = (
     <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{formatCoordOverview(raw)}</span>
   );
-  const tooltip = raw != null ? `${axis}: ${raw.toFixed(6)}°` : undefined;
+  const tooltip = raw !== null ? `${axis}: ${raw.toFixed(6)}°` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{coordinateContent}</Tooltip> : coordinateContent,
@@ -367,7 +369,7 @@ const renderCoordinate = ({
 const renderAltitudeCell = ({ value }: NetworkTableCellRendererContext) => {
   const raw = typeof value === 'number' ? value : null;
   const altitudeContent = <span>{formatAltitude(raw)}</span>;
-  const tooltip = raw != null ? `Altitude: ${raw.toFixed(2)} m` : undefined;
+  const tooltip = raw !== null ? `Altitude: ${raw.toFixed(2)} m` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{altitudeContent}</Tooltip> : altitudeContent,
@@ -377,7 +379,7 @@ const renderAltitudeCell = ({ value }: NetworkTableCellRendererContext) => {
 const renderAccuracyCell = ({ value }: NetworkTableCellRendererContext) => {
   const raw = typeof value === 'number' ? value : null;
   const accuracyContent = <span>{formatAccuracy(raw)}</span>;
-  const tooltip = raw != null ? `Accuracy: ±${raw.toFixed(4)} m` : undefined;
+  const tooltip = raw !== null ? `Accuracy: ±${raw.toFixed(4)} m` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{accuracyContent}</Tooltip> : accuracyContent,
@@ -499,7 +501,7 @@ const renderBssid = ({
   showSelectedAnchorLink: _showSelectedAnchorLink,
   isLinkedSibling: _isLinkedSibling,
 }: NetworkTableCellRendererContext) => {
-  const label = value == null ? '—' : String(value);
+  const label = value === null || value === undefined ? '—' : String(value);
   const bssidContent = <BssidCell label={label} color={macColor(_row.bssid ?? '')} />;
 
   return {
@@ -599,7 +601,9 @@ const renderSsid = ({
   isLinkedSibling: _isLinkedSibling,
 }: NetworkTableCellRendererContext) => {
   const textContent =
-    value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
+    value === null || value === undefined || String(value).trim().length === 0
+      ? '(hidden)'
+      : String(value);
 
   const ssidContent = (
     <SsidCell
@@ -618,7 +622,7 @@ const defaultValue = (value: unknown) => {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return value;
   }
-  if (value == null) {
+  if (value === null || value === undefined) {
     return '—';
   }
   return '—';
@@ -636,7 +640,9 @@ const renderPresence = ({ value }: NetworkTableCellRendererContext) => {
 
 const renderDeviceClass = ({ value, row }: NetworkTableCellRendererContext) => {
   const raw = normalizeDeviceClass(typeof value === 'string' ? value : null);
-  if (!raw) return { content: <span style={{ color: '#475569' }}>—</span> };
+  if (!raw) {
+    return { content: <span style={{ color: '#475569' }}>—</span> };
+  }
 
   const label = formatDeviceType(raw);
   const hasIntel = hasVendorIntelForDeviceClass(raw);
@@ -645,7 +651,7 @@ const renderDeviceClass = ({ value, row }: NetworkTableCellRendererContext) => {
   // Route 1: manifest entry exists → Intel drawer
   // Route 2: operational detection (no manifest, not private) → Evidence modal
   // Route 3: private/unknown OUI → explanatory tooltip chip, no button
-  let action: React.ReactNode = null;
+  let action: React.ReactNode;
 
   if (hasIntel && !isPrivateOui) {
     action = (

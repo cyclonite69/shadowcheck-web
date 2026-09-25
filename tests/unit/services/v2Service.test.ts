@@ -26,7 +26,6 @@ import {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getQueryMock(): jest.Mock {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require('../../../server/src/config/database').query as jest.Mock;
 }
 

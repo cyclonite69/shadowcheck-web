@@ -214,7 +214,9 @@ export async function fetchMissingSiblingRows(
   matchedBssids: string[],
   locationMode: string = 'latest_observation'
 ): Promise<any[]> {
-  if (matchedBssids.length === 0) return [];
+  if (matchedBssids.length === 0) {
+    return [];
+  }
 
   const upperBssids = matchedBssids.map((b) => b.toUpperCase());
 
@@ -236,7 +238,9 @@ export async function fetchMissingSiblingRows(
   );
   const missingSiblings = allSiblingBssids.filter((b) => !upperBssids.includes(b));
 
-  if (missingSiblings.length === 0) return [];
+  if (missingSiblings.length === 0) {
+    return [];
+  }
 
   const locationJoin = SqlFragmentLibrary.joinNetworkLocations('ne', locationMode);
   const locationCols = SqlFragmentLibrary.selectLocationCoords('ne', locationMode);
@@ -322,7 +326,9 @@ export async function getNetworksByBssids(
   bssids: string[],
   locationMode: string = 'latest_observation'
 ): Promise<any[]> {
-  if (!Array.isArray(bssids) || bssids.length === 0) return [];
+  if (!Array.isArray(bssids) || bssids.length === 0) {
+    return [];
+  }
 
   const upperBssids = bssids.map((b) => b.toUpperCase());
 
@@ -409,10 +415,12 @@ export async function getNetworksByBssids(
  * Checks which BSSIDs exist in the app.networks table.
  */
 export async function checkNetworksExist(bssids: string[]): Promise<string[]> {
-  if (!Array.isArray(bssids) || bssids.length === 0) return [];
+  if (!Array.isArray(bssids) || bssids.length === 0) {
+    return [];
+  }
   const upperBssids = bssids.map((b) => b.toUpperCase());
   const result = await query(
-    `SELECT bssid FROM app.networks WHERE UPPER(bssid) = ANY($1::text[])`,
+    'SELECT bssid FROM app.networks WHERE UPPER(bssid) = ANY($1::text[])',
     [upperBssids]
   );
   return result.rows.map((row: any) => row.bssid.toUpperCase());

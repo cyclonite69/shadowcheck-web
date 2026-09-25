@@ -9,14 +9,23 @@ export const updateClusterColors = (
   clusterColorCache: MutableRefObject<Record<string, Record<number, string>>>
 ) => {
   const source = map.getSource(sourceId) as GeoJSONSource | undefined;
-  if (!source) return;
+  if (!source) {
+    return;
+  }
 
   const clusters = map.querySourceFeatures(sourceId, { filter: ['has', 'point_count'] });
 
   clusters.forEach((feature) => {
     const clusterId = feature.properties?.cluster_id;
     const featureId = feature.id ?? clusterId;
-    if (clusterId == null || featureId == null) return;
+    if (
+      clusterId === null ||
+      clusterId === undefined ||
+      featureId === null ||
+      featureId === undefined
+    ) {
+      return;
+    }
 
     const cached = clusterColorCache.current[cacheKey]?.[clusterId];
     if (cached) {
@@ -25,12 +34,16 @@ export const updateClusterColors = (
     }
 
     source.getClusterLeaves(clusterId, CLUSTER_SAMPLE_LIMIT, 0, (err, leaves) => {
-      if (err || !leaves || leaves.length === 0) return;
+      if (err || !leaves || leaves.length === 0) {
+        return;
+      }
       const bssids = leaves
         .map((leaf) => String(leaf.properties?.bssid || leaf.properties?.netid || ''))
         .filter(Boolean);
       const color = dominantClusterColor(bssids);
-      if (!clusterColorCache.current[cacheKey]) clusterColorCache.current[cacheKey] = {};
+      if (!clusterColorCache.current[cacheKey]) {
+        clusterColorCache.current[cacheKey] = {};
+      }
       clusterColorCache.current[cacheKey][clusterId] = color;
       map.setFeatureState({ source: sourceId, id: featureId }, { color });
     });

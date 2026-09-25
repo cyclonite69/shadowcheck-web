@@ -12,7 +12,9 @@ export { macColor } from '../mapHelpers';
  */
 const parseHsl = (value: string): { h: number; s: number; l: number } | null => {
   const match = value.match(/hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)/i);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return { h: Number(match[1]), s: Number(match[2]), l: Number(match[3]) };
 };
 
@@ -21,8 +23,12 @@ const parseHsl = (value: string): { h: number; s: number; l: number } | null => 
  * Uses circular hue averaging so e.g. 350° + 10° → 0° instead of 180°.
  */
 export const mixBssidColors = (bssids: string[]): string => {
-  if (bssids.length === 0) return '#6b7280';
-  if (bssids.length === 1) return macColor(bssids[0]);
+  if (bssids.length === 0) {
+    return '#6b7280';
+  }
+  if (bssids.length === 1) {
+    return macColor(bssids[0]);
+  }
 
   let sinSum = 0,
     cosSum = 0,
@@ -31,7 +37,9 @@ export const mixBssidColors = (bssids: string[]): string => {
     count = 0;
   for (const bssid of bssids) {
     const hsl = parseHsl(macColor(bssid));
-    if (!hsl) continue;
+    if (!hsl) {
+      continue;
+    }
     const rad = (hsl.h * Math.PI) / 180;
     sinSum += Math.sin(rad);
     cosSum += Math.cos(rad);
@@ -39,7 +47,9 @@ export const mixBssidColors = (bssids: string[]): string => {
     lSum += hsl.l;
     count++;
   }
-  if (count === 0) return '#6b7280';
+  if (count === 0) {
+    return '#6b7280';
+  }
   const avgHue = ((Math.atan2(sinSum / count, cosSum / count) * 180) / Math.PI + 360) % 360;
   return `hsl(${Math.round(avgHue)}, ${Math.round(sSum / count)}%, ${Math.round(lSum / count)}%)`;
 };
@@ -50,13 +60,17 @@ export const mixBssidColors = (bssids: string[]): string => {
  * @returns HSL color string representing the cluster
  */
 export const dominantClusterColor = (bssids: string[]): string => {
-  if (bssids.length === 0) return '#38bdf8';
+  if (bssids.length === 0) {
+    return '#38bdf8';
+  }
 
   const buckets = new Map<number, { count: number; sTotal: number; lTotal: number }>();
 
   bssids.forEach((bssid) => {
     const hsl = parseHsl(macColor(bssid));
-    if (!hsl) return;
+    if (!hsl) {
+      return;
+    }
 
     const hueBucket = hsl.h;
     const existing = buckets.get(hueBucket);
@@ -70,7 +84,9 @@ export const dominantClusterColor = (bssids: string[]): string => {
     }
   });
 
-  if (buckets.size === 0) return '#38bdf8';
+  if (buckets.size === 0) {
+    return '#38bdf8';
+  }
 
   let bestHue = 0;
   let best = { count: 0, sTotal: 0, lTotal: 0 };

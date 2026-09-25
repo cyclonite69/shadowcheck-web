@@ -22,7 +22,9 @@ export const useHomeLocationLayer = ({
   visible = true,
 }: HomeLocationLayerProps) => {
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
     const map = mapRef.current;
 
     ensureHomeLocationLayers(map, homeLocation, visible);

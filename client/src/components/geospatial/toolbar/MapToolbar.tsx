@@ -153,16 +153,21 @@ export const MapToolbar = ({
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (layersRef.current && !layersRef.current.contains(e.target as Node)) setLayersOpen(false);
-      if (mapStyleRef.current && !mapStyleRef.current.contains(e.target as Node))
+      if (layersRef.current && !layersRef.current.contains(e.target as Node)) {
+        setLayersOpen(false);
+      }
+      if (mapStyleRef.current && !mapStyleRef.current.contains(e.target as Node)) {
         setMapStyleOpen(false);
-      if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpen(false);
+      }
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setNavOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const hasActiveLayers = !!showAgenciesPanel || !!showCourthousesPanel;
+  const hasActiveLayers = Boolean(showAgenciesPanel) || Boolean(showCourthousesPanel);
   const currentStyleLabel = mapStyles.find((s) => s.value === mapStyle)?.label ?? 'Style';
 
   return (

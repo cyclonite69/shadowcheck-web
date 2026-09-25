@@ -38,7 +38,9 @@ export const useWigleSearch = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedNetwork(null);
+      if (e.key === 'Escape') {
+        setSelectedNetwork(null);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -68,16 +70,36 @@ export const useWigleSearch = () => {
 
     try {
       const params = new URLSearchParams();
-      if (searchParams.ssid) params.append('ssid', searchParams.ssid);
-      if (searchParams.bssid) params.append('bssid', searchParams.bssid);
-      if (searchParams.latrange1) params.append('latrange1', searchParams.latrange1);
-      if (searchParams.latrange2) params.append('latrange2', searchParams.latrange2);
-      if (searchParams.longrange1) params.append('longrange1', searchParams.longrange1);
-      if (searchParams.longrange2) params.append('longrange2', searchParams.longrange2);
-      if (searchParams.country) params.append('country', searchParams.country);
-      if (searchParams.region) params.append('region', searchParams.region);
-      if (searchParams.city) params.append('city', searchParams.city);
-      if (searchParams.version) params.append('version', searchParams.version);
+      if (searchParams.ssid) {
+        params.append('ssid', searchParams.ssid);
+      }
+      if (searchParams.bssid) {
+        params.append('bssid', searchParams.bssid);
+      }
+      if (searchParams.latrange1) {
+        params.append('latrange1', searchParams.latrange1);
+      }
+      if (searchParams.latrange2) {
+        params.append('latrange2', searchParams.latrange2);
+      }
+      if (searchParams.longrange1) {
+        params.append('longrange1', searchParams.longrange1);
+      }
+      if (searchParams.longrange2) {
+        params.append('longrange2', searchParams.longrange2);
+      }
+      if (searchParams.country) {
+        params.append('country', searchParams.country);
+      }
+      if (searchParams.region) {
+        params.append('region', searchParams.region);
+      }
+      if (searchParams.city) {
+        params.append('city', searchParams.city);
+      }
+      if (searchParams.version) {
+        params.append('version', searchParams.version);
+      }
 
       // Add searchAfter for pagination
       if (loadMore && searchAfter) {
@@ -147,16 +169,36 @@ export const useWigleSearch = () => {
 
     try {
       const payload: Record<string, string> = {};
-      if (searchParams.ssid) payload.ssid = searchParams.ssid;
-      if (searchParams.bssid) payload.bssid = searchParams.bssid;
-      if (searchParams.latrange1) payload.latrange1 = searchParams.latrange1;
-      if (searchParams.latrange2) payload.latrange2 = searchParams.latrange2;
-      if (searchParams.longrange1) payload.longrange1 = searchParams.longrange1;
-      if (searchParams.longrange2) payload.longrange2 = searchParams.longrange2;
-      if (searchParams.country) payload.country = searchParams.country;
-      if (searchParams.region) payload.region = searchParams.region;
-      if (searchParams.city) payload.city = searchParams.city;
-      if (searchParams.version) payload.version = searchParams.version;
+      if (searchParams.ssid) {
+        payload.ssid = searchParams.ssid;
+      }
+      if (searchParams.bssid) {
+        payload.bssid = searchParams.bssid;
+      }
+      if (searchParams.latrange1) {
+        payload.latrange1 = searchParams.latrange1;
+      }
+      if (searchParams.latrange2) {
+        payload.latrange2 = searchParams.latrange2;
+      }
+      if (searchParams.longrange1) {
+        payload.longrange1 = searchParams.longrange1;
+      }
+      if (searchParams.longrange2) {
+        payload.longrange2 = searchParams.longrange2;
+      }
+      if (searchParams.country) {
+        payload.country = searchParams.country;
+      }
+      if (searchParams.region) {
+        payload.region = searchParams.region;
+      }
+      if (searchParams.city) {
+        payload.city = searchParams.city;
+      }
+      if (searchParams.version) {
+        payload.version = searchParams.version;
+      }
 
       const data = await wigleApi.importAllWigle(payload);
       const results = data.results || [];
@@ -206,16 +248,36 @@ export const useWigleSearch = () => {
     setResumeLoading(true);
     try {
       const payload: Record<string, string> = {};
-      if (searchParams.ssid) payload.ssid = searchParams.ssid;
-      if (searchParams.bssid) payload.bssid = searchParams.bssid;
-      if (searchParams.latrange1) payload.latrange1 = searchParams.latrange1;
-      if (searchParams.latrange2) payload.latrange2 = searchParams.latrange2;
-      if (searchParams.longrange1) payload.longrange1 = searchParams.longrange1;
-      if (searchParams.longrange2) payload.longrange2 = searchParams.longrange2;
-      if (searchParams.country) payload.country = searchParams.country;
-      if (searchParams.region) payload.region = searchParams.region;
-      if (searchParams.city) payload.city = searchParams.city;
-      if (searchParams.version) payload.version = searchParams.version;
+      if (searchParams.ssid) {
+        payload.ssid = searchParams.ssid;
+      }
+      if (searchParams.bssid) {
+        payload.bssid = searchParams.bssid;
+      }
+      if (searchParams.latrange1) {
+        payload.latrange1 = searchParams.latrange1;
+      }
+      if (searchParams.latrange2) {
+        payload.latrange2 = searchParams.latrange2;
+      }
+      if (searchParams.longrange1) {
+        payload.longrange1 = searchParams.longrange1;
+      }
+      if (searchParams.longrange2) {
+        payload.longrange2 = searchParams.longrange2;
+      }
+      if (searchParams.country) {
+        payload.country = searchParams.country;
+      }
+      if (searchParams.region) {
+        payload.region = searchParams.region;
+      }
+      if (searchParams.city) {
+        payload.city = searchParams.city;
+      }
+      if (searchParams.version) {
+        payload.version = searchParams.version;
+      }
       const data = await wigleApi.resumeLatestImportRun(payload);
       const run = data.run || null;
       setLastImportRun(run);
@@ -234,12 +296,16 @@ export const useWigleSearch = () => {
 
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
-      if (searchLoading || !hasMorePages) return;
+      if (searchLoading || !hasMorePages) {
+        return;
+      }
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;

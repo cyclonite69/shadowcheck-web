@@ -185,7 +185,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
                     {/* Content */}
                     <div
                       className="px-4 py-3 overflow-hidden"
-                      style={{ height: `calc(100% - 52px)` }}
+                      style={{ height: 'calc(100% - 52px)' }}
                     >
                       <AnalyticsCharts
                         card={card}

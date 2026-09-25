@@ -17,7 +17,9 @@ export const WigleLookupDialog = ({
   onLookup,
   onClose,
 }: WigleLookupDialogProps) => {
-  if (!visible || !network) return null;
+  if (!visible || !network) {
+    return null;
+  }
 
   return (
     <div

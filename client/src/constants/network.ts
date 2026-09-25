@@ -70,7 +70,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (!value) return '—';
+      if (!value) {
+        return '—';
+      }
       const str = String(value);
       return React.createElement('span', { title: formatISODate(str) }, formatShortDate(str));
     },
@@ -81,7 +83,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: true,
     render: (value) => {
-      if (!value) return '—';
+      if (!value) {
+        return '—';
+      }
       const str = String(value);
       return React.createElement('span', { title: formatISODate(str) }, formatShortDate(str));
     },
@@ -94,7 +98,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (!value) return '—';
+      if (!value) {
+        return '—';
+      }
       const str = String(value);
       return React.createElement(
         'span',
@@ -177,12 +183,16 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (!value) return '—';
+      if (!value) {
+        return '—';
+      }
       const tags = String(value)
         .split(',')
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
-      if (tags.length === 0) return '—';
+      if (tags.length === 0) {
+        return '—';
+      }
       const tooltip = tags.join(', ');
       const getTagStyle = (tag: string) => {
         const normalized = tag.toUpperCase();
@@ -232,7 +242,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (!value || value === 0) return '—';
+      if (!value || value === 0) {
+        return '—';
+      }
       return React.createElement(
         'span',
         {
@@ -257,7 +269,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (!value) return '—';
+      if (!value) {
+        return '—';
+      }
       const label = formatRelativeTime(String(value));
       return React.createElement('span', { className: 'text-xs text-gray-600' }, label);
     },
@@ -269,7 +283,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (value === null || value === undefined || value === '') return '—';
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
       return String(value);
     },
   },
@@ -280,7 +296,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (value === null || value === undefined || value === '') return '—';
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
       return String(value);
     },
   },
@@ -297,7 +315,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (value === null || value === undefined || value === '') return '—';
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
       return String(value);
     },
   },
@@ -307,9 +327,13 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (value === null || value === undefined || value === '') return '—';
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
       const num = Number(value);
-      if (isNaN(num)) return '—';
+      if (isNaN(num)) {
+        return '—';
+      }
       return num.toFixed(3);
     },
   },
@@ -326,7 +350,9 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
     render: (value) => {
-      if (!Array.isArray(value) || value.length === 0) return '—';
+      if (!Array.isArray(value) || value.length === 0) {
+        return '—';
+      }
       const list = value.join(', ');
       return React.createElement(
         'span',

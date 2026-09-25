@@ -253,16 +253,23 @@ const runSurveillanceScanJob = async (
           ) {
             action = 'update';
             const diffs: string[] = [];
-            if (deviceTypeDiff)
+            if (deviceTypeDiff) {
               diffs.push(`device_type (${existing.device_type} -> ${s.device_type})`);
-            if (confidenceDiff) diffs.push(`confidence (${existingConf} -> ${candidateConf})`);
-            if (threatScoreDiff)
+            }
+            if (confidenceDiff) {
+              diffs.push(`confidence (${existingConf} -> ${candidateConf})`);
+            }
+            if (threatScoreDiff) {
               diffs.push(`threat_score (${existingThreat} -> ${candidateThreat})`);
-            if (detectionMethodDiff)
+            }
+            if (detectionMethodDiff) {
               diffs.push(
                 `detection_method (${existing.detection_method} -> ${s.detection_method})`
               );
-            if (matchedSignalsDiff) diffs.push(`matched_signals changed`);
+            }
+            if (matchedSignalsDiff) {
+              diffs.push('matched_signals changed');
+            }
             reason = `Values changed: ${diffs.join(', ')}`;
           } else {
             action = 'unchanged';

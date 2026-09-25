@@ -77,7 +77,7 @@ describe('validateSecrets', () => {
         exit: exitMock as any,
       })
     ).rejects.toThrow('process.exit called with code 1');
-    
+
     expect(logger.error).toHaveBeenCalledWith('SECRETS VALIDATION FAILED');
     expect(logger.error).toHaveBeenCalledWith('Secret load error');
     expect(exitMock).toHaveBeenCalledWith(1);

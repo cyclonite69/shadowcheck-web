@@ -27,7 +27,9 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
   const searchLocation = useCallback(
     async (query: string) => {
       const mapboxgl = mapboxRef.current;
-      if (!query.trim() || !mapboxgl?.accessToken) return;
+      if (!query.trim() || !mapboxgl?.accessToken) {
+        return;
+      }
 
       setSearchingLocation(true);
       try {
@@ -81,7 +83,9 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
   const flyToLocation = useCallback(
     (result: LocationSearchResult) => {
       const mapboxgl = mapboxRef.current;
-      if (!mapRef.current || !mapboxgl) return;
+      if (!mapRef.current || !mapboxgl) {
+        return;
+      }
 
       const [lng, lat] = result.center;
 

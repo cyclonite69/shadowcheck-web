@@ -33,9 +33,13 @@ function createPool(): Pool {
 }
 
 function parseBboxArg(value?: string): Bbox | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const parts = value.split(',').map((p) => Number(p.trim()));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return null;
+  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) {
+    return null;
+  }
   const [west, south, east, north] = parts;
   return { west, south, east, north };
 }
@@ -88,8 +92,9 @@ async function runRegion(pool: PoolClient, region: AlprRegion, prune: boolean): 
 
     if (prune && records.length > 0) {
       const deleted = await pruneStaleInBbox(pool, bbox, runStartedAt);
-      if (deleted > 0)
+      if (deleted > 0) {
         console.log(`[${region.id}] pruned ${deleted} stale rows inside region bbox`);
+      }
     }
 
     await markRegionSyncSuccess(pool, region.id, {
@@ -112,7 +117,9 @@ async function runCustomBbox(pool: PoolClient, bbox: Bbox, prune: boolean): Prom
 
   if (prune && records.length > 0) {
     const deleted = await pruneStaleInBbox(pool, bbox, runStartedAt);
-    if (deleted > 0) console.log(`[custom-bbox] pruned ${deleted} stale rows inside bbox`);
+    if (deleted > 0) {
+      console.log(`[custom-bbox] pruned ${deleted} stale rows inside bbox`);
+    }
   }
 }
 
@@ -161,7 +168,9 @@ async function main(): Promise<void> {
       /** 5 s between regions to avoid Overpass IP rate-limit bans. */
       const INTER_REGION_DELAY_MS = 5_000;
       for (let i = 0; i < regions.length; i += 1) {
-        if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, INTER_REGION_DELAY_MS));
+        if (i > 0) {
+          await new Promise<void>((resolve) => setTimeout(resolve, INTER_REGION_DELAY_MS));
+        }
         await runRegion(client, regions[i], args.prune);
       }
     } finally {

@@ -21,7 +21,9 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
           .map((c) => c + c)
           .join('')
       : clean;
-  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) return null;
+  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) {
+    return null;
+  }
   return {
     r: parseInt(expanded.slice(0, 2), 16),
     g: parseInt(expanded.slice(2, 4), 16),
@@ -32,20 +34,26 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
 /** Convert hex color to HSL. Returns { h: 0-360, s: 0-100, l: 0-100 }. */
 export function hexToHsl(hex: string): { h: number; s: number; l: number } {
   const rgb = hexToRgb(hex);
-  if (!rgb) return { h: 0, s: 0, l: 0 };
+  if (!rgb) {
+    return { h: 0, s: 0, l: 0 };
+  }
   const r = rgb.r / 255;
   const g = rgb.g / 255;
   const b = rgb.b / 255;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const l = (max + min) / 2;
-  if (max === min) return { h: 0, s: 0, l: Math.round(l * 100) };
+  if (max === min) {
+    return { h: 0, s: 0, l: Math.round(l * 100) };
+  }
   const d = max - min;
   const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
-  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-  else if (max === g) h = ((b - r) / d + 2) / 6;
-  else h = ((r - g) / d + 4) / 6;
+  const h =
+    max === r
+      ? ((g - b) / d + (g < b ? 6 : 0)) / 6
+      : max === g
+        ? ((b - r) / d + 2) / 6
+        : ((r - g) / d + 4) / 6;
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
@@ -70,7 +78,9 @@ export function hslToHex(h: number, s: number, l: number): string {
  */
 export function autoContrastText(hex: string): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return '#ffffff';
+  if (!rgb) {
+    return '#ffffff';
+  }
   const toLinear = (c: number) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
@@ -85,7 +95,9 @@ export function autoContrastText(hex: string): string {
  */
 export function hexWithOpacity(hex: string, alpha: number): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return 'transparent';
+  if (!rgb) {
+    return 'transparent';
+  }
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
@@ -146,9 +158,15 @@ export function matchesRule(
       }
     case 'range': {
       const n = typeof value === 'number' ? value : parseFloat(String(value));
-      if (isNaN(n)) return false;
-      if (match.min !== undefined && n < match.min) return false;
-      if (match.max !== undefined && n > match.max) return false;
+      if (isNaN(n)) {
+        return false;
+      }
+      if (match.min !== undefined && n < match.min) {
+        return false;
+      }
+      if (match.max !== undefined && n > match.max) {
+        return false;
+      }
       return true;
     }
   }

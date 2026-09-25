@@ -196,7 +196,9 @@ describe('deviceClassUtils helpers', () => {
     const manifest = require('../../client/src/components/vendor-intel/vendor_intel_manifest.json');
     for (const v of manifest.vendors) {
       expect(hasDeviceIntel(v.surveillance_type)).toBe(true);
-      if (v.device_class) expect(hasDeviceIntel(v.device_class)).toBe(true);
+      if (v.device_class) {
+        expect(hasDeviceIntel(v.device_class)).toBe(true);
+      }
     }
   });
 

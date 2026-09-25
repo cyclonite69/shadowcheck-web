@@ -15,14 +15,18 @@ type EnrichOptions = {
 function parseArgs(argv: string[]): EnrichOptions {
   const getNum = (prefix: string, fallback: number) => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return fallback;
+    if (!raw) {
+      return fallback;
+    }
     const n = Number(raw.split('=')[1]);
     return Number.isFinite(n) && n > 0 ? n : fallback;
   };
 
   const getStr = (prefix: string): string | null => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const v = raw.slice(prefix.length).trim();
     return v.length ? v : null;
   };

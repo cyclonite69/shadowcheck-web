@@ -159,14 +159,14 @@ export async function updateNetworkTagNotes(bssid: string, notes: string): Promi
 
 export async function insertNetworkTagNotes(bssid: string, notes: string): Promise<any> {
   const result = await adminQuery(
-    `INSERT INTO app.network_tags (bssid, notes) VALUES ($1, $2) RETURNING *`,
+    'INSERT INTO app.network_tags (bssid, notes) VALUES ($1, $2) RETURNING *',
     [bssid, notes]
   );
   return result.rows[0];
 }
 
 export async function deleteNetworkTag(bssid: string): Promise<number> {
-  const result = await adminQuery(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssid]);
+  const result = await adminQuery('DELETE FROM app.network_tags WHERE bssid = $1', [bssid]);
   return result.rowCount || 0;
 }
 

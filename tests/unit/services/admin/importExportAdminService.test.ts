@@ -109,12 +109,21 @@ describe('importExportAdminService', () => {
     const originalUnsafeOverride = process.env.ALLOW_UNSAFE_DATA_RESET;
 
     afterEach(() => {
-      if (originalDbName === undefined) delete process.env.DB_NAME;
-      else process.env.DB_NAME = originalDbName;
-      if (originalPgDatabase === undefined) delete process.env.PGDATABASE;
-      else process.env.PGDATABASE = originalPgDatabase;
-      if (originalUnsafeOverride === undefined) delete process.env.ALLOW_UNSAFE_DATA_RESET;
-      else process.env.ALLOW_UNSAFE_DATA_RESET = originalUnsafeOverride;
+      if (originalDbName === undefined) {
+        delete process.env.DB_NAME;
+      } else {
+        process.env.DB_NAME = originalDbName;
+      }
+      if (originalPgDatabase === undefined) {
+        delete process.env.PGDATABASE;
+      } else {
+        process.env.PGDATABASE = originalPgDatabase;
+      }
+      if (originalUnsafeOverride === undefined) {
+        delete process.env.ALLOW_UNSAFE_DATA_RESET;
+      } else {
+        process.env.ALLOW_UNSAFE_DATA_RESET = originalUnsafeOverride;
+      }
     });
 
     it('refuses destructive resets against non-test databases', async () => {

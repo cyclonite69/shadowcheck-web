@@ -49,10 +49,8 @@ const validateApiKey = (req: Request, res: Response): boolean => {
   }
 
   if (providedKey !== serverKey) {
-    const maskedProvided =
-      providedKey.substring(0, 4) + '...' + providedKey.substring(providedKey.length - 4);
-    const maskedServer =
-      serverKey.substring(0, 4) + '...' + serverKey.substring(serverKey.length - 4);
+    const maskedProvided = `${providedKey.substring(0, 4)}...${providedKey.substring(providedKey.length - 4)}`;
+    const maskedServer = `${serverKey.substring(0, 4)}...${serverKey.substring(serverKey.length - 4)}`;
     logger.warn(
       `[Ingest] API key mismatch from ${req.ip}. Provided: ${maskedProvided} (${providedKey.length}), Expected: ${maskedServer} (${serverKey.length})`
     );
@@ -68,7 +66,9 @@ const validateApiKey = (req: Request, res: Response): boolean => {
  * Generates a presigned S3 URL for mobile SQLite upload.
  */
 router.post('/request-upload', async (req: Request, res: Response) => {
-  if (!validateApiKey(req, res)) return;
+  if (!validateApiKey(req, res)) {
+    return;
+  }
 
   const { fileName, case_id, filesize } = req.body;
 
@@ -115,7 +115,9 @@ router.post('/request-upload', async (req: Request, res: Response) => {
  * Verifies the upload was successful and records it for manual ETL.
  */
 router.post('/complete', async (req: Request, res: Response) => {
-  if (!validateApiKey(req, res)) return;
+  if (!validateApiKey(req, res)) {
+    return;
+  }
 
   const {
     s3Key,

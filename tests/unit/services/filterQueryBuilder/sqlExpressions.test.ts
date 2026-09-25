@@ -23,7 +23,12 @@ describe('sqlExpressions', () => {
 
     it('normalizes known aliases', () => {
       expect(normalizeRadioTypes(['WIFI', 'BLE', 'LTE'])).toEqual(['W', 'E', 'L']);
-      expect(normalizeRadioTypes(['wi-fi', 'bluetooth', 'gsm', 'nr'])).toEqual(['W', 'B', 'G', 'N']);
+      expect(normalizeRadioTypes(['wi-fi', 'bluetooth', 'gsm', 'nr'])).toEqual([
+        'W',
+        'B',
+        'G',
+        'N',
+      ]);
       expect(normalizeRadioTypes(['cdma', 'dect', 'fm', 'unknown'])).toEqual(['C', 'D', 'F', '?']);
     });
 
@@ -34,9 +39,20 @@ describe('sqlExpressions', () => {
     it('ignores unknown values and nullish values', () => {
       expect(normalizeRadioTypes(['W', null, undefined, '', 'INVALID'])).toEqual(['W']);
     });
-    
+
     it('normalizes base types correctly', () => {
-      expect(normalizeRadioTypes(['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'])).toEqual(['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?']);
+      expect(normalizeRadioTypes(['W', 'B', 'E', 'L', 'N', 'G', 'C', 'D', 'F', '?'])).toEqual([
+        'W',
+        'B',
+        'E',
+        'L',
+        'N',
+        'G',
+        'C',
+        'D',
+        'F',
+        '?',
+      ]);
     });
   });
 
@@ -159,11 +175,13 @@ describe('sqlExpressions', () => {
     it('returns valid SQL expression using default aliases', () => {
       const expr = THREAT_LEVEL_EXPR();
       expect(expr).toContain("nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'");
-      expect(expr).toContain("nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')");
-      expect(expr).toContain('>= 80 THEN \'CRITICAL\'');
-      expect(expr).toContain('>= 60 THEN \'HIGH\'');
-      expect(expr).toContain('>= 40 THEN \'MED\'');
-      expect(expr).toContain('>= 20 THEN \'LOW\'');
+      expect(expr).toContain(
+        "nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')"
+      );
+      expect(expr).toContain(">= 80 THEN 'CRITICAL'");
+      expect(expr).toContain(">= 60 THEN 'HIGH'");
+      expect(expr).toContain(">= 40 THEN 'MED'");
+      expect(expr).toContain(">= 20 THEN 'LOW'");
     });
 
     it('returns valid SQL expression using custom aliases', () => {

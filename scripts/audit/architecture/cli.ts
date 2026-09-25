@@ -17,11 +17,17 @@ export const parseAuditCli = (argv: string[]): AuditCliOptions => {
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument === '--stdout') options.stdout = true;
-    else if (argument === '--date') options.date = argv[++index] || '';
-    else if (argument === '--output') options.output = argv[++index] || '';
-    else if (argument === '--top') options.top = Number(argv[++index]);
-    else throw new Error(`Unknown audit option: ${argument}`);
+    if (argument === '--stdout') {
+      options.stdout = true;
+    } else if (argument === '--date') {
+      options.date = argv[++index] || '';
+    } else if (argument === '--output') {
+      options.output = argv[++index] || '';
+    } else if (argument === '--top') {
+      options.top = Number(argv[++index]);
+    } else {
+      throw new Error(`Unknown audit option: ${argument}`);
+    }
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(options.date)) {
     throw new Error(`Invalid --date value: ${options.date}`);

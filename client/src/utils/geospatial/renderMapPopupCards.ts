@@ -38,7 +38,9 @@ const formatPopupTime = (value: string | number | null | undefined): string => {
     // Accept either milliseconds or seconds epoch.
     const epochMs = numeric < 1e12 ? numeric * 1000 : numeric;
     const result = formatShortDate(new Date(epochMs));
-    if (result !== '—') return result;
+    if (result !== '—') {
+      return result;
+    }
   }
 
   const result = formatShortDate(String(value));
@@ -114,10 +116,10 @@ export const renderAgencyPopupCard = (props: AgencyPopupProps) => {
   const body = `
     <div style="font-size: 14px; font-weight: 600; color: #f8fafc; margin-bottom: 6px;">${props.name || 'Agency Office'}</div>
     <div style="margin-bottom: 8px; color: #cbd5e1;">${props.address || 'Address unavailable'}</div>
-    ${props.distanceKm != null ? `<div style="margin-bottom: 4px;"><span style="color:#94a3b8;">Distance:</span> <strong>${props.distanceKm.toFixed(1)} km</strong></div>` : ''}
+    ${props.distanceKm !== null && props.distanceKm !== undefined ? `<div style="margin-bottom: 4px;"><span style="color:#94a3b8;">Distance:</span> <strong>${props.distanceKm.toFixed(1)} km</strong></div>` : ''}
     ${props.phone ? `<div style="margin-bottom: 4px;"><span style="color:#94a3b8;">Phone:</span> ${props.phone}</div>` : ''}
     ${props.parentOffice ? `<div style="margin-bottom: 4px;"><span style="color:#94a3b8;">Parent:</span> ${props.parentOffice}</div>` : ''}
-    ${props.hasWigleObs ? `<div style="margin-top: 8px; color: #f59e0b; font-weight: 600;">WiGLE observations found near this office</div>` : ''}
+    ${props.hasWigleObs ? '<div style="margin-top: 8px; color: #f59e0b; font-weight: 600;">WiGLE observations found near this office</div>' : ''}
     ${props.website ? `<div style="margin-top: 8px;"><a href="${props.website}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: none;">Open website ↗</a></div>` : ''}
   `;
 
@@ -131,10 +133,14 @@ export const renderAgencyPopupCard = (props: AgencyPopupProps) => {
 
 export const renderWigleObservationPopupCard = (props: WigleObservationPopupProps) => {
   const timeText = formatPopupTime(props.time);
-  const signalText = props.signal != null ? formatRSSI(Number(props.signal)) : 'Unknown';
-  const channelText = props.channel != null ? String(props.channel) : null;
+  const signalText =
+    props.signal !== null && props.signal !== undefined
+      ? formatRSSI(Number(props.signal))
+      : 'Unknown';
+  const channelText =
+    props.channel !== null && props.channel !== undefined ? String(props.channel) : null;
   const distanceText =
-    props.distanceFromCenterMeters != null
+    props.distanceFromCenterMeters !== null && props.distanceFromCenterMeters !== undefined
       ? `${(props.distanceFromCenterMeters / 1000).toFixed(1)} km from your sightings centroid`
       : null;
   const matched = Boolean(props.matched);

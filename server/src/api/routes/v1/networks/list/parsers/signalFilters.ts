@@ -32,8 +32,9 @@ export const parseSignalFilters = (
     Number.MAX_SAFE_INTEGER,
     'min_signal'
   );
-  if (!minSignalResult.ok)
+  if (!minSignalResult.ok) {
     return { ok: false, status: 400, error: 'Invalid min_signal parameter.' };
+  }
 
   const maxSignalResult = parseOptionalInteger(
     maxSignalRaw,
@@ -41,8 +42,9 @@ export const parseSignalFilters = (
     Number.MAX_SAFE_INTEGER,
     'max_signal'
   );
-  if (!maxSignalResult.ok)
+  if (!maxSignalResult.ok) {
     return { ok: false, status: 400, error: 'Invalid max_signal parameter.' };
+  }
 
   const minObsResult = parseOptionalInteger(
     minObsRaw,
@@ -50,8 +52,9 @@ export const parseSignalFilters = (
     ROUTE_CONFIG.networks.maxObservationCount,
     'min_obs_count'
   );
-  if (!minObsResult.ok)
+  if (!minObsResult.ok) {
     return { ok: false, status: 400, error: 'Invalid min_obs_count parameter.' };
+  }
 
   const maxObsResult = parseOptionalInteger(
     maxObsRaw,
@@ -59,8 +62,9 @@ export const parseSignalFilters = (
     ROUTE_CONFIG.networks.maxObservationCount,
     'max_obs_count'
   );
-  if (!maxObsResult.ok)
+  if (!maxObsResult.ok) {
     return { ok: false, status: 400, error: 'Invalid max_obs_count parameter.' };
+  }
 
   return {
     ok: true,

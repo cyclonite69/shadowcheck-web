@@ -116,9 +116,7 @@ describe('logger', () => {
     const loggerInstance = logger.default || logger;
     const req = { method: 'GET', path: '/api/test', ip: '127.0.0.1' };
     loggerInstance.logResponse(req, 404, 12);
-    expect(mockWarn).toHaveBeenCalledWith(
-      expect.objectContaining({ statusCode: 404 })
-    );
+    expect(mockWarn).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
   });
 
   it('logResponse uses "info" level for 2xx status', () => {
@@ -144,7 +142,7 @@ describe('logger', () => {
 
   it('logQuery truncates query to 200 chars', () => {
     const loggerInstance = logger.default || logger;
-    const longQuery = 'SELECT ' + 'x'.repeat(300);
+    const longQuery = `SELECT ${'x'.repeat(300)}`;
     loggerInstance.logQuery(longQuery, [], 0);
     const call = mockDebug.mock.calls[0][0];
     expect(call.query.length).toBeLessThanOrEqual(200);
@@ -172,9 +170,7 @@ describe('logger', () => {
   it('logPerformance accepts custom unit', () => {
     const loggerInstance = logger.default || logger;
     loggerInstance.logPerformance('throughput', 100, 'rps');
-    expect(mockInfo).toHaveBeenCalledWith(
-      expect.objectContaining({ unit: 'rps' })
-    );
+    expect(mockInfo).toHaveBeenCalledWith(expect.objectContaining({ unit: 'rps' }));
   });
 
   it('createRequestLogger returns scoped logger with requestId in all calls', () => {

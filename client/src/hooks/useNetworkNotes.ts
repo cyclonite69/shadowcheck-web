@@ -48,7 +48,9 @@ export function useNetworkNotes(): UseNetworkNotesReturn {
       userId: string,
       files?: File[]
     ): Promise<boolean> => {
-      if (!noteText.trim() || !bssid) return false;
+      if (!noteText.trim() || !bssid) {
+        return false;
+      }
 
       setLoading(true);
       setError(null);

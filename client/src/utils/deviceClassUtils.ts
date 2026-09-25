@@ -54,7 +54,9 @@ for (const entry of vendorManifest.vendors as ManifestEntry[]) {
   for (const k of [entry.surveillance_type, entry.device_class]) {
     if (k) {
       const normalized = k.trim().toUpperCase();
-      if (normalized) MANIFEST_BY_CLASS.set(normalized, entry);
+      if (normalized) {
+        MANIFEST_BY_CLASS.set(normalized, entry);
+      }
     }
   }
 }
@@ -68,14 +70,18 @@ const prettifyEnum = (raw: string): string =>
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
 export function normalizeDeviceClass(raw: string | null | undefined): string | null {
-  if (raw === null || raw === undefined) return null;
+  if (raw === null || raw === undefined) {
+    return null;
+  }
   const normalized = String(raw).trim().toUpperCase();
   return normalized.length > 0 ? normalized : null;
 }
 
 export function formatDeviceType(raw: string | null | undefined): string {
   const deviceClass = normalizeDeviceClass(raw);
-  if (!deviceClass) return '';
+  if (!deviceClass) {
+    return '';
+  }
   return DEVICE_CLASS_LABELS[deviceClass] ?? prettifyEnum(deviceClass);
 }
 

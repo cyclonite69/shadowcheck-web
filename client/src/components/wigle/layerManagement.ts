@@ -16,7 +16,9 @@ export function updateMapLayers(
   v2FCRef: React.MutableRefObject<any>,
   v3FCRef: React.MutableRefObject<any>
 ) {
-  if (!map) return;
+  if (!map) {
+    return;
+  }
 
   // Update v2 data
   const v2Source = map.getSource('wigle-v2-points') as GeoJSONSource;
@@ -36,7 +38,9 @@ export function updateMapLayers(
 }
 
 export function setLayerVisibility(map: Map | null, layerId: string, visible: boolean) {
-  if (!map || !map.getLayer(layerId)) return;
+  if (!map || !map.getLayer(layerId)) {
+    return;
+  }
   map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
 }
 
@@ -49,7 +53,9 @@ export function updateLayerVisibilities(
     residentAgencies: boolean;
   }
 ) {
-  if (!map) return;
+  if (!map) {
+    return;
+  }
 
   setLayerVisibility(map, 'wigle-v2-clusters', layers.v2);
   setLayerVisibility(map, 'wigle-v2-cluster-count', layers.v2);

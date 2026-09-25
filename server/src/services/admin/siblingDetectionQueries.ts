@@ -292,7 +292,7 @@ const UPSERT_LOGIC_PROD = `INSERT INTO app.network_sibling_pairs (
       )
     RETURNING 1`;
 
-const UPSERT_LOGIC_READONLY = `SELECT 0::int AS affected WHERE FALSE`;
+const UPSERT_LOGIC_READONLY = 'SELECT 0::int AS affected WHERE FALSE';
 
 const FINAL_SELECT_BASE = `  SELECT
     (SELECT COUNT(*)::int FROM seeds) AS seed_count,

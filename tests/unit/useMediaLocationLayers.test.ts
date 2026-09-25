@@ -65,7 +65,9 @@ describe('useMediaLocationLayers', () => {
 
     popupElement = {
       addEventListener: jest.fn((event: string, handler: (event: any) => void) => {
-        if (event === 'click') popupClickHandler = handler;
+        if (event === 'click') {
+          popupClickHandler = handler;
+        }
       }),
     };
     mockPopup = {
@@ -76,7 +78,9 @@ describe('useMediaLocationLayers', () => {
       getElement: jest.fn().mockReturnValue(popupElement),
       remove: jest.fn(),
       on: jest.fn((event: string, handler: () => void) => {
-        if (event === 'close') popupOnCloseHandler = handler;
+        if (event === 'close') {
+          popupOnCloseHandler = handler;
+        }
         return mockPopup;
       }),
     };

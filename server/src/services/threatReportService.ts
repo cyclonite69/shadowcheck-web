@@ -84,10 +84,15 @@ export async function getThreatReportData(bssid: string) {
   };
 
   for (const d of distanceKm) {
-    if (d < 0.1) bucket.home += 1;
-    else if (d < 0.5) bucket.near += 1;
-    else if (d < 2) bucket.neighborhood += 1;
-    else bucket.away += 1;
+    if (d < 0.1) {
+      bucket.home += 1;
+    } else if (d < 0.5) {
+      bucket.near += 1;
+    } else if (d < 2) {
+      bucket.neighborhood += 1;
+    } else {
+      bucket.away += 1;
+    }
   }
   bucket.unknown = observations.length - distanceKm.length;
 

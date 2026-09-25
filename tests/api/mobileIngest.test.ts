@@ -89,7 +89,9 @@ function getRouteHandler(path: string, method: 'post') {
   const layer = mobileIngestRouter.stack.find(
     (entry: any) => entry.route?.path === path && entry.route.methods?.[method]
   );
-  if (!layer) throw new Error(`Route not found: ${method.toUpperCase()} ${path}`);
+  if (!layer) {
+    throw new Error(`Route not found: ${method.toUpperCase()} ${path}`);
+  }
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
 
@@ -124,8 +126,11 @@ async function invokeRoute(path: string, options: any = {}) {
     };
 
     handler(req, res, (err: any) => {
-      if (err) resolve({ status: 500, body: { error: err.message } });
-      else resolve({ status: res.statusCode, body: res.body });
+      if (err) {
+        resolve({ status: 500, body: { error: err.message } });
+      } else {
+        resolve({ status: res.statusCode, body: res.body });
+      }
     });
   });
 }

@@ -31,7 +31,9 @@ export async function getUserStats(): Promise<any> {
 
   if (!result.ok) {
     const err: any = new Error(result.error || `WiGLE API error: ${result.status}`);
-    if (result.status !== undefined) err.status = result.status;
+    if (result.status !== undefined) {
+      err.status = result.status;
+    }
     throw err;
   }
 

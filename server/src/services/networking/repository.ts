@@ -76,24 +76,24 @@ const searchNetworksBySSID = async (
              WHERE ssid ILIKE $1
              ORDER BY observations DESC`;
 
-  if (limit != null) {
+  if (limit !== null && limit !== undefined) {
     params.push(limit);
     sql += ` LIMIT $${params.length}`;
   }
-  if (offset != null) {
+  if (offset !== null && offset !== undefined) {
     params.push(offset);
     sql += ` OFFSET $${params.length}`;
   }
 
   const [{ rows }, countResult] = await Promise.all([
     query(sql, params),
-    query(`SELECT COUNT(*) AS total FROM app.api_network_explorer_mv WHERE ssid ILIKE $1`, [
+    query('SELECT COUNT(*) AS total FROM app.api_network_explorer_mv WHERE ssid ILIKE $1', [
       searchPattern,
     ]),
   ]);
 
   // If called with pagination args return paginated shape, otherwise plain array (legacy)
-  if (limit != null || offset != null) {
+  if ((limit !== null && limit !== undefined) || (offset !== null && offset !== undefined)) {
     return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
   }
   return rows;

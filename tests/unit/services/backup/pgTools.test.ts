@@ -75,7 +75,7 @@ describe('pgTools Service', () => {
         if (filePath.includes('old.dump')) {
           return Promise.resolve({ mtimeMs: now - 5 * oneDayMs }); // 5 days old
         }
-        return Promise.resolve({ mtimeMs: now - 1 * oneDayMs }); // 1 day old
+        return Promise.resolve({ mtimeMs: now - Number(oneDayMs) }); // 1 day old
       });
 
       await pruneOldBackups('/tmp', 3); // prune > 3 days old

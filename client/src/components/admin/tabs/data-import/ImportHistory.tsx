@@ -22,7 +22,9 @@ interface ImportRun {
 }
 
 function fmt(n: number | null | undefined): string {
-  if (n == null) return '—';
+  if (n === null || n === undefined) {
+    return '—';
+  }
   return n.toLocaleString();
 }
 
@@ -30,9 +32,13 @@ function diff(
   after: number | null | undefined,
   before: number | null | undefined
 ): React.ReactNode {
-  if (after == null || before == null) return null;
+  if (after === null || after === undefined || before === null || before === undefined) {
+    return null;
+  }
   const d = after - before;
-  if (d === 0) return <span className="text-slate-500 text-xs ml-1">(+0)</span>;
+  if (d === 0) {
+    return <span className="text-slate-500 text-xs ml-1">(+0)</span>;
+  }
   return (
     <span className={`text-xs ml-1 ${d > 0 ? 'text-green-400' : 'text-red-400'}`}>
       ({d > 0 ? '+' : ''}
@@ -52,7 +58,11 @@ export function MetricsTable({ before, after }: { before: Metrics | null; after:
     { label: 'Kismet Packets', key: 'kismet_packets' },
     { label: 'Kismet Alerts', key: 'kismet_alerts' },
   ];
-  const hasAnyMetric = rows.some(({ key }) => before?.[key] != null || after?.[key] != null);
+  const hasAnyMetric = rows.some(
+    ({ key }) =>
+      (before?.[key] !== null && before?.[key] !== undefined) ||
+      (after?.[key] !== null && after?.[key] !== undefined)
+  );
 
   if (!hasAnyMetric) {
     return (
@@ -90,11 +100,15 @@ export function MetricsTable({ before, after }: { before: Metrics | null; after:
 function ExpandedRow({ run }: { run: ImportRun }) {
   // Safely truncate error_detail to first 500 chars and strip SQL keywords for security
   const sanitizeErrorDetail = (detail: string | null): string | null => {
-    if (!detail) return null;
+    if (!detail) {
+      return null;
+    }
     // Truncate to reasonable length
     let sanitized = detail.substring(0, 500);
     // If truncated, add ellipsis
-    if (detail.length > 500) sanitized += '...';
+    if (detail.length > 500) {
+      sanitized += '...';
+    }
     return sanitized;
   };
 
@@ -154,7 +168,9 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
 
   useEffect(() => {
     const hasRunning = history.some((run) => run.status === 'running');
-    if (!hasRunning) return;
+    if (!hasRunning) {
+      return;
+    }
 
     const interval = setInterval(() => {
       adminApi
@@ -169,8 +185,11 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
   const toggle = (id: number) =>
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
 
@@ -197,9 +216,12 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
     }
   };
 
-  if (loading) return <p className="text-sm text-slate-500 py-2">Loading history...</p>;
-  if (history.length === 0)
+  if (loading) {
+    return <p className="text-sm text-slate-500 py-2">Loading history...</p>;
+  }
+  if (history.length === 0) {
     return <p className="text-sm text-slate-500 py-2">No imports recorded yet.</p>;
+  }
 
   return (
     <div className="overflow-x-auto">

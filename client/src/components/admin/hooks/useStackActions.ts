@@ -22,7 +22,9 @@ export const useStackActions = () => {
         'Rebuild the full local stack now? This is the most disruptive option and will recreate multiple services.',
     };
 
-    if (!window.confirm(confirmationText[action])) return;
+    if (!window.confirm(confirmationText[action])) {
+      return;
+    }
 
     try {
       setStackActionLoading(action);

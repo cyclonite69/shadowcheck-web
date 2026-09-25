@@ -34,7 +34,9 @@ export const useDataImport = () => {
 
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (!sourceTag.trim()) {
       setImportStatus('Error: Please enter a source tag before choosing a file.');
@@ -70,7 +72,9 @@ export const useDataImport = () => {
 
   const handleSqlFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     const formData = new FormData();
     formData.append('sql_file', file);
@@ -101,7 +105,9 @@ export const useDataImport = () => {
     mode: 'files' | 'folder'
   ) => {
     const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      return;
+    }
 
     const formData = new FormData();
     const relativePaths = files.map(

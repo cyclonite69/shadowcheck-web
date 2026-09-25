@@ -52,7 +52,9 @@ export const GeocodingDaemonCard: React.FC<{
   stopDaemon,
 }) => {
   const formatSeconds = (ms?: number) => {
-    if (!ms && ms !== 0) return '—';
+    if (!ms && ms !== 0) {
+      return '—';
+    }
     return `${Math.round(ms / 1000)}s`;
   };
 

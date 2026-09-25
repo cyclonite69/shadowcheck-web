@@ -117,7 +117,9 @@ describe('wigle/api — getUserStats', () => {
       await getUserStats();
       throw new Error('expected getUserStats to throw');
     } catch (e: any) {
-      if (e.message === 'expected getUserStats to throw') throw e;
+      if (e.message === 'expected getUserStats to throw') {
+        throw e;
+      }
       expect(e.message).toContain('soft limit');
       expect(e.status).toBe(429);
     }
@@ -133,7 +135,9 @@ describe('wigle/api — getUserStats', () => {
       await getUserStats();
       throw new Error('expected throw');
     } catch (e: any) {
-      if (e.message === 'expected throw') throw e;
+      if (e.message === 'expected throw') {
+        throw e;
+      }
       expect(e.message).toBe('Forbidden');
       expect(e.status).toBe(403);
     }
@@ -149,7 +153,9 @@ describe('wigle/api — getUserStats', () => {
       await getUserStats();
       throw new Error('expected throw');
     } catch (e: any) {
-      if (e.message === 'expected throw') throw e;
+      if (e.message === 'expected throw') {
+        throw e;
+      }
       expect(e.message).toContain('Not Authorized');
       expect(e.status).toBe(401);
     }
@@ -165,7 +171,9 @@ describe('wigle/api — getUserStats', () => {
       await getUserStats();
       throw new Error('expected throw');
     } catch (e: any) {
-      if (e.message === 'expected throw') throw e;
+      if (e.message === 'expected throw') {
+        throw e;
+      }
       expect(e.message).toBe('WiGLE API error: 500');
       expect(e.status).toBe(500);
     }

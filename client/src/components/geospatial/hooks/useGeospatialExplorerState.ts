@@ -340,7 +340,9 @@ export const useGeospatialExplorerState = ({
 
   const toggleWigleForBssids = (bssids: string[]) => {
     const normalized = Array.from(new Set(bssids.filter(Boolean)));
-    if (normalized.length === 0) return;
+    if (normalized.length === 0) {
+      return;
+    }
 
     const active = wigleObservations.observations.length > 0;
     const activeBssids = Array.from(new Set(wigleObservations.bssids || []));
@@ -366,10 +368,14 @@ export const useGeospatialExplorerState = ({
   };
 
   const manualSiblingTarget = useMemo(() => {
-    if (selectedNetworks.size !== 1) return null;
+    if (selectedNetworks.size !== 1) {
+      return null;
+    }
     const sBssid = Array.from(selectedNetworks)[0];
     const cBssid = contextMenuNetwork?.bssid || null;
-    if (!sBssid || !cBssid || sBssid === cBssid) return null;
+    if (!sBssid || !cBssid || sBssid === cBssid) {
+      return null;
+    }
     return {
       bssid: sBssid,
       ssid: networks.find((n) => n.bssid === sBssid)?.ssid || null,
@@ -380,12 +386,16 @@ export const useGeospatialExplorerState = ({
   const handleMarkSiblingPair = async () => {
     const anchor = manualSiblingTarget?.bssid;
     const context = contextMenuNetwork?.bssid;
-    if (!anchor || !context) return;
+    if (!anchor || !context) {
+      return;
+    }
     const relation = manualSiblingTarget?.isLinked ? 'not_sibling' : 'sibling';
     setSiblingPairLoading(true);
     try {
       const res = await networkApi.setNetworkSiblingOverride(anchor, context, relation);
-      if (!res?.ok) throw new Error(res?.error || 'Failed');
+      if (!res?.ok) {
+        throw new Error(res?.error || 'Failed');
+      }
       setLinkedSiblingBssids((prev) => {
         const next = new Set(prev);
         relation === 'sibling' ? next.add(context) : next.delete(context);
@@ -440,7 +450,9 @@ export const useGeospatialExplorerState = ({
       unresolvedSearchBssids.join(','),
       hydrationFailedBssids.join(','),
     ].join('|');
-    if (key === prevPipelineLogKey.current) return;
+    if (key === prevPipelineLogKey.current) {
+      return;
+    }
     prevPipelineLogKey.current = key;
 
     logSiblingTopology('expandNetworksForSiblingSearch', {

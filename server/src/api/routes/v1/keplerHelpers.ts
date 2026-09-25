@@ -1,5 +1,7 @@
 export const parseJsonParam = (value: unknown, fallback: unknown, name: string) => {
-  if (!value) return fallback;
+  if (!value) {
+    return fallback;
+  }
   try {
     return JSON.parse(String(value));
   } catch {

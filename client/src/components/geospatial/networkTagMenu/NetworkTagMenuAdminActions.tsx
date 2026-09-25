@@ -4,8 +4,12 @@ import { NetworkTagMenuActionButton } from './NetworkTagMenuActionButton';
 const Divider = () => <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />;
 
 const manualSiblingText = (isLinked?: boolean, targetId?: string, ssid?: string | null) => {
-  if (!targetId) return '🔗 Manage sibling pair';
-  if (isLinked) return `⛓️ Unlink these sibs: ${ssid || targetId}`;
+  if (!targetId) {
+    return '🔗 Manage sibling pair';
+  }
+  if (isLinked) {
+    return `⛓️ Unlink these sibs: ${ssid || targetId}`;
+  }
   return `🔗 Link these sibs: ${ssid || targetId}`;
 };
 

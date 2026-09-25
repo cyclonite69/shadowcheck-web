@@ -1,7 +1,9 @@
 import type { NetworkRow } from '../../../../types/network';
 
 export const isBluetoothLookupTarget = (network: NetworkRow | null): boolean => {
-  if (!network) return false;
+  if (!network) {
+    return false;
+  }
 
   const normalizedType = String(network.type ?? '')
     .trim()

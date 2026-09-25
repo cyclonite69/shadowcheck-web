@@ -91,7 +91,7 @@ export async function setAppUserActive(userId: number, isActive: boolean): Promi
   if (!isActive) {
     // Invalidate active sessions for disabled accounts.
     try {
-      const sessionResult = await adminQuery(`DELETE FROM app.user_sessions WHERE user_id = $1`, [
+      const sessionResult = await adminQuery('DELETE FROM app.user_sessions WHERE user_id = $1', [
         userId,
       ]);
       logger.info(

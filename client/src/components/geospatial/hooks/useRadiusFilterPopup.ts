@@ -4,7 +4,9 @@ import type { Map as MapboxMap } from 'mapbox-gl';
 import { useCurrentFilters, useCurrentEnabled, useFilterStore } from '../../../stores/filterStore';
 
 function formatRadius(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+  if (meters >= 1000) {
+    return `${(meters / 1000).toFixed(1)} km`;
+  }
   return `${Math.round(meters).toLocaleString()} m`;
 }
 
@@ -68,18 +70,24 @@ export const useRadiusFilterPopup = ({ mapReady, mapRef, mapboxRef }: Props) => 
 
   // Attach click + cursor handlers on the pin layer
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
     const map = mapRef.current;
 
     const openPopup = (e: any) => {
-      if (!e.features?.length) return;
+      if (!e.features?.length) {
+        return;
+      }
       const coords: [number, number] = e.features[0].geometry.coordinates.slice();
       const radiusMeters = e.features[0].properties?.radiusMeters ?? 500;
 
       popupRef.current?.remove();
 
       const mapboxgl = mapboxRef.current;
-      if (!mapboxgl) return;
+      if (!mapboxgl) {
+        return;
+      }
 
       const popup = new mapboxgl.Popup({
         closeButton: true,
@@ -100,14 +108,22 @@ export const useRadiusFilterPopup = ({ mapReady, mapRef, mapboxRef }: Props) => 
       const syncDOM = (value: number) => {
         const clamped = Math.max(100, Math.min(50000, value));
         const current = filtersRef.current.radiusFilter;
-        if (!current) return;
+        if (!current) {
+          return;
+        }
         setFilterRef.current('radiusFilter', { ...current, radiusMeters: clamped });
         const slider = el.querySelector('#radius-slider') as HTMLInputElement | null;
         const input = el.querySelector('#radius-input') as HTMLInputElement | null;
         const display = el.querySelector('#radius-display');
-        if (slider) slider.value = String(clamped);
-        if (input) input.value = String(clamped);
-        if (display) display.textContent = formatRadius(clamped);
+        if (slider) {
+          slider.value = String(clamped);
+        }
+        if (input) {
+          input.value = String(clamped);
+        }
+        if (display) {
+          display.textContent = formatRadius(clamped);
+        }
       };
 
       (el.querySelector('#radius-slider') as HTMLInputElement | null)?.addEventListener(
@@ -154,9 +170,13 @@ export const useRadiusFilterPopup = ({ mapReady, mapRef, mapboxRef }: Props) => 
   // Sync popup DOM when radiusFilter changes from outside (e.g., filter panel)
   useEffect(() => {
     const popup = popupRef.current;
-    if (!popup || !filters.radiusFilter) return;
+    if (!popup || !filters.radiusFilter) {
+      return;
+    }
     const el = popup.getElement?.();
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const { latitude: lat, longitude: lng, radiusMeters } = filters.radiusFilter;
     (el.querySelector('#radius-slider') as HTMLInputElement | null)?.setAttribute(
       'value',
@@ -167,7 +187,9 @@ export const useRadiusFilterPopup = ({ mapReady, mapRef, mapboxRef }: Props) => 
       String(radiusMeters)
     );
     const display = el.querySelector('#radius-display');
-    if (display) display.textContent = formatRadius(radiusMeters);
+    if (display) {
+      display.textContent = formatRadius(radiusMeters);
+    }
     popup.setLngLat([lng, lat]);
   }, [filters.radiusFilter]);
 };

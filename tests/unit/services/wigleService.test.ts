@@ -46,7 +46,9 @@ describe('wigleService', () => {
   describe('getWigleDatabase', () => {
     it('should throw if v2 count query fails', async () => {
       query.mockImplementation((sql: string) => {
-        if (sql.includes('COUNT(*)')) return Promise.reject(new Error('Count Error'));
+        if (sql.includes('COUNT(*)')) {
+          return Promise.reject(new Error('Count Error'));
+        }
         return Promise.resolve({ rows: [] });
       });
       await expect(getWigleDatabase({ includeTotal: true })).rejects.toThrow('Count Error');
@@ -75,7 +77,9 @@ describe('wigleService', () => {
   describe('getKmlPointsForMap', () => {
     it('should throw if count query fails when includeTotal is true', async () => {
       query.mockImplementation((sql: string) => {
-        if (sql.includes('COUNT(*)')) return Promise.reject(new Error('KML Count Error'));
+        if (sql.includes('COUNT(*)')) {
+          return Promise.reject(new Error('KML Count Error'));
+        }
         return Promise.resolve({ rows: [] });
       });
       await expect(getKmlPointsForMap({ includeTotal: true })).rejects.toThrow('KML Count Error');

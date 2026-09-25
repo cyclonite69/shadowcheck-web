@@ -121,7 +121,7 @@ export const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}):
  */
 export const listS3Backups = async (): Promise<any> => {
   logger.info('[Backup] Listing S3 backups');
-  return await listBackupsFromS3();
+  return listBackupsFromS3();
 };
 
 /**
@@ -129,5 +129,5 @@ export const listS3Backups = async (): Promise<any> => {
  */
 export const deleteS3Backup = async (key: string): Promise<any> => {
   logger.info(`[Backup] Deleting S3 backup: ${key}`);
-  return await deleteBackupFromS3(key);
+  return deleteBackupFromS3(key);
 };

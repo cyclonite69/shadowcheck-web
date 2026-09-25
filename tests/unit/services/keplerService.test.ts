@@ -27,7 +27,7 @@ const { UniversalFilterQueryBuilder, validateFilterPayload } =
 describe('Kepler Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (UniversalFilterQueryBuilder as any as jest.Mock).mockImplementation(function () {
+    (UniversalFilterQueryBuilder as any as jest.Mock).mockImplementation(() => {
       return {
         buildNetworkListQuery: jest.fn().mockReturnValue({ sql: 'SELECT networks', params: [] }),
         buildGeospatialQuery: jest.fn().mockReturnValue({ sql: 'SELECT geospatial', params: [] }),

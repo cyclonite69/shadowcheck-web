@@ -129,7 +129,7 @@ describe('generateKML', () => {
   });
 
   test('escapes all five XML special chars in one SSID', () => {
-    const kml = generateKML([makeObs({ ssid: `<a b="c" d='e'>&</a>` })]);
+    const kml = generateKML([makeObs({ ssid: '<a b="c" d=\'e\'>&</a>' })]);
     expect(kml).toContain('&lt;a b=&quot;c&quot; d=&apos;e&apos;&gt;&amp;&lt;/a&gt;');
   });
 

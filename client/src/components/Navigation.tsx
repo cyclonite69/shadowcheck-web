@@ -88,7 +88,9 @@ const Navigation: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (loggingOut) return;
+    if (loggingOut) {
+      return;
+    }
     setLoggingOut(true);
     try {
       await logout();

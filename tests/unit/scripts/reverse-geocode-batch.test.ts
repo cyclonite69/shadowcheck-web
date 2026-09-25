@@ -138,8 +138,12 @@ describe('reverse-geocode-batch', () => {
         .mockImplementationOnce((url: any, cb?: any) => {
           cb({
             on: (event: string, eventCb: any) => {
-              if (event === 'data') eventCb(mockJson1);
-              if (event === 'end') eventCb();
+              if (event === 'data') {
+                eventCb(mockJson1);
+              }
+              if (event === 'end') {
+                eventCb();
+              }
             },
           });
           return { on: jest.fn() } as any;
@@ -147,8 +151,12 @@ describe('reverse-geocode-batch', () => {
         .mockImplementationOnce((url: any, cb?: any) => {
           cb({
             on: (event: string, eventCb: any) => {
-              if (event === 'data') eventCb(mockJson2);
-              if (event === 'end') eventCb();
+              if (event === 'data') {
+                eventCb(mockJson2);
+              }
+              if (event === 'end') {
+                eventCb();
+              }
             },
           });
           return { on: jest.fn() } as any;
@@ -173,7 +181,9 @@ describe('reverse-geocode-batch', () => {
       jest.spyOn(https, 'get').mockImplementation((url: any, cb?: any) => {
         const reqMock = {
           on: (event: string, eventCb: any) => {
-            if (event === 'error') eventCb(new Error('Network failure'));
+            if (event === 'error') {
+              eventCb(new Error('Network failure'));
+            }
             return reqMock;
           },
         };

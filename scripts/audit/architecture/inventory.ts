@@ -31,10 +31,14 @@ const walkFiles = (
   results: string[]
 ): void => {
   const absoluteDir = path.join(repoRoot, relativeDir);
-  if (!fs.existsSync(absoluteDir) || shouldExclude(relativeDir, config)) return;
+  if (!fs.existsSync(absoluteDir) || shouldExclude(relativeDir, config)) {
+    return;
+  }
   for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
     const relativePath = toPosix(path.join(relativeDir, entry.name));
-    if (shouldExclude(relativePath, config)) continue;
+    if (shouldExclude(relativePath, config)) {
+      continue;
+    }
     if (entry.isDirectory()) {
       walkFiles(repoRoot, relativePath, config, results);
     } else if (entry.isFile()) {
@@ -54,7 +58,9 @@ const hasExportModifier = (node: ts.Node): boolean =>
   Boolean(ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword));
 
 const collectBindingNames = (name: ts.BindingName): string[] => {
-  if (ts.isIdentifier(name)) return [name.text];
+  if (ts.isIdentifier(name)) {
+    return [name.text];
+  }
   return name.elements.flatMap((element) =>
     ts.isOmittedExpression(element) ? [] : collectBindingNames(element.name)
   );
@@ -74,8 +80,9 @@ const getRequireSpecifier = (node: ts.Node): string | null => {
 };
 
 const collectModuleExports = (node: ts.Node, exportedNames: Set<string>): number => {
-  if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== ts.SyntaxKind.EqualsToken)
+  if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
     return 0;
+  }
   if (
     ts.isPropertyAccessExpression(node.left) &&
     ts.isIdentifier(node.left.expression) &&
@@ -91,7 +98,9 @@ const collectModuleExports = (node: ts.Node, exportedNames: Set<string>): number
   ) {
     if (ts.isObjectLiteralExpression(node.right)) {
       for (const property of node.right.properties) {
-        if (property.name && ts.isIdentifier(property.name)) exportedNames.add(property.name.text);
+        if (property.name && ts.isIdentifier(property.name)) {
+          exportedNames.add(property.name.text);
+        }
       }
       return node.right.properties.length;
     } else {
@@ -134,15 +143,19 @@ export const analyzeSourceText = (relativePath: string, content: string): Source
       const clause = node.importClause;
       const names: string[] = [];
       let wholeModule = !clause;
-      if (clause?.name) names.push('default');
+      if (clause?.name) {
+        names.push('default');
+      }
       if (clause?.namedBindings) {
-        if (ts.isNamespaceImport(clause.namedBindings)) wholeModule = true;
-        else
+        if (ts.isNamespaceImport(clause.namedBindings)) {
+          wholeModule = true;
+        } else {
           names.push(
             ...clause.namedBindings.elements.map(
               (element) => element.propertyName?.text ?? element.name.text
             )
           );
+        }
       }
       addImport(node.moduleSpecifier.text, names, wholeModule);
     }
@@ -213,7 +226,9 @@ export const analyzeSourceText = (relativePath: string, content: string): Source
         }
       }
     }
-    if (ts.isExportAssignment(node)) exportedNames.add('default');
+    if (ts.isExportAssignment(node)) {
+      exportedNames.add('default');
+    }
     if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause)) {
       node.exportClause.elements.forEach((element) => exportedNames.add(element.name.text));
     }
@@ -270,7 +285,9 @@ export const resolveRelativeImport = (
   sourcePaths: Set<string>
 ): string | null => {
   const isProjectAbsolute = /^(?:client|server|etl|scripts|tests)\//.test(specifier);
-  if (!specifier.startsWith('.') && !isProjectAbsolute) return null;
+  if (!specifier.startsWith('.') && !isProjectAbsolute) {
+    return null;
+  }
   const base = isProjectAbsolute
     ? specifier
     : toPosix(path.normalize(path.join(path.dirname(fromPath), specifier)));
@@ -287,10 +304,14 @@ const readEnvExampleKeys = (repoRoot: string): string[] => {
   const keys = new Set<string>();
   for (const file of files) {
     const absolute = path.join(repoRoot, file);
-    if (!fs.existsSync(absolute)) continue;
+    if (!fs.existsSync(absolute)) {
+      continue;
+    }
     for (const line of fs.readFileSync(absolute, 'utf8').split(/\r?\n/)) {
       const match = line.match(/^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=/);
-      if (match) keys.add(match[1]);
+      if (match) {
+        keys.add(match[1]);
+      }
     }
   }
   return [...keys].sort();
@@ -299,10 +320,12 @@ const readEnvExampleKeys = (repoRoot: string): string[] => {
 const collectUsedEnvKeys = (records: SourceRecord[]): string[] => {
   const keys = new Set<string>();
   for (const record of records) {
-    for (const match of record.content.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g))
+    for (const match of record.content.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)) {
       keys.add(match[1]);
-    for (const match of record.content.matchAll(/process\.env\[['"]([A-Z][A-Z0-9_]*)['"]\]/g))
+    }
+    for (const match of record.content.matchAll(/process\.env\[['"]([A-Z][A-Z0-9_]*)['"]\]/g)) {
       keys.add(match[1]);
+    }
   }
   return [...keys].sort();
 };
@@ -318,7 +341,9 @@ export const buildRepositoryInventory = (
   config = loadAuditConfig(repoRoot)
 ): RepositoryInventory => {
   const allFiles: string[] = [];
-  for (const root of config.roots) walkFiles(repoRoot, root, config, allFiles);
+  for (const root of config.roots) {
+    walkFiles(repoRoot, root, config, allFiles);
+  }
   for (const entry of fs.readdirSync(repoRoot, { withFileTypes: true })) {
     if (entry.isFile() && SOURCE_EXTENSIONS.includes(path.extname(entry.name))) {
       allFiles.push(entry.name);
@@ -332,7 +357,9 @@ export const buildRepositoryInventory = (
     'client/tsconfig.json',
     '.env.example',
   ]) {
-    if (fs.existsSync(path.join(repoRoot, extra))) allFiles.push(extra);
+    if (fs.existsSync(path.join(repoRoot, extra))) {
+      allFiles.push(extra);
+    }
   }
   const uniqueFiles = [...new Set(allFiles)].sort();
   const sourceRecords = uniqueFiles
@@ -345,10 +372,14 @@ export const buildRepositoryInventory = (
     }
   }
   const inboundReferences = new Map<string, string[]>();
-  for (const record of sourceRecords) inboundReferences.set(record.path, []);
+  for (const record of sourceRecords) {
+    inboundReferences.set(record.path, []);
+  }
   for (const record of sourceRecords) {
     for (const reference of record.imports) {
-      if (!reference.resolvedPath) continue;
+      if (!reference.resolvedPath) {
+        continue;
+      }
       inboundReferences.get(reference.resolvedPath)?.push(record.path);
     }
   }

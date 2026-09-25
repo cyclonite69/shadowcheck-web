@@ -34,7 +34,9 @@ const ShieldIcon = ({ size = 24, className = '' }) => (
 );
 
 const formatBytes = (bytes: number) => {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 B';
+  }
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = bytes;
   let index = 0;

@@ -29,7 +29,9 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function isMissingValue(value: unknown): boolean {
-  if (value === null || value === undefined) return true;
+  if (value === null || value === undefined) {
+    return true;
+  }
   if (typeof value === 'string') {
     const trimmed = value.trim();
     return trimmed === '' || trimmed.toLowerCase() === 'unknown';
@@ -42,7 +44,9 @@ function normalizeDisplay(value: unknown): string {
 }
 
 function buildLocation(props: any): string {
-  if (props.geocoded_address) return props.geocoded_address;
+  if (props.geocoded_address) {
+    return props.geocoded_address;
+  }
   const street = [props.housenumber, props.road].filter(Boolean).join(' ');
   const city = [props.geocoded_city || props.city, props.geocoded_state || props.region]
     .filter(Boolean)
@@ -51,7 +55,9 @@ function buildLocation(props: any): string {
 }
 
 function formatDistance(km: number): string {
-  if (!Number.isFinite(km)) return EM_DASH;
+  if (!Number.isFinite(km)) {
+    return EM_DASH;
+  }
   return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
 }
 
@@ -73,9 +79,13 @@ function formatObservationText(
   }
 
   // Fallback to single count
-  if (isMissingValue(countValue)) return '';
+  if (isMissingValue(countValue)) {
+    return '';
+  }
   const count = Number(countValue);
-  if (!Number.isFinite(count)) return '';
+  if (!Number.isFinite(count)) {
+    return '';
+  }
   const base = `${count} obs`;
   const days = Number(daysValue);
   return Number.isFinite(days) && days > 0 ? `${base} · ${Math.round(days)} days` : base;
@@ -127,7 +137,9 @@ function decodeBtCoD(cod: number): string {
 // Parse BT/BLE capabilities: "Headphones;10" → { device: "Headphones", bondState: "Not Paired" }
 // Suffix is Android BluetoothDevice.getBondState(): 10=BOND_NONE, 11=BONDING, 12=BONDED
 function parseBtCapabilities(caps: string): { device: string | null; bondState: string | null } {
-  if (!caps || caps.startsWith('[')) return { device: null, bondState: null }; // WiFi caps leaked in
+  if (!caps || caps.startsWith('[')) {
+    return { device: null, bondState: null };
+  } // WiFi caps leaked in
   const parts = caps.split(';');
   const raw = parts[0]?.trim() || null;
   const device = raw && raw !== 'null' && raw !== 'Uncategorized' && raw !== 'Misc' ? raw : null;
@@ -159,7 +171,9 @@ function parseLteCapabilities(caps: string): { tech: string; carrier: string | n
 }
 
 function formatThreatFactors(factors: any): string {
-  if (!factors || typeof factors !== 'object' || Object.keys(factors).length === 0) return '';
+  if (!factors || typeof factors !== 'object' || Object.keys(factors).length === 0) {
+    return '';
+  }
 
   const rows = Object.entries(factors)
     .map(([key, value]) => {
@@ -181,9 +195,13 @@ function formatThreatFactors(factors: any): string {
 
 // Calculate WiFi channel number from frequency in MHz
 function frequencyToChannel(freqMhz: number | null | undefined): number | null {
-  if (!freqMhz || freqMhz <= 0) return null;
+  if (!freqMhz || freqMhz <= 0) {
+    return null;
+  }
   if (freqMhz >= 2412 && freqMhz <= 2484) {
-    if (freqMhz === 2484) return 14;
+    if (freqMhz === 2484) {
+      return 14;
+    }
     return Math.round((freqMhz - 2407) / 5);
   }
   if (freqMhz >= 5170 && freqMhz <= 5825) {
@@ -200,10 +218,18 @@ function channelToFrequency(
   channel: number | null | undefined,
   band?: string | null
 ): number | null {
-  if (!channel || channel <= 0) return null;
-  if (channel >= 1 && channel <= 14) return 2407 + channel * 5;
-  if (channel >= 32 && channel <= 177) return 5000 + channel * 5;
-  if (channel >= 1 && channel <= 233 && band?.includes('6')) return 5950 + channel * 5;
+  if (!channel || channel <= 0) {
+    return null;
+  }
+  if (channel >= 1 && channel <= 14) {
+    return 2407 + channel * 5;
+  }
+  if (channel >= 32 && channel <= 177) {
+    return 5000 + channel * 5;
+  }
+  if (channel >= 1 && channel <= 233 && band?.includes('6')) {
+    return 5950 + channel * 5;
+  }
   return null;
 }
 
@@ -243,7 +269,11 @@ export const renderNetworkTooltip = (props: any): any => {
   const rssi = typeof rssiValue === 'number' ? rssiValue : Number(rssiValue);
   const scoreValue = props.threat_score;
   const score =
-    scoreValue != null ? (typeof scoreValue === 'number' ? scoreValue : Number(scoreValue)) : NaN;
+    scoreValue !== null && scoreValue !== undefined
+      ? typeof scoreValue === 'number'
+        ? scoreValue
+        : Number(scoreValue)
+      : NaN;
   const qualitySource = props.quality_score;
   const qualityRaw = typeof qualitySource === 'number' ? qualitySource : Number(qualitySource);
   const quality = Number.isFinite(qualityRaw)
@@ -341,16 +371,24 @@ export const renderNetworkTooltip = (props: any): any => {
 
   // Helper to display security: show for WiFi, hide UNKNOWN/OPEN for BLE/BT
   const getSecurityDisplay = (): string | null => {
-    if (!securityValue || securityValue === 'UNKNOWN') return null;
+    if (!securityValue || securityValue === 'UNKNOWN') {
+      return null;
+    }
     const isBluetooth = tech === 'ble' || tech === 'bt_classic';
-    if (isBluetooth && securityValue === 'OPEN') return '—';
-    if (isWiFi) return securityValue;
-    if (isBluetooth && securityValue && securityValue !== 'OPEN') return securityValue;
+    if (isBluetooth && securityValue === 'OPEN') {
+      return '—';
+    }
+    if (isWiFi) {
+      return securityValue;
+    }
+    if (isBluetooth && securityValue && securityValue !== 'OPEN') {
+      return securityValue;
+    }
     return null;
   };
 
   const displaySecurity = getSecurityDisplay();
-  const showSecurity = !!displaySecurity;
+  const showSecurity = Boolean(displaySecurity);
 
   const surveillanceDeviceType = normalizeDeviceClass((props as any).surveillance_device_type);
   const surveillanceMethod = (props as any).surveillance_detection_method;
@@ -366,7 +404,7 @@ export const renderNetworkTooltip = (props: any): any => {
           surveillanceMethod ? `Detection: ${surveillanceMethod}` : undefined
         )
       : '',
-    showSecurity ? fieldRow('Encryption', displaySecurity) : '',
+    showSecurity && displaySecurity ? fieldRow('Encryption', displaySecurity) : '',
     btDeviceLabel ? fieldRow('Device Type', btDeviceLabel) : '',
     btInfo?.bondState ? fieldRow('Bond State', btInfo.bondState) : '',
     cellInfo?.carrier ? fieldRow('Carrier', cellInfo.carrier) : '',
@@ -415,7 +453,7 @@ export const renderNetworkTooltip = (props: any): any => {
     !isMissingValue(props.time);
 
   const locationText = buildLocation(props);
-  const hasCoords = lat != null && lon != null;
+  const hasCoords = lat !== null && lat !== undefined && lon !== null && lon !== undefined;
 
   // Address priority: POI NAME > geocoded_address > locationText
   const hasPOIName =
@@ -520,17 +558,19 @@ export const renderNetworkTooltip = (props: any): any => {
   }
 
   ${fieldRows}
-  ${wiglePrecisionWarning ? `<div style="display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="font-size:10px;color:#fbbf24;">&#9888;</span><span style="font-size:10px;color:#fbbf24;">Low-confidence location (&lt;3 WiGLE observations)</span></div>` : ''}
+  ${wiglePrecisionWarning ? '<div style="display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="font-size:10px;color:#fbbf24;">&#9888;</span><span style="font-size:10px;color:#fbbf24;">Low-confidence location (&lt;3 WiGLE observations)</span></div>' : ''}
   ${(() => {
     const chips: string[] = [];
-    if (publicNonstationaryFlag)
+    if (publicNonstationaryFlag) {
       chips.push(
-        `<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">Non-stationary</div>`
+        '<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">Non-stationary</div>'
       );
-    if (publicSsidVariantFlag)
+    }
+    if (publicSsidVariantFlag) {
       chips.push(
-        `<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">SSID variants</div>`
+        '<div style="padding:2px 7px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;font-size:10px;font-weight:500;">SSID variants</div>'
       );
+    }
     return chips.length === 0
       ? ''
       : `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px;border-top:1px solid rgba(255,255,255,0.08);"><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);width:100%;margin-bottom:2px;">Public WiGLE Patterns</div>${chips.join('')}</div>`;
@@ -578,7 +618,7 @@ export const renderNetworkTooltip = (props: any): any => {
         </div>`
             : ''
         }
-        <div ${!isMissingValue(props.time) ? `style="padding:4px 6px;background:#eab30820;border:1px solid #eab30840;border-radius:4px;text-align:center;"` : `style="text-align:center;"`}>
+        <div ${!isMissingValue(props.time) ? 'style="padding:4px 6px;background:#eab30820;border:1px solid #eab30840;border-radius:4px;text-align:center;"' : 'style="text-align:center;"'}>
           <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.3)'};font-weight:${!isMissingValue(props.time) ? '600' : '400'};margin-bottom:2px;">Seen</div>
           <div style="font-size:${!isMissingValue(props.time) ? '11px;font-weight:600' : '10px'};color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.85)'};font-family:monospace;line-height:1.3;">${!isMissingValue(props.time) ? formatDateTime(props.time) : '—'}${!isMissingValue(props.time) && !isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:9px;color:rgba(234,179,8,0.6);"> · ${normalizeDisplay(props.time_since_prior)}</span>` : ''}</div>
         </div>

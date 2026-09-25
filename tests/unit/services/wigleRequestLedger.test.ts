@@ -138,17 +138,23 @@ describe('wigleRequestLedger', () => {
 
   describe('circuit breaker', () => {
     it('opens after 5 consecutive 429s', () => {
-      for (let i = 0; i < 5; i++) recordConsecutive429();
+      for (let i = 0; i < 5; i++) {
+        recordConsecutive429();
+      }
       expect(getCircuitBreakerStatus().isOpen).toBe(true);
     });
 
     it('does not open before 5 consecutive 429s', () => {
-      for (let i = 0; i < 4; i++) recordConsecutive429();
+      for (let i = 0; i < 4; i++) {
+        recordConsecutive429();
+      }
       expect(getCircuitBreakerStatus().isOpen).toBe(false);
     });
 
     it('blocks background requests when open', () => {
-      for (let i = 0; i < 5; i++) recordConsecutive429();
+      for (let i = 0; i < 5; i++) {
+        recordConsecutive429();
+      }
 
       expect(() => assertCanRequest('search', 'background')).toThrow('circuit breaker');
       expect(() => assertCanRequest('detail', 'background')).toThrow('circuit breaker');
@@ -156,14 +162,18 @@ describe('wigleRequestLedger', () => {
     });
 
     it('does not block interactive requests when open', () => {
-      for (let i = 0; i < 5; i++) recordConsecutive429();
+      for (let i = 0; i < 5; i++) {
+        recordConsecutive429();
+      }
 
       // interactive is never blocked by the circuit breaker
       expect(() => assertCanRequest('search', 'interactive')).not.toThrow();
     });
 
     it('resets cleanly via resetQuotaLedger', () => {
-      for (let i = 0; i < 5; i++) recordConsecutive429();
+      for (let i = 0; i < 5; i++) {
+        recordConsecutive429();
+      }
       expect(getCircuitBreakerStatus().isOpen).toBe(true);
 
       resetQuotaLedger();
@@ -171,12 +181,16 @@ describe('wigleRequestLedger', () => {
     });
 
     it('consecutive429 counter resets after the breaker opens', () => {
-      for (let i = 0; i < 5; i++) recordConsecutive429();
+      for (let i = 0; i < 5; i++) {
+        recordConsecutive429();
+      }
 
       jest.advanceTimersByTime(601_000); // 10 min + 1s
       expect(getCircuitBreakerStatus().isOpen).toBe(false);
 
-      for (let i = 0; i < 4; i++) recordConsecutive429();
+      for (let i = 0; i < 4; i++) {
+        recordConsecutive429();
+      }
       expect(getCircuitBreakerStatus().isOpen).toBe(false);
     });
   });

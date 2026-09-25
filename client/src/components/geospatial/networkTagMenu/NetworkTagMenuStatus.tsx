@@ -5,7 +5,9 @@ interface NetworkTagMenuStatusProps {
 }
 
 export const NetworkTagMenuStatus = ({ tag }: NetworkTagMenuStatusProps) => {
-  if (!tag?.exists) return null;
+  if (!tag?.exists) {
+    return null;
+  }
   return (
     <div
       style={{

@@ -21,7 +21,9 @@ export const DataExportTab: React.FC = () => {
   const [exporting, setExporting] = React.useState<string | null>(null);
 
   const handleDownload = async (endpoint: string, filename: string, type: string) => {
-    if (exporting) return;
+    if (exporting) {
+      return;
+    }
     setExporting(type);
     try {
       const response = await fetch(endpoint, {
@@ -32,7 +34,9 @@ export const DataExportTab: React.FC = () => {
         let errorMsg = `Export failed: ${response.status} ${response.statusText}`;
         try {
           const errorData = await response.json();
-          if (errorData.error) errorMsg = errorData.error;
+          if (errorData.error) {
+            errorMsg = errorData.error;
+          }
         } catch {
           // Use default error msg
         }
@@ -68,7 +72,7 @@ export const DataExportTab: React.FC = () => {
             onClick={() =>
               handleDownload('/api/csv', `shadowcheck_observations_${Date.now()}.csv`, 'csv')
             }
-            disabled={!!exporting}
+            disabled={Boolean(exporting)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exporting === 'csv' ? 'Generating CSV...' : 'Export as CSV'}
@@ -77,7 +81,7 @@ export const DataExportTab: React.FC = () => {
             onClick={() =>
               handleDownload('/api/json', `shadowcheck_data_${Date.now()}.json`, 'json')
             }
-            disabled={!!exporting}
+            disabled={Boolean(exporting)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exporting === 'json' ? 'Generating JSON...' : 'Export as JSON'}
@@ -100,7 +104,7 @@ export const DataExportTab: React.FC = () => {
                 'geojson'
               )
             }
-            disabled={!!exporting}
+            disabled={Boolean(exporting)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exporting === 'geojson' ? 'Generating GeoJSON...' : 'Export as GeoJSON'}
@@ -132,7 +136,7 @@ export const DataExportTab: React.FC = () => {
                 'full-json'
               )
             }
-            disabled={!!exporting}
+            disabled={Boolean(exporting)}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exporting === 'full-json' ? 'Generating Full Export...' : 'Export Full Database JSON'}

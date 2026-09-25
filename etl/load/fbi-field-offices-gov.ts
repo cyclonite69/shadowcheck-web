@@ -227,7 +227,7 @@ async function main(): Promise<void> {
     await pool.end();
   }
 
-  console.log(`Official field office enrichment complete.`);
+  console.log('Official field office enrichment complete.');
   console.log(`Updated: ${updated}`);
   console.log(`Inserted: ${inserted}`);
 }

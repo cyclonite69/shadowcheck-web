@@ -52,15 +52,20 @@ export async function getWiglePageNetwork(netid: string): Promise<{
   let displayLon: number | null = null;
   let displayCoordinateSource: string | null = null;
 
-  if (hasV3Obs && t.wigle_v3_centroid_lat != null) {
+  if (hasV3Obs && t.wigle_v3_centroid_lat !== null && t.wigle_v3_centroid_lat !== undefined) {
     displayLat = t.wigle_v3_centroid_lat;
     displayLon = t.wigle_v3_centroid_lon;
     displayCoordinateSource = 'wigle-v3-centroid';
-  } else if (v2?.trilat != null && v2?.trilong != null) {
+  } else if (
+    v2?.trilat !== null &&
+    v2?.trilat !== undefined &&
+    v2?.trilong !== null &&
+    v2?.trilong !== undefined
+  ) {
     displayLat = v2.trilat;
     displayLon = v2.trilong;
     displayCoordinateSource = 'wigle-v2-trilat';
-  } else if (v3?.trilat != null) {
+  } else if (v3?.trilat !== null && v3?.trilat !== undefined) {
     displayLat = v3.trilat;
     displayLon = v3.trilon;
     displayCoordinateSource = 'wigle-v3-summary';
@@ -149,7 +154,9 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
   } catch {
     return null;
   }
-  if (!row) return null;
+  if (!row) {
+    return null;
+  }
 
   let mvRecentObs: any = null;
   let mvGeocodedAddress: string | null = null;
@@ -162,7 +169,12 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
     // wigle_v3_observations may not exist on older deployments
   }
 
-  if (row.display_lat != null && row.display_lon != null) {
+  if (
+    row.display_lat !== null &&
+    row.display_lat !== undefined &&
+    row.display_lon !== null &&
+    row.display_lon !== undefined
+  ) {
     try {
       const geocodeQ = buildWiglePageGeocodedAddressQuery(row.display_lat, row.display_lon, 3);
       const geocodeResult = await query(geocodeQ.sql, geocodeQ.queryParams);
@@ -226,7 +238,9 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
 export async function getWigleDetail(netid: string): Promise<any | null> {
   const rows = await getStoredWigleDetail(netid);
 
-  if (rows.length > 0) return rows[0];
+  if (rows.length > 0) {
+    return rows[0];
+  }
 
   return getWigleNetworkByBSSID(netid);
 }

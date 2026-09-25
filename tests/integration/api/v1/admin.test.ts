@@ -75,14 +75,14 @@ describe('Admin API Integration Tests', () => {
     it('should return 400 if BSSID is invalid', async () => {
       // Use a BSSID with characters that fail the validation regex
       const res = await request(app).get(
-        '/api/observations/check-duplicates/invalid!bssid?time=' + new Date().toISOString()
+        `/api/observations/check-duplicates/invalid!bssid?time=${new Date().toISOString()}`
       );
       expect(res.status).toBe(400);
     });
 
     it('should return 200 and duplicate data for valid BSSID', async () => {
       const res = await request(app).get(
-        '/api/observations/check-duplicates/AA:BB:CC:DD:EE:FF?time=' + new Date().toISOString()
+        `/api/observations/check-duplicates/AA:BB:CC:DD:EE:FF?time=${new Date().toISOString()}`
       );
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);

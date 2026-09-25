@@ -37,7 +37,9 @@ class MobileIngestService {
   private bucketName: string | null = null;
 
   private initS3() {
-    if (this.s3Client) return;
+    if (this.s3Client) {
+      return;
+    }
     const region = secretsManager.get('aws_region') || process.env.AWS_REGION || 'us-east-1';
     this.s3Client = new S3Client({ region });
     this.bucketName =
@@ -131,7 +133,9 @@ class MobileIngestService {
 
     if (!upload) {
       const existing = await repo.getUploadById(uploadId);
-      if (!existing) throw new Error(`Upload ${uploadId} not found`);
+      if (!existing) {
+        throw new Error(`Upload ${uploadId} not found`);
+      }
       throw new Error(`Upload ${uploadId} is not pending`);
     }
 
@@ -163,10 +167,14 @@ class MobileIngestService {
     options: { skipStateTransition?: boolean } = {}
   ): Promise<void> {
     this.initS3();
-    if (!this.bucketName) throw new Error('S3_BACKUP_BUCKET not configured');
+    if (!this.bucketName) {
+      throw new Error('S3_BACKUP_BUCKET not configured');
+    }
 
     const upload = await repo.getUploadRow(uploadId);
-    if (!upload) throw new Error(`Upload ${uploadId} not found`);
+    if (!upload) {
+      throw new Error(`Upload ${uploadId} not found`);
+    }
 
     const tempFilePath = path.join(
       os.tmpdir(),
@@ -182,12 +190,16 @@ class MobileIngestService {
       logger.info(
         `[MobileIngest] Downloading s3://${this.bucketName}/${upload.s3_key} to ${tempFilePath}`
       );
-      if (!this.bucketName) throw new Error('S3_BACKUP_BUCKET not configured');
+      if (!this.bucketName) {
+        throw new Error('S3_BACKUP_BUCKET not configured');
+      }
 
       const response = await this.s3Client!.send(
         new GetObjectCommand({ Bucket: this.bucketName, Key: upload.s3_key })
       );
-      if (!response.Body) throw new Error('S3 response body is empty');
+      if (!response.Body) {
+        throw new Error('S3 response body is empty');
+      }
       await pipeline(response.Body as Readable, fs.createWriteStream(tempFilePath));
 
       const metricsBefore = await adminImportHistoryService.captureImportMetrics();

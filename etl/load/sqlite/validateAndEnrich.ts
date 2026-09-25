@@ -3,7 +3,10 @@ import { logDeadLetter } from '../../utils/deadLetter';
 import type { SqliteLocationRow, SqliteNetworkRow, ValidatedObservation } from './types';
 
 const cleanString = (s: string | null | undefined): string | null => {
-  if (!s) return null;
+  if (!s) {
+    return null;
+  }
+  // eslint-disable-next-line no-control-regex
   const cleaned = s.replace(/\x00/g, '').trim();
   return cleaned || null;
 };

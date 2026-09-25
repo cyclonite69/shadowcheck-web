@@ -141,13 +141,17 @@ export const agencyApi = {
   // Agency Offices (GeoJSON)
   async getAgencyOffices(): Promise<any> {
     const response = await fetch('/agency-offices', { credentials: 'include' });
-    if (!response.ok) throw new Error('Failed to fetch agency offices');
+    if (!response.ok) {
+      throw new Error('Failed to fetch agency offices');
+    }
     return response.json();
   },
 
   async getFederalCourthouses(): Promise<any> {
     const response = await fetch('/federal-courthouses', { credentials: 'include' });
-    if (!response.ok) throw new Error('Failed to fetch federal courthouses');
+    if (!response.ok) {
+      throw new Error('Failed to fetch federal courthouses');
+    }
     return response.json();
   },
 
@@ -155,7 +159,9 @@ export const agencyApi = {
     const response = await fetch('/api/v1/surveillance/deflock-cameras', {
       credentials: 'include',
     });
-    if (!response.ok) throw new Error('Failed to fetch DeFlock cameras');
+    if (!response.ok) {
+      throw new Error('Failed to fetch DeFlock cameras');
+    }
     return response.json();
   },
 
@@ -163,7 +169,9 @@ export const agencyApi = {
     const response = await fetch('/api/v1/surveillance/shotspotter-sensors', {
       credentials: 'include',
     });
-    if (!response.ok) throw new Error('Failed to fetch ShotSpotter sensors');
+    if (!response.ok) {
+      throw new Error('Failed to fetch ShotSpotter sensors');
+    }
     return response.json();
   },
 };

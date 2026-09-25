@@ -162,9 +162,15 @@ export async function saveVisINTAttachment(
 
   if (resolvedLat === null || resolvedLon === null || resolvedTs === null) {
     const extracted = await extractExifFromBuffer(imageBuffer, filename);
-    if (resolvedLat === null) resolvedLat = extracted.lat;
-    if (resolvedLon === null) resolvedLon = extracted.lon;
-    if (resolvedTs === null) resolvedTs = extracted.timestamp;
+    if (resolvedLat === null) {
+      resolvedLat = extracted.lat;
+    }
+    if (resolvedLon === null) {
+      resolvedLon = extracted.lon;
+    }
+    if (resolvedTs === null) {
+      resolvedTs = extracted.timestamp;
+    }
   }
 
   // Generate thumbnail
@@ -232,22 +238,18 @@ export async function correlateVisINT(
   const tempFilePath = path.join(os.tmpdir(), `visint-${Date.now()}-${filename}`);
   fs.writeFileSync(tempFilePath, imageBuffer);
 
-  let lat = 0;
-  let lon = 0;
-  let ts = '';
-
+  let exifData;
   try {
-    const exifData = await extractExif(tempFilePath);
-    lat = exifData.lat;
-    lon = exifData.lon;
-    ts = exifData.timestamp;
+    exifData = await extractExif(tempFilePath);
   } finally {
     try {
       fs.unlinkSync(tempFilePath);
-    } catch (cleanupErr) {
+    } catch {
       // ignore
     }
   }
+
+  const { lat, lon, timestamp: ts } = exifData;
 
   // Query database using spatial-temporal parameters and signature scoring
   const rows = await queryCorrelatedObservations(
@@ -267,7 +269,7 @@ export async function correlateVisINT(
   let deltaMinutes: number | null = null;
   let targetBssid = 'VISINT_UNMATCHED';
   let deviceType: string | null = null;
-  let tagsToApply: string[] = [];
+  let tagsToApply: string[];
 
   if (rows.length > 0 && parseInt(rows[0].detection_score, 10) >= 1) {
     const bestMatch = rows[0];

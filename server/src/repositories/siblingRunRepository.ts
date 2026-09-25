@@ -51,7 +51,7 @@ export class SiblingRunRepository {
    */
   async getPreviousRunCutoff(): Promise<string | null> {
     const cutoffResult = await adminQuery(
-      `SELECT MAX(computed_at) AS cutoff FROM app.network_sibling_pairs`
+      'SELECT MAX(computed_at) AS cutoff FROM app.network_sibling_pairs'
     );
     return cutoffResult.rows[0]?.cutoff ?? null;
   }

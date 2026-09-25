@@ -44,13 +44,24 @@ export function buildFilteredRequestParams(options: BuildFilteredParamsOptions):
   if (typeof includeTotal === 'boolean') {
     params.set('includeTotal', includeTotal ? '1' : '0');
   }
-  if (sort) params.set('sort', sort);
-  if (order) params.set('order', order);
-  if (orderBy) params.set('orderBy', orderBy);
-  if (pageType) params.set('pageType', pageType);
-  if (locationMode && locationMode !== 'latest_observation')
+  if (sort) {
+    params.set('sort', sort);
+  }
+  if (order) {
+    params.set('order', order);
+  }
+  if (orderBy) {
+    params.set('orderBy', orderBy);
+  }
+  if (pageType) {
+    params.set('pageType', pageType);
+  }
+  if (locationMode && locationMode !== 'latest_observation') {
     params.set('location_mode', locationMode);
-  if (planCheck) params.set('planCheck', '1');
+  }
+  if (planCheck) {
+    params.set('planCheck', '1');
+  }
   if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
     params.set('bssids', JSON.stringify(selectedBssids));
   }

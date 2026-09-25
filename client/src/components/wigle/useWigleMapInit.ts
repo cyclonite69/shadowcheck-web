@@ -50,7 +50,9 @@ export const useWigleMapInit = ({
     let mounted = true;
 
     const updateSize = () => {
-      if (!mapContainerRef.current) return;
+      if (!mapContainerRef.current) {
+        return;
+      }
       const rect = mapContainerRef.current.getBoundingClientRect();
       setMapSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
       mapRef.current?.resize();
@@ -73,7 +75,9 @@ export const useWigleMapInit = ({
         setTokenStatus('ok');
         (mapboxgl as any).accessToken = String(tokenData.token).trim();
 
-        if (!mounted || !mapContainerRef.current) return;
+        if (!mounted || !mapContainerRef.current) {
+          return;
+        }
 
         const initialStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
           ? 'mapbox://styles/mapbox/standard'
@@ -127,9 +131,13 @@ export const useWigleMapInit = ({
           ensureHomeLocationLayers(map, homeLocation, true);
 
           const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-          if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+          if (v2Src) {
+            v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+          }
           const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-          if (v3Src) v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+          if (v3Src) {
+            v3Src.setData((v3FCRef.current || EMPTY_FEATURE_COLLECTION) as any);
+          }
 
           setMapReady(true);
           setTimeout(() => map.resize(), 0);
@@ -137,12 +145,16 @@ export const useWigleMapInit = ({
         });
 
         map.on('idle', () => {
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
           setTilesReady(map.areTilesLoaded());
         });
 
         map.on('error', (event: any) => {
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
           const errorMsg = event?.error?.message || '';
 
           if (
@@ -182,5 +194,5 @@ export const useWigleMapInit = ({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 };

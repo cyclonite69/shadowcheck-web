@@ -108,14 +108,18 @@ function sleep(ms: number): Promise<void> {
 function parseArgs(argv: string[]): EnrichOptions {
   const getNum = (prefix: string, fallback: number) => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return fallback;
+    if (!raw) {
+      return fallback;
+    }
     const n = Number(raw.split('=')[1]);
     return Number.isFinite(n) && n > 0 ? n : fallback;
   };
 
   const getStr = (prefix: string): string | null => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const v = raw.slice(prefix.length).trim();
     return v.length ? v : null;
   };
@@ -161,7 +165,9 @@ function looksLikeSecondary(line: string): boolean {
 }
 
 function normalizeZip5(zip: string | null): string | null {
-  if (!zip) return null;
+  if (!zip) {
+    return null;
+  }
   const trimmed = zip.trim();
   const m = trimmed.match(/^(\d{5})(?:-\d{4})?$/);
   return m ? m[1] : null;
@@ -170,9 +176,15 @@ function normalizeZip5(zip: string | null): string | null {
 function zip4FromCandidate(c: SmartyCandidate): string | null {
   const zip = c.components?.zipcode;
   const plus4 = c.components?.plus4_code;
-  if (!zip || !plus4) return null;
-  if (!/^\d{5}$/.test(zip)) return null;
-  if (!/^\d{4}$/.test(plus4)) return null;
+  if (!zip || !plus4) {
+    return null;
+  }
+  if (!/^\d{5}$/.test(zip)) {
+    return null;
+  }
+  if (!/^\d{4}$/.test(plus4)) {
+    return null;
+  }
   return `${zip}-${plus4}`;
 }
 
@@ -183,14 +195,20 @@ function pickBestCandidateForZip4(
   // Prefer a candidate that yields ZIP+4 and matches the existing ZIP5 (if present).
   for (const c of cands) {
     const z4 = zip4FromCandidate(c);
-    if (!z4) continue;
-    if (!currentZip5 || z4.slice(0, 5) == currentZip5) return c;
+    if (!z4) {
+      continue;
+    }
+    if (!currentZip5 || z4.slice(0, 5) === currentZip5) {
+      return c;
+    }
   }
   return cands[0];
 }
 
 function normalizeTextOrNull(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== 'string') {
+    return null;
+  }
   const v = value.trim();
   return v.length ? v : null;
 }
@@ -213,7 +231,7 @@ async function resolveDbHost(): Promise<string> {
 
 async function loadSecretsManager(): Promise<SecretsManager> {
   // server/src/services/secretsManager.ts is CommonJS-exported (module.exports = instance).
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const sm = require('../../server/src/services/secretsManager') as SecretsManager;
   if (!sm?.getSecret) {
     throw new Error('Failed to load secretsManager (missing getSecret).');
@@ -246,8 +264,12 @@ async function fetchSmartyCandidates(
       candidates: 3,
       match: 'enhanced',
     };
-    if (i.secondary) payload.secondary = i.secondary;
-    if (i.zipcode) payload.zipcode = i.zipcode;
+    if (i.secondary) {
+      payload.secondary = i.secondary;
+    }
+    if (i.zipcode) {
+      payload.zipcode = i.zipcode;
+    }
     return payload;
   });
 
@@ -412,7 +434,9 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
       const candidates = await fetchSmartyCandidates(authId, authToken, inputs as any);
       const byId = new Map<string, SmartyCandidate[]>();
       for (const c of candidates) {
-        if (!c.input_id) continue;
+        if (!c.input_id) {
+          continue;
+        }
         const arr = byId.get(c.input_id) || [];
         arr.push(c);
         byId.set(c.input_id, arr);
@@ -420,7 +444,7 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
 
       for (const o of batch) {
         const cands = byId.get(String(o.id));
-        if (!cands || cands.length == 0) {
+        if (!cands || cands.length === 0) {
           noMatch += 1;
           continue;
         }
@@ -543,8 +567,12 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
 
         if ((updateRes.rowCount ?? 0) > 0) {
           updated += 1;
-          if (!o.normalized_address_line1 && normLine1) normalizedFilled += 1;
-          if (wantCoords && canProvideCoords) coordsFilled += 1;
+          if (!o.normalized_address_line1 && normLine1) {
+            normalizedFilled += 1;
+          }
+          if (wantCoords && canProvideCoords) {
+            coordsFilled += 1;
+          }
         } else {
           // Candidate existed, but nothing we were allowed to update.
           skipped += 1;
@@ -624,7 +652,7 @@ export async function normalizePhones(options: { dryRun: boolean }): Promise<voi
         )
     `);
 
-    console.log(`✅ Phone normalization applied.`);
+    console.log('✅ Phone normalization applied.');
     console.log(`  Updated rows: ${updateRes.rowCount}`);
   } finally {
     await pool.end();

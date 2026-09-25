@@ -248,8 +248,12 @@ export const adminApi = {
     if (search.trim()) {
       params.set('search', search.trim());
     }
-    if (sortBy) params.set('sortBy', sortBy);
-    if (sortDir) params.set('sortDir', sortDir);
+    if (sortBy) {
+      params.set('sortBy', sortBy);
+    }
+    if (sortDir) {
+      params.set('sortDir', sortDir);
+    }
     return apiClient.get(`/admin/orphan-networks?${params.toString()}`);
   },
 

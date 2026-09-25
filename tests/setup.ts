@@ -29,7 +29,6 @@ jest.setTimeout(10000);
 
 // Extend global type for test utilities
 declare global {
-  // eslint-disable-next-line no-var
   var sleep: (ms: number) => Promise<void>;
 }
 

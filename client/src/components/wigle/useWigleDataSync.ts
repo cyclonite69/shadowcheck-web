@@ -27,7 +27,9 @@ export function useWigleDataSync({
   useEffect(() => {
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
+    if (!map || !mapboxgl) {
+      return;
+    }
 
     if (!map.getSource('wigle-v2-points')) {
       if (map.isStyleLoaded()) {
@@ -45,7 +47,9 @@ export function useWigleDataSync({
       }
     }
     const source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-    if (!source) return;
+    if (!source) {
+      return;
+    }
     logDebug(`[WiGLE] Updating v2 map with ${v2Rows.length} points`);
     clusterColorCache.current.v2 = {};
     map.removeFeatureState({ source: 'wigle-v2-points' });
@@ -57,7 +61,9 @@ export function useWigleDataSync({
   useEffect(() => {
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
+    if (!map || !mapboxgl) {
+      return;
+    }
     if (!map.getSource('wigle-v3-points')) {
       if (map.isStyleLoaded()) {
         ensureV3LayersCallback();
@@ -74,7 +80,9 @@ export function useWigleDataSync({
       }
     }
     const source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-    if (!source) return;
+    if (!source) {
+      return;
+    }
     logDebug(`[WiGLE] Updating v3 map with ${v3Rows.length} points`);
     clusterColorCache.current.v3 = {};
     map.removeFeatureState({ source: 'wigle-v3-points' });
@@ -85,7 +93,9 @@ export function useWigleDataSync({
   // Sync KML data to map
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map) {
+      return;
+    }
     if (!map.getSource('wigle-kml-points')) {
       if (map.isStyleLoaded()) {
         ensureKmlLayersCallback();
@@ -101,7 +111,9 @@ export function useWigleDataSync({
       }
     }
     const source = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-    if (!source) return;
+    if (!source) {
+      return;
+    }
     logDebug(`[WiGLE] Updating KML map with ${kmlRows.length} points`);
     source.setData(kmlFeatureCollection as any);
   }, [kmlFeatureCollection, ensureKmlLayersCallback]);
@@ -110,16 +122,22 @@ export function useWigleDataSync({
   useEffect(() => {
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!map || !mapboxgl) return;
+    if (!map || !mapboxgl) {
+      return;
+    }
     const allRows = [...v2Rows, ...v3Rows];
-    if (allRows.length === 0) return;
+    if (allRows.length === 0) {
+      return;
+    }
     const coords = allRows
       .map((row) => [
         Number(row.trilong ?? row.trilon ?? row.longitude),
         Number(row.trilat ?? row.latitude),
       ])
       .filter(([lon, lat]) => !isNaN(lon) && !isNaN(lat));
-    if (coords.length === 0) return;
+    if (coords.length === 0) {
+      return;
+    }
     const bounds = coords.reduce(
       (acc, coord) => acc.extend(coord as any),
       new mapboxgl.LngLatBounds(coords[0] as any, coords[0] as any)

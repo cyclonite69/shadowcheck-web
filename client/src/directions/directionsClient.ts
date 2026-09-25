@@ -51,10 +51,14 @@ export async function fetchDirections(
   let token: string;
   try {
     const tokenRes = await fetch('/api/mapbox-token');
-    if (!tokenRes.ok) throw new Error(`Token HTTP ${tokenRes.status}`);
+    if (!tokenRes.ok) {
+      throw new Error(`Token HTTP ${tokenRes.status}`);
+    }
     const tokenBody = (await tokenRes.json()) as { token?: string };
     token = String(tokenBody.token).trim();
-    if (!token) throw new Error('Empty token');
+    if (!token) {
+      throw new Error('Empty token');
+    }
   } catch {
     return null;
   }
@@ -66,7 +70,9 @@ export async function fetchDirections(
   try {
     lastFetchMs = now;
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const data = (await response.json()) as {
       routes?: Array<{

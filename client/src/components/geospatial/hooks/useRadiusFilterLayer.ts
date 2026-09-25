@@ -5,7 +5,9 @@ import { useCurrentFilters, useCurrentEnabled } from '../../../stores/filterStor
 import { createCirclePolygon } from '../../../utils/mapHelpers';
 
 export function formatRadius(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+  if (meters >= 1000) {
+    return `${(meters / 1000).toFixed(1)} km`;
+  }
   return `${Math.round(meters).toLocaleString()} m`;
 }
 
@@ -21,13 +23,17 @@ export const useRadiusFilterLayer = ({ mapReady, mapRef }: Props) => {
   const isEnabled = enabled.radiusFilter;
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
     const map = mapRef.current;
 
     const circleSource = map.getSource('radius-filter-circle') as GeoJSONSource | undefined;
     const lineSource = map.getSource('radius-filter-line') as GeoJSONSource | undefined;
     const pointSource = map.getSource('radius-filter-point') as GeoJSONSource | undefined;
-    if (!circleSource || !lineSource || !pointSource) return;
+    if (!circleSource || !lineSource || !pointSource) {
+      return;
+    }
 
     const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 

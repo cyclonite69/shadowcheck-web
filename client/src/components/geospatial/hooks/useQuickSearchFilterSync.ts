@@ -29,11 +29,18 @@ export const useQuickSearchFilterSync = ({ quickSearch }: UseQuickSearchFilterSy
       if (prefixed) {
         const prefix = prefixed[1].toLowerCase();
         value = prefixed[2].trim();
-        if (prefix === 'b') target = 'bssid';
-        if (prefix === 'm') target = 'manufacturer';
+        if (prefix === 'b') {
+          target = 'bssid';
+        }
+        if (prefix === 'm') {
+          target = 'manufacturer';
+        }
       } else {
-        if (/^([0-9A-Fa-f*]{1,2}:){5}[0-9A-Fa-f*]{1,2}$/.test(raw)) target = 'bssid';
-        else if (/^[0-9a-f]{6}$/i.test(raw)) target = 'manufacturer';
+        if (/^([0-9A-Fa-f*]{1,2}:){5}[0-9A-Fa-f*]{1,2}$/.test(raw)) {
+          target = 'bssid';
+        } else if (/^[0-9a-f]{6}$/i.test(raw)) {
+          target = 'manufacturer';
+        }
       }
 
       setFilter('ssid', target === 'ssid' ? value : '');

@@ -183,7 +183,7 @@ function textToLines(raw: string): string[] {
 }
 
 function stripBullet(line: string): string {
-  return line.replace(/^[\-\*•\u2022\u00b7]+\s*/, '').trim();
+  return line.replace(/^[-*•\u2022\u00b7]+\s*/, '').trim();
 }
 
 function stripMarkdown(line: string): string {
@@ -218,13 +218,17 @@ function resolveStateAbbr(line: string): string | null {
 
 function extractMarkdownLink(line: string): { text: string; url: string } | null {
   const match = line.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return { text: match[1], url: match[2] };
 }
 
 function extractSlugFromUrl(url: string): string | null {
   const match = url.match(/\/contact-us\/field-offices\/([a-z0-9-]+)/i);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return match[1].toLowerCase();
 }
 
@@ -232,8 +236,12 @@ function titleizeSlug(slug: string): string {
   return slug
     .split('-')
     .map((part) => {
-      if (part === 'st') return 'St.';
-      if (part === 'ft') return 'Ft.';
+      if (part === 'st') {
+        return 'St.';
+      }
+      if (part === 'ft') {
+        return 'Ft.';
+      }
       return part.length <= 2 ? part.toUpperCase() : `${part[0].toUpperCase()}${part.slice(1)}`;
     })
     .join(' ');
@@ -245,7 +253,9 @@ function parseCityStateZip(line: string): {
   postalCode: string | null;
 } {
   const match = line.match(CITY_STATE_ZIP_REGEX);
-  if (!match) return { city: null, state: null, postalCode: null };
+  if (!match) {
+    return { city: null, state: null, postalCode: null };
+  }
   return { city: match[1], state: match[2], postalCode: match[3] };
 }
 
@@ -262,8 +272,12 @@ function extractPhone(lines: string[]): string | null {
       for (let j = i + 1; j < lines.length; j += 1) {
         const next = stripMarkdown(lines[j]);
         const match = next.match(PHONE_REGEX);
-        if (match) return match[0];
-        if (isStopLine(next, SECTION_STOP_KEYWORDS)) break;
+        if (match) {
+          return match[0];
+        }
+        if (isStopLine(next, SECTION_STOP_KEYWORDS)) {
+          break;
+        }
       }
     }
   }
@@ -280,7 +294,9 @@ function extractAddress(lines: string[]): {
   for (let i = 0; i < lines.length; i += 1) {
     const raw = lines[i];
     const clean = stripMarkdown(raw);
-    if (!clean.toLowerCase().startsWith('address')) continue;
+    if (!clean.toLowerCase().startsWith('address')) {
+      continue;
+    }
 
     const inlineMatch = clean.match(/address\s*:?\s*(.+)/i);
     const collected: string[] = [];
@@ -291,10 +307,16 @@ function extractAddress(lines: string[]): {
 
     for (let j = i + 1; j < lines.length; j += 1) {
       const line = stripMarkdown(lines[j]);
-      if (!line) continue;
-      if (isStopLine(line, SECTION_STOP_KEYWORDS)) break;
+      if (!line) {
+        continue;
+      }
+      if (isStopLine(line, SECTION_STOP_KEYWORDS)) {
+        break;
+      }
       collected.push(line);
-      if (collected.length >= 4) break;
+      if (collected.length >= 4) {
+        break;
+      }
     }
 
     if (collected.length === 0) {
@@ -347,7 +369,9 @@ function extractResidentAgencies(
     line.toLowerCase().includes('main field office territory')
   );
 
-  if (headerIndex < 0) return [];
+  if (headerIndex < 0) {
+    return [];
+  }
 
   const agencies: OfficeRecord[] = [];
   let currentState: string | null = null;
@@ -355,13 +379,25 @@ function extractResidentAgencies(
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
     const rawLine = lines[i];
     const cleanLine = stripMarkdown(stripBullet(rawLine));
-    if (!cleanLine) continue;
+    if (!cleanLine) {
+      continue;
+    }
 
-    if (isStopLine(cleanLine, SECTION_STOP_KEYWORDS)) break;
-    if (cleanLine.toLowerCase().startsWith('leadership')) break;
-    if (cleanLine.toLowerCase().startsWith('along with our main office')) continue;
-    if (cleanLine.toLowerCase().includes('counties covered')) continue;
-    if (cleanLine.toLowerCase().includes('county covered')) continue;
+    if (isStopLine(cleanLine, SECTION_STOP_KEYWORDS)) {
+      break;
+    }
+    if (cleanLine.toLowerCase().startsWith('leadership')) {
+      break;
+    }
+    if (cleanLine.toLowerCase().startsWith('along with our main office')) {
+      continue;
+    }
+    if (cleanLine.toLowerCase().includes('counties covered')) {
+      continue;
+    }
+    if (cleanLine.toLowerCase().includes('county covered')) {
+      continue;
+    }
 
     const stateAbbr = resolveStateAbbr(cleanLine);
     if (stateAbbr && !cleanLine.includes(':')) {
@@ -377,7 +413,9 @@ function extractResidentAgencies(
     const name = normalizeLine(parts[0]);
     const jurisdiction = normalizeLine(parts.slice(1).join(':')) || null;
 
-    if (!name) continue;
+    if (!name) {
+      continue;
+    }
 
     // These are coverage/jurisdiction notes, not physical offices.
     // They should live under the field office as metadata (handled separately).
@@ -428,19 +466,27 @@ function parseFieldOfficeIndex(raw: string): Map<string, FieldOfficeIndexEntry> 
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    if (!line.startsWith('###')) continue;
-    if (!line.includes('/contact-us/field-offices/')) continue;
+    if (!line.startsWith('###')) {
+      continue;
+    }
+    if (!line.includes('/contact-us/field-offices/')) {
+      continue;
+    }
 
     const link = extractMarkdownLink(line);
     const slug = extractSlugFromUrl(link?.url ?? line);
-    if (!slug || slug === 'field-offices') continue;
+    if (!slug || slug === 'field-offices') {
+      continue;
+    }
 
     const name = stripMarkdown(link?.text ?? titleizeSlug(slug));
     const blockLines: string[] = [];
 
     for (let j = i + 1; j < lines.length; j += 1) {
       const nextLine = lines[j];
-      if (nextLine.startsWith('###')) break;
+      if (nextLine.startsWith('###')) {
+        break;
+      }
       blockLines.push(nextLine);
     }
 
@@ -451,9 +497,15 @@ function parseFieldOfficeIndex(raw: string): Map<string, FieldOfficeIndexEntry> 
 
     for (const rawBlockLine of blockLines) {
       const clean = stripMarkdown(rawBlockLine);
-      if (!clean) continue;
-      if (clean.startsWith('Image') || clean.startsWith('Results:')) continue;
-      if (clean.startsWith('Sort by')) continue;
+      if (!clean) {
+        continue;
+      }
+      if (clean.startsWith('Image') || clean.startsWith('Results:')) {
+        continue;
+      }
+      if (clean.startsWith('Sort by')) {
+        continue;
+      }
 
       const phoneMatch = clean.match(PHONE_REGEX);
       if (phoneMatch) {
@@ -715,8 +767,11 @@ export async function main(): Promise<void> {
       await client.query('BEGIN');
       for (const record of records) {
         const result = await upsertTrainingFacility(client, record);
-        if (result === 'updated') tfUpdated += 1;
-        else tfInserted += 1;
+        if (result === 'updated') {
+          tfUpdated += 1;
+        } else {
+          tfInserted += 1;
+        }
       }
       await client.query('COMMIT');
     } catch (error) {
@@ -771,7 +826,9 @@ function parseCsvLine(line: string): string[] {
 function loadCsv(filePath: string): TrainingFacilityRecord[] {
   const raw = fs.readFileSync(filePath, 'utf8');
   const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
-  if (lines.length < 2) return [];
+  if (lines.length < 2) {
+    return [];
+  }
 
   const header = parseCsvLine(lines[0]).map((col) => col.toLowerCase());
   const rows: TrainingFacilityRecord[] = [];
@@ -827,7 +884,9 @@ async function upsertTrainingFacility(
     record.sourceRetrievedAt,
   ]);
 
-  if (updateResult.rowCount > 0) return 'updated';
+  if (updateResult.rowCount > 0) {
+    return 'updated';
+  }
 
   const insertSql = `
     INSERT INTO app.agency_offices (agency, office_type, name, address_line1, address_line2, city, state, postal_code, phone, website, source_url, source_retrieved_at, source_status, updated_at)

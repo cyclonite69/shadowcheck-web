@@ -16,7 +16,6 @@ type SecretsManager = {
 };
 
 async function main(): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const secretsManager = require('../server/src/services/secretsManager') as SecretsManager;
 
   const authId = (await secretsManager.getSecret('smarty_auth_id')) || process.env.SMARTY_AUTH_ID;

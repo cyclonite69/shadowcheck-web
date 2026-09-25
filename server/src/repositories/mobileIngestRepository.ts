@@ -116,7 +116,9 @@ export async function startPendingUploadRow(
     RETURNING id, history_id, source_tag, s3_key`,
     [uploadId]
   );
-  if (!Array.isArray(result?.rows) || result.rows.length === 0) return null;
+  if (!Array.isArray(result?.rows) || result.rows.length === 0) {
+    return null;
+  }
   return result.rows[0];
 }
 
@@ -127,7 +129,9 @@ export async function getUploadById(
     'SELECT id, history_id, status FROM app.mobile_uploads WHERE id = $1',
     [uploadId]
   );
-  if (!Array.isArray(result?.rows) || result.rows.length === 0) return null;
+  if (!Array.isArray(result?.rows) || result.rows.length === 0) {
+    return null;
+  }
   return result.rows[0];
 }
 

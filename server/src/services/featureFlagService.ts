@@ -34,9 +34,15 @@ const flagCache: Record<DbBackedFlagKey, boolean> = { ...FLAG_DEFAULTS };
 let cacheLoaded = false;
 
 const coerceBoolean = (value: unknown, defaultValue: boolean): boolean => {
-  if (typeof value === 'boolean') return value;
-  if (value === null || value === undefined || value === '') return defaultValue;
-  if (typeof value === 'string') return value.trim().toLowerCase() === 'true';
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+  if (typeof value === 'string') {
+    return value.trim().toLowerCase() === 'true';
+  }
   return defaultValue;
 };
 

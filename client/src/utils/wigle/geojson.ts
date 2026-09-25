@@ -26,7 +26,7 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
   const validRows = rows.filter((row) => {
     const lat = row.trilat || (row as any).lat || (row as any).latitude;
     const lon = row.trilong || (row as any).trilon || (row as any).lon || (row as any).longitude;
-    return lat != null && lon != null;
+    return lat !== null && lat !== undefined && lon !== null && lon !== undefined;
   });
 
   return {

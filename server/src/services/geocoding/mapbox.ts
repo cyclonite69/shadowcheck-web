@@ -25,7 +25,9 @@ const parseMapboxContext = (
   context?: Array<{ id?: string; text?: string; short_code?: string }>
 ) => {
   const data: { city?: string; state?: string; postal?: string; country?: string } = {};
-  if (!context) return data;
+  if (!context) {
+    return data;
+  }
 
   for (const item of context) {
     const id = item.id || '';

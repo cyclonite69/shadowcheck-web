@@ -6,7 +6,9 @@ export async function insertBatch(
   records: ValidatedObservation[],
   debug: boolean
 ): Promise<BatchResult> {
-  if (records.length === 0) return { inserted: 0, failed: 0, errors: [] };
+  if (records.length === 0) {
+    return { inserted: 0, failed: 0, errors: [] };
+  }
 
   const values: string[] = [];
   const params: unknown[] = [];

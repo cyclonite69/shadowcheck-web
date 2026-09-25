@@ -4,7 +4,9 @@ export const SIBLING_TOPOLOGY_DEBUG_ENABLED =
   String(import.meta.env.VITE_SIBLING_TOPOLOGY_DEBUG ?? 'false').toLowerCase() === 'true';
 
 export function logSiblingTopology(stage: string, payload: Record<string, unknown>): void {
-  if (!SIBLING_TOPOLOGY_DEBUG_ENABLED) return;
+  if (!SIBLING_TOPOLOGY_DEBUG_ENABLED) {
+    return;
+  }
   console.debug(`[DEBUG] [sibling-topology] ${stage}`, payload);
 }
 

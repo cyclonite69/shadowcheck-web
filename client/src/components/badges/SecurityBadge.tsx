@@ -30,7 +30,7 @@ export const SecurityBadge = ({ security, networkType }: SecurityBadgeProps) => 
       className="px-1.5 py-0.5 rounded text-xs font-medium inline-block"
       title={title}
       style={{
-        backgroundColor: color + '20',
+        backgroundColor: `${color}20`,
         color,
         border: `1px solid ${color}40`,
         whiteSpace: 'nowrap',

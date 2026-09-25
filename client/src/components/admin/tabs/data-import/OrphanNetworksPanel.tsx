@@ -66,8 +66,12 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [visibleCols, setVisibleCols] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('orphan_columns');
-      if (saved) return new Set(JSON.parse(saved) as string[]);
-    } catch {}
+      if (saved) {
+        return new Set(JSON.parse(saved) as string[]);
+      }
+    } catch {
+      // Ignore localStorage read/parse errors and fall back to defaults
+    }
     return new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) => c.id));
   });
   useEffect(() => {
@@ -78,7 +82,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [chooserOpen, setChooserOpen] = useState(false);
   const chooserRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!chooserOpen) return;
+    if (!chooserOpen) {
+      return;
+    }
     const handler = (e: MouseEvent) => {
       if (chooserRef.current && !chooserRef.current.contains(e.target as Node)) {
         setChooserOpen(false);
@@ -94,12 +100,16 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
 
   // Sort header click
   const handleSortClick = (col: ColDef, e: React.MouseEvent) => {
-    if (!col.sortKey) return;
+    if (!col.sortKey) {
+      return;
+    }
     const key = col.sortKey;
     setSortCols((prev) => {
       const idx = prev.findIndex((s) => s.key === key);
       if (e.shiftKey) {
-        if (idx === -1) return [...prev, { key, dir: 'asc' }];
+        if (idx === -1) {
+          return [...prev, { key, dir: 'asc' }];
+        }
         if (prev[idx].dir === 'asc') {
           const next = [...prev];
           next[idx] = { key, dir: 'desc' };
@@ -107,8 +117,12 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
         }
         return prev.filter((_, i) => i !== idx);
       } else {
-        if (idx === -1 || prev.length > 1) return [{ key, dir: 'asc' }];
-        if (prev[0].dir === 'asc') return [{ key, dir: 'desc' }];
+        if (idx === -1 || prev.length > 1) {
+          return [{ key, dir: 'asc' }];
+        }
+        if (prev[0].dir === 'asc') {
+          return [{ key, dir: 'desc' }];
+        }
         return [];
       }
     });
@@ -135,7 +149,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
           sortBy,
           sortDir
         );
-        if (requestId !== requestIdRef.current) return;
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
 
         const nextRows = Array.isArray(data?.rows) ? data.rows : [];
         const nextTotal = Number(data?.total ?? 0);
@@ -144,14 +160,17 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
         setTotal(nextTotal);
         setHasMore(Boolean(data?.pagination?.hasMore));
       } catch {
-        if (requestId !== requestIdRef.current) return;
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
         setRows(reset ? [] : rowsRef.current);
         setTotal(0);
         setHasMore(false);
       } finally {
-        if (requestId !== requestIdRef.current) return;
-        setLoading(false);
-        setIsLoadingMore(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
     [search, sortCols]
@@ -160,16 +179,22 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   useEffect(() => {
     setRows([]);
     setHasMore(false);
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
     loadRows({ reset: true });
   }, [refreshKey, search, sortCols, loadRows]);
 
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     let timeoutId: ReturnType<typeof setTimeout>;
     const handleScroll = () => {
-      if (loading || isLoadingMore || !hasMore) return;
+      if (loading || isLoadingMore || !hasMore) {
+        return;
+      }
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;
@@ -194,7 +219,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       }
       setRows((prev) =>
         prev.map((row) => {
-          if (row.bssid !== bssid) return row;
+          if (row.bssid !== bssid) {
+            return row;
+          }
           return {
             ...row,
             backfill_status: result.status,
@@ -273,8 +300,11 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                       onChange={() => {
                         setVisibleCols((prev) => {
                           const next = new Set(prev);
-                          if (next.has(col.id)) next.delete(col.id);
-                          else next.add(col.id);
+                          if (next.has(col.id)) {
+                            next.delete(col.id);
+                          } else {
+                            next.add(col.id);
+                          }
                           return next;
                         });
                       }}
@@ -436,7 +466,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                           case 'bestlevel':
                             return (
                               <td key={col.id} className="py-1.5 pr-3 text-right tabular-nums">
-                                {row.bestlevel != null ? `${row.bestlevel} dBm` : '—'}
+                                {row.bestlevel !== null && row.bestlevel !== undefined
+                                  ? `${row.bestlevel} dBm`
+                                  : '—'}
                               </td>
                             );
                           case 'unique_days':

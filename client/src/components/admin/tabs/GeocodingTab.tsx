@@ -133,7 +133,9 @@ export const GeocodingTab: React.FC = () => {
   };
 
   const applyPersistedDaemonConfig = () => {
-    if (!daemon?.config) return;
+    if (!daemon?.config) {
+      return;
+    }
     setDaemonLimit(daemon.config.limit);
     setPrecision(daemon.config.precision);
     setDaemonPerMinute(daemon.config.perMinute);

@@ -235,7 +235,9 @@ const runGeocodeCacheUpdateInternal = async (
     rateLimited: 0,
     precision,
     syncProgress: async () => {
-      if (!jobId) return;
+      if (!jobId) {
+        return;
+      }
       const durationMs = Date.now() - startedAt;
       const result = {
         processed: ctx.processed,
@@ -261,7 +263,9 @@ const runGeocodeCacheUpdateInternal = async (
       }
     },
     flushPendingWrites: async () => {
-      if (ctx.pendingWrites.length === 0) return;
+      if (ctx.pendingWrites.length === 0) {
+        return;
+      }
       const batch = ctx.pendingWrites.splice(0, ctx.pendingWrites.length);
       try {
         await upsertGeocodeCacheBatch(precision, batch);

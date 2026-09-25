@@ -9,7 +9,9 @@ export class ObservationLoader {
   }
 
   async insertBatch(records: ValidatedObservation[]): Promise<number> {
-    if (records.length === 0) return 0;
+    if (records.length === 0) {
+      return 0;
+    }
 
     const values: string[] = [];
     const params: unknown[] = [];

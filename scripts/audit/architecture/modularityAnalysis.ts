@@ -30,16 +30,36 @@ type LineCountPolicyConfig = {
 
 export const classifyRole = (file: string): string => {
   const name = path.basename(file);
-  if (/^(tests\/|client\/src\/.*__tests__\/)|\.(test|spec)\.[jt]sx?$/.test(file)) return 'test';
-  if (file === 'client/src/config/apiTestEndpoints.ts') return 'registry';
-  if (file.startsWith('etl/')) return 'etl';
-  if (file.startsWith('scripts/')) return 'script';
-  if (/\/api\/routes\//.test(file) || /Routes?\.[jt]s$/.test(name)) return 'route';
-  if (/repositories?\//i.test(file) || /Repository\.[jt]s$/i.test(name)) return 'repository';
-  if (/\/hooks\//.test(file) || /^use[A-Z].*\.[jt]sx?$/.test(name)) return 'hook';
-  if (/\/components\//.test(file) && /\.[jt]sx$/.test(file)) return 'component';
-  if (/\/stores?\//.test(file) || /Store\.[jt]s$/i.test(name)) return 'store';
-  if (/\/services?\//.test(file) || /Service\.[jt]s$/i.test(name)) return 'service';
+  if (/^(tests\/|client\/src\/.*__tests__\/)|\.(test|spec)\.[jt]sx?$/.test(file)) {
+    return 'test';
+  }
+  if (file === 'client/src/config/apiTestEndpoints.ts') {
+    return 'registry';
+  }
+  if (file.startsWith('etl/')) {
+    return 'etl';
+  }
+  if (file.startsWith('scripts/')) {
+    return 'script';
+  }
+  if (/\/api\/routes\//.test(file) || /Routes?\.[jt]s$/.test(name)) {
+    return 'route';
+  }
+  if (/repositories?\//i.test(file) || /Repository\.[jt]s$/i.test(name)) {
+    return 'repository';
+  }
+  if (/\/hooks\//.test(file) || /^use[A-Z].*\.[jt]sx?$/.test(name)) {
+    return 'hook';
+  }
+  if (/\/components\//.test(file) && /\.[jt]sx$/.test(file)) {
+    return 'component';
+  }
+  if (/\/stores?\//.test(file) || /Store\.[jt]s$/i.test(name)) {
+    return 'store';
+  }
+  if (/\/services?\//.test(file) || /Service\.[jt]s$/i.test(name)) {
+    return 'service';
+  }
   return 'other';
 };
 
@@ -96,9 +116,13 @@ const buildOversizedFindings = (
     }> = [];
     for (const [key, current, label] of checks) {
       const limit = threshold[key];
-      if (current > limit) breaches.push({ key, current, label, limit });
+      if (current > limit) {
+        breaches.push({ key, current, label, limit });
+      }
     }
-    if (breaches.length === 0) continue;
+    if (breaches.length === 0) {
+      continue;
+    }
     const isHigh = breaches.some(
       (breach) => severityForRatio(breach.current, breach.limit) === 'high'
     );
@@ -241,7 +265,9 @@ const buildCouplingFindings = (inventory: RepositoryInventory): AuditFinding[] =
 };
 
 const getMetric = (record: SourceRecord, key: keyof PolicyRules): number => {
-  if (key === 'maxLines') return record.content.split(/\r?\n/).length;
+  if (key === 'maxLines') {
+    return record.content.split(/\r?\n/).length;
+  }
   const mapping: Record<keyof PolicyRules, keyof SourceRecord['metrics']> = {
     maxLines: 'lineCount',
     maxImports: 'importCount',
@@ -275,7 +301,9 @@ const evaluatePolicyRules = (
   const findings: AuditFinding[] = [];
   for (const [key, limit] of Object.entries(rules) as Array<[keyof PolicyRules, number]>) {
     const current = getMetric(record, key);
-    if (current <= limit) continue;
+    if (current <= limit) {
+      continue;
+    }
     findings.push({
       id: `policy:${file}:${key}`,
       category: 'policy-threshold',
@@ -311,7 +339,9 @@ const evaluateLineCountPolicy = (
       },
     ];
   }
-  if (record.metrics.lineCount <= limit) return [];
+  if (record.metrics.lineCount <= limit) {
+    return [];
+  }
   return [
     {
       id: `policy:line-count:${file}`,
@@ -329,7 +359,9 @@ const evaluateLineCountPolicy = (
 
 const buildLineCountPolicyFindings = (inventory: RepositoryInventory): AuditFinding[] => {
   const policyPath = path.join(inventory.repoRoot, 'scripts/doc-line-count-thresholds.json');
-  if (!fs.existsSync(policyPath)) return [];
+  if (!fs.existsSync(policyPath)) {
+    return [];
+  }
   const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8')) as LineCountPolicyConfig;
   const findings: AuditFinding[] = [];
   const checked = new Set<string>();
@@ -354,7 +386,9 @@ const buildLineCountPolicyFindings = (inventory: RepositoryInventory): AuditFind
       });
     }
     for (const record of matches) {
-      if (checked.has(record.path)) continue;
+      if (checked.has(record.path)) {
+        continue;
+      }
       checked.add(record.path);
       findings.push(...evaluateLineCountPolicy(inventory, record.path, entry.threshold));
     }
@@ -364,7 +398,9 @@ const buildLineCountPolicyFindings = (inventory: RepositoryInventory): AuditFind
 
 const buildPolicyFindings = (inventory: RepositoryInventory): AuditFinding[] => {
   const policyPath = path.join(inventory.repoRoot, 'scripts/modularity-rules.json');
-  if (!fs.existsSync(policyPath)) return [];
+  if (!fs.existsSync(policyPath)) {
+    return [];
+  }
   const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8')) as PolicyConfig;
   const findings: AuditFinding[] = buildLineCountPolicyFindings(inventory);
   for (const [file, rules] of Object.entries(policy.files || {})) {
@@ -386,8 +422,9 @@ const buildPolicyFindings = (inventory: RepositoryInventory): AuditFinding[] => 
         requiredTests: ['npm run policy:modularity'],
       });
     }
-    for (const record of matches)
+    for (const record of matches) {
       findings.push(...evaluatePolicyRules(inventory, record.path, entry.rules));
+    }
   }
   return findings;
 };

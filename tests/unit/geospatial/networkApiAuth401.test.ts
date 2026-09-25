@@ -15,7 +15,7 @@ import { authController } from '../../../client/src/hooks/authController';
 // The mock mirrors the real ApiClient behaviour for 401 handling.
 jest.mock('../../../client/src/api/client', () => {
   // Use the real authController so our spy registration works.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const { authController: ac } = require('../../../client/src/hooks/authController');
 
   const makeRequest = async (endpoint: string, _options?: unknown) => {
@@ -60,7 +60,6 @@ jest.mock('../../../client/src/api/client', () => {
 });
 
 // Now import the real networkApi (it will use the mocked apiClient above).
-// eslint-disable-next-line import/first
 import { networkApi } from '../../../client/src/api/networkApi';
 
 describe('networkApi geospatial methods — session expiry propagation', () => {

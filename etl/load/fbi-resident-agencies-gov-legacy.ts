@@ -56,10 +56,14 @@ function parseCsvLine(line: string): string[] {
 }
 
 function loadCsv(filePath: string): LegacyGovResidentAgencyRecord[] {
-  if (!fs.existsSync(filePath)) throw new Error(`CSV not found: ${filePath}`);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`CSV not found: ${filePath}`);
+  }
   const raw = fs.readFileSync(filePath, 'utf8');
   const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
-  if (lines.length < 2) throw new Error('CSV does not contain any data rows.');
+  if (lines.length < 2) {
+    throw new Error('CSV does not contain any data rows.');
+  }
 
   const header = parseCsvLine(lines[0]).map((col) => col.toLowerCase());
   const rows: LegacyGovResidentAgencyRecord[] = [];
@@ -132,7 +136,9 @@ async function upsertLegacyGovResidentAgency(
     record.sourceRetrievedAt,
   ]);
 
-  if (updateResult.rowCount > 0) return 'updated';
+  if (updateResult.rowCount > 0) {
+    return 'updated';
+  }
 
   const existsSql = `
     SELECT 1
@@ -155,7 +161,9 @@ async function upsertLegacyGovResidentAgency(
     record.parentOffice,
   ]);
 
-  if (existsResult.rowCount > 0) return 'skipped';
+  if (existsResult.rowCount > 0) {
+    return 'skipped';
+  }
 
   const insertSql = `
     INSERT INTO app.agency_offices (
@@ -197,9 +205,13 @@ async function main(): Promise<void> {
     await client.query('BEGIN');
     for (const record of records) {
       const result = await upsertLegacyGovResidentAgency(client, record);
-      if (result === 'updated') updated += 1;
-      else if (result === 'inserted') inserted += 1;
-      else skipped += 1;
+      if (result === 'updated') {
+        updated += 1;
+      } else if (result === 'inserted') {
+        inserted += 1;
+      } else {
+        skipped += 1;
+      }
     }
     await client.query('COMMIT');
   } catch (error) {
@@ -210,7 +222,7 @@ async function main(): Promise<void> {
     await pool.end();
   }
 
-  console.log(`Legacy .gov resident agency enrichment complete.`);
+  console.log('Legacy .gov resident agency enrichment complete.');
   console.log(`Updated: ${updated}`);
   console.log(`Inserted: ${inserted}`);
   console.log(`Skipped: ${skipped}`);

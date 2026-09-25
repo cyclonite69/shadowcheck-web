@@ -13,7 +13,9 @@ export const resolveBodyPageType = (body: unknown): 'geospatial' | 'wigle' => {
 
 export const isIgnoredRow = (row: { is_ignored?: unknown }): boolean => {
   const raw = row?.is_ignored;
-  if (typeof raw === 'boolean') return raw;
+  if (typeof raw === 'boolean') {
+    return raw;
+  }
   return String(raw).toLowerCase() === 'true';
 };
 

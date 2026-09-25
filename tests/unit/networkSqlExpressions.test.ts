@@ -115,7 +115,6 @@ describe('buildEncryptionTypeCondition', () => {
   });
 
   it('returns null for a falsy argument', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(buildEncryptionTypeCondition(null as any, 1)).toBeNull();
   });
 

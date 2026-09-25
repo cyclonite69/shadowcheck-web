@@ -58,13 +58,15 @@ function statusBadgeClass(status: DurableSyncStatus): string {
 }
 
 function formatSyncTime(iso: string | null | undefined): string {
-  if (iso == null || iso === '') return 'Never';
+  if (iso === null || iso === undefined || iso === '') {
+    return 'Never';
+  }
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
 function elementCountDisplay(count: number | null | undefined): number {
-  return count == null ? 0 : count;
+  return count === null || count === undefined ? 0 : count;
 }
 
 function durableStatusOf(region: AlprRegion | undefined): DurableSyncStatus {
@@ -93,13 +95,17 @@ export function AlprSyncTab() {
       const preserveId = options?.preserveOptimisticRunningFor;
       setRegions((prev) => {
         const merged = regionList.map((incoming) => {
-          if (!preserveId || incoming.id !== preserveId) return incoming;
+          if (!preserveId || incoming.id !== preserveId) {
+            return incoming;
+          }
           const prior = prev.find((r) => r.id === preserveId);
           // Quiet poll can return durable idle before markRegionSyncRunning commits;
           // do not clobber optimistic 'running' with that stale idle snapshot.
           if (
             prior?.syncStatus === 'running' &&
-            (incoming.syncStatus === 'idle' || incoming.syncStatus == null)
+            (incoming.syncStatus === 'idle' ||
+              incoming.syncStatus === null ||
+              incoming.syncStatus === undefined)
           ) {
             return { ...incoming, syncStatus: 'running' as const };
           }
@@ -108,7 +114,9 @@ export function AlprSyncTab() {
         return merged;
       });
       setSelectedRegion((prev) => {
-        if (prev && regionList.some((r) => r.id === prev)) return prev;
+        if (prev && regionList.some((r) => r.id === prev)) {
+          return prev;
+        }
         return regionList[0]?.id ?? '';
       });
     },
@@ -139,10 +147,14 @@ export function AlprSyncTab() {
         }
         return regionList;
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return null;
+        if (err instanceof Error && err.name === 'AbortError') {
+          return null;
+        }
         const message = err instanceof Error ? err.message : String(err);
         setError(message);
-        if (!quiet) appendLog(`Error loading regions: ${message}`);
+        if (!quiet) {
+          appendLog(`Error loading regions: ${message}`);
+        }
         return null;
       }
     },
@@ -166,7 +178,7 @@ export function AlprSyncTab() {
   // Keep polling while a job we dispatched is still tracked — durable status can
   // briefly regress to idle (stale GET overlapping optimistic 'running') and the
   // job may finish faster than one poll interval.
-  const shouldPollRegions = hasRunningRegion || activeJobId != null || dispatching;
+  const shouldPollRegions = hasRunningRegion || activeJobId !== null || dispatching;
 
   // Conditional short-polling: reconcile local UI with durable Postgres state
   // while a sync is in flight (durable running and/or tracked job id).
@@ -181,7 +193,7 @@ export function AlprSyncTab() {
 
     const controller = new AbortController();
     const preserveId =
-      activeJobId != null || dispatching || hasRunningRegion ? selectedRegion : null;
+      activeJobId !== null || dispatching || hasRunningRegion ? selectedRegion : null;
     const tick = () => {
       void fetchRegions(controller.signal, {
         quiet: true,
@@ -203,10 +215,14 @@ export function AlprSyncTab() {
 
   // When durable state leaves 'running', pull in-memory job telemetry for the panel.
   useEffect(() => {
-    if (!activeJobId || !selectedRegion) return;
+    if (!activeJobId || !selectedRegion) {
+      return;
+    }
     const selected = regions.find((r) => r.id === selectedRegion);
     const status = durableStatusOf(selected);
-    if (status === 'running') return;
+    if (status === 'running') {
+      return;
+    }
 
     const controller = new AbortController();
     const jobId = activeJobId;
@@ -220,13 +236,19 @@ export function AlprSyncTab() {
           jobs?: SyncJob[];
           error?: string;
         };
-        if (!res.ok) return;
+        if (!res.ok) {
+          return;
+        }
         const job = data.jobs?.find((candidate) => candidate.jobId === jobId);
-        if (!job) return;
+        if (!job) {
+          return;
+        }
         // Only clear the tracked job once it reaches a terminal state. Clearing
         // on dispatched/running drops the poll loop and leaves the button stuck
         // when a quiet regions GET overwrote optimistic 'running' with idle.
-        if (!shouldClearActiveJobId(job.status)) return;
+        if (!shouldClearActiveJobId(job.status)) {
+          return;
+        }
         if (job.status === 'completed') {
           setSyncResult(job.result ?? null);
           appendLog(`Sync ${job.jobId} completed.`);
@@ -239,7 +261,9 @@ export function AlprSyncTab() {
           void fetchRegions(undefined, { quiet: true });
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
       }
     })();
 
@@ -296,7 +320,9 @@ export function AlprSyncTab() {
         appendLog('Sync dispatched; reconciling via region status polling.');
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       // Revert to last known durable snapshot for this region.
       setRegions((prev) => prev.map((r) => (r.id === regionId ? previous : r)));
       const message = err instanceof Error ? err.message : String(err);
@@ -456,7 +482,9 @@ export function AlprSyncTab() {
                   Duration
                 </span>
                 <span className="text-lg font-bold font-mono text-slate-200">
-                  {syncResult?.durationMs != null ? `${syncResult.durationMs}ms` : '—'}
+                  {syncResult?.durationMs !== null && syncResult?.durationMs !== undefined
+                    ? `${syncResult.durationMs}ms`
+                    : '—'}
                 </span>
               </div>
             </div>

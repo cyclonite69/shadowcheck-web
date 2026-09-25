@@ -18,7 +18,9 @@ export const useApplyMapLayerDefaults = ({
   toggleTerrain,
 }: ApplyMapLayerDefaultsProps) => {
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
 
     const map = mapRef.current;
 

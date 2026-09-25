@@ -212,7 +212,9 @@ const executeSql = async (sql: string, params: any[] = []) => {
     )
   ) {
     const run = dbState.runs.find((item) => item.id === params[0]);
-    if (!run) return { rows: [], rowCount: 0 };
+    if (!run) {
+      return { rows: [], rowCount: 0 };
+    }
 
     if (normalized.includes('api_total_results = COALESCE($2, api_total_results)')) {
       run.api_total_results = params[1] ?? run.api_total_results;
@@ -252,7 +254,9 @@ const executeSql = async (sql: string, params: any[] = []) => {
 
   if (normalized.startsWith("UPDATE app.wigle_import_runs SET status = 'failed'")) {
     const run = dbState.runs.find((item) => item.id === params[0]);
-    if (!run) return { rows: [], rowCount: 0 };
+    if (!run) {
+      return { rows: [], rowCount: 0 };
+    }
     run.status = 'failed';
     run.last_error = params[1];
     run.last_attempted_at = nowIso();
@@ -273,7 +277,9 @@ const executeSql = async (sql: string, params: any[] = []) => {
     run.status = status;
     run.last_attempted_at = nowIso();
     run.updated_at = nowIso();
-    if (status === 'cancelled') run.completed_at = nowIso();
+    if (status === 'cancelled') {
+      run.completed_at = nowIso();
+    }
     return { rows: [cloneRun(run)], rowCount: 1 };
   }
 
@@ -293,7 +299,9 @@ const executeSql = async (sql: string, params: any[] = []) => {
 
   if (normalized.startsWith("UPDATE app.wigle_import_runs SET status = 'completed'")) {
     const run = dbState.runs.find((item) => item.id === params[0]);
-    if (!run) return { rows: [], rowCount: 0 };
+    if (!run) {
+      return { rows: [], rowCount: 0 };
+    }
     run.status = 'completed';
     run.completed_at = nowIso();
     run.updated_at = nowIso();
@@ -441,13 +449,19 @@ beforeEach(() => {
     release: jest.fn(),
   });
   mockSecretGet.mockImplementation((key: string) => {
-    if (key === 'wigle_api_name') return 'user';
-    if (key === 'wigle_api_token') return 'token';
+    if (key === 'wigle_api_name') {
+      return 'user';
+    }
+    if (key === 'wigle_api_token') {
+      return 'token';
+    }
     return null;
   });
   mockImportWigleV2SearchResult.mockImplementation(async (network: any) => {
     const uniqueKey = `${network.netid || network.bssid}|${network.trilat}|${network.trilong}|${network.lastupdt}`;
-    if (dbState.insertedKeys.has(uniqueKey)) return 0;
+    if (dbState.insertedKeys.has(uniqueKey)) {
+      return 0;
+    }
     dbState.insertedKeys.add(uniqueKey);
     return 1;
   });

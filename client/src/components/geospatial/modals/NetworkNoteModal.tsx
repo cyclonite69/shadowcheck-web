@@ -50,7 +50,9 @@ export const NetworkNoteModal = ({
   onDeleteNote,
   onSave,
 }: NetworkNoteModalProps) => {
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   const mediaUrl = (mediaId: number) => `/api/media/${mediaId}`;
 

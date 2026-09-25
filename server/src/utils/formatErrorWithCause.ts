@@ -12,7 +12,7 @@ export function formatErrorWithCause(error: unknown): string {
   }
 
   const cause = (error as Error & { cause?: unknown }).cause;
-  if (cause == null) {
+  if (cause === null || cause === undefined) {
     return error.message;
   }
 
@@ -24,8 +24,11 @@ export function formatErrorWithCause(error: unknown): string {
 
   if (typeof cause === 'object') {
     const obj = cause as { message?: unknown; code?: unknown };
-    const msg = obj.message != null ? String(obj.message) : JSON.stringify(cause);
-    const code = obj.code != null ? String(obj.code) : undefined;
+    const msg =
+      obj.message !== null && obj.message !== undefined
+        ? String(obj.message)
+        : JSON.stringify(cause);
+    const code = obj.code !== null && obj.code !== undefined ? String(obj.code) : undefined;
     return code ? `${error.message} (cause: ${msg} [${code}])` : `${error.message} (cause: ${msg})`;
   }
 

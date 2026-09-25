@@ -99,8 +99,12 @@ export async function validateData(): Promise<boolean> {
       const result: QueryResult<CountRow> = await pool.query(check.query);
       const count = parseInt(result.rows[0].count);
       const passed = count <= check.threshold;
-      if (passed) passedChecks++;
-      if (!passed && check.severity === 'error') hasErrors = true;
+      if (passed) {
+        passedChecks++;
+      }
+      if (!passed && check.severity === 'error') {
+        hasErrors = true;
+      }
 
       const icon = passed ? '✅' : check.severity === 'error' ? '❌' : '⚠️';
       console.log(
@@ -254,9 +258,11 @@ export async function runScoring(): Promise<void> {
     console.log(`\n✅ Scoring complete in ${((Date.now() - startTime) / 1000).toFixed(2)}s\n`);
   } catch (error) {
     const err = error as { code?: string; message: string };
-    if (err.code === 'ECONNREFUSED')
+    if (err.code === 'ECONNREFUSED') {
       console.log('⚠️  API server not running. Start the server and try again.');
-    else console.error('❌ Scoring failed:', err.message);
+    } else {
+      console.error('❌ Scoring failed:', err.message);
+    }
   }
 }
 

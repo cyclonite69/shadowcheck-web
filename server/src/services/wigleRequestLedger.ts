@@ -88,7 +88,9 @@ function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'bac
   // No soft limit for 'detail' — WiGLE does not publish one and we have no empirical
   // basis for a number yet. The ledger continues logging all detail requests so we can
   // observe real rate-limit responses over time and set a limit based on evidence.
-  if (kind === 'detail') return;
+  if (kind === 'detail') {
+    return;
+  }
 
   const count = getCount(kind);
   const softLimit = getSafeLimitSync(kind);
@@ -154,7 +156,7 @@ async function hydrateLedger() {
   try {
     // Keep the table lean: prune events older than the 24h window plus 1h grace
     await adminQuery(
-      `DELETE FROM app.wigle_ledger_events WHERE requested_at < NOW() - INTERVAL '25 hours'`
+      "DELETE FROM app.wigle_ledger_events WHERE requested_at < NOW() - INTERVAL '25 hours'"
     );
 
     const { rows } = await adminQuery(

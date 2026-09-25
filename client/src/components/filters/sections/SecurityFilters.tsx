@@ -61,10 +61,12 @@ export const SecurityFilters: React.FC<SecurityFiltersProps> = ({
                     ? [...current, type]
                     : current.filter((t: string) => t !== type);
                   onSetFilter('encryptionTypes', updated);
-                  if (e.target.checked && updated.length > 0)
+                  if (e.target.checked && updated.length > 0) {
                     onEnableFilter('encryptionTypes', true);
-                  if (!e.target.checked && updated.length === 0)
+                  }
+                  if (!e.target.checked && updated.length === 0) {
                     onEnableFilter('encryptionTypes', false);
+                  }
                 }}
                 className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
               />

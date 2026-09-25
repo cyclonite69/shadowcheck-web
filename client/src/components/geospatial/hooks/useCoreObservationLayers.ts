@@ -9,15 +9,25 @@ import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 
 // Format time difference as human-readable string
 const formatTimeSince = (ms: number): string => {
-  if (ms < 0) return '';
+  if (ms < 0) {
+    return '';
+  }
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  if (minutes < 60) {
+    return `${minutes}m ${seconds % 60}s`;
+  }
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  if (hours < 24) {
+    return `${hours}h ${minutes % 60}m`;
+  }
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ${hours % 24}h`;
+  if (days < 30) {
+    return `${days}d ${hours % 24}h`;
+  }
   const months = Math.floor(days / 30);
   return `${months}mo ${days % 30}d`;
 };
@@ -53,11 +63,15 @@ export const useCoreObservationLayers = ({
   }, [networkLookup]);
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
 
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!mapboxgl) return;
+    if (!mapboxgl) {
+      return;
+    }
 
     // Assign colors to each selected network using BSSID-based algorithm
     const bssidColors: Record<string, string> = {};
@@ -80,7 +94,9 @@ export const useCoreObservationLayers = ({
       }
       let count = 0;
       bssidChannel.forEach((otherCh, otherBssid) => {
-        if (otherBssid !== set.bssid && otherCh === ch) count++;
+        if (otherBssid !== set.bssid && otherCh === ch) {
+          count++;
+        }
       });
       channelNeighborCount.set(set.bssid, count);
     });
@@ -88,7 +104,9 @@ export const useCoreObservationLayers = ({
     // Pre-calculate jitter offsets to avoid expensive sin/cos calls during rendering
     const jitterOffsets = new Map<string, [number, number]>();
     const calculateJitterOffset = (seenCount: number): [number, number] => {
-      if (seenCount === 0) return [0, 0];
+      if (seenCount === 0) {
+        return [0, 0];
+      }
       const cacheKey = `${seenCount}`;
       if (!jitterOffsets.has(cacheKey)) {
         const angle = seenCount * 2.399963229728653; // golden angle in radians
@@ -145,7 +163,9 @@ export const useCoreObservationLayers = ({
           timeSincePriorMs = currentTime.getTime() - lastTime.getTime();
           timeSincePrior = formatTimeSince(Math.abs(timeSincePriorMs));
         }
-        if (currentTime) lastTime = currentTime;
+        if (currentTime) {
+          lastTime = currentTime;
+        }
 
         const coordKey = `${lat.toFixed(6)}:${lon.toFixed(6)}`;
         const seenCount = jitterIndex.get(coordKey) ?? 0;
@@ -198,7 +218,9 @@ export const useCoreObservationLayers = ({
     const syncObservationSources = () => {
       const observationSource = map.getSource('observations') as GeoJSONSource | undefined;
       const lineSource = map.getSource('observation-lines') as GeoJSONSource | undefined;
-      if (!observationSource || !lineSource) return false;
+      if (!observationSource || !lineSource) {
+        return false;
+      }
 
       observationSource.setData({
         type: 'FeatureCollection',
@@ -223,7 +245,9 @@ export const useCoreObservationLayers = ({
       return true;
     };
 
-    if (syncObservationSources()) return;
+    if (syncObservationSources()) {
+      return;
+    }
 
     const handleStyleLoad = () => {
       syncObservationSources();

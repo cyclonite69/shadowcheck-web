@@ -163,7 +163,9 @@ describe('reverse-geocode-smart', () => {
       jest.spyOn(https, 'get').mockImplementation((url: any, cb?: any) => {
         const reqMock = {
           on: (event: string, eventCb: any) => {
-            if (event === 'error') eventCb(new Error('Fatal smart error'));
+            if (event === 'error') {
+              eventCb(new Error('Fatal smart error'));
+            }
             return reqMock;
           },
         };

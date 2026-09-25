@@ -10,7 +10,9 @@ export function useVendorIntelClickHandler(): void {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = (e.target as HTMLElement).closest('[data-vendor-intel]') as HTMLElement | null;
-      if (!target) return;
+      if (!target) {
+        return;
+      }
       const surveillanceType = target.getAttribute('data-vendor-intel');
       if (surveillanceType) {
         e.stopPropagation();

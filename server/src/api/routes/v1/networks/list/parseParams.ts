@@ -22,7 +22,9 @@ export const parseNetworkListParams = (req: Request): ParseError | ParseSuccess 
   const q = req.query;
 
   const paginationResult = parsePagination(q.limit, q.offset);
-  if (!paginationResult.ok) return paginationResult;
+  if (!paginationResult.ok) {
+    return paginationResult;
+  }
 
   const threatResult = parseThreatFilters(
     q.threat_level,
@@ -30,7 +32,9 @@ export const parseNetworkListParams = (req: Request): ParseError | ParseSuccess 
     q.threat_score_min,
     q.threat_score_max
   );
-  if (!threatResult.ok) return threatResult;
+  if (!threatResult.ok) {
+    return threatResult;
+  }
 
   const spatialResult = parseSpatialFilters(
     String(q.location_mode || 'latest_observation'),
@@ -45,7 +49,9 @@ export const parseNetworkListParams = (req: Request): ParseError | ParseSuccess 
     q.radius_center_lng,
     q.radius_meters
   );
-  if (!spatialResult.ok) return spatialResult;
+  if (!spatialResult.ok) {
+    return spatialResult;
+  }
 
   const signalResult = parseSignalFilters(
     q.last_seen,
@@ -54,7 +60,9 @@ export const parseNetworkListParams = (req: Request): ParseError | ParseSuccess 
     q.min_obs_count,
     q.max_obs_count
   );
-  if (!signalResult.ok) return signalResult;
+  if (!signalResult.ok) {
+    return signalResult;
+  }
 
   const identityResult = parseNetworkIdentity(
     q.ssid,
@@ -67,7 +75,9 @@ export const parseNetworkListParams = (req: Request): ParseError | ParseSuccess 
     q.insecureFlags,
     q.securityFlags
   );
-  if (!identityResult.ok) return identityResult;
+  if (!identityResult.ok) {
+    return identityResult;
+  }
 
   return {
     ok: true,

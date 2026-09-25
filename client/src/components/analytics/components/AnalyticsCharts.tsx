@@ -63,7 +63,9 @@ const MeasuredResponsiveChart: React.FC<MeasuredResponsiveChartProps> = ({
 
   React.useLayoutEffect(() => {
     const element = containerRef.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const updateSize = () => {
       const { width, height } = element.getBoundingClientRect();
@@ -138,7 +140,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
   };
 
   const renderPieLegend = (items: Array<{ name: string; value: number; color: string }>) => {
-    if (!items || items.length === 0) return null;
+    if (!items || items.length === 0) {
+      return null;
+    }
     const total = items.reduce((sum, item) => sum + item.value, 0);
     return (
       <div className="mt-3 px-2">
@@ -162,7 +166,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
   };
 
   switch (card.type) {
-    case 'network-types':
+    case 'network-types': {
       if (DEBUG_ANALYTICS) {
         console.info('[analytics] rendering network-types pie:', {
           timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
@@ -227,8 +231,11 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
           {renderPieLegend(validNetworkData)}
         </div>
       );
+    }
     case 'signal':
-      if (!isValidChartData(data.signalStrength)) return renderEmptyState();
+      if (!isValidChartData(data.signalStrength)) {
+        return renderEmptyState();
+      }
       return (
         <MeasuredResponsiveChart>
           <BarChart data={data.signalStrength} margin={MARGINS.withBottomLabel}>
@@ -246,7 +253,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
           </BarChart>
         </MeasuredResponsiveChart>
       );
-    case 'security':
+    case 'security': {
       if (DEBUG_ANALYTICS) {
         console.info('[analytics] rendering security pie:', {
           timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
@@ -311,8 +318,11 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
           {renderPieLegend(validSecurityData)}
         </div>
       );
+    }
     case 'temporal': {
-      if (!isValidChartData(data.temporal)) return renderEmptyState();
+      if (!isValidChartData(data.temporal)) {
+        return renderEmptyState();
+      }
       return (
         <MeasuredResponsiveChart>
           <BarChart data={data.temporal} margin={MARGINS.default}>
@@ -326,7 +336,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
       );
     }
     case 'radio-time': {
-      if (!isValidChartData(data.radioTime)) return renderEmptyState();
+      if (!isValidChartData(data.radioTime)) {
+        return renderEmptyState();
+      }
       const interval = calculateAxisInterval(data.radioTime.length);
       return (
         <MeasuredResponsiveChart>
@@ -347,7 +359,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
       );
     }
     case 'threat-distribution':
-      if (!isValidChartData(data.threatDistribution)) return renderEmptyState();
+      if (!isValidChartData(data.threatDistribution)) {
+        return renderEmptyState();
+      }
       return (
         <MeasuredResponsiveChart>
           <BarChart data={data.threatDistribution} margin={MARGINS.withBottomLabel}>
@@ -374,7 +388,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         </MeasuredResponsiveChart>
       );
     case 'threat-trends': {
-      if (!isValidChartData(data.threatTrends)) return renderEmptyState();
+      if (!isValidChartData(data.threatTrends)) {
+        return renderEmptyState();
+      }
       const interval = calculateAxisInterval(data.threatTrends.length);
       return (
         <MeasuredResponsiveChart>
@@ -456,7 +472,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
       );
     }
     case 'top-networks':
-      if (!isValidChartData(data.topNetworks)) return renderEmptyState();
+      if (!isValidChartData(data.topNetworks)) {
+        return renderEmptyState();
+      }
       return (
         <div className="h-[260px] overflow-y-auto space-y-2">
           {data.topNetworks.map((network, idx) => (

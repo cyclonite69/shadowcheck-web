@@ -29,7 +29,7 @@ describe('GET /api/v2/networks/:bssid/media - Integration', () => {
       [BSSID]
     );
 
-    const res = await query(`SELECT to_regclass('app.v_sibling_group_media')`);
+    const res = await query("SELECT to_regclass('app.v_sibling_group_media')");
     const viewExists = res.rows[0]?.to_regclass !== null;
 
     if (!viewExists) {

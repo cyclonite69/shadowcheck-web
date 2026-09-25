@@ -65,7 +65,9 @@ export const useSiblingStats = (onPurgeComplete?: () => Promise<void>): UseSibli
   }, [fetchSiblingStats]);
 
   const purgeSiblings = async () => {
-    if (!window.confirm('Purge all sibling pairs and start a full redetect now?')) return;
+    if (!window.confirm('Purge all sibling pairs and start a full redetect now?')) {
+      return;
+    }
     setPurgingSiblings(true);
     try {
       await apiClient.delete('/admin/siblings/pairs');

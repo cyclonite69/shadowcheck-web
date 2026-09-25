@@ -32,13 +32,17 @@ router.all('/search-api', requireAdmin, async (req: Request, res: Response, next
     }
 
     const validationError = validateSearchQuery(req.query);
-    if (validationError) return res.status(400).json({ ok: false, error: validationError });
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
 
     const shouldImport = req.body?.import === true || req.query?.import === 'true';
     const query = { ...req.query, version: req.query.version ?? 'v2' };
 
     const result = await searchWigle(query, shouldImport);
-    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.ok) {
+      return res.status(result.status).json(result);
+    }
     res.json(result);
   } catch (err: any) {
     if (err instanceof WigleValidationError) {
@@ -65,9 +69,14 @@ router.post(
     try {
       const query = { ...req.query, ...req.body };
       const validationError = wigleImportRunService.validateImportQuery(query);
-      if (validationError) return res.status(400).json({ ok: false, error: validationError });
+      if (validationError) {
+        return res.status(400).json({ ok: false, error: validationError });
+      }
 
-      const runId = query.runId != null ? Number.parseInt(String(query.runId), 10) : null;
+      const runId =
+        query.runId !== null && query.runId !== undefined
+          ? Number.parseInt(String(query.runId), 10)
+          : null;
       const resumeLatest = query.resumeLatest === true || query.resumeLatest === 'true';
 
       const run = runId
@@ -79,8 +88,9 @@ router.post(
       return res.json(buildRunImportResponse(run));
     } catch (err: any) {
       logger.error(`[WiGLE] Import-all error: ${err.message}`, { error: err });
-      if (err?.status === 403)
+      if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
       next(err);
     }
   }
@@ -177,8 +187,9 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const runId = Number.parseInt(String(req.params.id), 10);
-      if (!Number.isFinite(runId))
+      if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      }
       const run = await wigleImportRunService.getImportRun(runId);
       return res.json({ ok: true, run });
     } catch (err: any) {
@@ -198,13 +209,15 @@ router.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const runId = Number.parseInt(String(req.params.id), 10);
-      if (!Number.isFinite(runId))
+      if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      }
       const deleted = await wigleImportRunService.deleteImportRun(runId);
-      if (!deleted)
+      if (!deleted) {
         return res
           .status(404)
           .json({ ok: false, error: 'Run not found or not in a deletable state' });
+      }
       return res.json({ ok: true, deleted: runId });
     } catch (err: any) {
       logger.error(`[WiGLE] Delete run error: ${err.message}`, { error: err });
@@ -220,13 +233,16 @@ router.post(
     try {
       const query = { ...req.query, ...req.body };
       const validationError = wigleImportRunService.validateImportQuery(query);
-      if (validationError) return res.status(400).json({ ok: false, error: validationError });
+      if (validationError) {
+        return res.status(400).json({ ok: false, error: validationError });
+      }
       const run = await wigleImportRunService.resumeLatestImportRun(query);
       return res.json(buildRunImportResponse(run));
     } catch (err: any) {
       logger.error(`[WiGLE] Resume-latest error: ${err.message}`, { error: err });
-      if (err?.status === 403)
+      if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
       next(err);
     }
   }
@@ -239,7 +255,9 @@ router.get(
     try {
       const query = { ...req.query, ...req.body };
       const validationError = wigleImportRunService.validateImportQuery(query);
-      if (validationError) return res.status(400).json({ ok: false, error: validationError });
+      if (validationError) {
+        return res.status(400).json({ ok: false, error: validationError });
+      }
       const run = await wigleImportRunService.getLatestResumableImportRun(query);
       return res.json({ ok: true, run });
     } catch (err: any) {
@@ -255,14 +273,16 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const runId = Number.parseInt(String(req.params.id), 10);
-      if (!Number.isFinite(runId))
+      if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      }
       const run = await wigleImportRunService.resumeImportRun(runId);
       return res.json(buildRunImportResponse(run));
     } catch (err: any) {
       logger.error(`[WiGLE] Resume run error: ${err.message}`, { error: err });
-      if (err?.status === 403)
+      if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
       next(err);
     }
   }
@@ -274,8 +294,9 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const runId = Number.parseInt(String(req.params.id), 10);
-      if (!Number.isFinite(runId))
+      if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      }
       const run = await wigleImportRunService.pauseImportRun(runId);
       return res.json({ ok: true, run });
     } catch (err: any) {
@@ -291,8 +312,9 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const runId = Number.parseInt(String(req.params.id), 10);
-      if (!Number.isFinite(runId))
+      if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      }
       const run = await wigleImportRunService.cancelImportRun(runId);
       return res.json({ ok: true, run });
     } catch (err: any) {
@@ -354,9 +376,13 @@ router.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number.parseInt(String(req.params.id), 10);
-      if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'Invalid id' });
+      if (!Number.isFinite(id)) {
+        return res.status(400).json({ ok: false, error: 'Invalid id' });
+      }
       const deleted = await deleteSavedSsidTerm(id);
-      if (!deleted) return res.status(404).json({ ok: false, error: 'Term not found' });
+      if (!deleted) {
+        return res.status(404).json({ ok: false, error: 'Term not found' });
+      }
       return res.json({ ok: true, deleted: id });
     } catch (err: any) {
       logger.error(`[WiGLE] Saved term delete error: ${err.message}`);
@@ -390,23 +416,27 @@ router.post(
     try {
       const query = { ...req.query, ...req.body };
 
-      if (query.runId != null) {
+      if (query.runId !== null && query.runId !== undefined) {
         const runId = Number.parseInt(String(query.runId), 10);
-        if (!Number.isFinite(runId))
+        if (!Number.isFinite(runId)) {
           return res.status(400).json({ ok: false, error: 'Invalid runId' });
+        }
         const run = await wigleBluetoothImportService.resumeBluetoothImportRun(runId);
         return res.json(buildRunImportResponse(run));
       }
 
       const validationError = wigleBluetoothImportService.validateBtImportQuery(query);
-      if (validationError) return res.status(400).json({ ok: false, error: validationError });
+      if (validationError) {
+        return res.status(400).json({ ok: false, error: validationError });
+      }
 
       const run = await wigleBluetoothImportService.startBluetoothImportRun(query);
       return res.json(buildRunImportResponse(run));
     } catch (err: any) {
       logger.error(`[WiGLE BT] Import-start error: ${err.message}`, { error: err });
-      if (err?.status === 403)
+      if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
       next(err);
     }
   }

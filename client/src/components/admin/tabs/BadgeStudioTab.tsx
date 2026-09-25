@@ -35,23 +35,41 @@ function getColumnConfig(column: string, configs: Record<string, ColumnBadgeConf
 }
 
 function getColumnSamples(column: string): unknown[] {
-  if (BADGE_PREVIEW_SAMPLES[column]) return BADGE_PREVIEW_SAMPLES[column];
-  if (column.toLowerCase().includes('score')) return [95, 72, 44, 12];
-  if (column.toLowerCase().includes('count')) return [0, 1, 7, 24];
-  if (column.toLowerCase().includes('lat')) return [42.9904, 37.7749];
-  if (column.toLowerCase().includes('lon')) return [-83.6975, -122.4194];
+  if (BADGE_PREVIEW_SAMPLES[column]) {
+    return BADGE_PREVIEW_SAMPLES[column];
+  }
+  if (column.toLowerCase().includes('score')) {
+    return [95, 72, 44, 12];
+  }
+  if (column.toLowerCase().includes('count')) {
+    return [0, 1, 7, 24];
+  }
+  if (column.toLowerCase().includes('lat')) {
+    return [42.9904, 37.7749];
+  }
+  if (column.toLowerCase().includes('lon')) {
+    return [-83.6975, -122.4194];
+  }
   return ['Sample', 'Unknown', 'None'];
 }
 
 function describeRule(rule: BadgeColorRule): string {
   const { match } = rule;
-  if (match.type === 'any') return 'Any value';
-  if (match.type === 'exact') return `Equals ${String(match.value)}`;
-  if (match.type === 'contains') return `Contains ${match.value}`;
-  if (match.type === 'regex') return `Regex ${match.pattern}`;
+  if (match.type === 'any') {
+    return 'Any value';
+  }
+  if (match.type === 'exact') {
+    return `Equals ${String(match.value)}`;
+  }
+  if (match.type === 'contains') {
+    return `Contains ${match.value}`;
+  }
+  if (match.type === 'regex') {
+    return `Regex ${match.pattern}`;
+  }
   const bounds = [
-    match.min != null ? `min ${match.min}` : '',
-    match.max != null ? `max ${match.max}` : '',
+    match.min !== null && match.min !== undefined ? `min ${match.min}` : '',
+    match.max !== null && match.max !== undefined ? `max ${match.max}` : '',
   ]
     .filter(Boolean)
     .join(' / ');
@@ -131,7 +149,9 @@ export const BadgeStudioTab: React.FC = () => {
 
   const applySmartPreset = () => {
     const preset = BADGE_DEFAULTS[selectedColumn];
-    if (!preset) return;
+    if (!preset) {
+      return;
+    }
     const next = cloneConfig({ ...preset, enabled: true });
     setDraft(next);
     setColorMode(next.rules.length > 1 ? 'rules' : 'static');

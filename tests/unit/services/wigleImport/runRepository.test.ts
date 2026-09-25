@@ -42,7 +42,9 @@ describe('runRepository', () => {
   describe('reconcileRunProgress', () => {
     it('should rollback and throw on error', async () => {
       mockClient.query.mockImplementation((text: string) => {
-        if (text === 'BEGIN') return Promise.resolve();
+        if (text === 'BEGIN') {
+          return Promise.resolve();
+        }
         throw new Error('Transaction Failed');
       });
 

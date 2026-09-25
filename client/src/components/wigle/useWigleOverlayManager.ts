@@ -74,19 +74,27 @@ export function useWigleOverlayManager({
   showTerrain,
 }: UseWigleOverlayManagerParams) {
   const updateAllClusterColorsCallback = useCallback(() => {
-    if (mapRef.current) updateAllClusterColors(mapRef.current, clusterColorCache);
+    if (mapRef.current) {
+      updateAllClusterColors(mapRef.current, clusterColorCache);
+    }
   }, [mapRef, clusterColorCache]);
 
   const ensureV2LayersCallback = useCallback(() => {
-    if (mapRef.current) ensureV2Layers(mapRef.current, v2FCRef, clusteringEnabledRef.current);
+    if (mapRef.current) {
+      ensureV2Layers(mapRef.current, v2FCRef, clusteringEnabledRef.current);
+    }
   }, [mapRef, v2FCRef, clusteringEnabledRef]);
 
   const ensureV3LayersCallback = useCallback(() => {
-    if (mapRef.current) ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
+    if (mapRef.current) {
+      ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
+    }
   }, [mapRef, v3FCRef, clusteringEnabledRef]);
 
   const ensureKmlLayersCallback = useCallback(() => {
-    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
+    if (mapRef.current) {
+      ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
+    }
   }, [mapRef, kmlFCRef, clusteringEnabledRef]);
 
   const ensureAllLayers = useCallback(() => {
@@ -96,18 +104,23 @@ export function useWigleOverlayManager({
   }, [ensureV2LayersCallback, ensureV3LayersCallback, ensureKmlLayersCallback]);
 
   const applyLayerVisibilityCallback = useCallback(() => {
-    if (mapRef.current) applyLayerVisibility(mapRef.current, layersRef.current);
+    if (mapRef.current) {
+      applyLayerVisibility(mapRef.current, layersRef.current);
+    }
   }, [mapRef, layersRef]);
 
   const attachClickHandlersCallback = useCallback(() => {
-    if (mapRef.current && mapboxRef.current)
+    if (mapRef.current && mapboxRef.current) {
       attachClickHandlers(mapRef.current, mapboxRef.current, wigleHandlersAttachedRef);
+    }
   }, [mapRef, mapboxRef, wigleHandlersAttachedRef]);
 
   const applyEnabledWigleOverlays = useCallback(
     (reason: string) => {
       const map = mapRef.current;
-      if (!map) return undefined;
+      if (!map) {
+        return undefined;
+      }
 
       return runWhenStyleReady(map, reason, () => {
         const currentLayers = layersRef.current;
@@ -131,7 +144,9 @@ export function useWigleOverlayManager({
         }
 
         const kmlSource = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-        if (kmlSource && kmlFCRef.current) kmlSource.setData(kmlFCRef.current);
+        if (kmlSource && kmlFCRef.current) {
+          kmlSource.setData(kmlFCRef.current);
+        }
 
         if (currentLayers.showFieldData && fieldDataFCRef.current) {
           ensureFieldDataLayer(map, fieldDataFCRef, clustering);
@@ -193,7 +208,9 @@ export function useWigleOverlayManager({
   );
 
   useEffect(() => {
-    if (!mapReady) return undefined;
+    if (!mapReady) {
+      return undefined;
+    }
     return applyEnabledWigleOverlays('overlay-state-change');
   }, [
     applyEnabledWigleOverlays,

@@ -57,8 +57,12 @@ describe('wigleKmlSyncService', () => {
 
     // Bulletproof default mock setups to survive Jest resetMocks: true
     secretsMock.get.mockImplementation((key: string) => {
-      if (key === 'wigle_api_name') return 'test-user';
-      if (key === 'wigle_api_token') return 'test-token';
+      if (key === 'wigle_api_name') {
+        return 'test-user';
+      }
+      if (key === 'wigle_api_token') {
+        return 'test-token';
+      }
       return null;
     });
 

@@ -36,9 +36,15 @@ export const useWigleData = ({
     setError(null);
 
     const params = new URLSearchParams({ include_total: '1' });
-    if (limit !== null) params.set('limit', String(limit));
-    if (offset > 0) params.set('offset', String(offset));
-    if (typeFilter.trim()) params.set('type', typeFilter.trim());
+    if (limit !== null) {
+      params.set('limit', String(limit));
+    }
+    if (offset > 0) {
+      params.set('offset', String(offset));
+    }
+    if (typeFilter.trim()) {
+      params.set('type', typeFilter.trim());
+    }
     const { filtersForPage, enabledForPage } = adaptedFilters;
     params.set('filters', JSON.stringify(filtersForPage));
     params.set('enabled', JSON.stringify(enabledForPage));
@@ -86,7 +92,9 @@ export const useWigleData = ({
       );
     }
 
-    if (promises.length === 0) return;
+    if (promises.length === 0) {
+      return;
+    }
 
     await Promise.all(promises);
   }, [limit, offset, typeFilter, adaptedFilters, v2Enabled, v3Enabled]);

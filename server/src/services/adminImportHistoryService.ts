@@ -37,7 +37,8 @@ export async function captureImportMetrics(): Promise<ImportMetrics> {
     try {
       const { rows } = await adminQuery(sql);
       const rawValue = rows[0]?.value;
-      metrics[name] = rawValue == null ? null : parseInt(String(rawValue), 10);
+      metrics[name] =
+        rawValue === null || rawValue === undefined ? null : parseInt(String(rawValue), 10);
     } catch (e: any) {
       logger.warn(`Failed to capture import metric ${name}: ${e.message}`);
       metrics[name] = null;
@@ -74,7 +75,7 @@ export async function createImportHistoryEntry(
  * Marks the import history row as having taken a backup.
  */
 export async function markImportBackupTaken(historyId: number): Promise<void> {
-  await adminQuery(`UPDATE app.import_history SET backup_taken = TRUE WHERE id = $1`, [historyId]);
+  await adminQuery('UPDATE app.import_history SET backup_taken = TRUE WHERE id = $1', [historyId]);
 }
 
 /**

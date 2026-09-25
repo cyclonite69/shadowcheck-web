@@ -22,13 +22,9 @@ export class ExifToolUnavailableError extends Error {
 export async function extractExif(
   imagePath: string
 ): Promise<{ lat: number; lon: number; timestamp: string }> {
-  let latStr = '';
-  let lonStr = '';
-  let tsStr = '';
-  let offset = '';
-
+  let results;
   try {
-    const [latRes, lonRes, tsRes, offsetRes] = await Promise.all([
+    results = await Promise.all([
       execFilePromise('exiftool', ['-n', '-p', '$GPSLatitude', imagePath]),
       execFilePromise('exiftool', ['-n', '-p', '$GPSLongitude', imagePath]),
       execFilePromise('exiftool', [
@@ -42,22 +38,31 @@ export async function extractExif(
         stdout: '',
       })),
     ]);
-
-    latStr = latRes.stdout.trim();
-    lonStr = lonRes.stdout.trim();
-    tsStr = tsRes.stdout.trim();
-    offset = offsetRes.stdout.trim();
   } catch (error: any) {
     if (error?.code === 'ENOENT') {
       throw new ExifToolUnavailableError();
     }
-    throw new Error(`Failed to parse EXIF payload for ${imagePath}: ${error.message}`);
+    throw new (Error as any)(`Failed to parse EXIF payload for ${imagePath}: ${error.message}`, {
+      cause: error,
+    });
   }
 
+  const [latRes, lonRes, tsRes, offsetRes] = results;
+  const latStr = latRes.stdout.trim();
+  const lonStr = lonRes.stdout.trim();
+  const tsStr = tsRes.stdout.trim();
+  const offset = offsetRes.stdout.trim();
+
   const missingFields: string[] = [];
-  if (!latStr) missingFields.push('GPSLatitude');
-  if (!lonStr) missingFields.push('GPSLongitude');
-  if (!tsStr) missingFields.push('DateTimeOriginal');
+  if (!latStr) {
+    missingFields.push('GPSLatitude');
+  }
+  if (!lonStr) {
+    missingFields.push('GPSLongitude');
+  }
+  if (!tsStr) {
+    missingFields.push('DateTimeOriginal');
+  }
 
   if (missingFields.length > 0) {
     throw new ExifMissingError(`Missing EXIF telemetry fields: ${missingFields.join(', ')}`);
@@ -69,8 +74,12 @@ export async function extractExif(
 
   if (isNaN(lat) || isNaN(lon)) {
     const badFields: string[] = [];
-    if (isNaN(lat)) badFields.push('GPSLatitude');
-    if (isNaN(lon)) badFields.push('GPSLongitude');
+    if (isNaN(lat)) {
+      badFields.push('GPSLatitude');
+    }
+    if (isNaN(lon)) {
+      badFields.push('GPSLongitude');
+    }
     throw new ExifMissingError(`Invalid coordinate format in EXIF fields: ${badFields.join(', ')}`);
   }
 

@@ -11,7 +11,9 @@ const COLUMN_DRAG_MIME = 'application/x-shadowcheck-column';
 
 const getDraggedColumn = (event: React.DragEvent<HTMLElement>): string | null => {
   const explicit = event.dataTransfer.getData(COLUMN_DRAG_MIME);
-  if (explicit) return explicit;
+  if (explicit) {
+    return explicit;
+  }
   const fallback = event.dataTransfer.getData('text/plain');
   return fallback || null;
 };
@@ -86,32 +88,40 @@ export const NetworkTableHeaderGrid = ({
       >
         {visibleColumns.map((col) => {
           const column = NETWORK_COLUMNS[col as keyof typeof NETWORK_COLUMNS];
-          if (!column) return null;
+          if (!column) {
+            return null;
+          }
 
           const sortIndex = sort.findIndex((s) => s.column === col);
           const sortState = sortIndex >= 0 ? sort[sortIndex] : null;
           const isSortable =
             col !== 'select' && Boolean(API_SORT_MAP[col as keyof NetworkRow]) && column.sortable;
-          const isDraggable = col !== 'select' && !!onReorderColumns;
+          const isDraggable = col !== 'select' && Boolean(onReorderColumns);
           const isDropTarget = dropTarget === col && dragCol !== col;
 
           const dropZoneProps = isDraggable
             ? {
                 onDragOver: (e: React.DragEvent<HTMLDivElement>) => {
                   const draggedCol = getDraggedColumn(e) || dragCol;
-                  if (!draggedCol || draggedCol === col) return;
+                  if (!draggedCol || draggedCol === col) {
+                    return;
+                  }
                   e.preventDefault();
                   e.dataTransfer.dropEffect = 'move';
                   setDropTarget(col);
                 },
                 onDragEnter: (e: React.DragEvent<HTMLDivElement>) => {
                   const draggedCol = getDraggedColumn(e) || dragCol;
-                  if (!draggedCol || draggedCol === col) return;
+                  if (!draggedCol || draggedCol === col) {
+                    return;
+                  }
                   e.preventDefault();
                   setDropTarget(col);
                 },
                 onDragLeave: () => {
-                  if (dropTarget === col) setDropTarget(null);
+                  if (dropTarget === col) {
+                    setDropTarget(null);
+                  }
                 },
                 onDrop: (e: React.DragEvent<HTMLDivElement>) => {
                   e.preventDefault();
@@ -172,7 +182,9 @@ export const NetworkTableHeaderGrid = ({
                   checked={allSelected}
                   aria-label="Select all networks"
                   ref={(el) => {
-                    if (el) el.indeterminate = someSelected && !allSelected;
+                    if (el) {
+                      el.indeterminate = someSelected && !allSelected;
+                    }
                   }}
                   onChange={onToggleSelectAll}
                   style={{ cursor: 'pointer' }}

@@ -28,7 +28,6 @@ export function useAsyncData<T>(
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -36,7 +35,9 @@ export function useAsyncData<T>(
 
     fetcher()
       .then((result) => {
-        if (!cancelled) setData(result);
+        if (!cancelled) {
+          setData(result);
+        }
       })
       .catch((err) => {
         if (!cancelled && err?.name !== 'AbortError') {
@@ -44,14 +45,15 @@ export function useAsyncData<T>(
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
     // deps is intentionally dynamic — same contract as useEffect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
 
   return { data, loading, error, refetch };

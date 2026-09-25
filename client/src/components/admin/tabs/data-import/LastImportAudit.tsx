@@ -7,12 +7,14 @@ interface LastImportAuditProps {
 }
 
 export const LastImportAudit = ({ lastResult, sourceTag }: LastImportAuditProps) => {
-  if (!lastResult.metricsBefore || !lastResult.metricsAfter) return null;
+  if (!lastResult.metricsBefore || !lastResult.metricsAfter) {
+    return null;
+  }
   const metricValues = [
     ...Object.values(lastResult.metricsBefore),
     ...Object.values(lastResult.metricsAfter),
   ];
-  const hasAnyMetric = metricValues.some((value) => value != null);
+  const hasAnyMetric = metricValues.some((value) => value !== null && value !== undefined);
 
   return (
     <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">

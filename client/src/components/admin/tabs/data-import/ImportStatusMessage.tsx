@@ -5,7 +5,9 @@ interface ImportStatusMessageProps {
 }
 
 export const ImportStatusMessage: React.FC<ImportStatusMessageProps> = ({ status }) => {
-  if (!status) return null;
+  if (!status) {
+    return null;
+  }
 
   const isSuccess =
     status.startsWith('Imported') ||

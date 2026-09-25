@@ -56,14 +56,18 @@ interface GeocodingService {
 
 function parseNumberArg(args: string[], prefix: string, fallback: number): number {
   const raw = args.find((arg) => arg.startsWith(prefix));
-  if (!raw) return fallback;
+  if (!raw) {
+    return fallback;
+  }
   const parsed = Number.parseInt(raw.split('=')[1], 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function parseStringArg(args: string[], prefix: string): string | null {
   const raw = args.find((arg) => arg.startsWith(prefix));
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   const value = raw.slice(prefix.length).trim();
   return value || null;
 }

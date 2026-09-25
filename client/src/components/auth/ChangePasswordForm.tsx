@@ -80,14 +80,14 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
               />
             </svg>
           </div>
-            <h2 className="mt-6 text-center text-3xl font-bold text-white">
-              {forceMode ? 'Password Update Required' : 'Change Password'}
-            </h2>
-            <p className="mt-2 text-center text-sm text-slate-400">
-              {forceMode
-                ? 'Your password must be changed before continuing.'
-                : 'Enter your current password and choose a new one'}
-            </p>
+          <h2 className="mt-6 text-center text-3xl font-bold text-white">
+            {forceMode ? 'Password Update Required' : 'Change Password'}
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-400">
+            {forceMode
+              ? 'Your password must be changed before continuing.'
+              : 'Enter your current password and choose a new one'}
+          </p>
         </div>
 
         {error && (

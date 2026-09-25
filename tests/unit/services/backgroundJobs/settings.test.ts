@@ -47,7 +47,7 @@ describe('backgroundJobs/settings', () => {
       const configs = {
         [JOB_SETTING_KEYS['mlScoring']]: { enabled: true, cron: '0 * * * *' },
       };
-      
+
       const config = getResolvedJobConfig(configs, 'mlScoring');
       expect(config).toEqual({ enabled: true, cron: '0 * * * *' });
     });
@@ -60,34 +60,34 @@ describe('backgroundJobs/settings', () => {
     it('should return true if previous config is missing', () => {
       const previousConfigs = {};
       const nextConfig = { enabled: true, cron: '0 * * * *' };
-      
+
       expect(hasJobConfigChanged(previousConfigs, jobName, nextConfig)).toBe(true);
     });
 
     it('should return true if enabled state changed', () => {
       const previousConfigs = {
-        [key]: { enabled: false, cron: '0 * * * *' }
+        [key]: { enabled: false, cron: '0 * * * *' },
       };
       const nextConfig = { enabled: true, cron: '0 * * * *' };
-      
+
       expect(hasJobConfigChanged(previousConfigs, jobName, nextConfig)).toBe(true);
     });
 
     it('should return true if cron changed', () => {
       const previousConfigs = {
-        [key]: { enabled: true, cron: '0 1 * * *' }
+        [key]: { enabled: true, cron: '0 1 * * *' },
       };
       const nextConfig = { enabled: true, cron: '0 2 * * *' };
-      
+
       expect(hasJobConfigChanged(previousConfigs, jobName, nextConfig)).toBe(true);
     });
 
     it('should return false if neither enabled state nor cron changed', () => {
       const previousConfigs = {
-        [key]: { enabled: true, cron: '0 * * * *' }
+        [key]: { enabled: true, cron: '0 * * * *' },
       };
       const nextConfig = { enabled: true, cron: '0 * * * *' };
-      
+
       expect(hasJobConfigChanged(previousConfigs, jobName, nextConfig)).toBe(false);
     });
   });

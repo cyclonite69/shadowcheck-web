@@ -10,7 +10,9 @@ const GEOCODABLE_OBSERVATION_PREDICATE = `
 `;
 
 const shouldSkipPoi = (address?: string | null): boolean => {
-  if (!address) return false;
+  if (!address) {
+    return false;
+  }
   const normalized = address.toLowerCase();
   return (
     normalized.includes('814 martin luther king') || normalized.includes('816 martin luther king')
@@ -52,12 +54,18 @@ const shouldReplaceAddressData = (
     provider?: string | null;
   }
 ): boolean => {
-  if (!incoming?.ok || !incoming.address) return false;
-  if (!current?.address) return true;
+  if (!incoming?.ok || !incoming.address) {
+    return false;
+  }
+  if (!current?.address) {
+    return true;
+  }
 
   const currentConfidence = Number(current.confidence ?? 0);
   const incomingConfidence = Number(incoming.confidence ?? 0);
-  if (incomingConfidence >= currentConfidence + 0.1) return true;
+  if (incomingConfidence >= currentConfidence + 0.1) {
+    return true;
+  }
 
   if (Math.abs(incomingConfidence - currentConfidence) <= 0.05) {
     return providerPriority(incoming.provider) > providerPriority(current.provider);

@@ -238,7 +238,7 @@ const listImportRuns = async (
     sortDir,
   } = options;
   const params: any[] = [];
-  const where: string[] = [`source NOT IN ('v3_manual', 'v3_batch', 'v3_auto')`];
+  const where: string[] = ["source NOT IN ('v3_manual', 'v3_batch', 'v3_auto')"];
 
   if (status) {
     params.push(status);
@@ -253,7 +253,7 @@ const listImportRuns = async (
     where.push(`search_term ILIKE $${params.length}`);
   }
   if (incompleteOnly) {
-    where.push(`status IN ('running', 'paused', 'failed')`);
+    where.push("status IN ('running', 'paused', 'failed')");
   }
 
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
@@ -281,7 +281,9 @@ const listImportRuns = async (
   const orderTerms: string[] = [];
   sortKeys.forEach((key, i) => {
     const col = SORT_ALLOWLIST[key];
-    if (!col) return;
+    if (!col) {
+      return;
+    }
     const dir = sortDirs[i] === 'desc' ? 'DESC' : 'ASC';
     orderTerms.push(`${col} ${dir}`);
   });
@@ -321,16 +323,16 @@ const getImportCompletenessSummary = async (
   const { searchTerm, state } = options;
   const params: any[] = [];
   const latestRunWhere = [
-    `source IN ('wigle', 'wigle_v2', 'v3_batch', 'v3_manual')`,
-    `state IS NOT NULL`,
+    "source IN ('wigle', 'wigle_v2', 'v3_batch', 'v3_manual')",
+    'state IS NOT NULL',
   ];
-  const tableCountWhere = [`country = 'US'`, `region IS NOT NULL`, `LENGTH(TRIM(region)) = 2`];
+  const tableCountWhere = ["country = 'US'", 'region IS NOT NULL', 'LENGTH(TRIM(region)) = 2'];
   const ledgerWhere = [
-    `e.kind = 'search'`,
-    `e.phase = 'complete'`,
-    `e.query_params->>'region' IS NOT NULL`,
-    `LENGTH(TRIM(e.query_params->>'region')) = 2`,
-    `TRIM(UPPER(e.query_params->>'country')) = 'US'`,
+    "e.kind = 'search'",
+    "e.phase = 'complete'",
+    "e.query_params->>'region' IS NOT NULL",
+    "LENGTH(TRIM(e.query_params->>'region')) = 2",
+    "TRIM(UPPER(e.query_params->>'country')) = 'US'",
   ];
 
   if (searchTerm) {
@@ -466,13 +468,17 @@ const getLatestResumableImportRun = async (
   resumableStatuses: string[]
 ) => {
   const run = await findLatestResumableRun(rawQuery, resumableStatuses);
-  if (!run) return null;
+  if (!run) {
+    return null;
+  }
   return getImportRun(Number(run.id));
 };
 
 // Hard-deletes cancelled runs by ID array; returns count deleted
 export const bulkDeleteCancelledRunsByIds = async (ids: number[]): Promise<number> => {
-  if (ids.length === 0) return 0;
+  if (ids.length === 0) {
+    return 0;
+  }
   const result = await adminDbService.adminQuery(
     `DELETE FROM app.wigle_import_runs
       WHERE id = ANY($1::bigint[])

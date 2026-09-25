@@ -44,7 +44,9 @@ class BaseRepository {
    */
   private filterColumns(data: Record<string, unknown>): Record<string, unknown> {
     const allowed = (this.constructor as typeof BaseRepository).ALLOWED_COLUMNS;
-    if (allowed.size === 0) return data; // no whitelist defined — pass through
+    if (allowed.size === 0) {
+      return data;
+    } // no whitelist defined — pass through
     return Object.fromEntries(Object.entries(data).filter(([k]) => allowed.has(k)));
   }
 

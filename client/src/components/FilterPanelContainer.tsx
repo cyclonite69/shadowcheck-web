@@ -21,7 +21,9 @@ export const FilterPanelContainer: React.FC<FilterPanelContainerProps> = ({
   position = 'sidebar',
   children,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const positionStyles =
     position === 'overlay'

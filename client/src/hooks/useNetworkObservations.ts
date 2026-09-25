@@ -43,9 +43,13 @@ export function useNetworkObservations(bssid: string): UseNetworkObservationsRet
     error: fetchError,
     refetch,
   } = useAsyncData<Observation[]>(async () => {
-    if (!bssid) return [];
+    if (!bssid) {
+      return [];
+    }
     const res = await networkApi.getNetworkObservations(bssid);
-    if (res.error) throw new Error(res.error);
+    if (res.error) {
+      throw new Error(res.error);
+    }
     // Normalize data: API returns strings for some fields, frontend expects numbers
     return (res.observations || [])
       .map((o: Record<string, unknown>): Observation => normalizeObservation(o))

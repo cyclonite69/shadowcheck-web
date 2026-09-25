@@ -6,7 +6,9 @@ interface FiltersSidebarProps {
 }
 
 export const FiltersSidebar = ({ open, children }: FiltersSidebarProps) => {
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <div className="fixed top-14 left-3 w-[440px] max-h-[calc(100vh-80px)] z-40 overflow-y-auto rounded-xl bg-slate-900/95 backdrop-blur-xl shadow-2xl pointer-events-auto border border-slate-600/60">

@@ -3,10 +3,14 @@ import type { Observation } from '../types/network';
 type ObservationApiRow = Record<string, unknown>;
 
 const toFiniteNumber = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
   if (typeof value === 'string') {
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
   }
   return null;
 };
@@ -46,8 +50,12 @@ export function groupObservationRowsByBssid(
 ): Record<string, Observation[]> {
   return rows.reduce<Record<string, Observation[]>>((acc, row) => {
     const mapped = mapObservationApiRow(row);
-    if (!mapped) return acc;
-    if (!acc[mapped.bssid]) acc[mapped.bssid] = [];
+    if (!mapped) {
+      return acc;
+    }
+    if (!acc[mapped.bssid]) {
+      acc[mapped.bssid] = [];
+    }
     acc[mapped.bssid].push(mapped);
     return acc;
   }, {});

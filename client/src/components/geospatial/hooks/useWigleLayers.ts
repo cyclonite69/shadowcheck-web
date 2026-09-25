@@ -87,18 +87,26 @@ export const useWigleLayers = ({
   }, [onOpenContextMenu, networkLookup]);
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !wigleObservations) return;
+    if (!mapReady || !mapRef.current || !wigleObservations) {
+      return;
+    }
 
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!mapboxgl) return;
+    if (!mapboxgl) {
+      return;
+    }
 
     const handleContextMenu = (e: MapLayerMouseEvent) => {
-      if (!onOpenContextMenuRef.current || !e.features || e.features.length === 0) return;
+      if (!onOpenContextMenuRef.current || !e.features || e.features.length === 0) {
+        return;
+      }
 
       const feature = e.features[0];
       const props = feature.properties;
-      if (!props || !props.bssid) return;
+      if (!props || !props.bssid) {
+        return;
+      }
 
       const network = networkLookupRef.current.get(props.bssid);
       if (network) {
@@ -149,7 +157,7 @@ export const useWigleLayers = ({
         altitude: props.altitude ?? null,
         accuracy: props.accuracy ?? null,
         distance_from_home_km:
-          homeLat != null && homeLon != null
+          homeLat !== null && homeLat !== undefined && homeLon !== null && homeLon !== undefined
             ? haversineKm(homeLat, homeLon, coords[1], coords[0])
             : null,
         number: props.number ?? null,
@@ -191,18 +199,26 @@ export const useWigleLayers = ({
     };
 
     const handleUniqueClick = (e: MapLayerMouseEvent) => {
-      if (!e.features || e.features.length === 0) return;
+      if (!e.features || e.features.length === 0) {
+        return;
+      }
       const feature = e.features[0];
       const props = feature.properties;
-      if (!props) return;
+      if (!props) {
+        return;
+      }
       makeObsPopup(props, (feature.geometry as any).coordinates, false);
     };
 
     const handleMatchedClick = (e: MapLayerMouseEvent) => {
-      if (!e.features || e.features.length === 0) return;
+      if (!e.features || e.features.length === 0) {
+        return;
+      }
       const feature = e.features[0];
       const props = feature.properties;
-      if (!props) return;
+      if (!props) {
+        return;
+      }
       makeObsPopup(props, (feature.geometry as any).coordinates, true);
     };
 
@@ -223,7 +239,9 @@ export const useWigleLayers = ({
     };
 
     const ensureWigleLayers = () => {
-      if (!map.isStyleLoaded()) return false;
+      if (!map.isStyleLoaded()) {
+        return false;
+      }
 
       if (!map.getSource('wigle-observations')) {
         map.addSource('wigle-observations', {
@@ -283,9 +301,13 @@ export const useWigleLayers = ({
     };
 
     const syncWigleSource = () => {
-      if (!ensureWigleLayers()) return false;
+      if (!ensureWigleLayers()) {
+        return false;
+      }
       const wigleSource = map.getSource('wigle-observations') as GeoJSONSource | undefined;
-      if (!wigleSource) return false;
+      if (!wigleSource) {
+        return false;
+      }
 
       if (wigleObservations.observations.length > 0) {
         const features = wigleObservations.observations.map((obs, index) => ({

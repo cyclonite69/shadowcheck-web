@@ -34,9 +34,15 @@ function Badge({
 }
 
 const statusToBadgeType = (status: string): keyof typeof BADGE_STYLES => {
-  if (status === 'success') return 'success';
-  if (status === 'error') return 'error';
-  if (status === 'rate_limited') return 'warning';
+  if (status === 'success') {
+    return 'success';
+  }
+  if (status === 'error') {
+    return 'error';
+  }
+  if (status === 'rate_limited') {
+    return 'warning';
+  }
   return 'neutral';
 };
 
@@ -45,25 +51,39 @@ const sourceToBadgeType = (source: string): keyof typeof BADGE_STYLES => {
 };
 
 const phaseToBadgeType = (phase: string): keyof typeof BADGE_STYLES => {
-  if (phase === 'pending') return 'warning';
-  if (phase === 'complete') return 'success';
+  if (phase === 'pending') {
+    return 'warning';
+  }
+  if (phase === 'complete') {
+    return 'success';
+  }
   return 'neutral';
 };
 
 const querySourceToBadgeType = (qs: string): keyof typeof BADGE_STYLES => {
-  if (qs === 'manual' || qs === 'scheduled' || qs === 'import') return 'info';
+  if (qs === 'manual' || qs === 'scheduled' || qs === 'import') {
+    return 'info';
+  }
   return 'neutral';
 };
 
 const httpStatusToBadgeType = (status: number): keyof typeof BADGE_STYLES => {
-  if (status === 429) return 'warning';
-  if (status >= 400) return 'error';
+  if (status === 429) {
+    return 'warning';
+  }
+  if (status >= 400) {
+    return 'error';
+  }
   return 'success';
 };
 
 function fmtDuration(ms?: number) {
-  if (ms == null) return '—';
-  if (ms < 1000) return `${ms}ms`;
+  if (ms === null || ms === undefined) {
+    return '—';
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
@@ -81,7 +101,9 @@ export function WigleLedgerPanel() {
 
   const load = useCallback(
     async (reset = false) => {
-      if (loading) return;
+      if (loading) {
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -103,28 +125,38 @@ export function WigleLedgerPanel() {
 
   // Load on open or filter change
   useEffect(() => {
-    if (open) load(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (open) {
+      load(true);
+    }
   }, [open, statusFilter]);
 
   // Auto-refresh every 30s when open and at top
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     refreshTimer.current = setInterval(() => {
-      if (atTop.current) load(true);
+      if (atTop.current) {
+        load(true);
+      }
     }, 30_000);
     return () => {
-      if (refreshTimer.current) clearInterval(refreshTimer.current);
+      if (refreshTimer.current) {
+        clearInterval(refreshTimer.current);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, statusFilter]);
 
   // Infinite scroll sentinel
   useEffect(() => {
-    if (!bottomRef.current || !hasMore) return;
+    if (!bottomRef.current || !hasMore) {
+      return;
+    }
     const obs = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading) load(false);
+        if (entries[0].isIntersecting && !loading) {
+          load(false);
+        }
       },
       { threshold: 0.1 }
     );
@@ -226,14 +258,14 @@ export function WigleLedgerPanel() {
                         </td>
                         <td className="px-3 py-1.5">
                           <Badge
-                            text={`${row.status.replace('_', ' ')}${row.httpStatus != null ? ` (${row.httpStatus})` : ''}`}
+                            text={`${row.status.replace('_', ' ')}${row.httpStatus !== null && row.httpStatus !== undefined ? ` (${row.httpStatus})` : ''}`}
                             type={statusToBadgeType(row.status)}
                           />
                         </td>
                         <td className="px-3 py-1.5 text-right text-slate-400 font-mono">
-                          {row.rowsInserted != null
+                          {row.rowsInserted !== null && row.rowsInserted !== undefined
                             ? row.rowsInserted.toLocaleString()
-                            : row.resultCount != null
+                            : row.resultCount !== null && row.resultCount !== undefined
                               ? row.resultCount.toLocaleString()
                               : '—'}
                         </td>
@@ -274,7 +306,7 @@ export function WigleLedgerPanel() {
                                     <span>—</span>
                                   )}
                                 </div>
-                                {row.httpStatus != null && (
+                                {row.httpStatus !== null && row.httpStatus !== undefined && (
                                   <div className="flex items-center gap-2">
                                     <span className="text-slate-500 font-semibold w-24">
                                       HTTP Status:
@@ -285,7 +317,7 @@ export function WigleLedgerPanel() {
                                     />
                                   </div>
                                 )}
-                                {row.resultCount != null && (
+                                {row.resultCount !== null && row.resultCount !== undefined && (
                                   <div className="flex items-center gap-2">
                                     <span className="text-slate-500 font-semibold w-24">
                                       Result Count:
@@ -293,18 +325,19 @@ export function WigleLedgerPanel() {
                                     <Badge text={row.resultCount} type="neutral" isMono={true} />
                                   </div>
                                 )}
-                                {row.retryAfterHint != null && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-slate-500 font-semibold w-24">
-                                      Retry-After Hint:
-                                    </span>
-                                    <Badge
-                                      text={`${row.retryAfterHint}s`}
-                                      type="warning"
-                                      isMono={true}
-                                    />
-                                  </div>
-                                )}
+                                {row.retryAfterHint !== null &&
+                                  row.retryAfterHint !== undefined && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-slate-500 font-semibold w-24">
+                                        Retry-After Hint:
+                                      </span>
+                                      <Badge
+                                        text={`${row.retryAfterHint}s`}
+                                        type="warning"
+                                        isMono={true}
+                                      />
+                                    </div>
+                                  )}
                                 {row.error && (
                                   <div className="text-red-400 border border-red-700/40 bg-red-950/20 p-2 rounded max-w-md mt-1">
                                     <span className="text-red-500 font-semibold">

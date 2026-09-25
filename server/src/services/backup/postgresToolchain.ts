@@ -270,7 +270,7 @@ export const dumpPostgresDatabase = async (options: {
     pgEnv,
   } = options;
 
-  let globalsSuccess = false;
+  let globalsSuccess: boolean;
 
   if (isLocalComposePostgres()) {
     const adminUser = pgEnv.PGUSER || process.env.DB_ADMIN_USER || 'shadowcheck_admin';

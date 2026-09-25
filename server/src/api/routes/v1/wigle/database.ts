@@ -146,17 +146,24 @@ router.get(
       try {
         const filterObj = JSON.parse(filters as string);
         const enabledObj = JSON.parse(enabled as string);
-        if (enabledObj.ssid && filterObj.ssid) ssid = String(filterObj.ssid);
-        if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
-        if (enabledObj.encryptionTypes && filterObj.encryptionTypes)
+        if (enabledObj.ssid && filterObj.ssid) {
+          ssid = String(filterObj.ssid);
+        }
+        if (enabledObj.bssid && filterObj.bssid) {
+          bssid = String(filterObj.bssid);
+        }
+        if (enabledObj.encryptionTypes && filterObj.encryptionTypes) {
           encryption = String(filterObj.encryptionTypes);
+        }
       } catch (e: any) {
         logger.warn('Invalid filter parameters:', e.message);
       }
     }
 
     // Fallback to query param if not in filter object
-    if (!encryption && encryptionRaw) encryption = String(encryptionRaw);
+    if (!encryption && encryptionRaw) {
+      encryption = String(encryptionRaw);
+    }
 
     const { rows, total } = await wigleService.getWigleDatabase({
       version: 'v2',
@@ -209,17 +216,24 @@ router.get(
       try {
         const filterObj = JSON.parse(filters as string);
         const enabledObj = JSON.parse(enabled as string);
-        if (enabledObj.ssid && filterObj.ssid) ssid = String(filterObj.ssid);
-        if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
-        if (enabledObj.encryptionTypes && filterObj.encryptionTypes)
+        if (enabledObj.ssid && filterObj.ssid) {
+          ssid = String(filterObj.ssid);
+        }
+        if (enabledObj.bssid && filterObj.bssid) {
+          bssid = String(filterObj.bssid);
+        }
+        if (enabledObj.encryptionTypes && filterObj.encryptionTypes) {
           encryption = String(filterObj.encryptionTypes);
+        }
       } catch (e: any) {
         logger.warn('Invalid filter parameters for v3:', e.message);
       }
     }
 
     // Fallback to query param if not in filter object
-    if (!encryption && encryptionRaw) encryption = String(encryptionRaw);
+    if (!encryption && encryptionRaw) {
+      encryption = String(encryptionRaw);
+    }
 
     const { rows, total } = await wigleService.getWigleDatabase({
       version: 'v3',
@@ -275,7 +289,9 @@ router.get(
       try {
         const filterObj = JSON.parse(filters as string);
         const enabledObj = JSON.parse(enabled as string);
-        if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
+        if (enabledObj.bssid && filterObj.bssid) {
+          bssid = String(filterObj.bssid);
+        }
       } catch (e: any) {
         logger.warn('Invalid filter parameters for KML points:', e.message);
       }

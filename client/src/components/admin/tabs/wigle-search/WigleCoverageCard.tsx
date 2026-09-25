@@ -26,7 +26,9 @@ export const WigleCoverageCard: React.FC<WigleCoverageCardProps> = ({
   termReport,
   termReportLoading,
 }) => {
-  if (coverageTerms.length === 0) return null;
+  if (coverageTerms.length === 0) {
+    return null;
+  }
 
   return (
     <AdminCard icon={BadgeIcon} title="WiGLE Coverage by State" color="from-amber-500 to-amber-600">

@@ -18,12 +18,12 @@ async function getSiblingRefreshStatusReconciled(): Promise<SiblingRefreshStatus
   }
 
   const bgRunning = await adminQuery(
-    `SELECT id FROM app.background_job_runs WHERE job_name = $1 AND status = $2 LIMIT 1`,
+    'SELECT id FROM app.background_job_runs WHERE job_name = $1 AND status = $2 LIMIT 1',
     ['siblingDetection', 'running']
   );
 
   const siblingRunning = await adminQuery(
-    `SELECT id FROM app.sibling_runs WHERE status = $1 LIMIT 1`,
+    'SELECT id FROM app.sibling_runs WHERE status = $1 LIMIT 1',
     ['running']
   );
 

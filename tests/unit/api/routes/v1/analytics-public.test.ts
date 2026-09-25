@@ -91,7 +91,7 @@ describe('Analytics Public Routes', () => {
 
     it('handles non-Error throwables gracefully', async () => {
       mockParseAndValidateFilters.mockImplementation(() => {
-        throw 'String error';
+        throw new Error('Unknown analytics error');
       });
 
       const response = await request(app).get('/api/analytics-public/filtered');

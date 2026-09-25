@@ -14,7 +14,9 @@ import { assertCanRequest, updateLedgerOutcome } from '../wigleRequestLedger';
 
 /** Parse a Retry-After header value into seconds, returns null if absent or unparseable. */
 function parseRetryAfter(raw: string | null): number | null {
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   const n = parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
@@ -54,7 +56,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       validateWigleSearchParams(searchParams);
     } catch (err) {
       if (err instanceof WigleValidationError) {
-        logger.error(`[WiGLE Gateway] Param validation blocked request`, {
+        logger.error('[WiGLE Gateway] Param validation blocked request', {
           invalidKey: err.invalidKey,
           invalidValue: err.invalidValue,
           url,
@@ -82,7 +84,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
     try {
       assertCanRequest(kind, priority);
     } catch (err: any) {
-      logger.warn(`[WiGLE Gateway] Stats request blocked by quota policy`, {
+      logger.warn('[WiGLE Gateway] Stats request blocked by quota policy', {
         entrypoint,
         message: err?.message,
         status: err?.status,

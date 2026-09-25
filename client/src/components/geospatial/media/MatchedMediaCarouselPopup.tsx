@@ -33,8 +33,12 @@ export const MatchedMediaCarouselPopup = ({
 
   // Parse member BSSIDs (in case passed as JSON string from Mapbox properties)
   const resolvedBssids = useMemo(() => {
-    if (!memberBssids) return [];
-    if (Array.isArray(memberBssids)) return memberBssids;
+    if (!memberBssids) {
+      return [];
+    }
+    if (Array.isArray(memberBssids)) {
+      return memberBssids;
+    }
     try {
       const parsed = JSON.parse(memberBssids);
       return Array.isArray(parsed) ? parsed : [String(memberBssids)];
@@ -45,8 +49,12 @@ export const MatchedMediaCarouselPopup = ({
 
   // Parse media IDs
   const resolvedMediaIds = useMemo(() => {
-    if (!mediaIds) return [];
-    if (Array.isArray(mediaIds)) return mediaIds;
+    if (!mediaIds) {
+      return [];
+    }
+    if (Array.isArray(mediaIds)) {
+      return mediaIds;
+    }
     try {
       const parsed = JSON.parse(mediaIds);
       return Array.isArray(parsed) ? parsed.map(Number) : [Number(mediaIds)];
@@ -73,7 +81,9 @@ export const MatchedMediaCarouselPopup = ({
           resolvedBssids.map((bssid) => networkApi.getNetworkMedia(bssid))
         );
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         // Merge results and deduplicate by media ID
         const mergedMap = new Map<number, NetworkMediaItem>();
@@ -96,14 +106,22 @@ export const MatchedMediaCarouselPopup = ({
           const hasA = idxA !== -1;
           const hasB = idxB !== -1;
 
-          if (hasA && hasB) return idxA - idxB;
-          if (hasA) return -1;
-          if (hasB) return 1;
+          if (hasA && hasB) {
+            return idxA - idxB;
+          }
+          if (hasA) {
+            return -1;
+          }
+          if (hasB) {
+            return 1;
+          }
 
           // Fallback sorting: EXIF date, then creation date, then ID
           const timeA = new Date(a.exif_captured_at || a.created_at).getTime();
           const timeB = new Date(b.exif_captured_at || b.created_at).getTime();
-          if (timeA !== timeB) return timeB - timeA; // Descending order (newest first)
+          if (timeA !== timeB) {
+            return timeB - timeA;
+          } // Descending order (newest first)
 
           return b.id - a.id;
         });
@@ -139,12 +157,16 @@ export const MatchedMediaCarouselPopup = ({
   const activeItem: NetworkMediaItem | undefined = items[activeIndex];
 
   const handleNext = () => {
-    if (items.length <= 1) return;
+    if (items.length <= 1) {
+      return;
+    }
     setActiveIndex((prev) => (prev + 1) % items.length);
   };
 
   const handlePrev = () => {
-    if (items.length <= 1) return;
+    if (items.length <= 1) {
+      return;
+    }
     setActiveIndex((prev) => (prev - 1 + items.length) % items.length);
   };
 
@@ -225,10 +247,10 @@ export const MatchedMediaCarouselPopup = ({
   let distanceText: string | null = null;
   if (
     markerLocationSource === 'observation' &&
-    captureLat != null &&
-    captureLon != null &&
-    observationLat != null &&
-    observationLon != null
+    captureLat !== null &&
+    captureLon !== null &&
+    observationLat !== null &&
+    observationLon !== null
   ) {
     const dist = calculateDistance(captureLat, captureLon, observationLat, observationLon);
     distanceText = `Captured ${dist.toFixed(2)}m from observation point`;
@@ -461,7 +483,7 @@ export const MatchedMediaCarouselPopup = ({
             )}
           </div>
 
-          {activeItem.observation_id != null && (
+          {activeItem.observation_id !== null && activeItem.observation_id !== undefined && (
             <div>
               <span style={{ color: '#64748b' }}>Obs Anchor: </span>
               <a

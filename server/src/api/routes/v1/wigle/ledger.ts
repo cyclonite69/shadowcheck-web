@@ -42,8 +42,11 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
     let beforeEvtId: number | null = null;
     let beforeRunId: number | null = null;
     if (beforeId) {
-      if (beforeId.startsWith('evt_')) beforeEvtId = Number(beforeId.slice(4));
-      else if (beforeId.startsWith('run_')) beforeRunId = Number(beforeId.slice(4));
+      if (beforeId.startsWith('evt_')) {
+        beforeEvtId = Number(beforeId.slice(4));
+      } else if (beforeId.startsWith('run_')) {
+        beforeRunId = Number(beforeId.slice(4));
+      }
     }
 
     // Build separate param arrays for each CTE to keep indexing simple
@@ -56,10 +59,10 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
         if (beforeEvtId !== null) {
           params.push(beforeEvtId);
           conditions.push(
-            `(e.requested_at < $1::timestamptz OR (e.requested_at = $1::timestamptz AND e.id < $2))`
+            '(e.requested_at < $1::timestamptz OR (e.requested_at = $1::timestamptz AND e.id < $2))'
           );
         } else {
-          conditions.push(`e.requested_at < $1::timestamptz`);
+          conditions.push('e.requested_at < $1::timestamptz');
         }
       }
       if (statusFilter !== 'all') {
@@ -106,10 +109,10 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
         if (beforeRunId !== null) {
           params.push(beforeRunId);
           conditions.push(
-            `(r.started_at < $1::timestamptz OR (r.started_at = $1::timestamptz AND r.id < $2))`
+            '(r.started_at < $1::timestamptz OR (r.started_at = $1::timestamptz AND r.id < $2))'
           );
         } else {
-          conditions.push(`r.started_at < $1::timestamptz`);
+          conditions.push('r.started_at < $1::timestamptz');
         }
       }
 
@@ -195,7 +198,9 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
     // Merge-sort by ts DESC, id DESC
     const all = [...evtResult.rows, ...runResult.rows].sort((a, b) => {
       const tDiff = new Date(b.ts).getTime() - new Date(a.ts).getTime();
-      if (tDiff !== 0) return tDiff;
+      if (tDiff !== 0) {
+        return tDiff;
+      }
       // Compare ids numerically (strip prefix)
       const aId = Number(String(a.id).replace(/^\w+_/, ''));
       const bId = Number(String(b.id).replace(/^\w+_/, ''));

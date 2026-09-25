@@ -46,7 +46,9 @@ export interface DetailError {
  */
 export function isLocallyAdministeredMac(mac: string): boolean {
   const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
-  if (clean.length < 2) return false;
+  if (clean.length < 2) {
+    return false;
+  }
   const firstByte = parseInt(clean.substring(0, 2), 16);
   return (firstByte & 0x02) !== 0;
 }
@@ -91,7 +93,6 @@ export async function fetchUpstream(
     })}`
   );
 
-  let response: Response;
   const gatewayResult = await wigleGatewayFetch({
     kind: 'detail',
     url: apiUrl,
@@ -120,7 +121,7 @@ export async function fetchUpstream(
     );
     return { ok: false, status, error: gatewayResult.error };
   }
-  response = gatewayResult.response;
+  const response = gatewayResult.response;
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -166,7 +167,9 @@ export async function importObservations(
   netid: string,
   locationClusters: any[]
 ): Promise<{ newCount: number; totalCount: number; failedCount: number }> {
-  if (!Array.isArray(locationClusters)) return { newCount: 0, totalCount: 0, failedCount: 0 };
+  if (!Array.isArray(locationClusters)) {
+    return { newCount: 0, totalCount: 0, failedCount: 0 };
+  }
 
   let newCount = 0,
     totalCount = 0,
@@ -253,7 +256,9 @@ export async function fetchOrImportDetail(
 
   // Upstream fetch
   const upstream = await fetchUpstream(netid, endpoint, query_source);
-  if (!upstream.ok) return upstream;
+  if (!upstream.ok) {
+    return upstream;
+  }
 
   const { data } = upstream;
   let newObservations = 0,

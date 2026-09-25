@@ -100,7 +100,9 @@ const getProbeCoordinates = async (
   );
 
   const row = result.rows[0];
-  if (!row) return null;
+  if (!row) {
+    return null;
+  }
   return { lat: Number(row.lat_round), lon: Number(row.lon_round) };
 };
 

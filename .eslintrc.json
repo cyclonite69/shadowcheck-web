@@ -86,11 +86,5 @@
       }
     }
   ],
-  "ignorePatterns": [
-    "client/src/**/*.tsx",
-    "client/src/**/*.ts",
-    "client/src/**/*.jsx",
-    "tests/unit/repositories/**/*.js",
-    "scratch/**"
-  ]
+  "ignorePatterns": ["scratch/**"]
 }

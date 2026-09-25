@@ -45,7 +45,9 @@ export const mapboxApi = {
     const response = await fetch(`/api/kml?bssids=${encodeURIComponent(bssids)}`, {
       credentials: 'include',
     });
-    if (!response.ok) throw new Error('Failed to export KML');
+    if (!response.ok) {
+      throw new Error('Failed to export KML');
+    }
     return response.text();
   },
 

@@ -106,7 +106,9 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
   const orderTerms: string[] = [];
   sortKeys.forEach((key, i) => {
     const col = SORT_ALLOWLIST[key];
-    if (!col) return;
+    if (!col) {
+      return;
+    }
     const dir = sortDirs[i] === 'desc' ? 'DESC' : 'ASC';
     orderTerms.push(`${col} ${dir}`);
   });

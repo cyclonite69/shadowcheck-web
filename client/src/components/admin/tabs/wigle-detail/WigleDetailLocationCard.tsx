@@ -6,7 +6,9 @@ export interface WigleDetailLocationCardProps {
 }
 
 export const WigleDetailLocationCard: React.FC<WigleDetailLocationCardProps> = ({ data }) => {
-  if (!data.streetAddress) return null;
+  if (!data.streetAddress) {
+    return null;
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

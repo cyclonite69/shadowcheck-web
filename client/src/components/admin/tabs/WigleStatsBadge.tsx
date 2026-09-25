@@ -8,16 +8,24 @@ export interface WigleUserStats {
 }
 
 const toFiniteNumber = (value: number | string | null | undefined): number => {
-  if (value === null || value === undefined || value === '') return 0;
+  if (value === null || value === undefined || value === '') {
+    return 0;
+  }
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
 export const formatBadgeNumber = (value: number | string | null | undefined): string => {
   const numeric = toFiniteNumber(value);
-  if (numeric >= 1_000_000_000) return `${(numeric / 1_000_000_000).toFixed(1)}B`;
-  if (numeric >= 1_000_000) return `${(numeric / 1_000_000).toFixed(1)}M`;
-  if (numeric >= 10_000) return `${Math.round(numeric / 1_000)}K`;
+  if (numeric >= 1_000_000_000) {
+    return `${(numeric / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (numeric >= 1_000_000) {
+    return `${(numeric / 1_000_000).toFixed(1)}M`;
+  }
+  if (numeric >= 10_000) {
+    return `${Math.round(numeric / 1_000)}K`;
+  }
   return numeric.toLocaleString();
 };
 

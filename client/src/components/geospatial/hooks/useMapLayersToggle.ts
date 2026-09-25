@@ -16,25 +16,39 @@ export const useMapLayersToggle = ({
   const [is3DBuildingsAvailable, setIs3DBuildingsAvailable] = useState(false);
 
   const styleLikelySupports3D = useCallback((): boolean => {
-    if (!mapStyle) return false;
-    if (mapStyle.startsWith('google-')) return false;
-    if (mapStyle.startsWith('mapbox://styles/mapbox/standard')) return true;
+    if (!mapStyle) {
+      return false;
+    }
+    if (mapStyle.startsWith('google-')) {
+      return false;
+    }
+    if (mapStyle.startsWith('mapbox://styles/mapbox/standard')) {
+      return true;
+    }
     return mapStyle.startsWith('mapbox://styles/');
   }, [mapStyle]);
 
   const isStandardStyle = useCallback((): boolean => {
-    if (!mapRef.current) return false;
-    if (mapStyle?.includes('mapbox://styles/mapbox/standard')) return true;
+    if (!mapRef.current) {
+      return false;
+    }
+    if (mapStyle?.includes('mapbox://styles/mapbox/standard')) {
+      return true;
+    }
 
     try {
       const style = mapRef.current.getStyle();
-      if (!style) return false;
+      if (!style) {
+        return false;
+      }
 
       // Mapbox Standard styles have a 'basemap' configuration or import
       const hasBasemapImport = style.imports?.some(
         (i: any) => i.id === 'basemap' || i.id === 'mapbox-standard'
       );
-      const hasBasemapSchema = style.schema?.hasOwnProperty('basemap');
+      const hasBasemapSchema = Boolean(
+        style.schema && Object.prototype.hasOwnProperty.call(style.schema, 'basemap')
+      );
 
       return Boolean(hasBasemapImport || hasBasemapSchema);
     } catch {
@@ -43,12 +57,16 @@ export const useMapLayersToggle = ({
   }, [mapRef, mapStyle]);
 
   const resolve3DBuildingSource = useCallback((): string | null => {
-    if (!mapRef.current) return null;
+    if (!mapRef.current) {
+      return null;
+    }
     if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) {
       return null;
     }
 
-    if (isStandardStyle()) return 'mapbox-standard';
+    if (isStandardStyle()) {
+      return 'mapbox-standard';
+    }
 
     let style;
     try {
@@ -56,12 +74,18 @@ export const useMapLayersToggle = ({
     } catch {
       return null;
     }
-    if (!style) return null;
+    if (!style) {
+      return null;
+    }
 
     const sources = style.sources as Record<string, unknown> | undefined;
-    if (!sources) return null;
+    if (!sources) {
+      return null;
+    }
 
-    if (sources.composite) return 'composite';
+    if (sources.composite) {
+      return 'composite';
+    }
 
     const buildingLayer = style.layers?.find(
       (layer: any) => layer?.['source-layer'] === 'building' && typeof layer?.source === 'string'
@@ -75,7 +99,9 @@ export const useMapLayersToggle = ({
     const supported = Boolean(sourceId) || styleLikelySupports3D();
     setIs3DBuildingsAvailable(supported);
 
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      return;
+    }
 
     // For non-standard styles, if building source is missing, remove our custom layer
     if (!supported && sourceId !== 'mapbox-standard' && mapRef.current.getLayer('3d-buildings')) {
@@ -93,7 +119,9 @@ export const useMapLayersToggle = ({
     const handler = () => refresh3DBuildingAvailability();
 
     const bindMapEvents = () => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
 
       const map = mapRef.current;
       if (!map) {
@@ -122,13 +150,17 @@ export const useMapLayersToggle = ({
   }, [mapRef, refresh3DBuildingAvailability]);
 
   const add3DBuildings = (): boolean => {
-    if (!mapRef.current) return false;
+    if (!mapRef.current) {
+      return false;
+    }
     if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) {
       return false;
     }
 
     const sourceId = resolve3DBuildingSource();
-    if (!sourceId) return false;
+    if (!sourceId) {
+      return false;
+    }
 
     // Standard style handles 3D buildings via config property
     if (sourceId === 'mapbox-standard') {
@@ -147,7 +179,9 @@ export const useMapLayersToggle = ({
       }
     }
 
-    if (mapRef.current.getLayer('3d-buildings')) return true;
+    if (mapRef.current.getLayer('3d-buildings')) {
+      return true;
+    }
 
     const layers = mapRef.current.getStyle()?.layers;
     const labelLayerId = layers?.find(
@@ -195,7 +229,9 @@ export const useMapLayersToggle = ({
   };
 
   const toggle3DBuildings = (enabled: boolean) => {
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      return;
+    }
 
     const sourceId = resolve3DBuildingSource();
     if (sourceId === 'mapbox-standard') {
@@ -222,7 +258,9 @@ export const useMapLayersToggle = ({
   };
 
   const addTerrain = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      return;
+    }
     if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) {
       return;
     }
@@ -241,7 +279,9 @@ export const useMapLayersToggle = ({
       }
     }
 
-    if (mapRef.current.getSource('mapbox-dem')) return;
+    if (mapRef.current.getSource('mapbox-dem')) {
+      return;
+    }
 
     mapRef.current.addSource('mapbox-dem', {
       type: 'raster-dem',
@@ -254,7 +294,9 @@ export const useMapLayersToggle = ({
   };
 
   const toggleTerrain = (enabled: boolean) => {
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      return;
+    }
 
     if (isStandardStyle()) {
       try {

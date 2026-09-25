@@ -34,7 +34,9 @@ function jitter(min: number, max: number) {
 }
 
 function describeEndpoint(url: string, endpointType?: string) {
-  if (endpointType) return endpointType;
+  if (endpointType) {
+    return endpointType;
+  }
   try {
     const parsed = new URL(url);
     return parsed.pathname.replace(/^\/+/, '');
@@ -73,7 +75,9 @@ async function backoff(attempt: number, response: Response | null = null) {
   let delay = 1000 * 2 ** attempt + jitter(0, 500);
   if (response?.headers.has('Retry-After')) {
     const retryAfter = parseInt(response.headers.get('Retry-After') || '0', 10);
-    if (!isNaN(retryAfter)) delay = Math.max(delay, retryAfter * 1000);
+    if (!isNaN(retryAfter)) {
+      delay = Math.max(delay, retryAfter * 1000);
+    }
   }
   await sleep(delay);
 }
@@ -115,7 +119,9 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
   const request = (async () => {
     await previous.catch(() => {});
     try {
-      if (!isTestEnv()) await sleep(jitter(150, 300));
+      if (!isTestEnv()) {
+        await sleep(jitter(150, 300));
+      }
 
       // Ensure quota and limits are checked once before retry loop.
       // This protects against a near-boundary request that would pass

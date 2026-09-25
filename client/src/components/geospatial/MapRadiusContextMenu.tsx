@@ -26,12 +26,18 @@ export const MapRadiusContextMenu: React.FC<MapRadiusContextMenuProps> = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!menu.visible) return;
+    if (!menu.visible) {
+      return;
+    }
     const onMouseDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown', onKey);
@@ -41,7 +47,9 @@ export const MapRadiusContextMenu: React.FC<MapRadiusContextMenuProps> = ({
     };
   }, [menu.visible, onClose]);
 
-  if (!menu.visible || typeof document === 'undefined') return null;
+  if (!menu.visible || typeof document === 'undefined') {
+    return null;
+  }
 
   const itemStyle: React.CSSProperties = {
     display: 'block',

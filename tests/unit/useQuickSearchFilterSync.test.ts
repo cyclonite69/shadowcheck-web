@@ -69,7 +69,9 @@ describe('useQuickSearchFilterSync Hook', () => {
     jest.advanceTimersByTime(250);
 
     expect(mockSetFilter).toHaveBeenCalled();
-    if (typeof cleanup === 'function') cleanup();
+    if (typeof cleanup === 'function') {
+      cleanup();
+    }
   });
 
   it('cancels stale timeout on cleanup', () => {
@@ -78,7 +80,9 @@ describe('useQuickSearchFilterSync Hook', () => {
 
     // Simulate re-render
     useQuickSearchFilterSync({ quickSearch: 'test2' });
-    if (typeof cleanup === 'function') cleanup();
+    if (typeof cleanup === 'function') {
+      cleanup();
+    }
 
     jest.advanceTimersByTime(250);
     expect(mockSetFilter).not.toHaveBeenCalledWith('ssid', 'test1');

@@ -8,11 +8,15 @@
  * of the first octet is 1, it's a locally administered address.
  */
 export function isRandomizedMAC(bssid: string): boolean {
-  if (!bssid || typeof bssid !== 'string') return false;
+  if (!bssid || typeof bssid !== 'string') {
+    return false;
+  }
 
   // Clean separators
   const clean = bssid.replace(/[:-]/g, '');
-  if (clean.length < 2) return false;
+  if (clean.length < 2) {
+    return false;
+  }
 
   try {
     const firstOctet = parseInt(clean.substring(0, 2), 16);

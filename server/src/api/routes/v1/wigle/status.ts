@@ -17,9 +17,9 @@ router.get('/api-status', async (req, res) => {
   const wigleApiToken = secretsManager.get('wigle_api_token');
 
   res.json({
-    configured: !!(wigleApiName && wigleApiToken),
-    hasApiName: !!wigleApiName,
-    hasApiToken: !!wigleApiToken,
+    configured: Boolean(wigleApiName && wigleApiToken),
+    hasApiName: Boolean(wigleApiName),
+    hasApiToken: Boolean(wigleApiToken),
   });
 });
 

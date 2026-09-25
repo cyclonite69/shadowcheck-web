@@ -168,7 +168,9 @@ describe('formatSecurity – backward compatibility', () => {
 const OPEN_EXCLUSION_REGEX = /(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)/i;
 
 function matchesOpenPredicate(security: string | null | undefined): boolean {
-  if (security == null || security === '') return true;
+  if (security === null || security === undefined || security === '') {
+    return true;
+  }
   return !OPEN_EXCLUSION_REGEX.test(security);
 }
 

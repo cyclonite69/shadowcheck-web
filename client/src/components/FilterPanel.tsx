@@ -193,7 +193,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             <button
               onClick={() => {
                 const name = presetName.trim();
-                if (!name) return;
+                if (!name) {
+                  return;
+                }
                 savePreset(name);
                 setPresetName('');
               }}

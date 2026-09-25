@@ -13,9 +13,15 @@ export function addUndirectedEdge(
 ): void {
   const a = normalizeBssid(aRaw);
   const b = normalizeBssid(bRaw);
-  if (!a || !b || a === b) return;
-  if (!adjacency.has(a)) adjacency.set(a, new Set());
-  if (!adjacency.has(b)) adjacency.set(b, new Set());
+  if (!a || !b || a === b) {
+    return;
+  }
+  if (!adjacency.has(a)) {
+    adjacency.set(a, new Set());
+  }
+  if (!adjacency.has(b)) {
+    adjacency.set(b, new Set());
+  }
   adjacency.get(a)?.add(b);
   adjacency.get(b)?.add(a);
 }
@@ -34,26 +40,38 @@ export function buildSiblingGroupMap(
 
   const sortedVisible = Array.from(visibleSet).sort();
   for (const start of sortedVisible) {
-    if (visited.has(start)) continue;
+    if (visited.has(start)) {
+      continue;
+    }
     const neighbors = adjacency.get(start);
-    if (!neighbors || neighbors.size === 0) continue;
+    if (!neighbors || neighbors.size === 0) {
+      continue;
+    }
 
     const stack = [start];
     const component: string[] = [];
     while (stack.length > 0) {
       const current = stack.pop() as string;
-      if (visited.has(current)) continue;
+      if (visited.has(current)) {
+        continue;
+      }
       visited.add(current);
       component.push(current);
       for (const next of adjacency.get(current) || []) {
-        if (!visited.has(next)) stack.push(next);
+        if (!visited.has(next)) {
+          stack.push(next);
+        }
       }
     }
 
-    if (component.length < 2) continue;
+    if (component.length < 2) {
+      continue;
+    }
     const groupId = `S${groupCounter}`;
     groupCounter += 1;
-    for (const bssid of component) groupMap.set(bssid, groupId);
+    for (const bssid of component) {
+      groupMap.set(bssid, groupId);
+    }
   }
 
   return groupMap;
@@ -88,13 +106,17 @@ export function mergeSiblingComponentsIntoGroupMap(components: string[][]): Map<
 
   const assignGroup = (members: string[], preferredGid?: string) => {
     const gid = preferredGid ?? `S${groupCounter++}`;
-    for (const bssid of members) groupMap.set(bssid, gid);
+    for (const bssid of members) {
+      groupMap.set(bssid, gid);
+    }
     return gid;
   };
 
   for (const raw of components) {
     const members = raw.map((b) => normalizeBssid(b)).filter(Boolean);
-    if (members.length < 2) continue;
+    if (members.length < 2) {
+      continue;
+    }
 
     const existingGids = new Set(
       members.map((b) => groupMap.get(b)).filter((g): g is string => Boolean(g))
@@ -108,9 +130,13 @@ export function mergeSiblingComponentsIntoGroupMap(components: string[][]): Map<
     const gid = [...existingGids][0];
     assignGroup(members, gid);
     for (const otherGid of existingGids) {
-      if (otherGid === gid) continue;
+      if (otherGid === gid) {
+        continue;
+      }
       for (const [bssid, mapped] of groupMap) {
-        if (mapped === otherGid) groupMap.set(bssid, gid);
+        if (mapped === otherGid) {
+          groupMap.set(bssid, gid);
+        }
       }
     }
   }
@@ -124,11 +150,15 @@ export function buildPatternGroupsFromCanonicalMap(
   const groupMap = new Map<string, string>();
   const groupMembers = new Map<string, string[]>();
 
-  if (siblingGroupMap.size === 0) return { groupMap, groupMembers };
+  if (siblingGroupMap.size === 0) {
+    return { groupMap, groupMembers };
+  }
 
   for (const [bssid, groupId] of siblingGroupMap) {
     const bssidUpper = normalizeBssid(bssid);
-    if (!bssidUpper) continue;
+    if (!bssidUpper) {
+      continue;
+    }
     groupMap.set(bssidUpper, groupId);
     const arr = groupMembers.get(groupId) ?? [];
     arr.push(bssidUpper);
@@ -139,7 +169,9 @@ export function buildPatternGroupsFromCanonicalMap(
     if (members.length >= 2) {
       members.sort((a, b) => lastOctet(a) - lastOctet(b));
     } else {
-      for (const m of members) groupMap.delete(m);
+      for (const m of members) {
+        groupMap.delete(m);
+      }
       groupMembers.delete(groupId);
     }
   }
@@ -173,31 +205,47 @@ export function expandNetworksForSiblingSearch(
     const groupsWithHit = new Set<string>();
     for (const bssid of searchHits) {
       const gid = visibleSiblingGroupMap.get(bssid);
-      if (gid) groupsWithHit.add(gid);
+      if (gid) {
+        groupsWithHit.add(gid);
+      }
     }
     for (const [bssid, gid] of visibleSiblingGroupMap) {
-      if (groupsWithHit.has(gid)) includeBssids.add(bssid);
+      if (groupsWithHit.has(gid)) {
+        includeBssids.add(bssid);
+      }
     }
   } else if (!hasSearch) {
-    for (const bssid of visibleSiblingGroupMap.keys()) includeBssids.add(bssid);
+    for (const bssid of visibleSiblingGroupMap.keys()) {
+      includeBssids.add(bssid);
+    }
   }
 
   const byBssid = new Map<string, NetworkRow>();
   for (const net of searchResultNetworks) {
     const bssid = normalizeBssid(net.bssid);
-    if (!bssid) continue;
-    if (!hasSearch || includeBssids.has(bssid)) byBssid.set(bssid, net);
+    if (!bssid) {
+      continue;
+    }
+    if (!hasSearch || includeBssids.has(bssid)) {
+      byBssid.set(bssid, net);
+    }
   }
 
   for (const net of missingSiblingNetworks) {
     const bssid = normalizeBssid(net.bssid);
-    if (!bssid || byBssid.has(bssid)) continue;
-    if (!hasSearch || includeBssids.has(bssid)) byBssid.set(bssid, net);
+    if (!bssid || byBssid.has(bssid)) {
+      continue;
+    }
+    if (!hasSearch || includeBssids.has(bssid)) {
+      byBssid.set(bssid, net);
+    }
   }
 
   const unresolvedBssids: string[] = [];
   for (const bssid of includeBssids) {
-    if (!byBssid.has(bssid)) unresolvedBssids.push(bssid);
+    if (!byBssid.has(bssid)) {
+      unresolvedBssids.push(bssid);
+    }
   }
 
   let networks: NetworkRow[];
@@ -209,14 +257,18 @@ export function expandNetworksForSiblingSearch(
       const extras = missingSiblingNetworks.filter(
         (n) => n.bssid && !loaded.has(normalizeBssid(n.bssid))
       );
-      if (extras.length > 0) allNetworks = [...searchResultNetworks, ...extras];
+      if (extras.length > 0) {
+        allNetworks = [...searchResultNetworks, ...extras];
+      }
     }
     networks = regroupSiblingNetworks(allNetworks, visibleSiblingGroupMap);
   } else {
     const expanded: NetworkRow[] = [];
     for (const bssid of includeBssids) {
       const row = byBssid.get(bssid);
-      if (row) expanded.push(row);
+      if (row) {
+        expanded.push(row);
+      }
     }
     networks =
       visibleSiblingGroupMap.size === 0
@@ -231,7 +283,9 @@ export function regroupSiblingNetworks(
   networks: NetworkRow[],
   visibleSiblingGroupMap: Map<string, string>
 ): NetworkRow[] {
-  if (visibleSiblingGroupMap.size === 0) return networks;
+  if (visibleSiblingGroupMap.size === 0) {
+    return networks;
+  }
 
   const grouped: NetworkRow[] = [];
   const emitted = new Set<string>();
@@ -243,7 +297,9 @@ export function regroupSiblingNetworks(
       grouped.push(net);
       continue;
     }
-    if (emitted.has(gid)) continue;
+    if (emitted.has(gid)) {
+      continue;
+    }
     emitted.add(gid);
     networks
       .filter((n) => {
@@ -270,8 +326,11 @@ export function parseQuickSearch(quickSearch: string): ParsedSearch {
   if (prefixMatch) {
     const prefix = prefixMatch[1].toLowerCase();
     matchStr = prefixMatch[2].trim().toLowerCase();
-    if (prefix === 'm') matchField = 'manufacturer';
-    else if (prefix === 'b') matchField = 'bssid';
+    if (prefix === 'm') {
+      matchField = 'manufacturer';
+    } else if (prefix === 'b') {
+      matchField = 'bssid';
+    }
   }
 
   return { matchField, matchStr };
@@ -279,7 +338,9 @@ export function parseQuickSearch(quickSearch: string): ParsedSearch {
 
 export function filterNetworksBySearch(networks: NetworkRow[], quickSearch: string): NetworkRow[] {
   const searchStr = quickSearch.trim();
-  if (searchStr.length === 0) return networks;
+  if (searchStr.length === 0) {
+    return networks;
+  }
 
   const { matchField, matchStr } = parseQuickSearch(quickSearch);
 
@@ -329,7 +390,9 @@ export function processHydrationSettledResults(
 
       for (const bssid of chunkBssids) {
         const norm = normalizeBssid(bssid);
-        if (!norm) continue;
+        if (!norm) {
+          continue;
+        }
         if (!returnedBssids.has(norm)) {
           const type = unresolved ? unresolved[norm] : undefined;
           if (type === 'non_renderable') {
@@ -344,7 +407,9 @@ export function processHydrationSettledResults(
     } else {
       for (const bssid of chunkBssids) {
         const norm = normalizeBssid(bssid);
-        if (norm) failed.push(norm);
+        if (norm) {
+          failed.push(norm);
+        }
       }
     }
   });
@@ -367,12 +432,16 @@ export function buildAdjacencyFromPrecomputed(
 
   for (const network of targetNetworks) {
     const anchor = normalizeBssid(network.bssid);
-    if (!anchor) continue;
+    if (!anchor) {
+      continue;
+    }
 
     const siblings = Array.isArray(network.sibling_bssids) ? network.sibling_bssids : [];
     for (const sibling of siblings) {
       const normalizedSibling = normalizeBssid(sibling);
-      if (!normalizedSibling) continue;
+      if (!normalizedSibling) {
+        continue;
+      }
 
       addUndirectedEdge(adjacency, anchor, normalizedSibling);
     }
@@ -417,7 +486,9 @@ export function buildAdjacencyFromApiLinks(
 
   for (const item of anchorLinks) {
     const anchor = normalizeBssid(item.anchor);
-    if (!anchor) continue;
+    if (!anchor) {
+      continue;
+    }
     const links = Array.isArray(item.links) ? item.links : [];
     for (const row of links) {
       addUndirectedEdge(adjacency, anchor, row?.sibling_bssid);

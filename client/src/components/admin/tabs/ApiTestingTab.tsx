@@ -284,7 +284,9 @@ export const ApiTestingTab: React.FC = () => {
             <button
               onClick={runAllTests}
               disabled={testingAll || apiLoading}
-              className={`px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-xs shadow-md shrink-0`}
+              className={
+                'px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-xs shadow-md shrink-0'
+              }
             >
               {testingAll ? 'Running Checks...' : 'Run Automated Presets'}
             </button>

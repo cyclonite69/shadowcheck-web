@@ -140,7 +140,9 @@ async function throttle(): Promise<void> {
  */
 export function getOverpassEndpoints(): string[] {
   const override = process.env.OVERPASS_ENDPOINT?.trim();
-  if (override) return [override];
+  if (override) {
+    return [override];
+  }
   return [...DEFAULT_OVERPASS_ENDPOINTS];
 }
 
@@ -178,7 +180,9 @@ export async function runWithConcurrency<T, R>(
   concurrency: number,
   worker: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
-  if (items.length === 0) return [];
+  if (items.length === 0) {
+    return [];
+  }
   const limit = Math.max(1, Math.min(concurrency, items.length));
   const results: R[] = new Array(items.length);
   let nextIndex = 0;
@@ -187,7 +191,9 @@ export async function runWithConcurrency<T, R>(
     while (true) {
       const index = nextIndex;
       nextIndex += 1;
-      if (index >= items.length) return;
+      if (index >= items.length) {
+        return;
+      }
       results[index] = await worker(items[index], index);
     }
   }
@@ -251,8 +257,12 @@ interface NestedSocketError extends Error {
 
 function extractCode(err: NestedSocketError): string | undefined {
   const cause = err.cause as { code?: string } | undefined;
-  if (cause?.code) return cause.code;
-  if (err.code) return err.code;
+  if (cause?.code) {
+    return cause.code;
+  }
+  if (err.code) {
+    return err.code;
+  }
   if (Array.isArray(err.errors) && err.errors.length > 0) {
     const inner = err.errors[0];
     return inner?.code ?? inner?.cause?.code;
@@ -261,9 +271,13 @@ function extractCode(err: NestedSocketError): string | undefined {
 }
 
 function isRetryable(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
+  if (!(error instanceof Error)) {
+    return false;
+  }
   const err = error as HttpError & NestedSocketError;
-  if (err.name === 'AbortError') return true;
+  if (err.name === 'AbortError') {
+    return true;
+  }
   if (typeof err.status === 'number') {
     return [429, 500, 502, 503, 504].includes(err.status);
   }
@@ -282,7 +296,9 @@ function cooldownMsForError(error: unknown): number {
     coolMs = Math.max(runtimeConfig.cooldownMs, httpError.retryAfterMs);
   } else {
     const code = extractCode(error as NestedSocketError);
-    if (code === 'ENOTFOUND') coolMs = runtimeConfig.dnsCooldownMs;
+    if (code === 'ENOTFOUND') {
+      coolMs = runtimeConfig.dnsCooldownMs;
+    }
   }
   // Never cool longer than the wait bound — otherwise selectEndpoint throws
   // "refusing to hammer" instead of waiting out the TTL.
@@ -335,9 +351,13 @@ function pickPreferredEligible(
 
   for (let i = 0; i < endpoints.length; i += 1) {
     const endpoint = endpoints[(startIndex + i) % endpoints.length];
-    if (!isEndpointEligible(endpoint, now)) continue;
+    if (!isEndpointEligible(endpoint, now)) {
+      continue;
+    }
     if (isLastResortEndpoint(endpoint)) {
-      if (!hasPrimary || primaryCooling) return endpoint;
+      if (!hasPrimary || primaryCooling) {
+        return endpoint;
+      }
       continue;
     }
     return endpoint;
@@ -411,7 +431,9 @@ function preserveFetchCause(endpoint: string, error: unknown): Error {
     const wrapped = new Error(`Overpass ${endpoint} fetch failed`) as NestedSocketError;
     wrapped.cause = nested.cause ?? error;
     const code = extractCode(nested);
-    if (code) wrapped.code = code;
+    if (code) {
+      wrapped.code = code;
+    }
     if (Array.isArray(nested.errors)) {
       wrapped.errors = nested.errors;
     }
@@ -448,7 +470,9 @@ async function requestOnce(endpoint: string, query: string): Promise<OverpassRes
       if (response.status === 429) {
         const retryAfter = response.headers.get('retry-after');
         const seconds = retryAfter ? Number(retryAfter) : NaN;
-        if (!Number.isNaN(seconds)) err.retryAfterMs = seconds * 1000;
+        if (!Number.isNaN(seconds)) {
+          err.retryAfterMs = seconds * 1000;
+        }
       }
       throw err;
     }
@@ -473,7 +497,9 @@ function formatExhaustedError(lastError: unknown, endpoints: readonly string[]):
       `${lastError.message} (exhausted ${runtimeConfig.maxAttempts} attempts across endpoints: ${coolSummary})`
     ) as NestedSocketError & HttpError;
     exhausted.cause = prior.cause ?? lastError;
-    if (typeof prior.status === 'number') exhausted.status = prior.status;
+    if (typeof prior.status === 'number') {
+      exhausted.status = prior.status;
+    }
     return exhausted;
   }
   return new Error(`Overpass request failed after all retries (endpoints: ${coolSummary})`);
@@ -515,18 +541,24 @@ export async function fetchAlprElementsSingleChunk(bbox: Bbox): Promise<Overpass
       return payload.elements ?? [];
     } catch (error) {
       lastError = error;
-      if (!isRetryable(error)) throw error;
+      if (!isRetryable(error)) {
+        throw error;
+      }
       markEndpointUnhealthy(endpoint, error);
 
       const httpError = error as HttpError;
       // If we already waited for a cool-down, skip extra backoff to avoid stacking delays.
-      if (waitedMs > 0) continue;
+      if (waitedMs > 0) {
+        continue;
+      }
 
       const backoffMs =
         httpError.retryAfterMs ??
         Math.min(30_000, runtimeConfig.backoffBaseMs * 2 ** attempt) +
           Math.random() * runtimeConfig.backoffJitterMs;
-      if (backoffMs > 0) await sleep(backoffMs);
+      if (backoffMs > 0) {
+        await sleep(backoffMs);
+      }
     }
   }
 
@@ -577,10 +609,14 @@ export function elementsToRecords(
 
   for (const element of elements) {
     const tags = element.tags ?? {};
-    if (Object.keys(tags).length === 0) continue;
+    if (Object.keys(tags).length === 0) {
+      continue;
+    }
     const lat = element.lat ?? element.center?.lat;
     const lon = element.lon ?? element.center?.lon;
-    if (lat === undefined || lon === undefined) continue;
+    if (lat === undefined || lon === undefined) {
+      continue;
+    }
 
     const sourceProperties: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(tags)) {

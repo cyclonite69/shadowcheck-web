@@ -50,14 +50,30 @@ function summarizeNetworks(networks: NetworkSummary[]): string {
   return sample
     .map((n, i) => {
       const parts: string[] = [`${i + 1}.`];
-      if (n.bssid) parts.push(`BSSID=${n.bssid}`);
-      if (n.ssid) parts.push(`SSID="${n.ssid}"`);
-      if (n.type) parts.push(`type=${n.type}`);
-      if (n.threat_score !== undefined) parts.push(`score=${n.threat_score}`);
-      if (n.observation_count !== undefined) parts.push(`obs=${n.observation_count}`);
-      if (n.unique_days !== undefined) parts.push(`days=${n.unique_days}`);
-      if (n.seen_at_home) parts.push('seen@home');
-      if (n.seen_away) parts.push('seen@away');
+      if (n.bssid) {
+        parts.push(`BSSID=${n.bssid}`);
+      }
+      if (n.ssid) {
+        parts.push(`SSID="${n.ssid}"`);
+      }
+      if (n.type) {
+        parts.push(`type=${n.type}`);
+      }
+      if (n.threat_score !== undefined) {
+        parts.push(`score=${n.threat_score}`);
+      }
+      if (n.observation_count !== undefined) {
+        parts.push(`obs=${n.observation_count}`);
+      }
+      if (n.unique_days !== undefined) {
+        parts.push(`days=${n.unique_days}`);
+      }
+      if (n.seen_at_home) {
+        parts.push('seen@home');
+      }
+      if (n.seen_away) {
+        parts.push('seen@away');
+      }
       return parts.join(' ');
     })
     .join('\n');
@@ -76,7 +92,7 @@ function parseSuggestions(text: string): string[] {
 
   const lines = source.split('\n');
   for (const line of lines) {
-    const cleaned = line.replace(/^[\s\-\*\d\.]+/, '').trim();
+    const cleaned = line.replace(/^[\s\-*\d.]+/, '').trim();
     if (cleaned.length > 10) {
       suggestions.push(cleaned);
     }

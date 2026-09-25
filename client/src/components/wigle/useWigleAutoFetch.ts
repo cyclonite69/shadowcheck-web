@@ -20,18 +20,28 @@ export function useWigleAutoFetch({
 
   // Auto-fetch on layer toggle
   useEffect(() => {
-    if (!mapReady) return;
+    if (!mapReady) {
+      return;
+    }
 
-    if (!layers.v2) autoFetchedRef.current.v2 = false;
-    if (!layers.v3) autoFetchedRef.current.v3 = false;
+    if (!layers.v2) {
+      autoFetchedRef.current.v2 = false;
+    }
+    if (!layers.v3) {
+      autoFetchedRef.current.v3 = false;
+    }
 
     const needsV2 = layers.v2 && v2Rows.length === 0 && !v2Loading && !autoFetchedRef.current.v2;
     const needsV3 = layers.v3 && v3Rows.length === 0 && !v3Loading && !autoFetchedRef.current.v3;
     const needsKml = layers.kml && kmlRows.length === 0 && !kmlLoading;
 
     if (needsV2 || needsV3) {
-      if (needsV2) autoFetchedRef.current.v2 = true;
-      if (needsV3) autoFetchedRef.current.v3 = true;
+      if (needsV2) {
+        autoFetchedRef.current.v2 = true;
+      }
+      if (needsV3) {
+        autoFetchedRef.current.v3 = true;
+      }
       fetchPoints().then(() => {
         hasV2DataRef.current = layers.v2 && v2Rows.length > 0;
         hasV3DataRef.current = layers.v3 && v3Rows.length > 0;
@@ -59,7 +69,9 @@ export function useWigleAutoFetch({
 
   // Refetch when filters change (if data already loaded)
   useEffect(() => {
-    if (!mapReady) return;
+    if (!mapReady) {
+      return;
+    }
 
     if ((layers.v2 && hasV2DataRef.current) || (layers.v3 && hasV3DataRef.current)) {
       fetchPoints();

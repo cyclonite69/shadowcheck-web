@@ -52,9 +52,15 @@ export const useWigleBluetooth = ({
         showBt: btParams.showBt,
         showBle: btParams.showBle,
       };
-      if (btParams.namelike.trim()) payload.namelike = btParams.namelike.trim();
-      if (btParams.mfgrIdMinimum.trim()) payload.mfgrIdMinimum = Number(btParams.mfgrIdMinimum);
-      if (btParams.mfgrIdMaximum.trim()) payload.mfgrIdMaximum = Number(btParams.mfgrIdMaximum);
+      if (btParams.namelike.trim()) {
+        payload.namelike = btParams.namelike.trim();
+      }
+      if (btParams.mfgrIdMinimum.trim()) {
+        payload.mfgrIdMinimum = Number(btParams.mfgrIdMinimum);
+      }
+      if (btParams.mfgrIdMaximum.trim()) {
+        payload.mfgrIdMaximum = Number(btParams.mfgrIdMaximum);
+      }
       await wigleApi.importAllBluetooth(payload);
       await refreshRuns();
     } catch (err: any) {

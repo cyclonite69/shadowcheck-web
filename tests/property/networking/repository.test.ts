@@ -1,6 +1,9 @@
 import * as fc from 'fast-check';
 const db = require('../../../server/src/config/database');
-const { listNetworks, searchNetworksBySSID } = require('../../../server/src/services/networking/repository');
+const {
+  listNetworks,
+  searchNetworksBySSID,
+} = require('../../../server/src/services/networking/repository');
 
 describe('Networking Repository Property-Based Tests', () => {
   let querySpy: jest.SpyInstance;
@@ -10,8 +13,17 @@ describe('Networking Repository Property-Based Tests', () => {
       if (sql.includes('SELECT COUNT')) {
         return Promise.resolve({ rows: [{ total: '10' }] });
       }
-      return Promise.resolve({ 
-          rows: [{ bssid: '00:00:00:00:00:00', ssid: 'test', type: 'wifi', signal: -50, lasttime: new Date(), observation_count: 1 }] 
+      return Promise.resolve({
+        rows: [
+          {
+            bssid: '00:00:00:00:00:00',
+            ssid: 'test',
+            type: 'wifi',
+            signal: -50,
+            lasttime: new Date(),
+            observation_count: 1,
+          },
+        ],
       });
     }) as any);
   });
@@ -35,13 +47,10 @@ describe('Networking Repository Property-Based Tests', () => {
 
   test('searchNetworksBySSID pattern injection resilience', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.string({ maxLength: 50 }),
-        async (ssid) => {
-            const result = await searchNetworksBySSID(ssid, 10, 0);
-            expect(result).toBeDefined();
-        }
-      )
+      fc.asyncProperty(fc.string({ maxLength: 50 }), async (ssid) => {
+        const result = await searchNetworksBySSID(ssid, 10, 0);
+        expect(result).toBeDefined();
+      })
     );
   });
 });

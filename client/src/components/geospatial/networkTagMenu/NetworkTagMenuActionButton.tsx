@@ -35,12 +35,16 @@ export const NetworkTagMenuActionButton = ({
   }, [activeBackground, background]);
 
   const handleMouseEnter = () => {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
     setCurrentBg(hoverBackground ?? activeBackground ?? background ?? 'transparent');
   };
 
   const handleMouseLeave = () => {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
     setCurrentBg(activeBackground ?? background ?? 'transparent');
   };
 

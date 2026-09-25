@@ -22,7 +22,6 @@ interface TrainingResult {
 }
 
 class ThreatMLModel {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private model: any = null;
   private coefficients: number[] | null = null;
   private intercept: number | null = null;

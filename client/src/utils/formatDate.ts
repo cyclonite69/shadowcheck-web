@@ -15,9 +15,13 @@
  * Null/undefined/invalid → '—'
  */
 export function formatShortDate(value: string | number | Date | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) {
+    return '—';
+  }
   const month = d.toLocaleString('en-US', { month: 'short' }); // "Mar"
   const day = String(d.getDate()).padStart(2, '0'); // "08"
   const year = String(d.getFullYear()).slice(-2); // "26"
@@ -31,9 +35,13 @@ export function formatShortDate(value: string | number | Date | null | undefined
  * Returns the raw ISO 8601 string, or '—' for invalid input.
  */
 export function formatISODate(value: string | number | Date | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) {
+    return '—';
+  }
   return d.toISOString();
 }
 
@@ -42,18 +50,30 @@ export function formatISODate(value: string | number | Date | null | undefined):
  * Examples: "just now", "2h ago", "46d ago", "2y ago"
  */
 export function formatRelativeTime(value: string | number | Date | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '—';
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) {
+    return '—';
+  }
   const diffMs = Date.now() - d.getTime();
   const diffSec = Math.floor(diffMs / 1000);
-  if (diffSec < 60) return 'just now';
+  if (diffSec < 60) {
+    return 'just now';
+  }
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) {
+    return `${diffMin}m ago`;
+  }
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) {
+    return `${diffHr}h ago`;
+  }
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 365) return `${diffDay}d ago`;
+  if (diffDay < 365) {
+    return `${diffDay}d ago`;
+  }
   const diffYr = Math.floor(diffDay / 365);
   return `${diffYr}y ago`;
 }
@@ -64,7 +84,9 @@ export function formatRelativeTime(value: string | number | Date | null | undefi
  */
 export function formatChartDate(value: string | Date, rangeMs: number): string {
   const d = typeof value === 'string' ? new Date(value) : value;
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) {
+    return '—';
+  }
   const ONE_DAY = 86_400_000;
   const ONE_WEEK = 7 * ONE_DAY;
   const NINETY_DAYS = 90 * ONE_DAY;

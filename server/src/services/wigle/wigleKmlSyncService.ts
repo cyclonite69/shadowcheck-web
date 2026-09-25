@@ -73,7 +73,9 @@ export async function listTransactions(pageStart = 0, pageEnd = 100): Promise<an
 
   if (!result.ok) {
     const err: any = new Error(result.error || `WiGLE API error: ${result.status}`);
-    if (result.status !== undefined) err.status = result.status;
+    if (result.status !== undefined) {
+      err.status = result.status;
+    }
     throw err;
   }
 
@@ -122,7 +124,9 @@ export async function downloadKml(transid: string): Promise<Buffer> {
 
   if (!result.ok) {
     const err: any = new Error(result.error || `WiGLE API error: ${result.status}`);
-    if (result.status !== undefined) err.status = result.status;
+    if (result.status !== undefined) {
+      err.status = result.status;
+    }
     throw err;
   }
 
@@ -146,7 +150,9 @@ export async function downloadKml(transid: string): Promise<Buffer> {
  * Maps: status === "D" OR percentDone === 100 OR status === "SUCCESS"
  */
 export function isCompletedWigleTransaction(tx: any): boolean {
-  if (!tx.transid) return false;
+  if (!tx.transid) {
+    return false;
+  }
   const statusStr = String(tx.status || '').toUpperCase();
   return statusStr === 'D' || statusStr === 'SUCCESS' || tx.percentDone === 100;
 }
@@ -164,7 +170,9 @@ export function mapWigleStatus(tx: any): string {
 }
 
 function isWigleQuotaError(e: any): boolean {
-  if (!e) return false;
+  if (!e) {
+    return false;
+  }
   if (e.status === 429 || e.status === 503) {
     return true;
   }
@@ -204,7 +212,7 @@ export async function syncKmlTransactions(
 
   // 2. Fetch already imported transids
   const existingTransidsResult = await query(
-    `SELECT DISTINCT wigle_transid FROM app.kml_files WHERE wigle_transid IS NOT NULL`
+    'SELECT DISTINCT wigle_transid FROM app.kml_files WHERE wigle_transid IS NOT NULL'
   );
   const existingTransidsSet = new Set(
     existingTransidsResult.rows.map((row: any) => row.wigle_transid)
@@ -248,9 +256,9 @@ export async function syncKmlTransactions(
         let filename = tx.fileName || `${tx.transid}.kml`;
         if (!filename.toLowerCase().endsWith('.kml')) {
           if (filename.toLowerCase().endsWith('.csv')) {
-            filename = filename.substring(0, filename.length - 4) + '.kml';
+            filename = `${filename.substring(0, filename.length - 4)}.kml`;
           } else {
-            filename = filename + '.kml';
+            filename = `${filename}.kml`;
           }
         }
         return {
@@ -267,9 +275,9 @@ export async function syncKmlTransactions(
     let filename = tx.fileName || `${tx.transid}.kml`;
     if (!filename.toLowerCase().endsWith('.kml')) {
       if (filename.toLowerCase().endsWith('.csv')) {
-        filename = filename.substring(0, filename.length - 4) + '.kml';
+        filename = `${filename.substring(0, filename.length - 4)}.kml`;
       } else {
-        filename = filename + '.kml';
+        filename = `${filename}.kml`;
       }
     }
     const transid = tx.transid;

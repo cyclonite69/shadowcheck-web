@@ -363,11 +363,21 @@ export const wigleApi = {
     } = {}
   ): Promise<{ rows: LedgerRow[]; hasMore: boolean }> {
     const q = new URLSearchParams();
-    if (params.limit) q.set('limit', String(params.limit));
-    if (params.before) q.set('before', params.before);
-    if (params.beforeId) q.set('beforeId', params.beforeId);
-    if (params.status && params.status !== 'all') q.set('status', params.status);
-    if (params.source && params.source !== 'all') q.set('source', params.source);
+    if (params.limit) {
+      q.set('limit', String(params.limit));
+    }
+    if (params.before) {
+      q.set('before', params.before);
+    }
+    if (params.beforeId) {
+      q.set('beforeId', params.beforeId);
+    }
+    if (params.status && params.status !== 'all') {
+      q.set('status', params.status);
+    }
+    if (params.source && params.source !== 'all') {
+      q.set('source', params.source);
+    }
     const suffix = q.toString();
     return apiClient.get(`/wigle/ledger${suffix ? `?${suffix}` : ''}`);
   },

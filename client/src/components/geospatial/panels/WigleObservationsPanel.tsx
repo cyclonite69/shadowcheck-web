@@ -36,7 +36,9 @@ export const WigleObservationsPanel = ({
   const bssid = propBssid || (bssids && bssids.length === 1 ? bssids[0] : null);
   const hasData = bssid || (bssids && bssids.length > 0);
 
-  if (!hasData && !loading) return null;
+  if (!hasData && !loading) {
+    return null;
+  }
 
   const formatDistance = (meters: number): string => {
     if (meters >= 1000) {

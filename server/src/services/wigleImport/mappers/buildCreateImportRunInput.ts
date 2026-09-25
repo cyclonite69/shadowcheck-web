@@ -41,7 +41,9 @@ function urlSearchParamsToObject(params: URLSearchParams): Record<string, any> {
 
 function clampPageSize(value: unknown): number {
   const parsed = Number.parseInt(String(value ?? DEFAULT_RESULTS_PER_PAGE), 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_RESULTS_PER_PAGE;
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return DEFAULT_RESULTS_PER_PAGE;
+  }
   return parsed;
 }
 

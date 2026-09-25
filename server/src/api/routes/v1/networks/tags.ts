@@ -201,7 +201,9 @@ router.post(
         ? { valid: true, value: undefined }
         : (() => {
             const v = validateString(String(reason), 'Reason');
-            if (!v.valid) return v;
+            if (!v.valid) {
+              return v;
+            }
             if (v.value && v.value.length > 512) {
               return { valid: false, error: 'Reason cannot exceed 512 characters' };
             }

@@ -40,7 +40,7 @@ export interface WigleDetailData {
 
 export type WigleDetailType = 'wifi' | 'bt';
 
-const MAC_RE = /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$/;
+const MAC_RE = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/;
 
 function normalizeMac(value: string): string {
   return value.trim().replace(/-/g, ':').toUpperCase();

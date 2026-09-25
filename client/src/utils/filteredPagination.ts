@@ -3,7 +3,9 @@ export function resolveFetchOffset(
   currentOffset: number,
   offsetOverride?: number
 ): number {
-  if (resetOffset) return 0;
+  if (resetOffset) {
+    return 0;
+  }
   return offsetOverride ?? currentOffset;
 }
 
@@ -13,7 +15,11 @@ export function getNextPageOffset(
   total: number,
   loading: boolean
 ): number | null {
-  if (loading) return null;
-  if (currentOffset + limit >= total) return null;
+  if (loading) {
+    return null;
+  }
+  if (currentOffset + limit >= total) {
+    return null;
+  }
   return currentOffset + limit;
 }

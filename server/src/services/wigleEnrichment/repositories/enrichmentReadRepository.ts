@@ -16,7 +16,7 @@ const BATCH_SIZE = 100;
  */
 export async function getPendingEnrichmentCount(): Promise<number> {
   const { rows } = await adminQuery(
-    `SELECT COUNT(DISTINCT bssid)::int AS count FROM app.wigle_v2_networks_search`
+    'SELECT COUNT(DISTINCT bssid)::int AS count FROM app.wigle_v2_networks_search'
   );
   return rows[0]?.count || 0;
 }
@@ -56,7 +56,7 @@ export async function getEnrichmentCatalog(options: {
     }
     if (options.bssid) {
       filterParams.push(`${escapeLikePattern(options.bssid.trim())}%`);
-      w.push(`bssid ILIKE $${idx++} ESCAPE '\\'`);
+      w.push(`bssid ILIKE $${idx} ESCAPE '\\'`);
     }
     return w.length > 0 ? `WHERE ${w.join(' AND ')}` : '';
   };
@@ -87,7 +87,9 @@ export async function getEnrichmentCatalog(options: {
   const orderTerms: string[] = [];
   sortKeys.forEach((key, i) => {
     const col = SORT_ALLOWLIST[key];
-    if (!col) return;
+    if (!col) {
+      return;
+    }
     const dir = sortDirs[i] === 'desc' ? 'DESC' : 'ASC';
     if (Array.isArray(col)) {
       col.forEach((c) => orderTerms.push(`${c} ${dir}`));
@@ -175,20 +177,21 @@ export async function countFieldObservationsMissingV3Detail(): Promise<number> {
 
 /** Returns the id of any v3 enrichment run currently in 'running' state, or null. */
 export async function getActiveEnrichmentRunId(excludeRunId?: number): Promise<number | null> {
+  const hasExclude = excludeRunId !== null && excludeRunId !== undefined;
   const { rows } = await adminQuery(
-    excludeRunId != null
+    hasExclude
       ? `SELECT id FROM app.wigle_import_runs
          WHERE status = 'running' AND source IN ('v3_manual', 'v3_batch') AND id != $1 LIMIT 1`
       : `SELECT id FROM app.wigle_import_runs
          WHERE status = 'running' AND source IN ('v3_manual', 'v3_batch') LIMIT 1`,
-    excludeRunId != null ? [excludeRunId] : []
+    hasExclude ? [excludeRunId] : []
   );
   return rows[0]?.id ?? null;
 }
 
 /** Check current run status (for pause/cancel polling). */
 export async function getRunStatus(runId: number): Promise<string | null> {
-  const { rows } = await adminQuery(`SELECT status FROM app.wigle_import_runs WHERE id = $1`, [
+  const { rows } = await adminQuery('SELECT status FROM app.wigle_import_runs WHERE id = $1', [
     runId,
   ]);
   return rows[0]?.status ?? null;

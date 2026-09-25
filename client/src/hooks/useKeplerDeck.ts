@@ -86,7 +86,9 @@ export function useKeplerDeck({
             renderNetworkTooltip({ ...normalized, triggerElement: mapRef.current }) ??
             placeholderHtml;
           setTooltipState((current) => {
-            if (!current || !current.pinned) return current;
+            if (!current || !current.pinned) {
+              return current;
+            }
             return { x, y, pinned: true, html: fullHtml };
           });
         });
@@ -101,10 +103,14 @@ export function useKeplerDeck({
 
   const handleFitBounds = useCallback(
     (networkData: NetworkData[]) => {
-      if (!deckRef.current || !networkData.length) return;
+      if (!deckRef.current || !networkData.length) {
+        return;
+      }
 
       const validData = networkData.filter((d) => d.position && !isNaN(d.position[0]));
-      if (validData.length === 0) return;
+      if (validData.length === 0) {
+        return;
+      }
 
       let minLon = Infinity,
         maxLon = -Infinity,
@@ -112,10 +118,18 @@ export function useKeplerDeck({
         maxLat = -Infinity;
       for (const d of validData) {
         const [lon, lat] = d.position;
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
+        if (lon < minLon) {
+          minLon = lon;
+        }
+        if (lon > maxLon) {
+          maxLon = lon;
+        }
+        if (lat < minLat) {
+          minLat = lat;
+        }
+        if (lat > maxLat) {
+          maxLat = lat;
+        }
       }
 
       const el = mapRef.current;
@@ -152,7 +166,9 @@ export function useKeplerDeck({
 
   const initDeck = useCallback(
     (token: string, data: NetworkData[]) => {
-      if (!window.deck || !mapRef.current) return;
+      if (!window.deck || !mapRef.current) {
+        return;
+      }
 
       let centerLon = -83.6968; // Default
       let centerLat = 43.0234;
@@ -167,10 +183,18 @@ export function useKeplerDeck({
             maxLat = -Infinity;
           for (const d of validData) {
             const [lon, lat] = d.position;
-            if (lon < minLon) minLon = lon;
-            if (lon > maxLon) maxLon = lon;
-            if (lat < minLat) minLat = lat;
-            if (lat > maxLat) maxLat = lat;
+            if (lon < minLon) {
+              minLon = lon;
+            }
+            if (lon > maxLon) {
+              maxLon = lon;
+            }
+            if (lat < minLat) {
+              minLat = lat;
+            }
+            if (lat > maxLat) {
+              maxLat = lat;
+            }
           }
           const el = mapRef.current;
           const fit = zoomForBounds(
@@ -198,12 +222,18 @@ export function useKeplerDeck({
 
       const layers = [];
       const deck = window.deck;
-      if (!deck) return;
+      if (!deck) {
+        return;
+      }
       const ensureNavigationControl = () => {
-        if (navigationControlRef.current || !window.mapboxgl || !deckRef.current) return;
+        if (navigationControlRef.current || !window.mapboxgl || !deckRef.current) {
+          return;
+        }
 
         const map = deckRef.current.getMapboxMap?.() ?? deckRef.current._map?.getMap?.();
-        if (!map) return;
+        if (!map) {
+          return;
+        }
 
         navigationControlRef.current = new window.mapboxgl.NavigationControl();
         map.addControl(navigationControlRef.current, 'top-right');
@@ -230,8 +260,12 @@ export function useKeplerDeck({
               autoHighlight: true,
               onHover: ({ object, x, y }: any) => {
                 setTooltipState((current) => {
-                  if (current?.pinned) return current;
-                  if (!object) return null;
+                  if (current?.pinned) {
+                    return current;
+                  }
+                  if (!object) {
+                    return null;
+                  }
                   return buildTooltipState(object, x, y, false);
                 });
               },
@@ -292,8 +326,12 @@ export function useKeplerDeck({
               pickable: true,
               onHover: ({ object, x, y }: any) => {
                 setTooltipState((current) => {
-                  if (current?.pinned) return current;
-                  if (!object) return null;
+                  if (current?.pinned) {
+                    return current;
+                  }
+                  if (!object) {
+                    return null;
+                  }
                   return buildTooltipState(object, x, y, false);
                 });
               },

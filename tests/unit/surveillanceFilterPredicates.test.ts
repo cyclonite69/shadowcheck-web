@@ -83,14 +83,17 @@ describe('buildNetworkWhere — surveillance sub-filters', () => {
   test.each([
     ['dashcam', 'DASHCAM'],
     ['residential_cam', 'RESIDENTIAL_CAMERA'],
-  ])('%s filter targets only its device type and excludes false positives', (filter, deviceType) => {
-    const ctx = new FilterBuildContext({ [filter]: true }, { [filter]: true });
-    const where = buildNetworkWhere(ctx);
-    const clause = where.find((w) => w.includes('surveillance_detections'));
-    expect(clause).toContain(`sd.device_type = '${deviceType}'`);
-    expect(clause).toContain('sd.false_positive = FALSE');
-    expect(ctx.getAppliedFilters().map((f) => f.field)).toContain(filter);
-  });
+  ])(
+    '%s filter targets only its device type and excludes false positives',
+    (filter, deviceType) => {
+      const ctx = new FilterBuildContext({ [filter]: true }, { [filter]: true });
+      const where = buildNetworkWhere(ctx);
+      const clause = where.find((w) => w.includes('surveillance_detections'));
+      expect(clause).toContain(`sd.device_type IN ('${deviceType}')`);
+      expect(clause).toContain('sd.false_positive = FALSE');
+      expect(ctx.getAppliedFilters().map((f) => f.field)).toContain(filter);
+    }
+  );
 
   test('shotspotter filter does not query network_tags', () => {
     const ctx = new FilterBuildContext({ shotspotter: true }, { shotspotter: true });
@@ -154,7 +157,7 @@ describe('buildFastPathSupplementalPredicates — surveillance sub-filters', () 
     const ctx = new FilterBuildContext({ [filter]: true }, { [filter]: true });
     const where = buildFastPathSupplementalPredicates(ctx, {});
     const clause = where.find((w) => w.includes('surveillance_detections'));
-    expect(clause).toContain(`sd.device_type = '${deviceType}'`);
+    expect(clause).toContain(`sd.device_type IN ('${deviceType}')`);
     expect(clause).toContain('sd.false_positive = FALSE');
     expect(ctx.getAppliedFilters().map((f) => f.field)).toContain(filter);
   });

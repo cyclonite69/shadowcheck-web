@@ -15,11 +15,21 @@ export function categorizeStatus(
   httpStatus: number | null,
   isNetworkError: boolean
 ): EndpointResultStatus {
-  if (isNetworkError || httpStatus === null) return 'fail';
-  if (httpStatus >= 200 && httpStatus < 300) return 'pass';
-  if (httpStatus === 401 || httpStatus === 403) return 'auth';
-  if (httpStatus === 400 || httpStatus === 422) return 'validation';
-  if (httpStatus >= 500) return 'fail';
+  if (isNetworkError || httpStatus === null) {
+    return 'fail';
+  }
+  if (httpStatus >= 200 && httpStatus < 300) {
+    return 'pass';
+  }
+  if (httpStatus === 401 || httpStatus === 403) {
+    return 'auth';
+  }
+  if (httpStatus === 400 || httpStatus === 422) {
+    return 'validation';
+  }
+  if (httpStatus >= 500) {
+    return 'fail';
+  }
   return 'validation';
 }
 
@@ -128,14 +138,18 @@ export const useApiTesting = () => {
   };
 
   const constructUrl = () => {
-    if (!activePreset) return endpoint;
+    if (!activePreset) {
+      return endpoint;
+    }
 
     let finalPath = activePreset.path;
     const queryParams = new URLSearchParams();
 
     activePreset.params?.forEach((input) => {
       const val = paramValues[input.name];
-      if (!val) return;
+      if (!val) {
+        return;
+      }
 
       if (finalPath.includes(`:${input.name}`)) {
         finalPath = finalPath.replace(`:${input.name}`, encodeURIComponent(val));
@@ -173,7 +187,9 @@ export const useApiTesting = () => {
         try {
           const bodyObj = JSON.parse(body);
           activePreset.params?.forEach((input) => {
-            if (!Object.prototype.hasOwnProperty.call(bodyObj, input.name)) return;
+            if (!Object.prototype.hasOwnProperty.call(bodyObj, input.name)) {
+              return;
+            }
 
             if (input.name === 'import' || input.name === 'overwrite_final') {
               bodyObj[input.name] = paramValues[input.name] === 'true';

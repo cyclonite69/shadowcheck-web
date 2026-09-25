@@ -51,9 +51,13 @@ export type WigleApiCreditValidation = {
 
 /** Normalize BSSID / netid / MAC values to uppercase for persistence. */
 export const normalizeMacAddress = (value: string | null | undefined): string | null => {
-  if (value === undefined || value === null) return null;
+  if (value === undefined || value === null) {
+    return null;
+  }
   const trimmed = String(value).trim();
-  if (trimmed === '') return null;
+  if (trimmed === '') {
+    return null;
+  }
   return trimmed.toUpperCase();
 };
 
@@ -105,14 +109,14 @@ export const mapV3LocationToObservationRow = (
     accuracy: parseOptionalFloat(loc.accuracy),
     signal: parseOptionalInt(loc.signal),
     observed_at: String(loc.time),
-    last_update: loc.lastupdt != null ? String(loc.lastupdt) : null,
+    last_update: loc.lastupdt !== null && loc.lastupdt !== undefined ? String(loc.lastupdt) : null,
     ssid: resolveObservationSsid(loc, cluster, ssidOverride),
     frequency: parseOptionalInt(loc.frequency),
     channel: parseOptionalInt(loc.channel),
     encryption: stripNullBytes(loc.encryptionValue),
     noise: parseOptionalInt(loc.noise),
     snr: parseOptionalInt(loc.snr),
-    month: loc.month != null ? String(loc.month) : null,
+    month: loc.month !== null && loc.month !== undefined ? String(loc.month) : null,
   };
 };
 
@@ -121,7 +125,9 @@ export const mapV3ApiDetailObservationRows = (
   netid: string,
   locationClusters: unknown
 ): WigleV3ObservationRow[] => {
-  if (!Array.isArray(locationClusters)) return [];
+  if (!Array.isArray(locationClusters)) {
+    return [];
+  }
 
   const rows: WigleV3ObservationRow[] = [];
   for (const cluster of locationClusters) {
@@ -166,9 +172,11 @@ export const mapV3ApiDetailToNetworkDetail = (
     dhcp: stripNullBytes(data.dhcp),
     paynet: stripNullBytes(data.paynet),
     qos: parseOptionalInt(data.bestClusterWiGLEQoS),
-    first_seen: data.firstSeen != null ? String(data.firstSeen) : null,
-    last_seen: data.lastSeen != null ? String(data.lastSeen) : null,
-    last_update: data.lastUpdate != null ? String(data.lastUpdate) : null,
+    first_seen:
+      data.firstSeen !== null && data.firstSeen !== undefined ? String(data.firstSeen) : null,
+    last_seen: data.lastSeen !== null && data.lastSeen !== undefined ? String(data.lastSeen) : null,
+    last_update:
+      data.lastUpdate !== null && data.lastUpdate !== undefined ? String(data.lastUpdate) : null,
     street_address: JSON.stringify(data.streetAddress ?? null),
     location_clusters: JSON.stringify(locationClusters ?? []),
   };

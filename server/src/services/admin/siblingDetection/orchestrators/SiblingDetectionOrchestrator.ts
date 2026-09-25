@@ -63,7 +63,7 @@ export class SiblingDetectionOrchestrator {
 
     if (hasTargets) {
       const noteText = options.notes || `Targeted run on ${targetBssids!.length} BSSIDs`;
-      await this.deps.adminQuery(`UPDATE app.sibling_runs SET notes = $1 WHERE id = $2`, [
+      await this.deps.adminQuery('UPDATE app.sibling_runs SET notes = $1 WHERE id = $2', [
         noteText,
         runId,
       ]);

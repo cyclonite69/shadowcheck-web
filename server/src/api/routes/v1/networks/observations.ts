@@ -153,12 +153,7 @@ router.get(
       return res.status(400).json({ error: bssidValidation.error });
     }
 
-    let home = null;
-    try {
-      home = await observationService.getHomeLocationForObservations();
-    } catch {
-      home = null;
-    }
+    const home = await observationService.getHomeLocationForObservations().catch(() => null);
 
     const rows = await observationService.getObservationsByBSSID(
       bssidValidation.cleaned,

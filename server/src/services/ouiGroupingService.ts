@@ -108,10 +108,14 @@ class OUIGroupingService {
       await client.query('COMMIT');
       logger.info(`[OUI Grouping] Completed: ${Object.keys(ouiGroups).length} groups`);
     } catch (err) {
-      if (client) await client.query('ROLLBACK');
+      if (client) {
+        await client.query('ROLLBACK');
+      }
       logger.error('[OUI Grouping] Failed:', err);
     } finally {
-      if (client) client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -199,10 +203,14 @@ class OUIGroupingService {
       await client.query('COMMIT');
       logger.info('[MAC Randomization] Detection complete');
     } catch (err) {
-      if (client) await client.query('ROLLBACK');
+      if (client) {
+        await client.query('ROLLBACK');
+      }
       logger.error('[MAC Randomization] Failed:', err);
     } finally {
-      if (client) client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 }

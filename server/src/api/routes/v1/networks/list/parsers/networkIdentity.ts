@@ -18,7 +18,9 @@ const WIFI_TYPES = new Set(['W', 'B', 'E']);
 const CELLULAR_TYPES = new Set(['G', 'C', 'D', 'L', 'N', 'F']);
 
 const parseCommaFilter = (raw: unknown, limit: number): string[] | null => {
-  if (raw === undefined) return null;
+  if (raw === undefined) {
+    return null;
+  }
   const values = parseCommaList(raw, limit);
   return values && values.length > 0 ? values : null;
 };
@@ -37,29 +39,36 @@ export const parseNetworkIdentity = (
   let ssidPattern: string | null = null;
   if (ssidRaw !== undefined) {
     const validation = validateString(ssidRaw, 'ssid');
-    if (!validation.valid) return { ok: false, status: 400, error: 'Invalid ssid parameter.' };
+    if (!validation.valid) {
+      return { ok: false, status: 400, error: 'Invalid ssid parameter.' };
+    }
     ssidPattern = validation.value ?? null;
   }
 
   let bssidList: string[] | null = null;
   if (bssidRaw !== undefined) {
     const validation = validateBSSIDList(String(bssidRaw));
-    if (!validation.valid) return { ok: false, status: 400, error: validation.error! };
+    if (!validation.valid) {
+      return { ok: false, status: 400, error: validation.error! };
+    }
     bssidList = validation.value ?? null;
   }
 
   let quickSearchPattern: string | null = null;
   if (quickSearchRaw !== undefined) {
     const validation = validateString(quickSearchRaw, 'q');
-    if (!validation.valid) return { ok: false, status: 400, error: 'Invalid q parameter.' };
+    if (!validation.valid) {
+      return { ok: false, status: 400, error: 'Invalid q parameter.' };
+    }
     quickSearchPattern = validation.value ?? null;
   }
 
   let manufacturer: string | null = null;
   if (manufacturerRaw !== undefined) {
     const validation = validateString(manufacturerRaw, 'manufacturer');
-    if (!validation.valid)
+    if (!validation.valid) {
       return { ok: false, status: 400, error: 'Invalid manufacturer parameter.' };
+    }
     manufacturer = validation.value ?? null;
   }
 

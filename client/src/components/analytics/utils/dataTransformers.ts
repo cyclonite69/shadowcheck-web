@@ -9,7 +9,9 @@ const CHART_DEFAULT_RANGE_MS = 30 * 86_400_000; // 30 days → MMM DD format
 
 // Transform network types data for pie chart
 export const transformNetworkTypesData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   return rawData
     .map((item) => ({
@@ -22,7 +24,9 @@ export const transformNetworkTypesData = (rawData: any[]) => {
 
 // Transform signal strength data for bar chart
 export const transformSignalStrengthData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   return rawData.map((item) => ({
     range: `${item.range || item.signal_range} dBm`,
@@ -32,7 +36,9 @@ export const transformSignalStrengthData = (rawData: any[]) => {
 
 // Transform security types data for pie chart
 export const transformSecurityData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   return rawData
     .map((item) => ({
@@ -45,7 +51,9 @@ export const transformSecurityData = (rawData: any[]) => {
 
 // Transform threat distribution data for bar chart
 export const transformThreatDistributionData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   const severityColors: Record<string, string> = {
     '80-100': '#ef4444', // Critical
@@ -64,7 +72,9 @@ export const transformThreatDistributionData = (rawData: any[]) => {
 
 // Transform temporal activity data for bar chart
 export const transformTemporalData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   return rawData.map((item) => ({
     hour: item.hour,
@@ -74,7 +84,9 @@ export const transformTemporalData = (rawData: any[]) => {
 
 // Transform radio type over time data for line chart
 export const transformRadioTimeData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   const radioTimeMap = new Map();
   rawData.forEach((item) => {
@@ -89,7 +101,9 @@ export const transformRadioTimeData = (rawData: any[]) => {
 
 // Transform threat trends data for line chart
 export const transformThreatTrendsData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   return rawData.map((item) => ({
     label: formatChartDate(new Date(item.date), CHART_DEFAULT_RANGE_MS),
@@ -103,7 +117,9 @@ export const transformThreatTrendsData = (rawData: any[]) => {
 
 // Transform top networks data for list display
 export const transformTopNetworksData = (rawData: any[]) => {
-  if (!rawData || !Array.isArray(rawData)) return [];
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
 
   return rawData.map((item) => ({
     bssid: item.bssid,
@@ -114,7 +130,9 @@ export const transformTopNetworksData = (rawData: any[]) => {
 
 // Transform severity counts for bar/pie chart
 export const transformSeverityCounts = (counts: any) => {
-  if (!counts) return [];
+  if (!counts) {
+    return [];
+  }
   const severities = ['critical', 'high', 'medium', 'low', 'none'];
   return severities.map((sev) => ({
     name: sev.charAt(0).toUpperCase() + sev.slice(1),

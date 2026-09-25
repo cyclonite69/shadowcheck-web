@@ -10,7 +10,7 @@ async function setNetworkSiblingOverride(
   notes: string | null = null,
   confidence = 1.0
 ): Promise<void> {
-  await adminQuery(`SELECT app.set_network_sibling_override($1, $2, $3, $4, $5, $6)`, [
+  await adminQuery('SELECT app.set_network_sibling_override($1, $2, $3, $4, $5, $6)', [
     bssidA,
     bssidB,
     relation,
@@ -109,7 +109,9 @@ async function getSiblingComponentBssids(seedBssid: string): Promise<string[]> {
   const seed = String(seedBssid || '')
     .trim()
     .toUpperCase();
-  if (!seed) return [];
+  if (!seed) {
+    return [];
+  }
 
   const result = await adminQuery(
     `

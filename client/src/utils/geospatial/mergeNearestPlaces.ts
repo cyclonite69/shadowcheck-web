@@ -25,11 +25,23 @@ export interface NearestPlaceCluster {
 }
 
 function hasAgencyMatch(agency: Agency): boolean {
-  return Boolean(agency.name && agency.latitude != null && agency.longitude != null);
+  return Boolean(
+    agency.name &&
+    agency.latitude !== null &&
+    agency.latitude !== undefined &&
+    agency.longitude !== null &&
+    agency.longitude !== undefined
+  );
 }
 
 function hasCourthouseMatch(courthouse: CourthouseMatch): boolean {
-  return Boolean(courthouse.name && courthouse.latitude != null && courthouse.longitude != null);
+  return Boolean(
+    courthouse.name &&
+    courthouse.latitude !== null &&
+    courthouse.latitude !== undefined &&
+    courthouse.longitude !== null &&
+    courthouse.longitude !== undefined
+  );
 }
 
 /**
@@ -47,7 +59,7 @@ export function mergeNearestPlaces(
 
   agencies.forEach((agency, idx) => {
     const cid = agency.cluster_id;
-    const key = cid != null ? String(cid) : `agency-${idx}`;
+    const key = cid !== null && cid !== undefined ? String(cid) : `agency-${idx}`;
     const matchedAgency = hasAgencyMatch(agency) ? agency : undefined;
     map.set(key, {
       key,
@@ -64,19 +76,23 @@ export function mergeNearestPlaces(
 
   courthouses.forEach((ch, idx) => {
     const cid = ch.cluster_id;
-    const key = cid != null ? String(cid) : `courthouse-${idx}`;
+    const key = cid !== null && cid !== undefined ? String(cid) : `courthouse-${idx}`;
     const matchedCourthouse = hasCourthouseMatch(ch) ? ch : undefined;
     const existing = map.get(key);
     if (existing) {
       existing.courthouse = matchedCourthouse;
       // Prefer agency centroid; fall back to courthouse centroid if missing
-      if (existing.clusterLat == null) {
+      if (existing.clusterLat === null) {
         existing.clusterLat = ch.cluster_lat ?? ch.latitude ?? null;
         existing.clusterLon = ch.cluster_lon ?? ch.longitude ?? null;
       }
       // Merge source flags
-      if (ch.has_wigle_obs) existing.hasWigleObs = true;
-      if (ch.has_local_obs) existing.hasLocalObs = true;
+      if (ch.has_wigle_obs) {
+        existing.hasWigleObs = true;
+      }
+      if (ch.has_local_obs) {
+        existing.hasLocalObs = true;
+      }
     } else {
       map.set(key, {
         key,
@@ -94,9 +110,15 @@ export function mergeNearestPlaces(
 
   // Sort: numeric cluster_id first (ascending), then synthetic keys last
   return Array.from(map.values()).sort((a, b) => {
-    if (a.clusterId != null && b.clusterId != null) return a.clusterId - b.clusterId;
-    if (a.clusterId != null) return -1;
-    if (b.clusterId != null) return 1;
+    if (a.clusterId !== null && b.clusterId !== null) {
+      return a.clusterId - b.clusterId;
+    }
+    if (a.clusterId !== null) {
+      return -1;
+    }
+    if (b.clusterId !== null) {
+      return 1;
+    }
     return a.key.localeCompare(b.key);
   });
 }

@@ -19,7 +19,9 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
   return (e: any) => {
     const feature = e.features && e.features[0];
     const props = feature?.properties;
-    if (!props || !e.lngLat) return;
+    if (!props || !e.lngLat) {
+      return;
+    }
 
     const map = e.target as Map;
     const bssid = String(props.netid || props.bssid || '');
@@ -47,7 +49,9 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
 
     if (bssid) {
       networkApi.getNetworkByBssid(bssid).then((mvData) => {
-        if (!popup.isOpen()) return;
+        if (!popup.isOpen()) {
+          return;
+        }
         // Preserve WiGLE feature properties (wigle_match, wigle_source, local_observations, etc.)
         // so badges survive even when a local MV record is found for the same BSSID.
         const wigleProps = {
@@ -93,10 +97,14 @@ export function createClusterClickHandler(map: Map, sourceId: string, clusterLay
     const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
     const clusterId = features[0]?.properties?.cluster_id;
     const source = map.getSource(sourceId) as GeoJSONSource;
-    if (!source || clusterId == null) return;
+    if (!source || clusterId === null || clusterId === undefined) {
+      return;
+    }
 
     source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-      if (err || zoom == null) return;
+      if (err || zoom === null || zoom === undefined) {
+        return;
+      }
       map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
     });
   };

@@ -22,7 +22,9 @@ describe('mapHelpers - ensureHomeLocationLayers', () => {
       }),
       setLayoutProperty: jest.fn((id: string, property: string, value: any) => {
         if (layers[id]) {
-          if (!layers[id].layout) layers[id].layout = {};
+          if (!layers[id].layout) {
+            layers[id].layout = {};
+          }
           layers[id].layout[property] = value;
         }
       }),

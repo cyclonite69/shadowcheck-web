@@ -35,14 +35,20 @@ export const useSummaryLayers = ({
   }, [networkLookup]);
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
 
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
-    if (!mapboxgl) return;
+    if (!mapboxgl) {
+      return;
+    }
 
     const ensureSummaryLayers = () => {
-      if (!map.isStyleLoaded()) return false;
+      if (!map.isStyleLoaded()) {
+        return false;
+      }
 
       if (!map.getSource('network-summaries')) {
         map.addSource('network-summaries', {
@@ -110,16 +116,22 @@ export const useSummaryLayers = ({
     };
 
     const syncSummarySource = () => {
-      if (!ensureSummaryLayers()) return false;
+      if (!ensureSummaryLayers()) {
+        return false;
+      }
       const source = map.getSource('network-summaries') as GeoJSONSource | undefined;
-      if (!source) return false;
+      if (!source) {
+        return false;
+      }
 
       if (showNetworkSummaries && activeObservationSets.length > 0) {
         const summaryFeatures: any[] = [];
 
         activeObservationSets.forEach((set) => {
           const network = networkLookupRef.current.get(set.bssid);
-          if (!network) return;
+          if (!network) {
+            return;
+          }
 
           // Add centroid marker if coordinates exist
           if (
@@ -180,7 +192,9 @@ export const useSummaryLayers = ({
     };
 
     try {
-      if (syncSummarySource()) return;
+      if (syncSummarySource()) {
+        return;
+      }
       const handleStyleLoad = () => {
         syncSummarySource();
       };

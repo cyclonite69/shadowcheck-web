@@ -85,7 +85,9 @@ function getExplorerNetworksHandler() {
 function getNetworkByBssidHandler() {
   const router = require('../../server/src/api/routes/v1/explorer/networks');
   const layer = router.stack.find((entry: any) => entry.route?.path === '/explorer/network/:bssid');
-  if (!layer) throw new Error('Could not find /explorer/network/:bssid route');
+  if (!layer) {
+    throw new Error('Could not find /explorer/network/:bssid route');
+  }
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
 

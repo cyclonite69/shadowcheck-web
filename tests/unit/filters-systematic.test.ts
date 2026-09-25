@@ -23,7 +23,9 @@ describe('Systematic Filter Testing - Global Parity (Every Filter)', () => {
       }
     });
 
-    if (list.params.length === 0 && count.params.length === 0 && dash.params.length === 0) return;
+    if (list.params.length === 0 && count.params.length === 0 && dash.params.length === 0) {
+      return;
+    }
 
     // Parameter parity check:
     // We verify that every parameter used in count/dash is also present in list.
@@ -36,10 +38,10 @@ describe('Systematic Filter Testing - Global Parity (Every Filter)', () => {
         .filter((p: any) => p !== null)
         .forEach((p: any) => expect(list.params).toContainEqual(p));
     } catch (e) {
-      console.log(`Parity failure for parameters:`);
-      console.log(`List:`, JSON.stringify(list.params));
-      console.log(`Count:`, JSON.stringify(count.params));
-      console.log(`Dash:`, JSON.stringify(dash.params));
+      console.log('Parity failure for parameters:');
+      console.log('List:', JSON.stringify(list.params));
+      console.log('Count:', JSON.stringify(count.params));
+      console.log('Dash:', JSON.stringify(dash.params));
       throw e;
     }
   };

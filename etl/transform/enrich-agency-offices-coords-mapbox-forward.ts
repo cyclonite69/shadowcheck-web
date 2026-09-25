@@ -65,7 +65,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function normalizeZip5(postal: string | null): string | null {
   const raw = (postal || '').trim();
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   const m = raw.match(/^(\d{5})/);
   return m ? m[1] : null;
 }
@@ -73,14 +75,18 @@ function normalizeZip5(postal: string | null): string | null {
 function parseArgs(argv: string[]): Options {
   const getNum = (prefix: string, fallback: number) => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return fallback;
+    if (!raw) {
+      return fallback;
+    }
     const n = Number(raw.split('=')[1]);
     return Number.isFinite(n) && n > 0 ? n : fallback;
   };
 
   const getStr = (prefix: string): string | null => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const v = raw.slice(prefix.length).trim();
     return v.length ? v : null;
   };
@@ -114,7 +120,9 @@ function parseArgs(argv: string[]): Options {
 
 async function resolveDbHost(): Promise<string> {
   const configured = process.env.DB_HOST || 'localhost';
-  if (configured === 'shadowcheck_postgres') return 'localhost';
+  if (configured === 'shadowcheck_postgres') {
+    return 'localhost';
+  }
   try {
     await dns.lookup(configured);
     return configured;
@@ -124,9 +132,10 @@ async function resolveDbHost(): Promise<string> {
 }
 
 async function loadSecretsManager(): Promise<SecretsManager> {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const sm = require('../../server/src/services/secretsManager') as SecretsManager;
-  if (!sm?.getSecret) throw new Error('Failed to load secretsManager (missing getSecret).');
+  if (!sm?.getSecret) {
+    throw new Error('Failed to load secretsManager (missing getSecret).');
+  }
   return sm;
 }
 
@@ -137,7 +146,7 @@ function buildQuery(row: Row): string {
   const state = (row.normalized_state || row.state).trim();
   const zip5 = normalizeZip5(row.normalized_postal_code) || normalizeZip5(row.postal_code) || null;
 
-  const parts = [line1, line2, `${city}, ${state}${zip5 ? ' ' + zip5 : ''}`, 'USA']
+  const parts = [line1, line2, `${city}, ${state}${zip5 ? ` ${zip5}` : ''}`, 'USA']
     .map((p) => p.trim())
     .filter(Boolean);
 
@@ -161,14 +170,22 @@ async function mapboxForward(opts: {
   }
 
   const res = await fetch(url.toString());
-  if (res.status === 429) throw new Error('rate_limit');
-  if (!res.ok) return null;
+  if (res.status === 429) {
+    throw new Error('rate_limit');
+  }
+  if (!res.ok) {
+    return null;
+  }
 
   const json = (await res.json()) as MapboxResponse;
   const feature = json.features?.[0];
-  if (!feature?.center || feature.center.length !== 2) return null;
+  if (!feature?.center || feature.center.length !== 2) {
+    return null;
+  }
   const [lon, lat] = feature.center;
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return null;
+  }
   return { lat, lon, feature };
 }
 
@@ -177,7 +194,9 @@ async function main(): Promise<void> {
   const secrets = await loadSecretsManager();
 
   const dbPassword = (await secrets.getSecret('db_password')) || process.env.DB_PASSWORD;
-  if (!dbPassword) throw new Error('Database password not configured (db_password / DB_PASSWORD).');
+  if (!dbPassword) {
+    throw new Error('Database password not configured (db_password / DB_PASSWORD).');
+  }
 
   const mapboxToken =
     (await secrets.getSecret('mapbox_unlimited_api_key')) ||

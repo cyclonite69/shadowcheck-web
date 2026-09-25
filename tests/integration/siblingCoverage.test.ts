@@ -8,19 +8,19 @@ describeIfIntegration('Sibling Coverage Stats Accounting', () => {
   beforeEach(async () => {
     // Clean up any stale data
     await query(
-      `DELETE FROM app.network_sibling_pairs WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+      'DELETE FROM app.network_sibling_pairs WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
       [testBssids]
     );
-    await query(`DELETE FROM app.networks WHERE bssid = ANY($1)`, [testBssids]);
+    await query('DELETE FROM app.networks WHERE bssid = ANY($1)', [testBssids]);
   });
 
   afterAll(async () => {
     // Final cleanup
     await query(
-      `DELETE FROM app.network_sibling_pairs WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+      'DELETE FROM app.network_sibling_pairs WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
       [testBssids]
     );
-    await query(`DELETE FROM app.networks WHERE bssid = ANY($1)`, [testBssids]);
+    await query('DELETE FROM app.networks WHERE bssid = ANY($1)', [testBssids]);
     await closePool();
   });
 

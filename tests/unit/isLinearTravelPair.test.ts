@@ -14,9 +14,15 @@ function isLinearTravelPair(
   speedMinKmh = 5,
   speedMaxKmh = 80
 ): boolean {
-  if (timeDeltaS <= 0) return false; // identical/reversed timestamps
-  if (distanceM === 0) return false; // stationary point
-  if (distanceM > thresholdM) return false; // outside gate window
+  if (timeDeltaS <= 0) {
+    return false;
+  } // identical/reversed timestamps
+  if (distanceM === 0) {
+    return false;
+  } // stationary point
+  if (distanceM > thresholdM) {
+    return false;
+  } // outside gate window
   const speedKmh = distanceM / 1000 / (timeDeltaS / 3600);
   return speedKmh >= speedMinKmh && speedKmh <= speedMaxKmh;
 }

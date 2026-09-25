@@ -41,7 +41,9 @@ export const ObservationsCard: React.FC<ObservationsCardProps> = ({ selectedNetw
     }
 
     const bssid = selectedNetwork.netid || selectedNetwork.bssid;
-    if (!bssid) return;
+    if (!bssid) {
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -77,7 +79,9 @@ export const ObservationsCard: React.FC<ObservationsCardProps> = ({ selectedNetw
       });
   }, [selectedNetwork]);
 
-  if (!selectedNetwork) return null;
+  if (!selectedNetwork) {
+    return null;
+  }
 
   const bssid = selectedNetwork.netid || selectedNetwork.bssid;
   const label = selectedNetwork.ssid || bssid || 'Unknown';
@@ -158,15 +162,18 @@ export const ObservationsCard: React.FC<ObservationsCardProps> = ({ selectedNetw
                           {ts ? formatShortDate(ts) : '—'}
                         </td>
                         <td className={`px-3 py-2 text-right font-mono tabular-nums ${sigColor}`}>
-                          {sig != null ? `${sig} dBm` : '—'}
+                          {sig !== null && sig !== undefined ? `${sig} dBm` : '—'}
                         </td>
                         <td className="px-3 py-2 text-slate-500 truncate max-w-[120px]">
                           {obs.source_tag || obs.source || obs.device_id || '—'}
                         </td>
                         <td className="px-3 py-2 font-mono text-cyan-500/70">
-                          {obs.lat != null && obs.lon != null
+                          {obs.lat !== null &&
+                          obs.lat !== undefined &&
+                          obs.lon !== null &&
+                          obs.lon !== undefined
                             ? `${Number(obs.lat).toFixed(5)}, ${Number(obs.lon).toFixed(5)}`
-                            : obs.latitude != null
+                            : obs.latitude !== null && obs.latitude !== undefined
                               ? `${Number(obs.latitude).toFixed(5)}, ${Number(obs.longitude).toFixed(5)}`
                               : '—'}
                         </td>

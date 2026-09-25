@@ -106,9 +106,13 @@ export function formatTimestamp(value?: string | null): string {
 }
 
 export function formatDuration(durationMs?: number | null): string {
-  if (!durationMs || durationMs < 1000) return 'under 1s';
+  if (!durationMs || durationMs < 1000) {
+    return 'under 1s';
+  }
   const seconds = Math.round(durationMs / 1000);
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remSeconds = seconds % 60;
   return remSeconds > 0 ? `${minutes}m ${remSeconds}s` : `${minutes}m`;

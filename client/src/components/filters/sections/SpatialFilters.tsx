@@ -76,7 +76,9 @@ export const SpatialFilters: React.FC<SpatialFiltersProps> = ({
   };
 
   const parseNumericInput = (value: string) => {
-    if (value.trim() === '') return undefined;
+    if (value.trim() === '') {
+      return undefined;
+    }
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : undefined;
   };

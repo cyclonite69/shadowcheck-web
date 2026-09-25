@@ -214,7 +214,9 @@ describe('backupService', () => {
       ]);
 
       (fs.stat as jest.Mock).mockImplementation((path: string) => {
-        if (path.endsWith('old.dump')) return Promise.resolve({ size: 1024, mtimeMs: oldTime });
+        if (path.endsWith('old.dump')) {
+          return Promise.resolve({ size: 1024, mtimeMs: oldTime });
+        }
         return Promise.resolve({ size: 1024, mtimeMs: now });
       });
 
@@ -232,7 +234,9 @@ describe('backupService', () => {
 
     it('should use secretsManager for passwords', async () => {
       (secretsManager.get as jest.Mock).mockImplementation((key) => {
-        if (key === 'db_admin_password') return 'admin-pass';
+        if (key === 'db_admin_password') {
+          return 'admin-pass';
+        }
         return null;
       });
 
@@ -251,7 +255,9 @@ describe('backupService', () => {
       process.env.DB_HOST = 'remote-host';
       process.env.DB_USER = 'app-user';
       (secretsManager.get as jest.Mock).mockImplementation((key) => {
-        if (key === 'db_password') return 'app-pass';
+        if (key === 'db_password') {
+          return 'app-pass';
+        }
         return null;
       });
       delete process.env.DB_ADMIN_PASSWORD;
@@ -295,7 +301,9 @@ describe('backupService', () => {
 
     it('should throw if globals file is empty', async () => {
       (fs.stat as jest.Mock).mockImplementation((path: string) => {
-        if (path.includes('globals_')) return Promise.resolve({ size: 0 });
+        if (path.includes('globals_')) {
+          return Promise.resolve({ size: 0 });
+        }
         return Promise.resolve({ size: 1024 });
       });
 

@@ -13,7 +13,6 @@ describe('cacheMiddleware', () => {
 
   beforeEach(() => {
     req = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       app: { locals: { cacheService } } as any,
       method: 'GET',
       path: '/test',

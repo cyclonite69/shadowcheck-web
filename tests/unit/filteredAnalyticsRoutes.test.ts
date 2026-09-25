@@ -12,7 +12,7 @@ describe('filtered analytics routes are service-backed', () => {
     }
 
     const handler = layer.route.stack[0].handle;
-    return await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const req: any = { query };
       let statusCode = 200;
       let body: any;
@@ -30,7 +30,9 @@ describe('filtered analytics routes are service-backed', () => {
 
       try {
         const maybePromise = handler(req, res, (err: unknown) => {
-          if (err) reject(err);
+          if (err) {
+            reject(err);
+          }
         });
         if (maybePromise && typeof maybePromise.then === 'function') {
           maybePromise.catch(reject);

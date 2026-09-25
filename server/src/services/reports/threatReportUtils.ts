@@ -4,7 +4,9 @@
 export {};
 
 function toNumber(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
+  if (value === null || value === undefined) {
+    return null;
+  }
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
@@ -14,12 +16,14 @@ function escapeHtml(value: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
 
 function formatTimestamp(ms: number | null): string {
-  if (!ms) return 'N/A';
+  if (!ms) {
+    return 'N/A';
+  }
   const d = new Date(ms);
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -31,12 +35,16 @@ function formatTimestamp(ms: number | null): string {
 }
 
 function buildGoogleMapsUrl(lat: number | null, lon: number | null): string | null {
-  if (lat === null || lon === null) return null;
+  if (lat === null || lon === null) {
+    return null;
+  }
   return `https://www.google.com/maps?q=${lat},${lon}`;
 }
 
 function buildStreetViewUrl(lat: number | null, lon: number | null): string | null {
-  if (lat === null || lon === null) return null;
+  if (lat === null || lon === null) {
+    return null;
+  }
   return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
 }
 

@@ -104,18 +104,33 @@ router.post('/jobs/:jobName/run', async (req: any, res: any) => {
 
     // Convert UI form field names (snake_case) to options (both formats supported)
     if (jobName === 'siblingDetection') {
-      // UI stores batch size as seed_limit
-      if (options.seed_limit != null && options.batchSize == null) {
+      if (
+        options.seed_limit !== null &&
+        options.seed_limit !== undefined &&
+        (options.batchSize === null || options.batchSize === undefined)
+      ) {
         options.batchSize = options.seed_limit;
       }
       // Map snake_case field names if present (fallback for direct config)
-      if (options.max_octet_delta != null && options.maxOctetDelta == null) {
+      if (
+        options.max_octet_delta !== null &&
+        options.max_octet_delta !== undefined &&
+        (options.maxOctetDelta === null || options.maxOctetDelta === undefined)
+      ) {
         options.maxOctetDelta = options.max_octet_delta;
       }
-      if (options.max_distance_m != null && options.maxDistanceM == null) {
+      if (
+        options.max_distance_m !== null &&
+        options.max_distance_m !== undefined &&
+        (options.maxDistanceM === null || options.maxDistanceM === undefined)
+      ) {
         options.maxDistanceM = options.max_distance_m;
       }
-      if (options.min_candidate_conf != null && options.minCandidateConf == null) {
+      if (
+        options.min_candidate_conf !== null &&
+        options.min_candidate_conf !== undefined &&
+        (options.minCandidateConf === null || options.minCandidateConf === undefined)
+      ) {
         options.minCandidateConf = options.min_candidate_conf;
       }
     }

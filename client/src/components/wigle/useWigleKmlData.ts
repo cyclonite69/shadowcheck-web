@@ -35,7 +35,9 @@ export function useWigleKmlData({ limit, offset, adaptedFilters, enabled }: UseW
   const [error, setError] = useState<string | null>(null);
 
   const fetchPoints = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     logDebug('[WiGLE/KML] Fetch triggered');
     setLoading(true);
@@ -43,8 +45,12 @@ export function useWigleKmlData({ limit, offset, adaptedFilters, enabled }: UseW
 
     try {
       const params = new URLSearchParams({ include_total: '1' });
-      if (limit !== null) params.set('limit', String(limit));
-      if (offset > 0) params.set('offset', String(offset));
+      if (limit !== null) {
+        params.set('limit', String(limit));
+      }
+      if (offset > 0) {
+        params.set('offset', String(offset));
+      }
 
       const { filtersForPage, enabledForPage } = adaptedFilters;
       params.set('filters', JSON.stringify(filtersForPage));

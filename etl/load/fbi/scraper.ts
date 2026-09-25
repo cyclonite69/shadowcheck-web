@@ -12,7 +12,9 @@ export const fetchPage = async (url: string): Promise<string> => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(`Failed to fetch ${url}: ${(error as Error).message}`);
+    throw new (Error as any)(`Failed to fetch ${url}: ${(error as Error).message}`, {
+      cause: error,
+    });
   }
 };
 

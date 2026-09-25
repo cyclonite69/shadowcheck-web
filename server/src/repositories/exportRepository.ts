@@ -106,7 +106,9 @@ export async function queryTableRowCount(tableName: string): Promise<number> {
 }
 
 export async function queryTableRows(tableName: string, limit: number): Promise<any[]> {
-  if (limit <= 0) return [];
+  if (limit <= 0) {
+    return [];
+  }
   const qualifiedTable = `${quoteIdent('app')}.${quoteIdent(tableName)}`;
   const result = await adminQuery(`SELECT * FROM ${qualifiedTable} LIMIT ${limit}`);
   return Array.isArray(result.rows) ? result.rows : [];

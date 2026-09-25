@@ -15,14 +15,26 @@ export async function upsertNetworkTag(
   const existing = await adminQuery('SELECT bssid FROM app.network_tags WHERE bssid = $1', [bssid]);
 
   if (existing.rows.length > 0) {
-    if (threatTag !== null) await updateNetworkThreatTag(bssid, threatTag);
-    if (isIgnored !== null) await updateNetworkTagIgnore(bssid, isIgnored);
-    if (notes !== null) await updateNetworkTagNotes(bssid, notes);
+    if (threatTag !== null) {
+      await updateNetworkThreatTag(bssid, threatTag);
+    }
+    if (isIgnored !== null) {
+      await updateNetworkTagIgnore(bssid, isIgnored);
+    }
+    if (notes !== null) {
+      await updateNetworkTagNotes(bssid, notes);
+    }
     return { bssid, updated: true };
   } else {
-    if (threatTag !== null) await insertNetworkThreatTag(bssid, threatTag);
-    if (isIgnored !== null) await insertNetworkTagIgnore(bssid, isIgnored);
-    if (notes !== null) await insertNetworkTagNotes(bssid, notes);
+    if (threatTag !== null) {
+      await insertNetworkThreatTag(bssid, threatTag);
+    }
+    if (isIgnored !== null) {
+      await insertNetworkTagIgnore(bssid, isIgnored);
+    }
+    if (notes !== null) {
+      await insertNetworkTagNotes(bssid, notes);
+    }
     return { bssid, inserted: true };
   }
 }

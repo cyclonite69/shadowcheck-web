@@ -14,7 +14,7 @@ interface ShutdownDependencies {
 function registerShutdownHandlers({ logger, pool }: ShutdownDependencies): void {
   const shutdown = async (signal: string) => {
     logger.info(`${signal} received, closing server gracefully...`);
-    
+
     try {
       const BackgroundJobsService = require('../services/backgroundJobsService');
       BackgroundJobsService.shutdown();
@@ -31,10 +31,10 @@ function registerShutdownHandlers({ logger, pool }: ShutdownDependencies): void 
 
     try {
       // Set a timeout for pool.end() to prevent hanging on pending I/O
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Database pool shutdown timed out')), 5000)
       );
-      
+
       await Promise.race([pool.end(), timeoutPromise]);
       logger.info('Database pool closed successfully.');
     } catch (err: any) {

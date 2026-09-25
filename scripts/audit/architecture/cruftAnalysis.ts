@@ -9,7 +9,9 @@ import type {
 import { globToRegex } from './inventory';
 
 const packageRoot = (specifier: string): string => {
-  if (specifier.startsWith('@')) return specifier.split('/').slice(0, 2).join('/');
+  if (specifier.startsWith('@')) {
+    return specifier.split('/').slice(0, 2).join('/');
+  }
   return specifier.split('/')[0];
 };
 
@@ -64,18 +66,25 @@ const buildUnusedExportFindings = (
 ): AuditFinding[] => {
   const findings: AuditFinding[] = [];
   for (const record of inventory.sourceRecords) {
-    if (!isApplicationSource(record.path) || isEntrypoint(record.path, config)) continue;
-    if (record.exports.length === 0) continue;
+    if (!isApplicationSource(record.path) || isEntrypoint(record.path, config)) {
+      continue;
+    }
+    if (record.exports.length === 0) {
+      continue;
+    }
     const importers = inventory.sourceRecords.flatMap((candidate) =>
       candidate.imports
         .filter((reference) => reference.resolvedPath === record.path)
         .map((reference) => ({ candidate, reference }))
     );
-    if (importers.length === 0 || importers.some(({ reference }) => reference.wholeModule))
+    if (importers.length === 0 || importers.some(({ reference }) => reference.wholeModule)) {
       continue;
+    }
     const importedNames = new Set(importers.flatMap(({ reference }) => reference.names));
     for (const exportedName of record.exports) {
-      if (importedNames.has(exportedName)) continue;
+      if (importedNames.has(exportedName)) {
+        continue;
+      }
       findings.push({
         id: `unused-export:${record.path}:${exportedName}`,
         category: 'unused-export',

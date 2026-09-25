@@ -11,7 +11,9 @@ export function getPreviewTags(
   selectedCandidateId: string | null,
   candidates?: CandidateTagObservation[] | null
 ): string[] {
-  if (!selectedCandidateId) return [];
+  if (!selectedCandidateId) {
+    return [];
+  }
 
   const isUnmatched = selectedCandidateId === 'unmatched';
   const candidate = candidates?.find((c: any) => String(c.id) === selectedCandidateId);
@@ -49,11 +51,19 @@ export function getPreviewTags(
   }
 
   if (deviceType === 'FLOCK_SAFETY_CAMERA') {
-    if (score >= 4) return ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
-    if (score >= 3) return ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
-    if (score >= 1) return ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
+    if (score >= 4) {
+      return ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
+    }
+    if (score >= 3) {
+      return ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
+    }
+    if (score >= 1) {
+      return ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
+    }
   }
 
-  if (score >= 1) return ['VISINT_PENDING'];
+  if (score >= 1) {
+    return ['VISINT_PENDING'];
+  }
   return ['VISINT_SPATIAL_MATCH'];
 }

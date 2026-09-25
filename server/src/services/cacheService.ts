@@ -37,7 +37,9 @@ class CacheService {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    if (!this.enabled || !this.client) return null;
+    if (!this.enabled || !this.client) {
+      return null;
+    }
     try {
       const data = await this.client.get(key);
       return data ? JSON.parse(String(data)) : null;
@@ -47,7 +49,9 @@ class CacheService {
   }
 
   async set(key: string, value: any, ttlSeconds = 300): Promise<void> {
-    if (!this.enabled || !this.client) return;
+    if (!this.enabled || !this.client) {
+      return;
+    }
     try {
       await this.client.setEx(key, ttlSeconds, JSON.stringify(value));
     } catch {
@@ -56,7 +60,9 @@ class CacheService {
   }
 
   async del(key: string): Promise<void> {
-    if (!this.enabled || !this.client) return;
+    if (!this.enabled || !this.client) {
+      return;
+    }
     try {
       await this.client.del(key);
     } catch {
@@ -65,7 +71,9 @@ class CacheService {
   }
 
   async clear(pattern: string): Promise<void> {
-    if (!this.enabled || !this.client) return;
+    if (!this.enabled || !this.client) {
+      return;
+    }
     try {
       const keys = await this.client.keys(pattern);
       if (keys.length > 0) {

@@ -45,7 +45,9 @@ export async function importSearchResults(results: any[]): Promise<{
   for (const network of results) {
     try {
       const rowCount = await wigleService.importWigleV2SearchResult(network);
-      if (rowCount > 0) importedCount++;
+      if (rowCount > 0) {
+        importedCount++;
+      }
     } catch (err: any) {
       const bssid = network.netid || network.bssid;
       logger.error(`[WiGLE] Import error for ${bssid}: ${err.message}`);

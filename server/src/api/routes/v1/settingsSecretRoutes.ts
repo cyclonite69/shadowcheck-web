@@ -37,10 +37,10 @@ const registerSingleSecretRoutes = ({
   router.post(postPath, ...postMiddleware, async (req: Request, res: Response) => {
     try {
       const incomingValue = helpers.getIncomingValue(req.body, 'apiKey');
-      
+
       const validator = (typeof validateValue === 'string') ? helpers[validateValue] : validateValue;
       const validation = validator(incomingValue);
-      
+
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }

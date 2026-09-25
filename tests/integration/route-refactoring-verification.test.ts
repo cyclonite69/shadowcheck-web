@@ -18,11 +18,15 @@ const request = require('supertest');
 // Mock secretsManager BEFORE importing routes
 jest.mock('../../server/src/services/secretsManager', () => ({
   getSecret: jest.fn(async (key: string) => {
-    if (key === 'mapbox_token') return 'pk.test-token';
+    if (key === 'mapbox_token') {
+      return 'pk.test-token';
+    }
     return null;
   }),
   get: jest.fn((key: string) => {
-    if (key === 'google_maps_api_key') return null;
+    if (key === 'google_maps_api_key') {
+      return null;
+    }
     return null;
   }),
   has: jest.fn((key: string) => key === 'mapbox_token'),

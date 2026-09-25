@@ -104,7 +104,9 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
             onSearchModeToggle={() => {
               const next = state.searchMode === 'address' ? 'directions' : 'address';
               state.setSearchMode(next);
-              if (next === 'address') state.clearRoute();
+              if (next === 'address') {
+                state.clearRoute();
+              }
             }}
             onMapStyleChange={state.changeMapStyle}
             mapStyles={MAP_STYLES}

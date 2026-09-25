@@ -229,8 +229,12 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   const [visibleCols, setVisibleCols] = React.useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem(COLUMN_STORAGE_KEY);
-      if (saved) return new Set(JSON.parse(saved) as string[]);
-    } catch {}
+      if (saved) {
+        return new Set(JSON.parse(saved) as string[]);
+      }
+    } catch {
+      // Ignore localStorage read/parse errors and fall back to default columns
+    }
     return new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) => c.id));
   });
   React.useEffect(() => {
@@ -240,10 +244,13 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   const [chooserOpen, setChooserOpen] = React.useState(false);
   const chooserRef = useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
-    if (!chooserOpen) return;
+    if (!chooserOpen) {
+      return;
+    }
     const handler = (e: MouseEvent) => {
-      if (chooserRef.current && !chooserRef.current.contains(e.target as Node))
+      if (chooserRef.current && !chooserRef.current.contains(e.target as Node)) {
         setChooserOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -255,11 +262,17 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
     const container = scrollRef.current;
-    if (!container || !onLoadMore) return;
+    if (!container || !onLoadMore) {
+      return;
+    }
     const handleScroll = () => {
-      if (!hasMore || loading) return;
+      if (!hasMore || loading) {
+        return;
+      }
       const { scrollTop, scrollHeight, clientHeight } = container;
-      if (scrollHeight - scrollTop <= clientHeight + 200) onLoadMore();
+      if (scrollHeight - scrollTop <= clientHeight + 200) {
+        onLoadMore();
+      }
     };
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
@@ -509,8 +522,11 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                         onChange={() =>
                           setVisibleCols((prev) => {
                             const next = new Set(prev);
-                            if (next.has(col.id)) next.delete(col.id);
-                            else next.add(col.id);
+                            if (next.has(col.id)) {
+                              next.delete(col.id);
+                            } else {
+                              next.add(col.id);
+                            }
                             return next;
                           })
                         }
@@ -530,9 +546,12 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                     !window.confirm(
                       `Delete all ${cancelledGlobalCount} cancelled Global runs? This cannot be undone.`
                     )
-                  )
+                  ) {
                     return;
-                  if (onCleanupCluster) await onCleanupCluster();
+                  }
+                  if (onCleanupCluster) {
+                    await onCleanupCluster();
+                  }
                 }}
                 disabled={loading || actionLoading}
                 className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300 border border-red-500/30 bg-red-500/10 rounded hover:bg-red-500/20 transition-colors disabled:opacity-30"

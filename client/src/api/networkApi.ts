@@ -152,8 +152,12 @@ export const networkApi = {
     const encodedBssid = encodeURIComponent(normalizedBssid);
 
     const parseNotes = (response: any): NetworkNote[] => {
-      if (Array.isArray(response)) return response as NetworkNote[];
-      if (Array.isArray(response?.notes)) return response.notes as NetworkNote[];
+      if (Array.isArray(response)) {
+        return response as NetworkNote[];
+      }
+      if (Array.isArray(response?.notes)) {
+        return response.notes as NetworkNote[];
+      }
       return [];
     };
 
@@ -196,8 +200,12 @@ export const networkApi = {
 
   async getNoteMedia(noteId: number): Promise<NoteMediaItem[]> {
     const response = await apiClient.get<any>(`/admin/network-notes/${noteId}/media`);
-    if (Array.isArray(response)) return response as NoteMediaItem[];
-    if (Array.isArray(response?.media)) return response.media as NoteMediaItem[];
+    if (Array.isArray(response)) {
+      return response as NoteMediaItem[];
+    }
+    if (Array.isArray(response?.media)) {
+      return response.media as NoteMediaItem[];
+    }
     return [];
   },
 
@@ -264,7 +272,9 @@ export const networkApi = {
     try {
       return await apiClient.get<any>(`/explorer/network/${encodeURIComponent(bssid)}`);
     } catch (err) {
-      if (isHandledAuthError(err)) throw err;
+      if (isHandledAuthError(err)) {
+        throw err;
+      }
       return null;
     }
   },
@@ -282,7 +292,9 @@ export const networkApi = {
         unresolved: res?.unresolved || {},
       };
     } catch (err) {
-      if (isHandledAuthError(err)) throw err;
+      if (isHandledAuthError(err)) {
+        throw err;
+      }
       return { data: [], unresolved: {} };
     }
   },
@@ -295,7 +307,9 @@ export const networkApi = {
       );
       return Array.isArray(res?.media) ? res.media : [];
     } catch (err) {
-      if (isHandledAuthError(err)) throw err;
+      if (isHandledAuthError(err)) {
+        throw err;
+      }
       return [];
     }
   },

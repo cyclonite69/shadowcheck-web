@@ -83,7 +83,9 @@ export default function DashboardPage() {
     e.preventDefault();
     if (mode === 'move') {
       const card = cards.find((c) => c.id === cardId);
-      if (!card) return;
+      if (!card) {
+        return;
+      }
       setDragging(cardId);
       setDragOffset({
         x: e.clientX - (card.x * window.innerWidth) / 100,
@@ -91,7 +93,9 @@ export default function DashboardPage() {
       });
     } else if (mode === 'resize') {
       const card = cards.find((c) => c.id === cardId);
-      if (!card) return;
+      if (!card) {
+        return;
+      }
       resizeStartRef.current = {
         startX: e.clientX,
         startY: e.clientY,
@@ -108,7 +112,9 @@ export default function DashboardPage() {
       if (dragging) {
         setCards((prev) =>
           prev.map((card) => {
-            if (card.id !== dragging) return card;
+            if (card.id !== dragging) {
+              return card;
+            }
             const newX = Math.max(
               0,
               Math.min(100 - card.w, ((e.clientX - dragOffset.x) / window.innerWidth) * 100)
@@ -121,7 +127,9 @@ export default function DashboardPage() {
         const start = resizeStartRef.current;
         setCards((prev) =>
           prev.map((card) => {
-            if (card.id !== resizing) return card;
+            if (card.id !== resizing) {
+              return card;
+            }
             const widthPx = Math.max(200, start.startWidthPx + (e.clientX - start.startX));
             const newW = Math.max(
               15,
@@ -146,7 +154,9 @@ export default function DashboardPage() {
   }, [dragging, resizing]);
 
   useEffect(() => {
-    if (!dragging && !resizing) return;
+    if (!dragging && !resizing) {
+      return;
+    }
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {

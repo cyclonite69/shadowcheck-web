@@ -156,9 +156,9 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   beforeAll(async () => {
     // Clear out any stale versions in test networks (safe since they are unique to this test)
-    await query(`DELETE FROM app.observations WHERE bssid = ANY($1)`, [testBssids]);
-    await query(`DELETE FROM app.ssid_history WHERE bssid = ANY($1)`, [testBssids]);
-    await query(`DELETE FROM app.networks WHERE bssid = ANY($1)`, [testBssids]);
+    await query('DELETE FROM app.observations WHERE bssid = ANY($1)', [testBssids]);
+    await query('DELETE FROM app.ssid_history WHERE bssid = ANY($1)', [testBssids]);
+    await query('DELETE FROM app.networks WHERE bssid = ANY($1)', [testBssids]);
 
     // Insert mock networks
     await query(`
@@ -332,29 +332,29 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   afterAll(async () => {
     // Cleanup inserted mock networks
-    await query(`DELETE FROM app.observations WHERE bssid = ANY($1)`, [testBssids]);
-    await query(`DELETE FROM app.ssid_history WHERE bssid = ANY($1)`, [testBssids]);
-    await query(`DELETE FROM app.networks WHERE bssid = ANY($1)`, [testBssids]);
+    await query('DELETE FROM app.observations WHERE bssid = ANY($1)', [testBssids]);
+    await query('DELETE FROM app.ssid_history WHERE bssid = ANY($1)', [testBssids]);
+    await query('DELETE FROM app.networks WHERE bssid = ANY($1)', [testBssids]);
     await closePool();
   });
 
   // ── Non-regression Verification ─────────────────────────────────────────────
   test('Positive: AirLink delta-1 twin is paired and labeled AIRLINK_DELTA1_TWIN', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:FF:FF:10')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:14:3E:FF:FF:10')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:14:3E:FF:FF:11');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('AIRLINK_DELTA1_TWIN');
   });
 
   test('Positive: Sierra delta-1 twin is paired and labeled SIERRA_DELTA1_TWIN', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('28:A3:31:FF:FF:20')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('28:A3:31:FF:FF:20')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:FF:FF:21');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('SIERRA_DELTA1_TWIN');
   });
 
   test('Negative: delta-2 candidate does NOT match the DELTA1 rules', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:FF:FF:10')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:14:3E:FF:FF:10')");
     const rows = res.rows;
     // Assert that if delta-2 exists, it does not emit the DELTA1 labels
     const delta2 = rows.find((r) => r.sibling_bssid === '00:14:3E:FF:FF:12');
@@ -365,20 +365,20 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Negative: AirLink does not pair with Sierra under this rule', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:FF:EE:30')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:14:3E:FF:EE:30')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:FF:EE:31');
     expect(sibling).toBeUndefined();
   });
 
   test('Permissive: SSID is not required (different SSIDs pair cleanly)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:FF:DD:40')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:14:3E:FF:DD:40')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:14:3E:FF:DD:41');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('AIRLINK_DELTA1_TWIN');
   });
 
   test('Negative: Cradlepoint (00:30:44) does not emit DELTA1_TWIN rules', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:CC:50')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:FF:CC:50')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:FF:CC:51');
     if (sibling) {
       expect(sibling.rule).not.toBe('AIRLINK_DELTA1_TWIN');
@@ -388,20 +388,20 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   // ── Mist Systems Guardrail Verification ──────────────────────────────────────
   test('Mist Guardrail Negative: same SSID + same band + different chassis block must not pair under Class B', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:AA:41')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:AA:41')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:FF:BB:41');
     expect(sibling).toBeUndefined(); // Rejected! Same SSID + same band (2.4 GHz) across different chasses
   });
 
   test('Mist Guardrail Positive: same SSID + different band may pair if BSSID math supports it', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:FF:11')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:FF:11')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:FF:FF:12');
     expect(sibling).toBeDefined(); // Permitted! Same SSID but different bands (2.4 GHz vs 5 GHz) on the same chassis
     expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
   });
 
   test('Mist Guardrail Positive: different SSIDs + same band may pair if BSSID math supports it', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:FF:31')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:FF:31')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:FF:FF:32');
     expect(sibling).toBeDefined(); // Permitted! Different SSIDs on the same band (2.4 GHz) on the same chassis
     expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
@@ -409,87 +409,87 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   // ── Vendor-Specific Sibling Logic (5th-Octet Exclusions) ──────────────────
   test('Mist Rule Correction: same first 5 octets matches', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E1')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E1')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:EE:8F:E2');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
   });
 
   test('Mist Rule Correction: fifth-octet variation does not match', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E2')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E2')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:EE:8C:E2');
     expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
   });
 
   test('AirLink delta twin same first 5 octets matches', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:EE:8F:E1')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:14:3E:EE:8F:E1')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:14:3E:EE:8F:E2');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('AIRLINK_DELTA1_TWIN');
   });
 
   test('AirLink delta twin fifth-octet variation does not match', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:EE:8F:E2')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:14:3E:EE:8F:E2')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:14:3E:EE:8C:E2');
     expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
   });
 
   test('Sierra delta twin same first 5 octets matches', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E1')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E1')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:EE:8F:E2');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('SIERRA_DELTA1_TWIN');
   });
 
   test('Sierra delta twin fifth-octet variation does not match', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E2')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E2')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:EE:8C:E2');
     expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
   });
 
   // ── Cisco Guardrail Verification ──────────────────────────────────────
   test('Cisco Guardrail Positive: same first 5 octets matches within delta 1 (Class C)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:BE:2E');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class C');
   });
 
   test('Cisco Guardrail Positive: same first 5 octets matches within Class B range (delta 6)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:BE:29');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class B');
   });
 
   test('Cisco Guardrail Negative: same-index / different-chassis B3:2F does NOT match', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:B3:2F');
     expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
   });
 
   test('Cisco Guardrail Negative: same-index / different-chassis CD:2F does NOT match', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:CD:2F');
     expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
   });
 
   test('Cisco 5C:5B:35 Guardrail Positive: same first 5 octets matches (Class C)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '5C:5B:35:C6:BE:2E');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class C');
   });
 
   test('Cisco 5C:5B:35 Guardrail Negative: fifth-octet variation does not match same-index', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '5C:5B:35:C6:B3:2F');
     expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
   });
 
   // ── Cradlepoint Class A Delta-3 Guardrail (migration 020) ─────────────────
   test('Cradlepoint Class A Positive: delta-1 radio pair kept (EE:11 fixture)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:11:10')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:EE:11:10')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:11:11');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
@@ -497,7 +497,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Class A Positive: delta-2 radio pair kept (EE:22 fixture)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:22:20')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:EE:22:20')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:22:22');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
@@ -505,7 +505,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Class A Positive: delta-3 boundary pair kept (EE:33 fixture)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:33:30')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:EE:33:30')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:33:33');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
@@ -513,7 +513,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Class A Negative: delta-4 pair does NOT produce Class A (EE:44 fixture)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:44:40')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:EE:44:40')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:44:44');
     // Must not be Class A regardless of whether another rule catches it
     if (sibling) {
@@ -522,7 +522,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Class A Negative: cross-vehicle large delta (delta=15) does not pair as Class A (EE:55 fixture)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:55:10')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:EE:55:10')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:55:1F');
     if (sibling) {
       expect(sibling.rule).not.toBe('Class A');
@@ -530,7 +530,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Class A Negative: cross-vehicle pair is absent or non-Class-A when queried from other side (EE:55 fixture)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:55:1F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:EE:55:1F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:55:10');
     if (sibling) {
       expect(sibling.rule).not.toBe('Class A');
@@ -539,34 +539,34 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   // ── Cradlepoint Specific Audit / Regression Cases ──────────────────────────
   test('Cradlepoint Audit: A2:54:CE -> A2:54:D3 must return 0 rows (fails Class A and blocked from Class B)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:54:CE')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:54:CE')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:54:D3');
     expect(sibling).toBeUndefined(); // Returns 0 rows
   });
 
   test('Cradlepoint Audit: CA:44:19 <-> CA:44:1A still matches as Class A', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:CA:44:19')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:CA:44:19')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:CA:44:1A');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
   });
 
   test('Cradlepoint Audit: CA:44:28 <-> CA:44:29 still matches as Class A', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:CA:44:28')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:CA:44:28')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:CA:44:29');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
   });
 
   test('Cradlepoint Audit: 61:8A:8F <-> 61:8A:90 still matches as Class A', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:61:8A:8F')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:61:8A:8F')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:61:8A:90');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
   });
 
   test('Cradlepoint Audit: 1C:CA:9E <-> 1C:CA:A0 still matches as Class A', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:1C:CA:9E')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:1C:CA:9E')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:1C:CA:A0');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
@@ -574,7 +574,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   // ── Cradlepoint SmartBus/Kajeet Fleet Rule (migration 021) ─────────────────
   test('Cradlepoint Fleet Rule: keeps valid delta-1 cross-band pair with 2.4G MAC < 5G MAC (A2:55:72 ↔ A2:55:73)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:72')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:72')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:73');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
@@ -582,7 +582,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Fleet Rule: keeps valid delta-1 2.4G to 6G pair', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:C0')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:C0')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:C1');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
@@ -590,79 +590,79 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('Cradlepoint Fleet Rule: rejects delta-1 same-service same-band pair', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:76')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:76')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:77');
     expect(sibling).toBeUndefined();
   });
 
   test('Cradlepoint Fleet Rule: rejects delta-2 same-service cross-band pair', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:80')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:80')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:82');
     expect(sibling).toBeUndefined();
   });
 
   test('Cradlepoint Fleet Rule: rejects delta-3 same-service cross-band pair', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:90')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:90')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:93');
     expect(sibling).toBeUndefined();
   });
 
   test('Cradlepoint Fleet Rule: rejects delta-1 mixed-service cross-band pair', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:A0')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:A0')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:A1');
     expect(sibling).toBeUndefined();
   });
 
   test('Cradlepoint Fleet Rule: rejects delta-1 cross-band pair where 5G MAC < 2.4G MAC', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:B0')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:B0')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:B1');
     expect(sibling).toBeUndefined();
   });
 
   test('Cradlepoint Non-Fleet Fallback: delta <= 3 fallback still pairs under Class A while delta 4 is rejected', async () => {
     // Assert Delta 1 pairs under Class A
-    const resDelta1 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:10')`);
+    const resDelta1 = await query("SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:10')");
     const siblingDelta1 = resDelta1.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:11');
     expect(siblingDelta1).toBeDefined();
     expect(siblingDelta1.rule).toBe('Class A');
     expect(siblingDelta1.d_last_octet).toBe(1);
 
     // Assert Delta 2 pairs under Class A
-    const resDelta2 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:20')`);
+    const resDelta2 = await query("SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:20')");
     const siblingDelta2 = resDelta2.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:22');
     expect(siblingDelta2).toBeDefined();
     expect(siblingDelta2.rule).toBe('Class A');
     expect(siblingDelta2.d_last_octet).toBe(2);
 
     // Assert Delta 3 pairs under Class A
-    const resDelta3 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:30')`);
+    const resDelta3 = await query("SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:30')");
     const siblingDelta3 = resDelta3.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:33');
     expect(siblingDelta3).toBeDefined();
     expect(siblingDelta3.rule).toBe('Class A');
     expect(siblingDelta3.d_last_octet).toBe(3);
 
     // Assert Delta 4 returns no sibling
-    const resDelta4 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:40')`);
+    const resDelta4 = await query("SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:40')");
     const siblingDelta4 = resDelta4.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:44');
     expect(siblingDelta4).toBeUndefined();
   });
 
   // ── Xfinity/Vantiva Sibling Hardening Tests ─────────────────────────────────
   test('Xfinity LAA: rejects cross-chassis Class B bridge (D2:2D:B4 ↔ D9:2D:B4)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('4A:BD:CE:D2:2D:B4')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('4A:BD:CE:D2:2D:B4')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '4A:BD:CE:D9:2D:B4');
     expect(sibling).toBeUndefined(); // Bridging different chassis is rejected
   });
 
   test('Xfinity LAA: preserves valid same-chassis Class A pairing (D9:2D:B2 ↔ D9:2D:B4)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('4A:BD:CE:D9:2D:B4')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('4A:BD:CE:D9:2D:B4')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '4A:BD:CE:D9:2D:B2');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
   });
 
   test('Xfinity LAA: preserves valid same-chassis Class A pairing (D9:2D:B6 ↔ D9:2D:B4)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('4A:BD:CE:D9:2D:B4')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('4A:BD:CE:D9:2D:B4')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '4A:BD:CE:D9:2D:B6');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
@@ -670,54 +670,54 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
   // ── GM Vehicle Hotspot Hardening Tests ──────────────────────────────────────
   test('GM Vehicle Hotspots: rejects myChevrolet ↔ myBuick bridges', async () => {
-    const res1 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:1A:AF:17')`);
+    const res1 = await query("SELECT * FROM app.find_sibling_radios('02:92:A5:1A:AF:17')");
     const sibling1 = res1.rows.find((r) => r.sibling_bssid === '02:92:A5:1A:CB:17');
     expect(sibling1).toBeUndefined(); // Different SSIDs: myChevrolet vs myBuick
 
-    const res2 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
+    const res2 = await query("SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')");
     const sibling2 = res2.rows.find((r) => r.sibling_bssid === '02:92:A5:12:CB:17');
     expect(sibling2).toBeUndefined();
   });
 
   test('GM Vehicle Hotspots: rejects same final-octet cross-vehicle bridges', async () => {
-    const res1 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:CB:17')`);
+    const res1 = await query("SELECT * FROM app.find_sibling_radios('02:92:A5:12:CB:17')");
     const sibling1 = res1.rows.find((r) => r.sibling_bssid === '02:92:A5:1A:CB:17');
     expect(sibling1).toBeUndefined(); // Different vehicle (same last octet, different middle)
 
-    const res2 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
+    const res2 = await query("SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')");
     const sibling2 = res2.rows.find((r) => r.sibling_bssid === '02:92:A5:1A:AF:17');
     expect(sibling2).toBeUndefined();
   });
 
   test('GM Vehicle Hotspots: preserves valid same-vehicle pairing (02:92:A5:12:AF:17 ↔ 02:92:A5:12:AF:18)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '02:92:A5:12:AF:18');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('GM Vehicle Hotspot Seq (Class A)');
   });
 
   test('GM Vehicle Hotspots: preserves valid same-vehicle global OUI pairing (00:92:A5:A5:54:F8 ↔ 00:92:A5:A5:54:F9)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:92:A5:A5:54:F8')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:92:A5:A5:54:F8')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:92:A5:A5:54:F9');
     expect(sibling).toBeDefined();
   });
 
   test('GM Vehicle Hotspots: rejects cross-vehicle global OUI pair with different SSIDs (00:92:A5:A5:54:F9 ↔ 00:92:A5:A5:6A:F9)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('00:92:A5:A5:54:F9')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('00:92:A5:A5:54:F9')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:92:A5:A5:6A:F9');
     expect(sibling).toBeUndefined(); // Different SSIDs: myChevrolet1234 vs myChevrolet5678
   });
 
   // ── Netgear Dual-Band Sibling Rule Tests ────────────────────────────────────
   test('Netgear Dual-Band: preserves same-chassis pairing within delta 3 on byte 4 with same byte 6 (6C:CD:D6:35:CE:CC ↔ 6C:CD:D6:38:3F:CC)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '6C:CD:D6:38:3F:CC');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Netgear Dual-Band (Class A)');
   });
 
   test('Netgear Dual-Band Negative: mismatching last octet does not pair (6C:CD:D6:35:CE:CC ↔ 6C:CD:D6:35:CF:CD)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '6C:CD:D6:35:CF:CD');
     expect(sibling).toBeUndefined();
   });
@@ -725,68 +725,68 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   // ── Arcadyan HOME-EE7D Sibling Rule Tests ────────────────────────────────────
   test('Arcadyan HOME-EE7D: preserves same-chassis global-to-LAA and LAA-to-LAA pairings', async () => {
     // global to LAA
-    const res1 = await query(`SELECT * FROM app.find_sibling_radios('5C:B0:66:EB:E1:C1')`);
+    const res1 = await query("SELECT * FROM app.find_sibling_radios('5C:B0:66:EB:E1:C1')");
     const sibling1 = res1.rows.find((r) => r.sibling_bssid === '7E:B0:66:EB:E1:C1');
     expect(sibling1).toBeDefined();
     expect(sibling1.rule).toBe('Arcadyan HOME-EE7D (Class A)');
 
     // LAA to LAA cross-band delta <= 7
-    const res2 = await query(`SELECT * FROM app.find_sibling_radios('7E:B0:66:EB:E1:C1')`);
+    const res2 = await query("SELECT * FROM app.find_sibling_radios('7E:B0:66:EB:E1:C1')");
     const sibling2 = res2.rows.find((r) => r.sibling_bssid === '9E:B0:66:EB:E1:C2');
     expect(sibling2).toBeDefined();
     expect(sibling2.rule).toBe('Arcadyan HOME-EE7D (Class A)');
   });
 
   test('Arcadyan HOME-EE7D Negative: mismatching byte 2 does not pair (5C:B0:66:EB:E1:C1 ↔ 5C:BF:66:EB:E1:C1)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('5C:B0:66:EB:E1:C1')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('5C:B0:66:EB:E1:C1')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '5C:BF:66:EB:E1:C1');
     expect(sibling).toBeUndefined();
   });
 
   // ── Ubiquiti UniFi VAP Sibling Rule Tests ────────────────────────────────────
   test('Ubiquiti VAPs: preserves same-chassis cross-band pairing with different fourth octets (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:86:6E:F5)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:86:6E:F5');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Ubiquiti UniFi VAP (Class A)');
   });
 
   test('Ubiquiti VAPs: preserves same-chassis global-to-LAA cross-band pairing (F4:E2:C6:46:6E:F5 ↔ F6:E2:C6:E6:6E:F5)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('F4:E2:C6:46:6E:F5')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('F4:E2:C6:46:6E:F5')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:E6:6E:F5');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Ubiquiti UniFi VAP (Class A)');
   });
 
   test('Ubiquiti VAPs Negative: mismatching suffix must not pair (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:16:8A:F2)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:16:8A:F2');
     expect(sibling).toBeUndefined();
   });
 
   test('Ubiquiti VAPs Negative: mismatching fourth-octet lower nibble must not pair (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:15:6E:F5)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:15:6E:F5');
     expect(sibling).toBeUndefined();
   });
 
   // ── Mist Systems VAP Sibling Rule Tests ────────────────────────────────────
   test('Mist VAPs: preserves same-chassis pairing within delta 18 (D4:20:B0:9C:8F:E2 ↔ D4:20:B0:9C:8F:F3)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:9C:8F:F3');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
   });
 
   test('Mist VAPs Negative: fifth-octet variation does not match (D4:20:B0:9C:8F:E2 ↔ D4:20:B0:9C:8A:F3)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')");
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:9C:8A:F3');
     expect(sibling).toBeUndefined();
   });
 
   // ── LAA Generic Fallback Class A Hardening Tests ─────────────────────────────
   test('LAA Hardening Negative: generic LAA Class A fallback blocks delta 16 bridge (F6:EE:EE:64:94:0C ↔ 02/F4:EE:EE:64:94:1C)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:EE:EE:64:94:0C')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('F6:EE:EE:64:94:0C')");
     const sibling1 = res.rows.find((r) => r.sibling_bssid === '02:EE:EE:64:94:1C');
     const sibling2 = res.rows.find((r) => r.sibling_bssid === 'F4:EE:EE:64:94:1C');
     expect(sibling1).toBeUndefined(); // delta 16 is rejected
@@ -794,7 +794,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   });
 
   test('LAA Hardening Positive: generic LAA Class A fallback preserves delta <= 7 pairing (F6:EE:EE:64:94:0C ↔ 02:EE:EE:64:94:0D)', async () => {
-    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:EE:EE:64:94:0C')`);
+    const res = await query("SELECT * FROM app.find_sibling_radios('F6:EE:EE:64:94:0C')");
     const sibling = res.rows.find((r) => r.sibling_bssid === '02:EE:EE:64:94:0D');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
@@ -804,10 +804,10 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   test('LAA Hardening Live Regression: YMCA DT-Public must NOT pair with Whaley access points', async () => {
     // Check if the live BSSIDs are in the networks database
     const networkCheck = await query(
-      `SELECT bssid FROM app.networks WHERE bssid = 'F6:92:BF:64:94:0C'`
+      "SELECT bssid FROM app.networks WHERE bssid = 'F6:92:BF:64:94:0C'"
     );
     if (networkCheck.rowCount && networkCheck.rowCount > 0) {
-      const res = await query(`SELECT * FROM app.find_sibling_radios('F6:92:BF:64:94:0C')`);
+      const res = await query("SELECT * FROM app.find_sibling_radios('F6:92:BF:64:94:0C')");
       const sibling1 = res.rows.find((r) => r.sibling_bssid === '02:92:BF:64:94:1C');
       const sibling2 = res.rows.find((r) => r.sibling_bssid === 'F4:92:BF:64:94:1C');
       expect(sibling1).toBeUndefined(); // F6:92:BF:64:94:0C ↔ 02:92:BF:64:94:1C is blocked

@@ -4,7 +4,7 @@ export async function ensureDeviceSource(pool: Pool, sourceTag: string): Promise
   console.log('\n📱 Ensuring device source exists...');
 
   await pool.query(
-    `INSERT INTO app.device_sources (code, label) VALUES ($1, $2) ON CONFLICT (code) DO NOTHING`,
+    'INSERT INTO app.device_sources (code, label) VALUES ($1, $2) ON CONFLICT (code) DO NOTHING',
     [sourceTag, `WiGLE Import: ${sourceTag}`]
   );
 
@@ -46,9 +46,9 @@ export async function ensureNetworksOrphansTable(pool: Pool): Promise<void> {
       ON app.networks_orphans (moved_at DESC)
   `);
 
-  await pool.query(`ALTER TABLE app.networks_orphans OWNER TO shadowcheck_admin`);
-  await pool.query(`GRANT SELECT ON app.networks_orphans TO shadowcheck_user`);
-  await pool.query(`GRANT ALL PRIVILEGES ON app.networks_orphans TO shadowcheck_admin`);
+  await pool.query('ALTER TABLE app.networks_orphans OWNER TO shadowcheck_admin');
+  await pool.query('GRANT SELECT ON app.networks_orphans TO shadowcheck_user');
+  await pool.query('GRANT ALL PRIVILEGES ON app.networks_orphans TO shadowcheck_admin');
 
   console.log('   Orphan holding table ready');
 }

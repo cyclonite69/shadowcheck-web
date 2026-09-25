@@ -8,7 +8,9 @@ interface ThreatBadgeProps {
 }
 
 export const ThreatBadge = ({ threat, reasons, evidence }: ThreatBadgeProps) => {
-  if (!threat || threat.level === 'NONE') return null;
+  if (!threat || threat.level === 'NONE') {
+    return null;
+  }
 
   const levelConfig = THREAT_LEVEL_CONFIG[threat.level];
 

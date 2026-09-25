@@ -33,7 +33,9 @@ class AuthController {
   }
 
   async handleUnauthorized(url: string): Promise<boolean> {
-    if (isAuthenticationRequest(url)) return false;
+    if (isAuthenticationRequest(url)) {
+      return false;
+    }
 
     if (!this.unauthorizedInProgress) {
       this.unauthorizedInProgress = true;

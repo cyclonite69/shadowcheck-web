@@ -56,13 +56,13 @@ describe('Analytics Service', () => {
       expect(result.networkTypes).toEqual([{ type: 'WiFi', count: 100 }]);
       expect(result.dashboard.totalNetworks).toBe(1000);
       expect(result.dashboard.wifiCount).toBe(600);
-      
+
       expect(query).toHaveBeenCalledTimes(6);
     });
 
     it('should throw error if any underlying call fails', async () => {
       query.mockRejectedValueOnce(new Error('Parallel Failure'));
-      
+
       await expect(analyticsService.getBulkAnalytics()).rejects.toThrow(DatabaseError);
     });
   });
@@ -237,14 +237,12 @@ describe('Analytics Service', () => {
 
     describe('getDashboardStats()', () => {
       it('should return comprehensive dashboard stats', async () => {
-        query
-          .mockResolvedValueOnce({ rows: [{ count: '1000' }] })
-          .mockResolvedValueOnce({ 
-            rows: [
-              { radio_type: 'WiFi', count: '700' },
-              { radio_type: 'BLE', count: '300' }
-            ] 
-          });
+        query.mockResolvedValueOnce({ rows: [{ count: '1000' }] }).mockResolvedValueOnce({
+          rows: [
+            { radio_type: 'WiFi', count: '700' },
+            { radio_type: 'BLE', count: '300' },
+          ],
+        });
 
         const result = await analyticsService.getDashboardStats();
 
@@ -275,7 +273,9 @@ describe('Analytics Service', () => {
 
     describe('validateAnalyticsParams', () => {
       it('should validate limit and range', () => {
-        expect(analyticsService.validateAnalyticsParams({ limit: 100, range: '24h' }).valid).toBe(true);
+        expect(analyticsService.validateAnalyticsParams({ limit: 100, range: '24h' }).valid).toBe(
+          true
+        );
         expect(analyticsService.validateAnalyticsParams({ limit: 0 }).valid).toBe(false);
         expect(analyticsService.validateAnalyticsParams({ range: 'invalid' }).valid).toBe(false);
       });

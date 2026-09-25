@@ -18,7 +18,9 @@ export const useBoundingBoxFilter = ({
   setFilter,
 }: UseBoundingBoxFilterParams) => {
   useEffect(() => {
-    if (!mapReady || !mapRef.current || !enabled || !syncToViewport) return;
+    if (!mapReady || !mapRef.current || !enabled || !syncToViewport) {
+      return;
+    }
 
     const map = mapRef.current;
     const wrapLongitude = (lng: number) => {
@@ -28,7 +30,9 @@ export const useBoundingBoxFilter = ({
 
     const updateBounds = () => {
       const bounds = map.getBounds();
-      if (!bounds) return;
+      if (!bounds) {
+        return;
+      }
 
       const north = Math.min(90, Math.max(-90, bounds.getNorth()));
       const south = Math.min(90, Math.max(-90, bounds.getSouth()));

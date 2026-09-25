@@ -94,7 +94,7 @@ export const UniqueEnforcementIndexesCard: React.FC<UniqueEnforcementIndexesCard
                   </td>
                   <td className="py-2 pl-4 font-mono text-slate-600 max-w-xs">
                     <span title={idx.index_def}>
-                      {idx.index_def.length > 80 ? idx.index_def.slice(0, 80) + '…' : idx.index_def}
+                      {idx.index_def.length > 80 ? `${idx.index_def.slice(0, 80)}…` : idx.index_def}
                     </span>
                     {parseInt(idx.times_used) === 0 && (
                       <span className="ml-2 text-[10px] text-slate-700 italic">
@@ -163,7 +163,9 @@ export const UnusedIndexReportCard: React.FC<UnusedIndexReportCardProps> = ({
 
   const filteredIndexes = useMemo(() => {
     const query = indexSearch.toLowerCase().trim();
-    if (!query) return unusedIndexes;
+    if (!query) {
+      return unusedIndexes;
+    }
     return unusedIndexes.filter(
       (idx) =>
         idx.index_name.toLowerCase().includes(query) || idx.table_name.toLowerCase().includes(query)
@@ -255,7 +257,7 @@ export const UnusedIndexReportCard: React.FC<UnusedIndexReportCardProps> = ({
                   <td className="py-2 pl-4 font-mono text-slate-600 max-w-xs">
                     <span title={idx.index_def}>
                       {idx.index_def && idx.index_def.length > 80
-                        ? idx.index_def.slice(0, 80) + '…'
+                        ? `${idx.index_def.slice(0, 80)}…`
                         : idx.index_def}
                     </span>
                   </td>
@@ -315,7 +317,9 @@ export const UsedIndexReportCard: React.FC<UsedIndexReportCardProps> = ({
 
   const filteredUsedIndexes = useMemo(() => {
     const query = usedIndexSearch.toLowerCase().trim();
-    if (!query) return usedIndexes;
+    if (!query) {
+      return usedIndexes;
+    }
     return usedIndexes.filter(
       (idx) =>
         idx.index_name.toLowerCase().includes(query) || idx.table_name.toLowerCase().includes(query)

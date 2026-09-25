@@ -23,7 +23,9 @@ const loadPersistedDaemonConfig = async (): Promise<GeocodeDaemonConfig | null> 
     GEOCODING_DAEMON_STATE_KEY,
   ]);
   const row = result.rows[0];
-  if (!row?.value) return null;
+  if (!row?.value) {
+    return null;
+  }
   if (typeof row.value === 'string') {
     try {
       return JSON.parse(row.value) as GeocodeDaemonConfig;

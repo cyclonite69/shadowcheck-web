@@ -64,17 +64,22 @@ export function inferRadioType(
   frequency: string | number | null | undefined,
   capabilities: string | null | undefined
 ): string {
-  if (radioType && radioType !== '' && radioType !== null) return radioType;
+  if (radioType && radioType !== '' && radioType !== null) {
+    return radioType;
+  }
   const ssidUpper = String(ssid || '').toUpperCase();
   const capUpper = String(capabilities || '').toUpperCase();
-  if (ssidUpper.includes('5G') || capUpper.includes('NR') || capUpper.includes('5G NR')) return 'N';
+  if (ssidUpper.includes('5G') || capUpper.includes('NR') || capUpper.includes('5G NR')) {
+    return 'N';
+  }
   if (
     ssidUpper.includes('LTE') ||
     ssidUpper.includes('4G') ||
     capUpper.includes('LTE') ||
     capUpper.includes('EARFCN')
-  )
+  ) {
     return 'L';
+  }
   if (
     ssidUpper.includes('WCDMA') ||
     ssidUpper.includes('3G') ||
@@ -82,18 +87,24 @@ export function inferRadioType(
     capUpper.includes('WCDMA') ||
     capUpper.includes('UMTS') ||
     capUpper.includes('UARFCN')
-  )
+  ) {
     return 'D';
+  }
   if (
     ssidUpper.includes('GSM') ||
     ssidUpper.includes('2G') ||
     capUpper.includes('GSM') ||
     capUpper.includes('ARFCN')
-  )
+  ) {
     return 'G';
-  if (ssidUpper.includes('CDMA') || capUpper.includes('CDMA')) return 'C';
+  }
+  if (ssidUpper.includes('CDMA') || capUpper.includes('CDMA')) {
+    return 'C';
+  }
   const cellularKeywords = ['T-MOBILE', 'VERIZON', 'AT&T', 'ATT', 'SPRINT', 'CARRIER', '3GPP'];
-  if (cellularKeywords.some((k) => ssidUpper.includes(k))) return 'L';
+  if (cellularKeywords.some((k) => ssidUpper.includes(k))) {
+    return 'L';
+  }
   if (
     ssidUpper.includes('[UNKNOWN / SPOOFED RADIO]') ||
     ssidUpper.includes('BLE') ||
@@ -101,16 +112,23 @@ export function inferRadioType(
     capUpper.includes('BLE') ||
     capUpper.includes('BTLE') ||
     capUpper.includes('BLUETOOTH LOW ENERGY')
-  )
+  ) {
     return 'E';
+  }
   if (ssidUpper.includes('BLUETOOTH') || capUpper.includes('BLUETOOTH')) {
     return !capUpper.includes('LOW ENERGY') && !capUpper.includes('BLE') ? 'B' : 'E';
   }
   if (frequency) {
     const freq = parseInt(String(frequency), 10);
-    if (freq >= 2412 && freq <= 2484) return 'W';
-    if (freq >= 5000 && freq <= 5900) return 'W';
-    if (freq >= 5925 && freq <= 7125) return 'W';
+    if (freq >= 2412 && freq <= 2484) {
+      return 'W';
+    }
+    if (freq >= 5000 && freq <= 5900) {
+      return 'W';
+    }
+    if (freq >= 5925 && freq <= 7125) {
+      return 'W';
+    }
   }
   if (
     capUpper.includes('WPA') ||
@@ -120,8 +138,9 @@ export function inferRadioType(
     capUpper.includes('ESS') ||
     capUpper.includes('CCMP') ||
     capUpper.includes('TKIP')
-  )
+  ) {
     return 'W';
+  }
   return '?';
 }
 

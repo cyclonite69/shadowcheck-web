@@ -16,13 +16,17 @@ export function useWigleMapFeatures({
 }: any): void {
   // Point radius sync
   useEffect(() => {
-    if (mapRef.current && mapReady) setPointRadius(mapRef.current, pointSize);
+    if (mapRef.current && mapReady) {
+      setPointRadius(mapRef.current, pointSize);
+    }
   }, [mapReady, mapRef, pointSize]);
 
   // Style change
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
 
     if (!styleEffectInitRef.current) {
       styleEffectInitRef.current = true;
@@ -41,12 +45,18 @@ export function useWigleMapFeatures({
     const lightPreset = lightPresetMap[mapStyle];
 
     let complete = false;
-    let cleanup: (() => void) | undefined;
 
-    const handleStyleReady = () => {
-      if (complete || !map.isStyleLoaded()) return;
+    const cleanup = () => {
+      map.off('style.load', handleStyleReady);
+      map.off('idle', handleStyleReady);
+    };
+
+    function handleStyleReady() {
+      if (complete || !map.isStyleLoaded()) {
+        return;
+      }
       complete = true;
-      cleanup?.();
+      cleanup();
       if (lightPreset && typeof map.setConfigProperty === 'function') {
         try {
           map.setConfigProperty('basemap', 'lightPreset', lightPreset);
@@ -56,14 +66,10 @@ export function useWigleMapFeatures({
       }
       wigleHandlersAttachedRef.current = false;
       applyEnabledWigleOverlays('style-change');
-    };
+    }
 
     map.once('style.load', handleStyleReady);
     map.once('idle', handleStyleReady);
-    cleanup = () => {
-      map.off('style.load', handleStyleReady);
-      map.off('idle', handleStyleReady);
-    };
 
     try {
       map.setStyle(actualStyleUrl);
@@ -85,7 +91,9 @@ export function useWigleMapFeatures({
   // 3D buildings
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
 
     return runWhenStyleReady(map, '3d-buildings', () =>
       apply3dBuildings(map, mapStyle, show3dBuildings)
@@ -95,7 +103,9 @@ export function useWigleMapFeatures({
   // Terrain
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
     return runWhenStyleReady(map, 'terrain', () => applyTerrain(map, mapStyle, showTerrain));
   }, [mapReady, mapRef, mapStyle, showTerrain]);
 }

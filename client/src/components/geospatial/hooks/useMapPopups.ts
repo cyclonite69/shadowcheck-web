@@ -17,14 +17,20 @@ export const useMapPopups = (_mapRef: any, mapboxRef: any) => {
   const attachPopupHandlers = useCallback(
     (map: MapboxMap) => {
       const mapboxgl = mapboxRef.current;
-      if (!mapboxgl) return;
+      if (!mapboxgl) {
+        return;
+      }
 
       const handleClick = (e: MapLayerMouseEvent) => {
-        if (!e.features || e.features.length === 0) return;
+        if (!e.features || e.features.length === 0) {
+          return;
+        }
 
         const feature = e.features[0];
         const props = feature.properties;
-        if (!props) return;
+        if (!props) {
+          return;
+        }
 
         const coordinates = (feature.geometry as any).coordinates;
         const latitude = coordinates[1];

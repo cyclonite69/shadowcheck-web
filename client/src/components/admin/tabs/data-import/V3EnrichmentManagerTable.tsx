@@ -182,8 +182,12 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const [visibleCols, setVisibleCols] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('v3enrichment_columns');
-      if (saved) return new Set(JSON.parse(saved) as string[]);
-    } catch {}
+      if (saved) {
+        return new Set(JSON.parse(saved) as string[]);
+      }
+    } catch {
+      // Ignore localStorage read/parse errors and fall back to defaults
+    }
     return new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) => c.id));
   });
 
@@ -197,7 +201,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
   // Close chooser on outside click
   useEffect(() => {
-    if (!chooserOpen) return;
+    if (!chooserOpen) {
+      return;
+    }
     const handler = (e: MouseEvent) => {
       if (chooserRef.current && !chooserRef.current.contains(e.target as Node)) {
         setChooserOpen(false);
@@ -215,7 +221,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       const idx = prev.findIndex((s) => s.key === key);
       if (e.shiftKey) {
         // Shift-click: add/toggle as secondary key
-        if (idx === -1) return [...prev, { key, dir: 'asc' }];
+        if (idx === -1) {
+          return [...prev, { key, dir: 'asc' }];
+        }
         if (prev[idx].dir === 'asc') {
           const next = [...prev];
           next[idx] = { key, dir: 'desc' };
@@ -225,8 +233,12 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         return prev.filter((_, i) => i !== idx);
       } else {
         // Plain click: sole sort key
-        if (idx === -1 || prev.length > 1) return [{ key, dir: 'asc' }];
-        if (prev[0].dir === 'asc') return [{ key, dir: 'desc' }];
+        if (idx === -1 || prev.length > 1) {
+          return [{ key, dir: 'asc' }];
+        }
+        if (prev[0].dir === 'asc') {
+          return [{ key, dir: 'desc' }];
+        }
         return []; // desc → clear
       }
     });
@@ -282,9 +294,13 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
   useEffect(() => {
     const container = tableRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const handleScroll = () => {
-      if (loading || !hasMore) return;
+      if (loading || !hasMore) {
+        return;
+      }
       const { scrollTop, scrollHeight, clientHeight } = container;
       if (scrollHeight - scrollTop <= clientHeight + 200) {
         loadPage(nextPage, true);
@@ -297,11 +313,16 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   // ── Selection ──────────────────────────────────────────────────────────────
 
   const toggleSelect = (bssid: string) => {
-    if (processingBssids.has(bssid)) return;
+    if (processingBssids.has(bssid)) {
+      return;
+    }
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(bssid)) next.delete(bssid);
-      else next.add(bssid);
+      if (next.has(bssid)) {
+        next.delete(bssid);
+      } else {
+        next.add(bssid);
+      }
       return next;
     });
   };
@@ -317,7 +338,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
   const handleEnrichSelected = async () => {
     const toProcess = Array.from(selected);
-    if (toProcess.length === 0) return;
+    if (toProcess.length === 0) {
+      return;
+    }
 
     if (toProcess.length > MAX_TARGETED_SELECTION) {
       setStatusMessage({
@@ -491,8 +514,11 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                         onChange={() => {
                           setVisibleCols((prev) => {
                             const next = new Set(prev);
-                            if (next.has(col.id)) next.delete(col.id);
-                            else next.add(col.id);
+                            if (next.has(col.id)) {
+                              next.delete(col.id);
+                            } else {
+                              next.add(col.id);
+                            }
                             return next;
                           });
                         }}
@@ -685,7 +711,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                           key={col.id}
                           className="px-3 py-2 text-center font-mono text-[10px] text-slate-400"
                         >
-                          {row.signal != null ? `${row.signal} dBm` : '—'}
+                          {row.signal !== null && row.signal !== undefined
+                            ? `${row.signal} dBm`
+                            : '—'}
                         </td>
                       );
                     case 'channel':
@@ -694,7 +722,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                           key={col.id}
                           className="px-3 py-2 text-center font-mono text-[10px] text-slate-400"
                         >
-                          {row.channel != null ? row.channel : '—'}
+                          {row.channel !== null && row.channel !== undefined ? row.channel : '—'}
                         </td>
                       );
                     case 'encryption':

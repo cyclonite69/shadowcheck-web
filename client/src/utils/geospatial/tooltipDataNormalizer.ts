@@ -5,27 +5,37 @@ type AnyRecord = Record<string, any>;
 
 const pickFirst = <T>(...values: T[]): T | null => {
   for (const value of values) {
-    if (value !== null && value !== undefined && value !== '') return value;
+    if (value !== null && value !== undefined && value !== '') {
+      return value;
+    }
   }
   return null;
 };
 
 const toNumberOrNull = (value: any): number | null => {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
 
   // Extract first numeric-looking part (handles "2412 MHz", "1,234", etc.)
   const clean = String(value)
     .replace(/,/g, '')
     .match(/[-+]?\d*\.?\d+/);
-  if (!clean) return null;
+  if (!clean) {
+    return null;
+  }
 
   const n = Number(clean[0]);
   return Number.isFinite(n) ? n : null;
 };
 
 function parseCapabilities(caps: string): { encryption: string; wps: boolean; mfpc: boolean } {
-  if (!caps) return { encryption: 'Open', wps: false, mfpc: false };
+  if (!caps) {
+    return { encryption: 'Open', wps: false, mfpc: false };
+  }
   const lower = caps.toUpperCase();
   const enc =
     lower.includes('WPA3') || lower.includes('SAE')
@@ -45,28 +55,46 @@ function parseCapabilities(caps: string): { encryption: string; wps: boolean; mf
 }
 
 function freqToChannel(freq: number): number | null {
-  if (freq >= 2412 && freq <= 2484) return Math.round((freq - 2407) / 5);
-  if (freq >= 5180 && freq <= 5825) return Math.round((freq - 5000) / 5);
-  if (freq >= 5955) return Math.round((freq - 5955) / 5) + 1;
+  if (freq >= 2412 && freq <= 2484) {
+    return Math.round((freq - 2407) / 5);
+  }
+  if (freq >= 5180 && freq <= 5825) {
+    return Math.round((freq - 5000) / 5);
+  }
+  if (freq >= 5955) {
+    return Math.round((freq - 5955) / 5) + 1;
+  }
   return null;
 }
 
 function freqToBand(freq: number): string {
-  if (freq === 0) return '';
-  if (freq < 3000) return '2.4 GHz';
-  if (freq < 6000) return '5 GHz';
+  if (freq === 0) {
+    return '';
+  }
+  if (freq < 3000) {
+    return '2.4 GHz';
+  }
+  if (freq < 6000) {
+    return '5 GHz';
+  }
   return '6 GHz';
 }
 
 function normalizeDistanceFromHomeKm(raw: AnyRecord): number | null {
   const explicitKm = toNumberOrNull(raw.distance_from_home_km);
-  if (explicitKm !== null && explicitKm > 0) return explicitKm;
+  if (explicitKm !== null && explicitKm > 0) {
+    return explicitKm;
+  }
 
   const meters = toNumberOrNull(raw.distance_from_home_meters ?? raw.distance_from_home_m);
-  if (meters !== null && meters > 0) return meters / 1000.0;
+  if (meters !== null && meters > 0) {
+    return meters / 1000.0;
+  }
 
   const ambiguous = toNumberOrNull(raw.distance_from_home);
-  if (ambiguous === null || ambiguous === 0) return null;
+  if (ambiguous === null || ambiguous === 0) {
+    return null;
+  }
 
   // Older payloads sometimes expose this field in meters despite the generic name.
   return ambiguous > 1000 ? ambiguous / 1000.0 : ambiguous;

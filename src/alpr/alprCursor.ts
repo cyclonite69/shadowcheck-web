@@ -19,7 +19,9 @@ export async function loadCursor(pool: Pool | AlprDbClient): Promise<CursorState
     CURSOR_KEY,
   ]);
   const row = result.rows[0];
-  if (!row?.value) return { index: 0, lastRunAt: null };
+  if (!row?.value) {
+    return { index: 0, lastRunAt: null };
+  }
   const value = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
   return { index: Number(value.index) || 0, lastRunAt: value.lastRunAt ?? null };
 }
@@ -43,7 +45,9 @@ export async function nextRotation<T>(
   items: T[],
   count: number
 ): Promise<T[]> {
-  if (items.length === 0) return [];
+  if (items.length === 0) {
+    return [];
+  }
   const state = await loadCursor(pool);
   const selected: T[] = [];
   let index = state.index % items.length;

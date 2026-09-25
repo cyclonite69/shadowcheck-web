@@ -1,10 +1,18 @@
 export {};
 
 const determineThreatLevel = (score: number): string => {
-  if (score >= 80) return 'CRITICAL';
-  if (score >= 60) return 'HIGH';
-  if (score >= 40) return 'MED';
-  if (score >= 20) return 'LOW';
+  if (score >= 80) {
+    return 'CRITICAL';
+  }
+  if (score >= 60) {
+    return 'HIGH';
+  }
+  if (score >= 40) {
+    return 'MED';
+  }
+  if (score >= 20) {
+    return 'LOW';
+  }
   return 'NONE';
 };
 
@@ -38,7 +46,9 @@ type NetworkRow = {
 };
 
 const normalize = (value: number, min: number, max: number) => {
-  if (max === min) return 0;
+  if (max === min) {
+    return 0;
+  }
   return (value - min) / (max - min);
 };
 
@@ -63,8 +73,12 @@ const buildNormalizedFeatures = (rawFeatures: Record<string, number>) => {
 };
 
 const computeProbability = (z: number) => {
-  if (z > 500) return 1.0;
-  if (z < -500) return 0.0;
+  if (z > 500) {
+    return 1.0;
+  }
+  if (z < -500) {
+    return 0.0;
+  }
 
   const probability = 1 / (1 + Math.exp(-z));
   if (isNaN(probability) || !isFinite(probability)) {

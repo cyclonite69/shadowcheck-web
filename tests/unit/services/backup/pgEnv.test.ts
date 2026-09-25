@@ -83,7 +83,9 @@ describe('pgEnv Service', () => {
     it('uses preferred admin DB user and db_admin_password if available', () => {
       process.env.DB_ADMIN_USER = 'admin-user-override';
       mockSecretsManager.get.mockImplementation((key: string) => {
-        if (key === 'db_admin_password') return 'secret-admin-pass';
+        if (key === 'db_admin_password') {
+          return 'secret-admin-pass';
+        }
         return null;
       });
 

@@ -37,7 +37,7 @@ describe('escapeLikePattern', () => {
 
     it('should handle comment sequences', () => {
       const input = "ssid' OR '1'='1' --";
-      // This is safe if used with parameterized queries. 
+      // This is safe if used with parameterized queries.
       // escapeLikePattern only escapes LIKE wildcards.
       expect(escapeLikePattern(input)).toBe(input);
     });
@@ -51,7 +51,7 @@ describe('escapeLikePattern', () => {
       const input = "admin%') OR 1=1; --";
       expect(escapeLikePattern(input)).toBe("admin\\%') OR 1=1; --");
     });
-    
+
     it('should handle large input strings', () => {
       const input = '%'.repeat(1000) + '_'.repeat(1000) + '\\'.repeat(1000);
       const expected = '\\%'.repeat(1000) + '\\_'.repeat(1000) + '\\\\'.repeat(1000);

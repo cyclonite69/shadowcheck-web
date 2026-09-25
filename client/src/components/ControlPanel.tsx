@@ -7,7 +7,9 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({ isOpen, className = '', children }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div

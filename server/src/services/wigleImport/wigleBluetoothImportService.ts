@@ -69,7 +69,7 @@ const executeBluetoothImportLoop = async (runId: number) => {
       searchTerm: run.search_term,
     });
 
-    let data: WigleBtPageResponse | null = null;
+    let data: WigleBtPageResponse | null;
     try {
       try {
         data = await fetchBtPage(encodedAuth, requestParams, requestCursor);

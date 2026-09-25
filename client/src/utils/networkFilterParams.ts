@@ -8,7 +8,9 @@
 
 // Parse a value to a finite number, or null if unparseable / non-finite / absent.
 export function toFiniteNumber(value: unknown): number | null {
-  if (value === null || value === undefined || value === '') return null;
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -18,12 +20,22 @@ export function toFiniteNumber(value: unknown): number | null {
 export function parseRelativeTimeframeToMs(relativeWindow: string): number | null {
   const unit = relativeWindow.slice(-2) === 'mo' ? 'mo' : relativeWindow.slice(-1);
   const value = parseInt(relativeWindow.slice(0, unit === 'mo' ? -2 : -1), 10);
-  if (Number.isNaN(value)) return null;
+  if (Number.isNaN(value)) {
+    return null;
+  }
 
-  if (unit === 'h') return value * 3600000;
-  if (unit === 'm') return value * 60000;
-  if (unit === 'mo') return value * 30.44 * 86400000;
-  if (unit === 'y') return value * 365 * 86400000;
+  if (unit === 'h') {
+    return value * 3600000;
+  }
+  if (unit === 'm') {
+    return value * 60000;
+  }
+  if (unit === 'mo') {
+    return value * 30.44 * 86400000;
+  }
+  if (unit === 'y') {
+    return value * 365 * 86400000;
+  }
   return value * 86400000; // default: days
 }
 

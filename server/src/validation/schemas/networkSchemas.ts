@@ -81,6 +81,7 @@ export function validateSSID(ssid: string): {
     return { valid: false, error: 'SSID cannot exceed 32 characters' };
   }
 
+  // eslint-disable-next-line no-control-regex
   if (/^[\x00-\x1f\x7f]/.test(cleaned)) {
     return { valid: false, error: 'SSID cannot contain control characters' };
   }

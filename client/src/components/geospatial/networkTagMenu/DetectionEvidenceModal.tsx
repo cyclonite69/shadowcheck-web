@@ -52,7 +52,9 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
         setError(null);
       } catch (err: any) {
         // Re-throw auth-expiry errors so AuthProvider clears the session.
-        if (err?.handled === true) throw err;
+        if (err?.handled === true) {
+          throw err;
+        }
         console.error('Failed to fetch detection evidence:', err);
         setError(err.message);
         setDetections([]);
@@ -66,7 +68,9 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
 
   // Close on Escape or click outside
   useEffect(() => {
-    if (!modalRef.current) return;
+    if (!modalRef.current) {
+      return;
+    }
 
     const handleMouseDown = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
@@ -74,7 +78,9 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
 
     document.addEventListener('mousedown', handleMouseDown);
@@ -408,7 +414,9 @@ export const DetectionEvidenceGlobal: React.FC = () => {
     return () => window.removeEventListener(DETECTION_EVIDENCE_EVENT, handler);
   }, []);
 
-  if (!target) return null;
+  if (!target) {
+    return null;
+  }
   return (
     <DetectionEvidenceModal
       bssid={target.bssid}

@@ -16,7 +16,9 @@ const STORAGE_KEY = 'shadowcheck_directions_mode';
 function readPersistedMode(): SearchMode {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'address' || stored === 'directions') return stored;
+    if (stored === 'address' || stored === 'directions') {
+      return stored;
+    }
   } catch {
     // localStorage unavailable
   }
@@ -62,7 +64,9 @@ export function useDirectionsMode(
     // When switching back to address mode, clear any existing route
     if (m === 'address') {
       const map = mapRefStable.current.current;
-      if (map) clearDirectionsRoute(map);
+      if (map) {
+        clearDirectionsRoute(map);
+      }
       setRouteData(null);
       setError(null);
     }
@@ -70,7 +74,9 @@ export function useDirectionsMode(
 
   const clearRoute = useCallback(() => {
     const map = mapRefStable.current.current;
-    if (map) clearDirectionsRoute(map);
+    if (map) {
+      clearDirectionsRoute(map);
+    }
     setRouteData(null);
     setError(null);
   }, []);
@@ -89,7 +95,9 @@ export function useDirectionsMode(
         if (!data) {
           setError('Could not fetch directions. Try again shortly.');
           const map = mapRefStable.current.current;
-          if (map) clearDirectionsRoute(map);
+          if (map) {
+            clearDirectionsRoute(map);
+          }
           setRouteData(null);
           return null;
         }

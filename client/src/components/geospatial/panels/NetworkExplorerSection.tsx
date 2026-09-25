@@ -144,8 +144,11 @@ export const NetworkExplorerSection = ({
   const toggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
       return next;
     });
   }, []);

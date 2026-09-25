@@ -33,7 +33,9 @@ export const useWigleSavedTerms = ({
 
   const saveCurrentSsid = async (): Promise<void> => {
     const term = ssid?.trim() ?? '';
-    if (term.length < 3) return;
+    if (term.length < 3) {
+      return;
+    }
     try {
       const data = await wigleApi.saveSsidTerm(term);
       if (data?.term) {
@@ -42,16 +44,22 @@ export const useWigleSavedTerms = ({
           return [data.term, ...without];
         });
       }
-    } catch {}
+    } catch {
+      // Best-effort save; ignore failures
+    }
   };
 
   const deleteSavedTerm = async (id: number, e: React.MouseEvent): Promise<void> => {
     e.stopPropagation();
-    if (!window.confirm('Remove this saved search term?')) return;
+    if (!window.confirm('Remove this saved search term?')) {
+      return;
+    }
     try {
       await wigleApi.deleteSavedSsidTerm(id);
       setSavedTerms((prev) => prev.filter((t) => t.id !== id));
-    } catch {}
+    } catch {
+      // Best-effort delete; ignore failures
+    }
   };
 
   return {

@@ -32,7 +32,7 @@ export const detectBackupSource = (): BackupSource => {
   // Prefer IMDSv2, then fall back to hostname heuristics when container IMDS access is blocked.
   try {
     const instanceId = execSync(
-      `TOKEN=$(curl -fsS -m 1 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null) && curl -fsS -m 1 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null`,
+      'TOKEN=$(curl -fsS -m 1 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null) && curl -fsS -m 1 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null',
       { timeout: 2000, encoding: 'utf8' }
     ).trim();
     if (instanceId && instanceId.startsWith('i-')) {

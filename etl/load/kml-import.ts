@@ -15,7 +15,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { KMLObservationSchema } from "../utils/schemas";
+import { KMLObservationSchema } from '../utils/schemas';
 import { createHash } from 'crypto';
 import { Pool } from 'pg';
 import '../loadEnv';
@@ -146,7 +146,9 @@ class KmlImporter {
       while ((placemarkMatch = placemarkRegex.exec(folderBody)) !== null) {
         const placemarkXml = placemarkMatch[1];
         const point = this.parsePlacemark(placemarkXml, folderName, documentName);
-        if (point) points.push(point);
+        if (point) {
+          points.push(point);
+        }
       }
     }
 
@@ -158,8 +160,7 @@ class KmlImporter {
     return match ? decodeXml(match[1]).trim() || null : null;
   }
 
-
-// ... (KMLImporter class)
+  // ... (KMLImporter class)
 
   private parsePlacemark(
     placemarkXml: string,
@@ -170,19 +171,25 @@ class KmlImporter {
     const description = extractTag(placemarkXml, 'description') || '';
     const coordinates = extractTag(placemarkXml, 'coordinates');
 
-    if (!coordinates) return null;
+    if (!coordinates) {
+      return null;
+    }
 
     const coordParts = coordinates
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean);
 
-    if (coordParts.length < 2) return null;
+    if (coordParts.length < 2) {
+      return null;
+    }
 
     const lon = parseNumber(coordParts[0]);
     const lat = parseNumber(coordParts[1]);
 
-    if (lon === null || lat === null) return null;
+    if (lon === null || lat === null) {
+      return null;
+    }
 
     const fieldMap = parseDescription(description);
     const networkType = normalizeText(fieldMap.get('Type') ?? null);
@@ -270,7 +277,9 @@ class KmlImporter {
   }
 
   private async insertPointBatch(fileId: number, points: ParsedPoint[]): Promise<void> {
-    if (points.length === 0) return;
+    if (points.length === 0) {
+      return;
+    }
 
     const values: unknown[] = [];
     const placeholders = points
@@ -342,7 +351,9 @@ function parseDescription(description: string): Map<string, string> {
 
   for (const line of lines) {
     const idx = line.indexOf(':');
-    if (idx === -1) continue;
+    if (idx === -1) {
+      continue;
+    }
     const key = line.slice(0, idx).trim();
     const value = line.slice(idx + 1).trim();
     map.set(key, value);
@@ -352,25 +363,33 @@ function parseDescription(description: string): Map<string, string> {
 }
 
 function normalizeText(value: Nullable<string>): Nullable<string> {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
 }
 
 function normalizeNetworkId(value: Nullable<string>): Nullable<string> {
   const normalized = normalizeText(value);
-  if (!normalized) return null;
+  if (!normalized) {
+    return null;
+  }
   return normalized.toUpperCase();
 }
 
 function parseNumber(value: Nullable<string>): Nullable<number> {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 function parseDate(value: Nullable<string>): Nullable<Date> {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

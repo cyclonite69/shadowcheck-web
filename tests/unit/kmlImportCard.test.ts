@@ -258,9 +258,13 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 2. syncStatusLoading
-      if (stateCall === 2) return [false, jest.fn()];
+      if (stateCall === 2) {
+        return [false, jest.fn()];
+      }
       // 3. syncStatusError
-      if (stateCall === 3) return [null, jest.fn()];
+      if (stateCall === 3) {
+        return [null, jest.fn()];
+      }
       // 4. txs (inside WiGLEActiveSyncPanel)
       if (stateCall === 4) {
         return [
@@ -277,15 +281,25 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 5. txsLoading
-      if (stateCall === 5) return [false, jest.fn()];
+      if (stateCall === 5) {
+        return [false, jest.fn()];
+      }
       // 6. txsError
-      if (stateCall === 6) return [null, jest.fn()];
+      if (stateCall === 6) {
+        return [null, jest.fn()];
+      }
       // 7. syncLoading
-      if (stateCall === 7) return [false, jest.fn()];
+      if (stateCall === 7) {
+        return [false, jest.fn()];
+      }
       // 8. syncResult (null so we render the list)
-      if (stateCall === 8) return [null, jest.fn()];
+      if (stateCall === 8) {
+        return [null, jest.fn()];
+      }
       // 9. force
-      if (stateCall === 9) return [false, jest.fn()];
+      if (stateCall === 9) {
+        return [false, jest.fn()];
+      }
 
       return [init, jest.fn()];
     });
@@ -322,9 +336,13 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 2. syncStatusLoading
-      if (stateCall === 2) return [false, jest.fn()];
+      if (stateCall === 2) {
+        return [false, jest.fn()];
+      }
       // 3. syncStatusError
-      if (stateCall === 3) return [null, jest.fn()];
+      if (stateCall === 3) {
+        return [null, jest.fn()];
+      }
       // 4. txs (inside WiGLEActiveSyncPanel) - can be set
       if (stateCall === 4) {
         return [
@@ -341,11 +359,17 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 5. txsLoading
-      if (stateCall === 5) return [false, jest.fn()];
+      if (stateCall === 5) {
+        return [false, jest.fn()];
+      }
       // 6. txsError
-      if (stateCall === 6) return [null, jest.fn()];
+      if (stateCall === 6) {
+        return [null, jest.fn()];
+      }
       // 7. syncLoading
-      if (stateCall === 7) return [false, jest.fn()];
+      if (stateCall === 7) {
+        return [false, jest.fn()];
+      }
       // 8. syncResult
       if (stateCall === 8) {
         return [
@@ -367,7 +391,9 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 9. force
-      if (stateCall === 9) return [false, jest.fn()];
+      if (stateCall === 9) {
+        return [false, jest.fn()];
+      }
 
       return [init, jest.fn()];
     });
@@ -401,9 +427,13 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 2. syncStatusLoading
-      if (stateCall === 2) return [false, jest.fn()];
+      if (stateCall === 2) {
+        return [false, jest.fn()];
+      }
       // 3. syncStatusError
-      if (stateCall === 3) return [null, jest.fn()];
+      if (stateCall === 3) {
+        return [null, jest.fn()];
+      }
       // 4. txs
       if (stateCall === 4) {
         return [
@@ -420,11 +450,17 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 5. txsLoading
-      if (stateCall === 5) return [false, jest.fn()];
+      if (stateCall === 5) {
+        return [false, jest.fn()];
+      }
       // 6. txsError
-      if (stateCall === 6) return [null, jest.fn()];
+      if (stateCall === 6) {
+        return [null, jest.fn()];
+      }
       // 7. syncLoading
-      if (stateCall === 7) return [false, jest.fn()];
+      if (stateCall === 7) {
+        return [false, jest.fn()];
+      }
       // 8. syncResult
       if (stateCall === 8) {
         return [
@@ -462,7 +498,9 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
         ];
       }
       // 9. force
-      if (stateCall === 9) return [false, jest.fn()];
+      if (stateCall === 9) {
+        return [false, jest.fn()];
+      }
 
       return [init, jest.fn()];
     });

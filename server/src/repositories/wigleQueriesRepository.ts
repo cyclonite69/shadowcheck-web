@@ -161,7 +161,7 @@ const buildWigleObservationsQuery = (
 };
 
 const buildWigleObservationsCountQuery = (netid: string): SqlQuery => ({
-  sql: `SELECT COUNT(*) AS total FROM app.wigle_v3_observations WHERE netid = $1`,
+  sql: 'SELECT COUNT(*) AS total FROM app.wigle_v3_observations WHERE netid = $1',
   queryParams: [netid],
 });
 
@@ -407,7 +407,7 @@ const buildKmlPointsCountQuery = (bssid?: string): SqlQuery => {
   const whereClauses = ['kp.location IS NOT NULL'];
 
   if (bssid) {
-    whereClauses.push(`kp.bssid ILIKE $1`);
+    whereClauses.push('kp.bssid ILIKE $1');
   }
 
   return {

@@ -128,7 +128,9 @@ export default function VisIntUploader() {
   };
 
   const uploadFile = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -173,7 +175,9 @@ export default function VisIntUploader() {
   };
 
   const saveCorrelation = async () => {
-    if (!selectedFile || !result || !selectedCandidateId) return;
+    if (!selectedFile || !result || !selectedCandidateId) {
+      return;
+    }
 
     setSaveLoading(true);
     setError(null);

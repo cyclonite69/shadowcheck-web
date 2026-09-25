@@ -72,7 +72,9 @@ const CATEGORY_CONFIG: Record<
 };
 
 const getCategoryConfig = (entry: VendorEntry) => {
-  if (entry.category && CATEGORY_CONFIG[entry.category]) return CATEGORY_CONFIG[entry.category];
+  if (entry.category && CATEGORY_CONFIG[entry.category]) {
+    return CATEGORY_CONFIG[entry.category];
+  }
   if (entry.threat_tier && TIER_CONFIG[entry.threat_tier]) {
     const t = TIER_CONFIG[entry.threat_tier];
     return { label: t.label, color: t.color, bg: t.bg, border: t.border };
@@ -162,11 +164,15 @@ export const SigintLibraryTab: React.FC = () => {
       .filter((v) => tierFilter === null || v.threat_tier === tierFilter)
       .filter((v) => categoryFilter === null || v.category === categoryFilter)
       .filter((v) => {
-        if (!sourceFilter) return true;
+        if (!sourceFilter) {
+          return true;
+        }
         return v.docs.some((d) => d.source_type === sourceFilter);
       })
       .filter((v) => {
-        if (!search.trim()) return true;
+        if (!search.trim()) {
+          return true;
+        }
         const q = search.toLowerCase();
         return (
           v.display_name.toLowerCase().includes(q) ||
@@ -183,9 +189,15 @@ export const SigintLibraryTab: React.FC = () => {
       })
       .sort((a, b) => {
         // SIGINT/defense first by tier, others by category label
-        if (a.threat_tier && b.threat_tier) return a.threat_tier - b.threat_tier;
-        if (a.threat_tier) return -1;
-        if (b.threat_tier) return 1;
+        if (a.threat_tier && b.threat_tier) {
+          return a.threat_tier - b.threat_tier;
+        }
+        if (a.threat_tier) {
+          return -1;
+        }
+        if (b.threat_tier) {
+          return 1;
+        }
         return (a.category ?? '').localeCompare(b.category ?? '');
       });
   }, [vendors, tierFilter, sourceFilter, categoryFilter, search]);

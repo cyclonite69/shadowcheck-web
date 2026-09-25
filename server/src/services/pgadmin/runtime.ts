@@ -110,7 +110,7 @@ const runCompose = async (args: string[], options: RunCommandOptions = {}) => {
     });
   } catch (err) {
     if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') {
-      return await runCommand('docker', ['compose', '-f', composeFile, ...args], {
+      return runCommand('docker', ['compose', '-f', composeFile, ...args], {
         cwd: composeDir,
         ...options,
       });
@@ -213,7 +213,9 @@ const repairSavedServerHost = async () => {
 };
 
 const ensureLocalDatabaseNetwork = async () => {
-  if (!localMode) return;
+  if (!localMode) {
+    return;
+  }
   await runCommand('docker', ['network', 'connect', localDatabaseNetwork, containerName], {
     allowFail: true,
   });

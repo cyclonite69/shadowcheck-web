@@ -115,11 +115,15 @@ export const useDeflockCameras = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !data || data.features.length === 0) return;
+    if (!map || !mapReady || !data || data.features.length === 0) {
+      return;
+    }
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle() || !currentData || currentData.features.length === 0) return;
+      if (!map.getStyle() || !currentData || currentData.features.length === 0) {
+        return;
+      }
 
       ensureDeflockLayers(map, currentData, clusteringEnabledRef.current);
 
@@ -129,11 +133,15 @@ export const useDeflockCameras = (
           layers: ['deflock-clusters'],
         });
         const clusterId = features[0]?.properties?.cluster_id;
-        if (!clusterId) return;
+        if (!clusterId) {
+          return;
+        }
 
         const source = map.getSource('deflock-cameras') as GeoJSONSource;
         source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') return;
+          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
+            return;
+          }
           map.easeTo({
             center: features[0].geometry.coordinates as [number, number],
             zoom: zoom || 10,
@@ -159,7 +167,9 @@ export const useDeflockCameras = (
 
     const handleClick = (e: MapMouseEvent & { features?: MapboxGeoJSONFeature[] }) => {
       const feature = e.features?.[0];
-      if (!feature || !e.lngLat) return;
+      if (!feature || !e.lngLat) {
+        return;
+      }
 
       const props = feature.properties as DeflockCameraFeature['properties'];
       const coordinates: DeflockCameraFeature['geometry']['coordinates'] =
@@ -186,8 +196,12 @@ export const useDeflockCameras = (
 
       const originalRemove = popup.remove.bind(popup);
       popup.remove = function () {
-        if (dragState) cleanupPopupDrag(popup, dragState);
-        if (pinCleanup) pinCleanup();
+        if (dragState) {
+          cleanupPopupDrag(popup, dragState);
+        }
+        if (pinCleanup) {
+          pinCleanup();
+        }
         return originalRemove();
       };
     };
@@ -202,7 +216,9 @@ export const useDeflockCameras = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
     applyDeflockVisibility(map, isVisible);
   }, [isVisible, mapRef, mapReady]);
 
@@ -280,6 +296,8 @@ export function ensureDeflockLayers(
 function applyDeflockVisibility(map: Map, isVisible: boolean) {
   const vis = isVisible ? 'visible' : 'none';
   ['deflock-unclustered', 'deflock-clusters', 'deflock-cluster-count'].forEach((id) => {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', vis);
+    }
   });
 }

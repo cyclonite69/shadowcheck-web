@@ -3,13 +3,23 @@ import secretsManager from '../secretsManager';
 
 export const buildPgEnv = (): NodeJS.ProcessEnv => {
   const env: NodeJS.ProcessEnv = { ...process.env };
-  if (!env.PGHOST && process.env.DB_HOST) env.PGHOST = process.env.DB_HOST;
-  if (!env.PGPORT && process.env.DB_PORT) env.PGPORT = String(process.env.DB_PORT);
-  if (!env.PGUSER && process.env.DB_USER) env.PGUSER = process.env.DB_USER;
-  if (!env.PGDATABASE && process.env.DB_NAME) env.PGDATABASE = process.env.DB_NAME;
+  if (!env.PGHOST && process.env.DB_HOST) {
+    env.PGHOST = process.env.DB_HOST;
+  }
+  if (!env.PGPORT && process.env.DB_PORT) {
+    env.PGPORT = String(process.env.DB_PORT);
+  }
+  if (!env.PGUSER && process.env.DB_USER) {
+    env.PGUSER = process.env.DB_USER;
+  }
+  if (!env.PGDATABASE && process.env.DB_NAME) {
+    env.PGDATABASE = process.env.DB_NAME;
+  }
   if (!env.PGPASSWORD) {
     const secret = secretsManager.get('db_password');
-    if (secret) env.PGPASSWORD = secret;
+    if (secret) {
+      env.PGPASSWORD = secret;
+    }
   }
   return env;
 };

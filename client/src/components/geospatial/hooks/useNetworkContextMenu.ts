@@ -48,7 +48,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     const normalizedBssid = String(network?.bssid || '')
       .trim()
       .toUpperCase();
-    if (!normalizedBssid) return;
+    if (!normalizedBssid) {
+      return;
+    }
 
     setContextMenu((prev: any) => ({
       ...prev,
@@ -106,7 +108,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
           .filter(Boolean)
       )
     );
-    if (normalizedBssids.length === 0) return;
+    if (normalizedBssids.length === 0) {
+      return;
+    }
 
     setContextMenu((prev: any) => ({
       ...prev,
@@ -174,7 +178,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
       | 'clear'
       | 'clear-threat'
   ) => {
-    if (!contextMenu.network) return;
+    if (!contextMenu.network) {
+      return;
+    }
 
     if (action === 'investigate') {
       setWigleLookupDialog({
@@ -194,7 +200,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
         contextMenu.network,
         contextMenu.tag?.threat_tag
       );
-      if (result.error) throw new Error(result.error);
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
       if (result.tag) {
         const existsVal = result.tag.exists !== undefined ? result.tag.exists : true;
@@ -205,7 +213,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
           tag: { bssid: result.deleted!, exists: false } as any,
         }));
       }
-      if (onTagUpdated) onTagUpdated();
+      if (onTagUpdated) {
+        onTagUpdated();
+      }
     } catch (err: any) {
       logError('Failed to update network tag', err);
     } finally {
@@ -237,7 +247,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
         try {
           const tagData = await networkApi.getNetworkTags(bssid);
           setContextMenu((prev: any) => {
-            if (prev.network?.bssid !== bssid) return prev;
+            if (prev.network?.bssid !== bssid) {
+              return prev;
+            }
             return {
               ...prev,
               tag: tagData,
@@ -250,7 +262,9 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     },
     handleGenerateThreatReportPdf: async () => {
       const network = contextMenu.network;
-      if (!network?.bssid) return;
+      if (!network?.bssid) {
+        return;
+      }
 
       try {
         await networkApi.downloadThreatReportPdf(network.bssid);

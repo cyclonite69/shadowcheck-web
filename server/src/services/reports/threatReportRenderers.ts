@@ -252,8 +252,12 @@ async function renderPdfBuffer(report: any): Promise<Buffer> {
         doc.text(
           `${row.distanceKm?.toFixed(2)} km | ${formatTimestamp(row.time)} | (${row.lat?.toFixed(6)}, ${row.lon?.toFixed(6)}) | ${row.signal ?? 'N/A'} dBm`
         );
-        if (mapsUrl) doc.text(`Map: ${mapsUrl}`);
-        if (streetUrl) doc.text(`Street View: ${streetUrl}`);
+        if (mapsUrl) {
+          doc.text(`Map: ${mapsUrl}`);
+        }
+        if (streetUrl) {
+          doc.text(`Street View: ${streetUrl}`);
+        }
         doc.moveDown(0.3);
       }
     }

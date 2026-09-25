@@ -102,8 +102,8 @@ export async function selectRelatedNetworkMediaForBssid(
   const upperBssid = bssid.toUpperCase();
 
   // Guard: check whether v_sibling_group_media exists before referencing it
-  const viewCheck = await query(`SELECT to_regclass('app.v_sibling_group_media') AS oid`, []);
-  const viewExists = viewCheck.rows[0]?.oid != null;
+  const viewCheck = await query("SELECT to_regclass('app.v_sibling_group_media') AS oid", []);
+  const viewExists = viewCheck.rows[0]?.oid !== null && viewCheck.rows[0]?.oid !== undefined;
 
   const directSql = `
     SELECT
@@ -187,8 +187,8 @@ export async function selectUnmatchedMediaPoints(): Promise<any[]> {
 }
 
 export async function selectMatchedMediaPoints(): Promise<any[]> {
-  const viewCheck = await query(`SELECT to_regclass('app.mv_sibling_groups') AS oid`, []);
-  const hasSiblingGroups = viewCheck.rows[0]?.oid != null;
+  const viewCheck = await query("SELECT to_regclass('app.mv_sibling_groups') AS oid", []);
+  const hasSiblingGroups = viewCheck.rows[0]?.oid !== null && viewCheck.rows[0]?.oid !== undefined;
 
   let sql;
   if (hasSiblingGroups) {

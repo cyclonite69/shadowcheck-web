@@ -34,8 +34,12 @@ jest.mock('../../../../server/src/services/secretsManager', () => ({
   __esModule: true,
   default: {
     get: jest.fn((key) => {
-      if (key === 'wigle_api_name') return 'test_user';
-      if (key === 'wigle_api_token') return 'test_token';
+      if (key === 'wigle_api_name') {
+        return 'test_user';
+      }
+      if (key === 'wigle_api_token') {
+        return 'test_token';
+      }
       return null;
     }),
   },
@@ -75,8 +79,12 @@ describe('WiGLE Search API v1', () => {
     require('../../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
     const secretsManager = require('../../../../server/src/services/secretsManager').default;
     secretsManager.get.mockImplementation((key: string) => {
-      if (key === 'wigle_api_name') return 'test_user';
-      if (key === 'wigle_api_token') return 'test_token';
+      if (key === 'wigle_api_name') {
+        return 'test_user';
+      }
+      if (key === 'wigle_api_token') {
+        return 'test_token';
+      }
       return null;
     });
   });

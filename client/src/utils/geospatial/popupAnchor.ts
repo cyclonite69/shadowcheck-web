@@ -40,8 +40,14 @@ export function getPopupAnchor(map: Map, lngLat: LngLatLike, html: string): Popu
   // 'top-right'   → popup extends DOWN + LEFT
   // 'bottom-left' → popup extends UP   + RIGHT
   // 'bottom-right'→ popup extends UP   + LEFT
-  if (overflowRight && overflowBottom) return overflowTop ? 'top-right' : 'bottom-right';
-  if (overflowRight) return 'top-right';
-  if (overflowBottom) return overflowTop ? 'top-left' : 'bottom-left';
+  if (overflowRight && overflowBottom) {
+    return overflowTop ? 'top-right' : 'bottom-right';
+  }
+  if (overflowRight) {
+    return 'top-right';
+  }
+  if (overflowBottom) {
+    return overflowTop ? 'top-left' : 'bottom-left';
+  }
   return 'top-left';
 }

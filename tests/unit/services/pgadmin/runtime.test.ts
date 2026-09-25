@@ -59,8 +59,12 @@ describe('pgAdmin runtime', () => {
     mockSpawn.mockReturnValueOnce(child);
 
     setImmediate(() => {
-      if (stdout) child.stdout.emit('data', Buffer.from(stdout));
-      if (stderr) child.stderr.emit('data', Buffer.from(stderr));
+      if (stdout) {
+        child.stdout.emit('data', Buffer.from(stdout));
+      }
+      if (stderr) {
+        child.stderr.emit('data', Buffer.from(stderr));
+      }
       child.emit('close', code);
     });
 

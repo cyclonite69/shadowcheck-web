@@ -70,11 +70,15 @@ export const useAgencyOffices = (
   // Add/restore layers on map — runs on initial load and after every style reload
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !data) return;
+    if (!map || !mapReady || !data) {
+      return;
+    }
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle() || !currentData) return;
+      if (!map.getStyle() || !currentData) {
+        return;
+      }
 
       ensureAgencyOfficeLayers(map, currentData, clusteringEnabledRef.current);
 
@@ -88,11 +92,15 @@ export const useAgencyOffices = (
           layers: ['agency-clusters'],
         });
         const clusterId = features[0]?.properties?.cluster_id;
-        if (!clusterId) return;
+        if (!clusterId) {
+          return;
+        }
 
         const source = map.getSource('agency-offices') as GeoJSONSource;
         source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') return;
+          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
+            return;
+          }
           map.easeTo({
             center: features[0].geometry.coordinates as [number, number],
             zoom: zoom || 10,
@@ -126,7 +134,9 @@ export const useAgencyOffices = (
 
     const handleUnclusteredClick = (e: MapMouseEvent & { features?: MapboxGeoJSONFeature[] }) => {
       const feature = e.features?.[0];
-      if (!feature || !e.lngLat) return;
+      if (!feature || !e.lngLat) {
+        return;
+      }
 
       const props = feature.properties as AgencyOffice['properties'];
       const address = [
@@ -198,7 +208,9 @@ export const useAgencyOffices = (
   // Toggle visibility when the prop changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
 
     applyVisibility(map, visibility);
   }, [visibility, mapRef, mapReady]);
@@ -313,10 +325,16 @@ export function resetAgencyOfficeLayers(
     'agency-field-unclustered',
     'agency-resident-unclustered',
   ].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource('agency-offices')) map.removeSource('agency-offices');
-  if (!data) return;
+  if (map.getSource('agency-offices')) {
+    map.removeSource('agency-offices');
+  }
+  if (!data) {
+    return;
+  }
   ensureAgencyOfficeLayers(map, data, clusteringEnabled);
   applyVisibility(map, visibility);
 }

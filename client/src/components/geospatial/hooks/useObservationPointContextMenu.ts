@@ -27,15 +27,21 @@ export const useObservationPointContextMenu = ({
   }, [onOpenContextMenu, networkLookup]);
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
 
     const map = mapRef.current;
     const handleContextMenu = (e: MapLayerMouseEvent) => {
-      if (!onOpenContextMenuRef.current || !e.features || e.features.length === 0) return;
+      if (!onOpenContextMenuRef.current || !e.features || e.features.length === 0) {
+        return;
+      }
 
       const feature = e.features[0];
       const props = feature.properties;
-      if (!props || !props.bssid) return;
+      if (!props || !props.bssid) {
+        return;
+      }
 
       const network = networkLookupRef.current.get(props.bssid);
       if (network) {
@@ -53,7 +59,9 @@ export const useObservationPointContextMenu = ({
     };
 
     const bindContextMenu = () => {
-      if (!map.getLayer('observation-points')) return false;
+      if (!map.getLayer('observation-points')) {
+        return false;
+      }
 
       map.off('contextmenu', 'observation-points', handleContextMenu);
       map.on('contextmenu', 'observation-points', handleContextMenu);

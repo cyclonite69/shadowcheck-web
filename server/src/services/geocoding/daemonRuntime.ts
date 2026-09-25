@@ -80,7 +80,9 @@ const runGeocodeDaemonLoop = async (
   runInternal?: InternalRunFn,
   requeueFailedFn?: RequeueFn
 ) => {
-  if (!geocodeDaemon.config) return;
+  if (!geocodeDaemon.config) {
+    return;
+  }
 
   geocodeDaemon.running = true;
   geocodeDaemon.stopRequested = false;
@@ -91,7 +93,9 @@ const runGeocodeDaemonLoop = async (
 
   while (!geocodeDaemon.stopRequested) {
     const config = geocodeDaemon.config;
-    if (!config) break;
+    if (!config) {
+      break;
+    }
     geocodeDaemon.lastTickAt = new Date().toISOString();
 
     const workers = Math.min(4, Math.max(1, Number(config.workers) || 1));
@@ -167,7 +171,9 @@ const runGeocodeDaemonLoop = async (
 
           let supplementalProcessed = 0;
           for (const precision of supplementalPrecisions) {
-            if (geocodeDaemon.stopRequested) break;
+            if (geocodeDaemon.stopRequested) {
+              break;
+            }
             try {
               const supplementalOptions = { ...getDaemonProviderRunOptions(config), precision };
               const supplementalResult = await runGeocodeCacheUpdate(supplementalOptions);

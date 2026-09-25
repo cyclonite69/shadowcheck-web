@@ -13,7 +13,9 @@ interface ActiveFiltersSummaryProps {
 }
 
 const formatFilterValue = (_key: string, value: any): string => {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) {
+    return '';
+  }
 
   if (Array.isArray(value)) {
     return value.length > 0 ? value.join(', ') : '';

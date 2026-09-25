@@ -84,7 +84,7 @@ export const useObservationLayers = (props: ObservationLayerProps) => {
     mapRef: props.mapRef,
     mapboxRef: props.mapboxRef,
     mapStyle: props.mapStyle,
-    showMediaLocations: !!props.showMediaLocations,
+    showMediaLocations: Boolean(props.showMediaLocations),
   });
 
   return { mediaLocationStatus };

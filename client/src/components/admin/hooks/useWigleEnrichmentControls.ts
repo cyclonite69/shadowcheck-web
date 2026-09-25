@@ -84,7 +84,9 @@ export const useWigleEnrichmentControls = ({
   );
 
   const stopEnrichment = useCallback(async () => {
-    if (!activeEnrichmentRun) return;
+    if (!activeEnrichmentRun) {
+      return;
+    }
     try {
       await wigleApi.cancelImportRun(activeEnrichmentRun.id);
       await refreshRuns();
@@ -130,7 +132,9 @@ export const useWigleEnrichmentControls = ({
       }
 
       try {
-        if (stuckRunId) await wigleApi.forceClearEnrichmentRun(stuckRunId);
+        if (stuckRunId) {
+          await wigleApi.forceClearEnrichmentRun(stuckRunId);
+        }
         return await retry(bssids);
       } catch (retryErr) {
         alert(`Failed after force-clear: ${getErrorMessage(retryErr)}`);
@@ -146,7 +150,9 @@ export const useWigleEnrichmentControls = ({
       if (data?.ok) {
         await refreshRuns();
         void loadEnrichmentStats();
-        if (isManualMode) setManualBssids('');
+        if (isManualMode) {
+          setManualBssids('');
+        }
       }
       return data;
     },

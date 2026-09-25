@@ -37,8 +37,12 @@ const COURTHOUSE_TYPE_LABEL: Record<string, string> = {
 };
 
 function sourceLabel(hasWigle: boolean, hasLocal: boolean): string {
-  if (hasWigle && hasLocal) return 'mixed';
-  if (hasWigle) return 'WiGLE';
+  if (hasWigle && hasLocal) {
+    return 'mixed';
+  }
+  if (hasWigle) {
+    return 'WiGLE';
+  }
   return 'local';
 }
 
@@ -47,7 +51,9 @@ function flyTo(
   lat: number,
   lon: number
 ) {
-  if (!mapRef?.current) return;
+  if (!mapRef?.current) {
+    return;
+  }
   mapRef.current.flyTo({
     center: [lon, lat],
     zoom: 13,
@@ -123,13 +129,13 @@ export const NearestPlacesPanel: React.FC<NearestPlacesPanelProps> = ({
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Cluster {idx + 1}
                 </span>
-                {cluster.observationCount != null && (
+                {cluster.observationCount !== null && (
                   <span className="text-xs text-slate-500">
                     {cluster.observationCount} obs ·{' '}
                     {sourceLabel(cluster.hasWigleObs, cluster.hasLocalObs)}
                   </span>
                 )}
-                {cluster.clusterLat != null && cluster.clusterLon != null && (
+                {cluster.clusterLat !== null && cluster.clusterLon !== null && (
                   <button
                     className="text-xs text-slate-500 hover:text-blue-400 underline transition-colors ml-auto"
                     onClick={() => flyTo(mapRef, cluster.clusterLat!, cluster.clusterLon!)}

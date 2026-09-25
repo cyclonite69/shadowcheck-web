@@ -20,7 +20,9 @@ describe('siblingGroupGraph', () => {
     it('merges off-list nodes reachable from visible seeds', () => {
       const visible = new Set(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02']);
       const adjacency = new Map<string, Set<string>>();
-      for (const b of visible) adjacency.set(b, new Set());
+      for (const b of visible) {
+        adjacency.set(b, new Set());
+      }
       addUndirectedEdge(adjacency, 'AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02');
       addUndirectedEdge(adjacency, 'AA:BB:CC:DD:EE:02', 'BE:61:A3:7C:BD:09');
 

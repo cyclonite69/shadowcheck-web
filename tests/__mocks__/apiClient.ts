@@ -22,7 +22,9 @@ class ApiClientMock {
     if (text) {
       try {
         data = JSON.parse(text);
-      } catch {}
+      } catch {
+        // intentional no-op
+      }
     }
 
     if (!res.ok) {

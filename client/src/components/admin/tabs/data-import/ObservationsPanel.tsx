@@ -53,7 +53,9 @@ export const ObservationsPanel: React.FC<ObservationsPanelProps> = ({
     const isDeselect = selectedObs?.id === obs.id;
     const next = isDeselect ? null : obs;
     setSelectedObs(next);
-    if (onObservationSelect) onObservationSelect(next);
+    if (onObservationSelect) {
+      onObservationSelect(next);
+    }
   };
 
   if (!selectedBssid) {
@@ -112,12 +114,13 @@ export const ObservationsPanel: React.FC<ObservationsPanelProps> = ({
                     <div className="text-[10px] text-slate-600 italic mt-0.5">(hidden)</div>
                   )}
                   <div className="flex items-center gap-2 mt-0.5">
-                    {sig != null && (
+                    {sig !== null && sig !== undefined && (
                       <span className={`text-[10px] font-mono tabular-nums ${sigColor}`}>
                         {sig} dBm
                       </span>
                     )}
-                    {(obs.lat != null || obs.latitude != null) && (
+                    {((obs.lat !== null && obs.lat !== undefined) ||
+                      (obs.latitude !== null && obs.latitude !== undefined)) && (
                       <span className="text-[9px] font-mono text-cyan-600/70">
                         {Number(obs.lat ?? obs.latitude).toFixed(4)},{' '}
                         {Number(obs.lon ?? obs.longitude).toFixed(4)}

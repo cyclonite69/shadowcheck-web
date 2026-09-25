@@ -48,19 +48,27 @@ export function useRadiusPinDrop(
 
   // Cursor management for pin-drop mode
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
     const map = mapRef.current;
     map.getCanvas().style.cursor = pinDropActive ? 'crosshair' : '';
     return () => {
-      if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
+      if (mapRef.current) {
+        mapRef.current.getCanvas().style.cursor = '';
+      }
     };
   }, [pinDropActive, mapReady, mapRef]);
 
   // Escape key cancels pin-drop mode
   useEffect(() => {
-    if (!pinDropActive) return;
+    if (!pinDropActive) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') cancelPinDrop();
+      if (e.key === 'Escape') {
+        cancelPinDrop();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -68,13 +76,19 @@ export function useRadiusPinDrop(
 
   // Map event handlers
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
+    if (!mapReady || !mapRef.current) {
+      return;
+    }
     const map = mapRef.current;
 
     const handleClick = (e: any) => {
-      if (!pinDropActiveRef.current) return;
+      if (!pinDropActiveRef.current) {
+        return;
+      }
       // Don't fire if a feature was clicked (let layer handlers take it)
-      if (e.features && e.features.length > 0) return;
+      if (e.features && e.features.length > 0) {
+        return;
+      }
 
       const { lat, lng } = e.lngLat;
       const current = getCurrentFilters().radiusFilter;
@@ -88,7 +102,9 @@ export function useRadiusPinDrop(
     const handleContextMenu = (e: any) => {
       // Only fire on empty space — if a layer feature is under the cursor,
       // the layer-level contextmenu handler fires first and stops propagation.
-      if (e.features && e.features.length > 0) return;
+      if (e.features && e.features.length > 0) {
+        return;
+      }
 
       e.preventDefault();
       setContextMenu({

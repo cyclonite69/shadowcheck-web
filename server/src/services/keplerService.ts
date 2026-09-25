@@ -25,7 +25,9 @@ export { checkHomeLocationExists, executeKeplerQuery } from '../repositories/kep
 async function assertHomeExistsIfNeeded(enabled: Record<string, any>) {
   if (enabled?.distanceFromHomeMin || enabled?.distanceFromHomeMax) {
     const exists = await checkHomeLocationExists();
-    if (!exists) throw new Error('Home location is required for distance filters.');
+    if (!exists) {
+      throw new Error('Home location is required for distance filters.');
+    }
   }
 }
 
@@ -36,7 +38,10 @@ export async function getKeplerData(
   offset: number = 0
 ) {
   const { errors } = validateFilterPayload(filters, enabled);
-  if (errors.length > 0) throw { status: 400, errors };
+  if (errors.length > 0) {
+    const validationError = { status: 400, errors };
+    throw validationError;
+  }
   await assertHomeExistsIfNeeded(enabled);
   const { sql, params } = new UniversalFilterQueryBuilder(filters, enabled).buildNetworkListQuery({
     limit,
@@ -48,7 +53,10 @@ export async function getKeplerData(
 
 export async function getKeplerObservations(filters: any, enabled: any, limit: number | null) {
   const { errors } = validateFilterPayload(filters, enabled);
-  if (errors.length > 0) throw { status: 400, errors };
+  if (errors.length > 0) {
+    const validationError = { status: 400, errors };
+    throw validationError;
+  }
   await assertHomeExistsIfNeeded(enabled);
   const { sql, params } = new UniversalFilterQueryBuilder(filters, enabled).buildGeospatialQuery({
     limit,
@@ -64,7 +72,10 @@ export async function getKeplerNetworks(
   offset: number = 0
 ) {
   const { errors } = validateFilterPayload(filters, enabled);
-  if (errors.length > 0) throw { status: 400, errors };
+  if (errors.length > 0) {
+    const validationError = { status: 400, errors };
+    throw validationError;
+  }
   await assertHomeExistsIfNeeded(enabled);
   const { sql, params } = new UniversalFilterQueryBuilder(filters, enabled).buildNetworkListQuery({
     limit,

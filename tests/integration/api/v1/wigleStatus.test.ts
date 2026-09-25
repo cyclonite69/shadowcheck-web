@@ -40,8 +40,12 @@ describe('wigleStatus', () => {
 
   it('should return configured status', async () => {
     secretsManager.get.mockImplementation((key: string) => {
-      if (key === 'wigle_api_name') return 'name';
-      if (key === 'wigle_api_token') return 'token';
+      if (key === 'wigle_api_name') {
+        return 'name';
+      }
+      if (key === 'wigle_api_token') {
+        return 'token';
+      }
       return null;
     });
     const res = await request(app).get('/api/wigle/api-status');

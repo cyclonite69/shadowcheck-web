@@ -76,7 +76,9 @@ export async function main(): Promise<void> {
     .slice(1) // Skip header
     .map((line): LocationData | null => {
       const [bssid, lat, lon] = line.split(',');
-      if (!bssid || !lat || !lon) return null;
+      if (!bssid || !lat || !lon) {
+        return null;
+      }
 
       return {
         bssid: bssid.replace(/"/g, ''),

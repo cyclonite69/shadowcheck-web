@@ -39,8 +39,8 @@ class KismetImporter {
   }
 
   async start() {
-    console.log(`\n🕵️  KISMET SIDECAR IMPORT`);
-    console.log(`━`.repeat(50));
+    console.log('\n🕵️  KISMET SIDECAR IMPORT');
+    console.log('━'.repeat(50));
     console.log(`📁 File: ${this.sqliteFile}`);
     console.log(`🆔 Session: ${this.sessionId}\n`);
 
@@ -177,10 +177,12 @@ class KismetImporter {
         this.stats[task.source] = count;
       }
 
-      console.log(`\n✅ Import Complete`);
-      console.log(`📊 Summary:`);
+      console.log('\n✅ Import Complete');
+      console.log('📊 Summary:');
       Object.entries(this.stats).forEach(([table, count]) => {
-        if (count > 0) console.log(`   - ${table}: ${count.toLocaleString()} rows`);
+        if (count > 0) {
+          console.log(`   - ${table}: ${count.toLocaleString()} rows`);
+        }
       });
 
       // Special formatted line for the backend to parse
@@ -199,8 +201,11 @@ class KismetImporter {
   private openSqlite(): Promise<sqlite3.Database> {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY, (err) => {
-        if (err) reject(err);
-        else resolve(db);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(db);
+        }
       });
     });
   }
@@ -215,13 +220,15 @@ class KismetImporter {
 
     const rowCount = await new Promise<number>((resolve) => {
       db.get(`SELECT COUNT(*) as cnt FROM ${sourceTable}`, (err, row: any) => {
-        if (err) return resolve(0);
+        if (err) {
+          return resolve(0);
+        }
         resolve(row?.cnt || 0);
       });
     });
 
     if (rowCount === 0) {
-      console.log(`   ⏭️  Empty table, skipping.`);
+      console.log('   ⏭️  Empty table, skipping.');
       return 0;
     }
 
@@ -233,12 +240,16 @@ class KismetImporter {
     for (let offset = 0; offset < rowCount; offset += pageSize) {
       const rows = await new Promise<any[]>((resolve, reject) => {
         db.all(`SELECT * FROM ${sourceTable} LIMIT ${pageSize} OFFSET ${offset}`, (err, rows) => {
-          if (err) return reject(err);
+          if (err) {
+            return reject(err);
+          }
           resolve(rows || []);
         });
       });
 
-      if (rows.length === 0) break;
+      if (rows.length === 0) {
+        break;
+      }
 
       const mapped = rows.map(mapper);
       const result = await this.insertBatch(targetTable, mapped);
@@ -255,7 +266,9 @@ class KismetImporter {
   }
 
   private async insertBatch(table: string, records: any[]): Promise<number> {
-    if (records.length === 0) return 0;
+    if (records.length === 0) {
+      return 0;
+    }
 
     const keys = Object.keys(records[0]).filter((k) => k !== 'lat' && k !== 'lon');
     const hasCoords = 'lat' in records[0] && 'lon' in records[0];
@@ -271,7 +284,7 @@ class KismetImporter {
           const lonIdx = latIdx + 1;
           p += `, ST_SetSRID(ST_MakePoint($${lonIdx}, $${latIdx}), 4326)`;
         }
-        return p + `)`;
+        return `${p})`;
       })
       .join(', ');
 

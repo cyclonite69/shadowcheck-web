@@ -59,16 +59,16 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
   beforeAll(async () => {
     // Clean any stale state (observations first to satisfy FK constraints)
     await query(
-      `DELETE FROM app.network_sibling_overrides WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+      'DELETE FROM app.network_sibling_overrides WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
       [allTestBssids]
     );
     await query(
-      `DELETE FROM app.network_sibling_pairs  WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+      'DELETE FROM app.network_sibling_pairs  WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
       [allTestBssids]
     );
-    await query(`DELETE FROM app.observations           WHERE bssid  = ANY($1)`, [allTestBssids]);
-    await query(`DELETE FROM app.ssid_history           WHERE bssid  = ANY($1)`, [allTestBssids]);
-    await query(`DELETE FROM app.networks               WHERE bssid  = ANY($1)`, [allTestBssids]);
+    await query('DELETE FROM app.observations           WHERE bssid  = ANY($1)', [allTestBssids]);
+    await query('DELETE FROM app.ssid_history           WHERE bssid  = ANY($1)', [allTestBssids]);
+    await query('DELETE FROM app.networks               WHERE bssid  = ANY($1)', [allTestBssids]);
 
     // Insert test networks
     await query(
@@ -176,16 +176,16 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
   afterAll(async () => {
     await query(
-      `DELETE FROM app.network_sibling_overrides WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+      'DELETE FROM app.network_sibling_overrides WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
       [allTestBssids]
     );
     await query(
-      `DELETE FROM app.network_sibling_pairs  WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+      'DELETE FROM app.network_sibling_pairs  WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
       [allTestBssids]
     );
-    await query(`DELETE FROM app.observations           WHERE bssid  = ANY($1)`, [allTestBssids]);
-    await query(`DELETE FROM app.ssid_history           WHERE bssid  = ANY($1)`, [allTestBssids]);
-    await query(`DELETE FROM app.networks               WHERE bssid  = ANY($1)`, [allTestBssids]);
+    await query('DELETE FROM app.observations           WHERE bssid  = ANY($1)', [allTestBssids]);
+    await query('DELETE FROM app.ssid_history           WHERE bssid  = ANY($1)', [allTestBssids]);
+    await query('DELETE FROM app.networks               WHERE bssid  = ANY($1)', [allTestBssids]);
     await closePool();
   });
 
@@ -194,7 +194,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
   describe('P2: Generic fallback rules must not emit confidence 1.0', () => {
     test('Class A stored pair has confidence 0.900 (capped by buildRefreshChunkSql)', async () => {
       const res = await query(
-        `SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2',
         [BSSID.classA1, BSSID.classA2]
       );
       expect(res.rows).toHaveLength(1);
@@ -203,7 +203,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
     test('Class B stored pair has confidence 0.850 (capped by buildRefreshChunkSql)', async () => {
       const res = await query(
-        `SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2',
         [BSSID.classB1, BSSID.classB2]
       );
       expect(res.rows).toHaveLength(1);
@@ -212,7 +212,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
     test('Class C stored pair has confidence 0.800 (capped by buildRefreshChunkSql)', async () => {
       const res = await query(
-        `SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2',
         [BSSID.classC1, BSSID.classC2]
       );
       expect(res.rows).toHaveLength(1);
@@ -221,7 +221,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
     test('Unnamed Recursive (Class A) stored pair has confidence 0.900 (capped)', async () => {
       const res = await query(
-        `SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT confidence FROM app.network_sibling_pairs WHERE bssid1 = $1 AND bssid2 = $2',
         [BSSID.unnamed1, BSSID.unnamed2]
       );
       expect(res.rows).toHaveLength(1);
@@ -238,7 +238,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     // The buildRefreshChunkSql Mist SSID-unrelated cap must fire and hold confidence to 0.900.
 
     test('Mist VAP pair with unrelated SSIDs: find_sibling_radios produces Mist Systems VAP match', async () => {
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.mistNeg1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.mistNeg1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.mistNeg2
       );
@@ -286,7 +286,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
       const [b1, b2] = [BSSID.mistNeg1, BSSID.mistNeg2].sort();
       const res = await query(
-        `SELECT confidence FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT confidence FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2',
         [b1, b2]
       );
       // With confidence 0.900, the heuristic_strong threshold (>= 0.92) is NOT met.
@@ -302,7 +302,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
   describe('P4: AirLink (00:14:3E) delta-1 characterization', () => {
     test('AirLink delta-1 positive: same first 5 octets, delta=1 → AIRLINK_DELTA1_TWIN', async () => {
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.airDelta1Pos1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.airDelta1Pos1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.airDelta1Pos2
       );
@@ -312,7 +312,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
     test('AirLink: rule is SSID-agnostic — fires regardless of SSID content', async () => {
       // AIRLINK_DELTA1_TWIN matches on OUI + last-octet delta=1 only. This is by design.
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.airDelta1Pos1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.airDelta1Pos1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.airDelta1Pos2
       );
@@ -320,7 +320,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     });
 
     test('AirLink true negative: delta-2 must NOT emit AIRLINK_DELTA1_TWIN', async () => {
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.airDelta2Neg1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.airDelta2Neg1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.airDelta2Neg2
       );
@@ -331,7 +331,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     });
 
     test('AirLink true negative: cross-OUI pair (Sierra ↔ AirLink) must not match', async () => {
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.airWrongOuiN1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.airWrongOuiN1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.airWrongOuiN2
       );
@@ -344,7 +344,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
   describe('P4: Sierra (28:A3:31) delta-1 characterization', () => {
     test('Sierra delta-1 positive: same first 5 octets, delta=1 → SIERRA_DELTA1_TWIN', async () => {
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.sieDelta1Pos1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.sieDelta1Pos1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.sieDelta1Pos2
       );
@@ -353,7 +353,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     });
 
     test('Sierra true negative: delta-2 must NOT emit SIERRA_DELTA1_TWIN', async () => {
-      const res = await query(`SELECT * FROM app.find_sibling_radios($1)`, [BSSID.sieDelta2Neg1]);
+      const res = await query('SELECT * FROM app.find_sibling_radios($1)', [BSSID.sieDelta2Neg1]);
       const sibling = res.rows.find(
         (r: { sibling_bssid: string }) => r.sibling_bssid === BSSID.sieDelta2Neg2
       );
@@ -410,7 +410,7 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
   describe('P6: Manual override precedence', () => {
     afterEach(async () => {
       await query(
-        `DELETE FROM app.network_sibling_overrides WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)`,
+        'DELETE FROM app.network_sibling_overrides WHERE bssid1 = ANY($1) OR bssid2 = ANY($1)',
         [[BSSID.ovA, BSSID.ovB, BSSID.ovC, BSSID.ovD]]
       );
     });
@@ -418,11 +418,11 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     test('manual_blocked suppresses active heuristic pair from network_siblings_effective', async () => {
       const [b1, b2] = [BSSID.ovA, BSSID.ovB].sort();
       await query(
-        `SELECT app.set_network_sibling_override($1, $2, 'not_sibling', 'test-agent', 'blocked by test', 1.0)`,
+        "SELECT app.set_network_sibling_override($1, $2, 'not_sibling', 'test-agent', 'blocked by test', 1.0)",
         [BSSID.ovA, BSSID.ovB]
       );
       const res = await query(
-        `SELECT * FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT * FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2',
         [b1, b2]
       );
       expect(res.rows).toHaveLength(0);
@@ -431,11 +431,11 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     test('manual_confirmed appears in network_siblings_effective with source=manual', async () => {
       const [b1, b2] = [BSSID.ovC, BSSID.ovD].sort();
       await query(
-        `SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', 'confirmed by test', 1.0)`,
+        "SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', 'confirmed by test', 1.0)",
         [BSSID.ovC, BSSID.ovD]
       );
       const res = await query(
-        `SELECT source FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT source FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2',
         [b1, b2]
       );
       expect(res.rows.length).toBeGreaterThan(0);
@@ -444,16 +444,16 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
 
     test('LEAST/GREATEST normalization: reversed input produces single canonical override row', async () => {
       await query(
-        `SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', null, 0.95)`,
+        "SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', null, 0.95)",
         [BSSID.ovD, BSSID.ovC]
       );
       await query(
-        `SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', null, 0.95)`,
+        "SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', null, 0.95)",
         [BSSID.ovC, BSSID.ovD]
       );
       const [b1, b2] = [BSSID.ovC, BSSID.ovD].sort();
       const res = await query(
-        `SELECT COUNT(*) AS cnt FROM app.network_sibling_overrides WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT COUNT(*) AS cnt FROM app.network_sibling_overrides WHERE bssid1 = $1 AND bssid2 = $2',
         [b1, b2]
       );
       expect(Number(res.rows[0].cnt)).toBe(1);
@@ -462,11 +462,11 @@ describeIfIntegration('Sibling Rule Quality and Symmetry', () => {
     test('manual_confirmed takes precedence: effective view shows manual row, heuristic not duplicated', async () => {
       const [b1, b2] = [BSSID.ovC, BSSID.ovD].sort();
       await query(
-        `SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', 'manual beats heuristic', 1.0)`,
+        "SELECT app.set_network_sibling_override($1, $2, 'sibling', 'test-agent', 'manual beats heuristic', 1.0)",
         [BSSID.ovC, BSSID.ovD]
       );
       const res = await query(
-        `SELECT source FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2`,
+        'SELECT source FROM app.network_siblings_effective WHERE bssid1 = $1 AND bssid2 = $2',
         [b1, b2]
       );
       expect(res.rows.find((r: { source: string }) => r.source === 'manual')).toBeDefined();

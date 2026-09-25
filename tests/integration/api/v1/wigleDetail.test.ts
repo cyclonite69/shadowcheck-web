@@ -40,13 +40,21 @@ jest.mock('../../../../server/src/services/secretsManager', () => ({
   __esModule: true,
   default: {
     get: jest.fn((key) => {
-      if (key === 'wigle_api_name') return 'test_user';
-      if (key === 'wigle_api_token') return 'test_token';
+      if (key === 'wigle_api_name') {
+        return 'test_user';
+      }
+      if (key === 'wigle_api_token') {
+        return 'test_token';
+      }
       return null;
     }),
     getOrThrow: jest.fn((key: string) => {
-      if (key === 'wigle_api_name') return 'test_user';
-      if (key === 'wigle_api_token') return 'test_token';
+      if (key === 'wigle_api_name') {
+        return 'test_user';
+      }
+      if (key === 'wigle_api_token') {
+        return 'test_token';
+      }
       // Integration router tests shouldn't depend on DB secrets.
       return 'test';
     }),

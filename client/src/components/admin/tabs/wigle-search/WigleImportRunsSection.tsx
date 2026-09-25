@@ -39,7 +39,9 @@ export const WigleImportRunsSection: React.FC<WigleImportRunsSectionProps> = ({
       error={runsError}
       sortCols={runsSortCols}
       onSort={(col, e) => {
-        if (!col.sortKey) return;
+        if (!col.sortKey) {
+          return;
+        }
         setRunsSortCols((prev) => {
           const existing = prev.find((s) => s.key === col.sortKey);
           if (e.shiftKey) {

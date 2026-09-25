@@ -40,8 +40,12 @@ function computeThreatScore(
 ): number {
   const score = finalThreatScore ?? 0;
   const conf = confidence ?? 0;
-  if (threatTag === 'FALSE_POSITIVE') return 0;
-  if (threatTag === 'INVESTIGATE') return score;
+  if (threatTag === 'FALSE_POSITIVE') {
+    return 0;
+  }
+  if (threatTag === 'INVESTIGATE') {
+    return score;
+  }
   return score * 0.7 + conf * 100 * 0.3;
 }
 
@@ -51,13 +55,25 @@ function computeThreatLevel(
   threatTag: string | null,
   storedLevel: string | null
 ): string {
-  if (threatTag === 'FALSE_POSITIVE') return 'NONE';
-  if (threatTag === 'INVESTIGATE') return storedLevel ?? 'NONE';
+  if (threatTag === 'FALSE_POSITIVE') {
+    return 'NONE';
+  }
+  if (threatTag === 'INVESTIGATE') {
+    return storedLevel ?? 'NONE';
+  }
   const s = computeThreatScore(finalThreatScore, confidence, threatTag);
-  if (s >= 80) return 'CRITICAL';
-  if (s >= 60) return 'HIGH';
-  if (s >= 40) return 'MED';
-  if (s >= 20) return 'LOW';
+  if (s >= 80) {
+    return 'CRITICAL';
+  }
+  if (s >= 60) {
+    return 'HIGH';
+  }
+  if (s >= 40) {
+    return 'MED';
+  }
+  if (s >= 20) {
+    return 'LOW';
+  }
   return 'NONE';
 }
 

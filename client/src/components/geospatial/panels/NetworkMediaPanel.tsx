@@ -50,7 +50,9 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
     };
   }, [bssid]);
 
-  if (!bssid) return null;
+  if (!bssid) {
+    return null;
+  }
 
   return (
     <div style={{ marginTop: '12px', paddingBottom: '12px' }}>
@@ -172,7 +174,7 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
                     </span>
                   )}
                 </div>
-                {item.observation_id != null && (
+                {item.observation_id !== null && item.observation_id !== undefined && (
                   <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
                     obs #{item.observation_id}
                   </div>

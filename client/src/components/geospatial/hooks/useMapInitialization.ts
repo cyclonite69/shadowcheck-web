@@ -39,7 +39,7 @@ export const useMapInitialization = ({
 
       const tokenBody = await mapboxApi.getMapboxToken();
       if (!tokenBody?.token) {
-        throw new Error(tokenBody?.error || `Mapbox token not available`);
+        throw new Error(tokenBody?.error || 'Mapbox token not available');
       }
 
       const mapboxgl = mapboxRef.current ?? (await import('mapbox-gl')).default;

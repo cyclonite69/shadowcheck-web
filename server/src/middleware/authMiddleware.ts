@@ -15,7 +15,7 @@ declare global {
         role: string;
       };
       id?: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       logger?: any;
     }
   }

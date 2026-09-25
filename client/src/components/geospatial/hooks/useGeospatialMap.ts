@@ -53,7 +53,9 @@ export const useGeospatialMap = ({
   const { addBaseSourcesAndLayers, attachHoverHandlers } = useMapLayers();
 
   useEffect(() => {
-    if (mapInitRef.current || !mapContainerRef.current) return;
+    if (mapInitRef.current || !mapContainerRef.current) {
+      return;
+    }
     mapInitRef.current = true;
 
     let cleanupPopups: (() => void) | undefined;
@@ -61,7 +63,9 @@ export const useGeospatialMap = ({
 
     const init = async () => {
       const map = await initMap();
-      if (!map) return;
+      if (!map) {
+        return;
+      }
 
       const onMapLoad = () => {
         // 1. Add static layers and sources
@@ -97,13 +101,16 @@ export const useGeospatialMap = ({
 
     return () => {
       if (mapRef.current) {
-        if (cleanupPopups) cleanupPopups();
-        if (cleanupHover) cleanupHover();
+        if (cleanupPopups) {
+          cleanupPopups();
+        }
+        if (cleanupHover) {
+          cleanupHover();
+        }
         mapRef.current.remove();
         mapRef.current = null;
       }
       mapInitRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 };

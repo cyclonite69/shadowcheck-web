@@ -30,14 +30,20 @@ export interface KmlHashMatch {
 }
 
 function toIsoString(value: unknown): string | null {
-  if (!value) return null;
-  if (value instanceof Date) return value.toISOString();
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
   return String(value);
 }
 
 function normalizeLimit(rawLimit: unknown): number {
   const parsed = Number.parseInt(String(rawLimit ?? '500'), 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 500;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 500;
+  }
   return Math.min(parsed, 1000);
 }
 
@@ -107,7 +113,9 @@ async function listKmlImportStatus(rawLimit: unknown = 500): Promise<KmlImportSt
  */
 async function findKmlFilesByHashes(hashes: string[]): Promise<KmlHashMatch[]> {
   const uniqueHashes = Array.from(new Set(hashes.filter(Boolean)));
-  if (uniqueHashes.length === 0) return [];
+  if (uniqueHashes.length === 0) {
+    return [];
+  }
 
   const result = await query(
     `SELECT id, source_file, file_hash, imported_at

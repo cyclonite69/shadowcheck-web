@@ -39,10 +39,14 @@ function formatSsmCliError(message: string): string {
 
 function parseCookies(cookieHeader: string | undefined): Record<string, string> {
   const cookies: Record<string, string> = {};
-  if (!cookieHeader) return cookies;
+  if (!cookieHeader) {
+    return cookies;
+  }
   for (const pair of cookieHeader.split(';')) {
     const idx = pair.indexOf('=');
-    if (idx < 0) continue;
+    if (idx < 0) {
+      continue;
+    }
     const key = pair.slice(0, idx).trim();
     const val = pair.slice(idx + 1).trim();
     cookies[key] = decodeURIComponent(val);

@@ -17,7 +17,7 @@ jest.mock('../../../../server/src/services/adminDbService', () => ({
 jest.mock('../../../../server/src/repositories/jobRunRepository', () => ({
   getJobStatus: jest.fn(),
   trackJobRun: jest.fn().mockImplementation(async (name, task, context) => {
-    return await task();
+    return task();
   }),
 }));
 

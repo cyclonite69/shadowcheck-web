@@ -22,7 +22,9 @@ const pinStateMap = new Map<string, PopupPinState>();
 export function setupPopupPin(popup: MapboxPopup, _map: MapboxMap): () => void {
   // Get the popup DOM container
   const popupElement = popup.getElement();
-  if (!popupElement) return () => {};
+  if (!popupElement) {
+    return () => {};
+  }
 
   const popupId = `popup-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -44,7 +46,9 @@ export function setupPopupPin(popup: MapboxPopup, _map: MapboxMap): () => void {
     const header = popupElement.querySelector(
       '[style*="display:flex"][style*="align-items:center"][style*="justify-content:space-between"]'
     );
-    if (header) header.appendChild(pinButton);
+    if (header) {
+      header.appendChild(pinButton);
+    }
   }
 
   // Store initial state
@@ -60,7 +64,9 @@ export function setupPopupPin(popup: MapboxPopup, _map: MapboxMap): () => void {
   // Pin/unpin toggle
   const togglePin = () => {
     const currentPopupElement = popup.getElement();
-    if (!currentPopupElement) return;
+    if (!currentPopupElement) {
+      return;
+    }
 
     if (!pinState.isPinned) {
       // Pin to viewport

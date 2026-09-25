@@ -3,7 +3,7 @@
  */
 import * as path from 'path';
 import * as fs from 'fs';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
 // @ts-ignore
 import multer from 'multer';
 

@@ -134,7 +134,9 @@ export const useGeocodingCache = (precision = 5) => {
   }, [refreshStats, precision]);
 
   useEffect(() => {
-    if (!daemon?.running) return;
+    if (!daemon?.running) {
+      return;
+    }
     const intervalId = window.setInterval(() => {
       void refreshStats();
     }, 15000);

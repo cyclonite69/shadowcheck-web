@@ -32,7 +32,9 @@ export const useWigleCoverage = ({ runs }: UseWigleCoverageOptions): UseWigleCov
 
   // Re-fetch coverage when selected term changes
   useEffect(() => {
-    if (!coverageTerm) return;
+    if (!coverageTerm) {
+      return;
+    }
     setTermReportLoading(true);
     wigleApi
       .getImportCompletenessReport(new URLSearchParams({ searchTerm: coverageTerm }))

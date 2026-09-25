@@ -81,8 +81,12 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
         maxC = g[day][hour].count;
       }
 
-      if (obs.time < minTime) minTime = obs.time;
-      if (obs.time > maxTime) maxTime = obs.time;
+      if (obs.time < minTime) {
+        minTime = obs.time;
+      }
+      if (obs.time > maxTime) {
+        maxTime = obs.time;
+      }
     });
 
     const range =
@@ -125,12 +129,20 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
 
   const cellSize = 32;
   const getIntensityColor = (count: number) => {
-    if (count === 0) return 'rgb(30, 41, 59)'; // slate-800
+    if (count === 0) {
+      return 'rgb(30, 41, 59)';
+    } // slate-800
     const intensity = Math.min(1, count / Math.max(maxCount, 1));
     // Gradient from slate-700 (low) to emerald-500 (high)
-    if (intensity < 0.25) return `rgba(52, 211, 153, ${0.2 + intensity * 1.5})`;
-    if (intensity < 0.5) return `rgba(52, 211, 153, ${0.4 + intensity})`;
-    if (intensity < 0.75) return `rgba(16, 185, 129, ${0.6 + intensity * 0.4})`;
+    if (intensity < 0.25) {
+      return `rgba(52, 211, 153, ${0.2 + intensity * 1.5})`;
+    }
+    if (intensity < 0.5) {
+      return `rgba(52, 211, 153, ${0.4 + intensity})`;
+    }
+    if (intensity < 0.75) {
+      return `rgba(16, 185, 129, ${0.6 + intensity * 0.4})`;
+    }
     return `rgba(5, 150, 105, ${0.8 + intensity * 0.2})`;
   };
 

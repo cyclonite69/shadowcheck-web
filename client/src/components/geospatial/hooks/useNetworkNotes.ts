@@ -34,7 +34,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   };
 
   const openNoteModalForBssid = async (bssid: string) => {
-    if (!bssid) return;
+    if (!bssid) {
+      return;
+    }
 
     noteRequestBssidRef.current = bssid;
 
@@ -51,7 +53,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
 
     try {
       const notes = await networkApi.getNetworkNotes(bssid);
-      if (noteRequestBssidRef.current !== bssid) return;
+      if (noteRequestBssidRef.current !== bssid) {
+        return;
+      }
       const latest = notes[0];
       if (latest) {
         const noteId = Number(latest.id);
@@ -59,7 +63,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
         setNoteContent(latest.content || '');
         setNoteType(latest.note_type || 'general');
         const media = await networkApi.getNoteMedia(noteId);
-        if (noteRequestBssidRef.current !== bssid) return;
+        if (noteRequestBssidRef.current !== bssid) {
+          return;
+        }
         setExistingNoteMedia(media);
       }
     } catch (err) {
@@ -68,7 +74,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   };
 
   const handleSaveNote = async () => {
-    if (!noteContent.trim() || !selectedBssid) return;
+    if (!noteContent.trim() || !selectedBssid) {
+      return;
+    }
 
     setNoteSaving(true);
     setNoteError(null);
@@ -145,7 +153,9 @@ export const useNetworkNotes = ({ logError }: NetworkNotesProps) => {
   };
 
   const handleDeleteNote = async () => {
-    if (!selectedBssid || !existingNoteId) return;
+    if (!selectedBssid || !existingNoteId) {
+      return;
+    }
 
     setNoteDeleting(true);
     setNoteError(null);

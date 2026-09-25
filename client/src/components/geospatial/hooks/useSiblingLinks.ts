@@ -55,7 +55,9 @@ export const useSiblingLinks = ({
     const loadSiblingLinks = async () => {
       try {
         const result = await networkApi.getNetworkSiblingLinks(selectedAnchorBssid);
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         const nextSet = new Set<string>(
           Array.isArray(result?.links)
             ? result.links.map((row: any) => normalizeBssid(row?.sibling_bssid)).filter(Boolean)
@@ -113,7 +115,9 @@ export const useSiblingLinks = ({
           if (searchHits.length === 0) {
             setVisibleSiblingGroupMap(new Map());
             setMissingSiblingNetworks([]);
-            if (!cancelled) setSiblingHydrating(false);
+            if (!cancelled) {
+              setSiblingHydrating(false);
+            }
             return;
           }
 
@@ -131,12 +135,16 @@ export const useSiblingLinks = ({
               .filter(Boolean) as string[];
 
             const batchResult = await networkApi.getNetworkSiblingLinksBatch(searchHitBssids);
-            if (cancelled) return;
+            if (cancelled) {
+              return;
+            }
 
             const anchorResults = await Promise.all(
               searchHitBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
             );
-            if (cancelled) return;
+            if (cancelled) {
+              return;
+            }
 
             const anchorLinks = searchHitBssids.map((anchor, idx) => ({
               anchor,
@@ -165,7 +173,9 @@ export const useSiblingLinks = ({
 
           const hydrationKey = generateHydrationKey(groupMap, missing);
           if (hydrationKey === prevHydrationKeyRef.current) {
-            if (!cancelled) setSiblingHydrating(false);
+            if (!cancelled) {
+              setSiblingHydrating(false);
+            }
             return;
           }
           prevHydrationKeyRef.current = hydrationKey;
@@ -216,14 +226,18 @@ export const useSiblingLinks = ({
                 setMissingDbBssids([]);
               }
             } finally {
-              if (!cancelled) setSiblingHydrating(false);
+              if (!cancelled) {
+                setSiblingHydrating(false);
+              }
             }
           } else {
             setMissingSiblingNetworks([]);
             setHydrationFailedBssids([]);
             setNonRenderableBssids([]);
             setMissingDbBssids([]);
-            if (!cancelled) setSiblingHydrating(false);
+            if (!cancelled) {
+              setSiblingHydrating(false);
+            }
           }
           return;
         }
@@ -236,13 +250,17 @@ export const useSiblingLinks = ({
         } else {
           // Fallback: Legacy API requests when precomputed sibling_bssids are missing
           const batchResult = await networkApi.getNetworkSiblingLinksBatch(visibleBssids);
-          if (cancelled) return;
+          if (cancelled) {
+            return;
+          }
 
           // Full star per visible row — batch OR-query can miss transitive/off-filter siblings.
           const anchorResults = await Promise.all(
             visibleBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
           );
-          if (cancelled) return;
+          if (cancelled) {
+            return;
+          }
 
           const anchorLinks = visibleBssids.map((anchor, idx) => ({
             anchor,
@@ -268,7 +286,9 @@ export const useSiblingLinks = ({
 
         const hydrationKey = generateHydrationKey(groupMap, missing);
         if (hydrationKey === prevHydrationKeyRef.current) {
-          if (!cancelled) setSiblingHydrating(false);
+          if (!cancelled) {
+            setSiblingHydrating(false);
+          }
           return;
         }
         prevHydrationKeyRef.current = hydrationKey;
@@ -319,14 +339,18 @@ export const useSiblingLinks = ({
               setMissingDbBssids([]);
             }
           } finally {
-            if (!cancelled) setSiblingHydrating(false);
+            if (!cancelled) {
+              setSiblingHydrating(false);
+            }
           }
         } else {
           setMissingSiblingNetworks([]);
           setHydrationFailedBssids([]);
           setNonRenderableBssids([]);
           setMissingDbBssids([]);
-          if (!cancelled) setSiblingHydrating(false);
+          if (!cancelled) {
+            setSiblingHydrating(false);
+          }
         }
       } catch (error) {
         if (!cancelled) {

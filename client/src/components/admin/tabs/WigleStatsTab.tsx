@@ -84,10 +84,16 @@ const BadgeIcon = ({ size = 24, className = '' }) => (
 function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 2) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 2) {
+    return 'just now';
+  }
+  if (mins < 60) {
+    return `${mins}m ago`;
+  }
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) {
+    return `${hrs}h ago`;
+  }
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
@@ -118,7 +124,9 @@ export const WigleStatsTab: React.FC = () => {
         setStats(response.stats);
         setStale(response.stale ?? false);
         setCachedAt(response.cachedAt ?? null);
-        if (!response.stale) setStatsError(null);
+        if (!response.stale) {
+          setStatsError(null);
+        }
       } else {
         setStatsError(response?.error || 'Failed to fetch stats');
       }

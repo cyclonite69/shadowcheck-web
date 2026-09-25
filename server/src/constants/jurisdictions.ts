@@ -110,6 +110,8 @@ export const TERRITORY_PROBE_SUPPORT: Record<string, 'supported' | 'unverified'>
  */
 export function isProbeDispatchable(code: string): boolean {
   const normalizedCode = code.toUpperCase();
-  if (!US_JURISDICTION_CODE_SET.has(normalizedCode)) return false;
+  if (!US_JURISDICTION_CODE_SET.has(normalizedCode)) {
+    return false;
+  }
   return TERRITORY_PROBE_SUPPORT[normalizedCode] !== 'unverified';
 }

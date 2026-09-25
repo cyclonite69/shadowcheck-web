@@ -66,7 +66,9 @@ class SecretsManager {
   }
 
   private async loadAwsSecretBlob(): Promise<Record<string, string>> {
-    if (this.awsLoaded) return this.awsCache || {};
+    if (this.awsLoaded) {
+      return this.awsCache || {};
+    }
     // Skip AWS SM entirely in test environment unless explicitly requested
     if (process.env.NODE_ENV === 'test' && !process.env.FORCE_AWS_SM) {
       this.awsLoaded = true;
@@ -203,7 +205,9 @@ class SecretsManager {
 
   private scheduleRetry(delayMs = 10_000): void {
     const MAX_RETRY_INTERVAL = 5 * 60_000; // cap at 5 minutes
-    if (process.env.NODE_ENV === 'test') return;
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
 
     setTimeout(async () => {
       const success = await this.retryAwsLoad();
@@ -218,10 +222,14 @@ class SecretsManager {
   }
 
   private async retryAwsLoad(): Promise<boolean> {
-    if (process.env.NODE_ENV === 'test') return false;
+    if (process.env.NODE_ENV === 'test') {
+      return false;
+    }
     try {
       const blob = await this.loadAwsSecretBlob();
-      if (!blob || Object.keys(blob).length === 0) return false;
+      if (!blob || Object.keys(blob).length === 0) {
+        return false;
+      }
 
       let updated = 0;
       for (const [key, value] of Object.entries(blob)) {
@@ -271,7 +279,9 @@ class SecretsManager {
     const normalized = key.toLowerCase();
     this.secrets.set(normalized, value);
 
-    if (process.env.NODE_ENV === 'test') return;
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
 
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
@@ -301,7 +311,9 @@ class SecretsManager {
       this.secrets.set(normalized, value);
     }
 
-    if (process.env.NODE_ENV === 'test') return;
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
 
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
@@ -325,7 +337,7 @@ class SecretsManager {
     } catch (err: any) {
       const errorMsg = `Failed to write secrets to AWS SM: ${err.message}`;
       console.error(`[SecretsManager] ${errorMsg}`);
-      throw new Error(errorMsg);
+      throw new (Error as any)(errorMsg, { cause: err });
     }
   }
 

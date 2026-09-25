@@ -99,7 +99,7 @@ describe('threatReportRenderers', () => {
       observations: {
         ...sampleReport.observations,
         awayLocations: [],
-      }
+      },
     });
     expect(md).toContain('- Final Threat Score: N/A');
     expect(md).toContain('- Rule-Based Score: N/A');
@@ -112,7 +112,7 @@ describe('threatReportRenderers', () => {
       observations: {
         ...sampleReport.observations,
         awayLocations: [],
-      }
+      },
     });
     expect(html).toContain('<tr><td colspan="5">None</td></tr>');
   });
@@ -129,7 +129,7 @@ describe('threatReportRenderers', () => {
         observations: {
           ...sampleReport.observations,
           awayLocations: [],
-        }
+        },
       });
       expect(Buffer.isBuffer(buf)).toBe(true);
     } catch (err: any) {
@@ -148,7 +148,7 @@ describe('threatReportRenderers', () => {
     });
 
     // Need to re-require if the mock is applied, but since it's already required at top level,
-    // we can test the behavior by omitting lat/lon if the utility allows it, or we can just 
+    // we can test the behavior by omitting lat/lon if the utility allows it, or we can just
     // rely on a report that yields no URLs. Wait, buildGoogleMapsUrl returns null if lat/lon are missing.
     try {
       const buf = await renderPdfBuffer({
@@ -164,7 +164,7 @@ describe('threatReportRenderers', () => {
               signal: null,
             },
           ],
-        }
+        },
       });
       expect(Buffer.isBuffer(buf)).toBe(true);
     } catch (err: any) {
@@ -193,9 +193,9 @@ describe('threatReportRenderers', () => {
             time: Date.UTC(2025, 5, 25, 22, 30, 42),
             distanceKm: null,
             signal: null,
-          }
+          },
         ],
-      }
+      },
     });
     expect(md).toContain('- Threat Tag: N/A');
     expect(md).toContain('- Final Threat Score: N/A');
@@ -224,9 +224,9 @@ describe('threatReportRenderers', () => {
             time: Date.UTC(2025, 5, 25, 22, 30, 42),
             distanceKm: null,
             signal: null,
-          }
+          },
         ],
-      }
+      },
     });
     expect(html).toContain('Threat Tag</b><br/>N/A');
     expect(html).toContain('Final Threat Score</b><br/>N/A');
@@ -257,9 +257,9 @@ describe('threatReportRenderers', () => {
               time: Date.UTC(2025, 5, 25, 22, 30, 42),
               distanceKm: null,
               signal: null,
-            }
+            },
           ],
-        }
+        },
       });
       expect(Buffer.isBuffer(buf)).toBe(true);
     } catch (err: any) {
@@ -272,9 +272,11 @@ describe('threatReportRenderers', () => {
     jest.doMock('pdfkit', () => {
       throw new Error('Module not found');
     });
-    
-    const { renderPdfBuffer: mockedRenderPdfBuffer } = require('../../server/src/services/reports/threatReportRenderers');
-    
+
+    const {
+      renderPdfBuffer: mockedRenderPdfBuffer,
+    } = require('../../server/src/services/reports/threatReportRenderers');
+
     try {
       await mockedRenderPdfBuffer(sampleReport);
       // If it doesn't throw, we should fail the test

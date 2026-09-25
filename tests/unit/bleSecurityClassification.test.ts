@@ -23,32 +23,67 @@ function classifySecurity(type: NetworkType, capabilities: string | null): strin
   const upper = caps.toUpperCase();
 
   // BLE/BT checks first (before WiFi checks)
-  if (type === 'E') return 'BLE';
-  if (type === 'B') return 'BT';
-  if (/;10$/.test(caps)) return 'BLE';
-  if (upper === 'MISC' || upper === 'UNCATEGORIZED') return 'BT';
+  if (type === 'E') {
+    return 'BLE';
+  }
+  if (type === 'B') {
+    return 'BT';
+  }
+  if (/;10$/.test(caps)) {
+    return 'BLE';
+  }
+  if (upper === 'MISC' || upper === 'UNCATEGORIZED') {
+    return 'BT';
+  }
 
   // WiFi capability strings
-  if (caps === '') return 'OPEN';
-  if (upper.includes('WEP')) return 'WEP';
-  if (/^\s*\[ESS\]\s*$/.test(upper)) return 'OPEN';
-  if (/^\s*\[IBSS\]\s*$/.test(upper)) return 'OPEN';
-  if (/RSN-OWE/.test(upper)) return 'WPA3-OWE';
-  if (/RSN-SAE/.test(upper)) return 'WPA3-P';
-  if (/(WPA3|SAE)/.test(upper) && /(EAP|MGT)/.test(upper)) return 'WPA3-E';
-  if (/(WPA3|SAE)/.test(upper)) return 'WPA3';
-  if (/(WPA2|RSN)/.test(upper) && /(EAP|MGT)/.test(upper)) return 'WPA2-E';
-  if (/(WPA2|RSN)/.test(upper)) return 'WPA2';
-  if (/WPA-/.test(upper) && !upper.includes('WPA2')) return 'WPA';
+  if (caps === '') {
+    return 'OPEN';
+  }
+  if (upper.includes('WEP')) {
+    return 'WEP';
+  }
+  if (/^\s*\[ESS\]\s*$/.test(upper)) {
+    return 'OPEN';
+  }
+  if (/^\s*\[IBSS\]\s*$/.test(upper)) {
+    return 'OPEN';
+  }
+  if (/RSN-OWE/.test(upper)) {
+    return 'WPA3-OWE';
+  }
+  if (/RSN-SAE/.test(upper)) {
+    return 'WPA3-P';
+  }
+  if (/(WPA3|SAE)/.test(upper) && /(EAP|MGT)/.test(upper)) {
+    return 'WPA3-E';
+  }
+  if (/(WPA3|SAE)/.test(upper)) {
+    return 'WPA3';
+  }
+  if (/(WPA2|RSN)/.test(upper) && /(EAP|MGT)/.test(upper)) {
+    return 'WPA2-E';
+  }
+  if (/(WPA2|RSN)/.test(upper)) {
+    return 'WPA2';
+  }
+  if (/WPA-/.test(upper) && !upper.includes('WPA2')) {
+    return 'WPA';
+  }
   if (
     upper.includes('WPA') &&
     !upper.includes('WPA2') &&
     !upper.includes('WPA3') &&
     !upper.includes('RSN')
-  )
+  ) {
     return 'WPA';
-  if (upper.includes('WPS') && !upper.includes('WPA') && !upper.includes('RSN')) return 'WPS';
-  if (/(CCMP|TKIP|AES)/.test(upper)) return 'WPA2';
+  }
+  if (upper.includes('WPS') && !upper.includes('WPA') && !upper.includes('RSN')) {
+    return 'WPS';
+  }
+  if (/(CCMP|TKIP|AES)/.test(upper)) {
+    return 'WPA2';
+  }
   return 'UNKNOWN';
 }
 

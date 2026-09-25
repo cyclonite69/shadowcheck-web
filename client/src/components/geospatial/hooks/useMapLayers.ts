@@ -10,14 +10,20 @@ import {
 const getNumericProperty = (props: Record<string, unknown>, ...keys: string[]): number | null => {
   for (const key of keys) {
     const value = props[key];
-    if (value === null || value === undefined || value === '') continue;
+    if (value === null || value === undefined || value === '') {
+      continue;
+    }
     if (typeof value === 'number') {
-      if (Number.isFinite(value)) return value;
+      if (Number.isFinite(value)) {
+        return value;
+      }
       continue;
     }
 
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
   }
 
   return null;
@@ -327,10 +333,14 @@ export const useMapLayers = () => {
     const handleMouseEnter = (e: MapLayerMouseEvent) => {
       map.getCanvas().style.cursor = 'pointer';
 
-      if (!e.features || e.features.length === 0) return;
+      if (!e.features || e.features.length === 0) {
+        return;
+      }
       const feature = e.features[0];
       const props = feature.properties as Record<string, unknown> | undefined;
-      if (!props) return;
+      if (!props) {
+        return;
+      }
 
       const signal = getNumericProperty(
         props,

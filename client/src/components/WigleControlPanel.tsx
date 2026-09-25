@@ -47,7 +47,9 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   layers,
   onToggleLayer,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const loadPointsDisabled = loading || !canLoadPoints;
 
@@ -222,7 +224,7 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             <span className="text-slate-400">Loaded:</span>
             <span className="text-blue-400 font-semibold">{rowsLoaded.toLocaleString()}</span>
           </div>
-          {totalRows != null && (
+          {totalRows !== null && (
             <div className="flex justify-between items-center">
               <span className="text-slate-400">Total:</span>
               <span className="text-blue-400 font-semibold">{totalRows.toLocaleString()}</span>

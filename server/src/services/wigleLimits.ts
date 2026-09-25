@@ -26,7 +26,7 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null;
 async function refreshLimits(): Promise<void> {
   for (const kind of KINDS) {
     try {
-      const { rows } = await adminQuery(`SELECT app.get_wigle_safe_limit($1) AS safe_limit`, [
+      const { rows } = await adminQuery('SELECT app.get_wigle_safe_limit($1) AS safe_limit', [
         kind,
       ]);
       const limit: number | null = rows[0]?.safe_limit ?? null;

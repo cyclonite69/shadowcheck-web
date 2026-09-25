@@ -71,8 +71,12 @@ const TIER_BADGE: Record<number, { label: string; color: string; bg: string; bor
 };
 
 function getHeaderConfig(entry: VendorEntry) {
-  if (entry.category && CATEGORY_BADGE[entry.category]) return CATEGORY_BADGE[entry.category];
-  if (entry.threat_tier && TIER_BADGE[entry.threat_tier]) return TIER_BADGE[entry.threat_tier];
+  if (entry.category && CATEGORY_BADGE[entry.category]) {
+    return CATEGORY_BADGE[entry.category];
+  }
+  if (entry.threat_tier && TIER_BADGE[entry.threat_tier]) {
+    return TIER_BADGE[entry.threat_tier];
+  }
   return CATEGORY_BADGE.UNKNOWN_PRIVATE_OUI;
 }
 
@@ -204,9 +208,13 @@ export const VendorIntelDrawer: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const handler = (e: MouseEvent) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) setOpen(false);
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -214,13 +222,17 @@ export const VendorIntelDrawer: React.FC = () => {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  if (!vendor) return null;
+  if (!vendor) {
+    return null;
+  }
 
   const header = getHeaderConfig(vendor);
 

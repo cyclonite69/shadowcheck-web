@@ -19,7 +19,9 @@ Mode: static, read-only analysis; findings are candidates, not deletion or refac
 `;
 
 const renderFindingTable = (findings: AuditFinding[], top = 100): string => {
-  if (findings.length === 0) return '_No findings in this category._\n';
+  if (findings.length === 0) {
+    return '_No findings in this category._\n';
+  }
   const rows = findings
     .slice(0, top)
     .map(

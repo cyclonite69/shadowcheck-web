@@ -58,7 +58,9 @@ export const useWigleRuns = (options: { limit?: number } = {}) => {
   const fetchRuns = useCallback(
     async ({ reset }: { reset: boolean } = { reset: true }) => {
       const offset = reset ? 0 : runsRef.current.length;
-      if (reset) setLoading(true);
+      if (reset) {
+        setLoading(true);
+      }
 
       try {
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
@@ -77,12 +79,16 @@ export const useWigleRuns = (options: { limit?: number } = {}) => {
         setRuns((prev) => (reset ? newRuns : [...prev, ...newRuns]));
         setTotal(newTotal);
         setHasMore(runsData?.hasMore ?? false);
-        if (reportData) setReport(reportData?.report || null);
+        if (reportData) {
+          setReport(reportData?.report || null);
+        }
         setError(null);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch WiGLE runs');
       } finally {
-        if (reset) setLoading(false);
+        if (reset) {
+          setLoading(false);
+        }
       }
     },
     [limit, sortCols]
@@ -98,7 +104,9 @@ export const useWigleRuns = (options: { limit?: number } = {}) => {
   // Auto-poll every 5s while any run is actively running
   useEffect(() => {
     const hasRunning = runs.some((r) => r.status === 'running');
-    if (!hasRunning) return;
+    if (!hasRunning) {
+      return;
+    }
     const interval = setInterval(() => fetchRuns({ reset: true }), 5000);
     return () => clearInterval(interval);
   }, [runs, fetchRuns]);

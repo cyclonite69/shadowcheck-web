@@ -54,9 +54,15 @@ describe('mobile ingest routes', () => {
     HeadObjectCommand.mockImplementation((input: any) => ({ type: 'head', input }));
     randomUUID.mockReturnValue('upload-id');
     mockSecretsGet.mockImplementation((key: string) => {
-      if (key === 'shadowcheck_api_key') return 'server-key';
-      if (key === 's3_backup_bucket') return 'bucket';
-      if (key === 'aws_region') return 'us-east-2';
+      if (key === 'shadowcheck_api_key') {
+        return 'server-key';
+      }
+      if (key === 's3_backup_bucket') {
+        return 'bucket';
+      }
+      if (key === 'aws_region') {
+        return 'us-east-2';
+      }
       return undefined;
     });
   });

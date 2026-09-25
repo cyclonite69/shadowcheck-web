@@ -46,10 +46,13 @@ function buildNearestCourthouseGeoJSON(courthouses: CourthouseMatch[]): FederalC
     features: courthouses
       .filter(
         (courthouse) =>
-          courthouse.id != null &&
+          courthouse.id !== null &&
+          courthouse.id !== undefined &&
           courthouse.name &&
-          courthouse.latitude != null &&
-          courthouse.longitude != null
+          courthouse.latitude !== null &&
+          courthouse.latitude !== undefined &&
+          courthouse.longitude !== null &&
+          courthouse.longitude !== undefined
       )
       .map((courthouse) => ({
         type: 'Feature',
@@ -123,7 +126,9 @@ export const useFederalCourthouses = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
 
     const unclusteredLayers = ['courthouse-district', 'courthouse-circuit', 'courthouse-specialty'];
     const handleMouseEnter = () => {
@@ -138,11 +143,15 @@ export const useFederalCourthouses = (
         layers: ['courthouse-clusters'],
       });
       const clusterId = features[0]?.properties?.cluster_id;
-      if (!clusterId) return;
+      if (!clusterId) {
+        return;
+      }
 
       const source = map.getSource('federal-courthouses') as GeoJSONSource;
       source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') return;
+        if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
+          return;
+        }
         map.easeTo({
           center: features[0].geometry.coordinates as [number, number],
           zoom: zoom || 10,
@@ -152,7 +161,9 @@ export const useFederalCourthouses = (
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle()) return;
+      if (!map.getStyle()) {
+        return;
+      }
       if (!currentData || currentData.features.length === 0) {
         resetFederalCourthouseLayers(map, currentData, isVisibleRef.current, false);
         return;
@@ -182,7 +193,9 @@ export const useFederalCourthouses = (
 
     const handleClick = (e: MapMouseEvent & { features?: MapboxGeoJSONFeature[] }) => {
       const feature = e.features?.[0];
-      if (!feature || !e.lngLat) return;
+      if (!feature || !e.lngLat) {
+        return;
+      }
 
       const props = feature.properties as CourthouseFeature['properties'];
       const addressParts = [
@@ -241,7 +254,9 @@ export const useFederalCourthouses = (
     return () => {
       map.off('style.load', addSourceAndLayers);
       unclusteredLayers.forEach((id) => {
-        if (!map.getLayer(id)) return;
+        if (!map.getLayer(id)) {
+          return;
+        }
         map.off('click', id, handleClick);
         map.off('mouseenter', id, handleMouseEnter);
         map.off('mouseleave', id, handleMouseLeave);
@@ -256,7 +271,9 @@ export const useFederalCourthouses = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady) {
+      return;
+    }
     applyVisibility(map, isVisible);
   }, [isVisible, mapRef, mapReady]);
 
@@ -395,10 +412,16 @@ export function resetFederalCourthouseLayers(
     'courthouse-circuit',
     'courthouse-specialty',
   ].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource('federal-courthouses')) map.removeSource('federal-courthouses');
-  if (!data || data.features.length === 0) return;
+  if (map.getSource('federal-courthouses')) {
+    map.removeSource('federal-courthouses');
+  }
+  if (!data || data.features.length === 0) {
+    return;
+  }
   ensureFederalCourthouseLayers(map, data, clusteringEnabled);
   applyVisibility(map, isVisible);
 }
@@ -406,7 +429,9 @@ export function resetFederalCourthouseLayers(
 function applyVisibility(map: Map, isVisible: boolean) {
   const vis = isVisible ? 'visible' : 'none';
   ['courthouse-district', 'courthouse-circuit', 'courthouse-specialty'].forEach((id) => {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', vis);
+    }
   });
   if (map.getLayer('courthouse-clusters')) {
     map.setLayoutProperty('courthouse-clusters', 'visibility', vis);

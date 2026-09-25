@@ -73,7 +73,9 @@ test('capture popup pipeline boundary logs for a v3 network', async ({ page }) =
 
   page.on('console', (msg) => {
     const text = msg.text();
-    if (!text.includes('[popup:')) return;
+    if (!text.includes('[popup:')) {
+      return;
+    }
     // Playwright serialises structured console.log args — grab them
     const args = msg.args();
     // tag is first arg, traceId is second, data object is third
@@ -99,7 +101,7 @@ test('capture popup pipeline boundary logs for a v3 network', async ({ page }) =
 
   await page.goto('/wigle');
 
-  await page.waitForFunction(() => !!(window as any).__wigleMapInstance, { timeout: 15000 });
+  await page.waitForFunction(() => Boolean((window as any).__wigleMapInstance), { timeout: 15000 });
   await page.waitForFunction(() => (window as any).__wigleMapInstance?.isStyleLoaded?.(), {
     timeout: 15000,
   });
@@ -151,7 +153,9 @@ test('capture popup pipeline boundary logs for a v3 network', async ({ page }) =
   // Read the rendered SEEN cell text from the DOM
   const seenDomText = await page.evaluate(() => {
     const popup = document.querySelector('.sc-popup');
-    if (!popup) return null;
+    if (!popup) {
+      return null;
+    }
     for (const div of Array.from(popup.querySelectorAll('div'))) {
       if (div.textContent?.trim() === 'Seen') {
         const sibling = div.parentElement?.querySelector('div:last-child');

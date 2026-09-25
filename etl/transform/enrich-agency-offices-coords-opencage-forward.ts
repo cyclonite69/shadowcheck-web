@@ -61,7 +61,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function normalizeZip5(postal: string | null): string | null {
   const raw = (postal || '').trim();
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   const m = raw.match(/^(\d{5})/);
   return m ? m[1] : null;
 }
@@ -69,14 +71,18 @@ function normalizeZip5(postal: string | null): string | null {
 function parseArgs(argv: string[]): Options {
   const getNum = (prefix: string, fallback: number) => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return fallback;
+    if (!raw) {
+      return fallback;
+    }
     const n = Number(raw.split('=')[1]);
     return Number.isFinite(n) ? n : fallback;
   };
 
   const getStr = (prefix: string): string | null => {
     const raw = argv.find((a) => a.startsWith(prefix));
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const v = raw.slice(prefix.length).trim();
     return v.length ? v : null;
   };
@@ -108,7 +114,9 @@ function parseArgs(argv: string[]): Options {
 
 async function resolveDbHost(): Promise<string> {
   const configured = process.env.DB_HOST || 'localhost';
-  if (configured === 'shadowcheck_postgres') return 'localhost';
+  if (configured === 'shadowcheck_postgres') {
+    return 'localhost';
+  }
   try {
     await dns.lookup(configured);
     return configured;
@@ -118,9 +126,10 @@ async function resolveDbHost(): Promise<string> {
 }
 
 async function loadSecretsManager(): Promise<SecretsManager> {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const sm = require('../../server/src/services/secretsManager') as SecretsManager;
-  if (!sm?.getSecret) throw new Error('Failed to load secretsManager (missing getSecret).');
+  if (!sm?.getSecret) {
+    throw new Error('Failed to load secretsManager (missing getSecret).');
+  }
   return sm;
 }
 
@@ -130,7 +139,7 @@ function buildQuery(row: Row): string {
   const city = (row.normalized_city || row.city).trim();
   const state = (row.normalized_state || row.state).trim();
   const zip5 = normalizeZip5(row.normalized_postal_code) || normalizeZip5(row.postal_code) || null;
-  return [line1, line2, `${city}, ${state}${zip5 ? ' ' + zip5 : ''}`, 'USA']
+  return [line1, line2, `${city}, ${state}${zip5 ? ` ${zip5}` : ''}`, 'USA']
     .filter(Boolean)
     .join(', ');
 }
@@ -151,14 +160,20 @@ async function opencageForward(
   url.searchParams.set('limit', '1');
 
   const res = await fetch(url.toString());
-  if (res.status === 429) throw new Error('rate_limit');
-  if (!res.ok) return null;
+  if (res.status === 429) {
+    throw new Error('rate_limit');
+  }
+  if (!res.ok) {
+    return null;
+  }
 
   const json = (await res.json()) as OpenCageResponse;
   const r = json.results?.[0];
   const lat = r?.geometry?.lat;
   const lon = r?.geometry?.lng;
-  if (typeof lat !== 'number' || typeof lon !== 'number') return null;
+  if (typeof lat !== 'number' || typeof lon !== 'number') {
+    return null;
+  }
 
   return {
     lat,
@@ -174,10 +189,14 @@ async function main(): Promise<void> {
   const secrets = await loadSecretsManager();
 
   const dbPassword = (await secrets.getSecret('db_password')) || process.env.DB_PASSWORD;
-  if (!dbPassword) throw new Error('Database password not configured (db_password / DB_PASSWORD).');
+  if (!dbPassword) {
+    throw new Error('Database password not configured (db_password / DB_PASSWORD).');
+  }
 
   const key = (await secrets.getSecret('opencage_api_key')) || process.env.OPENCAGE_API_KEY;
-  if (!key) throw new Error('OpenCage key not configured (opencage_api_key / OPENCAGE_API_KEY).');
+  if (!key) {
+    throw new Error('OpenCage key not configured (opencage_api_key / OPENCAGE_API_KEY).');
+  }
 
   const dbHost = await resolveDbHost();
   const dbUser = process.env.DB_USER || 'shadowcheck_user';
@@ -302,7 +321,9 @@ async function main(): Promise<void> {
           ]
         );
 
-        if ((updateRes.rowCount ?? 0) > 0) updated += 1;
+        if ((updateRes.rowCount ?? 0) > 0) {
+          updated += 1;
+        }
       } catch (e) {
         const msg = String((e as Error)?.message || e);
         if (msg.includes('rate_limit')) {

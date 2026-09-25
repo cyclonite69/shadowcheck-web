@@ -218,9 +218,13 @@ async function main(): Promise<void> {
 
     for (const record of records) {
       const result = await upsertGovResidentAgency(client, record);
-      if (result === 'updated') updated += 1;
-      else if (result === 'inserted') inserted += 1;
-      else skipped += 1;
+      if (result === 'updated') {
+        updated += 1;
+      } else if (result === 'inserted') {
+        inserted += 1;
+      } else {
+        skipped += 1;
+      }
     }
 
     await client.query('COMMIT');
@@ -232,7 +236,7 @@ async function main(): Promise<void> {
     await pool.end();
   }
 
-  console.log(`Official resident agency enrichment complete.`);
+  console.log('Official resident agency enrichment complete.');
   console.log(`Updated: ${updated}`);
   console.log(`Inserted: ${inserted}`);
   console.log(`Skipped: ${skipped}`);

@@ -39,13 +39,19 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
     .trim();
 
   // Explicit empty / none-equivalent → OPEN
-  if (!value || value === 'NONE' || value === 'OPEN') return 'OPEN';
+  if (!value || value === 'NONE' || value === 'OPEN') {
+    return 'OPEN';
+  }
 
   // Explicit UNKNOWN passthrough
-  if (value === 'UNKNOWN') return 'UNKNOWN';
+  if (value === 'UNKNOWN') {
+    return 'UNKNOWN';
+  }
 
   // Mixed/ambiguous "open or unknown" → OPEN
-  if (value === 'OPEN/UNKNOWN') return 'OPEN';
+  if (value === 'OPEN/UNKNOWN') {
+    return 'OPEN';
+  }
 
   const hasWpa3 = value.includes('WPA3');
   const hasWpa2 = value.includes('WPA2');
@@ -56,40 +62,62 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
   const hasWps = value.includes('WPS');
 
   // OWE (Opportunistic Wireless Encryption) — independent protocol
-  if (hasOwe && !hasWpa3 && !hasWpa2) return 'OWE';
+  if (hasOwe && !hasWpa3 && !hasWpa2) {
+    return 'OWE';
+  }
 
   // WPA3 variants (most-specific first)
-  if (hasWpa3 && (hasEap || value.includes('802.1X'))) return 'WPA3-E';
-  if (hasWpa3) return 'WPA3-P'; // Default to Personal for standard WPA3 marker
+  if (hasWpa3 && (hasEap || value.includes('802.1X'))) {
+    return 'WPA3-E';
+  }
+  if (hasWpa3) {
+    return 'WPA3-P';
+  } // Default to Personal for standard WPA3 marker
 
   // WPA2 variants
-  if (hasWpa2 && hasEap) return 'WPA2-E';
-  if (hasWpa2) return 'WPA2-P'; // Default to Personal for standard WPA2 marker
+  if (hasWpa2 && hasEap) {
+    return 'WPA2-E';
+  }
+  if (hasWpa2) {
+    return 'WPA2-P';
+  } // Default to Personal for standard WPA2 marker
 
   // WPA (original / v1)
-  if (hasWpa) return 'WPA';
+  if (hasWpa) {
+    return 'WPA';
+  }
 
   // WEP
-  if (hasWep) return 'WEP';
+  if (hasWep) {
+    return 'WEP';
+  }
 
   // WPS without any WPA/WEP marker
-  if (hasWps) return 'WPS';
+  if (hasWps) {
+    return 'WPS';
+  }
 
   // RSN without explicit WPA2/WPA3 version tag — infer variant from PSK/EAP
   if (value.includes('RSN')) {
-    if (hasEap) return 'WPA2-E';
+    if (hasEap) {
+      return 'WPA2-E';
+    }
     return 'WPA2-P'; // Default to Personal for RSN marker
   }
 
   // CCMP/TKIP without version tag — infer variant from PSK/EAP
   // For standard residential/WPA2 networks, absence of EAP usually means PSK
   if (value.includes('CCMP') || value.includes('TKIP')) {
-    if (hasEap) return 'WPA2-E';
+    if (hasEap) {
+      return 'WPA2-E';
+    }
     return 'WPA2-P';
   }
 
   // Only infrastructure flags remain ([ESS], [IBSS]) → OPEN
-  if (/^\[?(ESS|IBSS|DS|AD-HOC)\]?(\s*\[?(ESS|IBSS|DS|AD-HOC)\]?)*$/.test(value)) return 'OPEN';
+  if (/^\[?(ESS|IBSS|DS|AD-HOC)\]?(\s*\[?(ESS|IBSS|DS|AD-HOC)\]?)*$/.test(value)) {
+    return 'OPEN';
+  }
 
   // Cannot categorize
   return 'UNKNOWN';
@@ -125,9 +153,13 @@ export const formatSecurity = (
   // Fall back to backend-computed security label when capability text is
   // missing or not classifiable.
   const fallbackLabel = normalizeSecurityLabel(fallback);
-  if (fallback && fallbackLabel !== 'UNKNOWN') return fallbackLabel;
+  if (fallback && fallbackLabel !== 'UNKNOWN') {
+    return fallbackLabel;
+  }
 
   const label = normalizeSecurityLabel(capabilities);
-  if (label === 'UNKNOWN' && fallback) return fallback;
+  if (label === 'UNKNOWN' && fallback) {
+    return fallback;
+  }
   return label;
 };

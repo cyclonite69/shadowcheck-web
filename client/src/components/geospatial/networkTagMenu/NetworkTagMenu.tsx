@@ -76,7 +76,9 @@ export const NetworkTagMenu = ({
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
 
   useLayoutEffect(() => {
-    if (!visible || !contextMenuRef.current) return;
+    if (!visible || !contextMenuRef.current) {
+      return;
+    }
 
     setMenuSize({
       width: contextMenuRef.current.offsetWidth || 200,
@@ -98,7 +100,9 @@ export const NetworkTagMenu = ({
   ]);
 
   useEffect(() => {
-    if (!visible || !onClose) return;
+    if (!visible || !onClose) {
+      return;
+    }
 
     const handleMouseDown = (e: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
@@ -106,7 +110,9 @@ export const NetworkTagMenu = ({
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
 
     document.addEventListener('mousedown', handleMouseDown);

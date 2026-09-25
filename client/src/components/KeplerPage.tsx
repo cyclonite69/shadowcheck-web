@@ -78,7 +78,9 @@ const KeplerPage: React.FC = () => {
   // subsequent filter-driven reloads don't override the user's pan/zoom.
   const hasFitRef = React.useRef(false);
   useEffect(() => {
-    if (networkData.length === 0 || hasFitRef.current) return;
+    if (networkData.length === 0 || hasFitRef.current) {
+      return;
+    }
     // Give initDeck one tick to finish creating the DeckGL instance
     const t = setTimeout(() => {
       handleFitBoundsCallback();
@@ -88,7 +90,9 @@ const KeplerPage: React.FC = () => {
   }, [networkData, handleFitBoundsCallback]);
 
   useEffect(() => {
-    if (scriptsLoadedRef.current) return;
+    if (scriptsLoadedRef.current) {
+      return;
+    }
     const loadAssets = async () => {
       try {
         await Promise.all([
@@ -97,7 +101,9 @@ const KeplerPage: React.FC = () => {
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;
-        if (mapboxToken && networkData.length > 0) initDeck(mapboxToken, networkData);
+        if (mapboxToken && networkData.length > 0) {
+          initDeck(mapboxToken, networkData);
+        }
       } catch (err) {
         setScriptError('Failed to load map engine.');
         logError('DeckGL scripts fail', err);

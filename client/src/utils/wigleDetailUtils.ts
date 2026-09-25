@@ -30,20 +30,28 @@ export function computeTemporalSummary(
 
   for (const obs of observations) {
     const ts = obs.observed_at;
-    if (!ts) continue;
+    if (!ts) {
+      continue;
+    }
     const ms = new Date(ts).getTime();
-    if (!isNaN(ms)) valid.push(ms);
+    if (!isNaN(ms)) {
+      valid.push(ms);
+    }
   }
 
   // Also fold in data.firstSeen / data.lastSeen so the summary is correct even
   // when no individual observations have been loaded yet.
   if (dataFirstSeen) {
     const ms = new Date(dataFirstSeen).getTime();
-    if (!isNaN(ms)) valid.push(ms);
+    if (!isNaN(ms)) {
+      valid.push(ms);
+    }
   }
   if (dataLastSeen) {
     const ms = new Date(dataLastSeen).getTime();
-    if (!isNaN(ms)) valid.push(ms);
+    if (!isNaN(ms)) {
+      valid.push(ms);
+    }
   }
 
   const firstSeen = valid.length > 0 ? new Date(Math.min(...valid)).toISOString() : null;
@@ -68,7 +76,9 @@ export interface SsidDisplaySummary {
 }
 
 export function isHiddenSsid(ssid: string | null | undefined): boolean {
-  if (ssid === null || ssid === undefined) return true;
+  if (ssid === null || ssid === undefined) {
+    return true;
+  }
   return HIDDEN_MARKERS.has(ssid.trim().toLowerCase());
 }
 
@@ -108,9 +118,13 @@ export function bestObservedSsid(
   selectedObsSsid?: string | null
 ): string | null {
   // Selected observation takes priority
-  if (!isHiddenSsid(selectedObsSsid)) return selectedObsSsid ?? null;
+  if (!isHiddenSsid(selectedObsSsid)) {
+    return selectedObsSsid ?? null;
+  }
   for (const obs of observations) {
-    if (!isHiddenSsid(obs.ssid)) return obs.ssid ?? null;
+    if (!isHiddenSsid(obs.ssid)) {
+      return obs.ssid ?? null;
+    }
   }
   return null;
 }

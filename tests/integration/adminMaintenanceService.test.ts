@@ -27,15 +27,15 @@ describeIfIntegration('admin maintenance network reset', () => {
         `DELETE FROM app.observations
          WHERE source_tag = 'admin-maintenance'`
       );
-      await client.query(`DELETE FROM app.ssid_history WHERE bssid IN ($1, $2)`, [
+      await client.query('DELETE FROM app.ssid_history WHERE bssid IN ($1, $2)', [
         normalBssid,
         secondBssid,
       ]);
-      await client.query(`DELETE FROM app.networks WHERE bssid IN ($1, $2)`, [
+      await client.query('DELETE FROM app.networks WHERE bssid IN ($1, $2)', [
         normalBssid,
         secondBssid,
       ]);
-      await client.query(`DELETE FROM app.device_sources WHERE code = $1`, [sourceCode]);
+      await client.query('DELETE FROM app.device_sources WHERE code = $1', [sourceCode]);
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -186,7 +186,7 @@ describeIfIntegration('admin maintenance network reset', () => {
     }
 
     const sentinel = await client.query(
-      `SELECT count(*)::int AS count FROM app.networks WHERE bssid = $1`,
+      'SELECT count(*)::int AS count FROM app.networks WHERE bssid = $1',
       [sentinelBssid]
     );
     expect(sentinel.rows[0].count).toBe(1);

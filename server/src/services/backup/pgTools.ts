@@ -6,7 +6,9 @@ import logger from '../../logging/logger';
 import { resolveBackupScope } from './backupUtils';
 
 export const pruneOldBackups = async (dir: string, days: number): Promise<void> => {
-  if (!days || days <= 0) return;
+  if (!days || days <= 0) {
+    return;
+  }
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   await Promise.all(
@@ -15,7 +17,9 @@ export const pruneOldBackups = async (dir: string, days: number): Promise<void> 
       .map(async (entry) => {
         const fullPath = path.join(dir, entry.name);
         const stat = await fs.stat(fullPath);
-        if (stat.mtimeMs < cutoff) await fs.unlink(fullPath);
+        if (stat.mtimeMs < cutoff) {
+          await fs.unlink(fullPath);
+        }
       })
   );
 };
@@ -29,7 +33,9 @@ export const resolvePgToolPath = async (toolName: string): Promise<string> => {
   ].filter((c): c is string => Boolean(c));
 
   for (const candidate of candidates) {
-    if (candidate === toolName) return candidate;
+    if (candidate === toolName) {
+      return candidate;
+    }
     try {
       await fs.access(candidate, constants.X_OK);
       return candidate;
@@ -77,8 +83,11 @@ export const runDockerizedLocalPgDump = async (options: {
       });
       child.on('close', (code: number | null) => {
         output.end();
-        if (code === 0) resolve(undefined);
-        else reject(new Error(`${label} failed (code ${code}): ${stderr}`));
+        if (code === 0) {
+          resolve(undefined);
+        } else {
+          reject(new Error(`${label} failed (code ${code}): ${stderr}`));
+        }
       });
     });
 
@@ -142,8 +151,11 @@ export const runNativePgDump = async (options: {
       child.stderr.on('data', (data: Buffer) => (stderr += data.toString()));
       child.on('error', reject);
       child.on('close', (code: number | null) => {
-        if (code === 0) resolve(undefined);
-        else reject(new Error(`pg_dumpall globals failed: ${stderr}`));
+        if (code === 0) {
+          resolve(undefined);
+        } else {
+          reject(new Error(`pg_dumpall globals failed: ${stderr}`));
+        }
       });
     });
     globalsSuccess = true;
@@ -179,8 +191,9 @@ export const runNativePgDump = async (options: {
       reject(err);
     });
     child.on('close', (code: number | null) => {
-      if (code === 0) resolve(undefined);
-      else {
+      if (code === 0) {
+        resolve(undefined);
+      } else {
         logger.error(`[Backup] pg_dump failed with code ${code}. Stderr: ${stderr}`);
         reject(new Error(`pg_dump failed (code ${code}): ${stderr}`));
       }

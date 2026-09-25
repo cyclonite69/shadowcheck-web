@@ -156,7 +156,9 @@ export const NetworkTableBodyGrid = ({
 
     const netByBssid = new Map<string, NetworkRow>();
     for (const net of filteredNetworks) {
-      if (net.bssid) netByBssid.set(net.bssid.toUpperCase(), net);
+      if (net.bssid) {
+        netByBssid.set(net.bssid.toUpperCase(), net);
+      }
     }
 
     // Check if this is pagination (only new items added at end) vs filter change (array replaced)
@@ -174,20 +176,28 @@ export const NetworkTableBodyGrid = ({
 
       // Mark all existing items as placed
       for (const item of result) {
-        if (item.bssid) placed.add(item.bssid.toUpperCase());
+        if (item.bssid) {
+          placed.add(item.bssid.toUpperCase());
+        }
       }
 
       // Only add new items starting from where we left off
       for (let i = prevSortedRef.current.length; i < filteredNetworks.length; i++) {
         const net = filteredNetworks[i];
-        if (!net.bssid) continue;
+        if (!net.bssid) {
+          continue;
+        }
         const bssid = net.bssid.toUpperCase();
-        if (placed.has(bssid)) continue;
+        if (placed.has(bssid)) {
+          continue;
+        }
 
         const groupId = groupMap.get(bssid);
         if (groupId) {
           for (const memberBssid of groupMembers.get(groupId) ?? []) {
-            if (placed.has(memberBssid)) continue;
+            if (placed.has(memberBssid)) {
+              continue;
+            }
             const member = netByBssid.get(memberBssid);
             if (member) {
               result.push(member);
@@ -206,11 +216,15 @@ export const NetworkTableBodyGrid = ({
 
       for (const net of filteredNetworks) {
         const bssid = (net.bssid ?? '').toUpperCase();
-        if (placed.has(bssid)) continue;
+        if (placed.has(bssid)) {
+          continue;
+        }
         const groupId = groupMap.get(bssid);
         if (groupId) {
           for (const memberBssid of groupMembers.get(groupId) ?? []) {
-            if (placed.has(memberBssid)) continue;
+            if (placed.has(memberBssid)) {
+              continue;
+            }
             const member = netByBssid.get(memberBssid);
             if (member) {
               result.push(member);
@@ -246,7 +260,9 @@ export const NetworkTableBodyGrid = ({
             const actualBssids: string[] = [];
             for (const m of members) {
               const net = filteredNetworks.find((n) => n.bssid?.toUpperCase() === m);
-              if (net?.bssid) actualBssids.push(net.bssid);
+              if (net?.bssid) {
+                actualBssids.push(net.bssid);
+              }
             }
             if (actualBssids.length > 0) {
               onSelectGroup(actualBssids);
@@ -262,15 +278,21 @@ export const NetworkTableBodyGrid = ({
 
   // Filter out collapsed sibling rows (keep parent).
   const displayNetworks = React.useMemo(() => {
-    if (patternGroups.groupMap.size === 0) return sortedDisplayNetworks;
+    if (patternGroups.groupMap.size === 0) {
+      return sortedDisplayNetworks;
+    }
     return sortedDisplayNetworks.filter((net) => {
       const bssid = (net.bssid ?? '').toUpperCase();
       const groupId = patternGroups.groupMap.get(bssid);
-      if (!groupId) return true;
+      if (!groupId) {
+        return true;
+      }
       const isCollapsed = collapseAllActive
         ? !collapsedGroups.has(groupId)
         : collapsedGroups.has(groupId);
-      if (!isCollapsed) return true;
+      if (!isCollapsed) {
+        return true;
+      }
       const members = patternGroups.groupMembers.get(groupId) ?? [];
       const firstVisibleMember = members.find((m) => visibleBssids.has(m));
       return bssid === firstVisibleMember;
@@ -284,7 +306,9 @@ export const NetworkTableBodyGrid = ({
     );
     const membersMissingRows: string[] = [];
     patternGroups.groupMap.forEach((_gid, bssid) => {
-      if (!rowBssids.has(bssid)) membersMissingRows.push(bssid);
+      if (!rowBssids.has(bssid)) {
+        membersMissingRows.push(bssid);
+      }
     });
 
     const key = [
@@ -293,7 +317,9 @@ export const NetworkTableBodyGrid = ({
       displayNetworks.length,
       membersMissingRows.join(','),
     ].join('|');
-    if (key === prevRenderLogKey.current) return;
+    if (key === prevRenderLogKey.current) {
+      return;
+    }
     prevRenderLogKey.current = key;
 
     logSiblingTopology('renderPipeline.table', {
@@ -322,11 +348,15 @@ export const NetworkTableBodyGrid = ({
 
   // Infinite scroll: load more when scrolled near bottom
   const handleScroll = () => {
-    if (!tableContainerRef.current) return;
+    if (!tableContainerRef.current) {
+      return;
+    }
 
     const { scrollTop, scrollHeight, clientHeight, scrollLeft } = tableContainerRef.current;
     onHorizontalScroll?.(scrollLeft);
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || !hasMore) {
+      return;
+    }
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
     // Load more when 80% scrolled
@@ -382,8 +412,11 @@ export const NetworkTableBodyGrid = ({
     const groups = new Map<string, string[]>();
     siblingGroupMap.forEach((groupId, bssid) => {
       const arr = groups.get(groupId);
-      if (arr) arr.push(bssid);
-      else groups.set(groupId, [bssid]);
+      if (arr) {
+        arr.push(bssid);
+      } else {
+        groups.set(groupId, [bssid]);
+      }
     });
     const colors = new Map<string, string>();
     groups.forEach((bssids, groupId) => colors.set(groupId, mixBssidColors(bssids)));

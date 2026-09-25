@@ -3,7 +3,10 @@ import sqlite3 from 'sqlite3';
 import type { SqliteNetworkRow } from './types';
 
 const cleanString = (s: string | null | undefined): string | null => {
-  if (!s) return null;
+  if (!s) {
+    return null;
+  }
+  // eslint-disable-next-line no-control-regex
   const cleaned = s.replace(/\x00/g, '').trim();
   return cleaned || null;
 };
@@ -20,12 +23,15 @@ export async function upsertNetworks(
   const bssids = await new Promise<string[]>((resolve, reject) => {
     const db = new (sqlite3.verbose().Database)(sqliteFile, sqlite3.OPEN_READONLY);
     db.all(
-      `SELECT DISTINCT UPPER(bssid) as bssid FROM location WHERE time > ?`,
+      'SELECT DISTINCT UPPER(bssid) as bssid FROM location WHERE time > ?',
       [latestTimeMs],
       (err: Error | null, rows: { bssid: string }[]) => {
         db.close();
-        if (err) reject(err);
-        else resolve(rows.map((r) => r.bssid));
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows.map((r) => r.bssid));
+        }
       }
     );
   });
@@ -67,7 +73,9 @@ export async function upsertNetworks(
         ]
       );
       upserted++;
-      if (!network) placeholders++;
+      if (!network) {
+        placeholders++;
+      }
     } catch (error) {
       if (debug) {
         const e = error as Error;

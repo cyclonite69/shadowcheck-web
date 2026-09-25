@@ -89,16 +89,22 @@ export const WigleHeaderActions: React.FC<WigleHeaderActionsProps> = ({
         disabled={!hasRows}
         onClick={() => {
           const mapboxgl = mapboxRef.current;
-          if (!mapRef.current || !mapboxgl) return;
+          if (!mapRef.current || !mapboxgl) {
+            return;
+          }
           const allRows = [...v2Rows, ...v3Rows];
           const coords = allRows
             .map((r: any) => {
               const lat = r.trilat ?? r.lat ?? r.latitude;
               const lon = r.trilong ?? r.trilon ?? r.lon ?? r.longitude;
-              return lat != null && lon != null ? ([lon, lat] as [number, number]) : null;
+              return lat !== null && lat !== undefined && lon !== null && lon !== undefined
+                ? ([lon, lat] as [number, number])
+                : null;
             })
             .filter((c): c is [number, number] => c !== null);
-          if (coords.length === 0) return;
+          if (coords.length === 0) {
+            return;
+          }
           const bounds = coords.reduce(
             (b, c) => b.extend(c),
             new (mapboxgl as any).LngLatBounds(coords[0], coords[0])
@@ -138,7 +144,9 @@ export const WigleHeaderActions: React.FC<WigleHeaderActionsProps> = ({
         className="nav-icon-btn"
         title="Fly home"
         onClick={() => {
-          if (!mapRef.current) return;
+          if (!mapRef.current) {
+            return;
+          }
           mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 });
         }}
         style={{

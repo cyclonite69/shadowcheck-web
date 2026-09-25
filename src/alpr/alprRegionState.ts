@@ -13,8 +13,8 @@ import type { AlprRegion } from './regions';
 // subdivided chunk length — overrides via FetchAlprElementsOptions.rows/cols would lie.
 export const ALPR_DEFAULT_CHUNK_COUNT = 4;
 
-export const ALPR_SUCCESS_COOLDOWN_SQL = `NOW() + INTERVAL '1 hour'`;
-export const ALPR_FAILURE_COOLDOWN_SQL = `NOW() + INTERVAL '6 hours'`;
+export const ALPR_SUCCESS_COOLDOWN_SQL = "NOW() + INTERVAL '1 hour'";
+export const ALPR_FAILURE_COOLDOWN_SQL = "NOW() + INTERVAL '6 hours'";
 
 export type AlprRegionSyncStatus = 'idle' | 'running' | 'success' | 'failed';
 
@@ -91,8 +91,12 @@ export interface AlprRegionOutcome {
 }
 
 function toIsoOrNull(value: unknown): string | null {
-  if (value == null) return null;
-  if (value instanceof Date) return value.toISOString();
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
   const parsed = new Date(String(value));
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
@@ -116,8 +120,14 @@ export async function listRegionOutcomes(
     map.set(String(row.region_id), {
       syncStatus: row.sync_status as AlprRegionSyncStatus,
       lastSyncAt: toIsoOrNull(row.last_sync_at),
-      lastChunkCount: row.last_chunk_count == null ? null : Number(row.last_chunk_count),
-      lastElementCount: row.last_element_count == null ? null : Number(row.last_element_count),
+      lastChunkCount:
+        row.last_chunk_count === null || row.last_chunk_count === undefined
+          ? null
+          : Number(row.last_chunk_count),
+      lastElementCount:
+        row.last_element_count === null || row.last_element_count === undefined
+          ? null
+          : Number(row.last_element_count),
       cooldownUntil: toIsoOrNull(row.cooldown_until),
     });
   }

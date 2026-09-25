@@ -18,7 +18,9 @@ export const parsePagination = (
     'Missing limit parameter.',
     `Invalid limit parameter. Must be between 1 and ${ROUTE_CONFIG.networks.maxLimit}.`
   );
-  if (!limitResult.ok) return { ok: false, status: 400, error: limitResult.error };
+  if (!limitResult.ok) {
+    return { ok: false, status: 400, error: limitResult.error };
+  }
 
   const offsetResult = parseRequiredInteger(
     offsetRaw,
@@ -28,7 +30,9 @@ export const parsePagination = (
     'Missing offset parameter.',
     'Invalid offset parameter. Must be >= 0.'
   );
-  if (!offsetResult.ok) return { ok: false, status: 400, error: offsetResult.error };
+  if (!offsetResult.ok) {
+    return { ok: false, status: 400, error: offsetResult.error };
+  }
 
   return { ok: true, params: { limit: limitResult.value, offset: offsetResult.value } };
 };

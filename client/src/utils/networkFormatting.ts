@@ -12,15 +12,23 @@ export interface TimespanBadgeStyle {
 // Returns a CSS color string for a signal strength value (dBm).
 // null or 0 → grey (no data), ≥-50 → green, ≥-70 → amber, else → red.
 export function getSignalColor(signalDbm: number | null): string {
-  if (signalDbm == null || signalDbm === 0) return '#6b7280';
-  if (signalDbm >= -50) return '#10b981';
-  if (signalDbm >= -70) return '#f59e0b';
+  if (signalDbm === null || signalDbm === 0) {
+    return '#6b7280';
+  }
+  if (signalDbm >= -50) {
+    return '#10b981';
+  }
+  if (signalDbm >= -70) {
+    return '#f59e0b';
+  }
   return '#ef4444';
 }
 
 // Returns formatted signal strength string or 'N/A' when unavailable.
 export function getSignalDisplay(signalDbm: number | null): string {
-  if (signalDbm == null || signalDbm === 0) return 'N/A';
+  if (signalDbm === null || signalDbm === 0) {
+    return 'N/A';
+  }
   return `${signalDbm} dBm`;
 }
 
@@ -50,6 +58,8 @@ export function getTimespanBadgeStyle(days: number): TimespanBadgeStyle {
 
 // Returns 'Same day' for 0-day spans, otherwise "${days} days".
 export function getTimespanDisplay(days: number): string {
-  if (days === 0) return 'Same day';
+  if (days === 0) {
+    return 'Same day';
+  }
   return `${days} days`;
 }

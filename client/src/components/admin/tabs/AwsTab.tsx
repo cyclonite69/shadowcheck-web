@@ -33,7 +33,9 @@ export const AwsTab: React.FC = () => {
   const credentialsAvailable = overview?.credentialsAvailable ?? overview?.configured ?? false;
 
   const handleInstanceAction = async (instanceId: string | null, action: string) => {
-    if (!instanceId) return;
+    if (!instanceId) {
+      return;
+    }
     const success = await performAction(instanceId, action as 'start' | 'stop');
     if (success) {
       // Refresh overview after action
@@ -168,7 +170,9 @@ export const AwsTab: React.FC = () => {
                     const isStopped = instance.state === 'stopped';
                     const showTerminate = confirmTerminate === instance.instanceId;
 
-                    if (!instance.instanceId) return null;
+                    if (!instance.instanceId) {
+                      return null;
+                    }
 
                     return (
                       <tr key={instance.instanceId} className="border-b border-slate-800/60">

@@ -24,7 +24,7 @@ describe('ApiClient 401 handling', () => {
     // @ts-ignore
     delete (window as any).location;
     // @ts-ignore create writable location
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
     // @ts-ignore
     window.location = { href: '/', assign: jest.fn() } as any;
   });

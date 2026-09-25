@@ -202,20 +202,23 @@ export const OverlayToggles = ({
           }}
         >
           {wigleLoading ? 'Loading...' : 'WIGLE'}
-          {!wigleLoading && selectedCount != null && selectedCount > 0 && (
-            <span
-              style={{
-                fontSize: '10px',
-                padding: '1px 5px',
-                borderRadius: '3px',
-                background: 'rgba(59,130,246,0.2)',
-                color: '#60a5fa',
-                marginLeft: '5px',
-              }}
-            >
-              {selectedCount}
-            </span>
-          )}
+          {!wigleLoading &&
+            selectedCount !== null &&
+            selectedCount !== undefined &&
+            selectedCount > 0 && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  padding: '1px 5px',
+                  borderRadius: '3px',
+                  background: 'rgba(59,130,246,0.2)',
+                  color: '#60a5fa',
+                  marginLeft: '5px',
+                }}
+              >
+                {selectedCount}
+              </span>
+            )}
         </button>
       )}
     </div>

@@ -58,7 +58,9 @@ const PREFIX_MAP: Array<[string, SourceType]> = [
 function inferSourceType(filename: string): SourceType {
   const lower = filename.toLowerCase();
   for (const [prefix, type] of PREFIX_MAP) {
-    if (lower.startsWith(prefix)) return type;
+    if (lower.startsWith(prefix)) {
+      return type;
+    }
   }
   return 'public';
 }

@@ -118,7 +118,7 @@ export async function getWigleDatabase(
       params.push(`${escapeLikePattern(bssid)}%`);
     }
     if (encryption) {
-      where.push(`obs.encryption ILIKE $${idx++} ESCAPE '\\'`);
+      where.push(`obs.encryption ILIKE $${idx} ESCAPE '\\'`);
       params.push(`%${escapeLikePattern(encryption)}%`);
     }
 
@@ -149,7 +149,7 @@ export async function getWigleDatabase(
     params.push(`${escapeLikePattern(bssid)}%`);
   }
   if (encryption) {
-    where.push(`encryption ILIKE $${idx++} ESCAPE '\\'`);
+    where.push(`encryption ILIKE $${idx} ESCAPE '\\'`);
     params.push(`%${escapeLikePattern(encryption)}%`);
   }
 
@@ -200,12 +200,17 @@ export async function getKmlBssidSummary(bssid: string): Promise<{
   const { sql, queryParams } = buildKmlBssidSummaryQuery(bssid);
   const { rows } = await query(sql, queryParams);
   const row = rows[0];
-  if (!row || Number(row.observation_count) === 0) return null;
+  if (!row || Number(row.observation_count) === 0) {
+    return null;
+  }
   return {
     observation_count: Number(row.observation_count),
     first_seen: row.first_seen ?? null,
     last_seen: row.last_seen ?? null,
-    timespan_days: row.timespan_days != null ? Number(row.timespan_days) : null,
+    timespan_days:
+      row.timespan_days !== null && row.timespan_days !== undefined
+        ? Number(row.timespan_days)
+        : null,
   };
 }
 

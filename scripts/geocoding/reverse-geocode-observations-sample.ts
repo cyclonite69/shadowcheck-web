@@ -38,7 +38,9 @@ export const POI_EXCLUDE_DEFAULT = [
 ];
 
 export const shouldSkipPoi = (address?: string | null): boolean => {
-  if (!address) return false;
+  if (!address) {
+    return false;
+  }
   const normalized = address.toLowerCase();
   return (
     normalized.includes('814 martin luther king') || normalized.includes('816 martin luther king')
@@ -52,7 +54,9 @@ export function parseContext(context?: MapboxFeatureV5['context']): {
   country?: string;
 } {
   const data: { city?: string; state?: string; postal?: string; country?: string } = {};
-  if (!context) return data;
+  if (!context) {
+    return data;
+  }
 
   for (const item of context) {
     const id = item.id || '';
@@ -152,7 +156,7 @@ export async function reverseGeocode(
           }
           try {
             const json: MapboxResponseV6 = JSON.parse(data);
-            resolve({ ok: !!(json.features && json.features.length > 0), raw: json });
+            resolve({ ok: Boolean(json.features && json.features.length > 0), raw: json });
           } catch (e) {
             reject(e);
           }
@@ -171,7 +175,9 @@ export async function storeResult(
   permanent: boolean,
   store: boolean
 ): Promise<void> {
-  if (!store || !geo.ok) return;
+  if (!store || !geo.ok) {
+    return;
+  }
 
   const providerBase = mode === 'both' || mode === 'poi-only' ? 'mapbox_v5' : 'mapbox_v6';
   const provider = permanent ? `${providerBase}_permanent` : providerBase;

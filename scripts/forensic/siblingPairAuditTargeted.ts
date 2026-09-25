@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     `[FORENSIC_TARGETED] Starting targeted forensic audit of ${TARGET_BSSIDS.length} BSSIDs`
   );
   console.log(
-    `[FORENSIC_TARGETED] Enforcing READ ONLY transaction safety and production-parity logic`
+    '[FORENSIC_TARGETED] Enforcing READ ONLY transaction safety and production-parity logic'
   );
 
   const refreshChunkSql = buildRefreshChunkSql({
@@ -67,19 +67,19 @@ async function main(): Promise<void> {
       if (ev.prev_persisted_rule) {
         console.log(`    Previous: ${ev.prev_persisted_rule} @ ${ev.prev_persisted_confidence}`);
         if (ev.would_downgrade_confidence) {
-          console.log(`    WARNING: Incoming confidence is LOWER than persisted!`);
+          console.log('    WARNING: Incoming confidence is LOWER than persisted!');
         }
         if (ev.would_replace_deterministic_with_probabilistic) {
-          console.log(`    WARNING: Deterministic rule would be REPLACED by probabilistic!`);
+          console.log('    WARNING: Deterministic rule would be REPLACED by probabilistic!');
         }
       }
 
       if (ev.top_two_hits_confidence_tie) {
-        console.log(`    STABILITY: Top two hits have equal confidence (Tie-breaker applied)`);
+        console.log('    STABILITY: Top two hits have equal confidence (Tie-breaker applied)');
       }
 
       if (Array.isArray(ev.competing_hits)) {
-        console.log(`    Competing Hits:`);
+        console.log('    Competing Hits:');
         ev.competing_hits.forEach((h: any) => {
           console.log(`      - ${h.rule}: ${h.confidence} (${h.target_ssid} / ${h.sibling_ssid})`);
         });

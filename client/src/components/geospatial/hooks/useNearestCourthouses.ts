@@ -37,7 +37,6 @@ export const useNearestCourthouses = (bssids: string[] | null) => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bssidKey]);
 
   return { courthouses, loading, error };

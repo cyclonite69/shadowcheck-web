@@ -72,9 +72,9 @@ const BadgeRendererComponent: React.FC<BadgeRendererProps> = ({ value, config, r
   const displayValue =
     label !== undefined
       ? label
-      : config.column === 'device_class' && value != null && value !== ''
+      : config.column === 'device_class' && value !== null && value !== undefined && value !== ''
         ? formatDeviceType(String(value))
-        : value != null && value !== ''
+        : value !== null && value !== undefined && value !== ''
           ? String(value)
           : '—';
   const vendorIntelValue =
@@ -109,7 +109,11 @@ const BadgeRendererComponent: React.FC<BadgeRendererProps> = ({ value, config, r
     return (
       <span
         style={{ ...baseStyle, background: 'transparent', border: 'none', padding: '0' }}
-        title={config.showRawValueAsTooltip && value != null ? String(value) : undefined}
+        title={
+          config.showRawValueAsTooltip && value !== null && value !== undefined
+            ? String(value)
+            : undefined
+        }
         data-vendor-intel={gatedVendorIntelValue}
       >
         <span style={dotStyle} />
@@ -126,7 +130,11 @@ const BadgeRendererComponent: React.FC<BadgeRendererProps> = ({ value, config, r
   return (
     <span
       style={baseStyle}
-      title={config.showRawValueAsTooltip && value != null ? String(value) : undefined}
+      title={
+        config.showRawValueAsTooltip && value !== null && value !== undefined
+          ? String(value)
+          : undefined
+      }
       data-vendor-intel={gatedVendorIntelValue}
     >
       {displayValue}

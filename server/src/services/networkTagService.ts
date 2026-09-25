@@ -20,12 +20,12 @@ export async function getTaggedNetworks(
 }
 
 export async function checkNetworkExists(bssid: string): Promise<boolean> {
-  const result = await query(`SELECT ssid FROM app.networks WHERE bssid = $1 LIMIT 1`, [bssid]);
+  const result = await query('SELECT ssid FROM app.networks WHERE bssid = $1 LIMIT 1', [bssid]);
   return result.rowCount > 0;
 }
 
 export async function deleteNetworkTag(bssid: string): Promise<boolean> {
-  const result = await query(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssid]);
+  const result = await query('DELETE FROM app.network_tags WHERE bssid = $1', [bssid]);
   return result.rowCount !== null && result.rowCount > 0;
 }
 
@@ -45,7 +45,7 @@ export async function insertNetworkTag(
 }
 
 export async function deleteNetworkTagReturning(bssid: string): Promise<number> {
-  const result = await query(`DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid`, [
+  const result = await query('DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid', [
     bssid,
   ]);
   return result.rowCount || 0;

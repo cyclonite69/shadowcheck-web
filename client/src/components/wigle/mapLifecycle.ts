@@ -22,23 +22,24 @@ export function runWhenStyleReady(
   }
 
   let complete = false;
-  let cleanup: (() => void) | undefined;
 
-  const runIfReady = () => {
-    if (complete || !map.isStyleLoaded()) return;
-    complete = true;
-    cleanup?.();
-    runSafely();
+  const cleanup = () => {
+    map.off('style.load', runIfReady);
+    map.off('idle', runIfReady);
   };
+
+  function runIfReady() {
+    if (complete || !map.isStyleLoaded()) {
+      return;
+    }
+    complete = true;
+    cleanup();
+    runSafely();
+  }
 
   map.once('style.load', runIfReady);
   map.once('idle', runIfReady);
   logDebug(`[WiGLE] Queued map overlay apply until style is ready (${reason})`);
-
-  cleanup = () => {
-    map.off('style.load', runIfReady);
-    map.off('idle', runIfReady);
-  };
 
   return cleanup;
 }
@@ -134,6 +135,8 @@ export function applyTerrain(map: Map, mapStyle: string, enabled: boolean) {
     map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
   } else {
     map.setTerrain(null);
-    if (map.getSource('mapbox-dem')) map.removeSource('mapbox-dem');
+    if (map.getSource('mapbox-dem')) {
+      map.removeSource('mapbox-dem');
+    }
   }
 }

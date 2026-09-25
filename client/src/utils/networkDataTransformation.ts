@@ -23,9 +23,15 @@ export const inferNetworkType = (
 
   // Frequency-based inference (most reliable)
   if (frequency) {
-    if (frequency >= 2412 && frequency <= 2484) return 'W';
-    if (frequency >= 5000 && frequency <= 5900) return 'W';
-    if (frequency >= 5925 && frequency <= 7125) return 'W';
+    if (frequency >= 2412 && frequency <= 2484) {
+      return 'W';
+    }
+    if (frequency >= 5000 && frequency <= 5900) {
+      return 'W';
+    }
+    if (frequency >= 5925 && frequency <= 7125) {
+      return 'W';
+    }
   }
 
   // Capability-based inference
@@ -42,10 +48,16 @@ export const inferNetworkType = (
   }
 
   // SSID-based inference
-  if (ssidUpper.includes('5G') || capUpper.includes('NR')) return 'N';
-  if (ssidUpper.includes('LTE') || ssidUpper.includes('4G')) return 'L';
+  if (ssidUpper.includes('5G') || capUpper.includes('NR')) {
+    return 'N';
+  }
+  if (ssidUpper.includes('LTE') || ssidUpper.includes('4G')) {
+    return 'L';
+  }
   if (ssidUpper.includes('BLUETOOTH') || capUpper.includes('BLUETOOTH')) {
-    if (capUpper.includes('LOW ENERGY') || capUpper.includes('BLE')) return 'E';
+    if (capUpper.includes('LOW ENERGY') || capUpper.includes('BLE')) {
+      return 'E';
+    }
     return 'B';
   }
 
@@ -54,17 +66,23 @@ export const inferNetworkType = (
 
 // Calculate timespan in days
 export const calculateTimespan = (first: string | null, last: string | null): number | null => {
-  if (!first || !last) return null;
+  if (!first || !last) {
+    return null;
+  }
   const firstDate = new Date(first);
   const lastDate = new Date(last);
-  if (isNaN(firstDate.getTime()) || isNaN(lastDate.getTime())) return null;
+  if (isNaN(firstDate.getTime()) || isNaN(lastDate.getTime())) {
+    return null;
+  }
   const diffMs = lastDate.getTime() - firstDate.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
 };
 
 // Parse numeric fields that may come as strings
 export const parseNumericField = (val: unknown): number | null => {
-  if (typeof val === 'number') return val;
+  if (typeof val === 'number') {
+    return val;
+  }
   if (typeof val === 'string') {
     const parsed = parseFloat(val);
     return isNaN(parsed) ? null : parsed;
@@ -172,10 +190,16 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     is_ignored: typeof row.is_ignored === 'boolean' ? row.is_ignored : null,
     notes_count: parseIntegerField(row.notes_count),
     all_tags: (() => {
-      if (row.all_tags) return String(row.all_tags);
+      if (row.all_tags) {
+        return String(row.all_tags);
+      }
       const tags: string[] = [];
-      if (row.threat_tag) tags.push(row.threat_tag);
-      if (row.is_ignored) tags.push('ignored');
+      if (row.threat_tag) {
+        tags.push(row.threat_tag);
+      }
+      if (row.is_ignored) {
+        tags.push('ignored');
+      }
       return tags.length > 0 ? tags.join(',') : null;
     })(),
     wigle_v3_observation_count: parseIntegerField(row.wigle_v3_observation_count),

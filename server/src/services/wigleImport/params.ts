@@ -55,7 +55,9 @@ export const normalizeImportParams = (raw: Record<string, unknown>): WigleImport
   const normalized: WigleImportParams = {};
   for (const key of allowedParams) {
     const value = raw[key];
-    if (value === undefined || value === null || value === '') continue;
+    if (value === undefined || value === null || value === '') {
+      continue;
+    }
     if (key === 'resultsPerPage') {
       normalized.resultsPerPage = Math.min(
         Math.max(parseInt(String(value), 10) || DEFAULT_RESULTS_PER_PAGE, 1),
@@ -73,9 +75,15 @@ export const normalizeImportParams = (raw: Record<string, unknown>): WigleImport
     }
     normalized[key] = String(value);
   }
-  if (!normalized.country) normalized.country = 'US';
-  if (!normalized.resultsPerPage) normalized.resultsPerPage = DEFAULT_RESULTS_PER_PAGE;
-  if (!normalized.version) normalized.version = 'v2';
+  if (!normalized.country) {
+    normalized.country = 'US';
+  }
+  if (!normalized.resultsPerPage) {
+    normalized.resultsPerPage = DEFAULT_RESULTS_PER_PAGE;
+  }
+  if (!normalized.version) {
+    normalized.version = 'v2';
+  }
   return normalized;
 };
 
@@ -104,15 +112,33 @@ export const buildSearchParams = (
   // WiGLE has no v3 network search endpoint per spec. All network search uses v2 only.
   // The 'version' parameter in query is ignored; network search is strictly v2 per WiGLE API.
   const params = new URLSearchParams();
-  if (query.ssid) params.append('ssidlike', query.ssid);
-  if (query.bssid) params.append('netid', query.bssid);
-  if (query.latrange1) params.append('latrange1', query.latrange1);
-  if (query.latrange2) params.append('latrange2', query.latrange2);
-  if (query.longrange1) params.append('longrange1', query.longrange1);
-  if (query.longrange2) params.append('longrange2', query.longrange2);
-  if (query.country) params.append('country', normalizeCountryCode(query.country));
-  if (query.region) params.append('region', query.region);
-  if (query.city) params.append('city', query.city);
+  if (query.ssid) {
+    params.append('ssidlike', query.ssid);
+  }
+  if (query.bssid) {
+    params.append('netid', query.bssid);
+  }
+  if (query.latrange1) {
+    params.append('latrange1', query.latrange1);
+  }
+  if (query.latrange2) {
+    params.append('latrange2', query.latrange2);
+  }
+  if (query.longrange1) {
+    params.append('longrange1', query.longrange1);
+  }
+  if (query.longrange2) {
+    params.append('longrange2', query.longrange2);
+  }
+  if (query.country) {
+    params.append('country', normalizeCountryCode(query.country));
+  }
+  if (query.region) {
+    params.append('region', query.region);
+  }
+  if (query.city) {
+    params.append('city', query.city);
+  }
   params.append('resultsPerPage', String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE));
   if (searchAfter) {
     // v2/network/search uses 'searchAfter' for cursor-based pagination

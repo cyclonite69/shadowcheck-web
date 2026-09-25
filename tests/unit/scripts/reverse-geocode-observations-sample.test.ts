@@ -279,8 +279,12 @@ describe('reverse-geocode-observations-sample', () => {
         cb({
           statusCode: 429,
           on: (event: string, eventCb: any) => {
-            if (event === 'data') eventCb('');
-            if (event === 'end') eventCb();
+            if (event === 'data') {
+              eventCb('');
+            }
+            if (event === 'end') {
+              eventCb();
+            }
           },
         });
         return { on: jest.fn() } as any;

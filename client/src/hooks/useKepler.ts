@@ -22,7 +22,7 @@ export const useKepler = (
     error: fetchError,
   } = useAsyncData<KeplerResult>(async () => {
     logDebug(`[Kepler] loadData called, type: ${datasetType}`);
-    logDebug(`[Kepler] Fetching data with filters`);
+    logDebug('[Kepler] Fetching data with filters');
 
     const [tokenData, geojson] = await Promise.all([
       keplerApi.getMapboxToken(),
@@ -36,9 +36,12 @@ export const useKepler = (
     if (!tokenData?.token) {
       throw new Error('Mapbox token missing. Set it in Admin.');
     }
-    if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
-    if (!geojson.features || !Array.isArray(geojson.features))
-      throw new Error(`Invalid data format`);
+    if (geojson.error) {
+      throw new Error(`API Error: ${geojson.error}`);
+    }
+    if (!geojson.features || !Array.isArray(geojson.features)) {
+      throw new Error('Invalid data format');
+    }
     const networkData: NetworkData[] = mapKeplerGeoJsonToNetworkData(geojson);
 
     return {

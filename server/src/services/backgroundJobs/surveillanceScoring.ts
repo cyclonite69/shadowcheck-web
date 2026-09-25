@@ -67,10 +67,14 @@ function checkAutoFalsePositive(
   ssid: string | null,
   oui: string
 ): { isFP: boolean; reason: string | null } {
-  if (!ssid) return { isFP: false, reason: null };
+  if (!ssid) {
+    return { isFP: false, reason: null };
+  }
 
   for (const fp of AUTO_FP_PATTERNS) {
-    if (fp.ouiRestrict && oui.toUpperCase() !== fp.ouiRestrict.toUpperCase()) continue;
+    if (fp.ouiRestrict && oui.toUpperCase() !== fp.ouiRestrict.toUpperCase()) {
+      continue;
+    }
     if (fp.pattern.test(ssid)) {
       return { isFP: true, reason: fp.reason };
     }
@@ -79,7 +83,9 @@ function checkAutoFalsePositive(
 }
 
 function checkPenaltyPattern(ssid: string | null): { penalty: number; reason: string | null } {
-  if (!ssid) return { penalty: 0, reason: null };
+  if (!ssid) {
+    return { penalty: 0, reason: null };
+  }
 
   for (const pp of PENALTY_PATTERNS) {
     if (pp.pattern.test(ssid)) {
@@ -119,7 +125,7 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
     const oui = bssid.substring(0, 8);
     const adjustments: ConfidenceAdjustment[] = [];
 
-    let baseConfidence = best.base_likelihood / 100;
+    const baseConfidence = best.base_likelihood / 100;
 
     // --- RSSI adjustments (§5.2) ---
     const rssi = best.bestlevel;
@@ -192,8 +198,7 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
       adjustments.push({ factor: 'ambiguous_pattern', value: penalty });
     }
 
-    const isStationary =
-      Number(best.unique_positions) === 1 && (obsCount > 3 || durationSec > 300);
+    const isStationary = Number(best.unique_positions) === 1 && (obsCount > 3 || durationSec > 300);
     if (isStationary && deviceType !== 'RESIDENTIAL_CAMERA') {
       adjustments.push({ factor: 'stationary_signature_penalty', value: -0.6 });
     }
@@ -218,8 +223,11 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
       (h) => h.detection_method === 'mfgrid_match' || h.detection_method === 'ble_name_pattern'
     );
 
-    if (hasOuiHit && hasBleHit) crossMultiplier = Math.max(crossMultiplier, 1.3);
-    else if (hasOuiHit && hasSsidHit) crossMultiplier = Math.max(crossMultiplier, 1.1);
+    if (hasOuiHit && hasBleHit) {
+      crossMultiplier = Math.max(crossMultiplier, 1.3);
+    } else if (hasOuiHit && hasSsidHit) {
+      crossMultiplier = Math.max(crossMultiplier, 1.1);
+    }
 
     // --- Final threat score ---
     const rawScore = best.base_likelihood * impactFactor * roundedConfidence * crossMultiplier;

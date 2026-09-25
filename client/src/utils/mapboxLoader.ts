@@ -70,7 +70,7 @@ export async function loadMapbox(): Promise<MapboxLoadResult> {
  * Synchronous check if Mapbox is currently available.
  */
 export function isMapboxReady(): boolean {
-  return typeof window !== 'undefined' && !!window.mapboxgl;
+  return typeof window !== 'undefined' && Boolean(window.mapboxgl);
 }
 
 export default { waitForMapbox, loadMapbox, isMapboxReady };

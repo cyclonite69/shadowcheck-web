@@ -17,7 +17,9 @@ export async function checkHomeLocationForFilters(enabled: any): Promise<boolean
     return home.rowCount > 0;
   } catch (err: any) {
     if (err && err.code === '42P01') {
-      throw new Error('Home location markers table is missing (app.location_markers).');
+      throw new (Error as any)('Home location markers table is missing (app.location_markers).', {
+        cause: err,
+      });
     }
     throw err;
   }
@@ -72,10 +74,12 @@ export async function listNetworksV2(opts: {
  */
 export async function getNetworkByBssid(bssid: string): Promise<any | null> {
   const mvResult = await query(
-    `SELECT * FROM app.api_network_explorer_mv WHERE UPPER(bssid) = UPPER($1) LIMIT 1`,
+    'SELECT * FROM app.api_network_explorer_mv WHERE UPPER(bssid) = UPPER($1) LIMIT 1',
     [bssid]
   );
-  if (mvResult.rows[0]) return mvResult.rows[0];
+  if (mvResult.rows[0]) {
+    return mvResult.rows[0];
+  }
 
   // MV stale — compute the same fields live for this single BSSID.
   // Cheap because every join is filtered to one bssid via index.
@@ -120,8 +124,8 @@ export async function getNetworkByBssid(bssid: string): Promise<any | null> {
          WHEN UPPER(n.capabilities) IN ('MISC', 'UNCATEGORIZED')                                                                               THEN 'BT'
          WHEN COALESCE(n.capabilities,'') = ''                                                                                                  THEN 'OPEN'
          WHEN UPPER(n.capabilities) LIKE '%WEP%'                                                                                               THEN 'WEP'
-         WHEN UPPER(n.capabilities) ~ '^\s*\[ESS\]\s*$'                                                                                        THEN 'OPEN'
-         WHEN UPPER(n.capabilities) ~ '^\s*\[IBSS\]\s*$'                                                                                       THEN 'OPEN'
+         WHEN UPPER(n.capabilities) ~ '^\\s*\\[ESS\\]\\s*$'                                                                                        THEN 'OPEN'
+         WHEN UPPER(n.capabilities) ~ '^\\s*\\[IBSS\\]\\s*$'                                                                                       THEN 'OPEN'
          WHEN UPPER(n.capabilities) ~ 'RSN-OWE'                                                                                                THEN 'WPA3-OWE'
          WHEN UPPER(n.capabilities) ~ 'RSN-SAE'                                                                                                THEN 'WPA3-P'
          WHEN UPPER(n.capabilities) ~ '(WPA3|SAE)' AND UPPER(n.capabilities) ~ '(EAP|MGT)'                                                    THEN 'WPA3-E'

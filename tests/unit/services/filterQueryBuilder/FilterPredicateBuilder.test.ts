@@ -59,7 +59,7 @@ describe('FilterPredicateBuilder', () => {
         signalExpr: 'signal',
         includeNoiseFloor: true,
       });
-      expect(result).toEqual([`signal >= $1`, `signal >= $2`]);
+      expect(result).toEqual(['signal >= $1', 'signal >= $2']);
       expect(builder.params).toEqual([NOISE_FLOOR_DBM, -75]);
     });
 
@@ -71,7 +71,7 @@ describe('FilterPredicateBuilder', () => {
         includeNoiseFloor: true,
         noiseFloorValue: -100,
       });
-      expect(result).toEqual([`signal >= $1`, `signal <= $2`]);
+      expect(result).toEqual(['signal >= $1', 'signal <= $2']);
       expect(builder.params).toEqual([-100, -60]);
     });
   });

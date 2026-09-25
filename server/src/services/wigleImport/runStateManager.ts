@@ -46,7 +46,7 @@ export const initializeImportRun = async (rawQuery: Record<string, unknown>) => 
   if (recentCancelled >= 3) {
     throw new Error(
       `Cluster guard: ${recentCancelled} identical cancelled runs created in the last 60 seconds. ` +
-        `Use the "Clean Up" tool to clear the cluster first.`
+        'Use the "Clean Up" tool to clear the cluster first.'
     );
   }
 

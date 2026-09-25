@@ -120,7 +120,9 @@ export const useMapStyleControls = ({
     // Clear embedded view when switching to regular map
     setEmbeddedView(null);
 
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      return;
+    }
 
     const currentCenter = mapRef.current.getCenter();
     const currentZoom = mapRef.current.getZoom();
@@ -150,7 +152,9 @@ export const useMapStyleControls = ({
     }
 
     mapRef.current.once('style.load', () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current) {
+        return;
+      }
 
       mapRef.current.setCenter(currentCenter);
       mapRef.current.setZoom(currentZoom);

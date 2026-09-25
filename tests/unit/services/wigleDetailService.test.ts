@@ -73,8 +73,12 @@ describe('wigleDetailService', () => {
   describe('fetchUpstream', () => {
     it('returns 503 if credentials are not configured', async () => {
       secretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return null;
-        if (key === 'wigle_api_token') return 'some-token';
+        if (key === 'wigle_api_name') {
+          return null;
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
         return null;
       });
 
@@ -96,8 +100,12 @@ describe('wigleDetailService', () => {
 
     it('returns 404 immediately without calling gateway for locally administered MACs', async () => {
       secretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'some-name';
-        if (key === 'wigle_api_token') return 'some-token';
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
         return null;
       });
 
@@ -113,8 +121,12 @@ describe('wigleDetailService', () => {
 
     it('returns error if gateway fetch fails', async () => {
       secretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'some-name';
-        if (key === 'wigle_api_token') return 'some-token';
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
         return null;
       });
 
@@ -135,8 +147,12 @@ describe('wigleDetailService', () => {
 
     it('returns 404 if response status is 404 (network not found)', async () => {
       secretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'some-name';
-        if (key === 'wigle_api_token') return 'some-token';
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
         return null;
       });
 
@@ -162,8 +178,12 @@ describe('wigleDetailService', () => {
 
     it('returns 400 with generic error if response is not ok and not 404', async () => {
       secretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'some-name';
-        if (key === 'wigle_api_token') return 'some-token';
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
         return null;
       });
 
@@ -189,8 +209,12 @@ describe('wigleDetailService', () => {
 
     it('returns ok true and data on successful 200 OK', async () => {
       secretsManager.get.mockImplementation((key: string) => {
-        if (key === 'wigle_api_name') return 'some-name';
-        if (key === 'wigle_api_token') return 'some-token';
+        if (key === 'wigle_api_name') {
+          return 'some-name';
+        }
+        if (key === 'wigle_api_token') {
+          return 'some-token';
+        }
         return null;
       });
 

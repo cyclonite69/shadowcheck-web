@@ -15,12 +15,16 @@ export const attachClickHandlers = (
   mapboxgl: typeof mapboxglType,
   wigleHandlersAttachedRef: React.MutableRefObject<boolean>
 ) => {
-  if (wigleHandlersAttachedRef.current) return;
+  if (wigleHandlersAttachedRef.current) {
+    return;
+  }
 
   const handleUnclustered = (e: any) => {
     const feature = e.features && e.features[0];
     const props = feature?.properties;
-    if (!props || !e.lngLat) return;
+    if (!props || !e.lngLat) {
+      return;
+    }
 
     const netid = String(props.netid || props.bssid || '');
 
@@ -53,7 +57,9 @@ export const attachClickHandlers = (
     if (netid) {
       void getWiglePageNetwork(netid)
         .then((pageResponse: WiglePageNetworkResponse) => {
-          if (!popup.isOpen() || !pageResponse) return;
+          if (!popup.isOpen() || !pageResponse) {
+            return;
+          }
 
           const { wigle, localLinkage } = pageResponse;
 
@@ -83,7 +89,9 @@ export const attachClickHandlers = (
             timespan_days: (() => {
               const f = wigle.wigle_v3_first_seen;
               const l = wigle.wigle_v3_last_seen;
-              if (!f || !l) return null;
+              if (!f || !l) {
+                return null;
+              }
               const ms = new Date(l).getTime() - new Date(f).getTime();
               return ms > 0 ? Math.round(ms / 86_400_000) : null;
             })(),
@@ -155,9 +163,13 @@ export const attachClickHandlers = (
     const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
     const clusterId = features[0]?.properties?.cluster_id;
     const source = map.getSource(sourceId) as GeoJSONSource;
-    if (!source || clusterId == null) return;
+    if (!source || clusterId === null || clusterId === undefined) {
+      return;
+    }
     source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-      if (err || zoom == null) return;
+      if (err || zoom === null || zoom === undefined) {
+        return;
+      }
       map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
     });
   };
@@ -165,7 +177,9 @@ export const attachClickHandlers = (
   const handleKmlClick = (e: any) => {
     const feature = e.features && e.features[0];
     const props = feature?.properties;
-    if (!props || !e.lngLat) return;
+    if (!props || !e.lngLat) {
+      return;
+    }
 
     const kmlProps = {
       bssid: props.bssid,
@@ -211,7 +225,9 @@ export const attachClickHandlers = (
               timespan_days: number | null;
             } | null
           ) => {
-            if (!popup.isOpen() || !data) return;
+            if (!popup.isOpen() || !data) {
+              return;
+            }
 
             popup.setHTML(
               renderNetworkTooltip(

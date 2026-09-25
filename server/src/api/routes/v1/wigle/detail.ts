@@ -104,7 +104,9 @@ router.post(
       .trim()
       .toUpperCase();
     const result = await fetchOrImportDetail(netid, 'wifi', req.body?.import === true);
-    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.ok) {
+      return res.status(result.status).json(result);
+    }
     res.json(result);
   })
 );
@@ -120,7 +122,9 @@ router.post(
       .trim()
       .toUpperCase();
     const result = await fetchOrImportDetail(netid, 'bt', req.body?.import === true);
-    if (!result.ok) return res.status(result.status).json(result);
+    if (!result.ok) {
+      return res.status(result.status).json(result);
+    }
     res.json(result);
   })
 );

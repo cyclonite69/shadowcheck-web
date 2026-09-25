@@ -27,7 +27,7 @@ export interface WigleQueryWindow {
  */
 export async function getOptimalQueryWindow(kind: WigleRequestKind): Promise<WigleQueryWindow> {
   try {
-    const { rows } = await adminQuery(`SELECT * FROM app.get_wigle_reset_profile($1)`, [kind]);
+    const { rows } = await adminQuery('SELECT * FROM app.get_wigle_reset_profile($1)', [kind]);
     const profile = rows[0];
 
     if (!profile || profile.reset_type === 'insufficient_data') {

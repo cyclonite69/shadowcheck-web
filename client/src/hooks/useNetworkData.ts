@@ -79,7 +79,9 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     const filtersChanged = newFilterKey !== filterKey.current;
     const sortChanged = newSortKey !== sortKey.current;
 
-    if (!filtersChanged && !sortChanged) return;
+    if (!filtersChanged && !sortChanged) {
+      return;
+    }
 
     filterKey.current = newFilterKey;
     sortKey.current = newSortKey;
@@ -203,7 +205,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           }
         }
 
-        logDebug(`Networks response received`);
+        logDebug('Networks response received');
         applyResponse(data, currentOffset);
       } catch (err: any) {
         if (err.name !== 'AbortError') {

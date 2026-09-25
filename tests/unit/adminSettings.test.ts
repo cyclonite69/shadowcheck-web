@@ -210,8 +210,11 @@ describe('admin settings routes', () => {
         p.stdout = new EventEmitter();
         p.stderr = new EventEmitter();
         setTimeout(() => {
-          if (spawnCount === 1) p.emit('error', err);
-          else p.emit('close', 0);
+          if (spawnCount === 1) {
+            p.emit('error', err);
+          } else {
+            p.emit('close', 0);
+          }
         }, 5);
         return p;
       });

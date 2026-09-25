@@ -23,7 +23,9 @@ export const BatchWigleLookupDialog = ({
   const [state, setState] = useState<BatchState>({ phase: 'confirm' });
   const [error, setError] = useState<string | null>(null);
 
-  if (!visible || bssids.length === 0) return null;
+  if (!visible || bssids.length === 0) {
+    return null;
+  }
 
   const isRunning = state.phase === 'running';
 

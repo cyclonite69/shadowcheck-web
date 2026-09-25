@@ -47,7 +47,9 @@ describe('wigleImportService', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.readdirSync as jest.Mock).mockReturnValue(['file1.json', 'file2.json']);
       (fs.readFileSync as jest.Mock).mockImplementation((path: string) => {
-        if (path.includes('file1')) return JSON.stringify({ results: [] });
+        if (path.includes('file1')) {
+          return JSON.stringify({ results: [] });
+        }
         throw new Error('File 2 failed');
       });
 
@@ -62,7 +64,9 @@ describe('wigleImportService', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue(['test.json']);
       (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ results: [{ netid: '1' }] }));
       mockClient.query.mockImplementation((sql: string) => {
-        if (sql.includes('INSERT')) return Promise.reject(new Error('Insert error'));
+        if (sql.includes('INSERT')) {
+          return Promise.reject(new Error('Insert error'));
+        }
         return Promise.resolve();
       });
 

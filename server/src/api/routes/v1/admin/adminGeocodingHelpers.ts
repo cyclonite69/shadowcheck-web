@@ -32,8 +32,12 @@ const normalizeNumber = (value: unknown, fallback: number) => {
 };
 
 const normalizeBoolean = (value: unknown, fallback = false) => {
-  if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (value === undefined || value === null) {
+    return fallback;
+  }
   return String(value).toLowerCase() === 'true';
 };
 

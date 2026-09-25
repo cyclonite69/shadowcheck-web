@@ -134,25 +134,35 @@ export const setPointRadius = (map: Map, radius: number) => {
     'wigle-kml-unclustered',
     FIELD_DATA_LAYER,
   ].forEach((id) => {
-    if (map.getLayer(id)) map.setPaintProperty(id, 'circle-radius', radius);
+    if (map.getLayer(id)) {
+      map.setPaintProperty(id, 'circle-radius', radius);
+    }
   });
 };
 
 /** Remove all v2 layers and source then re-add with the given cluster setting. */
 export const resetV2Layers = (map: Map, v2FCRef: any, cluster: boolean) => {
   ['wigle-v2-clusters', 'wigle-v2-cluster-count', 'wigle-v2-unclustered'].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource('wigle-v2-points')) map.removeSource('wigle-v2-points');
+  if (map.getSource('wigle-v2-points')) {
+    map.removeSource('wigle-v2-points');
+  }
   ensureV2Layers(map, v2FCRef, cluster);
 };
 
 /** Remove all v3 layers and source then re-add with the given cluster setting. */
 export const resetV3Layers = (map: Map, v3FCRef: any, cluster: boolean) => {
   ['wigle-v3-clusters', 'wigle-v3-cluster-count', 'wigle-v3-unclustered'].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource('wigle-v3-points')) map.removeSource('wigle-v3-points');
+  if (map.getSource('wigle-v3-points')) {
+    map.removeSource('wigle-v3-points');
+  }
   ensureV3Layers(map, v3FCRef, cluster);
 };
 
@@ -217,23 +227,33 @@ export const ensureFieldDataLayer = (map: Map, fieldDataFCRef: any, cluster = tr
 
 export const updateFieldDataSource = (map: Map, data: unknown) => {
   const src = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
-  if (!src) return;
+  if (!src) {
+    return;
+  }
   src.setData(data as any);
 };
 
 export const removeFieldDataLayer = (map: Map) => {
   ['wigle-field-clusters', 'wigle-field-cluster-count', FIELD_DATA_LAYER].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource(FIELD_DATA_SOURCE)) map.removeSource(FIELD_DATA_SOURCE);
+  if (map.getSource(FIELD_DATA_SOURCE)) {
+    map.removeSource(FIELD_DATA_SOURCE);
+  }
 };
 
 /** Remove all field-data layers and source then re-add with the given cluster setting. */
 export const resetFieldDataLayers = (map: Map, fieldDataFCRef: any, cluster: boolean) => {
   ['wigle-field-clusters', 'wigle-field-cluster-count', FIELD_DATA_LAYER].forEach((id) => {
-    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getLayer(id)) {
+      map.removeLayer(id);
+    }
   });
-  if (map.getSource(FIELD_DATA_SOURCE)) map.removeSource(FIELD_DATA_SOURCE);
+  if (map.getSource(FIELD_DATA_SOURCE)) {
+    map.removeSource(FIELD_DATA_SOURCE);
+  }
   ensureFieldDataLayer(map, fieldDataFCRef, cluster);
 };
 

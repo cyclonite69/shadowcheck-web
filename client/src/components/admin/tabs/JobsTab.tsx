@@ -76,7 +76,9 @@ export const JobsTab: React.FC = () => {
       if (response?.success) {
         const settings = response.settings;
         const findValue = (key: string) => {
-          if (Array.isArray(settings)) return settings.find((s) => s.key === key)?.value;
+          if (Array.isArray(settings)) {
+            return settings.find((s) => s.key === key)?.value;
+          }
           return settings[key]?.value || settings[key];
         };
         setConfigs({
@@ -116,7 +118,9 @@ export const JobsTab: React.FC = () => {
     try {
       const settingKey = JOB_SETTING_KEYS[key];
       const configToSave = configs[key];
-      if (!configToSave) throw new Error('Configuration not found');
+      if (!configToSave) {
+        throw new Error('Configuration not found');
+      }
       await apiClient.put(`/admin/settings/${settingKey}`, { value: configToSave });
       await fetchJobStatus();
       alert(`${key.charAt(0).toUpperCase() + key.slice(1)} job updated successfully.`);

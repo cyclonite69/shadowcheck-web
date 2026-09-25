@@ -200,7 +200,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
 
   function httpError(status: number, retryAfter?: string): Response {
     const headers = new Headers();
-    if (retryAfter) headers.set('retry-after', retryAfter);
+    if (retryAfter) {
+      headers.set('retry-after', retryAfter);
+    }
     return {
       ok: false,
       status,
@@ -255,7 +257,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
   it('rotates away from a 504 endpoint and does not immediately re-hit it', async () => {
     const pool = getOverpassEndpoints();
     const state = installFetchRouter(async (url) => {
-      if (url === pool[0]) return httpError(504);
+      if (url === pool[0]) {
+        return httpError(504);
+      }
       return jsonOk([{ type: 'node', id: 1, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
     });
 
@@ -356,7 +360,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
     const pool = getOverpassEndpoints();
     let bCalls = 0;
     const state = installFetchRouter(async (url) => {
-      if (url === pool[0]) return httpError(504);
+      if (url === pool[0]) {
+        return httpError(504);
+      }
       if (url === pool[1]) {
         bCalls += 1;
         return jsonOk([{ type: 'node', id: 3, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
@@ -379,7 +385,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
     });
 
     const state = installFetchRouter(async (_url, callIndex) => {
-      if (callIndex < 3) return httpError(504);
+      if (callIndex < 3) {
+        return httpError(504);
+      }
       return jsonOk([{ type: 'node', id: 4, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
     });
 
@@ -429,7 +437,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
     });
 
     const state = installFetchRouter(async (url) => {
-      if (url === pool[0]) return httpError(504);
+      if (url === pool[0]) {
+        return httpError(504);
+      }
       return jsonOk([{ type: 'node', id: 5, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
     });
 
@@ -490,7 +500,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
     configureOverpassClientForTests({ lastResortTimeoutMs: 40 });
 
     const state = installFetchRouter(async (url, _i, init) => {
-      if (url === pool[0]) return httpError(504);
+      if (url === pool[0]) {
+        return httpError(504);
+      }
       if (url === pool[1]) {
         await new Promise<void>((_resolve, reject) => {
           const timer = setTimeout(() => {
@@ -534,7 +546,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
       if (url === pool[0]) {
         primaryHits += 1;
         // First contact fails; after TTL elapses the next contact succeeds.
-        if (primaryHits === 1) return httpError(504);
+        if (primaryHits === 1) {
+          return httpError(504);
+        }
         return jsonOk([{ type: 'node', id: 42, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
       }
       return jsonOk([{ type: 'node', id: 43, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
@@ -567,7 +581,9 @@ describe('fetchAlprElementsSingleChunk endpoint cooldown', () => {
     });
 
     const state = installFetchRouter(async (_url, callIndex) => {
-      if (callIndex === 0) return httpError(504);
+      if (callIndex === 0) {
+        return httpError(504);
+      }
       return jsonOk([{ type: 'node', id: 99, lat: 30.05, lon: -97.95, tags: { a: '1' } }]);
     });
 

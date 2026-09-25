@@ -80,7 +80,9 @@ export function setupPopupDrag(
 
     // Define mouse move handler
     dragState.listeners.mouseMove = (moveEvent: MouseEvent) => {
-      if (!dragState.isDragging) return;
+      if (!dragState.isDragging) {
+        return;
+      }
 
       const deltaX = moveEvent.clientX - dragState.startX;
       const deltaY = moveEvent.clientY - dragState.startY;
@@ -122,7 +124,9 @@ export function setupPopupDrag(
 
     // Define mouse up handler
     dragState.listeners.mouseUp = () => {
-      if (!dragState.isDragging) return;
+      if (!dragState.isDragging) {
+        return;
+      }
 
       dragState.isDragging = false;
       popupElement.classList.remove('dragging');
@@ -149,7 +153,9 @@ export function setupPopupDrag(
  */
 export function cleanupPopupDrag(popup: Popup, dragState: PopupDragState): void {
   const popupElement = popup.getElement();
-  if (!popupElement) return;
+  if (!popupElement) {
+    return;
+  }
 
   // Remove event listeners if they exist
   if (dragState.listeners.mouseMove) {

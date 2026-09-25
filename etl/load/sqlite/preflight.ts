@@ -38,7 +38,7 @@ export async function runImportPreflight(
     postgresUser = result.rows[0].user;
   } catch (error) {
     const err = error as Error;
-    throw new Error(`PostgreSQL connection failed: ${err.message}`);
+    throw new (Error as any)(`PostgreSQL connection failed: ${err.message}`, { cause: error });
   }
 
   await options.sqliteReader.assertLocationTableExists();

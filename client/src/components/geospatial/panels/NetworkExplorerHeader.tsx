@@ -29,16 +29,23 @@ const FILTER_LABELS: Partial<Record<keyof NetworkFilters, string>> = {
 };
 
 function labelForKey(key: keyof NetworkFilters): string {
-  if (FILTER_LABELS[key]) return FILTER_LABELS[key]!;
+  if (FILTER_LABELS[key]) {
+    return FILTER_LABELS[key]!;
+  }
   // camelCase → Title Case fallback
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
 }
 
 function valueSnippet(_key: keyof NetworkFilters, value: unknown): string {
-  if (value === null || value === undefined || value === '') return '';
-  if (Array.isArray(value)) return value.slice(0, 3).join(', ') + (value.length > 3 ? '…' : '');
-  if (typeof value === 'object' && 'relativeWindow' in (value as object))
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, 3).join(', ') + (value.length > 3 ? '…' : '');
+  }
+  if (typeof value === 'object' && 'relativeWindow' in (value as object)) {
     return (value as { relativeWindow?: string }).relativeWindow ?? 'custom';
+  }
   return String(value);
 }
 
@@ -53,7 +60,9 @@ const ActiveFilterPills: React.FC = () => {
     (k) => enabled[k]
   );
 
-  if (activeKeys.length === 0) return null;
+  if (activeKeys.length === 0) {
+    return null;
+  }
 
   return (
     <div

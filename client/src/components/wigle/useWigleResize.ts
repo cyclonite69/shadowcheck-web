@@ -3,7 +3,9 @@ import { useEffect } from 'react';
 export function useWigleResize({ mapContainerRef, mapRef, setMapSize, setIsMobile }: any): void {
   useEffect(() => {
     const handleResize = () => {
-      if (!mapContainerRef.current) return;
+      if (!mapContainerRef.current) {
+        return;
+      }
       const rect = mapContainerRef.current.getBoundingClientRect();
       setMapSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
       mapRef.current?.resize();

@@ -13,8 +13,12 @@ interface SavedValueInputProps {
 }
 
 const maskSavedValue = (value: string, sensitive: boolean) => {
-  if (!value) return '';
-  if (!sensitive) return value;
+  if (!value) {
+    return '';
+  }
+  if (!sensitive) {
+    return value;
+  }
   return `${value.slice(0, 6)}...`;
 };
 

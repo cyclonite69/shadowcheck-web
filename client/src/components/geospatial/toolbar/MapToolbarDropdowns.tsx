@@ -24,7 +24,9 @@ export const LayersDropdown = ({
   onToggleCourthousesPanel,
   showCourthousesPanel,
 }: LayersDropdownProps) => {
-  if (!onToggleAgenciesPanel && !onToggleCourthousesPanel) return null;
+  if (!onToggleAgenciesPanel && !onToggleCourthousesPanel) {
+    return null;
+  }
 
   return (
     <div ref={layersRef} style={{ position: 'relative', flexShrink: 0 }}>
@@ -112,7 +114,9 @@ export const LayersDropdown = ({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <span title="Show/hide US federal courthouse locations on the map">Federal Courthouses</span>
+              <span title="Show/hide US federal courthouse locations on the map">
+                Federal Courthouses
+              </span>
               {showCourthousesPanel && <CheckIcon />}
             </div>
           )}

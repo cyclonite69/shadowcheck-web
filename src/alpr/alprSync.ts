@@ -38,7 +38,9 @@ export async function upsertAlprBatch(
   records: AlprRecord[],
   runStartedAt: Date
 ): Promise<number> {
-  if (records.length === 0) return 0;
+  if (records.length === 0) {
+    return 0;
+  }
 
   const osmIds = records.map((r) => r.osmId);
   const lons = records.map((r) => r.lon);

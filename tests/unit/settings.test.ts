@@ -4,7 +4,11 @@ import express from 'express';
 const mockGetConfiguredAwsRegion = jest.fn().mockResolvedValue('us-east-1');
 const mockValidateAwsRegion = jest
   .fn()
-  .mockImplementation((val: any) => ({ valid: !!val, value: val, error: 'Invalid AWS Region' }));
+  .mockImplementation((val: any) => ({
+    valid: Boolean(val),
+    value: val,
+    error: 'Invalid AWS Region',
+  }));
 const mockSetAwsRegion = jest.fn();
 
 const mockSecretsManager = {
@@ -35,8 +39,8 @@ jest.mock('../../server/src/api/routes/v1/settingsHelpers', () => ({
   getErrorMessage: (err: any) => err.message,
   getConfiguredAwsRegion: mockGetConfiguredAwsRegion,
   validateAwsRegion: (...args: any[]) => mockValidateAwsRegion(...args),
-  validateGenericKey: (val: any) => ({ valid: !!val, value: val }),
-  validateGoogleMapsKey: (val: any) => ({ valid: !!val, value: val }),
+  validateGenericKey: (val: any) => ({ valid: Boolean(val), value: val }),
+  validateGoogleMapsKey: (val: any) => ({ valid: Boolean(val), value: val }),
   getIncomingValue: (body: any, key: string) => body[key] || body.token || body.value,
 }));
 

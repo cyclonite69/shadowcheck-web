@@ -13,8 +13,11 @@ export class SqliteReader {
       const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY);
       db.get('SELECT MAX(time) as latest FROM location', (err, row: { latest: number }) => {
         db.close();
-        if (err) reject(err);
-        else resolve(row.latest || 0);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row.latest || 0);
+        }
       });
     });
   }
@@ -24,8 +27,11 @@ export class SqliteReader {
       const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY);
       db.get('SELECT COUNT(*) as count FROM location', (err, row: { count: number }) => {
         db.close();
-        if (err) reject(err);
-        else resolve(row.count || 0);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row.count || 0);
+        }
       });
     });
   }
@@ -38,8 +44,11 @@ export class SqliteReader {
         [since],
         (err, row: { count: number }) => {
           db.close();
-          if (err) reject(err);
-          else resolve(row.count || 0);
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row.count || 0);
+          }
         }
       );
     });
@@ -72,8 +81,11 @@ export class SqliteReader {
         [since],
         (err, rows: SqliteLocationRow[]) => {
           db.close();
-          if (err) reject(err);
-          else resolve(rows || []);
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows || []);
+          }
         }
       );
     });
