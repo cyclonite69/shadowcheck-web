@@ -346,7 +346,7 @@
 - **filters:** send complete filter object to backend ([9070b29](https://github.com/cyclonite69/shadowcheck-web/commit/9070b29f782431730f83766d2ea26799c8e90f65))
 - **filters:** stabilize zustand page snapshots ([a94ae29](https://github.com/cyclonite69/shadowcheck-web/commit/a94ae29038f9086a5fa8e48b26efcc6ecde0bf5a))
 - **filters:** support pipe | as OR delimiter in text search tokens ([7e65d37](https://github.com/cyclonite69/shadowcheck-web/commit/7e65d378fec2c3ba35008f07f6a89eb6e17bf9d7))
-- **filters:** union multiple surveillance categories in query builder ([6754228](https://github.com/cyclonite69/shadowcheck-web/commit/6754228e251e0674b15c59c96fee71ea81a1d539))
+- **filters:** union multiple surveillance categories in query builder ([bd74259](https://github.com/cyclonite69/shadowcheck-web/commit/bd742590bfe70f1df4a1d9b1edb93e0f2e39331c))
 - force recreate pgadmin in scs_rebuild and add cert search ([9a9498d](https://github.com/cyclonite69/shadowcheck-web/commit/9a9498dcb2b146bdd99ac564c1336a1e809f7b48))
 - force update psql aliases in setup-psql-aliases.sh ([494a4ae](https://github.com/cyclonite69/shadowcheck-web/commit/494a4aec894d45486c89c9c92193e91d7b554311))
 - force-refresh WiGLE stats badge when cache has stale imageBadgeUrl ([e47deb4](https://github.com/cyclonite69/shadowcheck-web/commit/e47deb429a2f24ac9ca991d29f30fc6c94a53939))
