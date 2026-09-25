@@ -125,6 +125,46 @@ describe('AdminMaintenanceService', () => {
   });
 
   describe('truncateAllData', () => {
+    const originalDbName = process.env.DB_NAME;
+    const originalPgDatabase = process.env.PGDATABASE;
+    const originalUnsafeOverride = process.env.ALLOW_UNSAFE_DATA_RESET;
+
+    afterEach(() => {
+      if (originalDbName === undefined) delete process.env.DB_NAME;
+      else process.env.DB_NAME = originalDbName;
+      if (originalPgDatabase === undefined) delete process.env.PGDATABASE;
+      else process.env.PGDATABASE = originalPgDatabase;
+      if (originalUnsafeOverride === undefined) delete process.env.ALLOW_UNSAFE_DATA_RESET;
+      else process.env.ALLOW_UNSAFE_DATA_RESET = originalUnsafeOverride;
+    });
+
+    it('refuses destructive resets against non-test databases', async () => {
+      process.env.DB_NAME = 'shadowcheck_db';
+      delete process.env.PGDATABASE;
+      delete process.env.ALLOW_UNSAFE_DATA_RESET;
+
+      await expect(truncateAllData()).rejects.toThrow(
+        'Refusing destructive network reset against database'
+      );
+      expect(getAdminPool).not.toHaveBeenCalled();
+    });
+
+    it('allows an explicit unsafe override for non-test databases', async () => {
+      process.env.DB_NAME = 'shadowcheck_db';
+      delete process.env.PGDATABASE;
+      process.env.ALLOW_UNSAFE_DATA_RESET = 'true';
+      const client = {
+        query: jest.fn().mockResolvedValue({}),
+        release: jest.fn(),
+      };
+      (getAdminPool as jest.Mock).mockReturnValue({
+        connect: jest.fn().mockResolvedValue(client),
+      });
+
+      await expect(truncateAllData()).resolves.toBeUndefined();
+      expect(getAdminPool).toHaveBeenCalled();
+    });
+
     it('should preserve the VISINT_UNMATCHED sentinel while clearing other networks', async () => {
       const client = {
         query: jest.fn().mockResolvedValue({}),
