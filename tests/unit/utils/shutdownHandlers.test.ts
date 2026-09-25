@@ -19,7 +19,7 @@ describe('shutdownHandlers', () => {
     // Match the actual process.exit signature
     exitSpy = jest
       .spyOn(process, 'exit')
-      .mockImplementation((code?: string | number | null | undefined) => {
+      .mockImplementation((_code?: string | number | null | undefined) => {
         return undefined as never;
       });
     mockLogger = { info: jest.fn(), error: jest.fn() };

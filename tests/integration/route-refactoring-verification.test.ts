@@ -111,7 +111,7 @@ describe('Route modules - smoke', () => {
     const app: Express = express();
     app.use(express.json());
     app.use('/api', networksRoutes);
-    app.use((err: any, req: any, res: any, next: any) => {
+    app.use((err: any, req: any, res: any, _next: any) => {
       res.status(500).json({ error: err?.message || String(err) });
     });
 

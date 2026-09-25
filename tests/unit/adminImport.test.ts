@@ -1,6 +1,6 @@
 import request from 'supertest';
 import express from 'express';
-import { EventEmitter } from 'events';
+
 import crypto from 'crypto';
 
 jest.mock('../../server/src/config/container', () => ({
@@ -136,7 +136,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', adminImportRouter);
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, req: any, res: any, _next: any) => {
   res.status(err.status || 500).json({ error: err.message });
 });
 

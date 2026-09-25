@@ -2,7 +2,6 @@ import { Pool } from 'pg';
 import { SqliteReader } from './reader';
 import { ObservationLoader } from './loader';
 import { validateAndEnrich } from './transformer';
-import { SqliteNetworkRow } from './types';
 
 // Configuration interface
 export interface ImportConfig {

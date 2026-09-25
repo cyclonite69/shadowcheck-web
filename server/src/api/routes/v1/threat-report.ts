@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 /**
  * Threat Report Routes (v1)
  * Generates per-network report output as JSON, Markdown, HTML, or PDF.

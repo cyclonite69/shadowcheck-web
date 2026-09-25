@@ -2,7 +2,7 @@
  * OUIGroupingService Unit Tests
  */
 
-import { query, pool } from '../../server/src/config/database';
+import { pool } from '../../server/src/config/database';
 import logger from '../../server/src/logging/logger';
 
 const OUIGroupingService = require('../../server/src/services/ouiGroupingService');

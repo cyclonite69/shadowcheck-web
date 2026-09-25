@@ -1,5 +1,5 @@
 import { query, closePool } from '../../server/src/config/database';
-import { runIntegration, describeIfIntegration } from '../helpers/integrationEnv';
+import { describeIfIntegration } from '../helpers/integrationEnv';
 
 describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   const testBssids = [

@@ -24,7 +24,6 @@ import {
   setThreatScoreRange,
   setThreatLevelFilter,
   setRadioTypeFilter,
-  setEncryptionTypeFilter,
   enableEncryptionTypesSection,
   clickEncryptionTypeItem,
   setTimeframeFilter,

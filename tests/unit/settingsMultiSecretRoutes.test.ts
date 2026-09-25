@@ -8,10 +8,10 @@ jest.mock('../../server/src/middleware/authMiddleware', () => ({
 jest.mock('../../server/src/api/routes/v1/settingsHelpers', () => ({
   getErrorMessage: (err: any) => err.message,
   getIncomingValue: (body: any, key: string) => body[key] || body.token || body.value,
-  validateGenericKey: (val: any, key: string) => ({ valid: Boolean(val), value: val }),
+  validateGenericKey: (val: any, _key: string) => ({ valid: Boolean(val), value: val }),
   validateLabel: (val: any) => ({ valid: true, value: val || 'default' }),
   validateMapboxToken: (val: any) => ({ valid: Boolean(val), value: val }),
-  validateString: (val: any, min: number, max: number, key: string) => ({ valid: Boolean(val) && val.length >= min, value: val }),
+  validateString: (val: any, min: number, _max: number, _key: string) => ({ valid: Boolean(val) && val.length >= min, value: val }),
 }));
 
 const {

@@ -146,7 +146,7 @@ describe('v2/filtered/utils', () => {
   });
 
   describe('parseAndValidateBodyFilters', () => {
-    const mockValidator = (filters: any, enabled: any) => {
+    const mockValidator = (filters: any, _enabled: any) => {
       if (!filters || Object.keys(filters).length === 0) {
         return { errors: [] };
       }

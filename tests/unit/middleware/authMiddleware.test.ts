@@ -1,6 +1,6 @@
 export {};
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import {
   requireAuth,
   requireAdmin,

@@ -1,4 +1,3 @@
-const { escapeLikePattern } = require('../../utils/escapeSQL');
 const { NETWORK_CHANNEL_EXPR } = require('../filterQueryBuilder/sqlExpressions');
 const {
   buildThreatScoreExpr,

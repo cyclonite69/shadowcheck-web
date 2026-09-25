@@ -17,7 +17,6 @@ jest.mock('../../../../server/src/services/secretsManager', () => ({
 
 import { enrichZip4, normalizePhones, main } from '../../../../etl/transform/process-agencies';
 import { Pool } from 'pg';
-import { createPool } from '../../../../etl/utils/db';
 
 describe('process-agencies', () => {
   const originalEnv = { ...process.env };

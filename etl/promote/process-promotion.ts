@@ -23,13 +23,6 @@ interface ValidationCheck {
   threshold: number;
   severity: 'error' | 'warning';
 }
-interface ValidationResult {
-  check: string;
-  count: number;
-  threshold: number;
-  passed: boolean;
-  severity: 'error' | 'warning';
-}
 
 const CHECKS: ValidationCheck[] = [
   {

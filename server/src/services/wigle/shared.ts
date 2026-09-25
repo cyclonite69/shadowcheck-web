@@ -1,4 +1,3 @@
-import { query } from '../../config/database';
 import { adminQuery } from '../adminDbService';
 
 export type QueryExecutor = {

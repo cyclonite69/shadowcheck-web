@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it } from '@jest/globals';
 import fc from 'fast-check';
 
 /**

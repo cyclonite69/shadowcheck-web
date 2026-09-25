@@ -10,12 +10,11 @@ import {
   correlateImageBLE,
   correlateVisINT,
   saveVisINTAttachment,
-  ExifMissingError,
   ExifToolUnavailableError,
 } from '../../server/src/services/observationService';
 
 const { query } = require('../../server/src/config/database');
-const { exec, execFile } = require('child_process');
+const { execFile } = require('child_process');
 
 jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),

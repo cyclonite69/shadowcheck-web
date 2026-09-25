@@ -1,4 +1,3 @@
-const express = require('express');
 const networkTagsRouter = require('../../../../../../server/src/api/routes/v1/network-tags/index');
 
 describe('Network Tags Index Router', () => {

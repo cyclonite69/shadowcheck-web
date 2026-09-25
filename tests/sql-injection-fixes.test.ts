@@ -85,7 +85,7 @@ describe('SQL Injection Prevention', () => {
 
       await repo.findMany('1=1', [], { limit: '50; DROP TABLE networks;' });
 
-      const [sql, params] = repo.query.mock.calls[0];
+      const [_sql, params] = repo.query.mock.calls[0];
       expect(params[0]).toBe(50); // Parsed as integer
     });
   });

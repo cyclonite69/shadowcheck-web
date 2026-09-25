@@ -1,4 +1,3 @@
-import express from 'express';
 import wigleRouter from '../../../../../../server/src/api/routes/v1/wigle/index';
 
 describe('WiGLE Routes Main Router', () => {

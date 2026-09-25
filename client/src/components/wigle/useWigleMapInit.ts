@@ -119,7 +119,7 @@ export const useWigleMapInit = ({
           if (lightPreset && typeof map.setConfigProperty === 'function') {
             try {
               map.setConfigProperty('basemap', 'lightPreset', lightPreset);
-            } catch (e) {
+            } catch (_e) {
               // setConfigProperty may not be available
             }
           }

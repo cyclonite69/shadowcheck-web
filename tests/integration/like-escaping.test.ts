@@ -64,7 +64,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should escape underscore to prevent single-char wildcard', async () => {
         await repo.searchBySSID('test_value');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         // Should escape _ to \_
         expect(params[0]).toBe('%test\\_value%');
@@ -73,7 +73,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should escape both % and _ together', async () => {
         await repo.searchBySSID('a_b%c');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%a\\_b\\%c%');
       });
@@ -81,7 +81,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should escape multiple wildcards', async () => {
         await repo.searchBySSID('%%test__');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%\\%\\%test\\_\\_%');
       });
@@ -89,7 +89,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should escape backslash to prevent escape sequence injection', async () => {
         await repo.searchBySSID('test\\%');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         // Should escape backslash first, then %
         expect(params[0]).toBe('%test\\\\\\%%');
@@ -100,7 +100,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should not modify normal SSID', async () => {
         await repo.searchBySSID('Starbucks WiFi');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%Starbucks WiFi%');
       });
@@ -108,7 +108,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should preserve unicode characters', async () => {
         await repo.searchBySSID('Café WiFi');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%Café WiFi%');
       });
@@ -116,7 +116,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should preserve other special characters', async () => {
         await repo.searchBySSID('Test@Home#2024');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%Test@Home#2024%');
       });
@@ -124,7 +124,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should handle empty string', async () => {
         await repo.searchBySSID('');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%%');
       });
@@ -135,7 +135,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
         // Attacker tries to find all SSIDs starting with "admin"
         await repo.searchBySSID('admin%');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         // Should search for literal "admin%" only, not "admin*"
         expect(params[0]).toBe('%admin\\%%');
@@ -145,7 +145,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
         // Attacker tries to match "a<any>b"
         await repo.searchBySSID('a_b');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         // Should search for literal "a_b" only
         expect(params[0]).toBe('%a\\_b%');
@@ -155,7 +155,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
         // Attacker tries complex pattern
         await repo.searchBySSID('%_secret_%');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         // All wildcards should be escaped
         expect(params[0]).toBe('%\\%\\_secret\\_\\%%');
@@ -166,7 +166,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should handle SSID with percent in name', async () => {
         await repo.searchBySSID('100% WiFi');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%100\\% WiFi%');
       });
@@ -174,7 +174,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should handle SSID with underscore separator', async () => {
         await repo.searchBySSID('Guest_Network_5G');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%Guest\\_Network\\_5G%');
       });
@@ -182,7 +182,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
       test('should handle SSID with backslash', async () => {
         await repo.searchBySSID('Network\\Home');
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
 
         expect(params[0]).toBe('%Network\\\\Home%');
       });

@@ -1,6 +1,5 @@
 export {};
 
-import type { Request, Response } from 'express';
 import { createNetworkListHandler } from './handler';
 
 const express = require('express');

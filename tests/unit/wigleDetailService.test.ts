@@ -8,8 +8,6 @@ import {
   fetchOrImportDetail,
   importDetailFromJson,
 } from '../../server/src/services/wigleDetailService';
-
-import logger from '../../server/src/logging/logger';
 import secretsManager from '../../server/src/services/secretsManager';
 import { wigleGatewayFetch } from '../../server/src/services/wigle/wigleGateway';
 import { getEncodedWigleAuth } from '../../server/src/services/wigleRequestUtils';

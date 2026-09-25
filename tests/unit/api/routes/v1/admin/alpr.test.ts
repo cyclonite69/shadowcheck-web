@@ -85,7 +85,7 @@ describe('admin ALPR routes (canonical paths)', () => {
     });
 
     it('passes explicit region and prune flag', async () => {
-      const syncResult = {
+      const _syncResult = {
         regionId: 'denver',
         regionLabel: 'Denver',
         upsertedCount: 15,

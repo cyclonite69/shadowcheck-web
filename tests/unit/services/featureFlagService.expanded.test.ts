@@ -10,8 +10,6 @@ jest.mock('../../../server/src/logging/logger', () => ({
   info: jest.fn(),
 }));
 
-const { query } = require('../../../server/src/config/database');
-
 // Re-require fresh module per test to reset module-level cache state
 let featureFlagService: any;
 

@@ -1,5 +1,4 @@
-const { query } = require('../../config/database');
-import type { GeocodeResult, GeocodeRow } from './types';
+import type {} from './types';
 
 const GEOCODABLE_OBSERVATION_PREDICATE = `
   lat IS NOT NULL

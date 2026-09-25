@@ -7,7 +7,6 @@ import {
   getCircuitBreakerStatus,
 } from '../../../server/src/services/wigleRequestLedger';
 import { adminQuery } from '../../../server/src/services/adminDbService';
-import logger from '../../../server/src/logging/logger';
 
 // Mock dependencies
 jest.mock('../../../server/src/services/adminDbService');

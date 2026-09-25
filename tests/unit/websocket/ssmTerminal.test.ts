@@ -1,7 +1,6 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
-import { URL } from 'url';
 
 // Mock dependencies
 jest.mock('ws');

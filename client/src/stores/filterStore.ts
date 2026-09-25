@@ -377,7 +377,7 @@ export const useFilterStore = create<HardenedFilterStore>()(
 
       deletePreset: (name) => {
         set((state) => {
-          const { [name]: deleted, ...remaining } = state.presets;
+          const { [name]: _deleted, ...remaining } = state.presets;
           return { presets: remaining };
         });
       },

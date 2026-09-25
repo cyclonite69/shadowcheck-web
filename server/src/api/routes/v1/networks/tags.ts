@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 /**
  * Network Tags Routes
  * Manual network classification and tagging
@@ -6,7 +6,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 import express from 'express';
 const router = express.Router();
-const { networkService, networkTagService } = require('../../../../config/container');
+const { networkTagService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import {
   validateBSSID,

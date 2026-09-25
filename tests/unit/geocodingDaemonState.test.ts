@@ -3,7 +3,6 @@
  */
 
 import {
-  geocodeDaemon,
   getDaemonProviderRunOptions,
   loadPersistedDaemonConfig,
   normalizeDaemonConfig,

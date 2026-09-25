@@ -67,7 +67,6 @@ const { query } = require('../../../server/src/config/database');
 const {
   acquireGeocodingRunLock,
   releaseGeocodingRunLock,
-  failJobRun,
 } = require('../../../server/src/services/geocoding/jobState');
 const {
   fetchRows,
@@ -77,7 +76,6 @@ const {
   executeProviderLookup,
   resolveProviderCredentials,
 } = require('../../../server/src/services/geocoding/providerRuntime');
-const { finalizeFailedRun } = require('../../../server/src/services/geocoding/daemonRuntime');
 
 const BASE_OPTS = {
   provider: 'mapbox' as const,

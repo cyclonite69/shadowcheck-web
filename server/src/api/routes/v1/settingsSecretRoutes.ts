@@ -1,7 +1,5 @@
 export {};
 import type { Request, Response } from 'express';
-const express = require('express');
-const router = express.Router();
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const helpers = require('./settingsHelpers');
 

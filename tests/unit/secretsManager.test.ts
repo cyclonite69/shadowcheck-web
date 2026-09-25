@@ -1,8 +1,3 @@
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-  PutSecretValueCommand,
-} from '@aws-sdk/client-secrets-manager';
 
 let secretStore: Record<string, string> = {};
 const sendMock = jest.fn();

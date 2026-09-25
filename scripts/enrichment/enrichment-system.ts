@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import * as pg from 'pg';
 
 // ============================================================================
@@ -156,7 +156,7 @@ class APIManager {
           confidence: tags.name ? 0.9 : 0.5,
         };
       }
-    } catch (err) {
+    } catch (_err) {
       return null;
     }
     return null;
@@ -178,7 +178,7 @@ class APIManager {
           confidence: res.data.type !== 'house' ? 0.7 : 0.3,
         };
       }
-    } catch (err) {
+    } catch (_err) {
       return null;
     }
     return null;
@@ -200,7 +200,7 @@ class APIManager {
           confidence: 0.8,
         };
       }
-    } catch (err) {
+    } catch (_err) {
       return null;
     }
     return null;
@@ -225,7 +225,7 @@ class APIManager {
           confidence: 0.8,
         };
       }
-    } catch (err) {
+    } catch (_err) {
       return null;
     }
     return null;
@@ -249,7 +249,7 @@ class APIManager {
           confidence: 0.85,
         };
       }
-    } catch (err) {
+    } catch (_err) {
       return null;
     }
     return null;
@@ -399,7 +399,7 @@ class BatchController {
             this.stats.failed++;
             return null;
           }
-        } catch (err) {
+        } catch (_err) {
           this.stats.failed++;
           return null;
         }

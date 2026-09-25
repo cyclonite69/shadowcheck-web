@@ -4,7 +4,6 @@ import {
   getRequestFingerprint,
   getSearchTerm,
   normalizeImportParams,
-  type WigleImportParams,
 } from '../params';
 
 type CreateImportRunOverrides = {

@@ -108,7 +108,7 @@ describe('ThreatMLModel', () => {
     it('should throw an error if model training failed (no weights)', async () => {
       // We can't easily make the real library fail this way,
       // so we mock the LogisticRegression class.
-      const LogisticRegression = require('ml-logistic-regression');
+      const _LogisticRegression = require('ml-logistic-regression');
       jest.mock('ml-logistic-regression', () => {
         return jest.fn().mockImplementation(() => ({
           train: jest.fn(),

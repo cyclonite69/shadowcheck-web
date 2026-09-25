@@ -3,7 +3,6 @@ const { query } = require('../config/database');
 
 import type {
   GeocodeDaemonConfig,
-  GeocodeMode,
   GeocodeProvider,
   GeocodeProviderCredentials,
   GeocodingProviderProbe,
@@ -118,7 +117,7 @@ const processGeocodeRow = async (
             result = fallbackResult;
             break;
           }
-        } catch (fErr) {
+        } catch (_fErr) {
           // Silently continue to next fallback
         }
       }

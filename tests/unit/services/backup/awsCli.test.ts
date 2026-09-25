@@ -1,5 +1,4 @@
 import { spawn } from 'child_process';
-import os from 'os';
 import {
   buildAwsCliEnv,
   deleteS3BackupObject,
@@ -9,7 +8,6 @@ import {
 } from '../../../../server/src/services/backup/awsCli';
 
 const { getAwsConfig } = require('../../../../server/src/services/awsService');
-const logger = require('../../../../server/src/logging/logger');
 
 jest.mock('child_process', () => ({
   spawn: jest.fn(),
@@ -169,7 +167,7 @@ describe('awsCli Service', () => {
 
   describe('uploadBackupToS3()', () => {
     it('should call runAwsCliJson with correct arguments', async () => {
-      const { callbacks, stdoutCallbacks } = (() => {
+      const { callbacks, stdoutCallbacks: _stdoutCallbacks } = (() => {
         const callbacks: Record<string, Function> = {};
         const stdoutCallbacks: Record<string, Function> = {};
         const mockChild = {

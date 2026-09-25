@@ -7,7 +7,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { networkService, networkTagService } = require('../../../../config/container');
+const { networkTagService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const {
   bssidParamMiddleware,

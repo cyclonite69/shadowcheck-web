@@ -2,11 +2,9 @@
  * Route mounting helpers for the main server bootstrap.
  */
 import type { Express, Router } from 'express';
-import type { QueryResult } from 'pg';
+
 import type { RequestHandler } from 'express';
 import { requireAuth, requireAdmin } from '../middleware/authMiddleware';
-
-type QueryFunction = (text: string, params?: unknown[]) => Promise<QueryResult>;
 
 interface DashboardRoutesModule {
   router: Router;

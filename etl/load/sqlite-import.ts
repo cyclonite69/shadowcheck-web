@@ -35,7 +35,7 @@ import {
   recomputeBestPositions,
   moveOrphanNetworksToHoldingTable,
 } from './sqlite/networkReconciliation';
-import type { SqliteLocationRow, SqliteNetworkRow, ImportSummary } from './sqlite/types';
+import type { SqliteNetworkRow, ImportSummary } from './sqlite/types';
 
 // ============================================================================
 // CONFIGURATION

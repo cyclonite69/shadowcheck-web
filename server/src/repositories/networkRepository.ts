@@ -4,9 +4,6 @@ const logger = require('../logging/logger');
 const { UniversalFilterQueryBuilder } = require('../services/filterQueryBuilder');
 const BaseRepository = require('./baseRepository');
 const {
-  OBS_TYPE_EXPR,
-  THREAT_LEVEL_EXPR,
-  THREAT_SCORE_EXPR,
   normalizeRadioTypes,
   isAllRadioTypesSelection,
 } = require('../services/filterQueryBuilder/sqlExpressions');

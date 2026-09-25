@@ -23,7 +23,7 @@ const app = express();
 app.use(express.json());
 app.use('/', observationsRouter);
 // Simple error handler to prevent crashing tests
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   res.status(500).json({ error: err.message });
 });
 

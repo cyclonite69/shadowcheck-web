@@ -1,10 +1,4 @@
-import {
-  createUserSession,
-  updateLastLogin,
-  deleteUserSession,
-  deleteExpiredSessions,
-  updateUserPassword,
-} from '../../../server/src/services/authWrites';
+import { createUserSession, updateUserPassword } from '../../../server/src/services/authWrites';
 import { query } from '../../../server/src/config/database';
 
 jest.mock('../../../server/src/config/database');

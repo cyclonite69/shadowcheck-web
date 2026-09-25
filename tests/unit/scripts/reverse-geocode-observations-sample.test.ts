@@ -19,7 +19,6 @@ import {
   reverseGeocode,
   storeResult,
   main,
-  POI_EXCLUDE_DEFAULT,
 } from '../../../scripts/geocoding/reverse-geocode-observations-sample';
 
 describe('reverse-geocode-observations-sample', () => {

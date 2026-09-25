@@ -1,7 +1,4 @@
-import {
-  parseSignalFilters,
-  type SignalFilterParams,
-} from '../../../../../../../../server/src/api/routes/v1/networks/list/parsers/signalFilters';
+import { parseSignalFilters } from '../../../../../../../../server/src/api/routes/v1/networks/list/parsers/signalFilters';
 
 // Mock the validation and config modules
 jest.mock('../../../../../../../../server/src/validation/parameterParsers', () => ({
@@ -133,7 +130,7 @@ describe('signalFilters', () => {
     });
 
     it('defaults minObsCount to 1 when value is null', () => {
-      (parseOptionalInteger as jest.Mock).mockImplementation((value, min, max, fieldName) => {
+      (parseOptionalInteger as jest.Mock).mockImplementation((_value, _min, _max, _fieldName) => {
         return { ok: true, value: null };
       });
 

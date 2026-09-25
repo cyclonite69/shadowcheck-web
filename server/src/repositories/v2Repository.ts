@@ -14,7 +14,7 @@ import type {
   SeverityCounts,
 } from '../types/v2Types';
 
-const { query, CONFIG } = require('../config/database');
+const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
 const SLOW_QUERY_THRESHOLD_MS = Math.max(0, Number(process.env.SLOW_QUERY_THRESHOLD_MS ?? 2000));

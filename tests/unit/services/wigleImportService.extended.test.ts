@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import * as wigleImportService from '../../../server/src/services/wigleImportService';
 import * as adminDb from '../../../server/src/services/adminDbService';
 import logger from '../../../server/src/logging/logger';

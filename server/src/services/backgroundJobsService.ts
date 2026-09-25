@@ -10,12 +10,7 @@ const { getJobStatus, trackJobRun } = require('../repositories/jobRunRepository'
 
 export {};
 
-import {
-  BACKUP_CRON,
-  DEFAULT_JOB_CONFIGS,
-  ML_SCORING_CRON,
-  MV_REFRESH_CRON,
-} from './backgroundJobs/config';
+import { BACKUP_CRON, ML_SCORING_CRON, MV_REFRESH_CRON } from './backgroundJobs/config';
 import {
   getResolvedJobConfig,
   hasJobConfigChanged,

@@ -18,7 +18,7 @@ describe('networkFastPathListBuilder', () => {
 
   beforeEach(() => {
     ctx = new FilterBuildContext({}, {});
-    jest.spyOn(ctx, 'addParam').mockImplementation((val) => '$MOCK_PARAM');
+    jest.spyOn(ctx, 'addParam').mockImplementation((_val) => '$MOCK_PARAM');
     jest.spyOn(ctx, 'getParams').mockReturnValue(['param1']);
     jest
       .spyOn(ctx.state, 'appliedFilters')

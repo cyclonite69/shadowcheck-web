@@ -1,7 +1,6 @@
 import { processSuccessfulPage } from '../../../../server/src/services/wigleImport/pageProcessor';
 const { pool } = require('../../../../server/src/config/database');
 const wigleService = require('../../../../server/src/services/wigleService');
-const logger = require('../../../../server/src/logging/logger');
 
 jest.mock('../../../../server/src/config/database', () => ({
   pool: {

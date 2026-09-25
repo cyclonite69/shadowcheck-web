@@ -133,7 +133,7 @@ describe('reverse-geocode-batch', () => {
       const mockJson1 = JSON.stringify({ features: [{ place_name: 'Place A' }] });
       const mockJson2 = JSON.stringify({ features: [] });
 
-      const getSpy = jest
+      const _getSpy = jest
         .spyOn(https, 'get')
         .mockImplementationOnce((url: any, cb?: any) => {
           cb({
@@ -178,7 +178,7 @@ describe('reverse-geocode-batch', () => {
       (readFileSync as jest.Mock).mockReturnValue('lat,lon,bssid\n42.12,-83.45,bssid-1\n');
       process.argv = ['node', 'script.js', 'in.csv', 'out.csv'];
 
-      jest.spyOn(https, 'get').mockImplementation((url: any, cb?: any) => {
+      jest.spyOn(https, 'get').mockImplementation((_url: any, _cb?: any) => {
         const reqMock = {
           on: (event: string, eventCb: any) => {
             if (event === 'error') {

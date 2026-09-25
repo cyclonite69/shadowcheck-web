@@ -21,7 +21,7 @@ export function isRandomizedMAC(bssid: string): boolean {
   try {
     const firstOctet = parseInt(clean.substring(0, 2), 16);
     return (firstOctet & 0x02) !== 0;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 }

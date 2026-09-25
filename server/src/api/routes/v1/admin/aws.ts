@@ -9,7 +9,6 @@ const {
   listInstances,
   buildStateCounts,
   isAccessDeniedError,
-  isCredentialError,
   EC2Client,
   STSClient,
   GetCallerIdentityCommand,

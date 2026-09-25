@@ -8,10 +8,7 @@ jest.mock('../../client/src/api/client', () => ({
   apiClient: { get: jest.fn() },
 }));
 
-import {
-  emitDetectionEvidence,
-  DETECTION_EVIDENCE_EVENT,
-} from '../../client/src/components/geospatial/networkTagMenu/DetectionEvidenceModal';
+import { emitDetectionEvidence } from '../../client/src/components/geospatial/networkTagMenu/DetectionEvidenceModal';
 
 const baseRow: NetworkRow = {
   bssid: 'AA:BB:CC:DD:EE:FF',

@@ -21,29 +21,13 @@ const { scoreAllNetworks } = mlScoringService;
 const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT ?? '0', 10) || 100;
 const DEFAULT_AUTO_SCORE_LIMIT = parseInt(process.env.ML_AUTO_SCORE_LIMIT ?? '0', 10) || 1000;
 const DEFAULT_MODEL_VERSION = process.env.ML_MODEL_VERSION || '1.0.0';
-const MAX_SCORE_LIMIT = 200000;
+
 const parseBoolean = (value: any, defaultValue = false) => {
   if (value === undefined || value === null || value === '') {
     return defaultValue;
   }
   const normalized = String(value).trim().toLowerCase();
   return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
-};
-
-const determineThreatLevel = (score: number) => {
-  if (score >= 80) {
-    return 'CRITICAL';
-  }
-  if (score >= 60) {
-    return 'HIGH';
-  }
-  if (score >= 40) {
-    return 'MED';
-  }
-  if (score >= 20) {
-    return 'LOW';
-  }
-  return 'NONE';
 };
 
 // Load ML model with error handling

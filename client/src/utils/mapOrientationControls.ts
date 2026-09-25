@@ -102,7 +102,7 @@ export async function attachMapOrientationControls(
     controls.forEach((ctrl) => {
       try {
         map.removeControl(ctrl);
-      } catch (e) {
+      } catch (_e) {
         // Control may already be removed
       }
     });

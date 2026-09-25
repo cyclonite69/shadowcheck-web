@@ -381,7 +381,7 @@ export async function syncKmlTransactions(
         );
       }
 
-      const { filesImported, pointsImported } = parseKmlImportCounts(importResult.output, 1);
+      const { pointsImported } = parseKmlImportCounts(importResult.output, 1);
       const metricsAfter = await adminImportHistoryService.captureImportMetrics();
       await adminImportHistoryService.completeImportSuccess(
         historyId,

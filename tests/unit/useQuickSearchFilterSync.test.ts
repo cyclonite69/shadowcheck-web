@@ -1,5 +1,4 @@
-import type { NetworkFilters } from '../../client/src/types/filters';
-
+export {};
 const React = require('react');
 
 const mockEffects: any[] = [];

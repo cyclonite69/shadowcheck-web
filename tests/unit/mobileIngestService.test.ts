@@ -3,7 +3,6 @@
  */
 
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import * as fs from 'fs';
 import { pipeline } from 'stream/promises';
 import mobileIngestService from '../../server/src/services/mobileIngestService';
 const { adminQuery } = require('../../server/src/services/adminDbService');
@@ -23,8 +22,6 @@ jest.mock('../../server/src/services/secretsManager', () => ({
   get: jest.fn().mockReturnValue('mock-secret'),
   getOrThrow: jest.fn().mockReturnValue('mock-secret'),
 }));
-
-import { Writable } from 'stream';
 
 describe('MobileIngestService', () => {
   beforeEach(() => {

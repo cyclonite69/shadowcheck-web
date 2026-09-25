@@ -17,7 +17,7 @@ let statsCache: { data: any; fetchedAt: number } | null = null;
  * Returns cached data (stale:true) on rate-limit or error if a prior
  * successful response is available, so the UI can stay populated.
  */
-router.get('/user-stats', async (req: any, res: any, next: any) => {
+router.get('/user-stats', async (req: any, res: any, _next: any) => {
   const now = Date.now();
   const forceRefresh = req.query.refresh === 'true';
   const fresh = statsCache && now - statsCache.fetchedAt < CACHE_TTL_MS && !forceRefresh;

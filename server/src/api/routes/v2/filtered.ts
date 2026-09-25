@@ -3,9 +3,7 @@
  * Single source of truth for list, map, analytics, and observation queries.
  */
 
-import type { Request, Response, NextFunction } from 'express';
 import { createHandlers } from './filteredHandlers';
-import { ROUTE_CONFIG } from '../../../config/routeConfig';
 
 const express = require('express');
 const router = express.Router();

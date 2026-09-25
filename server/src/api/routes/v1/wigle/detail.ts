@@ -23,7 +23,7 @@ interface FileUploadRequest extends Request {
 router.post(
   '/detail/batch',
   requireAdmin,
-  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const { bssids, import: shouldImport } = req.body;
 
     if (!Array.isArray(bssids) || bssids.length === 0) {
@@ -99,7 +99,7 @@ router.post(
 router.post(
   '/detail/:netid',
   requireAdmin,
-  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const netid = String(req.params.netid || '')
       .trim()
       .toUpperCase();
@@ -117,7 +117,7 @@ router.post(
 router.post(
   '/detail/bt/:netid',
   requireAdmin,
-  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const netid = String(req.params.netid || '')
       .trim()
       .toUpperCase();

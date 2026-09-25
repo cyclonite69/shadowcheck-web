@@ -1,7 +1,7 @@
 /**
  * Authentication middleware.
  */
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { Request, NextFunction, RequestHandler } from 'express';
 
 const logger = require('../logging/logger');
 

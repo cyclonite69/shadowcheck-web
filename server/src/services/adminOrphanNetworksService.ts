@@ -2,7 +2,7 @@ export {};
 
 const { adminQuery } = require('./adminDbService');
 const wigleService = require('./wigleService');
-const logger = require('../logging/logger');
+
 const { escapeLikePattern } = require('../utils/escapeSQL');
 import { stripNullBytes, inferWigleEndpoint } from './wigleDetailTransforms';
 import { fetchUpstream, importObservations } from './wigleDetailService';

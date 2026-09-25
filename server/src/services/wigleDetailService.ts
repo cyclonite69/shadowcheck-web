@@ -8,11 +8,7 @@ import secretsManager from './secretsManager';
 import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
 import { logWigleAuditEvent } from './wigleAuditLogger';
-import {
-  stripNullBytes,
-  stripNullBytesDeep,
-  mapCachedDetailToApiShape,
-} from './wigleDetailTransforms';
+import { stripNullBytesDeep, mapCachedDetailToApiShape } from './wigleDetailTransforms';
 import { getRecentWigleDetailImport, getWigleObservations } from './wigle/database';
 import { getWigleDetail } from './wigle/detail';
 import {

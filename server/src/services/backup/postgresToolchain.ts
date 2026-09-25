@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { constants, createWriteStream } from 'fs';
-import path from 'path';
+
 import { spawn } from 'child_process';
 import logger from '../../logging/logger';
 import secretsManager from '../secretsManager';
@@ -205,8 +205,7 @@ export const runNativePgDump = async (options: {
   backupScope: BackupScope;
   pgEnv: NodeJS.ProcessEnv;
 }): Promise<{ globalsSuccess: boolean }> => {
-  const { pgDumpPath, pgDumpAllPath, dbFilePath, globalsFilePath, database, backupScope, pgEnv } =
-    options;
+  const { pgDumpPath, pgDumpAllPath, dbFilePath, globalsFilePath, backupScope, pgEnv } = options;
 
   let globalsSuccess = false;
   logger.info(`[Backup] Starting globals dump to ${globalsFilePath}`);

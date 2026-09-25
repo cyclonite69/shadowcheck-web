@@ -59,7 +59,7 @@ describe('mvRefresh service', () => {
     });
     runAdminQuery.mockResolvedValue({ rows: [] }); // refresh calls
 
-    const result = await refreshMaterializedViews(runAdminQuery);
+    const _result = await refreshMaterializedViews(runAdminQuery);
 
     expect(runAdminQuery).toHaveBeenCalledWith(
       'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'

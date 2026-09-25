@@ -42,24 +42,26 @@ describe('v2 list route handler', () => {
     };
     mockValidateFilterPayload = jest.fn(() => ({ errors: [] }));
 
-    MockUniversalFilterQueryBuilder = jest.fn().mockImplementation((filters, enabled, options) => {
-      return {
-        buildNetworkListQuery: jest.fn().mockReturnValue({
-          sql: 'SELECT * FROM app.networks',
-          params: [],
-          appliedFilters: ['distanceMin'],
-          ignoredFilters: [],
-          warnings: [],
-        }),
-        buildNetworkCountQuery: jest.fn().mockReturnValue({
-          sql: 'SELECT COUNT(*) FROM app.networksCount',
-          params: [],
-          appliedFilters: [],
-          ignoredFilters: [],
-          warnings: [],
-        }),
-      };
-    });
+    MockUniversalFilterQueryBuilder = jest
+      .fn()
+      .mockImplementation((_filters, _enabled, _options) => {
+        return {
+          buildNetworkListQuery: jest.fn().mockReturnValue({
+            sql: 'SELECT * FROM app.networks',
+            params: [],
+            appliedFilters: ['distanceMin'],
+            ignoredFilters: [],
+            warnings: [],
+          }),
+          buildNetworkCountQuery: jest.fn().mockReturnValue({
+            sql: 'SELECT COUNT(*) FROM app.networksCount',
+            params: [],
+            appliedFilters: [],
+            ignoredFilters: [],
+            warnings: [],
+          }),
+        };
+      });
 
     mockFilterQueryBuilder = {
       UniversalFilterQueryBuilder: MockUniversalFilterQueryBuilder,

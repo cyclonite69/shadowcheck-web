@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 /**
  * WiGLE Observations Routes
  * Fetch stored observation data with pagination support

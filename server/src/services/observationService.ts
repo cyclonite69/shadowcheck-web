@@ -7,7 +7,6 @@ import { extractExif, ExifMissingError, ExifToolUnavailableError } from './visin
 import { correlateVisINT, saveVisINTAttachment } from './visint/visintPipeline';
 
 const { query } = require('../config/database');
-const logger = require('../logging/logger');
 
 export async function getHomeLocationForObservations(): Promise<{
   lon: number;

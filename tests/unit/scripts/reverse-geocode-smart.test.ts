@@ -160,7 +160,7 @@ describe('reverse-geocode-smart', () => {
       (readFileSync as jest.Mock).mockReturnValue('bssid,lat,lon\n"AA:BB",42.12,-83.45\n');
       process.argv = ['node', 'script.js', 'in.csv', 'out.csv'];
 
-      jest.spyOn(https, 'get').mockImplementation((url: any, cb?: any) => {
+      jest.spyOn(https, 'get').mockImplementation((_url: any, _cb?: any) => {
         const reqMock = {
           on: (event: string, eventCb: any) => {
             if (event === 'error') {

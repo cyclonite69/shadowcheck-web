@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 /**
  * WiGLE Database Routes
  * Local WiGLE database queries

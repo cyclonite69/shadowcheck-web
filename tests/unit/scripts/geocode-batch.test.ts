@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import * as https from 'https';
 
 const mockGet = jest.fn();
 jest.mock('https', () => ({

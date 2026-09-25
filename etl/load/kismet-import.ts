@@ -9,7 +9,6 @@
  *   npx tsx etl/load/kismet-import.ts <kismet_file> [session_id]
  */
 
-import * as fs from 'fs';
 import { Pool } from 'pg';
 import sqlite3 from 'sqlite3';
 import '../loadEnv';

@@ -237,7 +237,7 @@ export const useMapLayersToggle = ({
     if (sourceId === 'mapbox-standard') {
       try {
         mapRef.current.setConfigProperty('basemap', 'show3dObjects', enabled);
-      } catch (e) {
+      } catch (_e) {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'show3dObjects', enabled);
         } catch (e2) {
@@ -269,11 +269,11 @@ export const useMapLayersToggle = ({
       try {
         mapRef.current.setConfigProperty('basemap', 'showTerrain', true);
         return;
-      } catch (e) {
+      } catch (_e) {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'showTerrain', true);
           return;
-        } catch (e2) {
+        } catch (_e2) {
           // Fallback to traditional method
         }
       }
@@ -301,7 +301,7 @@ export const useMapLayersToggle = ({
     if (isStandardStyle()) {
       try {
         mapRef.current.setConfigProperty('basemap', 'showTerrain', enabled);
-      } catch (e) {
+      } catch (_e) {
         try {
           mapRef.current.setConfigProperty('mapbox-standard', 'showTerrain', enabled);
         } catch (e2) {

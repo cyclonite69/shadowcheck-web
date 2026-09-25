@@ -19,7 +19,6 @@ import {
   main,
   parseArgs,
   resolveDbHost,
-  loadSecretsManager,
   countryForState,
   buildQuery,
   nominatimSearch,

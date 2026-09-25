@@ -8,12 +8,7 @@ import {
   markRunControlStatus,
   resumeRunState,
 } from './runRepository';
-import {
-  getRequestFingerprint,
-  normalizeImportParams,
-  validateImportQuery,
-  type WigleImportParams,
-} from './params';
+import { getRequestFingerprint, normalizeImportParams, validateImportQuery } from './params';
 
 export type WigleImportRunStatus = 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
 

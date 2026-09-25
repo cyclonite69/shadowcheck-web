@@ -1,5 +1,3 @@
-import * as path from 'path';
-
 // 1. Setup all mocks BEFORE any other imports
 jest.mock('../../server/src/logging/logger', () => ({
   info: jest.fn(),
@@ -103,7 +101,7 @@ async function invokeRoute(path: string, options: any = {}) {
     ip: '127.0.0.1',
   };
 
-  return new Promise<{ status: number; body: any }>((resolve, reject) => {
+  return new Promise<{ status: number; body: any }>((resolve, _reject) => {
     const res: MockResponse = {
       statusCode: 200,
       body: undefined,

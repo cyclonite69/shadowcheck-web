@@ -1,10 +1,4 @@
 import * as fc from 'fast-check';
-import { GeospatialModule } from '../../../server/src/services/filterQueryBuilder/modules/GeospatialModule';
-import { FilterBuildContext } from '../../../server/src/services/filterQueryBuilder/FilterBuildContext';
-
-// Minimal mock to satisfy the constructor dependencies
-const mockCtx = new FilterBuildContext({}, {});
-const mockCte = { cte: '', params: [] };
 
 describe('GeospatialModule Property-Based Tests', () => {
   test('generates valid bounding box constraints', async () => {

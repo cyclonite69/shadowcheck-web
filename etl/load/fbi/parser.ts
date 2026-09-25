@@ -1,5 +1,3 @@
-import { OfficeRecord } from './types';
-
 const PHONE_REGEX = /(\(\d{3}\)\s*|\d{3}-)\d{3}-\d{4}/;
 const CITY_STATE_ZIP_REGEX = /([A-Za-z\s]+),\s*([A-Za-z]{2})\s*(\d{5}(-\d{4})?)/;
 const SECTION_STOP_KEYWORDS = ['address', 'phone', 'website', 'jurisdiction', 'field offices'];

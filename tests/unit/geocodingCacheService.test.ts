@@ -6,15 +6,12 @@ const geocodingCacheService = require('../../server/src/services/geocodingCacheS
 
 import {
   calculateRateLimitBackoffMs,
-  ensureProviderReady,
   executeProviderLookup,
-  getProviderLabel,
   resolveProviderCredentials,
 } from '../../server/src/services/geocoding/providerRuntime';
 import {
   fetchRows,
   loadCacheStats,
-  seedAddressCandidates,
   upsertGeocodeCacheBatch,
 } from '../../server/src/services/geocoding/cacheStore';
 import {
@@ -22,21 +19,11 @@ import {
   completeJobRun,
   createJobRun,
   createRunSnapshot,
-  failJobRun,
   getProbeCoordinates,
   loadRecentJobHistory,
   releaseGeocodingRunLock,
-  updateJobRunProgress,
 } from '../../server/src/services/geocoding/jobState';
-import {
-  finalizeFailedRun,
-  finalizeSuccessfulRun,
-  getGeocodingDaemonStatus,
-  startGeocodingDaemon,
-  stopGeocodingDaemon,
-} from '../../server/src/services/geocoding/daemonRuntime';
-
-import logger from '../../server/src/logging/logger';
+import { getGeocodingDaemonStatus } from '../../server/src/services/geocoding/daemonRuntime';
 
 // Mock all dependencies
 jest.mock('../../server/src/logging/logger');

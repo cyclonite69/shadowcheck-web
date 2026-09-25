@@ -19,7 +19,6 @@ import {
   main,
   parseArgs,
   resolveDbHost,
-  loadSecretsManager,
   buildQuery,
   opencageForward,
   normalizeZip5,

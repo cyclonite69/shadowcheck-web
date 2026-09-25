@@ -33,7 +33,7 @@ jest.mock('../../server/src/config/database', () => ({
   },
 }));
 
-const { query, CONFIG } = require('../../server/src/config/database');
+const { query } = require('../../server/src/config/database');
 const BaseRepository = require('../../server/src/repositories/baseRepository');
 const NetworkRepository = require('../../server/src/repositories/networkRepository');
 
@@ -176,7 +176,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
           limit: '50; DROP TABLE networks;',
         });
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
         expect(params[0]).toBe(50); // Parsed as integer
       });
 
@@ -186,7 +186,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
           limit: 9999,
         });
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
         expect(params[0]).toBe(1000);
       });
 
@@ -196,7 +196,7 @@ describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
           offset: -100,
         });
 
-        const [sql, params] = query.mock.calls[0];
+        const [_sql, params] = query.mock.calls[0];
         expect(params[1]).toBe(0);
       });
 

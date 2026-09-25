@@ -24,7 +24,7 @@ describe('SurveillanceDetectionRepository Integration', () => {
     // Even if it's empty, getEnvOverride will fallback to DB_PASSWORD env var.
     try {
       await secretsManager.load();
-    } catch (e) {
+    } catch {
       // In some test envs this might fail if AWS is totally blocked,
       // but we only need it to NOT throw if DB_PASSWORD is provided.
     }

@@ -133,8 +133,6 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
       }
 
       for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        const startedAt = Date.now();
-
         try {
           if (attempt === 0) {
             logger.info(

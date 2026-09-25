@@ -58,6 +58,7 @@ module.exports = [
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
       // Disable base indent rule for TS files — it mis-fires on TypeScript syntax

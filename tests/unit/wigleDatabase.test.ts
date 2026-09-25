@@ -27,7 +27,7 @@ jest.mock('../../server/src/utils/asyncHandler', () => ({
 
 jest.mock('../../server/src/validation/middleware', () => ({
   macParamMiddleware: (req: any, res: any, next: any) => next(),
-  validateQuery: (schema: any) => (req: any, res: any, next: any) => {
+  validateQuery: (_schema: any) => (req: any, res: any, next: any) => {
     req.validated = { ...req.query };
     next();
   },
@@ -45,7 +45,7 @@ const wigleDatabaseRouter = require('../../server/src/api/routes/v1/wigle/databa
 const app = express();
 app.use(express.json());
 app.use('/api/wigle', wigleDatabaseRouter);
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, req: any, res: any, _next: any) => {
   res.status(500).json({ error: err.message });
 });
 

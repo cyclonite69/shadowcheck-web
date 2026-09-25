@@ -106,7 +106,7 @@ async function extractExifFromBuffer(
   } finally {
     try {
       fs.unlinkSync(tempFilePath);
-    } catch (cleanupErr) {
+    } catch (_cleanupErr) {
       // ignore
     }
   }

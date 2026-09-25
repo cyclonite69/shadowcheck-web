@@ -38,7 +38,6 @@ jest.mock('../../server/src/config/database', () => ({
   },
 }));
 
-const request = require('supertest');
 const NetworkRepository = require('../../server/src/repositories/networkRepository');
 const DashboardService = require('../../server/src/services/dashboardService');
 

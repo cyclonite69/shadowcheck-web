@@ -46,9 +46,9 @@ describe('useMediaLocationLayers', () => {
   let mockMapboxgl: any;
   let mockPopup: any;
   let popupElement: any;
-  let mediaClickHandler: ((event: any) => void) | null = null;
+  let _mediaClickHandler: ((event: any) => void) | null = null;
   let matchedMediaClickHandler: ((event: any) => void) | null = null;
-  let popupClickHandler: ((event: any) => void) | null = null;
+  let _popupClickHandler: ((event: any) => void) | null = null;
   let mapRef: any;
   let mapboxRef: any;
   let popupOnCloseHandler: (() => void) | null = null;
@@ -56,9 +56,9 @@ describe('useMediaLocationLayers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     effectCallback = null;
-    mediaClickHandler = null;
+    _mediaClickHandler = null;
     matchedMediaClickHandler = null;
-    popupClickHandler = null;
+    _popupClickHandler = null;
     popupOnCloseHandler = null;
 
     (globalThis as any).window = { open: jest.fn() };
@@ -66,7 +66,7 @@ describe('useMediaLocationLayers', () => {
     popupElement = {
       addEventListener: jest.fn((event: string, handler: (event: any) => void) => {
         if (event === 'click') {
-          popupClickHandler = handler;
+          _popupClickHandler = handler;
         }
       }),
     };
@@ -94,7 +94,7 @@ describe('useMediaLocationLayers', () => {
       getLayer: jest.fn(),
       on: jest.fn((event: string, layer: string, handler: (event: any) => void) => {
         if (event === 'click' && layer === 'media-location-markers') {
-          mediaClickHandler = handler;
+          _mediaClickHandler = handler;
         } else if (event === 'click' && layer === 'matched-media-markers') {
           matchedMediaClickHandler = handler;
         }
@@ -140,8 +140,8 @@ describe('useMediaLocationLayers', () => {
   });
 
   it('removes existing sources/layers when showMediaLocations becomes false', () => {
-    mockMap.getLayer.mockImplementation((id: string) => true);
-    mockMap.getSource.mockImplementation((id: string) => true);
+    mockMap.getLayer.mockImplementation((_id: string) => true);
+    mockMap.getSource.mockImplementation((_id: string) => true);
 
     useMediaLocationLayers({
       mapReady: true,

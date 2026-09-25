@@ -5,12 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs').promises;
-const { spawn } = require('child_process');
 const { adminNetworkTagsService } = require('../../../config/container');
-const logger = require('../../../logging/logger');
 const {
   validateBSSID,
   validateTimestamp: validateTimestampMs,
@@ -42,23 +37,6 @@ const adminAlprRoutes = require('./admin/alpr');
 
 // Protect all admin routes
 router.use(requireAdmin);
-
-// Configure multer for SQLite file uploads
-const upload = multer({
-  dest: '/tmp/',
-  fileFilter: (req: any, file: any, cb: any) => {
-    const allowedExts = ['.sqlite', '.db', '.sqlite3'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExts.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only SQLite files (.sqlite, .db, .sqlite3) are allowed'));
-    }
-  },
-  limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB limit
-  },
-});
 
 router.use(adminMlRoutes);
 router.use(adminTagsRoutes);

@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as winston from 'winston';
 
 jest.mock('fs', () => ({
   existsSync: jest.fn(),

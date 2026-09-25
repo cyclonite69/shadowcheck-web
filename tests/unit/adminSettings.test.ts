@@ -34,7 +34,6 @@ jest.mock('../../server/src/logging/logger', () => ({
 
 let mockChildProcessSpawn: any;
 jest.mock('child_process', () => {
-  const EventEmitter = require('events').EventEmitter;
   return {
     spawn: jest.fn().mockImplementation(() => {
       return mockChildProcessSpawn;

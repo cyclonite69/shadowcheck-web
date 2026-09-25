@@ -13,7 +13,7 @@ describe('Network type utilities', () => {
   it('every network type has label and color configuration', () => {
     const { NETWORK_TYPE_CONFIG } = require('../../client/src/constants/network');
 
-    Object.entries(NETWORK_TYPE_CONFIG).forEach(([typeCode, config]: any) => {
+    Object.entries(NETWORK_TYPE_CONFIG).forEach(([_typeCode, config]: any) => {
       expect(config.label).toBeDefined();
       expect(typeof config.label).toBe('string');
       expect(config.label.length).toBeGreaterThan(0);

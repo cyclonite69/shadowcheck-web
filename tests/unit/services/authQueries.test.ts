@@ -1,8 +1,4 @@
-import {
-  getUserForLogin,
-  getUserForPasswordChange,
-  getSessionUser,
-} from '../../../server/src/services/authQueries';
+import { getUserForLogin, getSessionUser } from '../../../server/src/services/authQueries';
 import { query } from '../../../server/src/config/database';
 
 jest.mock('../../../server/src/config/database');

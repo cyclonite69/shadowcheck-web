@@ -64,7 +64,7 @@ app.get('/test-serve/:filename', async (req: any, res: any, next: any) => {
 });
 
 // Error handling middleware to format errors as JSON
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, req: any, res: any, _next: any) => {
   res.status(err.status || 500).json({ ok: false, error: err.message });
 });
 

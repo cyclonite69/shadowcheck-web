@@ -1,6 +1,5 @@
 import { spawn } from 'child_process';
 import { PROJECT_ROOT } from '../../services/admin/adminHelpers';
-import logger from '../../logging/logger';
 
 export interface ImportResult {
   code: number;

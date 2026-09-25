@@ -11,7 +11,6 @@ const btPageProcessor = require('../../../../server/src/services/wigleImport/btP
 const authProvider = require('../../../../server/src/services/wigleImport/authProvider');
 const rateLimitingStrategy = require('../../../../server/src/services/wigleImport/rateLimitingStrategy');
 const btApiClient = require('../../../../server/src/services/wigleImport/btApiClient');
-const logger = require('../../../../server/src/logging/logger');
 
 jest.mock('../../../../server/src/logging/logger', () => ({
   info: jest.fn(),

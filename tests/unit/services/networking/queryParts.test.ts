@@ -106,7 +106,7 @@ describe('Networking Query Parts Service', () => {
       const homeLocation = null;
       const simpleRuleScoringEnabled = false;
 
-      const result = buildNetworkQueryParts(opts, homeLocation, simpleRuleScoringEnabled);
+      const _result = buildNetworkQueryParts(opts, homeLocation, simpleRuleScoringEnabled);
 
       expect(withDistanceColumn).toHaveBeenCalledWith(expect.any(Array), false);
       expect(applyTextAndRangeFilters).toHaveBeenCalledWith(

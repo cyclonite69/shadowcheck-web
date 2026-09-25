@@ -43,7 +43,7 @@ describe('buildFastPathIdentityPredicates — negation and OR-groups', () => {
 
   test('SSID wildcard (* glob) is converted to SQL LIKE pattern', () => {
     const ctx = new FilterBuildContext({ ssid: 'xfinity*' }, { ssid: true });
-    const where = buildFastPathIdentityPredicates(ctx);
+    const _where = buildFastPathIdentityPredicates(ctx);
 
     // normalizeWildcards converts * → %, so param should end with %
     expect(ctx.getParams()[0]).toMatch(/%$/);

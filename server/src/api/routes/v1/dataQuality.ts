@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-const path = require('path');
+
 const { miscService, dataQualityFilters } = require('../../../config/container');
 const { DATA_QUALITY_FILTERS } = dataQualityFilters;
 const logger = require('../../../logging/logger');

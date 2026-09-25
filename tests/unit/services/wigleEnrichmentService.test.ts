@@ -32,7 +32,7 @@ jest.mock('../../../server/src/logging/logger', () => ({
 }));
 
 const mockAdminQuery = jest.fn();
-const mockSecretsGet = jest.fn((key: string) => 'test');
+const mockSecretsGet = jest.fn((_key: string) => 'test');
 const mockWigleGatewayFetch = jest.fn();
 jest.mock('../../../server/src/services/wigle/wigleGateway', () => ({
   wigleGatewayFetch: (...args: any[]) => mockWigleGatewayFetch(...args),
@@ -63,7 +63,7 @@ describe('wigleEnrichmentService (Pure Unit)', () => {
     jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
     mockAdminQuery.mockResolvedValue({ rows: [] });
-    mockSecretsGet.mockImplementation((key: string) => 'test');
+    mockSecretsGet.mockImplementation((_key: string) => 'test');
   });
 
   describe('runEnrichmentLoop', () => {

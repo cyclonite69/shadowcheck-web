@@ -53,7 +53,7 @@ export const useSiblingStats = (onPurgeComplete?: () => Promise<void>): UseSibli
         setSiblingStats(response.stats);
         setSiblingByRule(response.byRule);
       }
-    } catch (err) {
+    } catch (_err) {
       // Intentionally ignored, mirroring original behavior
     } finally {
       setLoadingSiblings(false);

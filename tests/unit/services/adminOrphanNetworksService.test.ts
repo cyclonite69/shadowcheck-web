@@ -31,7 +31,6 @@ jest.mock('../../../server/src/logging/logger', () => ({
 
 const { adminQuery } = require('../../../server/src/services/adminDbService');
 const wigleService = require('../../../server/src/services/wigleService');
-const secretsManager = require('../../../server/src/services/secretsManager').default;
 const {
   fetchUpstream,
   importObservations,

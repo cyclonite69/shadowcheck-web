@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import fs from 'fs/promises';
-import { constants, createWriteStream } from 'fs';
+import { createWriteStream } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import {

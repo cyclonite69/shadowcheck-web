@@ -119,7 +119,7 @@ export const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
         serviceName,
       };
     }
-  } catch (err) {
+  } catch (_err) {
     // Container doesn't exist, proceed with compose up
   }
 

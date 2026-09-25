@@ -2,7 +2,6 @@ import {
   getAllCanonicalLabels,
   isValidLabel,
   normalizeLabel,
-  CANONICAL_SECURITY_LABELS,
 } from '../../../server/src/utils/securityLabelValidator';
 
 describe('securityLabelValidator', () => {

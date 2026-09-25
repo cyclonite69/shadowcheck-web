@@ -1,8 +1,6 @@
 import { Pool } from 'pg';
 import { OfficeLoader } from './loader';
-import { normalizeState } from './transformer';
-import { fetchPage, getFieldOfficesIndex } from './scraper';
-import { OfficeRecord } from './types';
+import { getFieldOfficesIndex } from './scraper';
 
 export class FBIImporter {
   private loader: OfficeLoader;

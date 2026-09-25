@@ -140,7 +140,7 @@ const registerMapboxTokenRoutes = ({ router, secretsManager }: { router: any; se
 
   router.post('/settings/mapbox', requireAuth, async (req: Request, res: Response) => {
     try {
-      const { token, value, label = 'default' } = req.body;
+      const { label = 'default' } = req.body;
       const incomingToken = getIncomingValue(req.body, 'token');
 
       const tokenValidation = validateMapboxToken(incomingToken);

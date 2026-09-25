@@ -29,7 +29,7 @@ router.get(
       if (filtersParam) {
         try {
           filters = JSON.parse(filtersParam);
-        } catch (_e) {
+        } catch {
           logger.warn('Invalid filters parameter:', filtersParam);
         }
       }
@@ -37,7 +37,7 @@ router.get(
       if (enabledParam) {
         try {
           enabled = JSON.parse(enabledParam);
-        } catch (_e) {
+        } catch {
           logger.warn('Invalid enabled parameter:', enabledParam);
         }
       }

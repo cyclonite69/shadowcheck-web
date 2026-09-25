@@ -16,7 +16,7 @@ jest.mock('../../../../server/src/services/adminDbService', () => ({
 
 jest.mock('../../../../server/src/repositories/jobRunRepository', () => ({
   getJobStatus: jest.fn(),
-  trackJobRun: jest.fn().mockImplementation(async (name, task, context) => {
+  trackJobRun: jest.fn().mockImplementation(async (name, task, _context) => {
     return task();
   }),
 }));
@@ -73,7 +73,7 @@ describe('BackgroundJobsService', () => {
 
     mockFeatureFlagService.getFlag.mockReturnValue(true);
     mockSettings.loadBackgroundJobConfigs.mockResolvedValue({});
-    mockSettings.getResolvedJobConfig.mockImplementation((configs: any, name: string) => ({
+    mockSettings.getResolvedJobConfig.mockImplementation((_configs: any, _name: string) => ({
       enabled: true,
       cron: '0 0 * * *',
     }));

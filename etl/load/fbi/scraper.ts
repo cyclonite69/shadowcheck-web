@@ -19,7 +19,7 @@ export const fetchPage = async (url: string): Promise<string> => {
 };
 
 export const getFieldOfficesIndex = async (): Promise<string[]> => {
-  const html = await fetchPage(`${BASE_URL}/contact-us/field-offices/field-offices`);
+  await fetchPage(`${BASE_URL}/contact-us/field-offices/field-offices`);
   // Simple regex or DOM parser to find office links would go here.
   // Returning dummy array for structure demonstration:
   return ['/contact-us/field-offices/albany', '/contact-us/field-offices/atlanta'];

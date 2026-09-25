@@ -36,7 +36,7 @@ app.use((req: any, res: any, next: any) => {
 });
 app.use('/api', claudeRouter);
 // Fallback error handler
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, req: any, res: any, _next: any) => {
   res.status(500).json({ error: err.message });
 });
 

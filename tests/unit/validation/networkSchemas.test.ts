@@ -4,7 +4,6 @@
 
 import {
   validateMACAddress,
-  validateNetworkIdentifier,
   validateSSID,
   validateBSSID,
   validateSignalStrength,

@@ -1,8 +1,5 @@
 import { startSiblingRefresh } from '../../../../../../server/src/services/admin/siblingDetection/use-cases/startSiblingRefresh';
-import {
-  state,
-  getSiblingRefreshStatus,
-} from '../../../../../../server/src/services/admin/siblingDetectionState';
+import { state } from '../../../../../../server/src/services/admin/siblingDetectionState';
 import { adminQuery } from '../../../../../../server/src/services/admin/siblingDetection/adminQueryAdapter';
 import { runSiblingRefreshJob } from '../../../../../../server/src/services/admin/siblingDetection/use-cases/runSiblingRefreshJob';
 import logger from '../../../../../../server/src/logging/logger';

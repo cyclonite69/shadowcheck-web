@@ -102,7 +102,7 @@ router.get('/explorer/networks', async (req: Request, res: Response, _next: Next
         homeLon = homeLocation.longitude;
         homeLat = homeLocation.latitude;
       }
-    } catch (err) {
+    } catch (_err) {
       logger.warn('Could not fetch home location for distance calculation');
     }
 

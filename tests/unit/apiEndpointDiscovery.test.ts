@@ -35,7 +35,7 @@ describe('API endpoint discovery', () => {
     const pathsByMethod = new Map<string, Set<string>>();
 
     API_ENDPOINTS.forEach((endpoint: any) => {
-      const key = `${endpoint.method}:${endpoint.path}`;
+      const _key = `${endpoint.method}:${endpoint.path}`;
       if (!pathsByMethod.has(endpoint.method)) {
         pathsByMethod.set(endpoint.method, new Set());
       }
