@@ -79,6 +79,15 @@ export const useWigleMapInit = ({
           return;
         }
 
+        if (mapRef.current) {
+          try {
+            mapRef.current.remove();
+          } catch (_e) {
+            // ignore
+          }
+          mapRef.current = null;
+        }
+
         const initialStyleUrl = mapStyle.startsWith('mapbox://styles/mapbox/standard')
           ? 'mapbox://styles/mapbox/standard'
           : mapStyle;
@@ -98,6 +107,9 @@ export const useWigleMapInit = ({
         map.addControl(new (mapboxgl as any).NavigationControl(), 'top-right');
         import('../../utils/mapOrientationControls').then(
           async ({ attachMapOrientationControls }) => {
+            if (!mounted || mapRef.current !== map) {
+              return;
+            }
             await attachMapOrientationControls(map, {
               scalePosition: 'bottom-right',
               scaleUnit: 'metric',
@@ -191,8 +203,14 @@ export const useWigleMapInit = ({
     initMap();
     return () => {
       mounted = false;
-      mapRef.current?.remove();
-      mapRef.current = null;
+      if (typeof window !== 'undefined' && (window as any).__wigleMapInstance === mapRef.current) {
+        delete (window as any).__wigleMapInstance;
+      }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      setMapReady(false);
     };
   }, []);
 };

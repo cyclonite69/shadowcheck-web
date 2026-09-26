@@ -119,6 +119,49 @@ export const useDeflockCameras = (
       return;
     }
 
+    const handleClusterClick = (e: MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['deflock-clusters'],
+      });
+      const clusterId = features[0]?.properties?.cluster_id;
+      if (!clusterId) {
+        return;
+      }
+
+      const source = map.getSource('deflock-cameras') as GeoJSONSource;
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
+          return;
+        }
+        map.easeTo({
+          center: features[0].geometry.coordinates as [number, number],
+          zoom: zoom || 10,
+        });
+      });
+    };
+
+    const handleMouseEnterUnclustered = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeaveUnclustered = () => {
+      map.getCanvas().style.cursor = '';
+    };
+    const handleMouseEnterClusters = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeaveClusters = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    const removeHandlers = () => {
+      map.off('click', 'deflock-unclustered', handleClick);
+      map.off('click', 'deflock-clusters', handleClusterClick);
+      map.off('mouseenter', 'deflock-unclustered', handleMouseEnterUnclustered);
+      map.off('mouseleave', 'deflock-unclustered', handleMouseLeaveUnclustered);
+      map.off('mouseenter', 'deflock-clusters', handleMouseEnterClusters);
+      map.off('mouseleave', 'deflock-clusters', handleMouseLeaveClusters);
+    };
+
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
       if (!map.getStyle() || !currentData || currentData.features.length === 0) {
@@ -127,40 +170,15 @@ export const useDeflockCameras = (
 
       ensureDeflockLayers(map, currentData, clusteringEnabledRef.current);
 
+      removeHandlers();
+
       map.on('click', 'deflock-unclustered', handleClick);
-      map.on('click', 'deflock-clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['deflock-clusters'],
-        });
-        const clusterId = features[0]?.properties?.cluster_id;
-        if (!clusterId) {
-          return;
-        }
+      map.on('click', 'deflock-clusters', handleClusterClick);
 
-        const source = map.getSource('deflock-cameras') as GeoJSONSource;
-        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
-            return;
-          }
-          map.easeTo({
-            center: features[0].geometry.coordinates as [number, number],
-            zoom: zoom || 10,
-          });
-        });
-      });
-
-      map.on('mouseenter', 'deflock-unclustered', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'deflock-unclustered', () => {
-        map.getCanvas().style.cursor = '';
-      });
-      map.on('mouseenter', 'deflock-clusters', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'deflock-clusters', () => {
-        map.getCanvas().style.cursor = '';
-      });
+      map.on('mouseenter', 'deflock-unclustered', handleMouseEnterUnclustered);
+      map.on('mouseleave', 'deflock-unclustered', handleMouseLeaveUnclustered);
+      map.on('mouseenter', 'deflock-clusters', handleMouseEnterClusters);
+      map.on('mouseleave', 'deflock-clusters', handleMouseLeaveClusters);
 
       applyDeflockVisibility(map, isVisibleRef.current);
     };
@@ -211,6 +229,7 @@ export const useDeflockCameras = (
 
     return () => {
       map.off('style.load', addSourceAndLayers);
+      removeHandlers();
     };
   }, [mapReady, data, mapRef]);
 

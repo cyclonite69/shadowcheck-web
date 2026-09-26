@@ -37,8 +37,8 @@ export function runWhenStyleReady(
     runSafely();
   }
 
-  map.once('style.load', runIfReady);
-  map.once('idle', runIfReady);
+  map.on('style.load', runIfReady);
+  map.on('idle', runIfReady);
   logDebug(`[WiGLE] Queued map overlay apply until style is ready (${reason})`);
 
   return cleanup;

@@ -128,12 +128,18 @@ export function useMapOrientationControls(
     }
 
     let cleanup: (() => void) | undefined;
+    let cancelled = false;
 
     attachMapOrientationControls(map, options).then((cleanupFn) => {
-      cleanup = cleanupFn;
+      if (cancelled) {
+        cleanupFn();
+      } else {
+        cleanup = cleanupFn;
+      }
     });
 
     return () => {
+      cancelled = true;
       if (cleanup) {
         cleanup();
       }

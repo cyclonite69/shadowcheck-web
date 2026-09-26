@@ -24,7 +24,6 @@ const KeplerPage: React.FC = () => {
   // Set current page for filter scoping
   usePageFilters('kepler');
 
-  const scriptsLoadedRef = React.useRef<boolean>(false);
   const [_selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -89,8 +88,17 @@ const KeplerPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [networkData, handleFitBoundsCallback]);
 
+  const [scriptsLoaded, setScriptsLoaded] = useState(
+    () => typeof window !== 'undefined' && Boolean(window.deck && window.mapboxgl)
+  );
+
   useEffect(() => {
-    if (scriptsLoadedRef.current) {
+    let cancelled = false;
+    if (scriptsLoaded) {
+      return;
+    }
+    if (typeof window !== 'undefined' && window.deck && window.mapboxgl) {
+      setScriptsLoaded(true);
       return;
     }
     const loadAssets = async () => {
@@ -100,17 +108,28 @@ const KeplerPage: React.FC = () => {
           loadScript('https://cdn.jsdelivr.net/npm/deck.gl@latest/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'),
         ]);
-        scriptsLoadedRef.current = true;
-        if (mapboxToken && networkData.length > 0) {
-          initDeck(mapboxToken, networkData);
+        if (cancelled) {
+          return;
         }
+        setScriptsLoaded(true);
       } catch (err) {
-        setScriptError('Failed to load map engine.');
-        logError('DeckGL scripts fail', err);
+        if (!cancelled) {
+          setScriptError('Failed to load map engine.');
+          logError('DeckGL scripts fail', err);
+        }
       }
     };
     loadAssets();
-  }, [mapboxToken, networkData, initDeck]);
+    return () => {
+      cancelled = true;
+    };
+  }, [scriptsLoaded]);
+
+  useEffect(() => {
+    if (scriptsLoaded && mapboxToken && networkData.length > 0) {
+      initDeck(mapboxToken, networkData);
+    }
+  }, [scriptsLoaded, mapboxToken, networkData, initDeck]);
 
   useEffect(() => {
     const updateViewportMode = () => {

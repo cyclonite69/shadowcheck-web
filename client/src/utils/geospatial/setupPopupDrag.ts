@@ -14,6 +14,7 @@ export interface PopupDragState {
   listeners: {
     mouseMove: (e: MouseEvent) => void;
     mouseUp: (e: MouseEvent) => void;
+    mouseDown?: (e: MouseEvent) => void;
   };
 }
 
@@ -142,6 +143,7 @@ export function setupPopupDrag(
   };
 
   // Attach mouse down handler to popup
+  dragState.listeners.mouseDown = handleMouseDown;
   popupElement.addEventListener('mousedown', handleMouseDown);
 
   // Return cleanup function in the state
@@ -158,6 +160,9 @@ export function cleanupPopupDrag(popup: Popup, dragState: PopupDragState): void 
   }
 
   // Remove event listeners if they exist
+  if (dragState.listeners.mouseDown) {
+    popupElement.removeEventListener('mousedown', dragState.listeners.mouseDown);
+  }
   if (dragState.listeners.mouseMove) {
     document.removeEventListener('mousemove', dragState.listeners.mouseMove);
   }

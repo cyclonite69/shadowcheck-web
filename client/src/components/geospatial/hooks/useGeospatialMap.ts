@@ -60,14 +60,27 @@ export const useGeospatialMap = ({
 
     let cleanupPopups: (() => void) | undefined;
     let cleanupHover: (() => void) | undefined;
+    let cancelled = false;
 
     const init = async () => {
       const map = await initMap();
+      if (cancelled) {
+        if (map) {
+          map.remove();
+        }
+        if (mapRef.current === map) {
+          mapRef.current = null;
+        }
+        return;
+      }
       if (!map) {
         return;
       }
 
       const onMapLoad = () => {
+        if (cancelled) {
+          return;
+        }
         // 1. Add static layers and sources
         addBaseSourcesAndLayers(map, mapStyle, homeLocation);
 
@@ -85,6 +98,9 @@ export const useGeospatialMap = ({
       }
 
       map.on('error', (e: any) => {
+        if (cancelled) {
+          return;
+        }
         // Suppress Google Maps tile errors
         if (e?.error?.message === 'sn' || e?.sourceId === 'google-tiles') {
           if (mapStyle.startsWith('google-')) {
@@ -100,17 +116,21 @@ export const useGeospatialMap = ({
     init();
 
     return () => {
+      cancelled = true;
+      if (cleanupPopups) {
+        cleanupPopups();
+        cleanupPopups = undefined;
+      }
+      if (cleanupHover) {
+        cleanupHover();
+        cleanupHover = undefined;
+      }
       if (mapRef.current) {
-        if (cleanupPopups) {
-          cleanupPopups();
-        }
-        if (cleanupHover) {
-          cleanupHover();
-        }
         mapRef.current.remove();
         mapRef.current = null;
       }
       mapInitRef.current = false;
+      setMapReady(false);
     };
   }, []);
 };

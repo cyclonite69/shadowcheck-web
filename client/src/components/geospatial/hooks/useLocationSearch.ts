@@ -77,7 +77,13 @@ export const useLocationSearch = ({ mapRef, mapboxRef, logError }: UseLocationSe
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchMarkerRef.current) {
+        searchMarkerRef.current.remove();
+        searchMarkerRef.current = null;
+      }
+    };
   }, []);
 
   const flyToLocation = useCallback(

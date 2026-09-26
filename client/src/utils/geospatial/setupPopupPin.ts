@@ -117,14 +117,16 @@ export function setupPopupPin(popup: MapboxPopup, _map: MapboxMap): () => void {
     }
   };
 
-  pinButton.addEventListener('click', (e) => {
+  const handlePinClick = (e: MouseEvent) => {
     e.stopPropagation();
     togglePin();
-  });
+  };
+
+  pinButton.addEventListener('click', handlePinClick);
 
   // Cleanup function
   const cleanup = () => {
-    pinButton.removeEventListener('click', togglePin);
+    pinButton.removeEventListener('click', handlePinClick);
     pinStateMap.delete(popupId);
   };
 

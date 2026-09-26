@@ -74,6 +74,58 @@ export const useAgencyOffices = (
       return;
     }
 
+    const handleClusterClick = (e: MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['agency-clusters'],
+      });
+      const clusterId = features[0]?.properties?.cluster_id;
+      if (!clusterId) {
+        return;
+      }
+
+      const source = map.getSource('agency-offices') as GeoJSONSource;
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
+          return;
+        }
+        map.easeTo({
+          center: features[0].geometry.coordinates as [number, number],
+          zoom: zoom || 10,
+        });
+      });
+    };
+
+    const handleMouseEnterField = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeaveField = () => {
+      map.getCanvas().style.cursor = '';
+    };
+    const handleMouseEnterResident = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeaveResident = () => {
+      map.getCanvas().style.cursor = '';
+    };
+    const handleMouseEnterClusters = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeaveClusters = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    const removeHandlers = () => {
+      map.off('click', 'agency-field-unclustered', handleUnclusteredClick);
+      map.off('click', 'agency-resident-unclustered', handleUnclusteredClick);
+      map.off('click', 'agency-clusters', handleClusterClick);
+      map.off('mouseenter', 'agency-field-unclustered', handleMouseEnterField);
+      map.off('mouseleave', 'agency-field-unclustered', handleMouseLeaveField);
+      map.off('mouseenter', 'agency-resident-unclustered', handleMouseEnterResident);
+      map.off('mouseleave', 'agency-resident-unclustered', handleMouseLeaveResident);
+      map.off('mouseenter', 'agency-clusters', handleMouseEnterClusters);
+      map.off('mouseleave', 'agency-clusters', handleMouseLeaveClusters);
+    };
+
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
       if (!map.getStyle() || !currentData) {
@@ -82,51 +134,22 @@ export const useAgencyOffices = (
 
       ensureAgencyOfficeLayers(map, currentData, clusteringEnabledRef.current);
 
+      removeHandlers();
+
       // Click handler — field office unclustered points
       map.on('click', 'agency-field-unclustered', handleUnclusteredClick);
       map.on('click', 'agency-resident-unclustered', handleUnclusteredClick);
 
       // Cluster click to zoom
-      map.on('click', 'agency-clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['agency-clusters'],
-        });
-        const clusterId = features[0]?.properties?.cluster_id;
-        if (!clusterId) {
-          return;
-        }
-
-        const source = map.getSource('agency-offices') as GeoJSONSource;
-        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') {
-            return;
-          }
-          map.easeTo({
-            center: features[0].geometry.coordinates as [number, number],
-            zoom: zoom || 10,
-          });
-        });
-      });
+      map.on('click', 'agency-clusters', handleClusterClick);
 
       // Cursor pointer
-      map.on('mouseenter', 'agency-field-unclustered', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'agency-field-unclustered', () => {
-        map.getCanvas().style.cursor = '';
-      });
-      map.on('mouseenter', 'agency-resident-unclustered', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'agency-resident-unclustered', () => {
-        map.getCanvas().style.cursor = '';
-      });
-      map.on('mouseenter', 'agency-clusters', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'agency-clusters', () => {
-        map.getCanvas().style.cursor = '';
-      });
+      map.on('mouseenter', 'agency-field-unclustered', handleMouseEnterField);
+      map.on('mouseleave', 'agency-field-unclustered', handleMouseLeaveField);
+      map.on('mouseenter', 'agency-resident-unclustered', handleMouseEnterResident);
+      map.on('mouseleave', 'agency-resident-unclustered', handleMouseLeaveResident);
+      map.on('mouseenter', 'agency-clusters', handleMouseEnterClusters);
+      map.on('mouseleave', 'agency-clusters', handleMouseLeaveClusters);
 
       // Apply current visibility
       applyVisibility(map, visibilityRef.current);
@@ -176,8 +199,6 @@ export const useAgencyOffices = (
         // Drag handler (tether line removed)
       });
 
-      // Tether line removed for cleaner UI
-
       // Setup pin to viewport functionality
       pinCleanup = setupPopupPin(popup, map);
 
@@ -202,6 +223,7 @@ export const useAgencyOffices = (
 
     return () => {
       map.off('style.load', addSourceAndLayers);
+      removeHandlers();
     };
   }, [mapReady, data, mapRef]);
 

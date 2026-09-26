@@ -47,6 +47,15 @@ export const useMapInitialization = ({
       await import('mapbox-gl/dist/mapbox-gl.css' as any);
       (mapboxgl as any).accessToken = String(tokenBody.token).trim();
 
+      if (mapRef.current) {
+        try {
+          mapRef.current.remove();
+        } catch (_e) {
+          // ignore
+        }
+        mapRef.current = null;
+      }
+
       if (mapContainerRef.current) {
         mapContainerRef.current.innerHTML = '';
       }
@@ -78,6 +87,9 @@ export const useMapInitialization = ({
       // Dynamically load orientation controls
       import('../../../utils/mapOrientationControls').then(
         async ({ attachMapOrientationControls }) => {
+          if (mapRef.current !== map) {
+            return;
+          }
           await attachMapOrientationControls(map, {
             scalePosition: 'bottom-right',
             scaleUnit: 'metric',

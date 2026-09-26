@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const Navigation: React.FC = () => {
@@ -135,9 +135,9 @@ const Navigation: React.FC = () => {
               </div>
               <div className="space-y-2">
                 {navLinks.map((link) => (
-                  <a
+                  <Link
                     key={link.href}
-                    href={link.href}
+                    to={link.href}
                     onClick={() => setMobileNavOpen(false)}
                     className={`block rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
                       isActive(link.href)
@@ -146,7 +146,7 @@ const Navigation: React.FC = () => {
                     }`}
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 ))}
               </div>
               <button
@@ -205,15 +205,15 @@ const Navigation: React.FC = () => {
         onMouseLeave={() => setNavVisible(false)}
       >
         {navLinks.map((link) => (
-          <a
+          <Link
             key={link.href}
-            href={link.href}
+            to={link.href}
             style={linkStyle(link.href)}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             {link.label}
-          </a>
+          </Link>
         ))}
         <button
           type="button"

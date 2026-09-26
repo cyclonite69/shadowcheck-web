@@ -136,6 +136,19 @@ export const useShotspotterZones = (
       };
     };
 
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    const removeHandlers = () => {
+      map.off('click', 'shotspotter-fill', handleClick);
+      map.off('mouseenter', 'shotspotter-fill', handleMouseEnter);
+      map.off('mouseleave', 'shotspotter-fill', handleMouseLeave);
+    };
+
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
       if (!map.getStyle() || !currentData || currentData.features.length === 0) {
@@ -144,13 +157,11 @@ export const useShotspotterZones = (
 
       ensureShotspotterLayers(map, currentData);
 
+      removeHandlers();
+
       map.on('click', 'shotspotter-fill', handleClick);
-      map.on('mouseenter', 'shotspotter-fill', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'shotspotter-fill', () => {
-        map.getCanvas().style.cursor = '';
-      });
+      map.on('mouseenter', 'shotspotter-fill', handleMouseEnter);
+      map.on('mouseleave', 'shotspotter-fill', handleMouseLeave);
 
       applyShotspotterVisibility(map, isVisibleRef.current);
     };
@@ -160,6 +171,7 @@ export const useShotspotterZones = (
 
     return () => {
       map.off('style.load', addSourceAndLayers);
+      removeHandlers();
     };
   }, [mapReady, data, mapRef]);
 

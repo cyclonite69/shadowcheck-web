@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { NetworkData, LayerType } from '../components/kepler/types';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../utils/geospatial/tooltipDataNormalizer';
@@ -48,8 +48,123 @@ export function useKeplerDeck({
   const mapRef = useRef<HTMLDivElement | null>(null);
   const deckRef = useRef<any>(null);
   const navigationControlRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
   const [zoom, setZoom] = useState<number>(10);
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+
+      // 1. Defensively remove navigation control and break its references
+      if (navigationControlRef.current) {
+        try {
+          const map =
+            deckRef.current?.getMapboxMap?.() ??
+            deckRef.current?._map?.map ??
+            deckRef.current?._map?.getMap?.();
+          if (map?.removeControl) {
+            map.removeControl(navigationControlRef.current);
+          }
+        } catch {
+          // ignore
+        }
+        navigationControlRef.current = null;
+      }
+
+      // 2. Comprehensive Deck.gl, Mapbox, and WebGL cleanup
+      if (deckRef.current) {
+        const deck = deckRef.current;
+        try {
+          // A. Stop CanvasObserver and destroy CanvasContext to unbind window.matchMedia listeners
+          const canvasContext = deck._canvasContext || deck.device?.canvasContext;
+          try {
+            canvasContext?._canvasObserver?.stop?.();
+          } catch {
+            // ignore
+          }
+          try {
+            canvasContext?.destroy?.();
+          } catch {
+            // ignore
+          }
+
+          // B. Stop animation loops
+          try {
+            deck.animationLoop?.stop?.();
+            deck.animationLoop?.destroy?.();
+          } catch {
+            // ignore
+          }
+
+          // C. Force WebGL context release on the underlying luma.gl/WebGL device
+          const gl = deck.device?.gl || deck.device?.handle;
+          if (gl) {
+            try {
+              const ext = gl.getExtension?.('WEBGL_lose_context');
+              ext?.loseContext?.();
+            } catch {
+              // ignore
+            }
+          }
+
+          // D. Destroy the WebGL device
+          try {
+            deck.device?.destroy?.();
+          } catch {
+            // ignore
+          }
+
+          // E. Clean up Mapbox WebGL context before finalizing Deck
+          const map = deck.getMapboxMap?.() ?? deck._map?.map ?? deck._map?.getMap?.();
+          if (map) {
+            try {
+              const mapGl = map.painter?.context?.gl;
+              if (mapGl) {
+                try {
+                  const ext = mapGl.getExtension?.('WEBGL_lose_context');
+                  ext?.loseContext?.();
+                } catch {
+                  // ignore
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          // F. Finalize Deck.gl (deck.finalize internally calls deck._map.finalize() which removes the Mapbox map)
+          if (typeof deck.finalize === 'function') {
+            deck.finalize();
+          } else if (map && typeof map.remove === 'function') {
+            // Fallback: if deck.finalize is absent, directly remove the Mapbox map
+            try {
+              map.remove();
+            } catch (err) {
+              console.error('Error removing mapbox map:', err);
+            }
+          }
+        } catch (e) {
+          console.error('Error finalizing deck instance:', e);
+        }
+        deckRef.current = null;
+      }
+
+      if (mapRef.current) {
+        mapRef.current.innerHTML = '';
+      }
+
+      if (typeof performance !== 'undefined') {
+        try {
+          performance.clearMeasures?.();
+          performance.clearMarks?.();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   const buildTooltipState = useCallback(
     (object: NetworkData, x: number, y: number, pinned: boolean) => {
@@ -156,7 +271,7 @@ export function useKeplerDeck({
           pitch,
           bearing: 0,
           transitionDuration: 1000,
-          transitionInterpolator: new window.deck.FlyToInterpolator(),
+          transitionInterpolator: new (window as any).deck.FlyToInterpolator(),
         },
       });
       setZoom(newZoom);
@@ -166,7 +281,7 @@ export function useKeplerDeck({
 
   const initDeck = useCallback(
     (token: string, data: NetworkData[]) => {
-      if (!window.deck || !mapRef.current) {
+      if (!isMountedRef.current || !(window as any).deck || !mapRef.current) {
         return;
       }
 
@@ -221,21 +336,23 @@ export function useKeplerDeck({
       setZoom(initialZoom);
 
       const layers = [];
-      const deck = window.deck;
+      const deck = (window as any).deck;
       if (!deck) {
         return;
       }
       const ensureNavigationControl = () => {
-        if (navigationControlRef.current || !window.mapboxgl || !deckRef.current) {
+        if (navigationControlRef.current || !(window as any).mapboxgl || !deckRef.current) {
           return;
         }
 
+        // getMapboxMap() is the public DeckGL method; _map?.getMap() is an internal fallback
+        // for standalone CDN builds where getMapboxMap() might not be exposed on the prototype.
         const map = deckRef.current.getMapboxMap?.() ?? deckRef.current._map?.getMap?.();
         if (!map) {
           return;
         }
 
-        navigationControlRef.current = new window.mapboxgl.NavigationControl();
+        navigationControlRef.current = new (window as any).mapboxgl.NavigationControl();
         map.addControl(navigationControlRef.current, 'top-right');
       };
 
@@ -351,7 +468,7 @@ export function useKeplerDeck({
         deckRef.current.setProps({ layers, initialViewState: INITIAL_VIEW_STATE });
         ensureNavigationControl();
       } else {
-        deckRef.current = new window.deck.DeckGL({
+        deckRef.current = new (window as any).deck.DeckGL({
           container: mapRef.current,
           initialViewState: INITIAL_VIEW_STATE,
           controller: true,

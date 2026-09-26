@@ -156,6 +156,10 @@ export const useRadiusFilterPopup = ({ mapReady, mapRef, mapboxRef }: Props) => 
       map.off('click', 'radius-filter-pin', openPopup);
       map.off('mouseenter', 'radius-filter-pin', onEnter);
       map.off('mouseleave', 'radius-filter-pin', onLeave);
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
     };
   }, [mapReady, mapRef, mapboxRef]);
 

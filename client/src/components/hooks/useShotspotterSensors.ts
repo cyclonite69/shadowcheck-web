@@ -92,6 +92,19 @@ export const useShotspotterSensors = (
       return;
     }
 
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    const removeHandlers = () => {
+      map.off('click', 'shotspotter-sensors-points', handleClick);
+      map.off('mouseenter', 'shotspotter-sensors-points', handleMouseEnter);
+      map.off('mouseleave', 'shotspotter-sensors-points', handleMouseLeave);
+    };
+
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
       if (!map.getStyle() || !currentData || currentData.features.length === 0) {
@@ -100,13 +113,11 @@ export const useShotspotterSensors = (
 
       ensureShotspotterSensorLayers(map, currentData);
 
+      removeHandlers();
+
       map.on('click', 'shotspotter-sensors-points', handleClick);
-      map.on('mouseenter', 'shotspotter-sensors-points', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'shotspotter-sensors-points', () => {
-        map.getCanvas().style.cursor = '';
-      });
+      map.on('mouseenter', 'shotspotter-sensors-points', handleMouseEnter);
+      map.on('mouseleave', 'shotspotter-sensors-points', handleMouseLeave);
 
       applyShotspotterSensorsVisibility(map, isVisibleRef.current);
     };
@@ -153,6 +164,7 @@ export const useShotspotterSensors = (
 
     return () => {
       map.off('style.load', addSourceAndLayers);
+      removeHandlers();
     };
   }, [mapReady, data, mapRef]);
 
