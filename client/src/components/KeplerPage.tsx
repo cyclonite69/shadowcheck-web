@@ -4,11 +4,10 @@ import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useDebouncedAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { useKepler } from '../hooks/useKepler';
 import { useKeplerDeck } from '../hooks/useKeplerDeck';
+import { useKeplerAssets } from '../hooks/useKeplerAssets';
 import { getPageCapabilities } from '../utils/filterCapabilities';
-import { logError } from '../logging/clientLogger';
 import { AppHeader } from './AppHeader';
 import { NetworkData, LayerType, DrawMode } from './kepler/types';
-import { loadScript, loadCss } from './kepler/utils';
 import { KeplerVisualization } from './kepler/KeplerVisualization';
 import { KeplerControls } from './kepler/KeplerControls';
 import { KeplerFilters } from './kepler/KeplerFilters';
@@ -27,7 +26,6 @@ const KeplerPage: React.FC = () => {
   const [_selectedPoints, setSelectedPoints] = useState<NetworkData[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [scriptError, setScriptError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 960 : false
   );
@@ -88,48 +86,11 @@ const KeplerPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [networkData, handleFitBoundsCallback]);
 
-  const [scriptsLoaded, setScriptsLoaded] = useState(
-    () => typeof window !== 'undefined' && Boolean(window.deck && window.mapboxgl)
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (scriptsLoaded) {
-      return;
-    }
-    if (typeof window !== 'undefined' && window.deck && window.mapboxgl) {
-      setScriptsLoaded(true);
-      return;
-    }
-    const loadAssets = async () => {
-      try {
-        await Promise.all([
-          loadCss('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css'),
-          loadScript('https://cdn.jsdelivr.net/npm/deck.gl@latest/dist.min.js'),
-          loadScript('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'),
-        ]);
-        if (cancelled) {
-          return;
-        }
-        setScriptsLoaded(true);
-      } catch (err) {
-        if (!cancelled) {
-          setScriptError('Failed to load map engine.');
-          logError('DeckGL scripts fail', err);
-        }
-      }
-    };
-    loadAssets();
-    return () => {
-      cancelled = true;
-    };
-  }, [scriptsLoaded]);
-
-  useEffect(() => {
-    if (scriptsLoaded && mapboxToken && networkData.length > 0) {
-      initDeck(mapboxToken, networkData);
-    }
-  }, [scriptsLoaded, mapboxToken, networkData, initDeck]);
+  const { scriptError } = useKeplerAssets({
+    mapboxToken,
+    networkData,
+    initDeck,
+  });
 
   useEffect(() => {
     const updateViewportMode = () => {

@@ -396,7 +396,7 @@
 - **geospatial:** enforce cell width constraints in network grid ([07799a5](https://github.com/cyclonite69/shadowcheck-web/commit/07799a57fb7f5ecaf26be3c10615f0932f4600f6))
 - **geospatial:** enforce investigate tagging during WiGLE lookup flow ([ae0a306](https://github.com/cyclonite69/shadowcheck-web/commit/ae0a3065c4622485141376d040eaefb4781b11af))
 - **geospatial:** expand sibling groups on quick search ([1edfe9a](https://github.com/cyclonite69/shadowcheck-web/commit/1edfe9ad86e3b2b38c4a3c0fdb0f5953b3ca2442))
-- **geospatial:** finalize WebGL/deck.gl instances on unmount, fix KeplerPage init race ([c39da85](https://github.com/cyclonite69/shadowcheck-web/commit/c39da853023c9ce26b5d6985233f88cff6d5bdf8))
+- **geospatial:** finalize WebGL/deck.gl instances on unmount, fix KeplerPage init race ([0bcf082](https://github.com/cyclonite69/shadowcheck-web/commit/0bcf082f688f7392847ff9eb295d37c7731d0acc))
 - **geospatial:** fix empty WiGLE observations tooltip stats ([7a17a40](https://github.com/cyclonite69/shadowcheck-web/commit/7a17a405802b77697ba88fa8e8221f77e80dfb47))
 - **geospatial:** group quick-search siblings from payload ([35d3114](https://github.com/cyclonite69/shadowcheck-web/commit/35d3114c88c3066ee67f73b307e72ba42ce63602))
 - **geospatial:** guard against undefined observations in useWigleLayers data-sync effect ([a5414da](https://github.com/cyclonite69/shadowcheck-web/commit/a5414da948f48162ff66ea221ca02fb88e922b5f))
