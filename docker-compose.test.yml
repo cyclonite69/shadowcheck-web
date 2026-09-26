@@ -71,8 +71,10 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8081:80"
+    environment:
+      - NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
     volumes:
-      - ./docker/nginx.test.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx.test.conf.template:/etc/nginx/templates/default.conf.template:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/health"]
       interval: 10s

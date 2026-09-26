@@ -13,11 +13,9 @@ server {
     server_name _;
     client_max_body_size 500M;
 
-    # Use systemd-resolved via Docker/podman DNS. Works universally across platforms.
-    # For Docker: 127.0.0.11 (built-in)
-    # For Podman: Uses 10.89.1.1 (podman network DNS)
-    # This works on both local and EC2 deployments
-    resolver 10.89.1.1 127.0.0.11 valid=5s;
+    # Resolve upstream dynamically via local nameserver auto-detected from /etc/resolv.conf
+    # by official nginx entrypoint script (15-local-resolvers.envsh / NGINX_ENTRYPOINT_LOCAL_RESOLVERS)
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=5s;
     set $backend http://api-test:3001;
     set $grafana http://grafana:3002;
 

@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-25)
+# 1.0.0 (2026-09-26)
 
 ### Bug Fixes
 
@@ -255,6 +255,7 @@
 - distance_from_home_km shows farthest observation, not bestlat point ([2aa75c0](https://github.com/cyclonite69/shadowcheck-web/commit/2aa75c022c3e03597026ecb431dfb93e2baabbe3))
 - **docker:** add py3-setuptools for Python 3.12 compatibility ([27683aa](https://github.com/cyclonite69/shadowcheck-web/commit/27683aa1f7c451e1cab0beaf38acdafad1ceaf46))
 - **docker:** add python3/make/g++/libsecret-dev to frontend builder for keytar native compile on arm64/musl ([419b0d1](https://github.com/cyclonite69/shadowcheck-web/commit/419b0d1f056eb6577ca292312344cf9bb614e07c))
+- **docker:** auto-detect local DNS resolver for Nginx templates ([aee0e5a](https://github.com/cyclonite69/shadowcheck-web/commit/aee0e5ac1c07c2e95d452bede71b1eb36fe513e2))
 - **docker:** bump frontend builder to node:22-alpine to match engine requirement and fix keytar native build ([0e2d103](https://github.com/cyclonite69/shadowcheck-web/commit/0e2d103be4200d8e7d167431006b516e5707d752))
 - **docker:** install ca-certificates before switching to HTTPS apt sources ([8fe9cb1](https://github.com/cyclonite69/shadowcheck-web/commit/8fe9cb15ba8f73823189e25e24ffadde8f25c7e0))
 - **docker:** resolve vite peer dependency conflict and harden build ([3d8e962](https://github.com/cyclonite69/shadowcheck-web/commit/3d8e9622d785531cfaca10d12c980794acb39714))

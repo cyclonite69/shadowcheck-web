@@ -109,8 +109,11 @@ FROM nginx:1.31.5-alpine AS frontend
 # Copy frontend build from shared-builder (not from api stage)
 COPY --from=shared-builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY docker/nginx.local.conf /etc/nginx/conf.d/default.conf
+# Enable dynamic local resolver auto-detection from /etc/resolv.conf
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+
+# Copy nginx configuration template
+COPY docker/nginx.local.conf.template /etc/nginx/templates/default.conf.template
 
 # Simple health check endpoint
 RUN echo "OK" > /usr/share/nginx/html/health
@@ -156,7 +159,8 @@ RUN npm run build:e2e
 FROM nginx:1.31.5-alpine AS frontend-e2e
 
 COPY --from=frontend-e2e-builder /app/dist /usr/share/nginx/html
-COPY docker/nginx.local.conf /etc/nginx/conf.d/default.conf
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+COPY docker/nginx.local.conf.template /etc/nginx/templates/default.conf.template
 
 RUN echo "OK" > /usr/share/nginx/html/health
 

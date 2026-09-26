@@ -11,6 +11,7 @@
     "prebuild": "node scripts/write-robots.js && node scripts/generate-sitemap.js",
     "build": "npm run build:frontend && npm run build:server && npm run build:alpr",
     "build:frontend": "NODE_ENV=production vite build --config client/vite.config.ts --outDir ../dist",
+    "build:e2e": "vite build --config client/vite.config.ts --outDir ../dist --mode e2e",
     "build:server": "tsc --project tsconfig.server.json",
     "build:alpr": "tsc --project tsconfig.alpr.json --pretty false",
     "sync:local": "tsx src/alpr-sync-daemon.ts",
