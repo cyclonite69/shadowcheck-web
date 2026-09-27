@@ -1,8 +1,21 @@
-const { adminQuery } = require('../services/adminDbService');
-const { query } = require('../config/database');
+/**
+ * Admin Network Tag Repository
+ *
+ * Data access layer for administrative network tag operations and metadata queries.
+ * Follows the Lane 2 repository pattern with explicit queryExecutor parameters.
+ */
 
-export async function checkDuplicateObservations(bssid: string, time: number): Promise<any> {
-  const { rows } = await query(
+export type QueryExecutor = (sql: string, params?: any[]) => Promise<any>;
+
+/**
+ * Checks for duplicate observations at the given bssid and time.
+ */
+export async function checkDuplicateObservations(
+  queryExecutor: QueryExecutor,
+  bssid: string,
+  time: number
+): Promise<any> {
+  const { rows } = await queryExecutor(
     `
     WITH target_obs AS (
       SELECT time, lat, lon, accuracy
@@ -31,16 +44,29 @@ export async function checkDuplicateObservations(bssid: string, time: number): P
   return rows[0] || null;
 }
 
-export async function addNetworkNote(bssid: string, content: string): Promise<number> {
-  const result = await query("SELECT app.network_add_note($1, $2, 'general', 'user') as note_id", [
-    bssid,
-    content,
-  ]);
+/**
+ * Adds a network note via stored procedure app.network_add_note.
+ */
+export async function addNetworkNote(
+  queryExecutor: QueryExecutor,
+  bssid: string,
+  content: string
+): Promise<number> {
+  const result = await queryExecutor(
+    "SELECT app.network_add_note($1, $2, 'general', 'user') as note_id",
+    [bssid, content]
+  );
   return result.rows[0].note_id;
 }
 
-export async function getNetworkSummary(bssid: string): Promise<any | null> {
-  const result = await query(
+/**
+ * Retrieves network summary from app.network_tags_full view.
+ */
+export async function getNetworkSummary(
+  queryExecutor: QueryExecutor,
+  bssid: string
+): Promise<any | null> {
+  const result = await queryExecutor(
     `
     SELECT bssid, tags, tag_array, is_threat, is_investigate, is_false_positive, is_suspect,
            notes, detailed_notes, notation_count, image_count, video_count, total_media_count,
@@ -53,15 +79,18 @@ export async function getNetworkSummary(bssid: string): Promise<any | null> {
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
-export async function getBackupData(): Promise<{
+/**
+ * Fetches backup data across observations, networks, and network_tags.
+ */
+export async function getBackupData(queryExecutor: QueryExecutor): Promise<{
   observations: any[];
   networks: any[];
   tags: any[];
 }> {
   const [observations, networks, tags] = await Promise.all([
-    query('SELECT * FROM app.observations ORDER BY observed_at DESC'),
-    query('SELECT * FROM app.networks'),
-    query('SELECT * FROM app.network_tags'),
+    queryExecutor('SELECT * FROM app.observations ORDER BY observed_at DESC'),
+    queryExecutor('SELECT * FROM app.networks'),
+    queryExecutor('SELECT * FROM app.network_tags'),
   ]);
 
   return {
@@ -71,7 +100,11 @@ export async function getBackupData(): Promise<{
   };
 }
 
+/**
+ * Upserts a network tag into app.network_tags.
+ */
 export async function upsertNetworkTag(
+  queryExecutor: QueryExecutor,
   bssid: string,
   is_ignored: boolean | null,
   ignore_reason: string | null,
@@ -79,7 +112,7 @@ export async function upsertNetworkTag(
   threat_confidence: number | null,
   notes: string | null
 ): Promise<any> {
-  const result = await adminQuery(
+  const result = await queryExecutor(
     `INSERT INTO app.network_tags (
       bssid, is_ignored, ignore_reason, threat_tag, threat_confidence, notes
     ) VALUES ($1, $2, $3, $4, $5, $6)
@@ -96,12 +129,16 @@ export async function upsertNetworkTag(
   return result.rows[0];
 }
 
+/**
+ * Updates ignore status on an existing network tag.
+ */
 export async function updateNetworkTagIgnore(
+  queryExecutor: QueryExecutor,
   bssid: string,
   is_ignored: boolean,
   ignore_reason: string | null
 ): Promise<any> {
-  const result = await adminQuery(
+  const result = await queryExecutor(
     `UPDATE app.network_tags SET is_ignored = $1, ignore_reason = $2, updated_at = NOW()
      WHERE bssid = $3 RETURNING *`,
     [is_ignored, ignore_reason, bssid]
@@ -109,12 +146,16 @@ export async function updateNetworkTagIgnore(
   return result.rows[0];
 }
 
+/**
+ * Inserts ignore status for a network tag.
+ */
 export async function insertNetworkTagIgnore(
+  queryExecutor: QueryExecutor,
   bssid: string,
   is_ignored: boolean,
   ignore_reason: string | null
 ): Promise<any> {
-  const result = await adminQuery(
+  const result = await queryExecutor(
     `INSERT INTO app.network_tags (bssid, is_ignored, ignore_reason)
      VALUES ($1, $2, $3) RETURNING *`,
     [bssid, is_ignored, ignore_reason]
@@ -122,12 +163,16 @@ export async function insertNetworkTagIgnore(
   return result.rows[0];
 }
 
+/**
+ * Updates threat tag and confidence on an existing network tag.
+ */
 export async function updateNetworkThreatTag(
+  queryExecutor: QueryExecutor,
   bssid: string,
   threat_tag: string,
   threat_confidence: number | null
 ): Promise<any> {
-  const result = await adminQuery(
+  const result = await queryExecutor(
     `UPDATE app.network_tags SET threat_tag = $1, threat_confidence = $2, updated_at = NOW()
      WHERE bssid = $3 RETURNING *`,
     [threat_tag, threat_confidence, bssid]
@@ -135,12 +180,16 @@ export async function updateNetworkThreatTag(
   return result.rows[0];
 }
 
+/**
+ * Inserts threat tag and confidence for a network tag.
+ */
 export async function insertNetworkThreatTag(
+  queryExecutor: QueryExecutor,
   bssid: string,
   threat_tag: string,
   threat_confidence: number | null
 ): Promise<any> {
-  const result = await adminQuery(
+  const result = await queryExecutor(
     `INSERT INTO app.network_tags (bssid, threat_tag, threat_confidence)
      VALUES ($1, $2, $3) RETURNING *`,
     [bssid, threat_tag, threat_confidence]
@@ -148,8 +197,15 @@ export async function insertNetworkThreatTag(
   return result.rows[0];
 }
 
-export async function updateNetworkTagNotes(bssid: string, notes: string): Promise<any> {
-  const result = await adminQuery(
+/**
+ * Updates notes on an existing network tag.
+ */
+export async function updateNetworkTagNotes(
+  queryExecutor: QueryExecutor,
+  bssid: string,
+  notes: string
+): Promise<any> {
+  const result = await queryExecutor(
     `UPDATE app.network_tags SET notes = $1, updated_at = NOW()
      WHERE bssid = $2 RETURNING *`,
     [notes, bssid]
@@ -157,21 +213,40 @@ export async function updateNetworkTagNotes(bssid: string, notes: string): Promi
   return result.rows[0];
 }
 
-export async function insertNetworkTagNotes(bssid: string, notes: string): Promise<any> {
-  const result = await adminQuery(
+/**
+ * Inserts notes for a network tag.
+ */
+export async function insertNetworkTagNotes(
+  queryExecutor: QueryExecutor,
+  bssid: string,
+  notes: string
+): Promise<any> {
+  const result = await queryExecutor(
     'INSERT INTO app.network_tags (bssid, notes) VALUES ($1, $2) RETURNING *',
     [bssid, notes]
   );
   return result.rows[0];
 }
 
-export async function deleteNetworkTag(bssid: string): Promise<number> {
-  const result = await adminQuery('DELETE FROM app.network_tags WHERE bssid = $1', [bssid]);
+/**
+ * Deletes a network tag row from app.network_tags.
+ */
+export async function deleteNetworkTag(
+  queryExecutor: QueryExecutor,
+  bssid: string
+): Promise<number> {
+  const result = await queryExecutor('DELETE FROM app.network_tags WHERE bssid = $1', [bssid]);
   return result.rowCount || 0;
 }
 
-export async function requestWigleLookup(bssid: string): Promise<any> {
-  const result = await adminQuery(
+/**
+ * Flags a network tag for WiGLE lookup.
+ */
+export async function requestWigleLookup(
+  queryExecutor: QueryExecutor,
+  bssid: string
+): Promise<any> {
+  const result = await queryExecutor(
     `UPDATE app.network_tags SET wigle_lookup_requested = true, updated_at = NOW()
      WHERE bssid = $1 RETURNING *`,
     [bssid]
@@ -179,8 +254,14 @@ export async function requestWigleLookup(bssid: string): Promise<any> {
   return result.rows[0];
 }
 
-export async function markNetworkInvestigate(bssid: string): Promise<any> {
-  const result = await adminQuery(
+/**
+ * Marks network as investigate and requests WiGLE lookup.
+ */
+export async function markNetworkInvestigate(
+  queryExecutor: QueryExecutor,
+  bssid: string
+): Promise<any> {
+  const result = await queryExecutor(
     `INSERT INTO app.network_tags (bssid, threat_tag, tags, wigle_lookup_requested, updated_at)
      VALUES ($1, 'INVESTIGATE', '["investigate"]'::jsonb, TRUE, NOW())
      ON CONFLICT (bssid) DO UPDATE SET
@@ -195,14 +276,21 @@ export async function markNetworkInvestigate(bssid: string): Promise<any> {
          ELSE COALESCE(app.network_tags.tags, '[]'::jsonb) || '["investigate"]'::jsonb
        END,
        wigle_lookup_requested = TRUE,
-       updated_at = NOW()`,
+       updated_at = NOW()
+     RETURNING *`,
     [bssid]
   );
   return result.rows[0];
 }
 
-export async function fetchNetworksPendingWigleLookup(limit: number): Promise<any[]> {
-  const result = await query(
+/**
+ * Fetches networks pending WiGLE lookup where result is null.
+ */
+export async function fetchNetworksPendingWigleLookup(
+  queryExecutor: QueryExecutor,
+  limit: number
+): Promise<any[]> {
+  const result = await queryExecutor(
     `SELECT bssid FROM app.network_tags
      WHERE wigle_lookup_requested = true AND wigle_result IS NULL
      ORDER BY updated_at ASC LIMIT $1`,
@@ -211,8 +299,11 @@ export async function fetchNetworksPendingWigleLookup(limit: number): Promise<an
   return result.rows;
 }
 
-export async function exportMLTrainingSet(): Promise<any[]> {
-  const result = await query(
+/**
+ * Exports data for machine learning training set with observations distance range.
+ */
+export async function exportMLTrainingSet(queryExecutor: QueryExecutor): Promise<any[]> {
+  const result = await queryExecutor(
     `SELECT
       nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored, nt.tag_history,
       n.ssid, n.type as network_type, n.frequency, n.capabilities, n.bestlevel as signal_dbm,
