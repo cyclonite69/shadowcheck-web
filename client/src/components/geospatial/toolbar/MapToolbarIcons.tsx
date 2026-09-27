@@ -44,3 +44,20 @@ export const ChevronDownIcon = () => <span style={{ opacity: 0.5, marginLeft: '6
 export const CheckIcon = ({ color }: { color?: string } = {}) => (
   <span style={{ color: color || '#60a5fa' }}>✓</span>
 );
+
+export const LogOutIcon = ({ size = 14 }: { size?: number } = {}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 14 14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5.5 12H2.5A1.5 1.5 0 0 1 1 10.5V3.5A1.5 1.5 0 0 1 2.5 2H5.5" />
+    <polyline points="9,9.5 12,7 9,4.5" />
+    <line x1="12" y1="7" x2="4.5" y2="7" />
+  </svg>
+);

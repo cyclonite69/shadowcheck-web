@@ -59,6 +59,7 @@ interface MapToolbarActionsProps {
   showMediaLocations?: boolean;
   onToggleMediaLocations?: (value: boolean) => void;
   mediaLocationStatus?: MediaLocationStatus;
+  pageLabel?: string;
 }
 
 export const MapToolbarActions = ({
@@ -107,9 +108,11 @@ export const MapToolbarActions = ({
   showMediaLocations = false,
   onToggleMediaLocations,
   mediaLocationStatus = 'idle',
+  pageLabel = 'Geospatial',
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
+      pageLabel={pageLabel}
       searchContainerRef={locationSearchRef}
       locationSearch={locationSearch}
       onLocationSearchChange={setLocationSearch}

@@ -78,6 +78,7 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
         toolbar={
           <MapToolbarActions
             {...state}
+            pageLabel="Geospatial"
             locationSearchRef={state.locationSearchRef}
             onSelectSearchResult={(res) => {
               if (state.searchMode === 'directions') {

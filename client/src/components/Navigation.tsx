@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useLogout } from '../hooks/useLogout';
 
 const Navigation: React.FC = () => {
   const [navVisible, setNavVisible] = useState(false);
@@ -8,9 +9,9 @@ const Navigation: React.FC = () => {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 960 : false
   );
-  const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
-  const { isAdmin, logout } = useAuth();
+  const { isAdmin } = useAuth();
+  const { loggingOut, handleLogout: execLogout } = useLogout();
   const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
 
   const isTestMode =
@@ -87,18 +88,11 @@ const Navigation: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    if (loggingOut) {
-      return;
-    }
-    setLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setLoggingOut(false);
+  const handleLogout = () => {
+    void execLogout(() => {
       setNavVisible(false);
       setMobileNavOpen(false);
-    }
+    });
   };
 
   if (isMobile) {

@@ -58,6 +58,7 @@ interface MapToolbarProps {
   mediaLocationStatus?: MediaLocationStatus;
   onResetBearing?: () => void;
   onResetPitch?: () => void;
+  pageLabel?: string;
 }
 
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
@@ -74,7 +75,7 @@ export const Separator = () => (
   />
 );
 
-const BrandSection = () => (
+const BrandSection = ({ pageLabel = 'Geospatial' }: { pageLabel?: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
     <div
       style={{
@@ -99,7 +100,8 @@ const BrandSection = () => (
         whiteSpace: 'nowrap',
       }}
     >
-      Shadow<span style={{ color: '#60a5fa' }}>Check</span>
+      Shadow<span style={{ color: '#60a5fa' }}>Check</span>{' '}
+      <span style={{ color: '#60a5fa' }}>{pageLabel}</span>
     </span>
   </div>
 );
@@ -147,6 +149,7 @@ export const MapToolbar = ({
   mediaLocationStatus = 'idle',
   onResetBearing,
   onResetPitch,
+  pageLabel = 'Geospatial',
 }: MapToolbarProps) => {
   const [layersOpen, setLayersOpen] = useState(false);
   const [mapStyleOpen, setMapStyleOpen] = useState(false);
@@ -193,7 +196,7 @@ export const MapToolbar = ({
         onResetPitch={onResetPitch}
       />
 
-      <BrandSection />
+      <BrandSection pageLabel={pageLabel} />
       <Separator />
 
       <MapToolbarSearch

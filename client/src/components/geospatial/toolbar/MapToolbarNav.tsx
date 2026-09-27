@@ -1,4 +1,6 @@
 import React from 'react';
+import { useLogout } from '../../../hooks/useLogout';
+import { LogOutIcon } from './MapToolbarIcons';
 
 interface MapToolbarNavProps {
   navOpen: boolean;
@@ -19,6 +21,13 @@ export const MapToolbarNav = ({
   onResetBearing,
   onResetPitch,
 }: MapToolbarNavProps) => {
+  const { loggingOut, handleLogout: execLogout } = useLogout();
+
+  const handleLogout = () => {
+    void execLogout(() => {
+      setNavOpen(false);
+    });
+  };
   return (
     <div ref={navRef} style={{ position: 'relative', flexShrink: 0 }}>
       <button
@@ -86,7 +95,10 @@ export const MapToolbarNav = ({
                 padding: '8px 14px',
                 ...mono,
                 fontSize: '12px',
-                color: window.location.pathname === item.href ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                color:
+                  typeof window !== 'undefined' && window.location.pathname === item.href
+                    ? '#60a5fa'
+                    : 'rgba(255,255,255,0.5)',
                 textDecoration: 'none',
                 borderRadius: '4px',
                 margin: '0 6px',
@@ -98,7 +110,9 @@ export const MapToolbarNav = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
                 e.currentTarget.style.color =
-                  window.location.pathname === item.href ? '#60a5fa' : 'rgba(255,255,255,0.5)';
+                  typeof window !== 'undefined' && window.location.pathname === item.href
+                    ? '#60a5fa'
+                    : 'rgba(255,255,255,0.5)';
               }}
             >
               {item.label}
@@ -208,6 +222,50 @@ export const MapToolbarNav = ({
               Reset pitch
             </div>
           )}
+          <div
+            style={{
+              height: '1px',
+              background: 'rgba(255,255,255,0.06)',
+              margin: '8px 14px',
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            aria-label="Log out"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: 'calc(100% - 12px)',
+              padding: '8px 14px',
+              ...mono,
+              fontSize: '12px',
+              color: loggingOut ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              margin: '0 6px',
+              cursor: loggingOut ? 'not-allowed' : 'pointer',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => {
+              if (!loggingOut) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = loggingOut
+                ? 'rgba(255,255,255,0.3)'
+                : 'rgba(255,255,255,0.5)';
+            }}
+          >
+            <LogOutIcon size={14} />
+            <span>{loggingOut ? 'Logging out...' : 'Logout'}</span>
+          </button>
         </nav>
       )}
     </div>
