@@ -5,7 +5,9 @@ import {
   fetchOrImportDetail,
   importDetailFromJson,
   isLocallyAdministeredMac,
+  getNetworkTypesByBssids,
 } from '../../../server/src/services/wigleDetailService';
+import type { NetworkTypeRow } from '../../../server/src/repositories/networkRepository';
 
 // Mock dependencies
 const secretsManager = require('../../../server/src/services/secretsManager');
@@ -33,8 +35,12 @@ jest.mock('../../../server/src/logging/logger', () => ({
   debug: jest.fn(),
 }));
 
+const mockGetNetworkTypesByBssids = jest
+  .fn<(bssids: string[]) => Promise<NetworkTypeRow[]>>()
+  .mockResolvedValue([]);
+
 jest.mock('../../../server/src/repositories/networkRepository', () => ({
-  getNetworkTypesByBssids: (jest.fn() as any).mockResolvedValue([]),
+  getNetworkTypesByBssids: (bssids: string[]) => mockGetNetworkTypesByBssids(bssids),
 }));
 
 jest.mock('../../../server/src/services/secretsManager', () => ({
@@ -432,6 +438,17 @@ describe('wigleDetailService', () => {
         failedObservations: 0,
       });
       expect(importWigleV3NetworkDetail).toHaveBeenCalled();
+    });
+  });
+
+  describe('getNetworkTypesByBssids', () => {
+    it('delegates to networkRepository.getNetworkTypesByBssids', async () => {
+      mockGetNetworkTypesByBssids.mockResolvedValueOnce([
+        { bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' },
+      ]);
+      const result = await getNetworkTypesByBssids(['AA:BB:CC:DD:EE:FF']);
+      expect(mockGetNetworkTypesByBssids).toHaveBeenCalledWith(['AA:BB:CC:DD:EE:FF']);
+      expect(result).toEqual([{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }]);
     });
   });
 });

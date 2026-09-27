@@ -11,10 +11,12 @@ const express = require('express');
 const resolveDefault = (m: any) => m?.default || m;
 
 // Mock dependencies
+const mockPoolQuery = jest.fn();
 jest.mock('../../server/src/config/database', () => ({
   pool: {
-    query: jest.fn(),
+    query: mockPoolQuery,
   },
+  query: (...args: any[]) => mockPoolQuery(...args),
 }));
 
 jest.mock('../../server/src/services/secretsManager', () => ({

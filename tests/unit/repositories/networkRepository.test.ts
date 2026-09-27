@@ -183,4 +183,35 @@ describe('NetworkRepository', () => {
       'REFRESH MATERIALIZED VIEW app.api_network_explorer_mv'
     );
   });
+
+  describe('getNetworkTypesByBssids', () => {
+    it('returns empty array when bssids is empty without querying DB', async () => {
+      const result = await NetworkRepository.getNetworkTypesByBssids([]);
+      expect(result).toEqual([]);
+      expect(dbConfigNetwork.query).not.toHaveBeenCalled();
+    });
+
+    it('queries distinct network types for provided BSSIDs', async () => {
+      (dbConfigNetwork.query as jest.Mock).mockResolvedValueOnce({
+        rows: [{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }],
+      });
+
+      const result = await NetworkRepository.getNetworkTypesByBssids(['AA:BB:CC:DD:EE:FF']);
+
+      expect(dbConfigNetwork.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT DISTINCT ON (bssid) bssid, type'),
+        [['AA:BB:CC:DD:EE:FF']]
+      );
+      expect(result).toEqual([{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }]);
+    });
+
+    it('delegates through instance method as well', async () => {
+      (dbConfigNetwork.query as jest.Mock).mockResolvedValueOnce({
+        rows: [{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }],
+      });
+
+      const result = await repository.getNetworkTypesByBssids(['AA:BB:CC:DD:EE:FF']);
+      expect(result).toEqual([{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }]);
+    });
+  });
 });
