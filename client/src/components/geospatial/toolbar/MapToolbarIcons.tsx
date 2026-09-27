@@ -41,4 +41,6 @@ export const HomeIcon = () => (
 
 export const ChevronDownIcon = () => <span style={{ opacity: 0.5, marginLeft: '6px' }}>▾</span>;
 
-export const CheckIcon = () => <span style={{ color: '#60a5fa' }}>✓</span>;
+export const CheckIcon = ({ color }: { color?: string } = {}) => (
+  <span style={{ color: color || '#60a5fa' }}>✓</span>
+);

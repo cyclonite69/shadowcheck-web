@@ -149,10 +149,12 @@ export const useGeospatialExplorerState = ({
     showColumnSelector,
     showAgenciesPanel,
     showCourthousesPanel,
+    showAlprCameras,
     toggleFilters,
     toggleColumnSelector,
     toggleAgenciesPanel,
     toggleCourthousesPanel,
+    toggleAlprCameras,
   } = useExplorerPanels();
 
   const setFilter = useFilterStore((state) => state.setFilter);
@@ -511,10 +513,12 @@ export const useGeospatialExplorerState = ({
     showColumnSelector,
     showAgenciesPanel,
     showCourthousesPanel,
+    showAlprCameras,
     toggleFilters,
     toggleColumnSelector,
     toggleAgenciesPanel,
     toggleCourthousesPanel,
+    toggleAlprCameras,
     locationSearch,
     setLocationSearch,
     searchResults,

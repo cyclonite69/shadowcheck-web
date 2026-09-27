@@ -84,7 +84,7 @@ describe('useGeospatialExplorerState hook structure', () => {
     expect(source).toContain('mediaLocationStatus,');
   });
 
-  test('asserts all 76 expected return keys are present in return statement', () => {
+  test('asserts all expected return keys are present in return statement', () => {
     const expectedReturnKeys = [
       'mapHeight',
       'containerHeight',
@@ -114,10 +114,12 @@ describe('useGeospatialExplorerState hook structure', () => {
       'showColumnSelector',
       'showAgenciesPanel',
       'showCourthousesPanel',
+      'showAlprCameras',
       'toggleFilters',
       'toggleColumnSelector',
       'toggleAgenciesPanel',
       'toggleCourthousesPanel',
+      'toggleAlprCameras',
       'locationSearch',
       'setLocationSearch',
       'searchResults',

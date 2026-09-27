@@ -45,6 +45,7 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useNearestCourthouses');
     expect(source).toContain('useAgencyLayer');
     expect(source).toContain('useFederalCourthouses');
+    expect(source).toContain('useAlprCameras');
   });
 
   test('wires the page layout and passes required state and callbacks to child components', () => {
@@ -83,6 +84,7 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useGeospatialOverlayOrchestration({');
     expect(source).toContain('useAgencyLayer({');
     expect(source).toContain('useFederalCourthouses(');
+    expect(source).toContain('useAlprCameras(');
     expect(source).toContain('<GeospatialOverlayContent');
     expect(source).toContain('<MapRadiusContextMenu');
   });

@@ -49,6 +49,8 @@ interface MapToolbarProps {
   onToggleAgenciesPanel?: () => void;
   showCourthousesPanel?: boolean;
   onToggleCourthousesPanel?: () => void;
+  showAlprCameras?: boolean;
+  onToggleAlprCameras?: () => void;
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
   showMediaLocations?: boolean;
@@ -136,6 +138,8 @@ export const MapToolbar = ({
   onToggleAgenciesPanel,
   showCourthousesPanel,
   onToggleCourthousesPanel,
+  showAlprCameras,
+  onToggleAlprCameras,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
   showMediaLocations = false,
@@ -167,7 +171,8 @@ export const MapToolbar = ({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const hasActiveLayers = Boolean(showAgenciesPanel) || Boolean(showCourthousesPanel);
+  const hasActiveLayers =
+    Boolean(showAgenciesPanel) || Boolean(showCourthousesPanel) || Boolean(showAlprCameras);
   const currentStyleLabel = mapStyles.find((s) => s.value === mapStyle)?.label ?? 'Style';
 
   return (
@@ -243,6 +248,8 @@ export const MapToolbar = ({
           showAgenciesPanel={showAgenciesPanel}
           onToggleCourthousesPanel={onToggleCourthousesPanel}
           showCourthousesPanel={showCourthousesPanel}
+          onToggleAlprCameras={onToggleAlprCameras}
+          showAlprCameras={showAlprCameras}
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>

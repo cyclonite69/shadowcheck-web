@@ -10,6 +10,8 @@ interface LayersDropdownProps {
   showAgenciesPanel?: boolean;
   onToggleCourthousesPanel?: () => void;
   showCourthousesPanel?: boolean;
+  onToggleAlprCameras?: () => void;
+  showAlprCameras?: boolean;
 }
 
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
@@ -23,8 +25,10 @@ export const LayersDropdown = ({
   showAgenciesPanel,
   onToggleCourthousesPanel,
   showCourthousesPanel,
+  onToggleAlprCameras,
+  showAlprCameras,
 }: LayersDropdownProps) => {
-  if (!onToggleAgenciesPanel && !onToggleCourthousesPanel) {
+  if (!onToggleAgenciesPanel && !onToggleCourthousesPanel && !onToggleAlprCameras) {
     return null;
   }
 
@@ -118,6 +122,36 @@ export const LayersDropdown = ({
                 Federal Courthouses
               </span>
               {showCourthousesPanel && <CheckIcon />}
+            </div>
+          )}
+          {onToggleAlprCameras && (
+            <div
+              onClick={() => {
+                onToggleAlprCameras();
+                setLayersOpen(false);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '7px 10px',
+                borderRadius: '5px',
+                fontSize: '12px',
+                ...mono,
+                color: showAlprCameras ? '#d946ef' : 'rgba(255,255,255,0.5)',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <span title="Show/hide OpenStreetMap ALPR surveillance cameras on the map">
+                ALPR Cameras (OSM)
+              </span>
+              {showAlprCameras && <CheckIcon color="#d946ef" />}
             </div>
           )}
         </div>

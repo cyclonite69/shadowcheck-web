@@ -50,6 +50,9 @@ interface MapToolbarActionsProps {
   // Courthouses panel
   showCourthousesPanel?: boolean;
   onToggleCourthousesPanel?: () => void;
+  // ALPR cameras
+  showAlprCameras?: boolean;
+  onToggleAlprCameras?: () => void;
   // Network summaries
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
@@ -97,6 +100,8 @@ export const MapToolbarActions = ({
   onToggleAgenciesPanel,
   showCourthousesPanel,
   onToggleCourthousesPanel,
+  showAlprCameras,
+  onToggleAlprCameras,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
   showMediaLocations = false,
@@ -184,6 +189,8 @@ export const MapToolbarActions = ({
       onToggleAgenciesPanel={onToggleAgenciesPanel}
       showCourthousesPanel={showCourthousesPanel}
       onToggleCourthousesPanel={onToggleCourthousesPanel}
+      showAlprCameras={showAlprCameras}
+      onToggleAlprCameras={onToggleAlprCameras}
       showNetworkSummaries={showNetworkSummaries}
       onToggleNetworkSummaries={onToggleNetworkSummaries}
       showMediaLocations={showMediaLocations}

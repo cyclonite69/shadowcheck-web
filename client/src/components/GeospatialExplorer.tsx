@@ -14,6 +14,7 @@ import { useGeospatialOverlayOrchestration } from './geospatial/hooks/useGeospat
 import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExplorerState';
 import { useAgencyLayer } from '../hooks/useAgencyLayer';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
+import { useAlprCameras } from './hooks/useAlprCameras';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
 import { GeospatialOverlayContent } from './geospatial/overlays/GeospatialOverlayContent';
@@ -166,6 +167,11 @@ export default function GeospatialExplorer() {
     false,
     courthouses
   );
+
+  // Clustering is enabled (true) because OSM ALPR cameras can number in the thousands
+  // across a metropolitan area or state; clustering preserves 60fps WebGL rendering performance
+  // and prevents visual saturation until the user zooms into street level.
+  useAlprCameras(state.mapRef, state.mapReady, state.showAlprCameras, state.mapboxRef, true);
 
   return (
     <GeospatialLayout

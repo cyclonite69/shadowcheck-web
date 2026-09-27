@@ -1248,6 +1248,7 @@
 - **geospatial:** add cell actions for device classes and emitDetectionEvidence event bus ([b85535f](https://github.com/cyclonite69/shadowcheck-web/commit/b85535f1a8f2e34306bdb74a2fcf5f5dc7dbcf3f))
 - **geospatial:** add matched media GeoJSON endpoint ([8540061](https://github.com/cyclonite69/shadowcheck-web/commit/85400616f83200a19969b4d13ca5fe2a968aebbb))
 - **geospatial:** add sibling columns to explorer table ([b35c4ea](https://github.com/cyclonite69/shadowcheck-web/commit/b35c4ea7d9d8b42cff89acd932eb6081163201c2))
+- **geospatial:** add toggleable ALPR camera layer to Geospatial Explorer toolbar via useAlprCameras ([7b7a11a](https://github.com/cyclonite69/shadowcheck-web/commit/7b7a11a2f4367e666527064d5ab1e333615330f7))
 - **geospatial:** bake sibling summary into explorer mv ([6e0f554](https://github.com/cyclonite69/shadowcheck-web/commit/6e0f554f9e354355345b3c88188b234e7ff5c527))
 - **geospatial:** cluster visible sibling rows ([7e02ee8](https://github.com/cyclonite69/shadowcheck-web/commit/7e02ee8d493595b971f7d0b886a4e24058ba5153))
 - **geospatial:** consolidate surveillance detection as device class ([09079b4](https://github.com/cyclonite69/shadowcheck-web/commit/09079b425d6dfd19f56d2814de52e3a5639f999e))
