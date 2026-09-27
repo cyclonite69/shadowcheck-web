@@ -230,3 +230,14 @@ _8 additional findings omitted by report limit._
 ## Interpretation Rule
 
 High-confidence role findings should be reviewed before line-count-only candidates. Every refactor requires characterization tests, and database mutators or stored SQL remain deferred/high-risk work.
+
+---
+
+## Addendum: 2026-09-27 Verification & Refactor Update
+
+### `client/src/components/admin/components/WigleRunsCard.tsx`
+
+- **Policy Status**: Not registered in `scripts/modularity-rules.json` or `doc-line-count-thresholds.json`; refactoring was discretionary maintenance rather than a live policy gate failure.
+- **Historical audit claim (2026-09-25)**: Recorded as 618 lines, 6 imports, 37 functions, 408 largest function lines.
+- **Re-verified live state (2026-09-27 HEAD `d85d54ee`)**: Verified pre-refactor AST baseline was 638 LOC, 6 imports, 1 export, 37 functions, 427-line largest function.
+- **Refactor result**: Decomposed into coordinator and 6 submodules under `client/src/components/admin/components/wigle-runs/`. Current coordinator is **173 LOC**, 9 imports, 3 exports, **7 functions**, and **142-line largest function**. Existing consumers compile successfully against the preserved component contract, and characterization tests verify callback forwarding and indicator rendering.
