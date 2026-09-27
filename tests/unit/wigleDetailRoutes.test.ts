@@ -15,10 +15,14 @@ jest.mock('../../server/src/config/database', () => ({
 // Mock services
 const mockFetchOrImportDetail = jest.fn();
 const mockImportDetailFromJson = jest.fn();
-jest.mock('../../server/src/services/wigleDetailService', () => ({
-  fetchOrImportDetail: (...args: any[]) => mockFetchOrImportDetail(...args),
-  importDetailFromJson: (...args: any[]) => mockImportDetailFromJson(...args),
-}));
+jest.mock('../../server/src/services/wigleDetailService', () => {
+  const actual = jest.requireActual('../../server/src/services/wigleDetailService');
+  return {
+    ...actual,
+    fetchOrImportDetail: (...args: any[]) => mockFetchOrImportDetail(...args),
+    importDetailFromJson: (...args: any[]) => mockImportDetailFromJson(...args),
+  };
+});
 
 const mockInferWigleEndpoint = jest.fn();
 jest.mock('../../server/src/services/wigleDetailTransforms', () => ({

@@ -3,12 +3,16 @@ import express from 'express';
 
 import { pool } from '../../../../server/src/config/database';
 
-jest.mock('../../../../server/src/config/database', () => ({
-  __esModule: true,
-  pool: {
-    query: jest.fn(),
-  },
-}));
+jest.mock('../../../../server/src/config/database', () => {
+  const query = jest.fn();
+  return {
+    __esModule: true,
+    pool: {
+      query,
+    },
+    query,
+  };
+});
 
 // Mock secretsManager
 jest.mock('../../../../server/src/services/secretsManager', () => {

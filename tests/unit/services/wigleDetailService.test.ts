@@ -33,6 +33,10 @@ jest.mock('../../../server/src/logging/logger', () => ({
   debug: jest.fn(),
 }));
 
+jest.mock('../../../server/src/repositories/networkRepository', () => ({
+  getNetworkTypesByBssids: (jest.fn() as any).mockResolvedValue([]),
+}));
+
 jest.mock('../../../server/src/services/secretsManager', () => ({
   get: jest.fn(),
 }));

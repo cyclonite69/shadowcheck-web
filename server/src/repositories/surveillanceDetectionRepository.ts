@@ -2,7 +2,22 @@ import {
   BULK_UPSERT_DETECTIONS_SQL,
   buildBulkUpsertDetectionParams,
   ENRICHED_CANDIDATES_SQL,
+  GET_DETECTION_EVIDENCE_BY_BSSID_SQL,
 } from './surveillanceDetectionRepositorySql';
+
+export interface DetectionEvidenceRow {
+  device_type: string;
+  confidence: number;
+  threat_score: number;
+  detected_at: string;
+  lastupdt: string | null;
+  detection_method: string;
+  matched_signals: Record<string, any> | null;
+  false_positive: boolean;
+  fp_reason: string | null;
+  notes: string | null;
+  tags: string[] | null;
+}
 
 export interface CandidateRow {
   bssid: string;
@@ -73,6 +88,25 @@ async function bulkUpsertDetections(
   return result.rowCount ?? 0;
 }
 
-module.exports = { getEnrichedCandidates, bulkUpsertDetections };
-export { getEnrichedCandidates, bulkUpsertDetections };
-export type { CandidateRow as CandidateRowType, ScoredDetection as ScoredDetectionType };
+/**
+ * Retrieves surveillance detection evidence and associated tags for a specific BSSID.
+ * Follows repository convention requiring an explicit query executor.
+ *
+ * @param queryExecutor - Database query function (e.g. query from config/database or adminQuery)
+ * @param bssid - Normalized BSSID string
+ */
+async function getDetectionEvidenceByBssid(
+  queryExecutor: (sql: string, params?: any[]) => Promise<any>,
+  bssid: string
+): Promise<DetectionEvidenceRow[]> {
+  const result = await queryExecutor(GET_DETECTION_EVIDENCE_BY_BSSID_SQL, [bssid]);
+  return result.rows as DetectionEvidenceRow[];
+}
+
+module.exports = { getEnrichedCandidates, bulkUpsertDetections, getDetectionEvidenceByBssid };
+export { getEnrichedCandidates, bulkUpsertDetections, getDetectionEvidenceByBssid };
+export type {
+  CandidateRow as CandidateRowType,
+  ScoredDetection as ScoredDetectionType,
+  DetectionEvidenceRow as DetectionEvidenceRowType,
+};

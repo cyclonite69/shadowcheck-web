@@ -7,10 +7,12 @@ import type { Express } from 'express';
 const resolveDefault = (m: any) => m?.default || m;
 
 // Mock database pool
+const mockPoolQuery = jest.fn();
 jest.mock('../../server/src/config/database', () => ({
   pool: {
-    query: jest.fn(),
+    query: mockPoolQuery,
   },
+  query: (...args: any[]) => mockPoolQuery(...args),
 }));
 
 // Mock secretsManager module with ES module interop

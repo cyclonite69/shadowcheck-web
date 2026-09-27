@@ -17,6 +17,8 @@ import {
 } from './wigleEnrichment/mappers/enrichmentMapper';
 import { importWigleV3NetworkDetail, importWigleV3ObservationRow } from './wigle/persistence';
 
+export { getNetworkTypesByBssids } from '../repositories/networkRepository';
+
 export interface DetailResult {
   ok: true;
   data: any;

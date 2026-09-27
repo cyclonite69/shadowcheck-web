@@ -227,6 +227,40 @@ class NetworkRepository extends BaseRepository {
   async refreshNetworkExplorerMV(client: PoolClient): Promise<void> {
     await client.query('REFRESH MATERIALIZED VIEW app.api_network_explorer_mv');
   }
+
+  async getNetworkTypesByBssids(bssids: string[]): Promise<NetworkTypeRow[]> {
+    return getNetworkTypesByBssids(bssids);
+  }
+}
+
+export interface NetworkTypeRow {
+  bssid: string;
+  type: string;
+}
+
+/**
+ * Batch queries distinct network radio types for a list of BSSIDs.
+ * Calls module-level query() directly.
+ *
+ * @param bssids - Array of BSSID strings
+ */
+async function getNetworkTypesByBssids(bssids: string[]): Promise<NetworkTypeRow[]> {
+  if (!bssids || bssids.length === 0) {
+    return [];
+  }
+  const result = await query(
+    `
+    SELECT DISTINCT ON (bssid) bssid, type 
+    FROM app.networks 
+    WHERE bssid = ANY($1::text[])
+    ORDER BY bssid, type
+    `,
+    [bssids]
+  );
+  return result.rows || [];
 }
 
 module.exports = NetworkRepository;
+module.exports.getNetworkTypesByBssids = getNetworkTypesByBssids;
+
+export { NetworkRepository, getNetworkTypesByBssids };

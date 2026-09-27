@@ -6,12 +6,15 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
-import { fetchOrImportDetail, importDetailFromJson } from '../../../../services/wigleDetailService';
+import {
+  fetchOrImportDetail,
+  importDetailFromJson,
+  getNetworkTypesByBssids,
+} from '../../../../services/wigleDetailService';
 import { inferWigleEndpoint } from '../../../../services/wigleDetailTransforms';
 
 const router = express.Router();
 const { asyncHandler } = require('../../../../utils/asyncHandler');
-const { query } = require('../../../../config/database');
 
 interface FileUploadRequest extends Request {
   files?: Record<string, { data: Buffer; name: string; [key: string]: unknown }>;
@@ -47,16 +50,8 @@ router.post(
       error?: string;
     }> = [];
 
-    // Batch query network types from DB
-    const { rows: networkTypes } = await query(
-      `
-      SELECT DISTINCT ON (bssid) bssid, type 
-      FROM app.networks 
-      WHERE bssid = ANY($1::text[])
-      ORDER BY bssid, type
-      `,
-      [cleanBssids]
-    );
+    // Batch query network types from DB via wigleDetailService
+    const networkTypes = await getNetworkTypesByBssids(cleanBssids);
     const typeMap = new Map(networkTypes.map((r: any) => [r.bssid, r.type as string]));
 
     for (const bssid of cleanBssids) {

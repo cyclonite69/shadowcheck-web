@@ -416,3 +416,27 @@ export function buildBulkUpsertDetectionParams(
     detections.map((detection) => detection.fp_reason),
   ];
 }
+
+/** SQL contract for fetching detection evidence by BSSID. */
+export const GET_DETECTION_EVIDENCE_BY_BSSID_SQL = `
+  SELECT
+      sd.device_type,
+      sd.confidence,
+      sd.threat_score,
+      sd.detected_at,
+      (
+        SELECT MAX(wv.lastupdt)
+        FROM app.wigle_v2_networks_search wv
+        WHERE wv.bssid = sd.bssid
+      ) AS lastupdt,
+      sd.detection_method,
+      sd.matched_signals,
+      sd.false_positive,
+      sd.fp_reason,
+      sd.notes,
+      nt.tags
+    FROM app.surveillance_detections sd
+    LEFT JOIN app.network_tags nt ON nt.bssid = sd.bssid
+    WHERE sd.bssid = $1
+    ORDER BY sd.detected_at DESC
+`;

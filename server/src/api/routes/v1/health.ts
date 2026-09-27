@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import { pool } from '../../../config/database';
+import { getCurrentDatabase } from '../../../repositories/systemRepository';
 import * as secretsManager from '../../../services/secretsManager';
 
 const startTime = Date.now();
@@ -13,8 +13,7 @@ router.get('/health', async (req, res) => {
   // 1. Database check
   const dbStart = Date.now();
   try {
-    const dbRes = await pool.query('SELECT current_database() AS db_name');
-    dbName = dbRes.rows[0]?.db_name || 'unknown';
+    dbName = await getCurrentDatabase();
     (checks as any).database = { status: 'ok', database: dbName, latency_ms: Date.now() - dbStart };
   } catch (err) {
     (checks as any).database = { status: 'error', error: (err as any).message };

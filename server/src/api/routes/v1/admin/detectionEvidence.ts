@@ -10,6 +10,9 @@ const express = require('express');
 const { query } = require('../../../../config/database');
 const { validateBSSID } = require('../../../../validation/schemas');
 const logger = require('../../../../logging/logger');
+const {
+  getDetectionEvidenceByBssid,
+} = require('../../../../repositories/surveillanceDetectionRepository');
 
 export {};
 
@@ -31,29 +34,7 @@ router.get('/admin/networks/:bssid/detection-evidence', async (req: any, res: an
       return res.status(400).json({ ok: false, error: bssidValidation.error });
     }
 
-    const { rows } = await query(
-      `SELECT
-          sd.device_type,
-          sd.confidence,
-          sd.threat_score,
-          sd.detected_at,
-          (
-            SELECT MAX(wv.lastupdt)
-            FROM app.wigle_v2_networks_search wv
-            WHERE wv.bssid = sd.bssid
-          ) AS lastupdt,
-          sd.detection_method,
-          sd.matched_signals,
-          sd.false_positive,
-          sd.fp_reason,
-          sd.notes,
-          nt.tags
-        FROM app.surveillance_detections sd
-        LEFT JOIN app.network_tags nt ON nt.bssid = sd.bssid
-        WHERE sd.bssid = $1
-        ORDER BY sd.detected_at DESC`,
-      [bssid.toUpperCase()]
-    );
+    const rows = await getDetectionEvidenceByBssid(query, bssid.toUpperCase());
 
     res.json({ ok: true, bssid: bssid.toUpperCase(), evidence: rows });
   } catch (err: any) {
