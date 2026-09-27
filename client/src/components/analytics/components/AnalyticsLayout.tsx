@@ -52,7 +52,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
     >
       <AppHeader
         pageLabel="Analytics"
-        rightContent={
+        afterLabel={
           <button
             aria-label="Toggle filters"
             onClick={() => setShowFilters(!showFilters)}

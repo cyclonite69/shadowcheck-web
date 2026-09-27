@@ -297,7 +297,7 @@ export default function DashboardPage() {
     >
       <AppHeader
         pageLabel="Dashboard"
-        rightContent={
+        afterLabel={
           <button
             aria-label="Toggle filters"
             onClick={() => setShowFilters(!showFilters)}
