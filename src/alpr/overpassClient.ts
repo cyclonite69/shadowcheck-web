@@ -14,6 +14,7 @@
  */
 
 import { subdivideBBox } from './regions';
+import { type Bbox, validateBboxCoordinates, validateAndNormalizeBbox } from './bboxValidation';
 
 const PRIMARY_OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 const LAST_RESORT_OVERPASS_ENDPOINTS = [
@@ -61,13 +62,7 @@ const CHUNK_COLS = 2;
 export const CHUNK_CONCURRENCY = 1;
 const USER_AGENT = 'ShadowCheck-ALPR-Sync/1.0 (local research use)';
 
-export { LAST_RESORT_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS, PRIMARY_OVERPASS_ENDPOINT };
-export interface Bbox {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-}
+export { LAST_RESORT_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS, PRIMARY_OVERPASS_ENDPOINT, type Bbox };
 
 export interface OverpassElement {
   type: 'node' | 'way' | 'relation';
@@ -225,6 +220,7 @@ export function dedupeElementsByOsmId(elements: OverpassElement[]): OverpassElem
  * (surveillance:type=ALPR) and nothing else.
  */
 function buildAlprQuery(bbox: Bbox): string {
+  validateBboxCoordinates(bbox);
   const bboxStr = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
   const filter = '["surveillance:type"~"alpr|license.?plate",i]';
   return `
@@ -510,6 +506,7 @@ function formatExhaustedError(lastError: unknown, endpoints: readonly string[]):
  * Does not further subdivide.
  */
 export async function fetchAlprElementsSingleChunk(bbox: Bbox): Promise<OverpassElement[]> {
+  validateBboxCoordinates(bbox);
   const query = buildAlprQuery(bbox);
   const endpoints = getOverpassEndpoints();
   if (endpoints.length === 0) {
@@ -585,6 +582,7 @@ export async function fetchAlprElements(
   bbox: Bbox,
   options: FetchAlprElementsOptions = {}
 ): Promise<OverpassElement[]> {
+  const validatedBbox = validateAndNormalizeBbox(bbox);
   const rows = options.rows ?? CHUNK_ROWS;
   const cols = options.cols ?? CHUNK_COLS;
   const concurrency = Math.min(
@@ -592,7 +590,7 @@ export async function fetchAlprElements(
     Math.max(1, options.concurrency ?? CHUNK_CONCURRENCY)
   );
   const fetchChunk = options.fetchChunk ?? fetchAlprElementsSingleChunk;
-  const chunks = subdivideBBox(bbox, rows, cols);
+  const chunks = subdivideBBox(validatedBbox, rows, cols);
   const chunkResults = await runWithConcurrency(chunks, concurrency, (chunk) => fetchChunk(chunk));
   return dedupeElementsByOsmId(chunkResults.flat());
 }

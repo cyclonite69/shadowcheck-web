@@ -2426,7 +2426,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     description:
-      'Triggers an in-process Overpass API sync for the specified region and upserts results into app.alpr_cameras.',
+      'Triggers an in-process Overpass API sync for either a predefined region (regionId) or an arbitrary validated bounding box (bbox: [west, south, east, north]), upserting results into app.alpr_cameras.',
     defaultBody: '{\n  "regionId": "seattle",\n  "prune": false\n}',
     manualOnly: true,
   },

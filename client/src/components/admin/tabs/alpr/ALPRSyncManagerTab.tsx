@@ -43,6 +43,110 @@ export function shouldClearActiveJobId(status: InMemoryJobStatus): boolean {
   return status === 'completed' || status === 'failed';
 }
 
+export interface CustomBboxInput {
+  west: string;
+  south: string;
+  east: string;
+  north: string;
+}
+
+export interface ClientValidationResult {
+  valid: boolean;
+  error?: string;
+  bbox?: [number, number, number, number];
+}
+
+export function validateClientBbox(input: CustomBboxInput): ClientValidationResult {
+  const { west, south, east, north } = input;
+  if (!west.trim() || !south.trim() || !east.trim() || !north.trim()) {
+    return {
+      valid: false,
+      error: 'All 4 coordinates (West, South, East, North) are required.',
+    };
+  }
+
+  const w = Number(west);
+  const s = Number(south);
+  const e = Number(east);
+  const n = Number(north);
+
+  if (!Number.isFinite(w) || Number.isNaN(w)) {
+    return { valid: false, error: 'West longitude must be a valid finite number.' };
+  }
+  if (!Number.isFinite(s) || Number.isNaN(s)) {
+    return { valid: false, error: 'South latitude must be a valid finite number.' };
+  }
+  if (!Number.isFinite(e) || Number.isNaN(e)) {
+    return { valid: false, error: 'East longitude must be a valid finite number.' };
+  }
+  if (!Number.isFinite(n) || Number.isNaN(n)) {
+    return { valid: false, error: 'North latitude must be a valid finite number.' };
+  }
+
+  if (s < -90 || s > 90) {
+    return { valid: false, error: 'South latitude must be between -90 and 90 degrees.' };
+  }
+  if (n < -90 || n > 90) {
+    return { valid: false, error: 'North latitude must be between -90 and 90 degrees.' };
+  }
+  if (w < -180 || w > 180) {
+    return { valid: false, error: 'West longitude must be between -180 and 180 degrees.' };
+  }
+  if (e < -180 || e > 180) {
+    return { valid: false, error: 'East longitude must be between -180 and 180 degrees.' };
+  }
+
+  if (s === n) {
+    return {
+      valid: false,
+      error: 'Degenerate bounding box: South and North latitude are identical.',
+    };
+  }
+  if (s > n) {
+    return {
+      valid: false,
+      error: 'South latitude must be strictly less than North latitude.',
+    };
+  }
+  if (w === e) {
+    return {
+      valid: false,
+      error: 'Degenerate bounding box: West and East longitude are identical.',
+    };
+  }
+  if (w > e) {
+    return {
+      valid: false,
+      error: 'West longitude must be strictly less than East longitude.',
+    };
+  }
+
+  const latSpan = n - s;
+  const lonSpan = e - w;
+  const area = latSpan * lonSpan;
+
+  if (latSpan > 1.5) {
+    return {
+      valid: false,
+      error: `Latitude span (${latSpan.toFixed(3)}°) exceeds maximum allowed span of 1.5°.`,
+    };
+  }
+  if (lonSpan > 1.8) {
+    return {
+      valid: false,
+      error: `Longitude span (${lonSpan.toFixed(3)}°) exceeds maximum allowed span of 1.8°.`,
+    };
+  }
+  if (area > 2.25) {
+    return {
+      valid: false,
+      error: `Bounding box area (${area.toFixed(3)} deg²) exceeds maximum allowed ceiling of 2.25 deg².`,
+    };
+  }
+
+  return { valid: true, bbox: [w, s, e, n] };
+}
+
 function statusBadgeClass(status: DurableSyncStatus): string {
   switch (status) {
     case 'success':
@@ -76,6 +180,12 @@ function durableStatusOf(region: AlprRegion | undefined): DurableSyncStatus {
 export function AlprSyncTab() {
   const [regions, setRegions] = useState<AlprRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
+  const [syncMode, setSyncMode] = useState<'region' | 'custom'>('region');
+  const [customWest, setCustomWest] = useState<string>('');
+  const [customSouth, setCustomSouth] = useState<string>('');
+  const [customEast, setCustomEast] = useState<string>('');
+  const [customNorth, setCustomNorth] = useState<string>('');
+  const [bboxValidationError, setBboxValidationError] = useState<string | null>(null);
   const [pruneStale, setPruneStale] = useState<boolean>(false);
   const [dispatching, setDispatching] = useState<boolean>(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
@@ -174,11 +284,55 @@ export function AlprSyncTab() {
     };
   }, [fetchRegions]);
 
+  const targetRegionId = syncMode === 'custom' ? 'custom' : selectedRegion;
   const hasRunningRegion = regions.some((r) => durableStatusOf(r) === 'running');
   // Keep polling while a job we dispatched is still tracked — durable status can
   // briefly regress to idle (stale GET overlapping optimistic 'running') and the
   // job may finish faster than one poll interval.
   const shouldPollRegions = hasRunningRegion || activeJobId !== null || dispatching;
+
+  // Poll in-memory job status when a job is active
+  const checkJobTelemetry = useCallback(
+    async (jobId: string, regionId: string, signal?: AbortSignal) => {
+      try {
+        const res = await fetch(
+          `/api/v1/admin/alpr/sync/status?regionId=${encodeURIComponent(regionId)}`,
+          { signal }
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          jobs?: SyncJob[];
+          error?: string;
+        };
+        if (!res.ok) {
+          return;
+        }
+        const job = data.jobs?.find((candidate) => candidate.jobId === jobId);
+        if (!job || !shouldClearActiveJobId(job.status)) {
+          return;
+        }
+        if (job.status === 'completed') {
+          setSyncResult(job.result ?? null);
+          appendLog(`Sync ${job.jobId} completed.`);
+          setActiveJobId(null);
+          if (syncMode === 'region') {
+            void fetchRegions(undefined, { quiet: true });
+          }
+        } else if (job.status === 'failed') {
+          setError(job.error || 'ALPR sync failed.');
+          appendLog(`Sync ${job.jobId} failed: ${job.error || 'unknown error'}`);
+          setActiveJobId(null);
+          if (syncMode === 'region') {
+            void fetchRegions(undefined, { quiet: true });
+          }
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+      }
+    },
+    [appendLog, fetchRegions, syncMode]
+  );
 
   // Conditional short-polling: reconcile local UI with durable Postgres state
   // while a sync is in flight (durable running and/or tracked job id).
@@ -195,10 +349,15 @@ export function AlprSyncTab() {
     const preserveId =
       activeJobId !== null || dispatching || hasRunningRegion ? selectedRegion : null;
     const tick = () => {
-      void fetchRegions(controller.signal, {
-        quiet: true,
-        preserveOptimisticRunningFor: preserveId,
-      });
+      if (syncMode === 'region' || hasRunningRegion) {
+        void fetchRegions(controller.signal, {
+          quiet: true,
+          preserveOptimisticRunningFor: preserveId,
+        });
+      }
+      if (activeJobId && targetRegionId) {
+        void checkJobTelemetry(activeJobId, targetRegionId, controller.signal);
+      }
     };
 
     tick();
@@ -211,11 +370,21 @@ export function AlprSyncTab() {
         pollTimerRef.current = null;
       }
     };
-  }, [shouldPollRegions, fetchRegions, activeJobId, selectedRegion, dispatching, hasRunningRegion]);
+  }, [
+    shouldPollRegions,
+    fetchRegions,
+    activeJobId,
+    selectedRegion,
+    dispatching,
+    hasRunningRegion,
+    syncMode,
+    targetRegionId,
+    checkJobTelemetry,
+  ]);
 
   // When durable state leaves 'running', pull in-memory job telemetry for the panel.
   useEffect(() => {
-    if (!activeJobId || !selectedRegion) {
+    if (!activeJobId || !selectedRegion || syncMode === 'custom') {
       return;
     }
     const selected = regions.find((r) => r.id === selectedRegion);
@@ -225,74 +394,63 @@ export function AlprSyncTab() {
     }
 
     const controller = new AbortController();
-    const jobId = activeJobId;
-    void (async () => {
-      try {
-        const res = await fetch(
-          `/api/v1/admin/alpr/sync/status?regionId=${encodeURIComponent(selectedRegion)}`,
-          { signal: controller.signal }
-        );
-        const data = (await res.json().catch(() => ({}))) as {
-          jobs?: SyncJob[];
-          error?: string;
-        };
-        if (!res.ok) {
-          return;
-        }
-        const job = data.jobs?.find((candidate) => candidate.jobId === jobId);
-        if (!job) {
-          return;
-        }
-        // Only clear the tracked job once it reaches a terminal state. Clearing
-        // on dispatched/running drops the poll loop and leaves the button stuck
-        // when a quiet regions GET overwrote optimistic 'running' with idle.
-        if (!shouldClearActiveJobId(job.status)) {
-          return;
-        }
-        if (job.status === 'completed') {
-          setSyncResult(job.result ?? null);
-          appendLog(`Sync ${job.jobId} completed.`);
-          setActiveJobId(null);
-          void fetchRegions(undefined, { quiet: true });
-        } else if (job.status === 'failed') {
-          setError(job.error || 'ALPR sync failed.');
-          appendLog(`Sync ${job.jobId} failed: ${job.error || 'unknown error'}`);
-          setActiveJobId(null);
-          void fetchRegions(undefined, { quiet: true });
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') {
-          return;
-        }
-      }
-    })();
+    void checkJobTelemetry(activeJobId, selectedRegion, controller.signal);
 
     return () => controller.abort();
-  }, [activeJobId, selectedRegion, regions, appendLog, fetchRegions]);
+  }, [activeJobId, selectedRegion, regions, checkJobTelemetry, syncMode]);
 
   const handleSync = async () => {
-    if (!selectedRegion) {
-      setError('Please select a target region.');
-      return;
-    }
+    let payload: { regionId?: string; bbox?: [number, number, number, number]; prune: boolean };
+    let targetId: string;
+    let logLabel: string;
 
-    const regionId = selectedRegion;
-    const previous = regions.find((r) => r.id === regionId);
-    if (!previous) {
-      setError('Selected region is not loaded.');
-      return;
+    if (syncMode === 'custom') {
+      const validation = validateClientBbox({
+        west: customWest,
+        south: customSouth,
+        east: customEast,
+        north: customNorth,
+      });
+      if (!validation.valid || !validation.bbox) {
+        const errorMsg = validation.error || 'Invalid bounding box coordinates';
+        setBboxValidationError(errorMsg);
+        setError(errorMsg);
+        return;
+      }
+      setBboxValidationError(null);
+      payload = { bbox: validation.bbox, prune: pruneStale };
+      targetId = 'custom';
+      logLabel = `custom bbox [${validation.bbox.join(', ')}]`;
+    } else {
+      if (!selectedRegion) {
+        setError('Please select a target region.');
+        return;
+      }
+
+      const regionId = selectedRegion;
+      const previous = regions.find((r) => r.id === regionId);
+      if (!previous) {
+        setError('Selected region is not loaded.');
+        return;
+      }
+
+      payload = { regionId, prune: pruneStale };
+      targetId = regionId;
+      logLabel = `region: ${regionId}`;
     }
 
     setDispatching(true);
     setError(null);
     setSyncResult(null);
     setActiveJobId(null);
-    appendLog(`Initiating ALPR sync for region: ${regionId} (Prune: ${pruneStale})`);
+    appendLog(`Initiating ALPR sync for ${logLabel} (Prune: ${pruneStale})`);
 
-    // Optimistic UI: mark durable status running before the POST resolves.
-    setRegions((prev) =>
-      prev.map((r) => (r.id === regionId ? { ...r, syncStatus: 'running' as const } : r))
-    );
+    // Optimistic UI: mark durable status running before the POST resolves if in region mode.
+    if (syncMode === 'region') {
+      setRegions((prev) =>
+        prev.map((r) => (r.id === targetId ? { ...r, syncStatus: 'running' as const } : r))
+      );
+    }
 
     try {
       const controller = new AbortController();
@@ -301,7 +459,7 @@ export function AlprSyncTab() {
       const res = await fetch('/api/v1/admin/alpr/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regionId, prune: pruneStale }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
 
@@ -315,16 +473,21 @@ export function AlprSyncTab() {
 
       if (data.jobId) {
         setActiveJobId(data.jobId);
-        appendLog(`Sync ${data.jobId} dispatched; reconciling via region status polling.`);
+        appendLog(`Sync ${data.jobId} dispatched; polling for status.`);
       } else {
-        appendLog('Sync dispatched; reconciling via region status polling.');
+        appendLog('Sync dispatched; polling for status.');
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
         return;
       }
-      // Revert to last known durable snapshot for this region.
-      setRegions((prev) => prev.map((r) => (r.id === regionId ? previous : r)));
+      // Revert to last known durable snapshot for this region if in region mode.
+      if (syncMode === 'region') {
+        const previous = regions.find((r) => r.id === targetId);
+        if (previous) {
+          setRegions((prev) => prev.map((r) => (r.id === targetId ? previous : r)));
+        }
+      }
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
       appendLog(`Sync error: ${message}`);
@@ -334,8 +497,17 @@ export function AlprSyncTab() {
   };
 
   const selectedRegionObj = regions.find((r) => r.id === selectedRegion);
-  const durableStatus = durableStatusOf(selectedRegionObj);
+  const durableStatus =
+    syncMode === 'custom'
+      ? activeJobId !== null || dispatching
+        ? 'running'
+        : 'idle'
+      : durableStatusOf(selectedRegionObj);
   const isSyncing = durableStatus === 'running' || dispatching;
+  const isFormValid =
+    syncMode === 'region'
+      ? Boolean(selectedRegion)
+      : Boolean(customWest.trim() && customSouth.trim() && customEast.trim() && customNorth.trim());
 
   return (
     <div className="space-y-6 text-slate-100">
@@ -353,7 +525,7 @@ export function AlprSyncTab() {
         <button
           type="button"
           onClick={() => void handleSync()}
-          disabled={isSyncing || !selectedRegion}
+          disabled={isSyncing || !isFormValid}
           className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-cyan-950/50"
         >
           <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -375,50 +547,197 @@ export function AlprSyncTab() {
               <Database className="w-4 h-4 text-cyan-400" />
               Target Configuration
             </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
-                  Region Target
-                </label>
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  disabled={isSyncing}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
-                >
-                  {regions.map((reg) => {
-                    const displayName = reg.name || reg.label || reg.id;
-                    const status = durableStatusOf(reg);
-                    const count = elementCountDisplay(reg.lastElementCount);
-                    return (
-                      <option key={reg.id} value={reg.id}>
-                        {displayName} — {status} · {count}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
 
-              <div
-                className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-xs font-medium ${statusBadgeClass(durableStatus)}`}
+            <div className="flex rounded-lg bg-slate-950 p-1 border border-slate-800 mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setSyncMode('region');
+                  setBboxValidationError(null);
+                }}
+                disabled={isSyncing}
+                className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${
+                  syncMode === 'region'
+                    ? 'bg-cyan-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
               >
-                Durable status: {durableStatus}
-              </div>
+                Predefined Region
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSyncMode('custom');
+                  setBboxValidationError(null);
+                }}
+                disabled={isSyncing}
+                className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${
+                  syncMode === 'custom'
+                    ? 'bg-cyan-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Custom Bounding Box
+              </button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="block text-slate-500 mb-0.5">Last sync</span>
-                  <span className="font-mono text-slate-300">
-                    {formatSyncTime(selectedRegionObj?.lastSyncAt)}
-                  </span>
+            <div className="space-y-4">
+              {syncMode === 'region' ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Region Target
+                    </label>
+                    <select
+                      value={selectedRegion}
+                      onChange={(e) => setSelectedRegion(e.target.value)}
+                      disabled={isSyncing}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                    >
+                      {regions.map((reg) => {
+                        const displayName = reg.name || reg.label || reg.id;
+                        const status = durableStatusOf(reg);
+                        const count = elementCountDisplay(reg.lastElementCount);
+                        return (
+                          <option key={reg.id} value={reg.id}>
+                            {displayName} — {status} · {count}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div
+                    className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-xs font-medium ${statusBadgeClass(durableStatus)}`}
+                  >
+                    Durable status: {durableStatus}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="block text-slate-500 mb-0.5">Last sync</span>
+                      <span className="font-mono text-slate-300">
+                        {formatSyncTime(selectedRegionObj?.lastSyncAt)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 mb-0.5">Last elements</span>
+                      <span className="font-mono text-slate-300">
+                        {elementCountDisplay(selectedRegionObj?.lastElementCount)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-slate-300">
+                      Coordinates [W, S, E, N]
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomWest('-83.95');
+                        setCustomSouth('42.75');
+                        setCustomEast('-83.40');
+                        setCustomNorth('43.25');
+                        setBboxValidationError(null);
+                      }}
+                      disabled={isSyncing}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                    >
+                      Load Genesee County MI
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="block text-[10px] text-slate-400 mb-1">
+                        West Lon (minLon)
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={customWest}
+                        onChange={(e) => {
+                          setCustomWest(e.target.value);
+                          setBboxValidationError(null);
+                        }}
+                        disabled={isSyncing}
+                        placeholder="-83.95"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-slate-400 mb-1">
+                        South Lat (minLat)
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={customSouth}
+                        onChange={(e) => {
+                          setCustomSouth(e.target.value);
+                          setBboxValidationError(null);
+                        }}
+                        disabled={isSyncing}
+                        placeholder="42.75"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-slate-400 mb-1">
+                        East Lon (maxLon)
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={customEast}
+                        onChange={(e) => {
+                          setCustomEast(e.target.value);
+                          setBboxValidationError(null);
+                        }}
+                        disabled={isSyncing}
+                        placeholder="-83.40"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-slate-400 mb-1">
+                        North Lat (maxLat)
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={customNorth}
+                        onChange={(e) => {
+                          setCustomNorth(e.target.value);
+                          setBboxValidationError(null);
+                        }}
+                        disabled={isSyncing}
+                        placeholder="43.25"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500">
+                    Order: [West, South, East, North]. Max area: 2.25 deg² (max lat span 1.5°, max
+                    lon span 1.8°).
+                  </p>
+
+                  {bboxValidationError && (
+                    <div className="text-[11px] text-rose-300 bg-rose-950/40 border border-rose-800/60 rounded p-2 flex items-start gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <span>{bboxValidationError}</span>
+                    </div>
+                  )}
+
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border text-xs font-medium text-slate-400 bg-slate-950/60 border-slate-800/60">
+                    Mode: Stateless execution (no alpr_regions row)
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-slate-500 mb-0.5">Last elements</span>
-                  <span className="font-mono text-slate-300">
-                    {elementCountDisplay(selectedRegionObj?.lastElementCount)}
-                  </span>
-                </div>
-              </div>
+              )}
 
               <div className="pt-2">
                 <div className="flex items-center justify-between">
@@ -448,10 +767,17 @@ export function AlprSyncTab() {
             </div>
           </div>
 
-          {selectedRegionObj?.bbox && (
+          {syncMode === 'region' && selectedRegionObj?.bbox && (
             <div className="mt-6 pt-4 border-t border-slate-800/80 text-xs font-mono text-slate-400">
               <span className="text-slate-500 block mb-1">BBOX METRICS:</span>
               {JSON.stringify(selectedRegionObj.bbox)}
+            </div>
+          )}
+
+          {syncMode === 'custom' && customWest && customSouth && customEast && customNorth && (
+            <div className="mt-6 pt-4 border-t border-slate-800/80 text-xs font-mono text-slate-400">
+              <span className="text-slate-500 block mb-1">CUSTOM BBOX:</span>[{customWest},{' '}
+              {customSouth}, {customEast}, {customNorth}]
             </div>
           )}
         </div>

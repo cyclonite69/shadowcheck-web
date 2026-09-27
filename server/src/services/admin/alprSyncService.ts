@@ -24,6 +24,7 @@ import {
   elementsToRecords,
   type Bbox,
 } from '../../../../src/alpr/overpassClient';
+import { validateAndNormalizeBbox } from '../../../../src/alpr/bboxValidation';
 import {
   acquireAlprLock,
   ALPR_SYNC_LOCK_KEY,
@@ -47,6 +48,7 @@ const { query } = require('../../config/database');
 
 export { ALPR_REGIONS };
 export { ALPR_SYNC_LOCK_KEY };
+export { validateAndNormalizeBbox, type Bbox };
 
 export interface AlprSyncResult {
   regionId: string;
@@ -233,6 +235,128 @@ export function dispatchRegionSync(regionId: string, prune = false): SyncDispatc
   return { jobId: job.jobId, regionId, status: 'dispatched' };
 }
 
+/**
+ * Run a single custom bounding-box Overpass sync in-process using the provided pool.
+ * Does not mutate app.alpr_regions — purely stateless camera ingestion.
+ *
+ * @param pool     - Shared long-running Postgres pool (no statement timeout).
+ * @param rawBbox  - Validated or unvalidated bounding box (normalized and validated).
+ * @param prune    - When true, delete stale rows inside the custom bbox after upsert.
+ * @returns        - Upsert and prune counts for the caller to surface.
+ * @throws         - Error if coordinates invalid, lock held, or Overpass fetch fails.
+ */
+export async function syncAlprCustomBbox(
+  pool: Pool,
+  rawBbox: unknown,
+  prune = false
+): Promise<AlprSyncResult> {
+  const bbox = validateAndNormalizeBbox(rawBbox);
+
+  const client: PoolClient = await pool.connect();
+  let lockAcquired = false;
+
+  try {
+    lockAcquired = await acquireAlprLock(client);
+
+    if (!lockAcquired) {
+      throw new Error('ALPR synchronization is already in progress');
+    }
+
+    const started = Date.now();
+    const runStartedAt = new Date(started);
+
+    // Fetch elements from Overpass API (may throw on timeout/network failure)
+    const elements = await fetchAlprElements(bbox);
+    const records = elementsToRecords(elements);
+
+    // Upsert batch via UNNEST in single round-trip
+    const upsertedCount = await upsertAlprBatch(client, records, runStartedAt);
+
+    // Prune safety guard: only prune if Overpass returned candidate records.
+    let prunedCount = 0;
+    if (prune) {
+      if (records.length > 0) {
+        prunedCount = await pruneStaleInBbox(client, bbox, runStartedAt);
+      }
+    }
+
+    return {
+      regionId: 'custom',
+      regionLabel: `Custom BBox [${bbox.west}, ${bbox.south}, ${bbox.east}, ${bbox.north}]`,
+      upsertedCount,
+      prunedCount,
+      candidateCount: records.length,
+      durationMs: Date.now() - started,
+    };
+  } finally {
+    if (lockAcquired) {
+      await releaseAlprLock(client);
+    }
+    client.release();
+  }
+}
+
+/**
+ * Execute custom bounding-box sync using the application's long-running admin pool.
+ *
+ * @param bbox  - Validated or unvalidated bounding box.
+ * @param prune - When true, delete stale cameras inside bbox after upsert.
+ */
+export async function runAlprCustomBbox(bbox: unknown, prune = false): Promise<AlprSyncResult> {
+  const { getLongRunningAdminPool } = require('../adminDbService');
+  const adminPool = getLongRunningAdminPool();
+  if (!adminPool) {
+    throw new Error('Long-running admin database pool not initialized (check DB_ADMIN_PASSWORD)');
+  }
+  return syncAlprCustomBbox(adminPool, bbox, prune);
+}
+
+/**
+ * Dispatch an asynchronous custom bounding-box sync in the background.
+ *
+ * @param rawBbox - Validated or unvalidated bounding box.
+ * @param prune   - When true, delete stale cameras inside bbox after upsert.
+ * @returns       - Dispatch outcome with jobId.
+ */
+export function dispatchCustomBboxSync(rawBbox: unknown, prune = false): SyncDispatchResult {
+  purgeExpiredJobs();
+  const bbox = validateAndNormalizeBbox(rawBbox);
+
+  const active = findRunningJob('custom');
+  if (active) {
+    return { jobId: active.jobId, regionId: 'custom', status: 'already_running' };
+  }
+
+  const job: SyncJobState = {
+    jobId: randomUUID(),
+    regionId: 'custom',
+    status: 'running',
+    startTime: new Date().toISOString(),
+  };
+  syncJobs.set(job.jobId, job);
+
+  void Promise.resolve()
+    .then(() => runAlprCustomBbox(bbox, prune))
+    .then((result) => {
+      job.status = 'completed';
+      job.endTime = new Date().toISOString();
+      job.result = result;
+    })
+    .catch((error: unknown) => {
+      job.status = 'failed';
+      job.endTime = new Date().toISOString();
+      job.error = formatErrorWithCause(error);
+      logger.error('ALPR custom bbox background sync failed', {
+        jobId: job.jobId,
+        regionId: 'custom',
+        bbox,
+        error: job.error,
+      });
+    });
+
+  return { jobId: job.jobId, regionId: 'custom', status: 'dispatched' };
+}
+
 export interface AlprRegionListItem {
   id: string;
   name: string;
@@ -291,7 +415,10 @@ export const alprSyncService = {
     return runAlprSync(region, prune);
   },
   dispatchRegionSync,
+  dispatchCustomBboxSync,
   getSyncStatus,
   runAlprSync,
+  runAlprCustomBbox,
   syncAlprRegion,
+  syncAlprCustomBbox,
 };

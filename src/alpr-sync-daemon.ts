@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Pool, PoolClient } from 'pg';
 import { ALPR_REGIONS, findRegion, regionsByState, type AlprRegion } from './alpr/regions';
 import { fetchAlprElements, elementsToRecords, type Bbox } from './alpr/overpassClient';
+import { validateAndNormalizeBbox } from './alpr/bboxValidation';
 import {
   upsertAlprBatch,
   pruneStaleInBbox,
@@ -36,12 +37,12 @@ function parseBboxArg(value?: string): Bbox | null {
   if (!value) {
     return null;
   }
-  const parts = value.split(',').map((p) => Number(p.trim()));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) {
+  try {
+    return validateAndNormalizeBbox(value);
+  } catch (err: unknown) {
+    console.error(`Invalid --bbox parameter: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
-  const [west, south, east, north] = parts;
-  return { west, south, east, north };
 }
 
 interface CliArgs {

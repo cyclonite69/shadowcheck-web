@@ -32,9 +32,11 @@ jest.mock('../../../../server/src/config/database', () => ({
 
 import {
   syncAlprRegion,
+  syncAlprCustomBbox,
   ALPR_REGIONS,
   ALPR_SYNC_LOCK_KEY,
   dispatchRegionSync,
+  dispatchCustomBboxSync,
   getSyncStatus,
   listRegionsWithStatus,
 } from '../../../../server/src/services/admin/alprSyncService';
@@ -337,5 +339,132 @@ describe('alprSyncService', () => {
     } finally {
       nowSpy.mockRestore();
     }
+  });
+
+  describe('custom bbox sync (stateless, no app.alpr_regions mutation)', () => {
+    const geneseeCountyBbox = {
+      west: -83.95,
+      south: 42.75,
+      east: -83.4,
+      north: 43.25,
+    };
+
+    it('successfully syncs Genesee County MI without touching app.alpr_regions', async () => {
+      const mockElements = [{ type: 'node', id: 98765, lat: 43.0, lon: -83.7, tags: {} }] as any;
+      const mockRecords = [{ osmId: 98765, lat: 43.0, lon: -83.7, sourceProperties: {} }] as any;
+
+      (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue(mockElements);
+      (overpassClient.elementsToRecords as jest.Mock).mockReturnValue(mockRecords);
+      (alprSync.upsertAlprBatch as jest.Mock).mockResolvedValue(1);
+
+      const result = await syncAlprCustomBbox(mockPool, geneseeCountyBbox);
+
+      expect(result.regionId).toBe('custom');
+      expect(result.regionLabel).toContain('Custom BBox');
+      expect(result.upsertedCount).toBe(1);
+      expect(result.prunedCount).toBe(0);
+      expect(result.candidateCount).toBe(1);
+
+      // Verify Postgres advisory lock acquired and released
+      expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_try_advisory_lock($1) AS acquired', [
+        ALPR_SYNC_LOCK_KEY,
+      ]);
+      expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_advisory_unlock($1)', [
+        ALPR_SYNC_LOCK_KEY,
+      ]);
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+
+      // CRITICAL: verify app.alpr_regions state functions were NEVER called
+      expect(alprRegionState.markRegionSyncRunning).not.toHaveBeenCalled();
+      expect(alprRegionState.markRegionSyncSuccess).not.toHaveBeenCalled();
+      expect(alprRegionState.markRegionSyncFailed).not.toHaveBeenCalled();
+    });
+
+    it('executes prune when prune is true and candidate records were returned', async () => {
+      const mockElements = [{ type: 'node', id: 98765, lat: 43.0, lon: -83.7 }] as any;
+      const mockRecords = [{ osmId: 98765, lat: 43.0, lon: -83.7, sourceProperties: {} }] as any;
+
+      (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue(mockElements);
+      (overpassClient.elementsToRecords as jest.Mock).mockReturnValue(mockRecords);
+      (alprSync.upsertAlprBatch as jest.Mock).mockResolvedValue(1);
+      (alprSync.pruneStaleInBbox as jest.Mock).mockResolvedValue(2);
+
+      const result = await syncAlprCustomBbox(mockPool, geneseeCountyBbox, true);
+
+      expect(result.prunedCount).toBe(2);
+      expect(alprSync.pruneStaleInBbox).toHaveBeenCalledWith(
+        mockClient,
+        geneseeCountyBbox,
+        expect.any(Date)
+      );
+    });
+
+    it('skips prune when Overpass returns 0 records even if prune is true', async () => {
+      (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue([]);
+      (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);
+      (alprSync.upsertAlprBatch as jest.Mock).mockResolvedValue(0);
+
+      const result = await syncAlprCustomBbox(mockPool, geneseeCountyBbox, true);
+
+      expect(result.upsertedCount).toBe(0);
+      expect(result.prunedCount).toBe(0);
+      expect(alprSync.pruneStaleInBbox).not.toHaveBeenCalled();
+    });
+
+    it('releases lock when Overpass fetch fails', async () => {
+      (overpassClient.fetchAlprElements as jest.Mock).mockRejectedValue(
+        new Error('Overpass connection timeout')
+      );
+
+      await expect(syncAlprCustomBbox(mockPool, geneseeCountyBbox)).rejects.toThrow(
+        'Overpass connection timeout'
+      );
+
+      expect(mockClient.query).toHaveBeenCalledWith('SELECT pg_advisory_unlock($1)', [
+        ALPR_SYNC_LOCK_KEY,
+      ]);
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+      expect(alprRegionState.markRegionSyncFailed).not.toHaveBeenCalled();
+    });
+
+    it('dispatches a background custom bbox job and completes without touching app.alpr_regions', async () => {
+      (overpassClient.fetchAlprElements as jest.Mock).mockResolvedValue([]);
+      (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);
+      (alprSync.upsertAlprBatch as jest.Mock).mockResolvedValue(0);
+
+      const dispatch = dispatchCustomBboxSync(geneseeCountyBbox);
+      expect(dispatch.status).toBe('dispatched');
+      expect(dispatch.regionId).toBe('custom');
+
+      await new Promise((resolve) => setImmediate(resolve));
+
+      const job = getSyncStatus('custom').find((j) => j.jobId === dispatch.jobId);
+      expect(job).toBeDefined();
+      expect(job?.status).toBe('completed');
+      expect(job?.result?.regionId).toBe('custom');
+      expect(alprRegionState.markRegionSyncRunning).not.toHaveBeenCalled();
+    });
+
+    it('rejects duplicate dispatch for custom bbox while one is active', async () => {
+      let resolveFetch!: (value: unknown[]) => void;
+      (overpassClient.fetchAlprElements as jest.Mock).mockReturnValue(
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+      );
+      (overpassClient.elementsToRecords as jest.Mock).mockReturnValue([]);
+
+      const first = dispatchCustomBboxSync(geneseeCountyBbox);
+      const duplicate = dispatchCustomBboxSync(geneseeCountyBbox);
+
+      expect(duplicate).toEqual({
+        jobId: first.jobId,
+        regionId: 'custom',
+        status: 'already_running',
+      });
+
+      resolveFetch([]);
+      await new Promise((resolve) => setImmediate(resolve));
+    });
   });
 });

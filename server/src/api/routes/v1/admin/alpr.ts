@@ -13,33 +13,74 @@ const express = require('express');
 const logger = require('../../../../logging/logger');
 import { alprSyncService } from '../../../../services/admin/alprSyncService';
 import { formatErrorWithCause } from '../../../../utils/formatErrorWithCause';
+import { validateAndNormalizeBbox, type Bbox } from '../../../../../../src/alpr/bboxValidation';
 
 const router = express.Router();
 
 /**
  * POST /v1/admin/alpr/sync
  *
- * Canonical body: { regionId: string, prune?: boolean }
+ * Canonical body:
+ *   Predefined region: { regionId: string, prune?: boolean }
+ *   Custom bbox:       { bbox: [west, south, east, north] | { west, south, east, north }, prune?: boolean }
+ *                      or { regionId: 'custom', bbox: ... }
  *
  * Status codes:
  *   202 - Sync dispatched
- *   400 - Missing or invalid region ID
+ *   400 - Missing or invalid region ID / bounding box
  *   409 - Sync already in progress (advisory lock held)
  */
 router.post('/v1/admin/alpr/sync', async (req: any, res: any) => {
   const region = req.body?.regionId;
+  const rawBbox = req.body?.bbox;
   const prune = req.body?.prune ?? false;
 
-  if (!region || typeof region !== 'string') {
-    return res.status(400).json({
-      ok: false,
-      error: 'regionId is required',
-    });
-  }
   if (typeof prune !== 'boolean') {
     return res.status(400).json({
       ok: false,
       error: 'prune must be a boolean',
+    });
+  }
+
+  // Handle custom bbox sync
+  if (rawBbox !== undefined || region === 'custom') {
+    if (rawBbox === undefined) {
+      return res.status(400).json({
+        ok: false,
+        error: 'bbox is required for custom region sync',
+      });
+    }
+
+    let bbox: Bbox;
+    try {
+      bbox = validateAndNormalizeBbox(rawBbox);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return res.status(400).json({
+        ok: false,
+        success: false,
+        error: msg,
+      });
+    }
+
+    try {
+      const dispatch = alprSyncService.dispatchCustomBboxSync(bbox, prune);
+      if (dispatch.status === 'already_running') {
+        return res.status(409).json({ success: false, ...dispatch });
+      }
+      return res.status(202).json({ success: true, ...dispatch });
+    } catch (err: any) {
+      const msg: string = err?.message ?? 'Unknown error';
+      logger.error('[ALPR Sync] Custom bbox dispatch failed', { bbox, error: msg });
+      return res.status(500).json({ success: false, error: msg });
+    }
+  }
+
+  // Handle predefined region sync
+  if (!region || typeof region !== 'string') {
+    return res.status(400).json({
+      ok: false,
+      error: 'regionId is required',
     });
   }
 
