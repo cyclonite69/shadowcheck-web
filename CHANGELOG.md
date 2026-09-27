@@ -1455,7 +1455,7 @@
 - **wigle:** add manual BSSID selection to v3 enrichment feature ([605c11d](https://github.com/cyclonite69/shadowcheck-web/commit/605c11dfffe880525e707a3a6e96b38d7c473a8a))
 - **wigle:** add multi-select WiGLE import from geospatial context menu ([48ffa8e](https://github.com/cyclonite69/shadowcheck-web/commit/48ffa8e122aa32dc83791008b631ff19f753b240))
 - **wigle:** add observations/extent endpoint and Fit Bounds button ([35fdddc](https://github.com/cyclonite69/shadowcheck-web/commit/35fdddcc93b7a78d768b68c7ed2eac5ad96bd6a7))
-- **wigle:** add pulsing ring animation layer for unclustered ALPR cameras ([e14aeb0](https://github.com/cyclonite69/shadowcheck-web/commit/e14aeb0a2a7f10128f484583a7696867459a0fb1))
+- **wigle:** add pulsing ring animation layer for unclustered ALPR cameras ([4d25b6e](https://github.com/cyclonite69/shadowcheck-web/commit/4d25b6ebb2904f323f1ced2ecec2e7471d811b7c))
 - **wigle:** add useWigleObservations unified fetch hook (Phase 2) ([7527963](https://github.com/cyclonite69/shadowcheck-web/commit/7527963224502fff1f7e7797cdf322911660a02a))
 - **wigle:** add WiGLE BT/BLE paginated import pipeline ([3a399fa](https://github.com/cyclonite69/shadowcheck-web/commit/3a399fad9d7ae31368494cbf8aaa7c5ef4c270ec))
 - **wigle:** align tooltip with geospatial/kepler pages ([b61762b](https://github.com/cyclonite69/shadowcheck-web/commit/b61762b1099acbfa2f6e7cac8b4cce6b0937816d))
