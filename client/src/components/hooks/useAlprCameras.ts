@@ -12,6 +12,10 @@ import {
 import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 
 const ALPR_COLOR = '#d946ef';
+const PULSE_DURATION_MS = 1500;
+const PULSE_MIN_RADIUS = 4;
+const PULSE_MAX_RADIUS = 18;
+const PULSE_MAX_OPACITY = 0.8;
 type PopupDetail = readonly [label: string, value: string | null];
 type PopulatedPopupDetail = readonly [label: string, value: string];
 
@@ -228,6 +232,42 @@ export const useAlprCameras = (
     applyAlprVisibility(map, isVisible);
   }, [isVisible, mapRef, mapReady]);
 
+  useEffect(() => {
+    if (!hasBeenVisible || !isVisible || !mapReady || !data || data.features.length === 0) {
+      return;
+    }
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    let animId: number | null = null;
+
+    const animate = (timestamp: number) => {
+      if (map.getStyle() && map.getLayer('alpr-pulse')) {
+        const progress = (timestamp % PULSE_DURATION_MS) / PULSE_DURATION_MS;
+        const radius = PULSE_MIN_RADIUS + progress * (PULSE_MAX_RADIUS - PULSE_MIN_RADIUS);
+        const opacity = PULSE_MAX_OPACITY * (1 - progress);
+        try {
+          map.setPaintProperty('alpr-pulse', 'circle-radius', radius);
+          map.setPaintProperty('alpr-pulse', 'circle-stroke-opacity', opacity);
+        } catch {
+          // Ignore transient errors during style transitions
+        }
+      }
+      animId = requestAnimationFrame(animate);
+    };
+
+    animId = requestAnimationFrame(animate);
+
+    return () => {
+      if (animId !== null) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+    };
+  }, [hasBeenVisible, isVisible, mapReady, data, mapRef]);
+
   return { data, loading, error };
 };
 
@@ -278,6 +318,26 @@ export function ensureAlprLayers(map: Map, data: AlprCamerasGeoJSON, clusteringE
     });
   }
 
+  if (!map.getLayer('alpr-pulse')) {
+    map.addLayer(
+      {
+        id: 'alpr-pulse',
+        type: 'circle',
+        source: 'alpr-cameras',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': 'transparent',
+          'circle-opacity': 0,
+          'circle-stroke-color': ALPR_COLOR,
+          'circle-stroke-width': 2,
+          'circle-radius': PULSE_MIN_RADIUS,
+          'circle-stroke-opacity': PULSE_MAX_OPACITY,
+        },
+      },
+      map.getLayer('alpr-unclustered') ? 'alpr-unclustered' : undefined
+    );
+  }
+
   if (!map.getLayer('alpr-unclustered')) {
     map.addLayer({
       id: 'alpr-unclustered',
@@ -297,7 +357,7 @@ export function ensureAlprLayers(map: Map, data: AlprCamerasGeoJSON, clusteringE
 
 function applyAlprVisibility(map: Map, isVisible: boolean) {
   const vis = isVisible ? 'visible' : 'none';
-  ['alpr-unclustered', 'alpr-clusters', 'alpr-cluster-count'].forEach((id) => {
+  ['alpr-pulse', 'alpr-unclustered', 'alpr-clusters', 'alpr-cluster-count'].forEach((id) => {
     if (map.getLayer(id)) {
       map.setLayoutProperty(id, 'visibility', vis);
     }
