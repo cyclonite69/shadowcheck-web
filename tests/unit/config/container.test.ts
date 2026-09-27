@@ -25,6 +25,7 @@ describe('DI Container Structural Lock', () => {
       'agencyService',
       'courthouseService',
       'deflockService',
+      'alprService',
       'shotspotterSensorsService',
       'aiInsightsService',
       'bedrockService',

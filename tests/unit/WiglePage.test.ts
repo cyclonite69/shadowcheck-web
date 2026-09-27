@@ -24,6 +24,7 @@ describe('WiglePage component structure', () => {
       'useAgencyOffices',
       'useFederalCourthouses',
       'useDeflockCameras',
+      'useAlprCameras',
       'useShotspotterZones',
       'useShotspotterSensors',
       'useWigleLayers',

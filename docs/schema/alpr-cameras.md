@@ -13,3 +13,15 @@ camera nodes collected by the local ALPR sync daemon.
 The daemon processes a complete set of U.S. bounding-box chunks in one
 transaction. Rows absent from the successful refresh are deleted, so the table
 represents the current OSM source rather than an append-only history.
+
+## API Endpoints
+
+- `GET /api/v1/surveillance/alpr-cameras`: Returns a GeoJSON FeatureCollection of all ALPR cameras with properties projected from `source_properties`:
+  - `id` / `osm_id`: OSM node identifier (`TEXT`)
+  - `manufacturer`: Camera manufacturer (e.g. `Flock Safety`, `Motorola Solutions`, `Genetec`)
+  - `direction`: Camera direction in degrees
+  - `camera_type`: Mounting configuration (e.g. `fixed`)
+  - `surveillance_zone`: Target zone (e.g. `traffic`)
+  - `camera_mount`: Pole, wall, or structure mount
+  - `operator`: Deploying agency or entity
+  - `electricity`: Power source (e.g. `solar`)

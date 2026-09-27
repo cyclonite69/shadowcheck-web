@@ -16,6 +16,7 @@ import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './mapLifecycl
 import { resetAgencyOfficeLayers, type AgencyVisibility } from '../hooks/useAgencyOffices';
 import { resetFederalCourthouseLayers } from '../hooks/useFederalCourthouses';
 import { ensureDeflockLayers } from '../hooks/useDeflockCameras';
+import { ensureAlprLayers } from '../hooks/useAlprCameras';
 import { ensureShotspotterLayers } from '../hooks/useShotspotterZones';
 import { ensureShotspotterSensorLayers } from '../hooks/useShotspotterSensors';
 import { ensureHomeLocationLayers } from '../../utils/mapHelpers';
@@ -38,6 +39,7 @@ export interface UseWigleOverlayManagerParams {
   agencyVisibility: AgencyVisibility;
   courthouseData: any;
   deflockData: any;
+  alprData: any;
   shotspotterData: any;
   shotspotterSensorsData: any;
   homeLocation: { center: [number, number]; radius: number };
@@ -65,6 +67,7 @@ export function useWigleOverlayManager({
   agencyVisibility,
   courthouseData,
   deflockData,
+  alprData,
   shotspotterData,
   shotspotterSensorsData,
   homeLocation,
@@ -164,6 +167,9 @@ export function useWigleOverlayManager({
         if (currentLayers.deflockCameras && deflockData?.features?.length) {
           ensureDeflockLayers(map, deflockData, clustering);
         }
+        if (currentLayers.alprCameras && alprData?.features?.length) {
+          ensureAlprLayers(map, alprData, clustering);
+        }
         if (currentLayers.shotspotterZones && shotspotterData?.features?.length) {
           ensureShotspotterLayers(map, shotspotterData);
         }
@@ -188,6 +194,7 @@ export function useWigleOverlayManager({
       clusterColorCache,
       courthouseData,
       deflockData,
+      alprData,
       ensureAllLayers,
       fieldDataFCRef,
       homeLocation,
@@ -216,6 +223,7 @@ export function useWigleOverlayManager({
     applyEnabledWigleOverlays,
     clusteringEnabled,
     layers.deflockCameras,
+    layers.alprCameras,
     layers.federalCourthouses,
     layers.fieldOffices,
     layers.kml,

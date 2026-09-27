@@ -2,6 +2,7 @@ export {};
 
 const services = {
   deflock: jest.fn(),
+  alpr: jest.fn(),
   courthouse: jest.fn(),
   sensors: jest.fn(),
   zones: jest.fn(),
@@ -9,6 +10,7 @@ const services = {
 
 jest.mock('../../server/src/config/container', () => ({
   deflockService: { getDeflockCamerasGeoJSON: services.deflock },
+  alprService: { getAlprCamerasGeoJSON: services.alpr },
   courthouseService: { getFederalCourthousesGeoJSON: services.courthouse },
   shotspotterSensorsService: { getShotspotterSensorsGeoJSON: services.sensors },
 }));
@@ -23,6 +25,12 @@ const routeCases = [
     module: '../../server/src/api/routes/v1/deflockCameras',
     service: services.deflock,
     error: 'Failed to fetch DeFlock camera locations',
+  },
+  {
+    name: 'ALPR cameras',
+    module: '../../server/src/api/routes/v1/alprCameras',
+    service: services.alpr,
+    error: 'Failed to fetch ALPR camera locations',
   },
   {
     name: 'federal courthouses',

@@ -1445,6 +1445,7 @@
 - **wigle-detail:** remove Recent Imports & Resumption section from v3 tab ([c064f80](https://github.com/cyclonite69/shadowcheck-web/commit/c064f802977ca3df441fdebfcfff02e2808e901d))
 - **wigle/kepler:** icon buttons, point size slider, crosshair cursor, filter panel position ([41e9231](https://github.com/cyclonite69/shadowcheck-web/commit/41e9231f7c46d9a20647c2c32a839dae348b73bc))
 - **wigle:** add aggregatedLayers.ts unified layer set (Phase 3) ([09ec8e2](https://github.com/cyclonite69/shadowcheck-web/commit/09ec8e224898987e3eb28a8421e3c356baf7da1a))
+- **wigle:** add ALPR camera layer and GeoJSON endpoint ([fc3fb9f](https://github.com/cyclonite69/shadowcheck-web/commit/fc3fb9fa8f879233f12a59ec7967ade969d61424))
 - **wigle:** add DeFlock camera toggle layer to map ([37941e7](https://github.com/cyclonite69/shadowcheck-web/commit/37941e724f30d5b750d8b4140f84451b84e8bdf8))
 - **wigle:** add Field Data and Clustering toggles to WiGLE map toolbar ([78e2c67](https://github.com/cyclonite69/shadowcheck-web/commit/78e2c67c380aea10c25b963b3654c8a9dee48ee4))
 - **wigle:** add GET /api/wigle/observations/aggregated endpoint (Phase 1) ([0b43249](https://github.com/cyclonite69/shadowcheck-web/commit/0b43249fc62b099660eadb7837f067c2fe934e1e))

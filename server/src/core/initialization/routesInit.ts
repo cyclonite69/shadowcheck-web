@@ -66,6 +66,7 @@ interface RouteModules {
   agencyOfficesRoutes: Router;
   federalCourthousesRoutes: Router;
   deflockCamerasRoutes: Router;
+  alprCamerasRoutes: Router;
   shotspotterZonesRoutes: Router;
   shotspotterSensorsRoutes: Router;
   networkAgenciesRoutes: Router;
@@ -127,6 +128,7 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     agencyOfficesRoutes: routes.agencyOfficesRoutes,
     federalCourthousesRoutes: routes.federalCourthousesRoutes,
     deflockCamerasRoutes: routes.deflockCamerasRoutes,
+    alprCamerasRoutes: routes.alprCamerasRoutes,
     shotspotterZonesRoutes: routes.shotspotterZonesRoutes,
     shotspotterSensorsRoutes: routes.shotspotterSensorsRoutes,
     networkAgenciesRoutes: routes.networkAgenciesRoutes,

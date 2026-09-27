@@ -66,6 +66,33 @@ export interface DeflockCamerasGeoJSON {
   features: DeflockCameraFeature[];
 }
 
+export interface AlprCameraProperties {
+  id: string;
+  osm_id: string;
+  manufacturer: string | null;
+  direction: string | null;
+  camera_type: string | null;
+  surveillance_zone: string | null;
+  camera_mount: string | null;
+  operator: string | null;
+  electricity: string | null;
+}
+
+export interface AlprCameraFeature {
+  type: 'Feature';
+  id: number | string;
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  properties: AlprCameraProperties;
+}
+
+export interface AlprCamerasGeoJSON {
+  type: 'FeatureCollection';
+  features: AlprCameraFeature[];
+}
+
 /** Single agency row returned from the batch nearest-agencies endpoint. */
 export interface AgencyMatch {
   cluster_id?: number;
@@ -161,6 +188,16 @@ export const agencyApi = {
     });
     if (!response.ok) {
       throw new Error('Failed to fetch DeFlock cameras');
+    }
+    return response.json();
+  },
+
+  async getAlprCameras(): Promise<AlprCamerasGeoJSON> {
+    const response = await fetch('/api/v1/surveillance/alpr-cameras', {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch ALPR cameras');
     }
     return response.json();
   },

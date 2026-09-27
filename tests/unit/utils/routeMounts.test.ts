@@ -47,6 +47,10 @@ describe('routeMounts', () => {
       mobileIngestRoutes: 'mobileIngestRoutes',
       agencyOfficesRoutes: 'agencyOfficesRoutes',
       federalCourthousesRoutes: 'federalCourthousesRoutes',
+      deflockCamerasRoutes: 'deflockCamerasRoutes',
+      alprCamerasRoutes: 'alprCamerasRoutes',
+      shotspotterZonesRoutes: 'shotspotterZonesRoutes',
+      shotspotterSensorsRoutes: 'shotspotterSensorsRoutes',
       networkAgenciesRoutes: 'networkAgenciesRoutes',
     };
   });
@@ -73,7 +77,16 @@ describe('routeMounts', () => {
       'mobileIngestRoutes'
     );
     expect(mockApp.use).toHaveBeenCalledWith('/agency-offices', 'agencyOfficesRoutes');
-    expect(mockApp.use).toHaveBeenCalledWith('/api/networks', authMiddleware.requireAuth, 'networkAgenciesRoutes');
+    expect(mockApp.use).toHaveBeenCalledWith(
+      '/api/v1/surveillance/alpr-cameras',
+      authMiddleware.requireAuth,
+      'alprCamerasRoutes'
+    );
+    expect(mockApp.use).toHaveBeenCalledWith(
+      '/api/networks',
+      authMiddleware.requireAuth,
+      'networkAgenciesRoutes'
+    );
 
     // Verify gated routes use requireAuth
     const gatedNetworksCall = mockApp.use.mock.calls.find(

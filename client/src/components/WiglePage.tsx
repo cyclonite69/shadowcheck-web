@@ -13,6 +13,7 @@ import { useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useDeflockCameras } from './hooks/useDeflockCameras';
+import { useAlprCameras } from './hooks/useAlprCameras';
 import { useShotspotterZones } from './hooks/useShotspotterZones';
 import { useShotspotterSensors } from './hooks/useShotspotterSensors';
 import { useWigleLayers } from './wigle/useWigleLayers';
@@ -152,6 +153,13 @@ const WiglePage: React.FC = () => {
     mapboxRef,
     clusteringEnabled
   );
+  const { data: alprData } = useAlprCameras(
+    mapRef,
+    mapReady,
+    layers.alprCameras,
+    mapboxRef,
+    clusteringEnabled
+  );
   const { data: shotspotterData } = useShotspotterZones(
     mapRef,
     mapReady,
@@ -214,6 +222,7 @@ const WiglePage: React.FC = () => {
     agencyVisibility,
     courthouseData,
     deflockData,
+    alprData,
     shotspotterData,
     shotspotterSensorsData,
     homeLocation,
@@ -394,6 +403,7 @@ const WiglePage: React.FC = () => {
               : 0)) +
           (layers.federalCourthouses ? (courthouseData?.features?.length ?? 0) : 0) +
           (layers.deflockCameras ? (deflockData?.features?.length ?? 0) : 0) +
+          (layers.alprCameras ? (alprData?.features?.length ?? 0) : 0) +
           (layers.shotspotterZones ? (shotspotterData?.features?.length ?? 0) : 0) +
           (layers.shotspotterSensors ? (shotspotterSensorsData?.features?.length ?? 0) : 0)
         }

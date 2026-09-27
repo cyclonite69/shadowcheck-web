@@ -43,6 +43,7 @@ interface ApiRouteDependencies {
   agencyOfficesRoutes: Router;
   federalCourthousesRoutes: Router;
   deflockCamerasRoutes: Router;
+  alprCamerasRoutes: Router;
   shotspotterZonesRoutes: Router;
   shotspotterSensorsRoutes: Router;
   networkAgenciesRoutes: Router;
@@ -91,6 +92,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     agencyOfficesRoutes,
     federalCourthousesRoutes,
     deflockCamerasRoutes,
+    alprCamerasRoutes,
     shotspotterZonesRoutes,
     shotspotterSensorsRoutes,
     networkAgenciesRoutes,
@@ -146,6 +148,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/agency-offices', agencyOfficesRoutes);
   app.use('/federal-courthouses', federalCourthousesRoutes);
   app.use('/api/v1/surveillance/deflock-cameras', userGate, deflockCamerasRoutes);
+  app.use('/api/v1/surveillance/alpr-cameras', userGate, alprCamerasRoutes);
   app.use('/api/v1/surveillance/shotspotter-zones', userGate, shotspotterZonesRoutes);
   app.use('/api/v1/surveillance/shotspotter-sensors', userGate, shotspotterSensorsRoutes);
 
