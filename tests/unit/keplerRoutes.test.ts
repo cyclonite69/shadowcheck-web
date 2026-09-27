@@ -4,6 +4,7 @@ import request from 'supertest';
 const keplerService = {
   getKeplerData: jest.fn(),
   getKeplerObservations: jest.fn(),
+  streamKeplerObservations: jest.fn(),
   getKeplerNetworks: jest.fn(),
 };
 
@@ -72,10 +73,11 @@ describe('kepler routes', () => {
   });
 
   describe('GET /kepler/observations', () => {
-    it('returns observations successfully', async () => {
-      keplerService.getKeplerObservations.mockResolvedValueOnce({
-        type: 'FeatureCollection',
-        features: [{ id: 1 }],
+    it('delegates to streamKeplerObservations successfully', async () => {
+      keplerService.streamKeplerObservations.mockImplementation(async (_f, _e, _l, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.write('{"type":"FeatureCollection","features":[{"id":1}],"complete":true}');
+        res.end();
       });
 
       const res = await request(app)
@@ -83,11 +85,17 @@ describe('kepler routes', () => {
         .query({ filters: '{"bssid":"AA"}', enabled: '{"bssid":true}', limit: '50' });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ type: 'FeatureCollection', features: [{ id: 1 }] });
-      expect(keplerService.getKeplerObservations).toHaveBeenCalledWith(
+      expect(res.body).toEqual({
+        type: 'FeatureCollection',
+        features: [{ id: 1 }],
+        complete: true,
+      });
+      expect(keplerService.streamKeplerObservations).toHaveBeenCalledWith(
         { bssid: 'AA' },
         { bssid: true },
-        50
+        50,
+        expect.anything(),
+        expect.anything()
       );
     });
 

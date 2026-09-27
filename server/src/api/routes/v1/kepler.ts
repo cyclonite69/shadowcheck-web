@@ -43,6 +43,13 @@ router.get('/kepler/data', async (req: Request, res: Response) => {
  * Returns full observations dataset for Kepler.gl.
  */
 router.get('/kepler/observations', async (req: Request, res: Response) => {
+  const ac = new AbortController();
+  req.on('close', () => {
+    if (!res.writableEnded) {
+      ac.abort();
+    }
+  });
+
   try {
     const filters = parseJsonParam(req.query.filters, {}, 'filters');
     const enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
@@ -50,9 +57,11 @@ router.get('/kepler/observations', async (req: Request, res: Response) => {
     const limitRaw = req.query.limit;
     const limit = limitRaw ? parseInt(String(limitRaw), 10) : null;
 
-    const result = await keplerService.getKeplerObservations(filters, enabled, limit);
-    res.json(result);
+    await keplerService.streamKeplerObservations(filters, enabled, limit, res, ac.signal);
   } catch (error: any) {
+    if (res.headersSent) {
+      return;
+    }
     if (error.status === 400 || error.message?.includes('Invalid JSON')) {
       return res.status(400).json({ ok: false, errors: error.errors || [error.message] });
     }

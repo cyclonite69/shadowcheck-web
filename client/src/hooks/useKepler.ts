@@ -42,6 +42,9 @@ export const useKepler = (
     if (!geojson.features || !Array.isArray(geojson.features)) {
       throw new Error('Invalid data format');
     }
+    if (datasetType === 'observations' && geojson.complete !== true) {
+      throw new Error('Incomplete data stream: observations payload was truncated mid-transfer');
+    }
     const networkData: NetworkData[] = mapKeplerGeoJsonToNetworkData(geojson);
 
     return {

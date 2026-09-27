@@ -24,6 +24,7 @@ export interface KeplerGeoJSON {
     properties: Record<string, unknown>;
   }>;
   error?: string;
+  complete?: boolean;
   actualCounts?: {
     observations: number;
     networks: number;
