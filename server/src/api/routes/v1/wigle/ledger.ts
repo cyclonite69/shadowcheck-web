@@ -6,6 +6,7 @@
 import express from 'express';
 const router = express.Router();
 const { adminQuery } = require('../../../../services/adminDbService');
+const { getUnifiedLedger } = require('../../../../repositories/wigleLedgerRepository');
 const logger = require('../../../../logging/logger');
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 
@@ -38,177 +39,14 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
       return res.status(400).json({ error: 'Invalid status or source filter' });
     }
 
-    // Parse cursor tiebreaker
-    let beforeEvtId: number | null = null;
-    let beforeRunId: number | null = null;
-    if (beforeId) {
-      if (beforeId.startsWith('evt_')) {
-        beforeEvtId = Number(beforeId.slice(4));
-      } else if (beforeId.startsWith('run_')) {
-        beforeRunId = Number(beforeId.slice(4));
-      }
-    }
-
-    // Build separate param arrays for each CTE to keep indexing simple
-    const buildEvtQuery = () => {
-      const params: unknown[] = [];
-      const conditions: string[] = [];
-
-      if (before) {
-        params.push(before);
-        if (beforeEvtId !== null) {
-          params.push(beforeEvtId);
-          conditions.push(
-            '(e.requested_at < $1::timestamptz OR (e.requested_at = $1::timestamptz AND e.id < $2))'
-          );
-        } else {
-          conditions.push('e.requested_at < $1::timestamptz');
-        }
-      }
-      if (statusFilter !== 'all') {
-        params.push(statusFilter);
-        conditions.push(`e.status = $${params.length}`);
-      }
-
-      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-      params.push(limit + 1);
-      return {
-        sql: `
-          SELECT
-            'evt_' || e.id::text AS id,
-            'event'              AS source,
-            e.kind               AS kind,
-            e.status             AS status,
-            e.requested_at       AS ts,
-            NULL::integer        AS rows_returned,
-            NULL::integer        AS rows_inserted,
-            NULL::integer        AS pages_fetched,
-            e.duration_ms        AS duration_ms,
-            e.error_message      AS error,
-            e.phase              AS phase,
-            e.query_source       AS query_source,
-            e.query_url          AS query_url,
-            e.query_params       AS query_params,
-            e.result_count       AS result_count,
-            e.retry_after_hint   AS retry_after_hint,
-            e.http_status        AS http_status
-          FROM app.wigle_ledger_events e
-          ${where}
-          ORDER BY e.requested_at DESC, e.id DESC
-          LIMIT $${params.length}`,
-        params,
-      };
-    };
-
-    const buildRunQuery = () => {
-      const params: unknown[] = [];
-      const conditions: string[] = [];
-
-      if (before) {
-        params.push(before);
-        if (beforeRunId !== null) {
-          params.push(beforeRunId);
-          conditions.push(
-            '(r.started_at < $1::timestamptz OR (r.started_at = $1::timestamptz AND r.id < $2))'
-          );
-        } else {
-          conditions.push('r.started_at < $1::timestamptz');
-        }
-      }
-
-      // Map ledger status filter to import run statuses
-      if (statusFilter !== 'all') {
-        const statusMap: Record<string, string[]> = {
-          success: ['completed', 'running'],
-          error: ['failed'],
-          skipped: ['paused', 'cancelled'],
-          rate_limited: [],
-        };
-        const matching = statusMap[statusFilter] ?? [];
-        if (matching.length === 0) {
-          return null; // no import runs match this status
-        }
-        params.push(matching);
-        conditions.push(`r.status = ANY($${params.length}::text[])`);
-      }
-
-      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-      params.push(limit + 1);
-      return {
-        sql: `
-          SELECT
-            'run_' || r.id::text                                            AS id,
-            'import'                                                        AS source,
-            COALESCE(r.request_params->>'search_term', r.state, r.status)  AS kind,
-            CASE r.status
-              WHEN 'completed' THEN 'success'
-              WHEN 'running'   THEN 'success'
-              WHEN 'paused'    THEN 'skipped'
-              WHEN 'cancelled' THEN 'skipped'
-              ELSE 'error'
-            END                                                             AS status,
-            r.started_at                                                    AS ts,
-            r.rows_returned,
-            r.rows_inserted,
-            r.pages_fetched,
-            CASE WHEN r.completed_at IS NOT NULL
-              THEN (EXTRACT(EPOCH FROM (r.completed_at - r.started_at)) * 1000)::bigint
-            END                                                             AS duration_ms,
-            r.last_error                                                    AS error,
-            CASE WHEN r.status = 'running' THEN 'pending' ELSE 'complete' END AS phase,
-            'import'                                                        AS query_source,
-            NULL::text                                                      AS query_url,
-            r.request_params                                                AS query_params,
-            r.rows_returned                                                 AS result_count,
-            NULL::integer                                                   AS retry_after_hint,
-            CASE WHEN r.status = 'failed' THEN 500 ELSE 200 END            AS http_status
-          FROM app.wigle_import_runs r
-          ${where}
-          ORDER BY r.started_at DESC, r.id DESC
-          LIMIT $${params.length}`,
-        params,
-      };
-    };
-
-    // Execute queries in parallel then merge-sort
-    const promises: Promise<{ rows: any[] }>[] = [];
-    const includeEvents = sourceFilter !== 'import';
-    const includeRuns = sourceFilter !== 'event';
-
-    if (includeEvents) {
-      const q = buildEvtQuery();
-      promises.push(adminQuery(q.sql, q.params));
-    } else {
-      promises.push(Promise.resolve({ rows: [] }));
-    }
-
-    if (includeRuns) {
-      const q = buildRunQuery();
-      if (q) {
-        promises.push(adminQuery(q.sql, q.params));
-      } else {
-        promises.push(Promise.resolve({ rows: [] }));
-      }
-    } else {
-      promises.push(Promise.resolve({ rows: [] }));
-    }
-
-    const [evtResult, runResult] = await Promise.all(promises);
-
-    // Merge-sort by ts DESC, id DESC
-    const all = [...evtResult.rows, ...runResult.rows].sort((a, b) => {
-      const tDiff = new Date(b.ts).getTime() - new Date(a.ts).getTime();
-      if (tDiff !== 0) {
-        return tDiff;
-      }
-      // Compare ids numerically (strip prefix)
-      const aId = Number(String(a.id).replace(/^\w+_/, ''));
-      const bId = Number(String(b.id).replace(/^\w+_/, ''));
-      return bId - aId;
+    const { rows: dbRows, hasMore } = await getUnifiedLedger(adminQuery, {
+      limit,
+      before,
+      beforeId,
+      statusFilter,
+      sourceFilter,
     });
-
-    const hasMore = all.length > limit;
-    const data = all.slice(0, limit).map((r: any) => ({
+    const data = dbRows.map((r: any) => ({
       id: r.id,
       source: r.source,
       kind: r.kind,
