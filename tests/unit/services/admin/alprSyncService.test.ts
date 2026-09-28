@@ -67,10 +67,12 @@ describe('alprSyncService', () => {
     adminPoolGetter.mockReturnValue(mockPool);
   });
 
-  it('exports the ALPR_REGIONS array with 30 curated regions', () => {
+  it('exports the ALPR_REGIONS array with 43 curated regions', () => {
     expect(Array.isArray(ALPR_REGIONS)).toBe(true);
-    expect(ALPR_REGIONS.length).toBe(30);
+    expect(ALPR_REGIONS.length).toBe(43);
     expect(ALPR_REGIONS.some((r) => r.id === 'seattle')).toBe(true);
+    expect(ALPR_REGIONS.some((r) => r.id === 'detroit')).toBe(true);
+    expect(ALPR_REGIONS.some((r) => r.id === 'grand-rapids')).toBe(true);
   });
 
   it('listRegionsWithStatus overlays durable outcomes onto code regions', async () => {
@@ -90,7 +92,7 @@ describe('alprSyncService', () => {
     );
 
     const regions = await listRegionsWithStatus();
-    expect(regions).toHaveLength(30);
+    expect(regions).toHaveLength(43);
     const austin = regions.find((r) => r.id === 'austin');
     expect(austin).toMatchObject({
       syncStatus: 'success',

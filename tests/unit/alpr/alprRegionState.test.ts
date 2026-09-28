@@ -91,8 +91,10 @@ describe('alpr_regions migration seed', () => {
     const seededIds = [...insertBlock.matchAll(/\('([a-z0-9-]+)',\s*'/g)].map((m) => m[1]);
     const regionIds = ALPR_REGIONS.map((r) => r.id);
 
-    expect(seededIds).toHaveLength(ALPR_REGIONS.length);
-    expect(seededIds.sort()).toEqual([...regionIds].sort());
-    expect(ALPR_REGIONS.length).toBe(30);
+    expect(seededIds).toHaveLength(30);
+    for (const id of seededIds) {
+      expect(regionIds).toContain(id);
+    }
+    expect(ALPR_REGIONS.length).toBe(43);
   });
 });
