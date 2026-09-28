@@ -59,8 +59,9 @@ router.get('/health', async (req, res) => {
   (checks as any).secrets = secretsCheck;
 
   // 3. Memory check
-  // The effective trigger is RSS > 2800 MB (Resident Set Size), which bounds the total process
-  // footprint (heap + external buffers + native bindings) well before host pressure triggers an OOM kill.
+  // The effective trigger is RSS > 2800 MB (Resident Set Size), which bounds the Node process's
+  // own footprint (heap + external buffers + native bindings). This check bounds process memory
+  // only and does not detect host-level memory exhaustion.
   // Because heapUsed <= RSS and 70% of the 4192 MB heap limit is 2934 MB, the RSS check acts as the
   // primary safeguard, with the 70% heap limit check retained as an explicit secondary guard.
   const mem = process.memoryUsage();

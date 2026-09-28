@@ -495,7 +495,7 @@
 - harden geocoding daemon status loading ([faae7b4](https://github.com/cyclonite69/shadowcheck-web/commit/faae7b42f97e3c86f367eb59b33416fb0fbcd3c6))
 - **health:** add grafana check and stabilize pgadmin probe ([c848873](https://github.com/cyclonite69/shadowcheck-web/commit/c84887328e20af8c7fdb7d3fdae655f5e6d01525))
 - **health:** simplify pgadmin tls probe ([27a1887](https://github.com/cyclonite69/shadowcheck-web/commit/27a18872f7e55d3615c899e300d8ab68ebd66f6a))
-- **health:** use v8 heap_size_limit and rss threshold for memory check ([0039156](https://github.com/cyclonite69/shadowcheck-web/commit/0039156fe237031b5e6fea75ac44fe628205e308))
+- **health:** use v8 heap_size_limit and rss threshold for memory check ([59be9da](https://github.com/cyclonite69/shadowcheck-web/commit/59be9da6aef72e1356fb620f56be04a5269600d9))
 - hide observations count on analytics dashboard card ([cf8ab79](https://github.com/cyclonite69/shadowcheck-web/commit/cf8ab799c9fa5a2024010cee33750be0554f4603))
 - **husky:** amend HEAD on pre-push so changelog and metrics ship with push ([3fc71d9](https://github.com/cyclonite69/shadowcheck-web/commit/3fc71d9619c5da99b3baf457cb7cb4c41f6f4dd7))
 - **husky:** sync changelog and metrics in post-commit instead of pre-push ([5697d42](https://github.com/cyclonite69/shadowcheck-web/commit/5697d42da3cfdc2e7f0ed655691c6efb7493a4c8))
