@@ -75,7 +75,7 @@ export const ALPR_REGIONS: AlprRegion[] = [
   { id: 'denver', label: 'Denver', state: 'CO', bbox: [-105.3, 39.5, -104.6, 40.0] },
   { id: 'boston', label: 'Boston', state: 'MA', bbox: [-71.4, 42.2, -70.8, 42.6] },
   { id: 'detroit', label: 'Detroit', state: 'MI', bbox: [-83.5, 42.1, -82.8, 42.6] },
-  { id: 'flint', label: 'Flint', state: 'MI', bbox: [-83.95, 42.9, -83.65, 43.15] },
+  { id: 'flint', label: 'Flint', state: 'MI', bbox: [-83.95, 42.9, -83.4, 43.15] },
   { id: 'atlanta', label: 'Atlanta', state: 'GA', bbox: [-84.7, 33.5, -84.0, 34.1] },
   { id: 'miami', label: 'Miami', state: 'FL', bbox: [-80.5, 25.5, -80.0, 26.0] },
   {

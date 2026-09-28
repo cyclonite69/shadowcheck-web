@@ -93,6 +93,7 @@
 - Allow cards to touch header navigation bar at 56px ([526a04c](https://github.com/cyclonite69/shadowcheck-web/commit/526a04cc6bed9dc7c56ecff07ee892c320725b63))
 - allow certs/generate-cert.sh in Docker build context ([88f20b1](https://github.com/cyclonite69/shadowcheck-web/commit/88f20b1e13aebb2f10ea252d21d7b409121fe14a))
 - **alpr:** chunk Overpass bboxes and expand endpoint failover ([4cc7950](https://github.com/cyclonite69/shadowcheck-web/commit/4cc7950f70d3ca72ce8eb842077ffce5758d3b4b))
+- **alpr:** expand Flint MI bounding box east to Genesee county border ([9ab4a16](https://github.com/cyclonite69/shadowcheck-web/commit/9ab4a1647900cd073bd3066b61b4326efb7e6782))
 - **alpr:** preserve Error.cause on sync failures; drop dead nchc mirror ([9d1b4be](https://github.com/cyclonite69/shadowcheck-web/commit/9d1b4be0eefeed60d6c113dbf3eff0b6028207cf))
 - altitude/sort/manufacturer issues in geospatial explorer ([6c4ee02](https://github.com/cyclonite69/shadowcheck-web/commit/6c4ee024da423bc8d87bf343424cd169e3675c29))
 - **analytics:** replace static filtered analytics with live queries ([cc27d7a](https://github.com/cyclonite69/shadowcheck-web/commit/cc27d7aa069ed16eca804fa1ef3a96362d9c1a28))
