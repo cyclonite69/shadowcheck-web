@@ -136,6 +136,20 @@ describe('GeocodingProviders', () => {
   });
 
   describe('overpassPoi', () => {
+    const originalEnabled = process.env.GEOCODING_OVERPASS_ENABLED;
+
+    beforeAll(() => {
+      process.env.GEOCODING_OVERPASS_ENABLED = 'true';
+    });
+
+    afterAll(() => {
+      if (originalEnabled === undefined) {
+        delete process.env.GEOCODING_OVERPASS_ENABLED;
+      } else {
+        process.env.GEOCODING_OVERPASS_ENABLED = originalEnabled;
+      }
+    });
+
     it('should return POI name on success', async () => {
       const mockResponse = {
         ok: true,

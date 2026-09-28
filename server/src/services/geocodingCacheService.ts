@@ -20,6 +20,7 @@ import {
   getProviderLabel,
   resolveProviderCredentials,
 } from './geocoding/providerRuntime';
+import { PROVIDER_DISABLED_ERROR_PREFIX } from './geocoding/providerErrors';
 import {
   fetchRows,
   loadCacheStats,
@@ -166,8 +167,14 @@ const processGeocodeRow = async (
       await ctx.flushPendingWrites();
       await ctx.syncProgress();
       await sleep(backoffMs);
-    } else if (error.message === 'missing_key' || error.message?.includes('missing_key')) {
-      logger.warn('[Geocoding] Missing API key for provider');
+    } else if (
+      error.message === 'missing_key' ||
+      error.message?.includes('missing_key') ||
+      error.message?.startsWith(PROVIDER_DISABLED_ERROR_PREFIX)
+    ) {
+      logger.warn('[Geocoding] Provider is not available for this run', {
+        error: error.message,
+      });
       await ctx.flushPendingWrites();
       await ctx.syncProgress();
       return { breakLoop: true };

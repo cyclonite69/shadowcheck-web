@@ -4,6 +4,8 @@
  */
 
 import type { GeocodeResult } from './types';
+import { PROVIDER_DISABLED_ERROR_PREFIX } from './providerErrors';
+import { isProviderRuntimeEligible } from './providerAvailability';
 
 const readFailurePayload = async (response: Response): Promise<unknown> => {
   const text = await response.text();
@@ -60,6 +62,9 @@ export const nominatimReverse = async (lat: number, lon: number): Promise<Geocod
 };
 
 export const overpassPoi = async (lat: number, lon: number): Promise<GeocodeResult> => {
+  if (!isProviderRuntimeEligible('overpass')) {
+    throw new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+  }
   const query = `[out:json];(node(around:75,${lat},${lon})[name];way(around:75,${lat},${lon})[name];);out body 1;`;
   const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
   const response = await fetch(url);

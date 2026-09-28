@@ -27,6 +27,7 @@ import {
   ensureProviderReady,
   resolveProviderCredentials,
 } from '../../server/src/services/geocoding/providerRuntime';
+import { PROVIDER_DISABLED_ERROR_PREFIX } from '../../server/src/services/geocoding/providerErrors';
 import logger from '../../server/src/logging/logger';
 
 // Mock dependencies
@@ -53,8 +54,11 @@ jest.mock('../../server/src/services/geocoding/cacheStore', () => ({
 }));
 
 describe('GeocodingDaemon', () => {
+  const originalOverpassEnabled = process.env.GEOCODING_OVERPASS_ENABLED;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (getDaemonProviderRunOptions as jest.Mock).mockReset();
     // Reset geocodeDaemon state manually because it's a shared object
     geocodeDaemon.config = null;
     geocodeDaemon.running = false;
@@ -72,6 +76,19 @@ describe('GeocodingDaemon', () => {
       errorSleepMs: 0,
       ...cfg,
     }));
+    (ensureProviderReady as jest.Mock).mockImplementation((provider) => {
+      if (provider === 'overpass' && process.env.GEOCODING_OVERPASS_ENABLED !== 'true') {
+        throw new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+      }
+    });
+  });
+
+  afterEach(() => {
+    if (originalOverpassEnabled === undefined) {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+    } else {
+      process.env.GEOCODING_OVERPASS_ENABLED = originalOverpassEnabled;
+    }
   });
 
   describe('startGeocodingDaemon', () => {
@@ -287,6 +304,214 @@ describe('GeocodingDaemon', () => {
       expect(resolveProviderCredentials).toHaveBeenCalledWith('nominatim');
       expect(resolveProviderCredentials).toHaveBeenCalledWith('geocodio');
       expect(resolveProviderCredentials).not.toHaveBeenCalledWith('opencage');
+    });
+
+    it('starts with a non-Overpass primary and skips only the disabled Overpass fallback', async () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = {
+        provider: 'mapbox',
+        mode: 'address-only',
+        limit: 5,
+        precision: 5,
+        perMinute: 200,
+        providers: [
+          { provider: 'nominatim', enabled: true },
+          { provider: 'overpass', enabled: true },
+          { provider: 'geocodio', enabled: true },
+        ],
+        loopDelayMs: 0,
+        idleSleepMs: 0,
+        errorSleepMs: 0,
+      };
+      (normalizeDaemonConfig as jest.Mock).mockReturnValue(config);
+      (resolveProviderCredentials as jest.Mock).mockResolvedValue({});
+      const { getDaemonProviderRunOptions: getRealProviderRunOptions } = jest.requireActual(
+        '../../server/src/services/geocoding/daemonState'
+      );
+      (getDaemonProviderRunOptions as jest.Mock).mockImplementation(getRealProviderRunOptions);
+      const runGeocodeCacheUpdate = jest.fn().mockImplementation(async () => {
+        geocodeDaemon.stopRequested = true;
+        return { processed: 1 };
+      });
+
+      const result = await startGeocodingDaemon(config as any, runGeocodeCacheUpdate);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(result.started).toBe(true);
+      expect(ensureProviderReady).toHaveBeenCalledWith('mapbox', {});
+      expect(ensureProviderReady).toHaveBeenCalledWith('nominatim', {});
+      expect(ensureProviderReady).toHaveBeenCalledWith('overpass', {});
+      expect(ensureProviderReady).toHaveBeenCalledWith('geocodio', {});
+      expect(persistDaemonConfig).toHaveBeenCalledWith(config);
+      expect(geocodeDaemon.config?.provider).toBe('mapbox');
+      expect(geocodeDaemon.config?.providers?.map((item) => item.provider)).toEqual([
+        'nominatim',
+        'overpass',
+        'geocodio',
+      ]);
+      expect(runGeocodeCacheUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'nominatim' })
+      );
+    });
+
+    it('rejects a disabled Overpass primary before starting the daemon', async () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = {
+        provider: 'overpass',
+        providers: [{ provider: 'geocodio', enabled: true }],
+      };
+      (normalizeDaemonConfig as jest.Mock).mockReturnValue(config);
+      (resolveProviderCredentials as jest.Mock).mockResolvedValue({});
+      const runGeocodeCacheUpdate = jest.fn();
+
+      await expect(startGeocodingDaemon(config as any, runGeocodeCacheUpdate)).rejects.toThrow(
+        'provider_disabled:overpass'
+      );
+
+      expect(ensureProviderReady).toHaveBeenCalledTimes(1);
+      expect(ensureProviderReady).toHaveBeenCalledWith('overpass', {});
+      expect(persistDaemonConfig).not.toHaveBeenCalled();
+      expect(geocodeDaemon.running).toBe(false);
+      expect(runGeocodeCacheUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not suppress an unrelated optional fallback readiness failure', async () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = {
+        provider: 'mapbox',
+        providers: [
+          { provider: 'overpass', enabled: true },
+          { provider: 'geocodio', enabled: true },
+        ],
+      };
+      (normalizeDaemonConfig as jest.Mock).mockReturnValue(config);
+      (resolveProviderCredentials as jest.Mock).mockResolvedValue({});
+      (ensureProviderReady as jest.Mock).mockImplementation((provider) => {
+        if (provider === 'overpass') {
+          throw new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+        }
+        if (provider === 'geocodio') {
+          throw new Error('missing_key:geocodio');
+        }
+      });
+
+      await expect(startGeocodingDaemon(config as any, jest.fn())).rejects.toThrow(
+        'missing_key:geocodio'
+      );
+
+      expect(ensureProviderReady).toHaveBeenCalledWith('mapbox', {});
+      expect(ensureProviderReady).toHaveBeenCalledWith('overpass', {});
+      expect(ensureProviderReady).toHaveBeenCalledWith('geocodio', {});
+      expect(persistDaemonConfig).not.toHaveBeenCalled();
+    });
+
+    it('does not dispatch disabled Overpass to serial daemon ticks', async () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = {
+        provider: 'mapbox',
+        mode: 'address-only',
+        precision: 5,
+        limit: 5,
+        perMinute: 60,
+        providers: [
+          { provider: 'nominatim', enabled: true },
+          { provider: 'overpass', enabled: true },
+          { provider: 'geocodio', enabled: true },
+        ],
+        workers: 1,
+        loopDelayMs: 0,
+        idleSleepMs: 0,
+        errorSleepMs: 0,
+      };
+      geocodeDaemon.config = config as any;
+      const { getDaemonProviderRunOptions: getRealProviderRunOptions } = jest.requireActual(
+        '../../server/src/services/geocoding/daemonState'
+      );
+      (getDaemonProviderRunOptions as jest.Mock).mockImplementation(getRealProviderRunOptions);
+      const dispatchedProviders: string[] = [];
+      const runGeocodeCacheUpdate = jest.fn().mockImplementation(async (options) => {
+        dispatchedProviders.push(options.provider);
+        if (dispatchedProviders.length === 4) {
+          geocodeDaemon.stopRequested = true;
+        }
+        return { processed: 1 };
+      });
+
+      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+
+      expect(dispatchedProviders).toEqual(['nominatim', 'geocodio', 'nominatim', 'geocodio']);
+      expect(config.providers.map((item) => item.provider)).toEqual([
+        'nominatim',
+        'overpass',
+        'geocodio',
+      ]);
+    });
+
+    it('does not dispatch disabled Overpass to parallel daemon workers', async () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = {
+        provider: 'mapbox',
+        mode: 'address-only',
+        precision: 5,
+        limit: 5,
+        perMinute: 60,
+        providers: [
+          { provider: 'nominatim', enabled: true },
+          { provider: 'overpass', enabled: true },
+          { provider: 'geocodio', enabled: true },
+        ],
+        workers: 4,
+        loopDelayMs: 0,
+        idleSleepMs: 0,
+        errorSleepMs: 0,
+      };
+      geocodeDaemon.config = config as any;
+      (resolveProviderCredentials as jest.Mock).mockResolvedValue({});
+      const { getDaemonProviderRunOptions: getRealProviderRunOptions } = jest.requireActual(
+        '../../server/src/services/geocoding/daemonState'
+      );
+      (getDaemonProviderRunOptions as jest.Mock).mockImplementation(getRealProviderRunOptions);
+      const dispatchedProviders: string[] = [];
+      let activeWorkers = 0;
+      let maxConcurrentWorkers = 0;
+      let releaseWorkers: () => void = () => {};
+      const allWorkersEntered = new Promise<void>((resolve) => {
+        releaseWorkers = resolve;
+      });
+      (ensureProviderReady as jest.Mock).mockImplementation((provider) => {
+        if (provider === 'overpass' && process.env.GEOCODING_OVERPASS_ENABLED !== 'true') {
+          releaseWorkers();
+          throw new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+        }
+      });
+      const runInternal = jest.fn().mockImplementation(async (options) => {
+        dispatchedProviders.push(options.provider);
+        activeWorkers++;
+        maxConcurrentWorkers = Math.max(maxConcurrentWorkers, activeWorkers);
+        if (dispatchedProviders.length === 2) {
+          geocodeDaemon.stopRequested = true;
+          releaseWorkers();
+        }
+        await allWorkersEntered;
+        activeWorkers--;
+        return { processed: 1 };
+      });
+
+      await runGeocodeDaemonLoop(jest.fn(), runInternal);
+
+      expect(dispatchedProviders).toHaveLength(4);
+      expect(maxConcurrentWorkers).toBeGreaterThan(1);
+      expect(dispatchedProviders).not.toContain('overpass');
+      expect(dispatchedProviders).toEqual(
+        expect.arrayContaining(['nominatim', 'nominatim', 'geocodio', 'geocodio'])
+      );
+      expect(dispatchedProviders.filter((provider) => provider === 'nominatim')).toHaveLength(2);
+      expect(dispatchedProviders.filter((provider) => provider === 'geocodio')).toHaveLength(2);
+      expect(config.providers.map((item) => item.provider)).toEqual([
+        'nominatim',
+        'overpass',
+        'geocodio',
+      ]);
     });
   });
 

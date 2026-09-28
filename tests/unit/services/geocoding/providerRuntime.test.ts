@@ -86,6 +86,43 @@ describe('providerRuntime', () => {
   });
 
   describe('ensureProviderReady', () => {
+    it.each([undefined, '', 'false', '1'])(
+      'should disable overpass when GEOCODING_OVERPASS_ENABLED is %s',
+      (value) => {
+        const originalValue = process.env.GEOCODING_OVERPASS_ENABLED;
+        if (value === undefined) {
+          delete process.env.GEOCODING_OVERPASS_ENABLED;
+        } else {
+          process.env.GEOCODING_OVERPASS_ENABLED = value;
+        }
+
+        try {
+          expect(() => ensureProviderReady('overpass', {})).toThrow('provider_disabled:overpass');
+        } finally {
+          if (originalValue === undefined) {
+            delete process.env.GEOCODING_OVERPASS_ENABLED;
+          } else {
+            process.env.GEOCODING_OVERPASS_ENABLED = originalValue;
+          }
+        }
+      }
+    );
+
+    it('should allow overpass only when explicitly enabled', () => {
+      const originalValue = process.env.GEOCODING_OVERPASS_ENABLED;
+      process.env.GEOCODING_OVERPASS_ENABLED = 'true';
+
+      try {
+        expect(() => ensureProviderReady('overpass', {})).not.toThrow();
+      } finally {
+        if (originalValue === undefined) {
+          delete process.env.GEOCODING_OVERPASS_ENABLED;
+        } else {
+          process.env.GEOCODING_OVERPASS_ENABLED = originalValue;
+        }
+      }
+    });
+
     it('should throw if mapbox token missing', () => {
       expect(() => ensureProviderReady('mapbox', {})).toThrow('missing_key:mapbox');
     });
@@ -188,7 +225,14 @@ describe('providerRuntime', () => {
     });
 
     it('should return error for unsupported provider', async () => {
-      const result = await executeProviderLookup('unsupported' as any, 'address-only', 1, 2, false, {});
+      const result = await executeProviderLookup(
+        'unsupported' as any,
+        'address-only',
+        1,
+        2,
+        false,
+        {}
+      );
       expect(result).toEqual({ ok: false, error: 'Unsupported provider' });
     });
   });

@@ -14,8 +14,18 @@ import { adminQuery } from '../../server/src/services/adminDbService';
 jest.mock('../../server/src/services/adminDbService');
 
 describe('GeocodingDaemonState', () => {
+  const originalOverpassEnabled = process.env.GEOCODING_OVERPASS_ENABLED;
+
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (originalOverpassEnabled === undefined) {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+    } else {
+      process.env.GEOCODING_OVERPASS_ENABLED = originalOverpassEnabled;
+    }
   });
 
   describe('normalizeDaemonConfig', () => {
@@ -145,6 +155,54 @@ describe('GeocodingDaemonState', () => {
       const options = getDaemonProviderRunOptions(config);
       expect(options.provider).toBe('nominatim');
       expect(options.limit).toBe(50);
+    });
+
+    it('rotates configured providers in order while skipping disabled Overpass', () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const providers = [
+        { provider: 'nominatim' as const, enabled: true },
+        { provider: 'overpass' as const, enabled: true },
+        { provider: 'geocodio' as const, enabled: true },
+      ];
+      const config = normalizeDaemonConfig({
+        provider: 'mapbox',
+        providers,
+      });
+
+      const selectedProviders = Array.from(
+        { length: 4 },
+        () => getDaemonProviderRunOptions(config).provider
+      );
+
+      expect(selectedProviders).toEqual(['nominatim', 'geocodio', 'nominatim', 'geocodio']);
+      expect(config.providers).toEqual(providers);
+    });
+
+    it('falls back to the primary when all configured providers are runtime-ineligible', () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = normalizeDaemonConfig({
+        provider: 'mapbox',
+        providers: [{ provider: 'overpass', enabled: true }],
+      });
+
+      const options = getDaemonProviderRunOptions(config);
+
+      expect(options.provider).toBe('mapbox');
+      expect(config.providers).toEqual([{ provider: 'overpass', enabled: true }]);
+    });
+
+    it('keeps configured non-Overpass providers runtime eligible', () => {
+      delete process.env.GEOCODING_OVERPASS_ENABLED;
+      const config = normalizeDaemonConfig({
+        provider: 'mapbox',
+        providers: [
+          { provider: 'nominatim', enabled: true },
+          { provider: 'geocodio', enabled: true },
+        ],
+      });
+
+      expect(getDaemonProviderRunOptions(config).provider).toBe('nominatim');
+      expect(getDaemonProviderRunOptions(config).provider).toBe('geocodio');
     });
   });
 });

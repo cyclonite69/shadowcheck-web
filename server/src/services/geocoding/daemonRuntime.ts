@@ -15,6 +15,7 @@ import {
 } from './daemonState';
 import { createRunSnapshot } from './jobState';
 import { ensureProviderReady, resolveProviderCredentials } from './providerRuntime';
+import { PROVIDER_DISABLED_ERROR_PREFIX } from './providerErrors';
 import { getActivePendingPrecisions } from './cacheStore';
 
 // Precisions the application uses for address lookups that should be kept covered.
@@ -232,13 +233,30 @@ const startGeocodingDaemon = async (
       ? normalizeDaemonConfig(configInput)
       : normalizeDaemonConfig(persisted || {});
 
-  const providerChecks = (config.providers || [])
+  const fallbackProviders = (config.providers || [])
     .filter((item) => item && item.enabled !== false)
-    .map((item) => item.provider);
-  const distinctProviders = Array.from(new Set([config.provider, ...providerChecks]));
-  for (const provider of distinctProviders) {
+    .map((item) => item.provider)
+    .filter((provider) => provider !== config.provider);
+  const distinctFallbackProviders = Array.from(new Set(fallbackProviders));
+
+  const primaryCredentials = await resolveProviderCredentials(config.provider);
+  ensureProviderReady(config.provider, primaryCredentials);
+
+  for (const provider of distinctFallbackProviders) {
     const credentials = await resolveProviderCredentials(provider);
-    ensureProviderReady(provider, credentials);
+    try {
+      ensureProviderReady(provider, credentials);
+    } catch (err) {
+      if (
+        provider === 'overpass' &&
+        err instanceof Error &&
+        err.message === `${PROVIDER_DISABLED_ERROR_PREFIX}overpass`
+      ) {
+        logger.info('[Geocoding] Skipping disabled optional fallback provider', { provider });
+        continue;
+      }
+      throw err;
+    }
   }
 
   await persistDaemonConfig(config);

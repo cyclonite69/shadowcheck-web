@@ -17,6 +17,8 @@ import {
   geocodioReverse,
   locationIqReverse,
 } from './providers';
+import { PROVIDER_DISABLED_ERROR_PREFIX } from './providerErrors';
+import { isProviderRuntimeEligible } from './providerAvailability';
 
 const PROVIDER_RATE_LIMIT_POLICY: Record<
   GeocodeProvider,
@@ -62,6 +64,9 @@ const ensureProviderReady = (
   provider: GeocodeProvider,
   credentials: GeocodeProviderCredentials
 ): void => {
+  if (!isProviderRuntimeEligible(provider)) {
+    throw new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+  }
   if (provider === 'mapbox' && !credentials.mapboxToken) {
     throw new Error('missing_key:mapbox');
   }

@@ -76,6 +76,9 @@ const {
   executeProviderLookup,
   resolveProviderCredentials,
 } = require('../../../server/src/services/geocoding/providerRuntime');
+const {
+  PROVIDER_DISABLED_ERROR_PREFIX,
+} = require('../../../server/src/services/geocoding/providerErrors');
 
 const BASE_OPTS = {
   provider: 'mapbox' as const,
@@ -207,6 +210,70 @@ describe('geocodingCacheService — expanded', () => {
       expect(result.processed).toBe(1);
       expect(result.successful).toBe(0);
       expect(upsertGeocodeCacheBatch).toHaveBeenCalled();
+    });
+
+    test('stops without writing the disabled row and flushes earlier writes', async () => {
+      const { geocodeDaemon } = require('../../../server/src/services/geocoding/daemonState');
+      const { updateJobRunProgress } = require('../../../server/src/services/geocoding/jobState');
+      const originalProviders = geocodeDaemon.config.providers;
+      geocodeDaemon.config.providers = [{ provider: 'nominatim', enabled: true }];
+      const firstRow = { lat_round: 40.0, lon_round: -74.0 };
+      const disabledRow = { lat_round: 41.0, lon_round: -75.0 };
+      const laterRow = { lat_round: 42.0, lon_round: -76.0 };
+      fetchRows.mockResolvedValue([firstRow, disabledRow, laterRow]);
+      executeProviderLookup
+        .mockResolvedValueOnce({ ok: true, poiName: 'First POI' })
+        .mockRejectedValueOnce(new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`));
+
+      try {
+        const result = await svc.runGeocodeCacheUpdate({
+          provider: 'overpass',
+          mode: 'poi-only',
+          precision: 5,
+          limit: 5,
+          perMinute: 60000,
+        });
+
+        expect(result.processed).toBe(1);
+        expect(upsertGeocodeCacheBatch).toHaveBeenCalledTimes(1);
+        expect(upsertGeocodeCacheBatch).toHaveBeenCalledWith(5, [
+          expect.objectContaining({ row: firstRow, result: { ok: true, poiName: 'First POI' } }),
+        ]);
+        expect(upsertGeocodeCacheBatch).not.toHaveBeenCalledWith(
+          5,
+          expect.arrayContaining([
+            expect.objectContaining({ row: disabledRow }),
+            expect.objectContaining({ row: laterRow }),
+          ])
+        );
+        expect(resolveProviderCredentials).not.toHaveBeenCalledWith('nominatim');
+        expect(executeProviderLookup).toHaveBeenCalledTimes(2);
+        expect(updateJobRunProgress).toHaveBeenCalled();
+      } finally {
+        geocodeDaemon.config.providers = originalProviders;
+      }
+    });
+
+    test('rejects disabled primary provider before fetching candidate rows', async () => {
+      const {
+        ensureProviderReady,
+      } = require('../../../server/src/services/geocoding/providerRuntime');
+      ensureProviderReady.mockImplementationOnce(() => {
+        throw new Error(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+      });
+
+      await expect(
+        svc.runGeocodeCacheUpdate({
+          provider: 'overpass',
+          mode: 'poi-only',
+          precision: 5,
+          limit: 5,
+        })
+      ).rejects.toThrow(`${PROVIDER_DISABLED_ERROR_PREFIX}overpass`);
+
+      expect(fetchRows).not.toHaveBeenCalled();
+      expect(executeProviderLookup).not.toHaveBeenCalled();
+      expect(upsertGeocodeCacheBatch).not.toHaveBeenCalled();
     });
 
     test('rethrows and releases lock when createJobRun fails before snapshot exists', async () => {

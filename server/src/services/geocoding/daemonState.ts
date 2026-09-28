@@ -9,6 +9,7 @@ import type {
   GeocodeRunOptions,
   GeocodingDaemonStatus,
 } from './types';
+import { isProviderRuntimeEligible } from './providerAvailability';
 
 const GEOCODING_DAEMON_STATE_KEY = 'geocoding_daemon_config';
 
@@ -89,7 +90,9 @@ const normalizeDaemonConfig = (config: Partial<GeocodeDaemonConfig>): GeocodeDae
 };
 
 const getDaemonProviderRunOptions = (config: GeocodeDaemonConfig): GeocodeRunOptions => {
-  const activeProviders = (config.providers || []).filter((item) => item && item.enabled !== false);
+  const activeProviders = (config.providers || []).filter(
+    (item) => item && item.enabled !== false && isProviderRuntimeEligible(item.provider)
+  );
   if (!activeProviders.length) {
     return {
       provider: config.provider,
