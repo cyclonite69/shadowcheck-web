@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-27)
+# 1.0.0 (2026-09-28)
 
 ### Bug Fixes
 
@@ -495,6 +495,7 @@
 - harden geocoding daemon status loading ([faae7b4](https://github.com/cyclonite69/shadowcheck-web/commit/faae7b42f97e3c86f367eb59b33416fb0fbcd3c6))
 - **health:** add grafana check and stabilize pgadmin probe ([c848873](https://github.com/cyclonite69/shadowcheck-web/commit/c84887328e20af8c7fdb7d3fdae655f5e6d01525))
 - **health:** simplify pgadmin tls probe ([27a1887](https://github.com/cyclonite69/shadowcheck-web/commit/27a18872f7e55d3615c899e300d8ab68ebd66f6a))
+- **health:** use v8 heap_size_limit and rss threshold for memory check ([0039156](https://github.com/cyclonite69/shadowcheck-web/commit/0039156fe237031b5e6fea75ac44fe628205e308))
 - hide observations count on analytics dashboard card ([cf8ab79](https://github.com/cyclonite69/shadowcheck-web/commit/cf8ab799c9fa5a2024010cee33750be0554f4603))
 - **husky:** amend HEAD on pre-push so changelog and metrics ship with push ([3fc71d9](https://github.com/cyclonite69/shadowcheck-web/commit/3fc71d9619c5da99b3baf457cb7cb4c41f6f4dd7))
 - **husky:** sync changelog and metrics in post-commit instead of pre-push ([5697d42](https://github.com/cyclonite69/shadowcheck-web/commit/5697d42da3cfdc2e7f0ed655691c6efb7493a4c8))
@@ -530,7 +531,7 @@
 - **kepler:** keep filters interactive during background refresh ([ec6cc74](https://github.com/cyclonite69/shadowcheck-web/commit/ec6cc74aab1b632cc70c74f0e55efbc5c1a04408))
 - **kepler:** remove default query limits for full dataset visualization ([644324a](https://github.com/cyclonite69/shadowcheck-web/commit/644324a6e2d4e3344594813b9376a9fbc44221df))
 - **kepler:** restore tooltip rendering on map point hover ([4e0e078](https://github.com/cyclonite69/shadowcheck-web/commit/4e0e078fa22ad31eee62bc252fcca50d97663d46))
-- **kepler:** stream observations with bounded memory and cleanup ([c177921](https://github.com/cyclonite69/shadowcheck-web/commit/c177921091c316914e58fe8b23ba49aac80bf77f))
+- **kepler:** stream observations with bounded memory and cleanup ([68342d7](https://github.com/cyclonite69/shadowcheck-web/commit/68342d7177a312d05e39d74b8163ba3f41283fcf))
 - **kepler:** use live explorer timestamp columns ([b9d85ba](https://github.com/cyclonite69/shadowcheck-web/commit/b9d85ba36e3dbbd9cc6502d5e8e840a5d359ba50))
 - kismet importer streaming + param indexing, remove hamburger button ([a989a6e](https://github.com/cyclonite69/shadowcheck-web/commit/a989a6e44445662d4ed4fd7be6da447053d7f642))
 - **kml:** defer WiGLE sync when request budget is exhausted ([d7289c1](https://github.com/cyclonite69/shadowcheck-web/commit/d7289c1dcd3a99ec6d12516c43378880869f9716))

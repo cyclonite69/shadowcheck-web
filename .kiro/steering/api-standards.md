@@ -38,14 +38,14 @@ Auth uses session-based tokens. Token extraction order:
   "checks": {
     "database": { "status": "ok", "latency_ms": 2 },
     "secrets": { "status": "ok", "required_count": 2, "loaded_count": 2 },
-    "memory": { "status": "ok", "heap_used_mb": 85, "heap_max_mb": 256 }
+    "memory": { "status": "ok", "heap_used_mb": 80, "heap_total_mb": 88, "heap_max_mb": 4192, "rss_mb": 140, "percent": 2 }
   }
 }
 ```
 
 - Returns 200 for healthy/degraded, 503 for unhealthy
 - `db_password` is the only critical secret; `mapbox_token` absence degrades but doesn't fail
-- Memory warning triggers at >80% heap usage
+- Memory warning triggers at RSS > 2800 MB or >70% heap limit usage
 - Docker healthcheck hits this endpoint every 30s
 
 ## Response Conventions

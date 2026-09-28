@@ -1,4 +1,5 @@
 import express from 'express';
+import v8 from 'v8';
 const router = express.Router();
 import { getCurrentDatabase } from '../../../repositories/systemRepository';
 import * as secretsManager from '../../../services/secretsManager';
@@ -58,23 +59,41 @@ router.get('/health', async (req, res) => {
   (checks as any).secrets = secretsCheck;
 
   // 3. Memory check
+  // The effective trigger is RSS > 2800 MB (Resident Set Size), which bounds the total process
+  // footprint (heap + external buffers + native bindings) well before host pressure triggers an OOM kill.
+  // Because heapUsed <= RSS and 70% of the 4192 MB heap limit is 2934 MB, the RSS check acts as the
+  // primary safeguard, with the 70% heap limit check retained as an explicit secondary guard.
   const mem = process.memoryUsage();
+  const heapStats = v8.getHeapStatistics();
   const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024);
-  const heapMaxMB = Math.round(mem.heapTotal / 1024 / 1024);
-  const heapPercent = (mem.heapUsed / mem.heapTotal) * 100;
+  const heapTotalMB = Math.round(mem.heapTotal / 1024 / 1024);
+  const heapMaxMB = Math.round(heapStats.heap_size_limit / 1024 / 1024);
+  const rssMB = Math.round(mem.rss / 1024 / 1024);
+  const heapPercent = (mem.heapUsed / heapStats.heap_size_limit) * 100;
 
-  if (heapPercent > 80) {
+  const isMemoryWarning = rssMB > 2800 || heapPercent > 70;
+
+  if (isMemoryWarning) {
     (checks as any).memory = {
       status: 'warning',
       heap_used_mb: heapUsedMB,
+      heap_total_mb: heapTotalMB,
       heap_max_mb: heapMaxMB,
+      rss_mb: rssMB,
       percent: Math.round(heapPercent),
     };
     if (overallStatus === 'healthy' && process.env.NODE_ENV !== 'test') {
       overallStatus = 'degraded';
     }
   } else {
-    (checks as any).memory = { status: 'ok', heap_used_mb: heapUsedMB, heap_max_mb: heapMaxMB };
+    (checks as any).memory = {
+      status: 'ok',
+      heap_used_mb: heapUsedMB,
+      heap_total_mb: heapTotalMB,
+      heap_max_mb: heapMaxMB,
+      rss_mb: rssMB,
+      percent: Math.round(heapPercent),
+    };
   }
 
   const response = {

@@ -1038,8 +1038,19 @@ components:
                   type: string
                 heap_used_mb:
                   type: integer
+                  description: Memory used by V8 heap in MB
+                heap_total_mb:
+                  type: integer
+                  description: Total memory committed for V8 heap pages in MB
                 heap_max_mb:
                   type: integer
+                  description: Configured V8 heap size limit ceiling in MB
+                rss_mb:
+                  type: integer
+                  description: Resident Set Size (total process memory) in MB
+                percent:
+                  type: integer
+                  description: Percentage of V8 heap size limit currently used
 
     Network:
       type: object

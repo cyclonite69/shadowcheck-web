@@ -1,5 +1,6 @@
 export {};
 
+import v8 from 'v8';
 const request = require('supertest');
 const express = require('express');
 import type { Express } from 'express';
@@ -35,6 +36,7 @@ describe('Health Check Endpoint', () => {
   let healthRoutes: any;
   let pool: any;
   let memoryUsageSpy: any;
+  let heapStatsSpy: any;
   let previousNodeEnv: string | undefined;
 
   beforeEach(() => {
@@ -49,10 +51,14 @@ describe('Health Check Endpoint', () => {
     mockSecretsManager.smReachable = true;
     mockSecretsManager.smLastError = null;
 
+    heapStatsSpy = jest.spyOn(v8, 'getHeapStatistics').mockReturnValue({
+      heap_size_limit: 4192 * 1024 * 1024,
+    } as any);
+
     memoryUsageSpy = jest.spyOn(process, 'memoryUsage').mockReturnValue({
-      rss: 0,
-      heapTotal: 100,
-      heapUsed: 10,
+      rss: 140 * 1024 * 1024,
+      heapTotal: 88 * 1024 * 1024,
+      heapUsed: 80 * 1024 * 1024,
       external: 0,
       arrayBuffers: 0,
     } as any);
@@ -66,6 +72,7 @@ describe('Health Check Endpoint', () => {
 
   afterEach(() => {
     memoryUsageSpy?.mockRestore?.();
+    heapStatsSpy?.mockRestore?.();
     process.env.NODE_ENV = previousNodeEnv;
   });
 
@@ -87,8 +94,11 @@ describe('Health Check Endpoint', () => {
     expect(response.body.checks.secrets.status).toBe('ok');
     expect(response.body.checks.secrets.sm_reachable).toBe(true);
     expect(response.body.checks.memory.status).toBe('ok');
-    expect(response.body.checks.memory.heap_used_mb).toEqual(expect.any(Number));
-    expect(response.body.checks.memory.heap_max_mb).toEqual(expect.any(Number));
+    expect(response.body.checks.memory.heap_used_mb).toBe(80);
+    expect(response.body.checks.memory.heap_total_mb).toBe(88);
+    expect(response.body.checks.memory.heap_max_mb).toBe(4192);
+    expect(response.body.checks.memory.rss_mb).toBe(140);
+    expect(response.body.checks.memory.percent).toBe(2);
   });
 
   test('should fallback database name to unknown if missing in rows', async () => {
@@ -169,11 +179,38 @@ describe('Health Check Endpoint', () => {
     expect(response.body.checks.secrets.loaded_count).toBe(2); // critical (1) + important (1)
   });
 
-  test('should return warning memory status when heap percent is above 80%', async () => {
+  test('should return ok memory status at 80MB used / 88MB committed that would have false-flagged under heapTotal', async () => {
+    // Under old logic (heapUsed / heapTotal), 80/88 was 91% -> false 'degraded'.
+    // Under new logic (heapUsed / heap_size_limit), 80/4192 is 2% -> 'ok' and 'healthy'.
     memoryUsageSpy.mockReturnValue({
-      rss: 0,
-      heapTotal: 100,
-      heapUsed: 85, // 85%
+      rss: 140 * 1024 * 1024,
+      heapTotal: 88 * 1024 * 1024,
+      heapUsed: 80 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0,
+    } as any);
+
+    pool.query.mockResolvedValue({ rows: [{ db_name: 'shadowcheck_db' }] });
+    mockSecretsManager.has.mockReturnValue(true);
+
+    const response = await request(app).get('/health');
+
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('healthy');
+    expect(response.body.checks.memory.status).toBe('ok');
+    expect(response.body.checks.memory.percent).toBe(2);
+    expect(response.body.checks.memory.heap_used_mb).toBe(80);
+    expect(response.body.checks.memory.heap_total_mb).toBe(88);
+    expect(response.body.checks.memory.heap_max_mb).toBe(4192);
+    expect(response.body.checks.memory.rss_mb).toBe(140);
+  });
+
+  test('should return warning memory status when RSS is above 2800 MB threshold', async () => {
+    memoryUsageSpy.mockReturnValue({
+      rss: 2900 * 1024 * 1024,
+      heapTotal: 88 * 1024 * 1024,
+      heapUsed: 80 * 1024 * 1024,
       external: 0,
       arrayBuffers: 0,
     } as any);
@@ -187,15 +224,37 @@ describe('Health Check Endpoint', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('degraded');
     expect(response.body.checks.memory.status).toBe('warning');
-    expect(response.body.checks.memory.percent).toBe(85);
+    expect(response.body.checks.memory.rss_mb).toBe(2900);
   });
 
-  test('should not degrade overall status when heap percent is above 80% but env is test', async () => {
+  test('should return warning memory status when heap percent is above 70% of heap limit', async () => {
+    // 3000 MB / 4192 MB = 71.56% (~72%)
+    memoryUsageSpy.mockReturnValue({
+      rss: 3100 * 1024 * 1024,
+      heapTotal: 3100 * 1024 * 1024,
+      heapUsed: 3000 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0,
+    } as any);
+
+    pool.query.mockResolvedValue({ rows: [{ db_name: 'shadowcheck_db' }] });
+    mockSecretsManager.has.mockReturnValue(true);
+
+    const response = await request(app).get('/health');
+
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('degraded');
+    expect(response.body.checks.memory.status).toBe('warning');
+    expect(response.body.checks.memory.percent).toBe(72);
+  });
+
+  test('should not degrade overall status when memory warning is triggered but env is test', async () => {
     process.env.NODE_ENV = 'test';
     memoryUsageSpy.mockReturnValue({
-      rss: 0,
-      heapTotal: 100,
-      heapUsed: 85, // 85%
+      rss: 2900 * 1024 * 1024,
+      heapTotal: 88 * 1024 * 1024,
+      heapUsed: 80 * 1024 * 1024,
       external: 0,
       arrayBuffers: 0,
     } as any);
@@ -211,11 +270,11 @@ describe('Health Check Endpoint', () => {
     expect(response.body.checks.memory.status).toBe('warning');
   });
 
-  test('should keep overallStatus as unhealthy when heap percent > 80% but DB check failed', async () => {
+  test('should keep overallStatus as unhealthy when memory warning is triggered but DB check failed', async () => {
     memoryUsageSpy.mockReturnValue({
-      rss: 0,
-      heapTotal: 100,
-      heapUsed: 85,
+      rss: 2900 * 1024 * 1024,
+      heapTotal: 88 * 1024 * 1024,
+      heapUsed: 80 * 1024 * 1024,
       external: 0,
       arrayBuffers: 0,
     } as any);
