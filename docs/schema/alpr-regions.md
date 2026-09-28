@@ -17,10 +17,9 @@ pipeline. Region identity and bounding boxes are seeded from the
 | `cooldown_until`     | `TIMESTAMPTZ` | Observability only (1h after success, 6h after failure); not enforced |
 | `updated_at`         | `TIMESTAMPTZ` | Last row mutation                                                     |
 
-Writers: `src/alpr/alprRegionState.ts`, called from web `syncAlprRegion` and
-daemon `runRegion`. Custom bounding-box syncs (`runCustomBbox` / `syncAlprCustomBbox` /
-`POST /api/v1/admin/alpr/sync` with `bbox`) intentionally bypass `app.alpr_regions`
-entirely to keep curated metro definitions canonical and avoid ad-hoc table pollution.
+Writers: `src/alpr/alprRegionState.ts`, called from web `syncAlprRegion`.
+Custom bounding-box syncs (`syncAlprCustomBbox` / `POST /api/v1/admin/alpr/sync` with `bbox`)
+intentionally bypass `app.alpr_regions` entirely to keep curated metro definitions
+canonical and avoid ad-hoc table pollution.
 Readers: `listRegionOutcomes` → `alprSyncService.getRegions` / `GET /api/v1/admin/alpr/regions`
-(code `ALPR_REGIONS` identity overlaid with durable outcome columns). The global
-rotation cursor in `app.settings` (`alpr_sync_region_cursor`) is separate and unchanged.
+(code `ALPR_REGIONS` identity overlaid with durable outcome columns).

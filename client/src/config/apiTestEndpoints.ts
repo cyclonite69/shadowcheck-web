@@ -2417,7 +2417,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'GET',
     requiresAuth: true,
     description:
-      'Returns all 30 known ALPR metro regions with bbox plus durable sync outcome fields from app.alpr_regions (syncStatus, lastSyncAt, lastElementCount, cooldownUntil).',
+      'Returns all 43 known ALPR metro regions with bbox plus durable sync outcome fields from app.alpr_regions (syncStatus, lastSyncAt, lastElementCount, cooldownUntil).',
   },
   {
     category: 'ALPR Sync',

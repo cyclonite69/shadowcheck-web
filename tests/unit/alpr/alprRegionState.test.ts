@@ -82,7 +82,7 @@ describe('alpr_regions migration seed', () => {
     '../../../sql/migrations/20260919_101_create_alpr_regions.sql'
   );
 
-  it('seeds exactly one row per ALPR_REGIONS entry with matching ids', () => {
+  it('seeds initial migration rows that exist as a subset of ALPR_REGIONS with matching ids', () => {
     const sql = fs.readFileSync(migrationPath, 'utf8');
     expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS app\.alpr_regions/);
     expect(sql).toMatch(/state\s+text NOT NULL/);
