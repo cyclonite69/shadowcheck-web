@@ -106,6 +106,9 @@ export const useAgencyLayer = ({
     map.on('click', layerId, clickHandler);
     return () => {
       map.off('click', layerId, clickHandler);
+      if (mapRef.current !== map) {
+        return;
+      }
       if (map.getLayer(layerId)) {
         map.removeLayer(layerId);
       }

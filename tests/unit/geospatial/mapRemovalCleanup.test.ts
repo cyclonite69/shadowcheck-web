@@ -44,6 +44,7 @@ jest.mock('../../../client/src/components/geospatial/media/MatchedMediaCarouselP
 
 import { useFederalCourthouses } from '../../../client/src/components/hooks/useFederalCourthouses';
 import { useMediaLocationLayers } from '../../../client/src/components/geospatial/hooks/useMediaLocationLayers';
+import { useAgencyLayer } from '../../../client/src/hooks/useAgencyLayer';
 
 type CleanupCase = {
   name: string;
@@ -102,6 +103,27 @@ const cleanupCases: CleanupCase[] = [
         await Promise.resolve();
         await Promise.resolve();
       };
+    },
+  },
+  {
+    name: 'agencies',
+    cleanupCondition:
+      'mapReady=true, mapboxRef non-null, showAgenciesPanel=true, and at least one agency has a name and coordinates',
+    mount: (mapRef, fakeMap) => {
+      React.useEffect(() => {
+        return () => {
+          fakeMap.remove();
+          mapRef.current = null;
+        };
+      }, []);
+
+      useAgencyLayer({
+        mapReady: true,
+        mapRef,
+        mapboxRef: { current: {} } as any,
+        agencies: [{ name: 'Test Agency', latitude: 1, longitude: 2 }],
+        showAgenciesPanel: true,
+      });
     },
   },
 ];
