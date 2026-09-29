@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-28)
+# 1.0.0 (2026-09-29)
 
 ### Bug Fixes
 
@@ -359,7 +359,7 @@
 - **geocoding:** fix MV join to use precision-4 observation coords ([d12d7e5](https://github.com/cyclonite69/shadowcheck-web/commit/d12d7e5b3d2b1ab3735df9c459fafb9b244aa291))
 - **geocoding:** fix pending queue stat and add multi-precision idle sweep ([11d504d](https://github.com/cyclonite69/shadowcheck-web/commit/11d504d8a5065f888054d251c47588840c7fce88))
 - **geocoding:** fix silent failures, dead confidence logic, and provider priority ([ceb3d60](https://github.com/cyclonite69/shadowcheck-web/commit/ceb3d60490e487c31d00425e20694a8a045435f2))
-- **geocoding:** gate Overpass behind fail-closed switch ([1d45ac6](https://github.com/cyclonite69/shadowcheck-web/commit/1d45ac6ef165d82de90788f97407275447725898))
+- **geocoding:** gate Overpass behind fail-closed switch ([f92db30](https://github.com/cyclonite69/shadowcheck-web/commit/f92db303c8382aafab45033ae970654ba4b6248a))
 - **geocoding:** implement upsertGeocodeCacheBatch persistence ([2825420](https://github.com/cyclonite69/shadowcheck-web/commit/282542064dce51bc33abb66a2e1811594cb83222))
 - **geocoding:** load live stats on mount, remove stale cache behavior ([eb3cc7a](https://github.com/cyclonite69/shadowcheck-web/commit/eb3cc7a633e53133d9050823525e08ce76b94b65))
 - **geocoding:** pass run options and surface mapbox errors ([8837a7b](https://github.com/cyclonite69/shadowcheck-web/commit/8837a7be7a20298ac1014bfc1d2975f0b691d25e))
@@ -447,6 +447,7 @@
 - **geospatial:** show nearest agencies and courthouses per observation cluster ([ccca6cc](https://github.com/cyclonite69/shadowcheck-web/commit/ccca6cc7a816f2b91dea31d71225d1d3594e6853))
 - **geospatial:** show per-observation SSID in tooltip, not network primary ([d34c784](https://github.com/cyclonite69/shadowcheck-web/commit/d34c7842525959cb98975c9583ea3a28e5119f66))
 - **geospatial:** show WiGLE point tooltip on click ([f3c12e8](https://github.com/cyclonite69/shadowcheck-web/commit/f3c12e892fdafc47a19ed06fa12febf5c752bb03))
+- **geospatial:** skip courthouse layer cleanup after map removal ([50b89b2](https://github.com/cyclonite69/shadowcheck-web/commit/50b89b24d6bd97b8e714cff934da7be6c11dddca))
 - **geospatial:** sort threat column by severity rank ([720c72e](https://github.com/cyclonite69/shadowcheck-web/commit/720c72e4490b0429df927d0341091653ca280ab5))
 - **geospatial:** stabilize explorer row selection ([fd4a98f](https://github.com/cyclonite69/shadowcheck-web/commit/fd4a98f72c232b7d92dc7b93755fd27c25e5d780))
 - **geospatial:** stabilize filtered explorer loading and WiGLE sightings ([4bfb499](https://github.com/cyclonite69/shadowcheck-web/commit/4bfb4999ce7bebb28513ba9a4b6a15c3e765a299))

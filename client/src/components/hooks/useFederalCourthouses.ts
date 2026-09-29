@@ -252,6 +252,9 @@ export const useFederalCourthouses = (
     map.on('style.load', addSourceAndLayers);
 
     return () => {
+      if (mapRef.current !== map) {
+        return;
+      }
       map.off('style.load', addSourceAndLayers);
       unclusteredLayers.forEach((id) => {
         if (!map.getLayer(id)) {
