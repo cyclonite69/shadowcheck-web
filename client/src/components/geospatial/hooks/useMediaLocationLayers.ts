@@ -331,6 +331,9 @@ export const useMediaLocationLayers = ({
 
     return () => {
       active = false;
+      if (mapRef.current !== map) {
+        return;
+      }
       map.off('click', 'media-location-markers', handleUnmatchedMediaClick);
       map.off('click', 'matched-media-markers', handleMatchedMediaClick);
       cleanupLayersAndSources();
