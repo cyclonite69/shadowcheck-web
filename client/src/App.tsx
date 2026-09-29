@@ -12,6 +12,7 @@ import { useVendorIntelClickHandler } from './hooks/useVendorIntelClickHandler';
 
 // Eager load: lightweight pages that are commonly accessed first
 import DashboardPage from './components/DashboardPage';
+import RouteErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load: heavy map/visualization pages (reduce initial bundle size)
 const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
@@ -111,19 +112,21 @@ function AppContent() {
       <VendorIntelDrawer />
       <DetectionEvidenceGlobal />
       <main id="main-content" className="flex h-full">
-        <Suspense fallback={<RouteLoadingFallback />}>
-          <Routes>
-            <Route path="/" element={demoMode ? <StartPage /> : <DashboardPage />} />
-            <Route path="/start" element={<StartPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/wigle" element={<WiglePage />} />
-            <Route path="/kepler" element={<KeplerPage />} />
-            <Route path="/monitoring" element={<MonitoringPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-          </Routes>
-        </Suspense>
+        <RouteErrorBoundary>
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <Routes>
+              <Route path="/" element={demoMode ? <StartPage /> : <DashboardPage />} />
+              <Route path="/start" element={<StartPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/wigle" element={<WiglePage />} />
+              <Route path="/kepler" element={<KeplerPage />} />
+              <Route path="/monitoring" element={<MonitoringPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+            </Routes>
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
     </>
   );
