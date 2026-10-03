@@ -164,7 +164,6 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       kind,
     });
 
-    const ledgerStatus = status === 429 ? 'rate_limited' : 'error';
     const isTimeout = err?.name === 'AbortError' || err?.message?.includes('aborted');
     const errorMessage = isTimeout
       ? `timeout after ${latencyMs}ms`
@@ -172,12 +171,15 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
         ? `HTTP ${status}: ${err?.message ?? String(err)}`
         : (err?.message ?? String(err));
 
-    updateLedgerOutcome(kind, null, {
-      status: ledgerStatus,
-      duration_ms: latencyMs,
-      http_status: status,
-      error_message: errorMessage,
-    });
+    const ledgerId: number | null = err?.ledgerId ?? null;
+    if (ledgerId !== null) {
+      updateLedgerOutcome(kind, ledgerId, {
+        status: 'error',
+        duration_ms: latencyMs,
+        http_status: status,
+        error_message: errorMessage,
+      });
+    }
 
     return { ok: false, error: err?.message ?? String(err), status };
   }

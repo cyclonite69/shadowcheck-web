@@ -247,7 +247,7 @@ describe('wigleRequestLedger', () => {
       expect(params.length).toBe(placeholderCount);
     });
 
-    it('falls back to heuristic update when ID is null', async () => {
+    it('does not update any row when ID is null', async () => {
       const { updateLedgerOutcome } = require('../../../server/src/services/wigleRequestLedger');
 
       updateLedgerOutcome('search', null, {
@@ -259,19 +259,7 @@ describe('wigleRequestLedger', () => {
         retry_after_hint: null,
       });
 
-      expect(adminQuery).toHaveBeenCalledTimes(1);
-      const [sql, params] = (adminQuery as jest.Mock).mock.calls[0];
-
-      expect(sql).toContain('ORDER BY requested_at DESC, id DESC');
-      expect(sql).toContain('LIMIT 1');
-      expect(sql).toContain("phase = 'pending'"); // subquery filter
-      expect(sql).toContain("phase = 'complete'"); // update SET
-      expect(sql).toContain('kind = $7');
-
-      expect(params).toEqual(['success', 100, null, 200, 10, null, 'search']);
-
-      const placeholderCount = (sql.match(/\$\d+/g) || []).length;
-      expect(params.length).toBe(placeholderCount);
+      expect(adminQuery).not.toHaveBeenCalled();
     });
 
     it('stores retry-after hint on 429 responses', async () => {

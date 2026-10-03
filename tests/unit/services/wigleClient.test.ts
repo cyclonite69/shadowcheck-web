@@ -228,6 +228,68 @@ describe('wigleClient (Deterministic Hardening)', () => {
     expect(getQuotaStatus().counts.search).toBe(2);
   });
 
+  it('completes a retried 429 attempt against its own ledger ID', async () => {
+    let nextId = 11;
+    (adminQuery as jest.Mock).mockImplementation((sql: string) =>
+      Promise.resolve(
+        sql.includes('INSERT INTO app.wigle_ledger_events')
+          ? { rows: [{ id: nextId++ }] }
+          : { rows: [] }
+      )
+    );
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(
+        makeResponse({ message: 'rate limited' }, false, 429, { 'Retry-After': '5' })
+      )
+      .mockResolvedValueOnce(makeResponse({}, true, 200));
+
+    const promise = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 1 });
+    await flushQueue();
+    const result = await promise;
+
+    const updates = (adminQuery as jest.Mock).mock.calls.filter(([sql]) =>
+      sql.includes('UPDATE app.wigle_ledger_events')
+    );
+    expect(updates).toHaveLength(1);
+    expect(updates[0][1]).toEqual([
+      'error',
+      expect.any(Number),
+      'HTTP 429, retrying (1/2)',
+      429,
+      null,
+      5,
+      11,
+    ]);
+    expect(result.ledgerId).toBe(12);
+  });
+
+  it('completes retried thrown attempts by ID and attaches the terminal attempt ID', async () => {
+    let nextId = 31;
+    (adminQuery as jest.Mock).mockImplementation((sql: string) =>
+      Promise.resolve(
+        sql.includes('INSERT INTO app.wigle_ledger_events')
+          ? { rows: [{ id: nextId++ }] }
+          : { rows: [] }
+      )
+    );
+    (global.fetch as jest.Mock)
+      .mockRejectedValueOnce(new Error('temporary network failure'))
+      .mockRejectedValueOnce(new Error('terminal network failure'));
+
+    const promise = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 1 });
+    const rejection = promise.catch((error) => error);
+    await flushQueue();
+    expect(await rejection).toMatchObject({ ledgerId: 32 });
+
+    const updates = (adminQuery as jest.Mock).mock.calls.filter(([sql]) =>
+      sql.includes('UPDATE app.wigle_ledger_events')
+    );
+    expect(updates).toHaveLength(1);
+    expect(updates[0][1][0]).toBe('error');
+    expect(updates[0][1][3]).toBeNull();
+    expect(updates[0][1][6]).toBe(31);
+  });
+
   // ── Branch Coverage Enhancements ──────────────────────────────────────────
 
   it('covers sleep and jitter when not in test env', async () => {

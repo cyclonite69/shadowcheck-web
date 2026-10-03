@@ -196,8 +196,7 @@ function getCircuitBreakerStatus() {
 /**
  * Update a ledger event with its outcome after the HTTP call completes.
  * Accepts the explicit row id returned by recordRequest to avoid the
- * ORDER-BY-LIMIT-1 race. Falls back to the heuristic only if id is null
- * (DB write failed at insert time).
+ * ORDER-BY-LIMIT-1 race. Calls without an inserted row have no event to update.
  * Fire-and-forget — never throws.
  */
 function updateLedgerOutcome(
@@ -234,33 +233,7 @@ function updateLedgerOutcome(
       });
     });
   } else {
-    void adminQuery(
-      `UPDATE app.wigle_ledger_events
-       SET status = $1, phase = 'complete', duration_ms = $2, error_message = $3,
-           http_status = $4, result_count = $5, retry_after_hint = $6
-       WHERE id = (
-         SELECT id
-         FROM app.wigle_ledger_events
-         WHERE kind = $7
-           AND phase = 'pending'
-         ORDER BY requested_at DESC, id DESC
-         LIMIT 1
-       )`,
-      [
-        outcome.status,
-        outcome.duration_ms,
-        outcome.error_message ?? null,
-        outcome.http_status ?? null,
-        outcome.result_count ?? null,
-        outcome.retry_after_hint ?? null,
-        kind,
-      ]
-    ).catch((err: any) => {
-      logger.warn('[WiGLE Ledger] Outcome update failed', {
-        kind,
-        error: err?.message || String(err),
-      });
-    });
+    logger.debug('[WiGLE Ledger] Outcome update skipped — no ledger row ID', { kind });
   }
 }
 

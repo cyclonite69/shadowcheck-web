@@ -990,6 +990,7 @@
 - **wigle:** catch quota/circuit-breaker throws in fetchUpstream, return 429/503 instead of 500 ([68200af](https://github.com/cyclonite69/shadowcheck-web/commit/68200af060ae3106b5a7b79a2c76e2dee61651cd))
 - **wigle:** clamp bbox to [-180,180]/[-90,90] before aggregated fetch ([b16467f](https://github.com/cyclonite69/shadowcheck-web/commit/b16467f9fa45f751fff16e0725d838bc9507dc2d))
 - **wigle:** clarify farthest WiGLE-only tooltip wording ([f6d74e1](https://github.com/cyclonite69/shadowcheck-web/commit/f6d74e1624568a93fbc2c287637304ced865ce8f))
+- **wigle:** complete each ledger attempt by ID ([caf6cbf](https://github.com/cyclonite69/shadowcheck-web/commit/caf6cbf88694c886cf2345ecb9cd35e2772f9af5))
 - **wigle:** complete ledger outcome updates ([1259b24](https://github.com/cyclonite69/shadowcheck-web/commit/1259b2416f06e3c189bd025d25d9e9aff51d9692))
 - **wigle:** compute farthest distance from WiGLE-only sightings ([705262e](https://github.com/cyclonite69/shadowcheck-web/commit/705262e329c1fe65ab73bbb92c12aaf74710cccb))
 - **wigle:** compute network-level temporal envelope client-side for v3 rows ([12f2c62](https://github.com/cyclonite69/shadowcheck-web/commit/12f2c622192cce90a720f4e40504b3a308008a02))
