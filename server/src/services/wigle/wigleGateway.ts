@@ -138,7 +138,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
     });
 
     updateLedgerOutcome(kind, ledgerId, {
-      status: response.ok ? 'success' : 'error',
+      status: response.status === 429 ? 'rate_limited' : response.ok ? 'success' : 'error',
       duration_ms: latencyMs,
       http_status: response.status,
       error_message: response.ok

@@ -169,11 +169,45 @@ describe('wigleGateway — fetchWigle responses and errors', () => {
       'search',
       123,
       expect.objectContaining({
+        status: 'rate_limited',
         http_status: 429,
         retry_after_hint: 60,
       })
     );
   });
+
+  it.each([
+    { status: 200, ok: true, expectedLedgerStatus: 'success' },
+    { status: 500, ok: false, expectedLedgerStatus: 'error' },
+    { status: 403, ok: false, expectedLedgerStatus: 'error' },
+  ])(
+    'records returned HTTP $status as $expectedLedgerStatus',
+    async ({ status, ok, expectedLedgerStatus }) => {
+      const mockResponse = {
+        ok,
+        status,
+        statusText: status === 200 ? 'OK' : 'response error',
+        clone: () => mockResponse,
+        headers: new Headers(),
+      };
+      (fetchWigle as jest.Mock).mockResolvedValue({ response: mockResponse, ledgerId: 456 });
+
+      const result = await wigleGatewayFetch({
+        kind: 'search',
+        url: 'https://api.wigle.net/api/v2/network/search',
+      });
+
+      expect(result.ok).toBe(true);
+      expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
+        'search',
+        456,
+        expect.objectContaining({
+          status: expectedLedgerStatus,
+          http_status: status,
+        })
+      );
+    }
+  );
 
   it('ignores invalid Retry-After header', async () => {
     const mockHeaders = new Headers();
