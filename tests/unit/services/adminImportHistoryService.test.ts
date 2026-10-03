@@ -120,6 +120,17 @@ describe('adminImportHistoryService', () => {
       historyAdminQuery.mockResolvedValue({ rows: mockRows });
       const result = await getImportHistory(10);
       expect(result).toEqual(mockRows);
+      expect(historyAdminQuery.mock.calls[0][1]).toEqual([10, null, null]);
+    });
+
+    it('uses a stable started-at and id cursor for older rows', async () => {
+      historyAdminQuery.mockResolvedValue({ rows: [] });
+      await getImportHistory(10, { startedAt: '2026-10-01T12:00:00.000Z', id: 42 });
+
+      const [sql, params] = historyAdminQuery.mock.calls[0];
+      expect(sql).toContain('(ih.started_at, ih.id) < ($2::timestamptz, $3::bigint)');
+      expect(sql).toContain('ORDER BY ih.started_at DESC, ih.id DESC');
+      expect(params).toEqual([10, '2026-10-01T12:00:00.000Z', 42]);
     });
   });
 

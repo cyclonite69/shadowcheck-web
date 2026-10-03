@@ -8,9 +8,32 @@ const logger = require('../../../../../logging/logger');
 
 router.get('/admin/import-history', async (req, res, next) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-    const history = await adminImportHistoryService.getImportHistory(limit);
-    res.json({ ok: true, history });
+    const parsedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Math.min(Math.max(parsedLimit || 20, 1), 100);
+    const beforeStartedAt = req.query.beforeStartedAt;
+    const beforeIdRaw = req.query.beforeId;
+    const beforeId =
+      typeof beforeIdRaw === 'string' && /^\d+$/.test(beforeIdRaw)
+        ? Number(beforeIdRaw)
+        : Number.NaN;
+    let cursor;
+
+    if (beforeStartedAt !== undefined || beforeIdRaw !== undefined) {
+      if (
+        typeof beforeStartedAt !== 'string' ||
+        Number.isNaN(Date.parse(beforeStartedAt)) ||
+        !Number.isSafeInteger(beforeId) ||
+        beforeId <= 0
+      ) {
+        return res.status(400).json({ ok: false, error: 'Invalid import history cursor' });
+      }
+      cursor = { startedAt: beforeStartedAt, id: beforeId };
+    }
+
+    const rows = await adminImportHistoryService.getImportHistory(limit + 1, cursor);
+    const hasMore = rows.length > limit;
+    const history = hasMore ? rows.slice(0, limit) : rows;
+    res.json({ ok: true, history, hasMore });
   } catch (e) {
     next(e);
   }

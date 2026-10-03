@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { Metrics } from './types';
 import { formatShortDate } from '../../../../utils/formatDate';
@@ -97,6 +97,15 @@ export function MetricsTable({ before, after }: { before: Metrics | null; after:
   );
 }
 
+function mergeHistoryRows(current: ImportRun[], incoming: ImportRun[]): ImportRun[] {
+  const byId = new Map(current.map((run) => [run.id, run]));
+  incoming.forEach((run) => byId.set(run.id, run));
+  return Array.from(byId.values()).sort((left, right) => {
+    const dateDifference = Date.parse(right.started_at) - Date.parse(left.started_at);
+    return dateDifference || right.id - left.id;
+  });
+}
+
 function ExpandedRow({ run }: { run: ImportRun }) {
   // Safely truncate error_detail to first 500 chars and strip SQL keywords for security
   const sanitizeErrorDetail = (detail: string | null): string | null => {
@@ -150,10 +159,14 @@ function ExpandedRow({ run }: { run: ImportRun }) {
 export function ImportHistory({ refreshKey }: { refreshKey: number }) {
   const [history, setHistory] = useState<ImportRun[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
   const [startingUploads, setStartingUploads] = useState<Set<number>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
+  const loadingMoreRef = useRef(false);
 
   const reloadHistory = () => setReloadKey((prev) => prev + 1);
 
@@ -161,8 +174,12 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
     setLoading(true);
     adminApi
       .getImportHistory(10)
-      .then((data: any) => setHistory(data?.history ?? []))
-      .catch(() => setHistory([]))
+      .then((data: any) => {
+        setHistory((current) => mergeHistoryRows(current, data?.history ?? []));
+        setHasMore((current) => current || data?.hasMore === true);
+        setHistoryError(null);
+      })
+      .catch(() => setHistoryError('Failed to load import history.'))
       .finally(() => setLoading(false));
   }, [refreshKey, reloadKey]);
 
@@ -175,12 +192,40 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
     const interval = setInterval(() => {
       adminApi
         .getImportHistory(10)
-        .then((data: any) => setHistory(data?.history ?? []))
+        .then((data: any) => {
+          setHistory((current) => mergeHistoryRows(current, data?.history ?? []));
+          setHasMore((current) => current || data?.hasMore === true);
+        })
         .catch(() => {});
     }, 4000);
 
     return () => clearInterval(interval);
   }, [history]);
+
+  const loadOlderHistory = async () => {
+    const oldest = history[history.length - 1];
+    if (!hasMore || loadingMoreRef.current || !oldest) {
+      return;
+    }
+
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setHistoryError(null);
+    try {
+      const data = await adminApi.getImportHistory(10, {
+        startedAt: oldest.started_at,
+        id: oldest.id,
+      });
+      const olderRows: ImportRun[] = data?.history ?? [];
+      setHistory((current) => mergeHistoryRows(current, olderRows));
+      setHasMore(data?.hasMore === true);
+    } catch {
+      setHistoryError('Failed to load older imports.');
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  };
 
   const toggle = (id: number) =>
     setExpanded((prev) => {
@@ -220,86 +265,119 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
     return <p className="text-sm text-slate-500 py-2">Loading history...</p>;
   }
   if (history.length === 0) {
+    if (historyError) {
+      return <p className="text-sm text-red-300 py-2">{historyError}</p>;
+    }
     return <p className="text-sm text-slate-500 py-2">No imports recorded yet.</p>;
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div>
       {actionError && (
         <div className="mb-3 rounded border border-red-700/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">
           {actionError}
         </div>
       )}
-      <table className="w-full text-xs text-slate-300">
-        <thead>
-          <tr className="text-slate-500 border-b border-slate-700/50">
-            <th className="text-left py-1.5 pr-3">When</th>
-            <th className="text-left py-1.5 pr-3">Source</th>
-            <th className="text-right py-1.5 pr-3">Imported</th>
-            <th className="text-right py-1.5 pr-3">Failed</th>
-            <th className="text-right py-1.5 pr-3">Duration</th>
-            <th className="text-center py-1.5 pr-3">Backup</th>
-            <th className="text-left py-1.5 pr-3">Status</th>
-            <th className="text-left py-1.5 pr-3">Action</th>
-            <th className="text-left py-1.5"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {history.map((run) => {
-            const statusMeta = getImportHistoryStatusMeta(run.status);
+      {historyError && (
+        <div className="mb-3 rounded border border-red-700/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">
+          {historyError}
+        </div>
+      )}
+      <div
+        data-testid="import-history-scroll-container"
+        className="max-h-[32rem] overflow-auto"
+        onScroll={(event) => {
+          const container = event.currentTarget;
+          if (container.scrollHeight - container.scrollTop - container.clientHeight < 120) {
+            void loadOlderHistory();
+          }
+        }}
+      >
+        <table className="w-full text-xs text-slate-300">
+          <thead className="sticky top-0 z-10 bg-slate-900">
+            <tr className="text-slate-500 border-b border-slate-700/50">
+              <th className="text-left py-1.5 pr-3">When</th>
+              <th className="text-left py-1.5 pr-3">Source</th>
+              <th className="text-right py-1.5 pr-3">Imported</th>
+              <th className="text-right py-1.5 pr-3">Failed</th>
+              <th className="text-right py-1.5 pr-3">Duration</th>
+              <th className="text-center py-1.5 pr-3">Backup</th>
+              <th className="text-left py-1.5 pr-3">Status</th>
+              <th className="text-left py-1.5 pr-3">Action</th>
+              <th className="text-left py-1.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.map((run) => {
+              const statusMeta = getImportHistoryStatusMeta(run.status);
 
-            return (
-              <React.Fragment key={run.id}>
-                <tr
-                  className="border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer"
-                  onClick={() => toggle(run.id)}
-                >
-                  <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                    {formatShortDate(run.started_at)}
-                  </td>
-                  <td className="py-1.5 pr-3 font-mono">{run.source_tag}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.imported)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.failed)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums text-slate-400">
-                    {run.duration_s ? `${run.duration_s}s` : '—'}
-                  </td>
-                  <td className="py-1.5 pr-3 text-center">
-                    {run.backup_taken ? (
-                      <span className="text-green-400">✓</span>
-                    ) : (
-                      <span className="text-slate-600">—</span>
-                    )}
-                  </td>
-                  <td className="py-1.5 pr-3">
-                    <span className={statusMeta.className}>{statusMeta.label}</span>
-                  </td>
-                  <td className="py-1.5 pr-3">
-                    {run.status === 'pending' && run.upload_id ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleStart(run.upload_id!, run.id);
-                        }}
-                        disabled={startingUploads.has(run.upload_id)}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-                      >
-                        {startingUploads.has(run.upload_id) ? 'Starting…' : '▶ Run'}
-                      </button>
-                    ) : (
-                      <span className="text-slate-600">—</span>
-                    )}
-                  </td>
-                  <td className="py-1.5 text-slate-500 text-xs">
-                    {expanded.has(run.id) ? '▲' : '▼'}
-                  </td>
-                </tr>
-                {expanded.has(run.id) && <ExpandedRow run={run} />}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </table>
+              return (
+                <React.Fragment key={run.id}>
+                  <tr
+                    className="border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer"
+                    onClick={() => toggle(run.id)}
+                  >
+                    <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
+                      {formatShortDate(run.started_at)}
+                    </td>
+                    <td className="py-1.5 pr-3 font-mono">{run.source_tag}</td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.imported)}</td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.failed)}</td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums text-slate-400">
+                      {run.duration_s ? `${run.duration_s}s` : '—'}
+                    </td>
+                    <td className="py-1.5 pr-3 text-center">
+                      {run.backup_taken ? (
+                        <span className="text-green-400">✓</span>
+                      ) : (
+                        <span className="text-slate-600">—</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <span className={statusMeta.className}>{statusMeta.label}</span>
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      {run.status === 'pending' && run.upload_id ? (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleStart(run.upload_id!, run.id);
+                          }}
+                          disabled={startingUploads.has(run.upload_id)}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                        >
+                          {startingUploads.has(run.upload_id) ? 'Starting…' : '▶ Run'}
+                        </button>
+                      ) : (
+                        <span className="text-slate-600">—</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 text-slate-500 text-xs">
+                      {expanded.has(run.id) ? '▲' : '▼'}
+                    </td>
+                  </tr>
+                  {expanded.has(run.id) && <ExpandedRow run={run} />}
+                </React.Fragment>
+              );
+            })}
+            {hasMore && (
+              <tr>
+                <td colSpan={9} className="py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => void loadOlderHistory()}
+                    disabled={loadingMore}
+                    className="text-xs text-blue-300 hover:text-blue-200 disabled:text-slate-500"
+                  >
+                    {loadingMore ? 'Loading older imports…' : 'Load older imports'}
+                  </button>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -134,9 +134,12 @@ export async function failImportHistory(
 }
 
 /**
- * Returns the most recent import history rows.
+ * Returns import history rows, optionally older than a stable `(started_at, id)` cursor.
  */
-export async function getImportHistory(limit: number): Promise<any[]> {
+export async function getImportHistory(
+  limit: number,
+  before?: { startedAt: string; id: number }
+): Promise<any[]> {
   const { rows } = await adminQuery(
     `SELECT ih.id,
             ih.started_at,
@@ -155,9 +158,10 @@ export async function getImportHistory(limit: number): Promise<any[]> {
        FROM app.import_history ih
        LEFT JOIN app.mobile_uploads mu
               ON mu.history_id = ih.id
-      ORDER BY ih.started_at DESC
+      WHERE ($2::timestamptz IS NULL OR (ih.started_at, ih.id) < ($2::timestamptz, $3::bigint))
+      ORDER BY ih.started_at DESC, ih.id DESC
       LIMIT $1`,
-    [limit]
+    [limit, before?.startedAt ?? null, before?.id ?? null]
   );
   return rows;
 }
