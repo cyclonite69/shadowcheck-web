@@ -1,8 +1,10 @@
 import { fetchWigle, resetState } from '../../../server/src/services/wigleClient';
 import {
+  getQuotaStatus,
   resetQuotaLedger,
   recordConsecutive429,
 } from '../../../server/src/services/wigleRequestLedger';
+import { adminQuery } from '../../../server/src/services/adminDbService';
 
 jest.mock('../../../server/src/logging/logger');
 // Mock the admin DB writes used by recordRequest so unit tests avoid real I/O but still
@@ -206,6 +208,24 @@ describe('wigleClient (Deterministic Hardening)', () => {
 
     expect(result.response.status).toBe(200);
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('records and counts each attempted request, including retries', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(
+        makeResponse({ message: 'rate limited' }, false, 429, { 'Retry-After': '5' })
+      )
+      .mockResolvedValueOnce(makeResponse({}, true, 200));
+
+    const promise = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 1 });
+    await flushQueue();
+    await promise;
+
+    const insertCalls = (adminQuery as jest.Mock).mock.calls.filter(([sql]) =>
+      sql.includes('INSERT INTO app.wigle_ledger_events')
+    );
+    expect(insertCalls).toHaveLength(2);
+    expect(getQuotaStatus().counts.search).toBe(2);
   });
 
   // ── Branch Coverage Enhancements ──────────────────────────────────────────

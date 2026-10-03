@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-29)
+# 1.0.0 (2026-10-03)
 
 ### Bug Fixes
 
@@ -170,7 +170,7 @@
 - clean container migrations dir before copy to remove stale files ([91edcaf](https://github.com/cyclonite69/shadowcheck-web/commit/91edcaf8864c6b4ab947af7fdb9c2cf5024cc161))
 - clean up Gemini weather removal gaps and pending UI changes ([4c43c3a](https://github.com/cyclonite69/shadowcheck-web/commit/4c43c3a749061be947021ce7d770d332be395aaf))
 - **client:** composite keys for network rows, api tester fixes, wigle stats guard ([7d7d95a](https://github.com/cyclonite69/shadowcheck-web/commit/7d7d95ac32b00703c328f76d25054a04d8125703))
-- **client:** contain route errors with a stable pathname-resetting error boundary ([50bc34d](https://github.com/cyclonite69/shadowcheck-web/commit/50bc34d3af7e7c294ad501179661f9fdfde6e0f0))
+- **client:** contain route errors with a stable pathname-resetting error boundary ([d443390](https://github.com/cyclonite69/shadowcheck-web/commit/d443390eb559833cfd86870fd617e16cbfde1291))
 - **client:** correct filtered pagination offset with utility tests ([1e2d403](https://github.com/cyclonite69/shadowcheck-web/commit/1e2d4039062e31f372019dddee93d819f7dcbb05))
 - **client:** resolve WiglePage variable hoisting error ([51e9c88](https://github.com/cyclonite69/shadowcheck-web/commit/51e9c8809f3246a9f35d1987ea845c70cec4ff35))
 - **client:** restore admin type-check contracts ([6e245dc](https://github.com/cyclonite69/shadowcheck-web/commit/6e245dc57e927e441ab385390e01f250ccfff700))
