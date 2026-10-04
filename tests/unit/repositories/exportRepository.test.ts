@@ -212,5 +212,31 @@ describe('exportRepository', () => {
       expect(batches).toHaveLength(0);
       expect(mockClient.release).toHaveBeenCalledTimes(1);
     });
+
+    it('rolls back and releases client when COMMIT throws', async () => {
+      mockClient.query
+        .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({}) // SET LOCAL statement_timeout
+        .mockResolvedValueOnce({}) // SET LOCAL idle_in_transaction_session_timeout
+        .mockResolvedValueOnce({}) // DECLARE
+        .mockResolvedValueOnce({ rows: [] }) // FETCH (empty)
+        .mockResolvedValueOnce({}) // CLOSE
+        .mockRejectedValueOnce(new Error('Commit failed: serialization failure')); // COMMIT throws
+
+      await expect(async () => {
+        for await (const _batch of repository.streamObservationsForGeoJSON(mockClient, 50)) {
+          // should not yield
+        }
+      }).rejects.toThrow('Commit failed: serialization failure');
+
+      const sqlCalls = mockClient.query.mock.calls.map((c: any) => c[0]);
+      const commitIndex = sqlCalls.indexOf('COMMIT');
+      const rollbackIndex = sqlCalls.indexOf('ROLLBACK');
+
+      expect(commitIndex).toBeGreaterThan(-1);
+      expect(rollbackIndex).toBeGreaterThan(commitIndex);
+      expect(sqlCalls[sqlCalls.length - 1]).toBe('ROLLBACK');
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+    });
   });
 });

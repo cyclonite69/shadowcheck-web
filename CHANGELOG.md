@@ -306,6 +306,7 @@
 - **explorer:** suppress OUI device-class fallback for false-positive detections ([9a0518b](https://github.com/cyclonite69/shadowcheck-web/commit/9a0518b7ea498d09f0f8b805f204611c2a800495))
 - **explorer:** surface geocoded address fields in filtered lists ([b1f1835](https://github.com/cyclonite69/shadowcheck-web/commit/b1f18352a8f3378be414aa3986a51ca5209053f7))
 - export SECRET_JSON and eval'd secrets in entrypoint.sh ([77cde6b](https://github.com/cyclonite69/shadowcheck-web/commit/77cde6b5c914b888b5bee0d5823007dd0168d29d))
+- **export:** roll back when COMMIT fails in streamObservationsForGeoJSON ([3833e0c](https://github.com/cyclonite69/shadowcheck-web/commit/3833e0c53f427a37283b973cb57f60afc5f1f529))
 - expose public pattern bonus in threat details ([5681bcd](https://github.com/cyclonite69/shadowcheck-web/commit/5681bcdfc8e54f3619ee3c97380be75898f7f94c))
 - fall back to lastlat/lastlon when bestlat/bestlon is default (0,0) ([d2b7458](https://github.com/cyclonite69/shadowcheck-web/commit/d2b745895898b7b6da8e81a096638b83bc4addc4))
 - fallback to observations for network type detection in batch import ([ef1b8ec](https://github.com/cyclonite69/shadowcheck-web/commit/ef1b8ec672ff6d7d38ed6354f91b2bf3401be0e0))

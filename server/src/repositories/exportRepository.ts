@@ -202,8 +202,8 @@ export async function* streamObservationsForGeoJSON(
       } catch {
         // ignore error on close
       }
-      txEnded = true;
       await client.query('COMMIT');
+      txEnded = true;
     }
   } catch (err: any) {
     await closeCursorAndRollback();

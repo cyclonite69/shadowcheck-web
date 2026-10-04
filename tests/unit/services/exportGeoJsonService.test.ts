@@ -564,6 +564,33 @@ describe('GeoJSON Export Service', () => {
         expect(result.totalRows).toBe(0);
         expect(mockRelease).toHaveBeenCalledTimes(1);
       });
+
+      it('does not double-release the client when the generator throws', async () => {
+        const mockRelease = jest.fn();
+        const mockClient = {
+          query: jest.fn(),
+          release: mockRelease,
+        };
+        exportRepository.acquireExportClient.mockResolvedValueOnce(mockClient);
+
+        async function* mockGenerator(client: any) {
+          try {
+            yield [{ bssid: 'AA:BB:CC:DD:EE:FF', latitude: 10, longitude: 20 }];
+            throw new Error('Commit failed: serialization failure');
+          } finally {
+            client.release();
+          }
+        }
+        exportRepository.streamObservationsForGeoJSON.mockImplementationOnce(mockGenerator);
+
+        const res = createMockResponse();
+
+        await expect(streamAllObservationsGeoJson(res)).rejects.toThrow(
+          'Commit failed: serialization failure'
+        );
+        expect(res.destroy).toHaveBeenCalled();
+        expect(mockRelease).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });
