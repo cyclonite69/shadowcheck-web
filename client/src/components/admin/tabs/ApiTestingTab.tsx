@@ -1,5 +1,6 @@
 import React from 'react';
 import { AdminCard } from '../components/AdminCard';
+import { formatDbLabel } from '../hooks/apiTestingHealth';
 import { useApiTesting } from '../hooks/useApiTesting';
 
 const ApiIcon = ({ size = 24, className = '' }) => (
@@ -261,7 +262,7 @@ export const ApiTestingTab: React.FC = () => {
               <span>
                 Target Database:{' '}
                 <span className="font-mono font-bold text-blue-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700/50">
-                  {apiHealth?.database || 'Loading...'}
+                  {formatDbLabel(apiHealth)}
                 </span>
               </span>
               <span>

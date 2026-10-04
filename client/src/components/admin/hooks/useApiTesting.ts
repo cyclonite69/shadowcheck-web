@@ -7,6 +7,7 @@ import {
   HttpMethod,
 } from './apiTestingPresets';
 import { canRunTests, formatTestDbBlockMessage, withTestDbGuard } from './apiTestingDbGuard';
+import { resolveApiHealth } from './apiTestingHealth';
 
 export type { ApiInput, ApiPreset } from './apiTestingPresets';
 export { EXPECTED_TEST_DB, canRunTests } from './apiTestingDbGuard';
@@ -95,36 +96,8 @@ export const useApiTesting = () => {
   const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
   const [testDbBlockReason, setTestDbBlockReason] = useState<string | null>(null);
 
-  /**
-   * Fresh health snapshot for every guard/run. Does not trust prior React state.
-   * (Health candidate parsing hardened in a follow-up change.)
-   */
-  const fetchApiHealthSnapshot = async (): Promise<ApiHealth> => {
-    const candidates = ['/health', '/api/health'];
-
-    for (const path of candidates) {
-      try {
-        const res = await fetch(path);
-        const text = await res.text();
-        let parsed: any = null;
-        try {
-          parsed = text ? JSON.parse(text) : null;
-        } catch {
-          parsed = null;
-        }
-
-        const reportedStatus =
-          typeof parsed?.status === 'string' ? String(parsed.status).toUpperCase() : 'ONLINE';
-        const version = parsed?.version || 'N/A';
-        const database = parsed?.database || 'N/A';
-        return { status: reportedStatus, version, database };
-      } catch {
-        // Try next candidate.
-      }
-    }
-
-    return { status: 'OFFLINE', version: 'N/A', database: 'N/A' };
-  };
+  /** Fresh shared health path used by the UI and every test-run guard. */
+  const fetchApiHealthSnapshot = (): Promise<ApiHealth> => resolveApiHealth((path) => fetch(path));
 
   const loadApiHealth = async (): Promise<ApiHealth> => {
     const health = await fetchApiHealthSnapshot();
