@@ -6,8 +6,10 @@ import {
   ApiPreset,
   HttpMethod,
 } from './apiTestingPresets';
+import { canRunTests, formatTestDbBlockMessage, withTestDbGuard } from './apiTestingDbGuard';
 
 export type { ApiInput, ApiPreset } from './apiTestingPresets';
+export { EXPECTED_TEST_DB, canRunTests } from './apiTestingDbGuard';
 
 export type EndpointResultStatus = 'pass' | 'auth' | 'validation' | 'fail';
 
@@ -91,8 +93,13 @@ export const useApiTesting = () => {
   const [apiResult, setApiResult] = useState<any>(null);
   const [apiError, setApiError] = useState('');
   const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
+  const [testDbBlockReason, setTestDbBlockReason] = useState<string | null>(null);
 
-  const loadApiHealth = async () => {
+  /**
+   * Fresh health snapshot for every guard/run. Does not trust prior React state.
+   * (Health candidate parsing hardened in a follow-up change.)
+   */
+  const fetchApiHealthSnapshot = async (): Promise<ApiHealth> => {
     const candidates = ['/health', '/api/health'];
 
     for (const path of candidates) {
@@ -110,14 +117,24 @@ export const useApiTesting = () => {
           typeof parsed?.status === 'string' ? String(parsed.status).toUpperCase() : 'ONLINE';
         const version = parsed?.version || 'N/A';
         const database = parsed?.database || 'N/A';
-        setApiHealth({ status: reportedStatus, version, database });
-        return;
+        return { status: reportedStatus, version, database };
       } catch {
         // Try next candidate.
       }
     }
 
-    setApiHealth({ status: 'OFFLINE', version: 'N/A', database: 'N/A' });
+    return { status: 'OFFLINE', version: 'N/A', database: 'N/A' };
+  };
+
+  const loadApiHealth = async (): Promise<ApiHealth> => {
+    const health = await fetchApiHealthSnapshot();
+    setApiHealth(health);
+    if (!canRunTests(health)) {
+      setTestDbBlockReason(formatTestDbBlockMessage(health.database));
+    } else {
+      setTestDbBlockReason(null);
+    }
+    return health;
   };
 
   const selectPreset = (preset: ApiPreset) => {
@@ -171,53 +188,67 @@ export const useApiTesting = () => {
     setApiError('');
     setApiResult(null);
     setApiLoading(true);
-    const start = performance.now();
 
     try {
-      const finalUrl = activePreset ? constructUrl() : endpoint;
-      setEndpoint(finalUrl);
+      const outcome = await withTestDbGuard({
+        fetchHealth: loadApiHealth,
+        run: async () => {
+          const start = performance.now();
+          const finalUrl = activePreset ? constructUrl() : endpoint;
+          setEndpoint(finalUrl);
 
-      const opts: RequestInit = {
-        method,
-        credentials: useAuthentication && isAuthenticated ? 'include' : 'omit',
-      };
-      let finalBody = body;
+          const opts: RequestInit = {
+            method,
+            credentials: useAuthentication && isAuthenticated ? 'include' : 'omit',
+          };
+          let finalBody = body;
 
-      if (activePreset?.defaultBody && paramValues) {
-        try {
-          const bodyObj = JSON.parse(body);
-          activePreset.params?.forEach((input) => {
-            if (!Object.prototype.hasOwnProperty.call(bodyObj, input.name)) {
-              return;
+          if (activePreset?.defaultBody && paramValues) {
+            try {
+              const bodyObj = JSON.parse(body);
+              activePreset.params?.forEach((input) => {
+                if (!Object.prototype.hasOwnProperty.call(bodyObj, input.name)) {
+                  return;
+                }
+
+                if (input.name === 'import' || input.name === 'overwrite_final') {
+                  bodyObj[input.name] = paramValues[input.name] === 'true';
+                } else {
+                  bodyObj[input.name] = paramValues[input.name];
+                }
+              });
+              finalBody = JSON.stringify(bodyObj, null, 2);
+              setBody(finalBody);
+            } catch {
+              // Ignore invalid JSON body editing.
             }
+          }
 
-            if (input.name === 'import' || input.name === 'overwrite_final') {
-              bodyObj[input.name] = paramValues[input.name] === 'true';
-            } else {
-              bodyObj[input.name] = paramValues[input.name];
-            }
-          });
-          finalBody = JSON.stringify(bodyObj, null, 2);
-          setBody(finalBody);
-        } catch {
-          // Ignore invalid JSON body editing.
-        }
-      }
+          if (method !== 'GET' && method !== 'DELETE' && finalBody.trim()) {
+            opts.headers = { 'Content-Type': 'application/json' };
+            opts.body = finalBody;
+          }
 
-      if (method !== 'GET' && method !== 'DELETE' && finalBody.trim()) {
-        opts.headers = { 'Content-Type': 'application/json' };
-        opts.body = finalBody;
-      }
-
-      const res = await fetch(finalUrl, opts);
-      const text = await res.text();
-      setApiResult({
-        ok: res.ok,
-        status: res.status,
-        durationMs: Math.round(performance.now() - start),
-        body: text,
-        usedAuth: useAuthentication && isAuthenticated,
+          const res = await fetch(finalUrl, opts);
+          const text = await res.text();
+          return {
+            ok: res.ok,
+            status: res.status,
+            durationMs: Math.round(performance.now() - start),
+            body: text,
+            usedAuth: useAuthentication && isAuthenticated,
+          };
+        },
       });
+
+      if (outcome.blocked) {
+        setTestDbBlockReason(outcome.reason);
+        setApiError(outcome.reason);
+        return;
+      }
+
+      setTestDbBlockReason(null);
+      setApiResult(outcome.result);
     } catch (err: any) {
       setApiError(err?.message || 'Request failed');
     } finally {
@@ -229,112 +260,133 @@ export const useApiTesting = () => {
   const [testAllResults, setTestAllResults] = useState<any[]>([]);
 
   const runAllTests = async () => {
-    setTestingAll(true);
-    setTestAllResults([]);
-    const results: any[] = [];
+    setApiError('');
 
-    // Fallback values for common path parameters
-    const FALLBACK_PARAMS: Record<string, string> = {
-      bssid: '9A:9D:5D:81:16:1E',
-      oui: '9A9D5D',
-      runId: '18',
-      uploadId: '1',
-      noteId: '1',
-      mediaId: '6',
-      userId: '3',
-      termId: '1',
-      key: 'enable_background_jobs',
-      instanceId: 'i-06380d0c9c99f6124',
-      filename: 'Screenshot_20260421_032056.png',
-      action: 'recreate-api',
-      id: '1',
-      label: 'default',
-      z: '14',
-      x: '4680',
-      y: '6340',
-      type: 'satellite',
-    };
+    try {
+      const outcome = await withTestDbGuard({
+        fetchHealth: loadApiHealth,
+        run: async () => {
+          setTestingAll(true);
+          setTestAllResults([]);
+          const results: any[] = [];
 
-    for (const preset of AUTOMATED_API_PRESETS) {
-      let finalUrl = preset.path;
-      const queryParams = new URLSearchParams();
-      const replacedParams = new Set<string>();
+          // Fallback values for common path parameters
+          const FALLBACK_PARAMS: Record<string, string> = {
+            bssid: '9A:9D:5D:81:16:1E',
+            oui: '9A9D5D',
+            runId: '18',
+            uploadId: '1',
+            noteId: '1',
+            mediaId: '6',
+            userId: '3',
+            termId: '1',
+            key: 'enable_background_jobs',
+            instanceId: 'i-06380d0c9c99f6124',
+            filename: 'Screenshot_20260421_032056.png',
+            action: 'recreate-api',
+            id: '1',
+            label: 'default',
+            z: '14',
+            x: '4680',
+            y: '6340',
+            type: 'satellite',
+          };
 
-      preset.params?.forEach((input) => {
-        const val =
-          paramValues[input.name] || input.defaultValue || FALLBACK_PARAMS[input.name] || '1';
-        if (finalUrl.includes(`:${input.name}`)) {
-          finalUrl = finalUrl.replace(`:${input.name}`, encodeURIComponent(val));
-          replacedParams.add(input.name);
-        } else {
-          queryParams.append(input.name, val);
-        }
+          for (const preset of AUTOMATED_API_PRESETS) {
+            let finalUrl = preset.path;
+            const queryParams = new URLSearchParams();
+            const replacedParams = new Set<string>();
+
+            preset.params?.forEach((input) => {
+              const val =
+                paramValues[input.name] || input.defaultValue || FALLBACK_PARAMS[input.name] || '1';
+              if (finalUrl.includes(`:${input.name}`)) {
+                finalUrl = finalUrl.replace(`:${input.name}`, encodeURIComponent(val));
+                replacedParams.add(input.name);
+              } else {
+                queryParams.append(input.name, val);
+              }
+            });
+
+            const paramRegex = /:([a-zA-Z0-9_]+)/g;
+            let match;
+            while ((match = paramRegex.exec(finalUrl)) !== null) {
+              const paramName = match[1];
+              if (!replacedParams.has(paramName)) {
+                const fallback = FALLBACK_PARAMS[paramName] || '1';
+                finalUrl = finalUrl.replace(`:${paramName}`, encodeURIComponent(fallback));
+                replacedParams.add(paramName);
+              }
+            }
+
+            finalUrl = finalUrl.replace(/\(\*\)/g, '');
+
+            const queryString = queryParams.toString();
+            const resolvedUrl = queryString ? `${finalUrl}?${queryString}` : finalUrl;
+
+            const start = performance.now();
+            try {
+              const opts: RequestInit = {
+                method: preset.method,
+                credentials: useAuthentication && isAuthenticated ? 'include' : 'omit',
+              };
+              if (preset.method !== 'GET' && preset.method !== 'DELETE' && preset.defaultBody) {
+                opts.headers = { 'Content-Type': 'application/json' };
+                opts.body = preset.defaultBody;
+              }
+
+              const res = await fetch(resolvedUrl, opts);
+              const text = await res.text();
+              const row = {
+                label: preset.label,
+                category: preset.category,
+                method: preset.method,
+                path: resolvedUrl,
+                ok: res.ok,
+                status: res.status,
+                resultStatus: categorizeStatus(res.status, false),
+                durationMs: Math.round(performance.now() - start),
+                body: text,
+                usedAuth: useAuthentication && isAuthenticated,
+              };
+
+              results.push(row);
+              setTestAllResults([...results]);
+            } catch (err: any) {
+              const row = {
+                label: preset.label,
+                category: preset.category,
+                method: preset.method,
+                path: resolvedUrl,
+                ok: false,
+                status: 'ERR',
+                resultStatus: 'fail' as const,
+                durationMs: Math.round(performance.now() - start),
+                error: err?.message || 'Request failed',
+                usedAuth: useAuthentication && isAuthenticated,
+              };
+              results.push(row);
+              setTestAllResults([...results]);
+            }
+          }
+
+          return results;
+        },
       });
 
-      const paramRegex = /:([a-zA-Z0-9_]+)/g;
-      let match;
-      while ((match = paramRegex.exec(finalUrl)) !== null) {
-        const paramName = match[1];
-        if (!replacedParams.has(paramName)) {
-          const fallback = FALLBACK_PARAMS[paramName] || '1';
-          finalUrl = finalUrl.replace(`:${paramName}`, encodeURIComponent(fallback));
-          replacedParams.add(paramName);
-        }
+      if (outcome.blocked) {
+        setTestDbBlockReason(outcome.reason);
+        setApiError(outcome.reason);
+        return;
       }
 
-      finalUrl = finalUrl.replace(/\(\*\)/g, '');
-
-      const queryString = queryParams.toString();
-      const resolvedUrl = queryString ? `${finalUrl}?${queryString}` : finalUrl;
-
-      const start = performance.now();
-      try {
-        const opts: RequestInit = {
-          method: preset.method,
-          credentials: useAuthentication && isAuthenticated ? 'include' : 'omit',
-        };
-        if (preset.method !== 'GET' && preset.method !== 'DELETE' && preset.defaultBody) {
-          opts.headers = { 'Content-Type': 'application/json' };
-          opts.body = preset.defaultBody;
-        }
-
-        const res = await fetch(resolvedUrl, opts);
-        const text = await res.text();
-        const outcome = {
-          label: preset.label,
-          category: preset.category,
-          method: preset.method,
-          path: resolvedUrl,
-          ok: res.ok,
-          status: res.status,
-          resultStatus: categorizeStatus(res.status, false),
-          durationMs: Math.round(performance.now() - start),
-          body: text,
-          usedAuth: useAuthentication && isAuthenticated,
-        };
-
-        results.push(outcome);
-        setTestAllResults([...results]);
-      } catch (err: any) {
-        const outcome = {
-          label: preset.label,
-          category: preset.category,
-          method: preset.method,
-          path: resolvedUrl,
-          ok: false,
-          status: 'ERR',
-          resultStatus: 'fail' as const,
-          durationMs: Math.round(performance.now() - start),
-          error: err?.message || 'Request failed',
-          usedAuth: useAuthentication && isAuthenticated,
-        };
-        results.push(outcome);
-        setTestAllResults([...results]);
-      }
+      setTestDbBlockReason(null);
+    } finally {
+      setTestingAll(false);
     }
-
-    setTestingAll(false);
   };
+
+  const testsAllowed = canRunTests(apiHealth);
 
   return {
     endpoint,
@@ -352,6 +404,8 @@ export const useApiTesting = () => {
     apiError,
     apiHealth,
     loadApiHealth,
+    testDbBlockReason,
+    testsAllowed,
     runApiRequest,
     AUTOMATED_API_PRESETS,
     MANUAL_API_PRESETS,

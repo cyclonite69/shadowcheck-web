@@ -145,7 +145,7 @@ export interface AdminRuntimeConfig {
 export interface ApiHealth {
   status: string;
   version: string;
-  database?: string;
+  database?: string | null;
 }
 
 export interface BackupResult {

@@ -95,6 +95,8 @@ export const ApiTestingTab: React.FC = () => {
     logout,
     apiHealth,
     loadApiHealth,
+    testDbBlockReason,
+    testsAllowed,
   } = useApiTesting();
 
   React.useEffect(() => {
@@ -276,6 +278,15 @@ export const ApiTestingTab: React.FC = () => {
             </div>
           </div>
 
+          {testDbBlockReason && (
+            <div
+              role="status"
+              className="rounded-lg border border-amber-700/50 bg-amber-950/30 p-3 text-xs text-amber-200"
+            >
+              {testDbBlockReason}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <span className="text-xs text-slate-400">
               Run automated checks against safe registered endpoints. Manual, destructive, and
@@ -283,7 +294,7 @@ export const ApiTestingTab: React.FC = () => {
             </span>
             <button
               onClick={runAllTests}
-              disabled={testingAll || apiLoading}
+              disabled={testingAll || apiLoading || !testsAllowed}
               className={
                 'px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-xs shadow-md shrink-0'
               }
@@ -533,7 +544,7 @@ export const ApiTestingTab: React.FC = () => {
 
             <button
               onClick={runApiRequest}
-              disabled={apiLoading}
+              disabled={apiLoading || !testsAllowed}
               className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 transition-all disabled:opacity-50 text-sm"
             >
               {apiLoading ? 'Sending...' : 'Send Request'}
