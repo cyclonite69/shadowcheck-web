@@ -25,6 +25,8 @@ The following scripts are destructive or carry high operational risk. Exercise c
   - `rotate-db-password.sh` / `rotate-grafana-passwords.sh`: Changes administrative role passwords.
 - **Restore:**
   - `restore-local-backup.sh` / `ec2-restore-backup.sh`: Re-initializes database from backup snapshots.
+- **Local test clone:**
+  - `clone-local-test-db.sh`: Creates `shadowcheck_test` from the explicitly confirmed local `shadowcheck_db`; refuses remote Docker contexts and never drops an existing destination.
 - **Destructive Maintenance:**
   - `rebuild-db.sql`: Drops and recreates schemas/views.
   - `rebuild-networks-precision.ts`: Runs intensive geographic precision updates across all networks.

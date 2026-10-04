@@ -53,17 +53,26 @@ To verify that the test runtime is correctly isolated and pointing to the test d
 
 ### 3. Resetting/Cloning the Test Database
 
-To wipe and re-clone the test database from the main database:
+Create a test clone only when `shadowcheck_test` does not already exist. The
+script refuses a remote Docker context, requires an explicit confirmation of
+the local `shadowcheck_db` source, and never drops an existing destination:
 
 ```bash
-# Obtain postgres credentials securely (e.g. locally or SSM)
-# Drop the existing test database and clone shadowcheck_db into shadowcheck_test
-docker exec -it shadowcheck_postgres_local psql -U shadowcheck_admin -d postgres -c "
-  SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'shadowcheck_test';
-  DROP DATABASE IF EXISTS shadowcheck_test;
-  CREATE DATABASE shadowcheck_test TEMPLATE shadowcheck_db;
-"
+./scripts/clone-local-test-db.sh shadowcheck_db shadowcheck_test \
+  --confirm-local-source=shadowcheck_db
 ```
+
+The script connects to the `postgres` maintenance database throughout. That
+connection must stay outside the template database so it remains available
+while `shadowcheck_db` rejects connections. Before cloning, the script checks
+for unexpected application sessions, disables new source connections,
+terminates existing source client sessions, and waits up to 15 seconds for the
+source to reach zero client connections. It restores source connections on
+success and on failure. It does not run against production or delete a
+pre-existing test database. Other maintenance sessions connected to `postgres`
+are outside the source-session filter and remain available; pgAdmin sessions
+connected directly to `shadowcheck_db` are terminated because PostgreSQL
+requires the template source to have no active connections.
 
 ### 4. Stopping the Test Stack
 

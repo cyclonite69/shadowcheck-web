@@ -1029,7 +1029,7 @@
 - **wigle:** normalize network type in batch detail import ([69d3340](https://github.com/cyclonite69/shadowcheck-web/commit/69d3340c9980284af417e51e461421351a3cc4d9))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
-- **wigle:** persist limiter snapshots and test learned limits ([b5d1dda](https://github.com/cyclonite69/shadowcheck-web/commit/b5d1dda4520ee7e26364dbcf2674362e09aab2d5))
+- **wigle:** persist limiter snapshots and test learned limits ([ebe7afc](https://github.com/cyclonite69/shadowcheck-web/commit/ebe7afc79824b4e29acfe7ce35c2389396d90545))
 - **wigle:** populate firsttime/lasttime from v3 fields in GeoJSON features ([6ff2702](https://github.com/cyclonite69/shadowcheck-web/commit/6ff270291a6e546084e87651918dd6e32fea3c05))
 - **wigle:** prefer secrets manager over env for api name and token ([aad8b1d](https://github.com/cyclonite69/shadowcheck-web/commit/aad8b1d34c31ae0101f674e7687884c370556455))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
