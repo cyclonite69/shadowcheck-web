@@ -4,6 +4,7 @@ import express from 'express';
 jest.mock('compression', () => jest.fn(() => (req: any, res: any, next: any) => next()));
 jest.mock('cors', () => jest.fn(() => (req: any, res: any, next: any) => next()));
 jest.mock('express-rate-limit', () => jest.fn(() => (req: any, res: any, next: any) => next()));
+jest.mock('../../../server/src/logging/logger', () => ({ warn: jest.fn() }));
 
 const corsMock = require('cors');
 const rateLimitMock = require('express-rate-limit');
@@ -26,51 +27,49 @@ describe('commonMiddleware', () => {
   describe('CORS origin validation', () => {
     it('allows undefined origin (no origin)', () => {
       mountCommonMiddleware(app, { allowedOrigins: ['http://localhost:3000'] });
-      const corsOptions = corsMock.mock.calls[0][0];
+      const corsOptionsDelegate = corsMock.mock.calls[0][0];
       const callback = jest.fn();
 
-      corsOptions.origin(undefined, callback);
-      expect(callback).toHaveBeenCalledWith(null, true);
+      corsOptionsDelegate({ headers: {} }, callback);
+      expect(callback).toHaveBeenCalledWith(null, { origin: false, credentials: false });
     });
 
     it('allows origin explicitly listed in allowedOrigins', () => {
       mountCommonMiddleware(app, {
         allowedOrigins: ['http://localhost:3000', 'https://example.com'],
       });
-      const corsOptions = corsMock.mock.calls[0][0];
+      const corsOptionsDelegate = corsMock.mock.calls[0][0];
       const callback = jest.fn();
 
-      corsOptions.origin('https://example.com', callback);
-      expect(callback).toHaveBeenCalledWith(null, true);
+      corsOptionsDelegate({ headers: { origin: 'https://example.com' } }, callback);
+      expect(callback).toHaveBeenCalledWith(null, { origin: true, credentials: true });
     });
 
-    it('allows any origin when wildcard * is inside allowedOrigins', () => {
+    it('allows any origin without credentials when wildcard * is inside allowedOrigins', () => {
       mountCommonMiddleware(app, { allowedOrigins: ['*'] });
-      const corsOptions = corsMock.mock.calls[0][0];
+      const corsOptionsDelegate = corsMock.mock.calls[0][0];
       const callback = jest.fn();
 
-      corsOptions.origin('https://untrusted.com', callback);
-      expect(callback).toHaveBeenCalledWith(null, true);
+      corsOptionsDelegate({ headers: { origin: 'https://untrusted.com' } }, callback);
+      expect(callback).toHaveBeenCalledWith(null, { origin: true, credentials: false });
     });
 
-    it('rejects unauthorized origin with a CORS error', () => {
+    it('denies an unauthorized origin without passing an error', () => {
       mountCommonMiddleware(app, { allowedOrigins: ['http://localhost:3000'] });
-      const corsOptions = corsMock.mock.calls[0][0];
+      const corsOptionsDelegate = corsMock.mock.calls[0][0];
       const callback = jest.fn();
 
-      corsOptions.origin('https://untrusted.com', callback);
-      expect(callback).toHaveBeenCalledWith(expect.any(Error));
-      const errorArg = callback.mock.calls[0][0];
-      expect(errorArg.message).toBe('Not allowed by CORS');
+      corsOptionsDelegate({ headers: { origin: 'https://untrusted.com' } }, callback);
+      expect(callback).toHaveBeenCalledWith(null, { origin: false, credentials: false });
     });
 
     it('handles non-array allowedOrigins safely', () => {
       mountCommonMiddleware(app, { allowedOrigins: null as any });
-      const corsOptions = corsMock.mock.calls[0][0];
+      const corsOptionsDelegate = corsMock.mock.calls[0][0];
       const callback = jest.fn();
 
-      corsOptions.origin('https://localhost:3000', callback);
-      expect(callback).toHaveBeenCalledWith(expect.any(Error));
+      corsOptionsDelegate({ headers: { origin: 'https://localhost:3000' } }, callback);
+      expect(callback).toHaveBeenCalledWith(null, { origin: false, credentials: false });
     });
   });
 
