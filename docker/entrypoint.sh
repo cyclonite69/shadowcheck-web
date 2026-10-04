@@ -169,12 +169,13 @@ run_migrations() {
   echo "[entrypoint]   DB_NAME=${DB_NAME}"
   echo "[entrypoint]   MIGRATION_DB_USER=${migration_user}"
   MIGRATIONS_DIR=/app/sql/migrations \
+  MIGRATION_EXEC=direct \
   MIGRATION_DB_USER="${migration_user}" \
   DB_NAME="${DB_NAME:-shadowcheck_db}" \
   PGPASSWORD="${migration_password}" \
   PGHOST="${DB_HOST:-postgres}" \
   PGPORT="${DB_PORT:-5432}" \
-    sh /app/sql/run-migrations.sh || {
+    bash /app/sql/run-migrations.sh || {
       echo "[entrypoint] Migration failed — aborting startup"
       exit 1
     }

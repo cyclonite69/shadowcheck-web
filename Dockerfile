@@ -41,7 +41,7 @@ RUN npm ci --omit=dev --legacy-peer-deps
 FROM node:26.10.0-alpine AS api
 
 # Install runtime utilities only (no build tools)
-RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl exiftool
+RUN apk add --no-cache bash dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl exiftool
 
 # Install gcompat for glibc compatibility (required for SSM plugin)
 RUN apk add --no-cache curl rpm gcompat

@@ -573,6 +573,7 @@
 - **migration:** match existing MV schema without manufacturer_oui ([aed224e](https://github.com/cyclonite69/shadowcheck-web/commit/aed224e2a8d1b9eaaa1084c30083e3348affacdd))
 - **migration:** remove nested aggregate in stationary_confidence CTE ([c993944](https://github.com/cyclonite69/shadowcheck-web/commit/c993944227b43cf5badcbfa278807c4eddd0982a))
 - **migrations:** default runner to shadowcheck_admin role ([a84957d](https://github.com/cyclonite69/shadowcheck-web/commit/a84957d9851fba6e6dc02ada67f02aaea36a8eb8))
+- **migrations:** docker-exec runner for local, bash + direct mode for api entrypoint ([f45f045](https://github.com/cyclonite69/shadowcheck-web/commit/f45f045906d14521fc13541ffc0de2141f1f1cc6))
 - **migrations:** ignore DB_USER when selecting migration role ([90bde0a](https://github.com/cyclonite69/shadowcheck-web/commit/90bde0af5acd6f329cd780a60f5e294ab4f5cd15))
 - **migrations:** make sibling pipeline ownership-safe for precreated tables ([5871e1b](https://github.com/cyclonite69/shadowcheck-web/commit/5871e1b6131fbe2dc447dc1044ab111d3a1ddd99))
 - **migrations:** remove baselines from active path, keep in baseline_phase3 only ([5a95250](https://github.com/cyclonite69/shadowcheck-web/commit/5a952505f60d45528d7d1df45da59cc806675b73))
