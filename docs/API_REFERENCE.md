@@ -1801,6 +1801,10 @@ Export observations as GeoJSON (full dataset).
 
 Download a full app-schema snapshot in JSON format. Requires admin access.
 
+### GET /api/geojson/full 🔒
+
+Stream all observations in GeoJSON FeatureCollection format incrementally using a database cursor. Requires admin access.
+
 ### GET /api/kml 🔒
 
 Download observations for requested BSSIDs in KML format. Requires an authenticated user.

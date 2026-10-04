@@ -445,18 +445,19 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 - Mounted at `/api` (Gated by `userGate`; full JSON export also requires admin).
 - Source: `server/src/api/routes/v1/dashboard.ts`, `export.ts`, and `kepler.ts`
 
-| Method | Full Path                  | Source File           | Classification     | Documented | Notes                       |
-| ------ | -------------------------- | --------------------- | ------------------ | ---------- | --------------------------- |
-| GET    | `/api/dashboard/summary`   | `dashboard.ts` (L144) | Authenticated User | Yes        | Dashboard summary metrics   |
-| GET    | `/api/dashboard/threats`   | `dashboard.ts` (L126) | Authenticated User | Yes        | Dashboard threat list       |
-| GET    | `/api/csv`                 | `export.ts` (L25)     | Authenticated User | Yes        | CSV observation export      |
-| GET    | `/api/json`                | `export.ts` (L69)     | Authenticated User | Yes        | JSON data export            |
-| GET    | `/api/json/full`           | `export.ts` (L96)     | Admin / Operator   | Yes        | Full JSON snapshot          |
-| GET    | `/api/geojson`             | `export.ts` (L115)    | Authenticated User | Yes        | GeoJSON observation export  |
-| GET    | `/api/kml`                 | `export.ts` (L161)    | Authenticated User | Yes        | KML export                  |
-| GET    | `/api/kepler/data`         | `kepler.ts` (L18)     | Authenticated User | Yes        | Latest network observations |
-| GET    | `/api/kepler/observations` | `kepler.ts` (L45)     | Authenticated User | Yes        | Kepler observation dataset  |
-| GET    | `/api/kepler/networks`     | `kepler.ts` (L69)     | Authenticated User | Yes        | Kepler network summaries    |
+| Method | Full Path                  | Source File           | Classification     | Documented | Notes                                      |
+| ------ | -------------------------- | --------------------- | ------------------ | ---------- | ------------------------------------------ |
+| GET    | `/api/dashboard/summary`   | `dashboard.ts` (L144) | Authenticated User | Yes        | Dashboard summary metrics                  |
+| GET    | `/api/dashboard/threats`   | `dashboard.ts` (L126) | Authenticated User | Yes        | Dashboard threat list                      |
+| GET    | `/api/csv`                 | `export.ts` (L25)     | Authenticated User | Yes        | CSV observation export                     |
+| GET    | `/api/json`                | `export.ts` (L69)     | Authenticated User | Yes        | JSON data export                           |
+| GET    | `/api/json/full`           | `export.ts` (L96)     | Admin / Operator   | Yes        | Full JSON snapshot                         |
+| GET    | `/api/geojson`             | `export.ts` (L115)    | Authenticated User | Yes        | GeoJSON observation export                 |
+| GET    | `/api/geojson/full`        | `export.ts` (L165)    | Admin / Operator   | Yes        | GeoJSON all observations export (streamed) |
+| GET    | `/api/kml`                 | `export.ts` (L196)    | Authenticated User | Yes        | KML export                                 |
+| GET    | `/api/kepler/data`         | `kepler.ts` (L18)     | Authenticated User | Yes        | Latest network observations                |
+| GET    | `/api/kepler/observations` | `kepler.ts` (L45)     | Authenticated User | Yes        | Kepler observation dataset                 |
+| GET    | `/api/kepler/networks`     | `kepler.ts` (L69)     | Authenticated User | Yes        | Kepler network summaries                   |
 
 ---
 

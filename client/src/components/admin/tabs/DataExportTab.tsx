@@ -60,6 +60,48 @@ export const DataExportTab: React.FC = () => {
     }
   };
 
+  const handleGeoJsonFullDownload = async () => {
+    if (exporting) {
+      return;
+    }
+    setExporting('all-geojson');
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        let errorMsg = `Export failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMsg = errorData.error;
+          }
+        } catch {
+          // Use default error msg
+        }
+        throw new Error(errorMsg);
+      }
+
+      const authData = await response.json();
+      if (!authData.authenticated || authData.user?.role !== 'admin') {
+        throw new Error('Admin privileges required to export full database');
+      }
+
+      const a = document.createElement('a');
+      a.href = '/api/geojson/full';
+      a.download = `shadowcheck_observations_all_${Date.now()}.geojson`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (error: any) {
+      console.error('Download error:', error);
+      alert(`Failed to export data: ${error.message || 'Unknown error'}`);
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Network Exports */}
@@ -125,8 +167,8 @@ export const DataExportTab: React.FC = () => {
       >
         <div className="space-y-3">
           <p className="text-sm text-slate-400 mb-4">
-            Export the full <code>app</code> schema as JSON. This includes all application tables,
-            not just the observation/network subset used by the lighter exports.
+            Export the full <code>app</code> schema as JSON, or stream all observation records in
+            GeoJSON format.
           </p>
           <button
             onClick={() =>
@@ -141,9 +183,18 @@ export const DataExportTab: React.FC = () => {
           >
             {exporting === 'full-json' ? 'Generating Full Export...' : 'Export Full Database JSON'}
           </button>
+          <button
+            onClick={handleGeoJsonFullDownload}
+            disabled={Boolean(exporting)}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-teal-600 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting === 'all-geojson'
+              ? 'Triggering GeoJSON Export...'
+              : 'Export All Observations (GeoJSON)'}
+          </button>
           <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50">
             <p>Admin only.</p>
-            <p>Large datasets may take longer and produce a large file.</p>
+            <p>Large datasets stream incrementally from the database.</p>
           </div>
         </div>
       </AdminCard>

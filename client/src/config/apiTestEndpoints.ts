@@ -1509,6 +1509,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   { category: 'Exports', label: 'Export JSON', path: '/api/json', method: 'GET' },
   { category: 'Exports', label: 'Export Full JSON', path: '/api/json/full', method: 'GET' },
   { category: 'Exports', label: 'Export GeoJSON', path: '/api/geojson', method: 'GET' },
+  {
+    category: 'Exports',
+    label: 'Export Full GeoJSON',
+    path: '/api/geojson/full',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
   { category: 'Exports', label: 'Export KML', path: '/api/kml', method: 'GET' },
 
   // ── Admin Import ──────────────────────────────────────────────────────────

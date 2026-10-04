@@ -179,6 +179,18 @@ Before starting work, understand the subsystem layouts and workflow guides:
 
 ---
 
+## Recently Completed (2026-10-04)
+
+| Task                                                                                             | Status |
+| ------------------------------------------------------------------------------------------------ | ------ |
+| feat(export): add streaming all-records GeoJSON export to Admin page (`GET /api/geojson/full`)   | ✅     |
+| — DB cursor async generator in `exportRepository` (no row accumulation, 300s timeout)            | ✅     |
+| — Backpressure-aware streaming FeatureCollection with null-geometry fallbacks in `exportService` | ✅     |
+| — Admin page Export tab hidden anchor download triggering streamed export                        | ✅     |
+| — Route parity, safety registry, and comprehensive unit/integration test coverage                | ✅     |
+
+---
+
 ## Recently Completed (2026-06-19)
 
 | Task                                                                                                   | Status |

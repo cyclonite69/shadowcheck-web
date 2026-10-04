@@ -47,6 +47,7 @@ const MANUAL_ONLY_ROUTE_KEYS = [
   'DELETE /api/wigle/search-api/saved-ssid-terms/:id',
   'GET /api/wigle/user-stats',
   'GET /api/backup',
+  'GET /api/geojson/full',
   'POST /api/networks/tag-threats',
   'POST /api/restore',
   'GET /api/settings/geocodio',

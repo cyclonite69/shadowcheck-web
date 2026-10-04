@@ -157,6 +157,42 @@ router.get('/geojson', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/geojson/full
+ * Export all observations in GeoJSON FeatureCollection format (admin only).
+ * Streams directly from a database cursor via an async generator with backpressure handling.
+ */
+router.get('/geojson/full', requireAdmin, async (req: Request, res: Response) => {
+  const abortController = new AbortController();
+  const onClose = () => {
+    if (!res.writableEnded) {
+      abortController.abort();
+    }
+  };
+  res.on('close', onClose);
+
+  try {
+    const { totalRows, durationMs } = await exportService.streamAllObservationsGeoJson(
+      res,
+      abortController.signal
+    );
+    logger.info('GeoJSON full export completed successfully', {
+      totalRows,
+      durationMs,
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`GeoJSON full export failed: ${msg}`, { error, stack });
+    if (!res.headersSent) {
+      const isPoolError = /pool|connection|timeout/i.test(msg);
+      res.status(isPoolError ? 503 : 500).json({ error: msg });
+    }
+  } finally {
+    res.removeListener('close', onClose);
+  }
+});
+
 // Export as KML for Google Earth
 router.get('/kml', requireAuth, async (req: Request, res: Response) => {
   try {
