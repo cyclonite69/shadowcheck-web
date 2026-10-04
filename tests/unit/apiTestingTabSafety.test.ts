@@ -88,6 +88,26 @@ describe('API Test Page safety buckets', () => {
     );
   });
 
+  test('resolves a single-request target before the DB guard and fetches only that path', () => {
+    const hookSource = fs.readFileSync(
+      path.resolve(process.cwd(), 'client/src/components/admin/hooks/useApiTesting.ts'),
+      'utf8'
+    );
+    const runner = extractRunner(
+      hookSource,
+      'const runApiRequest = async () => {',
+      'const [testingAll, setTestingAll]'
+    );
+    const resolverIndex = runner.indexOf('resolveSameOriginTarget(');
+    const guardIndex = runner.indexOf('withTestDbGuard(');
+    const runCallback = extractGuardRunCallback(runner);
+
+    expect(resolverIndex).toBeGreaterThanOrEqual(0);
+    expect(resolverIndex).toBeLessThan(guardIndex);
+    expect(runCallback).toContain('fetch(resolvedTarget.path, opts)');
+    expect([...runCallback.matchAll(/\bfetch\s*\(/g)]).toHaveLength(1);
+  });
+
   test('surfaces blocked state and reflects the gate on both run buttons', () => {
     const tabSource = fs.readFileSync(
       path.resolve(process.cwd(), 'client/src/components/admin/tabs/ApiTestingTab.tsx'),

@@ -8,6 +8,7 @@ import {
 } from './apiTestingPresets';
 import { canRunTests, formatTestDbBlockMessage, withTestDbGuard } from './apiTestingDbGuard';
 import { resolveApiHealth } from './apiTestingHealth';
+import { resolveSameOriginTarget } from './apiTestingSameOriginTarget';
 
 export type { ApiInput, ApiPreset } from './apiTestingPresets';
 export { EXPECTED_TEST_DB, canRunTests } from './apiTestingDbGuard';
@@ -163,12 +164,19 @@ export const useApiTesting = () => {
     setApiLoading(true);
 
     try {
+      const finalUrl = activePreset ? constructUrl() : endpoint;
+      const resolvedTarget = resolveSameOriginTarget(finalUrl, window.location.origin);
+      if (!resolvedTarget.ok) {
+        setTestDbBlockReason(resolvedTarget.reason);
+        setApiError(resolvedTarget.reason);
+        return;
+      }
+
       const outcome = await withTestDbGuard({
         fetchHealth: loadApiHealth,
         run: async () => {
           const start = performance.now();
-          const finalUrl = activePreset ? constructUrl() : endpoint;
-          setEndpoint(finalUrl);
+          setEndpoint(resolvedTarget.path);
 
           const opts: RequestInit = {
             method,
@@ -202,7 +210,7 @@ export const useApiTesting = () => {
             opts.body = finalBody;
           }
 
-          const res = await fetch(finalUrl, opts);
+          const res = await fetch(resolvedTarget.path, opts);
           const text = await res.text();
           return {
             ok: res.ok,
