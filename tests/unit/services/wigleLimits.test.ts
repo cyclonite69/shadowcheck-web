@@ -3,7 +3,11 @@ export {};
 jest.mock('../../../server/src/services/adminDbService');
 jest.mock('../../../server/src/logging/logger');
 
-import { getSafeLimitSync, resetLimitsCache } from '../../../server/src/services/wigleLimits';
+import {
+  getSafeLimitSync,
+  refreshLimits,
+  resetLimitsCache,
+} from '../../../server/src/services/wigleLimits';
 import { adminQuery } from '../../../server/src/services/adminDbService';
 
 const adminQueryMock = adminQuery as jest.Mock;
@@ -45,5 +49,27 @@ describe('wigleLimits', () => {
     resetLimitsCache();
     // State should still be consistent after repeated resets
     expect(getSafeLimitSync('search')).toBe(50);
+  });
+
+  test.each([0, -1, 1.5])('rejects learned limit %s', async (invalidLimit) => {
+    adminQueryMock
+      .mockResolvedValueOnce({ rows: [{ safe_limit: invalidLimit }] })
+      .mockResolvedValueOnce({ rows: [{ safe_limit: null }] })
+      .mockResolvedValueOnce({ rows: [{ safe_limit: null }] });
+
+    await refreshLimits();
+
+    expect(getSafeLimitSync('search')).toBe(50);
+  });
+
+  it('accepts a positive integer learned limit', async () => {
+    adminQueryMock
+      .mockResolvedValueOnce({ rows: [{ safe_limit: 7 }] })
+      .mockResolvedValueOnce({ rows: [{ safe_limit: null }] })
+      .mockResolvedValueOnce({ rows: [{ safe_limit: null }] });
+
+    await refreshLimits();
+
+    expect(getSafeLimitSync('search')).toBe(7);
   });
 });

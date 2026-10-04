@@ -1,5 +1,10 @@
 import logger from '../logging/logger';
-import { assertCanRequest, recordRequest, recordConsecutive429 } from './wigleRequestLedger';
+import {
+  assertCanRequest,
+  recordRequest,
+  recordConsecutive429,
+  updateLedgerOutcome,
+} from './wigleRequestLedger';
 import { hashRecord } from './wigleRequestUtils';
 
 export {};
@@ -82,6 +87,14 @@ async function backoff(attempt: number, response: Response | null = null) {
   await sleep(delay);
 }
 
+function parseRetryAfter(raw: string | null): number | null {
+  if (!raw) {
+    return null;
+  }
+  const seconds = parseInt(raw, 10);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+}
+
 export interface WigleFetchResult {
   response: Response;
   ledgerId: number | null;
@@ -133,6 +146,9 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
       }
 
       for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        const attemptStartedAt = Date.now();
+        let ledgerId: number | null = null;
+        let outcomeRecorded = false;
         try {
           if (attempt === 0) {
             logger.info(
@@ -146,7 +162,7 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
           // a single logical request can burn up to N quota slots on network failure.
           // This is an intentional conservative policy — prefer over-counting to
           // under-counting to avoid WiGLE burst/ban risk. Do NOT change the logic.
-          const ledgerId = await recordRequest(kind, query_source, url, params);
+          ledgerId = await recordRequest(kind, query_source, url, params);
           const response = await fetchWithTimeout(url, init, timeoutMs);
 
           if (response.status === 429) {
@@ -157,6 +173,14 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
               )}`
             );
             if (attempt < maxRetries) {
+              updateLedgerOutcome(kind, ledgerId, {
+                status: 'error',
+                duration_ms: Date.now() - attemptStartedAt,
+                error_message: `HTTP 429, retrying (${attempt + 1}/${maxRetries + 1})`,
+                http_status: 429,
+                retry_after_hint: parseRetryAfter(response.headers.get('Retry-After')),
+              });
+              outcomeRecorded = true;
               await backoff(attempt, response);
               continue;
             }
@@ -182,18 +206,35 @@ async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult>
           }
           return { response, ledgerId };
         } catch (e: any) {
+          const attemptError: any = e instanceof Error ? e : new Error(String(e));
+          if (e && typeof e === 'object' && 'status' in e) {
+            attemptError.status = e.status;
+          }
+          if (ledgerId !== null) {
+            attemptError.ledgerId = ledgerId;
+          }
+
           if (attempt >= maxRetries) {
             logger.error(
               `[WiGLE][${endpoint}][ERROR] request failed after retries exhausted | url=${url} | params=${JSON.stringify(
                 params ?? {}
-              )} | error=${String(e?.message || e).slice(0, 500)}`
+              )} | error=${String(attemptError?.message || attemptError).slice(0, 500)}`
             );
-            throw e;
+            throw attemptError;
+          }
+          if (ledgerId !== null && !outcomeRecorded) {
+            updateLedgerOutcome(kind, ledgerId, {
+              status: 'error',
+              duration_ms: Date.now() - attemptStartedAt,
+              error_message: `${attemptError?.message || String(attemptError)}, retrying (${attempt + 1}/${maxRetries + 1})`,
+              http_status: attemptError?.status ?? null,
+            });
+            outcomeRecorded = true;
           }
           logger.warn(
             `[WiGLE][${endpoint}][RETRY] attempt failed, retrying | url=${url} | params=${JSON.stringify(
               params ?? {}
-            )} | error=${String(e?.message || e).slice(0, 500)}`
+            )} | error=${String(attemptError?.message || attemptError).slice(0, 500)}`
           );
           await backoff(attempt);
         }

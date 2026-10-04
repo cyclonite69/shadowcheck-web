@@ -1,4 +1,4 @@
-# 1.0.0 (2026-09-29)
+# 1.0.0 (2026-10-04)
 
 ### Bug Fixes
 
@@ -170,7 +170,7 @@
 - clean container migrations dir before copy to remove stale files ([91edcaf](https://github.com/cyclonite69/shadowcheck-web/commit/91edcaf8864c6b4ab947af7fdb9c2cf5024cc161))
 - clean up Gemini weather removal gaps and pending UI changes ([4c43c3a](https://github.com/cyclonite69/shadowcheck-web/commit/4c43c3a749061be947021ce7d770d332be395aaf))
 - **client:** composite keys for network rows, api tester fixes, wigle stats guard ([7d7d95a](https://github.com/cyclonite69/shadowcheck-web/commit/7d7d95ac32b00703c328f76d25054a04d8125703))
-- **client:** contain route errors with a stable pathname-resetting error boundary ([50bc34d](https://github.com/cyclonite69/shadowcheck-web/commit/50bc34d3af7e7c294ad501179661f9fdfde6e0f0))
+- **client:** contain route errors with a stable pathname-resetting error boundary ([d443390](https://github.com/cyclonite69/shadowcheck-web/commit/d443390eb559833cfd86870fd617e16cbfde1291))
 - **client:** correct filtered pagination offset with utility tests ([1e2d403](https://github.com/cyclonite69/shadowcheck-web/commit/1e2d4039062e31f372019dddee93d819f7dcbb05))
 - **client:** resolve WiglePage variable hoisting error ([51e9c88](https://github.com/cyclonite69/shadowcheck-web/commit/51e9c8809f3246a9f35d1987ea845c70cec4ff35))
 - **client:** restore admin type-check contracts ([6e245dc](https://github.com/cyclonite69/shadowcheck-web/commit/6e245dc57e927e441ab385390e01f250ccfff700))
@@ -286,6 +286,7 @@
 - ensure security labels always use extended versions (WPA2-P, WPA3-P) and update tests ([4147bda](https://github.com/cyclonite69/shadowcheck-web/commit/4147bda09efa4dbaa46955b506d47c22054c4213))
 - **etl:** call upsertNetworks() in incremental import, add network repair script ([180bce0](https://github.com/cyclonite69/shadowcheck-web/commit/180bce0ced722c9a066d70a1b7e980f769de67b0))
 - **etl:** correct observation geometry point order ([4d83e22](https://github.com/cyclonite69/shadowcheck-web/commit/4d83e2218412c2dac765affb3448a6cc592d2d18))
+- **etl:** refresh Explorer MV after SQLite import ([eac2a9f](https://github.com/cyclonite69/shadowcheck-web/commit/eac2a9f03bfdb93484b5b5d956cf31acd78515fc))
 - **etl:** restore enrich-geocoding structure broken by mid-function paste ([0ea8517](https://github.com/cyclonite69/shadowcheck-web/commit/0ea8517d38e5107a88676b6e12025d2fabcace88))
 - **etl:** restore folded pipeline compatibility ([e0e5375](https://github.com/cyclonite69/shadowcheck-web/commit/e0e537578a932864ce30eff1d845fa316da1ad8e))
 - exclude (0,0) default coordinates from distance calculations ([7962797](https://github.com/cyclonite69/shadowcheck-web/commit/7962797959c7827097fd39df7e2cbe5c56eb40c5))
@@ -990,6 +991,8 @@
 - **wigle:** catch quota/circuit-breaker throws in fetchUpstream, return 429/503 instead of 500 ([68200af](https://github.com/cyclonite69/shadowcheck-web/commit/68200af060ae3106b5a7b79a2c76e2dee61651cd))
 - **wigle:** clamp bbox to [-180,180]/[-90,90] before aggregated fetch ([b16467f](https://github.com/cyclonite69/shadowcheck-web/commit/b16467f9fa45f751fff16e0725d838bc9507dc2d))
 - **wigle:** clarify farthest WiGLE-only tooltip wording ([f6d74e1](https://github.com/cyclonite69/shadowcheck-web/commit/f6d74e1624568a93fbc2c287637304ced865ce8f))
+- **wigle:** classify terminal HTTP 429 as rate limited ([ee93b66](https://github.com/cyclonite69/shadowcheck-web/commit/ee93b66f2ccc0518219cdb29592daad56b754432))
+- **wigle:** complete each ledger attempt by ID ([677d544](https://github.com/cyclonite69/shadowcheck-web/commit/677d544c829412ae5d85875955537ac581c780eb))
 - **wigle:** complete ledger outcome updates ([1259b24](https://github.com/cyclonite69/shadowcheck-web/commit/1259b2416f06e3c189bd025d25d9e9aff51d9692))
 - **wigle:** compute farthest distance from WiGLE-only sightings ([705262e](https://github.com/cyclonite69/shadowcheck-web/commit/705262e329c1fe65ab73bbb92c12aaf74710cccb))
 - **wigle:** compute network-level temporal envelope client-side for v3 rows ([12f2c62](https://github.com/cyclonite69/shadowcheck-web/commit/12f2c622192cce90a720f4e40504b3a308008a02))
@@ -1026,6 +1029,7 @@
 - **wigle:** normalize network type in batch detail import ([69d3340](https://github.com/cyclonite69/shadowcheck-web/commit/69d3340c9980284af417e51e461421351a3cc4d9))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
+- **wigle:** persist limiter snapshots and test learned limits ([b5d1dda](https://github.com/cyclonite69/shadowcheck-web/commit/b5d1dda4520ee7e26364dbcf2674362e09aab2d5))
 - **wigle:** populate firsttime/lasttime from v3 fields in GeoJSON features ([6ff2702](https://github.com/cyclonite69/shadowcheck-web/commit/6ff270291a6e546084e87651918dd6e32fea3c05))
 - **wigle:** prefer secrets manager over env for api name and token ([aad8b1d](https://github.com/cyclonite69/shadowcheck-web/commit/aad8b1d34c31ae0101f674e7687884c370556455))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
@@ -1152,6 +1156,7 @@
 - **admin:** enhance DB Stats tab + WiGLE soft-limit controls ([e12b2a2](https://github.com/cyclonite69/shadowcheck-web/commit/e12b2a23e61a1afd2f761502da0dc4ed4cd65870))
 - **admin:** enhance tab styling with 3D shadows and add SSO ephemeral credentials ([3b9db60](https://github.com/cyclonite69/shadowcheck-web/commit/3b9db6067fc2be4f8b1ceb9821ff7763b12e67de))
 - **admin:** fix surveillance scan job card; sibling purge endpoint + button + test ([cae0b7f](https://github.com/cyclonite69/shadowcheck-web/commit/cae0b7fdf436ea80b47b6586d6bb9a5f062d3aa8))
+- **admin:** implement cursor pagination and stable scroll-to-load for import history ([c87687f](https://github.com/cyclonite69/shadowcheck-web/commit/c87687f542fc9a8ff3c9abe23724f6ff61721ffb))
 - **admin:** infinite scroll + column redesign on WiGLE Search results table ([125abe3](https://github.com/cyclonite69/shadowcheck-web/commit/125abe39f795eae162c6f52b8af2fe1243cf5e68))
 - **admin:** make API test tab data-driven via config ([c459fbf](https://github.com/cyclonite69/shadowcheck-web/commit/c459fbfadcac2308393cb9c90c203dd36d1a1731))
 - **admin:** per-search-term coverage dropdown + V3 state filter as dropdown ([a67ff55](https://github.com/cyclonite69/shadowcheck-web/commit/a67ff5527e2bde5cda17023683d50f038fa43ec0))

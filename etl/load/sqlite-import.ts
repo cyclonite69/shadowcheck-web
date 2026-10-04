@@ -14,6 +14,7 @@
 
 import { existsSync } from 'fs';
 import { Pool } from 'pg';
+import type { PoolClient } from 'pg';
 import '../loadEnv';
 
 import { parseIncrementalImportCliArgs } from './sqlite/cli';
@@ -239,20 +240,81 @@ class IncrementalImporter {
   private async refreshMaterializedViews(): Promise<void> {
     console.log('\n🔄 Refreshing materialized views...');
 
+    let client: PoolClient | undefined;
     try {
-      const result = await this.pool.query('SELECT * FROM app.refresh_all_materialized_views()');
-      console.log('   Materialized views refreshed:');
-      for (const row of result.rows) {
-        console.log(`     - ${row.view_name}`);
+      client = await this.pool.connect();
+      const { rows } = await client.query<{ full_name: string }>(`
+        SELECT format('%I.%I', schemaname, matviewname) AS full_name
+        FROM pg_matviews
+        WHERE schemaname = 'app'
+        ORDER BY matviewname
+      `);
+
+      for (const { full_name: viewName } of rows) {
+        try {
+          if (viewName === 'app.api_network_explorer_mv') {
+            // CONCURRENTLY must run as a standalone Node query, not inside the
+            // database refresh_all_materialized_views() function.
+            await this.refreshExplorerMaterializedView(client);
+          } else {
+            await client.query(`REFRESH MATERIALIZED VIEW ${viewName}`);
+            console.log(`     - ${viewName}`);
+          }
+        } catch (error) {
+          console.warn(`   ⚠️ MV refresh failed for ${viewName}: ${(error as Error).message}`);
+        }
       }
 
+      if (!rows.some(({ full_name }) => full_name === 'app.api_network_explorer_mv')) {
+        console.warn('   ⚠️ app.api_network_explorer_mv is missing; its refresh was skipped');
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.warn(`   ⚠️ Could not refresh materialized views: ${err.message}`);
+    } finally {
+      client?.release();
+    }
+
+    try {
       console.log('   Analyzing table statistics...');
       await this.pool.query('ANALYZE app.observations');
       await this.pool.query('ANALYZE app.networks');
       console.log('   ✅ Table stats analyzed for observations and networks');
     } catch (error) {
-      const err = error as Error;
-      console.warn(`   ⚠️ MV refresh failed: ${err.message}`);
+      console.warn(`   ⚠️ Table statistics analysis failed: ${(error as Error).message}`);
+    }
+  }
+
+  private async refreshExplorerMaterializedView(client: PoolClient): Promise<void> {
+    const { rows } = await client.query<{
+      lock_timeout: string;
+      statement_timeout: string;
+    }>(`SELECT current_setting('lock_timeout') AS lock_timeout,
+               current_setting('statement_timeout') AS statement_timeout`);
+    const previousSettings = rows[0];
+    const refreshStartedAt = Date.now();
+
+    await client.query(
+      `SELECT set_config('lock_timeout', $1, false),
+              set_config('statement_timeout', $2, false)`,
+      ['5s', '600000ms']
+    );
+
+    try {
+      await client.query('REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv');
+      console.log(
+        `     - app.api_network_explorer_mv refreshed in ${Date.now() - refreshStartedAt}ms`
+      );
+    } catch (error) {
+      console.warn(
+        `   ⚠️ MV refresh failed for app.api_network_explorer_mv: ${(error as Error).message}`
+      );
+    } finally {
+      await client.query(
+        `SELECT set_config('lock_timeout', $1, false),
+                set_config('statement_timeout', $2, false)`,
+        [previousSettings.lock_timeout, previousSettings.statement_timeout]
+      );
     }
   }
 }

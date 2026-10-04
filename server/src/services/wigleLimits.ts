@@ -23,14 +23,14 @@ const KINDS: WigleRequestKind[] = ['search', 'detail', 'stats'];
 let cachedLimits: Partial<Record<WigleRequestKind, number>> = {};
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-async function refreshLimits(): Promise<void> {
+export async function refreshLimits(): Promise<void> {
   for (const kind of KINDS) {
     try {
       const { rows } = await adminQuery('SELECT app.get_wigle_safe_limit($1) AS safe_limit', [
         kind,
       ]);
       const limit: number | null = rows[0]?.safe_limit ?? null;
-      if (limit !== null && limit > 0) {
+      if (limit !== null && Number.isInteger(limit) && limit > 0) {
         if (cachedLimits[kind] !== limit) {
           logger.info(`[WiGLE Limits] ${kind} → empirical safe limit: ${limit}`);
         }

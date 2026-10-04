@@ -44,6 +44,7 @@ describe('wigleGateway — stats quota gate', () => {
   });
 
   it('returns 429 before fetchWigle when stats soft limit is hit', async () => {
+    jest.spyOn(wigleRequestLedger, 'updateLedgerOutcome').mockImplementation(() => {});
     jest.spyOn(wigleRequestLedger, 'assertCanRequest').mockImplementation((kind: unknown) => {
       if (kind === 'stats') {
         const e: any = new Error('WiGLE stats soft limit reached (10/10).');
@@ -64,6 +65,7 @@ describe('wigleGateway — stats quota gate', () => {
       expect(result.error).toContain('soft limit');
     }
     expect(fetchWigle).not.toHaveBeenCalled();
+    expect(wigleRequestLedger.updateLedgerOutcome).not.toHaveBeenCalled();
   });
 
   it('calls fetchWigle for stats after assertCanRequest passes', async () => {
@@ -167,11 +169,45 @@ describe('wigleGateway — fetchWigle responses and errors', () => {
       'search',
       123,
       expect.objectContaining({
+        status: 'rate_limited',
         http_status: 429,
         retry_after_hint: 60,
       })
     );
   });
+
+  it.each([
+    { status: 200, ok: true, expectedLedgerStatus: 'success' },
+    { status: 500, ok: false, expectedLedgerStatus: 'error' },
+    { status: 403, ok: false, expectedLedgerStatus: 'error' },
+  ])(
+    'records returned HTTP $status as $expectedLedgerStatus',
+    async ({ status, ok, expectedLedgerStatus }) => {
+      const mockResponse = {
+        ok,
+        status,
+        statusText: status === 200 ? 'OK' : 'response error',
+        clone: () => mockResponse,
+        headers: new Headers(),
+      };
+      (fetchWigle as jest.Mock).mockResolvedValue({ response: mockResponse, ledgerId: 456 });
+
+      const result = await wigleGatewayFetch({
+        kind: 'search',
+        url: 'https://api.wigle.net/api/v2/network/search',
+      });
+
+      expect(result.ok).toBe(true);
+      expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
+        'search',
+        456,
+        expect.objectContaining({
+          status: expectedLedgerStatus,
+          http_status: status,
+        })
+      );
+    }
+  );
 
   it('ignores invalid Retry-After header', async () => {
     const mockHeaders = new Headers();
@@ -201,6 +237,7 @@ describe('wigleGateway — fetchWigle responses and errors', () => {
   it('handles AbortError timeout from fetchWigle', async () => {
     const abortErr: any = new Error('The operation was aborted');
     abortErr.name = 'AbortError';
+    abortErr.ledgerId = 23;
 
     (fetchWigle as jest.Mock).mockRejectedValue(abortErr);
 
@@ -212,16 +249,33 @@ describe('wigleGateway — fetchWigle responses and errors', () => {
     expect(result.ok).toBe(false);
     expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
       'search',
-      null,
+      23,
       expect.objectContaining({
+        status: 'error',
         error_message: expect.stringMatching(/^timeout after/),
       })
     );
   });
 
+  it('does not update a ledger row when an error has no ledger ID', async () => {
+    const quotaError: any = new Error('WiGLE search soft limit reached');
+    quotaError.status = 429;
+
+    (fetchWigle as jest.Mock).mockRejectedValue(quotaError);
+
+    const result = await wigleGatewayFetch({
+      kind: 'search',
+      url: 'https://api.wigle.net/api/v2/network/search',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(wigleRequestLedger.updateLedgerOutcome).not.toHaveBeenCalled();
+  });
+
   it('handles regular fetch error with status code', async () => {
     const apiErr: any = new Error('Internal Server Error');
     apiErr.status = 500;
+    apiErr.ledgerId = 34;
 
     (fetchWigle as jest.Mock).mockRejectedValue(apiErr);
 
@@ -233,8 +287,9 @@ describe('wigleGateway — fetchWigle responses and errors', () => {
     expect(result.ok).toBe(false);
     expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
       'search',
-      null,
+      34,
       expect.objectContaining({
+        status: 'error',
         http_status: 500,
         error_message: 'HTTP 500: Internal Server Error',
       })

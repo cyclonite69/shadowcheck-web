@@ -1,40 +1,26 @@
 import request from 'supertest';
-import express, { Router } from 'express';
+import express from 'express';
 
 // Mock import history service
 const mockImportHistoryService = {
   getImportHistory: jest.fn(),
   getDeviceSources: jest.fn(),
 };
+const mockMobileIngestService = {
+  startPendingUpload: jest.fn(),
+  processUpload: jest.fn(),
+};
 
 jest.mock('../../../../../../../server/src/config/container', () => ({
   adminImportHistoryService: mockImportHistoryService,
+  mobileIngestService: mockMobileIngestService,
 }));
+
+const historyRouter = require('../../../../../../../server/src/api/routes/v1/admin/import/history');
 
 // Create test app
 const app = express();
 app.use(express.json());
-
-const historyRouter = Router();
-
-historyRouter.get('/admin/import-history', async (req, res, next) => {
-  try {
-    const history = await mockImportHistoryService.getImportHistory();
-    res.json({ ok: true, history });
-  } catch (e) {
-    next(e);
-  }
-});
-
-historyRouter.get('/admin/device-sources', async (req, res, next) => {
-  try {
-    const sources = await mockImportHistoryService.getDeviceSources();
-    res.json({ ok: true, sources });
-  } catch (e) {
-    next(e);
-  }
-});
-
 app.use('/', historyRouter);
 
 describe('import history routes', () => {
@@ -48,11 +34,44 @@ describe('import history routes', () => {
         { id: 1, source: 'wigle', timestamp: '2024-01-01T00:00:00Z' },
       ]);
 
-      const response = await request(app).get('/admin/import-history');
+      const response = await request(app).get('/admin/import-history?limit=1');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
       expect(response.body.history).toHaveLength(1);
+      expect(response.body.hasMore).toBe(false);
+      expect(mockImportHistoryService.getImportHistory).toHaveBeenCalledWith(2, undefined);
+    });
+
+    it('reports when an older page is available', async () => {
+      mockImportHistoryService.getImportHistory.mockResolvedValue([{ id: 2 }, { id: 1 }]);
+
+      const response = await request(app).get('/admin/import-history?limit=1');
+
+      expect(response.status).toBe(200);
+      expect(response.body.history).toEqual([{ id: 2 }]);
+      expect(response.body.hasMore).toBe(true);
+    });
+
+    it('passes a validated cursor to the service', async () => {
+      mockImportHistoryService.getImportHistory.mockResolvedValue([]);
+
+      const response = await request(app).get(
+        '/admin/import-history?limit=10&beforeStartedAt=2026-10-01T12%3A00%3A00.000Z&beforeId=42'
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockImportHistoryService.getImportHistory).toHaveBeenCalledWith(11, {
+        startedAt: '2026-10-01T12:00:00.000Z',
+        id: 42,
+      });
+    });
+
+    it('rejects incomplete or invalid cursors', async () => {
+      const response = await request(app).get('/admin/import-history?beforeId=abc');
+
+      expect(response.status).toBe(400);
+      expect(mockImportHistoryService.getImportHistory).not.toHaveBeenCalled();
     });
 
     it('returns empty array when no history', async () => {

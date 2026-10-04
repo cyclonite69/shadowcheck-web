@@ -115,16 +115,23 @@ async function recordRequest(
   query_url?: string,
   query_params?: Record<string, string> | null
 ): Promise<number | null> {
-  prune(kind);
-  requestLedger[kind].push(Date.now());
+  const requestedAtMs = Date.now();
+  prune(kind, requestedAtMs);
+  const requestsInPrior24h = requestLedger[kind].length;
+  requestLedger[kind].push(requestedAtMs);
 
   try {
     const { rows } = await adminQuery(
-      `INSERT INTO app.wigle_ledger_events (kind, status, phase, query_source, query_url, query_params)
-       VALUES ($1, 'success', 'pending', $2, $3, $4)
+      `INSERT INTO app.wigle_ledger_events (
+         kind, requested_at, requests_in_prior_24h,
+         status, phase, query_source, query_url, query_params
+       )
+       VALUES ($1, $2, $3, 'success', 'pending', $4, $5, $6)
        RETURNING id`,
       [
         kind,
+        new Date(requestedAtMs),
+        requestsInPrior24h,
         query_source ?? null,
         query_url ?? null,
         query_params ? JSON.stringify(query_params) : null,
@@ -154,11 +161,7 @@ function resetQuotaLedger() {
 
 async function hydrateLedger() {
   try {
-    // Keep the table lean: prune events older than the 24h window plus 1h grace
-    await adminQuery(
-      "DELETE FROM app.wigle_ledger_events WHERE requested_at < NOW() - INTERVAL '25 hours'"
-    );
-
+    // No database pruning: retain the complete ledger history.
     const { rows } = await adminQuery(
       `SELECT kind, (EXTRACT(EPOCH FROM requested_at) * 1000)::bigint AS ts_ms
        FROM app.wigle_ledger_events
@@ -196,8 +199,7 @@ function getCircuitBreakerStatus() {
 /**
  * Update a ledger event with its outcome after the HTTP call completes.
  * Accepts the explicit row id returned by recordRequest to avoid the
- * ORDER-BY-LIMIT-1 race. Falls back to the heuristic only if id is null
- * (DB write failed at insert time).
+ * ORDER-BY-LIMIT-1 race. Calls without an inserted row have no event to update.
  * Fire-and-forget — never throws.
  */
 function updateLedgerOutcome(
@@ -234,33 +236,7 @@ function updateLedgerOutcome(
       });
     });
   } else {
-    void adminQuery(
-      `UPDATE app.wigle_ledger_events
-       SET status = $1, phase = 'complete', duration_ms = $2, error_message = $3,
-           http_status = $4, result_count = $5, retry_after_hint = $6
-       WHERE id = (
-         SELECT id
-         FROM app.wigle_ledger_events
-         WHERE kind = $7
-           AND phase = 'pending'
-         ORDER BY requested_at DESC, id DESC
-         LIMIT 1
-       )`,
-      [
-        outcome.status,
-        outcome.duration_ms,
-        outcome.error_message ?? null,
-        outcome.http_status ?? null,
-        outcome.result_count ?? null,
-        outcome.retry_after_hint ?? null,
-        kind,
-      ]
-    ).catch((err: any) => {
-      logger.warn('[WiGLE Ledger] Outcome update failed', {
-        kind,
-        error: err?.message || String(err),
-      });
-    });
+    logger.debug('[WiGLE Ledger] Outcome update skipped — no ledger row ID', { kind });
   }
 }
 
@@ -268,6 +244,7 @@ export {
   assertCanRequest,
   getQuotaStatus,
   recordRequest,
+  hydrateLedger,
   updateLedgerOutcome,
   resetQuotaLedger,
   resetCircuitBreaker,

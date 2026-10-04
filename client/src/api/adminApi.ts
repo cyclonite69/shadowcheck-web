@@ -203,8 +203,13 @@ export const adminApi = {
     return apiClient.put(`/admin/settings/${key}`, { value });
   },
 
-  async getImportHistory(limit = 20): Promise<any> {
-    return apiClient.get(`/admin/import-history?limit=${limit}`);
+  async getImportHistory(limit = 20, before?: { startedAt: string; id: number }): Promise<any> {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (before) {
+      params.set('beforeStartedAt', before.startedAt);
+      params.set('beforeId', String(before.id));
+    }
+    return apiClient.get(`/admin/import-history?${params.toString()}`);
   },
 
   async getKmlImports(limit = 500): Promise<KmlImportStatusResponse> {

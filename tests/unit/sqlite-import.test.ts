@@ -5,6 +5,7 @@
 // 1. Define shared mock instances
 const mockQuery = jest.fn();
 const mockEnd = jest.fn().mockResolvedValue(undefined);
+const mockRelease = jest.fn();
 
 const mockSqliteGet = jest.fn();
 const mockSqliteAll = jest.fn();
@@ -18,6 +19,7 @@ jest.mock('pg', () => {
     Pool: class {
       query = mockQuery;
       end = mockEnd;
+      connect = jest.fn().mockResolvedValue({ query: mockQuery, release: mockRelease });
     },
   };
 });
@@ -104,13 +106,35 @@ describe('sqlite-import - IncrementalImporter', () => {
       }
       return { imported: 1, failed: 0, errors: [] };
     });
-    mockQuery.mockResolvedValueOnce({ rows: [{ view_name: 'view1' }] }); // refreshMaterializedViews
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ full_name: 'app.api_network_explorer_mv' }],
+    }); // materialized view inventory
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ lock_timeout: '0', statement_timeout: '0' }],
+    }); // prior session timeouts
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // set refresh timeouts
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // Explorer MV refresh
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // restore timeouts
 
     const summary = await importer.start();
 
     expect(summary.imported).toBe(1);
     expect(mockEnd).toHaveBeenCalled();
     expect(ensureDeviceSource).toHaveBeenCalled();
+    expect(mockQuery).toHaveBeenCalledWith(
+      'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
+    );
+    const explorerRefreshIndex = mockQuery.mock.calls.findIndex(
+      ([sql]) => sql === 'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
+    );
+    expect((importObservationRows as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      mockQuery.mock.invocationCallOrder[explorerRefreshIndex]
+    );
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining("set_config('lock_timeout', $1, false)"),
+      ['5s', '600000ms']
+    );
+    expect(mockRelease).toHaveBeenCalled();
   });
 
   it('returns early if no new records to import', async () => {
@@ -184,7 +208,7 @@ describe('sqlite-import - IncrementalImporter', () => {
     mockSqliteAll.mockImplementationOnce((_sql: any, _params: any, cb: any) => cb(null, []));
 
     (importObservationRows as jest.Mock).mockResolvedValue({ imported: 0, failed: 0, errors: [] });
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // refreshMaterializedViews
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // materialized view inventory
 
     await importer.start();
     expect(mockQuery).toHaveBeenCalledWith(
@@ -206,11 +230,22 @@ describe('sqlite-import - IncrementalImporter', () => {
 
     (importObservationRows as jest.Mock).mockResolvedValue({ imported: 5, failed: 0, errors: [] });
 
-    // Make refreshing MVs fail
+    // The Explorer refresh fails after the importer has landed the observations.
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ full_name: 'app.api_network_explorer_mv' }],
+    }); // materialized view inventory
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ lock_timeout: '0', statement_timeout: '0' }],
+    }); // prior session timeouts
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // set refresh timeouts
     mockQuery.mockRejectedValueOnce(new Error('MV lock timeout'));
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // restore timeouts
 
     const summary = await importer.start();
     expect(summary.imported).toBe(5);
     expect(mockEnd).toHaveBeenCalled();
+    expect(mockQuery).toHaveBeenCalledWith(
+      'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
+    );
   });
 });
