@@ -1509,7 +1509,7 @@
 - **client:** optimize observation rendering and disable agencies by default ([7b23a24](https://github.com/cyclonite69/shadowcheck-web/commit/7b23a244fba4f52833a480174e277c30cb506218))
 - **client:** optimize observation rendering performance ([7937676](https://github.com/cyclonite69/shadowcheck-web/commit/7937676d48fb645104c9361288c849f367bcfe2b))
 - **db:** add comprehensive indexes to MV for filter performance ([bd7a10d](https://github.com/cyclonite69/shadowcheck-web/commit/bd7a10d3c40102d4f9dfb40d7aea38b7629b4d6a))
-- **db:** add expression index on networks OUI for surveillance candidates ([8f01215](https://github.com/cyclonite69/shadowcheck-web/commit/8f012153ff0f53e20a3cfe2a954736a65d81d0a8))
+- **db:** add expression index on networks OUI for surveillance candidates ([07ec02f](https://github.com/cyclonite69/shadowcheck-web/commit/07ec02f0621641c9c73a96bac787965ba31d844d))
 - filter co-occurrence to mobile networks only (12K vs 180K) ([82aaeca](https://github.com/cyclonite69/shadowcheck-web/commit/82aaeca5f40920b366f9c24cdbf929b328e19e4c))
 - **filters:** make timeframe network-only using MV last_seen ([ec8e323](https://github.com/cyclonite69/shadowcheck-web/commit/ec8e3235c5f8f412e076de9b572e4d65814a6d37))
 - **filters:** skip stationary CTEs when not needed + fix /api/json ([ceef34b](https://github.com/cyclonite69/shadowcheck-web/commit/ceef34bfa59604b2a87a8b36a7b1b9e04f1ba891))

@@ -43,16 +43,9 @@ describe('SurveillanceDetectionRepository Integration', () => {
       'TEST:AXON:01',
       'TEST:DEI:01',
     ];
-    await query(
-      "DELETE FROM app.surveillance_detections WHERE bssid = ANY($1) OR bssid LIKE 'TEST%'",
-      [testBssids]
-    );
-    await query("DELETE FROM app.observations WHERE bssid = ANY($1) OR bssid LIKE 'TEST%'", [
-      testBssids,
-    ]);
-    await query("DELETE FROM app.networks WHERE bssid = ANY($1) OR bssid LIKE 'TEST%'", [
-      testBssids,
-    ]);
+    await query('DELETE FROM app.surveillance_detections WHERE bssid = ANY($1)', [testBssids]);
+    await query('DELETE FROM app.observations WHERE bssid = ANY($1)', [testBssids]);
+    await query('DELETE FROM app.networks WHERE bssid = ANY($1)', [testBssids]);
   }
 
   beforeEach(async () => {
