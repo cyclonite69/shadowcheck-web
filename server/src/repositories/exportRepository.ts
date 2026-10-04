@@ -95,33 +95,54 @@ export async function acquireExportClient(): Promise<any> {
   return pool.connect();
 }
 
+export interface ExportStreamClient {
+  query: (sql: string, params?: any[]) => Promise<any>;
+  release: () => void;
+}
+
 /**
  * Streams all observations from app.observations using a PostgreSQL cursor.
  * Implemented as an async generator that yields rows in batches without accumulating all rows in memory.
  * Employs a read-only transaction and sets statement_timeout to 300000ms and idle_in_transaction_session_timeout to 120s.
  * On cancellation, error, or completion, closes the cursor and releases the client connection back to the pool.
  *
- * @param clientOrBatchSize - Pre-acquired DB pool client OR batch size number
- * @param batchSizeOrSignal - Batch size number OR optional AbortSignal
- * @param maybeSignal - Optional AbortSignal when client is passed as first argument
+ * Overload allows callers to either supply an externally managed pool client (preferred, for unified
+ * service-level lifecycle management) or allow the generator to acquire its own client connection from the pool.
+ *
+ * @param client - Pre-acquired DB pool client
+ * @param batchSize - Batch size number (default: 5000)
+ * @param signal - Optional AbortSignal
  * @yields Array of observation records for each fetched batch
  */
+export function streamObservationsForGeoJSON(
+  client: ExportStreamClient,
+  batchSize?: number,
+  signal?: AbortSignal
+): AsyncGenerator<any[], void, unknown>;
+export function streamObservationsForGeoJSON(
+  batchSize?: number,
+  signal?: AbortSignal
+): AsyncGenerator<any[], void, unknown>;
 export async function* streamObservationsForGeoJSON(
-  clientOrBatchSize?: any,
-  batchSizeOrSignal?: any,
+  clientOrBatchSize?: ExportStreamClient | number,
+  batchSizeOrSignal?: number | AbortSignal,
   maybeSignal?: AbortSignal
 ): AsyncGenerator<any[], void, unknown> {
-  let client: any;
+  let client: ExportStreamClient;
   let batchSize: number;
   let signal: AbortSignal | undefined;
 
-  if (clientOrBatchSize && typeof clientOrBatchSize.query === 'function') {
-    client = clientOrBatchSize;
+  if (
+    typeof clientOrBatchSize === 'object' &&
+    clientOrBatchSize !== null &&
+    typeof (clientOrBatchSize as ExportStreamClient).query === 'function'
+  ) {
+    client = clientOrBatchSize as ExportStreamClient;
     batchSize = typeof batchSizeOrSignal === 'number' ? batchSizeOrSignal : 5000;
     signal = maybeSignal;
   } else {
     batchSize = typeof clientOrBatchSize === 'number' ? clientOrBatchSize : 5000;
-    signal = batchSizeOrSignal;
+    signal = batchSizeOrSignal as AbortSignal | undefined;
     client = await pool.connect();
   }
 
