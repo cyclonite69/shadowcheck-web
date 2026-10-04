@@ -5,6 +5,29 @@ export function normalizeOrigins(origins: readonly string[]): string[] {
   return origins.map((origin) => origin.trim()).filter(Boolean);
 }
 
+/** Resolve wildcard behavior for the environment where common middleware is mounted. */
+export function resolveOriginPolicy(
+  allowedOrigins: readonly string[],
+  nodeEnv: string | undefined
+): { allowlist: string[]; wildcard: boolean; wildcardIgnored: boolean } {
+  const normalizedOrigins = normalizeOrigins(allowedOrigins);
+  const hasWildcard = normalizedOrigins.includes('*');
+
+  if (nodeEnv === 'production' && hasWildcard) {
+    return {
+      allowlist: normalizedOrigins.filter((origin) => origin !== '*'),
+      wildcard: false,
+      wildcardIgnored: true,
+    };
+  }
+
+  return {
+    allowlist: normalizedOrigins,
+    wildcard: hasWildcard,
+    wildcardIgnored: false,
+  };
+}
+
 /** Exact-match an Origin against the configured list, except for legacy `*` mode. */
 export function isOriginAllowed(origin: string | undefined, allowlist: readonly string[]): boolean {
   if (!origin || origin === 'null') {

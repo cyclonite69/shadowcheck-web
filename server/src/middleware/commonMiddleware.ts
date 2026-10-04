@@ -2,7 +2,7 @@
  * Common middleware setup.
  */
 import type { Express } from 'express';
-import { isOriginAllowed, isUnsafeMethod, normalizeOrigins } from './originPolicy';
+import { isOriginAllowed, isUnsafeMethod, resolveOriginPolicy } from './originPolicy';
 
 const compression = require('compression');
 const cors = require('cors');
@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('../logging/logger');
 
 let wildcardWarningLogged = false;
+let productionWildcardIgnoredErrorLogged = false;
 
 interface CommonMiddlewareOptions {
   allowedOrigins: string[];
@@ -20,12 +21,21 @@ interface CommonMiddlewareOptions {
  * Mount common app middleware (compression, CORS, rate limiting, body parsing).
  */
 function mountCommonMiddleware(app: Express, options: CommonMiddlewareOptions): void {
-  const allowedOrigins = normalizeOrigins(
-    Array.isArray(options.allowedOrigins) ? options.allowedOrigins : []
+  const policy = resolveOriginPolicy(
+    Array.isArray(options.allowedOrigins) ? options.allowedOrigins : [],
+    process.env.NODE_ENV
   );
-  const wildcardMode = allowedOrigins.includes('*');
 
-  if (wildcardMode && !wildcardWarningLogged) {
+  if (policy.wildcardIgnored && !productionWildcardIgnoredErrorLogged) {
+    const emptyAllowlistMessage =
+      policy.allowlist.length === 0 ? ' All browser-Origin unsafe requests will be rejected.' : '';
+    logger.error(
+      `[CORS] CORS_ORIGINS includes *; wildcard is ignored in production.${emptyAllowlistMessage}`
+    );
+    productionWildcardIgnoredErrorLogged = true;
+  }
+
+  if (policy.wildcard && !wildcardWarningLogged) {
     logger.warn('[CORS] CORS_ORIGINS includes *; wildcard mode disables Origin enforcement.');
     wildcardWarningLogged = true;
   }
@@ -40,10 +50,10 @@ function mountCommonMiddleware(app: Express, options: CommonMiddlewareOptions): 
       if (origin === undefined) {
         return callback(null, { origin: false, credentials: false });
       }
-      if (wildcardMode) {
+      if (policy.wildcard) {
         return callback(null, { origin: true, credentials: false });
       }
-      if (isOriginAllowed(origin, allowedOrigins)) {
+      if (isOriginAllowed(origin, policy.allowlist)) {
         return callback(null, { origin: true, credentials: true });
       }
       return callback(null, { origin: false, credentials: false });
@@ -57,7 +67,7 @@ function mountCommonMiddleware(app: Express, options: CommonMiddlewareOptions): 
       res.vary('Origin');
     }
 
-    if (origin !== undefined && !wildcardMode && !isOriginAllowed(origin, allowedOrigins)) {
+    if (origin !== undefined && !policy.wildcard && !isOriginAllowed(origin, policy.allowlist)) {
       if (req.method.toUpperCase() === 'OPTIONS') {
         return res.status(204).end();
       }

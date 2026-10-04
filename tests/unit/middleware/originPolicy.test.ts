@@ -2,6 +2,7 @@ import {
   isOriginAllowed,
   isUnsafeMethod,
   normalizeOrigins,
+  resolveOriginPolicy,
 } from '../../../server/src/middleware/originPolicy';
 
 describe('originPolicy', () => {
@@ -34,5 +35,34 @@ describe('originPolicy', () => {
     ['OPTIONS', false],
   ])('classifies %s as unsafe=%s', (method, expected) => {
     expect(isUnsafeMethod(method)).toBe(expected);
+  });
+
+  describe('resolveOriginPolicy', () => {
+    test('ignores wildcard in production while retaining explicit origins', () => {
+      expect(resolveOriginPolicy(['*', ' https://app.test ', ''], 'production')).toEqual({
+        allowlist: ['https://app.test'],
+        wildcard: false,
+        wildcardIgnored: true,
+      });
+    });
+
+    test('marks an empty production allowlist when wildcard is ignored', () => {
+      expect(resolveOriginPolicy(['*'], 'production')).toEqual({
+        allowlist: [],
+        wildcard: false,
+        wildcardIgnored: true,
+      });
+    });
+
+    test.each([undefined, 'test', 'Production'])(
+      'preserves wildcard outside exact production (%s)',
+      (nodeEnv) => {
+        expect(resolveOriginPolicy(['*', 'https://app.test'], nodeEnv)).toEqual({
+          allowlist: ['*', 'https://app.test'],
+          wildcard: true,
+          wildcardIgnored: false,
+        });
+      }
+    );
   });
 });
