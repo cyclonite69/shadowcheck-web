@@ -1,10 +1,12 @@
 import {
   assertCanRequest,
   recordRequest,
+  hydrateLedger,
   getQuotaStatus,
   resetQuotaLedger,
   recordConsecutive429,
   getCircuitBreakerStatus,
+  updateLedgerOutcome,
 } from '../../../server/src/services/wigleRequestLedger';
 import { adminQuery } from '../../../server/src/services/adminDbService';
 
@@ -104,6 +106,57 @@ describe('wigleRequestLedger', () => {
   });
 
   describe('DB integration', () => {
+    it('persists the prior-24-hour snapshot as 0 then 1', async () => {
+      (adminQuery as jest.Mock).mockResolvedValue({ rows: [{ id: 1 }] });
+      jest.setSystemTime(new Date('2026-10-03T12:00:00.000Z'));
+
+      await recordRequest('search');
+      await recordRequest('search');
+
+      const insertCalls = (adminQuery as jest.Mock).mock.calls.filter(([sql]) =>
+        String(sql).includes('INSERT INTO app.wigle_ledger_events')
+      );
+      expect(insertCalls).toHaveLength(2);
+      expect(insertCalls.map(([, params]) => (params as unknown[])[2])).toEqual([0, 1]);
+      expect((insertCalls[0][1] as unknown[])[1]).toEqual(new Date('2026-10-03T12:00:00.000Z'));
+    });
+
+    it('persists a populated snapshot and leaves it untouched by outcome updates', async () => {
+      jest.setSystemTime(new Date('2026-10-03T12:00:00.000Z'));
+      (adminQuery as jest.Mock).mockResolvedValue({ rows: [{ id: 1234 }] });
+
+      for (let index = 0; index < 12; index += 1) {
+        await recordRequest('search');
+      }
+      const id = await recordRequest('search');
+
+      expect(id).toBe(1234);
+      const [, insertParams] = (adminQuery as jest.Mock).mock.calls[12];
+      expect((insertParams as unknown[])[2]).toBe(12);
+
+      updateLedgerOutcome('search', id, {
+        status: 'rate_limited',
+        duration_ms: 100,
+        http_status: 429,
+        result_count: 0,
+        retry_after_hint: 60,
+      });
+
+      const [updateSql, updateParams] = (adminQuery as jest.Mock).mock.calls[13];
+      expect(String(updateSql)).toContain("phase = 'complete'");
+      expect(String(updateSql)).not.toContain('requests_in_prior_24h');
+      expect(updateParams).toEqual(['rate_limited', 100, null, 429, 0, 60, 1234]);
+    });
+
+    it('hydrates without issuing DELETE', async () => {
+      await hydrateLedger();
+
+      expect(adminQuery).toHaveBeenCalledTimes(1);
+      const [sql] = (adminQuery as jest.Mock).mock.calls[0];
+      expect(String(sql)).toMatch(/^\s*SELECT\b/i);
+      expect(String(sql)).not.toMatch(/\bDELETE\b/i);
+    });
+
     it('attempts to persist events to the DB', async () => {
       (adminQuery as jest.Mock).mockResolvedValue({ rows: [{ id: 1 }] });
       await recordRequest('stats');

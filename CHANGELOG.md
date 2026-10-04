@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-03)
+# 1.0.0 (2026-10-04)
 
 ### Bug Fixes
 
@@ -991,7 +991,7 @@
 - **wigle:** catch quota/circuit-breaker throws in fetchUpstream, return 429/503 instead of 500 ([68200af](https://github.com/cyclonite69/shadowcheck-web/commit/68200af060ae3106b5a7b79a2c76e2dee61651cd))
 - **wigle:** clamp bbox to [-180,180]/[-90,90] before aggregated fetch ([b16467f](https://github.com/cyclonite69/shadowcheck-web/commit/b16467f9fa45f751fff16e0725d838bc9507dc2d))
 - **wigle:** clarify farthest WiGLE-only tooltip wording ([f6d74e1](https://github.com/cyclonite69/shadowcheck-web/commit/f6d74e1624568a93fbc2c287637304ced865ce8f))
-- **wigle:** classify terminal HTTP 429 as rate limited ([5080537](https://github.com/cyclonite69/shadowcheck-web/commit/50805377d7ecc70df1b45a55fd97e94ea9c8f93b))
+- **wigle:** classify terminal HTTP 429 as rate limited ([ee93b66](https://github.com/cyclonite69/shadowcheck-web/commit/ee93b66f2ccc0518219cdb29592daad56b754432))
 - **wigle:** complete each ledger attempt by ID ([677d544](https://github.com/cyclonite69/shadowcheck-web/commit/677d544c829412ae5d85875955537ac581c780eb))
 - **wigle:** complete ledger outcome updates ([1259b24](https://github.com/cyclonite69/shadowcheck-web/commit/1259b2416f06e3c189bd025d25d9e9aff51d9692))
 - **wigle:** compute farthest distance from WiGLE-only sightings ([705262e](https://github.com/cyclonite69/shadowcheck-web/commit/705262e329c1fe65ab73bbb92c12aaf74710cccb))
@@ -1029,6 +1029,7 @@
 - **wigle:** normalize network type in batch detail import ([69d3340](https://github.com/cyclonite69/shadowcheck-web/commit/69d3340c9980284af417e51e461421351a3cc4d9))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
+- **wigle:** persist limiter snapshots and test learned limits ([b5d1dda](https://github.com/cyclonite69/shadowcheck-web/commit/b5d1dda4520ee7e26364dbcf2674362e09aab2d5))
 - **wigle:** populate firsttime/lasttime from v3 fields in GeoJSON features ([6ff2702](https://github.com/cyclonite69/shadowcheck-web/commit/6ff270291a6e546084e87651918dd6e32fea3c05))
 - **wigle:** prefer secrets manager over env for api name and token ([aad8b1d](https://github.com/cyclonite69/shadowcheck-web/commit/aad8b1d34c31ae0101f674e7687884c370556455))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
