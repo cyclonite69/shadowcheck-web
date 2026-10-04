@@ -63,6 +63,37 @@ export default async function globalSetup() {
     }
   }
 
+  // Optional non-admin user setup if E2E_USER_PASSWORD is provided
+  const e2eUserPassword = process.env.E2E_USER_PASSWORD;
+  if (e2eUserPassword) {
+    const userContext = await browser.newContext();
+    try {
+      const userResponse = await userContext.request.post('http://127.0.0.1:3001/api/auth/login', {
+        data: {
+          username: process.env.E2E_USER_USER ?? 'user',
+          password: e2eUserPassword,
+        },
+      });
+
+      if (userResponse.ok()) {
+        const userBody = await userResponse.json();
+        if (userBody.success) {
+          const userSetCookie = userResponse.headers()['set-cookie'];
+          if (userSetCookie) {
+            const match = userSetCookie.match(/([^=]+)=([^;]+)/);
+            if (match) {
+              const [, name, value] = match;
+              await userContext.addCookies([{ name, value, domain: '127.0.0.1', path: '/' }]);
+            }
+          }
+          await userContext.storageState({ path: path.join(__dirname, '.auth', 'user.json') });
+        }
+      }
+    } finally {
+      await userContext.close();
+    }
+  }
+
   // Save cookies + localStorage to disk — shared by all workers
   await context.storageState({ path: AUTH_STATE_PATH });
   await browser.close();
