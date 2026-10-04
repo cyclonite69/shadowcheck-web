@@ -13,7 +13,8 @@ interface RequestFailure {
   time: number;
 }
 
-interface SuccessResponse {
+interface ApiResponse {
+  url: string;
   path: string;
   status: number;
   time: number;
@@ -23,7 +24,7 @@ interface Diagnostics {
   consoleErrors: string[];
   pageErrors: Error[];
   requestFailures: RequestFailure[];
-  successResponses: SuccessResponse[];
+  apiResponses: ApiResponse[];
 }
 
 function attachDiagnostics(page: Page): Diagnostics {
@@ -31,7 +32,7 @@ function attachDiagnostics(page: Page): Diagnostics {
     consoleErrors: [],
     pageErrors: [],
     requestFailures: [],
-    successResponses: [],
+    apiResponses: [],
   };
 
   page.on('console', (msg) => {
@@ -67,8 +68,9 @@ function attachDiagnostics(page: Page): Diagnostics {
     } catch {
       // ignore
     }
-    if (pathname.includes('/api/')) {
-      d.successResponses.push({
+    if (pathname.includes('/api/') || pathname.includes('/v2/')) {
+      d.apiResponses.push({
+        url: res.url(),
         path: pathname,
         status: res.status(),
         time: Date.now(),
@@ -79,21 +81,23 @@ function attachDiagnostics(page: Page): Diagnostics {
   return d;
 }
 
-function assertDiagnostics(d: Diagnostics): void {
+function assertDiagnostics(d: Diagnostics, allowedStatusCodes: number[] = []): void {
   expect(d.pageErrors).toHaveLength(0);
   expect(d.consoleErrors).toHaveLength(0);
 
-  const tolerated: { path: string; error: string; reason: string }[] = [];
-  const failed: { path: string; error: string }[] = [];
+  const expectedAborts: { path: string; error: string; reason: string }[] = [];
+  const transportFailures: { path: string; error: string }[] = [];
+  const httpFailures: { path: string; status: number }[] = [];
+  const successes: { path: string; status: number }[] = [];
 
   for (const failure of d.requestFailures) {
     // Only tolerate net::ERR_ABORTED for /api/v2/networks/filtered if a later 200 response exists
-    if (failure.errorText === 'net::ERR_ABORTED' && failure.path === '/api/v2/networks/filtered') {
-      const hasLater200 = d.successResponses.some(
-        (r) => r.path === '/api/v2/networks/filtered' && r.status === 200 && r.time >= failure.time
+    if (failure.errorText === 'net::ERR_ABORTED' && failure.path.includes('/networks/filtered')) {
+      const hasLater200 = d.apiResponses.some(
+        (r) => r.path.includes('/networks/filtered') && r.status === 200 && r.time >= failure.time
       );
       if (hasLater200) {
-        tolerated.push({
+        expectedAborts.push({
           path: failure.path,
           error: failure.errorText,
           reason: 'Expected React/debounce abort superseded by subsequent HTTP 200',
@@ -107,7 +111,7 @@ function assertDiagnostics(d: Diagnostics): void {
       failure.errorText === 'net::ERR_ABORTED' &&
       (failure.path.includes('.vector.pbf') || failure.path.includes('/v4/mapbox.'))
     ) {
-      tolerated.push({
+      expectedAborts.push({
         path: failure.path,
         error: failure.errorText,
         reason: 'Mapbox in-flight vector tile abort due to viewport pan/zoom change',
@@ -115,20 +119,40 @@ function assertDiagnostics(d: Diagnostics): void {
       continue;
     }
 
-    failed.push({ path: failure.path, error: failure.errorText });
+    transportFailures.push({ path: failure.path, error: failure.errorText });
   }
 
-  console.log('[DIAGNOSTICS_TABLE] Tolerated vs Failed Requests:');
-  console.log('| Status | Path | Error | Reason |');
-  console.log('| :--- | :--- | :--- | :--- |');
-  for (const t of tolerated) {
-    console.log(`| TOLERATED | ${t.path} | ${t.error} | ${t.reason} |`);
-  }
-  for (const f of failed) {
-    console.log(`| FAILED | ${f.path} | ${f.error} | Unexpected request failure |`);
+  for (const res of d.apiResponses) {
+    if (res.status >= 200 && res.status < 400) {
+      successes.push({ path: res.path, status: res.status });
+    } else if (!allowedStatusCodes.includes(res.status)) {
+      httpFailures.push({ path: res.path, status: res.status });
+    }
   }
 
-  expect(failed).toHaveLength(0);
+  console.log('[DIAGNOSTICS_TABLE] Request Observation Categorization:');
+  console.log('| Classification | Path | Detail |');
+  console.log('| :--- | :--- | :--- |');
+  for (const a of expectedAborts) {
+    console.log(`| EXPECTED ABORT | ${a.path} | ${a.reason} (${a.error}) |`);
+  }
+  for (const s of successes.slice(0, 5)) {
+    console.log(`| SUCCESS | ${s.path} | HTTP ${s.status} |`);
+  }
+  if (successes.length > 5) {
+    console.log(
+      `| SUCCESS | ... ${successes.length - 5} more successful responses | HTTP 2xx/3xx |`
+    );
+  }
+  for (const h of httpFailures) {
+    console.log(`| HTTP FAILURE | ${h.path} | Unexpected HTTP ${h.status} |`);
+  }
+  for (const t of transportFailures) {
+    console.log(`| TRANSPORT FAILURE | ${t.path} | ${t.error} |`);
+  }
+
+  expect(httpFailures).toHaveLength(0);
+  expect(transportFailures).toHaveLength(0);
 }
 
 let dockerPostgresAvailable: boolean | null = null;
@@ -801,10 +825,8 @@ test.describe('Authenticated E2E Verification Suite', () => {
     expect(baselineTotal).toBeGreaterThan(0);
 
     // Natural candidate discovery:
-    // 1. Inspect already-fetched baseline rows for an SSID with non-empty sibling_bssids.
-    // 2. Probe candidates via a lightweight authenticated API call to discover one with supplemented siblings.
-    // 3. Fall back to a bounded read-only DB query if baseline rows yield no supplemented siblings.
-    // 4. Fall back to a generic baseline SSID (exercising the preserved zero-sibling branch).
+    // Inspect baseline rows (initialBody.data) for candidate with non-empty sibling_bssids,
+    // and probe in-browser for supplemented siblings with compact total (<= 50) where all direct rows match target SSID.
     let targetSsid = '';
     let isSiblingBearingCandidate = false;
 
@@ -817,7 +839,6 @@ test.describe('Authenticated E2E Verification Suite', () => {
         d.sibling_bssids.length > 0
     );
 
-    let backupCandidate: { ssid: string; total: number; sibCount: number } | null = null;
     for (const cand of siblingBearingCandidates.slice(0, 10)) {
       const probe = await page.evaluate(async (ssid) => {
         try {
@@ -831,75 +852,33 @@ test.describe('Authenticated E2E Verification Suite', () => {
             return null;
           }
           const json = await res.json();
+          const directRows = (json.data || []).filter((r: any) => !r._siblingSupplemented);
           const sibCount = (json.data || []).filter((r: any) => r._siblingSupplemented).length;
-          return { total: json.pagination?.total, sibCount };
+          const allDirectMatch = directRows.every((r: any) =>
+            String(r.ssid || '')
+              .toLowerCase()
+              .includes(ssid.toLowerCase())
+          );
+          return { total: json.pagination?.total, sibCount, allDirectMatch };
         } catch {
           return null;
         }
       }, cand.ssid);
 
-      if (probe && probe.sibCount > 0) {
-        if (typeof probe.total === 'number' && probe.total <= 50) {
-          targetSsid = cand.ssid;
-          isSiblingBearingCandidate = true;
-          console.log(
-            `[SIBLING_DISCOVERY] Baseline candidate selected: "${targetSsid}" (probed total=${probe.total}, supplemented=${probe.sibCount})`
-          );
-          break;
-        } else if (!backupCandidate) {
-          backupCandidate = { ssid: cand.ssid, total: probe.total, sibCount: probe.sibCount };
-        }
+      if (
+        probe &&
+        probe.sibCount > 0 &&
+        probe.allDirectMatch &&
+        typeof probe.total === 'number' &&
+        probe.total <= 50
+      ) {
+        targetSsid = cand.ssid;
+        isSiblingBearingCandidate = true;
+        console.log(
+          `[SIBLING_DISCOVERY] Baseline candidate selected: "${targetSsid}" (total=${probe.total}, supplemented=${probe.sibCount})`
+        );
+        break;
       }
-    }
-
-    if (!targetSsid && checkDockerPostgresAvailable()) {
-      try {
-        const sqlCandidate = execFileSync(
-          'docker',
-          [
-            'exec',
-            '-i',
-            '-e',
-            'PGOPTIONS=-c statement_timeout=5000',
-            'shadowcheck_postgres_local',
-            'psql',
-            '-U',
-            'shadowcheck_admin',
-            '-d',
-            'shadowcheck_db',
-            '-t',
-            '-A',
-            '-v',
-            'ON_ERROR_STOP=1',
-          ],
-          {
-            input: `SELECT n1.ssid
-                    FROM app.network_sibling_overrides o
-                    JOIN app.networks n1 ON UPPER(n1.bssid) = UPPER(o.bssid1)
-                    JOIN app.networks n2 ON UPPER(n2.bssid) = UPPER(o.bssid2)
-                    WHERE o.is_active IS TRUE AND o.relation = 'sibling'
-                      AND n1.ssid IS NOT NULL AND LENGTH(TRIM(n1.ssid)) > 2
-                      AND (n2.ssid IS NULL OR n2.ssid NOT ILIKE '%' || n1.ssid || '%')
-                    LIMIT 1;`,
-            encoding: 'utf8',
-          }
-        ).trim();
-        if (sqlCandidate) {
-          targetSsid = sqlCandidate;
-          isSiblingBearingCandidate = true;
-          console.log(`[SIBLING_DISCOVERY] DB lookup candidate selected: "${targetSsid}"`);
-        }
-      } catch {
-        // Fallback to generic candidate below
-      }
-    }
-
-    if (!targetSsid && backupCandidate) {
-      targetSsid = backupCandidate.ssid;
-      isSiblingBearingCandidate = true;
-      console.log(
-        `[SIBLING_DISCOVERY] Backup candidate selected: "${targetSsid}" (total=${backupCandidate.total}, supplemented=${backupCandidate.sibCount})`
-      );
     }
 
     if (!targetSsid) {
@@ -909,15 +888,15 @@ test.describe('Authenticated E2E Verification Suite', () => {
       console.log(`[SIBLING_DISCOVERY] Generic fallback candidate selected: "${targetSsid}"`);
     }
 
-    // Report threatTransparencyError count AND total rows in baseline response (denominator)
+    // Report data-level threat-transparency audit count on baseline rows (threat score > 0 without transparent reasons)
     const baselineRowsCount = baselineRows.length;
-    const threatTransparencyErrorCount = baselineRows.filter(
+    const threatTransparencyCount = baselineRows.filter(
       (d: any) => d.threatTransparencyError === true
     ).length;
     console.log('[BASELINE_TOTAL_NETWORKS]', baselineTotal);
     console.log('[SELECTED_FILTER_SSID]', targetSsid);
     console.log(
-      `[THREAT_TRANSPARENCY_ERRORS_IN_BASELINE] ${threatTransparencyErrorCount} / ${baselineRowsCount} rows`
+      `[BASELINE_DATA_TRANSPARENCY] ${threatTransparencyCount} / ${baselineRowsCount} rows carry threatTransparencyError=true (data-level domain flag: score > 0 without transparent rule explanations; not a request error)`
     );
 
     // Open filter panel
