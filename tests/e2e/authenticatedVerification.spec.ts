@@ -800,13 +800,118 @@ test.describe('Authenticated E2E Verification Suite', () => {
     const baselineTotal = initialBody.pagination?.total;
     expect(baselineTotal).toBeGreaterThan(0);
 
-    // Pick an SSID from baseline rows instead of hardcoding
-    const candidateRow = initialBody.data?.find((d: any) => d.ssid && d.ssid.length > 2);
-    const targetSsid = candidateRow ? candidateRow.ssid : 'xfinity';
+    // Natural candidate discovery:
+    // 1. Inspect already-fetched baseline rows for an SSID with non-empty sibling_bssids.
+    // 2. Probe candidates via a lightweight authenticated API call to discover one with supplemented siblings.
+    // 3. Fall back to a bounded read-only DB query if baseline rows yield no supplemented siblings.
+    // 4. Fall back to a generic baseline SSID (exercising the preserved zero-sibling branch).
+    let targetSsid = '';
+    let isSiblingBearingCandidate = false;
+
+    const baselineRows = initialBody.data || [];
+    const siblingBearingCandidates = baselineRows.filter(
+      (d: any) =>
+        d.ssid &&
+        d.ssid.trim().length > 2 &&
+        Array.isArray(d.sibling_bssids) &&
+        d.sibling_bssids.length > 0
+    );
+
+    let backupCandidate: { ssid: string; total: number; sibCount: number } | null = null;
+    for (const cand of siblingBearingCandidates.slice(0, 10)) {
+      const probe = await page.evaluate(async (ssid) => {
+        try {
+          const res = await fetch(
+            `/api/v2/networks/filtered?filters=${encodeURIComponent(
+              JSON.stringify({ ssid })
+            )}&enabled=${encodeURIComponent(JSON.stringify({ ssid: true }))}&limit=50&offset=0&includeTotal=true`,
+            { credentials: 'include' }
+          );
+          if (!res.ok) {
+            return null;
+          }
+          const json = await res.json();
+          const sibCount = (json.data || []).filter((r: any) => r._siblingSupplemented).length;
+          return { total: json.pagination?.total, sibCount };
+        } catch {
+          return null;
+        }
+      }, cand.ssid);
+
+      if (probe && probe.sibCount > 0) {
+        if (typeof probe.total === 'number' && probe.total <= 50) {
+          targetSsid = cand.ssid;
+          isSiblingBearingCandidate = true;
+          console.log(
+            `[SIBLING_DISCOVERY] Baseline candidate selected: "${targetSsid}" (probed total=${probe.total}, supplemented=${probe.sibCount})`
+          );
+          break;
+        } else if (!backupCandidate) {
+          backupCandidate = { ssid: cand.ssid, total: probe.total, sibCount: probe.sibCount };
+        }
+      }
+    }
+
+    if (!targetSsid && checkDockerPostgresAvailable()) {
+      try {
+        const sqlCandidate = execFileSync(
+          'docker',
+          [
+            'exec',
+            '-i',
+            '-e',
+            'PGOPTIONS=-c statement_timeout=5000',
+            'shadowcheck_postgres_local',
+            'psql',
+            '-U',
+            'shadowcheck_admin',
+            '-d',
+            'shadowcheck_db',
+            '-t',
+            '-A',
+            '-v',
+            'ON_ERROR_STOP=1',
+          ],
+          {
+            input: `SELECT n1.ssid
+                    FROM app.network_sibling_overrides o
+                    JOIN app.networks n1 ON UPPER(n1.bssid) = UPPER(o.bssid1)
+                    JOIN app.networks n2 ON UPPER(n2.bssid) = UPPER(o.bssid2)
+                    WHERE o.is_active IS TRUE AND o.relation = 'sibling'
+                      AND n1.ssid IS NOT NULL AND LENGTH(TRIM(n1.ssid)) > 2
+                      AND (n2.ssid IS NULL OR n2.ssid NOT ILIKE '%' || n1.ssid || '%')
+                    LIMIT 1;`,
+            encoding: 'utf8',
+          }
+        ).trim();
+        if (sqlCandidate) {
+          targetSsid = sqlCandidate;
+          isSiblingBearingCandidate = true;
+          console.log(`[SIBLING_DISCOVERY] DB lookup candidate selected: "${targetSsid}"`);
+        }
+      } catch {
+        // Fallback to generic candidate below
+      }
+    }
+
+    if (!targetSsid && backupCandidate) {
+      targetSsid = backupCandidate.ssid;
+      isSiblingBearingCandidate = true;
+      console.log(
+        `[SIBLING_DISCOVERY] Backup candidate selected: "${targetSsid}" (total=${backupCandidate.total}, supplemented=${backupCandidate.sibCount})`
+      );
+    }
+
+    if (!targetSsid) {
+      const genericCandidate = baselineRows.find((d: any) => d.ssid && d.ssid.trim().length > 2);
+      targetSsid = genericCandidate?.ssid ? String(genericCandidate.ssid) : 'xfinity';
+      isSiblingBearingCandidate = false;
+      console.log(`[SIBLING_DISCOVERY] Generic fallback candidate selected: "${targetSsid}"`);
+    }
 
     // Report threatTransparencyError count AND total rows in baseline response (denominator)
-    const baselineRowsCount = (initialBody.data || []).length;
-    const threatTransparencyErrorCount = (initialBody.data || []).filter(
+    const baselineRowsCount = baselineRows.length;
+    const threatTransparencyErrorCount = baselineRows.filter(
       (d: any) => d.threatTransparencyError === true
     ).length;
     console.log('[BASELINE_TOTAL_NETWORKS]', baselineTotal);
@@ -854,12 +959,23 @@ test.describe('Authenticated E2E Verification Suite', () => {
 
     const filteredBody = await filteredRes.json();
     const filteredTotal = filteredBody.pagination?.total;
+    const responseDataLength = (filteredBody.data || []).length;
     console.log('[FILTERED_TOTAL_NETWORKS]', filteredTotal);
+    console.log('[FILTERED_RESPONSE_DATA_LENGTH]', responseDataLength);
     expect(filteredTotal).toBeGreaterThan(0);
     expect(filteredTotal).toBeLessThanOrEqual(baselineTotal);
 
-    // Assert (a): rows without _siblingSupplemented count === filteredTotal when filteredTotal <= pageSize
+    // Direct matching rows without _siblingSupplemented
     const nonSiblingRows = (filteredBody.data || []).filter((r: any) => !r._siblingSupplemented);
+    const siblingRows = (filteredBody.data || []).filter((r: any) => r._siblingSupplemented);
+
+    console.log('[DIRECT_MATCHING_ROWS_COUNT]', nonSiblingRows.length);
+    console.log('[FILTER_SIBLING_SUPPLEMENTED_COUNT]', siblingRows.length);
+    console.log(
+      `[SIBLING_ACCOUNTING] candidate="${targetSsid}" siblingRows=${siblingRows.length} directRows=${nonSiblingRows.length} total=${filteredTotal} dataLength=${responseDataLength}`
+    );
+
+    // Assert (a): rows without _siblingSupplemented count === filteredTotal when filteredTotal <= pageSize
     if (filteredTotal <= 50) {
       expect(nonSiblingRows.length).toBe(filteredTotal);
     }
@@ -867,17 +983,28 @@ test.describe('Authenticated E2E Verification Suite', () => {
       expect(String(row.ssid || '').toLowerCase()).toContain(targetSsid.toLowerCase());
     }
 
-    // Assert (b): report sibling-supplemented count and assert each such row's bssid is in a matched row's sibling_bssids
-    const siblingRows = (filteredBody.data || []).filter((r: any) => r._siblingSupplemented);
-    console.log('[FILTER_SIBLING_SUPPLEMENTED_COUNT]', siblingRows.length);
+    // Collect BSSID set of supplemented siblings
+    const supplementedBssids = siblingRows.map((r: any) => String(r.bssid || '').toLowerCase());
+    console.log('[SUPPLEMENTED_SIBLING_BSSIDS]', supplementedBssids);
 
+    // Assert (b): Sibling accounting verification
     if (siblingRows.length === 0) {
+      if (isSiblingBearingCandidate) {
+        throw new Error(
+          `Expected supplemented sibling rows for candidate "${targetSsid}", but received 0.`
+        );
+      }
       testInfo.annotations.push({
         type: 'sibling-accounting',
-        description: 'sibling accounting: NOT EXERCISED',
+        description:
+          'sibling accounting: NOT EXERCISED — no natural sibling-bearing candidate available',
       });
-      console.log('[SIBLING_ACCOUNTING] sibling accounting: NOT EXERCISED');
+      console.log(
+        '[SIBLING_ACCOUNTING] NOT EXERCISED — no natural sibling-bearing candidate available'
+      );
     } else {
+      expect(supplementedBssids.length).toBeGreaterThanOrEqual(1);
+
       const matchedSiblingBssids = new Set<string>();
       for (const row of nonSiblingRows) {
         if (Array.isArray(row.sibling_bssids)) {
@@ -887,9 +1014,16 @@ test.describe('Authenticated E2E Verification Suite', () => {
         }
       }
       for (const sib of siblingRows) {
+        expect(sib._siblingSupplemented).toBe(true);
         expect(matchedSiblingBssids.has(sib.bssid.toLowerCase())).toBe(true);
       }
-      console.log('[SIBLING_ACCOUNTING] sibling accounting: EXERCISED');
+      testInfo.annotations.push({
+        type: 'sibling-accounting',
+        description: `sibling accounting: PASS (${siblingRows.length} supplemented rows verified)`,
+      });
+      console.log(
+        `[SIBLING_ACCOUNTING] PASS — ${siblingRows.length} supplemented sibling rows verified against matched sibling_bssids`
+      );
     }
 
     // Assert (c): assert rendered DOM rows show the SSID in the scoped SSID cell group
