@@ -8,6 +8,7 @@ interface GeospatialLayoutProps {
   filterPanel: React.ReactNode;
   content: React.ReactNode;
   overlays: React.ReactNode;
+  columnRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const GeospatialLayout = ({
@@ -15,11 +16,12 @@ export const GeospatialLayout = ({
   filterPanel,
   content,
   overlays,
+  columnRef,
 }: GeospatialLayoutProps) => {
   return (
     <GeospatialShell>
       <FiltersSidebar open={filtersOpen}>{filterPanel}</FiltersSidebar>
-      <GeospatialContent>{content}</GeospatialContent>
+      <GeospatialContent columnRef={columnRef}>{content}</GeospatialContent>
       {overlays}
     </GeospatialShell>
   );

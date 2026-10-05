@@ -176,6 +176,7 @@ export default function GeospatialExplorer() {
   return (
     <GeospatialLayout
       filtersOpen={state.filtersOpen}
+      columnRef={state.contentColumnRef}
       filterPanel={<GeospatialFiltersPanel />}
       content={
         <>

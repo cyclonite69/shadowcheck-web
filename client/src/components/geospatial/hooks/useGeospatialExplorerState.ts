@@ -42,9 +42,7 @@ import {
 } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 import { useSiblingLinks } from './useSiblingLinks';
-
-const MAP_HEADER_HEIGHT = 48;
-const MIN_TABLE_HEIGHT = 150;
+import { MAP_HEADER_HEIGHT, MIN_TABLE_HEIGHT, SNAP_BUFFER } from '../constants/paneSizing';
 
 interface UseGeospatialExplorerStateProps {
   isAdmin: boolean;
@@ -130,6 +128,7 @@ export const useGeospatialExplorerState = ({
   const mapInitRef = useRef(false);
   const columnDropdownRef = useRef<HTMLDivElement>(null);
   const lastSplitMapHeightRef = useRef(500);
+  const contentColumnRef = useRef<HTMLDivElement>(null);
 
   const {
     mapStyle,
@@ -191,7 +190,7 @@ export const useGeospatialExplorerState = ({
   });
 
   useHomeLocation({ setHomeLocation, logError });
-  useMapDimensions({ setContainerHeight, setMapHeight });
+  useMapDimensions({ containerRef: contentColumnRef, setContainerHeight, setMapHeight });
   useBoundingBoxFilter({
     mapReady,
     mapRef,
@@ -227,7 +226,7 @@ export const useGeospatialExplorerState = ({
 
   useEffect(() => {
     const mapCollapsed = mapHeight <= MAP_HEADER_HEIGHT;
-    const tableCollapsed = mapHeight >= containerHeight - 1;
+    const tableCollapsed = mapHeight >= containerHeight - SNAP_BUFFER - 1;
     if (!mapCollapsed && !tableCollapsed) {
       lastSplitMapHeightRef.current = mapHeight;
     }
@@ -235,24 +234,22 @@ export const useGeospatialExplorerState = ({
 
   const handlePaneSnap = useCallback(
     (target: 'map' | 'table') => {
-      const fallbackHeight = Math.floor(containerHeight * 0.75);
+      const fallbackHeight = Math.floor((containerHeight - 150) * 0.75);
+      const snapMapMax = containerHeight - SNAP_BUFFER;
       const restoreHeight = Math.max(
         MAP_HEADER_HEIGHT + MIN_TABLE_HEIGHT,
-        Math.min(
-          containerHeight - MIN_TABLE_HEIGHT,
-          lastSplitMapHeightRef.current || fallbackHeight
-        )
+        Math.min(snapMapMax, lastSplitMapHeightRef.current || fallbackHeight)
       );
       const nextHeight =
         target === 'map'
-          ? mapHeight >= containerHeight - 1
+          ? mapHeight >= snapMapMax - 1
             ? restoreHeight
-            : containerHeight
+            : snapMapMax
           : mapHeight <= MAP_HEADER_HEIGHT
             ? restoreHeight
             : MAP_HEADER_HEIGHT;
 
-      if (nextHeight !== MAP_HEADER_HEIGHT && nextHeight !== containerHeight) {
+      if (nextHeight !== MAP_HEADER_HEIGHT && nextHeight !== snapMapMax) {
         lastSplitMapHeightRef.current = nextHeight;
       }
 
@@ -485,6 +482,7 @@ export const useGeospatialExplorerState = ({
   ]);
 
   return {
+    contentColumnRef,
     mapHeight,
     containerHeight,
     mapStyle,

@@ -192,3 +192,6 @@ docs/ai/audits/
 
 # --- Vendor doc raw source material (scraped originals, may contain third-party keys) ---
 docs/references/vendor_docs/
+
+# --- Wireless capture & scan files ---
+*.kismet
