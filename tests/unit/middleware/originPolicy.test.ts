@@ -1,5 +1,6 @@
 import {
   isOriginAllowed,
+  isOriginPermitted,
   isUnsafeMethod,
   normalizeOrigins,
   resolveOriginPolicy,
@@ -64,5 +65,27 @@ describe('originPolicy', () => {
         });
       }
     );
+  });
+
+  describe('isOriginPermitted', () => {
+    const listedOrigin = 'https://app.test';
+    const explicitPolicy = resolveOriginPolicy([listedOrigin], 'production');
+    const wildcardPolicy = resolveOriginPolicy(['*'], 'test');
+
+    test.each([
+      [undefined, explicitPolicy, true],
+      ['https://other.test', wildcardPolicy, true],
+      [listedOrigin, explicitPolicy, true],
+      ['https://other.test', explicitPolicy, false],
+      ['null', explicitPolicy, false],
+      ['', explicitPolicy, false],
+      [`${listedOrigin}, https://other.test`, explicitPolicy, false],
+      [`${listedOrigin}/`, explicitPolicy, false],
+      ['https://APP.test', explicitPolicy, false],
+      ['http://app.test', explicitPolicy, false],
+      ['https://app.test:444', explicitPolicy, false],
+    ])('checks Origin %j against policy as %s', (origin, policy, expected) => {
+      expect(isOriginPermitted(origin, policy)).toBe(expected);
+    });
   });
 });

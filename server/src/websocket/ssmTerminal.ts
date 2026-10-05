@@ -2,6 +2,7 @@ import { Server as HttpServer, IncomingMessage } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, ChildProcess } from 'child_process';
 import { URL } from 'url';
+import { isOriginPermitted, resolveOriginPolicy } from '../middleware/originPolicy';
 
 export {};
 
@@ -63,8 +64,10 @@ function destroyWithMessage(socket: import('net').Socket, statusCode: number, me
 
 function initializeSsmWebSocket(
   server: HttpServer,
-  logger: { info: Function; warn: Function; error: Function }
+  logger: { info: Function; warn: Function; error: Function },
+  allowedOrigins: string[]
 ) {
+  const originPolicy = resolveOriginPolicy(allowedOrigins, process.env.NODE_ENV);
   wss = new WebSocketServer({ noServer: true });
 
   server.on(
@@ -76,6 +79,14 @@ function initializeSsmWebSocket(
         if (url.pathname !== '/ws/ssm') {
           // Not our route — explicitly call destroy to cover this branch
           return destroyWithMessage(socket, 404, 'Not Found');
+        }
+
+        const origin = request.headers.origin;
+        if (!isOriginPermitted(origin, originPolicy)) {
+          logger.warn('Rejected SSM WebSocket upgrade from disallowed Origin', {
+            origin: origin!.slice(0, 200),
+          });
+          return destroyWithMessage(socket, 403, 'Origin not allowed');
         }
 
         // Auth: parse session_token from cookie

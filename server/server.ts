@@ -126,7 +126,7 @@ require('ts-node').register({
     // 14. SSM WEBSOCKET TERMINAL
     // ============================================================================
     const { initializeSsmWebSocket } = require('./src/websocket/ssmTerminal');
-    initializeSsmWebSocket(server, logger);
+    initializeSsmWebSocket(server, logger, allowedOrigins);
   } catch (err) {
     console.error(err); // PRINT STACK TRACE
     const logger = require('./src/logging/logger');

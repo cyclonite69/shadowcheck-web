@@ -37,6 +37,14 @@ export function isOriginAllowed(origin: string | undefined, allowlist: readonly 
   return allowlist.includes('*') || allowlist.includes(origin);
 }
 
+/** Permit non-browser clients, legacy wildcard policy, or exact configured Origins. */
+export function isOriginPermitted(
+  origin: string | undefined,
+  policy: ReturnType<typeof resolveOriginPolicy>
+): boolean {
+  return origin === undefined || policy.wildcard || isOriginAllowed(origin, policy.allowlist);
+}
+
 /** Identify HTTP methods that can change server state. */
 export function isUnsafeMethod(method: string): boolean {
   return UNSAFE_METHODS.has(method.toUpperCase());

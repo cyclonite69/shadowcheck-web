@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-04)
+# 1.0.0 (2026-10-05)
 
 ### Bug Fixes
 
@@ -205,7 +205,7 @@
 - correct threat score column mappings in sort ([eea1ede](https://github.com/cyclonite69/shadowcheck-web/commit/eea1edeb238c10e877c50a3cecc3244aa2cb9a00))
 - correct WiGLE endpoint selection for BLE/Bluetooth networks ([fd63fd4](https://github.com/cyclonite69/shadowcheck-web/commit/fd63fd4c9325ebc59f30eb46d0c4df5e9f9bfeac))
 - **cors:** enforce Origin allowlist, no credentialed wildcard ([5fb1bfa](https://github.com/cyclonite69/shadowcheck-web/commit/5fb1bfae6b0aebc8fa4ec5fecb60dd219fa28504))
-- **cors:** ignore wildcard origins in production ([2463150](https://github.com/cyclonite69/shadowcheck-web/commit/24631508d7b85ce3d2e241d2c8f7637ea082bf81))
+- **cors:** ignore wildcard origins in production ([5a7b0d4](https://github.com/cyclonite69/shadowcheck-web/commit/5a7b0d498659907b6c10ba46c0a8afe890b5473b))
 - **courthouses:** show full address in map tooltip ([203ce51](https://github.com/cyclonite69/shadowcheck-web/commit/203ce51ab30384b088a92780d64b87690739bccb))
 - darker blue UI, right-shift zone 4 buttons, add marker fields ([f05d625](https://github.com/cyclonite69/shadowcheck-web/commit/f05d6256a57b4e9ece41f469a039f252eaa18bf8)), closes [#0d1f2d](https://github.com/cyclonite69/shadowcheck-web/issues/0d1f2d)
 - dashboard threat level filter not working properly ([f8e863f](https://github.com/cyclonite69/shadowcheck-web/commit/f8e863f790dc6bf6a8a1995a1444cf29779e8cb5))
@@ -1086,6 +1086,7 @@
 - wire mapbox proxy stream helper ([26e42ad](https://github.com/cyclonite69/shadowcheck-web/commit/26e42ad3a3da444908eb9935c927129d3083861d))
 - wrap repair script in async main() to support CommonJS tsx execution ([cb2866b](https://github.com/cyclonite69/shadowcheck-web/commit/cb2866bdce41bda985e0de5eeeb43f0d95c589b5))
 - wrap toolbar zones 3-5 with single margin-left auto ([4b4c096](https://github.com/cyclonite69/shadowcheck-web/commit/4b4c0962985c6d58bdf974e63e0fce838e50ff70))
+- **ws:** enforce Origin policy on SSM terminal upgrades ([c0d53ad](https://github.com/cyclonite69/shadowcheck-web/commit/c0d53adbeab1a66b8fc55eb6226736803e2d18d8))
 
 ### Features
 

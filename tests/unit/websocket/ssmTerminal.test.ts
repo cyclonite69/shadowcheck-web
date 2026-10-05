@@ -25,9 +25,15 @@ describe('ssmTerminal', () => {
   let mockWss: any;
   let mockWs: any;
   let mockChild: any;
+  let previousNodeEnv: string | undefined;
+
+  function initializeSsm(allowedOrigins: string[] = []) {
+    initializeSsmWebSocket(mockServer, mockLogger, allowedOrigins);
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
+    previousNodeEnv = process.env.NODE_ENV;
 
     mockServer = new EventEmitter();
     mockLogger = {
@@ -65,16 +71,21 @@ describe('ssmTerminal', () => {
 
   afterEach(async () => {
     await shutdownSsmWebSocket();
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
   });
 
   it('should initialize WebSocket server and listen for upgrade events', () => {
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     expect(WebSocketServer).toHaveBeenCalledWith({ noServer: true });
     expect(mockServer.listenerCount('upgrade')).toBe(1);
   });
 
   it('should reject upgrades for wrong paths', async () => {
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = { url: '/wrong/path', headers: { host: 'localhost' } };
 
@@ -87,8 +98,223 @@ describe('ssmTerminal', () => {
     expect(mockSocket.destroy).toHaveBeenCalled();
   });
 
+  it('allows a listed Origin with a valid admin session to upgrade', async () => {
+    const listedOrigin = 'https://admin.example.test';
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsm([listedOrigin]);
+    mockWss.handleUpgrade.mockImplementation(() => undefined);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: { host: 'localhost', cookie: 'session_token=valid', origin: listedOrigin },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(authService.validateSession).toHaveBeenCalledWith('valid');
+    expect(mockWss.handleUpgrade).toHaveBeenCalled();
+  });
+
+  it('rejects an unlisted Origin before authentication or upgrade', async () => {
+    const listedOrigin = 'https://admin.example.test';
+    initializeSsm([listedOrigin]);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: {
+        host: 'localhost',
+        cookie: 'session_token=valid',
+        origin: 'https://attacker.test',
+      },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 403 Origin not allowed')
+    );
+    expect(authService.validateSession).not.toHaveBeenCalled();
+    expect(mockWss.handleUpgrade).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unlisted Origin before returning an invalid-session 401', async () => {
+    authService.validateSession.mockResolvedValue({ valid: false });
+    initializeSsm(['https://admin.example.test']);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: {
+        host: 'localhost',
+        cookie: 'session_token=invalid',
+        origin: 'https://attacker.test',
+      },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 403 Origin not allowed')
+    );
+    expect(mockSocket.write).not.toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 401 Unauthorized')
+    );
+    expect(authService.validateSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects Origin 'null'", async () => {
+    initializeSsm(['https://admin.example.test']);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm',
+      headers: { host: 'localhost', origin: 'null' },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 403 Origin not allowed')
+    );
+    expect(authService.validateSession).not.toHaveBeenCalled();
+  });
+
+  it('allows a no-Origin request with a valid admin session to upgrade', async () => {
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsm(['https://admin.example.test']);
+    mockWss.handleUpgrade.mockImplementation(() => undefined);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: { host: 'localhost', cookie: 'session_token=valid' },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(authService.validateSession).toHaveBeenCalledWith('valid');
+    expect(mockWss.handleUpgrade).toHaveBeenCalled();
+  });
+
+  it('checks the route path before rejecting a hostile Origin', async () => {
+    initializeSsm(['https://admin.example.test']);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/wrong/path',
+      headers: { host: 'localhost', origin: 'https://attacker.test' },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 404 Not Found')
+    );
+    expect(mockSocket.write).not.toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 403 Origin not allowed')
+    );
+    expect(authService.validateSession).not.toHaveBeenCalled();
+  });
+
+  it('permits any Origin in non-production wildcard mode', async () => {
+    process.env.NODE_ENV = 'test';
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsm(['*']);
+    mockWss.handleUpgrade.mockImplementation(() => undefined);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: {
+        host: 'localhost',
+        cookie: 'session_token=valid',
+        origin: 'https://attacker.test',
+      },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockWss.handleUpgrade).toHaveBeenCalled();
+    expect(authService.validateSession).toHaveBeenCalledWith('valid');
+  });
+
+  it('blocks unlisted Origins when production ignores wildcard', async () => {
+    process.env.NODE_ENV = 'production';
+    initializeSsm(['*']);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm',
+      headers: { host: 'localhost', origin: 'https://attacker.test' },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 403 Origin not allowed')
+    );
+    expect(authService.validateSession).not.toHaveBeenCalled();
+    expect(mockWss.handleUpgrade).not.toHaveBeenCalled();
+  });
+
+  it('allows only listed Origins when production ignores wildcard', async () => {
+    process.env.NODE_ENV = 'production';
+    const listedOrigin = 'https://admin.example.test';
+    authService.validateSession.mockResolvedValue({
+      valid: true,
+      user: { role: 'admin', username: 'adminuser' },
+    });
+    initializeSsm(['*', listedOrigin]);
+    mockWss.handleUpgrade.mockImplementation(() => undefined);
+    const listedSocket = { destroy: jest.fn(), write: jest.fn() };
+    const listedRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: { host: 'localhost', cookie: 'session_token=valid', origin: listedOrigin },
+    };
+    await mockServer.emit('upgrade', listedRequest, listedSocket, Buffer.from(''));
+    const unlistedSocket = { destroy: jest.fn(), write: jest.fn() };
+    const unlistedRequest = {
+      url: '/ws/ssm?instanceId=i-1234567890abcdef0',
+      headers: {
+        host: 'localhost',
+        cookie: 'session_token=valid',
+        origin: 'https://attacker.test',
+      },
+    };
+    await mockServer.emit('upgrade', unlistedRequest, unlistedSocket, Buffer.from(''));
+
+    expect(mockWss.handleUpgrade).toHaveBeenCalledTimes(1);
+    expect(authService.validateSession).toHaveBeenCalledTimes(1);
+    expect(unlistedSocket.write).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP/1.1 403 Origin not allowed')
+    );
+  });
+
+  it('logs one truncated Origin value when rejecting an upgrade', async () => {
+    const longOrigin = `https://attacker.test/${'a'.repeat(240)}`;
+    initializeSsm(['https://admin.example.test']);
+    const mockSocket = { destroy: jest.fn(), write: jest.fn() };
+    const mockRequest = {
+      url: '/ws/ssm',
+      headers: { host: 'localhost', origin: longOrigin },
+    };
+
+    await mockServer.emit('upgrade', mockRequest, mockSocket, Buffer.from(''));
+
+    expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'Rejected SSM WebSocket upgrade from disallowed Origin',
+      {
+        origin: longOrigin.slice(0, 200),
+      }
+    );
+  });
+
   it('should reject unauthorized upgrades (no token)', async () => {
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = { url: '/ws/ssm', headers: { host: 'localhost' } };
 
@@ -102,7 +328,7 @@ describe('ssmTerminal', () => {
 
   it('should reject upgrades for invalid sessions', async () => {
     authService.validateSession.mockResolvedValue({ valid: false });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = {
       url: '/ws/ssm',
@@ -121,7 +347,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'user', username: 'testuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = {
       url: '/ws/ssm',
@@ -140,7 +366,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = {
       url: '/ws/ssm?instanceId=invalid',
@@ -159,7 +385,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = {
       url: '/ws/ssm?instanceId=i-1234567890abcdef0',
@@ -215,7 +441,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -237,7 +463,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -259,7 +485,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -277,7 +503,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
 
     // Connect 5 sessions (MAX_CONCURRENT_SESSIONS)
     for (let i = 0; i < 5; i++) {
@@ -311,7 +537,7 @@ describe('ssmTerminal', () => {
     // But we can trigger it via upgrade events.
 
     authService.validateSession.mockResolvedValue({ valid: false });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
 
     // Test no cookie header
@@ -337,7 +563,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
 
     await mockWss.emit(
       'connection',
@@ -362,7 +588,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -380,7 +606,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -398,7 +624,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -427,7 +653,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -446,7 +672,7 @@ describe('ssmTerminal', () => {
       valid: true,
       user: { role: 'admin', username: 'adminuser' },
     });
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     await mockWss.emit(
       'connection',
       mockWs,
@@ -469,7 +695,7 @@ describe('ssmTerminal', () => {
   });
 
   it('should handle upgrade errors', async () => {
-    initializeSsmWebSocket(mockServer, mockLogger);
+    initializeSsm();
     const mockSocket = { destroy: jest.fn(), write: jest.fn() };
     const mockRequest = { url: '/ws/ssm', headers: { host: 'localhost' } };
 
