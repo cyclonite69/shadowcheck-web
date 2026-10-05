@@ -77,7 +77,10 @@ describe('queryCorrelatedObservations', () => {
     }
   });
 
-  test('SQL orders by delta_minutes ASC then detection_score DESC', async () => {
+  test('SQL orders by detection_score DESC, dist_meters ASC, ABS(delta_minutes) ASC', async () => {
+    // Regression: the previous hierarchy (delta_minutes ASC first) caused score-0
+    // background noise broadcasting close to the recording start to displace
+    // high-threat networks that were physically adjacent but temporally offset.
     const queryFn = jest.fn().mockResolvedValue({ rows: [] });
     await queryCorrelatedObservations(queryFn, 0, 0, TIMESTAMP);
 
@@ -85,8 +88,19 @@ describe('queryCorrelatedObservations', () => {
     const orderIdx = sql.indexOf('ORDER BY');
     expect(orderIdx).toBeGreaterThan(-1);
     const orderClause = sql.slice(orderIdx);
-    expect(orderClause).toMatch(/delta_minutes\s+ASC/);
+
+    // All three sort keys must be present
     expect(orderClause).toMatch(/detection_score\s+DESC/);
+    expect(orderClause).toMatch(/dist_meters\s+ASC/);
+    expect(orderClause).toMatch(/ABS\s*\(\s*delta_minutes\s*\)\s+ASC/);
+
+    // Strict precedence: detection_score must appear before dist_meters and delta_minutes
+    const scorePos = orderClause.indexOf('detection_score');
+    const distPos = orderClause.indexOf('dist_meters');
+    const deltaPos = orderClause.indexOf('delta_minutes');
+    expect(scorePos).toBeLessThan(distPos);
+    expect(scorePos).toBeLessThan(deltaPos);
+    expect(distPos).toBeLessThan(deltaPos);
   });
 
   test('ST_DWithin uses geom::geography so radius $4 is evaluated in metres via GiST index', async () => {
@@ -199,7 +213,7 @@ describeIfIntegration('queryCorrelatedObservations — live DB score assignments
     expect(hit.device_type).toBeNull();
   });
 
-  test('results ordered by delta_minutes ASC', async () => {
+  test('results ordered by detection_score DESC as primary key', async () => {
     const rows = await queryCorrelatedObservations(
       queryFn,
       ANCHOR_LON,
@@ -210,8 +224,8 @@ describeIfIntegration('queryCorrelatedObservations — live DB score assignments
       20
     );
     for (let i = 1; i < rows.length; i++) {
-      expect(Number(rows[i].delta_minutes)).toBeGreaterThanOrEqual(
-        Number(rows[i - 1].delta_minutes)
+      expect(Number(rows[i].detection_score)).toBeLessThanOrEqual(
+        Number(rows[i - 1].detection_score)
       );
     }
   });

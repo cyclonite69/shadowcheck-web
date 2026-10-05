@@ -68,7 +68,7 @@ export async function queryCorrelatedObservations(
         $4
       )
       AND observed_at BETWEEN $5::timestamptz AND $6::timestamptz
-    ORDER BY delta_minutes ASC, detection_score DESC, dist_meters ASC
+    ORDER BY detection_score DESC, dist_meters ASC, ABS(delta_minutes) ASC
     LIMIT $7
   `;
 
