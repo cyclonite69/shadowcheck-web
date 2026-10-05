@@ -19,6 +19,8 @@ const {
   selectNoteMediaById,
   selectNoteMediaList,
   deleteNoteMedia,
+  deleteNetworkMedia,
+  getDuplicateMediaGroups,
 } = require('../repositories/adminNetworkMediaRepository');
 
 module.exports = {
@@ -40,4 +42,6 @@ module.exports = {
   getNoteMediaById: selectNoteMediaById,
   getNoteMediaList: selectNoteMediaList,
   deleteNoteMedia,
+  deleteNetworkMedia,
+  getDuplicateMediaGroups,
 };

@@ -15,11 +15,13 @@ const repository = require('../../server/src/repositories/adminNetworkMediaRepos
 describe('adminNetworkMediaRepository', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    query.mockResolvedValue({ rows: [] });
   });
 
   it('inserts network media with EXIF and thumbnail fields', async () => {
     const row = { id: 5, filename: 'evidence.jpg' };
     adminQuery.mockResolvedValueOnce({ rows: [row] });
+    query.mockResolvedValueOnce({ rows: [] });
     const media = Buffer.from('full');
     const thumbnail = Buffer.from('thumb');
 
@@ -53,6 +55,7 @@ describe('adminNetworkMediaRepository', () => {
         '2026-06-13T00:00:00Z',
         thumbnail,
         null,
+        require('crypto').createHash('sha256').update(media).digest('hex'),
       ]
     );
   });
@@ -94,8 +97,69 @@ describe('adminNetworkMediaRepository', () => {
         '2026-06-13T00:00:00Z',
         thumbnail,
         12345,
+        require('crypto').createHash('sha256').update(media).digest('hex'),
       ]
     );
+  });
+
+  it('throws VISINT_DUPLICATE_MEDIA if media hash already exists prior to insert', async () => {
+    const media = Buffer.from('duplicate-content');
+    const hash = require('crypto').createHash('sha256').update(media).digest('hex');
+
+    // Mock the duplicate SELECT query returning an existing record
+    query.mockResolvedValueOnce({ rows: [{ id: 999 }] });
+
+    await expect(
+      repository.insertNetworkMedia(
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'evidence.jpg',
+        2048,
+        'image/jpeg',
+        media
+      )
+    ).rejects.toMatchObject({
+      code: 'VISINT_DUPLICATE_MEDIA',
+      existingId: 999,
+      message: 'Duplicate media content',
+    });
+
+    // Ensure the insert query is skipped
+    expect(adminQuery).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledWith(
+      'SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1',
+      [hash]
+    );
+  });
+
+  it('translates 23505 unique_violation from concurrent insert into VISINT_DUPLICATE_MEDIA', async () => {
+    const media = Buffer.from('race-content');
+
+    // 1. Initial select returns empty (not found yet)
+    query.mockResolvedValueOnce({ rows: [] });
+
+    // 2. Insert throws 23505
+    const duplicateError: any = new Error('duplicate key value');
+    duplicateError.code = '23505';
+    adminQuery.mockRejectedValueOnce(duplicateError);
+
+    // 3. Follow-up select finds the concurrently inserted row
+    query.mockResolvedValueOnce({ rows: [{ id: 1000 }] });
+
+    await expect(
+      repository.insertNetworkMedia(
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'evidence.jpg',
+        2048,
+        'image/jpeg',
+        media
+      )
+    ).rejects.toMatchObject({
+      code: 'VISINT_DUPLICATE_MEDIA',
+      existingId: 1000,
+      message: 'Duplicate media content',
+    });
   });
 
   it('lists network media rows', async () => {

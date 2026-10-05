@@ -45,6 +45,7 @@ export default function VisIntUploader() {
   const [result, setResult] = useState<VisIntResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
+  const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Interaction Flow State
@@ -135,6 +136,7 @@ export default function VisIntUploader() {
     setLoading(true);
     setError(null);
     setErrorType(null);
+    setDuplicateId(null);
     setSaveSuccess(false);
     setSaveTags([]);
 
@@ -162,12 +164,23 @@ export default function VisIntUploader() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(getApiErrorMessage(err, 'An error occurred during upload.'));
+
       if (
-        err.response?.data?.type === 'ExifMissingError' ||
-        err.data?.type === 'ExifMissingError'
+        err.response?.data?.code === 'VISINT_DUPLICATE_MEDIA' ||
+        err.data?.code === 'VISINT_DUPLICATE_MEDIA'
       ) {
-        setErrorType('ExifMissingError');
+        const id = err.response?.data?.existingId || err.data?.existingId;
+        setDuplicateId(String(id));
+        setError('This exact media file is already attached.');
+        setErrorType('DuplicateMedia');
+      } else {
+        setError(getApiErrorMessage(err, 'An error occurred during upload.'));
+        if (
+          err.response?.data?.type === 'ExifMissingError' ||
+          err.data?.type === 'ExifMissingError'
+        ) {
+          setErrorType('ExifMissingError');
+        }
       }
     } finally {
       setLoading(false);
@@ -229,7 +242,17 @@ export default function VisIntUploader() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(getApiErrorMessage(err, 'Failed to save correlation.'));
+      if (
+        err.response?.data?.code === 'VISINT_DUPLICATE_MEDIA' ||
+        err.data?.code === 'VISINT_DUPLICATE_MEDIA'
+      ) {
+        const id = err.response?.data?.existingId || err.data?.existingId;
+        setDuplicateId(String(id));
+        setError('This exact media file is already attached.');
+        setErrorType('DuplicateMedia');
+      } else {
+        setError(getApiErrorMessage(err, 'Failed to save correlation.'));
+      }
     } finally {
       setSaveLoading(false);
     }
@@ -333,9 +356,11 @@ export default function VisIntUploader() {
           {error && (
             <div
               className={`p-4 rounded-xl border flex flex-col space-y-2 mb-4 ${
-                errorType === 'ExifMissingError'
-                  ? 'bg-amber-950/20 border-amber-900/60 text-amber-200'
-                  : 'bg-red-950/20 border-red-900/60 text-red-200'
+                errorType === 'DuplicateMedia'
+                  ? 'bg-orange-950/30 border-orange-900/60 text-orange-200'
+                  : errorType === 'ExifMissingError'
+                    ? 'bg-amber-950/20 border-amber-900/60 text-amber-200'
+                    : 'bg-red-950/20 border-red-900/60 text-red-200'
               }`}
             >
               <div className="flex items-center space-x-2">
@@ -353,12 +378,21 @@ export default function VisIntUploader() {
                   />
                 </svg>
                 <span className="font-semibold text-sm">
-                  {errorType === 'ExifMissingError'
-                    ? 'Telemetry Payload Rejected'
-                    : 'Pipeline Error'}
+                  {errorType === 'DuplicateMedia'
+                    ? 'Already Attached'
+                    : errorType === 'ExifMissingError'
+                      ? 'Telemetry Payload Rejected'
+                      : 'Pipeline Error'}
                 </span>
               </div>
-              <p className="text-xs leading-relaxed text-slate-300">{error}</p>
+              <p className="text-xs leading-relaxed text-slate-300">
+                {error}
+                {duplicateId && (
+                  <span className="block mt-1 font-mono text-[10px] text-slate-400">
+                    Existing Media ID: {duplicateId}
+                  </span>
+                )}
+              </p>
             </div>
           )}
 

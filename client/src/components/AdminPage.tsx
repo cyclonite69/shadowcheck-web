@@ -22,6 +22,7 @@ import { useAdminRuntimeConfig } from '../hooks/useAdminRuntimeConfig';
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
 const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));
 const VisIntUploader = lazy(() => import('./visint/VisIntUploader'));
+const VisIntAttachmentsManager = lazy(() => import('./visint/VisIntAttachmentsManager'));
 
 const TabLoadingFallback = () => (
   <div className="px-6 py-8 text-sm text-slate-500 text-center">Loading tab...</div>
@@ -301,6 +302,7 @@ const AdminPage: React.FC = () => {
     { id: 'wigle-detail', label: 'WiGLE Detail (v3)', icon: DetailIcon },
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
     { id: 'visint', label: 'VisINT Uploader', icon: CameraIcon },
+    { id: 'visint-media', label: 'Media Manager', icon: CameraIcon },
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
     { id: 'geocoding', label: 'Geocoding', icon: MapIcon },
@@ -393,6 +395,11 @@ const AdminPage: React.FC = () => {
           {activeTab === 'visint' && (
             <Suspense fallback={<TabLoadingFallback />}>
               <VisIntUploader />
+            </Suspense>
+          )}
+          {activeTab === 'visint-media' && (
+            <Suspense fallback={<TabLoadingFallback />}>
+              <VisIntAttachmentsManager />
             </Suspense>
           )}
           {activeTab === 'backups' && <BackupsTab />}

@@ -418,6 +418,13 @@ router.post(
           code: 'VISINT_FALLBACK_REQUIRES_CONFIRMATION',
         });
       }
+      if (error.code === 'VISINT_DUPLICATE_MEDIA') {
+        return res.status(409).json({
+          error: error.message,
+          code: 'VISINT_DUPLICATE_MEDIA',
+          existingId: error.existingId,
+        });
+      }
       logger.error(`VisINT correlation failed: ${error.message}`);
       res.status(500).json({ error: 'VisINT correlation failed', details: error.message });
     }
@@ -510,6 +517,13 @@ router.post(
       );
       res.json({ ok: true, success: true, tags_applied: tagsApplied });
     } catch (error: any) {
+      if (error.code === 'VISINT_DUPLICATE_MEDIA') {
+        return res.status(409).json({
+          error: error.message,
+          code: 'VISINT_DUPLICATE_MEDIA',
+          existingId: error.existingId,
+        });
+      }
       logger.error(`VisINT attachment failed: ${error.message}`);
       res.status(500).json({ error: 'VisINT attachment failed', details: error.message });
     }

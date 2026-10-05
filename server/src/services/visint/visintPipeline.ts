@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { extractExif } from './visintExif';
+import crypto from 'crypto';
 import { queryCorrelatedObservations } from './visintScorer';
 
 const { query } = require('../../config/database');
@@ -237,6 +238,18 @@ export async function correlateVisINT(
 }> {
   const tempFilePath = path.join(os.tmpdir(), `visint-${Date.now()}-${filename}`);
   fs.writeFileSync(tempFilePath, imageBuffer);
+
+  // Early duplicate check (even during preview)
+  const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
+  const existing = await query('SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1', [
+    hash,
+  ]);
+  if (existing.rows.length > 0) {
+    const error: any = new Error('Duplicate media content');
+    error.code = 'VISINT_DUPLICATE_MEDIA';
+    error.existingId = existing.rows[0].id;
+    throw error;
+  }
 
   let exifData;
   try {

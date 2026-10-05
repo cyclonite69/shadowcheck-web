@@ -456,4 +456,22 @@ export const adminApi = {
     const res = await fetch(url, { ...options, credentials: 'include' });
     return res.json();
   },
+
+  async deleteNetworkMedia(mediaId: number | string): Promise<any> {
+    const response = await fetch(`/api/admin/network-media/media/${mediaId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete media');
+    }
+    return response.json();
+  },
+
+  async getDuplicateMediaGroups(): Promise<any> {
+    const response = await fetch('/api/admin/network-media-duplicates');
+    if (!response.ok) {
+      throw new Error('Failed to fetch duplicates');
+    }
+    return response.json();
+  },
 };

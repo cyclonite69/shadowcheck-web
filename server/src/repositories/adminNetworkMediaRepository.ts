@@ -16,6 +16,8 @@ export interface RelatedNetworkMediaRow {
   source_kind: 'direct' | 'component';
 }
 
+import crypto from 'crypto';
+
 export async function insertNetworkMedia(
   bssid: string,
   mediaType: string,
@@ -30,27 +32,54 @@ export async function insertNetworkMedia(
   thumbnail: Buffer | null = null,
   observationId: number | string | null = null
 ): Promise<any> {
-  const result = await adminQuery(
-    `INSERT INTO app.network_media
-      (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by, exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12)
-     RETURNING id, filename, file_size, created_at`,
-    [
-      bssid,
-      mediaType,
-      filename,
-      fileSize,
-      mimeType,
-      mediaBuffer,
-      description,
-      exifLat,
-      exifLon,
-      exifCapturedAt,
-      thumbnail,
-      observationId ? parseInt(String(observationId), 10) : null,
-    ]
-  );
-  return result.rows[0];
+  const hash = crypto.createHash('sha256').update(mediaBuffer).digest('hex');
+  const existing = await query('SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1', [
+    hash,
+  ]);
+  if (existing.rows.length > 0) {
+    const error: any = new Error('Duplicate media content');
+    error.code = 'VISINT_DUPLICATE_MEDIA';
+    error.existingId = existing.rows[0].id;
+    throw error;
+  }
+
+  try {
+    const result = await adminQuery(
+      `INSERT INTO app.network_media
+        (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by, exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id, image_sha256)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12, $13)
+       RETURNING id, filename, file_size, created_at`,
+      [
+        bssid,
+        mediaType,
+        filename,
+        fileSize,
+        mimeType,
+        mediaBuffer,
+        description,
+        exifLat,
+        exifLon,
+        exifCapturedAt,
+        thumbnail,
+        observationId ? parseInt(String(observationId), 10) : null,
+        hash,
+      ]
+    );
+    return result.rows[0];
+  } catch (err: any) {
+    if (err.code === '23505') {
+      const dbExisting = await query(
+        'SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1',
+        [hash]
+      );
+      const duplicateError: any = new Error('Duplicate media content');
+
+      duplicateError.code = 'VISINT_DUPLICATE_MEDIA';
+      duplicateError.existingId = dbExisting.rows[0]?.id;
+      throw duplicateError;
+    }
+    throw err;
+  }
 }
 
 export async function selectNetworkMediaList(bssid: string): Promise<any[]> {
@@ -532,4 +561,23 @@ export async function deleteNoteMedia(mediaId: string): Promise<any | null> {
     [mediaId]
   );
   return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+export async function deleteNetworkMedia(id: string): Promise<any | null> {
+  const result = await adminQuery(
+    'DELETE FROM app.network_media WHERE id = $1 RETURNING id, bssid, filename',
+    [id]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+export async function getDuplicateMediaGroups(): Promise<any[]> {
+  const result = await query(`
+    SELECT image_sha256 as hash, array_agg(id) as ids, array_agg(filename) as filenames, count(*) as count
+    FROM app.network_media
+    WHERE image_sha256 IS NOT NULL
+    GROUP BY image_sha256
+    HAVING count(*) > 1
+  `);
+  return result.rows;
 }

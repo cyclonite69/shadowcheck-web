@@ -48,6 +48,15 @@ router.post('/admin/network-media/upload', async (req: any, res: any, next: any)
       media,
     });
   } catch (error: any) {
+    if (error.code === 'VISINT_DUPLICATE_MEDIA') {
+      return res.status(409).json({
+        error: {
+          message: error.message,
+          code: 'VISINT_DUPLICATE_MEDIA',
+          existingId: error.existingId,
+        },
+      });
+    }
     logger.error(`Upload media error: ${error.message}`);
     next(error);
   }
@@ -131,3 +140,39 @@ router.get('/admin/network-media/:id/inline', async (req: any, res: any, next: a
 });
 
 module.exports = router;
+
+// DELETE /api/admin/network-media/media/:id - Delete media file
+router.delete('/admin/network-media/media/:id', async (req: any, res: any, next: any) => {
+  try {
+    const { id } = req.params;
+    const deleted = await adminNetworkMediaService.deleteNetworkMedia(id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: { message: 'Media not found' },
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: 'Media deleted successfully',
+      deleted,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
+// GET /api/admin/network-media-duplicates - Get duplicate media groups
+router.get('/admin/network-media-duplicates', async (req: any, res: any, next: any) => {
+  try {
+    const duplicates = await adminNetworkMediaService.getDuplicateMediaGroups();
+    res.json({
+      ok: true,
+      duplicates,
+      count: duplicates.length,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
