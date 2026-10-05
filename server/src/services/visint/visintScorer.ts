@@ -63,7 +63,7 @@ export async function queryCorrelatedObservations(
     FROM app.observations
     WHERE
       ST_DWithin(
-        ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
+        geom::geography,
         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
         $4
       )

@@ -88,6 +88,32 @@ describe('queryCorrelatedObservations', () => {
     expect(orderClause).toMatch(/delta_minutes\s+ASC/);
     expect(orderClause).toMatch(/detection_score\s+DESC/);
   });
+
+  test('ST_DWithin uses geom::geography so radius $4 is evaluated in metres via GiST index', async () => {
+    // Regression: the previous form rebuilt a point from raw lon/lat columns
+    // (ST_MakePoint(lon, lat)::geography) which bypasses the GiST index and
+    // is redundant given the stored geom column. The fix is to use geom::geography
+    // directly as the first ST_DWithin argument.
+    const queryFn = jest.fn().mockResolvedValue({ rows: [] });
+    await queryCorrelatedObservations(queryFn, -83.6895, 43.0147, TIMESTAMP, 50);
+
+    const sql: string = queryFn.mock.calls[0][0];
+    // Must use the indexed geom column cast to geography
+    expect(sql).toMatch(/ST_DWithin\s*\(\s*geom::geography/);
+    // Must NOT re-derive the observation point from raw lat/lon columns inside ST_DWithin
+    expect(sql).not.toMatch(/ST_DWithin\s*\(\s*ST_SetSRID\s*\(\s*ST_MakePoint\s*\(\s*lon/);
+  });
+
+  test('ST_DWithin candidate point is built from $1/$2 parameters cast to geography', async () => {
+    const queryFn = jest.fn().mockResolvedValue({ rows: [] });
+    await queryCorrelatedObservations(queryFn, -83.6895, 43.0147, TIMESTAMP, 50);
+
+    const sql: string = queryFn.mock.calls[0][0];
+    // The media-origin point must remain parameterised via $1/$2 and cast to geography
+    expect(sql).toMatch(
+      /ST_SetSRID\s*\(\s*ST_MakePoint\s*\(\s*\$1\s*,\s*\$2\s*\)\s*,\s*4326\s*\)::geography/
+    );
+  });
 });
 
 // ─── Integration tests — require RUN_INTEGRATION_TESTS=true + live shadowcheck_test DB ───
