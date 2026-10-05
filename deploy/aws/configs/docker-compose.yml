@@ -52,7 +52,7 @@ services:
       # DB_ADMIN_PASSWORD loaded from AWS Secrets Manager at runtime
       # Security
       FORCE_HTTPS: "true"
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ORIGINS: "${CORS_ORIGINS:?Set explicit browser Origins (scheme://host[:port]) before starting production}"
     logging:
       driver: "json-file"
       options:

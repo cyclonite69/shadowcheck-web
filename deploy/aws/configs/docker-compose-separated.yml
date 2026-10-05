@@ -95,7 +95,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       FORCE_HTTPS: "true"
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ORIGINS: "${CORS_ORIGINS:?Set explicit browser Origins (scheme://host[:port]) before starting production}"
       AWS_DEFAULT_REGION: us-east-1
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
     ports:
