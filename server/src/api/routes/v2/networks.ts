@@ -6,6 +6,7 @@ const router = express.Router();
 const { v2Service, adminNetworkMediaService } = require('../../../config/container');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 const { validators } = require('../../../utils/validators');
+const { parseByteRange } = require('../../../utils/httpRangeUtils');
 
 const NETWORK_SORT_COLS = ['observed_at', 'bssid', 'ssid', 'threat_score_v2', 'bestlevel'];
 
@@ -186,12 +187,49 @@ router.get(
       });
     }
 
+    const buffer: Buffer = media.media_data;
+    const isVideo =
+      media.media_type === 'video' ||
+      (typeof media.mime_type === 'string' && media.mime_type.startsWith('video/'));
+    const mimeType = media.mime_type || (isVideo ? 'video/mp4' : 'application/octet-stream');
+    const totalSize = buffer.length;
+
     res.set({
-      'Content-Type': media.mime_type || 'application/octet-stream',
       'Content-Disposition': 'inline',
     });
 
-    res.send(media.media_data);
+    if (isVideo) {
+      res.set('Accept-Ranges', 'bytes');
+
+      const rangeHeader = req.headers.range;
+      const parsed = parseByteRange(rangeHeader, totalSize);
+
+      if (parsed.status === 'unsatisfiable') {
+        res.set('Content-Range', `bytes */${totalSize}`);
+        return res.status(416).end();
+      }
+
+      if (parsed.status === 'range' && parsed.start !== undefined && parsed.end !== undefined) {
+        const { start, end } = parsed;
+        const chunkSize = end - start + 1;
+
+        res.status(206);
+        res.set({
+          'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+          'Content-Length': String(chunkSize),
+          'Content-Type': mimeType,
+        });
+
+        return res.send(buffer.subarray(start, end + 1));
+      }
+    }
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Length': String(totalSize),
+    });
+
+    res.send(buffer);
   })
 );
 

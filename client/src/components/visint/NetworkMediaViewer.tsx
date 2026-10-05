@@ -124,7 +124,6 @@ export const NetworkMediaViewer: React.FC<NetworkMediaViewerProps> = ({
       typeof mimeType === 'string' && mimeType.startsWith('video/') ? mimeType : 'video/mp4';
     return (
       <video
-        src={mediaUrl}
         controls={controls}
         playsInline
         preload="metadata"

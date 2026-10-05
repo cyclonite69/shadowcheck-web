@@ -140,6 +140,139 @@ describe('v2 network routes', () => {
     expect(response.body.error.message).toBe('Media data not found');
   });
 
+  describe('video byte-range streaming (GET /api/v2/networks/media/:id/inline)', () => {
+    const videoBuffer = Buffer.from('0123456789'); // 10 bytes: offsets 0..9
+    const videoMedia = {
+      filename: 'traffic_cam.mp4',
+      mime_type: 'video/mp4',
+      media_type: 'video',
+      media_data: videoBuffer,
+      thumbnail: null,
+    };
+
+    it('returns 206 for bytes=0-3 with correct headers and chunk payload', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=0-3');
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe('bytes 0-3/10');
+      expect(res.headers['content-length']).toBe('4');
+      expect(res.headers['content-type']).toContain('video/mp4');
+      expect(res.headers['accept-ranges']).toBe('bytes');
+      expect(res.headers['content-disposition']).toBe('inline');
+      expect(res.body).toEqual(Buffer.from('0123'));
+    });
+
+    it('returns 206 for open-ended range bytes=4-', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=4-');
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe('bytes 4-9/10');
+      expect(res.headers['content-length']).toBe('6');
+      expect(res.headers['content-type']).toContain('video/mp4');
+      expect(res.headers['accept-ranges']).toBe('bytes');
+      expect(res.body).toEqual(Buffer.from('456789'));
+    });
+
+    it('returns 206 for open-ended range bytes=0-', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=0-');
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe('bytes 0-9/10');
+      expect(res.headers['content-length']).toBe('10');
+      expect(res.headers['content-type']).toContain('video/mp4');
+      expect(res.headers['accept-ranges']).toBe('bytes');
+      expect(res.body).toEqual(Buffer.from('0123456789'));
+    });
+
+    it('clamps oversized end offset to totalSize - 1 with 206 status', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=5-999');
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe('bytes 5-9/10');
+      expect(res.headers['content-length']).toBe('5');
+      expect(res.headers['content-type']).toContain('video/mp4');
+      expect(res.body).toEqual(Buffer.from('56789'));
+    });
+
+    it('returns 206 for suffix range bytes=-4', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=-4');
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe('bytes 6-9/10');
+      expect(res.headers['content-length']).toBe('4');
+      expect(res.headers['content-type']).toContain('video/mp4');
+      expect(res.body).toEqual(Buffer.from('6789'));
+    });
+
+    it('returns 416 with Content-Range: bytes */total for unsatisfiable ranges', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=50-100');
+
+      expect(res.status).toBe(416);
+      expect(res.headers['content-range']).toBe('bytes */10');
+    });
+
+    it('returns 200 with full video when Range header is omitted', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app).get('/api/v2/networks/media/10/inline');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('video/mp4');
+      expect(res.headers['content-length']).toBe('10');
+      expect(res.headers['accept-ranges']).toBe('bytes');
+      expect(res.headers['content-disposition']).toBe('inline');
+      expect(res.body).toEqual(Buffer.from('0123456789'));
+    });
+
+    it('ignores syntactically invalid Range and returns full 200 response', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'invalid-range');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-length']).toBe('10');
+      expect(res.body).toEqual(Buffer.from('0123456789'));
+    });
+
+    it('ignores multiple ranges and returns full 200 response', async () => {
+      mockMediaService.getNetworkMediaFile.mockResolvedValueOnce(videoMedia);
+
+      const res = await request(app)
+        .get('/api/v2/networks/media/10/inline')
+        .set('Range', 'bytes=0-1, 3-4');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-length']).toBe('10');
+      expect(res.body).toEqual(Buffer.from('0123456789'));
+    });
+  });
+
   it('passes service failures to error middleware', async () => {
     mockV2Service.getDashboardMetrics.mockRejectedValue(new Error('metrics failed'));
 
