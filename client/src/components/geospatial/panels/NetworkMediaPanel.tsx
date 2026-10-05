@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { networkApi, NetworkMediaItem } from '../../../api/networkApi';
+import { NetworkMediaViewer, NetworkMediaThumbnail } from '../../visint/NetworkMediaViewer';
 
 /**
  * NetworkMediaPanel — Surface app.network_media for a selected BSSID.
@@ -20,6 +21,7 @@ interface NetworkMediaPanelProps {
 
 export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
   const [media, setMedia] = useState<NetworkMediaItem[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<NetworkMediaItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,42 +104,14 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
                 alignItems: 'flex-start',
                 cursor: 'pointer',
               }}
-              onClick={() => window.open(item.inline_url, '_blank')}
+              onClick={() => setSelectedMedia(item)}
             >
-              {/* Thumbnail */}
-              {item.mime_type?.startsWith('image/') ? (
-                <img
-                  src={item.thumbnail_url}
-                  alt={item.filename ?? 'media'}
-                  style={{
-                    width: 52,
-                    height: 52,
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                    flexShrink: 0,
-                    border: '1px solid #475569',
-                  }}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    background: '#334155',
-                    borderRadius: 4,
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 20,
-                  }}
-                >
-                  🎬
-                </div>
-              )}
+              {/* Thumbnail / Indicator */}
+              <NetworkMediaThumbnail
+                item={item}
+                className="w-[52px] h-[52px] flex-shrink-0"
+                style={{ width: 52, height: 52, flexShrink: 0 }}
+              />
 
               {/* Metadata */}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -187,6 +161,115 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {selectedMedia && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10005,
+            padding: '16px',
+          }}
+          onClick={() => setSelectedMedia(null)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              background: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderBottom: '1px solid #1e293b',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#e2e8f0',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {selectedMedia.filename || 'Media Preview'}
+              </span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <a
+                  href={selectedMedia.inline_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '11px',
+                    color: '#38bdf8',
+                    textDecoration: 'none',
+                    padding: '2px 6px',
+                    border: '1px solid #0284c7',
+                    borderRadius: '4px',
+                  }}
+                >
+                  Open in New Tab ↗
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMedia(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    padding: '0 4px',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#020617',
+                minHeight: '200px',
+                maxHeight: '70vh',
+              }}
+            >
+              <NetworkMediaViewer
+                src={selectedMedia.inline_url}
+                mediaType={selectedMedia.media_type}
+                mimeType={selectedMedia.mime_type}
+                filename={selectedMedia.filename || 'evidence'}
+                className="max-h-[65vh] max-w-full object-contain"
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../../api/adminApi';
+import { NetworkMediaViewer } from './NetworkMediaViewer';
 
 interface DuplicateGroup {
   hash: string;
   ids: (number | string)[];
   filenames: string[];
+  media_types?: string[];
+  mime_types?: string[];
   count: number;
 }
 
@@ -82,10 +85,12 @@ export default function VisIntAttachmentsManager() {
                     key={id}
                     className="bg-slate-900 p-3 rounded border border-slate-700 flex flex-col items-center"
                   >
-                    <img
-                      src={`/api/admin/network-media/${id}/inline?thumbnail=true`}
-                      alt={`Media ${id}`}
-                      className="h-32 object-contain mb-2 bg-black w-full"
+                    <NetworkMediaViewer
+                      mediaId={id}
+                      mediaType={group.media_types?.[index]}
+                      mimeType={group.mime_types?.[index]}
+                      filename={group.filenames[index]}
+                      className="h-32 object-contain mb-2 bg-black w-full rounded"
                     />
                     <div className="text-xs text-slate-300 font-mono mb-2">ID: {id}</div>
                     <div

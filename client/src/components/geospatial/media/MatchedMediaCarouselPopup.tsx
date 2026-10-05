@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo, KeyboardEvent } from 'react';
 import { networkApi, NetworkMediaItem } from '../../../api/networkApi';
+import { NetworkMediaViewer, NetworkMediaThumbnail } from '../../visint/NetworkMediaViewer';
 
 interface MatchedMediaCarouselPopupProps {
   memberBssids: string[];
@@ -309,47 +310,14 @@ export const MatchedMediaCarouselPopup = ({
           borderBottom: '1px solid #1e293b',
         }}
       >
-        {activeItem.mime_type?.startsWith('image/') ? (
-          <img
-            src={activeItem.inline_url}
-            alt={`Evidence for BSSID ${activeItem.source_bssid} - ${activeItem.filename ?? 'unknown'}`}
-            style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              objectFit: 'contain',
-              cursor: 'pointer',
-            }}
-            onClick={() => window.open(activeItem.inline_url, '_blank')}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const fallback = document.createElement('div');
-                fallback.innerText = '⚠️ Image unavailable';
-                fallback.style.color = '#ef4444';
-                fallback.style.fontFamily = 'monospace';
-                parent.appendChild(fallback);
-              }
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              fontSize: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              width: '100%',
-              background: '#1e293b',
-              color: '#94a3b8',
-              cursor: 'pointer',
-            }}
-            onClick={() => window.open(activeItem.inline_url, '_blank')}
-          >
-            🎬
-          </div>
-        )}
+        <NetworkMediaViewer
+          src={activeItem.inline_url}
+          mediaType={activeItem.media_type}
+          mimeType={activeItem.mime_type}
+          filename={activeItem.filename || 'evidence'}
+          className="max-w-full max-h-full object-contain"
+          style={{ maxHeight: '180px' }}
+        />
 
         {/* Carousel Prev/Next Buttons */}
         {items.length > 1 && (
@@ -607,15 +575,7 @@ export const MatchedMediaCarouselPopup = ({
                   justifyContent: 'center',
                 }}
               >
-                {item.mime_type?.startsWith('image/') ? (
-                  <img
-                    src={item.thumbnail_url}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <span style={{ fontSize: '14px' }}>🎬</span>
-                )}
+                <NetworkMediaThumbnail item={item} className="w-full h-full" />
               </div>
             );
           })}

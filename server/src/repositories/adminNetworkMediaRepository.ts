@@ -93,7 +93,7 @@ export async function selectNetworkMediaList(bssid: string): Promise<any[]> {
 
 export async function selectNetworkMediaFile(id: string): Promise<any | null> {
   const result = await query(
-    'SELECT filename, mime_type, media_data, thumbnail FROM app.network_media WHERE id = $1',
+    'SELECT filename, mime_type, media_type, media_data, thumbnail FROM app.network_media WHERE id = $1',
     [id]
   );
   return result.rows.length > 0 ? result.rows[0] : null;
@@ -573,7 +573,12 @@ export async function deleteNetworkMedia(id: string): Promise<any | null> {
 
 export async function getDuplicateMediaGroups(): Promise<any[]> {
   const result = await query(`
-    SELECT image_sha256 as hash, array_agg(id) as ids, array_agg(filename) as filenames, count(*) as count
+    SELECT image_sha256 as hash,
+           array_agg(id ORDER BY id) as ids,
+           array_agg(filename ORDER BY id) as filenames,
+           array_agg(media_type ORDER BY id) as media_types,
+           array_agg(mime_type ORDER BY id) as mime_types,
+           count(*) as count
     FROM app.network_media
     WHERE image_sha256 IS NOT NULL
     GROUP BY image_sha256
