@@ -31,9 +31,14 @@ The test stack connects to the main postgres and redis containers. Make sure the
 # Start main infrastructure (Postgres, Redis)
 docker compose up -d postgres redis
 
-# Build and start the test runtime containers
+# Build and start the test runtime containers (without external API keys)
 docker compose -f docker-compose.test.yml up -d --build
+
+# Alternatively, start with API key overrides from .env.test (fails if .env.test does not exist)
+docker compose --env-file .env --env-file .env.test -f docker-compose.test.yml up -d --build
 ```
+
+> **Note on Sandbox Secrets**: Real secret values belong in the gitignored `.env.test` file (which is also excluded from container build layers via `.dockerignore`). Create `.env.test` by hand from `.env.test.example` AFTER this change is merged.
 
 ### 2. Verification
 

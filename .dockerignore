@@ -4,7 +4,9 @@ npm-debug.log
 yarn-error.log
 
 # Environment files
+# Blocks any root-level .env.<name> from entering build layers (including .env.test)
 .env
+.env.*
 .env.local
 .env.*.local
 

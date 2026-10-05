@@ -5,6 +5,12 @@ version: "3.8"
 #   - frontend-test to port 8081 (target: shadowcheck_test DB)
 #   - api-test to port 3002 (target: shadowcheck_test DB)
 # Connects to the existing postgres & redis containers on the default project network.
+#
+# Launch commands:
+#   - Without API keys (default):
+#       docker compose -f docker-compose.test.yml up -d --build
+#   - With API keys (.env.test overrides; fails if .env.test does not exist):
+#       docker compose --env-file .env --env-file .env.test -f docker-compose.test.yml up -d --build
 
 services:
   api-test:
@@ -47,6 +53,17 @@ services:
       ADMIN_ALLOW_DOCKER: "false"
       API_RUN_AS_ROOT_FOR_DOCKER: "false"
       MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+      MAPBOX_UNLIMITED_API_KEY: ${MAPBOX_UNLIMITED_API_KEY:-}
+      OPENCAGE_API_KEY: ${OPENCAGE_API_KEY:-}
+      LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY:-}
+      GEOCODIO_API_KEY: ${GEOCODIO_API_KEY:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      SMARTY_AUTH_ID: ${SMARTY_AUTH_ID:-}
+      SMARTY_AUTH_TOKEN: ${SMARTY_AUTH_TOKEN:-}
+      WIGLE_API_NAME: ${WIGLE_API_NAME:-}
+      WIGLE_API_TOKEN: ${WIGLE_API_TOKEN:-}
+      WIGLE_API_ENCODED: ${WIGLE_API_ENCODED:-}
+      SHADOWCHECK_API_KEY: ${SHADOWCHECK_API_KEY:-}
       HOME: /home/nodejs
     ports:
       - "127.0.0.1:3002:3001"
