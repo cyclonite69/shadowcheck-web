@@ -1493,6 +1493,7 @@
 - **wigle:** consolidate all outbound calls through wigleGateway.ts ([#295](https://github.com/cyclonite69/shadowcheck-web/issues/295)) ([c86c0c4](https://github.com/cyclonite69/shadowcheck-web/commit/c86c0c454e23fbe0212703c3d4865a111014844f))
 - **wigle:** enrich WiGLE v3 and detail results with local forensic data (threat scores, geocoding, manufacturer) ([516e558](https://github.com/cyclonite69/shadowcheck-web/commit/516e5585c13cdd35a1ac5839315e6e7dfae7db89))
 - **wigleEnrichment:** support multi-select targeted batch enrichment (up to 100) ([bcc8baa](https://github.com/cyclonite69/shadowcheck-web/commit/bcc8baa29a7298e01f871672984714f311241e51))
+- **wigle:** implement asynchronous import dispatch and advisory locking ([39587a4](https://github.com/cyclonite69/shadowcheck-web/commit/39587a440217b1c803ffac7ec13574d248678bef))
 - **wigle:** implement resumable v3 batch enrichment for v2 search results ([f05fb56](https://github.com/cyclonite69/shadowcheck-web/commit/f05fb56805be90c94613603e43c9403c1aa2bd34))
 - **wigle:** implement v3 enrichment manager with catalog browser and re-import support ([4cb5ae4](https://github.com/cyclonite69/shadowcheck-web/commit/4cb5ae42d4bacc638e0c4f749f910dfe2c6431a4))
 - **wigle:** inline tooltip on search result row click ([5678707](https://github.com/cyclonite69/shadowcheck-web/commit/56787079c7dcb4da5972e011bbdc6e7104c71de4))

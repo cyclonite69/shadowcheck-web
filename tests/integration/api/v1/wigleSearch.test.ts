@@ -11,6 +11,9 @@ const mockContainer = {
     startImportRun: jest.fn(),
     resumeImportRun: jest.fn(),
     resumeLatestImportRun: jest.fn(),
+    dispatchImportRun: jest.fn(),
+    dispatchResumeImportRun: jest.fn(),
+    dispatchResumeLatestImportRun: jest.fn(),
     listImportRuns: jest.fn(),
     getImportCompletenessReport: jest.fn(),
     getImportRun: jest.fn(),
@@ -24,6 +27,8 @@ const mockContainer = {
     validateBtImportQuery: jest.fn(),
     startBluetoothImportRun: jest.fn(),
     resumeBluetoothImportRun: jest.fn(),
+    dispatchBluetoothImportRun: jest.fn(),
+    dispatchResumeBluetoothImportRun: jest.fn(),
   },
 };
 
@@ -258,26 +263,30 @@ describe('WiGLE Search API v1', () => {
   });
 
   describe('POST /search-api/import-all', () => {
-    it('should start an import run', async () => {
+    it('should start an import run via async dispatch (202 Accepted)', async () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
-      mockContainer.wigleImportRunService.startImportRun.mockResolvedValue({
-        id: 123,
-        status: 'running',
-        apiTotalResults: 100,
-        rowsReturned: 0,
-        rowsInserted: 0,
-        pagesFetched: 0,
-        totalPages: 10,
+      mockContainer.wigleImportRunService.dispatchImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 123,
+          status: 'running',
+          apiTotalResults: 100,
+          rowsReturned: 0,
+          rowsInserted: 0,
+          pagesFetched: 0,
+          totalPages: 10,
+        },
       });
 
       const res = await request(app).post('/api/wigle/search-api/import-all').send({
         ssid: 'TestNet',
       });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
       expect(res.body.ok).toBe(true);
+      expect(res.body.status).toBe('dispatched');
       expect(res.body.run.id).toBe(123);
-      expect(mockContainer.wigleImportRunService.startImportRun).toHaveBeenCalled();
+      expect(mockContainer.wigleImportRunService.dispatchImportRun).toHaveBeenCalled();
     });
 
     it('validates import queries before starting', async () => {
@@ -289,43 +298,87 @@ describe('WiGLE Search API v1', () => {
 
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ ok: false, error: 'invalid query' });
-      expect(mockContainer.wigleImportRunService.startImportRun).not.toHaveBeenCalled();
+      expect(mockContainer.wigleImportRunService.dispatchImportRun).not.toHaveBeenCalled();
     });
 
-    it('resumes a specific import run', async () => {
+    it('resumes a specific import run via async dispatch (202 Accepted)', async () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
-      mockContainer.wigleImportRunService.resumeImportRun.mockResolvedValue({
-        id: 44,
-        status: 'running',
+      mockContainer.wigleImportRunService.dispatchResumeImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 44,
+          status: 'running',
+        },
       });
 
       const res = await request(app).post('/api/wigle/search-api/import-all').send({ runId: '44' });
 
-      expect(res.status).toBe(200);
-      expect(mockContainer.wigleImportRunService.resumeImportRun).toHaveBeenCalledWith(44);
+      expect(res.status).toBe(202);
+      expect(res.body.status).toBe('dispatched');
+      expect(mockContainer.wigleImportRunService.dispatchResumeImportRun).toHaveBeenCalledWith(44);
     });
 
-    it('resumes the latest matching import run', async () => {
+    it('resumes the latest matching import run via async dispatch (202 Accepted)', async () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
-      mockContainer.wigleImportRunService.resumeLatestImportRun.mockResolvedValue({
-        id: 45,
-        status: 'running',
+      mockContainer.wigleImportRunService.dispatchResumeLatestImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 45,
+          status: 'running',
+        },
       });
 
       const res = await request(app)
         .post('/api/wigle/search-api/import-all')
         .send({ resumeLatest: true, state: 'NY' });
 
-      expect(res.status).toBe(200);
-      expect(mockContainer.wigleImportRunService.resumeLatestImportRun).toHaveBeenCalledWith({
+      expect(res.status).toBe(202);
+      expect(res.body.status).toBe('dispatched');
+      expect(
+        mockContainer.wigleImportRunService.dispatchResumeLatestImportRun
+      ).toHaveBeenCalledWith({
         resumeLatest: true,
         state: 'NY',
       });
     });
 
+    it('returns 200 for idempotent same-run resume when already running', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
+      mockContainer.wigleImportRunService.dispatchResumeImportRun.mockResolvedValue({
+        status: 'already_running',
+        isSameRun: true,
+        activeRunId: 44,
+        run: { id: 44, status: 'running' },
+      });
+
+      const res = await request(app).post('/api/wigle/search-api/import-all').send({ runId: '44' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('already_running');
+      expect(res.body.run.id).toBe(44);
+    });
+
+    it('returns 409 conflict when another run is currently executing', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
+      mockContainer.wigleImportRunService.dispatchImportRun.mockResolvedValue({
+        status: 'already_running',
+        isSameRun: false,
+        activeRunId: 99,
+        error: 'Another WiGLE import (run 99) is currently running',
+      });
+
+      const res = await request(app)
+        .post('/api/wigle/search-api/import-all')
+        .send({ ssid: 'NewNet' });
+
+      expect(res.status).toBe(409);
+      expect(res.body.status).toBe('already_running');
+      expect(res.body.activeRunId).toBe(99);
+    });
+
     it('returns structured forbidden errors', async () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
-      mockContainer.wigleImportRunService.startImportRun.mockRejectedValue(
+      mockContainer.wigleImportRunService.dispatchImportRun.mockRejectedValue(
         Object.assign(new Error('quota exhausted'), { status: 403, code: 'QUOTA' })
       );
 
@@ -490,18 +543,23 @@ describe('WiGLE Search API v1', () => {
       mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
     });
 
-    it('resumes the latest matching run', async () => {
-      mockContainer.wigleImportRunService.resumeLatestImportRun.mockResolvedValue({
-        id: 9,
-        status: 'running',
+    it('resumes the latest matching run via async dispatch (202 Accepted)', async () => {
+      mockContainer.wigleImportRunService.dispatchResumeLatestImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 9,
+          status: 'running',
+        },
       });
 
       const res = await request(app)
         .post('/api/wigle/search-api/import-runs/resume-latest')
         .send({ state: 'CA' });
 
-      expect(res.status).toBe(200);
-      expect(mockContainer.wigleImportRunService.resumeLatestImportRun).toHaveBeenCalledWith({
+      expect(res.status).toBe(202);
+      expect(
+        mockContainer.wigleImportRunService.dispatchResumeLatestImportRun
+      ).toHaveBeenCalledWith({
         state: 'CA',
       });
     });
@@ -511,7 +569,7 @@ describe('WiGLE Search API v1', () => {
       const invalid = await request(app).post('/api/wigle/search-api/import-runs/resume-latest');
       expect(invalid.status).toBe(400);
 
-      mockContainer.wigleImportRunService.resumeLatestImportRun.mockRejectedValue(
+      mockContainer.wigleImportRunService.dispatchResumeLatestImportRun.mockRejectedValue(
         Object.assign(new Error('quota exhausted'), { status: 403, code: 'QUOTA' })
       );
       const forbidden = await request(app).post('/api/wigle/search-api/import-runs/resume-latest');
@@ -533,9 +591,12 @@ describe('WiGLE Search API v1', () => {
     });
 
     it('resumes, pauses, and cancels a run by id', async () => {
-      mockContainer.wigleImportRunService.resumeImportRun.mockResolvedValue({
-        id: 11,
-        status: 'running',
+      mockContainer.wigleImportRunService.dispatchResumeImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 11,
+          status: 'running',
+        },
       });
       mockContainer.wigleImportRunService.pauseImportRun.mockResolvedValue({
         id: 11,
@@ -550,7 +611,8 @@ describe('WiGLE Search API v1', () => {
       const paused = await request(app).post('/api/wigle/search-api/import-runs/11/pause');
       const cancelled = await request(app).post('/api/wigle/search-api/import-runs/11/cancel');
 
-      expect(resumed.status).toBe(200);
+      expect(resumed.status).toBe(202);
+      expect(mockContainer.wigleImportRunService.dispatchResumeImportRun).toHaveBeenCalledWith(11);
       expect(paused.body.run.status).toBe('paused');
       expect(cancelled.body.run.status).toBe('cancelled');
     });
@@ -586,29 +648,35 @@ describe('WiGLE Search API v1', () => {
   });
 
   describe('POST /search-api/bt-import-start', () => {
-    it('starts a validated Bluetooth import', async () => {
+    it('starts a validated Bluetooth import via async dispatch (202 Accepted)', async () => {
       mockContainer.wigleBluetoothImportService.validateBtImportQuery.mockReturnValue(null);
-      mockContainer.wigleBluetoothImportService.startBluetoothImportRun.mockResolvedValue({
-        id: 21,
-        status: 'running',
+      mockContainer.wigleBluetoothImportService.dispatchBluetoothImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 21,
+          status: 'running',
+        },
       });
 
       const res = await request(app)
         .post('/api/wigle/search-api/bt-import-start')
         .send({ namelike: 'sensor' });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
       expect(
-        mockContainer.wigleBluetoothImportService.startBluetoothImportRun
+        mockContainer.wigleBluetoothImportService.dispatchBluetoothImportRun
       ).toHaveBeenCalledWith({
         namelike: 'sensor',
       });
     });
 
-    it('resumes a Bluetooth import and validates run ids', async () => {
-      mockContainer.wigleBluetoothImportService.resumeBluetoothImportRun.mockResolvedValue({
-        id: 22,
-        status: 'running',
+    it('resumes a Bluetooth import via async dispatch (202 Accepted) and validates run ids', async () => {
+      mockContainer.wigleBluetoothImportService.dispatchResumeBluetoothImportRun.mockResolvedValue({
+        status: 'dispatched',
+        run: {
+          id: 22,
+          status: 'running',
+        },
       });
 
       const resumed = await request(app)
@@ -618,11 +686,46 @@ describe('WiGLE Search API v1', () => {
         .post('/api/wigle/search-api/bt-import-start')
         .send({ runId: 'bad' });
 
-      expect(resumed.status).toBe(200);
+      expect(resumed.status).toBe(202);
       expect(
-        mockContainer.wigleBluetoothImportService.resumeBluetoothImportRun
+        mockContainer.wigleBluetoothImportService.dispatchResumeBluetoothImportRun
       ).toHaveBeenCalledWith(22);
       expect(invalid.status).toBe(400);
+    });
+
+    it('returns 200 for idempotent same-run resume when BT run is already running', async () => {
+      mockContainer.wigleBluetoothImportService.dispatchResumeBluetoothImportRun.mockResolvedValue({
+        status: 'already_running',
+        isSameRun: true,
+        activeRunId: 22,
+        run: { id: 22, status: 'running' },
+      });
+
+      const res = await request(app)
+        .post('/api/wigle/search-api/bt-import-start')
+        .send({ runId: '22' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('already_running');
+      expect(res.body.run.id).toBe(22);
+    });
+
+    it('returns 409 conflict when another run is executing during BT start', async () => {
+      mockContainer.wigleBluetoothImportService.validateBtImportQuery.mockReturnValue(null);
+      mockContainer.wigleBluetoothImportService.dispatchBluetoothImportRun.mockResolvedValue({
+        status: 'already_running',
+        isSameRun: false,
+        activeRunId: 77,
+        error: 'Another WiGLE import (run 77) is currently running',
+      });
+
+      const res = await request(app)
+        .post('/api/wigle/search-api/bt-import-start')
+        .send({ namelike: 'beacon' });
+
+      expect(res.status).toBe(409);
+      expect(res.body.status).toBe('already_running');
+      expect(res.body.activeRunId).toBe(77);
     });
 
     it('returns validation and forbidden errors', async () => {
@@ -633,7 +736,7 @@ describe('WiGLE Search API v1', () => {
       expect(invalid.status).toBe(400);
 
       mockContainer.wigleBluetoothImportService.validateBtImportQuery.mockReturnValue(null);
-      mockContainer.wigleBluetoothImportService.startBluetoothImportRun.mockRejectedValue(
+      mockContainer.wigleBluetoothImportService.dispatchBluetoothImportRun.mockRejectedValue(
         Object.assign(new Error('quota exhausted'), { status: 403, code: 'QUOTA' })
       );
       const forbidden = await request(app).post('/api/wigle/search-api/bt-import-start');

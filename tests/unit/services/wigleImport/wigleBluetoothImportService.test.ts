@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import {
   startBluetoothImportRun,
   resumeBluetoothImportRun,
+  dispatchBluetoothImportRun,
+  dispatchResumeBluetoothImportRun,
 } from '../../../../server/src/services/wigleImport/wigleBluetoothImportService';
 
 // Mock dependencies
@@ -11,12 +13,27 @@ const btPageProcessor = require('../../../../server/src/services/wigleImport/btP
 const authProvider = require('../../../../server/src/services/wigleImport/authProvider');
 const rateLimitingStrategy = require('../../../../server/src/services/wigleImport/rateLimitingStrategy');
 const btApiClient = require('../../../../server/src/services/wigleImport/btApiClient');
+const adminDbService = require('../../../../server/src/services/adminDbService');
+const wigleLocks = require('../../../../server/src/services/wigleImport/wigleLocks');
 
 jest.mock('../../../../server/src/logging/logger', () => ({
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
   debug: jest.fn(),
+}));
+
+jest.mock('../../../../server/src/services/adminDbService', () => ({
+  getLongRunningAdminPool: jest.fn(),
+}));
+
+jest.mock('../../../../server/src/services/wigleImport/wigleLocks', () => ({
+  acquireGlobalWigleLock: jest.fn(),
+  acquireRunWigleLock: jest.fn(),
+  releaseRunWigleLock: jest.fn(),
+  releaseGlobalWigleLock: jest.fn(),
+  findActiveWigleRunId: jest.fn(),
+  transitionRunToRunning: jest.fn(),
 }));
 
 jest.mock('../../../../server/src/services/wigleImport/runRepository', () => ({
@@ -58,8 +75,27 @@ jest.mock('../../../../server/src/services/wigleImport/btApiClient', () => ({
 }));
 
 describe('wigleBluetoothImportService', () => {
+  let mockClient: any;
+  let mockPool: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockClient = {
+      query: (jest.fn() as any).mockResolvedValue({ rows: [] }),
+      release: jest.fn(),
+    };
+    mockPool = {
+      connect: (jest.fn() as any).mockResolvedValue(mockClient),
+    };
+    (adminDbService.getLongRunningAdminPool as any).mockReturnValue(mockPool);
+    (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValue(true);
+    (wigleLocks.acquireRunWigleLock as any).mockResolvedValue(true);
+    (wigleLocks.transitionRunToRunning as any).mockImplementation((_client: any, runId: number) =>
+      Promise.resolve({ id: runId, status: 'running' })
+    );
+    (wigleLocks.releaseGlobalWigleLock as any).mockResolvedValue(true);
+    (wigleLocks.releaseRunWigleLock as any).mockResolvedValue(true);
   });
 
   describe('startBluetoothImportRun', () => {
@@ -84,7 +120,7 @@ describe('wigleBluetoothImportService', () => {
 
       const result = await startBluetoothImportRun({});
       expect(result).toEqual({ id: 42, status: 'completed' });
-      expect(runRepository.resumeRunState).toHaveBeenCalledWith(42);
+      expect(wigleLocks.transitionRunToRunning).toHaveBeenCalledWith(mockClient, 42);
     });
 
     it('creates and executes a new run if no resumable run exists', async () => {
@@ -103,9 +139,29 @@ describe('wigleBluetoothImportService', () => {
       expect(result).toEqual({ id: 99, status: 'completed' });
       expect(runRepository.createImportRun).toHaveBeenCalled();
     });
+
+    it('throws error if long running admin pool is unavailable', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (adminDbService.getLongRunningAdminPool as any).mockReturnValueOnce(null);
+      await expect(startBluetoothImportRun({})).rejects.toThrow(
+        /Long-running admin database pool not initialized/
+      );
+    });
   });
 
   describe('resumeBluetoothImportRun', () => {
+    it('throws error if long running admin pool is unavailable', async () => {
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({
+        id: 110,
+        status: 'paused',
+        source: 'wigle_bt',
+      });
+      (adminDbService.getLongRunningAdminPool as any).mockReturnValueOnce(null);
+      await expect(resumeBluetoothImportRun(110)).rejects.toThrow(
+        /Long-running admin database pool not initialized/
+      );
+    });
+
     it('returns the import run directly if already completed', async () => {
       (runRepository.getRunOrThrow as any).mockResolvedValueOnce({ id: 10, status: 'completed' });
       (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 10, status: 'completed' });
@@ -132,7 +188,7 @@ describe('wigleBluetoothImportService', () => {
 
       const result = await resumeBluetoothImportRun(12);
       expect(result).toEqual({ id: 12, status: 'completed' });
-      expect(runRepository.resumeRunState).toHaveBeenCalledWith(12);
+      expect(wigleLocks.transitionRunToRunning).toHaveBeenCalledWith(mockClient, 12);
     });
   });
 
@@ -345,6 +401,189 @@ describe('wigleBluetoothImportService', () => {
         100,
         true
       );
+    });
+  });
+
+  describe('dispatchBluetoothImportRun', () => {
+    let mockClient: any;
+    let mockPool: any;
+
+    beforeEach(() => {
+      mockClient = {
+        query: (jest.fn() as any).mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      mockPool = {
+        connect: (jest.fn() as any).mockResolvedValue(mockClient),
+      };
+      (adminDbService.getLongRunningAdminPool as any).mockReturnValue(mockPool);
+      (wigleLocks.releaseGlobalWigleLock as any).mockResolvedValue(true);
+      (wigleLocks.releaseRunWigleLock as any).mockResolvedValue(true);
+    });
+
+    it('rejects if query validation fails', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce('Invalid BT query');
+      await expect(dispatchBluetoothImportRun({})).rejects.toThrow('Invalid BT query');
+    });
+
+    it('throws if long running pool unavailable', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (adminDbService.getLongRunningAdminPool as any).mockReturnValueOnce(null);
+      await expect(dispatchBluetoothImportRun({})).rejects.toThrow(
+        /Long-running admin database pool not initialized/
+      );
+    });
+
+    it('returns already_running if global lock is unavailable', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (btParams.normalizeBtImportParams as any).mockReturnValueOnce({ term: 'bt' });
+      (btParams.getBtRequestFingerprint as any).mockReturnValueOnce('fp-99');
+      (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValueOnce(false);
+      (wigleLocks.findActiveWigleRunId as any).mockResolvedValueOnce(88);
+      (runRepository.findRunByRawFingerprint as any).mockResolvedValueOnce({
+        id: 88,
+        status: 'running',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 88, status: 'running' });
+
+      const result = await dispatchBluetoothImportRun({});
+      expect(result.status).toBe('already_running');
+      if (result.status === 'already_running') {
+        expect(result.isSameRun).toBe(true);
+        expect(result.activeRunId).toBe(88);
+      }
+      expect(mockClient.release).toHaveBeenCalled();
+    });
+
+    it('acquires locks and dispatches new BT import run', async () => {
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (btParams.normalizeBtImportParams as any).mockReturnValueOnce({ term: 'bt' });
+      (btParams.getBtRequestFingerprint as any).mockReturnValueOnce('fp-99');
+      (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValueOnce(true);
+      (runRepository.findRunByRawFingerprint as any).mockResolvedValueOnce(null);
+      (runRepository.createImportRun as any).mockResolvedValueOnce({ id: 60, status: 'running' });
+      (wigleLocks.acquireRunWigleLock as any).mockResolvedValueOnce(true);
+      (wigleLocks.transitionRunToRunning as any).mockResolvedValueOnce({
+        id: 60,
+        status: 'running',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 60, status: 'running' });
+
+      const result = await dispatchBluetoothImportRun({});
+      expect(result.status).toBe('dispatched');
+      if (result.status === 'dispatched') {
+        expect(result.run.id).toBe(60);
+      }
+      expect(wigleLocks.acquireGlobalWigleLock).toHaveBeenCalledWith(mockClient);
+      expect(wigleLocks.acquireRunWigleLock).toHaveBeenCalledWith(mockClient, 60);
+    });
+
+    it('does not revoke locks or double release client if getImportRun throws after worker spawned', async () => {
+      let resolveWorker!: (val?: any) => void;
+      const workerPromise = new Promise((resolve) => {
+        resolveWorker = resolve;
+      });
+
+      (btParams.validateBtImportQuery as any).mockReturnValueOnce(null);
+      (btParams.normalizeBtImportParams as any).mockReturnValueOnce({ term: 'bt' });
+      (btParams.getBtRequestFingerprint as any).mockReturnValueOnce('fp-100');
+      (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValueOnce(true);
+      (runRepository.findRunByRawFingerprint as any).mockResolvedValueOnce(null);
+      (runRepository.createImportRun as any).mockResolvedValueOnce({ id: 65, status: 'running' });
+      (wigleLocks.acquireRunWigleLock as any).mockResolvedValueOnce(true);
+      (wigleLocks.transitionRunToRunning as any).mockResolvedValueOnce({
+        id: 65,
+        status: 'running',
+      });
+      (runRepository.getImportRun as any).mockRejectedValueOnce(new Error('Serialization timeout'));
+      (runRepository.reconcileRunProgress as any).mockImplementationOnce(() => workerPromise);
+
+      await expect(dispatchBluetoothImportRun({})).rejects.toThrow('Serialization timeout');
+
+      // The outer dispatcher must NOT have released the locks or client while worker is running
+      expect(wigleLocks.releaseRunWigleLock).not.toHaveBeenCalled();
+      expect(wigleLocks.releaseGlobalWigleLock).not.toHaveBeenCalled();
+      expect(mockClient.release).not.toHaveBeenCalled();
+
+      // Background worker completes and cleans up
+      resolveWorker({ id: 65, status: 'completed' });
+      await workerPromise;
+      await new Promise(process.nextTick);
+
+      expect(wigleLocks.releaseRunWigleLock).toHaveBeenCalledWith(mockClient, 65);
+      expect(wigleLocks.releaseGlobalWigleLock).toHaveBeenCalledWith(mockClient);
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('dispatchResumeBluetoothImportRun', () => {
+    let mockClient: any;
+    let mockPool: any;
+
+    beforeEach(() => {
+      mockClient = {
+        query: (jest.fn() as any).mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      mockPool = {
+        connect: (jest.fn() as any).mockResolvedValue(mockClient),
+      };
+      (adminDbService.getLongRunningAdminPool as any).mockReturnValue(mockPool);
+      (wigleLocks.releaseGlobalWigleLock as any).mockResolvedValue(true);
+      (wigleLocks.releaseRunWigleLock as any).mockResolvedValue(true);
+    });
+
+    it('rejects invalid runId or completed/cancelled run', async () => {
+      await expect(dispatchResumeBluetoothImportRun(Number.NaN)).rejects.toThrow('Invalid run id');
+
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({ id: 50, status: 'completed' });
+      await expect(dispatchResumeBluetoothImportRun(50)).rejects.toThrow(/already completed/);
+
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({ id: 51, status: 'cancelled' });
+      await expect(dispatchResumeBluetoothImportRun(51)).rejects.toThrow(/cancelled/);
+    });
+
+    it('throws if attempting to resume a WiFi run via Bluetooth dispatch', async () => {
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({
+        id: 54,
+        status: 'paused',
+        source: 'wigle',
+      });
+      await expect(dispatchResumeBluetoothImportRun(54)).rejects.toThrow(
+        /Cannot resume non-Bluetooth import run via Bluetooth service/
+      );
+    });
+
+    it('returns already_running when global lock held', async () => {
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({ id: 52, status: 'running' });
+      (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValueOnce(false);
+      (wigleLocks.findActiveWigleRunId as any).mockResolvedValueOnce(52);
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 52, status: 'running' });
+
+      const result = await dispatchResumeBluetoothImportRun(52);
+      expect(result.status).toBe('already_running');
+      if (result.status === 'already_running') {
+        expect(result.isSameRun).toBe(true);
+        expect(result.activeRunId).toBe(52);
+      }
+      expect(mockClient.release).toHaveBeenCalled();
+    });
+
+    it('dispatches resumption when locks acquired', async () => {
+      (runRepository.getRunOrThrow as any).mockResolvedValueOnce({ id: 53, status: 'paused' });
+      (wigleLocks.acquireGlobalWigleLock as any).mockResolvedValueOnce(true);
+      (wigleLocks.acquireRunWigleLock as any).mockResolvedValueOnce(true);
+      (wigleLocks.transitionRunToRunning as any).mockResolvedValueOnce({
+        id: 53,
+        status: 'running',
+      });
+      (runRepository.getImportRun as any).mockResolvedValueOnce({ id: 53, status: 'running' });
+
+      const result = await dispatchResumeBluetoothImportRun(53);
+      expect(result.status).toBe('dispatched');
+      if (result.status === 'dispatched') {
+        expect(result.run.id).toBe(53);
+      }
     });
   });
 });

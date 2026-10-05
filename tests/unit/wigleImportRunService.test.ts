@@ -75,8 +75,18 @@ jest.mock('../../server/src/config/database', () => ({
   },
 }));
 
+const mockAdminPoolClient = {
+  query: jest.fn().mockImplementation((sql: string, params: any[]) => executeSql(sql, params)),
+  release: jest.fn(),
+};
+
+const mockAdminPool = {
+  connect: jest.fn().mockImplementation(async () => mockAdminPoolClient),
+};
+
 jest.mock('../../server/src/services/adminDbService', () => ({
   adminQuery: (...args: any[]) => mockAdminQuery(...args),
+  getLongRunningAdminPool: () => mockAdminPool,
 }));
 
 jest.mock('../../server/src/services/secretsManager', () => ({
@@ -116,6 +126,22 @@ const executeSql = async (sql: string, params: any[] = []) => {
     normalized.startsWith('RELEASE SAVEPOINT') ||
     normalized.startsWith('ROLLBACK TO SAVEPOINT')
   ) {
+    return { rows: [], rowCount: 0 };
+  }
+
+  if (normalized.includes('pg_try_advisory_lock')) {
+    return { rows: [{ acquired: true }], rowCount: 1 };
+  }
+
+  if (normalized.includes('pg_advisory_unlock')) {
+    return { rows: [{ released: true }], rowCount: 1 };
+  }
+
+  if (normalized.includes('FROM pg_locks')) {
+    return { rows: [], rowCount: 0 };
+  }
+
+  if (normalized.includes("UPDATE app.wigle_import_runs SET status = 'paused'")) {
     return { rows: [], rowCount: 0 };
   }
 
@@ -382,6 +408,11 @@ beforeEach(() => {
     query: (sql: string, params?: any[]) => executeSql(sql, params),
     release: jest.fn(),
   });
+  mockAdminPool.connect.mockImplementation(async () => mockAdminPoolClient);
+  mockAdminPoolClient.release = jest.fn();
+  mockAdminPoolClient.query = jest
+    .fn()
+    .mockImplementation((sql: string, params: any[]) => executeSql(sql, params));
   mockSecretGet.mockImplementation((key: string) => {
     if (key === 'wigle_api_name') {
       return 'user';

@@ -65,6 +65,19 @@ require('ts-node').register({
     const mobileIngestService = require('./src/services/mobileIngestService').default;
     await mobileIngestService.recoverStuckUploads();
 
+    const { reconcileOrphanRuns } = require('./src/services/wigleImportRunService');
+    try {
+      const orphanResult = await reconcileOrphanRuns();
+      if (orphanResult.reconciledCount > 0) {
+        logger.info(
+          `[WiGLE Import] Recovered ${orphanResult.reconciledCount} orphaned import run(s) at startup`,
+          { runIds: orphanResult.reconciledIds }
+        );
+      }
+    } catch (err: any) {
+      logger.warn('[WiGLE Import] Startup orphan reconciliation skipped', { error: err.message });
+    }
+
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
     // ============================================================================

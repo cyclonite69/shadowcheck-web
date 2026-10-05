@@ -77,19 +77,52 @@ router.post(
         query.runId !== null && query.runId !== undefined
           ? Number.parseInt(String(query.runId), 10)
           : null;
+      if (query.runId && (!runId || !Number.isFinite(runId))) {
+        return res.status(400).json({ ok: false, error: 'Invalid runId' });
+      }
+
       const resumeLatest = query.resumeLatest === true || query.resumeLatest === 'true';
 
-      const run = runId
-        ? await wigleImportRunService.resumeImportRun(runId)
+      const dispatch = runId
+        ? await wigleImportRunService.dispatchResumeImportRun(runId)
         : resumeLatest
-          ? await wigleImportRunService.resumeLatestImportRun(query)
-          : await wigleImportRunService.startImportRun(query);
+          ? await wigleImportRunService.dispatchResumeLatestImportRun(query)
+          : await wigleImportRunService.dispatchImportRun(query);
 
-      return res.json(buildRunImportResponse(run));
+      if (dispatch.status === 'already_running') {
+        if (dispatch.isSameRun && dispatch.run) {
+          return res.status(200).json({
+            status: 'already_running',
+            ...buildRunImportResponse(dispatch.run),
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          status: 'already_running',
+          activeRunId: dispatch.activeRunId,
+          error:
+            dispatch.error ||
+            `Another WiGLE import (run ${dispatch.activeRunId ?? 'unknown'}) is currently running`,
+        });
+      }
+
+      return res.status(202).json({
+        status: 'dispatched',
+        ...buildRunImportResponse(dispatch.run),
+      });
     } catch (err: any) {
       logger.error(`[WiGLE] Import-all error: ${err.message}`, { error: err });
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
+      if (err?.message?.includes('not found')) {
+        return res.status(404).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.message?.includes('already completed') ||
+        err?.message?.includes('cancelled WiGLE import run')
+      ) {
+        return res.status(400).json({ ok: false, error: err.message });
       }
       next(err);
     }
@@ -236,12 +269,40 @@ router.post(
       if (validationError) {
         return res.status(400).json({ ok: false, error: validationError });
       }
-      const run = await wigleImportRunService.resumeLatestImportRun(query);
-      return res.json(buildRunImportResponse(run));
+      const dispatch = await wigleImportRunService.dispatchResumeLatestImportRun(query);
+      if (dispatch.status === 'already_running') {
+        if (dispatch.isSameRun && dispatch.run) {
+          return res.status(200).json({
+            status: 'already_running',
+            ...buildRunImportResponse(dispatch.run),
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          status: 'already_running',
+          activeRunId: dispatch.activeRunId,
+          error:
+            dispatch.error ||
+            `Another WiGLE import (run ${dispatch.activeRunId ?? 'unknown'}) is currently running`,
+        });
+      }
+      return res.status(202).json({
+        status: 'dispatched',
+        ...buildRunImportResponse(dispatch.run),
+      });
     } catch (err: any) {
       logger.error(`[WiGLE] Resume-latest error: ${err.message}`, { error: err });
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
+      if (err?.message?.includes('not found')) {
+        return res.status(404).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.message?.includes('already completed') ||
+        err?.message?.includes('cancelled WiGLE import run')
+      ) {
+        return res.status(400).json({ ok: false, error: err.message });
       }
       next(err);
     }
@@ -276,12 +337,40 @@ router.post(
       if (!Number.isFinite(runId)) {
         return res.status(400).json({ ok: false, error: 'Invalid run id' });
       }
-      const run = await wigleImportRunService.resumeImportRun(runId);
-      return res.json(buildRunImportResponse(run));
+      const dispatch = await wigleImportRunService.dispatchResumeImportRun(runId);
+      if (dispatch.status === 'already_running') {
+        if (dispatch.isSameRun && dispatch.run) {
+          return res.status(200).json({
+            status: 'already_running',
+            ...buildRunImportResponse(dispatch.run),
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          status: 'already_running',
+          activeRunId: dispatch.activeRunId,
+          error:
+            dispatch.error ||
+            `Another WiGLE import (run ${dispatch.activeRunId ?? 'unknown'}) is currently running`,
+        });
+      }
+      return res.status(202).json({
+        status: 'dispatched',
+        ...buildRunImportResponse(dispatch.run),
+      });
     } catch (err: any) {
       logger.error(`[WiGLE] Resume run error: ${err.message}`, { error: err });
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
+      if (err?.message?.includes('not found')) {
+        return res.status(404).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.message?.includes('already completed') ||
+        err?.message?.includes('cancelled WiGLE import run')
+      ) {
+        return res.status(400).json({ ok: false, error: err.message });
       }
       next(err);
     }
@@ -421,8 +510,27 @@ router.post(
         if (!Number.isFinite(runId)) {
           return res.status(400).json({ ok: false, error: 'Invalid runId' });
         }
-        const run = await wigleBluetoothImportService.resumeBluetoothImportRun(runId);
-        return res.json(buildRunImportResponse(run));
+        const dispatch = await wigleBluetoothImportService.dispatchResumeBluetoothImportRun(runId);
+        if (dispatch.status === 'already_running') {
+          if (dispatch.isSameRun && dispatch.run) {
+            return res.status(200).json({
+              status: 'already_running',
+              ...buildRunImportResponse(dispatch.run),
+            });
+          }
+          return res.status(409).json({
+            ok: false,
+            status: 'already_running',
+            activeRunId: dispatch.activeRunId,
+            error:
+              dispatch.error ||
+              `Another WiGLE import (run ${dispatch.activeRunId ?? 'unknown'}) is currently running`,
+          });
+        }
+        return res.status(202).json({
+          status: 'dispatched',
+          ...buildRunImportResponse(dispatch.run),
+        });
       }
 
       const validationError = wigleBluetoothImportService.validateBtImportQuery(query);
@@ -430,12 +538,40 @@ router.post(
         return res.status(400).json({ ok: false, error: validationError });
       }
 
-      const run = await wigleBluetoothImportService.startBluetoothImportRun(query);
-      return res.json(buildRunImportResponse(run));
+      const dispatch = await wigleBluetoothImportService.dispatchBluetoothImportRun(query);
+      if (dispatch.status === 'already_running') {
+        if (dispatch.isSameRun && dispatch.run) {
+          return res.status(200).json({
+            status: 'already_running',
+            ...buildRunImportResponse(dispatch.run),
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          status: 'already_running',
+          activeRunId: dispatch.activeRunId,
+          error:
+            dispatch.error ||
+            `Another WiGLE import (run ${dispatch.activeRunId ?? 'unknown'}) is currently running`,
+        });
+      }
+      return res.status(202).json({
+        status: 'dispatched',
+        ...buildRunImportResponse(dispatch.run),
+      });
     } catch (err: any) {
       logger.error(`[WiGLE BT] Import-start error: ${err.message}`, { error: err });
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
+      if (err?.message?.includes('not found')) {
+        return res.status(404).json({ ok: false, error: err.message });
+      }
+      if (
+        err?.message?.includes('already completed') ||
+        err?.message?.includes('cancelled WiGLE BT import run')
+      ) {
+        return res.status(400).json({ ok: false, error: err.message });
       }
       next(err);
     }
