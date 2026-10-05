@@ -1,9 +1,9 @@
 # VISINT Evidence Pipeline
 
 Visual Intelligence (VISINT) is the evidence correlation path for field-captured
-images and uploaded media. It is **distinct from passive radio classification**
+media (`image/jpeg`, `image/png`, and `video/mp4`). It is **distinct from passive radio classification**
 (surveillance detection, BWC signatures, DeFlock/ShotSpotter matching): VISINT
-processes operator-submitted images to extract GPS/timestamp metadata and
+processes operator-submitted media to extract GPS/timestamp metadata and
 correlate that context against observed radio signals.
 
 Related: [Surveillance Detection & Equipment Guides](surveillance-detection.md) —
@@ -15,8 +15,8 @@ the classification system that assigns device types used by the VISINT scorer.
 
 VISINT allows operators to:
 
-1. **Upload** a field photo or screenshot with embedded EXIF GPS/timestamp.
-2. **Correlate** that image against `app.observations` within a configurable
+1. **Upload** a field image or MP4 with embedded GPS/timestamp metadata.
+2. **Correlate** that media against `app.observations` within a configurable
    spatial radius and time window.
 3. **Review** a ranked candidate list with scores and proposed tags in
    **preview mode** (default — no database writes).
@@ -24,7 +24,7 @@ VISINT allows operators to:
    via the attach endpoint), which writes to `app.network_media` and applies
    tags to `app.network_tags`.
 
-VISINT evidence provides **context** for analysts. A VISINT image is not
+VISINT evidence provides **context** for analysts. A VISINT attachment is not
 automatic proof of a device classification; scoring and tagging communicate
 confidence but do not replace human review.
 
@@ -38,20 +38,23 @@ observations router:
 
 ### `POST /api/observations/correlate-visint`
 
-Auto-correlates an uploaded image against the database.
+Auto-correlates uploaded media against the database.
 
-| Field           | Type                      | Required | Notes                                               |
-| --------------- | ------------------------- | -------- | --------------------------------------------------- |
-| `image`         | file (multipart)          | ✅       | JPEG or PNG, max 25 MB                              |
-| `commit`        | string (`"true"/"false"`) | No       | Defaults to `false`. Must be `"true"` to persist.   |
-| `radius_meters` | number                    | No       | Spatial search radius (default: 50 m)               |
-| `window_hours`  | number                    | No       | Time window ± around image timestamp (default: 2 h) |
-| `limit`         | number                    | No       | Max candidates returned (default: 5)                |
-| `filename`      | string                    | No       | Falls back to `original_filename`, then `image.jpg` |
+| Field           | Type                      | Required | Notes                                                 |
+| --------------- | ------------------------- | -------- | ----------------------------------------------------- |
+| `image`         | file (multipart)          | ✅       | `image/jpeg`, `image/png`, or `video/mp4`, max 100 MB |
+| `commit`        | string (`"true"/"false"`) | No       | Defaults to `false`. Must be `"true"` to persist.     |
+| `radius_meters` | number                    | No       | Spatial search radius (default: 50 m)                 |
+| `window_hours`  | number                    | No       | Time window ± around media timestamp (default: 2 h)   |
+| `limit`         | number                    | No       | Max candidates returned (default: 5)                  |
+| `filename`      | string                    | No       | Falls back to `original_filename`, then `image.jpg`   |
 
 **Behavior:**
 
-- Extracts EXIF GPS and `DateTimeOriginal` (with `OffsetTimeOriginal` if present).
+- Detects actual file content with ExifTool and requires it to agree with the
+  declared multipart MIME type; only JPEG, PNG, and MP4 are accepted.
+- Extracts image EXIF GPS and `DateTimeOriginal` (with `OffsetTimeOriginal` if
+  present), or MP4 container GPS and creation-time metadata.
 - Queries `app.observations` using PostGIS `ST_DWithin` + time range + signature scoring.
 - Returns scored candidates.
 - If `commit=false` (default): derives tag set but **does not write** to any table.
@@ -61,22 +64,23 @@ Auto-correlates an uploaded image against the database.
 
 | HTTP                                  | Condition                                                            |
 | ------------------------------------- | -------------------------------------------------------------------- |
-| 400                                   | Missing image file                                                   |
+| 400                                   | Missing media file                                                   |
+| 400 (`INVALID_FILE_TYPE`)             | Unsupported or mismatched declared/content media type                |
 | 400 (`ExifMissingError`)              | EXIF GPS or timestamp fields absent or unparseable                   |
 | 400 (`VISINT_INVALID_NUMERIC_PARAMS`) | `radius_meters`, `window_hours`, or `limit` provided but non-numeric |
-| 413                                   | Image exceeds 25 MB                                                  |
+| 413                                   | Media exceeds 100 MB                                                 |
 | 503 (`ExifToolUnavailableError`)      | `exiftool` binary not installed in API runtime                       |
 
 ---
 
 ### `POST /api/observations/attach-visint`
 
-Commits a VISINT image to a specific, operator-selected BSSID (the "manual
+Commits a VISINT media attachment to a specific, operator-selected BSSID (the "manual
 attachment" path). Always writes to `app.network_media` and `app.network_tags`.
 
 | Field              | Type             | Required | Notes                                                                                            |
 | ------------------ | ---------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `image`            | file (multipart) | ✅       | JPEG or PNG, max 25 MB                                                                           |
+| `image`            | file (multipart) | ✅       | `image/jpeg`, `image/png`, or `video/mp4`, max 100 MB                                            |
 | `bssid`            | string           | No       | Target BSSID. Defaults to `VISINT_UNMATCHED` sentinel.                                           |
 | `detection_score`  | integer          | No       | Score from correlate-visint response.                                                            |
 | `dist_meters`      | number           | No       | Distance from correlate-visint response.                                                         |
@@ -92,7 +96,7 @@ attachment" path). Always writes to `app.network_media` and `app.network_tags`.
 
 | HTTP                                          | Condition                                                                |
 | --------------------------------------------- | ------------------------------------------------------------------------ |
-| 400                                           | Missing image file                                                       |
+| 400                                           | Missing media file                                                       |
 | 400 (`VISINT_INVALID_NUMERIC_PARAMS`)         | `dist_meters`, `delta_minutes`, `lat`, or `lon` provided but non-numeric |
 | 400 (`VISINT_INVALID_DETECTION_SCORE`)        | `detection_score` provided but non-integer                               |
 | 400 (`VISINT_FALLBACK_REQUIRES_CONFIRMATION`) | `bssid=VISINT_UNMATCHED` without `confirm_fallback=true`                 |
@@ -102,7 +106,7 @@ attachment" path). Always writes to `app.network_media` and `app.network_tags`.
 ### `POST /api/admin/network-media/upload` (separate path)
 
 Admin-only media upload: accepts base64-encoded media in JSON body. Not
-VISINT-specific; used for attaching arbitrary image/video files to a BSSID
+VISINT-specific; used for attaching arbitrary supported media to a BSSID
 without correlation scoring. See
 [media.ts](../../server/src/api/routes/v1/admin/media.ts).
 
@@ -112,12 +116,17 @@ without correlation scoring. See
 
 ### Stage 1 — Upload & Request Parsing
 
-The route handler uses `multer` (memory storage, 25 MB limit, JPEG/PNG only).
+The route handler uses `multer` (memory storage, 100 MB limit) and accepts only
+`image/jpeg`, `image/png`, and `video/mp4`.
 The file buffer is passed in memory; nothing is written to disk at this stage.
 `commit` defaults to `false` if omitted or falsy.
 
+Before telemetry extraction, ExifTool inspects the file contents. Its detected
+MIME type must exactly match the multipart declaration, so arbitrary bytes
+labeled `video/mp4`, renamed non-MP4 files, and other video formats are rejected.
+
 Malformed numeric query parameters (`radius_meters`, `window_hours`, `limit`)
-are rejected with `400` **before** any pipeline execution — the image is never
+are rejected with `400` **before** any pipeline execution — the media is never
 read.
 
 ### Stage 2 — EXIF Extraction (`visintExif.ts`)
@@ -131,13 +140,25 @@ exiftool -d '%Y-%m-%d %H:%M:%S' -p $DateTimeOriginal <file>
 exiftool -p $OffsetTimeOriginal <file>   ← optional
 ```
 
-All four calls run in parallel via `Promise.all`. The temp file is deleted in
-a `finally` block regardless of success or failure.
+The image calls run in parallel via `Promise.all`. MP4 metadata is extracted
+with `exiftool -a -G1 -s -j -n -api QuickTimeUTC=0 <file>`, including
+`Composite:GPSLatitude`, `Composite:GPSLongitude`, `QuickTime:CreateDate`, and
+`QuickTime:Duration`. The temp file is deleted in a `finally` block regardless
+of success or failure.
 
 **Timezone offset handling:** If `OffsetTimeOriginal` is present (e.g., `-05:00`),
 it is appended to `DateTimeOriginal` to form a timezone-aware timestamp. This
 prevents systematic time-delta errors in the correlation window when the image
 was captured outside UTC.
+
+For MP4, the provenance is returned as `timestamp_source`,
+`timestamp_is_start_estimate`, and `duration_s`. `container_creation` means the
+container timestamp is used as-is; `container_creation_minus_duration` marks an
+estimated start time; `filename_with_offset` marks the filename fallback when
+container creation time is unavailable and an embedded UTC offset exists.
+There are no dedicated database columns for these three provenance values;
+MP4 attachment descriptions retain them as JSON alongside the extracted
+coordinates and timestamp.
 
 Error classes raised:
 
@@ -197,6 +218,8 @@ If `commit=true`, `saveVisINTAttachment()` is called, which:
    - Stores the image buffer, filename, MIME type, file size, and a description
      string encoding distance/delta/score/manual flag metadata.
    - For unmatched images, the description JSON encodes `extracted_lat/lon/ts`.
+   - For MP4, the description JSON also retains timestamp provenance and duration;
+     `thumbnail` remains `NULL` because VISINT has no video-thumbnail path.
 
 2. **Derives the tag set** via `deriveVisintTags()`.
 
@@ -326,9 +349,10 @@ accidentally persisting rows.
   detection scan (`surveillanceDetectionRepository.ts`). An operator tagging
   `SHOTSPOTTER_SENSOR` via VISINT does not create a detection record.
 
-- **No deduplication:** Calling `attach-visint` twice for the same BSSID and
-  image writes two `app.network_media` rows. No dedup guard exists at the
-  persistence layer.
+- **SHA-256 duplicate prevention:** VISINT rejects identical media bytes with
+  `VISINT_DUPLICATE_MEDIA`, independent of filename or upload path. Existing
+  explicit media deletion remains the way to remove an attachment and permit a
+  later re-upload.
 
 - **exiftool runtime dependency:** The API container must have `exiftool`
   installed. If absent, all correlate requests return `503`. The frontend

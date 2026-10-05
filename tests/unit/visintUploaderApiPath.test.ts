@@ -30,6 +30,24 @@ describe('VisIntUploader API paths', () => {
     );
   });
 
+  test('accepts only JPEG, PNG, and MP4 with type-specific previews', () => {
+    const uploaderSource = fs.readFileSync(
+      path.resolve(process.cwd(), 'client/src/components/visint/VisIntUploader.tsx'),
+      'utf8'
+    );
+    const dropzoneSource = fs.readFileSync(
+      path.resolve(process.cwd(), 'client/src/components/visint/uploader/VisIntDropzone.tsx'),
+      'utf8'
+    );
+
+    expect(uploaderSource).toContain("file.type === 'image/jpeg' || file.type === 'image/png'");
+    expect(uploaderSource).toContain("file.type === 'video/mp4'");
+    expect(dropzoneSource).toContain('accept="image/jpeg,image/png,video/mp4"');
+    expect(dropzoneSource).toContain("selectedFile?.type === 'video/mp4'");
+    expect(dropzoneSource).toContain('<video');
+    expect(dropzoneSource).toContain('<img');
+  });
+
   test('marks VISINT API testing presets as manual multipart endpoints', () => {
     const correlate = API_ENDPOINTS.find(
       (endpoint) => endpoint.label === 'VisINT Auto-Correlation'

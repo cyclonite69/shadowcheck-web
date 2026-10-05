@@ -18,7 +18,7 @@ interface VisIntResult {
   candidates?: CandidateObservation[];
 }
 
-const VISINT_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+const VISINT_UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
 const VISINT_UPLOAD_MAX_MB = VISINT_UPLOAD_MAX_BYTES / (1024 * 1024);
 
 const getApiErrorMessage = (err: unknown, fallback: string): string => {
@@ -79,15 +79,18 @@ export default function VisIntUploader() {
   };
 
   const handleFileChange = (file: File) => {
-    if (!file.type.startsWith('image/')) {
+    const isImage = file.type === 'image/jpeg' || file.type === 'image/png';
+    const isVideo = file.type === 'video/mp4';
+
+    if (!isImage && !isVideo) {
       clearSelectedImageState();
-      setError('Please select a valid image file (JPEG or PNG).');
+      setError('Please select a valid media file (JPEG, PNG, or MP4).');
       setErrorType(null);
       return;
     }
     if (file.size > VISINT_UPLOAD_MAX_BYTES) {
       clearSelectedImageState();
-      setError(`VISINT images must be ${VISINT_UPLOAD_MAX_MB} MB or smaller.`);
+      setError(`VISINT media must be ${VISINT_UPLOAD_MAX_MB} MB or smaller.`);
       setErrorType('PayloadTooLarge');
       return;
     }
@@ -273,8 +276,8 @@ export default function VisIntUploader() {
           VisINT Auto-Correlation Pipeline
         </h2>
         <p className="text-sm text-slate-400">
-          Upload tactical SIGINT images to extract EXIF telemetry and execute spatial-temporal
-          correlation queries against core observations.
+          Upload tactical SIGINT media to extract GPS/timestamp telemetry and execute
+          spatial-temporal correlation queries against core observations.
         </p>
       </div>
 
@@ -465,13 +468,13 @@ export default function VisIntUploader() {
                 <div className="text-xs text-slate-300 leading-relaxed">
                   {selectedCandidateId === 'unmatched' ? (
                     <span>
-                      Photo will be logged as unmatched telemetry. It will attach to fallback BSSID{' '}
+                      Media will be logged as unmatched telemetry. It will attach to fallback BSSID{' '}
                       <strong className="font-mono text-amber-400">VISINT_UNMATCHED</strong> and be
                       tagged with:
                     </span>
                   ) : (
                     <span>
-                      Photo will be attached to BSSID:{' '}
+                      Media will be attached to BSSID:{' '}
                       <strong className="font-mono text-cyan-300">{selectedBssid}</strong> and be
                       tagged with:
                     </span>

@@ -12,11 +12,12 @@ import logger from '../../../../logging/logger';
 import { validateBSSID } from '../../../../validation/schemas';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
-const VISINT_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+const VISINT_UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
 const VISINT_UPLOAD_MAX_MB = VISINT_UPLOAD_MAX_BYTES / (1024 * 1024);
 type UploadedVisintFile = {
   buffer?: Buffer;
   originalname?: string;
+  mimetype?: string;
 };
 
 const visintUpload = multer({
@@ -27,12 +28,12 @@ const visintUpload = multer({
   fileFilter: (req: any, file: any, cb: any) => {
     if (
       file.mimetype === 'image/jpeg' ||
-      file.mimetype === 'image/jpg' ||
-      file.mimetype === 'image/png'
+      file.mimetype === 'image/png' ||
+      file.mimetype === 'video/mp4'
     ) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG and PNG are allowed.'));
+      cb(new Error('Invalid file type. Only JPEG, PNG, and MP4 are allowed.'));
     }
   },
 });
@@ -78,12 +79,12 @@ const handleVisintImageUpload = (req: Request, res: Response, next: NextFunction
     if (uploadError.code === 'LIMIT_FILE_SIZE') {
       res.status(413).json({
         ok: false,
-        error: `VISINT image exceeds ${VISINT_UPLOAD_MAX_MB} MB limit.`,
+        error: `VISINT media exceeds ${VISINT_UPLOAD_MAX_MB} MB limit.`,
         code: 'PAYLOAD_TOO_LARGE',
       });
       return;
     }
-    if (uploadError.message === 'Invalid file type. Only JPEG and PNG are allowed.') {
+    if (uploadError.message === 'Invalid file type. Only JPEG, PNG, and MP4 are allowed.') {
       res.status(400).json({
         ok: false,
         error: uploadError.message,
@@ -358,8 +359,8 @@ router.post(
 /**
  * POST /api/observations/correlate-visint
  *
- * Correlates VisINT photo telemetry with nearby observations in the database.
- * Accepts a multipart/form-data body containing an image file and tuning metadata.
+ * Correlates VisINT media telemetry with nearby observations in the database.
+ * Accepts a multipart/form-data body containing a supported media file and tuning metadata.
  */
 router.post(
   '/observations/correlate-visint',
@@ -387,13 +388,27 @@ router.post(
     const limit = parseOptionalNumber(req.body.limit);
 
     if (!uploadedFile?.buffer) {
-      return res.status(400).json({ error: 'VISINT image file field is required.' });
+      return res.status(400).json({ error: 'VISINT media file field is required.' });
     }
 
     try {
+      if (
+        !uploadedFile.mimetype ||
+        !['image/jpeg', 'image/png', 'video/mp4'].includes(uploadedFile.mimetype)
+      ) {
+        return res
+          .status(400)
+          .json({
+            ok: false,
+            error: 'Invalid file type. Only JPEG, PNG, and MP4 are allowed.',
+            code: 'INVALID_FILE_TYPE',
+          });
+      }
+
       const result = await observationService.correlateVisINT(
         uploadedFile.buffer,
         filename,
+        uploadedFile.mimetype,
         commit,
         radiusMeters,
         windowHours,
@@ -402,6 +417,9 @@ router.post(
       );
       res.json({ ok: true, ...result });
     } catch (error: any) {
+      if (error.name === 'InvalidFileTypeError') {
+        return res.status(400).json({ ok: false, error: error.message, code: 'INVALID_FILE_TYPE' });
+      }
       if (error.name === 'ExifMissingError') {
         return res.status(400).json({ error: error.message, type: 'ExifMissingError' });
       }
@@ -434,8 +452,8 @@ router.post(
 /**
  * POST /api/observations/attach-visint
  *
- * Commits a VisINT photo attachment and auto-tags to a selected network observation.
- * Accepts a multipart/form-data body containing an image file, target BSSID, scores/deltas,
+ * Commits a VisINT media attachment and auto-tags to a selected network observation.
+ * Accepts a multipart/form-data body containing a supported media file, target BSSID, scores/deltas,
  * and optional manual_override + device_type fields that gate ground-truth evidence tagging.
  */
 router.post(
@@ -496,13 +514,25 @@ router.post(
     }
 
     if (!uploadedFile?.buffer) {
-      return res.status(400).json({ error: 'VISINT image file field is required.' });
+      return res.status(400).json({ error: 'VISINT media file field is required.' });
     }
 
     try {
+      if (
+        !uploadedFile.mimetype ||
+        !['image/jpeg', 'image/png', 'video/mp4'].includes(uploadedFile.mimetype)
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid file type. Only JPEG, PNG, and MP4 are allowed.',
+          code: 'INVALID_FILE_TYPE',
+        });
+      }
+
       const tagsApplied = await observationService.saveVisINTAttachment(
         uploadedFile.buffer,
         filename,
+        uploadedFile.mimetype,
         targetBssid,
         status,
         detectionScore,
@@ -517,6 +547,16 @@ router.post(
       );
       res.json({ ok: true, success: true, tags_applied: tagsApplied });
     } catch (error: any) {
+      if (error.name === 'InvalidFileTypeError') {
+        return res.status(400).json({ ok: false, error: error.message, code: 'INVALID_FILE_TYPE' });
+      }
+      if (error.name === 'ExifToolUnavailableError') {
+        return res.status(503).json({
+          error: error.message,
+          type: 'ExifToolUnavailableError',
+          code: 'VISINT_EXIF_TOOL_UNAVAILABLE',
+        });
+      }
       if (error.code === 'VISINT_DUPLICATE_MEDIA') {
         return res.status(409).json({
           error: error.message,

@@ -15,6 +15,10 @@ import {
 
 const { query } = require('../../server/src/config/database');
 const { execFile } = require('child_process');
+const {
+  validateMediaContent,
+  validateMediaBuffer,
+} = require('../../server/src/services/visint/visintExif');
 
 jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
@@ -35,9 +39,17 @@ jest.mock('../../server/src/repositories/adminNetworkTagOuiRepository', () => ({
   insertNetworkTagWithNotes: jest.fn(),
 }));
 
+jest.mock('../../server/src/services/visint/visintExif', () => ({
+  ...jest.requireActual('../../server/src/services/visint/visintExif'),
+  validateMediaContent: jest.fn().mockResolvedValue('image/jpeg'),
+  validateMediaBuffer: jest.fn().mockResolvedValue(undefined),
+}));
+
 describe('Observation Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (validateMediaContent as jest.Mock).mockResolvedValue('image/jpeg');
+    (validateMediaBuffer as jest.Mock).mockResolvedValue(undefined);
   });
 
   describe('getHomeLocationForObservations', () => {
@@ -302,6 +314,7 @@ describe('Observation Service', () => {
       await saveVisINTAttachment(
         png,
         'evidence.png',
+        'image/png',
         'AA:BB:CC:DD:EE:FF',
         'MATCHED',
         2,
@@ -309,7 +322,10 @@ describe('Observation Service', () => {
         1.2,
         43.023,
         -83.696,
-        '2026-05-06 20:29:10'
+        '2026-05-06 20:29:10',
+        false,
+        null,
+        null
       );
 
       expect(insertNetworkMedia).toHaveBeenCalledWith(
@@ -343,10 +359,12 @@ describe('Observation Service', () => {
         detection_score: '4',
         device_type: 'FLOCK_SAFETY_CAMERA',
       };
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true);
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg', true);
 
       expect(result).toEqual({
         status: 'MATCHED',
@@ -396,10 +414,12 @@ describe('Observation Service', () => {
         detection_score: '3',
         device_type: 'FLOCK_SAFETY_CAMERA',
       };
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce({ tags: ['SOME_TAG'] });
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true);
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg', true);
 
       expect(result.tags_applied).toEqual(['FLOCK_LEGACY', 'VISINT_VERIFIED']);
       expect(addTagToNetwork).toHaveBeenCalledTimes(2);
@@ -427,19 +447,31 @@ describe('Observation Service', () => {
         detection_score: '1',
         device_type: 'FLOCK_SAFETY_CAMERA',
       };
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true);
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg', true);
 
       expect(result.tags_applied).toEqual(['FLOCK_CANDIDATE', 'VISINT_PENDING']);
     });
 
     it('should fallback to UNMATCHED when query returns no rows and confirm_fallback=true', async () => {
       (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true, 50, 2, 5, true);
+      const result = await correlateVisINT(
+        Buffer.from('dummy'),
+        'test.jpg',
+        'image/jpeg',
+        true,
+        50,
+        2,
+        5,
+        true
+      );
 
       expect(result).toEqual({
         status: 'UNMATCHED',
@@ -489,15 +521,23 @@ describe('Observation Service', () => {
         detection_score: '2',
         device_type: 'SHOTSPOTTER_SENSOR',
       };
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'shotspotter_capture.jpg', true);
+      const result = await correlateVisINT(
+        Buffer.from('dummy'),
+        'shotspotter_capture.jpg',
+        'image/jpeg',
+        true
+      );
 
       expect(result.tags_applied).toContain('SHOTSPOTTER_SENSOR');
     });
 
     it('should throw ExifMissingError if EXIF fields are missing', async () => {
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       // Mock empty output for longitude
       (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
         const cmdStr = args.join(' ');
@@ -514,7 +554,7 @@ describe('Observation Service', () => {
         }
       });
 
-      await expect(correlateVisINT(Buffer.from('dummy'), 'test.jpg')).rejects.toThrow(
+      await expect(correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg')).rejects.toThrow(
         /Missing EXIF telemetry fields: GPSLongitude, DateTimeOriginal/
       );
     });
@@ -534,10 +574,12 @@ describe('Observation Service', () => {
         detection_score: '4',
         device_type: 'FLOCK_SAFETY_CAMERA',
       };
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg');
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg');
 
       expect(result.status).toBe('MATCHED');
       expect(result.tags_applied).toEqual(['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED']);
@@ -560,10 +602,10 @@ describe('Observation Service', () => {
           callback(new Error('Unknown command'));
         }
       });
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
       await expect(
-        correlateVisINT(Buffer.from('dummy'), 'test.jpg', true, 50, 2, 5, false)
+        correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg', true, 50, 2, 5, false)
       ).rejects.toThrow(
         'Correlating to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.'
       );
@@ -585,10 +627,12 @@ describe('Observation Service', () => {
         detection_score: '4',
         device_type: 'FLOCK_SAFETY_CAMERA',
       };
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', true);
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg', true);
 
       expect(result.status).toBe('MATCHED');
       expect(insertNetworkMedia).toHaveBeenCalled();

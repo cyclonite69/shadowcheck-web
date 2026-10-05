@@ -1,6 +1,13 @@
-const { execFile } = require('child_process');
-const util = require('util');
+import { execFile } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import util from 'util';
 const execFilePromise = util.promisify(execFile);
+
+const supportedMediaTypes = ['image/jpeg', 'image/png', 'video/mp4'] as const;
+const isSupportedMediaType = (mimeType: string): boolean =>
+  supportedMediaTypes.some((supportedType) => supportedType === mimeType);
 
 export class ExifMissingError extends Error {
   constructor(message: string) {
@@ -16,8 +23,62 @@ export class ExifToolUnavailableError extends Error {
   }
 }
 
+export class InvalidFileTypeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidFileTypeError';
+  }
+}
+
+export async function validateMediaContent(filePath: string): Promise<string> {
+  let stdout;
+  try {
+    const result = await execFilePromise('exiftool', ['-p', '$MIMEType', filePath]);
+    stdout = result.stdout;
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      throw new ExifToolUnavailableError();
+    }
+    if (typeof error?.code === 'number') {
+      throw new InvalidFileTypeError('Invalid file type. Only JPEG, PNG, and MP4 are allowed.');
+    }
+    throw error;
+  }
+
+  const mimeType = stdout.trim();
+  if (!isSupportedMediaType(mimeType)) {
+    throw new InvalidFileTypeError('Invalid file type. Only JPEG, PNG, and MP4 are allowed.');
+  }
+  return mimeType;
+}
+
+export async function validateMediaBuffer(
+  imageBuffer: Buffer,
+  declaredMimeType: string
+): Promise<void> {
+  if (!isSupportedMediaType(declaredMimeType)) {
+    throw new InvalidFileTypeError('Invalid file type. Only JPEG, PNG, and MP4 are allowed.');
+  }
+
+  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'visint-validate-'));
+  const tempFilePath = path.join(tempDirectory, 'upload');
+  try {
+    fs.writeFileSync(tempFilePath, imageBuffer);
+    const actualMimeType = await validateMediaContent(tempFilePath);
+    if (actualMimeType !== declaredMimeType) {
+      throw new InvalidFileTypeError('Invalid file type. Only JPEG, PNG, and MP4 are allowed.');
+    }
+  } finally {
+    try {
+      fs.rmSync(tempDirectory, { recursive: true, force: true });
+    } catch {
+      // Best-effort cleanup of the temporary upload inspection file.
+    }
+  }
+}
+
 /**
- * Extracts GPS telemetry and timestamp from a JPEG image using exiftool
+ * Extracts GPS telemetry and timestamp from a media file using exiftool
  */
 export async function extractExif(
   imagePath: string

@@ -8,6 +8,9 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
   const IMAGE_CONTENT_1 = Buffer.from('test-image-content-1');
   const IMAGE_CONTENT_2 = Buffer.from('test-image-content-2');
   const VIDEO_CONTENT = Buffer.from('test-video-content');
+  const createdMediaIds = new Set<string>();
+  const createdObservationIds = new Set<string>();
+  let createdNetwork = false;
 
   let app: any;
 
@@ -17,20 +20,34 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
     app.use(express.urlencoded({ extended: true }));
     app.use('/api', adminMediaRouter);
 
-    // Setup network
-    await query(
-      `INSERT INTO app.networks
+    const existingNetwork = await query('SELECT bssid FROM app.networks WHERE bssid = $1', [BSSID]);
+    if (existingNetwork.rows.length === 0) {
+      const insertedNetwork = await query(
+        `INSERT INTO app.networks
        (bssid, ssid, type, frequency, capabilities, service, rcois, mfgrid, lasttime_ms, lastlat, lastlon, bestlevel, bestlat, bestlon)
        VALUES ($1, 'Test Network', 'W', 2437, '', '', '', 0, ${Date.now()}, 40.7128, -74.0060, -45, 40.7128, -74.0060)
-       ON CONFLICT (bssid) DO NOTHING`,
-      [BSSID]
-    );
+       ON CONFLICT (bssid) DO NOTHING
+       RETURNING bssid`,
+        [BSSID]
+      );
+      createdNetwork = insertedNetwork.rows.length > 0;
+    }
   });
 
   afterAll(async () => {
-    await query("DELETE FROM app.network_media WHERE bssid = $1 OR bssid = 'VISINT_UNMATCHED'", [
-      BSSID,
-    ]);
+    if (createdMediaIds.size > 0) {
+      await query('DELETE FROM app.network_media WHERE id = ANY($1::bigint[])', [
+        Array.from(createdMediaIds),
+      ]);
+    }
+    if (createdObservationIds.size > 0) {
+      await query('DELETE FROM app.observations WHERE id = ANY($1::bigint[])', [
+        Array.from(createdObservationIds),
+      ]);
+    }
+    if (createdNetwork) {
+      await query('DELETE FROM app.networks WHERE bssid = $1', [BSSID]);
+    }
   });
 
   // Tests for Requirements 1, 2, 3, 4, 5, 8, 9, 10
@@ -48,6 +65,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
     expect(res1.status).toBe(200);
     expect(res1.body.ok).toBe(true);
     const mediaId1 = res1.body.media.id;
+    createdMediaIds.add(String(mediaId1));
 
     // 3. Reject duplicate image
     const res2 = await request(app)
@@ -94,6 +112,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
         description: 'Test Image 1 Re-upload',
       });
     expect(res4.status).toBe(200);
+    createdMediaIds.add(String(res4.body.media.id));
   });
 
   it('2 & 4: Uploads new video successfully, rejects duplicate', async () => {
@@ -108,6 +127,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
         description: 'Test Video',
       });
     expect(res1.status).toBe(200);
+    createdMediaIds.add(String(res1.body.media.id));
 
     // 4. Reject duplicate video
     const res2 = await request(app)
@@ -144,6 +164,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
 
     expect(successes.length).toBe(1);
     expect(conflicts.length).toBe(2);
+    createdMediaIds.add(String(successes[0].body.media.id));
   });
 
   it('Same filename but different content succeeds', async () => {
@@ -158,6 +179,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
         description: 'Test Video Different Content',
       });
     expect(res.status).toBe(200);
+    createdMediaIds.add(String(res.body.media.id));
   });
 
   it('Failed deletion returns 404 and does not break', async () => {
@@ -179,6 +201,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
       [BSSID]
     );
     const observationId = obsResult.rows[0].id;
+    createdObservationIds.add(String(observationId));
 
     // 2. Create media row associated with the observation manually
     const mediaResult = await query(
@@ -187,6 +210,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
       [BSSID, observationId]
     );
     const mediaId = mediaResult.rows[0].id;
+    createdMediaIds.add(String(mediaId));
 
     // 3. Confirm it exists in listing
     const checkDb1 = await query('SELECT id FROM app.network_media WHERE id = $1', [mediaId]);
@@ -216,6 +240,7 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
         description: 'Re-upload test',
       });
     expect(resRe.status).toBe(200);
+    createdMediaIds.add(String(resRe.body.media.id));
   });
 
   it('Duplicate manager deletion path', async () => {
@@ -240,6 +265,8 @@ describe('VisINT Media Duplicate Prevention & Deletion (Integration)', () => {
 
     const id1 = mediaResult1.rows[0].id;
     const id2 = mediaResult2.rows[0].id;
+    createdMediaIds.add(String(id1));
+    createdMediaIds.add(String(id2));
 
     // Discover duplicate groups
     const resList = await request(app).get('/api/admin/network-media-duplicates');

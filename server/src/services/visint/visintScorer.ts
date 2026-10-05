@@ -16,11 +16,14 @@ export async function queryCorrelatedObservations(
   timestamp: string,
   radiusMeters: number = 50,
   windowHours: number = 2,
-  limit: number = 5
+  limit: number = 5,
+  mediaDurationS: number = 0
 ): Promise<any[]> {
   const baseDate = new Date(timestamp);
   const startTime = new Date(baseDate.getTime() - windowHours * 60 * 60 * 1000).toISOString();
-  const endTime = new Date(baseDate.getTime() + windowHours * 60 * 60 * 1000).toISOString();
+  const endTime = new Date(
+    baseDate.getTime() + windowHours * 60 * 60 * 1000 + mediaDurationS * 1000
+  ).toISOString();
 
   const dbQuery = `
     SELECT

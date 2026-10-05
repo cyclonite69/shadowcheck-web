@@ -48,16 +48,25 @@ export const VisIntDropzone: React.FC<VisIntDropzoneProps> = ({
           type="file"
           ref={fileInputRef}
           onChange={onFileInputChange}
-          accept="image/jpeg,image/png"
+          accept="image/jpeg,image/png,video/mp4"
           className="hidden"
         />
         {previewUrl ? (
           <div className="relative w-full h-full p-3 flex items-center justify-center">
-            <img
-              src={previewUrl}
-              alt="Telemetry upload preview"
-              className="max-h-full max-w-full rounded-lg object-contain"
-            />
+            {selectedFile?.type === 'video/mp4' ? (
+              <video
+                controls
+                src={previewUrl}
+                title="Telemetry upload preview"
+                className="max-h-full max-w-full rounded-lg object-contain"
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                alt="Telemetry upload preview"
+                className="max-h-full max-w-full rounded-lg object-contain"
+              />
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center space-y-3 p-6 text-center">
@@ -77,10 +86,10 @@ export const VisIntDropzone: React.FC<VisIntDropzoneProps> = ({
               </svg>
             </div>
             <div className="text-sm font-semibold text-slate-300">
-              Drag and drop tactical image, or <span className="text-cyan-400">browse</span>
+              Drag and drop tactical media, or <span className="text-cyan-400">browse</span>
             </div>
             <div className="text-xs text-slate-500">
-              Supports JPEG and PNG images up to {maxUploadMb}MB
+              Supports JPEG, PNG, and MP4 up to {maxUploadMb}MB
             </div>
           </div>
         )}

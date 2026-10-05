@@ -1,5 +1,11 @@
 import sharp from 'sharp';
-import { extractExif } from './visintExif';
+import {
+  extractExif,
+  InvalidFileTypeError,
+  validateMediaBuffer,
+  validateMediaContent,
+} from './visintExif';
+import { extractVideoTelemetry } from './visintVideoExif';
 import crypto from 'crypto';
 import { queryCorrelatedObservations } from './visintScorer';
 
@@ -14,6 +20,41 @@ const {
   getNetworkTagsByBssid,
   insertNetworkTagWithNotes,
 } = require('../../repositories/adminNetworkTagOuiRepository');
+
+type SaveVisINTOptions = {
+  contentValidated?: boolean;
+  videoTelemetry?: Awaited<ReturnType<typeof extractVideoTelemetry>>;
+};
+
+type ExtractedTelemetry = {
+  lat: number | null;
+  lon: number | null;
+  timestamp: string | null;
+  media_type?: string;
+  timestamp_source?: string;
+  timestamp_is_start_estimate?: boolean;
+  duration_s?: number;
+};
+
+function createTempMediaFile(prefix: string, buffer: Buffer): { path: string; directory: string } {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const tempPath = path.join(directory, 'upload');
+  try {
+    fs.writeFileSync(tempPath, buffer);
+  } catch (error) {
+    fs.rmSync(directory, { recursive: true, force: true });
+    throw error;
+  }
+  return { path: tempPath, directory };
+}
+
+function cleanupTempMediaDirectory(directory: string): void {
+  try {
+    fs.rmSync(directory, { recursive: true, force: true });
+  } catch {
+    // Best-effort cleanup of temporary media.
+  }
+}
 
 /**
  * Derive the tag set to apply for a VISINT attachment.
@@ -88,33 +129,42 @@ export function deriveVisintTags(
 
 async function extractExifFromBuffer(
   imageBuffer: Buffer,
-  filename: string
-): Promise<{ lat: number | null; lon: number | null; timestamp: string | null }> {
-  const tempFilePath = path.join(os.tmpdir(), `visint-exif-${Date.now()}-${filename}`);
-  fs.writeFileSync(tempFilePath, imageBuffer);
+  filename: string,
+  mimeType: string
+): Promise<ExtractedTelemetry> {
+  const tempFile = createTempMediaFile('visint-exif-', imageBuffer);
   try {
-    const exifData = await extractExif(tempFilePath);
-    return {
-      lat: exifData.lat ?? null,
-      lon: exifData.lon ?? null,
-      timestamp: exifData.timestamp ?? null,
-    };
+    if (mimeType === 'video/mp4') {
+      const videoData = await extractVideoTelemetry(tempFile.path, filename);
+      return {
+        lat: videoData.lat ?? null,
+        lon: videoData.lon ?? null,
+        timestamp: videoData.timestamp ?? null,
+        media_type: videoData.media_type,
+        timestamp_source: videoData.timestamp_source,
+        timestamp_is_start_estimate: videoData.timestamp_is_start_estimate,
+        duration_s: videoData.duration_s,
+      };
+    } else {
+      const exifData = await extractExif(tempFile.path);
+      return {
+        lat: exifData.lat ?? null,
+        lon: exifData.lon ?? null,
+        timestamp: exifData.timestamp ?? null,
+      };
+    }
   } catch (error) {
     logger.debug(
       `EXIF extraction skipped or failed for ${filename}: ${error instanceof Error ? error.message : String(error)}`
     );
     return { lat: null, lon: null, timestamp: null };
   } finally {
-    try {
-      fs.unlinkSync(tempFilePath);
-    } catch (_cleanupErr) {
-      // ignore
-    }
+    cleanupTempMediaDirectory(tempFile.directory);
   }
 }
 
 export async function generateThumbnail(buffer: Buffer, mimeType: string): Promise<Buffer | null> {
-  if (mimeType.startsWith('image/')) {
+  if (mimeType === 'image/jpeg' || mimeType === 'image/png') {
     try {
       return await sharp(buffer)
         .rotate()
@@ -132,7 +182,7 @@ export async function generateThumbnail(buffer: Buffer, mimeType: string): Promi
       );
       return null;
     }
-  } else if (mimeType.startsWith('video/')) {
+  } else if (mimeType === 'video/mp4') {
     logger.debug('video thumbnail generation not yet supported');
     return null;
   }
@@ -142,6 +192,7 @@ export async function generateThumbnail(buffer: Buffer, mimeType: string): Promi
 export async function saveVisINTAttachment(
   imageBuffer: Buffer,
   filename: string,
+  mimeType: string,
   targetBssid: string,
   status: 'MATCHED' | 'UNMATCHED',
   detectionScore: number,
@@ -152,17 +203,27 @@ export async function saveVisINTAttachment(
   ts?: string,
   isManualOverride: boolean = false,
   deviceType: string | null = null,
-  observationId: number | string | null = null
+  observationId: number | string | null = null,
+  options: SaveVisINTOptions = {}
 ): Promise<string[]> {
-  const mimeType = String(filename).toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+  if (!options.contentValidated) {
+    await validateMediaBuffer(imageBuffer, mimeType);
+  }
+
+  const mediaType = mimeType === 'video/mp4' ? 'video' : 'image';
 
   // Extract EXIF if not provided
   let resolvedLat: number | null = lat !== undefined && lat !== null ? lat : null;
   let resolvedLon: number | null = lon !== undefined && lon !== null ? lon : null;
   let resolvedTs: string | null = ts !== undefined && ts !== null ? ts : null;
 
-  if (resolvedLat === null || resolvedLon === null || resolvedTs === null) {
-    const extracted = await extractExifFromBuffer(imageBuffer, filename);
+  let extracted: ExtractedTelemetry | null = options.videoTelemetry ?? null;
+  if (mimeType === 'video/mp4' && !extracted) {
+    extracted = await extractExifFromBuffer(imageBuffer, filename, mimeType);
+  } else if (resolvedLat === null || resolvedLon === null || resolvedTs === null) {
+    extracted = await extractExifFromBuffer(imageBuffer, filename, mimeType);
+  }
+  if (extracted) {
     if (resolvedLat === null) {
       resolvedLat = extracted.lat;
     }
@@ -179,18 +240,41 @@ export async function saveVisINTAttachment(
 
   const isUnmatched = targetBssid === 'VISINT_UNMATCHED';
 
-  const mediaDesc = isUnmatched
-    ? JSON.stringify({
-        extracted_lat: resolvedLat || 0,
-        extracted_lon: resolvedLon || 0,
-        extracted_ts: resolvedTs || '',
-        status: 'UNMATCHED',
-      })
-    : `VisINT Correlation: dist_meters=${distMeters}, delta_minutes=${deltaMinutes}, score=${detectionScore}, manual=${isManualOverride}`;
+  const mediaDesc =
+    mimeType === 'video/mp4'
+      ? JSON.stringify({
+          status,
+          extracted_lat: resolvedLat || 0,
+          extracted_lon: resolvedLon || 0,
+          extracted_ts: resolvedTs || '',
+          ...(!isUnmatched
+            ? {
+                dist_meters: distMeters,
+                delta_minutes: deltaMinutes,
+                detection_score: detectionScore,
+                manual: isManualOverride,
+              }
+            : {}),
+          ...(extracted && 'timestamp_source' in extracted
+            ? {
+                timestamp_source: extracted.timestamp_source,
+                timestamp_is_start_estimate: extracted.timestamp_is_start_estimate,
+                duration_s: extracted.duration_s,
+              }
+            : {}),
+        })
+      : isUnmatched
+        ? JSON.stringify({
+            extracted_lat: resolvedLat || 0,
+            extracted_lon: resolvedLon || 0,
+            extracted_ts: resolvedTs || '',
+            status: 'UNMATCHED',
+          })
+        : `VisINT Correlation: dist_meters=${distMeters}, delta_minutes=${deltaMinutes}, score=${detectionScore}, manual=${isManualOverride}`;
 
   await insertNetworkMedia(
     targetBssid,
-    'image',
+    mediaType,
     filename,
     imageBuffer.length,
     mimeType,
@@ -221,6 +305,7 @@ export async function saveVisINTAttachment(
 export async function correlateVisINT(
   imageBuffer: Buffer,
   filename: string,
+  mimeType: string,
   commit = false,
   radiusMeters = 50,
   windowHours = 2,
@@ -233,36 +318,49 @@ export async function correlateVisINT(
   dist_meters: number | null;
   delta_minutes: number | null;
   tags_applied: string[];
-  exif: { lat: number; lon: number; ts: string };
+  exif: {
+    lat: number;
+    lon: number;
+    ts: string;
+    timestamp_source?: string;
+    timestamp_is_start_estimate?: boolean;
+    duration_s?: number;
+  };
   candidates: any[];
 }> {
-  const tempFilePath = path.join(os.tmpdir(), `visint-${Date.now()}-${filename}`);
-  fs.writeFileSync(tempFilePath, imageBuffer);
-
-  // Early duplicate check (even during preview)
-  const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
-  const existing = await query('SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1', [
-    hash,
-  ]);
-  if (existing.rows.length > 0) {
-    const error: any = new Error('Duplicate media content');
-    error.code = 'VISINT_DUPLICATE_MEDIA';
-    error.existingId = existing.rows[0].id;
-    throw error;
-  }
-
-  let exifData;
+  const tempFile = createTempMediaFile('visint-', imageBuffer);
+  let exifData:
+    | Awaited<ReturnType<typeof extractExif>>
+    | Awaited<ReturnType<typeof extractVideoTelemetry>>;
   try {
-    exifData = await extractExif(tempFilePath);
-  } finally {
-    try {
-      fs.unlinkSync(tempFilePath);
-    } catch {
-      // ignore
+    const actualMimeType = await validateMediaContent(tempFile.path);
+    if (actualMimeType !== mimeType) {
+      throw new InvalidFileTypeError('Invalid file type. Only JPEG, PNG, and MP4 are allowed.');
     }
+
+    const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
+    const existing = await query(
+      'SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1',
+      [hash]
+    );
+    if (existing.rows.length > 0) {
+      const error: any = new Error('Duplicate media content');
+      error.code = 'VISINT_DUPLICATE_MEDIA';
+      error.existingId = existing.rows[0].id;
+      throw error;
+    }
+
+    if (mimeType === 'video/mp4') {
+      exifData = await extractVideoTelemetry(tempFile.path, filename);
+    } else {
+      exifData = await extractExif(tempFile.path);
+    }
+  } finally {
+    cleanupTempMediaDirectory(tempFile.directory);
   }
 
   const { lat, lon, timestamp: ts } = exifData;
+  const durationS = 'duration_s' in exifData ? exifData.duration_s : undefined;
 
   // Query database using spatial-temporal parameters and signature scoring
   const rows = await queryCorrelatedObservations(
@@ -272,7 +370,8 @@ export async function correlateVisINT(
     ts,
     radiusMeters,
     windowHours,
-    limit
+    limit,
+    durationS || 0
   );
 
   let status: 'MATCHED' | 'UNMATCHED' = 'UNMATCHED';
@@ -307,6 +406,7 @@ export async function correlateVisINT(
     tagsToApply = await saveVisINTAttachment(
       imageBuffer,
       filename,
+      mimeType,
       targetBssid,
       status,
       detectionScore,
@@ -317,7 +417,11 @@ export async function correlateVisINT(
       ts,
       false, // correlateVisINT is always auto — not manual
       deviceType,
-      observationId
+      observationId,
+      {
+        contentValidated: true,
+        videoTelemetry: 'duration_s' in exifData ? exifData : undefined,
+      }
     );
   } else {
     // Preview tags — derive without committing
@@ -331,7 +435,18 @@ export async function correlateVisINT(
     dist_meters: distMeters,
     delta_minutes: deltaMinutes,
     tags_applied: tagsToApply,
-    exif: { lat, lon, ts },
+    exif: {
+      lat,
+      lon,
+      ts,
+      ...('timestamp_source' in exifData
+        ? {
+            timestamp_source: exifData.timestamp_source,
+            timestamp_is_start_estimate: exifData.timestamp_is_start_estimate,
+            duration_s: exifData.duration_s,
+          }
+        : {}),
+    },
     candidates: rows,
   };
 }

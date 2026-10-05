@@ -333,7 +333,37 @@ describe('Observations API v1', () => {
       const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
       expect(Buffer.isBuffer(call[0])).toBe(true);
       expect(call[0].equals(image)).toBe(true);
-      expect(call.slice(1)).toEqual(['visint.jpg', false, 75, 3, 7, false]);
+      expect(call.slice(1)).toEqual(['visint.jpg', 'image/jpeg', false, 75, 3, 7, false]);
+    });
+
+    it('accepts multipart VISINT video/mp4 uploads', async () => {
+      const video = Buffer.from('fake-visint-video');
+      mockContainer.observationService.correlateVisINT.mockResolvedValue({
+        status: 'UNMATCHED',
+        observation_id: null,
+        detection_score: 0,
+        dist_meters: null,
+        delta_minutes: null,
+        tags_applied: [],
+        exif: { lat: 1, lon: 2, ts: '2026-06-05T00:00:00.000Z' },
+        candidates: [],
+      });
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', video, 'visint.mp4')
+        .field('filename', 'visint.mp4')
+        .field('commit', 'false')
+        .field('radius_meters', '75')
+        .field('window_hours', '3')
+        .field('limit', '7');
+
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
+      expect(Buffer.isBuffer(call[0])).toBe(true);
+      expect(call[0].equals(video)).toBe(true);
+      expect(call.slice(1)).toEqual(['visint.mp4', 'video/mp4', false, 75, 3, 7, false]);
     });
 
     it('defaults commit to false when commit field is omitted — does not write media', async () => {
@@ -356,7 +386,7 @@ describe('Observations API v1', () => {
       expect(res.status).toBe(200);
       // commit arg passed to service must be false (the default)
       const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
-      expect(call[2]).toBe(false);
+      expect(call[3]).toBe(false);
       // saveVisINTAttachment must never be called on a correlate request
       expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
     });
@@ -398,11 +428,37 @@ describe('Observations API v1', () => {
 
       expect(res.status).toBe(200);
       const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
-      expect(call[2]).toBe(true);
+      expect(call[3]).toBe(true);
+    });
+
+    it('accepts a file just under the 100 MB limit', async () => {
+      const largeImage = Buffer.alloc(100 * 1024 * 1024 - 1);
+      mockContainer.observationService.correlateVisINT.mockResolvedValue({
+        status: 'UNMATCHED',
+        observation_id: null,
+        detection_score: 0,
+        dist_meters: null,
+        delta_minutes: null,
+        tags_applied: [],
+        exif: { lat: 1, lon: 2, ts: '2026-06-05T00:00:00.000Z' },
+        candidates: [],
+      });
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', largeImage, 'large-visint.jpg')
+        .field('filename', 'large-visint.jpg')
+        .field('commit', 'false')
+        .field('radius_meters', '75')
+        .field('window_hours', '3')
+        .field('limit', '7');
+
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
     });
 
     it('returns 413 for VISINT images over the route-specific limit', async () => {
-      const oversizedImage = Buffer.alloc(25 * 1024 * 1024 + 1);
+      const oversizedImage = Buffer.alloc(100 * 1024 * 1024 + 1);
 
       const res = await request(app)
         .post('/api/observations/correlate-visint')
@@ -413,6 +469,7 @@ describe('Observations API v1', () => {
         expect.objectContaining({
           ok: false,
           code: 'PAYLOAD_TOO_LARGE',
+          error: 'VISINT media exceeds 100 MB limit.',
         })
       );
       expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
@@ -428,9 +485,24 @@ describe('Observations API v1', () => {
       expect(res.status).toBe(400);
       expect(res.body).toEqual({
         ok: false,
-        error: 'Invalid file type. Only JPEG and PNG are allowed.',
+        error: 'Invalid file type. Only JPEG, PNG, and MP4 are allowed.',
         code: 'INVALID_FILE_TYPE',
       });
+      expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['video/webm', 'unsupported.webm'],
+      ['video/quicktime', 'unsupported.mov'],
+      ['video/x-msvideo', 'unsupported.avi'],
+      ['image/jpg', 'unsupported.jpg'],
+    ])('rejects unsupported VISINT media type %s', async (contentType, filename) => {
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', Buffer.from('not-validated-by-mock-route'), { filename, contentType });
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('INVALID_FILE_TYPE');
       expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
     });
 
@@ -466,13 +538,13 @@ describe('Observations API v1', () => {
       expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
     });
 
-    it('returns 400 when no image file is attached to correlate-visint', async () => {
+    it('returns 400 when no media file is attached to correlate-visint', async () => {
       const res = await request(app)
         .post('/api/observations/correlate-visint')
         .field('filename', 'visint.jpg');
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('image file field is required');
+      expect(res.body.error).toContain('media file field is required');
     });
 
     it('returns 500 for unexpected service errors on correlate-visint', async () => {
@@ -518,6 +590,7 @@ describe('Observations API v1', () => {
       expect(call[0].equals(image)).toBe(true);
       expect(call.slice(1)).toEqual([
         'visint.jpg',
+        'image/jpeg',
         'AA:BB:CC:DD:EE:FF',
         'MATCHED',
         3,
@@ -558,6 +631,7 @@ describe('Observations API v1', () => {
       expect(call[0].equals(image)).toBe(true);
       expect(call.slice(1)).toEqual([
         'visint.jpg',
+        'image/jpeg',
         'AA:BB:CC:DD:EE:FF',
         'MATCHED',
         3,
@@ -645,14 +719,14 @@ describe('Observations API v1', () => {
       expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
     });
 
-    it('returns 400 when no image file is attached to attach-visint', async () => {
+    it('returns 400 when no media file is attached to attach-visint', async () => {
       const res = await request(app)
         .post('/api/observations/attach-visint')
         .field('bssid', 'AA:BB:CC:DD:EE:FF')
         .field('status', 'MATCHED');
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('image file field is required');
+      expect(res.body.error).toContain('media file field is required');
     });
 
     it('returns 500 for unexpected service errors on attach-visint', async () => {
