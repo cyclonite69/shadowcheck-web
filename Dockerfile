@@ -104,7 +104,7 @@ CMD ["node", "dist/server/server/server.js"]
 # ============================================================================
 # Stage 3: frontend (nginx runtime)
 # ============================================================================
-FROM nginx:1.31.5-alpine AS frontend
+FROM nginx:1.31.6-alpine AS frontend
 
 # Copy frontend build from shared-builder (not from api stage)
 COPY --from=shared-builder /app/dist /usr/share/nginx/html
@@ -156,7 +156,7 @@ RUN npm run build:e2e
 # ============================================================================
 # Stage 5: frontend-e2e (nginx runtime with e2e test seams)
 # ============================================================================
-FROM nginx:1.31.5-alpine AS frontend-e2e
+FROM nginx:1.31.6-alpine AS frontend-e2e
 
 COPY --from=frontend-e2e-builder /app/dist /usr/share/nginx/html
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
