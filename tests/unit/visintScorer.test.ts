@@ -77,10 +77,7 @@ describe('queryCorrelatedObservations', () => {
     }
   });
 
-  test('SQL orders by detection_score DESC, dist_meters ASC, delta_minutes ASC', async () => {
-    // Regression: the previous hierarchy (delta_minutes ASC first) caused score-0
-    // background noise broadcasting close to the recording start to displace
-    // high-threat networks that were physically adjacent but temporally offset.
+  test('SQL prioritizes Wi-Fi or named candidates before score, distance, and time', async () => {
     const queryFn = jest.fn().mockResolvedValue({ rows: [] });
     await queryCorrelatedObservations(queryFn, 0, 0, TIMESTAMP);
 
@@ -89,20 +86,40 @@ describe('queryCorrelatedObservations', () => {
     expect(orderIdx).toBeGreaterThan(-1);
     const orderClause = sql.slice(orderIdx);
 
-    // All three sort keys must be present
+    expect(orderClause).toMatch(/radio_type\s*=\s*'W'/);
+    expect(orderClause).toMatch(/ssid\s+IS\s+NOT\s+NULL/);
+    expect(orderClause).toMatch(/BTRIM\s*\(\s*ssid\s*\)\s*<>\s*''/);
+    expect(orderClause).toMatch(/ssid\s*!~\*\s*'\^\(<hidden ssid>\|hidden ssid\)\$'/);
+
     expect(orderClause).toMatch(/detection_score\s+DESC/);
     expect(orderClause).toMatch(/dist_meters\s+ASC/);
     expect(orderClause).toMatch(/delta_minutes\s+ASC/);
-    // PostgreSQL permits a SELECT alias in ORDER BY, but not inside ABS().
-    expect(orderClause).not.toMatch(/ABS\s*\(\s*delta_minutes\s*\)/);
 
-    // Strict precedence: detection_score must appear before dist_meters and delta_minutes
+    const typePriorityPos = orderClause.indexOf('CASE');
     const scorePos = orderClause.indexOf('detection_score');
     const distPos = orderClause.indexOf('dist_meters');
     const deltaPos = orderClause.indexOf('delta_minutes');
+    expect(typePriorityPos).toBeLessThan(scorePos);
     expect(scorePos).toBeLessThan(distPos);
-    expect(scorePos).toBeLessThan(deltaPos);
     expect(distPos).toBeLessThan(deltaPos);
+  });
+
+  test('SQL assigns low-confidence score 2 to specified surveillance SSID keywords', async () => {
+    const queryFn = jest.fn().mockResolvedValue({ rows: [] });
+    await queryCorrelatedObservations(queryFn, 0, 0, TIMESTAMP);
+
+    const sql: string = queryFn.mock.calls[0][0];
+    expect(sql).toMatch(
+      /ssid\s+~\*\s+'\(FBI\|SURVEILLANCE\|POLICE\|TASKFORCE\|DEI-\|AXON\)'\s+THEN 2/
+    );
+  });
+
+  test('type-priority expression keeps hidden SSID markers in the unnamed group', async () => {
+    const queryFn = jest.fn().mockResolvedValue({ rows: [] });
+    await queryCorrelatedObservations(queryFn, 0, 0, TIMESTAMP);
+
+    const sql: string = queryFn.mock.calls[0][0];
+    expect(sql).toMatch(/ssid\s*!~\*\s*'\^\(<hidden ssid>\|hidden ssid\)\$'/);
   });
 
   test('ST_DWithin uses geom::geography so radius $4 is evaluated in metres via GiST index', async () => {
@@ -215,7 +232,7 @@ describeIfIntegration('queryCorrelatedObservations — live DB score assignments
     expect(hit.device_type).toBeNull();
   });
 
-  test('results ordered by detection_score DESC as primary key', async () => {
+  test('results prioritize Wi-Fi and named SSIDs, then score within each group', async () => {
     const rows = await queryCorrelatedObservations(
       queryFn,
       ANCHOR_LON,
@@ -225,10 +242,22 @@ describeIfIntegration('queryCorrelatedObservations — live DB score assignments
       2,
       20
     );
+    const candidatePriority = (row: any) =>
+      row.radio_type === 'W' ||
+      (typeof row.ssid === 'string' &&
+        row.ssid.trim() !== '' &&
+        !/^(<hidden ssid>|hidden ssid)$/i.test(row.ssid.trim()))
+        ? 0
+        : 1;
     for (let i = 1; i < rows.length; i++) {
-      expect(Number(rows[i].detection_score)).toBeLessThanOrEqual(
-        Number(rows[i - 1].detection_score)
-      );
+      const previousPriority = candidatePriority(rows[i - 1]);
+      const currentPriority = candidatePriority(rows[i]);
+      expect(currentPriority).toBeGreaterThanOrEqual(previousPriority);
+      if (currentPriority === previousPriority) {
+        expect(Number(rows[i].detection_score)).toBeLessThanOrEqual(
+          Number(rows[i - 1].detection_score)
+        );
+      }
     }
   });
 

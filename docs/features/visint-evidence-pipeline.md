@@ -172,28 +172,45 @@ Error classes raised:
 Calls `queryCorrelatedObservations` against `app.observations` using:
 
 ```sql
-WHERE ST_DWithin(obs_geom, image_geom, $radius_meters)
+WHERE ST_DWithin(geom::geography, image_geom, $radius_meters)
   AND observed_at BETWEEN ($ts - window_hours) AND ($ts + window_hours)
-ORDER BY delta_minutes ASC, detection_score DESC, dist_meters ASC
+ORDER BY
+  CASE
+    WHEN radio_type = 'W'
+      OR (
+        ssid IS NOT NULL
+        AND BTRIM(ssid) <> ''
+        AND ssid !~* '^(<hidden ssid>|hidden ssid)$'
+      )
+    THEN 0
+    ELSE 1
+  END ASC,
+  detection_score DESC,
+  dist_meters ASC,
+  delta_minutes ASC
 LIMIT $limit
 ```
 
-**Candidate ordering priority:** tightest time delta first (primary), then
-highest detection score, then nearest distance. This reflects the 2026-06-04
-change (`feat(visint): prioritize tightest time delta`) that reversed the
-previous score-first ordering to avoid false-positive high-score matches that
-were temporally distant.
+**Candidate ordering priority:** Wi-Fi or named SSIDs first, then highest
+detection score, nearest distance, and tightest time delta. This keeps
+unnamed/hidden ephemeral BLE advertisements from filling the candidate limit
+ahead of named networks while retaining score priority within each group.
 
 **Scoring (CASE expression in scorer):**
 
-| Score | Condition                                                                                | `device_type`         |
-| ----- | ---------------------------------------------------------------------------------------- | --------------------- |
-| 4     | BLE `radio_service` contains UUID `3e1d50cd-7e3e-427d-8e1c-b78aa87fe624`                 | `FLOCK_SAFETY_CAMERA` |
-| 3     | SSID matches `^[0-9]{10}$` or `^Penguin-[0-9]{10}$`                                      | `FLOCK_SAFETY_CAMERA` |
-| 2     | SSID matches `^(SoundThinking\|ShotSpotter\|SST-)`                                       | `SHOTSPOTTER_SENSOR`  |
-| 2     | SSID matches `^(CBCI\|HOME\|CAR\|BT\|GC\|LB\|MTS\|AUTO\|TFGF\|KG\|RN\|JB\|JR\|JW)-[0-9]` | `SHOTSPOTTER_SENSOR`  |
-| 1     | `ssid = '4'` AND `radio_type = 'E'` (BLE)                                                | `FLOCK_SAFETY_CAMERA` |
-| 0     | No signature match — spatial/temporal candidate only                                     | `NULL`                |
+| Score | Condition                                                                                        | `device_type`                   |
+| ----- | ------------------------------------------------------------------------------------------------ | ------------------------------- |
+| 4     | BLE `radio_service` contains UUID `3e1d50cd-7e3e-427d-8e1c-b78aa87fe624`                         | `FLOCK_SAFETY_CAMERA`           |
+| 3     | SSID matches `^[0-9]{10}$` or `^Penguin-[0-9]{10}$`                                              | `FLOCK_SAFETY_CAMERA`           |
+| 2     | SSID matches `^(SoundThinking\|ShotSpotter\|SST-)`                                               | `SHOTSPOTTER_SENSOR`            |
+| 2     | SSID matches `^(CBCI\|HOME\|CAR\|BT\|GC\|LB\|MTS\|AUTO\|TFGF\|KG\|RN\|JB\|JR\|JW)-[0-9]`         | `SHOTSPOTTER_SENSOR`            |
+| 2     | SSID contains `FBI`, `SURVEILLANCE`, `POLICE`, `TASKFORCE`, `DEI-`, or `AXON` (case-insensitive) | `NULL` (pending candidate only) |
+| 1     | `ssid = '4'` AND `radio_type = 'E'` (BLE)                                                        | `FLOCK_SAFETY_CAMERA`           |
+| 0     | No signature match — spatial/temporal candidate only                                             | `NULL`                          |
+
+The score-2 keyword rule is a broad, low-confidence indicator. It does not
+assign a device type or create a surveillance-detection record; an auto-matched
+candidate with no recognized device type receives `VISINT_PENDING`.
 
 A match is only considered successful if the top candidate has `detection_score >= 1`.
 Score-0 rows are returned as candidates but do not trigger a `MATCHED` status.

@@ -5,7 +5,7 @@
  * Score levels:
  *   4 — Flock BLE UUID exact match (FLOCK_NEW_FIRMWARE)
  *   3 — Flock 10-digit SSID / Penguin pattern (FLOCK_LEGACY)
- *   2 — ShotSpotter/SoundThinking SSID prefix (SHOTSPOTTER_SENSOR)
+ *   2 — ShotSpotter/SoundThinking or broad surveillance-keyword SSID candidate
  *   1 — Weak BLE heuristic (FLOCK_CANDIDATE)
  *   0 — No signature match (spatial-only candidate)
  */
@@ -48,6 +48,7 @@ export async function queryCorrelatedObservations(
         WHEN ssid ~ '^Penguin-[0-9]{10}$'                                   THEN 3
         WHEN ssid ~* '^(SoundThinking|ShotSpotter|SST-)'                    THEN 2
         WHEN ssid ~ '^(CBCI|HOME|CAR|BT|GC|LB|MTS|AUTO|TFGF|KG|RN|JB|JR|JW)-[0-9]' THEN 2
+        WHEN ssid ~* '(FBI|SURVEILLANCE|POLICE|TASKFORCE|DEI-|AXON)'       THEN 2
         WHEN ssid = '4' AND radio_type = 'E'                                THEN 1
         ELSE 0
       END AS detection_score,
@@ -68,7 +69,20 @@ export async function queryCorrelatedObservations(
         $4
       )
       AND observed_at BETWEEN $5::timestamptz AND $6::timestamptz
-    ORDER BY detection_score DESC, dist_meters ASC, delta_minutes ASC
+    ORDER BY
+      CASE
+        WHEN radio_type = 'W'
+          OR (
+            ssid IS NOT NULL
+            AND BTRIM(ssid) <> ''
+            AND ssid !~* '^(<hidden ssid>|hidden ssid)$'
+          )
+        THEN 0
+        ELSE 1
+      END ASC,
+      detection_score DESC,
+      dist_meters ASC,
+      delta_minutes ASC
     LIMIT $7
   `;
 
