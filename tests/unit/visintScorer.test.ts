@@ -77,7 +77,7 @@ describe('queryCorrelatedObservations', () => {
     }
   });
 
-  test('SQL orders by detection_score DESC, dist_meters ASC, ABS(delta_minutes) ASC', async () => {
+  test('SQL orders by detection_score DESC, dist_meters ASC, delta_minutes ASC', async () => {
     // Regression: the previous hierarchy (delta_minutes ASC first) caused score-0
     // background noise broadcasting close to the recording start to displace
     // high-threat networks that were physically adjacent but temporally offset.
@@ -92,7 +92,9 @@ describe('queryCorrelatedObservations', () => {
     // All three sort keys must be present
     expect(orderClause).toMatch(/detection_score\s+DESC/);
     expect(orderClause).toMatch(/dist_meters\s+ASC/);
-    expect(orderClause).toMatch(/ABS\s*\(\s*delta_minutes\s*\)\s+ASC/);
+    expect(orderClause).toMatch(/delta_minutes\s+ASC/);
+    // PostgreSQL permits a SELECT alias in ORDER BY, but not inside ABS().
+    expect(orderClause).not.toMatch(/ABS\s*\(\s*delta_minutes\s*\)/);
 
     // Strict precedence: detection_score must appear before dist_meters and delta_minutes
     const scorePos = orderClause.indexOf('detection_score');

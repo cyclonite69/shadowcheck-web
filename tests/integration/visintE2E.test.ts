@@ -96,6 +96,7 @@ describe('VisINT E2E Pipeline (MP4)', () => {
       .post('/api/observations/correlate-visint')
       .field('commit', 'true')
       .field('confirm_fallback', 'true')
+      .field('radius_meters', '0.1')
       .attach('image', MP4_FIXTURE_PATH, { contentType: 'video/mp4' });
     expect(response.status).toBe(200);
     expect(response.body.ok).toBe(true);
