@@ -18,6 +18,14 @@ export interface RelatedNetworkMediaRow {
 
 import crypto from 'crypto';
 
+export async function checkDuplicateMedia(mediaBuffer: Buffer): Promise<number | null> {
+  const hash = crypto.createHash('sha256').update(mediaBuffer).digest('hex');
+  const existing = await query('SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1', [
+    hash,
+  ]);
+  return existing.rows.length > 0 ? existing.rows[0].id : null;
+}
+
 export async function insertNetworkMedia(
   bssid: string,
   mediaType: string,
@@ -30,24 +38,31 @@ export async function insertNetworkMedia(
   exifLon: number | null = null,
   exifCapturedAt: string | null = null,
   thumbnail: Buffer | null = null,
-  observationId: number | string | null = null
+  observationId: number | string | null = null,
+  exifRaw: any | null = null,
+  exifMake: string | null = null,
+  exifModel: string | null = null,
+  exifAltitude: number | null = null,
+  exifBearing: number | null = null,
+  exifWidth: number | null = null,
+  exifHeight: number | null = null
 ): Promise<any> {
   const hash = crypto.createHash('sha256').update(mediaBuffer).digest('hex');
-  const existing = await query('SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1', [
-    hash,
-  ]);
-  if (existing.rows.length > 0) {
+  const existingId = await checkDuplicateMedia(mediaBuffer);
+  if (existingId !== null) {
     const error: any = new Error('Duplicate media content');
     error.code = 'VISINT_DUPLICATE_MEDIA';
-    error.existingId = existing.rows[0].id;
+    error.existingId = existingId;
     throw error;
   }
 
   try {
     const result = await adminQuery(
       `INSERT INTO app.network_media
-        (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by, exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id, image_sha256)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12, $13)
+        (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by,
+         exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id, image_sha256,
+         exif_raw, exif_make, exif_model, exif_altitude, exif_bearing, exif_width, exif_height)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
        RETURNING id, filename, file_size, created_at`,
       [
         bssid,
@@ -63,6 +78,13 @@ export async function insertNetworkMedia(
         thumbnail,
         observationId ? parseInt(String(observationId), 10) : null,
         hash,
+        exifRaw ? JSON.stringify(exifRaw) : null,
+        exifMake,
+        exifModel,
+        exifAltitude,
+        exifBearing,
+        exifWidth,
+        exifHeight,
       ]
     );
     return result.rows[0];

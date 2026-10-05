@@ -2,6 +2,7 @@ import express from 'express';
 import request from 'supertest';
 
 const adminNetworkMediaService = {
+  checkDuplicateMedia: jest.fn().mockResolvedValue(null),
   uploadNetworkMedia: jest.fn(),
   getNetworkMediaList: jest.fn(),
   getNetworkMediaFile: jest.fn(),
@@ -16,6 +17,14 @@ jest.mock('../../server/src/config/container', () => ({
 
 jest.mock('../../server/src/logging/logger', () => logger);
 
+const {
+  extractMetadataDumpFromBuffer,
+} = require('../../server/src/services/visint/visintMetadataDump');
+
+jest.mock('../../server/src/services/visint/visintMetadataDump', () => ({
+  extractMetadataDumpFromBuffer: jest.fn(),
+}));
+
 const router = require('../../server/src/api/routes/v1/admin/media');
 
 const app = express();
@@ -28,6 +37,22 @@ app.use((error: Error, _req: unknown, res: express.Response, _next: express.Next
 describe('admin media routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    adminNetworkMediaService.checkDuplicateMedia.mockResolvedValue(null);
+    (extractMetadataDumpFromBuffer as jest.Mock).mockResolvedValue({
+      rawJson: {
+        exiftool_version: '13.25',
+        extracted_at: '2026-10-05T20:00:00.000Z',
+        tags: { 'IFD0:Make': 'TestMake' },
+      },
+      typedExif: {
+        exifMake: 'TestMake',
+        exifModel: 'TestModel',
+        exifAltitude: 100.5,
+        exifBearing: 45.0,
+        exifWidth: 1920,
+        exifHeight: 1080,
+      },
+    });
   });
 
   it('validates required upload fields and media type', async () => {
@@ -47,6 +72,7 @@ describe('admin media routes', () => {
   });
 
   it('decodes and uploads media', async () => {
+    adminNetworkMediaService.checkDuplicateMedia.mockResolvedValueOnce(null);
     adminNetworkMediaService.uploadNetworkMedia.mockResolvedValueOnce({ id: 7 });
 
     const response = await request(app)
@@ -68,13 +94,50 @@ describe('admin media routes', () => {
       10,
       'image/jpeg',
       Buffer.from('image-data'),
-      'front door'
+      'front door',
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        exiftool_version: '13.25',
+        extracted_at: '2026-10-05T20:00:00.000Z',
+        tags: { 'IFD0:Make': 'TestMake' },
+      },
+      'TestMake',
+      'TestModel',
+      100.5,
+      45.0,
+      1920,
+      1080
     );
     expect(response.body).toEqual({
       ok: true,
       message: 'image uploaded successfully',
       media: { id: 7 },
     });
+  });
+
+  it('returns 409 if uploaded media is duplicate without spawning upload', async () => {
+    adminNetworkMediaService.checkDuplicateMedia.mockResolvedValueOnce(42);
+
+    const response = await request(app)
+      .post('/api/admin/network-media/upload')
+      .send({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        media_type: 'image',
+        filename: 'duplicate.jpg',
+        media_data_base64: Buffer.from('image-data').toString('base64'),
+        description: 'duplicate image',
+        mime_type: 'image/jpeg',
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe('VISINT_DUPLICATE_MEDIA');
+    expect(response.body.error.existingId).toBe(42);
+    expect(adminNetworkMediaService.uploadNetworkMedia).not.toHaveBeenCalled();
+    expect(extractMetadataDumpFromBuffer).not.toHaveBeenCalled();
   });
 
   it('logs upload failures and forwards them', async () => {

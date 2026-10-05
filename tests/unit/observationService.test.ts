@@ -45,11 +45,39 @@ jest.mock('../../server/src/services/visint/visintExif', () => ({
   validateMediaBuffer: jest.fn().mockResolvedValue(undefined),
 }));
 
+const {
+  extractMetadataDumpFromFile,
+  extractMetadataDumpFromBuffer,
+} = require('../../server/src/services/visint/visintMetadataDump');
+
+const mockMetadataDumpResult = {
+  rawJson: {
+    exiftool_version: '13.25',
+    extracted_at: '2026-10-05T20:00:00.000Z',
+    tags: { 'IFD0:Make': 'MockCamera' },
+  },
+  typedExif: {
+    exifMake: 'MockCamera',
+    exifModel: 'MockModel',
+    exifAltitude: 50.0,
+    exifBearing: 120.0,
+    exifWidth: 4000,
+    exifHeight: 3000,
+  },
+};
+
+jest.mock('../../server/src/services/visint/visintMetadataDump', () => ({
+  extractMetadataDumpFromFile: jest.fn(),
+  extractMetadataDumpFromBuffer: jest.fn(),
+}));
+
 describe('Observation Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (validateMediaContent as jest.Mock).mockResolvedValue('image/jpeg');
     (validateMediaBuffer as jest.Mock).mockResolvedValue(undefined);
+    (extractMetadataDumpFromFile as jest.Mock).mockResolvedValue(mockMetadataDumpResult);
+    (extractMetadataDumpFromBuffer as jest.Mock).mockResolvedValue(mockMetadataDumpResult);
   });
 
   describe('getHomeLocationForObservations', () => {
@@ -340,7 +368,18 @@ describe('Observation Service', () => {
         -83.696,
         '2026-05-06 20:29:10',
         expect.any(Buffer),
-        null
+        null,
+        {
+          exiftool_version: '13.25',
+          extracted_at: '2026-10-05T20:00:00.000Z',
+          tags: { 'IFD0:Make': 'MockCamera' },
+        },
+        'MockCamera',
+        'MockModel',
+        50.0,
+        120.0,
+        4000,
+        3000
       );
     });
 
@@ -389,7 +428,18 @@ describe('Observation Service', () => {
         -83.696,
         '2026-05-06 20:29:10',
         null,
-        '12345'
+        '12345',
+        {
+          exiftool_version: '13.25',
+          extracted_at: '2026-10-05T20:00:00.000Z',
+          tags: { 'IFD0:Make': 'MockCamera' },
+        },
+        'MockCamera',
+        'MockModel',
+        50.0,
+        120.0,
+        4000,
+        3000
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
@@ -496,7 +546,18 @@ describe('Observation Service', () => {
         -83.696,
         '2026-05-06 20:29:10',
         null,
-        null
+        null,
+        {
+          exiftool_version: '13.25',
+          extracted_at: '2026-10-05T20:00:00.000Z',
+          tags: { 'IFD0:Make': 'MockCamera' },
+        },
+        'MockCamera',
+        'MockModel',
+        50.0,
+        120.0,
+        4000,
+        3000
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
@@ -587,6 +648,8 @@ describe('Observation Service', () => {
       expect(insertNetworkMedia).not.toHaveBeenCalled();
       expect(insertNetworkTagWithNotes).not.toHaveBeenCalled();
       expect(addTagToNetwork).not.toHaveBeenCalled();
+      expect(extractMetadataDumpFromFile).not.toHaveBeenCalled();
+      expect(extractMetadataDumpFromBuffer).not.toHaveBeenCalled();
     });
 
     it('rejects writing to VISINT_UNMATCHED during commit without explicit confirm_fallback', async () => {
@@ -635,7 +698,34 @@ describe('Observation Service', () => {
       const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg', 'image/jpeg', true);
 
       expect(result.status).toBe('MATCHED');
-      expect(insertNetworkMedia).toHaveBeenCalled();
+      expect(insertNetworkMedia).toHaveBeenCalledWith(
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'test.jpg',
+        Buffer.from('dummy').length,
+        'image/jpeg',
+        Buffer.from('dummy'),
+        'VisINT Correlation: dist_meters=5.4, delta_minutes=0.1, score=4, manual=false',
+        43.023,
+        -83.696,
+        '2026-05-06 20:29:10',
+        null,
+        '12345',
+        {
+          exiftool_version: '13.25',
+          extracted_at: '2026-10-05T20:00:00.000Z',
+          tags: { 'IFD0:Make': 'MockCamera' },
+        },
+        'MockCamera',
+        'MockModel',
+        50.0,
+        120.0,
+        4000,
+        3000
+      );
+      expect(extractMetadataDumpFromFile).toHaveBeenCalledTimes(1);
+      expect(extractMetadataDumpFromFile).toHaveBeenCalledWith(expect.stringContaining('visint-'));
+      expect(extractMetadataDumpFromBuffer).not.toHaveBeenCalled();
       expect(insertNetworkTagWithNotes).toHaveBeenCalled();
     });
   });

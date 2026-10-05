@@ -21,9 +21,11 @@ const {
   deleteNoteMedia,
   deleteNetworkMedia,
   getDuplicateMediaGroups,
+  checkDuplicateMedia,
 } = require('../repositories/adminNetworkMediaRepository');
 
 module.exports = {
+  checkDuplicateMedia,
   uploadNetworkMedia: insertNetworkMedia,
   getNetworkMediaList: selectNetworkMediaList,
   getNetworkMediaFile: selectNetworkMediaFile,

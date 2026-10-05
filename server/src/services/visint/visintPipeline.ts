@@ -8,6 +8,7 @@ import {
 import { extractVideoTelemetry } from './visintVideoExif';
 import crypto from 'crypto';
 import { queryCorrelatedObservations } from './visintScorer';
+import { extractMetadataDumpFromBuffer, extractMetadataDumpFromFile } from './visintMetadataDump';
 
 const { query } = require('../../config/database');
 const logger = require('../../logging/logger');
@@ -24,6 +25,7 @@ const {
 type SaveVisINTOptions = {
   contentValidated?: boolean;
   videoTelemetry?: Awaited<ReturnType<typeof extractVideoTelemetry>>;
+  tempFilePath?: string;
 };
 
 type ExtractedTelemetry = {
@@ -272,6 +274,11 @@ export async function saveVisINTAttachment(
           })
         : `VisINT Correlation: dist_meters=${distMeters}, delta_minutes=${deltaMinutes}, score=${detectionScore}, manual=${isManualOverride}`;
 
+  // Extract full metadata dump (fail-soft) only on persist paths
+  const { rawJson, typedExif } = options.tempFilePath
+    ? await extractMetadataDumpFromFile(options.tempFilePath)
+    : await extractMetadataDumpFromBuffer(imageBuffer);
+
   await insertNetworkMedia(
     targetBssid,
     mediaType,
@@ -284,7 +291,14 @@ export async function saveVisINTAttachment(
     resolvedLon,
     resolvedTs,
     thumbnailBuffer,
-    observationId
+    observationId,
+    rawJson,
+    typedExif.exifMake,
+    typedExif.exifModel,
+    typedExif.exifAltitude,
+    typedExif.exifBearing,
+    typedExif.exifWidth,
+    typedExif.exifHeight
   );
 
   const tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, isManualOverride);
@@ -355,98 +369,99 @@ export async function correlateVisINT(
     } else {
       exifData = await extractExif(tempFile.path);
     }
+
+    const { lat, lon, timestamp: ts } = exifData;
+    const durationS = 'duration_s' in exifData ? exifData.duration_s : undefined;
+
+    // Query database using spatial-temporal parameters and signature scoring
+    const rows = await queryCorrelatedObservations(
+      query,
+      lon,
+      lat,
+      ts,
+      radiusMeters,
+      windowHours,
+      limit,
+      durationS || 0
+    );
+
+    let status: 'MATCHED' | 'UNMATCHED' = 'UNMATCHED';
+    let observationId: string | null = null;
+    let detectionScore = 0;
+    let distMeters: number | null = null;
+    let deltaMinutes: number | null = null;
+    let targetBssid = 'VISINT_UNMATCHED';
+    let deviceType: string | null = null;
+    let tagsToApply: string[];
+
+    if (rows.length > 0 && parseInt(rows[0].detection_score, 10) >= 1) {
+      const bestMatch = rows[0];
+      status = 'MATCHED';
+      observationId = String(bestMatch.id);
+      detectionScore = parseInt(bestMatch.detection_score, 10);
+      distMeters = parseFloat(bestMatch.dist_meters);
+      deltaMinutes = parseFloat(bestMatch.delta_minutes);
+      targetBssid = String(bestMatch.bssid).toUpperCase();
+      deviceType = bestMatch.device_type || null;
+    }
+
+    if (commit && targetBssid === 'VISINT_UNMATCHED' && !confirmFallback) {
+      const error = new Error(
+        'Correlating to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.'
+      );
+      (error as Error & { name: string }).name = 'VISINTFallbackRequiresConfirmationError';
+      throw error;
+    }
+
+    if (commit) {
+      tagsToApply = await saveVisINTAttachment(
+        imageBuffer,
+        filename,
+        mimeType,
+        targetBssid,
+        status,
+        detectionScore,
+        distMeters,
+        deltaMinutes,
+        lat,
+        lon,
+        ts,
+        false, // correlateVisINT is always auto — not manual
+        deviceType,
+        observationId,
+        {
+          contentValidated: true,
+          videoTelemetry: 'duration_s' in exifData ? exifData : undefined,
+          tempFilePath: tempFile.path,
+        }
+      );
+    } else {
+      // Preview tags — derive without committing
+      tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, false);
+    }
+
+    return {
+      status,
+      observation_id: observationId,
+      detection_score: detectionScore,
+      dist_meters: distMeters,
+      delta_minutes: deltaMinutes,
+      tags_applied: tagsToApply,
+      exif: {
+        lat,
+        lon,
+        ts,
+        ...('timestamp_source' in exifData
+          ? {
+              timestamp_source: exifData.timestamp_source,
+              timestamp_is_start_estimate: exifData.timestamp_is_start_estimate,
+              duration_s: exifData.duration_s,
+            }
+          : {}),
+      },
+      candidates: rows,
+    };
   } finally {
     cleanupTempMediaDirectory(tempFile.directory);
   }
-
-  const { lat, lon, timestamp: ts } = exifData;
-  const durationS = 'duration_s' in exifData ? exifData.duration_s : undefined;
-
-  // Query database using spatial-temporal parameters and signature scoring
-  const rows = await queryCorrelatedObservations(
-    query,
-    lon,
-    lat,
-    ts,
-    radiusMeters,
-    windowHours,
-    limit,
-    durationS || 0
-  );
-
-  let status: 'MATCHED' | 'UNMATCHED' = 'UNMATCHED';
-  let observationId: string | null = null;
-  let detectionScore = 0;
-  let distMeters: number | null = null;
-  let deltaMinutes: number | null = null;
-  let targetBssid = 'VISINT_UNMATCHED';
-  let deviceType: string | null = null;
-  let tagsToApply: string[];
-
-  if (rows.length > 0 && parseInt(rows[0].detection_score, 10) >= 1) {
-    const bestMatch = rows[0];
-    status = 'MATCHED';
-    observationId = String(bestMatch.id);
-    detectionScore = parseInt(bestMatch.detection_score, 10);
-    distMeters = parseFloat(bestMatch.dist_meters);
-    deltaMinutes = parseFloat(bestMatch.delta_minutes);
-    targetBssid = String(bestMatch.bssid).toUpperCase();
-    deviceType = bestMatch.device_type || null;
-  }
-
-  if (commit && targetBssid === 'VISINT_UNMATCHED' && !confirmFallback) {
-    const error = new Error(
-      'Correlating to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.'
-    );
-    (error as Error & { name: string }).name = 'VISINTFallbackRequiresConfirmationError';
-    throw error;
-  }
-
-  if (commit) {
-    tagsToApply = await saveVisINTAttachment(
-      imageBuffer,
-      filename,
-      mimeType,
-      targetBssid,
-      status,
-      detectionScore,
-      distMeters,
-      deltaMinutes,
-      lat,
-      lon,
-      ts,
-      false, // correlateVisINT is always auto — not manual
-      deviceType,
-      observationId,
-      {
-        contentValidated: true,
-        videoTelemetry: 'duration_s' in exifData ? exifData : undefined,
-      }
-    );
-  } else {
-    // Preview tags — derive without committing
-    tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, false);
-  }
-
-  return {
-    status,
-    observation_id: observationId,
-    detection_score: detectionScore,
-    dist_meters: distMeters,
-    delta_minutes: deltaMinutes,
-    tags_applied: tagsToApply,
-    exif: {
-      lat,
-      lon,
-      ts,
-      ...('timestamp_source' in exifData
-        ? {
-            timestamp_source: exifData.timestamp_source,
-            timestamp_is_start_estimate: exifData.timestamp_is_start_estimate,
-            duration_s: exifData.duration_s,
-          }
-        : {}),
-    },
-    candidates: rows,
-  };
 }

@@ -10,6 +10,7 @@ const router = express.Router();
 const { adminNetworkMediaService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 const { parseByteRange } = require('../../../../utils/httpRangeUtils');
+import { extractMetadataDumpFromBuffer } from '../../../../services/visint/visintMetadataDump';
 
 // POST /api/admin/network-media/upload - Upload media (image/video) to network
 router.post('/admin/network-media/upload', async (req: any, res: any, next: any) => {
@@ -32,6 +33,21 @@ router.post('/admin/network-media/upload', async (req: any, res: any, next: any)
     const mediaBuffer = Buffer.from(media_data_base64, 'base64');
     const fileSize = mediaBuffer.length;
 
+    // Reject duplicate before spawning ExifTool
+    const existingId = await adminNetworkMediaService.checkDuplicateMedia(mediaBuffer);
+    if (existingId !== null && existingId !== undefined) {
+      return res.status(409).json({
+        error: {
+          message: 'Duplicate media content',
+          code: 'VISINT_DUPLICATE_MEDIA',
+          existingId,
+        },
+      });
+    }
+
+    // Extract complete metadata dump (fail-soft) only after duplicate check passes
+    const { rawJson, typedExif } = await extractMetadataDumpFromBuffer(mediaBuffer);
+
     // Insert media
     const media = await adminNetworkMediaService.uploadNetworkMedia(
       bssid,
@@ -40,7 +56,19 @@ router.post('/admin/network-media/upload', async (req: any, res: any, next: any)
       fileSize,
       mime_type,
       mediaBuffer,
-      description
+      description,
+      null,
+      null,
+      null,
+      null,
+      null,
+      rawJson,
+      typedExif.exifMake,
+      typedExif.exifModel,
+      typedExif.exifAltitude,
+      typedExif.exifBearing,
+      typedExif.exifWidth,
+      typedExif.exifHeight
     );
 
     res.json({
