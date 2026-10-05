@@ -1086,7 +1086,7 @@
 - wire mapbox proxy stream helper ([26e42ad](https://github.com/cyclonite69/shadowcheck-web/commit/26e42ad3a3da444908eb9935c927129d3083861d))
 - wrap repair script in async main() to support CommonJS tsx execution ([cb2866b](https://github.com/cyclonite69/shadowcheck-web/commit/cb2866bdce41bda985e0de5eeeb43f0d95c589b5))
 - wrap toolbar zones 3-5 with single margin-left auto ([4b4c096](https://github.com/cyclonite69/shadowcheck-web/commit/4b4c0962985c6d58bdf974e63e0fce838e50ff70))
-- **ws:** enforce Origin policy on SSM terminal upgrades ([c0d53ad](https://github.com/cyclonite69/shadowcheck-web/commit/c0d53adbeab1a66b8fc55eb6226736803e2d18d8))
+- **ws:** enforce Origin policy on SSM terminal upgrades ([8dc13ca](https://github.com/cyclonite69/shadowcheck-web/commit/8dc13cad1febf41565b83ad5cd55a46ced5e174d))
 
 ### Features
 
@@ -1374,6 +1374,7 @@
 - **seeds:** add synthetic test data and seed runner script ([62c2bc1](https://github.com/cyclonite69/shadowcheck-web/commit/62c2bc1873e7376c8a4142b628efec9c4be63fcf))
 - **seeds:** add synthetic test data for integration tests ([ce7ea1c](https://github.com/cyclonite69/shadowcheck-web/commit/ce7ea1c9cb321021e820d880ec2119aa7bd88dd2))
 - server TS migration batches 6-7 (utils, middleware, errors) ([2b11ce0](https://github.com/cyclonite69/shadowcheck-web/commit/2b11ce04aa7b31f3af6963d1fc12ee75cc0b6a5d))
+- **server:** fail fast in production when CORS_ORIGINS has no explicit origin ([24152ec](https://github.com/cyclonite69/shadowcheck-web/commit/24152ecbd8c4894a99bcaf16c0dd19d6bf183d46))
 - show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
 - **sibling-detection:** add mac_increment and band_pair modalities alongside existing detection ([4c39920](https://github.com/cyclonite69/shadowcheck-web/commit/4c399201f7b01b0acf689bbc44edfa969b738b7a))
 - **sibling-detection:** add xfinity_sig modality (fleet_unit rejected, 0 detections) ([eb1ef34](https://github.com/cyclonite69/shadowcheck-web/commit/eb1ef3404e9ba79216310eb4f80b6bd3cdb90701))

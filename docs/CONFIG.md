@@ -30,12 +30,12 @@ This document describes all configuration options for ShadowCheckStatic.
 
 ### Server Configuration
 
-| Variable       | Required | Default       | Description                  |
-| -------------- | -------- | ------------- | ---------------------------- |
-| `PORT`         | No       | `3001`        | Server port                  |
-| `NODE_ENV`     | No       | `development` | Environment mode             |
-| `FORCE_HTTPS`  | No       | `false`       | Force HTTPS redirect         |
-| `CORS_ORIGINS` | No       | -             | Comma-separated CORS origins |
+| Variable       | Required          | Default       | Description                                                                                                                         |
+| -------------- | ----------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`         | No                | `3001`        | Server port                                                                                                                         |
+| `NODE_ENV`     | No                | `development` | Environment mode                                                                                                                    |
+| `FORCE_HTTPS`  | No                | `false`       | Force HTTPS redirect                                                                                                                |
+| `CORS_ORIGINS` | Yes in production | -             | Comma-separated browser Origins (`scheme://host[:port]`); local Compose with `NODE_ENV=production` also requires an explicit value. |
 
 ### Threat Detection
 
