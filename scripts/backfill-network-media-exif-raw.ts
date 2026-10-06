@@ -6,11 +6,81 @@ import { extractMetadataDumpFromBuffer } from '../server/src/services/visint/vis
 
 const PAGE_SIZE = 50;
 
-async function runBackfill(): Promise<void> {
-  const isApply = process.argv.includes('--apply');
+export interface ConnectionMetadata {
+  currentDatabase: string;
+  currentUser: string;
+  serverAddr: string;
+  serverPort: string;
+}
+
+export async function fetchConnectionMetadata(
+  queryFn: (sql: string, params?: any[]) => Promise<any>
+): Promise<ConnectionMetadata> {
+  const res = await queryFn(
+    "SELECT current_database(), current_user, coalesce(inet_server_addr()::text, 'socket') AS server_addr, coalesce(inet_server_port()::text, 'socket') AS server_port"
+  );
+  const row = res.rows[0] || {};
+  return {
+    currentDatabase: row.current_database || 'unknown',
+    currentUser: row.current_user || 'unknown',
+    serverAddr: row.server_addr || 'unknown',
+    serverPort: row.server_port || 'unknown',
+  };
+}
+
+export function parseConfirmDbArg(args: string[]): string | undefined {
+  const prefix = '--confirm-db=';
+  const match = args.find((a) => a.startsWith(prefix));
+  return match ? match.slice(prefix.length).trim() : undefined;
+}
+
+export function validatePreflight(
+  readMeta: ConnectionMetadata,
+  adminMeta: ConnectionMetadata,
+  isApply: boolean,
+  confirmDbArg?: string
+): void {
+  if (readMeta.currentDatabase !== adminMeta.currentDatabase) {
+    throw new Error(
+      `Database mismatch: read query connects to '${readMeta.currentDatabase}', but admin query connects to '${adminMeta.currentDatabase}'. Aborting.`
+    );
+  }
+
+  if (isApply) {
+    if (!confirmDbArg) {
+      throw new Error(
+        '--apply requires explicit --confirm-db=<database_name> to prevent accidental writes. Aborting.'
+      );
+    }
+    if (confirmDbArg !== readMeta.currentDatabase) {
+      throw new Error(
+        `--confirm-db='${confirmDbArg}' does not match connected database '${readMeta.currentDatabase}'. Aborting.`
+      );
+    }
+  }
+}
+
+export async function runBackfill(argv: string[] = process.argv): Promise<void> {
+  const isApply = argv.includes('--apply');
+  const confirmDbArg = parseConfirmDbArg(argv);
+
+  const readMeta = await fetchConnectionMetadata(query);
+  const adminMeta = await fetchConnectionMetadata(adminQuery);
+
+  console.log('--- Preflight Connection Information ---');
+  console.log(
+    `[read connection]  DB: ${readMeta.currentDatabase} | User: ${readMeta.currentUser} | Server: ${readMeta.serverAddr}:${readMeta.serverPort}`
+  );
+  console.log(
+    `[admin connection] DB: ${adminMeta.currentDatabase} | User: ${adminMeta.currentUser} | Server: ${adminMeta.serverAddr}:${adminMeta.serverPort}`
+  );
+  console.log('----------------------------------------\n');
+
+  validatePreflight(readMeta, adminMeta, isApply, confirmDbArg);
 
   console.log('=======================================================');
   console.log('Backfill EXIF Raw & Migration 058 Metadata');
+  console.log(`Target database: ${readMeta.currentDatabase}`);
   console.log(`Mode: ${isApply ? 'APPLY (performing updates)' : 'DRY-RUN (read-only)'}`);
   console.log(`Batch size: ${PAGE_SIZE}`);
   console.log('=======================================================\n');
@@ -127,14 +197,30 @@ async function runBackfill(): Promise<void> {
       `Total metadata payload: ${(totalPayloadBytes / 1024).toFixed(2)} KB (${totalPayloadBytes} bytes)`
     );
     console.log('=======================================================');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Backfill error:', error instanceof Error ? error.message : String(error));
-    process.exit(1);
-  } finally {
-    process.exit(0);
+    if (error && typeof error === 'object') {
+      error.logged = true;
+    }
+    throw error;
+  }
+}
+
+export async function main(
+  argv: string[] = process.argv,
+  exitFn: (code: number) => void = process.exit
+): Promise<void> {
+  try {
+    await runBackfill(argv);
+    exitFn(0);
+  } catch (error: any) {
+    if (!error?.logged) {
+      console.error(`Backfill aborted: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    exitFn(1);
   }
 }
 
 if (require.main === module) {
-  runBackfill();
+  main();
 }

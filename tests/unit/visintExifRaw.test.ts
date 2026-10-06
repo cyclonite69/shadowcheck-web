@@ -12,6 +12,12 @@ import {
 } from '../../server/src/services/visint/visintMetadataDump';
 import { extractExif, ExifMissingError } from '../../server/src/services/visint/visintExif';
 import { insertNetworkMedia } from '../../server/src/repositories/adminNetworkMediaRepository';
+import {
+  fetchConnectionMetadata,
+  validatePreflight,
+  parseConfirmDbArg,
+  main,
+} from '../../scripts/backfill-network-media-exif-raw';
 
 // Mock dependencies for repository test
 const { adminQuery } = require('../../server/src/services/adminDbService');
@@ -464,6 +470,262 @@ describe('VisINT EXIF Raw & Migration 058 Metadata', () => {
       if (fs.existsSync(dummyPath)) {
         await expect(extractExif(dummyPath)).rejects.toThrow(ExifMissingError);
       }
+    });
+  });
+
+  describe('Backfill Script Preflight & --confirm-db Guard', () => {
+    it('extracts connection metadata from mocked query result', async () => {
+      const mockQuery = jest.fn().mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_admin',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+
+      const meta = await fetchConnectionMetadata(mockQuery);
+      expect(meta).toEqual({
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_admin',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      });
+      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('current_database()'));
+    });
+
+    it('parses --confirm-db argument from CLI flags', () => {
+      expect(parseConfirmDbArg(['node', 'script.ts', '--confirm-db=shadowcheck_test'])).toBe(
+        'shadowcheck_test'
+      );
+      expect(parseConfirmDbArg(['node', 'script.ts', '--apply'])).toBeUndefined();
+    });
+
+    it('passes preflight when databases match in dry-run mode without --confirm-db', () => {
+      const readMeta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_user',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+      const adminMeta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_admin',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+
+      expect(() => validatePreflight(readMeta, adminMeta, false)).not.toThrow();
+    });
+
+    it('aborts when read and admin query target different databases', () => {
+      const readMeta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_user',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+      const adminMeta = {
+        currentDatabase: 'shadowcheck_db', // Dev DB mismatch!
+        currentUser: 'shadowcheck_admin',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+
+      expect(() => validatePreflight(readMeta, adminMeta, false)).toThrow(
+        /Database mismatch: read query connects to 'shadowcheck_test', but admin query connects to 'shadowcheck_db'/
+      );
+    });
+
+    it('aborts on --apply when --confirm-db is missing', () => {
+      const meta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_user',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+
+      expect(() => validatePreflight(meta, meta, true, undefined)).toThrow(
+        /--apply requires explicit --confirm-db=<database_name>/
+      );
+    });
+
+    it('aborts on --apply when --confirm-db does not match current_database', () => {
+      const meta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_user',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+
+      expect(() => validatePreflight(meta, meta, true, 'shadowcheck_db')).toThrow(
+        /--confirm-db='shadowcheck_db' does not match connected database 'shadowcheck_test'/
+      );
+    });
+
+    it('passes preflight on --apply when --confirm-db matches current_database', () => {
+      const readMeta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_user',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+      const adminMeta = {
+        currentDatabase: 'shadowcheck_test',
+        currentUser: 'shadowcheck_admin',
+        serverAddr: '127.0.0.1',
+        serverPort: '5432',
+      };
+
+      expect(() => validatePreflight(readMeta, adminMeta, true, 'shadowcheck_test')).not.toThrow();
+    });
+
+    it('prints abort message to stderr and calls exit(1) on missing --confirm-db', async () => {
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_user',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+      adminQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_admin',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+
+      const mockExit = jest.fn();
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await main(['node', 'script.ts', '--apply'], mockExit);
+
+      expect(mockExit).toHaveBeenCalledWith(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Backfill aborted: --apply requires explicit --confirm-db=<database_name>'
+        )
+      );
+      errorSpy.mockRestore();
+    });
+
+    it('prints abort message to stderr and calls exit(1) on mismatched --confirm-db', async () => {
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_user',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+      adminQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_admin',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+
+      const mockExit = jest.fn();
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await main(['node', 'script.ts', '--apply', '--confirm-db=shadowcheck_db'], mockExit);
+
+      expect(mockExit).toHaveBeenCalledWith(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Backfill aborted: --confirm-db='shadowcheck_db' does not match connected database 'shadowcheck_test'"
+        )
+      );
+      errorSpy.mockRestore();
+    });
+
+    it('prints abort message to stderr and calls exit(1) on read/admin DB mismatch', async () => {
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_user',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+      adminQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_db',
+            current_user: 'shadowcheck_admin',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+
+      const mockExit = jest.fn();
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await main(['node', 'script.ts'], mockExit);
+
+      expect(mockExit).toHaveBeenCalledWith(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Backfill aborted: Database mismatch: read query connects to 'shadowcheck_test', but admin query connects to 'shadowcheck_db'"
+        )
+      );
+      errorSpy.mockRestore();
+    });
+
+    it('does not double-print errors already logged inside the try block', async () => {
+      query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              current_database: 'shadowcheck_test',
+              current_user: 'shadowcheck_user',
+              server_addr: '127.0.0.1',
+              server_port: '5432',
+            },
+          ],
+        })
+        .mockRejectedValueOnce(new Error('Database disk failure during pagination'));
+      adminQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            current_database: 'shadowcheck_test',
+            current_user: 'shadowcheck_admin',
+            server_addr: '127.0.0.1',
+            server_port: '5432',
+          },
+        ],
+      });
+
+      const mockExit = jest.fn();
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await main(['node', 'script.ts'], mockExit);
+
+      expect(mockExit).toHaveBeenCalledWith(1);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Backfill error:',
+        'Database disk failure during pagination'
+      );
+      errorSpy.mockRestore();
     });
   });
 });
