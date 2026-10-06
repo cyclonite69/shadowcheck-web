@@ -864,7 +864,7 @@
 - **tests:** resolve implicit any[] and null safety errors in wigleImportRunRepository.test.ts ([ad67ba2](https://github.com/cyclonite69/shadowcheck-web/commit/ad67ba2d6125b5de6b1d9a87ba39c058537120df))
 - **tests:** resolve pre-existing test failures, fix schemas.ts zod record type ([db60e05](https://github.com/cyclonite69/shadowcheck-web/commit/db60e053702e2e942ac6abfda39398a71d65b4dc))
 - **tests:** update filterQueryBuilder test expectation for buildOrderBy ([74cbae9](https://github.com/cyclonite69/shadowcheck-web/commit/74cbae980c34f225c6715caf1eb3b8293d785e53))
-- **test:** type wigleEnrichmentService mocks against real signatures ([0005487](https://github.com/cyclonite69/shadowcheck-web/commit/00054871b2cb0ba48f1fbe3aa0ca11e473008cad)), closes [#404](https://github.com/cyclonite69/shadowcheck-web/issues/404)
+- **test:** type wigleEnrichmentService mocks against real signatures ([0fe0e5b](https://github.com/cyclonite69/shadowcheck-web/commit/0fe0e5b3680c7c8105d72eac2486df5bb3d9e74d)), closes [#404](https://github.com/cyclonite69/shadowcheck-web/issues/404)
 - **test:** update test MACs to non-locally-administered addresses after LA guard added ([83bcfac](https://github.com/cyclonite69/shadowcheck-web/commit/83bcfac0376c831441bf8c87986e4bc6c6d92220))
 - **test:** use require() for CommonJS cacheService import ([c66777c](https://github.com/cyclonite69/shadowcheck-web/commit/c66777c36fab4e6ca376789e07d5fed8bb2c8c1f))
 - **threat-scoring:** exclude is_ignored networks from threat calculations ([68b2035](https://github.com/cyclonite69/shadowcheck-web/commit/68b2035afbc0abd99d84923aae5f37185c996678))
