@@ -69,6 +69,39 @@ import * as runRepo from '../../server/src/services/wigleImport/runRepository';
 import { fetchAndImportDetail } from '../../server/src/services/wigleEnrichmentFetcher';
 import { fetchWigleApiCreditSnapshot } from '../../server/src/services/wigleEnrichment/repositories/wigleApiCreditGateway';
 
+type ImportRun = Awaited<ReturnType<typeof runRepo.getImportRun>>;
+
+const makeImportRun = (overrides: Partial<ImportRun> = {}): ImportRun => ({
+  id: 1,
+  source: 'v3_batch',
+  apiVersion: 'v3',
+  searchTerm: 'Full Catalog Enrichment',
+  state: null,
+  requestFingerprint: null,
+  requestParams: {},
+  status: 'running',
+  apiCursor: null,
+  lastError: null,
+  startedAt: null,
+  lastAttemptedAt: null,
+  completedAt: null,
+  lastSuccessfulPage: 0,
+  nextPage: 1,
+  apiTotalResults: null,
+  totalPages: null,
+  pageSize: 100,
+  pagesFetched: 0,
+  rowsReturned: 0,
+  rowsInserted: 0,
+  rowCompletenessPct: null,
+  insertedRowCompletenessPct: null,
+  pageCompletenessPct: null,
+  rowCompletenessNote:
+    'rowsReturned tracks API rows successfully paged; rowsInserted can be lower because duplicate-safe upserts skip already imported rows.',
+  pages: [],
+  ...overrides,
+});
+
 describe('WiGLE Enrichment Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -78,18 +111,17 @@ describe('WiGLE Enrichment Service', () => {
     const runId = 123;
 
     it('should return early if run is already completed', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({
-        id: runId,
-        status: 'completed',
-      });
+      jest
+        .mocked(runRepo.getImportRun)
+        .mockResolvedValue(makeImportRun({ id: runId, status: 'completed' }));
       await runEnrichmentLoop(runId);
       expect(readRepo.getNextEnrichmentBatch).not.toHaveBeenCalled();
     });
 
     it('should mark manual run as failed if no matching networks are found initially', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ id: runId, status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>).mockResolvedValue([]);
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun({ id: runId }));
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest.mocked(readRepo.getNextEnrichmentBatch).mockResolvedValue([]);
 
       const manualList = ['AA:BB:CC:DD:EE:FF'];
       await runEnrichmentLoop(runId, manualList);
@@ -104,9 +136,9 @@ describe('WiGLE Enrichment Service', () => {
     });
 
     it('should complete run if batch is empty and it is not a fresh manual run', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>).mockResolvedValue([]);
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest.mocked(readRepo.getNextEnrichmentBatch).mockResolvedValue([]);
 
       await runEnrichmentLoop(runId);
 
@@ -115,17 +147,18 @@ describe('WiGLE Enrichment Service', () => {
     });
 
     it('should process items in batch and increment progress', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>)
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest
+        .mocked(readRepo.getRunStatus)
         .mockResolvedValueOnce('running')
         .mockResolvedValueOnce('running')
         .mockResolvedValueOnce('paused');
 
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>).mockResolvedValueOnce([
-        { bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' },
-      ]);
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
+        .mockResolvedValueOnce([{ bssid: 'AA:BB:CC:DD:EE:FF', type: 'W' }]);
 
-      (fetchAndImportDetail as jest.Mock<any>).mockResolvedValue({
+      jest.mocked(fetchAndImportDetail).mockResolvedValue({
         bssid: 'AA:BB:CC:DD:EE:FF',
         obsCount: 10,
       });
@@ -138,16 +171,17 @@ describe('WiGLE Enrichment Service', () => {
 
     it('fetches all remaining targeted BSSIDs in one batch (up to manual limit)', async () => {
       const manual = ['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02', 'AA:BB:CC:DD:EE:03'];
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>)
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
         .mockResolvedValueOnce([
           { bssid: manual[0], type: 'W' },
           { bssid: manual[1], type: 'W' },
           { bssid: manual[2], type: 'W' },
         ])
         .mockResolvedValue([]);
-      (fetchAndImportDetail as jest.Mock<any>).mockResolvedValue({ bssid: 'x', obsCount: 1 });
+      jest.mocked(fetchAndImportDetail).mockResolvedValue({ bssid: 'x', obsCount: 1 });
 
       await runEnrichmentLoop(runId, manual);
 
@@ -157,14 +191,15 @@ describe('WiGLE Enrichment Service', () => {
     });
 
     it('should mark manual run failed when every targeted BSSID fails', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>)
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
         .mockResolvedValueOnce([{ bssid: 'FA:D0:0E:A3:42:21', type: 'W' }])
         .mockResolvedValue([]);
-      (fetchAndImportDetail as jest.Mock<any>).mockRejectedValue(
-        new Error('WiGLE has no v3 detail for FA:D0:0E:A3:42:21')
-      );
+      jest
+        .mocked(fetchAndImportDetail)
+        .mockRejectedValue(new Error('WiGLE has no v3 detail for FA:D0:0E:A3:42:21'));
 
       await runEnrichmentLoop(runId, ['FA:D0:0E:A3:42:21']);
 
@@ -177,15 +212,12 @@ describe('WiGLE Enrichment Service', () => {
     });
 
     it('should pause run if WiGLE rate limit is reached (429)', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>).mockResolvedValue([
-        { bssid: 'B1', type: 'W' },
-      ]);
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest.mocked(readRepo.getNextEnrichmentBatch).mockResolvedValue([{ bssid: 'B1', type: 'W' }]);
 
-      const error = new Error('Too Many Requests');
-      (error as any).status = 429;
-      (fetchAndImportDetail as jest.Mock<any>).mockRejectedValue(error);
+      const error = Object.assign(new Error('Too Many Requests'), { status: 429 });
+      jest.mocked(fetchAndImportDetail).mockRejectedValue(error);
 
       await runEnrichmentLoop(runId);
 
@@ -194,13 +226,13 @@ describe('WiGLE Enrichment Service', () => {
     });
 
     it('should abort run after multiple consecutive failures', async () => {
-      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
-      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
 
       const batch = Array.from({ length: 6 }, (_, i) => ({ bssid: `B${i}`, type: 'W' }));
-      (readRepo.getNextEnrichmentBatch as jest.Mock<any>).mockResolvedValue(batch);
+      jest.mocked(readRepo.getNextEnrichmentBatch).mockResolvedValue(batch);
 
-      (fetchAndImportDetail as jest.Mock<any>).mockRejectedValue(new Error('API Error'));
+      jest.mocked(fetchAndImportDetail).mockRejectedValue(new Error('API Error'));
 
       await runEnrichmentLoop(runId);
 
@@ -213,27 +245,27 @@ describe('WiGLE Enrichment Service', () => {
 
   describe('startBatchEnrichment', () => {
     it('should throw if no pending items found', async () => {
-      (readRepo.getPendingEnrichmentCount as jest.Mock<any>).mockResolvedValue(0);
+      jest.mocked(readRepo.getPendingEnrichmentCount).mockResolvedValue(0);
       await expect(startBatchEnrichment()).rejects.toThrow('No networks found in v2 catalog');
     });
 
     it('should throw if another enrichment run is active', async () => {
-      (readRepo.getPendingEnrichmentCount as jest.Mock<any>).mockResolvedValue(10);
-      (readRepo.getActiveEnrichmentRunId as jest.Mock<any>).mockResolvedValue(999);
+      jest.mocked(readRepo.getPendingEnrichmentCount).mockResolvedValue(10);
+      jest.mocked(readRepo.getActiveEnrichmentRunId).mockResolvedValue(999);
 
       await expect(startBatchEnrichment()).rejects.toMatchObject({ status: 409 });
     });
 
     it('should throw if concurrent run is active', async () => {
-      (readRepo.getPendingEnrichmentCount as jest.Mock<any>).mockResolvedValue(5);
-      (readRepo.getActiveEnrichmentRunId as jest.Mock<any>).mockResolvedValue(1);
+      jest.mocked(readRepo.getPendingEnrichmentCount).mockResolvedValue(5);
+      jest.mocked(readRepo.getActiveEnrichmentRunId).mockResolvedValue(1);
       await expect(startBatchEnrichment()).rejects.toThrow(/already active/);
     });
 
     it('should handle manual bssid list correctly', async () => {
       const bssids = ['AA:BB:CC:DD:EE:FF'];
-      (readRepo.getActiveEnrichmentRunId as jest.Mock<any>).mockResolvedValue(null);
-      (runRepo.createImportRun as jest.Mock<any>).mockResolvedValue({ id: 99 });
+      jest.mocked(readRepo.getActiveEnrichmentRunId).mockResolvedValue(null);
+      jest.mocked(runRepo.createImportRun).mockResolvedValue(makeImportRun({ id: 99 }));
 
       const result = await startBatchEnrichment(bssids);
       expect(result.id).toBe(99);
@@ -246,7 +278,7 @@ describe('WiGLE Enrichment Service', () => {
 
   describe('validateWigleApiCredit', () => {
     it('should handle API errors gracefully', async () => {
-      (fetchWigleApiCreditSnapshot as jest.Mock<any>).mockResolvedValue({
+      jest.mocked(fetchWigleApiCreditSnapshot).mockResolvedValue({
         ok: false,
         status: 500,
         message: 'Credit check unavailable',
