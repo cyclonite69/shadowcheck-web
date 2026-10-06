@@ -176,6 +176,8 @@ describe('adminNetworkMediaRepository', () => {
       existingId: 1000,
       message: 'Duplicate media content',
     });
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(adminQuery).toHaveBeenCalledTimes(1);
   });
 
   describe('insertNetworkMedia with a transactional client', () => {
