@@ -86,7 +86,7 @@
     "express-rate-limit": "8.5.2",
     "helmet": "8.2.0",
     "keytar": "7.9.0",
-    "lucide-react": "^1.47.0",
+    "lucide-react": "^1.49.0",
     "mapbox-gl": "3.24.1",
     "ml-logistic-regression": "2.0.0",
     "ml-matrix": "6.12.2",
