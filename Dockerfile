@@ -24,7 +24,7 @@ RUN apk add --no-cache python3 make g++ docker-cli docker-cli-compose aws-cli po
 COPY package*.json tsconfig*.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci --include=dev --legacy-peer-deps
+RUN npm ci --include=dev
 
 # Copy entire codebase
 COPY . .
@@ -33,7 +33,7 @@ COPY . .
 RUN npm run build
 
 # Prune devDependencies for production (removes ~100MB) in a separate layer
-RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm ci --omit=dev
 
 # ============================================================================
 # Stage 2: api (Node.js production runtime)
@@ -104,7 +104,7 @@ CMD ["node", "dist/server/server/server.js"]
 # ============================================================================
 # Stage 3: frontend (nginx runtime)
 # ============================================================================
-FROM nginx:1.31.5-alpine AS frontend
+FROM nginx:1.31.6-alpine AS frontend
 
 # Copy frontend build from shared-builder (not from api stage)
 COPY --from=shared-builder /app/dist /usr/share/nginx/html
@@ -145,7 +145,7 @@ RUN apk add --no-cache python3 make g++
 # Copy only package files first (better layer caching)
 COPY package*.json tsconfig*.json ./
 
-RUN npm ci --include=dev --legacy-peer-deps
+RUN npm ci --include=dev
 
 # Copy entire codebase (build:e2e script lives at root, source in client/)
 COPY . .
@@ -156,7 +156,7 @@ RUN npm run build:e2e
 # ============================================================================
 # Stage 5: frontend-e2e (nginx runtime with e2e test seams)
 # ============================================================================
-FROM nginx:1.31.5-alpine AS frontend-e2e
+FROM nginx:1.31.6-alpine AS frontend-e2e
 
 COPY --from=frontend-e2e-builder /app/dist /usr/share/nginx/html
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
