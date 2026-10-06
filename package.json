@@ -140,7 +140,7 @@
     "better-sqlite3": "^13.0.3",
     "cloc": "2.6.0-cloc",
     "conventional-changelog-cli": "5.0.0",
-    "cssnano": "8.0.2",
+    "cssnano": "9.2.0",
     "eslint": "10.11.0",
     "fast-check": "4.10.2",
     "husky": "9.1.7",
