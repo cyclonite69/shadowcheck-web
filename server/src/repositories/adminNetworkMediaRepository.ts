@@ -18,11 +18,16 @@ export interface RelatedNetworkMediaRow {
 
 import crypto from 'crypto';
 
-export async function checkDuplicateMedia(mediaBuffer: Buffer): Promise<number | null> {
+export async function checkDuplicateMedia(
+  mediaBuffer: Buffer,
+  client?: { query: (text: string, params?: any[]) => Promise<any> }
+): Promise<number | null> {
   const hash = crypto.createHash('sha256').update(mediaBuffer).digest('hex');
-  const existing = await query('SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1', [
-    hash,
-  ]);
+  const queryExecutor = client ? client.query.bind(client) : query;
+  const existing = await queryExecutor(
+    'SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1',
+    [hash]
+  );
   return existing.rows.length > 0 ? existing.rows[0].id : null;
 }
 
@@ -45,10 +50,11 @@ export async function insertNetworkMedia(
   exifAltitude: number | null = null,
   exifBearing: number | null = null,
   exifWidth: number | null = null,
-  exifHeight: number | null = null
+  exifHeight: number | null = null,
+  client?: { query: (text: string, params?: any[]) => Promise<any> }
 ): Promise<any> {
   const hash = crypto.createHash('sha256').update(mediaBuffer).digest('hex');
-  const existingId = await checkDuplicateMedia(mediaBuffer);
+  const existingId = await checkDuplicateMedia(mediaBuffer, client);
   if (existingId !== null) {
     const error: any = new Error('Duplicate media content');
     error.code = 'VISINT_DUPLICATE_MEDIA';
@@ -56,8 +62,17 @@ export async function insertNetworkMedia(
     throw error;
   }
 
+  const queryExecutor = client ? client.query.bind(client) : adminQuery;
+  // A unique identifier avoids shadowing a caller's savepoint in its transaction.
+  const savepoint = `insert_network_media_${crypto.randomUUID().replace(/-/g, '')}`;
+
+  if (client) {
+    await client.query(`SAVEPOINT ${savepoint}`);
+  }
+
+  let result: any;
   try {
-    const result = await adminQuery(
+    result = await queryExecutor(
       `INSERT INTO app.network_media
         (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by,
          exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id, image_sha256,
@@ -87,21 +102,43 @@ export async function insertNetworkMedia(
         exifHeight,
       ]
     );
-    return result.rows[0];
   } catch (err: any) {
     if (err.code === '23505') {
-      const dbExisting = await query(
-        'SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1',
-        [hash]
-      );
       const duplicateError: any = new Error('Duplicate media content');
-
       duplicateError.code = 'VISINT_DUPLICATE_MEDIA';
-      duplicateError.existingId = dbExisting.rows[0]?.id;
+
+      if (client) {
+        try {
+          await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        } catch {
+          throw duplicateError;
+        }
+      }
+      const readExecutor = client ? client.query.bind(client) : query;
+      try {
+        const dbExisting = await readExecutor(
+          'SELECT id FROM app.network_media WHERE image_sha256 = $1 LIMIT 1',
+          [hash]
+        );
+        duplicateError.existingId = dbExisting.rows[0]?.id;
+      } finally {
+        if (client) {
+          try {
+            await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+          } catch {
+            // Keep duplicate recovery semantics; the outer transaction owns rollback.
+          }
+        }
+      }
       throw duplicateError;
     }
     throw err;
   }
+
+  if (client) {
+    await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+  }
+  return result.rows[0];
 }
 
 export async function selectNetworkMediaList(bssid: string): Promise<any[]> {

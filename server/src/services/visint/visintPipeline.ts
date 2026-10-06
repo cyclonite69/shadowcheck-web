@@ -15,6 +15,7 @@ const logger = require('../../logging/logger');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { withAdminTransaction } = require('../adminDbService');
 const { insertNetworkMedia } = require('../../repositories/adminNetworkMediaRepository');
 const {
   addTagToNetwork,
@@ -279,41 +280,44 @@ export async function saveVisINTAttachment(
     ? await extractMetadataDumpFromFile(options.tempFilePath)
     : await extractMetadataDumpFromBuffer(imageBuffer);
 
-  await insertNetworkMedia(
-    targetBssid,
-    mediaType,
-    filename,
-    imageBuffer.length,
-    mimeType,
-    imageBuffer,
-    mediaDesc,
-    resolvedLat,
-    resolvedLon,
-    resolvedTs,
-    thumbnailBuffer,
-    observationId,
-    rawJson,
-    typedExif.exifMake,
-    typedExif.exifModel,
-    typedExif.exifAltitude,
-    typedExif.exifBearing,
-    typedExif.exifWidth,
-    typedExif.exifHeight
-  );
+  return withAdminTransaction(async (txClient: any) => {
+    await insertNetworkMedia(
+      targetBssid,
+      mediaType,
+      filename,
+      imageBuffer.length,
+      mimeType,
+      imageBuffer,
+      mediaDesc,
+      resolvedLat,
+      resolvedLon,
+      resolvedTs,
+      thumbnailBuffer,
+      observationId,
+      rawJson,
+      typedExif.exifMake,
+      typedExif.exifModel,
+      typedExif.exifAltitude,
+      typedExif.exifBearing,
+      typedExif.exifWidth,
+      typedExif.exifHeight,
+      txClient
+    );
 
-  const tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, isManualOverride);
+    const tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, isManualOverride);
 
-  // Save tags
-  const existing = await getNetworkTagsByBssid(targetBssid);
-  if (!existing) {
-    await insertNetworkTagWithNotes(targetBssid, tagsToApply, null);
-  } else {
-    for (const tag of tagsToApply) {
-      await addTagToNetwork(targetBssid, tag, null);
+    // Save tags
+    const existing = await getNetworkTagsByBssid(targetBssid, txClient);
+    if (!existing) {
+      await insertNetworkTagWithNotes(targetBssid, tagsToApply, null, txClient);
+    } else {
+      for (const tag of tagsToApply) {
+        await addTagToNetwork(targetBssid, tag, null, txClient);
+      }
     }
-  }
 
-  return tagsToApply;
+    return tagsToApply;
+  });
 }
 
 export async function correlateVisINT(

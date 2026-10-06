@@ -48,9 +48,11 @@ export async function getMACRandomizationSuspects(): Promise<any[]> {
 export async function insertNetworkTagWithNotes(
   bssid: string,
   tags: string[],
-  notes: string | null
+  notes: string | null,
+  client?: { query: (text: string, params?: any[]) => Promise<any> }
 ): Promise<void> {
-  await adminQuery(
+  const queryExecutor = client ? client.query.bind(client) : adminQuery;
+  await queryExecutor(
     `INSERT INTO app.network_tags (bssid, tags, notes, created_by)
      VALUES ($1, $2::jsonb, $3, 'admin')`,
     [bssid, JSON.stringify(tags), notes]
@@ -69,9 +71,11 @@ export async function removeTagFromNetwork(bssid: string, tag: string): Promise<
 export async function addTagToNetwork(
   bssid: string,
   tag: string,
-  notes: string | null
+  notes: string | null,
+  client?: { query: (text: string, params?: any[]) => Promise<any> }
 ): Promise<void> {
-  await adminQuery(
+  const queryExecutor = client ? client.query.bind(client) : adminQuery;
+  await queryExecutor(
     `UPDATE app.network_tags
      SET tags = app.network_add_tag(tags, $2), notes = COALESCE($3, notes), updated_at = NOW()
      WHERE bssid = $1`,
@@ -79,8 +83,12 @@ export async function addTagToNetwork(
   );
 }
 
-export async function getNetworkTagsByBssid(bssid: string): Promise<any | null> {
-  const result = await query('SELECT tags FROM app.network_tags WHERE bssid = $1', [bssid]);
+export async function getNetworkTagsByBssid(
+  bssid: string,
+  client?: { query: (text: string, params?: any[]) => Promise<any> }
+): Promise<any | null> {
+  const queryExecutor = client ? client.query.bind(client) : query;
+  const result = await queryExecutor('SELECT tags FROM app.network_tags WHERE bssid = $1', [bssid]);
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 

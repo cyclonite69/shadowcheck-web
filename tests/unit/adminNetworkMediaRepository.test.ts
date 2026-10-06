@@ -162,6 +162,160 @@ describe('adminNetworkMediaRepository', () => {
     });
   });
 
+  describe('insertNetworkMedia with a transactional client', () => {
+    const args = ['AA:BB:CC:DD:EE:FF', 'image', 'evidence.jpg', 2048, 'image/jpeg'] as const;
+
+    it('uses a unique savepoint per invocation and releases it after each successful INSERT', async () => {
+      const client = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [] }) // first duplicate pre-check
+          .mockResolvedValueOnce({ rows: [] }) // first SAVEPOINT
+          .mockResolvedValueOnce({ rows: [{ id: 7 }] }) // first INSERT
+          .mockResolvedValueOnce({ rows: [] }) // first RELEASE SAVEPOINT
+          .mockResolvedValueOnce({ rows: [] }) // second duplicate pre-check
+          .mockResolvedValueOnce({ rows: [] }) // second SAVEPOINT
+          .mockResolvedValueOnce({ rows: [{ id: 8 }] }) // second INSERT
+          .mockResolvedValueOnce({ rows: [] }), // second RELEASE SAVEPOINT
+      };
+
+      await expect(
+        repository.insertNetworkMedia(
+          ...args,
+          Buffer.from('tx-media'),
+          'd',
+          ...Array(12).fill(null), // exifLat..exifHeight
+          client
+        )
+      ).resolves.toEqual({ id: 7 });
+      await expect(
+        repository.insertNetworkMedia(
+          ...args,
+          Buffer.from('tx-media-second'),
+          'd',
+          ...Array(12).fill(null),
+          client
+        )
+      ).resolves.toEqual({ id: 8 });
+
+      const sql = client.query.mock.calls.map((c: any[]) => c[0] as string);
+      expect(sql[0]).toContain('SELECT id FROM app.network_media');
+      expect(sql[1]).toMatch(/^SAVEPOINT insert_network_media_[a-f0-9]{32}$/);
+      expect(sql[2]).toContain('INSERT INTO app.network_media');
+      expect(sql[3]).toBe(`RELEASE SAVEPOINT ${sql[1].slice('SAVEPOINT '.length)}`);
+      expect(sql[5]).toMatch(/^SAVEPOINT insert_network_media_[a-f0-9]{32}$/);
+      expect(sql[5]).not.toBe(sql[1]);
+      expect(sql[6]).toContain('INSERT INTO app.network_media');
+      expect(sql[7]).toBe(`RELEASE SAVEPOINT ${sql[5].slice('SAVEPOINT '.length)}`);
+      expect(query).not.toHaveBeenCalled();
+      expect(adminQuery).not.toHaveBeenCalled();
+    });
+
+    it('rolls back before duplicate recovery SELECT, releases the savepoint, and preserves duplicate details', async () => {
+      const duplicateError: any = new Error('duplicate key value');
+      duplicateError.code = '23505';
+      const client = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [] }) // duplicate pre-check
+          .mockResolvedValueOnce({ rows: [] }) // SAVEPOINT
+          .mockRejectedValueOnce(duplicateError) // INSERT
+          .mockResolvedValueOnce({ rows: [] }) // ROLLBACK TO SAVEPOINT
+          .mockResolvedValueOnce({ rows: [{ id: 1000 }] }) // recovery SELECT
+          .mockResolvedValueOnce({ rows: [] }), // RELEASE SAVEPOINT
+      };
+
+      await expect(
+        repository.insertNetworkMedia(
+          ...args,
+          Buffer.from('tx-race'),
+          'd',
+          ...Array(12).fill(null), // exifLat..exifHeight
+          client
+        )
+      ).rejects.toMatchObject({
+        code: 'VISINT_DUPLICATE_MEDIA',
+        existingId: 1000,
+        message: 'Duplicate media content',
+      });
+
+      const sql = client.query.mock.calls.map((c: any[]) => c[0] as string);
+      expect(sql[1]).toMatch(/^SAVEPOINT insert_network_media_[a-f0-9]{32}$/);
+      const savepoint = sql[1].slice('SAVEPOINT '.length);
+      expect(sql[3]).toBe(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+      expect(sql[4]).toContain('SELECT id FROM app.network_media');
+      expect(sql[5]).toBe(`RELEASE SAVEPOINT ${savepoint}`);
+      expect(query).not.toHaveBeenCalled();
+      expect(adminQuery).not.toHaveBeenCalled();
+    });
+
+    it('preserves duplicate-media behavior when rollback to savepoint fails', async () => {
+      const duplicateError: any = new Error('duplicate key value');
+      duplicateError.code = '23505';
+      const client = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [] }) // duplicate pre-check
+          .mockResolvedValueOnce({ rows: [] }) // SAVEPOINT
+          .mockRejectedValueOnce(duplicateError) // INSERT
+          .mockRejectedValueOnce(new Error('rollback failed')), // ROLLBACK TO SAVEPOINT
+      };
+
+      await expect(
+        repository.insertNetworkMedia(
+          ...args,
+          Buffer.from('tx-rollback-failure'),
+          'd',
+          ...Array(12).fill(null),
+          client
+        )
+      ).rejects.toMatchObject({
+        code: 'VISINT_DUPLICATE_MEDIA',
+        message: 'Duplicate media content',
+      });
+
+      expect(client.query).toHaveBeenCalledTimes(4);
+      expect(query).not.toHaveBeenCalled();
+      expect(adminQuery).not.toHaveBeenCalled();
+    });
+
+    it('does not let savepoint release failure replace the duplicate-media error', async () => {
+      const duplicateError: any = new Error('duplicate key value');
+      duplicateError.code = '23505';
+      const client = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [] }) // duplicate pre-check
+          .mockResolvedValueOnce({ rows: [] }) // SAVEPOINT
+          .mockRejectedValueOnce(duplicateError) // INSERT
+          .mockResolvedValueOnce({ rows: [] }) // ROLLBACK TO SAVEPOINT
+          .mockResolvedValueOnce({ rows: [{ id: 1001 }] }) // recovery SELECT
+          .mockRejectedValueOnce(new Error('release failed')), // RELEASE SAVEPOINT
+      };
+
+      await expect(
+        repository.insertNetworkMedia(
+          ...args,
+          Buffer.from('tx-release-failure'),
+          'd',
+          ...Array(12).fill(null),
+          client
+        )
+      ).rejects.toMatchObject({
+        code: 'VISINT_DUPLICATE_MEDIA',
+        existingId: 1001,
+        message: 'Duplicate media content',
+      });
+
+      const sql = client.query.mock.calls.map((c: any[]) => c[0] as string);
+      expect(sql[3]).toMatch(/^ROLLBACK TO SAVEPOINT insert_network_media_[a-f0-9]{32}$/);
+      expect(sql[4]).toContain('SELECT id FROM app.network_media');
+      expect(sql[5]).toBe(`RELEASE SAVEPOINT ${sql[3].slice('ROLLBACK TO SAVEPOINT '.length)}`);
+      expect(query).not.toHaveBeenCalled();
+      expect(adminQuery).not.toHaveBeenCalled();
+    });
+  });
+
   it('lists network media rows', async () => {
     const rows = [{ id: 1 }, { id: 2 }];
     query.mockResolvedValueOnce({ rows });

@@ -3,7 +3,7 @@
  * Uses shadowcheck_admin credentials for sensitive administrative operations
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult } from 'pg';
 import '../config/loadEnv';
 import secretsManager from './secretsManager';
 import logger from '../logging/logger';
@@ -241,6 +241,40 @@ async function longRunningAdminQuery(text: string, params: any[] = []): Promise<
 }
 
 /**
+ * Administrative transaction wrapper.
+ * Checks out a client, begins a transaction, commits on success, rolls back
+ * on error, and guarantees client release in a finally block.
+ */
+async function withAdminTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+  const pool = getAdminPool();
+  if (!pool) {
+    throw new Error('Admin database pool not initialized (check DB_ADMIN_PASSWORD)');
+  }
+
+  const client = await pool.connect();
+  let discardClient = false;
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr: any) {
+      // Connection state is unknown; do not return it to the pool.
+      discardClient = true;
+      logger.error(`Failed to rollback admin transaction: ${rollbackErr.message}`, {
+        error: rollbackErr,
+      });
+    }
+    throw error;
+  } finally {
+    client.release(discardClient);
+  }
+}
+
+/**
  * Close admin database connection pool
  * @returns {Promise<void>}
  */
@@ -261,6 +295,7 @@ export {
   adminQuery,
   forensicQuery,
   longRunningAdminQuery,
+  withAdminTransaction,
   getAdminPool,
   getLongRunningAdminPool,
   closeAdminPool,
@@ -270,6 +305,7 @@ export default {
   adminQuery,
   forensicQuery,
   longRunningAdminQuery,
+  withAdminTransaction,
   getAdminPool,
   getLongRunningAdminPool,
   closeAdminPool,
