@@ -9,6 +9,9 @@
  *   1 — Weak BLE heuristic (FLOCK_CANDIDATE)
  *   0 — No signature match (spatial-only candidate)
  */
+const ISO_8601_STRICT_REGEX =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
 export async function queryCorrelatedObservations(
   queryFn: (sql: string, params: any[]) => Promise<any>,
   lon: number,
@@ -19,7 +22,15 @@ export async function queryCorrelatedObservations(
   limit: number = 5,
   mediaDurationS: number = 0
 ): Promise<any[]> {
+  if (!ISO_8601_STRICT_REGEX.test(timestamp)) {
+    throw new Error(
+      `Scorer requires ISO-8601 instant with trailing Z or offset, received: ${timestamp}`
+    );
+  }
   const baseDate = new Date(timestamp);
+  if (isNaN(baseDate.getTime())) {
+    throw new Error(`Invalid date in ISO timestamp: ${timestamp}`);
+  }
   const startTime = new Date(baseDate.getTime() - windowHours * 60 * 60 * 1000).toISOString();
   const endTime = new Date(
     baseDate.getTime() + windowHours * 60 * 60 * 1000 + mediaDurationS * 1000

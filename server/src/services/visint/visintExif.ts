@@ -77,12 +77,14 @@ export async function validateMediaBuffer(
   }
 }
 
+import { resolveImageCaptureInstant } from './visintTimezone';
+
 /**
  * Extracts GPS telemetry and timestamp from a media file using exiftool
  */
 export async function extractExif(
   imagePath: string
-): Promise<{ lat: number; lon: number; timestamp: string }> {
+): Promise<{ lat: number; lon: number; timestamp: string; timestamp_source: string }> {
   let results;
   try {
     results = await Promise.all([
@@ -98,6 +100,14 @@ export async function extractExif(
       execFilePromise('exiftool', ['-p', '$OffsetTimeOriginal', imagePath]).catch(() => ({
         stdout: '',
       })),
+      execFilePromise('exiftool', [
+        '-f',
+        '-p',
+        '$OffsetTime|$GPSDateStamp|$GPSTimeStamp',
+        imagePath,
+      ]).catch(() => ({
+        stdout: '',
+      })),
     ]);
   } catch (error: any) {
     if (error?.code === 'ENOENT') {
@@ -108,11 +118,15 @@ export async function extractExif(
     });
   }
 
-  const [latRes, lonRes, tsRes, offsetRes] = results;
+  const [latRes, lonRes, tsRes, offsetOrigRes, combinedRes] = results;
   const latStr = latRes.stdout.trim();
   const lonStr = lonRes.stdout.trim();
   const tsStr = tsRes.stdout.trim();
-  const offset = offsetRes.stdout.trim();
+  const offsetOriginal = offsetOrigRes.stdout.trim();
+  const combinedParts = (combinedRes.stdout || '').trim().split('|');
+  const offsetTime = combinedParts[0] && combinedParts[0] !== '-' ? combinedParts[0].trim() : null;
+  const gpsDate = combinedParts[1] && combinedParts[1] !== '-' ? combinedParts[1].trim() : null;
+  const gpsTime = combinedParts[2] && combinedParts[2] !== '-' ? combinedParts[2].trim() : null;
 
   const missingFields: string[] = [];
   if (!latStr) {
@@ -131,7 +145,6 @@ export async function extractExif(
 
   const lat = parseFloat(latStr);
   const lon = parseFloat(lonStr);
-  const timestamp = offset ? `${tsStr}${offset}` : tsStr;
 
   if (isNaN(lat) || isNaN(lon)) {
     const badFields: string[] = [];
@@ -144,5 +157,18 @@ export async function extractExif(
     throw new ExifMissingError(`Invalid coordinate format in EXIF fields: ${badFields.join(', ')}`);
   }
 
-  return { lat, lon, timestamp };
+  const resolved = resolveImageCaptureInstant(tsStr, offsetOriginal || null, {
+    lat,
+    lon,
+    offsetTime,
+    gpsDate,
+    gpsTime,
+  });
+
+  return {
+    lat,
+    lon,
+    timestamp: resolved.timestamp,
+    timestamp_source: resolved.timestamp_source,
+  };
 }

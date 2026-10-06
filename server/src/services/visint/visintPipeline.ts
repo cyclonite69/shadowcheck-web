@@ -9,6 +9,7 @@ import { extractVideoTelemetry } from './visintVideoExif';
 import crypto from 'crypto';
 import { queryCorrelatedObservations } from './visintScorer';
 import { extractMetadataDumpFromBuffer, extractMetadataDumpFromFile } from './visintMetadataDump';
+import { VisintInvalidTimestampError } from './visintTimezone';
 
 const { query } = require('../../config/database');
 const logger = require('../../logging/logger');
@@ -26,6 +27,7 @@ const {
 type SaveVisINTOptions = {
   contentValidated?: boolean;
   videoTelemetry?: Awaited<ReturnType<typeof extractVideoTelemetry>>;
+  telemetry?: ExtractedTelemetry;
   tempFilePath?: string;
 };
 
@@ -154,9 +156,13 @@ async function extractExifFromBuffer(
         lat: exifData.lat ?? null,
         lon: exifData.lon ?? null,
         timestamp: exifData.timestamp ?? null,
+        timestamp_source: exifData.timestamp_source,
       };
     }
   } catch (error) {
+    if (error instanceof VisintInvalidTimestampError) {
+      throw error;
+    }
     logger.debug(
       `EXIF extraction skipped or failed for ${filename}: ${error instanceof Error ? error.message : String(error)}`
     );
@@ -280,6 +286,12 @@ export async function saveVisINTAttachment(
     ? await extractMetadataDumpFromFile(options.tempFilePath)
     : await extractMetadataDumpFromBuffer(imageBuffer);
 
+  const timestampSource =
+    extracted?.timestamp_source ||
+    options.telemetry?.timestamp_source ||
+    (options.videoTelemetry as any)?.timestamp_source ||
+    null;
+
   return withAdminTransaction(async (txClient: any) => {
     await insertNetworkMedia(
       targetBssid,
@@ -301,6 +313,7 @@ export async function saveVisINTAttachment(
       typedExif.exifBearing,
       typedExif.exifWidth,
       typedExif.exifHeight,
+      timestampSource,
       txClient
     );
 
@@ -436,6 +449,7 @@ export async function correlateVisINT(
         {
           contentValidated: true,
           videoTelemetry: 'duration_s' in exifData ? exifData : undefined,
+          telemetry: exifData as any,
           tempFilePath: tempFile.path,
         }
       );
@@ -458,8 +472,12 @@ export async function correlateVisINT(
         ...('timestamp_source' in exifData
           ? {
               timestamp_source: exifData.timestamp_source,
-              timestamp_is_start_estimate: exifData.timestamp_is_start_estimate,
-              duration_s: exifData.duration_s,
+              ...('timestamp_is_start_estimate' in exifData
+                ? {
+                    timestamp_is_start_estimate: (exifData as any).timestamp_is_start_estimate,
+                    duration_s: (exifData as any).duration_s,
+                  }
+                : {}),
             }
           : {}),
       },

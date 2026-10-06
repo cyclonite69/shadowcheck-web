@@ -56,6 +56,14 @@ describe('adminNetworkMediaRepository', () => {
         thumbnail,
         null,
         require('crypto').createHash('sha256').update(media).digest('hex'),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
       ]
     );
   });
@@ -98,6 +106,14 @@ describe('adminNetworkMediaRepository', () => {
         thumbnail,
         12345,
         require('crypto').createHash('sha256').update(media).digest('hex'),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
       ]
     );
   });
@@ -184,7 +200,7 @@ describe('adminNetworkMediaRepository', () => {
           ...args,
           Buffer.from('tx-media'),
           'd',
-          ...Array(12).fill(null), // exifLat..exifHeight
+          ...Array(13).fill(null), // exifLat..timestampSource
           client
         )
       ).resolves.toEqual({ id: 7 });
@@ -193,7 +209,7 @@ describe('adminNetworkMediaRepository', () => {
           ...args,
           Buffer.from('tx-media-second'),
           'd',
-          ...Array(12).fill(null),
+          ...Array(13).fill(null),
           client
         )
       ).resolves.toEqual({ id: 8 });
@@ -230,7 +246,7 @@ describe('adminNetworkMediaRepository', () => {
           ...args,
           Buffer.from('tx-race'),
           'd',
-          ...Array(12).fill(null), // exifLat..exifHeight
+          ...Array(13).fill(null), // exifLat..timestampSource
           client
         )
       ).rejects.toMatchObject({
@@ -266,7 +282,7 @@ describe('adminNetworkMediaRepository', () => {
           ...args,
           Buffer.from('tx-rollback-failure'),
           'd',
-          ...Array(12).fill(null),
+          ...Array(13).fill(null),
           client
         )
       ).rejects.toMatchObject({
@@ -298,7 +314,7 @@ describe('adminNetworkMediaRepository', () => {
           ...args,
           Buffer.from('tx-release-failure'),
           'd',
-          ...Array(12).fill(null),
+          ...Array(13).fill(null),
           client
         )
       ).rejects.toMatchObject({

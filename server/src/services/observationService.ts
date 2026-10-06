@@ -5,6 +5,7 @@
 
 import { extractExif, ExifMissingError, ExifToolUnavailableError } from './visint/visintExif';
 import { correlateVisINT, saveVisINTAttachment } from './visint/visintPipeline';
+import { VisintInvalidTimestampError } from './visint/visintTimezone';
 
 const { query } = require('../config/database');
 
@@ -229,7 +230,13 @@ export async function correlateImageBLE(
   };
 }
 
-export { ExifMissingError, ExifToolUnavailableError, correlateVisINT, saveVisINTAttachment };
+export {
+  ExifMissingError,
+  ExifToolUnavailableError,
+  VisintInvalidTimestampError,
+  correlateVisINT,
+  saveVisINTAttachment,
+};
 
 module.exports = {
   getHomeLocationForObservations,
@@ -243,4 +250,5 @@ module.exports = {
   saveVisINTAttachment,
   ExifMissingError,
   ExifToolUnavailableError,
+  VisintInvalidTimestampError,
 };

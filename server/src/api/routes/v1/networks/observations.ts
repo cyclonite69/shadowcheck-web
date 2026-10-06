@@ -11,6 +11,10 @@ const { observationService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { validateBSSID } from '../../../../validation/schemas';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
+import {
+  isValidIso8601Instant,
+  VisintInvalidTimestampError,
+} from '../../../../services/visint/visintTimezone';
 
 const VISINT_UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
 const VISINT_UPLOAD_MAX_MB = VISINT_UPLOAD_MAX_BYTES / (1024 * 1024);
@@ -396,13 +400,11 @@ router.post(
         !uploadedFile.mimetype ||
         !['image/jpeg', 'image/png', 'video/mp4'].includes(uploadedFile.mimetype)
       ) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: 'Invalid file type. Only JPEG, PNG, and MP4 are allowed.',
-            code: 'INVALID_FILE_TYPE',
-          });
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid file type. Only JPEG, PNG, and MP4 are allowed.',
+          code: 'INVALID_FILE_TYPE',
+        });
       }
 
       const result = await observationService.correlateVisINT(
@@ -417,6 +419,13 @@ router.post(
       );
       res.json({ ok: true, ...result });
     } catch (error: any) {
+      if (error instanceof VisintInvalidTimestampError) {
+        return res.status(400).json({
+          ok: false,
+          error: error.message,
+          code: 'VISINT_INVALID_TIMESTAMP',
+        });
+      }
       if (error.name === 'InvalidFileTypeError') {
         return res.status(400).json({ ok: false, error: error.message, code: 'INVALID_FILE_TYPE' });
       }
@@ -499,6 +508,16 @@ router.post(
     const lat = parseOptionalNumber(req.body.lat);
     const lon = parseOptionalNumber(req.body.lon);
     const ts = req.body.ts || undefined;
+    if (ts !== undefined) {
+      if (!isValidIso8601Instant(ts)) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            'Invalid timestamp format on attach-visint. Expected ISO-8601 with timezone offset (e.g. 2026-05-07T00:29:10.000Z).',
+          code: 'VISINT_INVALID_TIMESTAMP',
+        });
+      }
+    }
     const isManualOverride = req.body.manual_override === 'true';
     const deviceType: string | null = req.body.device_type || null;
     const observationId = req.body.observation_id || req.body.observationId || null;
@@ -547,6 +566,13 @@ router.post(
       );
       res.json({ ok: true, success: true, tags_applied: tagsApplied });
     } catch (error: any) {
+      if (error instanceof VisintInvalidTimestampError) {
+        return res.status(400).json({
+          ok: false,
+          error: error.message,
+          code: 'VISINT_INVALID_TIMESTAMP',
+        });
+      }
       if (error.name === 'InvalidFileTypeError') {
         return res.status(400).json({ ok: false, error: error.message, code: 'INVALID_FILE_TYPE' });
       }

@@ -18,7 +18,9 @@ const { execFile } = require('child_process');
 const {
   validateMediaContent,
   validateMediaBuffer,
+  extractExif,
 } = require('../../server/src/services/visint/visintExif');
+import { VisintInvalidTimestampError } from '../../server/src/services/visint/visintTimezone';
 
 jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
@@ -27,6 +29,13 @@ jest.mock('../../server/src/config/database', () => ({
 jest.mock('child_process', () => ({
   exec: jest.fn(),
   execFile: jest.fn(),
+}));
+
+jest.mock('../../server/src/services/adminDbService', () => ({
+  adminQuery: jest.fn(),
+  withAdminTransaction: jest.fn(async (callback: (client: any) => Promise<any>) =>
+    callback({ query: jest.fn() })
+  ),
 }));
 
 jest.mock('../../server/src/repositories/adminNetworkMediaRepository', () => ({
@@ -38,6 +47,14 @@ jest.mock('../../server/src/repositories/adminNetworkTagOuiRepository', () => ({
   getNetworkTagsByBssid: jest.fn(),
   insertNetworkTagWithNotes: jest.fn(),
 }));
+
+const { insertNetworkMedia } = require('../../server/src/repositories/adminNetworkMediaRepository');
+const {
+  addTagToNetwork,
+  getNetworkTagsByBssid,
+  insertNetworkTagWithNotes,
+} = require('../../server/src/repositories/adminNetworkTagOuiRepository');
+const { withAdminTransaction } = require('../../server/src/services/adminDbService');
 
 jest.mock('../../server/src/services/visint/visintExif', () => ({
   ...jest.requireActual('../../server/src/services/visint/visintExif'),
@@ -78,6 +95,9 @@ describe('Observation Service', () => {
     (validateMediaBuffer as jest.Mock).mockResolvedValue(undefined);
     (extractMetadataDumpFromFile as jest.Mock).mockResolvedValue(mockMetadataDumpResult);
     (extractMetadataDumpFromBuffer as jest.Mock).mockResolvedValue(mockMetadataDumpResult);
+    (withAdminTransaction as jest.Mock).mockImplementation(async (callback: any) =>
+      callback({ query: jest.fn() })
+    );
   });
 
   describe('getHomeLocationForObservations', () => {
@@ -235,6 +255,12 @@ describe('Observation Service', () => {
           callback(null, { stdout: '-83.696\n' });
         } else if (cmdStr.includes('$DateTimeOriginal')) {
           callback(null, { stdout: '2026-05-06 20:29:10\n' });
+        } else if (
+          cmdStr.includes('$OffsetTimeOriginal') ||
+          cmdStr.includes('$OffsetTime') ||
+          cmdStr.includes('$GPSDateStamp')
+        ) {
+          callback(null, { stdout: '' });
         } else {
           callback(new Error('Unknown command'));
         }
@@ -256,7 +282,7 @@ describe('Observation Service', () => {
         image: 'dummy.jpg',
         lat: 43.023,
         lon: -83.696,
-        timestamp: '2026-05-06 20:29:10',
+        timestamp: '2026-05-07T00:29:10.000Z',
         matches: [
           {
             bssid: '23:D4:25:1B:46:00',
@@ -270,7 +296,7 @@ describe('Observation Service', () => {
       expect(query).toHaveBeenCalledWith(expect.stringContaining("radio_type = 'E'"), [
         -83.696,
         43.023,
-        '2026-05-06 20:29:10',
+        '2026-05-07T00:29:10.000Z',
         150,
         30,
         1,
@@ -297,15 +323,6 @@ describe('Observation Service', () => {
   });
 
   describe('correlateVisINT', () => {
-    const {
-      insertNetworkMedia,
-    } = require('../../server/src/repositories/adminNetworkMediaRepository');
-    const {
-      addTagToNetwork,
-      getNetworkTagsByBssid,
-      insertNetworkTagWithNotes,
-    } = require('../../server/src/repositories/adminNetworkTagOuiRepository');
-
     beforeEach(() => {
       jest.clearAllMocks();
       // Setup successful EXIF tool mock
@@ -317,7 +334,11 @@ describe('Observation Service', () => {
           callback(null, { stdout: '-83.696\n' });
         } else if (cmdStr.includes('$DateTimeOriginal')) {
           callback(null, { stdout: '2026-05-06 20:29:10\n' });
-        } else if (cmdStr.includes('$OffsetTimeOriginal')) {
+        } else if (
+          cmdStr.includes('$OffsetTimeOriginal') ||
+          cmdStr.includes('$OffsetTime') ||
+          cmdStr.includes('$GPSDateStamp')
+        ) {
           callback(null, { stdout: '' });
         } else {
           callback(new Error('Unknown command'));
@@ -350,7 +371,7 @@ describe('Observation Service', () => {
         1.2,
         43.023,
         -83.696,
-        '2026-05-06 20:29:10',
+        '2026-05-07T00:29:10.000Z',
         false,
         null,
         null
@@ -366,7 +387,7 @@ describe('Observation Service', () => {
         expect.stringContaining('score=2'),
         43.023,
         -83.696,
-        '2026-05-06 20:29:10',
+        '2026-05-07T00:29:10.000Z',
         expect.any(Buffer),
         null,
         {
@@ -379,7 +400,9 @@ describe('Observation Service', () => {
         50.0,
         120.0,
         4000,
-        3000
+        3000,
+        null,
+        expect.anything()
       );
     });
 
@@ -412,7 +435,12 @@ describe('Observation Service', () => {
         dist_meters: 5.4,
         delta_minutes: 0.1,
         tags_applied: ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'],
-        exif: { lat: 43.023, lon: -83.696, ts: '2026-05-06 20:29:10' },
+        exif: {
+          lat: 43.023,
+          lon: -83.696,
+          ts: '2026-05-07T00:29:10.000Z',
+          timestamp_source: 'default_america_detroit',
+        },
         candidates: [mockRow],
       });
 
@@ -426,7 +454,7 @@ describe('Observation Service', () => {
         expect.stringContaining('score=4'),
         43.023,
         -83.696,
-        '2026-05-06 20:29:10',
+        '2026-05-07T00:29:10.000Z',
         null,
         '12345',
         {
@@ -439,13 +467,16 @@ describe('Observation Service', () => {
         50.0,
         120.0,
         4000,
-        3000
+        3000,
+        'default_america_detroit',
+        expect.anything()
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
         'AA:BB:CC:DD:EE:FF',
         ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'],
-        null
+        null,
+        expect.anything()
       );
     });
 
@@ -473,12 +504,19 @@ describe('Observation Service', () => {
 
       expect(result.tags_applied).toEqual(['FLOCK_LEGACY', 'VISINT_VERIFIED']);
       expect(addTagToNetwork).toHaveBeenCalledTimes(2);
-      expect(addTagToNetwork).toHaveBeenNthCalledWith(1, 'AA:BB:CC:DD:EE:FF', 'FLOCK_LEGACY', null);
+      expect(addTagToNetwork).toHaveBeenNthCalledWith(
+        1,
+        'AA:BB:CC:DD:EE:FF',
+        'FLOCK_LEGACY',
+        null,
+        expect.anything()
+      );
       expect(addTagToNetwork).toHaveBeenNthCalledWith(
         2,
         'AA:BB:CC:DD:EE:FF',
         'VISINT_VERIFIED',
-        null
+        null,
+        expect.anything()
       );
     });
 
@@ -530,7 +568,12 @@ describe('Observation Service', () => {
         dist_meters: null,
         delta_minutes: null,
         tags_applied: ['UNMATCHED_NODE', 'VISINT_UNMATCHED'],
-        exif: { lat: 43.023, lon: -83.696, ts: '2026-05-06 20:29:10' },
+        exif: {
+          lat: 43.023,
+          lon: -83.696,
+          ts: '2026-05-07T00:29:10.000Z',
+          timestamp_source: 'default_america_detroit',
+        },
         candidates: [],
       });
 
@@ -544,7 +587,7 @@ describe('Observation Service', () => {
         expect.stringContaining('extracted_lat'),
         43.023,
         -83.696,
-        '2026-05-06 20:29:10',
+        '2026-05-07T00:29:10.000Z',
         null,
         null,
         {
@@ -557,13 +600,16 @@ describe('Observation Service', () => {
         50.0,
         120.0,
         4000,
-        3000
+        3000,
+        'default_america_detroit',
+        expect.anything()
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
         'VISINT_UNMATCHED',
         ['UNMATCHED_NODE', 'VISINT_UNMATCHED'],
-        null
+        null,
+        expect.anything()
       );
     });
 
@@ -608,7 +654,11 @@ describe('Observation Service', () => {
           callback(null, { stdout: '' });
         } else if (cmdStr.includes('$DateTimeOriginal')) {
           callback(null, { stdout: '' });
-        } else if (cmdStr.includes('$OffsetTimeOriginal')) {
+        } else if (
+          cmdStr.includes('$OffsetTimeOriginal') ||
+          cmdStr.includes('$OffsetTime') ||
+          cmdStr.includes('$GPSDateStamp')
+        ) {
           callback(null, { stdout: '' });
         } else {
           callback(new Error('Unknown command'));
@@ -661,6 +711,12 @@ describe('Observation Service', () => {
           callback(null, { stdout: '-83.696\n' });
         } else if (cmdStr.includes('$DateTimeOriginal')) {
           callback(null, { stdout: '2026-05-06 20:29:10\n' });
+        } else if (
+          cmdStr.includes('$OffsetTimeOriginal') ||
+          cmdStr.includes('$OffsetTime') ||
+          cmdStr.includes('$GPSDateStamp')
+        ) {
+          callback(null, { stdout: '' });
         } else {
           callback(new Error('Unknown command'));
         }
@@ -708,7 +764,7 @@ describe('Observation Service', () => {
         'VisINT Correlation: dist_meters=5.4, delta_minutes=0.1, score=4, manual=false',
         43.023,
         -83.696,
-        '2026-05-06 20:29:10',
+        '2026-05-07T00:29:10.000Z',
         null,
         '12345',
         {
@@ -721,12 +777,107 @@ describe('Observation Service', () => {
         50.0,
         120.0,
         4000,
-        3000
+        3000,
+        'default_america_detroit',
+        expect.anything()
       );
       expect(extractMetadataDumpFromFile).toHaveBeenCalledTimes(1);
       expect(extractMetadataDumpFromFile).toHaveBeenCalledWith(expect.stringContaining('visint-'));
       expect(extractMetadataDumpFromBuffer).not.toHaveBeenCalled();
       expect(insertNetworkTagWithNotes).toHaveBeenCalled();
+    });
+  });
+
+  describe('T1: Pipeline Rethrow & extractExif Layer Tests', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      (withAdminTransaction as jest.Mock).mockImplementation(async (callback: any) =>
+        callback({ query: jest.fn() })
+      );
+    });
+
+    it('a) extractExif with DateTimeOriginal "0000:00:00 00:00:00" plus valid GPS rejects with VisintInvalidTimestampError', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        const cmdStr = args.join(' ');
+        if (cmdStr.includes('$GPSLatitude')) {
+          callback(null, { stdout: '43.023\n' });
+        } else if (cmdStr.includes('$GPSLongitude')) {
+          callback(null, { stdout: '-83.696\n' });
+        } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '0000:00:00 00:00:00\n' });
+        } else if (
+          cmdStr.includes('$OffsetTimeOriginal') ||
+          cmdStr.includes('$OffsetTime') ||
+          cmdStr.includes('$GPSDateStamp')
+        ) {
+          callback(null, { stdout: '' });
+        } else {
+          callback(new Error('Unknown command'));
+        }
+      });
+
+      await expect(extractExif('/fake/path/image.jpg')).rejects.toThrow(
+        VisintInvalidTimestampError
+      );
+      await expect(extractExif('/fake/path/image.jpg')).rejects.toThrow(
+        'Invalid wall-clock timestamp format: "0000:00:00 00:00:00"'
+      );
+    });
+
+    it('b) saveVisINTAttachment with no body ts and that same bad EXIF REJECTS with the typed error, not swallowed', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        const cmdStr = args.join(' ');
+        if (cmdStr.includes('$GPSLatitude')) {
+          callback(null, { stdout: '43.023\n' });
+        } else if (cmdStr.includes('$GPSLongitude')) {
+          callback(null, { stdout: '-83.696\n' });
+        } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '0000:00:00 00:00:00\n' });
+        } else if (
+          cmdStr.includes('$OffsetTimeOriginal') ||
+          cmdStr.includes('$OffsetTime') ||
+          cmdStr.includes('$GPSDateStamp')
+        ) {
+          callback(null, { stdout: '' });
+        } else {
+          callback(new Error('Unknown command'));
+        }
+      });
+
+      await expect(
+        saveVisINTAttachment(
+          Buffer.from('dummy-image-bytes'),
+          'test.jpg',
+          'image/jpeg',
+          'AA:BB:CC:DD:EE:FF',
+          'MATCHED',
+          1,
+          10,
+          1
+        )
+      ).rejects.toThrow(VisintInvalidTimestampError);
+      expect(insertNetworkMedia).not.toHaveBeenCalled();
+    });
+
+    it('c) negative control: a non-timestamp extraction failure (exiftool throws a generic Error) is still swallowed and logged', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        callback(new Error('Generic exiftool spawn failure'));
+      });
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
+
+      const tags = await saveVisINTAttachment(
+        Buffer.from('dummy-image-bytes'),
+        'test.jpg',
+        'image/jpeg',
+        'AA:BB:CC:DD:EE:FF',
+        'MATCHED',
+        1,
+        10,
+        1
+      );
+
+      expect(tags).toBeDefined();
+      expect(insertNetworkMedia).toHaveBeenCalled();
     });
   });
 });

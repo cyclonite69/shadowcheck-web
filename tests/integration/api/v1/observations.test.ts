@@ -1,5 +1,6 @@
 import request from 'supertest';
 import express from 'express';
+import { VisintInvalidTimestampError } from '../../../../server/src/services/visint/visintTimezone';
 
 // Define mock container
 const mockContainer = {
@@ -526,6 +527,46 @@ describe('Observations API v1', () => {
       });
     });
 
+    it('rejects impossible EXIF date with HTTP 400 and VISINT_INVALID_TIMESTAMP on correlate-visint', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockRejectedValueOnce(
+        new VisintInvalidTimestampError(
+          'Invalid wall-clock timestamp format: "2026-02-30 12:00:00"'
+        )
+      );
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'impossible.jpg');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Invalid wall-clock timestamp format: "2026-02-30 12:00:00"',
+        code: 'VISINT_INVALID_TIMESTAMP',
+      });
+    });
+
+    it('rejects 0000:00:00 EXIF date with HTTP 400 and VISINT_INVALID_TIMESTAMP on correlate-visint', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockRejectedValueOnce(
+        new VisintInvalidTimestampError(
+          'Invalid wall-clock timestamp format: "0000:00:00 00:00:00"'
+        )
+      );
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'zeroed.jpg');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Invalid wall-clock timestamp format: "0000:00:00 00:00:00"',
+        code: 'VISINT_INVALID_TIMESTAMP',
+      });
+    });
+
     it('rejects malformed radius/window/limit on correlate-visint', async () => {
       const image = Buffer.from('fake-visint-image');
       const res = await request(app)
@@ -727,6 +768,67 @@ describe('Observations API v1', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toContain('media file field is required');
+    });
+
+    it('rejects attach-visint when body.ts has impossible calendar date 2026-02-30T12:00:00Z with HTTP 400 and VISINT_INVALID_TIMESTAMP', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED')
+        .field('ts', '2026-02-30T12:00:00Z');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error:
+          'Invalid timestamp format on attach-visint. Expected ISO-8601 with timezone offset (e.g. 2026-05-07T00:29:10.000Z).',
+        code: 'VISINT_INVALID_TIMESTAMP',
+      });
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '2026-01-01T25:00:00Z',
+      '2026-01-01T12:60:00Z',
+      '2026-01-01T12:00:00+25:00',
+      '2026-01-01T12:00:00+05:99',
+    ])('rejects malformed timestamp components at attach-visint ingress: %s', async (ts) => {
+      const image = Buffer.from('fake-visint-attachment');
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED')
+        .field('ts', ts);
+
+      expect(res.status).toBe(400);
+      expect(res.body.ok).toBe(false);
+      expect(res.body.code).toBe('VISINT_INVALID_TIMESTAMP');
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects attach-visint when service throws VisintInvalidTimestampError with HTTP 400 and VISINT_INVALID_TIMESTAMP', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      mockContainer.observationService.saveVisINTAttachment.mockRejectedValueOnce(
+        new VisintInvalidTimestampError(
+          'Invalid wall-clock timestamp format: "2026-02-30 12:00:00"'
+        )
+      );
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Invalid wall-clock timestamp format: "2026-02-30 12:00:00"',
+        code: 'VISINT_INVALID_TIMESTAMP',
+      });
     });
 
     it('returns 500 for unexpected service errors on attach-visint', async () => {

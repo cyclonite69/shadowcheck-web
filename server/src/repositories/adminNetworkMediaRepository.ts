@@ -51,6 +51,7 @@ export async function insertNetworkMedia(
   exifBearing: number | null = null,
   exifWidth: number | null = null,
   exifHeight: number | null = null,
+  timestampSource: string | null = null,
   client?: { query: (text: string, params?: any[]) => Promise<any> }
 ): Promise<any> {
   const hash = crypto.createHash('sha256').update(mediaBuffer).digest('hex');
@@ -76,8 +77,9 @@ export async function insertNetworkMedia(
       `INSERT INTO app.network_media
         (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by,
          exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id, image_sha256,
-         exif_raw, exif_make, exif_model, exif_altitude, exif_bearing, exif_width, exif_height)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+         exif_raw, exif_make, exif_model, exif_altitude, exif_bearing, exif_width, exif_height,
+         timestamp_source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
        RETURNING id, filename, file_size, created_at`,
       [
         bssid,
@@ -100,6 +102,7 @@ export async function insertNetworkMedia(
         exifBearing,
         exifWidth,
         exifHeight,
+        timestampSource,
       ]
     );
   } catch (err: any) {

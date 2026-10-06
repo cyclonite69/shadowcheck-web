@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-05)
+# 1.0.0 (2026-10-06)
 
 ### Bug Fixes
 
@@ -959,6 +959,7 @@
 - **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
 - **visint:** add surveillance keyword scoring and deprioritize unnamed BLE noise ([025e1a2](https://github.com/cyclonite69/shadowcheck-web/commit/025e1a235112fe54ae383e012c7676ab43605aeb))
 - **visint:** auto-rotate thumbnails using EXIF orientation tag ([00dee4c](https://github.com/cyclonite69/shadowcheck-web/commit/00dee4c79f36b6994a5b8b844b4523c6471d90e3))
+- **visint:** make media attachment persistence atomic ([8235cb1](https://github.com/cyclonite69/shadowcheck-web/commit/8235cb1297ad9a401120abb7412ea8c24e5a5cd1))
 - **visint:** parse and apply EXIF timezone offset ([5c8bcf8](https://github.com/cyclonite69/shadowcheck-web/commit/5c8bcf8bf7da8385e915a0148446528368c0fd2a))
 - **visint:** persist observation_id on candidate media attachments ([f268d35](https://github.com/cyclonite69/shadowcheck-web/commit/f268d356bb2e283b2232e7ee4351a9191e31d79f))
 - **visint:** persist observation_id on VISINT media attachment ([5c9df44](https://github.com/cyclonite69/shadowcheck-web/commit/5c9df440fd886bd98526f9b9b1406bd00111a0f2))
@@ -1479,8 +1480,9 @@
 - **visint:** implement MP4 telemetry extraction and E2E validation ([d54a6f6](https://github.com/cyclonite69/shadowcheck-web/commit/d54a6f611db80427eedb97095ba3898ccae59f4b))
 - **visint:** migrate to multipart uploads and add exiftool dependency ([658acd4](https://github.com/cyclonite69/shadowcheck-web/commit/658acd46d82eb2130b7747f60760d5f88c7339f1))
 - **visint:** prioritize tightest time delta and implement parameterized search bounds tuning ([11b4f99](https://github.com/cyclonite69/shadowcheck-web/commit/11b4f99bfe7271c6c8cf8df2599bca983a3c5879))
-- **visint:** store full EXIF/metadata dump (exif_raw) and populate typed exif columns ([287d78d](https://github.com/cyclonite69/shadowcheck-web/commit/287d78d663f38438b6fb5440c36fb3db611ecc2c))
+- **visint:** store full EXIF/metadata dump (exif_raw) and populate typed exif columns ([fd8a5b9](https://github.com/cyclonite69/shadowcheck-web/commit/fd8a5b9d312855762820cf20210959ccaacbbc08))
 - **visint:** support confirmed ShotSpotter attachments ([5664e94](https://github.com/cyclonite69/shadowcheck-web/commit/5664e94c8e7c0e4e9c2170f5512ddcf993f6826a))
+- **visint:** validate and persist timestamp provenance ([8c0651d](https://github.com/cyclonite69/shadowcheck-web/commit/8c0651d693591d30fb25db6d00a73fd443ca6492))
 - **wigle-coverage:** 56-state skeleton grid + case-insensitive term dedup ([3807392](https://github.com/cyclonite69/shadowcheck-web/commit/38073926b9599c2033ffb56e0511466b7029be8c))
 - **wigle-detail:** remove Recent Imports & Resumption section from v3 tab ([c064f80](https://github.com/cyclonite69/shadowcheck-web/commit/c064f802977ca3df441fdebfcfff02e2808e901d))
 - **wigle/kepler:** icon buttons, point size slider, crosshair cursor, filter panel position ([41e9231](https://github.com/cyclonite69/shadowcheck-web/commit/41e9231f7c46d9a20647c2c32a839dae348b73bc))
