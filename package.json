@@ -108,7 +108,7 @@
     "sqlite3": "6.0.1",
     "ts-node": "10.9.2",
     "winston": "3.19.0",
-    "ws": "8.21.0",
+    "ws": "8.22.0",
     "zod": "4.4.3",
     "zustand": "5.0.14"
   },
@@ -132,7 +132,7 @@
     "@types/react-dom": "19.2.3",
     "@types/supertest": "7.2.1",
     "@types/uuid": "11.0.0",
-    "@types/ws": "8.18.1",
+    "@types/ws": "8.18.2",
     "@typescript-eslint/eslint-plugin": "8.71.0",
     "@typescript-eslint/parser": "8.71.0",
     "@vitejs/plugin-react": "6.1.1",
