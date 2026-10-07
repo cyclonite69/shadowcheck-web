@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-06)
+# 1.0.0 (2026-10-07)
 
 ### Bug Fixes
 
@@ -252,6 +252,7 @@
 - **deps:** add @eslint/eslintrc for eslint 10.0.0 compatibility ([ae132b8](https://github.com/cyclonite69/shadowcheck-web/commit/ae132b8ba4301ec193ce4cb9b3c5f3b243bef18d))
 - **deps:** align react-dom and react-is to 19.2.5 ([08df20a](https://github.com/cyclonite69/shadowcheck-web/commit/08df20aab5574d78d24c25553328832c81520119))
 - **deps:** bump axios to 1.15.0 ([494b337](https://github.com/cyclonite69/shadowcheck-web/commit/494b3376f5326ae01500b4288153429a5f507b1d))
+- **deps:** bump sharp to 0.35.5 for librsvg CVE-2026-96889 (GHSA-wq5f-xc86-pv6w) ([5a037b1](https://github.com/cyclonite69/shadowcheck-web/commit/5a037b10d2f23efefe71c440cf6d531113547d97)), closes [#160](https://github.com/cyclonite69/shadowcheck-web/issues/160)
 - **deps:** downgrade @vitejs/plugin-react to 5.0.3 to fix Node 22 build failure ([a539ad9](https://github.com/cyclonite69/shadowcheck-web/commit/a539ad9af823c8467e16e9227523ce0d57612d81))
 - **deps:** npm audit fix for postcss path traversal and svgo removeScripts ([e96fea9](https://github.com/cyclonite69/shadowcheck-web/commit/e96fea9b864a2c04e55335a2320da0820828f937))
 - **deps:** pin fast-xml-parser to 5.5.8 to restore AWS SDK XML parsing ([0942fac](https://github.com/cyclonite69/shadowcheck-web/commit/0942fac65022e0929fc37a047d44b26d153fbd08)), closes [#xD](https://github.com/cyclonite69/shadowcheck-web/issues/xD)
