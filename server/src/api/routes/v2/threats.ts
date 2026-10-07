@@ -7,9 +7,10 @@ import type { Request, Response } from 'express';
 
 const express = require('express');
 const router = express.Router();
-const { v2Service } = require('../../../config/container');
+const { v2Service, filterQueryBuilder } = require('../../../config/container');
 const logger = require('../../../logging/logger');
 const { asyncHandler } = require('../../../utils/asyncHandler');
+const { validateFilterPayload } = filterQueryBuilder;
 
 /**
  * GET /api/v2/threats/severity-counts
@@ -40,6 +41,11 @@ router.get(
         } catch {
           logger.warn('Invalid enabled parameter:', enabledParam);
         }
+      }
+
+      const { errors } = validateFilterPayload(filters, enabled);
+      if (errors.length > 0) {
+        return res.status(400).json({ error: 'Invalid filter payload', errors });
       }
 
       const counts = await v2Service.getThreatSeverityCounts(filters, enabled);

@@ -36,7 +36,12 @@ describe('Systematic Filter Alignment Audit', () => {
     const filters: any = {};
     const enabled: any = {};
     ALL_FILTERS.forEach((f) => {
-      filters[f] = f.includes('Min') || f.includes('Max') || f.includes('Score') ? 10 : 'test';
+      filters[f] =
+        f === 'radiusFilter'
+          ? { latitude: 40.7, longitude: -73.9, radiusMeters: 1000 }
+          : f.includes('Min') || f.includes('Max') || f.includes('Score')
+            ? 10
+            : 'test';
       enabled[f] = true;
     });
 

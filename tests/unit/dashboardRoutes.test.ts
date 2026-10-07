@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import { validateFilterPayload as validateRadiusFilterPayload } from '../../server/src/services/filterQueryBuilder/validators';
 
 const keplerService = {
   checkHomeLocationExists: jest.fn(),
@@ -8,9 +9,13 @@ const logger = {
   debug: jest.fn(),
   error: jest.fn(),
 };
+const mockValidateFilterPayload = jest.fn((filters: unknown, enabled: unknown) =>
+  validateRadiusFilterPayload(filters, enabled)
+);
 
 jest.mock('../../server/src/config/container', () => ({
   keplerService,
+  filterQueryBuilder: { validateFilterPayload: mockValidateFilterPayload },
 }));
 
 jest.mock('../../server/src/logging/logger', () => logger);
@@ -30,6 +35,7 @@ describe('dashboard routes', () => {
     jest.clearAllMocks();
     initDashboardRoutes({ dashboardService });
     keplerService.checkHomeLocationExists.mockResolvedValue(true);
+    mockValidateFilterPayload.mockImplementation(validateRadiusFilterPayload);
   });
 
   it('rejects requests when the dashboard service is not initialized', async () => {
@@ -68,6 +74,23 @@ describe('dashboard routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toContain('Home location is required');
+    expect(dashboardService.getMetrics).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 and skips the service for invalid radius filters', async () => {
+    const response = await request(app)
+      .get('/api/dashboard/metrics')
+      .query({
+        filters: JSON.stringify({
+          radiusFilter: { latitude: '43', longitude: -83, radiusMeters: 500 },
+        }),
+        enabled: JSON.stringify({ radiusFilter: true }),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual(
+      expect.arrayContaining(['Radius filter latitude must be a finite number between -90 and 90.'])
+    );
     expect(dashboardService.getMetrics).not.toHaveBeenCalled();
   });
 

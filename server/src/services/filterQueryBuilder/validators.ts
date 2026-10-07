@@ -12,6 +12,38 @@ const validateFilterPayload = (filters: unknown, enabled: unknown): ValidationRe
   const normalized = normalizeFilters(filters);
   const flags = normalizeEnabled(enabled);
 
+  if (flags.radiusFilter) {
+    const value = normalized.radiusFilter;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      errors.push('Radius filter must include latitude, longitude, and radiusMeters.');
+    } else {
+      const radiusFilter = value as unknown as Record<string, unknown>;
+      const latitude = radiusFilter.latitude;
+      const longitude = radiusFilter.longitude;
+      const radiusMeters = radiusFilter.radiusMeters;
+
+      if (
+        typeof latitude !== 'number' ||
+        !Number.isFinite(latitude) ||
+        latitude < -90 ||
+        latitude > 90
+      ) {
+        errors.push('Radius filter latitude must be a finite number between -90 and 90.');
+      }
+      if (
+        typeof longitude !== 'number' ||
+        !Number.isFinite(longitude) ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        errors.push('Radius filter longitude must be a finite number between -180 and 180.');
+      }
+      if (typeof radiusMeters !== 'number' || !Number.isFinite(radiusMeters) || radiusMeters <= 0) {
+        errors.push('Radius filter radiusMeters must be a finite number greater than 0.');
+      }
+    }
+  }
+
   if (flags.rssiMin && normalized.rssiMin !== undefined && normalized.rssiMin < NOISE_FLOOR_DBM) {
     errors.push(`RSSI minimum below noise floor (${NOISE_FLOOR_DBM} dBm).`);
   }

@@ -3,7 +3,8 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../logging/logger');
-const { keplerService } = require('../../../config/container');
+const { keplerService, filterQueryBuilder } = require('../../../config/container');
+const { validateFilterPayload } = filterQueryBuilder;
 
 let dashboardService: any = null;
 
@@ -75,6 +76,11 @@ const sendDashboardMetrics = async (req: Request, res: Response) => {
 
     const filters = filtersResult.value;
     const enabled = enabledResult.value;
+
+    const { errors } = validateFilterPayload(filters, enabled);
+    if (errors.length > 0) {
+      return res.status(400).json({ error: 'Invalid filter payload', errors });
+    }
 
     logger.debug('[Dashboard] Received filters', { filters });
     logger.debug('[Dashboard] Received enabled', { enabled });

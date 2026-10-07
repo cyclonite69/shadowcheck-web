@@ -6,6 +6,7 @@ jest.mock('../../../../server/src/config/container', () => ({
   keplerService: {
     checkHomeLocationExists: jest.fn().mockResolvedValue(true),
   },
+  filterQueryBuilder: require('../../../../server/src/services/filterQueryBuilder/validators'),
 }));
 
 const { router, initDashboardRoutes } = require('../../../../server/src/api/routes/v1/dashboard');
