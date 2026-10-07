@@ -1538,7 +1538,7 @@
 - **db:** add comprehensive indexes to MV for filter performance ([bd7a10d](https://github.com/cyclonite69/shadowcheck-web/commit/bd7a10d3c40102d4f9dfb40d7aea38b7629b4d6a))
 - **db:** add expression index on networks OUI for surveillance candidates ([cd618fa](https://github.com/cyclonite69/shadowcheck-web/commit/cd618fa1369bbf7f6547064241d25764f00dbed4))
 - filter co-occurrence to mobile networks only (12K vs 180K) ([82aaeca](https://github.com/cyclonite69/shadowcheck-web/commit/82aaeca5f40920b366f9c24cdbf929b328e19e4c))
-- **filters:** apply radius page offset before observation rollups ([0cd0b83](https://github.com/cyclonite69/shadowcheck-web/commit/0cd0b83fa5761c72d103967c3ee0886fa52d3060))
+- **filters:** apply radius page offset before observation rollups ([9c39d10](https://github.com/cyclonite69/shadowcheck-web/commit/9c39d10a4e30ecccfd0cb9ac21a7f0a57c644378))
 - **filters:** improve radius-search pagination and timeout resilience ([1eae0cc](https://github.com/cyclonite69/shadowcheck-web/commit/1eae0cc83a7aba6296756c7ae7da04fd94221d7b))
 - **filters:** make timeframe network-only using MV last_seen ([ec8e323](https://github.com/cyclonite69/shadowcheck-web/commit/ec8e3235c5f8f412e076de9b572e4d65814a6d37))
 - **filters:** skip stationary CTEs when not needed + fix /api/json ([ceef34b](https://github.com/cyclonite69/shadowcheck-web/commit/ceef34bfa59604b2a87a8b36a7b1b9e04f1ba891))
