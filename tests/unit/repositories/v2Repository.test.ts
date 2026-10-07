@@ -1,8 +1,12 @@
 const query = jest.fn();
+const transactionQuery = jest.fn();
+const transactionRelease = jest.fn();
+const poolConnect = jest.fn();
 const buildThreatSeverityCountsQuery = jest.fn();
 const Builder = jest.fn(() => ({ buildThreatSeverityCountsQuery }));
 
 jest.mock('../../../server/src/config/database', () => ({
+  pool: { connect: poolConnect },
   query,
   CONFIG: {},
 }));
@@ -10,6 +14,7 @@ jest.mock('../../../server/src/config/database', () => ({
 jest.mock('../../../server/src/logging/logger', () => ({
   logQuery: jest.fn(),
   warn: jest.fn(),
+  error: jest.fn(),
 }));
 
 jest.mock('../../../server/src/services/filterQueryBuilder/universalFilterQueryBuilder', () => ({
@@ -36,6 +41,8 @@ const repository = require('../../../server/src/repositories/v2Repository');
 describe('v2Repository coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    poolConnect.mockResolvedValue({ query: transactionQuery, release: transactionRelease });
+    transactionQuery.mockResolvedValue({ rows: [] });
     Builder.mockImplementation(() => ({ buildThreatSeverityCountsQuery }));
     buildThreatSeverityCountsQuery.mockReturnValue({ sql: 'severity sql', params: ['x'] });
     fragments.joinNetworkLocations.mockReturnValue('LOCATION JOIN');
@@ -98,6 +105,131 @@ describe('v2Repository coverage', () => {
 
     expect(fragments.joinNetworkLocations).toHaveBeenCalledWith('ne', 'centroid');
     expect(query.mock.calls[1][1]).toEqual([['11:22:33:44:55:66']]);
+  });
+
+  it('uses a transaction with stage-specific timeouts and degrades count-only timeout', async () => {
+    transactionQuery.mockImplementation(async (sql: string) => {
+      if (sql === 'count sql') {
+        const error = new Error('canceling statement due to statement timeout') as Error & {
+          code?: string;
+        };
+        error.code = '57014';
+        throw error;
+      }
+      return { rows: [] };
+    });
+
+    const result = await repository.withFilteredNetworkRequest(async (executor: any) => {
+      await executor.executeV2Query('list sql', [], 40000);
+      return executor.executeOptionalCount('count sql', []);
+    });
+
+    expect(result).toBeNull();
+    expect(transactionQuery).toHaveBeenCalledWith('BEGIN READ ONLY');
+    expect(transactionQuery).toHaveBeenCalledWith(
+      "SELECT set_config('statement_timeout', $1, true)",
+      ['40000ms']
+    );
+    expect(transactionQuery).toHaveBeenCalledWith('SAVEPOINT filtered_count');
+    expect(transactionQuery).toHaveBeenCalledWith('ROLLBACK TO SAVEPOINT filtered_count');
+    expect(transactionQuery).toHaveBeenCalledWith('RELEASE SAVEPOINT filtered_count');
+    expect(transactionQuery).toHaveBeenCalledWith('COMMIT');
+    expect(transactionRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('rolls back and releases the transaction after a list timeout', async () => {
+    transactionQuery.mockImplementation(async (sql: string) => {
+      if (sql === 'list sql') {
+        const error = new Error('canceling statement due to statement timeout') as Error & {
+          code?: string;
+        };
+        error.code = '57014';
+        throw error;
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      repository.withFilteredNetworkRequest((executor: any) =>
+        executor.executeV2Query('list sql', [], 40000)
+      )
+    ).rejects.toMatchObject({ code: '57014' });
+
+    expect(transactionQuery).toHaveBeenCalledWith('ROLLBACK');
+    expect(transactionRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('discards a client when transaction rollback fails', async () => {
+    const rollbackError = new Error('rollback failed');
+    transactionQuery.mockImplementation(async (sql: string) => {
+      if (sql === 'list sql') {
+        const error = new Error('canceling statement due to statement timeout') as Error & {
+          code?: string;
+        };
+        error.code = '57014';
+        throw error;
+      }
+      if (sql === 'ROLLBACK') {
+        throw rollbackError;
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      repository.withFilteredNetworkRequest((executor: any) =>
+        executor.executeV2Query('list sql', [], 40000)
+      )
+    ).rejects.toMatchObject({ code: '57014' });
+
+    expect(transactionRelease).toHaveBeenCalledWith(rollbackError);
+  });
+
+  it('releases a connection acquired after the request deadline', async () => {
+    const lateClient = { query: transactionQuery, release: transactionRelease };
+    poolConnect.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(lateClient), 30))
+    );
+
+    await expect(
+      repository.withFilteredNetworkRequest(async () => undefined, Date.now() - 49990)
+    ).rejects.toMatchObject({ code: '57014' });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(transactionRelease).toHaveBeenCalledTimes(1);
+    expect(transactionQuery).not.toHaveBeenCalled();
+  });
+
+  it('preserves the requested page and transaction when the optional sibling supplement times out', async () => {
+    transactionQuery.mockImplementation(async (sql: string) => {
+      if (sql.startsWith('SELECT DISTINCT')) {
+        const error = new Error('canceling statement due to statement timeout') as Error & {
+          code?: string;
+        };
+        error.code = '57014';
+        throw error;
+      }
+      if (sql === 'count sql') {
+        return { rows: [{ total: '1' }] };
+      }
+      return { rows: [] };
+    });
+
+    const result = await repository.withFilteredNetworkRequest(async (executor: any) => {
+      const siblings = await executor.fetchMissingSiblingRows(
+        ['AA:BB:CC:DD:EE:FF'],
+        'latest_observation'
+      );
+      const count = await executor.executeOptionalCount('count sql', []);
+      return { siblings, count };
+    });
+
+    expect(result).toEqual({ siblings: [], count: { rows: [{ total: '1' }] } });
+    expect(transactionQuery).toHaveBeenCalledWith('SAVEPOINT filtered_sibling');
+    expect(transactionQuery).toHaveBeenCalledWith('ROLLBACK TO SAVEPOINT filtered_sibling');
+    expect(transactionQuery).toHaveBeenCalledWith('RELEASE SAVEPOINT filtered_sibling');
+    expect(transactionQuery).toHaveBeenCalledWith('SAVEPOINT filtered_count');
+    expect(transactionQuery).toHaveBeenCalledWith('COMMIT');
+    expect(transactionRelease).toHaveBeenCalledTimes(1);
   });
 
   it('normalizes BSSIDs and returns explorer batch rows', async () => {

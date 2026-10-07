@@ -50,49 +50,62 @@ export const createListHandler = (deps: HandlerDeps) => async (req: Request, res
   const { sql, params, appliedFilters, ignoredFilters, warnings }: FilterQueryResult =
     builder.buildNetworkListQuery({ limit, offset, orderBy, locationMode });
   const buildTime = Date.now() - buildStart;
-  const queryStart = Date.now();
-  const result = await v2Service.executeV2Query(sql, params);
-  const queryTime = Date.now() - queryStart;
-  const rows = result.rows || [];
-
-  const enriched = rows.map((row: NetworkRow) => {
-    const effectiveRow = applyEffectiveThreat(row);
-    const transparency = normalizeThreatTransparency(effectiveRow.threat);
-    return {
-      ...effectiveRow,
-      threatReasons: transparency.threatReasons,
-      threatEvidence: transparency.threatEvidence,
-      threatTransparencyError: transparency.transparencyError,
-    };
-  });
-
-  const siblingRows = await v2Service.fetchMissingSiblingRows(
-    rows.map((r: NetworkRow) => r.bssid),
-    locationMode
-  );
-  const enrichedSiblings = siblingRows.map((row: NetworkRow) => {
-    const effectiveRow = applyEffectiveThreat(row);
-    const transparency = normalizeThreatTransparency(effectiveRow.threat);
-    return {
-      ...effectiveRow,
-      threatReasons: transparency.threatReasons,
-      threatEvidence: transparency.threatEvidence,
-      threatTransparencyError: transparency.transparencyError,
-      _siblingSupplemented: true,
-    };
-  });
-  const allEnriched = enrichedSiblings.length > 0 ? [...enriched, ...enrichedSiblings] : enriched;
-
+  let queryTime = 0;
+  let rows: NetworkRow[] = [];
+  let enriched: NetworkRow[] = [];
+  let enrichedSiblings: NetworkRow[] = [];
+  let allEnriched: NetworkRow[] = [];
   let total: number | null = null;
-  if (includeTotal) {
-    const countBuilder = new UniversalFilterQueryBuilder(filters, enabled, {
-      pageType: resolvePageType(req),
+  let totalUnavailable = false;
+
+  await v2Service.withFilteredNetworkRequest(async (executor) => {
+    const queryStart = Date.now();
+    const result = await executor.executeV2Query(sql, params);
+    queryTime = Date.now() - queryStart;
+    rows = result.rows || [];
+
+    enriched = rows.map((row: NetworkRow) => {
+      const effectiveRow = applyEffectiveThreat(row);
+      const transparency = normalizeThreatTransparency(effectiveRow.threat);
+      return {
+        ...effectiveRow,
+        threatReasons: transparency.threatReasons,
+        threatEvidence: transparency.threatEvidence,
+        threatTransparencyError: transparency.transparencyError,
+      };
     });
-    const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
-    const countResult = await v2Service.executeV2Query(countQuery.sql, countQuery.params);
-    const countRow = countResult.rows?.[0];
-    total = parseInt(countRow?.total || '0', 10);
-  }
+
+    const siblingRows = await executor.fetchMissingSiblingRows(
+      rows.map((r: NetworkRow) => r.bssid),
+      locationMode
+    );
+    enrichedSiblings = siblingRows.map((row: NetworkRow) => {
+      const effectiveRow = applyEffectiveThreat(row);
+      const transparency = normalizeThreatTransparency(effectiveRow.threat);
+      return {
+        ...effectiveRow,
+        threatReasons: transparency.threatReasons,
+        threatEvidence: transparency.threatEvidence,
+        threatTransparencyError: transparency.transparencyError,
+        _siblingSupplemented: true,
+      };
+    });
+    allEnriched = enrichedSiblings.length > 0 ? [...enriched, ...enrichedSiblings] : enriched;
+
+    if (includeTotal) {
+      const countBuilder = new UniversalFilterQueryBuilder(filters, enabled, {
+        pageType: resolvePageType(req),
+      });
+      const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
+      const countResult = await executor.executeOptionalCount(countQuery.sql, countQuery.params);
+      if (countResult === null) {
+        totalUnavailable = true;
+      } else {
+        const countRow = countResult.rows?.[0];
+        total = parseInt(countRow?.total || '0', 10);
+      }
+    }
+  }, startTime);
 
   const enabledCount = Object.values(enabled).filter(Boolean).length;
   const threatIssues = allEnriched.filter((r) => r.threatTransparencyError).length;
@@ -121,7 +134,8 @@ export const createListHandler = (deps: HandlerDeps) => async (req: Request, res
       total,
       limit,
       offset,
-      hasMore: includeTotal ? offset + limit < (total ?? 0) : rows.length === limit,
+      totalUnavailable,
+      hasMore: total === null ? rows.length === limit : offset + limit < total,
     },
     filterTransparency: {
       appliedFilters,

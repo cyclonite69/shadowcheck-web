@@ -153,6 +153,24 @@ describe('toAppError', () => {
     expect(result.code).toBe('TIMEOUT');
   });
 
+  test('converts PostgreSQL statement-timeout cancellation to a 504', () => {
+    const result = toAppError({
+      code: '57014',
+      message: 'canceling statement due to statement timeout',
+    });
+    expect(result.statusCode).toBe(504);
+    expect(result.code).toBe('TIMEOUT');
+  });
+
+  test('converts a synthetic query-cancellation error to a 504 by SQLSTATE', () => {
+    const result = toAppError({
+      code: '57014',
+      message: 'Filtered network request timed out before its query completed.',
+    });
+    expect(result.statusCode).toBe(504);
+    expect(result.code).toBe('TIMEOUT');
+  });
+
   test('preserves payload-too-large errors as 413', () => {
     const bodyParserResult = toAppError({
       type: 'entity.too.large',

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { logDebug } from '../logging/clientLogger';
 import { apiClient } from '../api/client';
+import { getNetworkSearchErrorMessage } from '../api/apiError';
 import type { NetworkRow, SortState } from '../types/network';
 import { API_SORT_MAP, NETWORK_PAGE_LIMIT } from '../constants/network';
 import { mapApiRowToNetwork } from '../utils/networkDataTransformation';
@@ -19,6 +20,7 @@ interface UseNetworkDataReturn {
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   networkTotal: number | null;
+  networkTotalUnavailable: boolean;
   networkTruncated: boolean;
   expensiveSort: boolean;
   pagination: { offset: number; hasMore: boolean };
@@ -29,27 +31,6 @@ interface UseNetworkDataReturn {
   resetPagination: () => void;
 }
 
-const isCountTimeoutError = (err: unknown): boolean => {
-  const e = err as { status?: number; message?: string; data?: unknown };
-  const message = String(e?.message || '').toLowerCase();
-  const dataText = JSON.stringify(e?.data || '').toLowerCase();
-  const status = e?.status;
-
-  if (status === 504) {
-    return true;
-  }
-
-  return (
-    (status === 500 || status === 503) &&
-    (message.includes('timeout') ||
-      message.includes('statement_timeout') ||
-      message.includes('timed out') ||
-      dataText.includes('timeout') ||
-      dataText.includes('statement_timeout') ||
-      dataText.includes('timed out'))
-  );
-};
-
 export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkDataReturn {
   const { locationMode = 'latest_observation', planCheck = false } = options;
 
@@ -57,6 +38,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   const [loading, setLoading] = useState(true); // true on mount — skeleton shows until first fetch resolves
   const [error, setError] = useState<string | null>(null);
   const [networkTotal, setNetworkTotal] = useState<number | null>(null);
+  const [networkTotalUnavailable, setNetworkTotalUnavailable] = useState(false);
   const [networkTruncated, setNetworkTruncated] = useState(false);
   const [expensiveSort, setExpensiveSort] = useState(false);
   const [pagination, setPagination] = useState({ offset: 0, hasMore: true });
@@ -97,6 +79,8 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
 
   const resetNetworks = useCallback(() => {
     setNetworks([]);
+    setNetworkTotal(null);
+    setNetworkTotalUnavailable(false);
     setPagination({ offset: 0, hasMore: true });
   }, []);
 
@@ -114,11 +98,14 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     const fetchNetworks = async () => {
       setLoading(true);
       setError(null);
+      setNetworkTotalUnavailable(false);
       setExpensiveSort(false);
+      let radiusEnabled = false;
 
       try {
         const currentSort: SortState[] = JSON.parse(sortKey.current || '[]');
         const currentFilterState = JSON.parse(filterKey.current || '{}');
+        radiusEnabled = Boolean(currentFilterState.enabled?.radiusFilter);
 
         const sortKeys = currentSort
           .map((entry: SortState) => API_SORT_MAP[entry.column])
@@ -136,6 +123,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           setNetworkTotal(
             typeof data.pagination?.total === 'number' ? data.pagination.total : null
           );
+          setNetworkTotalUnavailable(Boolean(data.pagination?.totalUnavailable));
           setNetworkTruncated(Boolean(data.truncated));
 
           const mapped: NetworkRow[] = rows.map(mapApiRowToNetwork);
@@ -182,38 +170,13 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         // Read current offset from pagination state at call time
         const currentOffset = pagination.offset;
         const shouldIncludeTotal = currentOffset === 0;
-        let data;
-        try {
-          data = await requestNetworks(currentOffset, shouldIncludeTotal);
-        } catch (primaryErr: any) {
-          if (
-            shouldIncludeTotal &&
-            primaryErr?.name !== 'AbortError' &&
-            isCountTimeoutError(primaryErr)
-          ) {
-            try {
-              data = await requestNetworks(currentOffset, false);
-            } catch (secondaryErr: any) {
-              if (secondaryErr?.name !== 'AbortError' && isCountTimeoutError(secondaryErr)) {
-                data = await requestNetworks(currentOffset, false, 200);
-              } else {
-                throw secondaryErr;
-              }
-            }
-          } else {
-            throw primaryErr;
-          }
-        }
+        const data = await requestNetworks(currentOffset, shouldIncludeTotal);
 
         logDebug('Networks response received');
         applyResponse(data, currentOffset);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
-          const errorMessage =
-            typeof err === 'object' && err !== null
-              ? err.message || JSON.stringify(err)
-              : String(err);
-          setError(errorMessage);
+          setError(getNetworkSearchErrorMessage(err, radiusEnabled));
           setLoading(false);
         }
       } finally {
@@ -232,6 +195,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     error,
     setError,
     networkTotal,
+    networkTotalUnavailable,
     networkTruncated,
     expensiveSort,
     pagination,

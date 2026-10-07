@@ -1,7 +1,8 @@
 import { apiClient } from 'client/src/api/client';
 import { authController } from '../../client/src/hooks/authController';
+import { getNetworkSearchErrorMessage } from '../../client/src/api/apiError';
 
-describe('ApiClient 401 handling', () => {
+describe('ApiClient 401 handling and network search errors', () => {
   let originalFetch: any;
   let originalLocation: any;
 
@@ -163,5 +164,95 @@ describe('ApiClient 401 handling', () => {
     })) as any;
 
     await expect(apiClient.get('/networks/500')).rejects.toThrow(/Internal Server Error|boom/);
+  });
+
+  test.each([502, 503])('classifies HTTP %s without exposing a proxy body', (status) => {
+    expect(
+      getNetworkSearchErrorMessage({ status, message: '<html>proxy error</html>', data: null })
+    ).toMatch(/temporarily unavailable/i);
+  });
+
+  it('classifies HTTP 504 as a search timeout without exposing the gateway body', () => {
+    expect(
+      getNetworkSearchErrorMessage(
+        {
+          status: 504,
+          message: '<html>Gateway Time-out</html>',
+          data: null,
+        },
+        true
+      )
+    ).toMatch(/search timed out.*narrow the radius/i);
+  });
+
+  it('does not suggest narrowing radius for a non-radius search timeout', () => {
+    expect(
+      getNetworkSearchErrorMessage({
+        status: 504,
+        message: '<html>Gateway Time-out</html>',
+        data: null,
+      })
+    ).toBe('Search timed out. Please try again.');
+  });
+
+  it('preserves a structured database-initializing response for HTTP 503', () => {
+    expect(
+      getNetworkSearchErrorMessage({
+        status: 503,
+        message: 'Network search is temporarily unavailable.',
+        data: {
+          error: {
+            code: 'DB_INITIALIZING',
+            message: 'The database is currently synchronizing.',
+          },
+        },
+      })
+    ).toBe('The database is currently synchronizing.');
+  });
+
+  it('preserves useful plain-text 429 responses', () => {
+    expect(
+      getNetworkSearchErrorMessage({
+        status: 429,
+        message: 'Rate limit exceeded; retry after a short delay.',
+        data: null,
+      })
+    ).toBe('Rate limit exceeded; retry after a short delay.');
+  });
+
+  it('prefers structured API messages for other search errors', () => {
+    expect(
+      getNetworkSearchErrorMessage({
+        status: 400,
+        message: 'Request failed',
+        data: { error: 'Invalid filter' },
+      })
+    ).toBe('Invalid filter');
+  });
+
+  it('preserves non-timeout API response messages for other search errors', () => {
+    expect(
+      getNetworkSearchErrorMessage({
+        status: 400,
+        message: 'Invalid filter',
+        data: null,
+      })
+    ).toBe('Invalid filter');
+  });
+
+  it('does not expose non-JSON proxy responses for other search failures', () => {
+    expect(
+      getNetworkSearchErrorMessage({
+        status: 500,
+        message: '<html>internal proxy response</html>',
+        data: null,
+      })
+    ).toBe('Network search failed (HTTP 500). Please try again.');
+  });
+
+  it('uses a safe status fallback when a network search error has no message', () => {
+    expect(getNetworkSearchErrorMessage({ status: 500, data: null })).toBe(
+      'Network search failed (HTTP 500). Please try again.'
+    );
   });
 });

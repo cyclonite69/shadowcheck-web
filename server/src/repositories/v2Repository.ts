@@ -14,10 +14,188 @@ import type {
   SeverityCounts,
 } from '../types/v2Types';
 
-const { query } = require('../config/database');
+const { pool, query } = require('../config/database');
 const logger = require('../logging/logger');
 
 const SLOW_QUERY_THRESHOLD_MS = Math.max(0, Number(process.env.SLOW_QUERY_THRESHOLD_MS ?? 2000));
+const FILTERED_REQUEST_DEADLINE_MS = 50000;
+const FILTERED_LIST_TIMEOUT_MS = 40000;
+const FILTERED_SIBLING_TIMEOUT_MS = 2000;
+const FILTERED_COUNT_TIMEOUT_MS = 5000;
+
+function createFilteredRequestTimeoutError(): Error & { code: string } {
+  return Object.assign(
+    new Error('Filtered network request timed out before its query completed.'),
+    { code: '57014' }
+  );
+}
+
+type FilteredRequestExecutor = {
+  executeV2Query: (sql: string, params: any[], timeoutMs?: number) => Promise<any>;
+  executeOptionalCount: (sql: string, params: any[]) => Promise<any | null>;
+  fetchMissingSiblingRows: (matchedBssids: string[], locationMode: string) => Promise<any[]>;
+};
+
+/**
+ * Runs a filtered explorer response's sequential reads within one read-only
+ * transaction and a shared deadline below nginx's 60-second proxy timeout.
+ */
+export async function withFilteredNetworkRequest<T>(
+  work: (executor: FilteredRequestExecutor) => Promise<T>,
+  requestStartedAt: number = Date.now()
+): Promise<T> {
+  const deadlineAt = requestStartedAt + FILTERED_REQUEST_DEADLINE_MS;
+  const remainingBeforeAcquire = deadlineAt - Date.now();
+  if (remainingBeforeAcquire <= 0) {
+    throw createFilteredRequestTimeoutError();
+  }
+
+  const connectionPromise = pool.connect();
+  let acquireTimer: ReturnType<typeof setTimeout> | undefined;
+  let acquireTimedOut = false;
+  let client: Awaited<typeof connectionPromise>;
+  try {
+    client = await Promise.race([
+      connectionPromise,
+      new Promise<never>((_resolve, reject) => {
+        acquireTimer = setTimeout(() => {
+          acquireTimedOut = true;
+          reject(createFilteredRequestTimeoutError());
+        }, remainingBeforeAcquire);
+      }),
+    ]);
+  } catch (error) {
+    if (acquireTimedOut) {
+      void connectionPromise.then(
+        (acquiredClient: { release: (error?: Error) => void }) => acquiredClient.release(),
+        () => undefined
+      );
+    }
+    throw error;
+  } finally {
+    if (acquireTimer) {
+      clearTimeout(acquireTimer);
+    }
+  }
+
+  let transactionStarted = false;
+  let releaseError: Error | undefined;
+
+  const remainingBudget = () => deadlineAt - Date.now();
+
+  const execute = async (
+    sql: string,
+    params: any[] = [],
+    maxTimeoutMs: number = FILTERED_LIST_TIMEOUT_MS
+  ) => {
+    const remainingMs = remainingBudget();
+    const timeoutMs = Math.floor(Math.min(maxTimeoutMs, remainingMs));
+    if (timeoutMs <= 0) {
+      throw createFilteredRequestTimeoutError();
+    }
+
+    await client.query("SELECT set_config('statement_timeout', $1, true)", [`${timeoutMs}ms`]);
+    const queryStartedAt = Date.now();
+    try {
+      return await client.query(sql, params);
+    } finally {
+      const durationMs = Date.now() - queryStartedAt;
+      logger.logQuery(sql, params, durationMs);
+      if (durationMs >= SLOW_QUERY_THRESHOLD_MS) {
+        logger.warn({
+          message: 'Slow V2 query detected',
+          durationMs,
+          thresholdMs: SLOW_QUERY_THRESHOLD_MS,
+          paramCount: params.length,
+        });
+      }
+    }
+  };
+
+  try {
+    if (remainingBudget() <= 0) {
+      throw createFilteredRequestTimeoutError();
+    }
+
+    await client.query('BEGIN READ ONLY');
+    transactionStarted = true;
+    const transactionTimeout = Math.floor(remainingBudget());
+    if (transactionTimeout <= 0) {
+      throw createFilteredRequestTimeoutError();
+    }
+    await client.query("SELECT set_config('statement_timeout', $1, true)", [
+      `${transactionTimeout}ms`,
+    ]);
+
+    const executor: FilteredRequestExecutor = {
+      executeV2Query: execute,
+      executeOptionalCount: async (sql, params) => {
+        await client.query('SAVEPOINT filtered_count');
+        try {
+          const result = await execute(sql, params, FILTERED_COUNT_TIMEOUT_MS);
+          await client.query('RELEASE SAVEPOINT filtered_count');
+          return result;
+        } catch (error) {
+          if ((error as { code?: string })?.code !== '57014') {
+            throw error;
+          }
+          await client.query('ROLLBACK TO SAVEPOINT filtered_count');
+          await client.query('RELEASE SAVEPOINT filtered_count');
+          return null;
+        }
+      },
+      fetchMissingSiblingRows: async (matchedBssids, locationMode) => {
+        const executeSiblingQuery = async (sql: string, params: any[]) => {
+          await client.query('SAVEPOINT filtered_sibling');
+          try {
+            const result = await execute(sql, params, FILTERED_SIBLING_TIMEOUT_MS);
+            await client.query('RELEASE SAVEPOINT filtered_sibling');
+            return result;
+          } catch (error) {
+            await client.query('ROLLBACK TO SAVEPOINT filtered_sibling');
+            await client.query('RELEASE SAVEPOINT filtered_sibling');
+            throw error;
+          }
+        };
+
+        try {
+          return await fetchMissingSiblingRows(matchedBssids, locationMode, executeSiblingQuery);
+        } catch (error) {
+          if ((error as { code?: string })?.code === '57014') {
+            logger.warn({
+              message:
+                'Filtered network sibling supplement timed out; returning the requested page without siblings',
+            });
+            return [];
+          }
+          throw error;
+        }
+      },
+    };
+
+    const result = await work(executor);
+    await client.query('COMMIT');
+    transactionStarted = false;
+    return result;
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+      } catch (rollbackError) {
+        releaseError =
+          rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+        logger.error({
+          message: 'Failed to roll back filtered network transaction; discarding connection',
+          error: releaseError,
+        });
+      }
+    }
+    throw error;
+  } finally {
+    client.release(releaseError);
+  }
+}
 
 /**
  * Low-level pass-through for dynamically-built queries (used by filtered.ts).
@@ -212,7 +390,8 @@ export async function checkHomeExists(): Promise<boolean> {
  */
 export async function fetchMissingSiblingRows(
   matchedBssids: string[],
-  locationMode: string = 'latest_observation'
+  locationMode: string = 'latest_observation',
+  executeQuery: (sql: string, params: any[]) => Promise<any> = query
 ): Promise<any[]> {
   if (matchedBssids.length === 0) {
     return [];
@@ -220,7 +399,7 @@ export async function fetchMissingSiblingRows(
 
   const upperBssids = matchedBssids.map((b) => b.toUpperCase());
 
-  const siblingResult = await query(
+  const siblingResult = await executeQuery(
     `SELECT DISTINCT
        CASE
          WHEN UPPER(bssid1) = ANY($1::text[]) THEN UPPER(bssid2)
@@ -250,7 +429,7 @@ export async function fetchMissingSiblingRows(
   const geocodedFields = SqlFragmentLibrary.selectGeocodedFields('ne');
   const tagFields = SqlFragmentLibrary.selectThreatTagFields('nt');
 
-  const networkResult = await query(
+  const networkResult = await executeQuery(
     `SELECT
        ne.bssid,
        ne.ssid AS ssid,

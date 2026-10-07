@@ -13,6 +13,7 @@ const NT_NOT_IGNORED_CLAUSE = 'COALESCE(nt.is_ignored, FALSE) = FALSE';
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
 const GEOCODED_SELECT_FIELDS = SqlFragmentLibrary.selectGeocodedFields('ne');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
+const DEFAULT_RADIUS_SORT_ORDER = 'ne.last_seen DESC NULLS LAST, ne.bssid ASC';
 
 export function buildNetworkSlowPathListQuery(
   ctx: FilterBuildContext,
@@ -39,8 +40,45 @@ export function buildNetworkSlowPathListQuery(
         ? ''
         : `WHERE ${NT_NOT_IGNORED_CLAUSE}`;
 
+  const enabledFilters = Object.entries(ctx.enabled).filter(([, enabled]) => enabled);
+  const canPageRadiusBeforeRollup =
+    enabledFilters.length === 1 &&
+    enabledFilters[0][0] === 'radiusFilter' &&
+    Boolean(ctx.filters.radiusFilter) &&
+    orderBy.trim() === DEFAULT_RADIUS_SORT_ORDER &&
+    Number.isSafeInteger(limit) &&
+    Number.isSafeInteger(offset) &&
+    (limit ?? -1) >= 0 &&
+    offset >= 0;
+  const pageNetworkCtes = canPageRadiusBeforeRollup
+    ? `,
+    page_networks AS (
+      SELECT candidates.bssid
+      FROM (
+        SELECT DISTINCT fo.bssid
+        FROM filtered_obs fo
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM app.network_tags nt_ignored
+          WHERE UPPER(nt_ignored.bssid) = UPPER(fo.bssid)
+            AND COALESCE((to_jsonb(nt_ignored)->>'is_ignored')::boolean, FALSE) = TRUE
+        )
+      ) candidates
+      LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = candidates.bssid
+      ORDER BY ne.last_seen DESC NULLS LAST, candidates.bssid ASC
+      LIMIT ${ctx.addParam((limit ?? 0) + offset)}
+    ),
+    page_filtered_obs AS (
+      SELECT fo.*
+      FROM filtered_obs fo
+      JOIN page_networks pn ON pn.bssid = fo.bssid
+    )`
+    : '';
+  const observationSource = canPageRadiusBeforeRollup ? 'page_filtered_obs' : 'filtered_obs';
+
   const sql = `
     ${cte}
+    ${pageNetworkCtes}
     , obs_rollup AS (
       SELECT
         bssid,
@@ -52,7 +90,7 @@ export function buildNetworkSlowPathListQuery(
         AVG(level) AS avg_signal,
         MIN(level) AS min_signal,
         MAX(level) AS max_signal
-      FROM filtered_obs
+      FROM ${observationSource}
       GROUP BY bssid
     ),
     obs_latest AS (
@@ -69,7 +107,7 @@ export function buildNetworkSlowPathListQuery(
         radio_type,
         geom,
         altitude
-      FROM filtered_obs
+      FROM ${observationSource}
       ORDER BY bssid, time DESC
     )
     SELECT
@@ -159,7 +197,11 @@ export function buildNetworkSlowPathListQuery(
       ) nn_agg ON TRUE
     ${ctx.requiresHome ? 'CROSS JOIN home' : ''}
     ${effectiveWhereClause}
-    ORDER BY ${orderBy}
+    ORDER BY ${
+      canPageRadiusBeforeRollup
+        ? 'ne.last_seen DESC NULLS LAST, COALESCE(ne.bssid, r.bssid) ASC'
+        : orderBy
+    }
     LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(offset)}
   `;
 

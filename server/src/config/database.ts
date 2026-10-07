@@ -49,7 +49,7 @@ const pool = new Pool({
   max: 15, // Increased from 5 to handle concurrent slow queries and prevent pool exhaustion
   idleTimeoutMillis: 30000, // 30 seconds
   connectionTimeoutMillis: 30000, // Increased to 30 seconds
-  statement_timeout: 60000, // 60 seconds
+  statement_timeout: 60000, // Route-specific deadlines override this for filtered explorer requests
   application_name: DB_APP_NAME,
   options: `-c search_path=${DB_SEARCH_PATH}`,
   ssl:

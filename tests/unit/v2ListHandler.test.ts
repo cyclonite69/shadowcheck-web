@@ -5,6 +5,7 @@ const mockV2Service = {
   checkHomeExists: jest.fn(),
   executeV2Query: jest.fn(),
   fetchMissingSiblingRows: jest.fn(),
+  withFilteredNetworkRequest: jest.fn(),
 };
 
 jest.mock('../../server/src/config/container', () => ({
@@ -26,11 +27,20 @@ describe('v2 list route handler', () => {
     mockV2Service.checkHomeExists.mockReset();
     mockV2Service.executeV2Query.mockReset();
     mockV2Service.fetchMissingSiblingRows.mockReset();
+    mockV2Service.withFilteredNetworkRequest.mockReset();
 
     // Default safe mock values to prevent undefined crashes
     mockV2Service.checkHomeExists.mockResolvedValue(true);
     mockV2Service.executeV2Query.mockResolvedValue({ rows: [] });
     mockV2Service.fetchMissingSiblingRows.mockResolvedValue([]);
+    mockV2Service.withFilteredNetworkRequest.mockImplementation((work) =>
+      work({
+        executeV2Query: (...args: unknown[]) => mockV2Service.executeV2Query(...args),
+        executeOptionalCount: (...args: unknown[]) => mockV2Service.executeV2Query(...args),
+        fetchMissingSiblingRows: (...args: unknown[]) =>
+          mockV2Service.fetchMissingSiblingRows(...args),
+      })
+    );
 
     mockLogger = {
       warn: jest.fn(),

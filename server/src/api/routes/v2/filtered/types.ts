@@ -10,6 +10,14 @@ export type HandlerDeps = {
   v2Service: {
     executeV2Query: (sql: string, params: any[]) => Promise<{ rows?: any[]; rowCount?: number }>;
     fetchMissingSiblingRows: (matchedBssids: string[], locationMode: string) => Promise<any[]>;
+    withFilteredNetworkRequest: <T>(
+      work: (executor: {
+        executeV2Query: (sql: string, params: any[], timeoutMs?: number) => Promise<any>;
+        executeOptionalCount: (sql: string, params: any[]) => Promise<any | null>;
+        fetchMissingSiblingRows: (matchedBssids: string[], locationMode: string) => Promise<any[]>;
+      }) => Promise<T>,
+      requestStartedAt?: number
+    ) => Promise<T>;
   };
   filteredAnalyticsService: {
     getFilteredAnalytics: (

@@ -191,7 +191,7 @@ function toAppError(error: unknown): AppError {
     return new DatabaseError(err);
   }
 
-  if (err.message && err.message.includes('timeout')) {
+  if (err.code === '57014' || (err.message && /timeout|timed out/i.test(err.message))) {
     return new AppError('Operation timed out', 504, 'TIMEOUT');
   }
 

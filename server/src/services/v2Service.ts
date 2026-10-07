@@ -20,6 +20,7 @@ export type {
 
 export {
   executeV2Query,
+  withFilteredNetworkRequest,
   listNetworks,
   getNetworkDetail,
   getDashboardMetrics,
