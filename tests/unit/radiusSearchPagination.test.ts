@@ -32,7 +32,9 @@ describe('radius-only filtered network list pagination', () => {
     );
     expect(query.sql).toContain('FROM filtered_obs fo');
     expect(query.sql).toContain('JOIN page_networks pn ON pn.bssid = fo.bssid');
-    expect(query.params.slice(-3)).toEqual([1000, 500, 500]);
+    expect(query.params.slice(-4)).toEqual([500, 500, 500, 0]);
+    expect(query.sql).toContain('LIMIT $4 OFFSET $5');
+    expect(query.sql).toContain('LIMIT $6 OFFSET $7');
   });
 
   it('uses the candidate BSSID as a deterministic tie-break when the MV row is absent', () => {

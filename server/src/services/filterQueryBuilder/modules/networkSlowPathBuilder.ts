@@ -66,7 +66,7 @@ export function buildNetworkSlowPathListQuery(
       ) candidates
       LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = candidates.bssid
       ORDER BY ne.last_seen DESC NULLS LAST, candidates.bssid ASC
-      LIMIT ${ctx.addParam((limit ?? 0) + offset)}
+      LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(offset)}
     ),
     page_filtered_obs AS (
       SELECT fo.*
@@ -202,7 +202,7 @@ export function buildNetworkSlowPathListQuery(
         ? 'ne.last_seen DESC NULLS LAST, COALESCE(ne.bssid, r.bssid) ASC'
         : orderBy
     }
-    LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(offset)}
+    LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(canPageRadiusBeforeRollup ? 0 : offset)}
   `;
 
   return {
