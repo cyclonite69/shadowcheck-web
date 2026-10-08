@@ -1346,7 +1346,7 @@
 - **media:** add selectUnmatchedMediaPoints + thumbnail repo methods ([7189eaa](https://github.com/cyclonite69/shadowcheck-web/commit/7189eaa1dbed8edbde9909d64376628405772a82))
 - **media:** add video playback and HTTP range support ([d167d6e](https://github.com/cyclonite69/shadowcheck-web/commit/d167d6e1db3031d30afb95fd31899d8b27333152))
 - **media:** implement matched media map layer and carousel popup ([56c9beb](https://github.com/cyclonite69/shadowcheck-web/commit/56c9bebd812301f16b70b21e0150e68d933fe673))
-- **media:** store note attachments in database ([769be40](https://github.com/cyclonite69/shadowcheck-web/commit/769be40d7659b6e394bd702e09d7f316eeb6e9cf))
+- **media:** store note attachments in database ([1b6e6bc](https://github.com/cyclonite69/shadowcheck-web/commit/1b6e6bc9a17b716bac2a433bed65ee9e817199fa))
 - migrate threat scoring services to TypeScript ([8594f8c](https://github.com/cyclonite69/shadowcheck-web/commit/8594f8c4eac4a091396c4db9ac8d141f4bccff17))
 - migration audit script for consolidation planning ([5ca70d4](https://github.com/cyclonite69/shadowcheck-web/commit/5ca70d4483d7f48da949f2e46fe51b4edc05a1d5))
 - **migrations:** add bootstrap tables missing from migration history ([770fa80](https://github.com/cyclonite69/shadowcheck-web/commit/770fa806c185f4d5957458b7cede0034f00340ab))

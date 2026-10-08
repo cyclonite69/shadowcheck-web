@@ -1,5 +1,7 @@
 export {};
 
+import * as path from 'path';
+
 // Mock winston to avoid file system side effects and capture log calls
 const mockInfo = jest.fn();
 const mockWarn = jest.fn();
@@ -76,6 +78,32 @@ describe('logger', () => {
       return { format, transports: { Console, File }, addColors, createLogger };
     });
     logger = require('../../../server/src/logging/logger');
+  });
+
+  it('uses the __dirname-derived data/logs path when LOG_DIR is unset', () => {
+    const originalLogDir = process.env.LOG_DIR;
+    delete process.env.LOG_DIR;
+    try {
+      jest.isolateModules(() => {
+        require('../../../server/src/logging/logger');
+        const winston = require('winston');
+        const moduleDirectory = path.dirname(require.resolve('../../../server/src/logging/logger'));
+        const expectedLogsDirectory = path.join(moduleDirectory, '../../data/logs');
+        const filenames = winston.transports.File.mock.calls.map(
+          ([options]: [{ filename: string }]) => options.filename
+        );
+
+        expect(filenames).toContain(path.join(expectedLogsDirectory, 'error.log'));
+        expect(filenames).toContain(path.join(expectedLogsDirectory, 'combined.log'));
+        expect(filenames).toContain(path.join(expectedLogsDirectory, 'debug.log'));
+      });
+    } finally {
+      if (originalLogDir === undefined) {
+        delete process.env.LOG_DIR;
+      } else {
+        process.env.LOG_DIR = originalLogDir;
+      }
+    }
   });
 
   it('exports a logger object', () => {

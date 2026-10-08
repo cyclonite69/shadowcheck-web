@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
@@ -64,12 +65,51 @@ describe('wigleAuditLogger', () => {
 
   it('should create logs directory if it does not exist', () => {
     jest.isolateModules(() => {
+      const originalLogDir = process.env.LOG_DIR;
+      delete process.env.LOG_DIR;
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      require('../../../server/src/services/wigleAuditLogger');
-      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringContaining('logs'), {
-        recursive: true,
-      });
+      try {
+        require('../../../server/src/services/wigleAuditLogger');
+        const moduleDirectory = path.dirname(
+          require.resolve('../../../server/src/services/wigleAuditLogger')
+        );
+        expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(moduleDirectory, '../../data/logs'), {
+          recursive: true,
+        });
+      } finally {
+        if (originalLogDir === undefined) {
+          delete process.env.LOG_DIR;
+        } else {
+          process.env.LOG_DIR = originalLogDir;
+        }
+      }
     });
+  });
+
+  it('uses the __dirname-derived data/logs path when LOG_DIR is unset', () => {
+    const originalLogDir = process.env.LOG_DIR;
+    delete process.env.LOG_DIR;
+    try {
+      jest.isolateModules(() => {
+        require('../../../server/src/services/wigleAuditLogger');
+        const winston = require('winston');
+        const moduleDirectory = path.dirname(
+          require.resolve('../../../server/src/services/wigleAuditLogger')
+        );
+        const expectedFilename = path.join(moduleDirectory, '../../data/logs/wigle-audit.log');
+        const [fileOptions] = winston.transports.File.mock.calls.map(
+          ([options]: [{ filename: string }]) => options
+        );
+
+        expect(fileOptions.filename).toBe(expectedFilename);
+      });
+    } finally {
+      if (originalLogDir === undefined) {
+        delete process.env.LOG_DIR;
+      } else {
+        process.env.LOG_DIR = originalLogDir;
+      }
+    }
   });
 
   it('should NOT create logs directory if it exists', () => {
