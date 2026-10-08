@@ -22,7 +22,7 @@ router.use('/networks/:bssid', bssidParamMiddleware);
 
 /**
  * GET /api/networks/:bssid/notes
- * Return all active (non-deleted) notes for a BSSID.
+ * Return all notes for a BSSID.
  */
 router.get('/networks/:bssid/notes', async (req: any, res: any) => {
   try {
@@ -82,7 +82,7 @@ router.patch('/networks/:bssid/notes/:noteId', requireAdmin, async (req: any, re
       String(content).trim()
     );
     if (!updated) {
-      return res.status(404).json({ error: 'Note not found or already deleted' });
+      return res.status(404).json({ error: 'Note not found' });
     }
 
     res.json({ ok: true, ...updated });
@@ -94,7 +94,7 @@ router.patch('/networks/:bssid/notes/:noteId', requireAdmin, async (req: any, re
 
 /**
  * DELETE /api/networks/:bssid/notes/:noteId
- * Soft-delete a note (sets is_deleted = true). Requires admin.
+ * Permanently delete a note and its attachments. Requires admin.
  */
 router.delete('/networks/:bssid/notes/:noteId', requireAdmin, async (req: any, res: any) => {
   try {

@@ -426,7 +426,7 @@ describe('adminNetworkMediaRepository', () => {
     ]);
   });
 
-  it('selects active notes with attachment aggregates', async () => {
+  it('selects notes with attachment aggregates', async () => {
     const rows = [{ id: 17, attachment_count: 2, image_count: 1 }];
     query.mockResolvedValueOnce({ rows });
 
@@ -436,18 +436,19 @@ describe('adminNetworkMediaRepository', () => {
     ]);
   });
 
-  it('returns BSSID or null when soft deleting a note', async () => {
+  it('hard-deletes a note and returns its BSSID or null', async () => {
     adminQuery
       .mockResolvedValueOnce({ rows: [{ bssid: 'AA:BB:CC:DD:EE:FF' }] })
       .mockResolvedValueOnce({ rows: [] });
 
-    await expect(repository.softDeleteNetworkNote('17')).resolves.toBe('AA:BB:CC:DD:EE:FF');
-    await expect(repository.softDeleteNetworkNote('18')).resolves.toBeNull();
+    await expect(repository.deleteNetworkNote('17')).resolves.toBe('AA:BB:CC:DD:EE:FF');
+    await expect(repository.deleteNetworkNote('18')).resolves.toBeNull();
     expect(adminQuery).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('SET is_deleted = TRUE'),
+      expect.stringContaining('DELETE FROM app.network_notes'),
       ['17']
     );
+    expect(adminQuery.mock.calls[0][0]).not.toContain('is_deleted');
   });
 
   it('returns an updated note or null', async () => {
@@ -458,7 +459,7 @@ describe('adminNetworkMediaRepository', () => {
     await expect(repository.updateNetworkNoteContent('18', 'updated')).resolves.toBeNull();
   });
 
-  it('returns an active note by id or null', async () => {
+  it('returns a note by id or null', async () => {
     const row = { id: 17, bssid: 'AA:BB:CC:DD:EE:FF' };
     query.mockResolvedValueOnce({ rows: [row] }).mockResolvedValueOnce({ rows: [] });
 
@@ -466,30 +467,33 @@ describe('adminNetworkMediaRepository', () => {
     await expect(repository.selectNetworkNoteById('18')).resolves.toBeNull();
   });
 
-  it('inserts note media with default nullable storage fields', async () => {
+  it('inserts database-resident note media bytes', async () => {
     const row = { id: 21, note_id: 17 };
     adminQuery.mockResolvedValueOnce({ rows: [row] });
+    const mediaData = Buffer.from('image bytes');
 
     await expect(
       repository.insertNoteMedia(
         '17',
         'AA:BB:CC:DD:EE:FF',
-        '/api/media/file.jpg',
         'file.jpg',
         128,
-        'image'
+        'image',
+        mediaData,
+        'image/jpeg'
       )
     ).resolves.toEqual(row);
-    expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO app.note_media'), [
+    const [sql, params] = adminQuery.mock.calls[0];
+    expect(sql).toContain('media_data');
+    expect(sql).not.toMatch(/file_path|storage_backend/);
+    expect(params).toEqual([
       '17',
       'AA:BB:CC:DD:EE:FF',
-      '/api/media/file.jpg',
       'file.jpg',
       128,
       'image',
-      null,
-      null,
-      'db',
+      mediaData,
+      'image/jpeg',
     ]);
     expect(adminQuery.mock.invocationCallOrder[0]).toBeGreaterThan(0);
   });

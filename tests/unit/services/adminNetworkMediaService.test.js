@@ -78,9 +78,9 @@ describe('adminNetworkMediaService', () => {
   });
 
   test('deleteNetworkNote calls repository', async () => {
-    adminNetworkMediaRepository.softDeleteNetworkNote.mockResolvedValue(true);
+    adminNetworkMediaRepository.deleteNetworkNote.mockResolvedValue(true);
     const result = await adminNetworkMediaService.deleteNetworkNote(1);
-    expect(adminNetworkMediaRepository.softDeleteNetworkNote).toHaveBeenCalledWith(1);
+    expect(adminNetworkMediaRepository.deleteNetworkNote).toHaveBeenCalledWith(1);
     expect(result).toBe(true);
   });
 

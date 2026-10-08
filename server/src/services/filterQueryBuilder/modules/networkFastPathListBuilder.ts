@@ -103,7 +103,6 @@ function buildFastPathListSql(
         SELECT COUNT(*)::integer AS notes_count
         FROM app.network_notes nn
         WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
-          AND nn.is_deleted IS NOT TRUE
       ) nn_agg ON TRUE
       ${whereClause}
       ORDER BY ${safeOrderBy}

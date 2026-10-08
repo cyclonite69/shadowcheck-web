@@ -489,7 +489,6 @@ export async function fetchMissingSiblingRows(
        SELECT COUNT(*)::integer AS notes_count
        FROM app.network_notes nn
        WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
-         AND nn.is_deleted IS NOT TRUE
      ) nn_agg ON TRUE
      WHERE UPPER(ne.bssid) = ANY($1::text[])`,
     [missingSiblings]
@@ -581,7 +580,6 @@ export async function getNetworksByBssids(
        SELECT COUNT(*)::integer AS notes_count
        FROM app.network_notes nn
        WHERE UPPER(nn.bssid) = UPPER(ne.bssid)
-         AND nn.is_deleted IS NOT TRUE
      ) nn_agg ON TRUE
      WHERE UPPER(ne.bssid) = ANY($1::text[])`,
     [upperBssids]

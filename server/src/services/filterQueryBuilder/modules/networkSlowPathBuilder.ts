@@ -193,7 +193,6 @@ export function buildNetworkSlowPathListQuery(
         SELECT COUNT(*)::integer AS notes_count
         FROM app.network_notes nn
         WHERE nn.bssid = l.bssid
-          AND nn.is_deleted IS NOT TRUE
       ) nn_agg ON TRUE
     ${ctx.requiresHome ? 'CROSS JOIN home' : ''}
     ${effectiveWhereClause}

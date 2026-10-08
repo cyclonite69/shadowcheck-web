@@ -39,12 +39,10 @@ export interface NoteMediaItem {
   id: number;
   note_id: number;
   bssid: string;
-  file_path: string | null;
   file_name: string;
   file_size: number;
   media_type: string;
   mime_type: string | null;
-  storage_backend: string;
   created_at: string;
 }
 

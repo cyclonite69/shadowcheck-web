@@ -483,7 +483,6 @@ export async function insertNetworkNote(
        SELECT id
        FROM app.network_notes
        WHERE UPPER(bssid) = UPPER($1)
-         AND is_deleted IS NOT TRUE
        ORDER BY updated_at DESC NULLS LAST, created_at DESC, id DESC
        LIMIT 1
      ), updated AS (
@@ -528,18 +527,17 @@ export async function selectNetworkNotes(bssid: string): Promise<any[]> {
        FROM app.note_media
        WHERE note_id = nn.id
      ) nm ON TRUE
-     WHERE UPPER(nn.bssid) = UPPER($1) AND nn.is_deleted IS NOT TRUE
+     WHERE UPPER(nn.bssid) = UPPER($1)
      ORDER BY nn.created_at DESC`,
     [bssid]
   );
   return result.rows;
 }
 
-export async function softDeleteNetworkNote(noteId: string): Promise<string | null> {
+export async function deleteNetworkNote(noteId: string): Promise<string | null> {
   const result = await adminQuery(
-    `UPDATE app.network_notes
-     SET is_deleted = TRUE, updated_at = NOW()
-     WHERE id = $1 AND is_deleted IS NOT TRUE
+    `DELETE FROM app.network_notes
+     WHERE id = $1
      RETURNING bssid`,
     [noteId]
   );
@@ -553,7 +551,7 @@ export async function updateNetworkNoteContent(
   const result = await adminQuery(
     `UPDATE app.network_notes
      SET content = $1, updated_at = NOW()
-     WHERE id = $2 AND is_deleted IS NOT TRUE
+     WHERE id = $2
      RETURNING id, bssid, content, updated_at`,
     [content, noteId]
   );
@@ -564,7 +562,7 @@ export async function selectNetworkNoteById(noteId: string): Promise<any | null>
   const result = await query(
     `SELECT id, bssid, content, note_type, user_id, created_at, updated_at
      FROM app.network_notes
-     WHERE id = $1 AND is_deleted IS NOT TRUE`,
+     WHERE id = $1`,
     [noteId]
   );
   return result.rows.length > 0 ? result.rows[0] : null;
@@ -573,27 +571,25 @@ export async function selectNetworkNoteById(noteId: string): Promise<any | null>
 export async function insertNoteMedia(
   noteId: string,
   bssid: string,
-  filePath: string | null,
   fileName: string,
   fileSize: number,
   mediaType: string,
-  mediaData: Buffer | null = null,
-  mimeType: string | null = null,
-  storageBackend: string = 'db'
+  mediaData: Buffer,
+  mimeType: string
 ): Promise<any> {
   const result = await adminQuery(
     `INSERT INTO app.note_media
-      (note_id, bssid, file_path, file_name, file_size, media_type, media_data, mime_type, storage_backend)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING id, note_id, bssid, file_path, file_name, file_size, media_type, mime_type, storage_backend, created_at`,
-    [noteId, bssid, filePath, fileName, fileSize, mediaType, mediaData, mimeType, storageBackend]
+      (note_id, bssid, file_name, file_size, media_type, media_data, mime_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, note_id, bssid, file_name, file_size, media_type, mime_type, created_at`,
+    [noteId, bssid, fileName, fileSize, mediaType, mediaData, mimeType]
   );
   return result.rows[0];
 }
 
 export async function selectNoteMediaById(mediaId: string): Promise<any | null> {
   const result = await query(
-    `SELECT id, note_id, bssid, file_path, file_name, file_size, media_type, media_data, mime_type, storage_backend, created_at
+    `SELECT id, note_id, bssid, file_name, file_size, media_type, media_data, mime_type, created_at
      FROM app.note_media
      WHERE id = $1`,
     [mediaId]
@@ -603,7 +599,7 @@ export async function selectNoteMediaById(mediaId: string): Promise<any | null> 
 
 export async function selectNoteMediaList(noteId: string): Promise<any[]> {
   const result = await query(
-    `SELECT id, note_id, bssid, file_path, file_name, file_size, media_type, mime_type, storage_backend, created_at
+    `SELECT id, note_id, bssid, file_name, file_size, media_type, mime_type, created_at
      FROM app.note_media
      WHERE note_id = $1
      ORDER BY created_at DESC, id DESC`,
@@ -617,7 +613,7 @@ export async function deleteNoteMedia(mediaId: string): Promise<any | null> {
     `WITH deleted AS (
        DELETE FROM app.note_media
        WHERE id = $1
-       RETURNING id, note_id, bssid, file_name, file_path
+       RETURNING id, note_id, bssid, file_name
      )
      SELECT * FROM deleted`,
     [mediaId]

@@ -165,7 +165,7 @@ describe('network notes routes', () => {
     expect(res.body.error).toContain('not found');
   });
 
-  test('soft deletes notes and returns the affected BSSID', async () => {
+  test('hard-deletes notes and returns the affected BSSID', async () => {
     mediaService.deleteNetworkNote.mockResolvedValue('AA:BB:CC:DD:EE:FF');
     const req = { params: { bssid: 'AA:BB:CC:DD:EE:FF', noteId: '42' } };
     const res = createRes();

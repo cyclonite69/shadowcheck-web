@@ -219,6 +219,18 @@ Stores VisINT and forensic photo evidence attachments.
 Read-only view that exposes `media_count` grouped by matched `bssid`. Rows attached to
 the `VISINT_UNMATCHED` sentinel are excluded.
 
+## `app.note_media` — Network Note Attachments
+
+Note attachments are stored only in PostgreSQL. Each row references
+`app.network_notes(id)` with `ON DELETE CASCADE`; deleting a note permanently
+deletes its attachments. `media_data` is required `bytea`, and `mime_type` is
+derived from validated file content. The schema has no filesystem path or
+storage-backend columns.
+
+The database-only migration removes pre-existing rows marked `is_deleted = TRUE`
+before dropping that legacy column. Upload and serving code do not create, read,
+or delete files for note attachments.
+
 ---
 
 ## `app.deflock_cameras` & `app.shotspotter_sensors` — Leak Overlay Feeds
