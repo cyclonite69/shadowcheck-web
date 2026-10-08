@@ -3,13 +3,16 @@ import request from 'supertest';
 
 // Mock the fs module cleanly inside the hoisted factory function
 jest.mock('fs', () => {
+  const actualFs = jest.requireActual('fs');
   const mockMkdir = jest.fn().mockImplementation(() => Promise.resolve());
   const mockWriteFile = jest.fn().mockImplementation(() => Promise.resolve());
   const mockUnlink = jest.fn().mockImplementation(() => Promise.resolve());
   const mockExistsSync = jest.fn().mockReturnValue(true);
 
   return {
+    ...actualFs,
     promises: {
+      ...actualFs.promises,
       mkdir: mockMkdir,
       writeFile: mockWriteFile,
       unlink: mockUnlink,
@@ -19,6 +22,9 @@ jest.mock('fs', () => {
 });
 
 const fs = require('fs');
+const realFs = jest.requireActual('fs');
+const path = require('path');
+const { createSecurityHeaders } = require('../../server/src/middleware/securityHeaders');
 
 const {
   mediaUpload,
@@ -41,6 +47,7 @@ const mockLogger = {
 
 const app = express();
 app.use(express.json());
+app.use(createSecurityHeaders(false));
 
 // Routes to test helpers
 app.post(
@@ -122,6 +129,62 @@ describe('adminNotesHelpers', () => {
       );
       expect(res.body.file_path).toMatch(/^\/api\/media\/.+\.webp$/);
     });
+
+    it('currently accepts SVG uploads based on the client MIME type', async () => {
+      mockService.getNetworkNoteById.mockResolvedValueOnce({
+        id: 8,
+        bssid: 'AA:BB:CC:DD:EE:FF',
+      });
+      mockService.addNoteMedia.mockResolvedValueOnce({ id: 102, file_name: 'active.svg' });
+
+      const res = await request(app)
+        .post('/test-upload/8')
+        .attach('file', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), {
+          filename: 'active.svg',
+          contentType: 'image/svg+xml',
+        });
+
+      expect(res.status).toBe(200);
+      expect(mockService.addNoteMedia).toHaveBeenCalledWith(
+        '8',
+        'AA:BB:CC:DD:EE:FF',
+        expect.stringMatching(/^\/api\/media\/.+\.svg$/),
+        'active.svg',
+        expect.any(Number),
+        'image',
+        null,
+        'image/svg+xml',
+        'file'
+      );
+    });
+
+    it('currently accepts HTML with a spoofed image MIME type', async () => {
+      mockService.getNetworkNoteById.mockResolvedValueOnce({
+        id: 8,
+        bssid: 'AA:BB:CC:DD:EE:FF',
+      });
+      mockService.addNoteMedia.mockResolvedValueOnce({ id: 103, file_name: 'active.html' });
+
+      const res = await request(app)
+        .post('/test-upload/8')
+        .attach('file', Buffer.from('<html><script>test()</script></html>'), {
+          filename: 'active.html',
+          contentType: 'image/png',
+        });
+
+      expect(res.status).toBe(200);
+      expect(mockService.addNoteMedia).toHaveBeenCalledWith(
+        '8',
+        'AA:BB:CC:DD:EE:FF',
+        expect.stringMatching(/^\/api\/media\/.+\.html$/),
+        'active.html',
+        expect.any(Number),
+        'image',
+        null,
+        'image/png',
+        'file'
+      );
+    });
   });
 
   describe('handleNoteMediaUpload', () => {
@@ -177,7 +240,43 @@ describe('adminNotesHelpers', () => {
 
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toContain('text/plain');
+      expect(res.headers['content-disposition']).toBe('inline; filename="db-file.txt"');
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+      expect(res.headers['content-security-policy']).toContain("default-src 'self'");
       expect(res.text).toBe('binary-data-stream');
+    });
+
+    it('serves disk-backed files with sendFile response headers', async () => {
+      const notesMediaDir = path.resolve(__dirname, '../../server/src/data/notes-media');
+      const filename = `helper-test-${process.pid}-${Date.now()}.pdf`;
+      const filepath = path.join(notesMediaDir, filename);
+      const createdDirectory = !realFs.existsSync(notesMediaDir);
+
+      try {
+        await realFs.promises.mkdir(notesMediaDir, { recursive: true });
+        await realFs.promises.writeFile(filepath, Buffer.from('%PDF-1.4 test'));
+        mockService.getNoteMediaById.mockResolvedValueOnce({
+          id: 202,
+          file_path: `/api/media/${filename}`,
+          file_name: filename,
+          mime_type: 'application/pdf',
+          media_data: null,
+        });
+
+        const res = await request(app).get('/test-serve/202');
+
+        expect(res.status).toBe(200);
+        expect(res.headers['content-type']).toContain('application/pdf');
+        expect(res.headers['content-disposition']).toBeUndefined();
+        expect(res.headers['x-content-type-options']).toBe('nosniff');
+        expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+        expect(res.text).toContain('%PDF-1.4');
+      } finally {
+        await realFs.promises.unlink(filepath).catch(() => {});
+        if (createdDirectory) {
+          await realFs.promises.rmdir(notesMediaDir).catch(() => {});
+        }
+      }
     });
 
     it('returns 404 if media record not found by id', async () => {
