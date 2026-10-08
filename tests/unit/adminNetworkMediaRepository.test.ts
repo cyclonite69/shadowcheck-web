@@ -443,6 +443,11 @@ describe('adminNetworkMediaRepository', () => {
 
     await expect(repository.softDeleteNetworkNote('17')).resolves.toBe('AA:BB:CC:DD:EE:FF');
     await expect(repository.softDeleteNetworkNote('18')).resolves.toBeNull();
+    expect(adminQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('SET is_deleted = TRUE'),
+      ['17']
+    );
   });
 
   it('returns an updated note or null', async () => {
@@ -486,6 +491,7 @@ describe('adminNetworkMediaRepository', () => {
       null,
       'db',
     ]);
+    expect(adminQuery.mock.invocationCallOrder[0]).toBeGreaterThan(0);
   });
 
   it('selects note media records and lists note attachments', async () => {
@@ -499,9 +505,20 @@ describe('adminNetworkMediaRepository', () => {
     await expect(repository.selectNoteMediaById('21')).resolves.toEqual(media);
     await expect(repository.selectNoteMediaById('99')).resolves.toBeNull();
     await expect(repository.selectNoteMediaList('17')).resolves.toEqual(list);
+    await expect(repository.selectNoteMediaList('18')).resolves.toEqual([]);
+    expect(query).toHaveBeenNthCalledWith(4, expect.stringContaining('FROM app.note_media'), [
+      '18',
+    ]);
     expect(query).toHaveBeenNthCalledWith(3, expect.stringContaining('ORDER BY created_at DESC'), [
       '17',
     ]);
+  });
+
+  it('returns an empty attachment list for the current empty-table state', async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+
+    await expect(repository.selectNoteMediaList('18')).resolves.toEqual([]);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM app.note_media'), ['18']);
   });
 
   it('returns deleted note media metadata or null', async () => {

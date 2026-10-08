@@ -116,6 +116,9 @@ describe('adminNotesHelpers', () => {
       expect(res.body.media_id).toBe(101);
       expect(mockService.getNetworkNoteById).toHaveBeenCalledWith('8');
       expect(fs.promises.writeFile).toHaveBeenCalledTimes(1);
+      expect(fs.promises.writeFile.mock.invocationCallOrder[0]).toBeLessThan(
+        mockService.addNoteMedia.mock.invocationCallOrder[0]
+      );
       expect(mockService.addNoteMedia).toHaveBeenCalledWith(
         '8',
         'AA:BB:CC:DD:EE:FF',
@@ -246,6 +249,23 @@ describe('adminNotesHelpers', () => {
       expect(res.text).toBe('binary-data-stream');
     });
 
+    it('serves media by ID even when its parent note is soft-deleted', async () => {
+      mockService.getNoteMediaById.mockResolvedValueOnce({
+        id: 205,
+        note_id: 18,
+        media_data: Buffer.from('attachment-bytes'),
+        mime_type: 'application/pdf',
+        file_name: 'legacy.pdf',
+        parent_note_is_deleted: true,
+      });
+
+      const res = await request(app).get('/test-serve/205');
+
+      expect(res.status).toBe(200);
+      expect(res.body.toString()).toBe('attachment-bytes');
+      expect(mockService.getNoteMediaById).toHaveBeenCalledWith('205');
+    });
+
     it('serves disk-backed files with sendFile response headers', async () => {
       const notesMediaDir = path.resolve(__dirname, '../../server/src/data/notes-media');
       const filename = `helper-test-${process.pid}-${Date.now()}.pdf`;
@@ -270,7 +290,7 @@ describe('adminNotesHelpers', () => {
         expect(res.headers['content-disposition']).toBeUndefined();
         expect(res.headers['x-content-type-options']).toBe('nosniff');
         expect(res.headers['content-security-policy']).toContain("default-src 'self'");
-        expect(res.text).toContain('%PDF-1.4');
+        expect(res.body.toString()).toContain('%PDF-1.4');
       } finally {
         await realFs.promises.unlink(filepath).catch(() => {});
         if (createdDirectory) {
