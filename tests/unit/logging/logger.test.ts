@@ -80,15 +80,14 @@ describe('logger', () => {
     logger = require('../../../server/src/logging/logger');
   });
 
-  it('uses the __dirname-derived data/logs path when LOG_DIR is unset', () => {
+  it('uses <cwd>/logs when LOG_DIR is unset', () => {
     const originalLogDir = process.env.LOG_DIR;
     delete process.env.LOG_DIR;
     try {
       jest.isolateModules(() => {
         require('../../../server/src/logging/logger');
         const winston = require('winston');
-        const moduleDirectory = path.dirname(require.resolve('../../../server/src/logging/logger'));
-        const expectedLogsDirectory = path.join(moduleDirectory, '../../data/logs');
+        const expectedLogsDirectory = path.join(process.cwd(), 'logs');
         const filenames = winston.transports.File.mock.calls.map(
           ([options]: [{ filename: string }]) => options.filename
         );
@@ -96,6 +95,30 @@ describe('logger', () => {
         expect(filenames).toContain(path.join(expectedLogsDirectory, 'error.log'));
         expect(filenames).toContain(path.join(expectedLogsDirectory, 'combined.log'));
         expect(filenames).toContain(path.join(expectedLogsDirectory, 'debug.log'));
+      });
+    } finally {
+      if (originalLogDir === undefined) {
+        delete process.env.LOG_DIR;
+      } else {
+        process.env.LOG_DIR = originalLogDir;
+      }
+    }
+  });
+
+  it('uses LOG_DIR as the root for file transports when set', () => {
+    const originalLogDir = process.env.LOG_DIR;
+    process.env.LOG_DIR = '/tmp/shadowcheck-logger-test-logs';
+    try {
+      jest.isolateModules(() => {
+        require('../../../server/src/logging/logger');
+        const winston = require('winston');
+        const filenames = winston.transports.File.mock.calls.map(
+          ([options]: [{ filename: string }]) => options.filename
+        );
+
+        expect(filenames).toContain('/tmp/shadowcheck-logger-test-logs/error.log');
+        expect(filenames).toContain('/tmp/shadowcheck-logger-test-logs/combined.log');
+        expect(filenames).toContain('/tmp/shadowcheck-logger-test-logs/debug.log');
       });
     } finally {
       if (originalLogDir === undefined) {

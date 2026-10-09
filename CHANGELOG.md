@@ -1,4 +1,4 @@
-# 1.0.0 (2026-10-08)
+# 1.0.0 (2026-10-09)
 
 ### Bug Fixes
 
@@ -558,6 +558,7 @@
 - **layout:** subtract header height from map viewport on WiGLE and Kepler pages ([c93686b](https://github.com/cyclonite69/shadowcheck-web/commit/c93686ba42bd178a97dc811370784e2924880362))
 - **ledger-ui:** add authoritative status badge to detail panel and fix invalid border class ([da9dfee](https://github.com/cyclonite69/shadowcheck-web/commit/da9dfee4ce23f4eb10c3d1a51fe281a21376298b))
 - **ledger:** prevent integer overflow on long-running import run durations ([a60c278](https://github.com/cyclonite69/shadowcheck-web/commit/a60c27899bb71f51a77d2047ca9192269a228279))
+- **logging:** default logs to cwd logs directory ([e6956dc](https://github.com/cyclonite69/shadowcheck-web/commit/e6956dcbd789c900cf8573a575e97f956fd44076))
 - long-running pool, d_third_octet, completion tracking, drop redundant columns ([ab8d33a](https://github.com/cyclonite69/shadowcheck-web/commit/ab8d33abd9fe7b0f1e6d18599b95da983ff83369))
 - make entrypoint gracefully fall back to existing env credentials ([c8421bc](https://github.com/cyclonite69/shadowcheck-web/commit/c8421bc77bb61351181d6f275db41f9f660f1cef))
 - make globals backup optional to ensure data backup stability ([a1a09d7](https://github.com/cyclonite69/shadowcheck-web/commit/a1a09d70bf76010295bfda7cbd7eaf7504d77a66))

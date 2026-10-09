@@ -824,7 +824,7 @@ npm run dev
 
 ### Logging & Errors
 
-- Logging uses Winston; runtime logs live under `server/data/logs/` and `logs/` and are gitignored.
+- Logging uses Winston; runtime logs are written to `LOG_DIR` when set, or `<cwd>/logs` by default. In the container, the default is `/app/logs`, which is mounted and gitignored.
 - API errors use `AppError` classes with centralized middleware for consistent responses.
 
 ### Input Validation

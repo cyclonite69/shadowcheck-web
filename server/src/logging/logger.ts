@@ -12,9 +12,10 @@ import * as winston from 'winston';
 import * as path from 'path';
 import * as fs from 'fs';
 import type { Request } from 'express';
+import { getLogDirectory } from './logDir';
 
 // Ensure logs directory exists
-const logsDir = path.join(__dirname, '../../data/logs');
+const logsDir = getLogDirectory();
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }

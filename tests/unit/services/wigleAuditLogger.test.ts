@@ -63,17 +63,14 @@ describe('wigleAuditLogger', () => {
     });
   });
 
-  it('should create logs directory if it does not exist', () => {
+  it('should create <cwd>/logs if it does not exist and LOG_DIR is unset', () => {
     jest.isolateModules(() => {
       const originalLogDir = process.env.LOG_DIR;
       delete process.env.LOG_DIR;
       (fs.existsSync as jest.Mock).mockReturnValue(false);
       try {
         require('../../../server/src/services/wigleAuditLogger');
-        const moduleDirectory = path.dirname(
-          require.resolve('../../../server/src/services/wigleAuditLogger')
-        );
-        expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(moduleDirectory, '../../data/logs'), {
+        expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(process.cwd(), 'logs'), {
           recursive: true,
         });
       } finally {
@@ -86,22 +83,41 @@ describe('wigleAuditLogger', () => {
     });
   });
 
-  it('uses the __dirname-derived data/logs path when LOG_DIR is unset', () => {
+  it('uses <cwd>/logs for the audit file when LOG_DIR is unset', () => {
     const originalLogDir = process.env.LOG_DIR;
     delete process.env.LOG_DIR;
     try {
       jest.isolateModules(() => {
         require('../../../server/src/services/wigleAuditLogger');
         const winston = require('winston');
-        const moduleDirectory = path.dirname(
-          require.resolve('../../../server/src/services/wigleAuditLogger')
-        );
-        const expectedFilename = path.join(moduleDirectory, '../../data/logs/wigle-audit.log');
+        const expectedFilename = path.join(process.cwd(), 'logs/wigle-audit.log');
         const [fileOptions] = winston.transports.File.mock.calls.map(
           ([options]: [{ filename: string }]) => options
         );
 
         expect(fileOptions.filename).toBe(expectedFilename);
+      });
+    } finally {
+      if (originalLogDir === undefined) {
+        delete process.env.LOG_DIR;
+      } else {
+        process.env.LOG_DIR = originalLogDir;
+      }
+    }
+  });
+
+  it('uses LOG_DIR for the audit file when set', () => {
+    const originalLogDir = process.env.LOG_DIR;
+    process.env.LOG_DIR = '/tmp/shadowcheck-wigle-audit-test-logs';
+    try {
+      jest.isolateModules(() => {
+        require('../../../server/src/services/wigleAuditLogger');
+        const winston = require('winston');
+        const [fileOptions] = winston.transports.File.mock.calls.map(
+          ([options]: [{ filename: string }]) => options
+        );
+
+        expect(fileOptions.filename).toBe('/tmp/shadowcheck-wigle-audit-test-logs/wigle-audit.log');
       });
     } finally {
       if (originalLogDir === undefined) {

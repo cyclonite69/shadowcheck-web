@@ -1,10 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as winston from 'winston';
+import { getLogDirectory } from '../logging/logDir';
 
 export {};
 
-const logsDir = path.join(__dirname, '../../data/logs');
+const logsDir = getLogDirectory();
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
