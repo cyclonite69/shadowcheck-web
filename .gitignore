@@ -194,4 +194,4 @@ docs/ai/audits/
 docs/references/vendor_docs/
 
 # --- Wireless capture & scan files ---
-*.kismet
+*.kismet.kilo/

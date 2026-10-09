@@ -1188,7 +1188,7 @@
 - **admin:** V3 enrichment table tooltip moves to sticky side panel ([0978e70](https://github.com/cyclonite69/shadowcheck-web/commit/0978e70bad38f9df8dccc3c3ed2da432c5d0c49c))
 - align database stats and optimize sibling detection ([cf1bdb2](https://github.com/cyclonite69/shadowcheck-web/commit/cf1bdb2606368383317564a308839c0a22a04272))
 - **alpr:** add admin sync manager and synchronize daemon/web execution ([0f52dc3](https://github.com/cyclonite69/shadowcheck-web/commit/0f52dc3d753e192df0f154fe17bd9b60cb73d871))
-- **alpr:** add Michigan OSM PBF batch ingestion and rollback scripts ([8ba7a09](https://github.com/cyclonite69/shadowcheck-web/commit/8ba7a09a4fdec7a8694a945d5e33ddc81eabfc07))
+- **alpr:** add Michigan OSM PBF batch ingestion and rollback scripts ([45d8f59](https://github.com/cyclonite69/shadowcheck-web/commit/45d8f59a4681ef3f572a61d566beb2fcbd1cedf3))
 - **alpr:** add validated custom bounding box sync to ALPR Sync Manager ([29b7786](https://github.com/cyclonite69/shadowcheck-web/commit/29b7786ae404e1a9361c86d0c724f4fcb111f89a))
 - **alpr:** dispatch region sync asynchronously with job status ([bf05bf9](https://github.com/cyclonite69/shadowcheck-web/commit/bf05bf9fdd064fcdc75aeecd0c19702261f20400))
 - **alpr:** expand Michigan coverage with 13 new regions and expanded Detroit metro ([c824c03](https://github.com/cyclonite69/shadowcheck-web/commit/c824c033e34e3e8c16dd1c404ed21e8d4931ffc3))
