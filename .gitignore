@@ -195,3 +195,5 @@ docs/references/vendor_docs/
 
 # --- Wireless capture & scan files ---
 *.kismet.kilo/
+
+.kilo/
