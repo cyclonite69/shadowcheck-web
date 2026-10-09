@@ -1196,7 +1196,7 @@
 - **alpr:** expand Michigan coverage with 13 new regions and expanded Detroit metro ([c824c03](https://github.com/cyclonite69/shadowcheck-web/commit/c824c033e34e3e8c16dd1c404ed21e8d4931ffc3))
 - **alpr:** implement overpass sync daemon and postgis schema ([0bbd659](https://github.com/cyclonite69/shadowcheck-web/commit/0bbd6591c7a4cc3c8fa9b37a89915d668b31789a))
 - **alpr:** implement resilient overpass sync and durable status UI ([f0af8b2](https://github.com/cyclonite69/shadowcheck-web/commit/f0af8b24f3591ba4db8415f3b1a2069ead46e118))
-- **alpr:** national 50-state OSM PBF streaming ingest and bbox query support ([40c60b5](https://github.com/cyclonite69/shadowcheck-web/commit/40c60b5445fde9884ccfa2f4f346a8daf3f532b5))
+- **alpr:** national 50-state OSM PBF streaming ingest and bbox query support ([aad1bfc](https://github.com/cyclonite69/shadowcheck-web/commit/aad1bfc997bd9d3e426100098ae448cf208394ac))
 - **alpr:** persist per-region sync outcome in app.alpr_regions ([9e9a794](https://github.com/cyclonite69/shadowcheck-web/commit/9e9a7944902ce50d86e33e0e5defdfa0a2bbd0b1))
 - **alpr:** remove scheduled sync, rotation daemon, and systemd units ([6674c04](https://github.com/cyclonite69/shadowcheck-web/commit/6674c04bb5fd5de782bf6bf0e86fb87c6837d39c))
 - analytics.html uses base-components - ALL PAGES UNIFIED ([bf5fcc1](https://github.com/cyclonite69/shadowcheck-web/commit/bf5fcc158438aea2175f0087700e9384029146b8))
