@@ -1,12 +1,16 @@
 const { query } = require('../config/database');
 
+export type AlprBbox = [west: number, south: number, east: number, north: number];
+
 /**
  * Fetches all ALPR camera locations from app.alpr_cameras as a GeoJSON FeatureCollection.
  * Maps top OSM tags from source_properties JSONB into clean feature properties.
  *
+ * @param bbox - Optional west/south/east/north bounds to limit the result set.
  * @returns {Promise<any>} GeoJSON FeatureCollection containing ALPR camera features
  */
-export async function fetchAlprCamerasGeoJSON(): Promise<any> {
+export async function fetchAlprCamerasGeoJSON(bbox?: AlprBbox): Promise<any> {
+  const bboxFilter = bbox ? 'AND geom && ST_MakeEnvelope($1, $2, $3, $4, 4326)' : '';
   const sql = `
     SELECT
       jsonb_build_object(
@@ -31,10 +35,11 @@ export async function fetchAlprCamerasGeoJSON(): Promise<any> {
         ), '[]'::jsonb)
       ) as geojson
     FROM app.alpr_cameras
-    WHERE geom IS NOT NULL;
+    WHERE geom IS NOT NULL
+    ${bboxFilter};
   `;
 
-  const result = await query(sql);
+  const result = bbox ? await query(sql, bbox) : await query(sql);
   return (
     result.rows[0]?.geojson || {
       type: 'FeatureCollection',

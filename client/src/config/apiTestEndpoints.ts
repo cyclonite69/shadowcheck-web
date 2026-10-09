@@ -276,7 +276,8 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   {
     category: 'Surveillance',
     label: 'ALPR Cameras (OSM)',
-    description: 'GeoJSON FeatureCollection of OpenStreetMap ALPR surveillance camera locations',
+    description:
+      'GeoJSON FeatureCollection of OpenStreetMap surveillance cameras; optional bbox=west,south,east,north',
     path: '/api/v1/surveillance/alpr-cameras',
     method: 'GET',
   },

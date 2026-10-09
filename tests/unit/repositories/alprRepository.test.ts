@@ -7,7 +7,7 @@ jest.mock('../../../server/src/config/database', () => ({
 }));
 
 describe('alprRepository — fetchAlprCamerasGeoJSON', () => {
-  let fetchAlprCamerasGeoJSON: () => Promise<any>;
+  let fetchAlprCamerasGeoJSON: (bbox?: [number, number, number, number]) => Promise<any>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -78,5 +78,17 @@ describe('alprRepository — fetchAlprCamerasGeoJSON', () => {
 
     const callArgs = mockQuery.mock.calls[0];
     expect(callArgs.length).toBe(1);
+  });
+
+  it('limits results to an optional parameterized bounding box', async () => {
+    mockQuery.mockResolvedValue({
+      rows: [{ geojson: { type: 'FeatureCollection', features: [] } }],
+    });
+    const bbox: [number, number, number, number] = [-74.05, 40.65, -73.85, 40.85];
+
+    await fetchAlprCamerasGeoJSON(bbox);
+
+    expect(mockQuery.mock.calls[0][0]).toContain('ST_MakeEnvelope($1, $2, $3, $4, 4326)');
+    expect(mockQuery.mock.calls[0][1]).toEqual(bbox);
   });
 });
