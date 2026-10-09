@@ -169,6 +169,59 @@ describe('WiGLE Enrichment Service', () => {
       expect(writeRepo.incrementRunProgress).toHaveBeenCalledWith(runId);
     });
 
+    it('does not abort after eight consecutive BSSIDs have no v3 detail', async () => {
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      const batch = Array.from({ length: 8 }, (_, index) => ({
+        bssid: `AA:BB:CC:DD:EE:${String(index).padStart(2, '0')}`,
+        type: 'W',
+      }));
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
+        .mockResolvedValueOnce(batch)
+        .mockResolvedValue([]);
+      jest.mocked(fetchAndImportDetail).mockResolvedValue(null);
+
+      await runEnrichmentLoop(runId);
+
+      expect(fetchAndImportDetail).toHaveBeenCalledTimes(8);
+      expect(writeRepo.incrementRunProgress).not.toHaveBeenCalled();
+      expect(runRepo.markRunFailure).not.toHaveBeenCalled();
+      expect(runRepo.completeRun).toHaveBeenCalledWith(runId);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('WiGLE has no v3 detail for AA:BB:CC:DD:EE:00')
+      );
+    });
+
+    it('continues after six no-hits and increments progress for a later hit', async () => {
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      const noHitBatch = Array.from({ length: 6 }, (_, index) => ({
+        bssid: `AA:BB:CC:DD:EE:${String(index).padStart(2, '0')}`,
+        type: 'W',
+      }));
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
+        .mockResolvedValueOnce([...noHitBatch, { bssid: 'AA:BB:CC:DD:EE:99', type: 'W' }])
+        .mockResolvedValue([]);
+      jest
+        .mocked(fetchAndImportDetail)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ bssid: 'AA:BB:CC:DD:EE:99', obsCount: 1 });
+
+      await runEnrichmentLoop(runId);
+
+      expect(fetchAndImportDetail).toHaveBeenCalledTimes(7);
+      expect(writeRepo.incrementRunProgress).toHaveBeenCalledTimes(1);
+      expect(writeRepo.incrementRunProgress).toHaveBeenCalledWith(runId);
+      expect(runRepo.markRunFailure).not.toHaveBeenCalled();
+    });
+
     it('fetches all remaining targeted BSSIDs in one batch (up to manual limit)', async () => {
       const manual = ['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02', 'AA:BB:CC:DD:EE:03'];
       jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
@@ -200,6 +253,25 @@ describe('WiGLE Enrichment Service', () => {
       jest
         .mocked(fetchAndImportDetail)
         .mockRejectedValue(new Error('WiGLE has no v3 detail for FA:D0:0E:A3:42:21'));
+
+      await runEnrichmentLoop(runId, ['FA:D0:0E:A3:42:21']);
+
+      expect(writeRepo.incrementRunProgress).not.toHaveBeenCalled();
+      expect(runRepo.markRunFailure).toHaveBeenCalledWith(
+        runId,
+        'WiGLE has no v3 detail for FA:D0:0E:A3:42:21'
+      );
+      expect(runRepo.completeRun).not.toHaveBeenCalled();
+    });
+
+    it('should mark manual run failed when every targeted BSSID has no v3 detail', async () => {
+      jest.mocked(runRepo.getImportRun).mockResolvedValue(makeImportRun());
+      jest.mocked(readRepo.getRunStatus).mockResolvedValue('running');
+      jest
+        .mocked(readRepo.getNextEnrichmentBatch)
+        .mockResolvedValueOnce([{ bssid: 'FA:D0:0E:A3:42:21', type: 'W' }])
+        .mockResolvedValue([]);
+      jest.mocked(fetchAndImportDetail).mockResolvedValue(null);
 
       await runEnrichmentLoop(runId, ['FA:D0:0E:A3:42:21']);
 

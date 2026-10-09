@@ -10,8 +10,8 @@ import { normalizeMacAddress } from './wigleEnrichment/mappers/enrichmentMapper'
 
 /**
  * Fetch v3 detail for a single BSSID from the WiGLE API and import it into the DB.
- * Returns null if the network was not found (404).
- * Throws on API errors or credential issues.
+ * Returns null only when the network was not found (404).
+ * Throws on API errors, credential issues, or a successful response without a network ID.
  */
 export async function fetchAndImportDetail(
   bssid: string,
@@ -35,7 +35,7 @@ export async function fetchAndImportDetail(
   }
 
   if (!result.data?.networkId && !result.cached && !result.deduplicated) {
-    return null;
+    throw new Error(`WiGLE detail response missing networkId for ${netid}`);
   }
 
   return {

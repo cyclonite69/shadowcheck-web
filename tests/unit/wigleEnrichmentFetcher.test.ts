@@ -35,6 +35,19 @@ describe('wigleEnrichmentFetcher', () => {
     expect(fetchOrImportDetail).toHaveBeenCalledWith(bssid, 'wifi', true, 'enrichment');
   });
 
+  it('throws when a successful detail response has no networkId', async () => {
+    (fetchOrImportDetail as jest.Mock).mockResolvedValue({
+      ok: true,
+      data: { success: false },
+      cached: false,
+      deduplicated: false,
+    });
+
+    await expect(fetchAndImportDetail(bssid, type)).rejects.toThrow(
+      `WiGLE detail response missing networkId for ${bssid}`
+    );
+  });
+
   it('throws on non-404 API failures', async () => {
     (fetchOrImportDetail as jest.Mock).mockResolvedValue({
       ok: false,
