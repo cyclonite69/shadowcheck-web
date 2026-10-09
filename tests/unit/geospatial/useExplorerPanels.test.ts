@@ -5,13 +5,16 @@ jest.mock('react', () => ({
   useState: (initial: any) => {
     const key = stateCallIndex++;
     if (!(key in stateMap)) {
-      stateMap[key] = initial;
+      stateMap[key] = typeof initial === 'function' ? initial() : initial;
     }
     const setter = (val: any) => {
       stateMap[key] = typeof val === 'function' ? val(stateMap[key]) : val;
     };
     return [stateMap[key], setter];
   },
+  useCallback: (callback: any) => callback,
+  useEffect: jest.fn(),
+  useMemo: (factory: any) => factory(),
 }));
 
 import { useExplorerPanels } from '../../../client/src/components/geospatial/hooks/useExplorerPanels';
@@ -49,5 +52,19 @@ describe('useExplorerPanels hook', () => {
     stateCallIndex = 0;
     const result3 = useExplorerPanels();
     expect(result3.showAlprCameras).toBe(false);
+  });
+
+  it('exposes WiGLE result layers and layer-order controls in the shared state', () => {
+    const result = useExplorerPanels();
+
+    expect(result.showWigleV2).toBe(false);
+    expect(result.mapLayerOptions.map((option: any) => option.label)).toContain(
+      'WiGLE v2 networks'
+    );
+    result.toggleWigleV2();
+
+    stateCallIndex = 0;
+    const updated = useExplorerPanels();
+    expect(updated.showWigleV2).toBe(true);
   });
 });

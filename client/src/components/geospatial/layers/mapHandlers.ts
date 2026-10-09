@@ -1,0 +1,272 @@
+import type { Map, GeoJSONSource } from 'mapbox-gl';
+import type * as mapboxglType from 'mapbox-gl';
+import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
+import {
+  getWiglePageNetwork,
+  type WiglePageNetworkResponse,
+  wigleApi,
+} from '../../../api/wigleApi';
+import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
+import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
+import {
+  setupPopupDrag,
+  cleanupPopupDrag,
+  type PopupDragState,
+} from '../../../utils/geospatial/setupPopupDrag';
+
+export const attachClickHandlers = (
+  map: Map,
+  mapboxgl: typeof mapboxglType,
+  wigleHandlersAttachedRef: React.MutableRefObject<boolean>
+) => {
+  if (wigleHandlersAttachedRef.current) {
+    return;
+  }
+
+  const handleUnclustered = (e: any) => {
+    const feature = e.features && e.features[0];
+    const props = feature?.properties;
+    if (!props || !e.lngLat) {
+      return;
+    }
+
+    const netid = String(props.netid || props.bssid || '');
+
+    const featureData: Record<string, any> = {
+      ...(props as Record<string, any>),
+      netid: String(props.netid || props.bssid || ''),
+      bssid: String(props.bssid || props.netid || ''),
+      trilat: props.trilat ?? props.latitude ?? e.lngLat.lat,
+      trilong: props.trilong ?? props.trilon ?? props.longitude ?? e.lngLat.lng,
+      wigle_source: props.wigle_source === 'wigle-v3' ? 'wigle-v3' : 'wigle-v2',
+    };
+
+    const initialNormalized = normalizeTooltipData(featureData, [e.lngLat.lng, e.lngLat.lat]);
+    const initialHTML = renderNetworkTooltip(initialNormalized);
+
+    const anchor = getPopupAnchor(map, e.lngLat, initialHTML);
+    const popup = new mapboxgl.Popup({
+      anchor,
+      offset: 15,
+      className: 'sc-popup',
+      maxWidth: 'min(340px, 90vw)',
+      focusAfterOpen: false,
+      closeOnClick: true,
+      closeButton: false,
+    })
+      .setLngLat(e.lngLat)
+      .setHTML(initialHTML)
+      .addTo(map);
+
+    if (netid) {
+      void getWiglePageNetwork(netid)
+        .then((pageResponse: WiglePageNetworkResponse) => {
+          if (!popup.isOpen() || !pageResponse) {
+            return;
+          }
+
+          const { wigle, localLinkage } = pageResponse;
+
+          // Build merged object: WiGLE-truth fields from structured `wigle` section only.
+          // Local linkage maps to the existing flat fields the normalizer already reads.
+          const mergedData: Record<string, any> = {
+            ...featureData,
+            bssid: wigle.bssid,
+            netid: wigle.bssid,
+            ssid: wigle.ssid,
+            name: wigle.name,
+            type: wigle.type,
+            encryption: wigle.encryption,
+            capabilities: wigle.encryption,
+            channel: wigle.channel,
+            frequency: wigle.frequency,
+            comment: wigle.comment,
+            wigle_source: wigle.wigle_source,
+            wigle_v2_firsttime: wigle.wigle_v2_firsttime,
+            wigle_v2_lasttime: wigle.wigle_v2_lasttime,
+            wigle_v2_lastupdt: wigle.wigle_v2_lastupdt,
+            // New v3 temporal fields for obs-count display
+            wigle_v3_first_seen: wigle.wigle_v3_first_seen,
+            wigle_v3_last_seen: wigle.wigle_v3_last_seen,
+            wigle_v3_observation_count: wigle.wigle_v3_observation_count,
+            // Derive timespan_days from v3 first/last when both are present
+            timespan_days: (() => {
+              const f = wigle.wigle_v3_first_seen;
+              const l = wigle.wigle_v3_last_seen;
+              if (!f || !l) {
+                return null;
+              }
+              const ms = new Date(l).getTime() - new Date(f).getTime();
+              return ms > 0 ? Math.round(ms / 86_400_000) : null;
+            })(),
+            // WiGLE data quality score (0–7 scale, normalizer maps to 0–1)
+            qos: wigle.qos,
+            // Chosen display coordinate
+            display_lat: wigle.display_lat,
+            display_lon: wigle.display_lon,
+            display_coordinate_source: wigle.display_coordinate_source,
+            trilat: wigle.display_lat ?? featureData.trilat,
+            trilong: wigle.display_lon ?? featureData.trilong,
+            // v2 location fields
+            city: wigle.wigle_v2_city,
+            region: wigle.wigle_v2_region,
+            road: wigle.wigle_v2_road,
+            housenumber: wigle.wigle_v2_housenumber,
+            // OUI-enriched manufacturer
+            manufacturer: wigle.manufacturer,
+            // Public-pattern signals
+            public_nonstationary_flag: wigle.public_nonstationary_flag,
+            public_ssid_variant_flag: wigle.public_ssid_variant_flag,
+            wigle_precision_warning: wigle.wigle_precision_warning,
+            // Most-recent WiGLE observation detail
+            recent_ssid: (wigle.recent_ssid as string | null) ?? null,
+            recent_channel: (wigle.recent_channel as number | null) ?? null,
+            recent_frequency: (wigle.recent_frequency as number | null) ?? null,
+            recent_accuracy: (wigle.recent_accuracy as number | null) ?? null,
+            geocoded_address: (wigle.geocoded_address as string | null) ?? null,
+            // Local linkage — ONLY these fields from local data
+            wigle_match: localLinkage.has_local_match,
+            local_observations: localLinkage.local_observation_count,
+            local_first_seen: localLinkage.local_first_seen,
+            local_last_seen: localLinkage.local_last_seen,
+          };
+
+          popup.setHTML(renderNetworkTooltip(normalizeTooltipData(mergedData)));
+        })
+        .catch((err) => {
+          console.warn('[wigle-tooltip] enrichment fetch failed', err);
+        });
+    }
+
+    // Setup drag
+    let dragState: PopupDragState | null = null;
+
+    dragState = setupPopupDrag(popup, (_offset) => {
+      // Drag handler (tether line removed)
+    });
+
+    // Cleanup on popup close
+    const originalRemove = popup.remove.bind(popup);
+    popup.remove = function () {
+      if (dragState) {
+        cleanupPopupDrag(popup, dragState);
+      }
+      return originalRemove();
+    };
+  };
+
+  // Expose handler for Playwright E2E tests — stripped from production builds.
+  // Gate: DEV (vite dev server) OR VITE_E2E (e2e build via --mode e2e).
+  // This is a callable action, not a data object — intentionally narrower scope
+  // than __wigleMapInstance which is exposed unconditionally.
+  if (import.meta.env.DEV || import.meta.env.VITE_E2E) {
+    (window as any).__wigleHandleUnclustered = handleUnclustered;
+  }
+
+  const handleClusterClick = (sourceId: string, clusterLayerId: string) => (e: any) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
+    const clusterId = features[0]?.properties?.cluster_id;
+    const source = map.getSource(sourceId) as GeoJSONSource;
+    if (!source || clusterId === null || clusterId === undefined) {
+      return;
+    }
+    source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err || zoom === null || zoom === undefined) {
+        return;
+      }
+      map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
+    });
+  };
+
+  const handleKmlClick = (e: any) => {
+    const feature = e.features && e.features[0];
+    const props = feature?.properties;
+    if (!props || !e.lngLat) {
+      return;
+    }
+
+    const kmlProps = {
+      bssid: props.bssid,
+      ssid: props.ssid || props.name,
+      signal: props.signal_dbm,
+      time: props.observed_at,
+      channel: props.channel,
+      frequency: props.frequency,
+      source: props.source_file,
+      lat: props.latitude,
+      lon: props.longitude,
+      accuracy: props.accuracy_m,
+      network_type: props.network_type,
+      folder_name: props.folder_name,
+    };
+
+    const html = renderNetworkTooltip(
+      normalizeTooltipData(kmlProps, [props.longitude, props.latitude])
+    );
+
+    const popup = new mapboxgl.Popup({
+      anchor: getPopupAnchor(map, e.lngLat, html),
+      offset: 15,
+      className: 'sc-popup',
+      maxWidth: 'min(340px, 90vw)',
+      focusAfterOpen: false,
+      closeOnClick: true,
+      closeButton: false,
+    })
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map);
+
+    if (props.bssid) {
+      void wigleApi
+        .getKmlBssidSummary(String(props.bssid))
+        .then((data) => {
+          if (!popup.isOpen()) {
+            return;
+          }
+
+          popup.setHTML(
+            renderNetworkTooltip(
+              normalizeTooltipData(
+                {
+                  ...kmlProps,
+                  observation_count: data.observation_count,
+                  first_seen: data.first_seen,
+                  last_seen: data.last_seen,
+                  timespan_days: data.timespan_days,
+                },
+                [props.longitude, props.latitude]
+              )
+            )
+          );
+        })
+        .catch((error) => {
+          console.warn('[wigle-kml-tooltip] enrichment fetch failed', error);
+        });
+    }
+  };
+
+  map.on('click', 'wigle-v2-unclustered', handleUnclustered);
+  map.on('click', 'wigle-v3-unclustered', handleUnclustered);
+  map.on('click', 'wigle-kml-unclustered', handleKmlClick);
+  map.on('click', 'wigle-v2-clusters', handleClusterClick('wigle-v2-points', 'wigle-v2-clusters'));
+  map.on('click', 'wigle-v3-clusters', handleClusterClick('wigle-v3-points', 'wigle-v3-clusters'));
+  map.on(
+    'click',
+    'wigle-kml-clusters',
+    handleClusterClick('wigle-kml-points', 'wigle-kml-clusters')
+  );
+
+  // Crosshair cursor over clickable points so users know exactly where to click
+  const POINT_LAYERS = ['wigle-v2-unclustered', 'wigle-v3-unclustered', 'wigle-kml-unclustered'];
+  POINT_LAYERS.forEach((layerId) => {
+    map.on('mouseenter', layerId, () => {
+      map.getCanvas().style.cursor = 'crosshair';
+    });
+    map.on('mouseleave', layerId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+  });
+
+  wigleHandlersAttachedRef.current = true;
+};

@@ -16,11 +16,14 @@ scroot() {
 sclocal() {
   scroot || return 1
   local wants_api=0
+  local prune_images=0
+  local -a compose_args=()
   for arg in "$@"; do
-    if [ "$arg" = "api" ]; then
-      wants_api=1
-      break
-    fi
+    case "$arg" in
+      api) wants_api=1; compose_args+=("$arg") ;;
+      --prune) prune_images=1 ;;
+      *) compose_args+=("$arg") ;;
+    esac
   done
 
   if [ "$wants_api" -eq 1 ] && {
@@ -41,7 +44,14 @@ sclocal() {
     env_files+=(--env-file .env.local)
   fi
 
-  docker compose "${env_files[@]}" "${compose_files[@]}" up -d --build "$@"
+  docker compose "${env_files[@]}" "${compose_files[@]}" up -d --build "${compose_args[@]}" || return $?
+
+  if [ "$prune_images" -eq 1 ]; then
+    docker image prune --filter dangling=true --filter until=168h --force || {
+      echo "sclocal: local stack started, but pruning old dangling images failed." >&2
+      return 1
+    }
+  fi
 }
 
 scapi() {
@@ -92,7 +102,7 @@ export -f scsecrets
 
 echo "Local ShadowCheck aliases loaded:"
 echo "  scroot   - cd to the repo"
-echo "  sclocal  - docker compose up -d --build"
+echo "  sclocal  - docker compose up -d --build (optional: --prune old dangling images)"
 echo "  scapi    - recreate api with AWS_PROFILE/AWS_REGION/SHADOWCHECK_AWS_SECRET defaults"
 echo "  scgrafana - start local Grafana with AWS-backed Grafana secrets and grafana_reader sync"
 echo "  scps     - formatted docker ps"

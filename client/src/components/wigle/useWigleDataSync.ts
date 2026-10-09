@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { GeoJSONSource } from 'mapbox-gl';
 import { logDebug } from '../../logging/clientLogger';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
-import { updateClusterColors } from './clusterColors';
+import { updateClusterColors } from '../geospatial/layers/clusterColors';
 
 export function useWigleDataSync({
   mapRef,

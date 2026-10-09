@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { logWarn } from '../../logging/clientLogger';
-import { setPointRadius } from './mapLayers';
+import { setPointRadius } from '../geospatial/layers/mapLayers';
 import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './mapLifecycle';
 
 export function useWigleMapFeatures({

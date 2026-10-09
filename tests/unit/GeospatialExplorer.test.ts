@@ -46,6 +46,12 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useAgencyLayer');
     expect(source).toContain('useFederalCourthouses');
     expect(source).toContain('useAlprCameras');
+    expect(source).toContain('useDeflockCameras');
+    expect(source).toContain('useShotspotterZones');
+    expect(source).toContain('useShotspotterSensors');
+    expect(source).toContain('useGeospatialWigleResultLayers');
+    expect(source).toContain('useMapLayerAppearance');
+    expect(source).toContain("from './geospatial/layers/useGeospatialWigleResultLayers'");
   });
 
   test('wires the page layout and passes required state and callbacks to child components', () => {
@@ -62,6 +68,7 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('showMediaLocations={showMediaLocations}');
     expect(source).toContain('onToggleMediaLocations={setShowMediaLocations}');
     expect(mapContentSource).toContain('mediaLocationStatus={state.mediaLocationStatus}');
+    expect(mapContentSource).toContain('layerOptions={state.mapLayerOptions}');
 
     // GeospatialTableContent props
     expect(source).toContain('<GeospatialTableContent');

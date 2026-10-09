@@ -1,48 +1,6 @@
 import type { Map } from 'mapbox-gl';
-import { logDebug, logWarn } from '../../logging/clientLogger';
-
-type StyleReadyCallback = () => void;
-
-export function runWhenStyleReady(
-  map: Map,
-  reason: string,
-  callback: StyleReadyCallback
-): (() => void) | undefined {
-  const runSafely = () => {
-    try {
-      callback();
-    } catch (err) {
-      logWarn(`[WiGLE] Map overlay apply failed (${reason})`, err);
-    }
-  };
-
-  if (map.isStyleLoaded()) {
-    runSafely();
-    return undefined;
-  }
-
-  let complete = false;
-
-  const cleanup = () => {
-    map.off('style.load', runIfReady);
-    map.off('idle', runIfReady);
-  };
-
-  function runIfReady() {
-    if (complete || !map.isStyleLoaded()) {
-      return;
-    }
-    complete = true;
-    cleanup();
-    runSafely();
-  }
-
-  map.on('style.load', runIfReady);
-  map.on('idle', runIfReady);
-  logDebug(`[WiGLE] Queued map overlay apply until style is ready (${reason})`);
-
-  return cleanup;
-}
+import { logDebug } from '../../logging/clientLogger';
+export { runWhenStyleReady } from '../../utils/geospatial/runWhenStyleReady';
 
 export function apply3dBuildings(map: Map, mapStyle: string, enabled: boolean) {
   const isStandardStyle = mapStyle.includes('mapbox://styles/mapbox/standard');

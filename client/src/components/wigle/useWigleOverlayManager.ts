@@ -8,10 +8,10 @@ import {
   applyLayerVisibility,
   setPointRadius,
   updateFieldDataSource,
-} from './mapLayers';
-import { ensureKmlLayers } from './kmlLayers';
-import { attachClickHandlers } from './mapHandlers';
-import { updateAllClusterColors } from './clusterColors';
+} from '../geospatial/layers/mapLayers';
+import { ensureKmlLayers } from '../geospatial/layers/kmlLayers';
+import { attachClickHandlers } from '../geospatial/layers/mapHandlers';
+import { updateAllClusterColors } from '../geospatial/layers/clusterColors';
 import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './mapLifecycle';
 import { resetAgencyOfficeLayers, type AgencyVisibility } from '../hooks/useAgencyOffices';
 import { resetFederalCourthouseLayers } from '../hooks/useFederalCourthouses';

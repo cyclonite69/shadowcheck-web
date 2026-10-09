@@ -5,6 +5,7 @@ import { MapToolbarNav } from './MapToolbarNav';
 import { ViewControls, OverlayToggles } from './MapToolbarControls';
 import { LayersDropdown, MapStyleDropdown } from './MapToolbarDropdowns';
 import type { MediaLocationStatus } from '../hooks/useMediaLocationLayers';
+import type { GeospatialLayerOption } from '../layers/layerCatalog';
 
 interface MapStyleOption {
   value: string;
@@ -51,6 +52,7 @@ interface MapToolbarProps {
   onToggleCourthousesPanel?: () => void;
   showAlprCameras?: boolean;
   onToggleAlprCameras?: () => void;
+  layerOptions?: GeospatialLayerOption[];
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
   showMediaLocations?: boolean;
@@ -142,6 +144,7 @@ export const MapToolbar = ({
   onToggleCourthousesPanel,
   showAlprCameras,
   onToggleAlprCameras,
+  layerOptions,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
   showMediaLocations = false,
@@ -175,7 +178,8 @@ export const MapToolbar = ({
   }, []);
 
   const hasActiveLayers =
-    Boolean(showAgenciesPanel) || Boolean(showCourthousesPanel) || Boolean(showAlprCameras);
+    layerOptions?.some((option) => option.visible) ??
+    (Boolean(showAgenciesPanel) || Boolean(showCourthousesPanel) || Boolean(showAlprCameras));
   const currentStyleLabel = mapStyles.find((s) => s.value === mapStyle)?.label ?? 'Style';
 
   return (
@@ -247,12 +251,13 @@ export const MapToolbar = ({
           setLayersOpen={setLayersOpen}
           layersRef={layersRef}
           hasActiveLayers={hasActiveLayers}
-          onToggleAgenciesPanel={onToggleAgenciesPanel}
-          showAgenciesPanel={showAgenciesPanel}
-          onToggleCourthousesPanel={onToggleCourthousesPanel}
-          showCourthousesPanel={showCourthousesPanel}
-          onToggleAlprCameras={onToggleAlprCameras}
-          showAlprCameras={showAlprCameras}
+          layerOptions={layerOptions}
+          onToggleAgenciesPanel={layerOptions ? undefined : onToggleAgenciesPanel}
+          showAgenciesPanel={layerOptions ? undefined : showAgenciesPanel}
+          onToggleCourthousesPanel={layerOptions ? undefined : onToggleCourthousesPanel}
+          showCourthousesPanel={layerOptions ? undefined : showCourthousesPanel}
+          onToggleAlprCameras={layerOptions ? undefined : onToggleAlprCameras}
+          showAlprCameras={layerOptions ? undefined : showAlprCameras}
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>

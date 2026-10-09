@@ -153,6 +153,13 @@ export interface WiglePageNetworkResponse {
   };
 }
 
+export interface WigleKmlBssidSummary {
+  observation_count: number;
+  first_seen: string | null;
+  last_seen: string | null;
+  timespan_days: number | null;
+}
+
 type ApiClientError = Error & {
   status?: number;
   data?: unknown;
@@ -322,6 +329,12 @@ export const wigleApi = {
   async getKmlPoints(params: URLSearchParams): Promise<any> {
     const suffix = params.toString();
     return apiClient.get(`/wigle/kml-points${suffix ? `?${suffix}` : ''}`);
+  },
+
+  async getKmlBssidSummary(bssid: string): Promise<WigleKmlBssidSummary> {
+    return apiClient.get(
+      `/wigle/kml-bssid-summary?bssid=${encodeURIComponent(bssid.trim().toUpperCase())}`
+    );
   },
 
   async cleanupCancelledCluster(): Promise<any> {

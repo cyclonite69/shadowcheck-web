@@ -6,6 +6,7 @@ import { LocationSearchResult } from '../hooks/useLocationSearch';
 import type { MapStyleOption } from '../../../constants/network';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
 import type { MediaLocationStatus } from '../hooks/useMediaLocationLayers';
+import type { GeospatialLayerOption } from '../layers/layerCatalog';
 
 interface MapToolbarActionsProps {
   locationSearchRef: React.RefObject<HTMLDivElement | null>;
@@ -53,6 +54,7 @@ interface MapToolbarActionsProps {
   // ALPR cameras
   showAlprCameras?: boolean;
   onToggleAlprCameras?: () => void;
+  layerOptions?: GeospatialLayerOption[];
   // Network summaries
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
@@ -103,6 +105,7 @@ export const MapToolbarActions = ({
   onToggleCourthousesPanel,
   showAlprCameras,
   onToggleAlprCameras,
+  layerOptions,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
   showMediaLocations = false,
@@ -194,6 +197,7 @@ export const MapToolbarActions = ({
       onToggleCourthousesPanel={onToggleCourthousesPanel}
       showAlprCameras={showAlprCameras}
       onToggleAlprCameras={onToggleAlprCameras}
+      layerOptions={layerOptions}
       showNetworkSummaries={showNetworkSummaries}
       onToggleNetworkSummaries={onToggleNetworkSummaries}
       showMediaLocations={showMediaLocations}

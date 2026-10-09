@@ -15,6 +15,8 @@ interface GeospatialMapContentProps {
   onToggleNetworkSummaries?: (value: boolean) => void;
   showMediaLocations?: boolean;
   onToggleMediaLocations?: (value: boolean) => void;
+  layerError?: string | null;
+  layerLoading?: boolean;
 }
 
 const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
@@ -27,12 +29,30 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
   onToggleNetworkSummaries,
   showMediaLocations = false,
   onToggleMediaLocations,
+  layerError,
+  layerLoading = false,
 }) => {
   const pinDropActive = usePinDropStore((s) => s.active);
   const cancelPinDrop = usePinDropStore((s) => s.cancel);
 
   return (
     <div style={{ position: 'relative' }}>
+      {layerError && (
+        <div
+          role="alert"
+          className="absolute left-1/2 top-14 z-50 -translate-x-1/2 rounded-lg border border-red-500/30 bg-red-950/90 px-4 py-2 text-sm text-red-200 shadow-lg"
+        >
+          {layerError}
+        </div>
+      )}
+      {!layerError && layerLoading && (
+        <div
+          role="status"
+          className="absolute left-1/2 top-14 z-50 -translate-x-1/2 rounded-lg border border-slate-500/30 bg-slate-950/90 px-4 py-2 text-sm text-slate-300 shadow-lg"
+        >
+          Loading enabled WiGLE map layers…
+        </div>
+      )}
       {pinDropActive && (
         <div
           style={{
@@ -118,6 +138,7 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
             showCourthousesPanel={state.showCourthousesPanel}
             onToggleAlprCameras={state.toggleAlprCameras}
             showAlprCameras={state.showAlprCameras}
+            layerOptions={state.mapLayerOptions}
             canWigle={selectedNetworks.size > 0}
             wigleLoading={wigleObservations.loading}
             wigleActive={(wigleObservations?.observations?.length ?? 0) > 0}

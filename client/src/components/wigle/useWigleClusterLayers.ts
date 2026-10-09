@@ -3,8 +3,13 @@ import type { Map, GeoJSONSource } from 'mapbox-gl';
 import { resetAgencyOfficeLayers } from '../hooks/useAgencyOffices';
 import type { AgencyVisibility } from '../hooks/useAgencyOffices';
 import { resetFederalCourthouseLayers } from '../hooks/useFederalCourthouses';
-import { resetKmlLayers } from './kmlLayers';
-import { resetV2Layers, resetV3Layers, resetFieldDataLayers, FIELD_DATA_SOURCE } from './mapLayers';
+import { resetKmlLayers } from '../geospatial/layers/kmlLayers';
+import {
+  resetV2Layers,
+  resetV3Layers,
+  resetFieldDataLayers,
+  FIELD_DATA_SOURCE,
+} from '../geospatial/layers/mapLayers';
 import { runWhenStyleReady } from './mapLifecycle';
 
 interface UseWigleClusterLayersProps {

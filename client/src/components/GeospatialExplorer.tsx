@@ -15,10 +15,16 @@ import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExpl
 import { useAgencyLayer } from '../hooks/useAgencyLayer';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useAlprCameras } from './hooks/useAlprCameras';
+import { useDeflockCameras } from './hooks/useDeflockCameras';
+import { useShotspotterZones } from './hooks/useShotspotterZones';
+import { useShotspotterSensors } from './hooks/useShotspotterSensors';
+import { useAgencyOffices } from './hooks/useAgencyOffices';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
 import { GeospatialOverlayContent } from './geospatial/overlays/GeospatialOverlayContent';
 import { MapRadiusContextMenu } from './geospatial/MapRadiusContextMenu';
+import { useGeospatialWigleResultLayers } from './geospatial/layers/useGeospatialWigleResultLayers';
+import { useMapLayerAppearance } from './geospatial/hooks/useMapLayerAppearance';
 
 export default function GeospatialExplorer() {
   usePageFilters('geospatial');
@@ -159,19 +165,91 @@ export default function GeospatialExplorer() {
     showAgenciesPanel: state.showAgenciesPanel,
   });
 
-  useFederalCourthouses(
+  const { data: federalCourthouseData, error: federalCourthouseError } = useFederalCourthouses(
     state.mapRef,
     state.mapReady,
     state.showCourthousesPanel,
     state.mapboxRef,
     false,
-    courthouses
+    undefined
   );
 
   // Clustering is enabled (true) because OSM ALPR cameras can number in the thousands
   // across a metropolitan area or state; clustering preserves 60fps WebGL rendering performance
   // and prevents visual saturation until the user zooms into street level.
-  useAlprCameras(state.mapRef, state.mapReady, state.showAlprCameras, state.mapboxRef, true);
+  const { data: alprData, error: alprError } = useAlprCameras(
+    state.mapRef,
+    state.mapReady,
+    state.showAlprCameras,
+    state.mapboxRef,
+    true
+  );
+
+  const { data: agencyOfficeData, error: agencyOfficeError } = useAgencyOffices(
+    state.mapRef,
+    state.mapReady,
+    { fieldOffices: state.showAgencyOffices, residentAgencies: state.showAgencyOffices },
+    state.mapboxRef,
+    true
+  );
+  const { data: deflockData, error: deflockError } = useDeflockCameras(
+    state.mapRef,
+    state.mapReady,
+    state.showDeflockCameras,
+    state.mapboxRef,
+    true
+  );
+  const { data: shotspotterZoneData, error: shotspotterZoneError } = useShotspotterZones(
+    state.mapRef,
+    state.mapReady,
+    state.showShotspotterZones,
+    state.mapboxRef,
+    true
+  );
+  const { data: shotspotterSensorData, error: shotspotterSensorError } = useShotspotterSensors(
+    state.mapRef,
+    state.mapReady,
+    state.showShotspotterSensors,
+    state.mapboxRef
+  );
+  const wigleResultLayers = useGeospatialWigleResultLayers({
+    mapRef: state.mapRef,
+    mapboxRef: state.mapboxRef,
+    mapReady: state.mapReady,
+    visible: {
+      v2: state.showWigleV2,
+      v3: state.showWigleV3,
+      kml: state.showWigleKml,
+      fieldObservations: state.showFieldObservations,
+    },
+  });
+  const layerError = [
+    wigleResultLayers.error && `WiGLE results: ${wigleResultLayers.error}`,
+    agencyOfficeError && `Agency offices: ${agencyOfficeError}`,
+    federalCourthouseError && `Federal courthouses: ${federalCourthouseError}`,
+    alprError && `ALPR cameras: ${alprError}`,
+    deflockError && `DeFlock cameras: ${deflockError}`,
+    shotspotterZoneError && `ShotSpotter zones: ${shotspotterZoneError}`,
+    shotspotterSensorError && `ShotSpotter sensors: ${shotspotterSensorError}`,
+  ]
+    .filter(Boolean)
+    .join('; ');
+
+  useMapLayerAppearance({
+    mapRef: state.mapRef,
+    mapReady: state.mapReady,
+    opacity: state.mapLayerOpacity,
+    order: state.mapLayerOrder,
+    revision: [
+      agencyOfficeData?.features.length,
+      federalCourthouseData?.features.length,
+      alprData?.features.length,
+      deflockData?.features.length,
+      shotspotterZoneData?.features.length,
+      shotspotterSensorData?.features.length,
+      wigleResultLayers.featureCount,
+    ].join(':'),
+  });
 
   return (
     <GeospatialLayout
@@ -190,6 +268,8 @@ export default function GeospatialExplorer() {
             onToggleNetworkSummaries={setShowNetworkSummaries}
             showMediaLocations={showMediaLocations}
             onToggleMediaLocations={setShowMediaLocations}
+            layerError={layerError || null}
+            layerLoading={wigleResultLayers.loading}
           />
           <GeospatialTableContent
             badgeStudioEnabled={badgeStudioEnabled}
