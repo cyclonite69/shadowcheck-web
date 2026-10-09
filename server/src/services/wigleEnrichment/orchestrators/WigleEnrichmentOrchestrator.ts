@@ -194,10 +194,18 @@ export class WigleEnrichmentOrchestrator {
 
     try {
       const result = await this.deps.fetchAndImportDetail(item.bssid, item.type);
-      if (result === null) {
-        throw new Error(`WiGLE has no v3 detail for ${item.bssid}`);
-      }
       const normalizedBssid = item.bssid.toUpperCase();
+      if (result === null) {
+        const message = `WiGLE has no v3 detail for ${item.bssid}`;
+        attempted.add(normalizedBssid);
+        state.setLastFailureMessage(message);
+        state.setConsecutiveErrors(0);
+        logger.info(`[v3 Enrichment] ${message}`);
+        if (process.env.NODE_ENV !== 'test') {
+          await this.deps.sleep(this.deps.delayMs);
+        }
+        return false;
+      }
       attempted.add(normalizedBssid);
       succeeded.add(normalizedBssid);
       state.setConsecutiveErrors(0);
